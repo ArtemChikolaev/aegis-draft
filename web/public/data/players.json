@@ -1,6 +1,110 @@
 {
-  "84330566": {
-    "accountId": 84330566,
+  "100058342": {
+    "accountId": 100058342,
+    "nickname": "skiter",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 8
+      }
+    ]
+  },
+  "100471531": {
+    "accountId": 100471531,
+    "nickname": "J",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 8
+      }
+    ]
+  },
+  "100594231": {
+    "accountId": 100594231,
+    "nickname": "skem",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 2586976,
+        "teamName": "OG",
+        "games": 8
+      }
+    ]
+  },
+  "101356886": {
+    "accountId": 101356886,
+    "nickname": "GH",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10136357,
+        "teamName": "Nigma Galaxy ",
+        "games": 8
+      }
+    ]
+  },
+  "101695162": {
+    "accountId": 101695162,
+    "nickname": "fy",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "1026694469": {
+    "accountId": 1026694469,
+    "nickname": "TaiLung",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 10150538,
+        "teamName": "LGD Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "1031547092": {
+    "accountId": 1031547092,
+    "nickname": "Elmisho",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10182309,
+        "games": 8
+      }
+    ]
+  },
+  "10366616": {
+    "accountId": 10366616,
     "nickname": "Sneyking",
     "primaryRole": "support",
     "rolesPlayed": [
@@ -8,45 +112,14 @@
     ],
     "teams": [
       {
-        "teamId": 8687717,
-        "teamName": "Tundra Esports",
-        "games": 45
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 8
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 87,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 45
-      }
-    }
+    ]
   },
-  "84599582": {
-    "accountId": 84599582,
-    "nickname": "Insania",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 2163,
-        "teamName": "Team Liquid",
-        "games": 51
-      }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 85,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 41
-      }
-    }
-  },
-  "87012746": {
-    "accountId": 87012746,
+  "103735745": {
+    "accountId": 103735745,
     "nickname": "Saksa",
     "primaryRole": "support",
     "rolesPlayed": [
@@ -54,160 +127,325 @@
     ],
     "teams": [
       {
-        "teamId": 8687717,
-        "teamName": "Tundra Esports",
-        "games": 45
+        "teamId": 9823272,
+        "teamName": "Team Yandex",
+        "games": 8
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 86,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 53
-      }
-    }
+    ]
   },
-  "87177591": {
-    "accountId": 87177591,
-    "nickname": "Cr1t",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 9247354,
-        "teamName": "Team Falcons",
-        "games": 41
-      }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 86,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 52
-      }
-    }
-  },
-  "88271237": {
-    "accountId": 88271237,
-    "nickname": "33",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 2163,
-        "teamName": "Team Liquid",
-        "games": 51
-      }
-    ],
-    "peak": {
-      "offlane": {
-        "ovr": 88,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 57
-      }
-    }
-  },
-  "88472357": {
-    "accountId": 88472357,
-    "nickname": "fng",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 9247354,
-        "teamName": "Team Falcons",
-        "games": 41
-      }
-    ],
-    "peak": {
-      "offlane": {
-        "ovr": 87,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 50
-      }
-    }
-  },
-  "94296097": {
-    "accountId": 94296097,
-    "nickname": "Ws",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 9247354,
-        "teamName": "Team Falcons",
-        "games": 41
-      }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 86,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 59
-      }
-    }
-  },
-  "111620041": {
-    "accountId": 111620041,
-    "nickname": "Pure",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8687717,
-        "teamName": "Tundra Esports",
-        "games": 45
-      }
-    ],
-    "peak": {
-      "offlane": {
-        "ovr": 88,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 46
-      }
-    }
-  },
-  "114239371": {
-    "accountId": 114239371,
-    "nickname": "Ame",
+  "1044002267": {
+    "accountId": 1044002267,
+    "nickname": "Satanic",
     "primaryRole": "safelane",
     "rolesPlayed": [
       "safelane"
     ],
     "teams": [
       {
-        "teamId": 8261500,
-        "teamName": "Xtreme Gaming",
-        "games": 38
+        "teamId": 9824702,
+        "teamName": "PVISION",
+        "games": 8
       }
-    ],
-    "peak": {
-      "safelane": {
-        "ovr": 92,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 54
-      }
-    }
+    ]
   },
-  "117858647": {
-    "accountId": 117858647,
+  "105045291": {
+    "accountId": 105045291,
+    "nickname": "Thiolicor",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10150538,
+        "teamName": "LGD Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "106305042": {
+    "accountId": 106305042,
+    "nickname": "Larl",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 7119388,
+        "teamName": "Team Spirit",
+        "games": 8
+      }
+    ]
+  },
+  "106573901": {
+    "accountId": 106573901,
+    "nickname": "No[o]ne-",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9824702,
+        "teamName": "PVISION",
+        "games": 8
+      }
+    ]
+  },
+  "108958769": {
+    "accountId": 108958769,
+    "nickname": "panto",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9338413,
+        "teamName": "MOUZ",
+        "games": 8
+      }
+    ]
+  },
+  "1092267175": {
+    "accountId": 1092267175,
+    "nickname": "WoE",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9256405,
+        "games": 9
+      }
+    ]
+  },
+  "111030315": {
+    "accountId": 111030315,
+    "nickname": "KG_Zayac",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10182299,
+        "games": 9
+      }
+    ]
+  },
+  "111114687": {
+    "accountId": 111114687,
+    "nickname": "y`",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 726228,
+        "teamName": "Vici Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "111620041": {
+    "accountId": 111620041,
+    "nickname": "SumaiL-",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 10136357,
+        "teamName": "Nigma Galaxy ",
+        "games": 8
+      }
+    ]
+  },
+  "115651292": {
+    "accountId": 115651292,
+    "nickname": "Copy",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9895247,
+        "teamName": "Rune Eaters",
+        "games": 8
+      }
+    ]
+  },
+  "116585378": {
+    "accountId": 116585378,
+    "nickname": "MidOne",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9338413,
+        "teamName": "MOUZ",
+        "games": 8
+      }
+    ]
+  },
+  "1172719712": {
+    "accountId": 1172719712,
+    "nickname": "Fernans",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10019843,
+        "games": 8
+      }
+    ]
+  },
+  "117514269": {
+    "accountId": 117514269,
+    "nickname": "laise",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 10019843,
+        "games": 8
+      }
+    ]
+  },
+  "118134220": {
+    "accountId": 118134220,
+    "nickname": "Bach",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 726228,
+        "teamName": "Vici Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "118559150": {
+    "accountId": 118559150,
+    "nickname": "Varizh",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9828897,
+        "teamName": "REKONIX",
+        "games": 8
+      }
+    ]
+  },
+  "1202267677": {
+    "accountId": 1202267677,
+    "nickname": "aik",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9895247,
+        "teamName": "Rune Eaters",
+        "games": 8
+      }
+    ]
+  },
+  "123787715": {
+    "accountId": 123787715,
+    "nickname": "RESPECT",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10182299,
+        "games": 9
+      }
+    ]
+  },
+  "124801257": {
+    "accountId": 124801257,
+    "nickname": "Nightfall",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9467224,
+        "teamName": "Aurora Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "126212866": {
+    "accountId": 126212866,
+    "nickname": "Saberlight",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9895392,
+        "teamName": "Virtus.pro",
+        "games": 8
+      }
+    ]
+  },
+  "126842529": {
+    "accountId": 126842529,
+    "nickname": "Ws`",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9467224,
+        "teamName": "Aurora Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "127617979": {
+    "accountId": 127617979,
+    "nickname": "Crystallis",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane",
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9338413,
+        "teamName": "MOUZ",
+        "games": 8
+      }
+    ]
+  },
+  "129958758": {
+    "accountId": 129958758,
     "nickname": "Xxs",
     "primaryRole": "offlane",
     "rolesPlayed": [
@@ -217,181 +455,221 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 38
+        "games": 8
       }
-    ],
-    "peak": {
-      "offlane": {
-        "ovr": 89,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 49
-      }
-    }
+    ]
   },
-  "146603730": {
-    "accountId": 146603730,
-    "nickname": "Xll",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8261500,
-        "teamName": "Xtreme Gaming",
-        "games": 38
-      }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 86,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 46
-      }
-    }
-  },
-  "152392947": {
-    "accountId": 152392947,
-    "nickname": "Bzm",
+  "131303632": {
+    "accountId": 131303632,
+    "nickname": "4nalog丶01",
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid"
     ],
     "teams": [
       {
-        "teamId": 8687717,
-        "teamName": "Tundra Esports",
-        "games": 45
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 8
       }
-    ],
-    "peak": {
-      "mid": {
-        "ovr": 90,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 42
-      }
-    }
+    ]
   },
-  "152574006": {
-    "accountId": 152574006,
-    "nickname": "TORONTOTOKYO",
+  "132309493": {
+    "accountId": 132309493,
+    "nickname": "Raven",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 2586976,
+        "teamName": "OG",
+        "games": 8
+      }
+    ]
+  },
+  "136829091": {
+    "accountId": 136829091,
+    "nickname": "Whitemon",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10182357,
+        "teamName": "1w",
+        "games": 8
+      }
+    ]
+  },
+  "137129583": {
+    "accountId": 137129583,
+    "nickname": "Xm",
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid"
     ],
     "teams": [
       {
-        "teamId": 8255888,
-        "teamName": "BetBoom Team",
-        "games": 53
+        "teamId": 726228,
+        "teamName": "Vici Gaming",
+        "games": 8
       }
-    ],
-    "peak": {
-      "mid": {
-        "ovr": 88,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 41
-      }
-    }
+    ]
   },
-  "152859296": {
-    "accountId": 152859296,
-    "nickname": "tOfu",
-    "primaryRole": "support",
+  "138880576": {
+    "accountId": 138880576,
+    "nickname": "Davai",
+    "primaryRole": "offlane",
     "rolesPlayed": [
-      "support"
+      "offlane"
     ],
     "teams": [
       {
-        "teamId": 8599101,
-        "teamName": "Gaimin Gladiators",
-        "games": 43
+        "teamId": 10136357,
+        "teamName": "Nigma Galaxy ",
+        "games": 8
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 85,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 53
-      }
-    }
+    ]
   },
-  "152962063": {
-    "accountId": 152962063,
-    "nickname": "Save-",
-    "primaryRole": "support",
+  "140251702": {
+    "accountId": 140251702,
+    "nickname": "Mirage`雨",
+    "primaryRole": "mid",
     "rolesPlayed": [
-      "support"
+      "mid"
     ],
     "teams": [
       {
-        "teamId": 8255888,
-        "teamName": "BetBoom Team",
-        "games": 53
+        "teamId": 10182299,
+        "games": 9
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 84,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 53
-      }
-    }
+    ]
   },
-  "152966869": {
-    "accountId": 152966869,
-    "nickname": "Skiter",
+  "140411011": {
+    "accountId": 140411011,
+    "nickname": "jikroy",
     "primaryRole": "safelane",
     "rolesPlayed": [
       "safelane"
     ],
     "teams": [
       {
-        "teamId": 8687717,
-        "teamName": "Tundra Esports",
-        "games": 45
+        "teamId": 9828897,
+        "teamName": "REKONIX",
+        "games": 8
       }
-    ],
-    "peak": {
-      "safelane": {
-        "ovr": 91,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 52
-      }
-    }
+    ]
   },
-  "152967170": {
-    "accountId": 152967170,
-    "nickname": "Boxi",
+  "152168157": {
+    "accountId": 152168157,
+    "nickname": "OmaR",
     "primaryRole": "support",
     "rolesPlayed": [
       "support"
     ],
     "teams": [
       {
+        "teamId": 10136357,
+        "teamName": "Nigma Galaxy ",
+        "games": 8
+      }
+    ]
+  },
+  "152962063": {
+    "accountId": 152962063,
+    "nickname": "m1CKe",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 51
+        "games": 8
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 84,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 57
-      }
-    }
+    ]
   },
-  "153164013": {
-    "accountId": 153164013,
+  "154715080": {
+    "accountId": 154715080,
+    "nickname": "Abed",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9895392,
+        "teamName": "Virtus.pro",
+        "games": 8
+      }
+    ]
+  },
+  "154974246": {
+    "accountId": 154974246,
+    "nickname": "RCY",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9964962,
+        "teamName": "GamerLegion",
+        "games": 8
+      }
+    ]
+  },
+  "155447692": {
+    "accountId": 155447692,
+    "nickname": "dalul",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9828897,
+        "teamName": "REKONIX",
+        "games": 8
+      }
+    ]
+  },
+  "155494381": {
+    "accountId": 155494381,
+    "nickname": "TIMS",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 2586976,
+        "teamName": "OG",
+        "games": 8
+      }
+    ]
+  },
+  "156328257": {
+    "accountId": 156328257,
+    "nickname": "Fbz",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9828897,
+        "teamName": "REKONIX",
+        "games": 8
+      }
+    ]
+  },
+  "157475523": {
+    "accountId": 157475523,
     "nickname": "XinQ",
     "primaryRole": "support",
     "rolesPlayed": [
@@ -399,92 +677,105 @@
     ],
     "teams": [
       {
-        "teamId": 8261500,
-        "teamName": "Xtreme Gaming",
-        "games": 38
+        "teamId": 726228,
+        "teamName": "Vici Gaming",
+        "games": 8
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 87,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 58
-      }
-    }
+    ]
   },
-  "156909578": {
-    "accountId": 156909578,
-    "nickname": "dyrachyo",
-    "primaryRole": "safelane",
+  "157989498": {
+    "accountId": 157989498,
+    "nickname": "Scofield",
+    "primaryRole": "support",
     "rolesPlayed": [
-      "safelane"
+      "support"
     ],
     "teams": [
       {
-        "teamId": 8599101,
-        "teamName": "Gaimin Gladiators",
-        "games": 43
+        "teamId": 10182309,
+        "games": 8
       }
-    ],
-    "peak": {
-      "safelane": {
-        "ovr": 91,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 57
-      }
-    }
+    ]
   },
-  "165564334": {
-    "accountId": 165564334,
-    "nickname": "micKe",
-    "primaryRole": "safelane",
+  "160119017": {
+    "accountId": 160119017,
+    "nickname": "Fayde",
+    "primaryRole": "offlane",
     "rolesPlayed": [
-      "safelane"
+      "offlane",
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9964962,
+        "teamName": "GamerLegion",
+        "games": 8
+      }
+    ]
+  },
+  "164199202": {
+    "accountId": 164199202,
+    "nickname": "9Class",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9824702,
+        "teamName": "PVISION",
+        "games": 8
+      }
+    ]
+  },
+  "16497807": {
+    "accountId": 16497807,
+    "nickname": "tOfu",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
     ],
     "teams": [
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 51
+        "games": 8
       }
-    ],
-    "peak": {
-      "safelane": {
-        "ovr": 89,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 51
-      }
-    }
+    ]
   },
-  "174308280": {
-    "accountId": 174308280,
-    "nickname": "Quinn",
-    "primaryRole": "mid",
+  "165564598": {
+    "accountId": 165564598,
+    "nickname": "MieRo",
+    "primaryRole": "offlane",
     "rolesPlayed": [
-      "mid"
+      "offlane"
     ],
     "teams": [
       {
-        "teamId": 8599101,
-        "teamName": "Gaimin Gladiators",
-        "games": 43
+        "teamId": 8255888,
+        "teamName": "BoomBoys",
+        "games": 8
       }
-    ],
-    "peak": {
-      "mid": {
-        "ovr": 90,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 46
-      }
-    }
+    ]
   },
-  "200029254": {
-    "accountId": 200029254,
-    "nickname": "Nightfall",
+  "171262902": {
+    "accountId": 171262902,
+    "nickname": "医者watson`",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9823272,
+        "teamName": "Team Yandex",
+        "games": 8
+      }
+    ]
+  },
+  "172099728": {
+    "accountId": 172099728,
+    "nickname": "Kiritych~",
     "primaryRole": "safelane",
     "rolesPlayed": [
       "safelane"
@@ -492,21 +783,177 @@
     "teams": [
       {
         "teamId": 8255888,
-        "teamName": "BetBoom Team",
-        "games": 53
+        "teamName": "BoomBoys",
+        "games": 8
       }
-    ],
-    "peak": {
-      "safelane": {
-        "ovr": 87,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 59
-      }
-    }
+    ]
   },
-  "202067680": {
-    "accountId": 202067680,
+  "173978074": {
+    "accountId": 173978074,
+    "nickname": "NothingToSay",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "177203952": {
+    "accountId": 177203952,
+    "nickname": "Yuma",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 10150538,
+        "teamName": "LGD Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "181716137": {
+    "accountId": 181716137,
+    "nickname": "inYourdreaM",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9828897,
+        "teamName": "REKONIX",
+        "games": 8
+      }
+    ]
+  },
+  "183719386": {
+    "accountId": 183719386,
+    "nickname": "AMMAR_THE_F",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 8
+      }
+    ]
+  },
+  "185059559": {
+    "accountId": 185059559,
+    "nickname": "Till The End",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 55,
+        "teamName": "_PowerRangers",
+        "games": 8
+      }
+    ]
+  },
+  "190826739": {
+    "accountId": 190826739,
+    "nickname": "BOOM",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane",
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9338413,
+        "teamName": "MOUZ",
+        "games": 8
+      }
+    ]
+  },
+  "191362875": {
+    "accountId": 191362875,
+    "nickname": "Speeed",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9964962,
+        "teamName": "GamerLegion",
+        "games": 8
+      }
+    ]
+  },
+  "195108598": {
+    "accountId": 195108598,
+    "nickname": "Noticed",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9824702,
+        "teamName": "PVISION",
+        "games": 8
+      }
+    ]
+  },
+  "196400041": {
+    "accountId": 196400041,
+    "nickname": "Se",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10019843,
+        "games": 8
+      }
+    ]
+  },
+  "196482746": {
+    "accountId": 196482746,
+    "nickname": "darkniA",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9256405,
+        "games": 9
+      }
+    ]
+  },
+  "196878136": {
+    "accountId": 196878136,
+    "nickname": "Kataomi`",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8255888,
+        "teamName": "BoomBoys",
+        "games": 8
+      }
+    ]
+  },
+  "201358612": {
+    "accountId": 201358612,
     "nickname": "Nisha",
     "primaryRole": "mid",
     "rolesPlayed": [
@@ -516,66 +963,130 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 51
+        "games": 8
       }
-    ],
-    "peak": {
-      "mid": {
-        "ovr": 91,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 57
-      }
-    }
+    ]
   },
-  "202956328": {
-    "accountId": 202956328,
-    "nickname": "Crystallis",
-    "primaryRole": "safelane",
+  "203351055": {
+    "accountId": 203351055,
+    "nickname": "Malik",
+    "primaryRole": "offlane",
     "rolesPlayed": [
-      "safelane"
+      "offlane"
     ],
     "teams": [
       {
-        "teamId": 9247354,
-        "teamName": "Team Falcons",
-        "games": 41
+        "teamId": 9895247,
+        "teamName": "Rune Eaters",
+        "games": 8
       }
-    ],
-    "peak": {
-      "safelane": {
-        "ovr": 88,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 53
-      }
-    }
+    ]
   },
-  "213243839": {
-    "accountId": 213243839,
-    "nickname": "Seleri",
+  "206097366": {
+    "accountId": 206097366,
+    "nickname": "queezy",
     "primaryRole": "support",
     "rolesPlayed": [
       "support"
     ],
     "teams": [
       {
-        "teamId": 8599101,
-        "teamName": "Gaimin Gladiators",
-        "games": 43
+        "teamId": 9256405,
+        "games": 9
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 86,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 51
-      }
-    }
+    ]
   },
-  "251217746": {
-    "accountId": 251217746,
+  "206642367": {
+    "accountId": 206642367,
+    "nickname": "Ghost",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9964962,
+        "teamName": "GamerLegion",
+        "games": 8
+      }
+    ]
+  },
+  "210053851": {
+    "accountId": 210053851,
+    "nickname": "lorenof",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 10136357,
+        "teamName": "Nigma Galaxy ",
+        "games": 8
+      }
+    ]
+  },
+  "218231587": {
+    "accountId": 218231587,
+    "nickname": "not_me",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 7119388,
+        "teamName": "Team Spirit",
+        "games": 8
+      }
+    ]
+  },
+  "230487729": {
+    "accountId": 230487729,
+    "nickname": "Ekki",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9895247,
+        "teamName": "Rune Eaters",
+        "games": 8
+      }
+    ]
+  },
+  "241884166": {
+    "accountId": 241884166,
+    "nickname": "Hellscream",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9895392,
+        "teamName": "Virtus.pro",
+        "games": 8
+      }
+    ]
+  },
+  "252737052": {
+    "accountId": 252737052,
+    "nickname": "Fr△nk",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 10182309,
+        "games": 8
+      }
+    ]
+  },
+  "256156323": {
+    "accountId": 256156323,
     "nickname": "Mira",
     "primaryRole": "support",
     "rolesPlayed": [
@@ -583,65 +1094,100 @@
     ],
     "teams": [
       {
-        "teamId": 8291895,
-        "teamName": "Team Spirit",
-        "games": 48
+        "teamId": 9467224,
+        "teamName": "Aurora Gaming",
+        "games": 8
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 88,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 42
-      }
-    }
+    ]
   },
-  "259630369": {
-    "accountId": 259630369,
-    "nickname": "MieRo",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8255888,
-        "teamName": "BetBoom Team",
-        "games": 53
-      }
-    ],
-    "peak": {
-      "offlane": {
-        "ovr": 86,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 51
-      }
-    }
-  },
-  "302085096": {
-    "accountId": 302085096,
-    "nickname": "Miposhka",
+  "25907144": {
+    "accountId": 25907144,
+    "nickname": "Cr1t-",
     "primaryRole": "support",
     "rolesPlayed": [
       "support"
     ],
     "teams": [
       {
-        "teamId": 8291895,
-        "teamName": "Team Spirit",
-        "games": 48
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 8
       }
+    ]
+  },
+  "262476000": {
+    "accountId": 262476000,
+    "nickname": "Stojkov",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
     ],
-    "peak": {
-      "support": {
-        "ovr": 89,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 54
+    "teams": [
+      {
+        "teamId": 10019843,
+        "games": 8
       }
-    }
+    ]
+  },
+  "292921272": {
+    "accountId": 292921272,
+    "nickname": "Wisper",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 10150538,
+        "teamName": "LGD Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "294135421": {
+    "accountId": 294135421,
+    "nickname": "Nicky`Cool",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 55,
+        "teamName": "_PowerRangers",
+        "games": 8
+      }
+    ]
+  },
+  "295697470": {
+    "accountId": 295697470,
+    "nickname": "Immersion",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 55,
+        "teamName": "_PowerRangers",
+        "games": 8
+      }
+    ]
+  },
+  "301750126": {
+    "accountId": 301750126,
+    "nickname": "Mikoto",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9467224,
+        "teamName": "Aurora Gaming",
+        "games": 8
+      }
+    ]
   },
   "302214028": {
     "accountId": 302214028,
@@ -652,23 +1198,30 @@
     ],
     "teams": [
       {
-        "teamId": 8291895,
+        "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 48
+        "games": 8
       }
-    ],
-    "peak": {
-      "offlane": {
-        "ovr": 93,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 42
-      }
-    }
+    ]
   },
-  "302241878": {
-    "accountId": 302241878,
-    "nickname": "Kataomi",
+  "312436974": {
+    "accountId": 312436974,
+    "nickname": "CHIRA_JUNIOR",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9823272,
+        "teamName": "Team Yandex",
+        "games": 8
+      }
+    ]
+  },
+  "317880638": {
+    "accountId": 317880638,
+    "nickname": "Save-",
     "primaryRole": "support",
     "rolesPlayed": [
       "support"
@@ -676,41 +1229,54 @@
     "teams": [
       {
         "teamId": 8255888,
-        "teamName": "BetBoom Team",
-        "games": 53
+        "teamName": "BoomBoys",
+        "games": 8
       }
-    ],
-    "peak": {
-      "support": {
-        "ovr": 83,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 58
-      }
-    }
+    ]
   },
-  "311360822": {
-    "accountId": 311360822,
-    "nickname": "Malr1ne",
-    "primaryRole": "mid",
+  "320017600": {
+    "accountId": 320017600,
+    "nickname": "ssnovv1",
+    "primaryRole": "safelane",
     "rolesPlayed": [
-      "mid"
+      "safelane"
     ],
     "teams": [
       {
-        "teamId": 9247354,
-        "teamName": "Team Falcons",
-        "games": 41
+        "teamId": 10182299,
+        "games": 9
       }
+    ]
+  },
+  "320219866": {
+    "accountId": 320219866,
+    "nickname": "kaori",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
     ],
-    "peak": {
-      "mid": {
-        "ovr": 90,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 41
+    "teams": [
+      {
+        "teamId": 9467224,
+        "teamName": "Aurora Gaming",
+        "games": 8
       }
-    }
+    ]
+  },
+  "320252024": {
+    "accountId": 320252024,
+    "nickname": "shiro",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 726228,
+        "teamName": "Vici Gaming",
+        "games": 8
+      }
+    ]
   },
   "321580662": {
     "accountId": 321580662,
@@ -721,87 +1287,500 @@
     ],
     "teams": [
       {
-        "teamId": 8291895,
+        "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 48
+        "games": 8
       }
-    ],
-    "peak": {
-      "safelane": {
-        "ovr": 94,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 59
-      }
-    }
+    ]
   },
-  "325573893": {
-    "accountId": 325573893,
-    "nickname": "Xm",
+  "324277900": {
+    "accountId": 324277900,
+    "nickname": "Yopaj-",
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid"
     ],
     "teams": [
       {
-        "teamId": 8261500,
-        "teamName": "Xtreme Gaming",
-        "games": 38
+        "teamId": 2586976,
+        "teamName": "OG",
+        "games": 8
       }
-    ],
-    "peak": {
-      "mid": {
-        "ovr": 91,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 49
-      }
-    }
+    ]
   },
-  "402092269": {
-    "accountId": 402092269,
-    "nickname": "Larl",
+  "331855530": {
+    "accountId": 331855530,
+    "nickname": "Pure",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 10182357,
+        "teamName": "1w",
+        "games": 8
+      }
+    ]
+  },
+  "340421206": {
+    "accountId": 340421206,
+    "nickname": "Htrd",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9256405,
+        "games": 9
+      }
+    ]
+  },
+  "346412363": {
+    "accountId": 346412363,
+    "nickname": "Ari",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10182357,
+        "teamName": "1w",
+        "games": 8
+      }
+    ]
+  },
+  "352545711": {
+    "accountId": 352545711,
+    "nickname": "DarkMago♥",
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid"
     ],
     "teams": [
       {
-        "teamId": 8291895,
-        "teamName": "Team Spirit",
-        "games": 48
+        "teamId": 10182309,
+        "games": 8
       }
-    ],
-    "peak": {
-      "mid": {
-        "ovr": 92,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 53
-      }
-    }
+    ]
   },
-  "419365356": {
-    "accountId": 419365356,
-    "nickname": "ATF",
+  "355168766": {
+    "accountId": 355168766,
+    "nickname": "Natsumi",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 2586976,
+        "teamName": "OG",
+        "games": 8
+      }
+    ]
+  },
+  "363739653": {
+    "accountId": 363739653,
+    "nickname": "alberkaaa",
     "primaryRole": "offlane",
     "rolesPlayed": [
       "offlane"
     ],
     "teams": [
       {
-        "teamId": 8599101,
-        "teamName": "Gaimin Gladiators",
-        "games": 43
+        "teamId": 55,
+        "teamName": "_PowerRangers",
+        "games": 8
       }
+    ]
+  },
+  "363758022": {
+    "accountId": 363758022,
+    "nickname": "Wits",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
     ],
-    "peak": {
-      "offlane": {
-        "ovr": 89,
-        "windowStart": "2025-01-01",
-        "windowEnd": "2025-06-30",
-        "games": 42
+    "teams": [
+      {
+        "teamId": 10182309,
+        "games": 8
       }
-    }
+    ]
+  },
+  "458287006": {
+    "accountId": 458287006,
+    "nickname": "423",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 10019843,
+        "games": 8
+      }
+    ]
+  },
+  "480412663": {
+    "accountId": 480412663,
+    "nickname": "gpk~",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 8255888,
+        "teamName": "BoomBoys",
+        "games": 8
+      }
+    ]
+  },
+  "56351509": {
+    "accountId": 56351509,
+    "nickname": "DM",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9823272,
+        "teamName": "Team Yandex",
+        "games": 8
+      }
+    ]
+  },
+  "73401082": {
+    "accountId": 73401082,
+    "nickname": "Dukalis",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9824702,
+        "teamName": "PVISION",
+        "games": 8
+      }
+    ]
+  },
+  "77490514": {
+    "accountId": 77490514,
+    "nickname": "Boxi",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 8
+      }
+    ]
+  },
+  "81306398": {
+    "accountId": 81306398,
+    "nickname": "KingJungles",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10150538,
+        "teamName": "LGD Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "81475303": {
+    "accountId": 81475303,
+    "nickname": "Yamsun",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 8
+      }
+    ]
+  },
+  "847565596": {
+    "accountId": 847565596,
+    "nickname": "rue",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 7119388,
+        "teamName": "Team Spirit",
+        "games": 8
+      }
+    ]
+  },
+  "86698277": {
+    "accountId": 86698277,
+    "nickname": "33",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 10182357,
+        "teamName": "1w",
+        "games": 8
+      }
+    ]
+  },
+  "87063175": {
+    "accountId": 87063175,
+    "nickname": "Lelis",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 8
+      }
+    ]
+  },
+  "879017980": {
+    "accountId": 879017980,
+    "nickname": "Darklord,,`",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9895247,
+        "teamName": "Rune Eaters",
+        "games": 8
+      }
+    ]
+  },
+  "898455820": {
+    "accountId": 898455820,
+    "nickname": "Malr1ne",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 8
+      }
+    ]
+  },
+  "898754153": {
+    "accountId": 898754153,
+    "nickname": "Ame",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "90423751": {
+    "accountId": 90423751,
+    "nickname": "Bignum",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support",
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9964962,
+        "teamName": "GamerLegion",
+        "games": 8
+      }
+    ]
+  },
+  "92487440": {
+    "accountId": 92487440,
+    "nickname": "Corrupted",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 10182299,
+        "games": 9
+      }
+    ]
+  },
+  "93526520": {
+    "accountId": 93526520,
+    "nickname": "bb3px",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9256405,
+        "games": 9
+      }
+    ]
+  },
+  "93618577": {
+    "accountId": 93618577,
+    "nickname": "bzm",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 10182357,
+        "teamName": "1w",
+        "games": 8
+      }
+    ]
+  },
+  "93817671": {
+    "accountId": 93817671,
+    "nickname": "Maladych",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9823272,
+        "teamName": "Team Yandex",
+        "games": 8
+      }
+    ]
+  },
+  "9403474": {
+    "accountId": 9403474,
+    "nickname": "yamich",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9338413,
+        "teamName": "MOUZ",
+        "games": 8
+      }
+    ]
+  },
+  "94155156": {
+    "accountId": 94155156,
+    "nickname": "Fly",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9895392,
+        "teamName": "Virtus.pro",
+        "games": 8
+      }
+    ]
+  },
+  "94296097": {
+    "accountId": 94296097,
+    "nickname": "xNova",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 8
+      }
+    ]
+  },
+  "96183976": {
+    "accountId": 96183976,
+    "nickname": "naive-",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 55,
+        "teamName": "_PowerRangers",
+        "games": 8
+      }
+    ]
+  },
+  "968545762": {
+    "accountId": 968545762,
+    "nickname": "rubikon155",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 8
+      }
+    ]
+  },
+  "97590558": {
+    "accountId": 97590558,
+    "nickname": "Ace ♠",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 8
+      }
+    ]
+  },
+  "97658618": {
+    "accountId": 97658618,
+    "nickname": "Timado",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9895392,
+        "teamName": "Virtus.pro",
+        "games": 8
+      }
+    ]
   }
 }

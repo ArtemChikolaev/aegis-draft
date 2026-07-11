@@ -1,21 +1,20 @@
 {
   "schemaVersion": 1,
-  "ratingModelVersion": "mock-0",
-  "builtAt": "2026-07-11T00:00:00Z",
+  "ratingModelVersion": "v1.2.0",
+  "builtAt": "2026-07-11T14:33:49Z",
   "source": {
-    "opendota": "mock dataset — not real OpenDota data",
-    "liquipedia": "mock dataset — not real Liquipedia data"
+    "opendota": "OpenDota API — https://www.opendota.com",
+    "liquipedia": "placements/призовые/ростеры — deferred (нет доступа Liquipedia)"
   },
   "formats": [
     "last_1y",
     "last_2y",
-    "last_5y",
-    "valve_legacy"
+    "last_5y"
   ],
   "counts": {
-    "events": 6,
-    "heroes": 15,
-    "packs": 22,
-    "players": 35
+    "events": 1,
+    "heroes": 127,
+    "packs": 24,
+    "players": 120
   }
 }
