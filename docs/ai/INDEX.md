@@ -11,6 +11,7 @@
 | [external-data-etl](../../.claude/skills/external-data-etl/SKILL.md) | Работа с OpenDota/Liquipedia в пайплайне — rate-limit, UA, кэш, атрибуция, id. |
 | [scoring-model](../../.claude/skills/scoring-model/SKILL.md) | Формулы рейтинга/скоринга, паки, Team OVR — зафиксированные решения PRD §5. |
 | [self-review-checklist](../../.claude/skills/self-review-checklist/SKILL.md) | Перед «готово»/PR, если трогался код/данные — мысленное ревью + скан. |
+| [reference-parity-audit](../../.claude/skills/reference-parity-audit/SKILL.md) | Живое тестирование и сравнение с 322-0/Balatro/макетом; доказательства → PRD/BACKLOG. |
 
 ## Задача → скиллы (по порядку)
 | Что делаешь | Скиллы |
@@ -22,6 +23,7 @@
 | Формула рейтинга / генерация паков / счёт | `scoring-model` (+ `data-contract` если меняется формат) → `self-review-checklist` |
 | Рефакторинг | `discovery-before-code` → `plan-first-communication` → `self-review-checklist` |
 | Багфикс | `discovery-before-code` → `self-review-checklist` |
+| «Протестируй и сравни с референсом / чего не хватает» | `reference-parity-audit` → (профильные скиллы для исправлений) → `self-review-checklist` |
 | Опечатка / одна строка | без скиллов |
 
 Не уверен — начни с `discovery-before-code`.
@@ -33,4 +35,4 @@
 - **excalidraw-diagram** — диаграммы (нужен Python/Playwright).
 
 ## Ещё не заведены (по мере надобности, Правило 4)
-`localization` (RU/EN), `analytics-events`, `platform-split`, `design-spec-fidelity` (вёрстка под 322-0) — завести, когда реально дойдём.
+`localization` (RU/EN), `analytics-events`, `platform-split`, `design-spec-fidelity` (точная вёрстка после продуктового аудита) — завести, когда реально дойдём.

@@ -1,0 +1,255 @@
+// Package aggregate derives contract-compatible raw statistics from normalized matches.
+// It does not smooth winrates; smoothing remains a client-side scoring concern.
+package aggregate
+
+import (
+	"fmt"
+	"sort"
+	"strconv"
+
+	"github.com/aegis-draft/pipeline/internal/model"
+	"github.com/aegis-draft/pipeline/internal/normalize"
+	"github.com/aegis-draft/pipeline/internal/opendota"
+)
+
+type OpenDotaResult struct {
+	MatchCount            int                              `json:"matchCount"`
+	AppearanceCount       int                              `json:"appearanceCount"`
+	Collection            *normalize.CollectionStatus      `json:"collection,omitempty"`
+	PlayerHeroStats       map[string]map[string]model.Stat `json:"playerHeroStats"`
+	CareerPlayerHeroStats map[string]map[string]model.Stat `json:"careerPlayerHeroStats"`
+	Teammates             map[string][]int                 `json:"teammates"`
+	SquadSynergy          []model.SquadPair                `json:"squadSynergy"`
+}
+
+func AddCareerPlayerHeroes(result *OpenDotaResult, accountID int, heroes []opendota.PlayerHero) error {
+	if result == nil || accountID <= 0 {
+		return fmt.Errorf("invalid career player target %d", accountID)
+	}
+	if result.CareerPlayerHeroStats == nil {
+		result.CareerPlayerHeroStats = make(map[string]map[string]model.Stat)
+	}
+	stats := make(map[string]model.Stat)
+	for _, hero := range heroes {
+		if hero.HeroID <= 0 || hero.Games < 0 || hero.Wins < 0 || hero.Wins > hero.Games {
+			return fmt.Errorf("player %d has invalid career hero row %+v", accountID, hero)
+		}
+		if hero.Games == 0 {
+			continue
+		}
+		stats[strconv.Itoa(hero.HeroID)] = model.Stat{Games: hero.Games, Winrate: float64(hero.Wins) / float64(hero.Games)}
+	}
+	result.CareerPlayerHeroStats[strconv.Itoa(accountID)] = stats
+	return nil
+}
+
+type counter struct {
+	games int
+	wins  int
+}
+
+type pairKey [2]int
+
+func FromOpenDota(snapshot *normalize.OpenDotaSnapshot) (*OpenDotaResult, error) {
+	if snapshot == nil {
+		return nil, fmt.Errorf("normalized snapshot is nil")
+	}
+	heroes := make(map[int]map[int]*counter)
+	teammates := make(map[int]map[int]struct{})
+	pairs := make(map[pairKey]*counter)
+	appearances := 0
+
+	for _, match := range snapshot.Matches {
+		teams := map[int][]normalize.NormalizedAppearance{
+			match.RadiantTeamID: {},
+			match.DireTeamID:    {},
+		}
+		for _, player := range match.Players {
+			if player.AccountID <= 0 || player.HeroID <= 0 {
+				return nil, fmt.Errorf("match %d has invalid player/hero %d/%d", match.MatchID, player.AccountID, player.HeroID)
+			}
+			if player.TeamID != match.RadiantTeamID && player.TeamID != match.DireTeamID {
+				return nil, fmt.Errorf("match %d player %d has unknown teamId %d", match.MatchID, player.AccountID, player.TeamID)
+			}
+			appearances++
+			teams[player.TeamID] = append(teams[player.TeamID], player)
+			byHero := heroes[player.AccountID]
+			if byHero == nil {
+				byHero = make(map[int]*counter)
+				heroes[player.AccountID] = byHero
+			}
+			stat := byHero[player.HeroID]
+			if stat == nil {
+				stat = &counter{}
+				byHero[player.HeroID] = stat
+			}
+			stat.games++
+			if teamWon(match, player.TeamID) {
+				stat.wins++
+			}
+			if teammates[player.AccountID] == nil {
+				teammates[player.AccountID] = make(map[int]struct{})
+			}
+		}
+
+		for teamID, roster := range teams {
+			sort.Slice(roster, func(i, j int) bool { return roster[i].AccountID < roster[j].AccountID })
+			won := teamWon(match, teamID)
+			for i := 0; i < len(roster); i++ {
+				for j := i + 1; j < len(roster); j++ {
+					a, b := roster[i].AccountID, roster[j].AccountID
+					teammates[a][b] = struct{}{}
+					teammates[b][a] = struct{}{}
+					key := pairKey{a, b}
+					stat := pairs[key]
+					if stat == nil {
+						stat = &counter{}
+						pairs[key] = stat
+					}
+					stat.games++
+					if won {
+						stat.wins++
+					}
+				}
+			}
+		}
+	}
+
+	result := &OpenDotaResult{
+		MatchCount: len(snapshot.Matches), AppearanceCount: appearances,
+		PlayerHeroStats:       make(map[string]map[string]model.Stat, len(heroes)),
+		CareerPlayerHeroStats: make(map[string]map[string]model.Stat),
+		Teammates:             make(map[string][]int, len(teammates)),
+		SquadSynergy:          make([]model.SquadPair, 0, len(pairs)),
+	}
+	for accountID, byHero := range heroes {
+		encoded := make(map[string]model.Stat, len(byHero))
+		for heroID, stat := range byHero {
+			encoded[strconv.Itoa(heroID)] = model.Stat{Games: stat.games, Winrate: winrate(stat)}
+		}
+		result.PlayerHeroStats[strconv.Itoa(accountID)] = encoded
+	}
+	for accountID, peers := range teammates {
+		ids := make([]int, 0, len(peers))
+		for peer := range peers {
+			ids = append(ids, peer)
+		}
+		sort.Ints(ids)
+		result.Teammates[strconv.Itoa(accountID)] = ids
+	}
+	for key, stat := range pairs {
+		result.SquadSynergy = append(result.SquadSynergy, model.SquadPair{
+			IDs: [2]int{key[0], key[1]}, Games: stat.games, Winrate: winrate(stat),
+		})
+	}
+	sort.Slice(result.SquadSynergy, func(i, j int) bool {
+		left, right := result.SquadSynergy[i].IDs, result.SquadSynergy[j].IDs
+		return left[0] < right[0] || (left[0] == right[0] && left[1] < right[1])
+	})
+	return result, nil
+}
+
+func Validate(result *OpenDotaResult) error {
+	if result == nil {
+		return fmt.Errorf("aggregate result is nil")
+	}
+	for accountKey, heroes := range result.PlayerHeroStats {
+		accountID, err := positiveID(accountKey)
+		if err != nil {
+			return fmt.Errorf("playerHeroStats: %w", err)
+		}
+		for heroKey, stat := range heroes {
+			if _, err := positiveID(heroKey); err != nil {
+				return fmt.Errorf("playerHeroStats[%d]: %w", accountID, err)
+			}
+			if err := validStat(stat); err != nil {
+				return fmt.Errorf("playerHeroStats[%d][%s]: %w", accountID, heroKey, err)
+			}
+		}
+	}
+	for accountKey, heroes := range result.CareerPlayerHeroStats {
+		accountID, err := positiveID(accountKey)
+		if err != nil {
+			return fmt.Errorf("careerPlayerHeroStats: %w", err)
+		}
+		for heroKey, stat := range heroes {
+			if _, err := positiveID(heroKey); err != nil {
+				return fmt.Errorf("careerPlayerHeroStats[%d]: %w", accountID, err)
+			}
+			if err := validStat(stat); err != nil {
+				return fmt.Errorf("careerPlayerHeroStats[%d][%s]: %w", accountID, heroKey, err)
+			}
+		}
+	}
+	for accountKey, peers := range result.Teammates {
+		accountID, err := positiveID(accountKey)
+		if err != nil {
+			return fmt.Errorf("teammates: %w", err)
+		}
+		for i, peer := range peers {
+			if peer <= 0 || peer == accountID {
+				return fmt.Errorf("teammates[%d] contains invalid peer %d", accountID, peer)
+			}
+			if i > 0 && peers[i-1] >= peer {
+				return fmt.Errorf("teammates[%d] is not strictly sorted/unique", accountID)
+			}
+			reverse := result.Teammates[strconv.Itoa(peer)]
+			if !containsSorted(reverse, accountID) {
+				return fmt.Errorf("teammates relation %d→%d is not symmetric", accountID, peer)
+			}
+		}
+	}
+	seenPairs := make(map[pairKey]struct{}, len(result.SquadSynergy))
+	for _, pair := range result.SquadSynergy {
+		key := pairKey(pair.IDs)
+		if key[0] <= 0 || key[0] >= key[1] {
+			return fmt.Errorf("invalid squad pair %v", pair.IDs)
+		}
+		if _, exists := seenPairs[key]; exists {
+			return fmt.Errorf("duplicate squad pair %v", pair.IDs)
+		}
+		seenPairs[key] = struct{}{}
+		if err := validStat(model.Stat{Games: pair.Games, Winrate: pair.Winrate}); err != nil {
+			return fmt.Errorf("squad pair %v: %w", pair.IDs, err)
+		}
+		if !containsSorted(result.Teammates[strconv.Itoa(key[0])], key[1]) {
+			return fmt.Errorf("squad pair %v missing from teammates", pair.IDs)
+		}
+	}
+	return nil
+}
+
+func teamWon(match normalize.NormalizedMatch, teamID int) bool {
+	return (teamID == match.RadiantTeamID && match.RadiantWin) ||
+		(teamID == match.DireTeamID && !match.RadiantWin)
+}
+
+func winrate(stat *counter) float64 {
+	if stat == nil || stat.games == 0 {
+		return 0
+	}
+	return float64(stat.wins) / float64(stat.games)
+}
+
+func positiveID(value string) (int, error) {
+	id, err := strconv.Atoi(value)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("invalid id key %q", value)
+	}
+	return id, nil
+}
+
+func validStat(stat model.Stat) error {
+	if stat.Games <= 0 {
+		return fmt.Errorf("games must be positive, got %d", stat.Games)
+	}
+	if stat.Winrate < 0 || stat.Winrate > 1 {
+		return fmt.Errorf("winrate must be in [0,1], got %f", stat.Winrate)
+	}
+	return nil
+}
+
+func containsSorted(values []int, target int) bool {
+	index := sort.SearchInts(values, target)
+	return index < len(values) && values[index] == target
+}

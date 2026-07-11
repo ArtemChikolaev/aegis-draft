@@ -25,7 +25,7 @@
 | `teammates.json` | object | `accountId` → [accountId] | `teammates.schema.json` |
 | `squadSynergy.json` | array | Сыгранность пар | `squadSynergy.schema.json` |
 | `eventHeroStats.json` | object | `eventId` → `accountId` → `heroId` → {games, winrate} | `eventHeroStats.schema.json` |
-| `teamSuccess.json` | object | Успех команд по окнам (для Mixed Draft) | `teamSuccess.schema.json` |
+| `teamSuccess.json` | object | Успех команд по окнам для Mixed Draft; сырой `games+winrate` и производный score | `teamSuccess.schema.json` |
 
 > `players.json` — новый справочник (в оригинале профиль игрока был размазан по пакам). Нужен для Mixed Draft (собрать кандидатов из разных команд) и для дедупликации id.
 
@@ -48,3 +48,5 @@
 
 ## Роли
 `role ∈ {"safelane","mid","offlane","support"}`. `support` встречается дважды на команду; два саппорт-слота взаимозаменяемы. Деление на 4/5 **не делаем** (см. PRD §5.1).
+
+`packs[].players` содержит минимум валидную пятёрку, но может включать substitutes сверх пяти. Игровой слой показывает всех кандидатов и проверяет покрытие ролей; normalize не должен молча обрезать ростер.

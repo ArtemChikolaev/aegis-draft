@@ -1,6 +1,11 @@
 ---
 name: data-contract
-description: Используй при ЛЮБОЙ правке модели данных aegis-draft — файлов schema/*.schema.json, доменных типов Go (pipeline/internal/model), TS-типов (web/src/types) или сгенерированных web/public/data/*.json. Держит единый контракт: schema = источник истины, единый accountId во всех сущностях, версия в manifest, валидация обоих концов. Активируется на изменение схемы, DTO, формата данных или добавление поля.
+description: >-
+  Используй при ЛЮБОЙ правке модели данных aegis-draft — файлов schema/*.schema.json,
+  доменных типов Go (pipeline/internal/model), TS-типов (web/src/types) или сгенерированных
+  web/public/data/*.json. Держит единый контракт: schema = источник истины, единый accountId
+  во всех сущностях, версия в manifest, валидация обоих концов. Активируется на изменение
+  схемы, DTO, формата данных или добавление поля.
 ---
 
 # Data contract — schema это источник истины
@@ -10,7 +15,7 @@ description: Используй при ЛЮБОЙ правке модели да
 ## Инварианты (не нарушать)
 1. **Единый `accountId`** (OpenDota account_id) во ВСЕХ сущностях — паки, playerHeroStats, teammates, squadSynergy, eventHeroStats, players. Никаких `steamId` в одном файле и других id в другом (это дефект оригинала, §3.8 PRD).
 2. **`heroId`** — Valve hero_id везде. **`eventId`** — строковый slug. **`teamId`** — int.
-3. **Роли:** `role ∈ {safelane, mid, offlane, support}`, support ×2, без деления 4/5 (см. [[scoring-model]]).
+3. **Роли:** `role ∈ {safelane, mid, offlane, support}`, валидная пятёрка содержит support ×2, без деления 4/5 (см. [[scoring-model]]). `packs[].players` может содержать substitutes сверх пяти — не обрезать их на normalize.
 4. **Сырые `games`/`winrate`** храним в данных; сглаживание живёт на клиенте (модель сглаживания меняется без пересборки данных).
 5. **Версии в `manifest.json`:** `schemaVersion` (формат) и `ratingModelVersion` (модель рейтингов).
 

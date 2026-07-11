@@ -28,6 +28,7 @@ and Cursor use; `.claude/skills/` stays the single source of detailed procedures
 - Rating formula / pack generation / scoring: `scoring-model` (+ `data-contract`) -> `self-review-checklist`.
 - Refactor: `discovery-before-code` -> `plan-first-communication` -> `self-review-checklist`.
 - Bugfix: `discovery-before-code` -> `self-review-checklist`.
+- Reference comparison / missing-feature audit: `reference-parity-audit` -> topic skills for fixes -> `self-review-checklist`.
 
 If unsure, start with `discovery-before-code`.
 

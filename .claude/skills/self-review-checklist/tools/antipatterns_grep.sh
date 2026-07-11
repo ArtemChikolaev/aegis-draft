@@ -27,8 +27,13 @@ scan "TS: console.log (убрать/через логгер)" --include=*.ts --i
 # Секреты в коде
 scan "Возможный секрет в коде (ключ/токен) — вынеси в env" --include=*.go --include=*.ts --include=*.tsx -e 'api[_-]?key *[:=] *"' -e 'token *[:=] *"'
 
-# Контракт данных: протечка steamId (должен быть единый accountId)
-scan "Проектная: 'steamId' в коде — контракт требует единый accountId" --include=*.go --include=*.ts --include=*.tsx -e 'steamId'
+# Контракт данных: steamId допустим только на входе стадии normalize; дальше должен быть accountId.
+steam_hits=$(grep -rnI "${EXCLUDES[@]}" --include=*.go --include=*.ts --include=*.tsx -e 'steamId' . 2>/dev/null | grep -v '^\./pipeline/internal/normalize/' || true)
+if [ -n "$steam_hits" ]; then
+  echo "⚠️  Проектная: 'steamId' вне normalize — контракт требует единый accountId"
+  echo "$steam_hits" | sed 's/^/    /'
+  hits=$((hits+1))
+fi
 
 # Роли: запрещённое деление саппортов 4/5
 scan "Проектная: деление саппортов (soft/hard support) — запрещено (PRD 5.1)" --include=*.go --include=*.ts --include=*.tsx -e 'soft_support' -e 'hard_support' -e 'semiSupport'

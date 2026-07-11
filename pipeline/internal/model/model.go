@@ -102,7 +102,8 @@ type TeamWindowSuccess struct {
 	Titles       int     `json:"titles,omitempty"`
 	TopFinishes  int     `json:"topFinishes,omitempty"`
 	PrizeUsd     int     `json:"prizeUsd,omitempty"`
-	Winrate      float64 `json:"winrate,omitempty"`
+	Games        int     `json:"games"`
+	Winrate      float64 `json:"winrate"`
 	TIPlacement  int     `json:"tiPlacement,omitempty"`
 }
 

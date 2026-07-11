@@ -81,6 +81,7 @@ export interface TeamWindowSuccess {
   titles?: number;
   topFinishes?: number;
   prizeUsd?: number;
+  games?: number;
   winrate?: number;
   tiPlacement?: number;
 }

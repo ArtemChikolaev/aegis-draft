@@ -4,8 +4,9 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { RunEngine } from "../src/game/engine.ts";
-import { poolForFormat, type RunConfig } from "../src/game/packs.ts";
-import type { GameData } from "../src/types/data.ts";
+import { ROLE_SEQUENCE, mixedPack, poolForFormat, teamPack, type RunConfig } from "../src/game/packs.ts";
+import { Rng } from "../src/game/rng.ts";
+import type { GameData, Pack, Role } from "../src/types/data.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(here, "..", "public", "data");
@@ -24,7 +25,7 @@ const round = (n: number) => Math.round(n * 100) / 100;
 const base: RunConfig = { draftStyle: "team", format: "last_2y", rerolls: 1, scoring: "event", allocation: "auto" };
 
 // --- poolForFormat ---
-assert(poolForFormat(data.packs, data.events, "last_2y").length === 4, "pool last_2y = 4 пака");
+assert(poolForFormat(data.packs, data.events, "last_2y").length === 5, "pool last_2y = 5 паков");
 assert(poolForFormat(data.packs, data.events, "valve_legacy").length === 2, "pool valve_legacy = 2 пака (только TI2024)");
 
 // --- детерминизм по сиду ---
@@ -58,13 +59,14 @@ guard = 0;
 const mixedTeamIds = new Set<number>();
 while (!mixedRun.isComplete && guard++ < 50) {
   const slot = mixedRun.currentSlotIndex;
+  assert(new Set(mixedRun.currentPack.candidates.map((c) => c.teamId)).size === 5, `Mixed: пак ${slot} содержит 5 разных команд`);
   assert(mixedRun.canPick(slot), `Mixed: слот ${slot} доступен`);
   const cand = mixedRun.currentPack.candidates[slot];
   if (cand) mixedTeamIds.add(cand.teamId);
   mixedRun.pick(slot);
 }
 assert(mixedRun.isComplete, "Mixed: ростер заполнен");
-assert(mixedTeamIds.size >= 3, `Mixed: игроки из разных команд (${mixedTeamIds.size})`);
+assert(mixedTeamIds.size >= 3, `Mixed: итог сохраняет разнообразие команд (${mixedTeamIds.size})`);
 const ms = mixedRun.score()!;
 console.log(`  Mixed OVR ${round(ms.teamOvr)} (base ${round(ms.base)} +syn ${round(ms.heroSynergy)} +chem ${round(ms.chemistry)})`);
 
@@ -77,6 +79,36 @@ const inf = new RunEngine(data, { ...base, rerolls: Infinity }, "run-inf");
 let ok = true;
 for (let i = 0; i < 20; i++) ok = ok && inf.reroll();
 assert(ok && inf.rerollsLeft === Infinity, "Easy: бесконечные рерроллы");
+
+// --- Edge cases реального датасета: subs и неполный Mixed pool ---
+const mkPack = (teamId: number, role: Role, accountId = teamId): Pack => ({
+  id: `p-${teamId}-${role}-${accountId}`,
+  eventId: "event",
+  teamId,
+  teamName: `Team ${teamId}`,
+  players: [{ accountId, nickname: `P${accountId}`, role, ovr: 80, impact: 80, economy: 80, reliability: 80, games: 10 }],
+  signatureHeroes: [teamId],
+});
+const validMixedPool = ROLE_SEQUENCE.map((role, i) => mkPack(i + 1, role));
+const strictMixed = mixedPack(validMixedPool, new Rng("strict-five"));
+assert(strictMixed.candidates.length === 5, "Mixed edge: ровно 5 кандидатов");
+assert(new Set(strictMixed.candidates.map((c) => c.teamId)).size === 5, "Mixed edge: без fallback-повторов команд");
+assert(JSON.stringify(strictMixed.candidates.map((c) => c.player.role)) === JSON.stringify(ROLE_SEQUENCE), "Mixed edge: индексы совпадают со слотами");
+
+const fourTeams = validMixedPool.map((pack, i) => i === 4 ? { ...pack, teamId: 4, teamName: "Team 4" } : pack);
+let fourTeamsFailed = false;
+try { mixedPack(fourTeams, new Rng("four-teams")); } catch { fourTeamsFailed = true; }
+assert(fourTeamsFailed, "Mixed edge: fail-fast, если нет 5 уникальных команд");
+
+let missingRoleFailed = false;
+try { mixedPack(validMixedPool.filter((pack) => pack.players[0].role !== "mid"), new Rng("missing-mid")); } catch { missingRoleFailed = true; }
+assert(missingRoleFailed, "Mixed edge: fail-fast, если отсутствует роль");
+
+const withSubstitutes: Pack = {
+  ...validMixedPool[0],
+  players: [...validMixedPool.map((pack) => pack.players[0]), { ...validMixedPool[0].players[0], accountId: 99, nickname: "Sub" }],
+};
+assert(teamPack(withSubstitutes).candidates.length === 6, "Team edge: пак сохраняет 6+ игроков с substitute");
 
 console.log(failures === 0 ? "\n🎉 движок: все проверки пройдены" : `\n💥 провалов: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);

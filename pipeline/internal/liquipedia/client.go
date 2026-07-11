@@ -1,24 +1,65 @@
-// Package liquipedia — клиент Liquipedia (скилл external-data-etl).
-// ЖЁСТКО: кастомный User-Agent с контактом (дженерик HTTP-агенты банятся),
-// ≤1 req/2s (parse ≤1/30s), кэш, gzip, атрибуция CC-BY-SA в manifest.source.
+// Package liquipedia provides an authenticated boundary for the Liquipedia API.
+// Endpoint paths and DTOs must follow the OpenAPI specification issued with access;
+// the project deliberately does not scrape public wiki HTML/MediaWiki endpoints.
 package liquipedia
 
-import "time"
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/url"
+	"path/filepath"
+	"strings"
+	"time"
 
-const APIBase = "https://liquipedia.net/dota2/api.php"
+	"github.com/aegis-draft/pipeline/internal/sourcehttp"
+)
+
+type Config struct {
+	BaseURL         string
+	AuthHeaderName  string
+	AuthHeaderValue string
+	UserAgent       string
+	CacheDir        string
+	MinInterval     time.Duration
+	HTTPClient      *http.Client
+}
 
 type Client struct {
-	userAgent   string        // ОБЯЗАТЕЛЬНО: "AegisDraft/0.1 (contact: <email>)"
-	minInterval time.Duration // ≤1 req/2s
+	authHeaderName  string
+	authHeaderValue string
+	transport       *sourcehttp.Client
 }
 
-// New требует непустой кастомный User-Agent с контактом.
-func New(userAgent string) *Client {
-	return &Client{userAgent: userAgent, minInterval: 2 * time.Second}
+func New(cfg Config) (*Client, error) {
+	if strings.TrimSpace(cfg.BaseURL) == "" {
+		return nil, errors.New("Liquipedia API base URL is required; use the URL supplied with API access")
+	}
+	if strings.TrimSpace(cfg.AuthHeaderName) == "" || strings.TrimSpace(cfg.AuthHeaderValue) == "" {
+		return nil, errors.New("Liquipedia API auth header is required; use the scheme issued with access")
+	}
+	if !strings.Contains(cfg.UserAgent, "contact:") {
+		return nil, errors.New("Liquipedia User-Agent must contain contact:<email>")
+	}
+	interval := cfg.MinInterval
+	if interval == 0 {
+		interval = time.Minute // conservative until the issued plan documents its limit
+	}
+	transport, err := sourcehttp.New(sourcehttp.Config{
+		BaseURL: cfg.BaseURL, CacheDir: filepath.Join(cfg.CacheDir, "liquipedia"),
+		UserAgent: cfg.UserAgent, MinInterval: interval,
+		MaxAttempts: 4, Backoff: time.Second, HTTPClient: cfg.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &Client{authHeaderName: cfg.AuthHeaderName, authHeaderValue: cfg.AuthHeaderValue, transport: transport}, nil
 }
 
-// FetchTournaments — заглушка (реализация на этапе T1.3): турниры/ростеры/placement.
-func (c *Client) FetchTournaments() error {
-	// TODO(T1.3): MediaWiki-запросы с UA, троттлингом, кэшем и атрибуцией. Пока скелет.
-	return nil
+// FetchJSON fetches an authorized LPDB resource. Add typed wrappers only after
+// the access-specific OpenAPI specification is available.
+func (c *Client) FetchJSON(ctx context.Context, resource string, query url.Values, out any) error {
+	headers := make(http.Header)
+	headers.Set(c.authHeaderName, c.authHeaderValue)
+	return c.transport.GetJSON(ctx, resource, query, headers, out)
 }

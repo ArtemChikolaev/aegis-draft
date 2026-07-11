@@ -1,6 +1,8 @@
 # Go
 /pipeline/aegis-build
 /pipeline/data/raw/
+/pipeline/data/normalized/
+/pipeline/data/aggregate/
 *.exe
 
 # Node / Vite
@@ -14,6 +16,7 @@ node_modules/
 # Env / secrets (ключи OpenDota, контакты Liquipedia UA)
 .env
 .env.local
+api_keys.txt
 
 # OS / editor
 .DS_Store

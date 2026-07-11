@@ -25,7 +25,7 @@ cd pipeline && go run ./cmd/build --window last_2y --out ../web/public/data
 ## Система скиллов и правил (для AI-агентов)
 Автоматическая система по образцу aifory: единый контракт `CLAUDE.md` (= `AGENTS.md`), процедуры-скиллы в `.claude/skills/` (авто-активация по `description`), хук-напоминания, зеркала для Cursor (`.cursor/rules/`) и Codex (`.codex/skills/`). Маршрутизация «задача → скилл» — [docs/ai/INDEX.md](docs/ai/INDEX.md), принципы — [docs/ai/PRINCIPLES.md](docs/ai/PRINCIPLES.md).
 - Проектные скиллы: `data-contract`, `external-data-etl`, `scoring-model`.
-- Универсальные: `discovery-before-code`, `plan-first-communication`, `self-review-checklist`.
+- Процессные: `discovery-before-code`, `plan-first-communication`, `reference-parity-audit`, `self-review-checklist`.
 
 ## Структура
 ```

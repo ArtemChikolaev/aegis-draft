@@ -1,0 +1,77 @@
+package collect
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"strings"
+	"testing"
+
+	"github.com/aegis-draft/pipeline/internal/opendota"
+)
+
+func TestOpenDotaWindowResumesFromRawCache(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		body := ""
+		switch r.URL.Path {
+		case "/proMatches":
+			if r.URL.Query().Get("less_than_match_id") == "4" {
+				body = `[{"match_id":3,"start_time":80}]`
+				break
+			}
+			body = `[{"match_id":5,"start_time":200},{"match_id":4,"start_time":190}]`
+		case "/matches/5":
+			body = `{"match_id":5}`
+		case "/matches/4":
+			body = `{"match_id":4}`
+		default:
+			return nil, fmt.Errorf("unexpected path %s", r.URL.Path)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
+	})}
+
+	cache := t.TempDir()
+	config := OpenDotaConfig{WindowStartUnix: 100, CollectDetails: true}
+	first := newClient(t, cache, 2, httpClient)
+	one, err := OpenDotaWindow(context.Background(), first, config)
+	if err != nil || !one.DiscoveryComplete || len(one.ProMatches) != 2 || len(one.Details) != 0 {
+		t.Fatalf("first=%+v err=%v", one, err)
+	}
+
+	second := newClient(t, cache, 1, httpClient)
+	two, err := OpenDotaWindow(context.Background(), second, config)
+	if err != nil || len(two.Details) != 1 || two.DetailsComplete {
+		t.Fatalf("second=%+v err=%v", two, err)
+	}
+
+	third := newClient(t, cache, 1, httpClient)
+	three, err := OpenDotaWindow(context.Background(), third, config)
+	if err != nil || len(three.Details) != 2 || !three.DetailsComplete {
+		t.Fatalf("third=%+v err=%v", three, err)
+	}
+	if stats := third.Stats(); stats.CacheHits != 3 || stats.NetworkRequests != 1 {
+		t.Fatalf("resume stats=%+v", stats)
+	}
+
+	capped := newClient(t, cache, 1, httpClient)
+	four, err := OpenDotaWindow(context.Background(), capped, OpenDotaConfig{WindowStartUnix: 100, MatchLimit: 1, CollectDetails: true})
+	if err != nil || len(four.Details) != 1 || four.DetailsComplete {
+		t.Fatalf("a capped smoke must not claim full detail completeness: result=%+v err=%v", four, err)
+	}
+}
+
+func newClient(t *testing.T, cache string, budget int, httpClient *http.Client) *opendota.Client {
+	t.Helper()
+	client, err := opendota.New(opendota.Config{
+		BaseURL: "https://example.invalid/", CacheDir: cache, MinInterval: -1, RequestBudget: budget, HTTPClient: httpClient,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return client
+}
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) { return fn(request) }

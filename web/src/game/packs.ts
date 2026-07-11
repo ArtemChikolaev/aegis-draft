@@ -65,10 +65,7 @@ export function teamPack(pack: Pack): DraftPack {
   };
 }
 
-/**
- * Mixed-пак: по одному кандидату на каждый слот ROLE_SEQUENCE, каждый — из своей команды.
- * Предпочитаем разные команды; если пул мал (мок) — допускаем повтор, но стараемся не дублировать.
- */
+/** Mixed-пак: ровно один кандидат на слот, все игроки и команды уникальны. */
 export function mixedPack(pool: Pack[], rng: Rng): DraftPack {
   const all = pool.flatMap(candidatesOf);
   const byRole = new Map<Role, Candidate[]>();
@@ -78,27 +75,40 @@ export function mixedPack(pool: Pack[], rng: Rng): DraftPack {
     byRole.set(c.player.role, arr);
   }
 
-  const usedTeams = new Set<number>();
-  const usedPlayers = new Set<number>();
-  const candidates: Candidate[] = [];
-
-  for (const role of ROLE_SEQUENCE) {
-    const options = rng.shuffle(byRole.get(role) ?? []);
-    // 1) свежая команда и игрок; 2) хотя бы свежий игрок; 3) что угодно
-    const pickBy = (pred: (c: Candidate) => boolean) => options.find(pred);
-    const chosen =
-      pickBy((c) => !usedTeams.has(c.teamId) && !usedPlayers.has(c.player.accountId)) ??
-      pickBy((c) => !usedPlayers.has(c.player.accountId)) ??
-      options[0];
-    if (chosen) {
-      usedTeams.add(chosen.teamId);
-      usedPlayers.add(chosen.player.accountId);
-      candidates.push(chosen);
-    }
+  const optionsByRole = new Map(
+    [...byRole].map(([role, candidates]) => [role, rng.shuffle(candidates)]),
+  );
+  const candidates = findMixedLineup(optionsByRole, 0, new Set(), new Set(), []);
+  if (!candidates) {
+    const counts = ROLE_SEQUENCE.map((role) => `${role}:${byRole.get(role)?.length ?? 0}`).join(", ");
+    throw new Error(`Нельзя собрать Mixed pack: нужны 5 уникальных игроков из 5 разных команд (${counts})`);
   }
 
   const signatureHeroes = [...new Set(candidates.flatMap((c) => c.signatureHeroes))];
   return { kind: "mixed", label: "Free Agents", sublabel: "5 из разных команд", candidates, signatureHeroes };
+}
+
+function findMixedLineup(
+  optionsByRole: Map<Role, Candidate[]>,
+  slot: number,
+  usedTeams: Set<number>,
+  usedPlayers: Set<number>,
+  chosen: Candidate[],
+): Candidate[] | null {
+  if (slot === ROLE_SEQUENCE.length) return [...chosen];
+  const role = ROLE_SEQUENCE[slot];
+  for (const candidate of optionsByRole.get(role) ?? []) {
+    if (usedTeams.has(candidate.teamId) || usedPlayers.has(candidate.player.accountId)) continue;
+    usedTeams.add(candidate.teamId);
+    usedPlayers.add(candidate.player.accountId);
+    chosen.push(candidate);
+    const result = findMixedLineup(optionsByRole, slot + 1, usedTeams, usedPlayers, chosen);
+    if (result) return result;
+    chosen.pop();
+    usedPlayers.delete(candidate.player.accountId);
+    usedTeams.delete(candidate.teamId);
+  }
+  return null;
 }
 
 /** Сгенерировать следующий пак под конфиг. opts.excludeTeamIds — для разнообразия Team-паков. */

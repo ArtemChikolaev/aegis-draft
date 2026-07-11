@@ -1,12 +1,12 @@
 // Command aegis-build — сборка игровых данных из внешних источников (скилл external-data-etl).
-// Секреты — из env: OPENDOTA_API_KEY, LIQUIPEDIA_CONTACT (для User-Agent).
+// Опциональный premium-секрет — из env: OPENDOTA_API_KEY. Steam API key не используется.
 //
 //	go run ./cmd/build --window last_2y --out ../web/public/data
 package main
 
 import (
+	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -18,21 +18,36 @@ func main() {
 	window := flag.String("window", "last_2y", "формат окна: last_1y|last_2y|last_5y|valve_legacy")
 	out := flag.String("out", "../web/public/data", "каталог для игровых JSON")
 	cache := flag.String("cache", "./data/raw", "каталог raw-кэша")
+	fetchOpenDota := flag.Bool("fetch-opendota", false, "разрешить OpenDota fetch в raw cache, без public emit; OPENDOTA_API_KEY опционален")
+	matchDetailLimit := flag.Int("match-detail-limit", 0, "cap details первыми N матчами; 0 = только список в простом режиме, всё окно с --collect-window")
+	collectWindow := flag.Bool("collect-window", false, "resumable-сбор полного временного окна: pagination + details + career heroes")
+	asOf := flag.String("as-of", "", "фиксированная UTC-дата окна YYYY-MM-DD (обязательна с --collect-window)")
+	maxPages := flag.Int("max-pages", 0, "ограничить число страниц /proMatches за прогон; 0 = всё окно")
+	requestBudget := flag.Int("request-budget", 100, "максимум реальных HTTP attempts за прогон; cache hits не расходуют бюджет; 0 = unlimited")
+	normalizedOut := flag.String("normalized-out", "./data/normalized/opendota.json", "промежуточный OpenDota snapshot (не public game data)")
+	aggregateOut := flag.String("aggregate-out", "./data/aggregate/opendota.json", "player×hero, teammates и squad synergy из normalized matches")
+	schemaValidator := flag.String("schema-validator", "../.claude/skills/data-contract/tools/validate_data.mjs", "путь к Node JSON Schema validator; пусто = пропустить")
+	nodeBinary := flag.String("node", "node", "Node.js binary для JSON Schema validation")
 	flag.Parse()
 
-	contact := os.Getenv("LIQUIPEDIA_CONTACT")
-	if contact == "" {
-		contact = "unset@example.com"
-	}
 	cfg := pipeline.Config{
-		Window:       model.Format(*window),
-		Out:          *out,
-		CacheDir:     *cache,
-		OpenDotaKey:  os.Getenv("OPENDOTA_API_KEY"),
-		LiquipediaUA: fmt.Sprintf("AegisDraft/0.1 (contact: %s)", contact),
+		Window:           model.Format(*window),
+		Out:              *out,
+		CacheDir:         *cache,
+		OpenDotaKey:      os.Getenv("OPENDOTA_API_KEY"),
+		FetchOpenDota:    *fetchOpenDota,
+		MatchDetailLimit: *matchDetailLimit,
+		NormalizedOut:    *normalizedOut,
+		AggregateOut:     *aggregateOut,
+		CollectWindow:    *collectWindow,
+		AsOf:             *asOf,
+		MaxPages:         *maxPages,
+		RequestBudget:    *requestBudget,
+		NodeBinary:       *nodeBinary,
+		SchemaValidator:  *schemaValidator,
 	}
 
-	if err := pipeline.Run(cfg); err != nil {
+	if err := pipeline.Run(context.Background(), cfg); err != nil {
 		log.Fatalf("pipeline: %v", err)
 	}
 }

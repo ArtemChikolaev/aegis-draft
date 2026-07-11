@@ -14,11 +14,12 @@
       "additionalProperties": false,
       "properties": {
         "successScore": { "type": "number", "minimum": 0, "maximum": 100, "description": "Свёрнутый рейтинг успеха команды за окно" },
-        "titles": { "type": "integer", "description": "Чемпионства на тир-1" },
-        "topFinishes": { "type": "integer", "description": "Топ-4 финиши" },
-        "prizeUsd": { "type": "integer" },
+        "titles": { "type": "integer", "minimum": 0, "description": "Чемпионства на тир-1" },
+        "topFinishes": { "type": "integer", "minimum": 0, "description": "Топ-4 финиши" },
+        "prizeUsd": { "type": "integer", "minimum": 0 },
+        "games": { "type": "integer", "minimum": 0, "description": "Матчи команды в окне; confidence для winrate" },
         "winrate": { "type": "number", "minimum": 0, "maximum": 1 },
-        "tiPlacement": { "type": "integer", "description": "Лучшее место на TI в окне, если было" }
+        "tiPlacement": { "type": "integer", "minimum": 1, "description": "Лучшее место на TI в окне, если было" }
       }
     }
   }

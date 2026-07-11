@@ -15,6 +15,38 @@ const packs = read("packs.json");
 const heroes = read("heroes.json");
 const heroIds = heroes.map((h) => h.id);
 
+// Mixed Draft требует 5 разных команд. Старый базовый мок содержал только 4 и
+// маскировал fallback-повтор команды. Детерминированно добавляем пятую mock-команду.
+const teamIds = new Set(packs.map((pack) => pack.teamId));
+if (teamIds.size < 5) {
+  const source = packs[0];
+  const accountOffset = 1_000_000_000;
+  packs.push({
+    ...source,
+    id: "esl-one-2024-9900001",
+    eventId: "esl-one-2024",
+    teamId: 9_900_001,
+    teamName: "Aegis Mock Five",
+    tag: "AM5",
+    players: source.players.map((player, index) => ({
+      ...player,
+      accountId: player.accountId + accountOffset,
+      nickname: `Mock${index + 1}`,
+    })),
+  });
+  write("packs.json", packs);
+  const manifest = read("manifest.json");
+  manifest.counts.packs = packs.length;
+  manifest.counts.players = packs.reduce((sum, pack) => sum + pack.players.length, 0);
+  write("manifest.json", manifest);
+}
+const mockFive = packs.find((pack) => pack.teamId === 9_900_001);
+if (mockFive && mockFive.eventId !== "esl-one-2024") {
+  mockFive.id = "esl-one-2024-9900001";
+  mockFive.eventId = "esl-one-2024";
+  write("packs.json", packs);
+}
+
 // Детерминированный хеш → [0,1)
 const rand = (n) => {
   let x = Math.sin(n) * 10000;
@@ -122,8 +154,8 @@ const teamSuccess = {};
 for (const [teamId, { players: set }] of byTeam) {
   const base = 70 + Math.floor(rand(teamId) * 25);
   teamSuccess[teamId] = {
-    last_2y: { successScore: base, titles: Math.floor(rand(teamId) * 3), topFinishes: 2 + Math.floor(rand(teamId + 1) * 4), prizeUsd: 500000 + Math.floor(rand(teamId + 2) * 3000000), winrate: wr(teamId, 3), tiPlacement: 1 + Math.floor(rand(teamId + 4) * 8) },
-    last_1y: { successScore: Math.min(99, base + 3), titles: Math.floor(rand(teamId + 5) * 2), topFinishes: 1 + Math.floor(rand(teamId + 6) * 3), prizeUsd: 200000 + Math.floor(rand(teamId + 7) * 1500000), winrate: wr(teamId + 1, 3) },
+    last_2y: { successScore: base, titles: Math.floor(rand(teamId) * 3), topFinishes: 2 + Math.floor(rand(teamId + 1) * 4), prizeUsd: 500000 + Math.floor(rand(teamId + 2) * 3000000), games: 40 + Math.floor(rand(teamId + 3) * 80), winrate: wr(teamId, 3), tiPlacement: 1 + Math.floor(rand(teamId + 4) * 8) },
+    last_1y: { successScore: Math.min(99, base + 3), titles: Math.floor(rand(teamId + 5) * 2), topFinishes: 1 + Math.floor(rand(teamId + 6) * 3), prizeUsd: 200000 + Math.floor(rand(teamId + 7) * 1500000), games: 20 + Math.floor(rand(teamId + 8) * 50), winrate: wr(teamId + 1, 3) },
   };
 }
 write("teamSuccess.json", teamSuccess);

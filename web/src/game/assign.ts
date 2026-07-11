@@ -1,6 +1,6 @@
 // Оптимальное назначение героев игрокам (скилл scoring-model: matching, НЕ жадность).
-// Точное решение задачи о назначениях: игроков всегда 5, героев в пуле немного (~5–10),
-// поэтому DP по битовой маске использованных героев — точно и быстро.
+// Точное решение задачи о назначениях: игроков всегда не больше 5, а героев может быть
+// до 50. Поэтому маска строится по игрокам (2^5), не по героям: O(H * 2^5 * 5).
 import type { PackPlayer, PlayerHeroStats } from "../types/data.ts";
 import { smoothedWinrate } from "./smoothing.ts";
 
@@ -35,33 +35,58 @@ export function bestAssignment(
   // score[i][j] = скор игрока i на герое pool[j]
   const score = players.map((p) => pool.map((h) => pairScore(p.accountId, h, phs)));
 
-  // DP: dp(i, mask) — максимум для игроков [i..n) при уже занятых героях mask.
-  const memo = new Map<string, { val: number; pick: number[] }>();
-  const solve = (i: number, mask: number): { val: number; pick: number[] } => {
-    if (i === n) return { val: 0, pick: [] };
-    const key = i + ":" + mask;
-    const cached = memo.get(key);
-    if (cached) return cached;
-    let best = { val: -Infinity, pick: [] as number[] };
-    for (let j = 0; j < H; j++) {
-      if (mask & (1 << j)) continue;
-      const rest = solve(i + 1, mask | (1 << j));
-      const val = score[i][j] + rest.val;
-      if (val > best.val) best = { val, pick: [j, ...rest.pick] };
-    }
-    // если героев не хватает — игрок остаётся без назначения (скор 0)
-    if (best.val === -Infinity) {
-      const rest = solve(i + 1, mask);
-      best = { val: rest.val, pick: [-1, ...rest.pick] };
-    }
-    memo.set(key, best);
-    return best;
-  };
+  interface State {
+    val: number;
+    /** hero index in pool for each player; -1 means unassigned. */
+    pick: number[];
+  }
 
-  const { val, pick } = solve(0, 0);
+  // Перебираем героев, состояние — множество уже назначенных игроков.
+  // Это exact max-weight matching для маленькой фиксированной стороны (players).
+  const states = 1 << n;
+  let dp: (State | undefined)[] = Array(states);
+  dp[0] = { val: 0, pick: Array(n).fill(-1) };
+  for (let j = 0; j < H; j++) {
+    const next = [...dp]; // героя можно пропустить
+    for (let mask = 0; mask < states; mask++) {
+      const state = dp[mask];
+      if (!state) continue;
+      for (let i = 0; i < n; i++) {
+        if (mask & (1 << i)) continue;
+        const nextMask = mask | (1 << i);
+        const val = state.val + score[i][j];
+        if (!next[nextMask] || val > next[nextMask]!.val) {
+          const pick = [...state.pick];
+          pick[i] = j;
+          next[nextMask] = { val, pick };
+        }
+      }
+    }
+    dp = next;
+  }
+
+  // При недостатке героев сначала максимизируем число назначений, затем score.
+  let bestMask = 0;
+  for (let mask = 1; mask < states; mask++) {
+    const candidate = dp[mask];
+    const best = dp[bestMask];
+    if (!candidate) continue;
+    const assigned = popcount(mask);
+    const bestAssigned = popcount(bestMask);
+    if (assigned > bestAssigned || (assigned === bestAssigned && (!best || candidate.val > best.val))) {
+      bestMask = mask;
+    }
+  }
+  const { val, pick } = dp[bestMask] ?? { val: 0, pick: Array(n).fill(-1) };
   const byPlayer: Record<number, number> = {};
   pick.forEach((j, i) => {
     if (j >= 0) byPlayer[players[i].accountId] = pool[j];
   });
   return { byPlayer, total: val, avg: n > 0 ? val / n : 0 };
+}
+
+function popcount(value: number): number {
+  let count = 0;
+  for (let n = value; n !== 0; n &= n - 1) count++;
+  return count;
 }

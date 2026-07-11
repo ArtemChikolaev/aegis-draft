@@ -39,6 +39,22 @@ assert(Number.isFinite(s.teamOvr), "Team OVR — конечное число");
 const greedyTotal = greedyAssign(spirit.players, spirit.signatureHeroes, phs);
 assert(s.assignment.total >= greedyTotal - 1e-9, `matching (${round(s.assignment.total)}) не хуже жадности (${round(greedyTotal)})`);
 
+// Реалистичный большой hero pool: маска должна быть по 5 игрокам, не по 40 героям.
+const largePool = Array.from({ length: 40 }, (_, i) => i + 1);
+const largeStats: PlayerHeroStats = {};
+spirit.players.forEach((player, i) => {
+  const preferred = 36 + i;
+  largeStats[String(player.accountId)] = {
+    [String(preferred)]: { games: 100, winrate: 0.9 },
+  };
+});
+const largeAssignment = bestAssignment(spirit.players, largePool, largeStats);
+assert(Object.keys(largeAssignment.byPlayer).length === 5, "matching: 5 назначений при пуле 40 героев");
+assert(new Set(Object.values(largeAssignment.byPlayer)).size === 5, "matching: уникальные герои при id > 31");
+spirit.players.forEach((player, i) => {
+  assert(largeAssignment.byPlayer[player.accountId] === 36 + i, `matching: игрок ${i + 1} получил оптимального героя >31`);
+});
+
 // --- Mixed Draft: 5 игроков из РАЗНЫХ команд, по одному на роль ---
 // PackPlayer не содержит teamId (он на паке) — тащим происхождение отдельно.
 type Sourced = { player: PackPlayer; teamId: number };

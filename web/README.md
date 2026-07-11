@@ -2,9 +2,9 @@
 
 Фронтенд Aegis Draft. Вся игровая логика счёта — на клиенте; данные грузятся статикой из `public/data/*.json` (сгенерированы пайплайном).
 
-> ⚠️ Скаффолд Vite будет добавлен на этапе реализации.
+Vite-скелет и играбельный Quick Draft уже реализованы на mock data. Актуальные gaps и следующие задачи — в [`docs/BACKLOG.md`](../docs/BACKLOG.md).
 
-## Планируемая структура
+## Структура
 
 ```
 web/
@@ -14,7 +14,7 @@ web/
 │  │  ├─ score.ts        # Base + HeroSynergy + Chemistry
 │  │  ├─ assign.ts       # венгерский алгоритм (герои→игроки)
 │  │  ├─ packs.ts        # Team Packs / Mixed Draft генерация
-│  │  └─ modes.ts        # настройки забега
+│  │  └─ engine.ts       # состояние и переходы Quick Draft
 │  ├─ state/         # Zustand store забега
 │  ├─ ui/            # экраны: старт, драфт, пентагон, итог
 │  └─ types/         # типы, сгенерированные из schema/
