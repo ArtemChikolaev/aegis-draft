@@ -44,6 +44,17 @@ scan "ETL: похоже на дженерик User-Agent — задай каст
 # TODO без owner/контекста (TODO(owner) — ок, голый TODO/TODO: — нет)
 scan "TODO без owner/контекста" --include=*.go --include=*.ts --include=*.tsx -E -e 'TODO([^(]|$)'
 
+# Frontend: per-selector theme-override вместо токенов. Легитимно только в design/tokens.css.
+theme_hits=$(grep -rnI "${EXCLUDES[@]}" --include=*.css -e 'data-theme=' web 2>/dev/null | grep -v 'design/tokens.css' || true)
+if [ -n "$theme_hits" ]; then
+  echo "⚠️  Frontend: html[data-theme=…]-override вне design/tokens.css — токенизируй цвет (см. frontend-architecture)"
+  echo "$theme_hits" | sed 's/^/    /'
+  hits=$((hits+1))
+fi
+
+# Frontend: цвет-литерал в inline-стиле компонента (используй токены/классы дизайн-системы)
+scan "Frontend: цвет-литерал в inline style tsx (используй токены)" --include=*.tsx -E -e 'style=\{\{[^}]*(#[0-9a-fA-F]{3}|rgba?\()'
+
 if [ "$hits" -eq 0 ]; then
   echo "✅ чисто"
 fi

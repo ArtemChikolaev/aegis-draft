@@ -15,6 +15,7 @@ description: >-
 ## Когда применять
 - Новый Go-пакет/функция в `pipeline/internal/*` — сначала проверь соседние стадии (`fetch/normalize/aggregate/rate/emit`), нет ли уже клиента/утилиты.
 - Новый TS-модуль в `web/src/*` — логика счёта (`game/score.ts`), генерация паков (`game/packs.ts`), назначение героев (`game/assign.ts`), стор (`state/`) — почти всё уже размечено в `web/README.md`.
+- **Новый UI-компонент/экран/стиль во `web/src`** — сначала barrel `web/src/ui/index.ts` (Button, Surface, Banner, RoleTag, Modal, OptionGroup, StatTile…) и скилл [[frontend-architecture]]. Переиспользуй примитив (или добавь variant), не лепи bespoke; цвет — токен, строка — i18n, не хардкод.
 - **Новая структура данных или поле** — сначала посмотри, нет ли её в `schema/*.schema.json`. Контракт данных — единый источник (см. [[data-contract]]).
 - **Рейтинг/формула** — не изобретай: модель зафиксирована в PRD §5 и [[scoring-model]].
 - **Внешний источник** (OpenDota/Liquipedia) — клиент и правила уже описаны в [[external-data-etl]].

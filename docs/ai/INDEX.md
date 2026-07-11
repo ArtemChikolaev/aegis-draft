@@ -10,6 +10,7 @@
 | [data-contract](../../.claude/skills/data-contract/SKILL.md) | Правка `schema/`, Go-типов, TS-типов или data JSON — единый контракт, accountId, версии. |
 | [external-data-etl](../../.claude/skills/external-data-etl/SKILL.md) | Работа с OpenDota/Liquipedia в пайплайне — rate-limit, UA, кэш, атрибуция, id. |
 | [scoring-model](../../.claude/skills/scoring-model/SKILL.md) | Формулы рейтинга/скоринга, паки, Team OVR — зафиксированные решения PRD §5. |
+| [frontend-architecture](../../.claude/skills/frontend-architecture/SKILL.md) | Правка UI во `web/src` — примитивы из `ui/`, цвета токенами (`design/`), экраны в `features/`, строки в `i18n/`. |
 | [self-review-checklist](../../.claude/skills/self-review-checklist/SKILL.md) | Перед «готово»/PR, если трогался код/данные — мысленное ревью + скан. |
 | [reference-parity-audit](../../.claude/skills/reference-parity-audit/SKILL.md) | Живое тестирование и сравнение с 322-0/Balatro/макетом; доказательства → PRD/BACKLOG. |
 
@@ -17,7 +18,8 @@
 | Что делаешь | Скиллы |
 |---|---|
 | Новый код в пайплайне (Go) | `discovery-before-code` → `plan-first-communication` → (`external-data-etl` если внешние данные, `data-contract` если формат, `scoring-model` если рейтинг) → `self-review-checklist` |
-| Новый код во фронте (TS/React) | `discovery-before-code` → (`data-contract` если типы, `scoring-model` если счёт) → `self-review-checklist` |
+| Новая игровая логика во фронте (TS: game/state) | `discovery-before-code` → (`data-contract` если типы, `scoring-model` если счёт) → `self-review-checklist` |
+| Новый UI-компонент / экран / стили / тема / строки | `discovery-before-code` → `frontend-architecture` (примитивы `ui/`, токены, i18n, features/) → `self-review-checklist` |
 | Правка модели данных / схемы | `data-contract` → `self-review-checklist` |
 | Внешний источник / fetch / парсинг | `external-data-etl` → `data-contract` → `self-review-checklist` |
 | Формула рейтинга / генерация паков / счёт | `scoring-model` (+ `data-contract` если меняется формат) → `self-review-checklist` |

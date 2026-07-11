@@ -31,6 +31,7 @@
 ## Границы
 - Go: стадии `fetch→normalize→aggregate→rate→emit→validate` изолированы; детерминизм (raw + версия ⇒ тот же output).
 - TS: `game/` (логика) не зависит от `ui/`; доступ к данным — через интерфейс `DataSource` (позже подменяемый на API).
+- **Фронт-архитектура (`web/src`):** `design/` (токены+тема) · `i18n/` (строки) · `ui/` (общие примитивы) · `features/` (экраны) · `app/` (шелл). Правило: UI-элемент **переиспользуй из `ui/`**, не лепи bespoke; цвет — **токен** (`design/tokens.css`), не хардкод (никаких `html[data-theme=…]`-костылей); строка — ключ в `i18n/core.ts` (RU+EN). Детали — скилл `frontend-architecture`.
 
 ## Перед «готово»
 Скилл `self-review-checklist` + `bash .claude/skills/self-review-checklist/tools/antipatterns_grep.sh`. Go: `gofmt -l`, `go vet`, `go build`. TS: `tsc --noEmit`. Менял данные → валидатор `node .claude/skills/data-contract/tools/validate_data.mjs`. Нет несвязанных правок в diff.
