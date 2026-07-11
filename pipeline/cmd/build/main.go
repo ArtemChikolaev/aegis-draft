@@ -28,6 +28,7 @@ func main() {
 	aggregateOut := flag.String("aggregate-out", "./data/aggregate/opendota.json", "player×hero, teammates и squad synergy из normalized matches")
 	schemaValidator := flag.String("schema-validator", "../.claude/skills/data-contract/tools/validate_data.mjs", "путь к Node JSON Schema validator; пусто = пропустить")
 	nodeBinary := flag.String("node", "node", "Node.js binary для JSON Schema validation")
+	emitDomain := flag.Bool("emit-domain", false, "собрать доменный датасет из OpenDota (teams/leagues/heroes + матчи) и записать в --out")
 	flag.Parse()
 
 	cfg := pipeline.Config{
@@ -45,6 +46,7 @@ func main() {
 		RequestBudget:    *requestBudget,
 		NodeBinary:       *nodeBinary,
 		SchemaValidator:  *schemaValidator,
+		EmitDomain:       *emitDomain,
 	}
 
 	if err := pipeline.Run(context.Background(), cfg); err != nil {

@@ -76,21 +76,31 @@ func BuildPacks(matches []normalize.NormalizedMatch, events []model.EventInfo, r
 }
 
 func buildPack(eventID string, teamID int, lineup *eventLineup, ratings map[int]rating.PlayerRating, roleByAccount map[int]model.Role, nickByAccount map[int]string, teamInfo map[int]opendota.Team) (model.Pack, bool) {
-	accounts := make([]int, 0, len(lineup.games))
+	// Кандидаты по ролям (primaryRole), внутри роли — по числу игр (стенд-ины отсекаются).
+	byRole := make(map[model.Role][]int)
 	for accountID := range lineup.games {
-		accounts = append(accounts, accountID)
+		role := roleByAccount[accountID]
+		byRole[role] = append(byRole[role], accountID)
 	}
-	// Топ по играм (tie: accountID) — ядро состава, стенд-ины отсекаются.
-	sort.Slice(accounts, func(i, j int) bool {
-		if lineup.games[accounts[i]] != lineup.games[accounts[j]] {
-			return lineup.games[accounts[i]] > lineup.games[accounts[j]]
-		}
-		return accounts[i] < accounts[j]
-	})
-	if len(accounts) < rosterSize {
+	for role := range byRole {
+		accounts := byRole[role]
+		sort.Slice(accounts, func(i, j int) bool {
+			if lineup.games[accounts[i]] != lineup.games[accounts[j]] {
+				return lineup.games[accounts[i]] > lineup.games[accounts[j]]
+			}
+			return accounts[i] < accounts[j]
+		})
+	}
+	// Ровно safelane/mid/offlane + 2 support — инвариант validate.Dataset.
+	// Пак без полного покрытия ролей отбрасывается (обычно data-quality шум).
+	roster := make([]int, 0, rosterSize)
+	roster = append(roster, top(byRole[model.RoleSafelane], 1)...)
+	roster = append(roster, top(byRole[model.RoleMid], 1)...)
+	roster = append(roster, top(byRole[model.RoleOfflane], 1)...)
+	roster = append(roster, top(byRole[model.RoleSupport], 2)...)
+	if len(roster) < rosterSize {
 		return model.Pack{}, false
 	}
-	roster := accounts[:rosterSize]
 
 	players := make([]model.PackPlayer, 0, rosterSize)
 	for _, accountID := range roster {
@@ -138,6 +148,14 @@ func signatureHeroes(lineup *eventLineup, roster []int) []int {
 	}
 	sort.Ints(heroes)
 	return heroes
+}
+
+// top возвращает до n первых аккаунтов роли (меньше — если кандидатов не хватает).
+func top(accounts []int, n int) []int {
+	if len(accounts) < n {
+		return accounts
+	}
+	return accounts[:n]
 }
 
 func parseLeagueID(eventID string) (int64, bool) {

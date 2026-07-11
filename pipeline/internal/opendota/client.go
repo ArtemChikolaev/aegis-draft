@@ -109,6 +109,14 @@ type League struct {
 	Tier     string `json:"tier"`
 }
 
+// Hero — запись из /heroes. Name — npc-идентификатор (npc_dota_hero_antimage),
+// LocalizedName — отображаемое имя (Anti-Mage).
+type Hero struct {
+	ID            int    `json:"id"`
+	Name          string `json:"name"`
+	LocalizedName string `json:"localized_name"`
+}
+
 func New(cfg Config) (*Client, error) {
 	baseURL := cfg.BaseURL
 	if baseURL == "" {
@@ -197,6 +205,15 @@ func (c *Client) FetchLeagues(ctx context.Context) ([]League, error) {
 		return nil, fmt.Errorf("fetch leagues: %w", err)
 	}
 	return leagues, nil
+}
+
+// FetchHeroes возвращает /heroes (справочник героев для heroes.json).
+func (c *Client) FetchHeroes(ctx context.Context) ([]Hero, error) {
+	var heroes []Hero
+	if err := c.transport.GetJSON(ctx, "heroes", c.query(), nil, &heroes); err != nil {
+		return nil, fmt.Errorf("fetch heroes: %w", err)
+	}
+	return heroes, nil
 }
 
 func (c *Client) query() url.Values {

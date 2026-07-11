@@ -55,6 +55,8 @@ func TestClientTeamsLeaguesEndpoints(t *testing.T) {
 			return response(`[{"account_id":321580662,"name":"Yatoro","games_played":1273,"wins":798,"is_current_team_member":true},{"account_id":111,"name":"ex","games_played":10,"wins":4,"is_current_team_member":false}]`), nil
 		case "/api/leagues":
 			return response(`[{"leagueid":12912,"name":"The International 2024","tier":"premium"}]`), nil
+		case "/api/heroes":
+			return response(`[{"id":1,"name":"npc_dota_hero_antimage","localized_name":"Anti-Mage"}]`), nil
 		default:
 			return &http.Response{StatusCode: http.StatusNotFound, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("not found"))}, nil
 		}
@@ -87,6 +89,10 @@ func TestClientTeamsLeaguesEndpoints(t *testing.T) {
 	leagues, err := client.FetchLeagues(context.Background())
 	if err != nil || len(leagues) != 1 || leagues[0].Tier != "premium" {
 		t.Fatalf("leagues=%v err=%v", leagues, err)
+	}
+	heroes, err := client.FetchHeroes(context.Background())
+	if err != nil || len(heroes) != 1 || heroes[0].LocalizedName != "Anti-Mage" {
+		t.Fatalf("heroes=%v err=%v", heroes, err)
 	}
 	if _, err := client.FetchTeamPlayers(context.Background(), 0); err == nil {
 		t.Fatal("expected error for invalid teamId")

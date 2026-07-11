@@ -12,6 +12,7 @@ import (
 	"github.com/aegis-draft/pipeline/internal/aggregate"
 	"github.com/aegis-draft/pipeline/internal/artifact"
 	"github.com/aegis-draft/pipeline/internal/collect"
+	"github.com/aegis-draft/pipeline/internal/domain"
 	"github.com/aegis-draft/pipeline/internal/emit"
 	"github.com/aegis-draft/pipeline/internal/model"
 	"github.com/aegis-draft/pipeline/internal/normalize"
@@ -36,6 +37,7 @@ type Config struct {
 	RequestBudget    int          // реальные HTTP attempts за запуск; cache hits бесплатны; 0 = unlimited
 	NodeBinary       string
 	SchemaValidator  string
+	EmitDomain       bool // собрать доменный датасет из OpenDota и записать в Out (S4)
 }
 
 // Run прогоняет пайплайн. Пока стадии сбора — заглушки; emit пишет валидный пустой датасет,
@@ -52,6 +54,14 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	if cfg.MatchDetailLimit > 0 && !cfg.FetchOpenDota {
 		return fmt.Errorf("match-detail-limit requires --fetch-opendota")
+	}
+	if cfg.EmitDomain {
+		if !cfg.FetchOpenDota || (cfg.MatchDetailLimit == 0 && !cfg.CollectWindow) {
+			return fmt.Errorf("emit-domain requires --fetch-opendota with detail collection (--match-detail-limit or --collect-window)")
+		}
+		if cfg.AsOf == "" {
+			return fmt.Errorf("emit-domain requires fixed --as-of YYYY-MM-DD for reproducible windows")
+		}
 	}
 	rcfg := rating.Default()
 
@@ -145,8 +155,15 @@ func Run(ctx context.Context, cfg Config) error {
 			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) career=%d/%d (complete=%t); network=%d cache=%d",
 				collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
 				careerComplete, len(snapshot.Players), status.CareerComplete, stats.NetworkRequests, stats.CacheHits)
+
+			if cfg.EmitDomain {
+				if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {
+					return err
+				}
+				return nil
+			}
 		}
-		log.Printf("[fetch] raw-only завершён; emit отключён, пока T1.3–T1.4 не собирают доменный датасет")
+		log.Printf("[fetch] raw-only завершён; emit доменного датасета — флаг --emit-domain")
 		return nil
 	} else {
 		log.Printf("[fetch] offline: live OpenDota disabled (use --fetch-opendota)")
@@ -173,6 +190,58 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	log.Printf("готово (скелет: датасет пустой, но валидный по схеме)")
 	return nil
+}
+
+// emitDomainDataset дотягивает teams/leagues/heroes, собирает доменный датасет из
+// уже нормализованных матчей и агрегатов, валидирует инварианты и пишет в Out.
+func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, snapshot *normalize.OpenDotaSnapshot, aggregates *aggregate.OpenDotaResult, rcfg rating.Config) error {
+	asOf, err := time.Parse("2006-01-02", cfg.AsOf)
+	if err != nil {
+		return fmt.Errorf("invalid as-of date %q: %w", cfg.AsOf, err)
+	}
+	log.Printf("[domain] fetch teams/leagues/heroes…")
+	teams, err := od.FetchTeams(ctx)
+	if err != nil {
+		return domainFetchErr("teams", err)
+	}
+	leagues, err := od.FetchLeagues(ctx)
+	if err != nil {
+		return domainFetchErr("leagues", err)
+	}
+	heroes, err := od.FetchHeroes(ctx)
+	if err != nil {
+		return domainFetchErr("heroes", err)
+	}
+	ds, err := domain.Build(domain.Input{
+		Snapshot: snapshot, Aggregates: aggregates, Teams: teams, Leagues: leagues, Heroes: heroes,
+		AsOf: asOf, Config: rcfg, RatingModelVersion: rating.ModelVersion,
+	})
+	if err != nil {
+		return fmt.Errorf("build domain dataset: %w", err)
+	}
+	if err := validate.Dataset(ds); err != nil {
+		return fmt.Errorf("validate domain dataset: %w", err)
+	}
+	log.Printf("[domain] events=%d packs=%d players=%d heroes=%d formats=%v → %s",
+		len(ds.Events), len(ds.Packs), len(ds.Players), len(ds.Heroes), ds.Manifest.Formats, cfg.Out)
+	if err := emit.WriteAll(cfg.Out, ds); err != nil {
+		return fmt.Errorf("emit domain dataset: %w", err)
+	}
+	if cfg.SchemaValidator != "" {
+		log.Printf("[validate] JSON Schema → %s", cfg.Out)
+		if err := validate.RunNode(ctx, cfg.NodeBinary, cfg.SchemaValidator, cfg.Out); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// domainFetchErr делает бюджетное исчерпание понятной ошибкой (нужны все три справочника).
+func domainFetchErr(what string, err error) error {
+	if errors.Is(err, sourcehttp.ErrBudgetExhausted) {
+		return fmt.Errorf("emit-domain: budget exhausted fetching %s; increase --request-budget or rerun (cache warms)", what)
+	}
+	return fmt.Errorf("emit-domain fetch %s: %w", what, err)
 }
 
 func collectionWindow(cfg Config) (int64, string, error) {
