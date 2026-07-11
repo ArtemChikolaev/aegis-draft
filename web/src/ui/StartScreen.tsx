@@ -104,7 +104,7 @@ export function StartScreen() {
 
       <button className="start__btn" onClick={onStart}>Start Run</button>
       {!formatAvailable(cfg.format) && (
-        <p className="muted small">В мок-датасете доступен только формат «2 года». Остальные появятся с реальными данными.</p>
+        <p className="muted small">Этот формат ещё не наполнен в текущем датасете. Выбери доступный (без бейджа SOON).</p>
       )}
     </main>
   );

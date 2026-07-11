@@ -4,6 +4,8 @@
 
 Vite-скелет и играбельный Quick Draft уже реализованы на mock data. Актуальные gaps и следующие задачи — в [`docs/BACKLOG.md`](../docs/BACKLOG.md).
 
+**Base-путь:** `DataSource` берёт префикс из `import.meta.env.BASE_URL`, поэтому фронт работает и в корне (dev, Cloudflare/Netlify), и под сабпутём (GitHub Pages). Для сабпути задать `VITE_BASE` при сборке, напр. `VITE_BASE=/aegis-draft/ npm run build`. Деплой и CI — в корневом [README](../README.md#деплой-и-cicd).
+
 ## Структура
 
 ```

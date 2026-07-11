@@ -161,9 +161,16 @@
 ---
 
 ## M4 — Полный датасет
-- T4.1 Форматы `last_1y/last_5y/valve_legacy` (фильтры + пулы). ⬜
+- ✅ **T4.1 Форматы `last_1y/2y/5y/valve_legacy` (фильтры + пулы).** Правило назначения окон выведено из даты сборки (`pipeline/internal/formats/Assign` — источник истины + тесты; зеркало в `web/scripts/gen_mock.mjs`). Мок расширен до 6 событий / 7 команд / 4 лет — каждый формат имеет ≥5 команд (Mixed играбелен), все 4 формата в `manifest.formats`. Убран хак «Aegis Mock Five» и ручные `events[].formats`. ⬜ Wiring `Assign` в реальный emit — в M2.5/S4.
 - T4.2 Peak Rating в UI-скоринге. ⬜
 - T4.3 Курируемый список тир-1 событий и веса престижа. ⬜
+
+## M2.5 — Real OpenDota slice (слезаем с мока без Liquipedia)
+> Решение 2026-07-11: строим доменный датасет из OpenDota (players, ростеры, player×hero, рейтинги, синергия). Liquipedia-зависимое (точные placements/призовые/исторические ростеры/престиж-тиры) — аппроксимируем из OpenDota или временно оставляем моком до T1.3.
+- ✅ **S1 — OpenDota endpoints `/teams`, `/teams/{id}/players`, `/leagues`.** Типы + методы клиента на общем `sourcehttp` (кэш/ретраи/rate-limit/UA), юнит-тесты на реальных shapes; `/teams/{id}/players` даёт текущий ростер (`is_current_team_member`), `/leagues` — tier (premium/professional) для классификации событий. Live shapes сверены с API.
+- ⬜ **S2 — вывод ролей** (safelane/mid/offlane/support×2) из `lane_role` нормализованных матчей per account.
+- ⬜ **S3 — сборщик домена:** events (leagues + `formats.Assign`), packs (ростер+роли+placement-аппрокс), players/ratings (snapshot + rating-пакет), heroStats/teammates/squadSynergy (aggregate), teamSuccess (аппрокс из W/L + tier; призовые/placements deferred).
+- ⬜ **S4 — emit доменного датасета + validate + CLI-флаг + бюджетный live-run** → реальные `web/public/data/*.json`. **Deps:** S1–S3.
 
 ## M5 — Полный Roguelite Run
 ### T5.1 — Stage engine + win/loss ⬜

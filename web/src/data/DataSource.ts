@@ -6,9 +6,11 @@ export interface DataSource {
   load(): Promise<GameData>;
 }
 
-/** Static-first: грузит предрассчитанные JSON из /data (как в оригинале 322-0). */
+/** Static-first: грузит предрассчитанные JSON из <base>/data (как в оригинале 322-0).
+ *  base берётся из Vite BASE_URL, чтобы работать и в корне (dev/Cloudflare), и под
+ *  сабпутём (GitHub Pages, напр. /aegis-draft/). BASE_URL всегда с завершающим слэшем. */
 export class StaticDataSource implements DataSource {
-  constructor(private base = "/data") {}
+  constructor(private base = `${import.meta.env.BASE_URL}data`) {}
 
   async load(): Promise<GameData> {
     const get = async (name: string) => {

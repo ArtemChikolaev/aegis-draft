@@ -81,6 +81,34 @@ type MatchPlayer struct {
 	HeroDamage  int    `json:"hero_damage"`
 }
 
+// Team — запись из /teams (топ команд по рейтингу).
+type Team struct {
+	TeamID        int64   `json:"team_id"`
+	Rating        float64 `json:"rating"`
+	Wins          int     `json:"wins"`
+	Losses        int     `json:"losses"`
+	LastMatchTime int64   `json:"last_match_time"`
+	Name          string  `json:"name"`
+	Tag           string  `json:"tag"`
+	LogoURL       string  `json:"logo_url"`
+}
+
+// TeamPlayer — запись из /teams/{id}/players. Ростер = is_current_team_member.
+type TeamPlayer struct {
+	AccountID   *int64 `json:"account_id"`
+	Name        string `json:"name"`
+	GamesPlayed int    `json:"games_played"`
+	Wins        int    `json:"wins"`
+	IsCurrent   bool   `json:"is_current_team_member"`
+}
+
+// League — запись из /leagues. tier: premium|professional|amateur|excluded.
+type League struct {
+	LeagueID int64  `json:"leagueid"`
+	Name     string `json:"name"`
+	Tier     string `json:"tier"`
+}
+
 func New(cfg Config) (*Client, error) {
 	baseURL := cfg.BaseURL
 	if baseURL == "" {
@@ -138,6 +166,37 @@ func (c *Client) FetchMatch(ctx context.Context, matchID int64) (*Match, error) 
 		return nil, fmt.Errorf("fetch match %d: %w", matchID, err)
 	}
 	return &match, nil
+}
+
+// FetchTeams возвращает /teams (топ ~1000 команд по рейтингу).
+func (c *Client) FetchTeams(ctx context.Context) ([]Team, error) {
+	var teams []Team
+	if err := c.transport.GetJSON(ctx, "teams", c.query(), nil, &teams); err != nil {
+		return nil, fmt.Errorf("fetch teams: %w", err)
+	}
+	return teams, nil
+}
+
+// FetchTeamPlayers возвращает /teams/{id}/players (карьера игроков в команде; ростер = IsCurrent).
+func (c *Client) FetchTeamPlayers(ctx context.Context, teamID int64) ([]TeamPlayer, error) {
+	if teamID <= 0 {
+		return nil, fmt.Errorf("invalid teamId %d", teamID)
+	}
+	var players []TeamPlayer
+	path := fmt.Sprintf("teams/%d/players", teamID)
+	if err := c.transport.GetJSON(ctx, path, c.query(), nil, &players); err != nil {
+		return nil, fmt.Errorf("fetch team players %d: %w", teamID, err)
+	}
+	return players, nil
+}
+
+// FetchLeagues возвращает /leagues (все лиги с tier для классификации событий).
+func (c *Client) FetchLeagues(ctx context.Context) ([]League, error) {
+	var leagues []League
+	if err := c.transport.GetJSON(ctx, "leagues", c.query(), nil, &leagues); err != nil {
+		return nil, fmt.Errorf("fetch leagues: %w", err)
+	}
+	return leagues, nil
 }
 
 func (c *Client) query() url.Values {

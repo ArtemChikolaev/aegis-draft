@@ -16,6 +16,17 @@ npm run gen:mock && npm run verify && npm run validate:data
 cd pipeline && go run ./cmd/build --window last_2y --out ../web/public/data
 ```
 
+## Деплой и CI/CD
+Static-first (ADR 0001): фронт + данные — статикой на CDN, пайплайн — batch-ETL по расписанию, **без сервера, БД и Kubernetes** (они — фаза 2, M8). Workflow — [.github/workflows/ci.yml](.github/workflows/ci.yml):
+- **Проверки** (push/PR): Go (`gofmt`/`vet`/`build`/`test`), Web (`gen:mock` → `validate:data` → `verify` → `typecheck` → `build`), antipattern-scan.
+- **Деплой на GitHub Pages** (push в `main`, только если проверки зелёные): сборка с `VITE_BASE=/aegis-draft/` + мок-данные → Pages. URL: `https://artemchikolaev.github.io/aegis-draft/`.
+
+**Разовая ручная настройка:** в GitHub → **Settings → Pages → Build and deployment → Source: GitHub Actions** (без этого деплой-джоб не опубликует сайт).
+
+Другой хостинг (Cloudflare Pages / Netlify — корень без сабпути): build command `npm ci && npm run gen:mock && npm run build`, publish dir `web/dist`, `VITE_BASE` не задавать. Base-путь фронта берётся из `import.meta.env.BASE_URL`, поэтому работает и в корне, и под сабпутём.
+
+> Реальные данные пока не эмитятся — деплой собирает мок (`gen:mock`). Scheduled data-refresh (крон, прогон Go-пайплайна → реальные `web/public/data`) добавится вместе с emit доменного датасета (BACKLOG M2.5/S4).
+
 ## Документы
 - 📄 **[docs/PRD.md](docs/PRD.md)** — концепция, разбор оригинала, механики, режимы, стек, роадмап.
 - 🏛 **[docs/adr/0001-tech-stack.md](docs/adr/0001-tech-stack.md)** — решение по стеку.

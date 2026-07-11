@@ -25,8 +25,13 @@ const round = (n: number) => Math.round(n * 100) / 100;
 const base: RunConfig = { draftStyle: "team", format: "last_2y", rerolls: 1, scoring: "event", allocation: "auto" };
 
 // --- poolForFormat ---
-assert(poolForFormat(data.packs, data.events, "last_2y").length === 5, "pool last_2y = 5 паков");
-assert(poolForFormat(data.packs, data.events, "valve_legacy").length === 2, "pool valve_legacy = 2 пака (только TI2024)");
+assert(poolForFormat(data.packs, data.events, "last_2y").length === 14, "pool last_2y = 14 паков");
+assert(poolForFormat(data.packs, data.events, "valve_legacy").length === 16, "pool valve_legacy = 16 паков (TI + Valve Major)");
+// Каждый формат имеет >=5 команд → Mixed играбелен на любом.
+for (const f of ["last_1y", "last_2y", "last_5y", "valve_legacy"] as const) {
+  const teams = new Set(poolForFormat(data.packs, data.events, f).map((p) => p.teamId));
+  assert(teams.size >= 5, `формат ${f}: >=5 команд для Mixed (${teams.size})`);
+}
 
 // --- детерминизм по сиду ---
 const a = new RunEngine(data, base, "seed-123");
