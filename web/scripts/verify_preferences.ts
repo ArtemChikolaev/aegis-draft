@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { detectLocale, dictionaries, roleMessageKey, translate } from "../src/i18n/core.ts";
-import { isThemeMode, resolveTheme } from "../src/theme/core.ts";
+import { isThemeMode, resolveTheme } from "../src/design/theme/core.ts";
 
 assert.deepEqual(Object.keys(dictionaries.ru).sort(), Object.keys(dictionaries.en).sort());
 assert.equal(detectLocale("ru", "en-US"), "ru");
