@@ -8,6 +8,7 @@ import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 
 type Phase = "loading" | "start" | "draft" | "result";
+export type RunMode = "classic" | "manager" | "tournament";
 
 interface Snapshot {
   currentPack: DraftPack;
@@ -27,6 +28,7 @@ interface RunStore {
   config: RunConfig | null;
   seed: string;
   snapshot: Snapshot | null;
+  selectedMode: RunMode | null;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -34,6 +36,7 @@ interface RunStore {
   reroll: () => void;
   canPick: (idx: number) => boolean;
   reset: () => void;
+  setSelectedMode: (mode: RunMode | null) => void;
 }
 
 function snap(engine: RunEngine): Snapshot {
@@ -56,6 +59,7 @@ export const useRun = create<RunStore>((set, get) => ({
   config: null,
   seed: "",
   snapshot: null,
+  selectedMode: null,
 
   async loadData() {
     try {
@@ -96,6 +100,10 @@ export const useRun = create<RunStore>((set, get) => ({
   },
 
   reset() {
-    set({ phase: "start", engine: null, snapshot: null, error: null });
+    set({ phase: "start", engine: null, config: null, seed: "", snapshot: null, error: null });
+  },
+
+  setSelectedMode(selectedMode) {
+    set({ selectedMode });
   },
 }));

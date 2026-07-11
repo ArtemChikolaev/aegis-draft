@@ -1,9 +1,28 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en" data-theme-mode="system" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080b12" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="description" content="Aegis Draft — build a legendary Dota 2 roster in a replayable drafting roguelite." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Aegis Draft — Dota 2 drafting roguelite</title>
+    <script>
+      (() => {
+        try {
+          const saved = localStorage.getItem("aegis-draft.theme");
+          const mode = ["system", "light", "dark"].includes(saved) ? saved : "system";
+          const theme = mode === "system"
+            ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : mode;
+          document.documentElement.dataset.themeMode = mode;
+          document.documentElement.dataset.theme = theme;
+        } catch (_) {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,51 +1,40 @@
 import { useRun } from "../state/runStore.ts";
+import { useI18n } from "../i18n/I18nProvider.tsx";
+import { roleMessageKey } from "../i18n/core.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { useHeroName } from "./heroes.ts";
 
-const fmt = (n: number) => (n >= 0 ? `+${n.toFixed(1)}` : n.toFixed(1));
+const fmt = (value: number) => (value >= 0 ? `+${value.toFixed(1)}` : value.toFixed(1));
 
 export function ResultScreen() {
-  const snap = useRun((s) => s.snapshot);
-  const seed = useRun((s) => s.seed);
-  const config = useRun((s) => s.config);
-  const reset = useRun((s) => s.reset);
+  const snapshot = useRun((state) => state.snapshot);
+  const seed = useRun((state) => state.seed);
+  const config = useRun((state) => state.config);
+  const reset = useRun((state) => state.reset);
   const heroName = useHeroName();
-  if (!snap || !snap.score) return null;
+  const { t } = useI18n();
+  if (!snapshot?.score) return null;
 
-  const { roster, score } = snap;
-
+  const { roster, score } = snapshot;
   return (
     <main className="result">
-      <h2 className="result__title">Итог забега</h2>
+      <header className="screen-heading result__heading"><p className="eyebrow">{t("result.eyebrow")}</p><h1>{t("result.title")}</h1><p>{t("result.subtitle")}</p></header>
       <div className="result__grid">
-        <Pentagon roster={roster} teamOvr={score.teamOvr} />
-        <div className="result__panel">
-          <div className="result__ovr">{Math.round(score.teamOvr)}<span> TEAM OVR</span></div>
-          <ul className="result__breakdown">
-            <li><span>Base</span><b>{Math.round(score.base)}</b></li>
-            <li><span>Hero Synergy</span><b>{fmt(score.heroSynergy)}</b></li>
-            <li><span>Chemistry</span><b>{fmt(score.chemistry)}</b></li>
-          </ul>
-
-          <h3 className="result__sub">Состав и герои</h3>
-          <ul className="result__roster">
-            {roster.map((slot, i) => {
-              const hid = slot.candidate ? score.assignment.byPlayer[slot.candidate.player.accountId] : undefined;
-              return (
-                <li key={i}>
-                  <span className="result__role">{slot.role}</span>
-                  <span className="result__player">{slot.candidate?.player.nickname ?? "—"}</span>
-                  <span className="result__hero">{hid != null ? heroName(hid) : "—"}</span>
-                </li>
-              );
+        <section className="surface result__radar"><Pentagon roster={roster} teamOvr={score.teamOvr} /></section>
+        <section className="surface result__report">
+          <div className="result__ovr"><strong>{Math.round(score.teamOvr)}</strong><span>{t("common.teamOvr")}</span></div>
+          <h2>{t("result.breakdown")}</h2>
+          <dl className="breakdown"><div><dt>{t("common.base")}</dt><dd>{Math.round(score.base)}</dd></div><div><dt>{t("common.heroSynergy")}</dt><dd>{fmt(score.heroSynergy)}</dd></div><div><dt>{t("common.chemistry")}</dt><dd>{fmt(score.chemistry)}</dd></div></dl>
+          <h2>{t("result.roster")}</h2>
+          <ul className="final-roster">
+            {roster.map((slot, index) => {
+              const hero = slot.candidate ? score.assignment.byPlayer[slot.candidate.player.accountId] : undefined;
+              return <li key={index}><span className={`role-tag role-tag--${slot.role}`}>{t(roleMessageKey(slot.role))}</span><strong>{slot.candidate?.player.nickname ?? "—"}</strong><span>{hero == null ? "—" : heroName(hero)}</span></li>;
             })}
           </ul>
-
-          <div className="result__meta muted small">
-            {config?.draftStyle} · {config?.format} · seed {seed}
-          </div>
-          <button className="start__btn" onClick={reset}>Новый забег</button>
-        </div>
+          <p className="run-meta">{config?.draftStyle} · {config?.format} · {t("common.seed")} {seed}</p>
+          <button className="primary-button" data-testid="new-run" onClick={reset}>{t("result.newRun")}<span>↻</span></button>
+        </section>
       </div>
     </main>
   );

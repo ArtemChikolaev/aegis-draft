@@ -193,6 +193,25 @@
 - **DoD:** минимум 5 условий, каждое меняет оптимальное решение и покрыто тестом; нет boss-а, который только умножает target.
 - **Deps:** T5.1, T5.2.
 
+### T5.4 — Mode shell: Classic / Manager / Real Tournament 🟨
+- **Цель:** вынести верхнеуровневый режим отдельно от `DraftStyle`; Classic сохраняет Team Packs/Mixed, остальные режимы подключают собственные конфиги и orchestration.
+- **Файлы:** `web/src/game/`, `web/src/state/`, start UI; при добавлении DTO — сначала `schema/`.
+- **DoD:** выбранный режим входит в seed/share state; недоступные режимы честно помечены SOON; переключение не теряет совместимые настройки Classic.
+- **Deps:** T5.1.
+- **Статус 2026-07-11:** ✅ отдельная стильная развилка режимов и собственные landing-состояния; Classic ведёт в рабочую конфигурацию, Manager/Tournament — в локализованные продуктовые заглушки. ⬜ Осталось включить mode в seed/share state после появления исполняемых orchestration-модулей; намеренно не добавляем неработающие значения в текущий `RunConfig`.
+  - ✅ Контекст выбранного режима хранится отдельно от конкретного run: завершение или подтверждённый выход без сохранения сбрасывают движок, но возвращают в конфигурацию Classic, а не на общую развилку.
+
+### T5.5 — Esports Manager vertical slice ⬜
+- **Цель:** выбор организации/региона → бюджет и контракты → ростер → квалификация.
+- **DoD:** минимум 3 региона и разные стартовые ограничения; контракты имеют цену/срок; невозможно выйти за бюджет; сезон детерминирован по seed. Это отдельный цикл, а не reskin Classic.
+- **Deps:** T5.2, T5.4, Liquipedia roster intervals из T1.3.
+
+### T5.6 — Real Tournament + roster lock ⬜
+- **Цель:** выбрать реальный tournament snapshot, показать известных соперников и собрать challenger roster только из игроков, не заявленных за поле турнира.
+- **Данные:** event/date cutoff, opponent teams, locked canonical `accountId`, historical eligible pool; точный контракт проектируется через `data-contract`.
+- **DoD:** 16–20 фиксированных соперников; locked player никогда не появляется в pack/market пользователя; nickname collision не влияет на lock; historical rating берётся из своей эпохи; seed+dataset version воспроизводят поле и пул; генератор fail-fast при невалидном ролевом пуле.
+- **Deps:** T5.1, T5.4, T1.3 roster snapshots, M4 historical windows.
+
 ## M6 — Builds, контент и баланс
 - **T6.1 Tactics system:** ограниченные слоты пассивных Dota-native модификаторов; data-driven эффекты и понятный порядок расчёта. ⬜
 - **T6.2 Camp actions:** одноразовые scrim/bootcamp/scouting/hero-practice/transfer эффекты. ⬜
@@ -201,22 +220,25 @@
 
 ## M7 — Полиш
 - T7.1 Шеринг-картинка + название команды. ⬜
-- **T7.2 — Локализация RU/EN ⬜**
+- **T7.2 — Локализация RU/EN ✅**
   - **Цель:** убрать смесь языков и дать базовый переключатель locale во всех фазах `loading/start/draft/result`.
   - **Файлы:** `web/src/i18n/*`, `web/src/App.tsx`, `web/src/ui/*`, `web/index.html`, тесты.
   - **DoD:** все пользовательские строки вынесены в типизированные RU/EN dictionaries; переключатель доступен из app shell; первый locale определяется предсказуемо (сохранённый → язык браузера → fallback), сохраняется между сессиями; `<html lang>` обновляется; missing key не показывает сырой идентификатор; unit/smoke проходят на обеих локалях.
   - **Не локализуем:** ники, названия команд/турниров и другие proper nouns из датасета, если у источника нет официальной локали.
+  - **Реализовано 2026-07-11:** типизированные словари и provider, переключатель в shell, сохранение и browser fallback, динамический `html.lang`; RU/EN browser-smoke пройден на start/draft/result, pure-проверки добавлены в `npm run verify`.
 - T7.3 UX parity pass: tooltips IMP/ECO/REL, источники/атрибуция, loading/error/empty states, responsive и keyboard flow. ⬜
-- **T7.4 — Айдентика и visual refresh Aegis Draft ⬜**
+- **T7.4 — Айдентика и visual refresh Aegis Draft ✅**
   - **Цель:** сформировать самостоятельный дизайн продукта; 322-0 использовать для UX-сравнения, а не как визуальный шаблон.
   - **Файлы:** `web/src/App.tsx`, `web/src/styles.css`, UI-компоненты, favicon/meta/brand assets; при необходимости отдельная design-spec.
   - **DoD:** header/title/metadata показывают **Aegis Draft**, пользовательская надпись/лого «322—0» удалены; нет копирования логотипа, ассетов и pixel-layout референса; введены семантические tokens, согласованные typography/spacing/states; start/draft/result визуально образуют одну систему; desktop/mobile и основные состояния задокументированы скриншотами.
   - **Граница:** упоминание 322-0 остаётся допустимым в README, PRD, audits и credits как источник вдохновения.
-- **T7.5 — Theme switch system/light/dark ⬜**
+  - **Реализовано 2026-07-11, уточнено после visual review:** строгая editorial-система для Dota 2 roguelike: pure black + редкие animated green art-fields в dark; ivory + Anthropic-orange + black inserts в light. Старт явно показывает путь `groups → playoffs → final`, без вида B2B-dashboard/онлайн-курсов. Новый A-mark/favicon, единая система start/draft/result; co-brand `322—0` удалён. Desktop golden path и обе темы проверены в браузере.
+- **T7.5 — Theme switch system/light/dark ✅**
   - **Цель:** базовое переключение темы поверх единого набора семантических design tokens.
   - **Файлы:** `web/src/theme/*`, `web/src/App.tsx`, `web/src/styles.css`, ранняя инициализация в `web/index.html`, тесты.
   - **DoD:** режимы `system/light/dark`; system реагирует на `prefers-color-scheme`; ручной выбор хранится локально и применяется до первого React paint без заметной вспышки; все interactive/disabled/error/graph состояния читаемы в обеих темах; keyboard/ARIA label у переключателя; unit + browser smoke.
   - **Deps:** semantic tokens согласуются вместе с T7.4; реализация может идти параллельно после фиксации token names.
+  - **Реализовано 2026-07-11:** semantic tokens для обеих палитр, сохранение режима, реакция `system` на media query, ранний inline bootstrap до первого paint, theme-color и browser smoke светлой/тёмной темы.
 
 ## MREF — Reference parity gaps (аудит 322-0 Quick Draft, 2026-07-11)
 > Источник: [docs/audits/2026-07-11-322-0-quick-draft-parity.md](audits/2026-07-11-322-0-quick-draft-parity.md). Матрица с доказательствами. Продуктовые решения по P1 — открытые вопросы PRD §10 G/H.
@@ -225,7 +247,7 @@
 - **TREF2 — Итог: projected finish / вердикт (P1).** Референс ранжирует команду против поля (18 бот-команд) → место (напр. 15th–17th), цель — 1st. Наш итог показывает только числа. **Цель:** дать вердикт забега (место против поля/порога). **Файлы:** `web/src/ui/ResultScreen.tsx`, возможно `web/src/game/`. **DoD:** итог показывает воспроизводимое (по seed) место/вердикт; согласовано с M5 (stage thresholds). **Deps:** T3.9, PRD §10-H. ⬜
 - **TREF3 — Арт героев (P2).** Референс показывает реальные портреты. У нас пул — id/без картинок. **Цель:** hero pictures (slug уже в `heroes.schema`/данных). **Файлы:** ассеты/CDN-стратегия, `web/src/ui`. **DoD:** герои в пуле/назначении с картинками; атрибуция источника. ⬜
 - **TREF4 — Имя команды + View hero stats (P2).** Референс: редактируемое имя команды (✎), инспекция статы героя у игрока. У нас нет. **Файлы:** `web/src/ui/*`. **DoD:** имя редактируется и попадает в шеринг (T7.1); есть просмотр hero-stat игрока. ⬜
-- **TREF5 — Раскладка драфта (P2).** Референс — компактные 2 колонки без скролла; у нас 1 колонка, пентагон во весь экран, много скролла. **Файлы:** `web/src/ui/DraftScreen.tsx`, стили. **Скиллы:** `reference-parity-audit`. **DoD:** драфт помещается без вертикального скролла на desktop; проверить также подозрение на тяжёлый ре-рендер (скролл-таймауты). Пересекается с T7.3. ⬜
+- **TREF5 — Раскладка драфта (P2).** ✅ Desktop переведён на компактные 2 колонки: sticky radar + pack panel; start/result используют ту же responsive surface-систему. На ≤980px раскладка становится одноколоночной. Отдельно в T7.3 остаются keyboard-flow и расширенный mobile QA; прежний скролл-таймаут в новом golden path не воспроизвёлся.
 - **Отметки к существующим:** T3.10 (Manual allocation — референс имеет рабочим, у нас SOON) остаётся P1. T7.3 (responsive) — включает TREF5. T7.4 удаляет co-brand «322—0» и задаёт самостоятельный visual language. T7.2 устраняет смешанный RU/EN, T7.5 добавляет system/light/dark. Difficulty: «Easy» у нас = ∞ рероллов, у референса = 1 (конфликт имён, P2 — решить при полировке осей).
 
 ## M8 — Go API (фаза 2, опц.)

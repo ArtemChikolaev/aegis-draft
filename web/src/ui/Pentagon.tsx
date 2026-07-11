@@ -1,14 +1,10 @@
 import type { RosterSlot } from "../game/engine.ts";
-
-const ROLE_LABEL: Record<string, string> = {
-  safelane: "CARRY",
-  mid: "MID",
-  offlane: "OFF",
-  support: "SUP",
-};
+import { useI18n } from "../i18n/I18nProvider.tsx";
+import { roleMessageKey } from "../i18n/core.ts";
 
 /** Радар-пентагон: 5 слотов ростера по вершинам + Team OVR в центре. */
 export function Pentagon({ roster, teamOvr }: { roster: RosterSlot[]; teamOvr: number | null }) {
+  const { t } = useI18n();
   const size = 420;
   const c = size / 2;
   const r = 150;
@@ -19,14 +15,14 @@ export function Pentagon({ roster, teamOvr }: { roster: RosterSlot[]; teamOvr: n
   const polygon = pts.map((p) => `${p.x},${p.y}`).join(" ");
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="pentagon" role="img" aria-label="Team radar">
+    <svg viewBox={`0 0 ${size} ${size}`} className="pentagon" role="img" aria-label={t("pentagon.label")}>
       <polygon points={polygon} className="pentagon__web" />
       {pts.map((p, i) => (
         <line key={i} x1={c} y1={c} x2={p.x} y2={p.y} className="pentagon__spoke" />
       ))}
 
       <text x={c} y={c - 12} className="pentagon__ovr">{teamOvr != null ? Math.round(teamOvr) : "—"}</text>
-      <text x={c} y={c + 16} className="pentagon__ovrlabel">TEAM OVR</text>
+      <text x={c} y={c + 16} className="pentagon__ovrlabel">{t("common.teamOvr")}</text>
 
       {roster.map((slot, i) => {
         const p = pts[i];
@@ -36,7 +32,7 @@ export function Pentagon({ roster, teamOvr }: { roster: RosterSlot[]; teamOvr: n
         return (
           <g key={i} className={`node ${slot.candidate ? "node--filled" : ""}`}>
             <circle cx={p.x} cy={p.y} r={6} className="pentagon__dot" />
-            <text x={lx} y={ly - 6} className="node__role">{ROLE_LABEL[slot.role]}</text>
+            <text x={lx} y={ly - 6} className="node__role">{t(roleMessageKey(slot.role))}</text>
             <text x={lx} y={ly + 10} className="node__name">
               {slot.candidate ? slot.candidate.player.nickname : "—"}
             </text>

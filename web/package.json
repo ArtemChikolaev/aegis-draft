@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "gen:mock": "node scripts/gen_mock.mjs",
-    "verify": "node scripts/verify_game.ts && node scripts/verify_engine.ts",
+    "verify": "node scripts/verify_game.ts && node scripts/verify_engine.ts && node scripts/verify_preferences.ts",
     "validate:data": "node ../.claude/skills/data-contract/tools/validate_data.mjs public/data"
   },
   "dependencies": {
