@@ -1,0 +1,23 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+* { box-sizing: border-box; }
+html { min-width: 320px; background: var(--bg); }
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: var(--text);
+  background: var(--bg);
+  font: 500 15px/1.55 Manrope, system-ui, sans-serif;
+  transition: background-color .2s, color .2s;
+}
+button, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+h1, h2, h3, p { margin-top: 0; }
+h1, h2, .brand { font-family: "Space Grotesk", Manrope, sans-serif; }
+
+@keyframes pulse { 50% { opacity: .35; transform: scale(.7); } }
+@keyframes drift { to { transform: translate3d(5%, 12%, 0) rotate(-22deg) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

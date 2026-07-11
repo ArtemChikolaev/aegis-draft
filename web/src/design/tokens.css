@@ -1,0 +1,74 @@
+/* Design tokens — единственный источник цвета/радиусов. Компоненты берут ТОЛЬКО
+   переменные отсюда: тогда light/dark «просто работают» без per-selector override.
+   - Тема-зависимые токены переопределяются в html[data-theme="light"].
+   - Инвертные (--*-invert, --brand-*) одинаковы в обеих темах: для панелей и радара,
+     которые намеренно остаются тёмными в любой теме. */
+:root {
+  color-scheme: dark;
+  --bg: #000;
+  --bg-elevated: #0b0b0b;
+  --surface: #111;
+  --surface-solid: #111;
+  --surface-soft: #1c1c1c;
+  --line: rgba(255, 255, 255, .13);
+  --line-strong: rgba(255, 255, 255, .28);
+  --text: #f7f7f5;
+  --muted: #999;
+  --accent: #8ff0b5;
+  --accent-strong: #5bd98c;
+  --accent-soft: rgba(96, 226, 145, .12);
+  --on-accent: #25192d; /* текст на кнопке цвета --accent */
+  --ember: #ff7a45;
+  --blue: #8bbcff;
+  --gold: #ffc66b;
+  --danger: #ff806d;
+  --shadow: none;
+  --radius: 18px;
+
+  /* Роли (текст бейджа) — тема-зависимые для читаемости на светлой поверхности. */
+  --role-safelane: #9ce77e;
+  --role-mid: var(--gold);
+  --role-offlane: var(--accent);
+  --role-support: #d5a5ff;
+  --role-safelane-bg: rgba(105, 180, 75, .14);
+  --role-mid-bg: color-mix(in srgb, var(--gold) 13%, transparent);
+  --role-offlane-bg: var(--accent-soft);
+  --role-support-bg: rgba(171, 104, 224, .13);
+
+  /* Инвертные (всегда-тёмные) поверхности и радар — не меняются между темами. */
+  --surface-invert: #111;
+  --surface-invert-soft: #1c1c1c;
+  --on-invert: #f7f7f5;
+  --muted-invert: #999;
+  --line-invert: rgba(255, 255, 255, .13);
+  --line-invert-strong: rgba(255, 255, 255, .28);
+  --brand-green: #8ff0b5;   /* акцент радара, фикс */
+  --brand-glow: #72e79b;    /* свечение-блобы, фикс */
+  --stat-base: #8bbcff;     /* цвета stat-strip на тёмном радаре, фикс */
+  --stat-chemistry: #ffc66b;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f1efe8;
+  --bg-elevated: #e8e4da;
+  --surface: #f8f6ef;
+  --surface-solid: #f8f6ef;
+  --surface-soft: #e8e4da;
+  --line: rgba(20, 20, 18, .16);
+  --line-strong: rgba(20, 20, 18, .32);
+  --text: #181816;
+  --muted: #686760;
+  --accent: #d97757;
+  --accent-strong: #c45e3e;
+  --accent-soft: rgba(217, 119, 87, .12);
+  --on-accent: #fff;
+  --ember: #d97757;
+  --blue: #315fae;
+  --gold: #996311;
+  --danger: #c63e2b;
+  --shadow: none;
+
+  --role-safelane: #337f18;
+  --role-support: #714397;
+}

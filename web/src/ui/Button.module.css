@@ -1,0 +1,22 @@
+.button { border: 0; border-radius: 12px; font-weight: 800; transition: transform .16s, filter .16s, border-color .16s; }
+.button:disabled { cursor: not-allowed; }
+
+.primary { display: flex; width: 100%; align-items: center; justify-content: space-between; padding: 16px 18px; color: var(--on-accent); border-radius: 999px; background: var(--accent); }
+.primary:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.05); }
+.primary:disabled { opacity: .45; }
+/* Инвертный акцент — для тёмных панелей (launch): светлая кнопка, тёмный текст. */
+.primaryInvert { color: var(--surface-invert); background: var(--on-invert); }
+
+.secondary { padding: 10px 14px; border-radius: 999px; background: var(--surface-soft); }
+.secondary small { display: block; color: var(--muted); font-size: 8px; font-weight: 700; }
+.secondary:hover:not(:disabled) { border-color: var(--accent); }
+.secondary:disabled { opacity: .4; }
+
+.danger { padding: 10px 14px; color: #fff; border-radius: 999px; background: #b84435; }
+.danger:hover:not(:disabled) { background: #ce503f; }
+
+.leave { min-width: 210px; margin-bottom: 6px; padding: 12px 20px; color: #17120f; border-radius: 999px; background: var(--ember); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.leave:hover:not(:disabled) { filter: brightness(1.08); }
+
+.back { margin: 24px 0 0; padding: 8px 0; color: var(--muted); border-radius: 0; background: transparent; font-size: 12px; font-weight: 700; }
+.back:hover:not(:disabled) { color: var(--text); }

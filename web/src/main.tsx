@@ -1,16 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { App } from "./App.tsx";
-import { I18nProvider } from "./i18n/I18nProvider.tsx";
-import { ThemeProvider } from "./theme/ThemeProvider.tsx";
-import "./styles.css";
+import { App } from "./app/App.tsx";
+import { AppProviders } from "./app/providers.tsx";
+import "./design/tokens.css";
+import "./design/base.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <ThemeProvider>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
-    </ThemeProvider>
+    <AppProviders>
+      <App />
+    </AppProviders>
   </StrictMode>,
 );

@@ -1,0 +1,6 @@
+.stat { padding: 13px 8px; text-align: center; border: 0; border-radius: 16px; background: var(--surface-invert-soft); }
+.stat strong { display: block; font: 700 22px "Space Grotesk"; }
+.stat span { display: block; color: var(--muted-invert); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.base strong { color: var(--stat-base); }
+.synergy strong { color: var(--brand-green); }
+.chemistry strong { color: var(--stat-chemistry); }

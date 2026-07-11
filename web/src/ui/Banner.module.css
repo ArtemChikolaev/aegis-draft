@@ -1,0 +1,2 @@
+.banner { display: grid; gap: 3px; margin: 18px 0; padding: 14px 18px; border-radius: 14px; }
+.error { color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); }

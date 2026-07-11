@@ -1,6 +1,7 @@
-import type { RosterSlot } from "../game/engine.ts";
-import { useI18n } from "../i18n/I18nProvider.tsx";
-import { roleMessageKey } from "../i18n/core.ts";
+import type { RosterSlot } from "../../game/engine.ts";
+import { useI18n } from "../../i18n/I18nProvider.tsx";
+import { roleMessageKey } from "../../i18n/core.ts";
+import "./pentagon.css";
 
 /** Радар-пентагон: 5 слотов ростера по вершинам + Team OVR в центре. */
 export function Pentagon({ roster, teamOvr }: { roster: RosterSlot[]; teamOvr: number | null }) {

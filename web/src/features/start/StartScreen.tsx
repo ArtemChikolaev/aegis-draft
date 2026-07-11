@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useRun, type RunMode } from "../state/runStore.ts";
-import { useI18n } from "../i18n/I18nProvider.tsx";
-import type { MessageKey } from "../i18n/core.ts";
-import type { RunConfig, DraftStyle, Scoring, Allocation } from "../game/packs.ts";
-import type { Format } from "../types/data.ts";
+import { useRun, type RunMode } from "../../state/runStore.ts";
+import { useI18n } from "../../i18n/I18nProvider.tsx";
+import type { MessageKey } from "../../i18n/core.ts";
+import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/packs.ts";
+import type { Format } from "../../types/data.ts";
+import { Button, Eyebrow, OptionGroup, type Option, Surface } from "../../ui/index.ts";
+import "./start.css";
 
 interface Opt<T> {
   value: T;
@@ -43,35 +45,6 @@ const ALLOCATION: Opt<Allocation>[] = [
   { value: "manual", label: "start.manual", hint: "start.manualHint", soon: true },
 ];
 
-function Group<T>({ title, options, value, onChange }: {
-  title: MessageKey;
-  options: Opt<T>[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <fieldset className="config-group">
-      <legend>{t(title)}</legend>
-      <div className="option-grid">
-        {options.map((option) => (
-          <button
-            type="button"
-            key={String(option.value)}
-            className={`option ${option.value === value ? "option--active" : ""}`}
-            disabled={option.soon}
-            aria-pressed={option.value === value}
-            onClick={() => onChange(option.value)}
-          >
-            <span className="option__label">{t(option.label)}{option.soon && <em>{t("common.soon")}</em>}</span>
-            {option.hint && <span className="option__hint">{t(option.hint)}</span>}
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
 export function StartScreen() {
   const start = useRun((state) => state.start);
   const formats = useRun((state) => state.data?.manifest.formats ?? []);
@@ -87,6 +60,11 @@ export function StartScreen() {
   });
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
   const formatAvailable = (format: Format) => formats.includes(format);
+
+  // Перевод Opt<MessageKey> → Option<string> для UIkit OptionGroup.
+  const toOptions = <T,>(items: Opt<T>[]): Option<T>[] =>
+    items.map((item) => ({ value: item.value, label: t(item.label), hint: item.hint ? t(item.hint) : undefined, soon: item.soon }));
+
   const selectedLabels: MessageKey[] = [
     DRAFT.find((option) => option.value === config.draftStyle)?.label ?? "start.teamPacks",
     FORMAT.find((option) => option.value === config.format)?.label ?? "start.last2y",
@@ -102,7 +80,7 @@ export function StartScreen() {
     return (
       <main className="mode-select">
         <header className="mode-select__heading">
-          <p className="eyebrow">{t("start.chooseModeEyebrow")}</p>
+          <Eyebrow className="ms-eyebrow">{t("start.chooseModeEyebrow")}</Eyebrow>
           <h1>{t("start.chooseModeTitle")}</h1>
           <p>{t("start.chooseModeText")}</p>
         </header>
@@ -124,10 +102,10 @@ export function StartScreen() {
     const selectedMode = MODES.find((item) => item.value === mode)!;
     return (
       <main className={`mode-preview mode-preview--${mode}`}>
-        <button className="back-button" onClick={() => setMode(null)}>← {t("start.backToModes")}</button>
-        <p className="eyebrow">{t(selectedMode.label)}</p>
+        <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>
+        <Eyebrow className="mp-eyebrow">{t(selectedMode.label)}</Eyebrow>
         <h1>{t("start.comingSoon")}</h1>
-        <p>{t(selectedMode.detail)}</p>
+        <p className="mp-text">{t(selectedMode.detail)}</p>
         <div className="mode-preview__art"><strong>{t(selectedMode.label)}</strong><span>{t("start.comingSoonText")}</span></div>
       </main>
     );
@@ -135,11 +113,11 @@ export function StartScreen() {
 
   return (
     <main className="start">
-      <button className="back-button" onClick={() => setMode(null)}>← {t("start.backToModes")}</button>
+      <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>
       <section className="hero-copy">
-        <p className="eyebrow">{t("start.eyebrow")}</p>
+        <Eyebrow className="hero-eyebrow">{t("start.eyebrow")}</Eyebrow>
         <h1>{t("start.title")}</h1>
-        <p>{t("start.description")}</p>
+        <p className="hero-copy__text">{t("start.description")}</p>
         <div className="hero-art">
           <div className="classic-art__copy"><strong>{t("start.classicArtTitle")}</strong><p>{t("start.classicArtText")}</p></div>
           <span><strong>TEAM PACKS</strong><small>{t("start.teamPacksHint")}</small></span>
@@ -148,21 +126,21 @@ export function StartScreen() {
         </div>
       </section>
       <div className="start__layout">
-        <section className="surface config-panel">
-          <Group title="start.draftStyle" options={DRAFT} value={config.draftStyle} onChange={(value) => set("draftStyle", value)} />
-          <Group title="start.format" options={FORMAT.map((option) => ({ ...option, soon: !formatAvailable(option.value) }))} value={config.format} onChange={(value) => set("format", value)} />
-          <Group title="start.difficulty" options={DIFFICULTY} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
-          <Group title="start.scoring" options={SCORING} value={config.scoring} onChange={(value) => set("scoring", value)} />
-          <Group title="start.allocation" options={ALLOCATION} value={config.allocation} onChange={(value) => set("allocation", value)} />
-        </section>
-        <aside className="surface launch-panel">
+        <Surface className="config-panel">
+          <OptionGroup title={t("start.draftStyle")} soonLabel={t("common.soon")} options={toOptions(DRAFT)} value={config.draftStyle} onChange={(value) => set("draftStyle", value)} />
+          <OptionGroup title={t("start.format")} soonLabel={t("common.soon")} options={toOptions(FORMAT.map((option) => ({ ...option, soon: !formatAvailable(option.value) })))} value={config.format} onChange={(value) => set("format", value)} />
+          <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY)} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
+          <OptionGroup title={t("start.scoring")} soonLabel={t("common.soon")} options={toOptions(SCORING)} value={config.scoring} onChange={(value) => set("scoring", value)} />
+          <OptionGroup title={t("start.allocation")} soonLabel={t("common.soon")} options={toOptions(ALLOCATION)} value={config.allocation} onChange={(value) => set("allocation", value)} />
+        </Surface>
+        <Surface as="aside" className="launch-panel">
           <span className="launch-panel__icon" aria-hidden="true">A</span>
           <h2>{t("start.launchTitle")}</h2>
           <p>{t("start.launchText")}</p>
           <ul>{selectedLabels.map((label) => <li key={label}>{t(label)}</li>)}</ul>
-          <button className="primary-button" data-testid="start-run" onClick={onStart} disabled={!formatAvailable(config.format)}>{t("start.launch")}<span>→</span></button>
+          <Button variant="primaryInvert" data-testid="start-run" onClick={onStart} disabled={!formatAvailable(config.format)}>{t("start.launch")}<span>→</span></Button>
           {!formatAvailable(config.format) && <p className="notice">{t("start.unavailable")}</p>}
-        </aside>
+        </Surface>
       </div>
     </main>
   );

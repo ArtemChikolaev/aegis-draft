@@ -1,4 +1,4 @@
-import { useRun } from "../state/runStore.ts";
+import { useRun } from "../../state/runStore.ts";
 
 /** Хук: функция heroName(id) по загруженному справочнику героев. */
 export function useHeroName(): (id: number) => string {

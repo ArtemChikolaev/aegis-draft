@@ -1,0 +1,7 @@
+.backdrop { position: fixed; z-index: 100; display: grid; place-items: center; inset: 0; padding: 20px; background: rgba(0, 0, 0, .72); backdrop-filter: blur(9px); }
+.panel { width: min(480px, 100%); padding: 30px; color: var(--on-invert); border: 1px solid var(--line-invert-strong); border-radius: 18px; background: radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--brand-glow) 42%, transparent), transparent 24%), var(--surface-invert); box-shadow: 0 30px 100px rgba(0, 0, 0, .5); }
+.mark { display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 48px; color: var(--surface-invert); background: var(--on-invert); font-weight: 800; }
+.panel h2 { margin-bottom: 12px; font-size: 34px; letter-spacing: -.04em; }
+.panel p { margin-bottom: 28px; color: var(--muted-invert); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.actions button { min-height: 48px; }
