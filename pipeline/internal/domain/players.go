@@ -1,0 +1,117 @@
+package domain
+
+import (
+	"sort"
+	"strconv"
+
+	"github.com/aegis-draft/pipeline/internal/model"
+	"github.com/aegis-draft/pipeline/internal/normalize"
+	"github.com/aegis-draft/pipeline/internal/opendota"
+	"github.com/aegis-draft/pipeline/internal/rating"
+	"github.com/aegis-draft/pipeline/internal/roles"
+)
+
+// matchPerformances разворачивает матчи в rating.MatchPerformance. Роль игрока —
+// его primaryRole (S2), чтобы все игры легли в один рейтинговый cohort. TeamKills —
+// сумма килов команды в матче (гарантирует kills<=teamKills). Матчи без длительности
+// пропускаются (RatePlayers требует DurationSeconds>0).
+func matchPerformances(matches []normalize.NormalizedMatch, roleByAccount map[int]model.Role) []rating.MatchPerformance {
+	out := make([]rating.MatchPerformance, 0)
+	for _, match := range matches {
+		if match.Duration <= 0 {
+			continue
+		}
+		teamKills := make(map[int]int)
+		for _, app := range match.Players {
+			teamKills[app.TeamID] += app.Kills
+		}
+		for _, app := range match.Players {
+			role, ok := roleByAccount[app.AccountID]
+			if !ok {
+				continue
+			}
+			out = append(out, rating.MatchPerformance{
+				MatchID: match.MatchID, AccountID: app.AccountID, Role: role,
+				DurationSeconds: match.Duration, Kills: app.Kills, Deaths: app.Deaths, Assists: app.Assists,
+				TeamKills: teamKills[app.TeamID], GoldPerMin: app.GoldPerMin, XPPerMin: app.XPPerMin,
+				LastHits: app.LastHits, HeroDamage: app.HeroDamage,
+			})
+		}
+	}
+	return out
+}
+
+// BuildRatings считает per-account рейтинг (OVR/IMP/ECO/REL) из окна матчей.
+// Каждый игрок в одной primaryRole ⇒ ровно один PlayerRating на account.
+func BuildRatings(matches []normalize.NormalizedMatch, rolesList []roles.PlayerRoles, cfg rating.Config) (map[int]rating.PlayerRating, error) {
+	roleByAccount := make(map[int]model.Role, len(rolesList))
+	for _, pr := range rolesList {
+		roleByAccount[pr.AccountID] = pr.PrimaryRole
+	}
+	rated, err := rating.RatePlayers("opendota-window", matchPerformances(matches, roleByAccount), cfg)
+	if err != nil {
+		return nil, err
+	}
+	byAccount := make(map[int]rating.PlayerRating, len(rated))
+	for _, r := range rated {
+		byAccount[r.AccountID] = r
+	}
+	return byAccount, nil
+}
+
+// gamesByAccountTeam считает игры игрока за каждую команду (для players[].teams).
+func gamesByAccountTeam(matches []normalize.NormalizedMatch) map[int]map[int]int {
+	out := make(map[int]map[int]int)
+	for _, match := range matches {
+		for _, app := range match.Players {
+			if out[app.AccountID] == nil {
+				out[app.AccountID] = make(map[int]int)
+			}
+			out[app.AccountID][app.TeamID]++
+		}
+	}
+	return out
+}
+
+// BuildPlayers собирает профили игроков: nickname, primaryRole/rolesPlayed (S2),
+// команды с числом игр. Peak (career-best) — deferred (T4.2), не заполняется.
+func BuildPlayers(snapshot *normalize.OpenDotaSnapshot, rolesList []roles.PlayerRoles, teams []opendota.Team, matches []normalize.NormalizedMatch) map[string]model.PlayerProfile {
+	teamName := make(map[int]string, len(teams))
+	for _, team := range teams {
+		teamName[int(team.TeamID)] = team.Name
+	}
+	rolesByAccount := make(map[int]roles.PlayerRoles, len(rolesList))
+	for _, pr := range rolesList {
+		rolesByAccount[pr.AccountID] = pr
+	}
+	games := gamesByAccountTeam(matches)
+	out := make(map[string]model.PlayerProfile)
+	for _, player := range snapshot.Players {
+		pr, ok := rolesByAccount[player.AccountID]
+		if !ok {
+			continue
+		}
+		teamsList := make([]model.PlayerTeam, 0, len(player.TeamIDs))
+		for _, teamID := range player.TeamIDs {
+			teamsList = append(teamsList, model.PlayerTeam{
+				TeamID: teamID, TeamName: teamName[teamID], Games: games[player.AccountID][teamID],
+			})
+		}
+		sort.Slice(teamsList, func(i, j int) bool { return teamsList[i].TeamID < teamsList[j].TeamID })
+		out[strconv.Itoa(player.AccountID)] = model.PlayerProfile{
+			AccountID:   player.AccountID,
+			Nickname:    nicknameOf(player),
+			PrimaryRole: pr.PrimaryRole,
+			RolesPlayed: pr.RolesPlayed,
+			Teams:       teamsList,
+		}
+	}
+	return out
+}
+
+func nicknameOf(player normalize.NormalizedPlayer) string {
+	if player.Name != "" {
+		return player.Name
+	}
+	return "Player " + strconv.Itoa(player.AccountID)
+}

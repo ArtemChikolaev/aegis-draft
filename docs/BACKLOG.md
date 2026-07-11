@@ -168,9 +168,12 @@
 ## M2.5 — Real OpenDota slice (слезаем с мока без Liquipedia)
 > Решение 2026-07-11: строим доменный датасет из OpenDota (players, ростеры, player×hero, рейтинги, синергия). Liquipedia-зависимое (точные placements/призовые/исторические ростеры/престиж-тиры) — аппроксимируем из OpenDota или временно оставляем моком до T1.3.
 - ✅ **S1 — OpenDota endpoints `/teams`, `/teams/{id}/players`, `/leagues`.** Типы + методы клиента на общем `sourcehttp` (кэш/ретраи/rate-limit/UA), юнит-тесты на реальных shapes; `/teams/{id}/players` даёт текущий ростер (`is_current_team_member`), `/leagues` — tier (premium/professional) для классификации событий. Live shapes сверены с API.
-- ⬜ **S2 — вывод ролей** (safelane/mid/offlane/support×2) из `lane_role` нормализованных матчей per account.
-- ⬜ **S3 — сборщик домена:** events (leagues + `formats.Assign`), packs (ростер+роли+placement-аппрокс), players/ratings (snapshot + rating-пакет), heroStats/teammates/squadSynergy (aggregate), teamSuccess (аппрокс из W/L + tier; призовые/placements deferred).
-- ⬜ **S4 — emit доменного датасета + validate + CLI-флаг + бюджетный live-run** → реальные `web/public/data/*.json`. **Deps:** S1–S3.
+- ✅ **S2 — вывод ролей** (safelane/mid/offlane/support×2) из `lane_role`+фарма. `pipeline/internal/roles.Infer([]NormalizedMatch)` → per-account primaryRole/rolesPlayed. При полной пятёрке — строгое разбиение (mid по lane_role/XPM, 2 саппорта по роумингу+низкому фарму, safe/off по линии/фарму); иначе — деградированный per-player маппинг. Детерминизм (tie-break по accountID) + тесты. Потребитель — S3.
+- ✅ **S3 — сборщик домена** (`pipeline/internal/domain`, чистые tested-билдеры):
+  - ✅ **S3a events** — `BuildEvents`: события из реально встреченных лиг, тип из tier (premium→tier1, professional→tier2), даты из диапазона матчей, формат через `formats.Assign`; вне-оконные отброшены.
+  - ✅ **S3b teamSuccess** — `BuildTeamSuccess`: прокси W/L × tier (сглаженный winrate, взвешенный по престижу лиги); titles/prize/placements/valve_legacy deferred до Liquipedia.
+  - ✅ **S3c packs+players+ratings** — `BuildRatings` (обёртка `rating.RatePlayers`: per-account OVR/IMP/ECO/REL из окна матчей, TeamKills из состава), `BuildPlayers` (профили: nickname/primaryRole/rolesPlayed/teams+игры), `BuildPacks` (пак = реальный состав команды на событии, топ-5 по играм с отсечением стенд-инов, рейтинги+роли+сигнатурные герои; placement deferred). Тесты. Peak — deferred (T4.2).
+- ⬜ **S4 — сборка `Dataset` + emit + live-run** → реальные `web/public/data/*.json`. Ассемблер `domain.Build` (events+teamSuccess+players+packs + pass-through heroStats/teammates/squadSynergy из aggregate + eventHeroStats из appearances + heroes через `/heroes`), CLI-флаг, бюджетный live-run, прогон `validate_data`. **Deps:** S1–S3.
 
 ## M5 — Полный Roguelite Run
 ### T5.1 — Stage engine + win/loss ⬜
