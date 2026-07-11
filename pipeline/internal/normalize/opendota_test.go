@@ -56,7 +56,7 @@ func TestFromOpenDotaRejectsDuplicateAccountInMatch(t *testing.T) {
 	}
 }
 
-func TestFromOpenDotaRejectsDuplicateSlotAndEmptyPlayers(t *testing.T) {
+func TestFromOpenDotaRejectsDuplicateSlot(t *testing.T) {
 	a := int64(1)
 	b := int64(2)
 	_, err := FromOpenDota([]*opendota.Match{{
@@ -66,8 +66,25 @@ func TestFromOpenDotaRejectsDuplicateSlotAndEmptyPlayers(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected duplicate playerSlot error")
 	}
-	_, err = FromOpenDota([]*opendota.Match{{MatchID: 2, RadiantTeamID: 10, DireTeamID: 11}})
-	if err == nil {
-		t.Fatal("expected empty players error")
+}
+
+// Реальные bulk-данные содержат матчи с team_id=0 или полностью анонимными
+// игроками — их пропускаем, а не роняем весь сбор.
+func TestFromOpenDotaSkipsDirtyMatches(t *testing.T) {
+	a := int64(1)
+	good := int64(2)
+	matches := []*opendota.Match{
+		{MatchID: 1, RadiantTeamID: 10, DireTeamID: 0, // невалидный team_id → skip
+			Players: []opendota.MatchPlayer{{AccountID: &a, PlayerSlot: 0}}},
+		{MatchID: 2, RadiantTeamID: 10, DireTeamID: 11}, // нет канонических игроков → skip
+		{MatchID: 3, RadiantTeamID: 12, DireTeamID: 13, // валидный
+			Players: []opendota.MatchPlayer{{AccountID: &good, PlayerSlot: 0}}},
+	}
+	snapshot, err := FromOpenDota(matches)
+	if err != nil {
+		t.Fatalf("dirty matches must not fail the run: %v", err)
+	}
+	if snapshot.SkippedMatches != 2 || len(snapshot.Matches) != 1 || snapshot.Matches[0].MatchID != 3 {
+		t.Fatalf("expected 2 skipped + only match 3 kept: %+v", snapshot)
 	}
 }

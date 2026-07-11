@@ -15,6 +15,7 @@ type OpenDotaSnapshot struct {
 	Matches        []NormalizedMatch  `json:"matches"`
 	Players        []NormalizedPlayer `json:"players"`
 	SkippedPlayers int                `json:"skippedPlayers"`
+	SkippedMatches int                `json:"skippedMatches"`
 	Collection     *CollectionStatus  `json:"collection,omitempty"`
 }
 
@@ -101,8 +102,11 @@ func FromOpenDota(matches []*opendota.Match) (*OpenDotaSnapshot, error) {
 			return nil, fmt.Errorf("duplicate matchId %d", raw.MatchID)
 		}
 		seenMatches[raw.MatchID] = struct{}{}
+		// Реальные pro-матчи иногда без зарегистрированного team_id (0): такой матч
+		// нельзя привязать к команде (нет пака) — пропускаем, а не роняем весь сбор.
 		if raw.RadiantTeamID <= 0 || raw.DireTeamID <= 0 {
-			return nil, fmt.Errorf("match %d has invalid team ids %d/%d", raw.MatchID, raw.RadiantTeamID, raw.DireTeamID)
+			snapshot.SkippedMatches++
+			continue
 		}
 		match := NormalizedMatch{
 			MatchID: raw.MatchID, StartTime: raw.StartTime, Duration: raw.Duration,
@@ -157,7 +161,9 @@ func FromOpenDota(matches []*opendota.Match) (*OpenDotaSnapshot, error) {
 			acc.matchIDs[raw.MatchID] = struct{}{}
 		}
 		if len(match.Players) == 0 {
-			return nil, fmt.Errorf("match %d has no canonical players", raw.MatchID)
+			// Все игроки анонимны (нет account_id) — матч бесполезен, пропускаем.
+			snapshot.SkippedMatches++
+			continue
 		}
 		sort.Slice(match.Players, func(i, j int) bool { return match.Players[i].PlayerSlot < match.Players[j].PlayerSlot })
 		snapshot.Matches = append(snapshot.Matches, match)
