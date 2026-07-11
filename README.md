@@ -19,13 +19,18 @@ cd pipeline && go run ./cmd/build --window last_2y --out ../web/public/data
 ## Деплой и CI/CD
 Static-first (ADR 0001): фронт + данные — статикой на CDN, пайплайн — batch-ETL по расписанию, **без сервера, БД и Kubernetes** (они — фаза 2, M8). Workflow — [.github/workflows/ci.yml](.github/workflows/ci.yml):
 - **Проверки** (push/PR): Go (`gofmt`/`vet`/`build`/`test`), Web (`gen:mock` → `validate:data` → `verify` → `typecheck` → `build`), antipattern-scan.
-- **Деплой на GitHub Pages** (push в `main`, только если проверки зелёные): сборка с `VITE_BASE=/aegis-draft/` + мок-данные → Pages. URL: `https://artemchikolaev.github.io/aegis-draft/`.
+- **Деплой на GitHub Pages** (push в `main`, только если проверки зелёные): сборка с `VITE_BASE=/aegis-draft/`, публикует **закоммиченный** `web/public/data` → Pages. URL: `https://artemchikolaev.github.io/aegis-draft/`.
+
+### Данные и их обновление
+`web/public/data/*.json` **версионируются** (deploy публикует именно их — источник истины). Обновляет их workflow [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml):
+- крон (ежедневно 06:00 UTC) или ручной `workflow_dispatch` гоняет Go-пайплайн `--emit-domain` → реальный датасет из OpenDota (events/packs/players/…);
+- валидирует по JSON Schema, коммитит изменения в `main` → push триггерит CI-деплой на Pages.
+
+Baseline в репо — **мок** (`gen:mock`), поэтому до первого прогона data-refresh деплой показывает мок. **Первый реальный датасет:** запусти `Data refresh` вручную (Actions → Data refresh → Run workflow). CI-проверки (`verify`/`validate:data`) всегда гоняют `gen:mock` эфемерно, поэтому не зависят от закоммиченных данных; deploy их не трогает `gen:mock`.
 
 **Разовая ручная настройка:** в GitHub → **Settings → Pages → Build and deployment → Source: GitHub Actions** (без этого деплой-джоб не опубликует сайт).
 
-Другой хостинг (Cloudflare Pages / Netlify — корень без сабпути): build command `npm ci && npm run gen:mock && npm run build`, publish dir `web/dist`, `VITE_BASE` не задавать. Base-путь фронта берётся из `import.meta.env.BASE_URL`, поэтому работает и в корне, и под сабпутём.
-
-> Реальные данные пока не эмитятся — деплой собирает мок (`gen:mock`). Scheduled data-refresh (крон, прогон Go-пайплайна → реальные `web/public/data`) добавится вместе с emit доменного датасета (BACKLOG M2.5/S4).
+Другой хостинг (Cloudflare Pages / Netlify — корень без сабпути): build command `npm ci && npm run build`, publish dir `web/dist`, `VITE_BASE` не задавать. Base-путь фронта берётся из `import.meta.env.BASE_URL`, поэтому работает и в корне, и под сабпутём.
 
 ## Документы
 - 📄 **[docs/PRD.md](docs/PRD.md)** — концепция, разбор оригинала, механики, режимы, стек, роадмап.

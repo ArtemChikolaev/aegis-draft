@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "ratingModelVersion": "mock-0",
+  "builtAt": "2026-07-11T00:00:00Z",
+  "source": {
+    "opendota": "mock dataset — not real OpenDota data",
+    "liquipedia": "mock dataset — not real Liquipedia data"
+  },
+  "formats": [
+    "last_1y",
+    "last_2y",
+    "last_5y",
+    "valve_legacy"
+  ],
+  "counts": {
+    "events": 6,
+    "heroes": 15,
+    "packs": 22,
+    "players": 35
+  }
+}

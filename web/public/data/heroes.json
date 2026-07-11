@@ -1,0 +1,17 @@
+[
+  { "id": 1, "name": "Anti-Mage", "picture": "antimage" },
+  { "id": 5, "name": "Crystal Maiden", "picture": "crystal_maiden" },
+  { "id": 6, "name": "Drow Ranger", "picture": "drow_ranger" },
+  { "id": 8, "name": "Juggernaut", "picture": "juggernaut" },
+  { "id": 11, "name": "Shadow Fiend", "picture": "nevermore" },
+  { "id": 22, "name": "Zeus", "picture": "zuus" },
+  { "id": 25, "name": "Lina", "picture": "lina" },
+  { "id": 26, "name": "Lion", "picture": "lion" },
+  { "id": 41, "name": "Faceless Void", "picture": "faceless_void" },
+  { "id": 44, "name": "Phantom Assassin", "picture": "phantom_assassin" },
+  { "id": 68, "name": "Ancient Apparition", "picture": "ancient_apparition" },
+  { "id": 74, "name": "Invoker", "picture": "invoker" },
+  { "id": 87, "name": "Disruptor", "picture": "disruptor" },
+  { "id": 114, "name": "Monkey King", "picture": "monkey_king" },
+  { "id": 128, "name": "Snapfire", "picture": "snapfire" }
+]

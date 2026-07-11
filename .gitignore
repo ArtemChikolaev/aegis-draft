@@ -10,8 +10,9 @@ node_modules/
 /web/dist/
 .vite/
 
-# Generated data (собирается пайплайном)
-/web/public/data/*.json
+# Данные web/public/data/*.json теперь версионируются: deploy берёт закоммиченный
+# датасет, а workflow data-refresh (крон) пересобирает его пайплайном (--emit-domain).
+# gen:mock перегенерирует мок локально/в CI-проверках.
 
 # Env / secrets (ключи OpenDota, контакты Liquipedia UA)
 .env

@@ -79,13 +79,15 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Build web (сабпуть Pages + мок-данные)
+      - name: Build web (сабпуть Pages + закоммиченный датасет)
         working-directory: web
         env:
           VITE_BASE: /aegis-draft/
         run: |
           npm ci
-          npm run gen:mock
+          # Деплой публикует ЗАКОММИЧЕННЫЙ датасет (реальный из data-refresh или мок-baseline).
+          # gen:mock — только если данных нет, чтобы сборка не падала на пустом public/data.
+          [ -f public/data/manifest.json ] || npm run gen:mock
           npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

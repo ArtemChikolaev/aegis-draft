@@ -1,0 +1,265 @@
+{
+  "2163": {
+    "last_1y": {
+      "successScore": 73,
+      "titles": 0,
+      "topFinishes": 1,
+      "prizeUsd": 480000,
+      "games": 17,
+      "winrate": 0.7059,
+      "tiPlacement": 2
+    },
+    "last_2y": {
+      "successScore": 82,
+      "titles": 1,
+      "topFinishes": 2,
+      "prizeUsd": 1260000,
+      "games": 35,
+      "winrate": 0.6,
+      "tiPlacement": 1
+    },
+    "last_5y": {
+      "successScore": 87,
+      "titles": 1,
+      "topFinishes": 3,
+      "prizeUsd": 1548000,
+      "games": 51,
+      "winrate": 0.6275,
+      "tiPlacement": 1
+    },
+    "valve_legacy": {
+      "successScore": 87,
+      "titles": 1,
+      "topFinishes": 3,
+      "prizeUsd": 1548000,
+      "games": 51,
+      "winrate": 0.6275,
+      "tiPlacement": 1
+    }
+  },
+  "8255888": {
+    "last_1y": {
+      "successScore": 83,
+      "titles": 1,
+      "topFinishes": 2,
+      "prizeUsd": 390000,
+      "games": 23,
+      "winrate": 0.6522
+    },
+    "last_2y": {
+      "successScore": 87,
+      "titles": 1,
+      "topFinishes": 3,
+      "prizeUsd": 624000,
+      "games": 38,
+      "winrate": 0.6579,
+      "tiPlacement": 3
+    },
+    "last_5y": {
+      "successScore": 90,
+      "titles": 1,
+      "topFinishes": 4,
+      "prizeUsd": 786000,
+      "games": 53,
+      "winrate": 0.6604,
+      "tiPlacement": 3
+    },
+    "valve_legacy": {
+      "successScore": 74,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 396000,
+      "games": 30,
+      "winrate": 0.6667,
+      "tiPlacement": 3
+    }
+  },
+  "8261500": {
+    "last_1y": {
+      "successScore": 63,
+      "titles": 0,
+      "topFinishes": 1,
+      "prizeUsd": 160000,
+      "games": 12,
+      "winrate": 0.5
+    },
+    "last_2y": {
+      "successScore": 65,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 316000,
+      "games": 26,
+      "winrate": 0.4615,
+      "tiPlacement": 4
+    },
+    "last_5y": {
+      "successScore": 68,
+      "titles": 0,
+      "topFinishes": 3,
+      "prizeUsd": 346000,
+      "games": 38,
+      "winrate": 0.4474,
+      "tiPlacement": 4
+    },
+    "valve_legacy": {
+      "successScore": 63,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 186000,
+      "games": 26,
+      "winrate": 0.4231,
+      "tiPlacement": 4
+    }
+  },
+  "8291895": {
+    "last_1y": {
+      "successScore": 91,
+      "titles": 2,
+      "topFinishes": 2,
+      "prizeUsd": 1200000,
+      "games": 32,
+      "winrate": 0.5625,
+      "tiPlacement": 1
+    },
+    "last_2y": {
+      "successScore": 91,
+      "titles": 2,
+      "topFinishes": 2,
+      "prizeUsd": 1200000,
+      "games": 32,
+      "winrate": 0.5625,
+      "tiPlacement": 1
+    },
+    "last_5y": {
+      "successScore": 99,
+      "titles": 3,
+      "topFinishes": 3,
+      "prizeUsd": 1350000,
+      "games": 48,
+      "winrate": 0.5625,
+      "tiPlacement": 1
+    },
+    "valve_legacy": {
+      "successScore": 91,
+      "titles": 2,
+      "topFinishes": 2,
+      "prizeUsd": 1050000,
+      "games": 34,
+      "winrate": 0.5588,
+      "tiPlacement": 1
+    }
+  },
+  "8599101": {
+    "last_1y": {
+      "successScore": 71,
+      "titles": 0,
+      "topFinishes": 1,
+      "prizeUsd": 90000,
+      "games": 11,
+      "winrate": 0.7273
+    },
+    "last_2y": {
+      "successScore": 70,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 506000,
+      "games": 28,
+      "winrate": 0.5714,
+      "tiPlacement": 2
+    },
+    "last_5y": {
+      "successScore": 72,
+      "titles": 0,
+      "topFinishes": 3,
+      "prizeUsd": 586000,
+      "games": 43,
+      "winrate": 0.5349,
+      "tiPlacement": 2
+    },
+    "valve_legacy": {
+      "successScore": 66,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 496000,
+      "games": 32,
+      "winrate": 0.4688,
+      "tiPlacement": 2
+    }
+  },
+  "8687717": {
+    "last_1y": {
+      "successScore": 66,
+      "titles": 0,
+      "topFinishes": 1,
+      "prizeUsd": 180000,
+      "games": 14,
+      "winrate": 0.5714,
+      "tiPlacement": 4
+    },
+    "last_2y": {
+      "successScore": 66,
+      "titles": 0,
+      "topFinishes": 1,
+      "prizeUsd": 180000,
+      "games": 14,
+      "winrate": 0.5714,
+      "tiPlacement": 4
+    },
+    "last_5y": {
+      "successScore": 87,
+      "titles": 1,
+      "topFinishes": 3,
+      "prizeUsd": 765000,
+      "games": 45,
+      "winrate": 0.6444,
+      "tiPlacement": 1
+    },
+    "valve_legacy": {
+      "successScore": 87,
+      "titles": 1,
+      "topFinishes": 3,
+      "prizeUsd": 765000,
+      "games": 45,
+      "winrate": 0.6444,
+      "tiPlacement": 1
+    }
+  },
+  "9247354": {
+    "last_1y": {
+      "successScore": 74,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 430000,
+      "games": 27,
+      "winrate": 0.6667,
+      "tiPlacement": 3
+    },
+    "last_2y": {
+      "successScore": 74,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 430000,
+      "games": 27,
+      "winrate": 0.6667,
+      "tiPlacement": 3
+    },
+    "last_5y": {
+      "successScore": 78,
+      "titles": 0,
+      "topFinishes": 3,
+      "prizeUsd": 538000,
+      "games": 41,
+      "winrate": 0.6829,
+      "tiPlacement": 3
+    },
+    "valve_legacy": {
+      "successScore": 73,
+      "titles": 0,
+      "topFinishes": 2,
+      "prizeUsd": 378000,
+      "games": 29,
+      "winrate": 0.6552,
+      "tiPlacement": 3
+    }
+  }
+}

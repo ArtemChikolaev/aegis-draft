@@ -1,0 +1,807 @@
+{
+  "84330566": {
+    "accountId": 84330566,
+    "nickname": "Sneyking",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8687717,
+        "teamName": "Tundra Esports",
+        "games": 45
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 87,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 45
+      }
+    }
+  },
+  "84599582": {
+    "accountId": 84599582,
+    "nickname": "Insania",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 51
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 85,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 41
+      }
+    }
+  },
+  "87012746": {
+    "accountId": 87012746,
+    "nickname": "Saksa",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8687717,
+        "teamName": "Tundra Esports",
+        "games": 45
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 86,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 53
+      }
+    }
+  },
+  "87177591": {
+    "accountId": 87177591,
+    "nickname": "Cr1t",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 41
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 86,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 52
+      }
+    }
+  },
+  "88271237": {
+    "accountId": 88271237,
+    "nickname": "33",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 51
+      }
+    ],
+    "peak": {
+      "offlane": {
+        "ovr": 88,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 57
+      }
+    }
+  },
+  "88472357": {
+    "accountId": 88472357,
+    "nickname": "fng",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 41
+      }
+    ],
+    "peak": {
+      "offlane": {
+        "ovr": 87,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 50
+      }
+    }
+  },
+  "94296097": {
+    "accountId": 94296097,
+    "nickname": "Ws",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 41
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 86,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 59
+      }
+    }
+  },
+  "111620041": {
+    "accountId": 111620041,
+    "nickname": "Pure",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 8687717,
+        "teamName": "Tundra Esports",
+        "games": 45
+      }
+    ],
+    "peak": {
+      "offlane": {
+        "ovr": 88,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 46
+      }
+    }
+  },
+  "114239371": {
+    "accountId": 114239371,
+    "nickname": "Ame",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 38
+      }
+    ],
+    "peak": {
+      "safelane": {
+        "ovr": 92,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 54
+      }
+    }
+  },
+  "117858647": {
+    "accountId": 117858647,
+    "nickname": "Xxs",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 38
+      }
+    ],
+    "peak": {
+      "offlane": {
+        "ovr": 89,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 49
+      }
+    }
+  },
+  "146603730": {
+    "accountId": 146603730,
+    "nickname": "Xll",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 38
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 86,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 46
+      }
+    }
+  },
+  "152392947": {
+    "accountId": 152392947,
+    "nickname": "Bzm",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 8687717,
+        "teamName": "Tundra Esports",
+        "games": 45
+      }
+    ],
+    "peak": {
+      "mid": {
+        "ovr": 90,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 42
+      }
+    }
+  },
+  "152574006": {
+    "accountId": 152574006,
+    "nickname": "TORONTOTOKYO",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 8255888,
+        "teamName": "BetBoom Team",
+        "games": 53
+      }
+    ],
+    "peak": {
+      "mid": {
+        "ovr": 88,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 41
+      }
+    }
+  },
+  "152859296": {
+    "accountId": 152859296,
+    "nickname": "tOfu",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8599101,
+        "teamName": "Gaimin Gladiators",
+        "games": 43
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 85,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 53
+      }
+    }
+  },
+  "152962063": {
+    "accountId": 152962063,
+    "nickname": "Save-",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8255888,
+        "teamName": "BetBoom Team",
+        "games": 53
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 84,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 53
+      }
+    }
+  },
+  "152966869": {
+    "accountId": 152966869,
+    "nickname": "Skiter",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 8687717,
+        "teamName": "Tundra Esports",
+        "games": 45
+      }
+    ],
+    "peak": {
+      "safelane": {
+        "ovr": 91,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 52
+      }
+    }
+  },
+  "152967170": {
+    "accountId": 152967170,
+    "nickname": "Boxi",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 51
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 84,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 57
+      }
+    }
+  },
+  "153164013": {
+    "accountId": 153164013,
+    "nickname": "XinQ",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 38
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 87,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 58
+      }
+    }
+  },
+  "156909578": {
+    "accountId": 156909578,
+    "nickname": "dyrachyo",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 8599101,
+        "teamName": "Gaimin Gladiators",
+        "games": 43
+      }
+    ],
+    "peak": {
+      "safelane": {
+        "ovr": 91,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 57
+      }
+    }
+  },
+  "165564334": {
+    "accountId": 165564334,
+    "nickname": "micKe",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 51
+      }
+    ],
+    "peak": {
+      "safelane": {
+        "ovr": 89,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 51
+      }
+    }
+  },
+  "174308280": {
+    "accountId": 174308280,
+    "nickname": "Quinn",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 8599101,
+        "teamName": "Gaimin Gladiators",
+        "games": 43
+      }
+    ],
+    "peak": {
+      "mid": {
+        "ovr": 90,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 46
+      }
+    }
+  },
+  "200029254": {
+    "accountId": 200029254,
+    "nickname": "Nightfall",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 8255888,
+        "teamName": "BetBoom Team",
+        "games": 53
+      }
+    ],
+    "peak": {
+      "safelane": {
+        "ovr": 87,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 59
+      }
+    }
+  },
+  "202067680": {
+    "accountId": 202067680,
+    "nickname": "Nisha",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 51
+      }
+    ],
+    "peak": {
+      "mid": {
+        "ovr": 91,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 57
+      }
+    }
+  },
+  "202956328": {
+    "accountId": 202956328,
+    "nickname": "Crystallis",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 41
+      }
+    ],
+    "peak": {
+      "safelane": {
+        "ovr": 88,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 53
+      }
+    }
+  },
+  "213243839": {
+    "accountId": 213243839,
+    "nickname": "Seleri",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8599101,
+        "teamName": "Gaimin Gladiators",
+        "games": 43
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 86,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 51
+      }
+    }
+  },
+  "251217746": {
+    "accountId": 251217746,
+    "nickname": "Mira",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8291895,
+        "teamName": "Team Spirit",
+        "games": 48
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 88,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 42
+      }
+    }
+  },
+  "259630369": {
+    "accountId": 259630369,
+    "nickname": "MieRo",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 8255888,
+        "teamName": "BetBoom Team",
+        "games": 53
+      }
+    ],
+    "peak": {
+      "offlane": {
+        "ovr": 86,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 51
+      }
+    }
+  },
+  "302085096": {
+    "accountId": 302085096,
+    "nickname": "Miposhka",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8291895,
+        "teamName": "Team Spirit",
+        "games": 48
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 89,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 54
+      }
+    }
+  },
+  "302214028": {
+    "accountId": 302214028,
+    "nickname": "Collapse",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 8291895,
+        "teamName": "Team Spirit",
+        "games": 48
+      }
+    ],
+    "peak": {
+      "offlane": {
+        "ovr": 93,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 42
+      }
+    }
+  },
+  "302241878": {
+    "accountId": 302241878,
+    "nickname": "Kataomi",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 8255888,
+        "teamName": "BetBoom Team",
+        "games": 53
+      }
+    ],
+    "peak": {
+      "support": {
+        "ovr": 83,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 58
+      }
+    }
+  },
+  "311360822": {
+    "accountId": 311360822,
+    "nickname": "Malr1ne",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 9247354,
+        "teamName": "Team Falcons",
+        "games": 41
+      }
+    ],
+    "peak": {
+      "mid": {
+        "ovr": 90,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 41
+      }
+    }
+  },
+  "321580662": {
+    "accountId": 321580662,
+    "nickname": "Yatoro",
+    "primaryRole": "safelane",
+    "rolesPlayed": [
+      "safelane"
+    ],
+    "teams": [
+      {
+        "teamId": 8291895,
+        "teamName": "Team Spirit",
+        "games": 48
+      }
+    ],
+    "peak": {
+      "safelane": {
+        "ovr": 94,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 59
+      }
+    }
+  },
+  "325573893": {
+    "accountId": 325573893,
+    "nickname": "Xm",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 38
+      }
+    ],
+    "peak": {
+      "mid": {
+        "ovr": 91,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 49
+      }
+    }
+  },
+  "402092269": {
+    "accountId": 402092269,
+    "nickname": "Larl",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 8291895,
+        "teamName": "Team Spirit",
+        "games": 48
+      }
+    ],
+    "peak": {
+      "mid": {
+        "ovr": 92,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 53
+      }
+    }
+  },
+  "419365356": {
+    "accountId": 419365356,
+    "nickname": "ATF",
+    "primaryRole": "offlane",
+    "rolesPlayed": [
+      "offlane"
+    ],
+    "teams": [
+      {
+        "teamId": 8599101,
+        "teamName": "Gaimin Gladiators",
+        "games": 43
+      }
+    ],
+    "peak": {
+      "offlane": {
+        "ovr": 89,
+        "windowStart": "2025-01-01",
+        "windowEnd": "2025-06-30",
+        "games": 42
+      }
+    }
+  }
+}

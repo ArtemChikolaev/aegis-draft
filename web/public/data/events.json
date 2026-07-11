@@ -1,0 +1,97 @@
+[
+  {
+    "id": "esl-birmingham-2026",
+    "name": "ESL One Birmingham 2026",
+    "short": "ESLB26",
+    "type": "tier1",
+    "year": 2026,
+    "startDate": "2026-04-20",
+    "endDate": "2026-04-26",
+    "patch": "7.39",
+    "prizePool": 1000000,
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "ti2025",
+    "name": "The International 2025",
+    "short": "TI14",
+    "type": "ti",
+    "year": 2025,
+    "startDate": "2025-09-04",
+    "endDate": "2025-09-14",
+    "patch": "7.38",
+    "prizePool": 3000000,
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "pgl-wallachia-2025",
+    "name": "PGL Wallachia Season 4",
+    "short": "PGLW4",
+    "type": "tier1",
+    "year": 2025,
+    "startDate": "2025-08-01",
+    "endDate": "2025-08-10",
+    "patch": "7.37",
+    "prizePool": 1000000,
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "ti2024",
+    "name": "The International 2024",
+    "short": "TI13",
+    "type": "ti",
+    "year": 2024,
+    "startDate": "2024-09-07",
+    "endDate": "2024-09-15",
+    "patch": "7.37",
+    "prizePool": 2600000,
+    "formats": [
+      "last_2y",
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "bali-major-2023",
+    "name": "Bali Major 2023",
+    "short": "Bali",
+    "type": "major",
+    "year": 2023,
+    "startDate": "2023-08-21",
+    "endDate": "2023-08-27",
+    "patch": "7.34",
+    "prizePool": 500000,
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "ti2022",
+    "name": "The International 2022",
+    "short": "TI11",
+    "type": "ti",
+    "year": 2022,
+    "startDate": "2022-10-15",
+    "endDate": "2022-10-30",
+    "patch": "7.32",
+    "prizePool": 1800000,
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  }
+]
