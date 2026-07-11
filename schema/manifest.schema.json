@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/manifest.schema.json",
+  "title": "Manifest",
+  "type": "object",
+  "required": ["schemaVersion", "ratingModelVersion", "builtAt", "formats"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "ratingModelVersion": { "type": "string", "description": "Версия модели рейтингов (IMP/ECO/REL/OVR, team-success, peak)" },
+    "builtAt": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "description": "Атрибуция источников (обязательна для Liquipedia CC-BY-SA)",
+      "properties": {
+        "opendota": { "type": "string" },
+        "liquipedia": { "type": "string" }
+      }
+    },
+    "formats": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["last_1y", "last_2y", "last_5y", "valve_legacy"] }
+    },
+    "counts": {
+      "type": "object",
+      "description": "Размеры датасетов (для sanity-check)",
+      "additionalProperties": { "type": "integer" }
+    }
+  }
+}

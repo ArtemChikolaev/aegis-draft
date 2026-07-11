@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/eventHeroStats.schema.json",
+  "title": "Event Hero Stats",
+  "description": "eventId -> accountId -> heroId -> {games, winrate}. Питает event-scoped Hero Synergy.",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/definitions/stat" }
+    }
+  },
+  "definitions": {
+    "stat": {
+      "type": "object",
+      "required": ["games", "winrate"],
+      "additionalProperties": false,
+      "properties": {
+        "games": { "type": "integer", "minimum": 1 },
+        "winrate": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

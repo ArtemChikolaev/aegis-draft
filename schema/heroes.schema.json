@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/heroes.schema.json",
+  "title": "Heroes",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "picture"],
+    "additionalProperties": false,
+    "properties": {
+      "id": { "type": "integer", "description": "Valve hero_id" },
+      "name": { "type": "string", "description": "напр. Abaddon" },
+      "picture": { "type": "string", "description": "slug для картинки, напр. abaddon" }
+    }
+  }
+}

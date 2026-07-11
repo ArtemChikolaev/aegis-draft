@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/players.schema.json",
+  "title": "Players (справочник)",
+  "description": "accountId -> профиль игрока. Нужен для Mixed Draft и дедупликации id.",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "required": ["accountId", "nickname", "primaryRole"],
+    "additionalProperties": false,
+    "properties": {
+      "accountId": { "type": "integer" },
+      "nickname": { "type": "string" },
+      "primaryRole": { "type": "string", "enum": ["safelane", "mid", "offlane", "support"] },
+      "rolesPlayed": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["safelane", "mid", "offlane", "support"] }
+      },
+      "teams": {
+        "type": "array",
+        "description": "История команд в окне (для team-success агрегации)",
+        "items": {
+          "type": "object",
+          "required": ["teamId", "games"],
+          "properties": {
+            "teamId": { "type": "integer" },
+            "teamName": { "type": "string" },
+            "games": { "type": "integer" },
+            "from": { "type": "string", "format": "date" },
+            "to": { "type": "string", "format": "date" }
+          }
+        }
+      },
+      "peak": {
+        "type": "object",
+        "description": "Пиковый рейтинг (скользящее окно), по ролям",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "ovr": { "type": "integer", "minimum": 0, "maximum": 100 },
+            "windowStart": { "type": "string", "format": "date" },
+            "windowEnd": { "type": "string", "format": "date" },
+            "games": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}

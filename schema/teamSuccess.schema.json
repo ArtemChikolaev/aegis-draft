@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/teamSuccess.schema.json",
+  "title": "Team Success (для Mixed Draft)",
+  "description": "Успех команд по окнам времени. Основа рейтинга игрока в режиме Mixed Draft (§5.4.3 PRD).",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "description": "window (last_1y|last_2y|last_5y|valve_legacy) -> метрики",
+    "propertyNames": { "enum": ["last_1y", "last_2y", "last_5y", "valve_legacy"] },
+    "additionalProperties": {
+      "type": "object",
+      "required": ["successScore"],
+      "additionalProperties": false,
+      "properties": {
+        "successScore": { "type": "number", "minimum": 0, "maximum": 100, "description": "Свёрнутый рейтинг успеха команды за окно" },
+        "titles": { "type": "integer", "description": "Чемпионства на тир-1" },
+        "topFinishes": { "type": "integer", "description": "Топ-4 финиши" },
+        "prizeUsd": { "type": "integer" },
+        "winrate": { "type": "number", "minimum": 0, "maximum": 1 },
+        "tiPlacement": { "type": "integer", "description": "Лучшее место на TI в окне, если было" }
+      }
+    }
+  }
+}

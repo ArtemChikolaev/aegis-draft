@@ -1,0 +1,35 @@
+---
+description: Правила проекта aegis-draft и маршрутизация скиллов (always-on, Cursor)
+alwaysApply: true
+---
+
+# aegis-draft — обязательный контекст
+
+Перед любой задачей следуй правилам из **@CLAUDE.md** (корень репозитория): reuse-first,
+контракт данных (`schema/` = источник истины, единый `accountId`, версии в `manifest`),
+внешние данные через правила ETL (OpenDota/Liquipedia, rate-limit, кастомный User-Agent,
+атрибуция; Dotabuff не используем), рейтинги по зафиксированной модели (PRD §5, бамп
+`ratingModelVersion` при правке формул).
+
+## Скиллы
+Процедуры — в `.claude/skills/<имя>/SKILL.md`. Cursor показывает описания в available_skills;
+при совпадении с задачей **сразу прочитай** полный `SKILL.md` и следуй ему. Каталог и
+маршрутизация — **docs/ai/INDEX.md**.
+
+Хуки Claude Code тут не срабатывают — помни сам: менял `schema/` → синхронизируй Go-типы и
+TS-типы; менял data JSON → `node .claude/skills/data-contract/tools/validate_data.mjs`; менял
+формулу рейтинга → бампни `ratingModelVersion`.
+
+## Задача → скилл
+| Что делаешь | Скиллы по порядку |
+|---|---|
+| Новый код в пайплайне (Go) | `discovery-before-code` → `plan-first-communication` → (`external-data-etl` / `data-contract` / `scoring-model` по теме) → `self-review-checklist` |
+| Новый код во фронте (TS) | `discovery-before-code` → (`data-contract` / `scoring-model`) → `self-review-checklist` |
+| Правка схемы / модели данных | `data-contract` → `self-review-checklist` |
+| Внешний источник / fetch | `external-data-etl` → `data-contract` → `self-review-checklist` |
+| Формула рейтинга / паки / счёт | `scoring-model` (+ `data-contract`) → `self-review-checklist` |
+| Рефакторинг | `discovery-before-code` → `plan-first-communication` → `self-review-checklist` |
+| Багфикс | `discovery-before-code` → `self-review-checklist` |
+| Опечатка / одна строка | без скиллов |
+
+Не уверен — начни с `discovery-before-code`. Перед «готово» — `self-review-checklist`.

@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/packs.schema.json",
+  "title": "Packs (Team Packs)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "eventId", "teamId", "teamName", "players", "signatureHeroes"],
+    "additionalProperties": false,
+    "properties": {
+      "id": { "type": "string", "description": "{eventId}-{teamId}" },
+      "eventId": { "type": "string" },
+      "teamId": { "type": "integer" },
+      "teamName": { "type": "string" },
+      "tag": { "type": "string" },
+      "logoId": { "type": "string" },
+      "placement": { "type": "integer", "description": "Место на турнире" },
+      "players": {
+        "type": "array",
+        "minItems": 5,
+        "maxItems": 5,
+        "items": { "$ref": "#/definitions/packPlayer" }
+      },
+      "signatureHeroes": {
+        "type": "array",
+        "items": { "type": "integer", "description": "hero_id" }
+      }
+    }
+  },
+  "definitions": {
+    "packPlayer": {
+      "type": "object",
+      "required": ["accountId", "nickname", "role", "ovr", "impact", "economy", "reliability", "games"],
+      "additionalProperties": false,
+      "properties": {
+        "accountId": { "type": "integer", "description": "Канонический OpenDota account_id" },
+        "nickname": { "type": "string" },
+        "role": { "type": "string", "enum": ["safelane", "mid", "offlane", "support"] },
+        "ovr": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "impact": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "economy": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "reliability": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "games": { "type": "integer", "minimum": 0, "description": "Игр на этом событии (уверенность рейтинга)" }
+      }
+    }
+  }
+}

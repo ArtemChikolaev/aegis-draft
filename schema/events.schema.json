@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/events.schema.json",
+  "title": "Events",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["id", "name", "type", "startDate", "formats"],
+    "additionalProperties": false,
+    "properties": {
+      "id": { "type": "string", "description": "напр. ti2024, esl-birmingham-2024" },
+      "name": { "type": "string" },
+      "short": { "type": "string", "description": "напр. TI13" },
+      "type": { "type": "string", "enum": ["ti", "major", "tier1", "tier2", "other"] },
+      "year": { "type": "integer" },
+      "startDate": { "type": "string", "format": "date" },
+      "endDate": { "type": "string", "format": "date" },
+      "patch": { "type": "string", "description": "напр. 7.36" },
+      "prizePool": { "type": "integer", "description": "USD, если известно" },
+      "formats": {
+        "type": "array",
+        "minItems": 1,
+        "items": { "type": "string", "enum": ["last_1y", "last_2y", "last_5y", "valve_legacy"] },
+        "description": "В какие пулы попадает событие (вычисляется пайплайном от даты сборки)"
+      }
+    }
+  }
+}

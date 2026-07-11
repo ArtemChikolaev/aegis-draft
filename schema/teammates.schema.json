@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/teammates.schema.json",
+  "title": "Teammates",
+  "description": "accountId -> список accountId, с кем игрок играл. Питает Chemistry.",
+  "type": "object",
+  "additionalProperties": {
+    "type": "array",
+    "items": { "type": "integer" }
+  }
+}

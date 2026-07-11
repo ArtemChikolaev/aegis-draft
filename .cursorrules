@@ -1,0 +1,24 @@
+# aegis-draft — правила для AI-агента (legacy Cursor + любой агент, читающий .cursorrules)
+
+Полная маршрутизация — в .cursor/rules/aegis.mdc (always-on) и docs/ai/INDEX.md. Здесь — краткий fallback.
+
+Перед любой задачей прочитай CLAUDE.md (корень) и следуй ему: reuse-first; контракт данных
+(schema/ = источник истины, единый accountId, версии в manifest); внешние данные (OpenDota +
+Liquipedia, rate-limit, кастомный User-Agent, атрибуция CC-BY-SA; Dotabuff не используем);
+рейтинги по модели PRD §5 (без деления саппортов 4/5, сглаживание winrate, бамп
+ratingModelVersion при правке формул).
+
+Скиллы: .claude/skills/<имя>/SKILL.md — при совпадении задачи с описанием сразу прочитай
+полный SKILL.md. Каталог: docs/ai/INDEX.md.
+
+Задача → скилл (кратко):
+- новый код (Go/TS): discovery-before-code → plan-first-communication → (external-data-etl / data-contract / scoring-model по теме) → self-review-checklist
+- правка схемы/данных: data-contract → self-review-checklist
+- внешний источник/fetch: external-data-etl → data-contract → self-review-checklist
+- формула рейтинга/паки/счёт: scoring-model (+ data-contract) → self-review-checklist
+- рефакторинг: discovery-before-code → plan-first-communication → self-review-checklist
+- багфикс: discovery-before-code → self-review-checklist
+- опечатка/одна строка: без скиллов
+
+Хуки Claude Code вне Claude не работают — держи сам: менял schema/ → синхронизируй Go+TS типы;
+менял data JSON → node .claude/skills/data-contract/tools/validate_data.mjs; менял формулу → бампни ratingModelVersion.
