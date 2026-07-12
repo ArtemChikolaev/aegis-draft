@@ -4,6 +4,7 @@ import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { ResultScreen } from "../features/result/ResultScreen.tsx";
+import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTheme } from "../design/theme/ThemeProvider.tsx";
 import { Banner, Select } from "../ui/index.ts";
@@ -61,6 +62,7 @@ export function App() {
       {phase === "start" && <StartScreen />}
       {phase === "draft" && <DraftScreen />}
       {phase === "result" && <ResultScreen />}
+      {phase === "tournament" && <TournamentScreen />}
       <footer className="footer">{t("footer.note")}</footer>
     </div>
   );

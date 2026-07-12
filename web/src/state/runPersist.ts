@@ -22,6 +22,9 @@ export interface SavedRun {
   config: RunConfig;
   seed: string;
   actions: RunAction[];
+  /** Число открытых турнирных этапов; результат пересобирается из seed. */
+  tournamentStep?: number;
+  tournamentStarted?: boolean;
 }
 
 const RUN_KEY = "aegis:run:v1";

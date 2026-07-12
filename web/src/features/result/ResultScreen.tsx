@@ -23,9 +23,8 @@ const fmt = (value: number) => (value >= 0 ? `+${value.toFixed(1)}` : value.toFi
 
 export function ResultScreen() {
   const snapshot = useRun((state) => state.snapshot);
-  const seed = useRun((state) => state.seed);
   const config = useRun((state) => state.config);
-  const reset = useRun((state) => state.reset);
+  const startTournament = useRun((state) => state.startTournament);
   const swapHeroes = useRun((state) => state.swapHeroes);
   const data = useRun((state) => state.data);
   const teamName = useRun((state) => state.teamName);
@@ -157,8 +156,8 @@ export function ResultScreen() {
               );
             })}
           </ul>
-          <p className="run-meta muted">{config.draftStyle} · {config.format} · {config.allocation} · {t("common.seed")} {seed}</p>
-          <Button variant="primary" data-testid="new-run" onClick={reset}>{t("result.newRun")}<span>↻</span></Button>
+          <p className="run-meta muted">{t("result.tournamentIntro")}</p>
+          <Button variant="primary" data-testid="start-tournament" onClick={() => startTournament(teamName || t("team.placeholder"))}>{t("tournament.start")}<span>→</span></Button>
         </Surface>
       </div>
       {inspectedPlayer && data && (

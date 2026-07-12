@@ -19,13 +19,26 @@
 .final-roster li > span:last-child small { color: var(--muted); font-size: 10px; font-weight: 600; }
 .result__swap-hint { margin: 10px 0 0; font-size: 10px; text-align: center; }
 .result__radar .score-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+.result__tournament { display: grid; grid-template-columns: minmax(300px, .75fr) minmax(520px, 1.25fr); gap: 34px; margin-top: 22px; padding: 34px; color: var(--on-invert); background: var(--surface-invert); }
+.result__tournament-copy { display: flex; flex-direction: column; align-items: flex-start; }
+.result__tournament-copy h2 { margin: 18px 0 10px; font-size: clamp(30px, 4vw, 58px); line-height: .95; letter-spacing: -.05em; }
+.result__tournament-copy p { margin: 0 0 24px; color: var(--muted-invert); font-size: 12px; line-height: 1.6; }
+.result__tournament-copy > strong { margin: auto 0 24px; color: var(--brand-green); font-size: clamp(38px, 5vw, 72px); line-height: .9; letter-spacing: -.05em; }
+.result__field-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; margin: 0; padding: 0; list-style: none; }
+.result__field-list li { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px; padding: 8px 4px; border-bottom: 1px solid var(--line-invert); font-size: 10px; }
+.result__field-list span, .result__field-list small { color: var(--muted-invert); }
+.result__field-list .is-user { color: var(--brand-green); background: var(--accent-soft); }
+.result__field-list li b.field-strength { justify-self: end; color: var(--brand-green); font-weight: 800; }
 
 @media (max-width: 980px) {
   .result__grid { grid-template-columns: 1fr; }
   .result__radar { max-width: 620px; margin: auto; }
+  .result__tournament { grid-template-columns: 1fr; }
 }
 @media (max-width: 680px) {
   .result__report { padding: 18px; }
   .final-roster li { grid-template-columns: 72px 1fr; }
   .final-roster li > span:last-child { grid-column: 2; }
+  .result__field-list { grid-template-columns: 1fr; }
+  .result__tournament { padding: 20px; }
 }

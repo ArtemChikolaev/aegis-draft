@@ -8,6 +8,7 @@ import type { RunConfig, DraftPack } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
+import { TournamentEngine, type TournamentSnapshot } from "../game/tournament.ts";
 import {
   clearSavedRun,
   isRunCompatible,
@@ -20,7 +21,7 @@ import {
   type SavedRun,
 } from "./runPersist.ts";
 
-type Phase = "loading" | "start" | "draft" | "result";
+type Phase = "loading" | "start" | "draft" | "result" | "tournament";
 export type { RunMode } from "./runPersist.ts";
 
 interface Snapshot {
@@ -48,6 +49,9 @@ interface RunStore {
   teamName: string;
   actions: RunAction[]; // лог действий текущего забега (для персиста/replay)
   resumable: SavedRun | null; // незавершённый совместимый забег, предложить продолжить
+  tournamentEngine: TournamentEngine | null;
+  tournament: TournamentSnapshot | null;
+  tournamentStep: number;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -63,6 +67,8 @@ interface RunStore {
   setTeamName: (name: string) => void;
   resumeRun: () => void;
   discardResume: () => void;
+  startTournament: (displayName?: string) => void;
+  advanceTournament: () => void;
 }
 
 function snap(engine: RunEngine): Snapshot {
@@ -94,7 +100,7 @@ function replay(engine: RunEngine, actions: RunAction[]): void {
 export const useRun = create<RunStore>((set, get) => {
   // Сохранить текущий забег (config+seed+лог) под версию активного датасета.
   const persist = () => {
-    const { data, config, seed, selectedMode, actions } = get();
+    const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine } = get();
     if (!data || !config || !selectedMode) return;
     saveRun({
       v: 1,
@@ -104,6 +110,8 @@ export const useRun = create<RunStore>((set, get) => {
       config,
       seed,
       actions,
+      tournamentStep,
+      tournamentStarted: tournamentEngine != null,
     });
   };
   // Записать действие в лог и сохранить.
@@ -124,6 +132,9 @@ export const useRun = create<RunStore>((set, get) => {
     teamName: "",
     actions: [],
     resumable: null,
+    tournamentEngine: null,
+    tournament: null,
+    tournamentStep: 0,
 
     async loadData() {
       try {
@@ -144,7 +155,7 @@ export const useRun = create<RunStore>((set, get) => {
       if (!data) return;
       try {
         const engine = new RunEngine(data, config, seed);
-        set({ engine, config, seed, phase: "draft", snapshot: snap(engine), actions: [], resumable: null, error: null });
+        set({ engine, config, seed, phase: "draft", snapshot: snap(engine), actions: [], resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0 });
         persist();
       } catch (e) {
         set({ error: e instanceof Error ? e.message : String(e) });
@@ -205,7 +216,7 @@ export const useRun = create<RunStore>((set, get) => {
 
     reset() {
       clearSavedRun();
-      set({ phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [], resumable: null, error: null });
+      set({ phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [], resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0 });
     },
 
     setSelectedMode(selectedMode) {
@@ -223,6 +234,16 @@ export const useRun = create<RunStore>((set, get) => {
       try {
         const engine = new RunEngine(data, resumable.config, resumable.seed);
         replay(engine, resumable.actions);
+        let tournamentEngine: TournamentEngine | null = null;
+        let tournament: TournamentSnapshot | null = null;
+        const tournamentStep = Math.max(0, Math.min(4, resumable.tournamentStep ?? 0));
+        if (engine.isComplete && resumable.tournamentStarted) {
+          const score = engine.score();
+          if (!score) throw new Error("Completed draft has no score");
+          tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, get().teamName);
+          for (let step = 0; step < tournamentStep; step += 1) tournamentEngine.advance();
+          tournament = tournamentEngine.snapshot;
+        }
         set({
           engine,
           config: resumable.config,
@@ -230,9 +251,12 @@ export const useRun = create<RunStore>((set, get) => {
           selectedMode: resumable.mode,
           actions: resumable.actions,
           snapshot: snap(engine),
-          phase: engine.isComplete ? "result" : "draft",
+          phase: tournament ? "tournament" : engine.isComplete ? "result" : "draft",
           resumable: null,
           error: null,
+          tournamentEngine,
+          tournament,
+          tournamentStep,
         });
       } catch {
         clearSavedRun(); // сейв не воспроизвёлся (данные разошлись) — отбрасываем
@@ -243,6 +267,23 @@ export const useRun = create<RunStore>((set, get) => {
     discardResume() {
       clearSavedRun();
       set({ resumable: null });
+    },
+
+    startTournament(displayName) {
+      const { data, config, seed, snapshot, teamName } = get();
+      if (!data || !config || !snapshot?.score || !snapshot.isComplete) return;
+      const resolvedName = teamName.trim() || displayName?.trim() || "Aegis Five";
+      if (!teamName.trim()) saveTeamName(resolvedName);
+      const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName);
+      set({ tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, phase: "tournament", teamName: resolvedName });
+      persist();
+    },
+
+    advanceTournament() {
+      const { tournamentEngine, tournamentStep } = get();
+      if (!tournamentEngine || !tournamentEngine.advance()) return;
+      set({ tournament: tournamentEngine.snapshot, tournamentStep: tournamentStep + 1 });
+      persist();
     },
   };
 });
