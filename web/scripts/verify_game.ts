@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { scoreTeam, baseRating, chemistryBonus, type ChemistryPlayer } from "../src/game/score.ts";
-import { bestAssignment } from "../src/game/assign.ts";
+import { bestAssignment, assignmentPairScore, synergyTotalForAssignment } from "../src/game/assign.ts";
 import type { Pack, PlayerHeroStats, SquadSynergy, PackPlayer, Teammates } from "../src/types/data.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -71,8 +71,17 @@ assert(
 );
 assert(Math.abs(chemistryProgress[4] - s.chemistry) < 1e-9, "финальная Chemistry совпадает с полной пятёркой");
 
-const greedyTotal = greedyAssign(spirit.players, spirit.signatureHeroes, phs);
-assert(s.assignment.total >= greedyTotal - 1e-9, `matching (${round(s.assignment.total)}) не хуже жадности (${round(greedyTotal)})`);
+const matchAssign = bestAssignment(spirit.players, spirit.signatureHeroes, phs, spiritSig);
+const matchPairTotal = assignmentPairScoreTotal(matchAssign.byPlayer, phs, spiritSig);
+const greedyPairTotal = greedyAssignmentPairScore(spirit.players, spirit.signatureHeroes, phs, spiritSig);
+assert(
+  matchPairTotal >= greedyPairTotal - 1e-9,
+  `matching (${round(matchPairTotal)}) не хуже жадности по games (${round(greedyPairTotal)})`,
+);
+assert(
+  synergyTotalForAssignment(matchAssign.byPlayer, phs, spiritSig) === s.assignment.total,
+  "assignment.total = synergy (pairScore), не games-score",
+);
 
 const largePool = Array.from({ length: 40 }, (_, i) => i + 1);
 const largeStats: PlayerHeroStats = {};
@@ -131,18 +140,41 @@ assert(m.chemistry <= s.chemistry, "Mixed Chemistry ниже, чем у сыгр
 console.log(failures === 0 ? "\n🎉 все проверки пройдены" : `\n💥 провалов: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);
 
-function greedyAssign(players: PackPlayer[], pool: number[], stats: PlayerHeroStats): number {
+function assignmentPairScoreTotal(
+  byPlayer: Record<number, number>,
+  stats: PlayerHeroStats,
+  signatures: Record<number, number[]> = {},
+): number {
+  return Object.entries(byPlayer).reduce(
+    (sum, [accountId, heroId]) => sum + assignmentPairScore(Number(accountId), heroId, stats, signatures),
+    0,
+  );
+}
+
+/** Жадность по той же метрике, что и matching (games → winrate). */
+function greedyAssignmentPairScore(
+  players: PackPlayer[],
+  pool: number[],
+  stats: PlayerHeroStats,
+  signatures: Record<number, number[]> = {},
+): number {
   const used = new Set<number>();
   let total = 0;
   for (const pl of players) {
-    let bestH = -1, bestV = -Infinity;
+    let bestH = -1;
+    let bestV = -Infinity;
     for (const h of pool) {
       if (used.has(h)) continue;
-      const st = stats[String(pl.accountId)]?.[String(h)];
-      const v = st ? (st.winrate * st.games + 10 * 0.5) / (st.games + 10) : 0.5;
-      if (v > bestV) { bestV = v; bestH = h; }
+      const v = assignmentPairScore(pl.accountId, h, stats, signatures);
+      if (v > bestV) {
+        bestV = v;
+        bestH = h;
+      }
     }
-    if (bestH >= 0) { used.add(bestH); total += bestV; }
+    if (bestH >= 0) {
+      used.add(bestH);
+      total += bestV;
+    }
   }
   return total;
 }
