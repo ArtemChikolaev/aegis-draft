@@ -12,22 +12,35 @@ const fmt = (value: number) => (value >= 0 ? `+${value.toFixed(1)}` : value.toFi
 
 export function DraftScreen() {
   const snapshot = useRun((state) => state.snapshot);
-  const pick = useRun((state) => state.pick);
+  const pickPlayer = useRun((state) => state.pickPlayer);
+  const pickHero = useRun((state) => state.pickHero);
   const reroll = useRun((state) => state.reroll);
-  const canPick = useRun((state) => state.canPick);
+  const canPickPlayer = useRun((state) => state.canPickPlayer);
+  const canPickHero = useRun((state) => state.canPickHero);
   const reset = useRun((state) => state.reset);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const hero = useHero();
   const { t } = useI18n();
   if (!snapshot) return null;
 
-  const { currentPack, roster, rerollsLeft, score, heroPool, currentSlotIndex } = snapshot;
+  const { currentPack, roster, rerollsLeft, score, heroes, heroesLeft, packHeroes, rosterFilled } = snapshot;
   const rerollCount = rerollsLeft === Infinity ? "∞" : String(rerollsLeft);
+  const picked = rosterFilled + heroes.length;
+
+  // Герой → ник игрока, к которому он привязан (для отображения драфтованных).
+  const heroOwner: Record<number, string> = {};
+  if (score) {
+    for (const slot of roster) {
+      if (!slot.candidate) continue;
+      const h = score.assignment.byPlayer[slot.candidate.player.accountId];
+      if (h != null) heroOwner[h] = slot.candidate.player.nickname;
+    }
+  }
 
   return (
     <main className="draft">
       <header className="screen-heading draft__heading">
-        <div><Eyebrow>{t("draft.eyebrow")}</Eyebrow><h1>{t("draft.progress", { current: currentSlotIndex + 1, total: roster.length })}</h1></div>
+        <div><Eyebrow>{t("draft.eyebrow")}</Eyebrow><h1>{t("draft.picked", { current: picked, total: 10 })}</h1></div>
         <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
       </header>
       <Surface className="draft__radar">
@@ -47,11 +60,36 @@ export function DraftScreen() {
           <Button variant="secondary" onClick={reroll} disabled={rerollsLeft <= 0}>↻ {t("draft.reroll")}<small>{t("draft.rerollsLeft", { count: rerollCount })}</small></Button>
         </div>
         <div className="candidates">
-          {currentPack.candidates.map((candidate, index) => <CandidateCard key={candidate.player.accountId} candidate={candidate} enabled={canPick(index)} onPick={() => pick(index)} index={index} />)}
+          {currentPack.candidates.map((candidate, index) => <CandidateCard key={candidate.player.accountId} candidate={candidate} enabled={canPickPlayer(index)} onPick={() => pickPlayer(index)} index={index} />)}
         </div>
+
         <div className="hero-pool">
-          <div><h3>{t("draft.heroPool")} <span>{heroPool.length}</span></h3><p>{t("draft.heroPoolHint")}</p></div>
-          <div className="hero-pool__chips">{heroPool.length === 0 ? <span className="muted">{t("common.empty")}</span> : heroPool.map((id) => { const h = hero(id); return <HeroThumb key={id} picture={h.picture} name={h.name} />; })}</div>
+          <div><h3>{t("draft.packHeroes")} <span>{heroesLeft}</span></h3><p>{t("draft.packHeroesHint")}</p></div>
+          <div className="hero-pool__chips">
+            {packHeroes.map((id) => {
+              const h = hero(id);
+              return (
+                <button key={id} type="button" className="hero-pick" disabled={!canPickHero(id)} onClick={() => pickHero(id)} data-testid={`pack-hero-${id}`}>
+                  <HeroThumb picture={h.picture} name={h.name} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="hero-pool">
+          <div><h3>{t("draft.heroPool")} <span>{heroes.length}</span></h3><p>{t("draft.heroPoolHint")}</p></div>
+          <div className="hero-pool__chips">
+            {heroes.length === 0 ? <span className="muted">{t("common.empty")}</span> : heroes.map((id) => {
+              const h = hero(id);
+              return (
+                <span key={id} className="drafted-hero">
+                  <HeroThumb picture={h.picture} name={h.name} />
+                  {heroOwner[id] && <small>→ {heroOwner[id]}</small>}
+                </span>
+              );
+            })}
+          </div>
         </div>
       </Surface>
       {confirmLeave && (

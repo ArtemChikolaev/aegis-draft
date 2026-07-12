@@ -15,8 +15,11 @@ interface Snapshot {
   roster: RosterSlot[];
   rerollsLeft: number;
   currentSlotIndex: number;
+  rosterFilled: number;
   isComplete: boolean;
-  heroPool: number[];
+  heroes: number[]; // драфтованные герои
+  heroesLeft: number;
+  packHeroes: number[]; // драфтуемые герои текущего пака
   score: ScoreBreakdown | null;
 }
 
@@ -32,9 +35,12 @@ interface RunStore {
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
-  pick: (idx: number) => void;
+  pickPlayer: (idx: number) => void;
+  pickHero: (heroId: number) => void;
+  canPickPlayer: (idx: number) => boolean;
+  canPickHero: (heroId: number) => boolean;
+  assign: (accountId: number, heroId: number) => void;
   reroll: () => void;
-  canPick: (idx: number) => boolean;
   reset: () => void;
   setSelectedMode: (mode: RunMode | null) => void;
 }
@@ -45,8 +51,11 @@ function snap(engine: RunEngine): Snapshot {
     roster: engine.rosterView,
     rerollsLeft: engine.rerollsLeft,
     currentSlotIndex: engine.currentSlotIndex,
+    rosterFilled: engine.rosterFilled,
     isComplete: engine.isComplete,
-    heroPool: engine.heroPool,
+    heroes: engine.heroes,
+    heroesLeft: engine.heroesLeft,
+    packHeroes: engine.packHeroes,
     score: engine.score(),
   };
 }
@@ -81,11 +90,25 @@ export const useRun = create<RunStore>((set, get) => ({
     }
   },
 
-  pick(idx) {
+  pickPlayer(idx) {
     const { engine } = get();
-    if (!engine || !engine.canPick(idx)) return;
-    engine.pick(idx);
+    if (!engine || !engine.canPickPlayer(idx)) return;
+    engine.pickPlayer(idx);
     set({ snapshot: snap(engine), phase: engine.isComplete ? "result" : "draft" });
+  },
+
+  pickHero(heroId) {
+    const { engine } = get();
+    if (!engine || !engine.canPickHero(heroId)) return;
+    engine.pickHero(heroId);
+    set({ snapshot: snap(engine), phase: engine.isComplete ? "result" : "draft" });
+  },
+
+  assign(accountId, heroId) {
+    const { engine } = get();
+    if (!engine) return;
+    engine.assign(accountId, heroId);
+    set({ snapshot: snap(engine) });
   },
 
   reroll() {
@@ -95,8 +118,12 @@ export const useRun = create<RunStore>((set, get) => ({
     set({ snapshot: snap(engine) });
   },
 
-  canPick(idx) {
-    return get().engine?.canPick(idx) ?? false;
+  canPickPlayer(idx) {
+    return get().engine?.canPickPlayer(idx) ?? false;
+  },
+
+  canPickHero(heroId) {
+    return get().engine?.canPickHero(heroId) ?? false;
   },
 
   reset() {

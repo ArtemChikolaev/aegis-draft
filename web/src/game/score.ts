@@ -2,7 +2,7 @@
 // Base приходит числом из данных (event ovr). Synergy/Chemistry считаем на клиенте из
 // сглаженных winrate — модель сглаживания меняется без пересборки данных (инвариант data-contract).
 import type { PackPlayer, PlayerHeroStats, SquadSynergy } from "../types/data.ts";
-import { bestAssignment, type Assignment } from "./assign.ts";
+import { assignWithFixed, bestAssignment, type Assignment } from "./assign.ts";
 import { smoothedWinrate } from "./smoothing.ts";
 
 /** Масштабы бонусов (версионируются вместе с ratingModelVersion). Тюнинг — PRD §10-C. */
@@ -50,14 +50,18 @@ function pairKey(a: number, b: number): string {
   return a < b ? `${a}:${b}` : `${b}:${a}`;
 }
 
-/** Полный подсчёт для выбранной пятёрки + пула героев. */
+/** Полный подсчёт для выбранной пятёрки + драфтованных героев.
+ *  fixed (ручной режим) фиксирует part player→hero, остальное матчится авто. */
 export function scoreTeam(
   players: PackPlayer[],
   heroPool: number[],
   phs: PlayerHeroStats,
   squad: SquadSynergy,
+  fixed?: Record<number, number>,
 ): ScoreBreakdown {
-  const assignment = bestAssignment(players, heroPool, phs);
+  const assignment = fixed && Object.keys(fixed).length > 0
+    ? assignWithFixed(players, heroPool, phs, fixed)
+    : bestAssignment(players, heroPool, phs);
   const base = baseRating(players);
   const heroSynergy = heroSynergyBonus(assignment);
   const chemistry = chemistryBonus(players, squad);

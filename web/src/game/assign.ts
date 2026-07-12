@@ -85,6 +85,40 @@ export function bestAssignment(
   return { byPlayer, total: val, avg: n > 0 ? val / n : 0 };
 }
 
+/**
+ * Назначение с фиксированными парами (ручной режим): зафиксированные player→hero
+ * уважаются, остальные игроки/герои матчатся авто-оптимально (bestAssignment).
+ * fixed: accountId -> heroId; учитываются только валидные (герой в пуле, игрок в составе).
+ */
+export function assignWithFixed(
+  players: PackPlayer[],
+  heroPool: number[],
+  phs: PlayerHeroStats,
+  fixed: Record<number, number>,
+): Assignment {
+  const pool = new Set(heroPool);
+  const pinnedHero = new Map<number, number>(); // accountId -> heroId
+  const usedHeroes = new Set<number>();
+  for (const player of players) {
+    const heroId = fixed[player.accountId];
+    if (heroId != null && pool.has(heroId) && !usedHeroes.has(heroId)) {
+      pinnedHero.set(player.accountId, heroId);
+      usedHeroes.add(heroId);
+    }
+  }
+  const freePlayers = players.filter((p) => !pinnedHero.has(p.accountId));
+  const freeHeroes = heroPool.filter((h) => !usedHeroes.has(h));
+  const auto = bestAssignment(freePlayers, freeHeroes, phs);
+
+  const byPlayer: Record<number, number> = { ...auto.byPlayer };
+  let total = auto.total;
+  for (const [accountId, heroId] of pinnedHero) {
+    byPlayer[accountId] = heroId;
+    total += pairScore(accountId, heroId, phs);
+  }
+  return { byPlayer, total, avg: players.length > 0 ? total / players.length : 0 };
+}
+
 function popcount(value: number): number {
   let count = 0;
   for (let n = value; n !== 0; n &= n - 1) count++;

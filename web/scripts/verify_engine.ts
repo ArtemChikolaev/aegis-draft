@@ -1,9 +1,9 @@
-// Проверка движка забега и генерации паков на мок-данных.
+// Проверка движка забега (hero-draft: 5 игроков + 5 героев) и генерации паков на моке.
 // Запуск: node web/scripts/verify_engine.ts (Node v24 нативный TS).
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { RunEngine } from "../src/game/engine.ts";
+import { RunEngine, HERO_TARGET } from "../src/game/engine.ts";
 import { ROLE_SEQUENCE, mixedPack, poolForFormat, teamPack, type RunConfig } from "../src/game/packs.ts";
 import { Rng } from "../src/game/rng.ts";
 import type { GameData, Pack, Role } from "../src/types/data.ts";
@@ -20,14 +20,34 @@ const data: GameData = {
 
 let failures = 0;
 const assert = (cond: boolean, msg: string) => { console.log(`${cond ? "✅" : "❌"} ${msg}`); if (!cond) failures++; };
+const assertThrows = (fn: () => void, msg: string) => {
+  let threw = false;
+  try { fn(); } catch { threw = true; }
+  assert(threw, msg);
+};
 const round = (n: number) => Math.round(n * 100) / 100;
 
-const base: RunConfig = { draftStyle: "team", format: "last_2y", rerolls: 1, scoring: "event", allocation: "auto" };
+const base: RunConfig = { draftStyle: "team", format: "last_2y", rerolls: Infinity, scoring: "event", allocation: "auto" };
+
+// Пройти забег до конца: сначала игроки по открытым ролям, затем герои из паков.
+function runToEnd(engine: RunEngine): void {
+  let guard = 0;
+  while (!engine.isComplete && guard++ < 200) {
+    if (engine.rosterFilled < ROLE_SEQUENCE.length) {
+      const idx = engine.currentPack.candidates.findIndex((_, i) => engine.canPickPlayer(i));
+      if (idx === -1) throw new Error("нет кандидата под открытую роль");
+      engine.pickPlayer(idx);
+    } else {
+      const hid = engine.packHeroes.find((h) => engine.canPickHero(h));
+      if (hid == null) { if (!engine.reroll()) throw new Error("нет героя и рероллы кончились"); continue; }
+      engine.pickHero(hid);
+    }
+  }
+}
 
 // --- poolForFormat ---
 assert(poolForFormat(data.packs, data.events, "last_2y").length === 14, "pool last_2y = 14 паков");
 assert(poolForFormat(data.packs, data.events, "valve_legacy").length === 16, "pool valve_legacy = 16 паков (TI + Valve Major)");
-// Каждый формат имеет >=5 команд → Mixed играбелен на любом.
 for (const f of ["last_1y", "last_2y", "last_5y", "valve_legacy"] as const) {
   const teams = new Set(poolForFormat(data.packs, data.events, f).map((p) => p.teamId));
   assert(teams.size >= 5, `формат ${f}: >=5 команд для Mixed (${teams.size})`);
@@ -37,43 +57,60 @@ for (const f of ["last_1y", "last_2y", "last_5y", "valve_legacy"] as const) {
 const a = new RunEngine(data, base, "seed-123");
 const b = new RunEngine(data, base, "seed-123");
 assert(a.currentPack.label === b.currentPack.label, "один сид ⇒ один первый пак");
-const c = new RunEngine(data, base, "seed-XYZ");
-// разные сиды обычно дают разный порядок (не гарантия, но на мок-пуле ожидаемо)
-console.log(`  seed-123 → ${a.currentPack.label} · seed-XYZ → ${c.currentPack.label}`);
 
-// --- Team Packs: полный забег авто-пиком ---
+// --- Team Packs: полный забег (5 игроков + 5 героев) ---
 const teamRun = new RunEngine(data, base, "run-team");
-let guard = 0;
-while (!teamRun.isComplete && guard++ < 50) {
-  const idx = teamRun.currentPack.candidates.findIndex((_, i) => teamRun.canPick(i));
-  assert(idx !== -1, "в каждом паке есть кандидат под открытую роль");
-  teamRun.pick(idx);
-}
-assert(teamRun.isComplete, "Team: ростер заполнен (5 слотов)");
+runToEnd(teamRun);
+assert(teamRun.isComplete, "Team: забег завершён");
 assert(teamRun.players.length === 5, "Team: 5 игроков");
+assert(teamRun.heroes.length === HERO_TARGET, `Team: драфтовано ${HERO_TARGET} героев`);
+assert(new Set(teamRun.heroes).size === teamRun.heroes.length, "Team: герои без дублей");
 const roles = teamRun.rosterView.map((s) => (s.candidate ? s.role : "—"));
-assert(JSON.stringify(roles) === JSON.stringify(["safelane", "mid", "offlane", "support", "support"]), "Team: все роли по слотам заполнены");
+assert(JSON.stringify(roles) === JSON.stringify(["safelane", "mid", "offlane", "support", "support"]), "Team: все роли по слотам");
 const ts = teamRun.score()!;
-console.log(`  Team OVR ${round(ts.teamOvr)} (base ${round(ts.base)} +syn ${round(ts.heroSynergy)} +chem ${round(ts.chemistry)}), героев в пуле ${teamRun.heroPool.length}`);
+console.log(`  Team OVR ${round(ts.teamOvr)} (base ${round(ts.base)} +syn ${round(ts.heroSynergy)} +chem ${round(ts.chemistry)}), героев ${teamRun.heroes.length}`);
 assert(Number.isFinite(ts.teamOvr), "Team: счёт считается");
+// Все драфтованные герои привязаны к игрокам.
+assert(Object.keys(ts.assignment.byPlayer).length === 5, "Team: все 5 игроков получили героя");
 
-// --- Mixed Draft: строгий порядок 1→5, игроки из разных команд ---
-const mixedRun = new RunEngine(data, { ...base, draftStyle: "mixed", rerolls: 0 }, "run-mixed");
-assert(!mixedRun.canPick(1) || mixedRun.currentSlotIndex === 1, "Mixed: до заполнения слота 0 нельзя брать слот 1 (строгий порядок)");
-guard = 0;
+// --- hero-draft: гейтинг ---
+const hd = new RunEngine(data, base, "run-hero");
+while (hd.rosterFilled < 5) hd.pickPlayer(hd.currentPack.candidates.findIndex((_, i) => hd.canPickPlayer(i)));
+assert(hd.canPickPlayer(0) === false, "после 5 игроков players больше не берутся");
+const outsideHero = data.heroes.find((hero) => !hd.packHeroes.includes(hero.id))!.id;
+assert(hd.canPickHero(outsideHero) === false, "нельзя взять героя вне текущего пака");
+assertThrows(() => hd.pickHero(outsideHero), "pickHero отклоняет героя вне текущего пака");
+const firstHero = hd.packHeroes[0];
+hd.pickHero(firstHero);
+assert(hd.canPickHero(firstHero) === false, "нельзя взять уже взятого героя");
+assert(hd.heroesLeft === HERO_TARGET - 1, "heroesLeft уменьшился");
+assert(hd.isComplete === false, "забег не завершён при 5 игроках и 1 герое");
+
+// --- ручная привязка (manual) меняет назначение ---
+const man = new RunEngine(data, { ...base, allocation: "manual" }, "run-manual");
+runToEnd(man);
+const someAccount = man.players[0].accountId;
+const someHero = man.heroes[0];
+man.assign(someAccount, someHero);
+assert(man.score()!.assignment.byPlayer[someAccount] === someHero, "manual: назначенный герой закреплён за игроком");
+const outsiderAccount = Math.max(...man.players.map((player) => player.accountId)) + 1;
+assertThrows(() => man.assign(outsiderAccount, someHero), "manual: нельзя назначить героя игроку вне ростера");
+assert(man.manualAssignment[outsiderAccount] === undefined, "manual: отклонённое назначение не меняет состояние");
+
+// --- Mixed Draft: строгий порядок 1→5 (игроки), затем герои ---
+const mixedRun = new RunEngine(data, { ...base, draftStyle: "mixed" }, "run-mixed");
+assert(!mixedRun.canPickPlayer(1) || mixedRun.currentSlotIndex === 1, "Mixed: до слота 0 нельзя брать слот 1 (строгий порядок)");
 const mixedTeamIds = new Set<number>();
-while (!mixedRun.isComplete && guard++ < 50) {
+while (mixedRun.rosterFilled < 5) {
   const slot = mixedRun.currentSlotIndex;
-  assert(new Set(mixedRun.currentPack.candidates.map((c) => c.teamId)).size === 5, `Mixed: пак ${slot} содержит 5 разных команд`);
-  assert(mixedRun.canPick(slot), `Mixed: слот ${slot} доступен`);
+  assert(new Set(mixedRun.currentPack.candidates.map((c) => c.teamId)).size === 5, `Mixed: пак содержит 5 разных команд`);
   const cand = mixedRun.currentPack.candidates[slot];
   if (cand) mixedTeamIds.add(cand.teamId);
-  mixedRun.pick(slot);
+  mixedRun.pickPlayer(slot);
 }
-assert(mixedRun.isComplete, "Mixed: ростер заполнен");
-assert(mixedTeamIds.size >= 3, `Mixed: итог сохраняет разнообразие команд (${mixedTeamIds.size})`);
-const ms = mixedRun.score()!;
-console.log(`  Mixed OVR ${round(ms.teamOvr)} (base ${round(ms.base)} +syn ${round(ms.heroSynergy)} +chem ${round(ms.chemistry)})`);
+runToEnd(mixedRun);
+assert(mixedRun.isComplete && mixedRun.heroes.length === HERO_TARGET, "Mixed: завершён с 5 героями");
+assert(mixedTeamIds.size >= 3, `Mixed: разнообразие команд (${mixedTeamIds.size})`);
 
 // --- Рерроллы ---
 const finite = new RunEngine(data, { ...base, rerolls: 1 }, "run-reroll");
@@ -85,12 +122,9 @@ let ok = true;
 for (let i = 0; i < 20; i++) ok = ok && inf.reroll();
 assert(ok && inf.rerollsLeft === Infinity, "Easy: бесконечные рерроллы");
 
-// --- Edge cases реального датасета: subs и неполный Mixed pool ---
+// --- Edge cases паков (mixedPack/teamPack) ---
 const mkPack = (teamId: number, role: Role, accountId = teamId): Pack => ({
-  id: `p-${teamId}-${role}-${accountId}`,
-  eventId: "event",
-  teamId,
-  teamName: `Team ${teamId}`,
+  id: `p-${teamId}-${role}-${accountId}`, eventId: "event", teamId, teamName: `Team ${teamId}`,
   players: [{ accountId, nickname: `P${accountId}`, role, ovr: 80, impact: 80, economy: 80, reliability: 80, games: 10 }],
   signatureHeroes: [teamId],
 });

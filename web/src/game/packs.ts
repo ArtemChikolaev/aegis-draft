@@ -65,9 +65,10 @@ export function teamPack(pack: Pack): DraftPack {
   };
 }
 
-/** Mixed-пак: ровно один кандидат на слот, все игроки и команды уникальны. */
-export function mixedPack(pool: Pack[], rng: Rng): DraftPack {
-  const all = pool.flatMap(candidatesOf);
+/** Mixed-пак: ровно один кандидат на слот, все игроки и команды уникальны.
+ *  excludePlayers — уже драфтованные игроки (не предлагать повторно). */
+export function mixedPack(pool: Pack[], rng: Rng, excludePlayers: Set<number> = new Set()): DraftPack {
+  const all = pool.flatMap(candidatesOf).filter((c) => !excludePlayers.has(c.player.accountId));
   const byRole = new Map<Role, Candidate[]>();
   for (const c of all) {
     const arr = byRole.get(c.player.role) ?? [];
@@ -111,14 +112,15 @@ function findMixedLineup(
   return null;
 }
 
-/** Сгенерировать следующий пак под конфиг. opts.excludeTeamIds — для разнообразия Team-паков. */
+/** Сгенерировать следующий пак под конфиг. excludeTeamIds — мягкий анти-повтор Team-паков;
+ *  excludePlayerIds — уже драфтованные игроки (для Mixed, чтобы строгий слот был свежим). */
 export function generatePack(
   pool: Pack[],
   config: RunConfig,
   rng: Rng,
-  opts: { excludeTeamIds?: Set<number> } = {},
+  opts: { excludeTeamIds?: Set<number>; excludePlayerIds?: Set<number> } = {},
 ): DraftPack {
-  if (config.draftStyle === "mixed") return mixedPack(pool, rng);
+  if (config.draftStyle === "mixed") return mixedPack(pool, rng, opts.excludePlayerIds ?? new Set());
   const exclude = opts.excludeTeamIds ?? new Set<number>();
   const available = pool.filter((p) => !exclude.has(p.teamId));
   const from = available.length > 0 ? available : pool;
