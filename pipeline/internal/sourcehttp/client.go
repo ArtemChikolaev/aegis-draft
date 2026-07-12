@@ -22,10 +22,6 @@ import (
 
 const maxResponseBytes = 128 << 20
 
-// minRateLimitBackoff — минимальная пауза после 429 без внятного Retry-After: минутный
-// лимит короткими бэк-оффами не переждать, поэтому ждём хотя бы несколько секунд.
-const minRateLimitBackoff = 3 * time.Second
-
 var ErrBudgetExhausted = errors.New("source HTTP request budget exhausted")
 
 type Stats struct {
@@ -42,6 +38,11 @@ type Config struct {
 	Backoff       time.Duration
 	HTTPClient    *http.Client
 	RequestBudget int
+	// RateLimitCooldown — пауза после 429 без внятного Retry-After (по умолчанию 60с,
+	// чтобы переждать минутное окно). MaxRateLimitWaits — сколько раз ждём на один
+	// запрос, прежде чем отдать resumable-стоп (по умолчанию 6).
+	RateLimitCooldown time.Duration
+	MaxRateLimitWaits int
 }
 
 type Client struct {
@@ -52,6 +53,9 @@ type Client struct {
 	maxAttempts int
 	backoff     time.Duration
 	httpClient  *http.Client
+
+	rateLimitCooldown time.Duration
+	maxRateLimitWaits int
 
 	mu            sync.Mutex
 	lastRequest   time.Time
@@ -82,10 +86,17 @@ func New(cfg Config) (*Client, error) {
 	if cfg.HTTPClient == nil {
 		cfg.HTTPClient = &http.Client{Timeout: 30 * time.Second}
 	}
+	if cfg.RateLimitCooldown <= 0 {
+		cfg.RateLimitCooldown = 60 * time.Second
+	}
+	if cfg.MaxRateLimitWaits <= 0 {
+		cfg.MaxRateLimitWaits = 6
+	}
 	return &Client{
 		baseURL: baseURL, cacheDir: cfg.CacheDir, userAgent: cfg.UserAgent,
 		minInterval: cfg.MinInterval, maxAttempts: cfg.MaxAttempts,
 		backoff: cfg.Backoff, httpClient: cfg.HTTPClient,
+		rateLimitCooldown: cfg.RateLimitCooldown, maxRateLimitWaits: cfg.MaxRateLimitWaits,
 		requestBudget: cfg.RequestBudget,
 	}, nil
 }
@@ -117,8 +128,9 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 
 	safeURL := redactURL(requestURL)
 	var lastErr error
-	rateLimited := false
-	for attempt := 0; attempt < c.maxAttempts; attempt++ {
+	serverAttempts := 0 // ретраи сетевых/5xx ошибок (ограничены maxAttempts)
+	rateLimitWaits := 0 // сколько раз пережидали 429 на этот запрос
+	for {
 		if err := c.reserveRequest(); err != nil {
 			return fmt.Errorf("GET %s: %w", safeURL, err)
 		}
@@ -140,10 +152,11 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 		resp, err := c.httpClient.Do(req)
 		if err != nil {
 			lastErr = err
-			if attempt+1 == c.maxAttempts {
+			serverAttempts++
+			if serverAttempts >= c.maxAttempts {
 				break
 			}
-			if err := sleepContext(ctx, c.backoffFor(attempt, "")); err != nil {
+			if err := sleepContext(ctx, c.backoffFor(serverAttempts-1, "")); err != nil {
 				return err
 			}
 			continue
@@ -170,29 +183,46 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 		}
 
 		lastErr = fmt.Errorf("GET %s: HTTP %d: %s", safeURL, resp.StatusCode, truncate(body, 256))
-		if resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode < 500 {
+		if resp.StatusCode == http.StatusTooManyRequests {
+			// Rate-limit — это throttle, а не ошибка: пережидаем окно (Retry-After или
+			// cooldown) и продолжаем, НЕ расходуя maxAttempts, чтобы за один прогон
+			// добрать до реального бюджета. Исчерпали ожидания → resumable-стоп.
+			rateLimitWaits++
+			if rateLimitWaits > c.maxRateLimitWaits {
+				return fmt.Errorf("GET %s rate limited (%d waits), stopping for resume: %w", safeURL, c.maxRateLimitWaits, ErrBudgetExhausted)
+			}
+			if err := sleepContext(ctx, c.rateLimitWait(resp.Header.Get("Retry-After"))); err != nil {
+				return err
+			}
+			continue
+		}
+		if resp.StatusCode < 500 {
 			return lastErr
 		}
-		if resp.StatusCode == http.StatusTooManyRequests {
-			rateLimited = true
-		}
-		if attempt+1 == c.maxAttempts {
+		serverAttempts++
+		if serverAttempts >= c.maxAttempts {
 			break
 		}
-		wait := c.backoffFor(attempt, resp.Header.Get("Retry-After"))
-		if resp.StatusCode == http.StatusTooManyRequests && wait < minRateLimitBackoff {
-			wait = minRateLimitBackoff
-		}
-		if err := sleepContext(ctx, wait); err != nil {
+		if err := sleepContext(ctx, c.backoffFor(serverAttempts-1, "")); err != nil {
 			return err
 		}
 	}
-	// Устойчивый rate-limit — не фатальная ошибка, а сигнал «стоп, продолжим из кэша»:
-	// возвращаем ErrBudgetExhausted, чтобы resumable-сбор корректно записал partial progress.
-	if rateLimited {
-		return fmt.Errorf("GET %s rate limited after %d attempts, stopping for resume: %w", safeURL, c.maxAttempts, ErrBudgetExhausted)
-	}
 	return fmt.Errorf("GET %s failed after %d attempts: %w", safeURL, c.maxAttempts, lastErr)
+}
+
+// rateLimitWait — пауза после 429: Retry-After, если сервер его прислал, иначе cooldown,
+// достаточный чтобы переждать минутное окно.
+func (c *Client) rateLimitWait(retryAfter string) time.Duration {
+	retryAfter = strings.TrimSpace(retryAfter)
+	if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds > 0 {
+		return time.Duration(seconds) * time.Second
+	}
+	if deadline, err := http.ParseTime(retryAfter); err == nil {
+		if wait := time.Until(deadline); wait > 0 {
+			return wait
+		}
+	}
+	return c.rateLimitCooldown
 }
 
 func (c *Client) reserveRequest() error {

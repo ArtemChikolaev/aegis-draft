@@ -60,7 +60,8 @@ func TestGetJSONRateLimitStopsForResume(t *testing.T) {
 	})}
 	client, err := New(Config{
 		BaseURL: "https://example.invalid/", CacheDir: t.TempDir(), UserAgent: "AegisDraft/test",
-		MaxAttempts: 1, Backoff: time.Nanosecond, MinInterval: -1, HTTPClient: httpClient,
+		MaxAttempts: 2, Backoff: time.Nanosecond, MinInterval: -1, HTTPClient: httpClient,
+		RateLimitCooldown: time.Nanosecond, MaxRateLimitWaits: 3,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +69,32 @@ func TestGetJSONRateLimitStopsForResume(t *testing.T) {
 	var out map[string]any
 	getErr := client.GetJSON(context.Background(), "proMatches", nil, nil, &out)
 	if !errors.Is(getErr, ErrBudgetExhausted) {
-		t.Fatalf("устойчивый 429 должен возвращать ErrBudgetExhausted (resumable-стоп), got %v", getErr)
+		t.Fatalf("устойчивый 429 после ожиданий должен возвращать ErrBudgetExhausted (resumable-стоп), got %v", getErr)
+	}
+}
+
+func TestGetJSONRateLimitThenSucceeds(t *testing.T) {
+	var calls atomic.Int32
+	httpClient := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+		if calls.Add(1) <= 2 {
+			return response(http.StatusTooManyRequests, `{"error":"minute rate limit exceeded"}`), nil
+		}
+		return response(http.StatusOK, `{"ok":true}`), nil
+	})}
+	client, err := New(Config{
+		BaseURL: "https://example.invalid/", CacheDir: t.TempDir(), UserAgent: "AegisDraft/test",
+		MaxAttempts: 2, Backoff: time.Nanosecond, MinInterval: -1, HTTPClient: httpClient,
+		RateLimitCooldown: time.Nanosecond, MaxRateLimitWaits: 5,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out map[string]bool
+	if err := client.GetJSON(context.Background(), "proMatches", nil, nil, &out); err != nil {
+		t.Fatalf("после переждённых 429 запрос должен успеть: %v", err)
+	}
+	if !out["ok"] || calls.Load() != 3 {
+		t.Fatalf("out=%v calls=%d (ждали 2 × 429 + успех)", out, calls.Load())
 	}
 }
 
