@@ -232,15 +232,18 @@
   - ✅ Контекст выбранного режима хранится отдельно от конкретного run: завершение или подтверждённый выход без сохранения сбрасывают движок, но возвращают в конфигурацию Classic, а не на общую развилку.
 
 ### T5.5 — Esports Manager vertical slice ⬜
+- **BA-сценарий (2026-07-12):** [docs/modes-scenarios.md §1](modes-scenarios.md) — питч, экономика (цены/зарплаты), дивизионы, идеи-улучшения, MVP-срез. **Открытые решения** (к согласованию до кода): M-A длина сейва, M-B пул игроков, M-C зарплаты в MVP, M-D онлайн vs локальный сейв.
 - **Цель:** выбор организации/региона → бюджет и контракты → ростер → квалификация.
 - **DoD:** минимум 3 региона и разные стартовые ограничения; контракты имеют цену/срок; невозможно выйти за бюджет; сезон детерминирован по seed. Это отдельный цикл, а не reskin Classic.
-- **Deps:** T5.2, T5.4, Liquipedia roster intervals из T1.3.
+- **Данные:** цена/зарплата игрока **синтезируются** из OVR/престижа/окна (детерминированно, версия `economyModelVersion`) — **не** Liquipedia-salaries (их нет). Сейв — сервер по ADR 0002.
+- **Deps:** T5.2, T5.4. (Liquipedia-контракты **не** нужны — цены производные от нашей рейтинг-модели.)
 
 ### T5.6 — Real Tournament + roster lock ⬜
+- **BA-сценарий (2026-07-12):** [docs/modes-scenarios.md §2](modes-scenarios.md) — поле = реальные `packs` события (roster lock по `accountId`), challenger из легенд/ветеранов, реюз `TournamentEngine` (opponentPool = реальные паки вместо ботов). **Открытые решения:** RT-A snapshot по seed vs выбор ивента, RT-B кросс-эра рейтинг, RT-C размер challenger-пула.
 - **Цель:** выбрать реальный tournament snapshot, показать известных соперников и собрать challenger roster только из игроков, не заявленных за поле турнира.
-- **Данные:** event/date cutoff, opponent teams, locked canonical `accountId`, historical eligible pool; точный контракт проектируется через `data-contract`.
+- **Данные:** реальные ростеры поля **уже есть** в `packs` (пак = топ-5 состав команды на событии) → жёсткой зависимости от Liquipedia нет; реальные placements/исход отложены → поле **симулируем** движком, а не реплеим (проговорить в UI). locked canonical `accountId`, historical eligible pool.
 - **DoD:** 16–20 фиксированных соперников; locked player никогда не появляется в pack/market пользователя; nickname collision не влияет на lock; historical rating берётся из своей эпохи; seed+dataset version воспроизводят поле и пул; генератор fail-fast при невалидном ролевом пуле.
-- **Deps:** T5.1, T5.4, T1.3 roster snapshots, M4 historical windows.
+- **Deps:** T5.1, T5.4, M4 historical windows. (T1.3/Liquipedia — опционально, только для реальных placements «как было».)
 
 ## M6 — Builds, контент и баланс
 - **T6.1 Tactics system:** ограниченные слоты пассивных Dota-native модификаторов; data-driven эффекты и понятный порядок расчёта. ⬜
