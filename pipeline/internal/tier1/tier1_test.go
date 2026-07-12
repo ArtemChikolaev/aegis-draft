@@ -16,6 +16,17 @@ func TestIsTier1(t *testing.T) {
 		{"professional", "DreamLeague Division 2 Season 4", false},                    // дивизион
 		{"professional", "PGL Wallachia Season #7 Closed Qualifiers", false},
 		{"professional", "AMD DOTA 2 Beginner’s Challenge", false},
+		// низкотировые professional-лиги — НЕ tier-1 (главный дефект include-фикса):
+		{"professional", "Snake Trophy", false},
+		{"professional", "CCT Dota 2 Season 2 Series 6", false},
+		{"professional", "BetBoom Streamers Battle x Динамо 12", false},
+		{"professional", "Открытые Киберспортивные Игры Сбера 2025", false},
+		{"professional", "Americas Convergence Series 1", false},
+		// настоящие tier-1 professional-серии — берём:
+		{"professional", "PGL Wallachia 2026 Season 8", true},
+		{"professional", "BLAST SLAM VII", true},
+		{"professional", "FISSURE Universe Episode 8", true},
+		{"professional", "Games of the Future 2025 Abu Dhabi", true},
 		{"amateur", "Some Amateur Cup", false},
 		{"excluded", "Whatever", false},
 		{"", "No tier", false},

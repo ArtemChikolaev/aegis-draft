@@ -21,7 +21,7 @@ func md(matchID, leagueID int64, start time.Time, radiant, dire int, radiantWin 
 
 var testLeagues = []opendota.League{
 	{LeagueID: 100, Name: "Premium Cup", Tier: "premium"},
-	{LeagueID: 200, Name: "Pro League", Tier: "professional"},
+	{LeagueID: 200, Name: "DreamLeague Season 20", Tier: "professional"},
 	{LeagueID: 300, Name: "Amateur Ladder", Tier: "amateur"},
 }
 
