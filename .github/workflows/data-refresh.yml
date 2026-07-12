@@ -1,19 +1,24 @@
 name: Data refresh
 
-# Крон-пересборка реального датасета из OpenDota: пайплайн --emit-domain пишет
-# web/public/data/*.json, коммитит изменения в main → push триггерит CI-деплой на Pages.
-# Ручной запуск — через workflow_dispatch (первый прогон реальных данных).
+# Крон-пересборка реального tier-1 датасета из OpenDota: resumable --collect-window
+# пишет web/public/data/*.json, коммитит изменения в main → push триггерит CI-деплой.
+# Сбор resumable: raw-кэш персистится между запусками (actions/cache), каждый прогон
+# добирает до дневного потолка Free Tier (~3000 req/day), полное окно доезжает за
+# несколько дней дейлик-крона. Ручной старт/докрутка — workflow_dispatch.
 on:
   schedule:
     - cron: "0 6 * * *" # ежедневно 06:00 UTC
   workflow_dispatch:
     inputs:
-      matchDetailLimit:
-        description: "Сколько матчей тянуть в деталях"
-        default: "100"
+      window:
+        description: "Окно сбора: last_1y|last_2y|last_5y"
+        default: "last_2y"
       requestBudget:
-        description: "Максимум реальных HTTP attempts"
-        default: "150"
+        description: "Максимум реальных HTTP attempts за прогон (< 3000/day Free Tier)"
+        default: "2900"
+      minEventMatches:
+        description: "Порог матчей на событие (tier-1 шум)"
+        default: "8"
 
 permissions:
   contents: write # коммит обновлённых данных в main
@@ -34,13 +39,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
-      - name: Collect real dataset from OpenDota
+      # Персистим raw-кэш OpenDota между прогонами: resumable-сбор продолжает с первого
+      # cache miss, а не начинает с нуля. Rolling key + restore-keys накапливают кэш.
+      - name: Restore OpenDota raw cache
+        uses: actions/cache@v4
+        with:
+          path: pipeline/data/raw
+          key: opendota-raw-${{ github.run_id }}
+          restore-keys: |
+            opendota-raw-
+      - name: Collect real tier-1 dataset from OpenDota (resumable window)
         working-directory: pipeline
         run: |
           go run ./cmd/build \
-            --fetch-opendota --emit-domain \
-            --match-detail-limit "${{ github.event.inputs.matchDetailLimit || '100' }}" \
-            --request-budget "${{ github.event.inputs.requestBudget || '150' }}" \
+            --fetch-opendota --emit-domain --collect-window \
+            --window "${{ github.event.inputs.window || 'last_2y' }}" \
+            --min-event-matches "${{ github.event.inputs.minEventMatches || '8' }}" \
+            --request-budget "${{ github.event.inputs.requestBudget || '2900' }}" \
             --as-of "$(date -u +%F)" \
             --out ../web/public/data \
             --schema-validator ../.claude/skills/data-contract/tools/validate_data.mjs
