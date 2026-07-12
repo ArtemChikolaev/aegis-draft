@@ -52,36 +52,36 @@
   },
   "10182299": {
     "last_1y": {
-      "successScore": 22.11,
-      "games": 9,
-      "winrate": 0.1111
+      "successScore": 23.33,
+      "games": 8,
+      "winrate": 0.125
     },
     "last_2y": {
-      "successScore": 22.11,
-      "games": 9,
-      "winrate": 0.1111
+      "successScore": 23.33,
+      "games": 8,
+      "winrate": 0.125
     },
     "last_5y": {
-      "successScore": 22.11,
-      "games": 9,
-      "winrate": 0.1111
+      "successScore": 23.33,
+      "games": 8,
+      "winrate": 0.125
     }
   },
   "10182309": {
     "last_1y": {
-      "successScore": 35,
+      "successScore": 31.11,
       "games": 8,
-      "winrate": 0.5
+      "winrate": 0.375
     },
     "last_2y": {
-      "successScore": 35,
+      "successScore": 31.11,
       "games": 8,
-      "winrate": 0.5
+      "winrate": 0.375
     },
     "last_5y": {
-      "successScore": 35,
+      "successScore": 31.11,
       "games": 8,
-      "winrate": 0.5
+      "winrate": 0.375
     }
   },
   "10182357": {
@@ -103,19 +103,19 @@
   },
   "2163": {
     "last_1y": {
-      "successScore": 35,
+      "successScore": 38.89,
       "games": 8,
-      "winrate": 0.5
+      "winrate": 0.625
     },
     "last_2y": {
-      "successScore": 35,
+      "successScore": 38.89,
       "games": 8,
-      "winrate": 0.5
+      "winrate": 0.625
     },
     "last_5y": {
-      "successScore": 35,
+      "successScore": 38.89,
       "games": 8,
-      "winrate": 0.5
+      "winrate": 0.625
     }
   },
   "2586976": {
@@ -273,19 +273,19 @@
   },
   "9467224": {
     "last_1y": {
-      "successScore": 46.67,
-      "games": 8,
-      "winrate": 0.875
+      "successScore": 44.21,
+      "games": 9,
+      "winrate": 0.7778
     },
     "last_2y": {
-      "successScore": 46.67,
-      "games": 8,
-      "winrate": 0.875
+      "successScore": 44.21,
+      "games": 9,
+      "winrate": 0.7778
     },
     "last_5y": {
-      "successScore": 46.67,
-      "games": 8,
-      "winrate": 0.875
+      "successScore": 44.21,
+      "games": 9,
+      "winrate": 0.7778
     }
   },
   "9691969": {
