@@ -22,6 +22,10 @@ import (
 
 const maxResponseBytes = 128 << 20
 
+// minRateLimitBackoff — минимальная пауза после 429 без внятного Retry-After: минутный
+// лимит короткими бэк-оффами не переждать, поэтому ждём хотя бы несколько секунд.
+const minRateLimitBackoff = 3 * time.Second
+
 var ErrBudgetExhausted = errors.New("source HTTP request budget exhausted")
 
 type Stats struct {
@@ -113,6 +117,7 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 
 	safeURL := redactURL(requestURL)
 	var lastErr error
+	rateLimited := false
 	for attempt := 0; attempt < c.maxAttempts; attempt++ {
 		if err := c.reserveRequest(); err != nil {
 			return fmt.Errorf("GET %s: %w", safeURL, err)
@@ -168,12 +173,24 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 		if resp.StatusCode != http.StatusTooManyRequests && resp.StatusCode < 500 {
 			return lastErr
 		}
+		if resp.StatusCode == http.StatusTooManyRequests {
+			rateLimited = true
+		}
 		if attempt+1 == c.maxAttempts {
 			break
 		}
-		if err := sleepContext(ctx, c.backoffFor(attempt, resp.Header.Get("Retry-After"))); err != nil {
+		wait := c.backoffFor(attempt, resp.Header.Get("Retry-After"))
+		if resp.StatusCode == http.StatusTooManyRequests && wait < minRateLimitBackoff {
+			wait = minRateLimitBackoff
+		}
+		if err := sleepContext(ctx, wait); err != nil {
 			return err
 		}
+	}
+	// Устойчивый rate-limit — не фатальная ошибка, а сигнал «стоп, продолжим из кэша»:
+	// возвращаем ErrBudgetExhausted, чтобы resumable-сбор корректно записал partial progress.
+	if rateLimited {
+		return fmt.Errorf("GET %s rate limited after %d attempts, stopping for resume: %w", safeURL, c.maxAttempts, ErrBudgetExhausted)
 	}
 	return fmt.Errorf("GET %s failed after %d attempts: %w", safeURL, c.maxAttempts, lastErr)
 }

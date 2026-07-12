@@ -137,7 +137,8 @@ func New(cfg Config) (*Client, error) {
 	}
 	interval := cfg.MinInterval
 	if interval == 0 {
-		interval = time.Second
+		// ~50 req/min: запас под Free Tier 60/min, чтобы не ловить 429 «minute rate limit».
+		interval = 1200 * time.Millisecond
 	}
 	transport, err := sourcehttp.New(sourcehttp.Config{
 		BaseURL: baseURL, CacheDir: filepath.Join(cfg.CacheDir, "opendota"),

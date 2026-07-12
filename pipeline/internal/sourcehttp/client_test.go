@@ -54,6 +54,24 @@ func TestGetJSONRetriesAndUsesCache(t *testing.T) {
 	}
 }
 
+func TestGetJSONRateLimitStopsForResume(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+		return response(http.StatusTooManyRequests, `{"error":"minute rate limit exceeded"}`), nil
+	})}
+	client, err := New(Config{
+		BaseURL: "https://example.invalid/", CacheDir: t.TempDir(), UserAgent: "AegisDraft/test",
+		MaxAttempts: 1, Backoff: time.Nanosecond, MinInterval: -1, HTTPClient: httpClient,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out map[string]any
+	getErr := client.GetJSON(context.Background(), "proMatches", nil, nil, &out)
+	if !errors.Is(getErr, ErrBudgetExhausted) {
+		t.Fatalf("устойчивый 429 должен возвращать ErrBudgetExhausted (resumable-стоп), got %v", getErr)
+	}
+}
+
 func TestGetJSONBudgetCountsNetworkButNotCache(t *testing.T) {
 	var calls atomic.Int32
 	client, err := New(Config{
