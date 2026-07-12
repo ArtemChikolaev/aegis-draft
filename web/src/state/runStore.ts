@@ -9,6 +9,8 @@ import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, type TournamentSnapshot } from "../game/tournament.ts";
+import { createRunSeed } from "../game/rng.ts";
+import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
   clearSavedRun,
   isRunCompatible,
@@ -69,6 +71,7 @@ interface RunStore {
   discardResume: () => void;
   startTournament: (displayName?: string) => void;
   advanceTournament: () => void;
+  restartSameConfig: () => void;
 }
 
 function snap(engine: RunEngine): Snapshot {
@@ -118,6 +121,19 @@ export const useRun = create<RunStore>((set, get) => {
   const record = (action: RunAction) => {
     set((state) => ({ actions: [...state.actions, action] }));
     persist();
+  };
+  const recordCareer = (tournament: TournamentSnapshot) => {
+    const { data, config, seed, snapshot } = get();
+    if (tournament.canAdvance || !data || !config || !snapshot?.score || !snapshot.isComplete) return;
+    useCareer.getState().record(buildCareerEntry({
+      seed,
+      datasetSchemaVersion: data.manifest.schemaVersion,
+      ratingModelVersion: data.manifest.ratingModelVersion,
+      config,
+      score: snapshot.score,
+      roster: snapshot.roster,
+      tournament,
+    }));
   };
 
   return {
@@ -258,6 +274,7 @@ export const useRun = create<RunStore>((set, get) => {
           tournament,
           tournamentStep,
         });
+        if (tournament) recordCareer(tournament);
       } catch {
         clearSavedRun(); // сейв не воспроизвёлся (данные разошлись) — отбрасываем
         set({ resumable: null });
@@ -282,8 +299,16 @@ export const useRun = create<RunStore>((set, get) => {
     advanceTournament() {
       const { tournamentEngine, tournamentStep } = get();
       if (!tournamentEngine || !tournamentEngine.advance()) return;
-      set({ tournament: tournamentEngine.snapshot, tournamentStep: tournamentStep + 1 });
+      const tournament = tournamentEngine.snapshot;
+      set({ tournament, tournamentStep: tournamentStep + 1 });
+      recordCareer(tournament);
       persist();
+    },
+
+    restartSameConfig() {
+      const { config } = get();
+      if (!config) return;
+      get().start(config, createRunSeed());
     },
   };
 });

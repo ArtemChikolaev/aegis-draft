@@ -25,7 +25,7 @@ export function ResumeBanner() {
         <small>{resumeText}</small>
       </div>
       <div className="resume-banner__actions">
-        <Button variant="secondary" onClick={discardResume} data-testid="resume-discard">{t("resume.discard")}</Button>
+        <Button variant="secondaryInvert" onClick={discardResume} data-testid="resume-discard">{t("resume.discard")}</Button>
         <Button variant="primaryInvert" onClick={resumeRun} data-testid="resume-continue">{t("resume.button")}<span>→</span></Button>
       </div>
     </aside>

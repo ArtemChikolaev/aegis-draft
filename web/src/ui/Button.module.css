@@ -11,6 +11,9 @@
 .secondary small { display: block; color: var(--muted); font-size: 8px; font-weight: 700; }
 .secondary:hover:not(:disabled) { border-color: var(--accent); }
 .secondary:disabled { opacity: .4; }
+.secondaryInvert { padding: 10px 14px; color: var(--on-invert); border: 1px solid var(--line-invert-strong); border-radius: 999px; background: var(--surface-invert-soft); }
+.secondaryInvert:hover:not(:disabled) { border-color: var(--brand-green); }
+.secondaryInvert:disabled { opacity: .4; }
 
 .danger { padding: 10px 14px; color: #fff; border-radius: 999px; background: #b84435; }
 .danger:hover:not(:disabled) { background: #ce503f; }

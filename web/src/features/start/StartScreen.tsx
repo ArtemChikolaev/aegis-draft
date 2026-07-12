@@ -5,6 +5,7 @@ import type { MessageKey } from "../../i18n/core.ts";
 import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/packs.ts";
 import type { Format } from "../../types/data.ts";
 import { Button, Eyebrow, OptionGroup, type Option, Surface } from "../../ui/index.ts";
+import { createRunSeed } from "../../game/rng.ts";
 import "./start.css";
 
 interface Opt<T> {
@@ -73,8 +74,7 @@ export function StartScreen() {
   ];
 
   const onStart = () => {
-    const seed = `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
-    start(config, seed);
+    start(config, createRunSeed());
   };
 
   if (mode === null) {

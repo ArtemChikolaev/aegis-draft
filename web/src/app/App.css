@@ -1,5 +1,5 @@
 .app-shell { position: relative; width: min(1320px, calc(100% - 40px)); min-height: 100vh; margin: 0 auto; padding: 24px 0 34px; }
-.topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 0 22px; }
+.topbar { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 0 22px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand__mark { display: grid; place-items: center; width: 34px; height: 34px; color: var(--bg); background: var(--text); font-size: 15px; font-weight: 800; }
 .brand__copy { display: grid; }

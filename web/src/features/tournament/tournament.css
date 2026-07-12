@@ -16,10 +16,11 @@
 .field-list .is-user { color: var(--accent); background: var(--accent-soft); }
 .field-list .is-user strong { color: var(--accent); }
 .tournament__groups { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; }
-.group-table { padding: 22px; }
+.group-table, .group-results { height: clamp(460px, 58vh, 540px); }
+.group-table { overflow-y: auto; padding: 22px; }
 /* Панель истории игр группового этапа (как в 322-0; сюда будут «приходить» матчи в live-симуляции). */
-.group-results { padding: 20px 18px; }
-.group-results__list { display: grid; gap: 2px; }
+.group-results { display: flex; min-height: 0; flex-direction: column; overflow: hidden; padding: 20px 18px; }
+.group-results__list { display: grid; min-height: 0; gap: 2px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 .group-result { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; font-size: 11px; }
 .group-result__tag { color: var(--muted); font: 800 9px sans-serif; }
 .group-result__team { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
@@ -36,17 +37,23 @@
 .table-row.is-user { color: var(--accent); background: var(--accent-soft); }
 /* Связанная сетка как в 322-0: верхняя над нижней, раунды колонками слева-направо,
    между сериями — коннекторы; своя команда и победитель подсвечены. */
-.bracket { display: grid; gap: 26px; }
-.bracket__side { min-width: 0; }
+.bracket { display: grid; gap: 26px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; }
+.bracket__side { width: max-content; min-width: 100%; }
 .bracket__side-title { margin: 0 0 12px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 /* Колонки равной ширины во всю ширину ряда; matches распределены space-around →
    древовидное центрирование (как в 322-0): раунд N центрируется между парами раунда N-1. */
-.bracket-flow { display: flex; gap: 14px; align-items: stretch; min-height: 300px; overflow-x: auto; padding-bottom: 10px; }
-.bracket-col { display: flex; flex: 1 1 0; flex-direction: column; min-width: 132px; }
-.bracket-col__matches { display: flex; flex: 1; flex-direction: column; justify-content: space-around; gap: 12px; }
-.bracket-col__title { margin: 0 0 10px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.bracket-grid { display: grid; grid-template-columns: repeat(6, 248px); align-items: stretch; width: max-content; min-width: 100%; min-height: 410px; column-gap: clamp(44px, 5vw, 96px); padding: 0 2px 12px; }
+.bracket-col { display: flex; flex: 0 0 248px; flex-direction: column; width: 248px; min-width: 248px; }
+.bracket-col--slot-1 { grid-column: 1; }
+.bracket-col--slot-2 { grid-column: 2; }
+.bracket-col--slot-3 { grid-column: 3; }
+.bracket-col--slot-4 { grid-column: 4; }
+.bracket-col--slot-5 { grid-column: 5; }
+.bracket-col--slot-6 { grid-column: 6; }
+.bracket-col__matches { display: flex; flex: 1; flex-direction: column; justify-content: space-around; gap: 18px; }
+.bracket-col__title { margin: 0 0 10px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
 .bracket-col__title--gf { color: var(--accent); }
-.match { position: relative; overflow: hidden; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px; }
+.match { position: relative; flex: 0 0 74px; height: 74px; overflow: hidden; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px; }
 /* коннектор к следующей колонке */
 .bracket-col:not(:last-child) .match::after { content: ""; position: absolute; left: 100%; top: 50%; width: 30px; height: 2px; background: var(--line); transform: translateY(-50%); }
 .match.has-user { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-soft); }
@@ -54,7 +61,7 @@
 .bracket-col--gf { justify-content: center; padding-right: 0; }
 .match--gf { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
 .bracket-col--gf .bracket-col__title { color: var(--accent); }
-.series__team { display: flex; align-items: center; gap: 8px; padding: 7px 10px; color: var(--muted); font-size: 11px; }
+.series__team { display: flex; box-sizing: border-box; align-items: center; gap: 8px; height: 35px; padding: 7px 10px; color: var(--muted); font-size: 11px; }
 .series__team + .series__team { border-top: 1px solid var(--line); }
 .series__logo { display: grid; flex: none; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: var(--on-invert); font: 800 9px/1 sans-serif; font-style: normal; background: var(--surface-invert); }
 .series__name { flex: 1; overflow: hidden; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
@@ -94,7 +101,26 @@
 .run-summary__roster { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 .run-summary__roster li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
 .run-summary__roster strong { font-size: 13px; }
+.career-panel { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; margin-top: 44px; padding-top: 30px; border-top: 1px solid var(--line); }
+.career-panel__heading { grid-column: 1 / -1; }
+.career-panel__heading h2 { margin: 10px 0 6px; font-size: clamp(32px, 5vw, 64px); line-height: .95; letter-spacing: -.05em; }
+.career-panel__heading p { margin: 0; color: var(--muted); font-size: 12px; }
+.career-stats, .career-runs { padding: 22px; }
+.career-stats__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.career-runs__list { --career-run-height: 174px; display: grid; grid-auto-rows: var(--career-run-height); height: calc(var(--career-run-height) * 2 + 12px); min-height: 0; gap: 12px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scroll-snap-type: y proximity; scrollbar-gutter: stable; }
+.career-run { box-sizing: border-box; height: var(--career-run-height); overflow: hidden; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-soft); scroll-snap-align: start; }
+.career-run__heading { display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 12px; }
+.career-run__heading strong { color: var(--accent); font-size: 22px; }
+.career-run__heading span { font-size: 12px; font-weight: 800; }
+.career-run__heading small { justify-self: end; color: var(--muted); font-size: 9px; }
+.career-run__config { margin: 5px 0 12px; color: var(--muted); font-size: 9px; }
+.career-run__roster { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.career-run__roster li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.career-run__roster li > span:first-child { grid-column: 1 / -1; justify-self: start; }
+.career-run__roster strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .tournament__actions { width: min(480px, 100%); margin-left: auto; }
+.tournament__restart { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tournament__restart > button { min-height: 52px; }
 
 /* live-симуляция: серия ещё не сыграна — нейтральная заглушка (без победителя/счёта). */
 .match.is-pending { opacity: .5; border-style: dashed; }
@@ -110,6 +136,7 @@
 
 @media (max-width: 900px) {
   .tournament__field, .tournament__complete, .tournament__report { grid-template-columns: 1fr; }
+  .career-panel { grid-template-columns: 1fr; }
   .run-summary__scores { grid-template-columns: repeat(2, 1fr); }
   .tournament__groups { grid-template-columns: 1fr; }
   .tournament__heading { align-items: start; flex-direction: column; }
@@ -124,4 +151,11 @@
   .grand-final div { flex-direction: column; }
   .final-table > div { grid-template-columns: 74px 1fr; }
   .final-table small { grid-column: 2; }
+  .career-stats__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .career-run__heading { grid-template-columns: auto 1fr; }
+  .career-run__heading small { grid-column: 1 / -1; justify-self: start; }
+  .career-run__roster { grid-template-columns: 1fr; }
+  .career-runs__list { grid-auto-rows: auto; height: min(70vh, 620px); }
+  .career-run { height: auto; overflow: visible; }
+  .tournament__restart { grid-template-columns: 1fr; }
 }

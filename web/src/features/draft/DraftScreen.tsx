@@ -157,7 +157,7 @@ export function DraftScreen() {
       </Surface>
       {confirmLeave && (
         <Modal mark="A" title={t("draft.leaveTitle")} description={t("draft.leaveText")} labelledBy="leave-title" onClose={() => setConfirmLeave(false)}>
-          <Button variant="secondary" autoFocus onClick={() => setConfirmLeave(false)}>{t("draft.leaveCancel")}</Button>
+          <Button variant="secondaryInvert" autoFocus onClick={() => setConfirmLeave(false)}>{t("draft.leaveCancel")}</Button>
           <Button variant="danger" data-testid="confirm-leave" onClick={reset}>{t("draft.leaveConfirm")}</Button>
         </Modal>
       )}

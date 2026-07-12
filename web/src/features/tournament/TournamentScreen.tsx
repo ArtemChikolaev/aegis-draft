@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type {
@@ -8,6 +8,7 @@ import type {
 import { useRun } from "../../state/runStore.ts";
 import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
+import { CareerPanel } from "./CareerPanel.tsx";
 import "./tournament.css";
 
 const stages: TournamentStage[] = ["field", "groups", "playoffs"];
@@ -29,18 +30,28 @@ const PLAYOFF_STEP_MS = 320;
 // стадия открывается сразу, а reveal доиграется/скипнется заново).
 function useReveal(total: number, resetKey: unknown, stepMs: number) {
   const [n, setN] = useState(0);
+  const timer = useRef<number | null>(null);
+  const stop = useCallback(() => {
+    if (timer.current == null) return;
+    window.clearInterval(timer.current);
+    timer.current = null;
+  }, []);
   useEffect(() => {
+    stop();
     setN(0);
     if (total <= 0) return;
     let current = 0;
-    const id = window.setInterval(() => {
+    timer.current = window.setInterval(() => {
       current += 1;
       setN(current);
-      if (current >= total) window.clearInterval(id);
+      if (current >= total) stop();
     }, stepMs);
-    return () => window.clearInterval(id);
-  }, [total, resetKey, stepMs]);
-  const skip = useCallback(() => setN(total), [total]);
+    return stop;
+  }, [resetKey, stepMs, stop, total]);
+  const skip = useCallback(() => {
+    stop();
+    setN(total);
+  }, [stop, total]);
   return { n, done: n >= total, skip };
 }
 
@@ -76,9 +87,9 @@ function TeamRow({ team, score, won, pending }: { team: TournamentTeam; score: n
 
 // Колонка раунда сетки: серии со счётом (как в 322-0), с коннекторами к следующему раунду.
 // Ещё не раскрытые серии показываются заглушкой.
-function renderRound(round: PlayoffRound, isRevealed: (id: string) => boolean) {
+function renderRound(round: PlayoffRound, isRevealed: (id: string) => boolean, slot: number) {
   return (
-    <div key={round.id} className="bracket-col">
+    <div key={round.id} className={`bracket-col bracket-col--slot-${slot}`}>
       <h4 className="bracket-col__title">{round.label}</h4>
       <div className="bracket-col__matches">
         {round.series.map((series) => {
@@ -99,6 +110,7 @@ export function TournamentScreen() {
   const tournament = useRun((state) => state.tournament);
   const advance = useRun((state) => state.advanceTournament);
   const reset = useRun((state) => state.reset);
+  const restartSameConfig = useRun((state) => state.restartSameConfig);
   const snapshot = useRun((state) => state.snapshot);
   const hero = useHero();
   const { t } = useI18n();
@@ -150,7 +162,7 @@ export function TournamentScreen() {
           <h1>{t(titleKey(tournament.stage))}</h1>
           <p>{t(textKey(tournament.stage))}</p>
         </div>
-        <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
+        {tournament.stage === "field" && <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>}
       </header>
 
       <nav className="tournament__progress" aria-label={t("tournament.eyebrow")}>
@@ -222,9 +234,9 @@ export function TournamentScreen() {
           <div className="bracket">
             <section className="bracket__side">
               <h3 className="bracket__side-title">{t("tournament.upperBracket")}</h3>
-              <div className="bracket-flow">
-                {tournament.playoffRounds.filter((round) => round.id.startsWith("ub")).map((round) => renderRound(round, isRevealed))}
-                <div className="bracket-col">
+              <div className="bracket-grid bracket-grid--upper">
+                {tournament.playoffRounds.filter((round) => round.id.startsWith("ub")).map((round, index) => renderRound(round, isRevealed, [1, 3, 5][index]))}
+                <div className="bracket-col bracket-col--gf bracket-col--slot-6">
                   <h4 className="bracket-col__title bracket-col__title--gf">{t("tournament.grandFinalShort")}</h4>
                   <div className="bracket-col__matches">
                     <div className={`match match--gf ${tournament.grandFinal.teamA.isUser || tournament.grandFinal.teamB.isUser ? "has-user" : ""} ${isRevealed(tournament.grandFinal.id) ? "" : "is-pending"}`}>
@@ -237,22 +249,23 @@ export function TournamentScreen() {
             </section>
             <section className="bracket__side">
               <h3 className="bracket__side-title">{t("tournament.lowerBracket")}</h3>
-              <div className="bracket-flow">{tournament.playoffRounds.filter((round) => round.id.startsWith("lb")).map((round) => renderRound(round, isRevealed))}</div>
+              <div className="bracket-grid bracket-grid--lower">{tournament.playoffRounds.filter((round) => round.id.startsWith("lb")).map((round, index) => renderRound(round, isRevealed, index + 1))}</div>
             </section>
           </div>
 
           {done && (
-            <div className="tournament__report">
-              <Surface className="final-table">
+            <>
+              <div className="tournament__report">
+                <Surface className="final-table">
                 <h3 className="bracket__side-title">{t("tournament.finalStandings")}</h3>
                 {tournament.standings.map((row) => (
                   <div key={row.team.id} className={row.team.isUser ? "is-user" : ""}>
                     <span>{t(placementKey(row.placement))}</span><strong>{row.team.name}</strong><b>{Math.round(row.team.strength)}</b>
                   </div>
                 ))}
-              </Surface>
-              {score && snapshot && (
-                <Surface className="run-summary">
+                </Surface>
+                {score && snapshot && (
+                  <Surface className="run-summary">
                   <h3 className="bracket__side-title">{t("tournament.yourRun")}</h3>
                   <div className="run-summary__scores">
                     <StatTile label={t("common.base")} value={Math.round(score.base).toString()} kind="base" />
@@ -273,9 +286,11 @@ export function TournamentScreen() {
                       );
                     })}
                   </ul>
-                </Surface>
-              )}
-            </div>
+                  </Surface>
+                )}
+              </div>
+              <CareerPanel />
+            </>
           )}
         </>
       )}
@@ -290,7 +305,12 @@ export function TournamentScreen() {
         ) : (
           <>
             {tournament.canAdvance && advanceLabel[tournament.stage] && <Button variant="primary" onClick={advance}>{t(advanceLabel[tournament.stage]!)}<span>→</span></Button>}
-            {!tournament.canAdvance && <Button variant="primary" onClick={() => setConfirmLeave(true)}>{t("tournament.newRun")}<span>↻</span></Button>}
+            {!tournament.canAdvance && (
+              <div className="tournament__restart">
+                <Button variant="primary" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
+                <Button variant="secondary" onClick={reset}>{t("tournament.restartChange")}</Button>
+              </div>
+            )}
           </>
         )}
       </div>

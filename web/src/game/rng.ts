@@ -58,3 +58,8 @@ export class Rng {
     return a;
   }
 }
+
+/** Новый несоревновательный seed; shared/daily по-прежнему передают seed явно. */
+export function createRunSeed(): string {
+  return `${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
+}

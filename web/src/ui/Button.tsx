@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import styles from "./Button.module.css";
 
-export type ButtonVariant = "primary" | "primaryInvert" | "secondary" | "danger" | "leave" | "back";
+export type ButtonVariant = "primary" | "primaryInvert" | "secondary" | "secondaryInvert" | "danger" | "leave" | "back";
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;

@@ -54,8 +54,9 @@
 /* Classic: конфиг + launch */
 .start__layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, .65fr); gap: 22px; align-items: start; }
 .config-panel { padding: 28px; }
-.launch-panel { position: sticky; top: 18px; overflow: hidden; padding: 30px; color: var(--on-invert); background: var(--surface-invert); }
-.launch-panel::after { content: ""; position: absolute; width: 150px; height: 150px; right: -55px; top: -60px; border-radius: 50%; background: var(--brand-glow); filter: blur(18px); opacity: .85; }
+.launch-panel { position: sticky; top: 18px; overflow: hidden; isolation: isolate; contain: paint; padding: 30px; color: var(--on-invert); background: var(--surface-invert); }
+.launch-panel::after { content: ""; position: absolute; z-index: 0; width: 150px; height: 150px; right: -55px; top: -60px; border-radius: 50%; background: var(--brand-glow); filter: blur(18px); opacity: .85; pointer-events: none; }
+.launch-panel > * { position: relative; z-index: 1; }
 .launch-panel__icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 58px; color: var(--surface-invert); background: var(--on-invert); font: 800 18px "Space Grotesk"; }
 .launch-panel h2 { margin-bottom: 10px; font-size: 25px; letter-spacing: -.035em; }
 .launch-panel p { color: var(--muted-invert); font-size: 13px; }
