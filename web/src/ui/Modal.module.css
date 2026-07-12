@@ -5,3 +5,5 @@
 .panel p { margin-bottom: 28px; color: var(--muted-invert); }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .actions button { min-height: 48px; }
+.contentPanel { width: min(720px, 100%); max-height: min(820px, calc(100vh - 40px)); overflow: auto; }
+.content { display: grid; gap: 20px; }

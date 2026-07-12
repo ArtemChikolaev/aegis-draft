@@ -3,7 +3,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { scoreTeam, baseRating } from "../src/game/score.ts";
+import { scoreTeam, baseRating, chemistryBonus } from "../src/game/score.ts";
 import { bestAssignment } from "../src/game/assign.ts";
 import type { Pack, PlayerHeroStats, SquadSynergy, PackPlayer } from "../src/types/data.ts";
 
@@ -22,8 +22,10 @@ const assert = (cond: boolean, msg: string) => {
 };
 const round = (n: number) => Math.round(n * 100) / 100;
 
-// --- Team Packs: берём ростер Team Spirit целиком ---
-const spirit = packs.find((p) => p.teamId === 8291895)!;
+// --- Team Packs: берём ростер Team Spirit целиком (teamId зависит от snapshot) ---
+const spirit = packs.find((p) => p.teamName === "Team Spirit");
+assert(!!spirit, "Team Spirit есть в packs.json");
+if (!spirit) process.exit(1);
 const s = scoreTeam(spirit.players, spirit.signatureHeroes, phs, squad);
 console.log(`\n[Team Packs] ${spirit.teamName}`);
 console.log(`  Base ${round(s.base)}  +Synergy ${round(s.heroSynergy)}  +Chemistry ${round(s.chemistry)}  = OVR ${round(s.teamOvr)}`);
@@ -34,6 +36,20 @@ assert(Math.abs(s.base - expectedBase) < 1e-9, "Base = средний OVR пят
 assert(Object.keys(s.assignment.byPlayer).length === 5, "каждому из 5 игроков назначен герой");
 assert(new Set(Object.values(s.assignment.byPlayer)).size === 5, "герои не повторяются (валидный matching)");
 assert(Number.isFinite(s.teamOvr), "Team OVR — конечное число");
+assert(scoreTeam(spirit.players.slice(0, 1), [], phs, squad).heroSynergy === 0, "Hero Synergy = 0, пока герой не выбран");
+const oneHeroProgress = spirit.players.map((_, index) => scoreTeam(spirit.players.slice(0, index + 1), spirit.signatureHeroes.slice(0, 1), phs, squad).heroSynergy);
+assert(
+  oneHeroProgress.every((value, index) => index === 0 || value >= oneHeroProgress[index - 1] - 1e-9),
+  "добавление игрока не разбавляет уже выбранную player×hero пару",
+);
+
+// Промежуточная Chemistry накапливается по мере добавления игроков полного ростера.
+const chemistryProgress = spirit.players.map((_, index) => chemistryBonus(spirit.players.slice(0, index + 1), squad));
+assert(
+  chemistryProgress.every((value, index) => index === 0 || value >= chemistryProgress[index - 1] - 1e-9),
+  "Chemistry сыгранного ростера не падает при добавлении тиммейтов",
+);
+assert(Math.abs(chemistryProgress[4] - s.chemistry) < 1e-9, "финальная Chemistry сохраняет прежний масштаб 5 игроков");
 
 // matching >= жадности (проверка, что мы не хуже жадного назначения)
 const greedyTotal = greedyAssign(spirit.players, spirit.signatureHeroes, phs);

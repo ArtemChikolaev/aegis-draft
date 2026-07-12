@@ -148,7 +148,28 @@ export class RunEngine {
     const avoid = new Set<number>();
     const currentTeam = this.currentPack?.candidates[0]?.teamId;
     if (this.config.draftStyle === "team" && currentTeam != null) avoid.add(currentTeam);
-    return generatePack(this.pool, this.config, this.rng, { excludeTeamIds: avoid, excludePlayerIds: this.usedPlayers });
+    const pack = generatePack(this.pool, this.config, this.rng, { excludeTeamIds: avoid, excludePlayerIds: this.usedPlayers });
+    return this.withFullHeroOffer(pack);
+  }
+
+  /**
+   * Каждый новый пак предлагает ровно пять ещё не взятых героев. Сначала сохраняем
+   * сигнатурных героев выбранного пака, затем детерминированно добираем сигнатурных
+   * героев из того же format-pool. Это не требует runtime API и не предлагает дубль.
+   */
+  private withFullHeroOffer(pack: DraftPack): DraftPack {
+    const drafted = new Set(this.heroes);
+    const preferred = [...new Set(pack.signatureHeroes)].filter((heroId) => !drafted.has(heroId));
+    const preferredSet = new Set(preferred);
+    const fallback = this.rng.shuffle(
+      [...new Set(this.pool.flatMap((source) => source.signatureHeroes))]
+        .filter((heroId) => !drafted.has(heroId) && !preferredSet.has(heroId)),
+    );
+    const signatureHeroes = [...preferred, ...fallback].slice(0, HERO_TARGET);
+    if (signatureHeroes.length !== HERO_TARGET) {
+      throw new Error(`Недостаточно уникальных героев для пака: ${signatureHeroes.length}/${HERO_TARGET}`);
+    }
+    return { ...pack, signatureHeroes };
   }
 
   private slotForRole(role: Role): number {

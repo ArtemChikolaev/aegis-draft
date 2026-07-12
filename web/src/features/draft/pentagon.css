@@ -9,3 +9,7 @@
 .node__role { fill: var(--muted-invert); font-size: 9px; font-weight: 700; letter-spacing: .7px; text-anchor: middle; }
 .node__name { fill: var(--on-invert); font-size: 12px; font-weight: 800; text-anchor: middle; }
 .node__ovr { fill: var(--brand-green); font-size: 11px; font-weight: 800; text-anchor: middle; }
+.node--interactive { cursor: pointer; outline: none; }
+.node--interactive text, .node--interactive circle { transition: filter .15s, fill .15s; }
+.node--interactive:hover .node__name, .node--interactive:focus .node__name { fill: var(--brand-green); }
+.node--interactive:focus .pentagon__dot { filter: drop-shadow(0 0 8px var(--brand-green)); }

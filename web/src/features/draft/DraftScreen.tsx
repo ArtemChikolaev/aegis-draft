@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { roleMessageKey } from "../../i18n/core.ts";
+import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
 import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface } from "../../ui/index.ts";
 import { Pentagon } from "./Pentagon.tsx";
+import { PlayerInspector } from "./PlayerInspector.tsx";
 import { useHero } from "./heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import "./draft.css";
@@ -18,22 +19,27 @@ export function DraftScreen() {
   const canPickPlayer = useRun((state) => state.canPickPlayer);
   const canPickHero = useRun((state) => state.canPickHero);
   const reset = useRun((state) => state.reset);
+  const data = useRun((state) => state.data);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
   const hero = useHero();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   if (!snapshot) return null;
 
-  const { currentPack, roster, rerollsLeft, score, heroes, heroesLeft, packHeroes, rosterFilled } = snapshot;
+  const { currentPack, roster, rerollsLeft, score, heroes, packHeroes, rosterFilled } = snapshot;
   const rerollCount = rerollsLeft === Infinity ? "∞" : String(rerollsLeft);
   const picked = rosterFilled + heroes.length;
 
   // Герой → ник игрока, к которому он привязан (для отображения драфтованных).
-  const heroOwner: Record<number, string> = {};
+  const heroOwner: Record<number, { accountId: number; nickname: string }> = {};
   if (score) {
     for (const slot of roster) {
       if (!slot.candidate) continue;
       const h = score.assignment.byPlayer[slot.candidate.player.accountId];
-      if (h != null) heroOwner[h] = slot.candidate.player.nickname;
+      if (h != null) heroOwner[h] = {
+        accountId: slot.candidate.player.accountId,
+        nickname: slot.candidate.player.nickname,
+      };
     }
   }
 
@@ -44,7 +50,7 @@ export function DraftScreen() {
         <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
       </header>
       <Surface className="draft__radar">
-        <Pentagon roster={roster} teamOvr={score?.teamOvr ?? null} />
+        <Pentagon roster={roster} teamOvr={score?.teamOvr ?? null} onSelectPlayer={setInspectedPlayer} />
         <div className="score-strip">
           <StatTile label={t("common.base")} value={score ? Math.round(score.base).toString() : "0"} kind="base" />
           <StatTile label={t("common.heroSynergy")} value={score ? fmt(score.heroSynergy) : "+0.0"} kind="synergy" />
@@ -64,7 +70,7 @@ export function DraftScreen() {
         </div>
 
         <div className="hero-pool">
-          <div><h3>{t("draft.packHeroes")} <span>{heroesLeft}</span></h3><p>{t("draft.packHeroesHint")}</p></div>
+          <div><h3>{t("draft.packHeroes")} <span>{packHeroes.length}</span></h3><p>{t("draft.packHeroesHint")}</p></div>
           <div className="hero-pool__chips">
             {packHeroes.map((id) => {
               const h = hero(id);
@@ -85,7 +91,14 @@ export function DraftScreen() {
               return (
                 <span key={id} className="drafted-hero">
                   <HeroThumb picture={h.picture} name={h.name} />
-                  {heroOwner[id] && <small>→ {heroOwner[id]}</small>}
+                  {heroOwner[id] && (
+                    <small>
+                      → {heroOwner[id].nickname} · {(() => {
+                        const games = data?.playerHeroStats[String(heroOwner[id].accountId)]?.[String(id)]?.games ?? 0;
+                        return t(heroGamesMessageKey(locale, games), { count: games });
+                      })()}
+                    </small>
+                  )}
                 </span>
               );
             })}
@@ -97,6 +110,9 @@ export function DraftScreen() {
           <Button variant="secondary" autoFocus onClick={() => setConfirmLeave(false)}>{t("draft.leaveCancel")}</Button>
           <Button variant="danger" data-testid="confirm-leave" onClick={reset}>{t("draft.leaveConfirm")}</Button>
         </Modal>
+      )}
+      {inspectedPlayer && data && (
+        <PlayerInspector candidate={inspectedPlayer} data={data} onClose={() => setInspectedPlayer(null)} />
       )}
     </main>
   );

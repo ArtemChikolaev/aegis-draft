@@ -95,6 +95,13 @@ const ru = {
   "draft.leaveText": "Текущий драфт и все сделанные выборы будут потеряны. Ты вернёшься к настройкам Classic.",
   "draft.leaveConfirm": "Выйти из забега",
   "draft.leaveCancel": "Продолжить драфт",
+  "draft.heroGames": "{count} игр",
+  "draft.heroGamesOne": "{count} игра",
+  "draft.heroGamesFew": "{count} игры",
+  "draft.eventHeroStats": "Герои на турнире {event}",
+  "draft.careerHeroStats": "Герои за карьеру",
+  "draft.openDatdota": "Профиль игрока на DatDota",
+  "draft.closePlayerStats": "Закрыть",
   "result.eyebrow": "ОТЧЁТ О ЗАБЕГЕ",
   "result.title": "Ростер собран.",
   "result.subtitle": "Финальная оценка учитывает силу игроков, героев и сыгранность состава.",
@@ -203,6 +210,13 @@ const en: Dictionary = {
   "draft.leaveText": "The current draft and every pick will be lost. You will return to the Classic configuration.",
   "draft.leaveConfirm": "Leave run",
   "draft.leaveCancel": "Continue drafting",
+  "draft.heroGames": "{count} games",
+  "draft.heroGamesOne": "{count} game",
+  "draft.heroGamesFew": "{count} games",
+  "draft.eventHeroStats": "Heroes at {event}",
+  "draft.careerHeroStats": "Career hero stats",
+  "draft.openDatdota": "Player profile on DatDota",
+  "draft.closePlayerStats": "Close",
   "result.eyebrow": "RUN REPORT",
   "result.title": "Roster complete.",
   "result.subtitle": "The final rating combines player strength, hero fit and roster chemistry.",
@@ -214,6 +228,15 @@ const en: Dictionary = {
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { ru, en };
+
+export function heroGamesMessageKey(locale: Locale, count: number): MessageKey {
+  if (locale === "en") return count === 1 ? "draft.heroGamesOne" : "draft.heroGames";
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return "draft.heroGamesOne";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "draft.heroGamesFew";
+  return "draft.heroGames";
+}
 
 export function translate(locale: Locale, key: MessageKey, vars: Record<string, string | number> = {}): string {
   return dictionaries[locale][key].replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));

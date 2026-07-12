@@ -1,10 +1,15 @@
 import type { RosterSlot } from "../../game/engine.ts";
+import type { Candidate } from "../../game/packs.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey } from "../../i18n/core.ts";
 import "./pentagon.css";
 
 /** Радар-пентагон: 5 слотов ростера по вершинам + Team OVR в центре. */
-export function Pentagon({ roster, teamOvr }: { roster: RosterSlot[]; teamOvr: number | null }) {
+export function Pentagon({ roster, teamOvr, onSelectPlayer }: {
+  roster: RosterSlot[];
+  teamOvr: number | null;
+  onSelectPlayer?: (candidate: Candidate) => void;
+}) {
   const { t } = useI18n();
   const size = 420;
   const c = size / 2;
@@ -31,7 +36,20 @@ export function Pentagon({ roster, teamOvr }: { roster: RosterSlot[]; teamOvr: n
         const lx = c + (p.x - c) * outward;
         const ly = c + (p.y - c) * outward;
         return (
-          <g key={i} className={`node ${slot.candidate ? "node--filled" : ""}`}>
+          <g
+            key={i}
+            className={`node ${slot.candidate ? "node--filled" : ""} ${slot.candidate && onSelectPlayer ? "node--interactive" : ""}`}
+            role={slot.candidate && onSelectPlayer ? "button" : undefined}
+            tabIndex={slot.candidate && onSelectPlayer ? 0 : undefined}
+            aria-label={slot.candidate?.player.nickname}
+            onClick={() => slot.candidate && onSelectPlayer?.(slot.candidate)}
+            onKeyDown={(event) => {
+              if (slot.candidate && onSelectPlayer && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                onSelectPlayer(slot.candidate);
+              }
+            }}
+          >
             <circle cx={p.x} cy={p.y} r={6} className="pentagon__dot" />
             <text x={lx} y={ly - 6} className="node__role">{t(roleMessageKey(slot.role))}</text>
             <text x={lx} y={ly + 10} className="node__name">
