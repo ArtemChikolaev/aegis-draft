@@ -58,6 +58,9 @@ export function DraftScreen() {
     : synergyTier === "great"
       ? t("draft.synergyGreat")
       : undefined;
+  // Заголовок пака показывает название турнира, а не сырой eventId (league-19785).
+  const packEventLabel = data?.events.find((e) => e.id === currentPack.sublabel)?.name
+    ?? currentPack.sublabel;
 
   const heroOwner: Record<number, { accountId: number; nickname: string }> = {};
   if (score) {
@@ -105,7 +108,7 @@ export function DraftScreen() {
         <div className="pack-heading">
           <div>
             <Eyebrow className="pack-eyebrow">{currentPack.kind === "mixed" ? t("draft.freeAgents") : currentPack.label}</Eyebrow>
-            <h2>{currentPack.kind === "mixed" ? t("draft.mixedSubtitle") : currentPack.sublabel}</h2>
+            <h2>{currentPack.kind === "mixed" ? t("draft.mixedSubtitle") : packEventLabel}</h2>
           </div>
           <Button variant="secondary" onClick={reroll} disabled={rerollsLeft <= 0}>↻ {t("draft.reroll")}<small>{t("draft.rerollsLeft", { count: rerollCount })}</small></Button>
         </div>
