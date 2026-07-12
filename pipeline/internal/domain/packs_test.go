@@ -79,7 +79,7 @@ func TestBuildPacksRealLineup(t *testing.T) {
 	for _, p := range fixtureSnapshot().Players {
 		nickByAccount[p.AccountID] = p.Name
 	}
-	events := BuildEvents(matches, testLeagues, asOf())
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
 	packs := BuildPacks(matches, events, ratings, roleByAccount, nickByAccount, fixtureTeams)
 
 	if len(packs) != 2 {

@@ -34,7 +34,7 @@ func TestBuildEvents(t *testing.T) {
 		md(3, 300, recent, 5, 6, true), // amateur → отброшен
 		md(4, 999, recent, 7, 8, true), // неизвестная лига → отброшена
 	}
-	events := BuildEvents(matches, testLeagues, asOf())
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
 	if len(events) != 2 {
 		t.Fatalf("expected 2 events, got %d: %+v", len(events), events)
 	}

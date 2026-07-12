@@ -13,21 +13,8 @@ import (
 	"github.com/aegis-draft/pipeline/internal/model"
 	"github.com/aegis-draft/pipeline/internal/normalize"
 	"github.com/aegis-draft/pipeline/internal/opendota"
+	"github.com/aegis-draft/pipeline/internal/tier1"
 )
-
-// tierToType маппит грубый OpenDota tier в тип события. TI/Major из OpenDota
-// достоверно не различить — они приходят курируемым набором (T4.3), поэтому
-// premium/professional дают tier1/tier2, остальное отбрасывается.
-func tierToType(tier string) string {
-	switch tier {
-	case "premium":
-		return "tier1"
-	case "professional":
-		return "tier2"
-	default:
-		return ""
-	}
-}
 
 type leagueAgg struct {
 	minStart int64
@@ -35,10 +22,11 @@ type leagueAgg struct {
 	matches  int
 }
 
-// BuildEvents строит события из лиг, реально встреченных в матчах. Тип — из tier,
-// даты — из диапазона матчей лиги, формат — через formats.Assign от даты окончания.
-// События вне всех окон (пустой formats) отбрасываются (schema требует minItems 1).
-func BuildEvents(matches []normalize.NormalizedMatch, leagues []opendota.League, asOf time.Time) []model.EventInfo {
+// BuildEvents строит события из лиг, реально встреченных в матчах. Scope — tier-1
+// (tier1.IsTier1: premium ∪ professional-минус-шум); события с < minMatches матчей в
+// окне отбрасываются (порог гасит мелкий шум и недосбор). Формат — через formats.Assign
+// от даты окончания, valve_legacy — через tier1.IsValveLegacy. Пустой formats тоже отбрасывается.
+func BuildEvents(matches []normalize.NormalizedMatch, leagues []opendota.League, asOf time.Time, minMatches int) []model.EventInfo {
 	byID := make(map[int64]opendota.League, len(leagues))
 	for _, league := range leagues {
 		byID[league.LeagueID] = league
@@ -71,15 +59,21 @@ func BuildEvents(matches []normalize.NormalizedMatch, leagues []opendota.League,
 	events := make([]model.EventInfo, 0, len(leagueIDs))
 	for _, id := range leagueIDs {
 		league, known := byID[id]
-		eventType := tierToType(league.Tier)
-		if !known || eventType == "" {
-			continue // неизвестная или неигровая лига (amateur/excluded)
+		if !known || !tier1.IsTier1(league.Tier, league.Name) {
+			continue // не tier-1 (amateur/excluded или professional-шум)
 		}
 		a := agg[id]
+		if a.matches < minMatches {
+			continue // порог: мелкое событие (шум/недосбор) не берём
+		}
 		end := time.Unix(a.maxStart, 0)
-		fmts := formats.Assign(end, asOf, false)
+		fmts := formats.Assign(end, asOf, tier1.IsValveLegacy(id, league.Name))
 		if len(fmts) == 0 {
-			continue // событие вне всех окон
+			continue // событие вне всех окон и не valve_legacy
+		}
+		eventType := "tier2"
+		if league.Tier == "premium" {
+			eventType = "tier1"
 		}
 		events = append(events, model.EventInfo{
 			ID:        fmt.Sprintf("league-%d", id),

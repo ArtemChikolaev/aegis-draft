@@ -24,6 +24,7 @@ type Input struct {
 	AsOf               time.Time
 	Config             rating.Config
 	RatingModelVersion string
+	MinEventMatches    int // порог: события с меньшим числом матчей в окне отбрасываются
 }
 
 // Build собирает полный model.Dataset из OpenDota-входов. Чистый и детерминированный.
@@ -44,7 +45,7 @@ func Build(in Input) (*model.Dataset, error) {
 	if err != nil {
 		return nil, err
 	}
-	events := BuildEvents(matches, in.Leagues, in.AsOf)
+	events := BuildEvents(matches, in.Leagues, in.AsOf, in.MinEventMatches)
 	packs := BuildPacks(matches, events, ratings, roleByAccount, nickByAccount, in.Teams)
 	players := BuildPlayers(in.Snapshot, rolesList, in.Teams, matches)
 	teamSuccess := BuildTeamSuccess(matches, in.Leagues, in.AsOf, in.Config)

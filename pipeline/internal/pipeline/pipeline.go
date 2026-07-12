@@ -19,6 +19,7 @@ import (
 	"github.com/aegis-draft/pipeline/internal/opendota"
 	"github.com/aegis-draft/pipeline/internal/rating"
 	"github.com/aegis-draft/pipeline/internal/sourcehttp"
+	"github.com/aegis-draft/pipeline/internal/tier1"
 	"github.com/aegis-draft/pipeline/internal/validate"
 )
 
@@ -38,6 +39,7 @@ type Config struct {
 	NodeBinary       string
 	SchemaValidator  string
 	EmitDomain       bool // собрать доменный датасет из OpenDota и записать в Out (S4)
+	MinEventMatches  int  // порог матчей на событие (гасит мелкий tier-1 шум); 0 = без порога
 }
 
 // Run прогоняет пайплайн. Пока стадии сбора — заглушки; emit пишет валидный пустой датасет,
@@ -84,10 +86,21 @@ func Run(ctx context.Context, cfg Config) error {
 		} else if matchLimit == 0 {
 			matchLimit = 0
 		}
+		// Tier-1 scope (PRD §5.4.1): доменный сбор оставляет только tier-1 лиги =
+		// premium (из /leagues) ∪ курируемый реестр (OpenDota мислейблит EWC и др. как professional).
+		var tier1Leagues map[int64]struct{}
+		if cfg.EmitDomain {
+			tier1Leagues, err = tier1LeagueSet(ctx, od)
+			if err != nil {
+				return err
+			}
+			log.Printf("[fetch] tier-1 фильтр: %d лиг (premium ∪ professional−шум)", len(tier1Leagues))
+		}
 		log.Printf("[fetch] OpenDota pro matches (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
 		collected, err := collect.OpenDotaWindow(ctx, od, collect.OpenDotaConfig{
 			WindowStartUnix: windowStart, MaxPages: maxPages, MatchLimit: matchLimit,
 			CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0,
+			Tier1Leagues:   tier1Leagues,
 		})
 		if err != nil {
 			return err
@@ -238,7 +251,7 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 	}
 	ds, err := domain.Build(domain.Input{
 		Snapshot: snapshot, Aggregates: aggregates, Teams: teams, Leagues: leagues, Heroes: heroes,
-		AsOf: asOf, Config: rcfg, RatingModelVersion: rating.ModelVersion,
+		AsOf: asOf, Config: rcfg, RatingModelVersion: rating.ModelVersion, MinEventMatches: cfg.MinEventMatches,
 	})
 	if err != nil {
 		return fmt.Errorf("build domain dataset: %w", err)
@@ -258,6 +271,24 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 		}
 	}
 	return nil
+}
+
+// tier1LeagueSet = все лиги, которые tier1.IsTier1 относит к tier-1 сцене (premium ∪
+// professional-минус-шум). OpenDota помечает многие реальные tier-1 турниры (EWC, DreamLeague,
+// OGA PIT) как professional, поэтому одного tier-флага мало. Один (кэшируемый) запрос; список
+// переиспользуется доменной сборкой ниже.
+func tier1LeagueSet(ctx context.Context, od *opendota.Client) (map[int64]struct{}, error) {
+	leagues, err := od.FetchLeagues(ctx)
+	if err != nil {
+		return nil, domainFetchErr("leagues", err)
+	}
+	set := make(map[int64]struct{})
+	for _, league := range leagues {
+		if tier1.IsTier1(league.Tier, league.Name) {
+			set[league.LeagueID] = struct{}{}
+		}
+	}
+	return set, nil
 }
 
 // domainFetchErr делает бюджетное исчерпание понятной ошибкой (нужны все три справочника).
