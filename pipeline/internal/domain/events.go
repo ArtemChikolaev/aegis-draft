@@ -71,9 +71,15 @@ func BuildEvents(matches []normalize.NormalizedMatch, leagues []opendota.League,
 		if len(fmts) == 0 {
 			continue // событие вне всех окон и не valve_legacy
 		}
-		eventType := "tier2"
-		if league.Tier == "premium" {
-			eventType = "tier1"
+		// Всё в scope — tier-1 сцена; ярлык лишь уточняет престиж. TI и Valve/DPC
+		// Major метим отдельно, остальное (EWC, DreamLeague, PGL, BLAST, FISSURE…) — tier1.
+		// «tier2» больше не эмитим: низкотировые лиги отсекает tier1.IsTier1 ещё в scope.
+		eventType := "tier1"
+		switch {
+		case tier1.IsTI(league.Name):
+			eventType = "ti"
+		case tier1.IsValveLegacy(id, league.Name):
+			eventType = "major"
 		}
 		events = append(events, model.EventInfo{
 			ID:        fmt.Sprintf("league-%d", id),

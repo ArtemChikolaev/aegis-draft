@@ -68,6 +68,9 @@ func IsTier1(tier, name string) bool {
 
 var tiName = regexp.MustCompile(`(?i)^the international \d{4}$`)
 
+// IsTI — событие является The International (по имени лиги).
+func IsTI(name string) bool { return tiName.MatchString(name) }
+
 // valveMajors — курируемые id Valve/DPC Major. Классические (Kiev/Fall/Winter) в OpenDota
 // помечены professional, поэтому по имени/тиру их надёжно не выделить. Дополняется вручную
 // по мере появления новых мейджоров (id из /leagues).

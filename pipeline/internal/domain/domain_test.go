@@ -50,7 +50,8 @@ func TestBuildEvents(t *testing.T) {
 		t.Fatalf("premium formats: %v", premium.Formats)
 	}
 	pro := events[1]
-	if pro.Type != "tier2" || hasFormat(pro.Formats, model.Last1y) || !hasFormat(pro.Formats, model.Last5y) {
+	// professional-серия из curated-списка — тоже tier1, не tier2.
+	if pro.Type != "tier1" || hasFormat(pro.Formats, model.Last1y) || !hasFormat(pro.Formats, model.Last5y) {
 		t.Fatalf("pro event formats: %+v", pro)
 	}
 }
