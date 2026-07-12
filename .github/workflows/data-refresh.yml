@@ -15,10 +15,13 @@ on:
         default: "last_2y"
       requestBudget:
         description: "Максимум реальных HTTP attempts за прогон (< 3000/day Free Tier)"
-        default: "2900"
+        default: "2000"
       minEventMatches:
         description: "Порог матчей на событие (tier-1 шум)"
         default: "8"
+      maxMatchesPerLeague:
+        description: "Потолок деталей на событие (Free Tier)"
+        default: "25"
 
 permissions:
   contents: write # коммит обновлённых данных в main
@@ -55,7 +58,8 @@ jobs:
             --fetch-opendota --emit-domain --collect-window \
             --window "${{ github.event.inputs.window || 'last_2y' }}" \
             --min-event-matches "${{ github.event.inputs.minEventMatches || '8' }}" \
-            --request-budget "${{ github.event.inputs.requestBudget || '2900' }}" \
+            --max-matches-per-league "${{ github.event.inputs.maxMatchesPerLeague || '25' }}" \
+            --request-budget "${{ github.event.inputs.requestBudget || '2000' }}" \
             --as-of "$(date -u +%F)" \
             --out ../web/public/data \
             --schema-validator ../.claude/skills/data-contract/tools/validate_data.mjs

@@ -24,22 +24,23 @@ import (
 )
 
 type Config struct {
-	Window           model.Format // формат окна (last_1y/last_2y/last_5y/valve_legacy)
-	Out              string       // куда писать JSON (web/public/data)
-	CacheDir         string       // raw-кэш
-	OpenDotaKey      string       // из env
-	FetchOpenDota    bool         // явно разрешить live fetch; по умолчанию offline/cache-safe
-	MatchDetailLimit int          // 0 = только /proMatches; >0 = details первых N матчей + normalize
-	NormalizedOut    string       // промежуточный snapshot, не public game data
-	AggregateOut     string       // player×hero, teammates, squad synergy; event mapping пока отдельно
-	CollectWindow    bool         // пагинация полного окна + resumable details/career
-	AsOf             string       // фиксированная UTC-дата YYYY-MM-DD для воспроизводимого окна
-	MaxPages         int          // 0 = без ограничения; smoke/debug cap
-	RequestBudget    int          // реальные HTTP attempts за запуск; cache hits бесплатны; 0 = unlimited
-	NodeBinary       string
-	SchemaValidator  string
-	EmitDomain       bool // собрать доменный датасет из OpenDota и записать в Out (S4)
-	MinEventMatches  int  // порог матчей на событие (гасит мелкий tier-1 шум); 0 = без порога
+	Window              model.Format // формат окна (last_1y/last_2y/last_5y/valve_legacy)
+	Out                 string       // куда писать JSON (web/public/data)
+	CacheDir            string       // raw-кэш
+	OpenDotaKey         string       // из env
+	FetchOpenDota       bool         // явно разрешить live fetch; по умолчанию offline/cache-safe
+	MatchDetailLimit    int          // 0 = только /proMatches; >0 = details первых N матчей + normalize
+	NormalizedOut       string       // промежуточный snapshot, не public game data
+	AggregateOut        string       // player×hero, teammates, squad synergy; event mapping пока отдельно
+	CollectWindow       bool         // пагинация полного окна + resumable details/career
+	AsOf                string       // фиксированная UTC-дата YYYY-MM-DD для воспроизводимого окна
+	MaxPages            int          // 0 = без ограничения; smoke/debug cap
+	RequestBudget       int          // реальные HTTP attempts за запуск; cache hits бесплатны; 0 = unlimited
+	NodeBinary          string
+	SchemaValidator     string
+	EmitDomain          bool // собрать доменный датасет из OpenDota и записать в Out (S4)
+	MinEventMatches     int  // порог матчей на событие (гасит мелкий tier-1 шум); 0 = без порога
+	MaxMatchesPerLeague int  // потолок деталей на событие (Free Tier); 0 = без потолка
 }
 
 // Run прогоняет пайплайн. Пока стадии сбора — заглушки; emit пишет валидный пустой датасет,
@@ -100,7 +101,7 @@ func Run(ctx context.Context, cfg Config) error {
 		collected, err := collect.OpenDotaWindow(ctx, od, collect.OpenDotaConfig{
 			WindowStartUnix: windowStart, MaxPages: maxPages, MatchLimit: matchLimit,
 			CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0,
-			Tier1Leagues:   tier1Leagues,
+			Tier1Leagues:   tier1Leagues, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
 		})
 		if err != nil {
 			return err
@@ -194,7 +195,22 @@ func Run(ctx context.Context, cfg Config) error {
 				peersComplete, len(snapshot.Players), status.PeersComplete, stats.NetworkRequests, stats.CacheHits)
 
 			if cfg.EmitDomain {
+				// Полное окно: emit ТОЛЬКО когда сбор реально завершён (дискавери+детали+
+				// career+peers). Иначе прогрев кэша — успешный partial progress, добор в
+				// след. прогоне (не эмитим полусобранный датасет и не валим job).
+				if cfg.CollectWindow {
+					complete := status.DiscoveryComplete && status.DetailsComplete && status.CareerComplete && status.PeersComplete
+					if !complete {
+						log.Printf("[progress] emit-domain отложен: сбор не завершён (discovery=%t details=%t career=%t peers=%t); кэш прогрет, добор в след. прогоне",
+							status.DiscoveryComplete, status.DetailsComplete, status.CareerComplete, status.PeersComplete)
+						return nil
+					}
+				}
 				if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {
+					if errors.Is(err, sourcehttp.ErrBudgetExhausted) {
+						log.Printf("[progress] emit-domain отложен: бюджет исчерпан на справочниках; кэш прогрет, retry next run")
+						return nil
+					}
 					return err
 				}
 				return nil
@@ -294,7 +310,9 @@ func tier1LeagueSet(ctx context.Context, od *opendota.Client) (map[int64]struct{
 // domainFetchErr делает бюджетное исчерпание понятной ошибкой (нужны все три справочника).
 func domainFetchErr(what string, err error) error {
 	if errors.Is(err, sourcehttp.ErrBudgetExhausted) {
-		return fmt.Errorf("emit-domain: budget exhausted fetching %s; increase --request-budget or rerun (cache warms)", what)
+		// Оборачиваем через %w, чтобы вызывающий errors.Is увидел ErrBudgetExhausted
+		// и отложил emit (а не падал фатально).
+		return fmt.Errorf("emit-domain: budget exhausted fetching %s; cache warmed, retry next run: %w", what, err)
 	}
 	return fmt.Errorf("emit-domain fetch %s: %w", what, err)
 }

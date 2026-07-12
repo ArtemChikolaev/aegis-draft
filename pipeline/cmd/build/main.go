@@ -30,25 +30,27 @@ func main() {
 	nodeBinary := flag.String("node", "node", "Node.js binary для JSON Schema validation")
 	emitDomain := flag.Bool("emit-domain", false, "собрать доменный датасет из OpenDota (teams/leagues/heroes + матчи) и записать в --out")
 	minEventMatches := flag.Int("min-event-matches", 8, "порог матчей на событие: tier-1 события с меньшим числом матчей отбрасываются (гасит шум/недосбор); 0 = без порога")
+	maxMatchesPerLeague := flag.Int("max-matches-per-league", 25, "потолок деталей на событие (Free Tier: все матчи топ-турниров не нужны); 0 = без потолка")
 	flag.Parse()
 
 	cfg := pipeline.Config{
-		Window:           model.Format(*window),
-		Out:              *out,
-		CacheDir:         *cache,
-		OpenDotaKey:      os.Getenv("OPENDOTA_API_KEY"),
-		FetchOpenDota:    *fetchOpenDota,
-		MatchDetailLimit: *matchDetailLimit,
-		NormalizedOut:    *normalizedOut,
-		AggregateOut:     *aggregateOut,
-		CollectWindow:    *collectWindow,
-		AsOf:             *asOf,
-		MaxPages:         *maxPages,
-		RequestBudget:    *requestBudget,
-		NodeBinary:       *nodeBinary,
-		SchemaValidator:  *schemaValidator,
-		EmitDomain:       *emitDomain,
-		MinEventMatches:  *minEventMatches,
+		Window:              model.Format(*window),
+		Out:                 *out,
+		CacheDir:            *cache,
+		OpenDotaKey:         os.Getenv("OPENDOTA_API_KEY"),
+		FetchOpenDota:       *fetchOpenDota,
+		MatchDetailLimit:    *matchDetailLimit,
+		NormalizedOut:       *normalizedOut,
+		AggregateOut:        *aggregateOut,
+		CollectWindow:       *collectWindow,
+		AsOf:                *asOf,
+		MaxPages:            *maxPages,
+		RequestBudget:       *requestBudget,
+		NodeBinary:          *nodeBinary,
+		SchemaValidator:     *schemaValidator,
+		EmitDomain:          *emitDomain,
+		MinEventMatches:     *minEventMatches,
+		MaxMatchesPerLeague: *maxMatchesPerLeague,
 	}
 
 	if err := pipeline.Run(context.Background(), cfg); err != nil {

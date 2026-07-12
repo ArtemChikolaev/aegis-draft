@@ -92,6 +92,25 @@ func TestOpenDotaWindowFiltersTier1Leagues(t *testing.T) {
 	}
 }
 
+func TestCapPerLeague(t *testing.T) {
+	matches := []opendota.ProMatch{
+		{MatchID: 5, LeagueID: 1}, {MatchID: 4, LeagueID: 1}, {MatchID: 3, LeagueID: 1},
+		{MatchID: 2, LeagueID: 2}, {MatchID: 1, LeagueID: 2},
+	}
+	out := capPerLeague(matches, 2)
+	perLeague := map[int64]int{}
+	for _, m := range out {
+		perLeague[m.LeagueID]++
+	}
+	if perLeague[1] != 2 || perLeague[2] != 2 || len(out) != 4 {
+		t.Fatalf("cap 2/league: ожидали league1=2, league2=2, total=4; got %v total %d", perLeague, len(out))
+	}
+	// Порядок сохранён (свежие match_id первыми): league 1 → 5,4.
+	if out[0].MatchID != 5 || out[1].MatchID != 4 {
+		t.Fatalf("cap должен сохранять порядок (свежие первыми): %+v", out[:2])
+	}
+}
+
 func newClient(t *testing.T, cache string, budget int, httpClient *http.Client) *opendota.Client {
 	t.Helper()
 	client, err := opendota.New(opendota.Config{

@@ -19,6 +19,9 @@ type OpenDotaConfig struct {
 	// Tier1Leagues — tier-1 фильтр: если не nil, оставляем только матчи из этих лиг.
 	// nil = без фильтра (сырой сбор). Пагинация/детект границы окна не зависят от фильтра.
 	Tier1Leagues map[int64]struct{}
+	// MaxMatchesPerLeague — потолок деталей на событие (0 = без потолка). Все матчи топ-
+	// событий не нужны: для ростеров/рейтингов хватает выборки, а Free Tier ограничен.
+	MaxMatchesPerLeague int
 }
 
 type OpenDotaResult struct {
@@ -87,6 +90,15 @@ func OpenDotaWindow(ctx context.Context, client *opendota.Client, cfg OpenDotaCo
 	if !cfg.CollectDetails {
 		return result, nil
 	}
+	// В режиме полного окна (MaxPages==0) детали тянем только после ПОЛНОЙ дискавери:
+	// иначе потолок на событие считался бы по неполному набору. Неполная дискавери →
+	// добор в след. прогоне. Bounded/smoke (MaxPages>0) тянет детали сразу.
+	if cfg.MaxPages == 0 && !result.DiscoveryComplete {
+		return result, nil
+	}
+	if cfg.MaxMatchesPerLeague > 0 {
+		result.ProMatches = capPerLeague(result.ProMatches, cfg.MaxMatchesPerLeague)
+	}
 	target := len(result.ProMatches)
 	if cfg.MatchLimit > 0 && cfg.MatchLimit < target {
 		target = cfg.MatchLimit
@@ -103,6 +115,21 @@ func OpenDotaWindow(ctx context.Context, client *opendota.Client, cfg OpenDotaCo
 	}
 	result.DetailsComplete = len(result.Details) == len(result.ProMatches)
 	return result, nil
+}
+
+// capPerLeague оставляет не более max матчей на лигу, сохраняя исходный порядок
+// (match_id desc — самые свежие матчи события). Детерминированно.
+func capPerLeague(matches []opendota.ProMatch, max int) []opendota.ProMatch {
+	perLeague := make(map[int64]int)
+	out := make([]opendota.ProMatch, 0, len(matches))
+	for _, match := range matches {
+		if perLeague[match.LeagueID] >= max {
+			continue
+		}
+		perLeague[match.LeagueID]++
+		out = append(out, match)
+	}
+	return out
 }
 
 func budgetExhausted(err error) bool {
