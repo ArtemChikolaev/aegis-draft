@@ -129,24 +129,108 @@ func FromOpenDota(snapshot *normalize.OpenDotaSnapshot) (*OpenDotaResult, error)
 		}
 		result.PlayerHeroStats[strconv.Itoa(accountID)] = encoded
 	}
-	for accountID, peers := range teammates {
+	squad := make(map[pairKey]model.SquadPair, len(pairs))
+	for key, stat := range pairs {
+		squad[key] = model.SquadPair{IDs: [2]int{key[0], key[1]}, Games: stat.games, Winrate: winrate(stat)}
+	}
+	result.SquadSynergy = squadSlice(squad)
+	result.Teammates = emitTeammates(teammates)
+	return result, nil
+}
+
+// MergePeers upserts пожизненные совместные игры из /players/{id}/peers в SquadSynergy
+// и Teammates. Оставляем только пары, где второй игрок тоже в pro-вселенной (known) —
+// pub-тиммейты не протекают. Peers — пожизненные тоталы и имеют приоритет над тонким
+// оконным счётом пары: именно это оживляет кросс-командную Chemistry (напр. Saksa+Watson).
+func MergePeers(result *OpenDotaResult, accountID int, peers []opendota.Peer, known map[int]struct{}) error {
+	if result == nil || accountID <= 0 {
+		return fmt.Errorf("invalid peers merge target %d", accountID)
+	}
+	if _, ok := known[accountID]; !ok {
+		return fmt.Errorf("peers source %d is outside the known pro universe", accountID)
+	}
+	pairs := make(map[pairKey]model.SquadPair, len(result.SquadSynergy))
+	for _, pair := range result.SquadSynergy {
+		pairs[pairKey(pair.IDs)] = pair
+	}
+	teammates := teammateSet(result.Teammates)
+	for _, peer := range peers {
+		peerID := int(peer.AccountID)
+		if peerID <= 0 || peerID == accountID {
+			continue
+		}
+		if _, ok := known[peerID]; !ok {
+			continue
+		}
+		if peer.WithGames <= 0 {
+			continue
+		}
+		if peer.WithWins < 0 || peer.WithWins > peer.WithGames {
+			return fmt.Errorf("peer %d↔%d has invalid with_win/with_games %d/%d", accountID, peerID, peer.WithWins, peer.WithGames)
+		}
+		a, b := accountID, peerID
+		if a > b {
+			a, b = b, a
+		}
+		key := pairKey{a, b}
+		lifetime := model.SquadPair{IDs: [2]int{a, b}, Games: peer.WithGames, Winrate: float64(peer.WithWins) / float64(peer.WithGames)}
+		if existing, ok := pairs[key]; !ok || peer.WithGames >= existing.Games {
+			pairs[key] = lifetime
+		}
+		if teammates[a] == nil {
+			teammates[a] = make(map[int]struct{})
+		}
+		if teammates[b] == nil {
+			teammates[b] = make(map[int]struct{})
+		}
+		teammates[a][b] = struct{}{}
+		teammates[b][a] = struct{}{}
+	}
+	result.SquadSynergy = squadSlice(pairs)
+	result.Teammates = emitTeammates(teammates)
+	return nil
+}
+
+func squadSlice(pairs map[pairKey]model.SquadPair) []model.SquadPair {
+	out := make([]model.SquadPair, 0, len(pairs))
+	for _, pair := range pairs {
+		out = append(out, pair)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		left, right := out[i].IDs, out[j].IDs
+		return left[0] < right[0] || (left[0] == right[0] && left[1] < right[1])
+	})
+	return out
+}
+
+func teammateSet(teammates map[string][]int) map[int]map[int]struct{} {
+	set := make(map[int]map[int]struct{}, len(teammates))
+	for key, peers := range teammates {
+		id, err := strconv.Atoi(key)
+		if err != nil {
+			continue
+		}
+		if set[id] == nil {
+			set[id] = make(map[int]struct{}, len(peers))
+		}
+		for _, peer := range peers {
+			set[id][peer] = struct{}{}
+		}
+	}
+	return set
+}
+
+func emitTeammates(set map[int]map[int]struct{}) map[string][]int {
+	out := make(map[string][]int, len(set))
+	for id, peers := range set {
 		ids := make([]int, 0, len(peers))
 		for peer := range peers {
 			ids = append(ids, peer)
 		}
 		sort.Ints(ids)
-		result.Teammates[strconv.Itoa(accountID)] = ids
+		out[strconv.Itoa(id)] = ids
 	}
-	for key, stat := range pairs {
-		result.SquadSynergy = append(result.SquadSynergy, model.SquadPair{
-			IDs: [2]int{key[0], key[1]}, Games: stat.games, Winrate: winrate(stat),
-		})
-	}
-	sort.Slice(result.SquadSynergy, func(i, j int) bool {
-		left, right := result.SquadSynergy[i].IDs, result.SquadSynergy[j].IDs
-		return left[0] < right[0] || (left[0] == right[0] && left[1] < right[1])
-	})
-	return result, nil
+	return out
 }
 
 func Validate(result *OpenDotaResult) error {

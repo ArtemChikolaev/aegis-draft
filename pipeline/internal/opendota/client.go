@@ -81,6 +81,19 @@ type MatchPlayer struct {
 	HeroDamage  int    `json:"hero_damage"`
 }
 
+// Peer — запись из /players/{id}/peers: пожизненная сыгранность с другим игроком.
+// WithGames/WithWins — игры/победы на ОДНОЙ команде (основа Chemistry); Against* — против.
+type Peer struct {
+	AccountID    int64  `json:"account_id"`
+	Personaname  string `json:"personaname"`
+	Games        int    `json:"games"`
+	Wins         int    `json:"win"`
+	WithGames    int    `json:"with_games"`
+	WithWins     int    `json:"with_win"`
+	AgainstGames int    `json:"against_games"`
+	AgainstWins  int    `json:"against_win"`
+}
+
 // Team — запись из /teams (топ команд по рейтингу).
 type Team struct {
 	TeamID        int64   `json:"team_id"`
@@ -163,6 +176,20 @@ func (c *Client) FetchPlayerHeroes(ctx context.Context, accountID int64) ([]Play
 		return nil, fmt.Errorf("fetch player heroes %d: %w", accountID, err)
 	}
 	return heroes, nil
+}
+
+// FetchPlayerPeers возвращает /players/{id}/peers — пожизненные совместные игры игрока
+// с каждым тиммейтом/соперником. Прямой источник Chemistry (with_games/with_win).
+func (c *Client) FetchPlayerPeers(ctx context.Context, accountID int64) ([]Peer, error) {
+	if accountID <= 0 {
+		return nil, fmt.Errorf("invalid accountId %d", accountID)
+	}
+	var peers []Peer
+	path := fmt.Sprintf("players/%d/peers", accountID)
+	if err := c.transport.GetJSON(ctx, path, c.query(), nil, &peers); err != nil {
+		return nil, fmt.Errorf("fetch player peers %d: %w", accountID, err)
+	}
+	return peers, nil
 }
 
 func (c *Client) FetchMatch(ctx context.Context, matchID int64) (*Match, error) {

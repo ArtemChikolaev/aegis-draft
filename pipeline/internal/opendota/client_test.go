@@ -99,6 +99,31 @@ func TestClientTeamsLeaguesEndpoints(t *testing.T) {
 	}
 }
 
+func TestClientPeersEndpoint(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/api/players/42/peers":
+			return response(`[{"account_id":7,"personaname":"mate","games":300,"win":180,"with_games":185,"with_win":110,"against_games":40,"against_win":18}]`), nil
+		default:
+			return &http.Response{StatusCode: http.StatusNotFound, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("not found"))}, nil
+		}
+	})}
+	client, err := New(Config{CacheDir: t.TempDir(), BaseURL: "https://example.invalid/api/", MinInterval: -1, HTTPClient: httpClient})
+	if err != nil {
+		t.Fatal(err)
+	}
+	peers, err := client.FetchPlayerPeers(context.Background(), 42)
+	if err != nil || len(peers) != 1 {
+		t.Fatalf("peers=%v err=%v", peers, err)
+	}
+	if peers[0].AccountID != 7 || peers[0].WithGames != 185 || peers[0].WithWins != 110 {
+		t.Fatalf("unexpected peer %+v", peers[0])
+	}
+	if _, err := client.FetchPlayerPeers(context.Background(), 0); err == nil {
+		t.Fatal("expected error for invalid accountId")
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
