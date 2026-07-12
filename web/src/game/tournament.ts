@@ -27,6 +27,16 @@ export interface TournamentGroup {
   standings: GroupStanding[];
 }
 
+/** Отдельный BO2-матч группы (для истории игр / будущей live-симуляции). */
+export interface GroupMatch {
+  id: string;
+  group: "A" | "B";
+  teamA: TournamentTeam;
+  teamB: TournamentTeam;
+  scoreA: number;
+  scoreB: number;
+}
+
 export interface SeriesResult {
   id: string;
   round: string;
@@ -54,6 +64,7 @@ export interface TournamentResult {
   field: TournamentTeam[];
   projection: ProjectionKey;
   groups: TournamentGroup[];
+  groupMatches: GroupMatch[];
   playoffRounds: PlayoffRound[];
   grandFinal: SeriesResult;
   standings: FinalStanding[];
@@ -151,27 +162,35 @@ function loser(series: SeriesResult): TournamentTeam {
   return series.loserId === series.teamA.id ? series.teamA : series.teamB;
 }
 
-function buildGroup(rng: Rng, id: "A" | "B", teams: TournamentTeam[]): TournamentGroup {
+function buildGroup(rng: Rng, id: "A" | "B", teams: TournamentTeam[]): { group: TournamentGroup; matches: GroupMatch[] } {
   const records = new Map(teams.map((team) => [team.id, { team, wins: 0, losses: 0 }]));
+  const matches: GroupMatch[] = [];
   for (let i = 0; i < teams.length; i += 1) {
     for (let j = i + 1; j < teams.length; j += 1) {
+      let scoreA = 0;
+      let scoreB = 0;
       for (let map = 0; map < 2; map += 1) {
-        const aWins = rng.float() < winProbability(teams[i], teams[j]);
-        const a = records.get(teams[i].id)!;
-        const b = records.get(teams[j].id)!;
-        if (aWins) { a.wins += 1; b.losses += 1; }
-        else { b.wins += 1; a.losses += 1; }
+        if (rng.float() < winProbability(teams[i], teams[j])) scoreA += 1;
+        else scoreB += 1;
       }
+      const a = records.get(teams[i].id)!;
+      const b = records.get(teams[j].id)!;
+      a.wins += scoreA; a.losses += scoreB;
+      b.wins += scoreB; b.losses += scoreA;
+      matches.push({ id: `grp-${id}-${i}-${j}`, group: id, teamA: teams[i], teamB: teams[j], scoreA, scoreB });
     }
   }
   const sorted = [...records.values()].sort((a, b) => b.wins - a.wins || b.team.strength - a.team.strength || a.team.id.localeCompare(b.team.id));
   return {
-    id,
-    standings: sorted.map((record, index) => ({
-      ...record,
-      rank: index + 1,
-      route: index < 4 ? "upper" : index < 8 ? "lower" : "out",
-    })),
+    group: {
+      id,
+      standings: sorted.map((record, index) => ({
+        ...record,
+        rank: index + 1,
+        route: index < 4 ? "upper" : index < 8 ? "lower" : "out",
+      })),
+    },
+    matches,
   };
 }
 
@@ -186,7 +205,10 @@ function buildResult(data: GameData, format: Format, seed: string, userStrength:
     .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
   const projection = projectionForRank(field.findIndex((team) => team.isUser) + 1);
   const draw = rng.shuffle(field);
-  const groups = [buildGroup(rng, "A", draw.slice(0, 9)), buildGroup(rng, "B", draw.slice(9))];
+  const groupA = buildGroup(rng, "A", draw.slice(0, 9));
+  const groupB = buildGroup(rng, "B", draw.slice(9));
+  const groups = [groupA.group, groupB.group];
+  const groupMatches = [...groupA.matches, ...groupB.matches];
   const a = groups[0].standings;
   const b = groups[1].standings;
 
@@ -217,7 +239,7 @@ function buildResult(data: GameData, format: Format, seed: string, userStrength:
   if (!userPlacement || standings.length !== 18 || new Set(standings.map((entry) => entry.team.id)).size !== 18) {
     throw new Error("Tournament simulation produced an invalid final table");
   }
-  return { field, projection, groups, playoffRounds, grandFinal, standings, champion: winner(grandFinal), userPlacement };
+  return { field, projection, groups, groupMatches, playoffRounds, grandFinal, standings, champion: winner(grandFinal), userPlacement };
 }
 
 /** Pure deterministic tournament orchestration. Draft engine remains independent. */

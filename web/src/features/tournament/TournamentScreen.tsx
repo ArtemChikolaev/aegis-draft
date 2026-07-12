@@ -106,6 +106,19 @@ export function TournamentScreen() {
               ))}
             </Surface>
           ))}
+          <Surface className="group-results">
+            <h3 className="bracket__side-title">{t("tournament.results")}</h3>
+            <div className="group-results__list">
+              {tournament.groupMatches.map((match) => (
+                <div key={match.id} className={`group-result ${match.teamA.isUser || match.teamB.isUser ? "is-user" : ""}`}>
+                  <span className="group-result__tag">{match.group}</span>
+                  <span className={`group-result__team is-a ${match.teamA.isUser ? "is-user" : ""}`}>{match.teamA.name}</span>
+                  <b className="group-result__score">{match.scoreA}–{match.scoreB}</b>
+                  <span className={`group-result__team is-b ${match.teamB.isUser ? "is-user" : ""}`}>{match.teamB.name}</span>
+                </div>
+              ))}
+            </div>
+          </Surface>
         </div>
       )}
 
