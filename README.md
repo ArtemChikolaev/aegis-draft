@@ -1,61 +1,65 @@
 # Aegis Draft
 
-Драфт-рогалик по Dota 2 — вдохновлён [322-0.app](https://322-0.app/play), с расширенной механикой.
-Собираешь пятёрку (Team Packs — из ростеров команд, или Mixed Draft — из звёзд разных команд), раздаёшь героев, максимизируешь `Team OVR = Base + Hero Synergy + Chemistry`.
+Драфт-рогалик по Dota 2 — вдохновлён [322-0.app](https://322-0.app/play), с расширенной механикой. Собираешь пятёрку по ролям, раздаёшь героев, максимизируешь `Team OVR = Base + Hero Synergy + Chemistry` и ведёшь команду через турнир.
+
+🎮 **Живая версия:** https://artemchikolaev.github.io/aegis-draft/
 
 ## Статус
-MVP-ядро играбельно на мок-данных. Готово: PRD + контракт данных + система скиллов + фронт-MVP (Team/Mixed режимы, счёт, пентагон) + скелет Go-пайплайна. Дальше — реальные данные (OpenDota/Liquipedia). План задач — [docs/BACKLOG.md](docs/BACKLOG.md).
+Играбельное ядро в проде: старт → драфт → итог, Team Packs и Mixed Draft, счёт с пентагоном, RU/EN + system/light/dark темы. Данные — **реальный OpenDota-слайс** (события/паки/игроки/рейтинги), обновляется по расписанию. Фронт — на собственной design-system (токены + UIkit + features). Бэкенд (Go API) — скелет, поднимается по [ADR 0002](docs/adr/0002-backend-now.md). План задач — [docs/BACKLOG.md](docs/BACKLOG.md).
+
+## Режимы игры (PRD §5.9)
+- **Classic** — all-time драфт (**Team Packs** — из ростеров команд, или **Mixed Draft** — 5 звёзд из разных команд), затем турнирный путь `groups → playoffs → final`. Работает.
+- **Esports Manager** *(в разработке)* — веди организацию в регионе: бюджет, контракты, ростер, квалификации.
+- **Real Tournament** *(в разработке)* — поле соперников известно заранее (Falcons/BetBoom/Spirit…), их игроки заблокированы (roster lock) — собираешь challenger из свободных игроков и легенд вне турнира.
+
+Формула: **Base** (event-OVR пятёрки) + **Hero Synergy** (оптимальное назначение героев) + **Chemistry** (сыгранность). Роли: `carry/mid/offlane/support×2` (без деления 4/5).
 
 ## Как запустить
 ```bash
 # Фронт (Node 24+): dev-сервер на http://localhost:5173
 cd web && npm install && npm run dev
-# Пересобрать мок-данные и проверить логику/контракт:
-npm run gen:mock && npm run verify && npm run validate:data
-# Go-пайплайн (скелет, Go 1.26+): эмитит валидный по схеме датасет
-cd pipeline && go run ./cmd/build --window last_2y --out ../web/public/data
+# Мок-данные + проверка логики/контракта (verify ждёт мок — сначала gen:mock):
+npm run gen:mock && npm run verify && npm run validate:data && npm run typecheck
+
+# Go-пайплайн (Go 1.26+): реальный датасет из OpenDota
+cd pipeline
+go run ./cmd/build --fetch-opendota --emit-domain --as-of 2026-07-11 \
+  --match-detail-limit 100 --out ../web/public/data
+
+# Go-сервер (скелет): http://localhost:8080/healthz
+cd server && PORT=8080 go run ./cmd/api
 ```
 
-## Деплой и CI/CD
-Static-first (ADR 0001): фронт + данные — статикой на CDN, пайплайн — batch-ETL по расписанию, **без сервера, БД и Kubernetes** (они — фаза 2, M8). Workflow — [.github/workflows/ci.yml](.github/workflows/ci.yml):
-- **Проверки** (push/PR): Go (`gofmt`/`vet`/`build`/`test`), Web (`gen:mock` → `validate:data` → `verify` → `typecheck` → `build`), antipattern-scan.
-- **Деплой на GitHub Pages** (push в `main`, только если проверки зелёные): сборка с `VITE_BASE=/aegis-draft/`, публикует **закоммиченный** `web/public/data` → Pages. URL: `https://artemchikolaev.github.io/aegis-draft/`.
+## Архитектура
+| Слой | Стек | Роль |
+|---|---|---|
+| **`pipeline/`** | Go | ETL: OpenDota → игровые JSON (`fetch→normalize→aggregate→rate→emit→validate`), детерминизм, версионирование. |
+| **`web/`** | TS + React + Vite + Zustand | Фронт + игровая логика счёта на клиенте. Design-system: `design/` (токены+тема) · `ui/` (примитивы) · `features/` (экраны) · `i18n/` · `game/` (логика) · `app/` (шелл). |
+| **`server/`** | Go + chi + Postgres | API пользовательского/общего состояния (аккаунты/сейвы/лидерборд/дейлик). Игровые данные — **не** тут (они статика). |
+| **`schema/`** | JSON Schema | Единый контракт данных между Go и TS — источник истины. |
 
-### Данные и их обновление
-`web/public/data/*.json` **версионируются** (deploy публикует именно их — источник истины). Обновляет их workflow [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml):
-- крон (ежедневно 06:00 UTC) или ручной `workflow_dispatch` гоняет Go-пайплайн `--emit-domain` → реальный датасет из OpenDota (events/packs/players/…);
-- валидирует по JSON Schema, коммитит изменения в `main` → push триггерит CI-деплой на Pages.
+**Static-first гибрид** (ADR [0001](docs/adr/0001-tech-stack.md)/[0002](docs/adr/0002-backend-now.md)): игровые данные — статикой на CDN (масштабируется бесконечно), сервер держит только изменяемое состояние. **Без Kubernetes.**
 
-Baseline в репо — **мок** (`gen:mock`), поэтому до первого прогона data-refresh деплой показывает мок. **Первый реальный датасет:** запусти `Data refresh` вручную (Actions → Data refresh → Run workflow). CI-проверки (`verify`/`validate:data`) всегда гоняют `gen:mock` эфемерно, поэтому не зависят от закоммиченных данных; deploy их не трогает `gen:mock`.
+## Данные, деплой, CI/CD
+Workflow [.github/workflows/ci.yml](.github/workflows/ci.yml):
+- **Проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`verify`→`typecheck`→`build`) · antipattern-scan.
+- **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует закоммиченный `web/public/data`.
 
-**Разовая ручная настройка:** в GitHub → **Settings → Pages → Build and deployment → Source: GitHub Actions** (без этого деплой-джоб не опубликует сайт).
+`web/public/data/*.json` версионируются. Обновляет их [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml): крон (ежедневно 06:00 UTC) или ручной запуск гоняет пайплайн `--emit-domain`, валидирует по схеме и обновляет данные → CI деплоит. CI-проверки всегда делают `gen:mock` эфемерно, поэтому не зависят от закоммиченных данных.
 
-Другой хостинг (Cloudflare Pages / Netlify — корень без сабпути): build command `npm ci && npm run build`, publish dir `web/dist`, `VITE_BASE` не задавать. Base-путь фронта берётся из `import.meta.env.BASE_URL`, поэтому работает и в корне, и под сабпутём.
-
-## Документы
-- 📄 **[docs/PRD.md](docs/PRD.md)** — концепция, разбор оригинала, механики, режимы, стек, роадмап.
-- 🏛 **[docs/adr/0001-tech-stack.md](docs/adr/0001-tech-stack.md)** — решение по стеку.
-- 📐 **[schema/README.md](schema/README.md)** — контракт данных (источник истины) + JSON Schema.
-- 🤖 **[CLAUDE.md](CLAUDE.md)** — контракт для AI-агентов (всегда в контексте). Скиллы: **[docs/ai/INDEX.md](docs/ai/INDEX.md)**.
+Разовая настройка GitHub: **Settings → Pages → Source: GitHub Actions**; **Settings → Actions → General → Workflow permissions → Read and write**.
 
 ## Система скиллов и правил (для AI-агентов)
-Автоматическая система по образцу aifory: единый контракт `CLAUDE.md` (= `AGENTS.md`), процедуры-скиллы в `.claude/skills/` (авто-активация по `description`), хук-напоминания, зеркала для Cursor (`.cursor/rules/`) и Codex (`.codex/skills/`). Маршрутизация «задача → скилл» — [docs/ai/INDEX.md](docs/ai/INDEX.md), принципы — [docs/ai/PRINCIPLES.md](docs/ai/PRINCIPLES.md).
-- Проектные скиллы: `data-contract`, `external-data-etl`, `scoring-model`.
-- Процессные: `discovery-before-code`, `plan-first-communication`, `reference-parity-audit`, `self-review-checklist`.
+Единый контракт `CLAUDE.md` (= `AGENTS.md`), процедуры-скиллы в `.claude/skills/` (авто-активация по `description`), зеркала для Cursor (`.cursor/rules/`) и Codex (`.codex/skills/`). Маршрутизация «задача → скилл» — [docs/ai/INDEX.md](docs/ai/INDEX.md), принципы — [docs/ai/PRINCIPLES.md](docs/ai/PRINCIPLES.md).
+- **Архитектурные/доменные:** `data-contract`, `external-data-etl`, `scoring-model`, `frontend-architecture`, `game-state-architecture`, `backend-architecture`.
+- **Процессные:** `discovery-before-code`, `plan-first-communication`, `reference-parity-audit`, `self-review-checklist`.
 
-## Структура
-```
-aegis-draft/
-├─ docs/       # PRD, ADR
-├─ schema/     # JSON Schema контракта данных (Go генерит, TS потребляет)
-├─ pipeline/   # Go: ETL (OpenDota + Liquipedia → JSON)   [скелет: model/emit/CLI]
-├─ web/        # TS: React+Vite фронт + игровая логика     [MVP на моках]
-└─ server/     # Go: API (аккаунты/сейвы/лидерборд/дейлик) — активно, ADR 0002   [не начат]
-```
+## Документы
+- 📄 **[docs/PRD.md](docs/PRD.md)** — концепция, механики, режимы, роадмап.
+- 🏛 **[ADR 0001](docs/adr/0001-tech-stack.md)** (стек, static-first) · **[ADR 0002](docs/adr/0002-backend-now.md)** (backend сейчас).
+- 🎨 **[docs/design-language.md](docs/design-language.md)** — визуальная айдентика.
+- 📐 **[schema/README.md](schema/README.md)** — контракт данных.
+- 🤖 **[CLAUDE.md](CLAUDE.md)** — контракт для AI-агентов.
 
-## Стек
-- **Go** — data-пайплайн (ETL), опц. API в фазе 2.
-- **TypeScript + React + Vite** — фронт и игровая логика; данные — статикой (static-first).
-- **JSON Schema** — единый контракт между Go и TS.
-
-Обоснование — в PRD §7 и ADR 0001.
+## Лицензия
+[MIT](LICENSE) © 2026 Artem Chikolaev. Некоммерческий фан-проект по Dota 2; Dota 2 и связанные материалы — собственность Valve. Данные: OpenDota (атрибуция), Liquipedia — только при авторизованном доступе (CC-BY-SA).
