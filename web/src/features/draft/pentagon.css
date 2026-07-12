@@ -1,15 +1,94 @@
 /* Радар-пентагон рисуется на всегда-тёмной панели → инвертные/брендовые токены. */
-.pentagon { display: block; width: 100%; height: auto; }
-.pentagon__web { fill: color-mix(in srgb, var(--brand-green) 5%, transparent); stroke: var(--line-invert-strong); stroke-width: 1.3; }
+.pentagon-wrap { position: relative; width: 100%; max-width: 420px; margin: 0 auto; }
+.pentagon { display: block; width: 100%; height: auto; overflow: visible; }
+.pentagon__web { fill: color-mix(in srgb, var(--brand-green) 5%, transparent); stroke: none; }
 .pentagon__spoke { stroke: var(--line-invert); }
-.pentagon__dot { fill: var(--line-invert-strong); }
-.node--filled .pentagon__dot { fill: var(--brand-green); filter: drop-shadow(0 0 5px var(--brand-green)); }
 .pentagon__ovr { fill: var(--on-invert); font-size: 46px; font-weight: 800; text-anchor: middle; }
 .pentagon__ovrlabel { fill: var(--muted-invert); font-size: 9px; letter-spacing: 1px; text-anchor: middle; }
-.node__role { fill: var(--muted-invert); font-size: 9px; font-weight: 700; letter-spacing: .7px; text-anchor: middle; }
-.node__name { fill: var(--on-invert); font-size: 12px; font-weight: 800; text-anchor: middle; }
-.node__ovr { fill: var(--brand-green); font-size: 11px; font-weight: 800; text-anchor: middle; }
-.node--interactive { cursor: pointer; outline: none; }
-.node--interactive text, .node--interactive circle { transition: filter .15s, fill .15s; }
-.node--interactive:hover .node__name, .node--interactive:focus .node__name { fill: var(--brand-green); }
-.node--interactive:focus .pentagon__dot { filter: drop-shadow(0 0 8px var(--brand-green)); }
+
+/* Внешний контур: тонкий по умолчанию; толстый зелёный только при chemistry на смежной паре (322-0). */
+.pentagon__ring line { stroke-linecap: round; }
+.pentagon__ring--thin line { stroke: var(--line-invert); }
+.pentagon__ring--chem line { stroke: var(--brand-green); filter: drop-shadow(0 0 5px var(--brand-glow)); }
+.pentagon__ring--chem .pentagon__edge-label { fill: var(--brand-green); }
+
+/* Хорды chemistry — тоньше периметра. */
+.pentagon__edge-line { stroke-linecap: round; }
+.pentagon__edge--pos .pentagon__edge-line { stroke: var(--brand-green); opacity: .75; filter: drop-shadow(0 0 3px var(--brand-glow)); }
+.pentagon__edge--neg .pentagon__edge-line { stroke: var(--stat-chemistry); opacity: .65; }
+.pentagon__edge--pos .pentagon__edge-label { fill: var(--brand-green); }
+
+/* HTML-карточки на вершинах — фиксированная ширина, ellipsis, как в 322-0. */
+.pentagon__nodes { position: absolute; inset: 0; pointer-events: none; }
+.pentagon-node {
+  position: absolute;
+  display: grid;
+  gap: 2px;
+  width: 76px;
+  padding: 5px 6px 6px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--line-invert);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--surface-invert-soft) 92%, transparent);
+  text-align: center;
+  pointer-events: auto;
+}
+.pentagon-node--empty { width: auto; min-width: 52px; padding: 4px 7px; opacity: .55; }
+.pentagon-node--interactive {
+  cursor: pointer;
+  border: 0;
+  font: inherit;
+  color: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+.pentagon-node--interactive:hover,
+.pentagon-node--interactive:focus-visible {
+  border-color: var(--brand-green);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--brand-green) 35%, transparent);
+  outline: none;
+}
+.pentagon-node--selected {
+  border-color: var(--brand-green);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--brand-green) 45%, transparent);
+}
+
+.pentagon-node__hero {
+  display: flex;
+  justify-content: center;
+  margin: 1px 0 2px;
+}
+.pentagon-node__hero img,
+.pentagon-node__hero [class*="HeroThumb"] {
+  width: 22px;
+  height: 14px;
+  border-radius: 3px;
+}
+
+.pentagon-node__role {
+  display: block;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.2;
+  color: var(--muted-invert);
+}
+.pentagon-node__role[data-role="safelane"] { color: var(--role-safelane); }
+.pentagon-node__role[data-role="mid"] { color: var(--role-mid); }
+.pentagon-node__role[data-role="offlane"] { color: var(--role-offlane); }
+.pentagon-node__role[data-role="support"] { color: var(--role-support); }
+
+.pentagon-node__name {
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--on-invert);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pentagon-node__ovr {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--on-invert);
+}

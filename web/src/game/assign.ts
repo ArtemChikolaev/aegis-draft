@@ -1,53 +1,81 @@
 // Оптимальное назначение героев игрокам (скилл scoring-model: matching, НЕ жадность).
-// Точное решение задачи о назначениях: игроков всегда не больше 5, а героев может быть
-// до 50. Поэтому маска строится по игрокам (2^5), не по героям: O(H * 2^5 * 5).
-import type { PackPlayer, PlayerHeroStats } from "../types/data.ts";
+import type { PackPlayer, PlayerHeroStats, Stat } from "../types/data.ts";
 import { smoothedWinrate } from "./smoothing.ts";
 
+/** Синтетический prior для сигнатурного героя без player×hero stats в данных. */
+export const SIGNATURE_PRIOR: Stat = { games: 8, winrate: 0.58 };
+
+export type SignatureLookup = Record<number, number[]>;
+
 export interface Assignment {
-  /** accountId -> heroId */
   byPlayer: Record<number, number>;
-  /** сумма сглаженных скоров назначенных пар */
   total: number;
-  /** средний сглаженный скор (total / players) */
   avg: number;
 }
 
-/** Скор пары (игрок, герой) — сглаженный winrate игрока на герое. */
-export function pairScore(accountId: number, heroId: number, phs: PlayerHeroStats): number {
+/** Скор пары (игрок, герой) — сглаженный winrate; сигнатурный герой → умеренный prior. */
+export function pairScore(
+  accountId: number,
+  heroId: number,
+  phs: PlayerHeroStats,
+  signatures: SignatureLookup = {},
+): number {
   const stat = phs[String(accountId)]?.[String(heroId)];
-  return smoothedWinrate(stat);
+  if (stat) return smoothedWinrate(stat);
+  if (signatures[accountId]?.includes(heroId)) return smoothedWinrate(SIGNATURE_PRIOR);
+  return smoothedWinrate(undefined);
 }
 
 /**
- * Максимизируем сумму скоров при назначении каждому игроку уникального героя из пула.
- * heroPool.length >= players.length не требуется строго: если героев меньше — часть игроков без героя.
+ * Скор для венгерского matching: приоритет — больше игр на герое, затем winrate.
+ * Любой опыт на герое beats отсутствие данных / чужую сигнатуру.
  */
+export function assignmentPairScore(
+  accountId: number,
+  heroId: number,
+  phs: PlayerHeroStats,
+  signatures: SignatureLookup = {},
+): number {
+  const stat = phs[String(accountId)]?.[String(heroId)];
+  if (stat && stat.games > 0) {
+    return stat.games * 1000 + smoothedWinrate(stat);
+  }
+  if (signatures[accountId]?.includes(heroId)) {
+    return SIGNATURE_PRIOR.games * 100 + smoothedWinrate(SIGNATURE_PRIOR);
+  }
+  return 0;
+}
+
+/** Сумма synergyPairScore для финального назначения (OVR Hero Synergy). */
+export function synergyTotalForAssignment(
+  byPlayer: Record<number, number>,
+  phs: PlayerHeroStats,
+  signatures: SignatureLookup = {},
+): number {
+  return Object.entries(byPlayer).reduce(
+    (sum, [accountId, heroId]) => sum + pairScore(Number(accountId), heroId, phs, signatures),
+    0,
+  );
+}
+
 export function bestAssignment(
   players: PackPlayer[],
   heroPool: number[],
   phs: PlayerHeroStats,
+  signatures: SignatureLookup = {},
 ): Assignment {
   const n = players.length;
   const pool = [...new Set(heroPool)];
   const H = pool.length;
+  const score = players.map((p) => pool.map((h) => assignmentPairScore(p.accountId, h, phs, signatures)));
 
-  // score[i][j] = скор игрока i на герое pool[j]
-  const score = players.map((p) => pool.map((h) => pairScore(p.accountId, h, phs)));
+  interface State { val: number; pick: number[] }
 
-  interface State {
-    val: number;
-    /** hero index in pool for each player; -1 means unassigned. */
-    pick: number[];
-  }
-
-  // Перебираем героев, состояние — множество уже назначенных игроков.
-  // Это exact max-weight matching для маленькой фиксированной стороны (players).
   const states = 1 << n;
   let dp: (State | undefined)[] = Array(states);
   dp[0] = { val: 0, pick: Array(n).fill(-1) };
   for (let j = 0; j < H; j++) {
-    const next = [...dp]; // героя можно пропустить
+    const next = [...dp];
     for (let mask = 0; mask < states; mask++) {
       const state = dp[mask];
       if (!state) continue;
@@ -65,7 +93,6 @@ export function bestAssignment(
     dp = next;
   }
 
-  // При недостатке героев сначала максимизируем число назначений, затем score.
   let bestMask = 0;
   for (let mask = 1; mask < states; mask++) {
     const candidate = dp[mask];
@@ -77,27 +104,24 @@ export function bestAssignment(
       bestMask = mask;
     }
   }
-  const { val, pick } = dp[bestMask] ?? { val: 0, pick: Array(n).fill(-1) };
+  const { pick } = dp[bestMask] ?? { val: 0, pick: Array(n).fill(-1) };
   const byPlayer: Record<number, number> = {};
   pick.forEach((j, i) => {
     if (j >= 0) byPlayer[players[i].accountId] = pool[j];
   });
-  return { byPlayer, total: val, avg: n > 0 ? val / n : 0 };
+  const total = synergyTotalForAssignment(byPlayer, phs, signatures);
+  return { byPlayer, total, avg: n > 0 ? total / n : 0 };
 }
 
-/**
- * Назначение с фиксированными парами (ручной режим): зафиксированные player→hero
- * уважаются, остальные игроки/герои матчатся авто-оптимально (bestAssignment).
- * fixed: accountId -> heroId; учитываются только валидные (герой в пуле, игрок в составе).
- */
 export function assignWithFixed(
   players: PackPlayer[],
   heroPool: number[],
   phs: PlayerHeroStats,
   fixed: Record<number, number>,
+  signatures: SignatureLookup = {},
 ): Assignment {
   const pool = new Set(heroPool);
-  const pinnedHero = new Map<number, number>(); // accountId -> heroId
+  const pinnedHero = new Map<number, number>();
   const usedHeroes = new Set<number>();
   for (const player of players) {
     const heroId = fixed[player.accountId];
@@ -108,14 +132,13 @@ export function assignWithFixed(
   }
   const freePlayers = players.filter((p) => !pinnedHero.has(p.accountId));
   const freeHeroes = heroPool.filter((h) => !usedHeroes.has(h));
-  const auto = bestAssignment(freePlayers, freeHeroes, phs);
+  const auto = bestAssignment(freePlayers, freeHeroes, phs, signatures);
 
   const byPlayer: Record<number, number> = { ...auto.byPlayer };
-  let total = auto.total;
   for (const [accountId, heroId] of pinnedHero) {
     byPlayer[accountId] = heroId;
-    total += pairScore(accountId, heroId, phs);
   }
+  const total = synergyTotalForAssignment(byPlayer, phs, signatures);
   return { byPlayer, total, avg: players.length > 0 ? total / players.length : 0 };
 }
 

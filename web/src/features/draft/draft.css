@@ -1,9 +1,10 @@
 .draft { display: grid; grid-template-columns: minmax(360px, .8fr) minmax(480px, 1.2fr); gap: 18px; }
 .draft__heading { display: flex; grid-column: 1 / -1; align-items: end; justify-content: space-between; padding-bottom: 12px; }
 .draft__radar { position: sticky; top: 18px; overflow: hidden; padding: 16px 24px 22px; color: var(--on-invert); background: var(--surface-invert); }
-.draft__radar::after { content: ""; position: absolute; z-index: 0; width: 160px; height: 160px; right: -55px; top: -60px; border-radius: 50%; background: var(--brand-glow); filter: blur(20px); opacity: .72; }
+.draft__radar::before { content: ""; position: absolute; z-index: 0; width: 180px; height: 180px; right: -40px; top: -50px; border-radius: 50%; background: var(--brand-glow); filter: blur(24px); opacity: .42; pointer-events: none; }
 .draft__radar > * { position: relative; z-index: 1; }
 .score-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.draft__radar .synergy-breakdown { margin-top: 14px; }
 
 .pack-panel { padding: 26px; }
 .pack-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }

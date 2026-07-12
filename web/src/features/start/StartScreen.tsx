@@ -42,7 +42,7 @@ const SCORING: Opt<Scoring>[] = [
 ];
 const ALLOCATION: Opt<Allocation>[] = [
   { value: "auto", label: "start.automatic", hint: "start.automaticHint" },
-  { value: "manual", label: "start.manual", hint: "start.manualHint", soon: true },
+  { value: "manual", label: "start.manual", hint: "start.manualHint" },
 ];
 
 export function StartScreen() {
@@ -69,6 +69,7 @@ export function StartScreen() {
     DRAFT.find((option) => option.value === config.draftStyle)?.label ?? "start.teamPacks",
     FORMAT.find((option) => option.value === config.format)?.label ?? "start.last2y",
     DIFFICULTY.find((option) => option.value === config.rerolls)?.label ?? "start.normal",
+    ALLOCATION.find((option) => option.value === config.allocation)?.label ?? "start.automatic",
   ];
 
   const onStart = () => {

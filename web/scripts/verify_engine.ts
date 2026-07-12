@@ -104,6 +104,22 @@ const outsiderAccount = Math.max(...man.players.map((player) => player.accountId
 assertThrows(() => man.assign(outsiderAccount, someHero), "manual: нельзя назначить героя игроку вне ростера");
 assert(man.manualAssignment[outsiderAccount] === undefined, "manual: отклонённое назначение не меняет состояние");
 
+const autoRun = new RunEngine(data, { ...base, allocation: "auto" }, "run-auto-swap");
+runToEnd(autoRun);
+const swapA = autoRun.players[0].accountId;
+const swapB = autoRun.players[1].accountId;
+assertThrows(() => autoRun.swapHeroes(swapA, swapB), "auto: свап героев запрещён");
+
+const manSwap = new RunEngine(data, { ...base, allocation: "manual" }, "run-manual-swap");
+runToEnd(manSwap);
+const swapAccountA = manSwap.players[0].accountId;
+const swapAccountB = manSwap.players[1].accountId;
+const heroBeforeA = manSwap.score()!.assignment.byPlayer[swapAccountA];
+const heroBeforeB = manSwap.score()!.assignment.byPlayer[swapAccountB];
+manSwap.swapHeroes(swapAccountA, swapAccountB);
+assert(manSwap.score()!.assignment.byPlayer[swapAccountA] === heroBeforeB, "manual: свап поменял героя у первого игрока");
+assert(manSwap.score()!.assignment.byPlayer[swapAccountB] === heroBeforeA, "manual: свап поменял героя у второго игрока");
+
 // --- Mixed Draft: строгий порядок 1→5 (игроки), затем герои ---
 const mixedRun = new RunEngine(data, { ...base, draftStyle: "mixed" }, "run-mixed");
 assert(!mixedRun.canPickPlayer(1) || mixedRun.currentSlotIndex === 1, "Mixed: до слота 0 нельзя брать слот 1 (строгий порядок)");

@@ -1,0 +1,18 @@
+.scoring-legend {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-soft);
+}
+.scoring-legend p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.scoring-legend strong {
+  color: var(--text);
+  font-weight: 800;
+}

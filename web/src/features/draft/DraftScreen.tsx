@@ -5,6 +5,16 @@ import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
 import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface } from "../../ui/index.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { PlayerInspector } from "./PlayerInspector.tsx";
+import { SynergyBreakdown } from "./SynergyBreakdown.tsx";
+import { ScoringLegend } from "./ScoringLegend.tsx";
+import {
+  chemistryPairEdges,
+  chemistryPlayersFromRoster,
+  heroStatsForAssignment,
+  heroSynergyRows,
+  heroSynergyTier,
+  squadChemistryRows,
+} from "../../game/score.ts";
 import { useHero } from "./heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import "./draft.css";
@@ -19,18 +29,36 @@ export function DraftScreen() {
   const canPickPlayer = useRun((state) => state.canPickPlayer);
   const canPickHero = useRun((state) => state.canPickHero);
   const reset = useRun((state) => state.reset);
+  const config = useRun((state) => state.config);
   const data = useRun((state) => state.data);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
   const hero = useHero();
   const { locale, t } = useI18n();
-  if (!snapshot) return null;
+  if (!snapshot || !config) return null;
 
   const { currentPack, roster, rerollsLeft, score, heroes, packHeroes, rosterFilled } = snapshot;
   const rerollCount = rerollsLeft === Infinity ? "∞" : String(rerollsLeft);
   const picked = rosterFilled + heroes.length;
+  const chemistryEdges = data
+    ? chemistryPairEdges(
+      chemistryPlayersFromRoster(roster),
+      data.squadSynergy,
+      data.teammates,
+    )
+    : [];
+  const phs = data
+    ? heroStatsForAssignment(data, config.scoring, roster.map((slot) => slot.candidate))
+    : null;
+  const heroRows = score && phs ? heroSynergyRows(roster, score.assignment, phs) : [];
+  const chemistryRows = data ? squadChemistryRows(roster, data.squadSynergy, data.teammates) : [];
+  const synergyTier = score ? heroSynergyTier(score.heroSynergy) : null;
+  const synergySublabel = synergyTier === "insane"
+    ? t("draft.synergyInsane")
+    : synergyTier === "great"
+      ? t("draft.synergyGreat")
+      : undefined;
 
-  // Герой → ник игрока, к которому он привязан (для отображения драфтованных).
   const heroOwner: Record<number, { accountId: number; nickname: string }> = {};
   if (score) {
     for (const slot of roster) {
@@ -50,12 +78,28 @@ export function DraftScreen() {
         <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
       </header>
       <Surface className="draft__radar">
-        <Pentagon roster={roster} teamOvr={score?.teamOvr ?? null} onSelectPlayer={setInspectedPlayer} />
+        <Pentagon
+          roster={roster}
+          teamOvr={score?.teamOvr ?? null}
+          chemistryEdges={chemistryEdges}
+          assignmentByPlayer={score?.assignment.byPlayer ?? {}}
+          onSelectPlayer={setInspectedPlayer}
+        />
         <div className="score-strip">
           <StatTile label={t("common.base")} value={score ? Math.round(score.base).toString() : "0"} kind="base" />
-          <StatTile label={t("common.heroSynergy")} value={score ? fmt(score.heroSynergy) : "+0.0"} kind="synergy" />
+          <StatTile label={t("common.heroSynergy")} value={score ? fmt(score.heroSynergy) : "+0.0"} kind="synergy" sublabel={synergySublabel} />
           <StatTile label={t("common.chemistry")} value={score ? fmt(score.chemistry) : "+0.0"} kind="chemistry" />
         </div>
+        {rosterFilled > 0 && (
+          <SynergyBreakdown
+            heroRows={heroRows}
+            chemistryRows={chemistryRows}
+            onPlayerClick={(accountId) => {
+              const candidate = roster.find((slot) => slot.candidate?.player.accountId === accountId)?.candidate;
+              if (candidate) setInspectedPlayer(candidate);
+            }}
+          />
+        )}
       </Surface>
       <Surface className="pack-panel">
         <div className="pack-heading">
@@ -94,7 +138,7 @@ export function DraftScreen() {
                   {heroOwner[id] && (
                     <small>
                       → {heroOwner[id].nickname} · {(() => {
-                        const games = data?.playerHeroStats[String(heroOwner[id].accountId)]?.[String(id)]?.games ?? 0;
+                        const games = phs?.[String(heroOwner[id].accountId)]?.[String(id)]?.games ?? 0;
                         return t(heroGamesMessageKey(locale, games), { count: games });
                       })()}
                     </small>
@@ -104,6 +148,7 @@ export function DraftScreen() {
             })}
           </div>
         </div>
+        <ScoringLegend />
       </Surface>
       {confirmLeave && (
         <Modal mark="A" title={t("draft.leaveTitle")} description={t("draft.leaveText")} labelledBy="leave-title" onClose={() => setConfirmLeave(false)}>

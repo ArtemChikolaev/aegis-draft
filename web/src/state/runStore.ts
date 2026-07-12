@@ -40,6 +40,7 @@ interface RunStore {
   canPickPlayer: (idx: number) => boolean;
   canPickHero: (heroId: number) => boolean;
   assign: (accountId: number, heroId: number) => void;
+  swapHeroes: (accountIdA: number, accountIdB: number) => void;
   reroll: () => void;
   reset: () => void;
   setSelectedMode: (mode: RunMode | null) => void;
@@ -109,6 +110,17 @@ export const useRun = create<RunStore>((set, get) => ({
     if (!engine) return;
     engine.assign(accountId, heroId);
     set({ snapshot: snap(engine) });
+  },
+
+  swapHeroes(accountIdA, accountIdB) {
+    const { engine } = get();
+    if (!engine) return;
+    try {
+      engine.swapHeroes(accountIdA, accountIdB);
+      set({ snapshot: snap(engine) });
+    } catch {
+      /* ignore invalid swap */
+    }
   },
 
   reroll() {

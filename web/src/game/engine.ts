@@ -12,7 +12,7 @@ import {
   type DraftPack,
   type RunConfig,
 } from "./packs.ts";
-import { scoreTeam, type ScoreBreakdown } from "./score.ts";
+import { scoreTeam, type ScoreBreakdown, heroStatsForAssignment, signatureLookup, chemistryPlayersFromRoster } from "./score.ts";
 
 /** Сколько героев драфтится (по одному на игрока, как в 322-0). */
 export const HERO_TARGET = ROLE_SEQUENCE.length;
@@ -107,21 +107,38 @@ export class RunEngine {
     if (!this.isComplete) this.currentPack = this.draw();
   }
 
-  /** Ручная привязка героя к игроку (allocation="manual"). Герой должен быть в составе. */
+  /** Ручная привязка / свап героев после драфта. */
   assign(accountId: number, heroId: number): void {
     if (!this.players.some((player) => player.accountId === accountId)) {
       throw new Error(`Игрок ${accountId} не в ростере`);
     }
     if (!this.heroes.includes(heroId)) throw new Error(`Герой ${heroId} не в составе`);
-    // Один герой — одному игроку: снять его с прежнего владельца.
     for (const [acc, hero] of Object.entries(this.manual)) {
       if (hero === heroId) delete this.manual[Number(acc)];
     }
     this.manual[accountId] = heroId;
   }
 
+  /** Свап героев двух игроков — только Manual allocation (322-0). */
+  swapHeroes(accountIdA: number, accountIdB: number): void {
+    if (this.config.allocation !== "manual") {
+      throw new Error("Свап героев доступен только в режиме Manual");
+    }
+    if (!this.isComplete) throw new Error("Свап доступен только после завершения драфта");
+    const current = this.effectiveAssignment();
+    const heroA = current[accountIdA];
+    const heroB = current[accountIdB];
+    if (heroA == null || heroB == null) throw new Error("Оба игрока должны иметь героя");
+    this.manual = { ...current, [accountIdA]: heroB, [accountIdB]: heroA };
+  }
+
   get manualAssignment(): Record<number, number> {
     return { ...this.manual };
+  }
+
+  /** Текущее назначение героев с учётом manual overrides. */
+  effectiveAssignment(): Record<number, number> {
+    return this.score()?.assignment.byPlayer ?? {};
   }
 
   /** Реролл текущего пака. false, если рерроллы исчерпаны. */
@@ -137,8 +154,22 @@ export class RunEngine {
   score(): ScoreBreakdown | null {
     const players = this.players;
     if (players.length === 0) return null;
-    const fixed = this.config.allocation === "manual" ? this.manual : undefined;
-    return scoreTeam(players, this.heroes, this.data.playerHeroStats, this.data.squadSynergy, fixed);
+    const fixed = Object.keys(this.manual).length > 0 ? this.manual : undefined;
+    const phs = heroStatsForAssignment(this.data, this.config.scoring, this.roster);
+    const signatures = signatureLookup(this.roster);
+    const chemistryRoster = chemistryPlayersFromRoster(
+      ROLE_SEQUENCE.map((role, i) => ({ role, candidate: this.roster[i] })),
+    );
+    return scoreTeam(
+      players,
+      this.heroes,
+      phs,
+      this.data.squadSynergy,
+      this.data.teammates,
+      chemistryRoster,
+      signatures,
+      fixed,
+    );
   }
 
   // Мягкий анти-повтор: следующий пак — не та же команда, что сейчас (но команда
