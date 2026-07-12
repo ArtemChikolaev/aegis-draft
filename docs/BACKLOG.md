@@ -250,8 +250,16 @@
 - **TREF5 — Раскладка драфта (P2).** ✅ Desktop переведён на компактные 2 колонки: sticky radar + pack panel; start/result используют ту же responsive surface-систему. На ≤980px раскладка становится одноколоночной. Отдельно в T7.3 остаются keyboard-flow и расширенный mobile QA; прежний скролл-таймаут в новом golden path не воспроизвёлся.
 - **Отметки к существующим:** T3.10 (Manual allocation — референс имеет рабочим, у нас SOON) остаётся P1. T7.3 (responsive) — включает TREF5. T7.4 удаляет co-brand «322—0» и задаёт самостоятельный visual language. T7.2 устраняет смешанный RU/EN, T7.5 добавляет system/light/dark. Difficulty: «Easy» у нас = ∞ рероллов, у референса = 1 (конфликт имён, P2 — решить при полировке осей).
 
-## M8 — Go API (фаза 2, опц.)
-- T8.1 Сервис `server/` (chi/Fiber) + БД. ⬜ · T8.2 Дейлик-сид + валидация. ⬜ · T8.3 Лидерборд. ⬜ · T8.4 Сейвы забегов. ⬜
+## M8 — Backend (Go API, активна по [ADR 0002](adr/0002-backend-now.md))
+> Решение 2026-07-12: заводим backend сейчас. Гибрид — игровые данные остаются static-first, сервер держит пользовательское/общее состояние. Скилл `backend-architecture`.
+- ✅ **T8.0 — Решения по стеку:** auth = **Steam OpenID, опционально** (local-first по умолчанию); БД = **`sqlc` + `goose`**; router = **`chi`**. Зафиксировано в [ADR 0002](adr/0002-backend-now.md).
+- **T8.1 — Скелет `server/`:** слои `internal/{transport,service,store,model}`, chi-router, health, конфиг из env, единый формат ошибок. ⬜
+- **T8.2 — Postgres + миграции:** схема (users, saves, leaderboard, daily), версионированные миграции, репозитории в `store/`. **Deps:** T8.1. ⬜
+- **T8.3 — Auth + аккаунты (Steam OpenID, опционально).** Анонимная игра работает без логина; вход — только для синхронизации/лидерборда. **Deps:** T8.0, T8.2. ⬜
+- **T8.4 — Сейвы забегов** (cloud, cross-device); учёт `schemaVersion`/`ratingModelVersion`. **Deps:** T8.3. ⬜
+- **T8.5 — Дейлик-сид + серверная валидация** (ре-симуляция на Go, переиспользуя `pipeline/internal/{model,rating}`; анти-чит). **Deps:** T8.2, M2. ⬜
+- **T8.6 — Лидерборд** (дейлик/seeded), защита от подделки результата. **Deps:** T8.5. ⬜
+- **T8.7 — Фронт: API-клиент** рядом с `DataSource` (статика ≠ динамика). **Deps:** T8.1. ⬜
 
 ---
 

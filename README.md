@@ -50,7 +50,7 @@ aegis-draft/
 ├─ schema/     # JSON Schema контракта данных (Go генерит, TS потребляет)
 ├─ pipeline/   # Go: ETL (OpenDota + Liquipedia → JSON)   [скелет: model/emit/CLI]
 ├─ web/        # TS: React+Vite фронт + игровая логика     [MVP на моках]
-└─ server/     # Go: API (фаза 2: дейлик/лидерборд/сейвы)   [не начат]
+└─ server/     # Go: API (аккаунты/сейвы/лидерборд/дейлик) — активно, ADR 0002   [не начат]
 ```
 
 ## Стек

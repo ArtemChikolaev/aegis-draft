@@ -33,7 +33,10 @@ description: >-
 
 ## Темы
 - `ThemeProvider` (`design/theme`) ставит `data-theme` на `html`, хранит выбор, слушает систему. Компоненту НЕ надо знать тему — токены делают всё.
-- Проверяй новый UI в **обеих темах** (light + dark) перед «готово».
+- Проверяй новый UI на **реальных скринах обеих тем** (light + dark) и на **полном flow** (start → draft → result), а не на изолированном компоненте. Продуктовые/дизайн-правки — тоже на скринах, не «на глаз».
+
+## Визуальная айдентика
+Характер, палитра dark/light и тон — в [docs/design-language.md](../../../docs/design-language.md) (design-spec). Кратко: Dota tournament roguelike (не B2B/курсы); dark = pure black + редкий green art; light = ivory + orange + black inserts; цвет = арт/сигнал, не заливка. 322-0 — только UX-референс, не pixel-copy.
 
 ## Инструкции
 1. `ui/index.ts` → найди подходящий примитив, переиспользуй (или добавь variant).
