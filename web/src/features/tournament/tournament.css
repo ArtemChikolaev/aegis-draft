@@ -96,6 +96,18 @@
 .run-summary__roster strong { font-size: 13px; }
 .tournament__actions { width: min(480px, 100%); margin-left: auto; }
 
+/* live-симуляция: серия ещё не сыграна — нейтральная заглушка (без победителя/счёта). */
+.match.is-pending { opacity: .5; border-style: dashed; }
+.series__team.is-pending { color: var(--muted); }
+.series__team.is-pending .series__score { color: var(--muted); }
+/* LIVE-панель: индикатор + подпись + Skip; показывается пока идёт проигрывание. */
+.tournament__live { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
+.tournament__live em { flex: 1; color: var(--muted); font-size: 12px; font-style: normal; text-align: right; }
+.tournament__live-dot { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; color: var(--brand-green); font: 800 10px/1 sans-serif; letter-spacing: .12em; border: 1px solid color-mix(in srgb, var(--brand-green) 45%, transparent); border-radius: 999px; }
+.tournament__live-dot::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--brand-green); animation: live-pulse 1s ease-in-out infinite; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .tournament__live-dot::before { animation: none; } }
+
 @media (max-width: 900px) {
   .tournament__field, .tournament__complete, .tournament__report { grid-template-columns: 1fr; }
   .run-summary__scores { grid-template-columns: repeat(2, 1fr); }
