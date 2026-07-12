@@ -96,6 +96,14 @@ func Run(ctx context.Context, cfg Config) error {
 				return err
 			}
 			log.Printf("[fetch] tier-1 фильтр: %d лиг (premium ∪ professional−шум)", len(tier1Leagues))
+			// Прогреваем справочники teams/heroes ЗАРАНЕЕ (пока бюджет свежий), чтобы позже
+			// emit-domain взял их из кэша даже если career/peers исчерпали бюджет прогона.
+			if _, err := od.FetchTeams(ctx); err != nil {
+				return domainFetchErr("teams", err)
+			}
+			if _, err := od.FetchHeroes(ctx); err != nil {
+				return domainFetchErr("heroes", err)
+			}
 		}
 		log.Printf("[fetch] OpenDota pro matches (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
 		collected, err := collect.OpenDotaWindow(ctx, od, collect.OpenDotaConfig{
@@ -195,15 +203,19 @@ func Run(ctx context.Context, cfg Config) error {
 				peersComplete, len(snapshot.Players), status.PeersComplete, stats.NetworkRequests, stats.CacheHits)
 
 			if cfg.EmitDomain {
-				// Полное окно: emit ТОЛЬКО когда сбор реально завершён (дискавери+детали+
-				// career+peers). Иначе прогрев кэша — успешный partial progress, добор в
-				// след. прогоне (не эмитим полусобранный датасет и не валим job).
+				// Полное окно: emit, когда готовы discovery+details (пакеты/рейтинги/synergy
+				// уже считаемы). career+peers — обогащение (углубляют hero-synergy и chemistry):
+				// они докручиваются в следующих прогонах и апсертятся в датасет, поэтому НЕ
+				// блокируют первый emit. Пока даже details не готовы — прогрев кэша, добор дальше.
 				if cfg.CollectWindow {
-					complete := status.DiscoveryComplete && status.DetailsComplete && status.CareerComplete && status.PeersComplete
-					if !complete {
-						log.Printf("[progress] emit-domain отложен: сбор не завершён (discovery=%t details=%t career=%t peers=%t); кэш прогрет, добор в след. прогоне",
-							status.DiscoveryComplete, status.DetailsComplete, status.CareerComplete, status.PeersComplete)
+					if !status.DiscoveryComplete || !status.DetailsComplete {
+						log.Printf("[progress] emit-domain отложен: discovery=%t details=%t; кэш прогрет, добор в след. прогоне",
+							status.DiscoveryComplete, status.DetailsComplete)
 						return nil
+					}
+					if !status.CareerComplete || !status.PeersComplete {
+						log.Printf("[progress] emit частичный: career=%d/%d peers=%d/%d — обогащение продолжится в след. прогонах",
+							status.CareerPlayersComplete, status.CareerTargetPlayers, status.PeersPlayersComplete, status.PeersTargetPlayers)
 					}
 				}
 				if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {
