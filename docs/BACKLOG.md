@@ -253,7 +253,7 @@
 ## M8 — Backend (Go API, активна по [ADR 0002](adr/0002-backend-now.md))
 > Решение 2026-07-12: заводим backend сейчас. Гибрид — игровые данные остаются static-first, сервер держит пользовательское/общее состояние. Скилл `backend-architecture`.
 - ✅ **T8.0 — Решения по стеку:** auth = **Steam OpenID, опционально** (local-first по умолчанию); БД = **`sqlc` + `goose`**; router = **`chi`**. Зафиксировано в [ADR 0002](adr/0002-backend-now.md).
-- **T8.1 — Скелет `server/`:** слои `internal/{transport,service,store,model}`, chi-router, health, конфиг из env, единый формат ошибок. ⬜
+- ✅ **T8.1 — Скелет `server/`:** модуль `github.com/aegis-draft/server`, слои `internal/{transport,service,store,model}` + `apperr`/`config`, chi-router с middleware, `/healthz`, единый контракт ошибок, graceful shutdown. Живой smoke: `/healthz`→200, unknown→404. CI-джоб `server` (gofmt/vet/build/test). gofmt/vet/build/test зелёные.
 - **T8.2 — Postgres + миграции:** схема (users, saves, leaderboard, daily), версионированные миграции, репозитории в `store/`. **Deps:** T8.1. ⬜
 - **T8.3 — Auth + аккаунты (Steam OpenID, опционально).** Анонимная игра работает без логина; вход — только для синхронизации/лидерборда. **Deps:** T8.0, T8.2. ⬜
 - **T8.4 — Сейвы забегов** (cloud, cross-device); учёт `schemaVersion`/`ratingModelVersion`. **Deps:** T8.3. ⬜
