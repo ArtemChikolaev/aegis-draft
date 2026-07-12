@@ -128,6 +128,27 @@ func Run(ctx context.Context, cfg Config) error {
 					careerComplete++
 				}
 			}
+			// Peers: пожизненные co-games для всей pro-вселенной — прямой источник Chemistry.
+			// Тот же resumable/budget-паттерн, что и career heroes; MergePeers апсертит
+			// кросс-командные пары в squadSynergy/teammates (см. TDATA1 инкремент 1).
+			known := make(map[int]struct{}, len(snapshot.Players))
+			for _, player := range snapshot.Players {
+				known[player.AccountID] = struct{}{}
+			}
+			peersComplete := 0
+			for _, player := range snapshot.Players {
+				peers, fetchErr := od.FetchPlayerPeers(ctx, int64(player.AccountID))
+				if errors.Is(fetchErr, sourcehttp.ErrBudgetExhausted) {
+					break
+				}
+				if fetchErr != nil {
+					return fetchErr
+				}
+				if err := aggregate.MergePeers(aggregates, player.AccountID, peers, known); err != nil {
+					return err
+				}
+				peersComplete++
+			}
 			target := len(collected.ProMatches)
 			if cfg.MatchDetailLimit > 0 && cfg.MatchDetailLimit < target {
 				target = cfg.MatchDetailLimit
@@ -138,8 +159,10 @@ func Run(ctx context.Context, cfg Config) error {
 				PagesRead: collected.PagesRead, DiscoveredMatches: len(collected.ProMatches), DiscoveryComplete: collected.DiscoveryComplete,
 				DetailTargetMatches: target, DetailsComplete: collected.DetailsComplete,
 				CareerTargetPlayers: len(snapshot.Players), CareerPlayersComplete: careerComplete,
-				CareerComplete: cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete && careerComplete == len(snapshot.Players),
-				CacheHits:      stats.CacheHits, NetworkRequests: stats.NetworkRequests,
+				CareerComplete:     cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete && careerComplete == len(snapshot.Players),
+				PeersTargetPlayers: len(snapshot.Players), PeersPlayersComplete: peersComplete,
+				PeersComplete: peersComplete == len(snapshot.Players),
+				CacheHits:     stats.CacheHits, NetworkRequests: stats.NetworkRequests,
 			}
 			snapshot.Collection = status
 			aggregates.Collection = status
@@ -152,9 +175,10 @@ func Run(ctx context.Context, cfg Config) error {
 			if err := artifact.WriteJSON(cfg.AggregateOut, aggregates); err != nil {
 				return fmt.Errorf("write OpenDota aggregates: %w", err)
 			}
-			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) career=%d/%d (complete=%t); network=%d cache=%d",
+			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) career=%d/%d (complete=%t) peers=%d/%d (complete=%t); network=%d cache=%d",
 				collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
-				careerComplete, len(snapshot.Players), status.CareerComplete, stats.NetworkRequests, stats.CacheHits)
+				careerComplete, len(snapshot.Players), status.CareerComplete,
+				peersComplete, len(snapshot.Players), status.PeersComplete, stats.NetworkRequests, stats.CacheHits)
 
 			if cfg.EmitDomain {
 				if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {
