@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey } from "../../i18n/core.ts";
-import { Button, Chip, Eyebrow, Modal, RoleTag, StatTile, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface } from "../../ui/index.ts";
 import { Pentagon } from "./Pentagon.tsx";
-import { useHeroName } from "./heroes.ts";
+import { useHero } from "./heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import "./draft.css";
 
@@ -17,7 +17,7 @@ export function DraftScreen() {
   const canPick = useRun((state) => state.canPick);
   const reset = useRun((state) => state.reset);
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const heroName = useHeroName();
+  const hero = useHero();
   const { t } = useI18n();
   if (!snapshot) return null;
 
@@ -51,7 +51,7 @@ export function DraftScreen() {
         </div>
         <div className="hero-pool">
           <div><h3>{t("draft.heroPool")} <span>{heroPool.length}</span></h3><p>{t("draft.heroPoolHint")}</p></div>
-          <div className="hero-pool__chips">{heroPool.length === 0 ? <span className="muted">{t("common.empty")}</span> : heroPool.map((hero) => <Chip key={hero}>{heroName(hero)}</Chip>)}</div>
+          <div className="hero-pool__chips">{heroPool.length === 0 ? <span className="muted">{t("common.empty")}</span> : heroPool.map((id) => { const h = hero(id); return <HeroThumb key={id} picture={h.picture} name={h.name} />; })}</div>
         </div>
       </Surface>
       {confirmLeave && (

@@ -5,6 +5,7 @@ export { Surface } from "./Surface.tsx";
 export { Eyebrow } from "./Eyebrow.tsx";
 export { Banner } from "./Banner.tsx";
 export { Chip } from "./Chip.tsx";
+export { HeroThumb } from "./HeroThumb.tsx";
 export { RoleTag } from "./RoleTag.tsx";
 export { SoonBadge } from "./SoonBadge.tsx";
 export { StatTile, type StatKind } from "./StatTile.tsx";

@@ -1,9 +1,9 @@
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey } from "../../i18n/core.ts";
-import { Button, Eyebrow, RoleTag, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, RoleTag, Surface } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
-import { useHeroName } from "../draft/heroes.ts";
+import { useHero } from "../draft/heroes.ts";
 import "./result.css";
 
 const fmt = (value: number) => (value >= 0 ? `+${value.toFixed(1)}` : value.toFixed(1));
@@ -13,7 +13,7 @@ export function ResultScreen() {
   const seed = useRun((state) => state.seed);
   const config = useRun((state) => state.config);
   const reset = useRun((state) => state.reset);
-  const heroName = useHeroName();
+  const heroInfo = useHero();
   const { t } = useI18n();
   if (!snapshot?.score) return null;
 
@@ -31,7 +31,7 @@ export function ResultScreen() {
           <ul className="final-roster">
             {roster.map((slot, index) => {
               const hero = slot.candidate ? score.assignment.byPlayer[slot.candidate.player.accountId] : undefined;
-              return <li key={index}><RoleTag role={slot.role}>{t(roleMessageKey(slot.role))}</RoleTag><strong>{slot.candidate?.player.nickname ?? "—"}</strong><span>{hero == null ? "—" : heroName(hero)}</span></li>;
+              return <li key={index}><RoleTag role={slot.role}>{t(roleMessageKey(slot.role))}</RoleTag><strong>{slot.candidate?.player.nickname ?? "—"}</strong><span>{hero == null ? "—" : <HeroThumb picture={heroInfo(hero).picture} name={heroInfo(hero).name} />}</span></li>;
             })}
           </ul>
           <p className="run-meta muted">{config?.draftStyle} · {config?.format} · {t("common.seed")} {seed}</p>

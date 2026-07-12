@@ -1,0 +1,7 @@
+.thumb { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--surface-soft); font-size: 10px; }
+.thumb img { display: block; border-radius: 6px; object-fit: cover; background: var(--line); }
+.thumb:has(img) { padding-left: 4px; }
+.thumb:not(:has(img)) { padding-left: 10px; }
+.sm img { width: 34px; height: 19px; }
+.md img { width: 46px; height: 26px; }
+.name { white-space: nowrap; }
