@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRun } from "../state/runStore.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
+import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { ResultScreen } from "../features/result/ResultScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
@@ -56,6 +57,7 @@ export function App() {
       {error && <Banner title={t("app.error")}>{error}</Banner>}
 
       {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
+      {phase === "start" && <ResumeBanner />}
       {phase === "start" && <StartScreen />}
       {phase === "draft" && <DraftScreen />}
       {phase === "result" && <ResultScreen />}

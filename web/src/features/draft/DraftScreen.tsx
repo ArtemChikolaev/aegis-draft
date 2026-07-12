@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
-import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { PlayerInspector } from "./PlayerInspector.tsx";
 import { SynergyBreakdown } from "./SynergyBreakdown.tsx";
@@ -31,6 +31,8 @@ export function DraftScreen() {
   const reset = useRun((state) => state.reset);
   const config = useRun((state) => state.config);
   const data = useRun((state) => state.data);
+  const teamName = useRun((state) => state.teamName);
+  const setTeamName = useRun((state) => state.setTeamName);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
   const hero = useHero();
@@ -77,7 +79,7 @@ export function DraftScreen() {
   return (
     <main className="draft">
       <header className="screen-heading draft__heading">
-        <div><Eyebrow>{t("draft.eyebrow")}</Eyebrow><h1>{t("draft.picked", { current: picked, total: 10 })}</h1></div>
+        <div><Eyebrow>{t("draft.picked", { current: picked, total: 10 })}</Eyebrow><h1><TeamName value={teamName} placeholder={t("team.placeholder")} editLabel={t("team.edit")} onChange={setTeamName} /></h1></div>
         <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
       </header>
       <Surface className="draft__radar">

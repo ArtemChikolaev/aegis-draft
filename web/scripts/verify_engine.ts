@@ -172,5 +172,33 @@ const withSubstitutes: Pack = {
 };
 assert(teamPack(withSubstitutes).candidates.length === 6, "Team edge: пак сохраняет 6+ игроков с substitute");
 
+// --- resume: детерминированный replay лога действий восстанавливает точное состояние ---
+type Act = { t: "pickPlayer"; index: number } | { t: "pickHero"; heroId: number } | { t: "reroll" };
+function drive(engine: RunEngine, log: Act[]): void {
+  for (const a of log) {
+    if (a.t === "pickPlayer") engine.pickPlayer(a.index);
+    else if (a.t === "pickHero") engine.pickHero(a.heroId);
+    else if (a.t === "reroll") engine.reroll();
+  }
+}
+const sig = (e: RunEngine) => JSON.stringify({
+  roster: e.rosterView.map((s) => s.candidate?.player.accountId ?? null),
+  heroes: e.heroes,
+  rerollsLeft: e.rerollsLeft,
+  pack: e.currentPack.signatureHeroes,
+  ovr: Math.round((e.score()?.teamOvr ?? 0) * 100),
+});
+const log: Act[] = [];
+const live = new RunEngine(data, { ...base, rerolls: 3 }, "resume-seed");
+if (live.reroll()) log.push({ t: "reroll" });
+for (let k = 0; k < 3; k++) {
+  const idx = live.currentPack.candidates.findIndex((_, i) => live.canPickPlayer(i));
+  live.pickPlayer(idx);
+  log.push({ t: "pickPlayer", index: idx });
+}
+const restored = new RunEngine(data, { ...base, rerolls: 3 }, "resume-seed");
+drive(restored, log);
+assert(sig(live) === sig(restored), "resume: replay лога восстанавливает точное состояние (roster/heroes/rerolls/pack/score)");
+
 console.log(failures === 0 ? "\n🎉 движок: все проверки пройдены" : `\n💥 провалов: ${failures}`);
 process.exit(failures === 0 ? 0 : 1);

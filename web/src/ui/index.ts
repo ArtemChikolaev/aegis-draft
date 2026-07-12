@@ -7,6 +7,7 @@ export { Banner } from "./Banner.tsx";
 export { Chip } from "./Chip.tsx";
 export { HeroThumb } from "./HeroThumb.tsx";
 export { RoleTag } from "./RoleTag.tsx";
+export { TeamName } from "./TeamName.tsx";
 export { SoonBadge } from "./SoonBadge.tsx";
 export { StatTile, type StatKind } from "./StatTile.tsx";
 export { Select, type SelectOption } from "./Select.tsx";

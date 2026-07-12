@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
-import { Button, Eyebrow, HeroThumb, RoleTag, StatTile, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -28,6 +28,8 @@ export function ResultScreen() {
   const reset = useRun((state) => state.reset);
   const swapHeroes = useRun((state) => state.swapHeroes);
   const data = useRun((state) => state.data);
+  const teamName = useRun((state) => state.teamName);
+  const setTeamName = useRun((state) => state.setTeamName);
   const heroInfo = useHero();
   const { locale, t } = useI18n();
   const [swapSelectedId, setSwapSelectedId] = useState<number | null>(null);
@@ -82,7 +84,7 @@ export function ResultScreen() {
     <main className="result">
       <header className="screen-heading result__heading">
         <Eyebrow>{t("result.eyebrow")}</Eyebrow>
-        <h1>{t("result.title")}</h1>
+        <h1><TeamName value={teamName} placeholder={t("team.placeholder")} editLabel={t("team.edit")} onChange={setTeamName} /></h1>
         <p>{t("result.subtitle")}</p>
       </header>
       <div className="result__grid">
