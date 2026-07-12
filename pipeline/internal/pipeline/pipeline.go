@@ -134,9 +134,35 @@ func Run(ctx context.Context, cfg Config) error {
 			if err != nil {
 				return fmt.Errorf("aggregate OpenDota: %w", err)
 			}
+			// career/peers обогащаем только для pack-игроков (топ-5 составов на событиях):
+			// полное окно (~1500 аккаунтов) не влезает в дневной бюджет, а непаковые игроки
+			// (стенд-ины/неполные ростеры) в датасет не попадают. Пул паков зависит лишь от
+			// ролей и числа игр (не от career/peers), поэтому считаем его уже сейчас. Без
+			// EmitDomain (leagues не прогреты) — прежнее поведение по всем игрокам.
+			enrichTargets := snapshot.Players
+			if cfg.EmitDomain {
+				leagues, lerr := od.FetchLeagues(ctx)
+				if lerr != nil {
+					return domainFetchErr("leagues", lerr)
+				}
+				asOfTime, perr := time.Parse("2006-01-02", asOf)
+				if perr != nil {
+					return fmt.Errorf("invalid as-of date %q: %w", asOf, perr)
+				}
+				packAccounts := domain.PackPlayerAccounts(snapshot, leagues, asOfTime, cfg.MinEventMatches)
+				targets := make([]normalize.NormalizedPlayer, 0, len(packAccounts))
+				for _, player := range snapshot.Players {
+					if _, ok := packAccounts[player.AccountID]; ok {
+						targets = append(targets, player)
+					}
+				}
+				enrichTargets = targets
+				log.Printf("[fetch] career/peers scope: %d pack-игроков из %d в окне", len(enrichTargets), len(snapshot.Players))
+			}
+
 			careerComplete := 0
 			if cfg.CollectWindow {
-				for _, player := range snapshot.Players {
+				for _, player := range enrichTargets {
 					heroes, fetchErr := od.FetchPlayerHeroes(ctx, int64(player.AccountID))
 					if errors.Is(fetchErr, sourcehttp.ErrBudgetExhausted) {
 						break
@@ -150,15 +176,15 @@ func Run(ctx context.Context, cfg Config) error {
 					careerComplete++
 				}
 			}
-			// Peers: пожизненные co-games для всей pro-вселенной — прямой источник Chemistry.
-			// Тот же resumable/budget-паттерн, что и career heroes; MergePeers апсертит
-			// кросс-командные пары в squadSynergy/teammates (см. TDATA1 инкремент 1).
-			known := make(map[int]struct{}, len(snapshot.Players))
-			for _, player := range snapshot.Players {
+			// Peers: пожизненные co-games — прямой источник Chemistry. Тот же resumable/budget-
+			// паттерн, что и career heroes; MergePeers апсертит пары в squadSynergy/teammates,
+			// фильтруя по known (пул пак-игроков) — химия нужна между будущими тиммейтами.
+			known := make(map[int]struct{}, len(enrichTargets))
+			for _, player := range enrichTargets {
 				known[player.AccountID] = struct{}{}
 			}
 			peersComplete := 0
-			for _, player := range snapshot.Players {
+			for _, player := range enrichTargets {
 				peers, fetchErr := od.FetchPlayerPeers(ctx, int64(player.AccountID))
 				if errors.Is(fetchErr, sourcehttp.ErrBudgetExhausted) {
 					break
@@ -180,10 +206,10 @@ func Run(ctx context.Context, cfg Config) error {
 				Window: string(cfg.Window), AsOf: asOf, WindowStart: windowStart,
 				PagesRead: collected.PagesRead, DiscoveredMatches: len(collected.ProMatches), DiscoveryComplete: collected.DiscoveryComplete,
 				DetailTargetMatches: target, DetailsComplete: collected.DetailsComplete,
-				CareerTargetPlayers: len(snapshot.Players), CareerPlayersComplete: careerComplete,
-				CareerComplete:     cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete && careerComplete == len(snapshot.Players),
-				PeersTargetPlayers: len(snapshot.Players), PeersPlayersComplete: peersComplete,
-				PeersComplete: peersComplete == len(snapshot.Players),
+				CareerTargetPlayers: len(enrichTargets), CareerPlayersComplete: careerComplete,
+				CareerComplete:     cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete && careerComplete == len(enrichTargets),
+				PeersTargetPlayers: len(enrichTargets), PeersPlayersComplete: peersComplete,
+				PeersComplete: peersComplete == len(enrichTargets),
 				CacheHits:     stats.CacheHits, NetworkRequests: stats.NetworkRequests,
 			}
 			snapshot.Collection = status
@@ -199,8 +225,8 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) career=%d/%d (complete=%t) peers=%d/%d (complete=%t); network=%d cache=%d",
 				collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
-				careerComplete, len(snapshot.Players), status.CareerComplete,
-				peersComplete, len(snapshot.Players), status.PeersComplete, stats.NetworkRequests, stats.CacheHits)
+				careerComplete, len(enrichTargets), status.CareerComplete,
+				peersComplete, len(enrichTargets), status.PeersComplete, stats.NetworkRequests, stats.CacheHits)
 
 			if cfg.EmitDomain {
 				// Полное окно: emit, когда готовы discovery+details (пакеты/рейтинги/synergy

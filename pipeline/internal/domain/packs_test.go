@@ -110,6 +110,29 @@ func TestBuildPacksRealLineup(t *testing.T) {
 	}
 }
 
+func TestPackPlayerIDs(t *testing.T) {
+	matches := fixtureMatches()
+	roleByAccount := map[int]model.Role{}
+	for _, pr := range roles.Infer(matches) {
+		roleByAccount[pr.AccountID] = pr.PrimaryRole
+	}
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
+	ids := PackPlayerIDs(matches, events, roleByAccount)
+
+	// Оба core-ростера (team10 1..5, team20 21..25) = 10 аккаунтов; стенд-ин acc6 исключён.
+	if len(ids) != 10 {
+		t.Fatalf("expected 10 pack players, got %d: %v", len(ids), ids)
+	}
+	if _, ok := ids[6]; ok {
+		t.Fatal("substitute acc6 must not be a pack player")
+	}
+	for _, want := range []int{1, 2, 3, 4, 5, 21, 22, 23, 24, 25} {
+		if _, ok := ids[want]; !ok {
+			t.Fatalf("core roster account %d missing from pack players", want)
+		}
+	}
+}
+
 func TestBuildPlayersProfiles(t *testing.T) {
 	matches := fixtureMatches()
 	rolesList := roles.Infer(matches)
