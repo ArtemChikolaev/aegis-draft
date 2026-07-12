@@ -1,10 +1,830 @@
 [
   {
+    "id": "league-16251",
+    "name": "Party To Play league",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-05-03",
+    "endDate": "2026-06-14",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-16325",
+    "name": "Ancients League",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-01",
+    "endDate": "2025-10-03",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-16379",
+    "name": "Ancients League",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-29",
+    "endDate": "2025-10-31",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17366",
+    "name": "Ultras Dota Pro League  2024-25",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-21",
+    "endDate": "2025-10-22",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17381",
+    "name": "European Pro League  2024-2025 Season",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-25",
+    "endDate": "2025-10-28",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17419",
+    "name": "SLAM IV",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-19",
+    "endDate": "2025-11-09",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17420",
+    "name": "SLAM V",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-11-30",
+    "endDate": "2025-12-07",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17508",
+    "name": "互联网联赛",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2025-10-20",
+    "endDate": "2026-01-07",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17659",
+    "name": "EPL World Series: Southeast Asia 2024-2025 Season ",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-12-24",
+    "endDate": "2025-12-28",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17662",
+    "name": "1win Series Dota 2",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-11-13",
+    "endDate": "2025-11-16",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17909",
+    "name": "WBT CYBER CLUB #1",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-03-08",
+    "endDate": "2026-03-25",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-17914",
+    "name": "SIVVIT League",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-12-21",
+    "endDate": "2025-12-28",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18043",
+    "name": "DOTA2-Ticu梦幻联赛",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-26",
+    "endDate": "2025-09-09",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18203",
+    "name": "Campeonato NEXTLEVEL",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-06",
+    "endDate": "2025-08-10",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18211",
+    "name": "Qualificatorias abertas - Campeonato NEXTLEVEL #1",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-07-29",
+    "endDate": "2025-07-30",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18324",
+    "name": "The International 2025",
+    "type": "tier1",
+    "year": 2025,
+    "startDate": "2025-09-12",
+    "endDate": "2025-09-14",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-18331",
+    "name": "Snake Trophy 2",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-07-19",
+    "endDate": "2025-07-27",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18359",
+    "name": "Clavision DOTA2 Masters 2025: Snow-Ruyi",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-01",
+    "endDate": "2025-08-03",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18375",
+    "name": "Esports World Cup 2025",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-07-13",
+    "endDate": "2025-07-19",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18396",
+    "name": "CCT Dota 2 Season 2 Series 3",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-07-28",
+    "endDate": "2025-08-01",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18419",
+    "name": "Boss Battle",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-05",
+    "endDate": "2025-10-16",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18433",
+    "name": "FISSURE Universe Episode 6",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-21",
+    "endDate": "2025-08-24",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18434",
+    "name": "Кубок России Сбера по компьютерному спорту 2025",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-23",
+    "endDate": "2025-08-24",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18474",
+    "name": "Americas Convergence Series 1",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-07-29",
+    "endDate": "2025-08-06",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18490",
+    "name": "Snake Trophy",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-08",
+    "endDate": "2025-08-13",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18491",
+    "name": "CIS Battle Dota 2",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-11",
+    "endDate": "2025-08-15",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18498",
+    "name": "Americas Convergence Series 1",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-11",
+    "endDate": "2025-08-19",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18502",
+    "name": "Americas Convergence Series 1",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-16",
+    "endDate": "2025-10-24",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18509",
+    "name": "Europa Masters Cup",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-08",
+    "endDate": "2025-08-12",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18524",
+    "name": "CCT Dota 2 Season 2 Series 4",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-21",
+    "endDate": "2025-08-24",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18592",
+    "name": "BetBoom RU Battle",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-08-31",
+    "endDate": "2025-09-03",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18618",
+    "name": "Snake Trophy",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-18",
+    "endDate": "2025-11-02",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18622",
+    "name": "BetBoom Streamers Battle x Динамо 11",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-03",
+    "endDate": "2025-10-05",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18633",
+    "name": "FISSURE Universe Episode 7",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-09",
+    "endDate": "2025-10-12",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18660",
+    "name": "CIS Battle 3",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-11-12",
+    "endDate": "2025-11-14",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18666",
+    "name": "CCT Dota 2 Season 2 Series 5",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-10",
+    "endDate": "2025-10-14",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18676",
+    "name": "Pakistan Dota Masters - Season 2",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-31",
+    "endDate": "2025-11-02",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18766",
+    "name": "Redragon Latam Series Dota2",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-30",
+    "endDate": "2025-11-21",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18799",
+    "name": "CCT Dota 2 Season 2 South America Series 1",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-27",
+    "endDate": "2025-10-31",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18820",
+    "name": "BetBoom Streamers Battle x Динамо 12",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-11-25",
+    "endDate": "2025-11-30",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18863",
+    "name": "FISSURE PLAYGROUND 2",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-10-29",
+    "endDate": "2025-11-02",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18893",
+    "name": "Snake Trophy",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-11-26",
+    "endDate": "2025-12-01",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18920",
+    "name": "PGL Wallachia 2025 Season 6",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-11-21",
+    "endDate": "2025-11-23",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18937",
+    "name": "Games of the Future 2025 Abu Dhabi",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-12-16",
+    "endDate": "2025-12-19",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18941",
+    "name": "EPL Championship 2025-2026",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-02-24",
+    "endDate": "2026-02-28",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18955",
+    "name": "CCT Dota 2 Season 2 Series 6",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-12-03",
+    "endDate": "2025-12-06",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18988",
+    "name": "DreamLeague Season 27",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-12-18",
+    "endDate": "2025-12-21",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18995",
+    "name": "REDRAGON Battle Series DOTA2",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-11-20",
+    "endDate": "2025-11-30",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-18999",
+    "name": "Asia Pacific Predator League 2026",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-01-07",
+    "endDate": "2026-01-11",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19040",
+    "name": "Открытые Киберспортивные Игры Сбера 2025",
+    "type": "tier2",
+    "year": 2025,
+    "startDate": "2025-12-06",
+    "endDate": "2025-12-07",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19054",
+    "name": "Snake Trophy ",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-02-23",
+    "endDate": "2026-03-02",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19099",
+    "name": "BLAST SLAM VI",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-02-08",
+    "endDate": "2026-02-15",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19101",
+    "name": "BLAST SLAM VII",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-06-04",
+    "endDate": "2026-06-07",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19130",
+    "name": "ESL challenger China",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-01-30",
+    "endDate": "2026-02-01",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19218",
+    "name": "EPICENTER CUP - VERANO",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-02-02",
+    "endDate": "2026-03-15",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19239",
+    "name": "FISSURE Universe Episode 8",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-01-30",
+    "endDate": "2026-02-01",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19255",
+    "name": "Premier Series",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-04-09",
+    "endDate": "2026-04-11",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19269",
+    "name": "DreamLeague Season 28",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-02-26",
+    "endDate": "2026-03-01",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19422",
+    "name": "ESL One Birmingham 2026",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-03-26",
+    "endDate": "2026-03-29",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19435",
+    "name": "PGL Wallachia 2026 Season 7",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-03-13",
+    "endDate": "2026-03-15",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19543",
+    "name": "PGL Wallachia 2026 Season 8",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-04-24",
+    "endDate": "2026-04-26",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19575",
+    "name": "ESL challenger China powered By ACL",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-05-01",
+    "endDate": "2026-05-03",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19696",
+    "name": "DreamLeague Season 29",
+    "type": "tier2",
+    "year": 2026,
+    "startDate": "2026-05-21",
+    "endDate": "2026-05-24",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
     "id": "league-19785",
     "name": "Esports World Cup 2026",
     "type": "tier2",
     "year": 2026,
-    "startDate": "2026-07-07",
+    "startDate": "2026-07-10",
     "endDate": "2026-07-11",
     "formats": [
       "last_1y",
