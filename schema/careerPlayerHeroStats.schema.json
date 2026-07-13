@@ -1,15 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "aegis-draft/careerPlayerHeroStats.schema.json",
-  "title": "Career-to-event Player-Hero Stats (point-in-time)",
-  "description": "eventId -> accountId -> heroId -> {games, winrate}. Кумулятивный player×hero игрока на МОМЕНТ события (только матчи с датой ≤ конца события) — без вклада турниров, сыгранных позже. База пула героев для Hero Synergy; eventHeroStats уточняет свежесть на самом событии.",
+  "title": "Career Player-Hero Stats (lifetime)",
+  "description": "accountId -> heroId -> {games, winrate}. Пожизненные игры игрока на герое (/players/{id}/heroes). База player×hero для Hero Synergy; окно (playerHeroStats) и событие (eventHeroStats) уточняют свежесть.",
   "type": "object",
   "additionalProperties": {
     "type": "object",
-    "additionalProperties": {
-      "type": "object",
-      "additionalProperties": { "$ref": "#/definitions/stat" }
-    }
+    "additionalProperties": { "$ref": "#/definitions/stat" }
   },
   "definitions": {
     "stat": {

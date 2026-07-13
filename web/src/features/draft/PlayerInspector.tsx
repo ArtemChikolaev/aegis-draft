@@ -18,7 +18,7 @@ export function PlayerInspector({ candidate, data, onClose }: {
   const accountKey = String(candidate.player.accountId);
   const event = data.events.find((item) => item.id === candidate.eventId);
   const eventRows = statRows(data.eventHeroStats[candidate.eventId]?.[accountKey]);
-  const careerRows = statRows(data.careerPlayerHeroStats?.[candidate.eventId]?.[accountKey] ?? data.playerHeroStats[accountKey]);
+  const careerRows = statRows(data.careerPlayerHeroStats?.[accountKey] ?? data.playerHeroStats[accountKey]);
   const heroes = new Map(data.heroes.map((hero) => [hero.id, hero]));
 
   return (

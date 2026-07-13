@@ -51,7 +51,6 @@ func Build(in Input) (*model.Dataset, error) {
 	teamSuccess := BuildTeamSuccess(matches, in.Leagues, in.AsOf, in.Config)
 	heroes := convertHeroes(in.Heroes)
 	eventHeroStats := buildEventHeroStats(matches, events)
-	careerToEvent := buildCareerToEvent(matches, events)
 
 	ds := &model.Dataset{
 		Manifest: model.Manifest{
@@ -72,7 +71,7 @@ func Build(in Input) (*model.Dataset, error) {
 		Packs:                 packs,
 		Players:               players,
 		PlayerHeroStats:       in.Aggregates.PlayerHeroStats,
-		CareerPlayerHeroStats: careerToEvent,
+		CareerPlayerHeroStats: in.Aggregates.CareerPlayerHeroStats,
 		Teammates:             in.Aggregates.Teammates,
 		SquadSynergy:          in.Aggregates.SquadSynergy,
 		EventHeroStats:        eventHeroStats,
@@ -153,84 +152,6 @@ func buildEventHeroStats(matches []normalize.NormalizedMatch, events []model.Eve
 	}
 	out := make(map[string]map[string]map[string]model.Stat, len(acc))
 	for eventID, byAccount := range acc {
-		out[eventID] = make(map[string]map[string]model.Stat, len(byAccount))
-		for accountID, byHero := range byAccount {
-			heroStats := make(map[string]model.Stat, len(byHero))
-			for heroID, c := range byHero {
-				heroStats[strconv.Itoa(heroID)] = model.Stat{Games: c.games, Winrate: round4(float64(c.wins) / float64(c.games))}
-			}
-			out[eventID][strconv.Itoa(accountID)] = heroStats
-		}
-	}
-	return out
-}
-
-// buildCareerToEvent — point-in-time player×hero: для каждого события E и каждого его участника —
-// кумулятивная статистика героев из ВСЕХ собранных tier-1 матчей с датой ≤ конца E, т.е. БЕЗ вклада
-// турниров, сыгранных ПОСЛЕ E (эпохо-точность: пак «Yatoro @ TI2025» не тянет EWC2026). Считается
-// из match-level данных, которые и так собраны — сбор/CI не меняется. Заменяет lifetime-career для скоринга.
-func buildCareerToEvent(matches []normalize.NormalizedMatch, events []model.EventInfo) map[string]map[string]map[string]model.Stat {
-	leagueToEvent := make(map[int64]string, len(events))
-	for _, event := range events {
-		if leagueID, ok := parseLeagueID(event.ID); ok {
-			leagueToEvent[leagueID] = event.ID
-		}
-	}
-	// конец события = max StartTime его матчей (отсечка); участники = аккаунты в матчах события.
-	endOf := make(map[string]int64)
-	parts := make(map[string]map[int]struct{})
-	for _, match := range matches {
-		eventID, ok := leagueToEvent[match.LeagueID]
-		if !ok {
-			continue
-		}
-		if match.StartTime > endOf[eventID] {
-			endOf[eventID] = match.StartTime
-		}
-		if parts[eventID] == nil {
-			parts[eventID] = make(map[int]struct{})
-		}
-		for _, app := range match.Players {
-			parts[eventID][app.AccountID] = struct{}{}
-		}
-	}
-
-	type counter struct{ games, wins int }
-	agg := make(map[string]map[int]map[int]*counter, len(endOf))
-	for eventID := range endOf {
-		agg[eventID] = make(map[int]map[int]*counter)
-	}
-	for _, match := range matches {
-		for eventID, cutoff := range endOf {
-			if match.StartTime > cutoff {
-				continue
-			}
-			participants := parts[eventID]
-			for _, app := range match.Players {
-				if app.HeroID <= 0 {
-					continue
-				}
-				if _, ok := participants[app.AccountID]; !ok {
-					continue
-				}
-				if agg[eventID][app.AccountID] == nil {
-					agg[eventID][app.AccountID] = make(map[int]*counter)
-				}
-				c := agg[eventID][app.AccountID][app.HeroID]
-				if c == nil {
-					c = &counter{}
-					agg[eventID][app.AccountID][app.HeroID] = c
-				}
-				c.games++
-				if teamWon(match, app.TeamID) {
-					c.wins++
-				}
-			}
-		}
-	}
-
-	out := make(map[string]map[string]map[string]model.Stat, len(agg))
-	for eventID, byAccount := range agg {
 		out[eventID] = make(map[string]map[string]model.Stat, len(byAccount))
 		for accountID, byHero := range byAccount {
 			heroStats := make(map[string]model.Stat, len(byHero))
