@@ -21,7 +21,7 @@ on:
         default: "8"
       maxMatchesPerLeague:
         description: "Потолок деталей на событие (Free Tier)"
-        default: "25"
+        default: "150"
 
 permissions:
   contents: write # коммит обновлённых данных в main
@@ -58,7 +58,7 @@ jobs:
             --fetch-opendota --emit-domain --collect-window \
             --window "${{ github.event.inputs.window || 'last_5y' }}" \
             --min-event-matches "${{ github.event.inputs.minEventMatches || '8' }}" \
-            --max-matches-per-league "${{ github.event.inputs.maxMatchesPerLeague || '25' }}" \
+            --max-matches-per-league "${{ github.event.inputs.maxMatchesPerLeague || '150' }}" \
             --request-budget "${{ github.event.inputs.requestBudget || '2000' }}" \
             --as-of "$(date -u +%F)" \
             --out ../web/public/data \
