@@ -120,16 +120,26 @@ manSwap.swapHeroes(swapAccountA, swapAccountB);
 assert(manSwap.score()!.assignment.byPlayer[swapAccountA] === heroBeforeB, "manual: свап поменял героя у первого игрока");
 assert(manSwap.score()!.assignment.byPlayer[swapAccountB] === heroBeforeA, "manual: свап поменял героя у второго игрока");
 
-// --- Mixed Draft: строгий порядок 1→5 (игроки), затем герои ---
+// --- Mixed Draft: свободный порядок незаполненных ролей, затем герои ---
 const mixedRun = new RunEngine(data, { ...base, draftStyle: "mixed" }, "run-mixed");
-assert(!mixedRun.canPickPlayer(1) || mixedRun.currentSlotIndex === 1, "Mixed: до слота 0 нельзя брать слот 1 (строгий порядок)");
 const mixedTeamIds = new Set<number>();
-while (mixedRun.rosterFilled < 5) {
-  const slot = mixedRun.currentSlotIndex;
+const mixedPickOrder: Role[] = ["mid", "support", "safelane", "offlane", "support"];
+const remainingRoles: Record<Role, number> = { safelane: 1, mid: 1, offlane: 1, support: 2 };
+for (const role of mixedPickOrder) {
   assert(new Set(mixedRun.currentPack.candidates.map((c) => c.teamId)).size === 5, `Mixed: пак содержит 5 разных команд`);
-  const cand = mixedRun.currentPack.candidates[slot];
-  if (cand) mixedTeamIds.add(cand.teamId);
-  mixedRun.pickPlayer(slot);
+  mixedRun.currentPack.candidates.forEach((candidate, index) => {
+    assert(
+      mixedRun.canPickPlayer(index) === (remainingRoles[candidate.player.role] > 0),
+      `Mixed: доступность ${candidate.player.role} зависит только от свободного слота роли`,
+    );
+  });
+  const candidateIndex = mixedRun.currentPack.candidates.findIndex(
+    (candidate, index) => candidate.player.role === role && mixedRun.canPickPlayer(index),
+  );
+  assert(candidateIndex !== -1, `Mixed: можно свободно выбрать ${role}`);
+  mixedTeamIds.add(mixedRun.currentPack.candidates[candidateIndex].teamId);
+  mixedRun.pickPlayer(candidateIndex);
+  remainingRoles[role] -= 1;
 }
 runToEnd(mixedRun);
 assert(mixedRun.isComplete && mixedRun.heroes.length === HERO_TARGET, "Mixed: завершён с 5 героями");
@@ -152,10 +162,10 @@ const mkPack = (teamId: number, role: Role, accountId = teamId): Pack => ({
   signatureHeroes: [teamId],
 });
 const validMixedPool = ROLE_SEQUENCE.map((role, i) => mkPack(i + 1, role));
-const strictMixed = mixedPack(validMixedPool, new Rng("strict-five"));
-assert(strictMixed.candidates.length === 5, "Mixed edge: ровно 5 кандидатов");
-assert(new Set(strictMixed.candidates.map((c) => c.teamId)).size === 5, "Mixed edge: без fallback-повторов команд");
-assert(JSON.stringify(strictMixed.candidates.map((c) => c.player.role)) === JSON.stringify(ROLE_SEQUENCE), "Mixed edge: индексы совпадают со слотами");
+const mixedLineup = mixedPack(validMixedPool, new Rng("mixed-five"));
+assert(mixedLineup.candidates.length === 5, "Mixed edge: ровно 5 кандидатов");
+assert(new Set(mixedLineup.candidates.map((c) => c.teamId)).size === 5, "Mixed edge: без fallback-повторов команд");
+assert(JSON.stringify(mixedLineup.candidates.map((c) => c.player.role)) === JSON.stringify(ROLE_SEQUENCE), "Mixed edge: пакет содержит все слоты ролей");
 
 const fourTeams = validMixedPool.map((pack, i) => i === 4 ? { ...pack, teamId: 4, teamName: "Team 4" } : pack);
 let fourTeamsFailed = false;

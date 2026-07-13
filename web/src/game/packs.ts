@@ -1,10 +1,10 @@
 // Генерация паков (скилл scoring-model). Два стиля драфта:
 //  - Team Packs: пак = реальный ростер команды на турнире; берёшь одного игрока (любая роль).
-//  - Mixed Draft: пак = 5 игроков из РАЗНЫХ команд, по одному на слот; порядок строгий 1→5.
+//  - Mixed Draft: пак = 5 игроков из РАЗНЫХ команд, по одному на слот; порядок выбора свободный.
 import type { EventInfo, Format, Pack, PackPlayer, Role } from "../types/data.ts";
 import { Rng } from "./rng.ts";
 
-/** 5 слотов ростера по порядку (Mixed идёт строго по нему). support ×2. */
+/** 5 слотов ростера. support ×2. */
 export const ROLE_SEQUENCE: Role[] = ["safelane", "mid", "offlane", "support", "support"];
 
 export type DraftStyle = "team" | "mixed";
@@ -113,7 +113,7 @@ function findMixedLineup(
 }
 
 /** Сгенерировать следующий пак под конфиг. excludeTeamIds — мягкий анти-повтор Team-паков;
- *  excludePlayerIds — уже драфтованные игроки (для Mixed, чтобы строгий слот был свежим). */
+ *  excludePlayerIds — уже драфтованные игроки (для Mixed, чтобы не предлагать повторно). */
 export function generatePack(
   pool: Pack[],
   config: RunConfig,

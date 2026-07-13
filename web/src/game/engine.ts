@@ -45,7 +45,7 @@ export class RunEngine {
     this.currentPack = this.draw();
   }
 
-  /** Первый незаполненный слот роли (в Mixed — текущая роль строгого 1→5). */
+  /** Первый незаполненный слот ростера. */
   get currentSlotIndex(): number {
     return this.roster.findIndex((c) => c === null);
   }
@@ -81,15 +81,14 @@ export class RunEngine {
     if (this.rosterFilled >= ROLE_SEQUENCE.length) return false;
     const c = this.currentPack.candidates[candidateIndex];
     if (!c || this.usedPlayers.has(c.player.accountId)) return false;
-    if (this.config.draftStyle === "mixed") return candidateIndex === this.currentSlotIndex;
-    return this.slotForRole(c.player.role) !== -1; // team: любая ещё открытая роль
+    return this.slotForRole(c.player.role) !== -1;
   }
 
   /** Взять игрока в ростер; выдать следующий пак. */
   pickPlayer(candidateIndex: number): void {
     if (!this.canPickPlayer(candidateIndex)) throw new Error(`Нельзя взять игрока ${candidateIndex}`);
     const c = this.currentPack.candidates[candidateIndex];
-    const slot = this.config.draftStyle === "mixed" ? this.currentSlotIndex : this.slotForRole(c.player.role);
+    const slot = this.slotForRole(c.player.role);
     this.roster[slot] = c;
     this.usedPlayers.add(c.player.accountId);
     if (!this.isComplete) this.currentPack = this.draw();
