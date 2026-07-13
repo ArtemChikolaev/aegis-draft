@@ -229,28 +229,26 @@ export function squadChemistryRows(
   return rows.sort((a, b) => b.bonus - a.bonus || b.games - a.games);
 }
 
-// Player×hero для назначения героев: career (пожизненный пул из /players/{id}/heroes) —
-// широкая база, чтобы всплывал весь пул игрока (напр. Anti-Mage у Yatoro, которого нет в узком
-// окне); окно (playerHeroStats) уточняет свежесть для недавно сыгранных героев; при scoring==="event"
-// сверху ложится статистика игрока на его турнире.
+// Player×hero для назначения героев, point-in-time (эпохо-точно): база пула — career-to-event
+// (кумулятив игрока на МОМЕНТ его пака, без турниров после него); окно (playerHeroStats) уточняет
+// свежесть; при scoring==="event" сверху ложится статистика на самом турнире. Ключ пула — eventId
+// пака кандидата, поэтому в Mixed каждый игрок берёт срез своей эпохи.
 export function heroStatsForAssignment(
   data: GameData,
   scoring: Scoring,
   roster: (Candidate | null)[],
 ): PlayerHeroStats {
-  const career = data.careerPlayerHeroStats ?? {};
   const window = data.playerHeroStats;
-  const merged: PlayerHeroStats = {};
-  for (const acc of new Set([...Object.keys(career), ...Object.keys(window)])) {
-    merged[acc] = { ...(career[acc] ?? {}), ...(window[acc] ?? {}) };
-  }
-  if (scoring === "event") {
-    for (const candidate of roster) {
-      if (!candidate) continue;
-      const accountKey = String(candidate.player.accountId);
+  const career = data.careerPlayerHeroStats ?? {};
+  const merged: PlayerHeroStats = { ...window };
+  for (const candidate of roster) {
+    if (!candidate) continue;
+    const accountKey = String(candidate.player.accountId);
+    const pit = career[candidate.eventId]?.[accountKey];
+    if (pit) merged[accountKey] = { ...pit, ...(window[accountKey] ?? {}) };
+    if (scoring === "event") {
       const eventStats = data.eventHeroStats[candidate.eventId]?.[accountKey];
-      if (!eventStats) continue;
-      merged[accountKey] = { ...(merged[accountKey] ?? {}), ...eventStats };
+      if (eventStats) merged[accountKey] = { ...(merged[accountKey] ?? {}), ...eventStats };
     }
   }
   return merged;

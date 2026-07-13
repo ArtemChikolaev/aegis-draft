@@ -192,14 +192,18 @@ for (const [accountId, pl] of seenPlayer) {
 }
 write("playerHeroStats.json", playerHeroStats);
 
-// careerPlayerHeroStats.json — пожизненный player×hero: шире окна (весь role-pool + сигнатурки)
-// и с бóльшим числом игр, чтобы демонстрировать глубину карьеры (окно/событие уточняют свежесть).
+// careerPlayerHeroStats.json — point-in-time (event-keyed): eventId -> account -> hero -> stat.
+// Пул героев игрока на МОМЕНТ события (в моке — весь role-pool + сигнатурки, глубина > окна).
 const careerPlayerHeroStats = {};
-for (const [accountId, pl] of seenPlayer) {
-  const pool = new Set([...(rolePool[pl.role] || []), ...(packSig.get(accountId) || [])]);
-  const entry = {};
-  for (const h of pool) if (heroIds.includes(h)) entry[h] = { games: gamesOf(accountId, h) * 6 + 5, winrate: wr(accountId, h) };
-  careerPlayerHeroStats[accountId] = entry;
+for (const [eventId, set] of byEvent) {
+  careerPlayerHeroStats[eventId] = {};
+  for (const accountId of set) {
+    const pl = seenPlayer.get(accountId);
+    const pool = new Set([...(rolePool[pl.role] || []), ...(packSig.get(accountId) || [])]);
+    const entry = {};
+    for (const h of pool) if (heroIds.includes(h)) entry[h] = { games: gamesOf(accountId, h) * 6 + 5, winrate: wr(accountId, h) };
+    careerPlayerHeroStats[eventId][accountId] = entry;
+  }
 }
 write("careerPlayerHeroStats.json", careerPlayerHeroStats);
 

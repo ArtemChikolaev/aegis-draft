@@ -105,7 +105,8 @@ export interface GameData {
   packs: Pack[];
   players: Players;
   playerHeroStats: PlayerHeroStats;
-  careerPlayerHeroStats: PlayerHeroStats;
+  /** eventId -> account -> hero -> Stat: пул героев игрока на МОМЕНТ события (point-in-time). */
+  careerPlayerHeroStats: EventHeroStats;
   teammates: Teammates;
   squadSynergy: SquadSynergy;
   eventHeroStats: EventHeroStats;

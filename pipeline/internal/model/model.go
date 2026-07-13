@@ -129,7 +129,7 @@ type Dataset struct {
 	Packs                 []Pack
 	Players               map[string]PlayerProfile
 	PlayerHeroStats       map[string]map[string]Stat
-	CareerPlayerHeroStats map[string]map[string]Stat
+	CareerPlayerHeroStats map[string]map[string]map[string]Stat // eventId -> account -> hero -> stat (point-in-time до даты события)
 	Teammates             map[string][]int
 	SquadSynergy          []SquadPair
 	EventHeroStats        map[string]map[string]map[string]Stat

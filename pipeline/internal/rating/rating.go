@@ -5,8 +5,9 @@ package rating
 import "github.com/aegis-draft/pipeline/internal/model"
 
 // ModelVersion — версия модели рейтингов. Меняй при правке любой формулы.
-// v1.3.0: назначение героев (Hero Synergy) использует careerPlayerHeroStats как базу
-// player×hero (окно/событие уточняют свежесть) — раньше базой было только окно.
+// v1.3.0: назначение героев (Hero Synergy) использует careerPlayerHeroStats — point-in-time
+// пул игрока на момент события (кумулятив до даты события, без турниров после), окно/событие
+// уточняют свежесть. Раньше базой было только окно.
 const ModelVersion = "v1.3.0"
 
 type ImpactMetricWeights struct {
