@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/aegis-draft/pipeline/internal/aggregate"
@@ -89,13 +90,13 @@ func Run(ctx context.Context, cfg Config) error {
 		}
 		// Tier-1 scope (PRD §5.4.1): доменный сбор оставляет только tier-1 лиги =
 		// premium (из /leagues) ∪ курируемый реестр (OpenDota мислейблит EWC и др. как professional).
-		var tier1Leagues map[int64]struct{}
+		var rollingLeagues, legacyLeagues []int64
 		if cfg.EmitDomain {
-			tier1Leagues, err = tier1LeagueSet(ctx, od)
+			rollingLeagues, legacyLeagues, err = tier1LeagueSlices(ctx, od)
 			if err != nil {
 				return err
 			}
-			log.Printf("[fetch] tier-1 фильтр: %d лиг (premium ∪ professional−шум)", len(tier1Leagues))
+			log.Printf("[fetch] tier-1 фильтр: %d rolling лиг + %d valve_legacy (TI/Major) лиг", len(rollingLeagues), len(legacyLeagues))
 			// Прогреваем справочники teams/heroes ЗАРАНЕЕ (пока бюджет свежий), чтобы позже
 			// emit-domain взял их из кэша даже если career/peers исчерпали бюджет прогона.
 			if _, err := od.FetchTeams(ctx); err != nil {
@@ -105,12 +106,23 @@ func Run(ctx context.Context, cfg Config) error {
 				return domainFetchErr("heroes", err)
 			}
 		}
-		log.Printf("[fetch] OpenDota pro matches (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
-		collected, err := collect.OpenDotaWindow(ctx, od, collect.OpenDotaConfig{
-			WindowStartUnix: windowStart, MaxPages: maxPages, MatchLimit: matchLimit,
-			CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0,
-			Tier1Leagues:   tier1Leagues, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
-		})
+		log.Printf("[fetch] OpenDota discovery (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
+		var collected *collect.OpenDotaResult
+		if cfg.EmitDomain {
+			// Discovery по league_id через /explorer: одна ось — tier-1 за rolling-окно, вторая —
+			// valve_legacy (TI/Major) за всю историю (вне окна). Заменяет пагинацию proMatches.
+			collected, err = collect.OpenDotaExplorer(ctx, od, collect.ExplorerConfig{
+				RollingLeagues: rollingLeagues, LegacyLeagues: legacyLeagues, WindowStartUnix: windowStart,
+				CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
+				MatchLimit: matchLimit,
+			})
+		} else {
+			// Raw/smoke без домена — прежняя пагинация proMatches (без league-фильтра).
+			collected, err = collect.OpenDotaWindow(ctx, od, collect.OpenDotaConfig{
+				WindowStartUnix: windowStart, MaxPages: maxPages, MatchLimit: matchLimit,
+				CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
+			})
+		}
 		if err != nil {
 			return err
 		}
@@ -327,22 +339,27 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 	return nil
 }
 
-// tier1LeagueSet = все лиги, которые tier1.IsTier1 относит к tier-1 сцене (premium ∪
-// professional-минус-шум). OpenDota помечает многие реальные tier-1 турниры (EWC, DreamLeague,
-// OGA PIT) как professional, поэтому одного tier-флага мало. Один (кэшируемый) запрос; список
-// переиспользуется доменной сборкой ниже.
-func tier1LeagueSet(ctx context.Context, od *opendota.Client) (map[int64]struct{}, error) {
+// tier1LeagueSlices — лиги для explorer-дискавери: rolling (все tier-1 по tier1.IsTier1 — premium
+// ∪ professional-минус-шум; OpenDota мислейблит EWC/DreamLeague/OGA PIT как professional) + legacy
+// (valve_legacy: все The International + курируемые Valve/DPC Major по tier1.IsValveLegacy — они вне
+// rolling-окна и тянутся всей историей). Один кэшируемый /leagues-запрос; id отсортированы для
+// детерминизма и стабильных chunk-границ (кэш explorer).
+func tier1LeagueSlices(ctx context.Context, od *opendota.Client) (rolling, legacy []int64, err error) {
 	leagues, err := od.FetchLeagues(ctx)
 	if err != nil {
-		return nil, domainFetchErr("leagues", err)
+		return nil, nil, domainFetchErr("leagues", err)
 	}
-	set := make(map[int64]struct{})
 	for _, league := range leagues {
 		if tier1.IsTier1(league.Tier, league.Name) {
-			set[league.LeagueID] = struct{}{}
+			rolling = append(rolling, league.LeagueID)
+		}
+		if tier1.IsValveLegacy(league.LeagueID, league.Name) {
+			legacy = append(legacy, league.LeagueID)
 		}
 	}
-	return set, nil
+	sort.Slice(rolling, func(i, j int) bool { return rolling[i] < rolling[j] })
+	sort.Slice(legacy, func(i, j int) bool { return legacy[i] < legacy[j] })
+	return rolling, legacy, nil
 }
 
 // domainFetchErr делает бюджетное исчерпание понятной ошибкой (нужны все три справочника).

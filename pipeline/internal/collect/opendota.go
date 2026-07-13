@@ -96,25 +96,108 @@ func OpenDotaWindow(ctx context.Context, client *opendota.Client, cfg OpenDotaCo
 	if cfg.MaxPages == 0 && !result.DiscoveryComplete {
 		return result, nil
 	}
-	if cfg.MaxMatchesPerLeague > 0 {
-		result.ProMatches = capPerLeague(result.ProMatches, cfg.MaxMatchesPerLeague)
+	if err := collectDetails(ctx, client, result, cfg.MaxMatchesPerLeague, cfg.MatchLimit); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// ExplorerConfig — discovery по league_id через /explorer (замена пагинации proMatches).
+// Две оси: RollingLeagues (tier-1 за окно, since=WindowStartUnix) + LegacyLeagues (TI/Major
+// вся история, since=0). Details тянутся тем же resumable-циклом после ПОЛНОЙ дискавери.
+type ExplorerConfig struct {
+	RollingLeagues      []int64
+	LegacyLeagues       []int64
+	WindowStartUnix     int64
+	ChunkSize           int // лиг на explorer-запрос (guard длины URL); 0 => 100
+	CollectDetails      bool
+	MaxMatchesPerLeague int
+	MatchLimit          int
+}
+
+// OpenDotaExplorer собирает tier-1 (+ valve_legacy) матчи через /explorer: один запрос на набор
+// лиг вместо сотен страниц proMatches, и достаёт старые TI/Major вне rolling-окна. Cache-aware и
+// budget-resumable (explorer-запросы кэшируются; details добираются в след. прогонах).
+func OpenDotaExplorer(ctx context.Context, client *opendota.Client, cfg ExplorerConfig) (*OpenDotaResult, error) {
+	if client == nil {
+		return nil, fmt.Errorf("nil OpenDota client")
+	}
+	chunk := cfg.ChunkSize
+	if chunk <= 0 {
+		chunk = 100
+	}
+	result := &OpenDotaResult{ProMatches: []opendota.ProMatch{}, Details: []*opendota.Match{}}
+	seen := make(map[int64]struct{})
+	discover := func(leagues []int64, since int64) (bool, error) {
+		for i := 0; i < len(leagues); i += chunk {
+			end := i + chunk
+			if end > len(leagues) {
+				end = len(leagues)
+			}
+			rows, err := client.ExplorerMatchIDs(ctx, leagues[i:end], since)
+			if budgetExhausted(err) {
+				return false, nil
+			}
+			if err != nil {
+				return false, err
+			}
+			result.PagesRead++
+			for _, match := range rows {
+				if match.MatchID <= 0 {
+					continue
+				}
+				if _, ok := seen[match.MatchID]; !ok {
+					seen[match.MatchID] = struct{}{}
+					result.ProMatches = append(result.ProMatches, match)
+				}
+			}
+		}
+		return true, nil
+	}
+
+	completeRolling, err := discover(cfg.RollingLeagues, cfg.WindowStartUnix)
+	if err != nil {
+		return nil, err
+	}
+	completeLegacy, err := discover(cfg.LegacyLeagues, 0)
+	if err != nil {
+		return nil, err
+	}
+	result.DiscoveryComplete = completeRolling && completeLegacy
+
+	sort.Slice(result.ProMatches, func(i, j int) bool { return result.ProMatches[i].MatchID > result.ProMatches[j].MatchID })
+	// Details — только после ПОЛНОЙ дискавери (иначе потолок на лигу считался бы по неполному набору).
+	if !cfg.CollectDetails || !result.DiscoveryComplete {
+		return result, nil
+	}
+	if err := collectDetails(ctx, client, result, cfg.MaxMatchesPerLeague, cfg.MatchLimit); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+// collectDetails тянет /matches/{id} для найденных матчей (потолок на лигу + общий лимит),
+// budget-resumable: на исчерпании бюджета возвращает частичный результат (DetailsComplete=false).
+func collectDetails(ctx context.Context, client *opendota.Client, result *OpenDotaResult, maxPerLeague, matchLimit int) error {
+	if maxPerLeague > 0 {
+		result.ProMatches = capPerLeague(result.ProMatches, maxPerLeague)
 	}
 	target := len(result.ProMatches)
-	if cfg.MatchLimit > 0 && cfg.MatchLimit < target {
-		target = cfg.MatchLimit
+	if matchLimit > 0 && matchLimit < target {
+		target = matchLimit
 	}
 	for _, match := range result.ProMatches[:target] {
 		detail, err := client.FetchMatch(ctx, match.MatchID)
 		if budgetExhausted(err) {
-			return result, nil
+			return nil // частичный сбор; добор в след. прогоне
 		}
 		if err != nil {
-			return nil, err
+			return err
 		}
 		result.Details = append(result.Details, detail)
 	}
 	result.DetailsComplete = len(result.Details) == len(result.ProMatches)
-	return result, nil
+	return nil
 }
 
 // capPerLeague оставляет не более max матчей на лигу, сохраняя исходный порядок

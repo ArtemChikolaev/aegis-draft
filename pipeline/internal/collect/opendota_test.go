@@ -111,6 +111,53 @@ func TestCapPerLeague(t *testing.T) {
 	}
 }
 
+func TestOpenDotaExplorerDiscoversAndResumes(t *testing.T) {
+	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		body := ""
+		switch r.URL.Path {
+		case "/explorer":
+			// rolling-ось имеет "start_time >=" в SQL; valve_legacy (since=0) — нет.
+			if strings.Contains(r.URL.Query().Get("sql"), "start_time >=") {
+				body = `{"rows":[{"match_id":5,"start_time":200,"leagueid":100}]}`
+			} else {
+				body = `{"rows":[{"match_id":9,"start_time":50,"leagueid":900}]}` // старый valve_legacy вне окна
+			}
+		case "/matches/5":
+			body = `{"match_id":5}`
+		case "/matches/9":
+			body = `{"match_id":9}`
+		default:
+			return nil, fmt.Errorf("unexpected path %s", r.URL.Path)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
+	})}
+
+	cache := t.TempDir()
+	cfg := ExplorerConfig{RollingLeagues: []int64{100}, LegacyLeagues: []int64{900}, WindowStartUnix: 100, CollectDetails: true}
+
+	// Прогон 1, budget 2: обе explorer-дискавери проходят (2 сети), детали упираются в бюджет.
+	one, err := OpenDotaExplorer(context.Background(), newClient(t, cache, 2, httpClient), cfg)
+	if err != nil || !one.DiscoveryComplete || len(one.ProMatches) != 2 || len(one.Details) != 0 {
+		t.Fatalf("first=%+v err=%v", one, err)
+	}
+
+	// Прогон 2, budget 1: дискавери из кэша (0 сети), 1 деталь.
+	two, err := OpenDotaExplorer(context.Background(), newClient(t, cache, 1, httpClient), cfg)
+	if err != nil || len(two.Details) != 1 || two.DetailsComplete {
+		t.Fatalf("second=%+v err=%v", two, err)
+	}
+
+	// Прогон 3, budget 1: добирает вторую деталь, всё из кэша кроме одной сети.
+	third := newClient(t, cache, 1, httpClient)
+	three, err := OpenDotaExplorer(context.Background(), third, cfg)
+	if err != nil || len(three.Details) != 2 || !three.DetailsComplete {
+		t.Fatalf("third=%+v err=%v", three, err)
+	}
+	if stats := third.Stats(); stats.NetworkRequests != 1 {
+		t.Fatalf("resume должен быть из кэша кроме одной сети: stats=%+v", stats)
+	}
+}
+
 func newClient(t *testing.T, cache string, budget int, httpClient *http.Client) *opendota.Client {
 	t.Helper()
 	client, err := opendota.New(opendota.Config{

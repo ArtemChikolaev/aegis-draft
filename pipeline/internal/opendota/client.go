@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/aegis-draft/pipeline/internal/sourcehttp"
@@ -165,6 +166,38 @@ func (c *Client) FetchProMatches(ctx context.Context, lessThanMatchID int64) ([]
 		return nil, fmt.Errorf("fetch pro matches: %w", err)
 	}
 	return matches, nil
+}
+
+// ExplorerMatchIDs — discovery матчей по league_id через /explorer (SQL на Postgres OpenDota).
+// Один запрос отдаёт match_id/start_time/leagueid для НАБОРА лиг, заменяя пагинацию /proMatches
+// (и достаёт старые лиги — TI/Major вне rolling-окна). sinceUnix>0 ограничивает окном; 0 — вся история.
+// Возвращает облегчённые ProMatch (остальные поля нули — детали тянет FetchMatch).
+func (c *Client) ExplorerMatchIDs(ctx context.Context, leagueIDs []int64, sinceUnix int64) ([]ProMatch, error) {
+	if len(leagueIDs) == 0 {
+		return nil, nil
+	}
+	ids := make([]string, len(leagueIDs))
+	for i, id := range leagueIDs {
+		ids[i] = strconv.FormatInt(id, 10)
+	}
+	sql := "SELECT match_id, start_time, leagueid FROM matches WHERE leagueid IN (" + strings.Join(ids, ",") + ")"
+	if sinceUnix > 0 {
+		sql += fmt.Sprintf(" AND start_time >= %d", sinceUnix)
+	}
+	sql += " ORDER BY match_id DESC"
+	query := c.query()
+	query.Set("sql", sql)
+	var resp struct {
+		Rows []ProMatch `json:"rows"`
+		Err  string     `json:"err"`
+	}
+	if err := c.transport.GetJSON(ctx, "explorer", query, nil, &resp); err != nil {
+		return nil, fmt.Errorf("explorer match ids: %w", err)
+	}
+	if resp.Err != "" {
+		return nil, fmt.Errorf("explorer sql error: %s", resp.Err)
+	}
+	return resp.Rows, nil
 }
 
 func (c *Client) FetchPlayerHeroes(ctx context.Context, accountID int64) ([]PlayerHero, error) {

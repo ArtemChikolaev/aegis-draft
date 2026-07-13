@@ -12,7 +12,7 @@ on:
     inputs:
       window:
         description: "Окно сбора: last_1y|last_2y|last_5y"
-        default: "last_2y"
+        default: "last_5y"
       requestBudget:
         description: "Максимум реальных HTTP attempts за прогон (< 3000/day Free Tier)"
         default: "2000"
@@ -56,7 +56,7 @@ jobs:
         run: |
           go run ./cmd/build \
             --fetch-opendota --emit-domain --collect-window \
-            --window "${{ github.event.inputs.window || 'last_2y' }}" \
+            --window "${{ github.event.inputs.window || 'last_5y' }}" \
             --min-event-matches "${{ github.event.inputs.minEventMatches || '8' }}" \
             --max-matches-per-league "${{ github.event.inputs.maxMatchesPerLeague || '25' }}" \
             --request-budget "${{ github.event.inputs.requestBudget || '2000' }}" \
