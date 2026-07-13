@@ -5,7 +5,9 @@ package rating
 import "github.com/aegis-draft/pipeline/internal/model"
 
 // ModelVersion — версия модели рейтингов. Меняй при правке любой формулы.
-const ModelVersion = "v1.2.0"
+// v1.3.0: назначение героев (Hero Synergy) использует careerPlayerHeroStats как базу
+// player×hero (окно/событие уточняют свежесть) — раньше базой было только окно.
+const ModelVersion = "v1.3.0"
 
 type ImpactMetricWeights struct {
 	KDA           float64

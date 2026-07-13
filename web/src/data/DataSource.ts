@@ -18,13 +18,24 @@ export class StaticDataSource implements DataSource {
       if (!res.ok) throw new Error(`Не удалось загрузить ${name}.json (${res.status})`);
       return res.json();
     };
+    // careerPlayerHeroStats — опционально: датасет получает его лишь после прогона пайплайна
+    // с career-эмитом. Пока файла нет — {} (назначение героев падает на окно), чтобы деплой
+    // фронта не зависел от тайминга data-refresh.
+    const getOptional = async (name: string, fallback: unknown) => {
+      try {
+        const res = await fetch(`${this.base}/${name}.json`);
+        return res.ok ? await res.json() : fallback;
+      } catch {
+        return fallback;
+      }
+    };
     const [
       manifest, events, heroes, packs, players,
-      playerHeroStats, teammates, squadSynergy, eventHeroStats, teamSuccess,
+      playerHeroStats, careerPlayerHeroStats, teammates, squadSynergy, eventHeroStats, teamSuccess,
     ] = await Promise.all([
       get("manifest"), get("events"), get("heroes"), get("packs"), get("players"),
-      get("playerHeroStats"), get("teammates"), get("squadSynergy"), get("eventHeroStats"), get("teamSuccess"),
+      get("playerHeroStats"), getOptional("careerPlayerHeroStats", {}), get("teammates"), get("squadSynergy"), get("eventHeroStats"), get("teamSuccess"),
     ]);
-    return { manifest, events, heroes, packs, players, playerHeroStats, teammates, squadSynergy, eventHeroStats, teamSuccess };
+    return { manifest, events, heroes, packs, players, playerHeroStats, careerPlayerHeroStats, teammates, squadSynergy, eventHeroStats, teamSuccess };
   }
 }

@@ -22,6 +22,7 @@ const MAP = {
   "packs.json": "packs.schema.json",
   "players.json": "players.schema.json",
   "playerHeroStats.json": "playerHeroStats.schema.json",
+  "careerPlayerHeroStats.json": "careerPlayerHeroStats.schema.json",
   "teammates.json": "teammates.schema.json",
   "squadSynergy.json": "squadSynergy.schema.json",
   "eventHeroStats.json": "eventHeroStats.schema.json",

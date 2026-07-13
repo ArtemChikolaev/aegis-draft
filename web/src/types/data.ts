@@ -105,6 +105,7 @@ export interface GameData {
   packs: Pack[];
   players: Players;
   playerHeroStats: PlayerHeroStats;
+  careerPlayerHeroStats: PlayerHeroStats;
   teammates: Teammates;
   squadSynergy: SquadSynergy;
   eventHeroStats: EventHeroStats;

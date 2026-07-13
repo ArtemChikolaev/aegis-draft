@@ -16,16 +16,17 @@ func WriteAll(dir string, ds *model.Dataset) error {
 		return err
 	}
 	files := map[string]any{
-		"manifest":        ds.Manifest,
-		"events":          nonNilSlice(ds.Events),
-		"heroes":          nonNilSlice(ds.Heroes),
-		"packs":           nonNilSlice(ds.Packs),
-		"players":         nonNilMap(ds.Players),
-		"playerHeroStats": nonNilMap(ds.PlayerHeroStats),
-		"teammates":       nonNilMap(ds.Teammates),
-		"squadSynergy":    nonNilSlice(ds.SquadSynergy),
-		"eventHeroStats":  nonNilMap(ds.EventHeroStats),
-		"teamSuccess":     nonNilMap(ds.TeamSuccess),
+		"manifest":              ds.Manifest,
+		"events":                nonNilSlice(ds.Events),
+		"heroes":                nonNilSlice(ds.Heroes),
+		"packs":                 nonNilSlice(ds.Packs),
+		"players":               nonNilMap(ds.Players),
+		"playerHeroStats":       nonNilMap(ds.PlayerHeroStats),
+		"careerPlayerHeroStats": nonNilMap(ds.CareerPlayerHeroStats),
+		"teammates":             nonNilMap(ds.Teammates),
+		"squadSynergy":          nonNilSlice(ds.SquadSynergy),
+		"eventHeroStats":        nonNilMap(ds.EventHeroStats),
+		"teamSuccess":           nonNilMap(ds.TeamSuccess),
 	}
 	for name, payload := range files {
 		if err := writeJSON(filepath.Join(dir, name+".json"), payload); err != nil {

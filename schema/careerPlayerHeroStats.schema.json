@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "aegis-draft/careerPlayerHeroStats.schema.json",
+  "title": "Career Player-Hero Stats (lifetime)",
+  "description": "accountId -> heroId -> {games, winrate}. Пожизненные игры игрока на герое (/players/{id}/heroes). База player×hero для Hero Synergy; окно (playerHeroStats) и событие (eventHeroStats) уточняют свежесть.",
+  "type": "object",
+  "additionalProperties": {
+    "type": "object",
+    "additionalProperties": { "$ref": "#/definitions/stat" }
+  },
+  "definitions": {
+    "stat": {
+      "type": "object",
+      "required": ["games", "winrate"],
+      "additionalProperties": false,
+      "properties": {
+        "games": { "type": "integer", "minimum": 1 },
+        "winrate": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}

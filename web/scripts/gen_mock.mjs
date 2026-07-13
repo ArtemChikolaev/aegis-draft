@@ -192,6 +192,17 @@ for (const [accountId, pl] of seenPlayer) {
 }
 write("playerHeroStats.json", playerHeroStats);
 
+// careerPlayerHeroStats.json — пожизненный player×hero: шире окна (весь role-pool + сигнатурки)
+// и с бóльшим числом игр, чтобы демонстрировать глубину карьеры (окно/событие уточняют свежесть).
+const careerPlayerHeroStats = {};
+for (const [accountId, pl] of seenPlayer) {
+  const pool = new Set([...(rolePool[pl.role] || []), ...(packSig.get(accountId) || [])]);
+  const entry = {};
+  for (const h of pool) if (heroIds.includes(h)) entry[h] = { games: gamesOf(accountId, h) * 6 + 5, winrate: wr(accountId, h) };
+  careerPlayerHeroStats[accountId] = entry;
+}
+write("careerPlayerHeroStats.json", careerPlayerHeroStats);
+
 // teammates.json — все, кто в той же команде
 const teammates = {};
 for (const { players: set } of byTeam.values()) {

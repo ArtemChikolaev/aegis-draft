@@ -123,14 +123,15 @@ type Manifest struct {
 
 // Dataset — полный набор игровых данных (то, что эмитит пайплайн в web/public/data).
 type Dataset struct {
-	Manifest        Manifest
-	Events          []EventInfo
-	Heroes          []Hero
-	Packs           []Pack
-	Players         map[string]PlayerProfile
-	PlayerHeroStats map[string]map[string]Stat
-	Teammates       map[string][]int
-	SquadSynergy    []SquadPair
-	EventHeroStats  map[string]map[string]map[string]Stat
-	TeamSuccess     map[string]map[Format]TeamWindowSuccess
+	Manifest              Manifest
+	Events                []EventInfo
+	Heroes                []Hero
+	Packs                 []Pack
+	Players               map[string]PlayerProfile
+	PlayerHeroStats       map[string]map[string]Stat
+	CareerPlayerHeroStats map[string]map[string]Stat
+	Teammates             map[string][]int
+	SquadSynergy          []SquadPair
+	EventHeroStats        map[string]map[string]map[string]Stat
+	TeamSuccess           map[string]map[Format]TeamWindowSuccess
 }
