@@ -42,8 +42,20 @@ func TestIsValveLegacy(t *testing.T) {
 	if !IsValveLegacy(600, "The International 2014") {
 		t.Error("TI must be valve_legacy by name")
 	}
+	if !IsValveLegacy(11625, "The International 10") {
+		t.Error("short-numbered TI (TI10) must be valve_legacy by name")
+	}
 	if !IsValveLegacy(5157, "Kiev Major") {
 		t.Error("curated Valve Major id must be valve_legacy")
+	}
+	if !IsValveLegacy(4479, "The Manila Major 2016") {
+		t.Error("Manila Major 2016 (id 4479) must be valve_legacy")
+	}
+	if IsValveLegacy(18060, "The International DOGO Championships") {
+		t.Error("junk 'The International …' community league must NOT be valve_legacy")
+	}
+	if IsValveLegacy(16899, "The International") {
+		t.Error("bare 'The International' (empty junk league) must NOT match")
 	}
 	if IsValveLegacy(19785, "Esports World Cup 2026") {
 		t.Error("EWC is tier-1 but not valve_legacy")

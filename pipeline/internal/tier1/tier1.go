@@ -66,16 +66,24 @@ func IsTier1(tier, name string) bool {
 	}
 }
 
-var tiName = regexp.MustCompile(`(?i)^the international \d{4}$`)
+// TI по имени: «The International 2012..2026» + короткая нумерация «The International 10».
+// \d{1,4} (а не \d{4}) ловит и TI10-стиль; строгий якорь отсекает мусор («The International DOGO
+// Championships», «… (Practice)», квалы) и bare «The International» (в OpenDota это пустая лига 16899).
+var tiName = regexp.MustCompile(`(?i)^the international \d{1,4}$`)
 
 // IsTI — событие является The International (по имени лиги).
 func IsTI(name string) bool { return tiName.MatchString(name) }
 
-// valveMajors — курируемые id Valve/DPC Major. Классические (Kiev/Fall/Winter) в OpenDota
-// помечены professional, поэтому по имени/тиру их надёжно не выделить. Дополняется вручную
-// по мере появления новых мейджоров (id из /leagues).
+// valveMajors — курируемые id Valve/DPC Major. По имени их надёжно не выделить: `%major%` в
+// OpenDota-leagues даёт ~76 совпадений, где почти всё — мусор («A-Major», «牛马MAJOR», «Major
+// Bolivia», community-лиги), поэтому только точечный id-реестр. Дополняется вручную (id из /leagues).
+// Полный набор реальных Major с данными (сверено через /explorer 2026-07-13):
+// Shanghai(Winter'16) 4266 · Manila'16 4479 · Boston(Fall'16) 4874 · Kiev'17 5157 · Bucharest'18 9584 ·
+// China Super'18 9943 · Kuala Lumpur 10296 · Chongqing 10482 · Disneyland Paris 10810 · EPICENTER'19 10826 ·
+// Chengdu 11280 · Singapore 12906 · WePlay Kyiv'21 12964 · Stockholm'22 14173 · Arlington'22 14417 ·
+// Lima'23 15089 · Berlin'23 15251 · Bali'23 15438. (Frankfurt'15 main в OpenDota отсутствует — только квалы.)
 var valveMajors = map[int64]struct{}{
-	4266: {}, 4874: {}, 5157: {}, 9584: {}, 9943: {}, 10296: {}, 10482: {}, 10810: {},
+	4266: {}, 4479: {}, 4874: {}, 5157: {}, 9584: {}, 9943: {}, 10296: {}, 10482: {}, 10810: {},
 	10826: {}, 11280: {}, 12906: {}, 12964: {}, 14173: {}, 14417: {}, 15089: {}, 15251: {}, 15438: {},
 }
 
