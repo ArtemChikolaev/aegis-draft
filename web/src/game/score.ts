@@ -7,15 +7,18 @@ import type { Scoring } from "./packs.ts";
 import { assignWithFixed, bestAssignment, synergyTotalForAssignment, type Assignment, type SignatureLookup } from "./assign.ts";
 import { smoothedWinrate } from "./smoothing.ts";
 
-/** Масштабы бонусов (версионируются вместе с ratingModelVersion). Тюнинг — PRD §10-C. */
+/** Масштабы бонусов (версионируются вместе с ratingModelVersion). Тюнинг — PRD §10-C.
+ * v1.4.0 (2026-07-13): подняты масштабы — +0.1-бонусы были несерьёзными. Полная величина
+ * растёт по мере наполнения данных (сглаживание душит тонкие выборки к 0.5); эти масштабы
+ * калиброваны под глубокие данные (~уровень 322-0: Hero Synergy ~единицы, Chemistry ~1-3). */
 export const SCORING = {
-  synergyScale: 20,
-  chemistryScale: 16,
-  /** Текущий ростер (teamId+eventId) vs бывшие тиммейты. */
+  synergyScale: 50,
+  chemistryScale: 45,
+  /** Текущий ростер (teamId+eventId) весит заметно больше бывших тиммейтов. */
   chemistryCurrentMult: 1,
-  chemistryFormerMult: 0.35,
+  chemistryFormerMult: 0.55,
   /** Базовый вклад, если в текущем составе ещё нет squad-пары в данных. */
-  chemistryCurrentBaseline: 0.12,
+  chemistryCurrentBaseline: 0.15,
 } as const;
 const FULL_ROSTER_PAIR_COUNT = 10; // C(5, 2)
 
