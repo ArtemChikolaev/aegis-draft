@@ -19,6 +19,21 @@ test.describe("smoke: classic run", () => {
   });
 });
 
+test.describe("responsive: no horizontal overflow", () => {
+  test.beforeEach(async ({ page }) => {
+    await gotoFreshApp(page);
+  });
+
+  // Классический mobile/TMA-баг: страница уезжает вбок. Проверяем на старт-экране,
+  // что документ не шире вьюпорта (запас 1px на субпиксельное округление).
+  test("start screen fits the viewport width", async ({ page }) => {
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+});
+
 test.describe("smoke: tournament", () => {
   test.beforeEach(async ({ page }) => {
     await gotoFreshApp(page);

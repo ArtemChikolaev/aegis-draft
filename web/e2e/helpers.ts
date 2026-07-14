@@ -39,13 +39,13 @@ export async function startClassicRun(page: Page) {
   await expect(page.getByTestId("draft-screen")).toBeVisible();
 }
 
-/** Дождаться reveal-анимации и нажать Skip, если она идёт. */
+/** Нажать Skip live-reveal, если она идёт. Reveal может доиграться сам между проверкой и
+ *  кликом (кнопка отсоединяется от DOM) — клик best-effort, а итог гарантируется ожиданием,
+ *  что Skip исчезла (reveal завершён нашим кликом ЛИБО таймером). Устойчиво на mobile-таймингах. */
 export async function skipRevealIfPlaying(page: Page) {
   const skip = page.getByTestId("tournament-skip");
-  if (await skip.isVisible().catch(() => false)) {
-    await skip.click();
-    await expect(skip).toBeHidden({ timeout: 5_000 });
-  }
+  await skip.click({ timeout: 1_000 }).catch(() => {});
+  await expect(skip).toBeHidden({ timeout: 15_000 });
 }
 
 /** field → groups → playoffs с пропуском live-reveal. */
