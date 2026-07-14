@@ -25,6 +25,13 @@ cd server
 PORT=8080 go run ./cmd/api      # → http://localhost:8080/healthz
 go test ./...                    # тесты
 gofmt -l . && go vet ./...
+
+## Docker (за nginx, см. infra/)
+```bash
+# из корня репо, после docker compose up:
+curl http://localhost:8080/api/healthz
+```
+Сборка образа: `docker compose -f infra/docker-compose.yml build api`
 ```
 
 ## Статус

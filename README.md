@@ -37,7 +37,7 @@ cd server && PORT=8080 go run ./cmd/api
 |---|---|---|
 | **`pipeline/`** | Go | ETL: OpenDota → игровые JSON (`fetch→normalize→aggregate→rate→emit→validate`), детерминизм, версионирование. |
 | **`web/`** | TS + React + Vite + Zustand | Фронт + игровая логика счёта на клиенте. Design-system: `design/` (токены+тема) · `ui/` (примитивы) · `features/` (экраны) · `i18n/` · `game/` (логика) · `app/` (шелл). |
-| **`server/`** | Go + chi + Postgres | API пользовательского/общего состояния (аккаунты/сейвы/лидерборд/дейлик). Игровые данные — **не** тут (они статика). |
+| **`server/`** | Go + chi + Postgres | API пользовательского/общего состояния (аккаунты/сейвы/лидерборд/дейлик). Игровые данные — **не** тут (они статика). Локально за nginx: [`infra/`](../infra/). |
 | **`schema/`** | JSON Schema | Единый контракт данных между Go и TS — источник истины. |
 
 **Static-first гибрид** (ADR [0001](docs/adr/0001-tech-stack.md)/[0002](docs/adr/0002-backend-now.md)): игровые данные — статикой на CDN (масштабируется бесконечно), сервер держит только изменяемое состояние. **Без Kubernetes.**
@@ -50,6 +50,16 @@ Workflow [.github/workflows/ci.yml](.github/workflows/ci.yml):
 `web/public/data/*.json` версионируются (OpenDota-слайс). Обновляет [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml). **CI web-job** генерирует mock эфемерно (`gen:mock`) для Vitest/Playwright/golden; **deploy** — без mock. Локально: `gen:mock` для golden (`npm run test:golden:update`).
 
 Разовая настройка GitHub: **Settings → Pages → Source: GitHub Actions**; **Settings → Actions → General → Workflow permissions → Read and write**.
+
+### Prod-like lab (nginx + Docker Compose)
+
+Локальный стенд с единым входом (`/` SPA · `/data/*` JSON · `/api/*` Go API) — **не заменяет** GitHub Pages. См. [`infra/README.md`](infra/README.md):
+
+```bash
+[ -f web/public/data/manifest.json ] || (cd web && npm run gen:mock)
+docker compose -f infra/docker-compose.yml up --build
+# → http://localhost:8080
+```
 
 ## Система скиллов и правил (для AI-агентов)
 Единый контракт `CLAUDE.md` (= `AGENTS.md`), процедуры-скиллы в `.claude/skills/` (авто-активация по `description`), зеркала для Cursor (`.cursor/rules/`) и Codex (`.codex/skills/`). Маршрутизация «задача → скилл» — [docs/ai/INDEX.md](docs/ai/INDEX.md), принципы — [docs/ai/PRINCIPLES.md](docs/ai/PRINCIPLES.md).

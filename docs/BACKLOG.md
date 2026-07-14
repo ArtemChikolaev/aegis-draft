@@ -334,6 +334,7 @@
 - **T8.5 — Дейлик-сид + серверная валидация** (ре-симуляция на Go, переиспользуя `pipeline/internal/{model,rating}`; анти-чит). **Deps:** T8.2, M2. ⬜
 - **T8.6 — Лидерборд** (дейлик/seeded), защита от подделки результата. **Deps:** T8.5. ⬜
 - **T8.7 — Фронт: API-клиент** рядом с `DataSource` (статика ≠ динамика). **Deps:** T8.1. ⬜
+- ✅ **T8.8 — nginx + Docker Compose (prod-like lab):** `infra/docker-compose.yml`, `infra/nginx/` (reverse proxy: `/` SPA, `/data/*` static JSON, `/api/*` Go API), `server/Dockerfile`. Не заменяет GitHub Pages; Postgres в compose для будущих миграций. **Deps:** T8.1.
 
 ---
 

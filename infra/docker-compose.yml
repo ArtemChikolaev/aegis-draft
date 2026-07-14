@@ -1,0 +1,66 @@
+# Prod-like lab: nginx (единый вход) + Go API + Postgres.
+# GitHub Pages деплой не затрагивает — это отдельный локальный/staging стенд.
+#
+#   http://localhost:8080/        → React SPA
+#   http://localhost:8080/data/*  → static JSON (mount web/public/data)
+#   http://localhost:8080/api/*   → Go API (healthz → /api/healthz)
+#
+# Запуск из корня репо:
+#   [ -f web/public/data/manifest.json ] || (cd web && npm run gen:mock)
+#   docker compose -f infra/docker-compose.yml up --build
+
+name: aegis-draft
+
+services:
+  nginx:
+    build:
+      context: ..
+      dockerfile: infra/nginx/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - ../web/public/data:/usr/share/nginx/data:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  api:
+    build:
+      context: ../server
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: dev
+      PORT: "8080"
+      DATABASE_URL: postgres://aegis:aegis@postgres:5432/aegis?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 3s
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: aegis
+      POSTGRES_PASSWORD: aegis
+      POSTGRES_DB: aegis
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aegis -d aegis"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

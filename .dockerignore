@@ -1,0 +1,11 @@
+.git
+.github
+**/.DS_Store
+**/node_modules
+web/dist
+web/test-results
+web/playwright-report
+web/blob-report
+pipeline/data/raw
+pipeline/data/normalized
+pipeline/data/aggregate
