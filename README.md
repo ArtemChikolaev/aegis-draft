@@ -18,8 +18,10 @@
 ```bash
 # Фронт (Node 24+): dev-сервер на http://localhost:5173
 cd web && npm install && npm run dev
-# Мок-данные + проверка логики/контракта (verify ждёт мок — сначала gen:mock):
-npm run gen:mock && npm run verify && npm run validate:data && npm run typecheck
+# Тесты и валидация (реальный датасет в git; unit/golden — после gen:mock):
+npm run validate:data && npm run test && npm run test:e2e && npm run typecheck
+# Локально: mock для golden/fixtures и детерминированных unit-тестов:
+npm run gen:mock && npm run test
 
 # Go-пайплайн (Go 1.26+): реальный датасет из OpenDota
 cd pipeline
@@ -42,10 +44,10 @@ cd server && PORT=8080 go run ./cmd/api
 
 ## Данные, деплой, CI/CD
 Workflow [.github/workflows/ci.yml](.github/workflows/ci.yml):
-- **Проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`verify`→`typecheck`→`build`) · antipattern-scan.
-- **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует закоммиченный `web/public/data`.
+- **Проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`test`→`test:e2e`→`typecheck`→`build`; mock только в CI web-job) · antipattern-scan.
+- **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует **реальный** `web/public/data` из data-refresh.
 
-`web/public/data/*.json` версионируются. Обновляет их [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml): крон (ежедневно 06:00 UTC) или ручной запуск гоняет пайплайн `--emit-domain`, валидирует по схеме и обновляет данные → CI деплоит. CI-проверки всегда делают `gen:mock` эфемерно, поэтому не зависят от закоммиченных данных.
+`web/public/data/*.json` версионируются (OpenDota-слайс). Обновляет [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml). **CI web-job** генерирует mock эфемерно (`gen:mock`) для Vitest/Playwright/golden; **deploy** — без mock. Локально: `gen:mock` для golden (`npm run test:golden:update`).
 
 Разовая настройка GitHub: **Settings → Pages → Source: GitHub Actions**; **Settings → Actions → General → Workflow permissions → Read and write**.
 

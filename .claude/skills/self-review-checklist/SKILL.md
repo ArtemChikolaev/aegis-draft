@@ -24,8 +24,8 @@ description: >-
    - TS: `npm run typecheck` / `tsc --noEmit`, линтер чист.
 5. Данные: менял `schema/` или data JSON → провалидируй (см. [[data-contract]]) и синхронизируй оба конца.
 6. Рейтинги: менял формулу → бампнул `ratingModelVersion` (см. [[scoring-model]]).
-7. **Verify vs датасет.** `npm run verify` (`verify_game.ts`) ждёт **мок** (напр. Team Spirit `8291895`). Если `web/public/data` — реальный slice, сначала `npm run gen:mock`, иначе verify падёт. **Не объявляй общий verify зелёным**, если harness ждёт mock, а рабочий dataset — real (это gap T3.13, а не «готово»).
-8. **Push ≠ deploy.** После commit/push **дождись CI** (проверки + deploy) и проверь **live** (HTTP 200 + UI на реальном URL). `tsc`/`build` не ловят ошибки в скриптах (`verify_*`) — их видит только CI-шаг `verify`. Красный CI → почини, не считай задачу закрытой.
+7. **Датасет vs golden.** CI web делает эфемерный `gen:mock` (тесты/golden); deploy — реальный `public/data` из data-refresh. Golden skip'аются без mock-baseline; после смены mock — `npm run test:golden:update`.
+8. **Push ≠ deploy.** После commit/push **дождись CI** и проверь **live**. Web: `validate:data && npm run test && npm run test:e2e && tsc && build`.
 
 ## Категории проверки
 ### Reuse / архитектура

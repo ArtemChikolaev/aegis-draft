@@ -155,7 +155,7 @@ export function TournamentScreen() {
   const isRevealed = (id: string) => revealedSeries.has(id);
 
   return (
-    <main className="tournament">
+    <main className="tournament" data-testid="tournament-screen">
       <header className="tournament__heading">
         <div>
           <Eyebrow>{t("tournament.eyebrow")}</Eyebrow>
@@ -170,7 +170,7 @@ export function TournamentScreen() {
       </nav>
 
       {tournament.stage === "field" && (
-        <Surface className="tournament__field">
+        <Surface className="tournament__field" data-testid="tournament-stage-field">
           <div className="tournament__projection">
             <span>{t("tournament.yourProjection")}</span>
             <strong>{t(projectionKey(tournament.projection))}</strong>
@@ -187,7 +187,7 @@ export function TournamentScreen() {
       )}
 
       {tournament.stage === "groups" && (
-        <div className="tournament__groups">
+        <div className="tournament__groups" data-testid="tournament-stage-groups">
           {tournament.groups.map((group) => (
             <Surface key={group.id} className="group-table">
               <h2>Group {group.id}</h2>
@@ -217,7 +217,7 @@ export function TournamentScreen() {
       )}
 
       {tournament.stage === "playoffs" && (
-        <>
+        <div data-testid="tournament-stage-playoffs">
           {done && (
             <Surface className="tournament__champion">
               <div>
@@ -292,7 +292,7 @@ export function TournamentScreen() {
               <CareerPanel />
             </>
           )}
-        </>
+        </div>
       )}
 
       <div className="tournament__actions">
@@ -300,14 +300,18 @@ export function TournamentScreen() {
           <div className="tournament__live">
             <span className="tournament__live-dot">{t("tournament.live")}</span>
             <em>{t(tournament.stage === "groups" ? "tournament.playingGroups" : "tournament.playingPlayoffs")}</em>
-            <Button variant="leave" onClick={skip}>{t("tournament.skip")}</Button>
+            <Button variant="leave" data-testid="tournament-skip" onClick={skip}>{t("tournament.skip")}</Button>
           </div>
         ) : (
           <>
-            {tournament.canAdvance && advanceLabel[tournament.stage] && <Button variant="primary" onClick={advance}>{t(advanceLabel[tournament.stage]!)}<span>→</span></Button>}
+            {tournament.canAdvance && advanceLabel[tournament.stage] && (
+              <Button variant="primary" data-testid="tournament-advance" onClick={advance}>
+                {t(advanceLabel[tournament.stage]!)}<span>→</span>
+              </Button>
+            )}
             {!tournament.canAdvance && (
-              <div className="tournament__restart">
-                <Button variant="primary" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
+              <div className="tournament__restart" data-testid="tournament-complete">
+                <Button variant="primary" data-testid="tournament-restart" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
                 <Button variant="secondary" onClick={reset}>{t("tournament.restartChange")}</Button>
               </div>
             )}

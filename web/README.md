@@ -42,6 +42,34 @@ public/data/     # ← сюда пайплайн кладёт JSON
 - **packs.ts** — Team Packs (ростер команды) и Mixed Draft (5 из разных команд, порядок 1→5).
 - **DataSource** — абстракция над источником данных (статика сейчас → API в фазе 2).
 
+## Тесты (T3.13, 2026-07-14)
+
+| Команда | Что делает |
+|---|---|
+| `npm run test` | Vitest — unit/regression/golden (`web/test/`) |
+| `npm run test:e2e` | Playwright smoke — draft + tournament (`web/e2e/`) |
+| `npm run test:golden:update` | Обновить golden fixtures (нужен `gen:mock` перед этим) |
+| `npm run gen:mock` | Mock-baseline для тестов/golden (не коммитится; CI web-job делает сам) |
+
+Legacy `verify_*.ts` удалены — логика покрыта Vitest.
+
+## Dev: debug logger (draft / score / pack / tournament)
+
+При `npm run dev` логи пиков, паков и breakdown счёта пишутся в **VS Code/Cursor → TERMINAL** (вкладка, где крутится `npm run dev`). **DEBUG CONSOLE** для этого не используется — там только Node/debugger-сессии.
+
+В **production** logger отключён.
+
+**Выключить** (в Console браузера на localhost, или через DevTools → Application):
+
+```js
+localStorage.setItem("aegis:debug:game", "0");
+window.aegisDebug.disableGameLog();
+```
+
+**Включить снова:** `localStorage.setItem("aegis:debug:game", "1")` или `window.aegisDebug.enableGameLog()`.
+
+Код: `vite-plugin-game-log.ts` (Vite middleware → TERMINAL), `src/debug/{gameLog,logDraft,formatGameLog}.ts`, хуки в `state/runStore.ts`. Prod: no-op (`import.meta.env.DEV`).
+
 ## Типы из контракта
 
 Генерировать TS-типы из `../schema/*.schema.json` (напр. `json-schema-to-typescript`) в `src/types/`, чтобы не расходиться с пайплайном.

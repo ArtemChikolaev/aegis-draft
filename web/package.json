@@ -8,8 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:golden:update": "UPDATE_GOLDEN=1 vitest run test/golden.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "gen:mock": "node scripts/gen_mock.mjs",
-    "verify": "node scripts/verify_game.ts && node scripts/verify_engine.ts && node scripts/verify_tournament.ts && node scripts/verify_career.ts && node scripts/verify_preferences.ts",
     "validate:data": "node ../.claude/skills/data-contract/tools/validate_data.mjs public/data"
   },
   "dependencies": {
@@ -22,6 +26,8 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.6.3",
-    "vite": "^5.4.11"
+    "vite": "^5.4.11",
+    "vitest": "^3.2.4",
+    "@playwright/test": "^1.55.0"
   }
 }

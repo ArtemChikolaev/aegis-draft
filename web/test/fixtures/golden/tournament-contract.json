@@ -1,0 +1,180 @@
+{
+  "fieldSize": 18,
+  "fieldTeamIds": [
+    "aegis-user-team",
+    "bot-1",
+    "bot-10",
+    "bot-11",
+    "bot-12",
+    "bot-13",
+    "bot-14",
+    "bot-15",
+    "bot-16",
+    "bot-17",
+    "bot-2",
+    "bot-3",
+    "bot-4",
+    "bot-5",
+    "bot-6",
+    "bot-7",
+    "bot-8",
+    "bot-9"
+  ],
+  "userPlacement": "18",
+  "championId": "bot-15",
+  "grandFinalWinnerId": "bot-15",
+  "grandFinalBestOf": 5,
+  "playoffRoundCount": 9,
+  "standingsPlacements": [
+    {
+      "teamId": "bot-15",
+      "placement": "1",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-7",
+      "placement": "2",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-5",
+      "placement": "3",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-1",
+      "placement": "4",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-2",
+      "placement": "5-6",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-17",
+      "placement": "5-6",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-11",
+      "placement": "7-8",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-10",
+      "placement": "7-8",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-4",
+      "placement": "9-12",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-14",
+      "placement": "9-12",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-9",
+      "placement": "9-12",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-6",
+      "placement": "9-12",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-13",
+      "placement": "13-16",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-12",
+      "placement": "13-16",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-16",
+      "placement": "13-16",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-8",
+      "placement": "13-16",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-3",
+      "placement": "17",
+      "isUser": false
+    },
+    {
+      "teamId": "aegis-user-team",
+      "placement": "18",
+      "isUser": true
+    }
+  ],
+  "groupRoutes": [
+    {
+      "id": "A",
+      "upper": [
+        "bot-14",
+        "bot-4",
+        "bot-2",
+        "bot-17"
+      ],
+      "lower": [
+        "bot-13",
+        "bot-12",
+        "bot-16",
+        "bot-8"
+      ],
+      "out": [
+        "bot-3"
+      ],
+      "mapsPlayed": [
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16
+      ]
+    },
+    {
+      "id": "B",
+      "upper": [
+        "bot-9",
+        "bot-7",
+        "bot-15",
+        "bot-5"
+      ],
+      "lower": [
+        "bot-1",
+        "bot-6",
+        "bot-11",
+        "bot-10"
+      ],
+      "out": [
+        "aegis-user-team"
+      ],
+      "mapsPlayed": [
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16,
+        16
+      ]
+    }
+  ]
+}

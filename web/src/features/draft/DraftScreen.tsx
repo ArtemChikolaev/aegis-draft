@@ -77,7 +77,7 @@ export function DraftScreen() {
   }
 
   return (
-    <main className="draft">
+    <main className="draft" data-testid="draft-screen">
       <header className="screen-heading draft__heading">
         <div><Eyebrow>{t("draft.picked", { current: picked, total: 10 })}</Eyebrow><h1><TeamName value={teamName} placeholder={t("team.placeholder")} editLabel={t("team.edit")} onChange={setTeamName} /></h1></div>
         <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>

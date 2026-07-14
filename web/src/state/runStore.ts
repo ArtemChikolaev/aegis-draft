@@ -22,6 +22,7 @@ import {
   type RunMode,
   type SavedRun,
 } from "./runPersist.ts";
+import { logDataLoaded, logDraftSnap, logRunStart, logScreen, logTournament } from "../debug/logDraft.ts";
 
 type Phase = "loading" | "start" | "draft" | "result" | "tournament";
 export type { RunMode } from "./runPersist.ts";
@@ -87,6 +88,18 @@ function snap(engine: RunEngine): Snapshot {
     packHeroes: engine.packHeroes,
     score: engine.score(),
   };
+}
+
+function debugSnap(
+  action: string,
+  _engine: RunEngine,
+  snapshot: Snapshot,
+  config: RunConfig,
+  seed: string,
+  data: GameData,
+  detail?: Record<string, unknown>,
+): void {
+  logDraftSnap({ action, seed, config, data, snapshot, detail });
 }
 
 /** Детерминированный повтор действий на свежем движке (восстановление забега). */
@@ -161,6 +174,7 @@ export const useRun = create<RunStore>((set, get) => {
           && saved.actions.length > 0;
         if (saved && !compatible) clearSavedRun(); // датасет обновился — старый забег невалиден
         set({ data, phase: "start", teamName: loadTeamName(), resumable: compatible ? saved : null });
+        logDataLoaded(data);
       } catch (e) {
         set({ error: e instanceof Error ? e.message : String(e) });
       }
@@ -171,7 +185,10 @@ export const useRun = create<RunStore>((set, get) => {
       if (!data) return;
       try {
         const engine = new RunEngine(data, config, seed);
-        set({ engine, config, seed, phase: "draft", snapshot: snap(engine), actions: [], resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0 });
+        const snapshot = snap(engine);
+        set({ engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0 });
+        logRunStart(config, seed, data);
+        debugSnap("after start", engine, snapshot, config, seed, data);
         persist();
       } catch (e) {
         set({ error: e instanceof Error ? e.message : String(e) });
@@ -179,35 +196,50 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     pickPlayer(idx) {
-      const { engine } = get();
-      if (!engine || !engine.canPickPlayer(idx)) return;
+      const { engine, config, seed, data } = get();
+      if (!engine || !config || !data || !engine.canPickPlayer(idx)) return;
+      const candidate = engine.currentPack.candidates[idx];
       engine.pickPlayer(idx);
-      set({ snapshot: snap(engine), phase: engine.isComplete ? "result" : "draft" });
+      const snapshot = snap(engine);
+      set({ snapshot, phase: engine.isComplete ? "result" : "draft" });
+      debugSnap("pickPlayer", engine, snapshot, config, seed, data, {
+        index: idx,
+        nickname: candidate?.player.nickname,
+        role: candidate?.player.role,
+      });
+      if (engine.isComplete) logScreen("Result", "Roster and heroes complete");
       record({ t: "pickPlayer", index: idx });
     },
 
     pickHero(heroId) {
-      const { engine } = get();
-      if (!engine || !engine.canPickHero(heroId)) return;
+      const { engine, config, seed, data } = get();
+      if (!engine || !config || !data || !engine.canPickHero(heroId)) return;
       engine.pickHero(heroId);
-      set({ snapshot: snap(engine), phase: engine.isComplete ? "result" : "draft" });
+      const snapshot = snap(engine);
+      set({ snapshot, phase: engine.isComplete ? "result" : "draft" });
+      debugSnap("pickHero", engine, snapshot, config, seed, data, { heroId });
+      if (engine.isComplete) logScreen("Result", "Roster and heroes complete");
       record({ t: "pickHero", heroId });
     },
 
     assign(accountId, heroId) {
-      const { engine } = get();
-      if (!engine) return;
+      const { engine, config, seed, data } = get();
+      if (!engine || !config || !data) return;
       engine.assign(accountId, heroId);
-      set({ snapshot: snap(engine) });
+      const snapshot = snap(engine);
+      set({ snapshot });
+      debugSnap("assign", engine, snapshot, config, seed, data, { accountId, heroId });
       record({ t: "assign", accountId, heroId });
     },
 
     swapHeroes(accountIdA, accountIdB) {
-      const { engine } = get();
-      if (!engine) return;
+      const { engine, config, seed, data } = get();
+      if (!engine || !config || !data) return;
       try {
         engine.swapHeroes(accountIdA, accountIdB);
-        set({ snapshot: snap(engine) });
+        const snapshot = snap(engine);
+        set({ snapshot });
+        debugSnap("swapHeroes", engine, snapshot, config, seed, data, { accountIdA, accountIdB });
         record({ t: "swap", a: accountIdA, b: accountIdB });
       } catch {
         /* ignore invalid swap */
@@ -215,11 +247,15 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     reroll() {
-      const { engine } = get();
-      if (!engine) return;
+      const { engine, config, seed, data } = get();
+      if (!engine || !config || !data) return;
       const ok = engine.reroll();
-      set({ snapshot: snap(engine) });
-      if (ok) record({ t: "reroll" });
+      const snapshot = snap(engine);
+      set({ snapshot });
+      if (ok) {
+        debugSnap("reroll", engine, snapshot, config, seed, data, { rerollsLeft: snapshot.rerollsLeft });
+        record({ t: "reroll" });
+      }
     },
 
     canPickPlayer(idx) {
@@ -292,15 +328,20 @@ export const useRun = create<RunStore>((set, get) => {
       const resolvedName = teamName.trim() || displayName?.trim() || "Aegis Five";
       if (!teamName.trim()) saveTeamName(resolvedName);
       const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName);
-      set({ tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, phase: "tournament", teamName: resolvedName });
+      const tournament = tournamentEngine.snapshot;
+      set({ tournamentEngine, tournament, tournamentStep: 0, phase: "tournament", teamName: resolvedName });
+      logScreen("Tournament", "Started from Result screen");
+      logTournament(tournament, { teamName: resolvedName, teamOvr: snapshot.score.teamOvr });
       persist();
     },
 
     advanceTournament() {
-      const { tournamentEngine, tournamentStep } = get();
+      const { tournamentEngine, tournamentStep, teamName, snapshot } = get();
       if (!tournamentEngine || !tournamentEngine.advance()) return;
       const tournament = tournamentEngine.snapshot;
       set({ tournament, tournamentStep: tournamentStep + 1 });
+      const ovr = snapshot?.score?.teamOvr ?? 0;
+      logTournament(tournament, { teamName: teamName || "Aegis Five", teamOvr: ovr });
       recordCareer(tournament);
       persist();
     },

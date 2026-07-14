@@ -80,7 +80,7 @@ export function ResultScreen() {
     : null;
 
   return (
-    <main className="result">
+    <main className="result" data-testid="result-screen">
       <header className="screen-heading result__heading">
         <Eyebrow>{t("result.eyebrow")}</Eyebrow>
         <h1><TeamName value={teamName} placeholder={t("team.placeholder")} editLabel={t("team.edit")} onChange={setTeamName} /></h1>

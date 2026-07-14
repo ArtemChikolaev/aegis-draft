@@ -60,12 +60,18 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      - name: Сгенерировать мок-датасет (данные gitignored)
+      # T3.13: Vitest/Playwright/golden — на эфемерном mock (gen:mock не коммитится).
+      # Production dataset в git обновляет data-refresh; deploy-job собирает его без gen:mock.
+      - name: Mock dataset (CI unit/E2E only)
         run: npm run gen:mock
       - name: Валидация контракта данных (JSON Schema)
         run: npm run validate:data
-      - name: Verify игровой логики (game + engine)
-        run: npm run verify
+      - name: Unit tests (Vitest)
+        run: npm run test
+      - name: Install Playwright (Chromium)
+        run: npx playwright install --with-deps chromium
+      - name: Browser smoke (Playwright)
+        run: npm run test:e2e
       - run: npm run typecheck
       - run: npm run build
 
@@ -97,14 +103,13 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - name: Build web (сабпуть Pages + закоммиченный датасет)
+      - name: Build web (сабпуть Pages + реальный датасет из data-refresh)
         working-directory: web
         env:
           VITE_BASE: /aegis-draft/
         run: |
           npm ci
-          # Деплой публикует ЗАКОММИЧЕННЫЙ датасет (реальный из data-refresh или мок-baseline).
-          # gen:mock — только если данных нет, чтобы сборка не падала на пустом public/data.
+          # Деплой — закоммиченный OpenDota-слайс (data-refresh). gen:mock — fallback если data/ пуст.
           [ -f public/data/manifest.json ] || npm run gen:mock
           npm run build
       - uses: actions/configure-pages@v5

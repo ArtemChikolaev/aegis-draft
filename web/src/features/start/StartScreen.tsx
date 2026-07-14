@@ -87,7 +87,7 @@ export function StartScreen() {
         </header>
         <div className="mode-grid">
           {MODES.map((item, index) => (
-            <button key={item.value} className={`mode-card mode-card--${item.value}`} onClick={() => setMode(item.value)}>
+            <button key={item.value} className={`mode-card mode-card--${item.value}`} data-testid={`mode-${item.value}`} onClick={() => setMode(item.value)}>
               <span className="mode-card__index">0{index + 1}</span>
               <span className="mode-card__body"><strong>{t(item.label)}</strong><small>{t(item.hint)}</small><span>{t(item.detail)}</span></span>
               {!item.available && <em>{t("common.soon")}</em>}

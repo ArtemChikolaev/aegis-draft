@@ -86,11 +86,11 @@
 - **DoD:** round-trip URL стабилен; одинаковые данные+версия+URL дают одинаковые паки и итог; несовместимая версия объясняется пользователю.
 - **Deps:** T3.10, T3.11.
 
-### T3.13 — Настоящий test baseline ⬜
+### T3.13 — Настоящий test baseline ✅
 - **Цель:** превратить ad-hoc verify-скрипты в регрессионный набор для engine/scoring/packs и минимальный browser golden path.
-- **Файлы:** test runner/config, unit tests, browser smoke; `web/package.json`.
-- **Скиллы:** `reference-parity-audit`, `discovery-before-code`, `self-review-checklist`.
+- **Файлы:** `web/vitest.config.ts`, `web/playwright.config.ts`, `web/test/**`, `web/e2e/**`, `web/package.json`, `.github/workflows/ci.yml`.
 - **DoD:** одна команда проверяет unit + UI start→draft→result; CI-friendly; утверждение «Mixed Chemistry ниже» либо формализовано инвариантом, либо удалено как ложная гарантия.
+- **Итог (2026-07-14):** Vitest 77 tests (assign/score/engine/packs/tournament/career/preferences/regression/golden); Playwright smoke (draft + tournament); golden fixtures (`npm run test:golden:update`, только mock-baseline); legacy `verify_*.ts` удалены; **CI web** — эфемерный `gen:mock` для тестов; **deploy** — реальный датасет из data-refresh; dev debug-logger → VS Code TERMINAL (`web/src/debug/`, `vite-plugin-game-log.ts`).
 
 ---
 
