@@ -73,6 +73,26 @@ func TestGetJSONRateLimitStopsForResume(t *testing.T) {
 	}
 }
 
+func TestGetJSONPersistentUpstream5xxStopsForResume(t *testing.T) {
+	// Cloudflare 522 (origin timeout) и другие устойчивые 5xx — временная недоступность
+	// источника. После всех ретраев должны останавливаться мягко (ErrBudgetExhausted → resume),
+	// а не ронять весь прогон одним неудачным матчем.
+	httpClient := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+		return response(http.StatusBadGateway, `Error 522: Connection timed out`), nil
+	})}
+	client, err := New(Config{
+		BaseURL: "https://example.invalid/", CacheDir: t.TempDir(), UserAgent: "AegisDraft/test",
+		MaxAttempts: 3, Backoff: time.Nanosecond, MinInterval: -1, HTTPClient: httpClient,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out map[string]any
+	if getErr := client.GetJSON(context.Background(), "matches/1", nil, nil, &out); !errors.Is(getErr, ErrBudgetExhausted) {
+		t.Fatalf("устойчивый 5xx должен возвращать ErrBudgetExhausted (resumable-стоп), got %v", getErr)
+	}
+}
+
 func TestGetJSONRateLimitThenSucceeds(t *testing.T) {
 	var calls atomic.Int32
 	httpClient := &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {

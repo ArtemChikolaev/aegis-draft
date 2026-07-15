@@ -207,7 +207,11 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 			return err
 		}
 	}
-	return fmt.Errorf("GET %s failed after %d attempts: %w", safeURL, c.maxAttempts, lastErr)
+	// Транзиентный upstream (сетевой сбой / 5xx, напр. Cloudflare 520-524 «origin timeout»)
+	// после всех ретраев — это ВРЕМЕННАЯ недоступность источника, а не наша ошибка. Как и 429,
+	// останавливаемся мягко для resume (прогресс в raw-кэше сохранён, добор в след. прогоне),
+	// а не роняем весь прогон одним неудачным матчем.
+	return fmt.Errorf("GET %s failed after %d attempts (%v); stopping for resume: %w", safeURL, c.maxAttempts, lastErr, ErrBudgetExhausted)
 }
 
 // rateLimitWait — пауза после 429: Retry-After, если сервер его прислал, иначе cooldown,
