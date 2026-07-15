@@ -1,10 +1,1877 @@
 [
   {
+    "id": "league-600",
+    "name": "The International 2014",
+    "type": "ti",
+    "year": 2014,
+    "startDate": "2014-07-09",
+    "endDate": "2014-07-21",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-2733",
+    "name": "The International 2015",
+    "type": "ti",
+    "year": 2015,
+    "startDate": "2015-07-27",
+    "endDate": "2015-08-09",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-4266",
+    "name": "Winter Major 2016",
+    "type": "major",
+    "year": 2016,
+    "startDate": "2016-01-08",
+    "endDate": "2016-03-06",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-4664",
+    "name": "The International 2016",
+    "type": "ti",
+    "year": 2016,
+    "startDate": "2016-08-03",
+    "endDate": "2016-08-14",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-4874",
+    "name": "The Fall Major 2016",
+    "type": "major",
+    "year": 2016,
+    "startDate": "2016-10-29",
+    "endDate": "2016-12-11",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-5157",
+    "name": "Kiev Major",
+    "type": "major",
+    "year": 2017,
+    "startDate": "2017-03-13",
+    "endDate": "2017-04-30",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-5401",
+    "name": "The International 2017",
+    "type": "ti",
+    "year": 2017,
+    "startDate": "2017-08-03",
+    "endDate": "2017-08-13",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-9584",
+    "name": "PGL BUCHAREST MAJOR 2018",
+    "type": "major",
+    "year": 2018,
+    "startDate": "2018-01-11",
+    "endDate": "2018-03-11",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-9870",
+    "name": "The International 2018",
+    "type": "ti",
+    "year": 2018,
+    "startDate": "2018-08-16",
+    "endDate": "2018-08-26",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-9943",
+    "name": "CHINA DOTA2 SUPER MAJOR",
+    "type": "major",
+    "year": 2018,
+    "startDate": "2018-04-23",
+    "endDate": "2018-06-10",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-10296",
+    "name": "The Kuala Lumpur Major",
+    "type": "major",
+    "year": 2018,
+    "startDate": "2018-09-20",
+    "endDate": "2018-11-18",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-10482",
+    "name": "The Chongqing Major",
+    "type": "major",
+    "year": 2019,
+    "startDate": "2018-11-29",
+    "endDate": "2019-01-27",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-10749",
+    "name": "The International 2019",
+    "type": "ti",
+    "year": 2019,
+    "startDate": "2019-08-16",
+    "endDate": "2019-08-25",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-10810",
+    "name": "MDL Disneyland® Paris Major",
+    "type": "major",
+    "year": 2019,
+    "startDate": "2019-03-30",
+    "endDate": "2019-05-12",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-10826",
+    "name": "EPICENTER Major 2019",
+    "type": "major",
+    "year": 2019,
+    "startDate": "2019-05-18",
+    "endDate": "2019-06-30",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-11280",
+    "name": "MDL Chengdu Major",
+    "type": "major",
+    "year": 2019,
+    "startDate": "2019-10-07",
+    "endDate": "2019-11-24",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-12906",
+    "name": "The Singapore Major",
+    "type": "major",
+    "year": 2021,
+    "startDate": "2021-03-27",
+    "endDate": "2021-04-04",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-12964",
+    "name": "WePlay Kyiv Major 2021",
+    "type": "major",
+    "year": 2021,
+    "startDate": "2021-06-02",
+    "endDate": "2021-06-13",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-13256",
+    "name": "The International 2021",
+    "type": "ti",
+    "year": 2021,
+    "startDate": "2021-10-08",
+    "endDate": "2021-10-17",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-13403",
+    "name": "SAPPHIRE OGA DOTA PIT CHINA",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-08-07",
+    "endDate": "2021-08-16",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13404",
+    "name": "ESL One Fall 2021 powered by Intel",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-08-08",
+    "endDate": "2021-08-29",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13503",
+    "name": "SAPPHIRE OGA DOTA PIT INVITATIONAL",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-09-06",
+    "endDate": "2021-09-10",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13709",
+    "name": "DPC EEU Division I Winter Tour - 2021/2022 presented by Epic Esports Events",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-12-02",
+    "endDate": "2022-01-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13710",
+    "name": "DPC EEU Division II Winter Tour - 2021/2022 presented by Epic Esports Events",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-11-29",
+    "endDate": "2022-01-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13712",
+    "name": "DPC SA Division I Winter Tour – 2021/2022 by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-12-02",
+    "endDate": "2022-01-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13713",
+    "name": "DPC SA Division II Winter Tour – 2021/2022 by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-11-29",
+    "endDate": "2022-01-20",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13714",
+    "name": "DPC SA Closed Qualifier Tour 1 – 2021/2022 by 4D Esports",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-11-21",
+    "endDate": "2021-11-27",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13716",
+    "name": "DPC CN Division I Winter Tour - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-01-03",
+    "endDate": "2022-01-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13717",
+    "name": "DPC CN Division II Winter Tour - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-11-29",
+    "endDate": "2021-12-17",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13725",
+    "name": "DPC EEU Tour 1 Qualifier",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-11-27",
+    "endDate": "2021-11-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13738",
+    "name": "DPC WEU Division I Winter Tour - 2021/2022 - DreamLeague Season 16 presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-11-30",
+    "endDate": "2022-01-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13740",
+    "name": "DPC WEU Division II Winter Tour - 2021/2022 - DreamLeague Season 16 presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-11-19",
+    "endDate": "2022-01-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13741",
+    "name": "DPC NA Division I Winter Tour - 2021/2022 - ESL One Winter presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-11-30",
+    "endDate": "2022-01-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13742",
+    "name": "DPC NA Division II Winter Tour - 2021/2022 - ESL One Winter presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-11-19",
+    "endDate": "2022-01-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13747",
+    "name": "DPC SEA Division I Winter Tour - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-12-01",
+    "endDate": "2022-01-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13748",
+    "name": "DPC SEA Division II Winter Tour - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2021-11-29",
+    "endDate": "2022-01-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13753",
+    "name": "DPC CN  Qualifier Tour 1 - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-11-26",
+    "endDate": "2021-11-27",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13756",
+    "name": "DPC SEA Tour 1 Qualifier - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-11-20",
+    "endDate": "2021-11-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13768",
+    "name": "DPC NA Qualifiers Winter Tour - 2021/2022 - ESL One Winter presented by Intel",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-11-24",
+    "endDate": "2021-11-25",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13804",
+    "name": "SAPPHIRE OGA DOTA PIT EU/CIS",
+    "type": "tier1",
+    "year": 2021,
+    "startDate": "2021-12-13",
+    "endDate": "2021-12-20",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13926",
+    "name": "DPC 2021-2022 Tour 1 Regional Finals (EEU)",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-18",
+    "endDate": "2022-02-20",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13937",
+    "name": "DPC CN Winter Tour Regional Final - 2021/2022 presented by Perfect World Esports ",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-18",
+    "endDate": "2022-02-20",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13939",
+    "name": "DPC 2021-2022 Tour 1 Regional Finals (SEA) by Beyond the Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-11",
+    "endDate": "2022-02-13",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13954",
+    "name": "DPC 2021-2022 Tour 1 Regional Finals (SA) - Presented by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-11",
+    "endDate": "2022-02-14",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13960",
+    "name": "DPC 2021-2022 Tour 1 Regional Finals WEU - DreamLeague Season 16 powered by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-11",
+    "endDate": "2022-02-13",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13961",
+    "name": "DPC 2021-2022 Tour 1 Regional Finals NA - ESL One powered by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-18",
+    "endDate": "2022-02-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13978",
+    "name": "SAPPHIRE OGA DOTA PIT CHINA",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-22",
+    "endDate": "2022-02-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13980",
+    "name": "DPC 2021-2022 Tour 2 Qualifiers WEU - DreamLeague Season 17 powered by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-27",
+    "endDate": "2022-03-06",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-13981",
+    "name": "DPC 2021-2022 Tour 2 Qualifiers NA - ESL One Spring powered by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-28",
+    "endDate": "2022-03-07",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14015",
+    "name": "DPC 2021-2022 Tour 2 Qualifiers (SA) - Presented by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-02-28",
+    "endDate": "2022-05-27",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14039",
+    "name": "DPC CN  Qualifier Tour 2 - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-05",
+    "endDate": "2022-03-06",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14040",
+    "name": "DPC CN Division II Spring Tour - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-14",
+    "endDate": "2022-04-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14041",
+    "name": "DPC CN Division I Spring Tour - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-15",
+    "endDate": "2022-04-25",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14050",
+    "name": "DPC NA Division II Spring Tour - 2021/2022 - ESL One Spring presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-14",
+    "endDate": "2022-04-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14051",
+    "name": "DPC NA Division I Spring Tour - 2021/2022 - ESL One Spring presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-15",
+    "endDate": "2022-04-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14052",
+    "name": "DPC WEU Division I Spring Tour - 2021/2022 - DreamLeague Season 17 presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-15",
+    "endDate": "2022-04-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14053",
+    "name": "DPC WEU Division II Spring Tour - 2021/2022 - DreamLeague Season 17 presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-14",
+    "endDate": "2022-04-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14066",
+    "name": "DPC SEA Tour 2 Qualifier - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-09",
+    "endDate": "2022-03-13",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14067",
+    "name": "DPC SEA Division I Tour 2 - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-16",
+    "endDate": "2022-04-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14068",
+    "name": "DPC SEA Division II Tour 2 - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-14",
+    "endDate": "2022-04-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14071",
+    "name": "DPC SA Division I  Tour 2 – 2021/2022 by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-17",
+    "endDate": "2022-04-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14072",
+    "name": "DPC SA Division II Tour 2 – 2021/2022 by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-03-14",
+    "endDate": "2022-04-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14173",
+    "name": "ESL One Stockholm Major 2022 powered by Intel",
+    "type": "major",
+    "year": 2022,
+    "startDate": "2022-05-12",
+    "endDate": "2022-05-22",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-14187",
+    "name": "DPC EEU Division I Tour 2 Finals - 2021/2022 by Beyond the Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-04-27",
+    "endDate": "2022-05-02",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14196",
+    "name": "DPC CN Spring Tour Regional Final - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-05-06",
+    "endDate": "2022-05-08",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14223",
+    "name": "DPC 2021-2022 Tour 3 Qualifiers WEU - DreamLeague Season 18 powered by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-05-24",
+    "endDate": "2022-05-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14224",
+    "name": "DPC 2021-2022 Summer Tour Qualifiers NA - ESL One Summer powered by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-05-25",
+    "endDate": "2022-05-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14246",
+    "name": "DPC CN Qualifier Tour 3 - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-05-28",
+    "endDate": "2022-05-29",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14247",
+    "name": "DPC CN Division II Summer Tour - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-06",
+    "endDate": "2022-07-12",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14248",
+    "name": "DPC CN Division I Summer Tour - 2021/2022 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-07",
+    "endDate": "2022-07-17",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14256",
+    "name": "DPC EEU Division II Tour 2 Finals - 2021/2022 by Beyond the Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-05-19",
+    "endDate": "2022-05-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14262",
+    "name": "DPC 2021-2022 Summer Tour Qualifiers (SA) - Presented by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-05-27",
+    "endDate": "2022-05-29",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14268",
+    "name": "The International 2022",
+    "type": "ti",
+    "year": 2022,
+    "startDate": "2022-10-16",
+    "endDate": "2022-10-30",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-14269",
+    "name": "DPC SEA Tour 3 Qualifier - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-05-29",
+    "endDate": "2022-05-29",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14270",
+    "name": "DPC SEA Division I Tour 3 - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-08",
+    "endDate": "2022-07-16",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14271",
+    "name": "DPC SEA Division II Tour 3 - 2021/2022 by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-06",
+    "endDate": "2022-07-14",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14278",
+    "name": "DPC WEU Division II Summer Tour - 2021/2022 - DreamLeague Season 18 presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-06",
+    "endDate": "2022-07-13",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14279",
+    "name": "DPC WEU Division I Summer Tour - 2021/2022 - DreamLeague Season 18 presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-07",
+    "endDate": "2022-07-14",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14280",
+    "name": "DPC NA Division II Summer Tour - 2021/2022 - ESL One Summer presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-06",
+    "endDate": "2022-07-17",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14281",
+    "name": "DPC NA Division I Summer Tour - 2021/2022 - ESL One Summer presented by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-07",
+    "endDate": "2022-07-16",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14294",
+    "name": "DPC 2021- 2022 (EEU) Summer Tour Qualifier by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-01",
+    "endDate": "2022-06-01",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14295",
+    "name": "DPC 2021-2022 Summer Tour (EEU) Division I by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-09",
+    "endDate": "2022-07-16",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14296",
+    "name": "DPC 2021-2022 Summer Tour (EEU) Division II by Beyond The Summit",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-06",
+    "endDate": "2022-07-15",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14298",
+    "name": "DPC SA Division II Summer Tour – 2021/2022 by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-06",
+    "endDate": "2022-07-16",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14299",
+    "name": "DPC SA Division I  Summer Tour – 2021/2022 by 4D Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-06-09",
+    "endDate": "2022-07-17",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14388",
+    "name": "ESL One Malaysia 2022 powered by Intel",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-08-23",
+    "endDate": "2022-08-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14391",
+    "name": "Riyadh Masters by Gamers8",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-07-20",
+    "endDate": "2022-07-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14417",
+    "name": "PGL Arlington Major 2022",
+    "type": "major",
+    "year": 2022,
+    "startDate": "2022-08-04",
+    "endDate": "2022-08-14",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-14569",
+    "name": "NA TI 11 Regional Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-09-08",
+    "endDate": "2022-09-12",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14570",
+    "name": "EEU TI 11 Regional Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-09-03",
+    "endDate": "2022-09-07",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14571",
+    "name": "SA TI 11 Regional Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-09-03",
+    "endDate": "2022-09-07",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14572",
+    "name": "CN TI 11 Regional Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-09-08",
+    "endDate": "2022-09-12",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14573",
+    "name": "SEA TI 11 Regional Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-09-13",
+    "endDate": "2022-09-17",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14574",
+    "name": "WEU TI 11 Regional Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-09-13",
+    "endDate": "2022-09-17",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14642",
+    "name": "The International 2022 Last Chance Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-10-08",
+    "endDate": "2022-10-12",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14854",
+    "name": "DPC SEA 2023 Tour 1: Division II Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-12-11",
+    "endDate": "2022-12-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14856",
+    "name": "DPC EEU 2023 Tour 1: Division II Closed Qualifiers",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-12-19",
+    "endDate": "2022-12-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14857",
+    "name": "DPC 2023 EEU Winter Tour Division II - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-31",
+    "endDate": "2023-02-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14858",
+    "name": "DPC 2023 EEU Winter Tour Division I - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-08",
+    "endDate": "2023-01-30",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14859",
+    "name": "DPC 2023 CN Winter Tour Division I - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-05",
+    "endDate": "2023-02-04",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14860",
+    "name": "DPC 2023 CN Winter Tour Division II - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-02-05",
+    "endDate": "2023-02-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14861",
+    "name": "DPC CN Qualifier Tour 1 - 2022/2023 presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-12-11",
+    "endDate": "2022-12-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14886",
+    "name": "DPC 2023 SA Winter Tour Division I – presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-10",
+    "endDate": "2023-01-30",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14887",
+    "name": "DPC 2023 SA Winter Tour Division II – presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-31",
+    "endDate": "2023-02-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14889",
+    "name": "DPC 2022-2023 Winter Tour (NA) Closed Qualifiers – Presented by PGL",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-12-19",
+    "endDate": "2022-12-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14891",
+    "name": "DPC 2022-2023 Winter Tour (WEU) Closed Qualifiers – Presented by PGL",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-12-19",
+    "endDate": "2022-12-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14892",
+    "name": "DPC 2023 WEU Winter Tour Division I – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-09",
+    "endDate": "2023-01-31",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14893",
+    "name": "DPC 2023 NA Winter Tour Division I – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-09",
+    "endDate": "2023-01-30",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14902",
+    "name": "DPC 2023 SA Tour 1 Closed Qualifiers – Presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2022,
+    "startDate": "2022-12-19",
+    "endDate": "2022-12-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14921",
+    "name": "DPC 2023 WEU Winter Tour Division II – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-02-01",
+    "endDate": "2023-02-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14922",
+    "name": "DPC 2023 NA Winter Tour Division II – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-02-01",
+    "endDate": "2023-02-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14927",
+    "name": "DPC 2023 SEA Winter Tour Division I - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-01-09",
+    "endDate": "2023-01-30",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-14928",
+    "name": "DPC 2023 SEA Winter Tour Division II - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-02-01",
+    "endDate": "2023-02-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15085",
+    "name": "DPC 2023 NA Spring Tour Division I – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-13",
+    "endDate": "2023-04-04",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15086",
+    "name": "DPC 2023 WEU Spring Tour Division I – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-13",
+    "endDate": "2023-04-03",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15087",
+    "name": "DPC 2023 NA Spring Tour Division II – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-04-05",
+    "endDate": "2023-04-27",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15088",
+    "name": "DPC 2023 WEU Spring Tour Division II – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-04-05",
+    "endDate": "2023-04-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15089",
+    "name": "Lima Major 2023",
+    "type": "major",
+    "year": 2023,
+    "startDate": "2023-02-23",
+    "endDate": "2023-03-05",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-15122",
+    "name": "DPC 2023 EEU Spring Tour Closed Qualifiers - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-19",
+    "endDate": "2023-03-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15125",
+    "name": "DPC 2023 SEA Spring Tour Division I - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-13",
+    "endDate": "2023-04-03",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15126",
+    "name": "DPC 2023 SEA Spring Tour Division II - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-04-05",
+    "endDate": "2023-04-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15134",
+    "name": "DPC 2023 SA Tour 2 Closed Qualifiers – Presented by ESB Liga Esports Betsafe",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-19",
+    "endDate": "2023-03-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15135",
+    "name": "DPC 2023 SA Spring Tour Division I – presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-12",
+    "endDate": "2023-04-03",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15136",
+    "name": "DPC 2023 SA Spring Tour Division II – presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-04-04",
+    "endDate": "2023-04-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15137",
+    "name": "DPC 2023 EEU Spring Tour Division I - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-12",
+    "endDate": "2023-04-02",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15138",
+    "name": "DPC 2023 EEU Spring Tour Division II - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-04-04",
+    "endDate": "2023-04-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15140",
+    "name": "DPC 2023 CN Spring Tour Division I - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-14",
+    "endDate": "2023-04-03",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15141",
+    "name": "DPC 2023 CN Spring Tour Division II - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-04-04",
+    "endDate": "2023-04-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15142",
+    "name": "DPC 2023 CN Tour 2 Closed Qualifiers - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-17",
+    "endDate": "2023-03-20",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15146",
+    "name": "DPC 2023 NA Spring Tour Closed Qualifiers– presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-19",
+    "endDate": "2023-03-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15147",
+    "name": "DPC 2023 WEU Spring Tour Closed Qualifiers – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-19",
+    "endDate": "2023-03-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15186",
+    "name": "DPC 2023 SEA Spring Tour Closed Qualifiers - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-03-19",
+    "endDate": "2023-03-22",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15196",
+    "name": "DreamLeague Season 19 powered by Intel",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-04-10",
+    "endDate": "2023-04-23",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15251",
+    "name": "ESL One The Berlin Major powered by Intel",
+    "type": "major",
+    "year": 2023,
+    "startDate": "2023-04-27",
+    "endDate": "2023-05-07",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-15334",
+    "name": "DPC 2023 EEU Summer Tour Closed Qualifiers - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-21",
+    "endDate": "2023-05-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15335",
+    "name": "DPC 2023 EEU Summer Tour Division I - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-14",
+    "endDate": "2023-06-05",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15336",
+    "name": "DPC 2023 EEU Summer Tour Division II - presented by Paragon Events",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-06-06",
+    "endDate": "2023-06-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15348",
+    "name": "DPC 2023 NA Summer Tour Closed Qualifiers – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-21",
+    "endDate": "2023-05-25",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15349",
+    "name": "DPC 2023 WEU Summer Tour Closed Qualifiers – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-21",
+    "endDate": "2023-05-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15350",
+    "name": "DPC 2023 NA Summer Tour Division I – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-15",
+    "endDate": "2023-06-06",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15351",
+    "name": "DPC 2023 WEU Summer Tour Division I – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-15",
+    "endDate": "2023-06-05",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15352",
+    "name": "DPC 2023 WEU Summer Tour Division II – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-06-07",
+    "endDate": "2023-06-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15353",
+    "name": "DPC 2023 NA Summer Tour Division II – presented by PGL",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-06-07",
+    "endDate": "2023-06-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15364",
+    "name": "DPC 2023 SA Summer Tour Closed Qualifiers – presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-22",
+    "endDate": "2023-05-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15365",
+    "name": "DPC 2023 SA Summer Tour Division I – presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-14",
+    "endDate": "2023-06-05",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15366",
+    "name": "DPC 2023 SA Summer Tour Division II – presented by ESB Liga Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-06-06",
+    "endDate": "2023-06-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15374",
+    "name": "DPC 2023 SEA Summer Tour Division I - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-15",
+    "endDate": "2023-06-05",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15375",
+    "name": "DPC 2023 SEA Summer Tour Division II - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-06-07",
+    "endDate": "2023-06-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15377",
+    "name": "DPC 2023 SEA Summer Tour Closed Qualifiers - presented by Epulze",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-21",
+    "endDate": "2023-05-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15383",
+    "name": "DPC 2023 CN Summer Tour Division I - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-16",
+    "endDate": "2023-06-05",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15384",
+    "name": "DPC 2023 CN Summer Tour Division II - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-06-06",
+    "endDate": "2023-06-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15385",
+    "name": "DPC 2023 CN Summer Tour Closed Qualifiers - presented by Perfect World Esports",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-05-16",
+    "endDate": "2023-05-18",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15438",
+    "name": "The Bali Major",
+    "type": "major",
+    "year": 2023,
+    "startDate": "2023-06-30",
+    "endDate": "2023-07-09",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-15439",
+    "name": "DreamLeague Season 20 powered by Intel",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-06-12",
+    "endDate": "2023-06-25",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15475",
+    "name": "Riyadh Masters 2023 by Gamers8",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-07-21",
+    "endDate": "2023-07-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15689",
+    "name": "Road to TI 2023 - CN Regional Qualifiers",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-08-17",
+    "endDate": "2023-08-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15690",
+    "name": "Road to TI 2023 - NA Regional Qualifiers",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-08-17",
+    "endDate": "2023-08-21",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15691",
+    "name": "Road to TI 2023 - EEU Regional Qualifiers",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-08-22",
+    "endDate": "2023-08-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15692",
+    "name": "Road to TI 2023 - SA Regional Qualifiers",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-08-22",
+    "endDate": "2023-08-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15693",
+    "name": "Road to TI 2023 - WEU Regional Qualifiers",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-08-27",
+    "endDate": "2023-08-31",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15694",
+    "name": "Road to TI 2023 - SEA Regional Qualifiers",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-08-27",
+    "endDate": "2023-08-31",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15728",
+    "name": "The International 2023",
+    "type": "ti",
+    "year": 2023,
+    "startDate": "2023-10-12",
+    "endDate": "2023-10-29",
+    "formats": [
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-15739",
+    "name": "DreamLeague Season 21 powered by Intel",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-09-18",
+    "endDate": "2023-09-24",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-15910",
+    "name": "ESL One Kuala Lumpur powered by Intel",
+    "type": "tier1",
+    "year": 2023,
+    "startDate": "2023-12-11",
+    "endDate": "2023-12-17",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-16201",
+    "name": "DreamLeague Season 22 powered by Intel",
+    "type": "tier1",
+    "year": 2024,
+    "startDate": "2024-02-26",
+    "endDate": "2024-03-10",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-16483",
+    "name": "Elite League by FISSURE and ESB",
+    "type": "tier1",
+    "year": 2024,
+    "startDate": "2024-04-03",
+    "endDate": "2024-04-14",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-16518",
+    "name": "ESL One Birmingham 2024 Powered by Intel",
+    "type": "tier1",
+    "year": 2024,
+    "startDate": "2024-04-22",
+    "endDate": "2024-04-28",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-16632",
+    "name": "DreamLeague Season 23 powered by Intel",
+    "type": "tier1",
+    "year": 2024,
+    "startDate": "2024-05-20",
+    "endDate": "2024-05-26",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-16669",
+    "name": "PGL Wallachia 2024 Season 1",
+    "type": "tier1",
+    "year": 2024,
+    "startDate": "2024-05-10",
+    "endDate": "2024-05-19",
+    "formats": [
+      "last_5y"
+    ]
+  },
+  {
     "id": "league-16846",
     "name": "FISSURE Universe: Episode 3",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-08-22",
+    "startDate": "2024-08-18",
     "endDate": "2024-08-25",
     "formats": [
       "last_2y",
@@ -16,7 +1883,7 @@
     "name": "Riyadh Masters 2024 at Esports World Cup",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-07-18",
+    "startDate": "2024-07-10",
     "endDate": "2024-07-21",
     "formats": [
       "last_2y",
@@ -28,7 +1895,7 @@
     "name": "Clavision DOTA League S1 : Snow-Ruyi",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-08-02",
+    "startDate": "2024-07-28",
     "endDate": "2024-08-04",
     "formats": [
       "last_2y",
@@ -40,7 +1907,7 @@
     "name": "Elite League Season 2 Main Event – presented by ESB",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-08-02",
+    "startDate": "2024-07-25",
     "endDate": "2024-08-04",
     "formats": [
       "last_2y",
@@ -52,7 +1919,7 @@
     "name": "The International 2024",
     "type": "ti",
     "year": 2024,
-    "startDate": "2024-09-10",
+    "startDate": "2024-09-04",
     "endDate": "2024-09-15",
     "formats": [
       "last_2y",
@@ -65,7 +1932,7 @@
     "name": "PGL Wallachia 2024 Season 2",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-10-11",
+    "startDate": "2024-10-04",
     "endDate": "2024-10-13",
     "formats": [
       "last_2y",
@@ -77,7 +1944,7 @@
     "name": "DreamLeague Season 24 powered by Intel",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-11-06",
+    "startDate": "2024-10-28",
     "endDate": "2024-11-10",
     "formats": [
       "last_2y",
@@ -101,7 +1968,7 @@
     "name": "ESL One Bangkok 2024 powered by Intel",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-12-12",
+    "startDate": "2024-12-09",
     "endDate": "2024-12-15",
     "formats": [
       "last_2y",
@@ -113,7 +1980,7 @@
     "name": "FISSURE PLAYGROUND 1 - Dota",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-01-29",
+    "startDate": "2025-01-24",
     "endDate": "2025-02-02",
     "formats": [
       "last_2y",
@@ -125,7 +1992,7 @@
     "name": "DreamLeague Season 25 powered by Intel",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-02-26",
+    "startDate": "2025-02-17",
     "endDate": "2025-03-04",
     "formats": [
       "last_2y",
@@ -137,7 +2004,7 @@
     "name": "ESL One Raleigh 2025",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-04-10",
+    "startDate": "2025-04-07",
     "endDate": "2025-04-14",
     "formats": [
       "last_2y",
@@ -149,7 +2016,7 @@
     "name": "PGL Wallachia 2025 Season 3",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-03-14",
+    "startDate": "2025-03-08",
     "endDate": "2025-03-16",
     "formats": [
       "last_2y",
@@ -161,7 +2028,7 @@
     "name": "FISSURE Universe Episode 4",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-03-27",
+    "startDate": "2025-03-22",
     "endDate": "2025-03-30",
     "formats": [
       "last_2y",
@@ -173,7 +2040,7 @@
     "name": "FISSURE Special",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-04-09",
+    "startDate": "2025-04-05",
     "endDate": "2025-04-13",
     "formats": [
       "last_2y",
@@ -185,7 +2052,7 @@
     "name": "PGL Wallachia 2025 Season 4",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-04-25",
+    "startDate": "2025-04-19",
     "endDate": "2025-04-27",
     "formats": [
       "last_2y",
@@ -197,7 +2064,7 @@
     "name": "FISSURE Universe Episode 5",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-07-02",
+    "startDate": "2025-05-12",
     "endDate": "2025-07-04",
     "formats": [
       "last_2y",
@@ -209,7 +2076,7 @@
     "name": "DreamLeague Season 26",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-05-29",
+    "startDate": "2025-05-20",
     "endDate": "2025-06-01",
     "formats": [
       "last_2y",
@@ -221,7 +2088,7 @@
     "name": "The International 2025",
     "type": "ti",
     "year": 2025,
-    "startDate": "2025-09-12",
+    "startDate": "2025-09-04",
     "endDate": "2025-09-14",
     "formats": [
       "last_1y",
@@ -235,7 +2102,7 @@
     "name": "PGL Wallachia 2025 Season 5",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-06-26",
+    "startDate": "2025-06-21",
     "endDate": "2025-06-29",
     "formats": [
       "last_2y",
@@ -247,7 +2114,7 @@
     "name": "Clavision DOTA2 Masters 2025: Snow-Ruyi",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-08-01",
+    "startDate": "2025-07-28",
     "endDate": "2025-08-03",
     "formats": [
       "last_1y",
@@ -260,7 +2127,7 @@
     "name": "Esports World Cup 2025",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-07-13",
+    "startDate": "2025-07-08",
     "endDate": "2025-07-19",
     "formats": [
       "last_1y",
@@ -273,7 +2140,7 @@
     "name": "FISSURE Universe Episode 6",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-08-21",
+    "startDate": "2025-07-23",
     "endDate": "2025-08-24",
     "formats": [
       "last_1y",
@@ -286,7 +2153,7 @@
     "name": "FISSURE Universe Episode 7",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-10-09",
+    "startDate": "2025-10-05",
     "endDate": "2025-10-12",
     "formats": [
       "last_1y",
@@ -299,7 +2166,7 @@
     "name": "FISSURE PLAYGROUND 2",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-10-29",
+    "startDate": "2025-10-23",
     "endDate": "2025-11-02",
     "formats": [
       "last_1y",
@@ -312,7 +2179,7 @@
     "name": "PGL Wallachia 2025 Season 6",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-11-21",
+    "startDate": "2025-11-15",
     "endDate": "2025-11-23",
     "formats": [
       "last_1y",
@@ -325,7 +2192,7 @@
     "name": "Games of the Future 2025 Abu Dhabi",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-12-16",
+    "startDate": "2025-12-14",
     "endDate": "2025-12-19",
     "formats": [
       "last_1y",
@@ -338,7 +2205,7 @@
     "name": "DreamLeague Season 27",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-12-18",
+    "startDate": "2025-12-11",
     "endDate": "2025-12-21",
     "formats": [
       "last_1y",
@@ -351,7 +2218,7 @@
     "name": "BLAST SLAM VI",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-02-08",
+    "startDate": "2026-02-03",
     "endDate": "2026-02-15",
     "formats": [
       "last_1y",
@@ -364,7 +2231,7 @@
     "name": "BLAST SLAM VII",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-06-04",
+    "startDate": "2026-05-26",
     "endDate": "2026-06-07",
     "formats": [
       "last_1y",
@@ -377,7 +2244,7 @@
     "name": "FISSURE Universe Episode 8",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-01-30",
+    "startDate": "2026-01-21",
     "endDate": "2026-02-01",
     "formats": [
       "last_1y",
@@ -390,7 +2257,7 @@
     "name": "DreamLeague Season 28",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-02-26",
+    "startDate": "2026-02-18",
     "endDate": "2026-03-01",
     "formats": [
       "last_1y",
@@ -403,7 +2270,7 @@
     "name": "ESL One Birmingham 2026",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-03-26",
+    "startDate": "2026-03-22",
     "endDate": "2026-03-29",
     "formats": [
       "last_1y",
@@ -416,7 +2283,7 @@
     "name": "PGL Wallachia 2026 Season 7",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-03-13",
+    "startDate": "2026-03-07",
     "endDate": "2026-03-15",
     "formats": [
       "last_1y",
@@ -429,7 +2296,7 @@
     "name": "PGL Wallachia 2026 Season 8",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-04-24",
+    "startDate": "2026-04-18",
     "endDate": "2026-04-26",
     "formats": [
       "last_1y",
@@ -442,7 +2309,7 @@
     "name": "DreamLeague Season 29",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-05-21",
+    "startDate": "2026-05-14",
     "endDate": "2026-05-24",
     "formats": [
       "last_1y",
@@ -455,12 +2322,34 @@
     "name": "Esports World Cup 2026",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-07-10",
-    "endDate": "2026-07-11",
+    "startDate": "2026-07-07",
+    "endDate": "2026-07-14",
     "formats": [
       "last_1y",
       "last_2y",
       "last_5y"
+    ]
+  },
+  {
+    "id": "league-65001",
+    "name": "The International 2012",
+    "type": "ti",
+    "year": 2012,
+    "startDate": "2012-08-26",
+    "endDate": "2012-09-03",
+    "formats": [
+      "valve_legacy"
+    ]
+  },
+  {
+    "id": "league-65006",
+    "name": "The International 2013",
+    "type": "ti",
+    "year": 2013,
+    "startDate": "2013-08-03",
+    "endDate": "2013-08-12",
+    "formats": [
+      "valve_legacy"
     ]
   }
 ]
