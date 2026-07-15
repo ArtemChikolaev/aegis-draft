@@ -102,9 +102,8 @@ func OpenDotaWindow(ctx context.Context, client *opendota.Client, cfg OpenDotaCo
 	return result, nil
 }
 
-// ExplorerConfig — discovery по league_id через /explorer (замена пагинации proMatches).
-// Две оси: RollingLeagues (tier-1 за окно, since=WindowStartUnix) + LegacyLeagues (TI/Major
-// вся история, since=0). Details тянутся тем же resumable-циклом после ПОЛНОЙ дискавери.
+// ExplorerConfig — discovery по league_id через /explorer.
+// RollingLeagues и LegacyLeagues: WindowStartUnix=0 → all-time pro career; иначе rolling-окно.
 type ExplorerConfig struct {
 	RollingLeagues      []int64
 	LegacyLeagues       []int64

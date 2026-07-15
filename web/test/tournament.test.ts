@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { TournamentEngine } from "../src/game/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
 import { advanceToEnd, collectStages, createTournament } from "./helpers/tournament.ts";
 
@@ -42,6 +43,61 @@ describe("TournamentEngine", () => {
     expect(new Set(snapshot.standings.map((r) => r.team.id)).size).toBe(18);
     expect(snapshot.champion.id).toBe(snapshot.grandFinal.winnerId);
     expect(snapshot.standings.some((r) => r.team.isUser && r.placement === snapshot.userPlacement)).toBe(true);
+  });
+
+  it("боты: фиксированное поле 322-0, НЕ привязано к силе игрока", () => {
+    // Ключевой фикс: поле одинаково независимо от OVR игрока (раньше боты якорились к нему,
+    // из-за чего игрок всегда был топ-3). Широкий разброс ~76-96, медиана ~84.
+    const weak = createTournament(data, "field-fixed", 78).snapshot.field.filter((t) => !t.isUser).map((t) => t.strength);
+    const strong = createTournament(data, "field-fixed", 96).snapshot.field.filter((t) => !t.isUser).map((t) => t.strength);
+    expect(strong).toEqual(weak); // поле не зависит от игрока
+    expect(weak.every((s) => s >= 70 && s <= 99)).toBe(true);
+    expect(Math.max(...weak) - Math.min(...weak)).toBeGreaterThan(12); // широкий разброс, не кластер
+  });
+
+  it("место игрока зависит от OVR: сильный ранжируется не ниже слабого", () => {
+    // Драфт снова имеет значение: при одном поле сильный OVR не может стоять ниже слабого.
+    for (let roll = 0; roll < 24; roll += 1) {
+      const strong = new TournamentEngine(data, "last_2y", "placement", 94, "S", roll).snapshot;
+      const weak = new TournamentEngine(data, "last_2y", "placement", 80, "W", roll).snapshot;
+      const strongRank = strong.field.findIndex((t) => t.isUser) + 1;
+      const weakRank = weak.field.findIndex((t) => t.isUser) + 1;
+      expect(strongRank).toBeLessThanOrEqual(weakRank);
+    }
+  });
+
+  it("сильная команда: место варьируется между рероллами (иногда 1-е), а не фикс 2-3", () => {
+    const userOvr = 94;
+    const ranks = new Set<number>();
+    for (let roll = 0; roll < 24; roll += 1) {
+      const snap = new TournamentEngine(data, "last_2y", "reroll-vary", userOvr, "Test", roll).snapshot;
+      ranks.add(snap.field.findIndex((t) => t.isUser) + 1);
+    }
+    expect(ranks.size).toBeGreaterThanOrEqual(3); // место реально варьируется
+    expect([...ranks].some((r) => r === 1)).toBe(true); // сильный драфт иногда 1-е
+  });
+
+  it("группы и плей-офф сохраняют пошаговые frames", () => {
+    const snapshot = advanceToEnd(createTournament(data));
+    for (const match of snapshot.groupMatches) {
+      expect(match.frames[0]).toEqual({ scoreA: 0, scoreB: 0 });
+      expect(match.frames.at(-1)).toEqual({ scoreA: match.scoreA, scoreB: match.scoreB });
+    }
+    expect(snapshot.grandFinal.frames.length).toBeGreaterThan(1);
+    expect(snapshot.grandFinal.frames.at(-1)).toEqual({
+      scoreA: snapshot.grandFinal.scoreA,
+      scoreB: snapshot.grandFinal.scoreB,
+    });
+  });
+
+  it("field reroll: новые очки, те же имена", () => {
+    const userOvr = 88;
+    const first = createTournament(data, "field-reroll", userOvr).snapshot;
+    const second = new TournamentEngine(data, "last_2y", "field-reroll", userOvr, "Test Five", 1).snapshot;
+    const botNames = (snap: typeof first) => snap.field.filter((t) => !t.isUser).map((t) => t.name).sort();
+    const botStrengths = (snap: typeof first) => snap.field.filter((t) => !t.isUser).map((t) => t.strength).sort();
+    expect(botNames(first)).toEqual(botNames(second));
+    expect(botStrengths(first)).not.toEqual(botStrengths(second));
   });
 
   it("этапы: field → groups → playoffs (терминальный)", () => {

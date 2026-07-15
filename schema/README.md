@@ -21,7 +21,8 @@
 | `heroes.json` | array | Герои (Valve hero_id) | `heroes.schema.json` |
 | `packs.json` | array | Team Packs (команда × турнир) | `packs.schema.json` |
 | `players.json` | object | Справочник игроков (`accountId` → профиль) | `players.schema.json` |
-| `playerHeroStats.json` | object | `accountId` → `heroId` → {games, winrate} | `playerHeroStats.schema.json` |
+| `playerHeroStats.json` | object | `accountId` → `heroId` → {games, winrate} (pro window) | `playerHeroStats.schema.json` |
+| `careerPlayerHeroStats.json` | object | Pro tier-1 all-time player×hero (Hero Synergy) | `careerPlayerHeroStats.schema.json` |
 | `teammates.json` | object | `accountId` → [accountId] | `teammates.schema.json` |
 | `squadSynergy.json` | array | Сыгранность пар | `squadSynergy.schema.json` |
 | `eventHeroStats.json` | object | `eventId` → `accountId` → `heroId` → {games, winrate} | `eventHeroStats.schema.json` |
@@ -33,7 +34,7 @@
 
 - **Team Packs (Classic):** пул паков фильтруется по `manifest.formats` (окно/legacy) → `packs.json`. Рейтинг игрока — из пака (`ovr` при Event) или пиковое окно (Peak).
 - **Mixed Draft:** кандидаты собираются из `players.json` (по роли, из разных команд в окне); рейтинг — из `teamSuccess.json` за окно × индивидуальная поправка.
-- **Hero Synergy:** `playerHeroStats` (career) или `eventHeroStats` (event-scoped).
+- **Hero Synergy:** `careerPlayerHeroStats` (pro all-time) или `eventHeroStats` (event-scoped). `playerHeroStats` — pro window.
 - **Chemistry:** `squadSynergy` + `teammates`.
 
 ## Идентификаторы

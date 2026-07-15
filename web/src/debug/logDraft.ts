@@ -55,7 +55,7 @@ export function logScreen(screen: string, detail?: string): void {
 
 export function logTournament(
   t: TournamentSnapshot,
-  meta: { teamName: string; teamOvr: number },
+  meta: { teamName: string; teamOvr: number; fieldReroll?: boolean },
 ): void {
   if (!devLog) return;
   const { headline, body } = formatTournamentStage(t, meta);

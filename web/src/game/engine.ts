@@ -154,7 +154,7 @@ export class RunEngine {
     const players = this.players;
     if (players.length === 0) return null;
     const fixed = Object.keys(this.manual).length > 0 ? this.manual : undefined;
-    const phs = heroStatsForAssignment(this.data, this.config.scoring, this.roster);
+    const phs = heroStatsForAssignment(this.data);
     const signatures = signatureLookup(this.roster);
     const chemistryRoster = chemistryPlayersFromRoster(
       ROLE_SEQUENCE.map((role, i) => ({ role, candidate: this.roster[i] })),

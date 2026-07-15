@@ -9,69 +9,270 @@
 .tournament__projection { display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 26px; color: var(--on-invert); border-radius: var(--radius); background: var(--surface-invert); }
 .tournament__projection span { color: var(--brand-green); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .tournament__projection strong { font-size: clamp(42px, 5vw, 76px); line-height: .9; letter-spacing: -.05em; }
-.field-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 0; padding: 0; list-style: none; }
-.field-list li { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 8px; min-height: 42px; border-bottom: 1px solid var(--line); }
+.field-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 0; padding: 0 4px 0 8px; list-style: none; }
+.field-list li { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 8px; min-height: 42px; padding: 0 16px; border-bottom: 1px solid var(--line); }
 .field-list li > span, .field-list small { color: var(--muted); font-size: 10px; }
 .field-list li strong { font-size: 12px; }
-.field-list .is-user { color: var(--accent); background: var(--accent-soft); }
+.field-list .is-user {
+  color: var(--accent);
+  border-radius: 12px;
+  border-bottom-color: transparent;
+  background: var(--accent-soft);
+}
 .field-list .is-user strong { color: var(--accent); }
-.tournament__groups { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr); gap: 18px; }
-.group-table, .group-results { height: clamp(460px, 58vh, 540px); }
-.group-table { overflow-y: auto; padding: 22px; }
+.tournament__groups {
+  --group-team-rows: 9;
+  --group-row-height: 42px;
+  --group-row-gap: 6px;
+  --group-head-height: 28px;
+  --group-card-pad: 20px;
+  --group-title-block: 32px;
+  --group-panel-height: calc(
+    var(--group-card-pad) * 2 + var(--group-title-block) + var(--group-head-height)
+    + var(--group-team-rows) * var(--group-row-height)
+    + (var(--group-team-rows) - 1) * var(--group-row-gap) + 16px
+  );
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.15fr);
+  align-items: stretch;
+  gap: 18px;
+}
+.group-table,
+.group-results {
+  box-sizing: border-box;
+  height: var(--group-panel-height);
+  min-height: var(--group-panel-height);
+}
+.group-table {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--group-card-pad);
+}
+.group-table h2 { flex: none; margin: 0 0 14px; font-size: 18px; }
+.group-table .table-head { flex: none; }
+.group-table .table-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--group-row-gap);
+  min-height: 0;
+}
 /* Панель истории игр группового этапа (как в 322-0; сюда будут «приходить» матчи в live-симуляции). */
-.group-results { display: flex; min-height: 0; flex-direction: column; overflow: hidden; padding: 20px 18px; }
-.group-results__list { display: grid; min-height: 0; gap: 2px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
-.group-result { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; font-size: 11px; }
+.group-results { display: flex; flex-direction: column; overflow: hidden; padding: var(--group-card-pad, 22px) calc(var(--group-card-pad, 22px) - 4px); }
+.group-results__list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  gap: 2px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.group-result {
+  display: grid;
+  flex: none;
+  grid-template-columns: 16px minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 28px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 11px;
+}
 .group-result__tag { color: var(--muted); font: 800 9px sans-serif; }
 .group-result__team { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
 .group-result__team.is-a { text-align: right; }
 .group-result__team.is-user { color: var(--accent); font-weight: 800; }
 .group-result__score { flex: none; color: var(--text); font-weight: 800; }
 .group-result.is-user { background: var(--accent-soft); }
-.group-table h2, .bracket__round h2 { margin: 0 0 14px; font-size: 18px; }
-.table-head, .table-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) 58px 50px; align-items: center; gap: 8px; padding: 9px 4px; border-bottom: 1px solid var(--line); }
-.table-head { color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-.table-row { font-size: 11px; }
-.table-row > span:nth-child(2) { display: grid; }
-.table-row small { color: var(--muted); font-size: 8px; }
-.table-row.is-user { color: var(--accent); background: var(--accent-soft); }
+.table-head, .table-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 52px 40px;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+}
+.table-head {
+  height: var(--group-head-height, 28px);
+  padding: 0 12px 0 14px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+/* Карточка-строка как виджет: rounded surface + левый акцент пути UB/LB/OUT. */
+.table-row {
+  position: relative;
+  height: var(--group-row-height, 42px);
+  padding: 0 12px 0 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+  font-size: 11px;
+}
+.table-row > span:nth-child(1) { color: var(--muted); font-size: 10px; font-weight: 700; }
+.table-row > span:nth-child(2) {
+  display: grid;
+  grid-template-rows: 14px 10px;
+  gap: 2px;
+  align-content: center;
+  min-width: 0;
+  overflow: hidden;
+}
+.table-row strong {
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table-row small {
+  overflow: hidden;
+  height: 10px;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.table-row > span:nth-child(3) { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
+.table-row > span:nth-child(4) { text-align: right; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.table-row.is-user { background: color-mix(in srgb, var(--accent) 10%, var(--surface-soft)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+.table-row.is-user strong { color: var(--accent); }
 /* Связанная сетка как в 322-0: верхняя над нижней, раунды колонками слева-направо,
    между сериями — коннекторы; своя команда и победитель подсвечены. */
-.bracket { display: grid; gap: 26px; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; }
-.bracket__side { width: max-content; min-width: 100%; }
+.bracket { display: grid; gap: 22px; width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; }
+.bracket__side { width: 100%; max-width: 100%; }
 .bracket__side-title { margin: 0 0 12px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
-/* Колонки равной ширины во всю ширину ряда; matches распределены space-around →
-   древовидное центрирование (как в 322-0): раунд N центрируется между парами раунда N-1. */
-.bracket-grid { display: grid; grid-template-columns: repeat(6, 248px); align-items: stretch; width: max-content; min-width: 100%; min-height: 410px; column-gap: clamp(44px, 5vw, 96px); padding: 0 2px 12px; }
-.bracket-col { display: flex; flex: 0 0 248px; flex-direction: column; width: 248px; min-width: 248px; }
+/* 6 колонок с пустыми слотами 2/4 в upper — древовидное центрирование как в 322-0.
+   Ширина = 100% контейнера (как баннер чемпиона снизу): ячейки и gap делят строку поровну. */
+.bracket-grid {
+  --bracket-gap: clamp(16px, 2vw, 26px);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 380px;
+  column-gap: var(--bracket-gap);
+  padding: 0 0 10px;
+}
+.bracket-col { display: flex; flex-direction: column; width: auto; min-width: 0; max-width: none; }
 .bracket-col--slot-1 { grid-column: 1; }
 .bracket-col--slot-2 { grid-column: 2; }
 .bracket-col--slot-3 { grid-column: 3; }
 .bracket-col--slot-4 { grid-column: 4; }
 .bracket-col--slot-5 { grid-column: 5; }
 .bracket-col--slot-6 { grid-column: 6; }
-.bracket-col__matches { display: flex; flex: 1; flex-direction: column; justify-content: space-around; gap: 18px; }
-.bracket-col__title { margin: 0 0 10px; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
+.bracket-col__matches { display: flex; flex: 1; flex-direction: column; justify-content: space-around; gap: 14px; }
+.bracket-col__title { margin: 0 0 8px; color: var(--muted); font-size: 8px; font-weight: 800; line-height: 1.25; letter-spacing: .06em; text-align: center; text-transform: uppercase; }
 .bracket-col__title--gf { color: var(--accent); }
-.match { position: relative; flex: 0 0 74px; height: 74px; overflow: hidden; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 10px; }
+.match {
+  position: relative;
+  flex: 0 0 68px;
+  width: 100%;
+  height: 68px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
 /* коннектор к следующей колонке */
-.bracket-col:not(:last-child) .match::after { content: ""; position: absolute; left: 100%; top: 50%; width: 30px; height: 2px; background: var(--line); transform: translateY(-50%); }
-.match.has-user { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-soft); }
+.bracket-col:not(:last-child) .match::after { content: ""; position: absolute; left: 100%; top: 50%; z-index: 1; width: var(--bracket-gap); height: 2px; background: var(--line); transform: translateY(-50%); pointer-events: none; }
+.match.has-user {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.match.is-pending { opacity: .55; border-style: dashed; }
+.match.is-live { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent); }
+.match.has-user.is-live {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+}
 /* Grand Final — акцентная колонка справа в верхней сетке. */
 .bracket-col--gf { justify-content: center; padding-right: 0; }
 .match--gf { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
 .bracket-col--gf .bracket-col__title { color: var(--accent); }
-.series__team { display: flex; box-sizing: border-box; align-items: center; gap: 8px; height: 35px; padding: 7px 10px; color: var(--muted); font-size: 11px; }
+.series__team {
+  display: grid;
+  box-sizing: border-box;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 6px 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
 .series__team + .series__team { border-top: 1px solid var(--line); }
-.series__logo { display: grid; flex: none; place-items: center; width: 18px; height: 18px; border-radius: 5px; color: var(--on-invert); font: 800 9px/1 sans-serif; font-style: normal; background: var(--surface-invert); }
-.series__name { flex: 1; overflow: hidden; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
-.series__score { flex: none; font-weight: 800; }
+.series__name { overflow: hidden; font-style: normal; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.series__score { font-weight: 800; font-variant-numeric: tabular-nums; }
+/* Остальные: победитель белый, проигравший коралл. */
 .series__team.is-winner { color: var(--text); }
-.series__team.is-winner .series__score { color: var(--accent); }
-.series__team.is-loser { opacity: .45; }
-.series__team.is-user { color: var(--accent); }
-.series__team.is-user .series__name { font-weight: 800; }
-.field-list li b.field-strength { justify-self: end; color: var(--accent); font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); }
+.series__team.is-winner .series__name,
+.series__team.is-winner .series__score { color: var(--text); }
+.series__team.is-loser { color: var(--loss); }
+.series__team.is-loser .series__name,
+.series__team.is-loser .series__score { color: var(--loss); }
+/* Своя команда: ★ + зелёный текст; обводка — у всего матча (.match.has-user). */
+.series__team.is-user {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+.series__team.is-user .series__name,
+.series__team.is-user .series__score { color: var(--accent); font-weight: 800; }
+.series__team.is-user.is-loser .series__name,
+.series__team.is-user.is-loser .series__score { color: var(--accent); }
+.series__team.is-pending { color: var(--muted); }
+.series__team.is-pending .series__score { color: var(--muted); }
+.series__team.is-live { color: var(--text); }
+.series__team.is-live .series__score { color: var(--text); font-weight: 800; }
+.series__team.is-user.is-pending .series__score,
+.series__team.is-user.is-live .series__name,
+.series__team.is-user.is-live .series__score { color: var(--accent); }
+
+/* Градиент силы: цвет числа по тиру (токены --tier-*). Применяется к полю и итоговой таблице. */
+.score-tier--elite { color: var(--tier-elite); }
+.score-tier--strong { color: var(--tier-strong); }
+.score-tier--mid { color: var(--tier-mid); }
+.score-tier--low { color: var(--tier-low); }
+.score-tier--weak { color: var(--tier-weak); }
+.field-list li b.field-strength { justify-self: end; font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); }
+
+/* Пути UB/LB/OUT: жирный left-border идёт по скруглению ячейки (как виджет Claude).
+   Раскрашиваются со стаггером сверху вниз (.is-routed, --route-i = ранг-1). */
+.table-row.is-routed {
+  border-left-width: 5px;
+  transition: border-color .35s ease, background-color .35s ease, border-left-width .35s ease;
+  transition-delay: calc(var(--route-i, 0) * 70ms);
+}
+.table-row.route--upper {
+  border-left-color: var(--route-ub);
+  background: color-mix(in srgb, var(--route-ub) 7%, var(--surface-soft));
+}
+.table-row.route--lower {
+  border-left-color: var(--route-lb);
+  background: color-mix(in srgb, var(--route-lb) 7%, var(--surface-soft));
+}
+.table-row.route--out {
+  border-left-color: var(--route-out);
+  background: color-mix(in srgb, var(--route-out) 8%, var(--surface-soft));
+}
+.table-row.is-user.is-routed { background: color-mix(in srgb, var(--accent) 12%, var(--surface-soft)); }
+.route-tag--upper { color: var(--route-ub); }
+.route-tag--lower { color: var(--route-lb); }
+.route-tag--out { color: var(--route-out); }
+
+/* История матчей группы: победитель зелёный, проигравший коралл (ничья 1-1 — нейтрально). */
+.group-result__team.is-win { color: var(--win); }
+.group-result__team.is-loss { color: var(--loss); opacity: .8; }
 .grand-final { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 24px; min-height: 360px; padding: 42px; color: var(--on-invert); background: var(--surface-invert); }
 .grand-final > span { grid-column: 1 / 4; color: var(--brand-green); text-align: center; font-size: 12px; font-weight: 900; letter-spacing: .1em; }
 .grand-final div { display: flex; align-items: center; justify-content: center; gap: 22px; font-size: clamp(24px, 4vw, 52px); }
@@ -82,10 +283,32 @@
 .finish-card span { color: var(--brand-green); font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
 .finish-card strong { margin: 22px 0; font-size: clamp(54px, 7vw, 100px); line-height: .85; letter-spacing: -.06em; }
 .finish-card small { color: var(--muted-invert); }
-.final-table { padding: 24px; }
-.final-table > div { display: grid; grid-template-columns: 90px 1fr auto; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--line); font-size: 11px; }
+.final-table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 22px;
+}
+.final-table > .bracket__side-title { margin: 0 0 8px; }
+.final-table > div {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+  font-size: 11px;
+}
 .final-table span, .final-table small { color: var(--muted); }
-.final-table .is-user { color: var(--accent); background: var(--accent-soft); }
+.final-table strong { font-weight: 700; }
+.final-table .is-user {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-soft));
+}
+.final-table .is-user strong { color: var(--accent); }
 
 /* Терминальный экран: чемпион + место, отчёт (standings + твой состав). */
 .tournament__champion { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; padding: 20px 24px; }
@@ -94,7 +317,6 @@
 .tournament__champion strong.is-user { color: var(--accent); }
 .tournament__champion-name { text-align: right; }
 .tournament__champion-name strong { font-size: 20px; }
-.bracket__side > .match--gf { max-width: 300px; }
 .tournament__report { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
 .run-summary { padding: 20px 22px; }
 .run-summary__scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
@@ -122,10 +344,8 @@
 .tournament__restart { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tournament__restart > button { min-height: 52px; }
 
-/* live-симуляция: серия ещё не сыграна — нейтральная заглушка (без победителя/счёта). */
-.match.is-pending { opacity: .5; border-style: dashed; }
-.series__team.is-pending { color: var(--muted); }
-.series__team.is-pending .series__score { color: var(--muted); }
+/* live-симуляция: стили .match/.series pending|live — рядом с карточкой матча выше. */
+.group-result.is-live { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 /* LIVE-панель: индикатор + подпись + Skip; показывается пока идёт проигрывание. */
 .tournament__live { display: flex; align-items: center; gap: 12px; justify-content: flex-end; }
 .tournament__live em { flex: 1; color: var(--muted); font-size: 12px; font-style: normal; text-align: right; }
@@ -159,3 +379,26 @@
   .career-run { height: auto; overflow: visible; }
   .tournament__restart { grid-template-columns: 1fr; }
 }
+
+/* Бесшовный run-вид (TREF-TOUR2): тим-панель сверху + поле справа, симуляция стекается ниже. */
+.run { display: grid; gap: 24px; min-width: 0; max-width: 100%; }
+.run__team { align-items: start; }
+.run__field { display: flex; flex-direction: column; gap: 16px; }
+.run__field-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.run__field-head h1 { margin: 6px 0 0; font-size: clamp(28px, 4vw, 44px); line-height: .95; letter-spacing: -.04em; }
+.run__field .tournament__projection { min-height: 0; padding: 16px 18px; }
+.run__field .field-list {
+  flex: none;
+  max-height: min(360px, calc(100vh - 280px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  align-content: start;
+}
+.run__field .field-list li { min-height: 36px; }
+.run__field-actions { display: grid; gap: 10px; width: 100%; }
+.run__field-actions [data-testid="tournament-simulate"],
+.run__field-actions [data-testid="tournament-field-reroll"] { width: 100%; }
+.run__field-actions small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: none; }
+.run__sim { display: grid; gap: 24px; min-width: 0; max-width: 100%; }
+.run__sim > div { scroll-margin-top: 16px; min-width: 0; }

@@ -7,6 +7,7 @@ import {
   heroSynergyRows,
   squadChemistryRows,
   heroStatsForAssignment,
+  heroStatsForDisplay,
 } from "../game/score.ts";
 
 const ROLE: Record<Role, string> = {
@@ -52,7 +53,6 @@ function formatPack(data: GameData, pack: DraftPack, offerHeroes: number[]): str
 
 function formatScore(
   data: GameData,
-  config: RunConfig,
   roster: RosterSlot[],
   score: ScoreBreakdown,
 ): string[] {
@@ -62,9 +62,9 @@ function formatScore(
     `Score  OVR ${ovr}  (= base ${fmt1(score.base)} + syn ${fmt1(score.heroSynergy)} + chem ${fmt1(score.chemistry)})`,
   );
 
-  const rosterCandidates = roster.map((s) => s.candidate);
-  const phs = heroStatsForAssignment(data, config.scoring, rosterCandidates);
-  const synergyRows = heroSynergyRows(roster, score.assignment, phs);
+  const phs = heroStatsForAssignment(data);
+  const displayPhs = heroStatsForDisplay(data);
+  const synergyRows = heroSynergyRows(roster, score.assignment, phs, displayPhs);
   for (const r of synergyRows) {
     const hero = heroName(data, r.heroId);
     const games = r.games > 0 ? ` ${r.games}g` : "";
@@ -123,7 +123,7 @@ export function formatDraftSnap(input: {
   const lines: string[] = [progress, mode, "", ...formatPack(data, snapshot.currentPack, snapshot.packHeroes)];
 
   if (snapshot.score) {
-    lines.push("", ...formatScore(data, config, snapshot.roster, snapshot.score));
+    lines.push("", ...formatScore(data, snapshot.roster, snapshot.score));
   }
 
   if (isComplete) {

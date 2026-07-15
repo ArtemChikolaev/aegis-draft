@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "aegis-draft/playerHeroStats.schema.json",
-  "title": "Player-Hero Stats (career)",
-  "description": "accountId -> heroId -> {games, winrate}. Питает Hero Synergy.",
+  "title": "Player-Hero Stats (pro window)",
+  "description": "accountId -> heroId -> {games, winrate}. Pro tier-1 матчи в rolling-окне формата (last_1y/2y/5y). Для Hero Synergy используй careerPlayerHeroStats (pro all-time).",
   "type": "object",
   "additionalProperties": {
     "type": "object",

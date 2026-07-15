@@ -46,6 +46,19 @@
   --brand-glow: #72e79b;    /* свечение-блобы, фикс */
   --stat-base: #8bbcff;     /* цвета stat-strip на тёмном радаре, фикс */
   --stat-chemistry: #ffc66b;
+
+  /* Турнир — семантический градиент силы (зелёный→красный) + пути + победа/поражение.
+     Тема-зависимые (light — темнее для читаемости на светлой поверхности). */
+  --tier-elite: #8ff0b5;   /* ≥90 / победа / UB */
+  --tier-strong: #c6e88a;  /* 86–89 */
+  --tier-mid: #ffd66b;     /* 82–85 / LB */
+  --tier-low: #ffab5e;     /* 78–81 */
+  --tier-weak: #ff806d;    /* ≤77 / поражение / OUT */
+  --route-ub: var(--tier-elite);
+  --route-lb: var(--tier-mid);
+  --route-out: var(--tier-weak);
+  --win: var(--tier-elite);
+  --loss: var(--tier-weak);
 }
 
 html[data-theme="light"] {
@@ -71,4 +84,11 @@ html[data-theme="light"] {
 
   --role-safelane: #337f18;
   --role-support: #714397;
+
+  /* Турнир — те же тиры, но темнее для читаемости на светлой поверхности. */
+  --tier-elite: #2e9e63;
+  --tier-strong: #5f9e26;
+  --tier-mid: #b07d0a;
+  --tier-low: #c2691a;
+  --tier-weak: #c63e2b;
 }

@@ -11,6 +11,7 @@ import {
   chemistryPairEdges,
   chemistryPlayersFromRoster,
   heroStatsForAssignment,
+  heroStatsForDisplay,
   heroSynergyRows,
   heroSynergyTier,
   squadChemistryRows,
@@ -49,10 +50,9 @@ export function DraftScreen() {
       data.teammates,
     )
     : [];
-  const phs = data
-    ? heroStatsForAssignment(data, config.scoring, roster.map((slot) => slot.candidate))
-    : null;
-  const heroRows = score && phs ? heroSynergyRows(roster, score.assignment, phs) : [];
+  const phs = data ? heroStatsForAssignment(data) : null;
+  const displayPhs = data ? heroStatsForDisplay(data) : null;
+  const heroRows = score && phs ? heroSynergyRows(roster, score.assignment, phs, displayPhs ?? undefined) : [];
   const chemistryRows = data ? squadChemistryRows(roster, data.squadSynergy, data.teammates) : [];
   const synergyTier = score ? heroSynergyTier(score.heroSynergy) : null;
   const synergySublabel = synergyTier === "insane"
@@ -118,14 +118,17 @@ export function DraftScreen() {
           {currentPack.candidates.map((candidate, index) => <CandidateCard key={candidate.player.accountId} candidate={candidate} enabled={canPickPlayer(index)} onPick={() => pickPlayer(index)} index={index} />)}
         </div>
 
-        <div className="hero-pool">
+        <div className="hero-pool hero-pool--pack">
           <div><h3>{t("draft.packHeroes")} <span>{packHeroes.length}</span></h3><p>{t("draft.packHeroesHint")}</p></div>
-          <div className="hero-pool__chips">
+          <div
+            className="hero-pool__chips hero-pool__chips--pack"
+            style={{ gridTemplateColumns: `repeat(${Math.max(1, packHeroes.length)}, minmax(0, 1fr))` }}
+          >
             {packHeroes.map((id) => {
               const h = hero(id);
               return (
-                <button key={id} type="button" className="hero-pick" disabled={!canPickHero(id)} onClick={() => pickHero(id)} data-testid={`pack-hero-${id}`}>
-                  <HeroThumb picture={h.picture} name={h.name} />
+                <button key={id} type="button" className="hero-pick hero-pick--card" disabled={!canPickHero(id)} onClick={() => pickHero(id)} data-testid={`pack-hero-${id}`}>
+                  <HeroThumb picture={h.picture} name={h.name} layout="card" />
                 </button>
               );
             })}
@@ -143,7 +146,7 @@ export function DraftScreen() {
                   {heroOwner[id] && (
                     <small>
                       → {heroOwner[id].nickname} · {(() => {
-                        const games = phs?.[String(heroOwner[id].accountId)]?.[String(id)]?.games ?? 0;
+                        const games = displayPhs?.[String(heroOwner[id].accountId)]?.[String(id)]?.games ?? 0;
                         return t(heroGamesMessageKey(locale, games), { count: games });
                       })()}
                     </small>

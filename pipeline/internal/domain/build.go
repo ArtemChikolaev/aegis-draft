@@ -25,12 +25,29 @@ type Input struct {
 	Config             rating.Config
 	RatingModelVersion string
 	MinEventMatches    int // порог: события с меньшим числом матчей в окне отбрасываются
+	WindowStartUnix    int64
+}
+
+// FilterMatchesByWindow оставляет матчи с startTime >= windowStart (0 = без фильтра).
+func FilterMatchesByWindow(matches []normalize.NormalizedMatch, windowStart int64) []normalize.NormalizedMatch {
+	if windowStart <= 0 {
+		out := make([]normalize.NormalizedMatch, len(matches))
+		copy(out, matches)
+		return out
+	}
+	out := make([]normalize.NormalizedMatch, 0, len(matches))
+	for _, match := range matches {
+		if match.StartTime >= windowStart {
+			out = append(out, match)
+		}
+	}
+	return out
 }
 
 // Build собирает полный model.Dataset из OpenDota-входов. Чистый и детерминированный.
 // Liquipedia-зависимые поля (placements/prize/valve_legacy) остаются deferred.
 func Build(in Input) (*model.Dataset, error) {
-	matches := in.Snapshot.Matches
+	matches := FilterMatchesByWindow(in.Snapshot.Matches, in.WindowStartUnix)
 	rolesList := roles.Infer(matches)
 	roleByAccount := make(map[int]model.Role, len(rolesList))
 	for _, pr := range rolesList {

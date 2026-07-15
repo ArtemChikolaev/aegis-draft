@@ -3,24 +3,28 @@
 // сглаживание winrate — модель сглаживания меняется без пересборки данных (инвариант data-contract).
 import type { PackPlayer, PlayerHeroStats, SquadSynergy, Teammates, GameData, Stat } from "../types/data.ts";
 import type { Candidate } from "./packs.ts";
-import type { Scoring } from "./packs.ts";
 import { assignWithFixed, bestAssignment, synergyTotalForAssignment, type Assignment, type SignatureLookup } from "./assign.ts";
-import { smoothedWinrate } from "./smoothing.ts";
 
 /** Масштабы бонусов (версионируются вместе с ratingModelVersion). Тюнинг — PRD §10-C.
  * v1.4.0 (2026-07-13): подняты масштабы — +0.1-бонусы были несерьёзными. Полная величина
  * растёт по мере наполнения данных (сглаживание душит тонкие выборки к 0.5); эти масштабы
- * калиброваны под глубокие данные (~уровень 322-0: Hero Synergy ~единицы, Chemistry ~1-3). */
+ * калиброваны под глубокие данные (~уровень 322-0: Hero Synergy ~единицы, Chemistry ~1-3).
+ * v1.5.0 (2026-07-15): (1) heroStatsForAssignment = только pro window (playerHeroStats), без
+ * career/pub — career только для отображения игр в UI; (2) снят event-овerlay; Event Rating только
+ * на Base; (3) Hero Synergy = СУММА по 5 героям, не среднее; (4) Chemistry = сыгранность (games),
+ * не winrate. Калибровка по 322-0: пара ~500 игр → ~2, Hero Synergy ~7 = INSANE. */
 export const SCORING = {
-  synergyScale: 50,
-  chemistryScale: 45,
-  /** Текущий ростер (teamId+eventId) весит заметно больше бывших тиммейтов. */
+  synergyScale: 20,
+  /** Химия = сыгранность (совместные игры), насыщающая кривая max·g/(g+half) — как «experience»
+   * в 322-0 (543 игры→~2.4, 431→~1.9), НЕ winrate. Калибровка по 322-0: бывшая пара ~500 игр → ~2. */
+  chemMaxPerPair: 7,
+  chemHalfGames: 500,
+  /** Текущий ростер (teamId+eventId) весит больше бывших тиммейтов (в Team Packs пары почти всегда former). */
   chemistryCurrentMult: 1,
-  chemistryFormerMult: 0.55,
+  chemistryFormerMult: 0.6,
   /** Базовый вклад, если в текущем составе ещё нет squad-пары в данных. */
   chemistryCurrentBaseline: 0.15,
 } as const;
-const FULL_ROSTER_PAIR_COUNT = 10; // C(5, 2)
 
 export interface ChemistryPlayer {
   accountId: number;
@@ -49,11 +53,15 @@ export function baseRating(players: PackPlayer[]): number {
   return players.reduce((s, p) => s + p.ovr, 0) / players.length;
 }
 
-/** Hero Synergy = отклонение среднего сглаженного скора назначения от нейтрали, в очках. */
+/** Hero Synergy = СУММА отклонений сглаженного скора назначенных героев от нейтрали, в очках.
+ * v1.5.0: сумма, а не среднее (как в 322-0: 5 героев складываются в ~единицы-десятки; среднее
+ * давало в 5× меньше и не дотягивало до порогов great/insane). `assignment.total` = Σ сглаж.
+ * winrate по назначенным героям; `assigned*0.5` — нейтральная база. Сглаживание уже учитывает
+ * игры (мало игр → тянет к 0.5), поэтому «more games is better» соблюдается. */
 export function heroSynergyBonus(assignment: Assignment, scale = SCORING.synergyScale): number {
   const assigned = Object.keys(assignment.byPlayer).length;
   if (assigned === 0) return 0;
-  return Math.max(0, (assignment.total / assigned - 0.5) * scale);
+  return Math.max(0, (assignment.total - assigned * 0.5) * scale);
 }
 
 function pairKey(a: number, b: number): string {
@@ -75,32 +83,28 @@ function everTeammates(
   return teammates[String(a)]?.includes(b) ?? false;
 }
 
-/** Положительный centered-вклад пары: только выше нейтрали, без отрицательных значений. */
-function pairCenteredPositive(pair: Stat | undefined, current: boolean): number {
-  if (pair && pair.games > 0) return Math.max(0, smoothedWinrate(pair) - 0.5);
-  if (current) return SCORING.chemistryCurrentBaseline;
-  return 0;
-}
-
+/** Химия пары = сыгранность (совместные игры), насыщающая кривая max·g/(g+half) — «experience»
+ * как в 322-0, а НЕ winrate (v1.5.0: раньше был winrate-centered → ~0.2 за 500 игр, что абсурд). */
 function pairChemistryBonus(
   a: ChemistryPlayer,
   b: ChemistryPlayer,
   squadIndex: Map<string, Stat & { games: number }>,
   teammates: Teammates,
-  scale: number,
 ): { bonus: number; games: number } {
   const current = isCurrentRoster(a, b);
   const ever = everTeammates(a.accountId, b.accountId, squadIndex, teammates);
   if (!current && !ever) return { bonus: 0, games: 0 };
 
   const pair = squadIndex.get(pairKey(a.accountId, b.accountId));
-  const centered = pairCenteredPositive(pair, current);
+  const games = pair?.games ?? 0;
   const mult = current ? SCORING.chemistryCurrentMult : SCORING.chemistryFormerMult;
-  if (centered <= 0) return { bonus: 0, games: pair?.games ?? 0 };
+  const experience = games > 0
+    ? SCORING.chemMaxPerPair * games / (games + SCORING.chemHalfGames)
+    : current ? SCORING.chemistryCurrentBaseline : 0;
 
   return {
-    bonus: (centered * mult / FULL_ROSTER_PAIR_COUNT) * scale,
-    games: pair?.games ?? 0,
+    bonus: experience * mult,
+    games,
   };
 }
 
@@ -112,7 +116,6 @@ export function chemistryBonus(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
-  scale = SCORING.chemistryScale,
 ): number {
   const squadIndex = new Map<string, Stat & { games: number }>();
   for (const pair of squad) squadIndex.set(pairKey(pair.ids[0], pair.ids[1]), pair);
@@ -120,7 +123,7 @@ export function chemistryBonus(
   let sum = 0;
   for (let i = 0; i < roster.length; i++) {
     for (let j = i + 1; j < roster.length; j++) {
-      sum += pairChemistryBonus(roster[i], roster[j], squadIndex, teammates, scale).bonus;
+      sum += pairChemistryBonus(roster[i], roster[j], squadIndex, teammates).bonus;
     }
   }
   return sum;
@@ -131,7 +134,6 @@ export function chemistryPairEdges(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
-  scale = SCORING.chemistryScale,
 ): ChemistryEdge[] {
   const squadIndex = new Map<string, Stat & { games: number }>();
   for (const pair of squad) squadIndex.set(pairKey(pair.ids[0], pair.ids[1]), pair);
@@ -139,7 +141,7 @@ export function chemistryPairEdges(
   const edges: ChemistryEdge[] = [];
   for (let i = 0; i < roster.length; i++) {
     for (let j = i + 1; j < roster.length; j++) {
-      const { bonus, games } = pairChemistryBonus(roster[i], roster[j], squadIndex, teammates, scale);
+      const { bonus, games } = pairChemistryBonus(roster[i], roster[j], squadIndex, teammates);
       if (bonus < 0.05) continue;
       edges.push({ a: roster[i].accountId, b: roster[j].accountId, games, bonus });
     }
@@ -172,12 +174,15 @@ export function playerHeroGames(
   return phs[String(accountId)]?.[String(heroId)]?.games ?? 0;
 }
 
-/** Строки Hero Synergy для UI — все игроки ростера, «no hero yet» если герой не назначен. */
+/** Строки Hero Synergy для UI — все игроки ростера, «no hero yet» если герой не назначен.
+ * `displayPhs` — career-игры для подписи «N games»; scoring/assignment использует `phs` (pro window). */
 export function heroSynergyRows(
   roster: Array<{ candidate: Candidate | null }>,
   assignment: Assignment,
   phs: PlayerHeroStats,
+  displayPhs?: PlayerHeroStats,
 ): HeroSynergyRow[] {
+  const show = displayPhs ?? phs;
   return roster.flatMap((slot) => {
     if (!slot.candidate) return [];
     const heroId = assignment.byPlayer[slot.candidate.player.accountId] ?? null;
@@ -185,7 +190,7 @@ export function heroSynergyRows(
       accountId: slot.candidate.player.accountId,
       nickname: slot.candidate.player.nickname,
       heroId,
-      games: heroId != null ? playerHeroGames(phs, slot.candidate.player.accountId, heroId) : 0,
+      games: heroId != null ? playerHeroGames(show, slot.candidate.player.accountId, heroId) : 0,
     }];
   });
 }
@@ -202,7 +207,6 @@ export function squadChemistryRows(
   roster: Array<{ candidate: Candidate | null }>,
   squad: SquadSynergy,
   teammates: Teammates,
-  scale = SCORING.chemistryScale,
 ): SquadChemistryRow[] {
   const chem = chemistryPlayersFromRoster(roster);
   const nick = new Map<number, string>();
@@ -218,7 +222,7 @@ export function squadChemistryRows(
       const current = isCurrentRoster(chem[i], chem[j]);
       const ever = everTeammates(chem[i].accountId, chem[j].accountId, squadIndex, teammates);
       if (!current && !ever) continue;
-      const { bonus, games } = pairChemistryBonus(chem[i], chem[j], squadIndex, teammates, scale);
+      const { bonus, games } = pairChemistryBonus(chem[i], chem[j], squadIndex, teammates);
       rows.push({
         accountIdA: chem[i].accountId,
         accountIdB: chem[j].accountId,
@@ -232,31 +236,17 @@ export function squadChemistryRows(
   return rows.sort((a, b) => b.bonus - a.bonus || b.games - a.games);
 }
 
-// Player×hero для назначения героев: career (пожизненный пул из /players/{id}/heroes) —
-// широкая база, чтобы всплывал весь пул игрока (напр. Anti-Mage у Yatoro, которого нет в узком
-// окне); окно (playerHeroStats) уточняет свежесть для недавно сыгранных героев; при scoring==="event"
-// сверху ложится статистика игрока на его турнире.
-export function heroStatsForAssignment(
-  data: GameData,
-  scoring: Scoring,
-  roster: (Candidate | null)[],
-): PlayerHeroStats {
-  const career = data.careerPlayerHeroStats ?? {};
-  const window = data.playerHeroStats;
-  const merged: PlayerHeroStats = {};
-  for (const acc of new Set([...Object.keys(career), ...Object.keys(window)])) {
-    merged[acc] = { ...(career[acc] ?? {}), ...(window[acc] ?? {}) };
-  }
-  if (scoring === "event") {
-    for (const candidate of roster) {
-      if (!candidate) continue;
-      const accountKey = String(candidate.player.accountId);
-      const eventStats = data.eventHeroStats[candidate.eventId]?.[accountKey];
-      if (!eventStats) continue;
-      merged[accountKey] = { ...(merged[accountKey] ?? {}), ...eventStats };
-    }
-  }
-  return merged;
+// Player×hero для назначения героев и расчёта Hero Synergy: только pro window (playerHeroStats).
+// Career (/players/{id}/heroes) включает pub-матчи — смешивание давало absurd picks (support rue →
+// Terrorblade из 45 pub-игр при 0 pro). UI показывает career-игры через heroStatsForDisplay.
+// v1.5.0: event-овerlay снят; Event Rating только на Base. Point-in-time — Real Tournament (§5.9.1).
+export function heroStatsForAssignment(data: GameData): PlayerHeroStats {
+  return data.careerPlayerHeroStats ?? data.playerHeroStats;
+}
+
+/** Pro career для «N games» в UI (то же, что assignment). */
+export function heroStatsForDisplay(data: GameData): PlayerHeroStats {
+  return data.careerPlayerHeroStats ?? data.playerHeroStats;
 }
 
 export function signatureLookup(roster: (Candidate | null)[]): SignatureLookup {

@@ -11,7 +11,7 @@ import (
 )
 
 func TestFromOpenDotaAggregatesHeroesAndTeammates(t *testing.T) {
-	result, err := FromOpenDota(fixture())
+	result, err := FromOpenDota(fixture(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,8 +39,27 @@ func TestFromOpenDotaAggregatesHeroesAndTeammates(t *testing.T) {
 	}
 }
 
+func TestFromOpenDotaSplitsWindowAndProCareer(t *testing.T) {
+	snap := fixture()
+	snap.Matches[0].StartTime = 100
+	snap.Matches[1].StartTime = 200
+	result, err := FromOpenDota(snap, 150)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stat := result.CareerPlayerHeroStats["1"]["10"]; stat.Games != 2 {
+		t.Fatalf("pro career=%+v", stat)
+	}
+	if stat := result.PlayerHeroStats["1"]["10"]; stat.Games != 1 {
+		t.Fatalf("window stat=%+v", stat)
+	}
+	if err := Validate(result); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAddCareerPlayerHeroesUsesEndpointTotals(t *testing.T) {
-	result, err := FromOpenDota(fixture())
+	result, err := FromOpenDota(fixture(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +82,7 @@ func TestAddCareerPlayerHeroesUsesEndpointTotals(t *testing.T) {
 }
 
 func TestValidateRejectsAsymmetricTeammates(t *testing.T) {
-	result, err := FromOpenDota(fixture())
+	result, err := FromOpenDota(fixture(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,13 +93,13 @@ func TestValidateRejectsAsymmetricTeammates(t *testing.T) {
 }
 
 func TestFromOpenDotaIsDeterministic(t *testing.T) {
-	first, err := FromOpenDota(fixture())
+	first, err := FromOpenDota(fixture(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
 	reversed := fixture()
 	reversed.Matches[0], reversed.Matches[1] = reversed.Matches[1], reversed.Matches[0]
-	second, err := FromOpenDota(reversed)
+	second, err := FromOpenDota(reversed, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +111,7 @@ func TestFromOpenDotaIsDeterministic(t *testing.T) {
 }
 
 func TestMergePeersAddsLifetimeCrossTeamPairs(t *testing.T) {
-	result, err := FromOpenDota(fixture())
+	result, err := FromOpenDota(fixture(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +147,7 @@ func TestMergePeersAddsLifetimeCrossTeamPairs(t *testing.T) {
 }
 
 func TestMergePeersRejectsBadSourceAndStat(t *testing.T) {
-	result, err := FromOpenDota(fixture())
+	result, err := FromOpenDota(fixture(), 0)
 	if err != nil {
 		t.Fatal(err)
 	}

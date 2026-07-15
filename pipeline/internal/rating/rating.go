@@ -9,7 +9,12 @@ import "github.com/aegis-draft/pipeline/internal/model"
 // player×hero (окно/событие уточняют свежесть) — раньше базой было только окно.
 // v1.4.0: подняты масштабы Hero Synergy/Chemistry (synergyScale 20→50, chemistryScale 16→45,
 // former-mult 0.35→0.55, current-baseline 0.12→0.15) — прежние +0.1-бонусы были несерьёзными.
-const ModelVersion = "v1.4.0"
+// v1.5.0: рекалибровка клиентского слоя синергии/химии (TS-числа; Go-агрегаты те же, модель
+// версионируется вместе): (1) heroStatsForAssignment = только pro window (playerHeroStats), career
+// — только UI; (2) снят event-оверlay; (3) Hero Synergy = сумма по 5 героям; (4) Chemistry =
+// сыгранность (совместные игры), не winrate.
+// v1.5.2: synergyScale 50→20 (калибровка Hero Synergy под 322-0).
+const ModelVersion = "v1.5.2"
 
 type ImpactMetricWeights struct {
 	KDA           float64

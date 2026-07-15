@@ -283,7 +283,7 @@ write("teamSuccess.json", teamSuccess);
 const formatsPresent = ALL_FORMATS.filter((f) => events.some((ev) => ev.formats.includes(f)));
 const manifest = {
   schemaVersion: 1,
-  ratingModelVersion: "mock-0",
+  ratingModelVersion: "mock-1",
   builtAt: BUILT_AT,
   source: {
     opendota: "mock dataset — not real OpenDota data",

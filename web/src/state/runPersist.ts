@@ -11,6 +11,7 @@ export type RunAction =
   | { t: "pickPlayer"; index: number }
   | { t: "pickHero"; heroId: number }
   | { t: "reroll" }
+  | { t: "fieldReroll" }
   | { t: "assign"; accountId: number; heroId: number }
   | { t: "swap"; a: number; b: number };
 

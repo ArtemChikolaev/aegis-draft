@@ -34,13 +34,31 @@ describe("regression: hero assignment prioritizes games on hero", () => {
   });
 });
 
-describe("regression: squad chemistry UI includes zero-bonus pairs", () => {
-  it("BUG-2026-07-12: пары с bonus=0 и games>0 присутствуют в squadChemistryRows", () => {
+describe("regression: hero assignment pro-only (no pub bleed)", () => {
+  it("BUG-2026-07-15: support с TB только в pub-stats не получает Terrorblade из pro career", () => {
+    const rueId = 847565596;
+    const tb = 109;
+    const bane = 3;
+    const proCareer = {
+      [String(rueId)]: { [String(bane)]: { games: 44, winrate: 0.5 } },
+    };
+    const player: PackPlayer = {
+      accountId: rueId, nickname: "rue", role: "support",
+      ovr: 84, impact: 50, economy: 50, reliability: 50, games: 10,
+    };
+    expect(bestAssignment([player], [tb, bane], proCareer).byPlayer[rueId]).toBe(bane);
+    expect(proCareer[String(rueId)]?.[String(tb)]).toBeUndefined();
+  });
+});
+
+describe("regression: squad chemistry UI не прячет пары", () => {
+  it("BUG-2026-07-12: squadChemistryRows показывает все пары ростера (v1.5.0: сыгранные → bonus>0)", () => {
     const data = loadGameData();
     const spirit = data.packs.find((p) => p.teamName === "Team Spirit")!;
     const roster = rosterFromPack(spirit);
     const rows = squadChemistryRows(roster, data.squadSynergy, data.teammates);
-    expect(rows.some((r) => r.bonus === 0 && r.games > 0)).toBe(true);
+    expect(rows.length).toBeGreaterThanOrEqual(10); // все C(5,2) пары присутствуют, не фильтруются
+    expect(rows.filter((r) => r.games > 0).every((r) => r.bonus > 0)).toBe(true); // games-driven химия
   });
 });
 

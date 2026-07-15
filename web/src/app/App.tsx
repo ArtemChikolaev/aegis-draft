@@ -3,7 +3,6 @@ import { useRun } from "../state/runStore.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
-import { ResultScreen } from "../features/result/ResultScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTheme } from "../design/theme/ThemeProvider.tsx";
@@ -61,7 +60,6 @@ export function App() {
       {phase === "start" && <ResumeBanner />}
       {phase === "start" && <StartScreen />}
       {phase === "draft" && <DraftScreen />}
-      {phase === "result" && <ResultScreen />}
       {phase === "tournament" && <TournamentScreen />}
       <footer className="footer">{t("footer.note")}</footer>
     </div>

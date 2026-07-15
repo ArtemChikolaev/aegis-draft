@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "aegis-draft/careerPlayerHeroStats.schema.json",
-  "title": "Career Player-Hero Stats (lifetime)",
-  "description": "accountId -> heroId -> {games, winrate}. Пожизненные игры игрока на герое (/players/{id}/heroes). База player×hero для Hero Synergy; окно (playerHeroStats) и событие (eventHeroStats) уточняют свежесть.",
+  "title": "Pro Career Player-Hero Stats",
+  "description": "accountId -> heroId -> {games, winrate}. Pro tier-1 all-time (агрегат match details, без pub). База player×hero для Hero Synergy (назначение + UI). playerHeroStats — подмножество в rolling-окне.",
   "type": "object",
   "additionalProperties": {
     "type": "object",

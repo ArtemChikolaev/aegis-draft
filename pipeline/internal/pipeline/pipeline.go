@@ -109,10 +109,11 @@ func Run(ctx context.Context, cfg Config) error {
 		log.Printf("[fetch] OpenDota discovery (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
 		var collected *collect.OpenDotaResult
 		if cfg.EmitDomain {
-			// Discovery по league_id через /explorer: одна ось — tier-1 за rolling-окно, вторая —
-			// valve_legacy (TI/Major) за всю историю (вне окна). Заменяет пагинацию proMatches.
+			// Discovery: все tier-1 лиги за всю историю (since=0) — pro career player×hero.
+			// Оконные рейтинги/паки фильтруют матчи по windowStart в domain.Build; playerHeroStats
+			// в aggregate — подмножество careerPlayerHeroStats (pro all-time vs pro window).
 			collected, err = collect.OpenDotaExplorer(ctx, od, collect.ExplorerConfig{
-				RollingLeagues: rollingLeagues, LegacyLeagues: legacyLeagues, WindowStartUnix: windowStart,
+				RollingLeagues: rollingLeagues, LegacyLeagues: legacyLeagues, WindowStartUnix: 0,
 				CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
 				MatchLimit: matchLimit,
 			})
@@ -142,15 +143,12 @@ func Run(ctx context.Context, cfg Config) error {
 			if err != nil {
 				return fmt.Errorf("normalize OpenDota: %w", err)
 			}
-			aggregates, err := aggregate.FromOpenDota(snapshot)
+			aggregates, err := aggregate.FromOpenDota(snapshot, windowStart)
 			if err != nil {
 				return fmt.Errorf("aggregate OpenDota: %w", err)
 			}
-			// career/peers обогащаем только для pack-игроков (топ-5 составов на событиях):
-			// полное окно (~1500 аккаунтов) не влезает в дневной бюджет, а непаковые игроки
-			// (стенд-ины/неполные ростеры) в датасет не попадают. Пул паков зависит лишь от
-			// ролей и числа игр (не от career/peers), поэтому считаем его уже сейчас. Без
-			// EmitDomain (leagues не прогреты) — прежнее поведение по всем игрокам.
+			// Peers: пожизненные co-games — прямой источник Chemistry. MergePeers апсертит пары
+			// в squadSynergy/teammates, фильтруя по known (пул пак-игроков).
 			enrichTargets := snapshot.Players
 			if cfg.EmitDomain {
 				leagues, lerr := od.FetchLeagues(ctx)
@@ -161,7 +159,11 @@ func Run(ctx context.Context, cfg Config) error {
 				if perr != nil {
 					return fmt.Errorf("invalid as-of date %q: %w", asOf, perr)
 				}
-				packAccounts := domain.PackPlayerAccounts(snapshot, leagues, asOfTime, cfg.MinEventMatches)
+				windowSnapshot := &normalize.OpenDotaSnapshot{
+					Matches: domain.FilterMatchesByWindow(snapshot.Matches, windowStart),
+					Players: snapshot.Players,
+				}
+				packAccounts := domain.PackPlayerAccounts(windowSnapshot, leagues, asOfTime, cfg.MinEventMatches)
 				targets := make([]normalize.NormalizedPlayer, 0, len(packAccounts))
 				for _, player := range snapshot.Players {
 					if _, ok := packAccounts[player.AccountID]; ok {
@@ -169,28 +171,9 @@ func Run(ctx context.Context, cfg Config) error {
 					}
 				}
 				enrichTargets = targets
-				log.Printf("[fetch] career/peers scope: %d pack-игроков из %d в окне", len(enrichTargets), len(snapshot.Players))
+				log.Printf("[fetch] peers scope: %d pack-игроков из %d в pro-вселенной", len(enrichTargets), len(snapshot.Players))
 			}
 
-			careerComplete := 0
-			if cfg.CollectWindow {
-				for _, player := range enrichTargets {
-					heroes, fetchErr := od.FetchPlayerHeroes(ctx, int64(player.AccountID))
-					if errors.Is(fetchErr, sourcehttp.ErrBudgetExhausted) {
-						break
-					}
-					if fetchErr != nil {
-						return fetchErr
-					}
-					if err := aggregate.AddCareerPlayerHeroes(aggregates, player.AccountID, heroes); err != nil {
-						return err
-					}
-					careerComplete++
-				}
-			}
-			// Peers: пожизненные co-games — прямой источник Chemistry. Тот же resumable/budget-
-			// паттерн, что и career heroes; MergePeers апсертит пары в squadSynergy/teammates,
-			// фильтруя по known (пул пак-игроков) — химия нужна между будущими тиммейтами.
 			known := make(map[int]struct{}, len(enrichTargets))
 			for _, player := range enrichTargets {
 				known[player.AccountID] = struct{}{}
@@ -218,8 +201,8 @@ func Run(ctx context.Context, cfg Config) error {
 				Window: string(cfg.Window), AsOf: asOf, WindowStart: windowStart,
 				PagesRead: collected.PagesRead, DiscoveredMatches: len(collected.ProMatches), DiscoveryComplete: collected.DiscoveryComplete,
 				DetailTargetMatches: target, DetailsComplete: collected.DetailsComplete,
-				CareerTargetPlayers: len(enrichTargets), CareerPlayersComplete: careerComplete,
-				CareerComplete:     cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete && careerComplete == len(enrichTargets),
+				CareerTargetPlayers: 0, CareerPlayersComplete: 0,
+				CareerComplete:     cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete,
 				PeersTargetPlayers: len(enrichTargets), PeersPlayersComplete: peersComplete,
 				PeersComplete: peersComplete == len(enrichTargets),
 				CacheHits:     stats.CacheHits, NetworkRequests: stats.NetworkRequests,
@@ -235,9 +218,9 @@ func Run(ctx context.Context, cfg Config) error {
 			if err := artifact.WriteJSON(cfg.AggregateOut, aggregates); err != nil {
 				return fmt.Errorf("write OpenDota aggregates: %w", err)
 			}
-			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) career=%d/%d (complete=%t) peers=%d/%d (complete=%t); network=%d cache=%d",
+			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) proCareer=%t peers=%d/%d (complete=%t); network=%d cache=%d",
 				collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
-				careerComplete, len(enrichTargets), status.CareerComplete,
+				status.CareerComplete,
 				peersComplete, len(enrichTargets), status.PeersComplete, stats.NetworkRequests, stats.CacheHits)
 
 			if cfg.EmitDomain {
@@ -252,8 +235,8 @@ func Run(ctx context.Context, cfg Config) error {
 						return nil
 					}
 					if !status.CareerComplete || !status.PeersComplete {
-						log.Printf("[progress] emit частичный: career=%d/%d peers=%d/%d — обогащение продолжится в след. прогонах",
-							status.CareerPlayersComplete, status.CareerTargetPlayers, status.PeersPlayersComplete, status.PeersTargetPlayers)
+						log.Printf("[progress] emit частичный: proCareer=%t peers=%d/%d — peers продолжится в след. прогонах",
+							status.CareerComplete, status.PeersPlayersComplete, status.PeersTargetPlayers)
 					}
 				}
 				if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {
@@ -315,9 +298,14 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 	if err != nil {
 		return domainFetchErr("heroes", err)
 	}
+	windowStart, _, werr := collectionWindow(cfg)
+	if werr != nil {
+		return fmt.Errorf("emit-domain: %w", werr)
+	}
 	ds, err := domain.Build(domain.Input{
 		Snapshot: snapshot, Aggregates: aggregates, Teams: teams, Leagues: leagues, Heroes: heroes,
 		AsOf: asOf, Config: rcfg, RatingModelVersion: rating.ModelVersion, MinEventMatches: cfg.MinEventMatches,
+		WindowStartUnix: windowStart,
 	})
 	if err != nil {
 		return fmt.Errorf("build domain dataset: %w", err)

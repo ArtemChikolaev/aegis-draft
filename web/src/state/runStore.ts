@@ -8,7 +8,7 @@ import type { RunConfig, DraftPack } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
-import { TournamentEngine, type TournamentSnapshot } from "../game/tournament.ts";
+import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
@@ -24,7 +24,9 @@ import {
 } from "./runPersist.ts";
 import { logDataLoaded, logDraftSnap, logRunStart, logScreen, logTournament } from "../debug/logDraft.ts";
 
-type Phase = "loading" | "start" | "draft" | "result" | "tournament";
+// Бесшовный Classic-флоу (TREF-TOUR2): после драфта нет отдельного экрана-итога —
+// сразу непрерывный `tournament`-вид (разбор счёта + поле + одна CTA «Симулировать»).
+type Phase = "loading" | "start" | "draft" | "tournament";
 export type { RunMode } from "./runPersist.ts";
 
 interface Snapshot {
@@ -65,12 +67,12 @@ interface RunStore {
   assign: (accountId: number, heroId: number) => void;
   swapHeroes: (accountIdA: number, accountIdB: number) => void;
   reroll: () => void;
+  rerollField: () => void;
   reset: () => void;
   setSelectedMode: (mode: RunMode | null) => void;
   setTeamName: (name: string) => void;
   resumeRun: () => void;
   discardResume: () => void;
-  startTournament: (displayName?: string) => void;
   advanceTournament: () => void;
   restartSameConfig: () => void;
 }
@@ -134,6 +136,16 @@ export const useRun = create<RunStore>((set, get) => {
   const record = (action: RunAction) => {
     set((state) => ({ actions: [...state.actions, action] }));
     persist();
+  };
+  // Собрать турнир (стадия field) из готового снапшота драфта. Детерминизм: seed+teamOvr.
+  // Имя команды по умолчанию фиксируем как durable-настройку (как раньше в startTournament).
+  const buildTournamentFields = (snapshot: Snapshot, rerolls = fieldRerollCount(get().actions)) => {
+    const { data, config, seed, teamName } = get();
+    if (!data || !config || !snapshot.score) return null;
+    const resolvedName = teamName.trim() || "Aegis Five";
+    if (!teamName.trim()) saveTeamName(resolvedName);
+    const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
+    return { tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName };
   };
   const recordCareer = (tournament: TournamentSnapshot) => {
     const { data, config, seed, snapshot } = get();
@@ -201,13 +213,14 @@ export const useRun = create<RunStore>((set, get) => {
       const candidate = engine.currentPack.candidates[idx];
       engine.pickPlayer(idx);
       const snapshot = snap(engine);
-      set({ snapshot, phase: engine.isComplete ? "result" : "draft" });
+      const entered = engine.isComplete ? buildTournamentFields(snapshot) : null;
+      set(entered ? { snapshot, phase: "tournament", ...entered } : { snapshot, phase: "draft" });
       debugSnap("pickPlayer", engine, snapshot, config, seed, data, {
         index: idx,
         nickname: candidate?.player.nickname,
         role: candidate?.player.role,
       });
-      if (engine.isComplete) logScreen("Result", "Roster and heroes complete");
+      if (engine.isComplete) logScreen("Tournament", "Roster and heroes complete → field");
       record({ t: "pickPlayer", index: idx });
     },
 
@@ -216,9 +229,10 @@ export const useRun = create<RunStore>((set, get) => {
       if (!engine || !config || !data || !engine.canPickHero(heroId)) return;
       engine.pickHero(heroId);
       const snapshot = snap(engine);
-      set({ snapshot, phase: engine.isComplete ? "result" : "draft" });
+      const entered = engine.isComplete ? buildTournamentFields(snapshot) : null;
+      set(entered ? { snapshot, phase: "tournament", ...entered } : { snapshot, phase: "draft" });
       debugSnap("pickHero", engine, snapshot, config, seed, data, { heroId });
-      if (engine.isComplete) logScreen("Result", "Roster and heroes complete");
+      if (engine.isComplete) logScreen("Tournament", "Roster and heroes complete → field");
       record({ t: "pickHero", heroId });
     },
 
@@ -238,7 +252,10 @@ export const useRun = create<RunStore>((set, get) => {
       try {
         engine.swapHeroes(accountIdA, accountIdB);
         const snapshot = snap(engine);
-        set({ snapshot });
+        // До запуска симуляции (стадия field) свап меняет teamOvr → пересобираем поле,
+        // чтобы посев остался консистентным. После старта групп ростер залочен.
+        const rebuild = get().tournament?.stage === "field" ? buildTournamentFields(snapshot) : null;
+        set(rebuild ? { snapshot, ...rebuild } : { snapshot });
         debugSnap("swapHeroes", engine, snapshot, config, seed, data, { accountIdA, accountIdB });
         record({ t: "swap", a: accountIdA, b: accountIdB });
       } catch {
@@ -256,6 +273,17 @@ export const useRun = create<RunStore>((set, get) => {
         debugSnap("reroll", engine, snapshot, config, seed, data, { rerollsLeft: snapshot.rerollsLeft });
         record({ t: "reroll" });
       }
+    },
+
+    rerollField() {
+      const { tournament, snapshot, config, data, teamName } = get();
+      if (!tournament || tournament.stage !== "field" || !snapshot?.score || !config || !data) return;
+      record({ t: "fieldReroll" });
+      const rebuilt = buildTournamentFields(snapshot, fieldRerollCount(get().actions));
+      if (!rebuilt) return;
+      set(rebuilt);
+      logTournament(rebuilt.tournament, { teamName: teamName || "Aegis Five", teamOvr: snapshot.score.teamOvr, fieldReroll: true });
+      persist();
     },
 
     canPickPlayer(idx) {
@@ -288,11 +316,15 @@ export const useRun = create<RunStore>((set, get) => {
         replay(engine, resumable.actions);
         let tournamentEngine: TournamentEngine | null = null;
         let tournament: TournamentSnapshot | null = null;
-        const tournamentStep = Math.max(0, Math.min(4, resumable.tournamentStep ?? 0));
-        if (engine.isComplete && resumable.tournamentStarted) {
+        // Стадии field(0)→groups(1)→playoffs(2). Завершённый драфт всегда открывает турнир
+        // (стадия по сохранённому шагу): бесшовный флоу — отдельного экрана-итога нет.
+        const tournamentStep = Math.max(0, Math.min(2, resumable.tournamentStep ?? 0));
+        if (engine.isComplete) {
           const score = engine.score();
           if (!score) throw new Error("Completed draft has no score");
-          tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, get().teamName);
+          const resolvedName = get().teamName.trim() || "Aegis Five";
+          const rerolls = fieldRerollCount(resumable.actions);
+          tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, rerolls);
           for (let step = 0; step < tournamentStep; step += 1) tournamentEngine.advance();
           tournament = tournamentEngine.snapshot;
         }
@@ -303,7 +335,7 @@ export const useRun = create<RunStore>((set, get) => {
           selectedMode: resumable.mode,
           actions: resumable.actions,
           snapshot: snap(engine),
-          phase: tournament ? "tournament" : engine.isComplete ? "result" : "draft",
+          phase: engine.isComplete ? "tournament" : "draft",
           resumable: null,
           error: null,
           tournamentEngine,
@@ -320,19 +352,6 @@ export const useRun = create<RunStore>((set, get) => {
     discardResume() {
       clearSavedRun();
       set({ resumable: null });
-    },
-
-    startTournament(displayName) {
-      const { data, config, seed, snapshot, teamName } = get();
-      if (!data || !config || !snapshot?.score || !snapshot.isComplete) return;
-      const resolvedName = teamName.trim() || displayName?.trim() || "Aegis Five";
-      if (!teamName.trim()) saveTeamName(resolvedName);
-      const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName);
-      const tournament = tournamentEngine.snapshot;
-      set({ tournamentEngine, tournament, tournamentStep: 0, phase: "tournament", teamName: resolvedName });
-      logScreen("Tournament", "Started from Result screen");
-      logTournament(tournament, { teamName: resolvedName, teamOvr: snapshot.score.teamOvr });
-      persist();
     },
 
     advanceTournament() {

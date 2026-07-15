@@ -22,6 +22,8 @@ type OpenDotaResult struct {
 	SquadSynergy          []model.SquadPair                `json:"squadSynergy"`
 }
 
+// AddCareerPlayerHeroes upserts rows from OpenDota /players/{id}/heroes (pub+pro lifetime).
+// Deprecated for emit-domain: careerPlayerHeroStats теперь агрегируется из tier-1 pro match details.
 func AddCareerPlayerHeroes(result *OpenDotaResult, accountID int, heroes []opendota.PlayerHero) error {
 	if result == nil || accountID <= 0 {
 		return fmt.Errorf("invalid career player target %d", accountID)
@@ -50,16 +52,18 @@ type counter struct {
 
 type pairKey [2]int
 
-func FromOpenDota(snapshot *normalize.OpenDotaSnapshot) (*OpenDotaResult, error) {
+func FromOpenDota(snapshot *normalize.OpenDotaSnapshot, windowStartUnix int64) (*OpenDotaResult, error) {
 	if snapshot == nil {
 		return nil, fmt.Errorf("normalized snapshot is nil")
 	}
-	heroes := make(map[int]map[int]*counter)
+	careerHeroes := make(map[int]map[int]*counter)
+	windowHeroes := make(map[int]map[int]*counter)
 	teammates := make(map[int]map[int]struct{})
 	pairs := make(map[pairKey]*counter)
 	appearances := 0
 
 	for _, match := range snapshot.Matches {
+		inWindow := windowStartUnix <= 0 || match.StartTime >= windowStartUnix
 		teams := map[int][]normalize.NormalizedAppearance{
 			match.RadiantTeamID: {},
 			match.DireTeamID:    {},
@@ -73,19 +77,9 @@ func FromOpenDota(snapshot *normalize.OpenDotaSnapshot) (*OpenDotaResult, error)
 			}
 			appearances++
 			teams[player.TeamID] = append(teams[player.TeamID], player)
-			byHero := heroes[player.AccountID]
-			if byHero == nil {
-				byHero = make(map[int]*counter)
-				heroes[player.AccountID] = byHero
-			}
-			stat := byHero[player.HeroID]
-			if stat == nil {
-				stat = &counter{}
-				byHero[player.HeroID] = stat
-			}
-			stat.games++
-			if teamWon(match, player.TeamID) {
-				stat.wins++
+			accumulateHero(careerHeroes, player.AccountID, player.HeroID, match, player.TeamID)
+			if inWindow {
+				accumulateHero(windowHeroes, player.AccountID, player.HeroID, match, player.TeamID)
 			}
 			if teammates[player.AccountID] == nil {
 				teammates[player.AccountID] = make(map[int]struct{})
@@ -117,17 +111,10 @@ func FromOpenDota(snapshot *normalize.OpenDotaSnapshot) (*OpenDotaResult, error)
 
 	result := &OpenDotaResult{
 		MatchCount: len(snapshot.Matches), AppearanceCount: appearances,
-		PlayerHeroStats:       make(map[string]map[string]model.Stat, len(heroes)),
-		CareerPlayerHeroStats: make(map[string]map[string]model.Stat),
+		PlayerHeroStats:       encodeHeroStats(windowHeroes),
+		CareerPlayerHeroStats: encodeHeroStats(careerHeroes),
 		Teammates:             make(map[string][]int, len(teammates)),
 		SquadSynergy:          make([]model.SquadPair, 0, len(pairs)),
-	}
-	for accountID, byHero := range heroes {
-		encoded := make(map[string]model.Stat, len(byHero))
-		for heroID, stat := range byHero {
-			encoded[strconv.Itoa(heroID)] = model.Stat{Games: stat.games, Winrate: winrate(stat)}
-		}
-		result.PlayerHeroStats[strconv.Itoa(accountID)] = encoded
 	}
 	squad := make(map[pairKey]model.SquadPair, len(pairs))
 	for key, stat := range pairs {
@@ -136,6 +123,40 @@ func FromOpenDota(snapshot *normalize.OpenDotaSnapshot) (*OpenDotaResult, error)
 	result.SquadSynergy = squadSlice(squad)
 	result.Teammates = emitTeammates(teammates)
 	return result, nil
+}
+
+func accumulateHero(
+	heroes map[int]map[int]*counter,
+	accountID, heroID int,
+	match normalize.NormalizedMatch,
+	teamID int,
+) {
+	byHero := heroes[accountID]
+	if byHero == nil {
+		byHero = make(map[int]*counter)
+		heroes[accountID] = byHero
+	}
+	stat := byHero[heroID]
+	if stat == nil {
+		stat = &counter{}
+		byHero[heroID] = stat
+	}
+	stat.games++
+	if teamWon(match, teamID) {
+		stat.wins++
+	}
+}
+
+func encodeHeroStats(heroes map[int]map[int]*counter) map[string]map[string]model.Stat {
+	out := make(map[string]map[string]model.Stat, len(heroes))
+	for accountID, byHero := range heroes {
+		encoded := make(map[string]model.Stat, len(byHero))
+		for heroID, stat := range byHero {
+			encoded[strconv.Itoa(heroID)] = model.Stat{Games: stat.games, Winrate: winrate(stat)}
+		}
+		out[strconv.Itoa(accountID)] = encoded
+	}
+	return out
 }
 
 // MergePeers upserts пожизненные совместные игры из /players/{id}/peers в SquadSynergy

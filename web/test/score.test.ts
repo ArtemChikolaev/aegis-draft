@@ -10,6 +10,7 @@ import {
   chemistryPairEdges,
   heroSynergyBonus,
   heroSynergyRows,
+  heroStatsForDisplay,
   heroSynergyTier,
   playerHeroGames,
   scoreTeam,
@@ -67,23 +68,6 @@ describe("scoreTeam", () => {
       sig,
     );
     expect(partial.heroSynergy).toBe(0);
-  });
-
-  it("добавление игрока не разбавляет Hero Synergy выбранной пары", () => {
-    const progress = spirit.players.map((_, index) =>
-      scoreTeam(
-        spirit.players.slice(0, index + 1),
-        spirit.signatureHeroes.slice(0, 1),
-        phs,
-        data.squadSynergy,
-        data.teammates,
-        chem.slice(0, index + 1),
-        sig,
-      ).heroSynergy,
-    );
-    for (let i = 1; i < progress.length; i++) {
-      expect(progress[i]).toBeGreaterThanOrEqual(progress[i - 1] - 1e-9);
-    }
   });
 
   it("Chemistry сыгранного ростера не падает при добавлении тиммейтов", () => {
@@ -145,12 +129,13 @@ describe("heroSynergyRows / squadChemistryRows", () => {
   const roster = rosterFromPack(spirit);
   const assignment = bestAssignment(spirit.players, spirit.signatureHeroes, phs, sig);
 
-  it("heroSynergyRows: 5 строк, games из stats", () => {
-    const rows = heroSynergyRows(roster, assignment, phs);
+  it("heroSynergyRows: 5 строк, games из pro career", () => {
+    const careerPhs = data.careerPlayerHeroStats ?? phs;
+    const rows = heroSynergyRows(roster, assignment, careerPhs, careerPhs);
     expect(rows).toHaveLength(5);
     for (const row of rows) {
       if (row.heroId != null) {
-        expect(row.games).toBe(playerHeroGames(phs, row.accountId, row.heroId));
+        expect(row.games).toBe(playerHeroGames(careerPhs, row.accountId, row.heroId));
       }
     }
   });
@@ -161,10 +146,10 @@ describe("heroSynergyRows / squadChemistryRows", () => {
     expect(heroSynergyTier(7)).toBe("insane");
   });
 
-  it("squadChemistryRows: все пары ростера с историей, даже bonus=0", () => {
+  it("squadChemistryRows: все пары ростера показаны; сыгранные пары дают bonus>0 (v1.5.0 games-driven)", () => {
     const rows = squadChemistryRows(roster, data.squadSynergy, data.teammates);
-    expect(rows.length).toBeGreaterThanOrEqual(10);
-    expect(rows.some((r) => r.bonus === 0 && r.games > 0)).toBe(true);
+    expect(rows.length).toBeGreaterThanOrEqual(10); // пары не прячутся из UI (баг 2026-07-12)
+    expect(rows.filter((r) => r.games > 0).every((r) => r.bonus > 0)).toBe(true); // сыгранность ⟹ химия
   });
 
   it("chemistryPairEdges: только пары с bonus >= 0.05", () => {
