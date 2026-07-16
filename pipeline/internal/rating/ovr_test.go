@@ -46,12 +46,16 @@ func TestRatePlayersShrinksOneGameOutlierTowardNeutral(t *testing.T) {
 		t.Fatal(err)
 	}
 	outlier := findRating(t, ratings, 3)
-	// Нейтраль — CalibrationMid (шкала референса), а не 50: перцентиль-ранг переносится на
-	// шкалу OVR аффинно. Порог выражен через конфиг, иначе тест протухает на каждой калибровке.
-	// 6 — допуск в очках РАНГА (как было), на шкале OVR это 6*Spread.
-	limit := cfg.CalibrationMid + 6*cfg.CalibrationSpread
-	if float64(outlier.OVR) > limit || float64(outlier.Impact) > limit || float64(outlier.Economy) > limit {
-		t.Fatalf("one-game outlier escaped confidence shrinkage (limit %.1f): %+v", limit, outlier)
+	// OVR: нейтраль — CalibrationMid (среднее шкалы), допуск 0.2 сигмы. Выброс с одной игрой
+	// стягивается по confidence почти в ноль z, то есть к середине когорты.
+	ovrLimit := cfg.CalibrationMid + 0.2*cfg.CalibrationSpread
+	if float64(outlier.OVR) > ovrLimit {
+		t.Fatalf("one-game outlier escaped confidence shrinkage (OVR limit %.1f): %+v", ovrLimit, outlier)
+	}
+	// Компоненты живут в полосе 50..100 (замер 322-0), их нейтраль — 75, а не CalibrationMid.
+	const componentLimit = 78
+	if outlier.Impact > componentLimit || outlier.Economy > componentLimit {
+		t.Fatalf("one-game outlier escaped shrinkage in components (limit %d): %+v", componentLimit, outlier)
 	}
 }
 

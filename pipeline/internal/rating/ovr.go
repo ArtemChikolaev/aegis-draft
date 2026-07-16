@@ -10,11 +10,60 @@ import (
 
 const metricCount = 8
 
+// probit — обратная функция стандартного нормального распределения (Acklam, |ошибка| < 1.15e-9).
+//
+// Зачем: перцентиль ограничен [0,100], и смесь перцентилей (командный + индивидуальный) поджата
+// к центру — хвостов у неё нет по построению. Замер: наш максимум стоял в 2.36σ от среднего,
+// у 322-0 — в 3.05σ, а для нормального такой выборки ожидается 3.63σ. При этом их распределение
+// именно НОРМАЛЬНОЕ (skew 0.05, kurtosis −0.69, квантили совпадают с N(74.1, 7.8) в пределах 2).
+// Переводим перцентили в z ДО смешивания: смесь нормальных нормальна, и хвост появляется сам —
+// без него потолок черри-пика упирался в ~101 против их ~105.
+func probit(p float64) float64 {
+	a := [6]float64{-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00}
+	b := [5]float64{-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01}
+	c := [6]float64{-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00}
+	d := [4]float64{7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00}
+	const low, high = 0.02425, 1 - 0.02425
+	switch {
+	case p <= 0:
+		return -maxAbsZ
+	case p >= 1:
+		return maxAbsZ
+	case p < low:
+		q := math.Sqrt(-2 * math.Log(p))
+		return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q + c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q + 1)
+	case p <= high:
+		q := p - 0.5
+		r := q * q
+		return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r + a[5]) * q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r + 1)
+	default:
+		q := math.Sqrt(-2 * math.Log(1-p))
+		return -((((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q + c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q + 1))
+	}
+}
+
+// maxAbsZ — потолок |z| для краёв когорты: probit(0) = −∞, а лучший игрок события не должен
+// улетать в бесконечность. 3.5σ — чуть выше ожидаемого максимума нормальной выборки нашего
+// размера (3.63σ), так что реальные края в него не упираются.
+const maxAbsZ = 3.5
+
+// percentileToZ переводит перцентиль [0,100] в z с поправкой на непрерывность: края когорты
+// (0 и 100) иначе дают ±∞. n — размер когорты.
+func percentileToZ(percentile float64, n int) float64 {
+	if n < 2 {
+		return 0
+	}
+	p := percentile / 100
+	edge := 0.5 / float64(n)
+	p = math.Max(edge, math.Min(1-edge, p))
+	return math.Max(-maxAbsZ, math.Min(maxAbsZ, probit(p)))
+}
+
 type MatchPerformance struct {
 	MatchID         int64
 	AccountID       int
 	Role            model.Role
-	TeamID          int  // нужен для командного члена OVR — см. teamRanks
+	TeamID          int  // нужен для командного члена OVR — см. teamZ
 	Won             bool // исход матча для команды игрока
 	DurationSeconds int
 	Kills           int
@@ -42,15 +91,16 @@ type ratingKey struct {
 	role      model.Role
 }
 
-// teamRanks — ранг каждой команды события по её выступлению НА ЭТОМ событии: сглаженный
-// winrate, переведённый в перцентиль среди команд события. Прокси места: настоящего
-// placement из OpenDota не достать (deferred), а победы на турнире — прямое его отражение.
+// teamZ — сила каждой команды события в z-единицах: сглаженный winrate НА ЭТОМ событии,
+// переведённый в перцентиль среди команд события, а затем в z (см. probit — иначе хвост
+// срезается). Прокси места: настоящего placement из OpenDota не достать (deferred), а
+// победы на турнире — прямое его отражение.
 //
 // Зачем вообще: у 322-0 OVR игрока на 92% определяется тем, как сыграла его команда, и лишь
 // на 8% им самим (замер их packs.json: разброс OVR внутри команды 2.0 при общем sd 7.8;
 // корреляция места и team base −0.858). У нас было 54/46 — отсюда AMMAR 96 и Malr1ne 71 в
 // составе, выигравшем турнир. Индивидуальные IMP/ECO/REL при этом остаются собой.
-func teamRanks(samples []MatchPerformance, cfg Config) map[int]float64 {
+func teamZ(samples []MatchPerformance, cfg Config) map[int]float64 {
 	type record struct{ games, wins int }
 	perTeam := make(map[int]*record)
 	seen := make(map[[2]int]struct{}, len(samples)) // матч×команда считаем один раз, не по 5 игрокам
@@ -87,7 +137,7 @@ func teamRanks(samples []MatchPerformance, cfg Config) map[int]float64 {
 	out := make(map[int]float64, len(teamIDs))
 	for _, id := range teamIDs {
 		if len(teamIDs) <= 1 {
-			out[id] = 50
+			out[id] = 0
 			continue
 		}
 		less, equal := 0, 0
@@ -99,7 +149,8 @@ func teamRanks(samples []MatchPerformance, cfg Config) map[int]float64 {
 				equal++
 			}
 		}
-		out[id] = 100 * (float64(less) + 0.5*float64(equal-1)) / float64(len(teamIDs)-1)
+		percentile := 100 * (float64(less) + 0.5*float64(equal-1)) / float64(len(teamIDs)-1)
+		out[id] = percentileToZ(percentile, len(teamIDs))
 	}
 	return out
 }
@@ -110,8 +161,8 @@ type group struct {
 	games  []gameMetrics
 	raw    [metricCount]float64
 	shrunk [metricCount]float64
-	ranks  [metricCount]float64 // перцентиль-ранг ДО калибровки — из него собирается OVR
-	scores [metricCount]float64 // ранг, перенесённый на шкалу OVR — из него IMP/ECO/REL
+	zs     [metricCount]float64 // метрика в z-единицах — из них собирается OVR (хвост!)
+	scores [metricCount]float64 // полоса 50..100 — из неё IMP/ECO/REL (не шкала OVR!)
 }
 
 type gameMetrics struct {
@@ -161,8 +212,8 @@ func RatePlayers(scopeID string, samples []MatchPerformance, cfg Config) ([]Play
 		return ordered[i].key.role < ordered[j].key.role
 	})
 	shrinkByRole(ordered, cfg.SamplePriorGames)
-	normalizeByRole(ordered, cfg.SamplePriorGames, cfg.CalibrationMid, cfg.CalibrationSpread)
-	byTeam := teamRanks(samples, cfg)
+	normalizeByRole(ordered, cfg.SamplePriorGames)
+	byTeam := teamZ(samples, cfg)
 
 	result := make([]PlayerRating, 0, len(ordered))
 	for _, entry := range ordered {
@@ -172,22 +223,26 @@ func RatePlayers(scopeID string, samples []MatchPerformance, cfg Config) ([]Play
 		reliability := entry.scores[6]*cfg.ReliabilityWeights.Survival + entry.scores[7]*cfg.ReliabilityWeights.Consistency
 		weights := cfg.RoleWeights[entry.key.role]
 
-		// OVR собирается из РАНГОВ (до калибровки), потому что к ним подмешивается ранг команды.
-		// Смешивать на калиброванной шкале нельзя: калибровка аффинна, и повторное применение
-		// сдвинуло бы центр. Отсюда же следует, что OVR ПЕРЕСТАЁТ быть взвешенной суммой
-		// показанных IMP/ECO/REL — ровно как у 322-0, где расхождение доходит до 21.7.
-		individualRank := combine(
-			entry.ranks[0]*cfg.ImpactWeights.KDA+entry.ranks[1]*cfg.ImpactWeights.Participation+entry.ranks[2]*cfg.ImpactWeights.DamagePerMin,
-			entry.ranks[3]*cfg.EconomyWeights.GPM+entry.ranks[4]*cfg.EconomyWeights.XPM+entry.ranks[5]*cfg.EconomyWeights.LastHitsPerMin,
-			entry.ranks[6]*cfg.ReliabilityWeights.Survival+entry.ranks[7]*cfg.ReliabilityWeights.Consistency,
+		// OVR собирается в Z-ПРОСТРАНСТВЕ, а не на перцентилях. Перцентиль ограничен [0,100],
+		// и смесь перцентилей поджата к центру: наш максимум стоял в 2.36σ от среднего против
+		// 3.05σ у 322-0, из-за чего потолок черри-пика упирался в ~101 против их ~105. Смесь
+		// нормальных — нормальна, и хвост появляется сам. Их распределение как раз нормальное
+		// (skew 0.05, квантили совпадают с N(74.1, 7.8)).
+		//
+		// Отсюда же следует, что OVR НЕ равен взвешенной сумме показанных IMP/ECO/REL — ровно
+		// как у 322-0, где расхождение доходит до 21.7.
+		individualZ := combine(
+			entry.zs[0]*cfg.ImpactWeights.KDA+entry.zs[1]*cfg.ImpactWeights.Participation+entry.zs[2]*cfg.ImpactWeights.DamagePerMin,
+			entry.zs[3]*cfg.EconomyWeights.GPM+entry.zs[4]*cfg.EconomyWeights.XPM+entry.zs[5]*cfg.EconomyWeights.LastHitsPerMin,
+			entry.zs[6]*cfg.ReliabilityWeights.Survival+entry.zs[7]*cfg.ReliabilityWeights.Consistency,
 			weights,
 		)
-		teamRank, hasTeam := byTeam[entry.teamID]
+		teamComponent, hasTeam := byTeam[entry.teamID]
 		if !hasTeam {
-			teamRank = individualRank // нет команды у сэмпла — падаем на чистую индивидуалку
+			teamComponent = individualZ // нет команды у сэмпла — падаем на чистую индивидуалку
 		}
-		rank := cfg.TeamComponentWeight*teamRank + (1-cfg.TeamComponentWeight)*individualRank
-		ovr := cfg.CalibrationMid + (rank-50)*cfg.CalibrationSpread
+		z := cfg.TeamComponentWeight*teamComponent + (1-cfg.TeamComponentWeight)*individualZ
+		ovr := cfg.CalibrationMid + z*cfg.CalibrationSpread
 
 		result = append(result, PlayerRating{
 			AccountID: entry.key.accountID, Role: entry.key.role, Games: len(entry.games),
@@ -298,7 +353,7 @@ func shrinkByRole(groups []*group, priorGames float64) {
 // player OVR mean 74.1, sd 7.8, диапазон 55–98). Преобразование АФФИННОЕ и монотонное — порядок
 // игроков не меняется, меняется только шкала. Веса ролей в combine() дают в сумме 1, поэтому
 // impact/economy/reliability и OVR масштабируются одинаково.
-func normalizeByRole(groups []*group, priorGames, calibrationMid, calibrationSpread float64) {
+func normalizeByRole(groups []*group, priorGames float64) {
 	for metric := 0; metric < metricCount; metric++ {
 		for _, role := range roles() {
 			cohort := make([]*group, 0)
@@ -310,9 +365,15 @@ func normalizeByRole(groups []*group, priorGames, calibrationMid, calibrationSpr
 			for _, entry := range cohort {
 				percentile := percentileRank(entry.shrunk[metric], cohort, metric, metric != 6)
 				confidence := effectiveGames(entry, metric) / (effectiveGames(entry, metric) + priorGames)
+				// z — для OVR (нормальная шкала, есть хвост). Стягивание по confidence тянет
+				// к нулю, то есть к середине когорты, — та же семантика, что и на рангах.
+				entry.zs[metric] = percentileToZ(percentile, len(cohort)) * confidence
+				// score — для отображаемых IMP/ECO/REL. Полоса 50..100, НЕ шкала OVR: замер
+				// 322-0 даёт у всех трёх компонент ровно min=50, max=100, mean=75.0 — это
+				// и есть 50 + ранг/2. Компоненты намеренно живут отдельно от калибровки OVR:
+				// в OVR подмешан командный член, в них — нет.
 				rank := 50 + (percentile-50)*confidence
-				entry.ranks[metric] = rank
-				entry.scores[metric] = calibrationMid + (rank-50)*calibrationSpread
+				entry.scores[metric] = 50 + rank/2
 			}
 		}
 	}
