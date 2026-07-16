@@ -60,6 +60,64 @@ export function groupDrawOrder(group: TournamentGroup, matches: GroupMatch[]): T
     .filter(Boolean);
 }
 
+function groupMatchByPair(matches: GroupMatch[], groupId: "A" | "B"): Map<string, GroupMatch> {
+  const byPair = new Map<string, GroupMatch>();
+  for (const match of matches) {
+    if (match.group !== groupId) continue;
+    const parts = match.id.split("-");
+    const i = Number(parts[2]);
+    const j = Number(parts[3]);
+    byPair.set(`${i}-${j}`, match);
+  }
+  return byPair;
+}
+
+/**
+ * Серии группового этапа (как TI): в каждой серии команда играет не больше одного BO2.
+ * Круговой алгоритм с фиксированным pivot и ротацией остальных.
+ */
+export function groupSeriesRounds(groupId: "A" | "B", matches: GroupMatch[]): GroupMatch[][] {
+  const byPair = groupMatchByPair(matches, groupId);
+  const teamIndices = [...byPair.keys()]
+    .flatMap((key) => key.split("-").map(Number))
+    .reduce((set, index) => set.add(index), new Set<number>());
+  const teams = [...teamIndices].sort((a, b) => a - b);
+  if (teams.length < 2) return [];
+
+  const slots: (number | null)[] = teams.length % 2 === 0 ? teams : [...teams, null];
+  const rounds: GroupMatch[][] = [];
+
+  for (let round = 0; round < slots.length - 1; round += 1) {
+    const series: GroupMatch[] = [];
+    for (let i = 0; i < slots.length / 2; i += 1) {
+      const a = slots[i];
+      const b = slots[slots.length - 1 - i];
+      if (a == null || b == null) continue;
+      const lo = Math.min(a, b);
+      const hi = Math.max(a, b);
+      const match = byPair.get(`${lo}-${hi}`);
+      if (match) series.push(match);
+    }
+    rounds.push(series);
+    slots.splice(1, 0, slots.pop()!);
+  }
+
+  return rounds;
+}
+
+/** Порядок проигрывания: серия A → серия B → следующая серия (синхронно, как на TI). */
+export function orderGroupMatchesBySeries(matches: GroupMatch[]): GroupMatch[] {
+  const out: GroupMatch[] = [];
+  const roundsA = groupSeriesRounds("A", matches);
+  const roundsB = groupSeriesRounds("B", matches);
+  const roundCount = Math.max(roundsA.length, roundsB.length);
+  for (let round = 0; round < roundCount; round += 1) {
+    for (const match of roundsA[round] ?? []) out.push(match);
+    for (const match of roundsB[round] ?? []) out.push(match);
+  }
+  return out;
+}
+
 function lastGroupTick(ticks: SimTick[], step: number, matchId: string): SimTick | null {
   let last: SimTick | null = null;
   for (let i = 0; i < step && i < ticks.length; i += 1) {
@@ -118,4 +176,45 @@ export function seriesFinished(series: SeriesResult, ticks: SimTick[], step: num
   const tick = lastPlayoffTick(ticks, step, series.id);
   if (!tick || tick.kind !== "playoff") return false;
   return tick.frameIndex === series.frames.length - 1;
+}
+
+const seriesId = (roundId: string, index: number) => `${roundId}-${index + 1}`;
+
+/** Зависимости слота: серия показывает участников только после финала всех фидеров. */
+export function buildPlayoffFeeders(tournament: TournamentSnapshot): Map<string, string[]> {
+  const feeders = new Map<string, string[]>();
+
+  for (let i = 0; i < 4; i += 1) {
+    feeders.set(seriesId("lb-r2", i), [seriesId("lb-r1", i), seriesId("ub-qf", i)]);
+  }
+  feeders.set(seriesId("ub-sf", 0), [seriesId("ub-qf", 0), seriesId("ub-qf", 1)]);
+  feeders.set(seriesId("ub-sf", 1), [seriesId("ub-qf", 2), seriesId("ub-qf", 3)]);
+  for (let i = 0; i < 2; i += 1) {
+    feeders.set(seriesId("lb-r3", i), [seriesId("lb-r2", i * 2), seriesId("lb-r2", i * 2 + 1)]);
+    feeders.set(seriesId("lb-r4", i), [seriesId("lb-r3", i), seriesId("ub-sf", i)]);
+  }
+  feeders.set(seriesId("ub-final", 0), [seriesId("ub-sf", 0), seriesId("ub-sf", 1)]);
+  feeders.set(seriesId("lb-r5", 0), [seriesId("lb-r4", 0), seriesId("lb-r4", 1)]);
+  feeders.set(seriesId("lb-final", 0), [seriesId("lb-r5", 0), seriesId("ub-final", 0)]);
+  feeders.set(tournament.grandFinal.id, [seriesId("ub-final", 0), seriesId("lb-final", 0)]);
+
+  return feeders;
+}
+
+/** Участники слота видны, когда все фидеры доиграны (или симуляция завершена / скип). */
+export function seriesSlotsVisible(
+  seriesId: string,
+  tournament: TournamentSnapshot,
+  feeders: Map<string, string[]>,
+  ticks: SimTick[],
+  step: number,
+  revealComplete: boolean,
+): boolean {
+  if (revealComplete) return true;
+  const deps = feeders.get(seriesId);
+  if (!deps?.length) return true;
+  return deps.every((depId) => {
+    const dep = findSeries(tournament, depId);
+    return dep != null && seriesFinished(dep, ticks, step);
+  });
 }

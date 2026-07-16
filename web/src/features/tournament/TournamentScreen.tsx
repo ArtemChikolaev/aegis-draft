@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { heroGamesMessageKey, roleMessageKey, type MessageKey } from "../../i18n/core.ts";
+import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type {
   GroupMatch, GroupStanding, PlacementKey, PlayoffRound, ProjectionKey, SeriesResult, TournamentGroup,
-  TournamentTeam,
+  TournamentSnapshot, TournamentTeam,
 } from "../../game/tournament.ts";
 import {
+  buildPlayoffFeeders,
   buildPlayoffSimTicks,
   groupDrawOrder,
+  orderGroupMatchesBySeries,
   seriesFinished,
   seriesFrame,
   seriesLive,
+  seriesSlotsVisible,
   seriesStarted,
 } from "../../game/tournamentPlayback.ts";
 import { useRun } from "../../state/runStore.ts";
@@ -44,7 +47,7 @@ const scoreTier = (score: number): "elite" | "strong" | "mid" | "low" | "weak" =
 
 // Группы: один тик = весь матч (финальный счёт сразу). Плей-офф: тик = одна карта серии.
 const GROUP_MATCH_STEP_MS = 70;
-const PLAYOFF_MAP_STEP_MS = 250;
+const PLAYOFF_MAP_STEP_MS = 200;
 
 const prefersReducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -56,6 +59,10 @@ const prefersReducedMotion = () =>
 function useReveal(total: number, resetKey: unknown, stepMs: number) {
   const [n, setN] = useState(0);
   const timer = useRef<number | null>(null);
+  const resetKeyRef = useRef(resetKey);
+  const keyChanged = resetKeyRef.current !== resetKey;
+  if (keyChanged) resetKeyRef.current = resetKey;
+
   const stop = useCallback(() => {
     if (timer.current == null) return;
     window.clearInterval(timer.current);
@@ -77,7 +84,9 @@ function useReveal(total: number, resetKey: unknown, stepMs: number) {
     stop();
     setN(total);
   }, [stop, total]);
-  return { n, done: n >= total, skip };
+  // Синхронный сброс при смене стадии: иначе n от групп (72) > тиков плей-офф (~68) → done=true на 1 кадр.
+  const step = keyChanged ? 0 : n;
+  return { n: step, done: total > 0 && step >= total, skip };
 }
 
 // Частичная таблица: все 9 команд сразу (порядок жеребьёvки), затем пересорт по картам.
@@ -113,45 +122,73 @@ function liveStandings(
 }
 
 // Строка команды в серии (виджет Claude): ★ у своей, имя + счёт; win зелёный / loss коралл.
-// live — карта идёт; pending — серия ещё не началась.
-function TeamRow({ team, score, won, pending, live }: { team: TournamentTeam; score: number; won: boolean; pending?: boolean; live?: boolean }) {
-  const state = pending ? "is-pending" : live ? "is-live" : won ? "is-winner" : "is-loser";
+// live — карта идёт; pending — серия ещё не началась; empty — слот ещё не определён фидерами.
+function TeamRow({
+  team,
+  score,
+  won,
+  pending,
+  live,
+  empty,
+}: {
+  team: TournamentTeam;
+  score: number;
+  won: boolean;
+  pending?: boolean;
+  live?: boolean;
+  empty?: boolean;
+}) {
+  const state = empty ? "is-empty" : pending ? "is-pending" : live ? "is-live" : won ? "is-winner" : "is-loser";
   return (
-    <span className={`series__team ${state} ${team.isUser ? "is-user" : ""}`}>
-      <em className="series__name">{team.isUser ? `★ ${team.name}` : team.name}</em>
-      <b className="series__score">{pending ? "·" : score}</b>
+    <span className={`series__team ${state} ${!empty && team.isUser ? "is-user" : ""}`}>
+      <em className="series__name">{empty ? "·" : team.isUser ? `★ ${team.name}` : team.name}</em>
+      <b className="series__score">{empty || pending ? "·" : score}</b>
     </span>
   );
 }
 
 function renderSeriesMatch(
   series: SeriesResult,
+  tournament: TournamentSnapshot,
+  feeders: Map<string, string[]>,
   ticks: ReturnType<typeof buildPlayoffSimTicks>,
   step: number,
+  revealComplete: boolean,
   extraClass = "",
 ) {
+  const slotsVisible = seriesSlotsVisible(series.id, tournament, feeders, ticks, step, revealComplete);
   const started = seriesStarted(series.id, ticks, step);
   const finished = seriesFinished(series, ticks, step);
   const live = seriesLive(series, ticks, step);
   const frame = seriesFrame(series, ticks, step);
   const scoreA = frame?.scoreA ?? 0;
   const scoreB = frame?.scoreB ?? 0;
-  const hasUser = series.teamA.isUser || series.teamB.isUser;
+  const teamA = slotsVisible ? series.teamA : null;
+  const teamB = slotsVisible ? series.teamB : null;
+  const hasUser = slotsVisible && (series.teamA.isUser || series.teamB.isUser);
   return (
-    <div key={series.id} className={`match ${extraClass} ${hasUser ? "has-user" : ""} ${live ? "is-live" : ""} ${started ? "" : "is-pending"}`.trim()}>
-      <TeamRow team={series.teamA} score={scoreA} won={finished && series.winnerId === series.teamA.id} pending={!started} live={live} />
-      <TeamRow team={series.teamB} score={scoreB} won={finished && series.winnerId === series.teamB.id} pending={!started} live={live} />
+    <div key={series.id} className={`match ${extraClass} ${hasUser ? "has-user" : ""} ${live ? "is-live" : ""} ${started ? "" : "is-pending"} ${slotsVisible ? "" : "is-locked"}`.trim()}>
+      <TeamRow team={teamA ?? series.teamA} score={scoreA} won={finished && series.winnerId === series.teamA.id} pending={slotsVisible && !started} live={live} empty={!slotsVisible} />
+      <TeamRow team={teamB ?? series.teamB} score={scoreB} won={finished && series.winnerId === series.teamB.id} pending={slotsVisible && !started} live={live} empty={!slotsVisible} />
     </div>
   );
 }
 
 // Колонка раунда сетки: серии со счётом (как в 322-0), с коннекторами к следующему раунду.
-function renderRound(round: PlayoffRound, ticks: ReturnType<typeof buildPlayoffSimTicks>, step: number, slot: number) {
+function renderRound(
+  round: PlayoffRound,
+  tournament: TournamentSnapshot,
+  feeders: Map<string, string[]>,
+  ticks: ReturnType<typeof buildPlayoffSimTicks>,
+  step: number,
+  revealComplete: boolean,
+  slot: number,
+) {
   return (
     <div key={round.id} className={`bracket-col bracket-col--slot-${slot}`}>
       <h4 className="bracket-col__title">{round.label}</h4>
       <div className="bracket-col__matches">
-        {round.series.map((series) => renderSeriesMatch(series, ticks, step))}
+        {round.series.map((series) => renderSeriesMatch(series, tournament, feeders, ticks, step, revealComplete))}
       </div>
     </div>
   );
@@ -181,17 +218,10 @@ export function TournamentScreen() {
   const playoffsRef = useRef<HTMLDivElement | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
 
-  // Матчи групп чередуем A/B, чтобы обе таблицы наполнялись одновременно.
+  // Матчи групп: серия A + серия B за тик-серию (как TI), чтобы счёт рос синхронно.
   const orderedGroupMatches = useMemo(() => {
     if (!tournament) return [];
-    const a = tournament.groupMatches.filter((m) => m.group === "A");
-    const b = tournament.groupMatches.filter((m) => m.group === "B");
-    const out: GroupMatch[] = [];
-    for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
-      if (a[i]) out.push(a[i]);
-      if (b[i]) out.push(b[i]);
-    }
-    return out;
+    return orderGroupMatchesBySeries(tournament.groupMatches);
   }, [tournament]);
   // Порядок раскрытия сетки = зависимостный порядок раундов движка + Grand Final.
   const playoffOrder = useMemo(() => {
@@ -205,6 +235,11 @@ export function TournamentScreen() {
   const playoffSimTicks = useMemo(
     () => (tournament ? buildPlayoffSimTicks(tournament, playoffOrder) : []),
     [tournament, playoffOrder],
+  );
+
+  const playoffFeeders = useMemo(
+    () => (tournament ? buildPlayoffFeeders(tournament) : new Map<string, string[]>()),
+    [tournament],
   );
 
   const stage = tournament?.stage ?? "field";
@@ -268,6 +303,10 @@ export function TournamentScreen() {
   if (!tournament || !snapshot?.score || !config || !data) return null;
 
   const { roster, score } = snapshot;
+  const eventNameById = useMemo(
+    () => new Map(data.events.map((e) => [e.id, e.short ?? e.name])),
+    [data.events],
+  );
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";
   const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates);
@@ -406,18 +445,18 @@ export function TournamentScreen() {
               <section className="bracket__side">
                 <h3 className="bracket__side-title">{t("tournament.upperBracket")}</h3>
                 <div className="bracket-grid bracket-grid--upper">
-                  {tournament.playoffRounds.filter((round) => round.id.startsWith("ub")).map((round, index) => renderRound(round, playoffSimTicks, n, [1, 3, 5][index]))}
+                  {tournament.playoffRounds.filter((round) => round.id.startsWith("ub")).map((round, index) => renderRound(round, tournament, playoffFeeders, playoffSimTicks, n, done, [1, 3, 5][index]))}
                   <div className="bracket-col bracket-col--gf bracket-col--slot-6">
                     <h4 className="bracket-col__title bracket-col__title--gf">{t("tournament.grandFinalShort")}</h4>
                     <div className="bracket-col__matches">
-                      {renderSeriesMatch(tournament.grandFinal, playoffSimTicks, n, "match--gf")}
+                      {renderSeriesMatch(tournament.grandFinal, tournament, playoffFeeders, playoffSimTicks, n, done, "match--gf")}
                     </div>
                   </div>
                 </div>
               </section>
               <section className="bracket__side">
                 <h3 className="bracket__side-title">{t("tournament.lowerBracket")}</h3>
-                <div className="bracket-grid bracket-grid--lower">{tournament.playoffRounds.filter((round) => round.id.startsWith("lb")).map((round, index) => renderRound(round, playoffSimTicks, n, index + 1))}</div>
+                <div className="bracket-grid bracket-grid--lower">{tournament.playoffRounds.filter((round) => round.id.startsWith("lb")).map((round, index) => renderRound(round, tournament, playoffFeeders, playoffSimTicks, n, done, index + 1))}</div>
               </section>
             </div>
           </div>
@@ -454,14 +493,28 @@ export function TournamentScreen() {
                 </div>
                 <ul className="run-summary__roster">
                   {roster.map((slot, index) => {
-                    const heroId = slot.candidate ? score.assignment.byPlayer[slot.candidate.player.accountId] : undefined;
+                    const player = slot.candidate?.player;
+                    const heroId = player ? score.assignment.byPlayer[player.accountId] : undefined;
                     const info = heroId != null ? hero(heroId) : null;
-                    const games = slot.candidate && heroId != null ? phs[String(slot.candidate.player.accountId)]?.[String(heroId)]?.games ?? 0 : 0;
+                    const eventName = slot.candidate ? (eventNameById.get(slot.candidate.eventId) ?? slot.candidate.eventId) : undefined;
+                    const ovr = player?.ovr ?? 0;
                     return (
                       <li key={index}>
                         <RoleTag role={slot.role}>{t(roleMessageKey(slot.role))}</RoleTag>
-                        <strong>{slot.candidate?.player.nickname ?? "—"}</strong>
-                        {info && <span className="run-summary__hero"><HeroThumb picture={info.picture} name={info.name} /><small>{t(heroGamesMessageKey(locale, games), { count: games })}</small></span>}
+                        <div className="run-summary__player">
+                          <strong>{player?.nickname ?? "—"}</strong>
+                          <small>
+                            {eventName
+                              ? `${locale.startsWith("ru") ? "из " : "from "}${eventName}`
+                              : "—"}
+                          </small>
+                        </div>
+                        <b className={`run-summary__ovr score-tier--${scoreTier(ovr)}`}>{Math.round(ovr)}</b>
+                        {info && (
+                          <span className="run-summary__heroCard">
+                            <HeroThumb picture={info.picture} name={info.name} layout="card" showName />
+                          </span>
+                        )}
                       </li>
                     );
                   })}

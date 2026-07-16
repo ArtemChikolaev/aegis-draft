@@ -191,6 +191,7 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 .match.is-pending { opacity: .55; border-style: dashed; }
+.match.is-locked { opacity: .45; border-style: dashed; }
 .match.is-live { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent); }
 .match.has-user.is-live {
   border-color: var(--accent);
@@ -232,6 +233,9 @@
 .series__team.is-user.is-loser .series__score { color: var(--accent); }
 .series__team.is-pending { color: var(--muted); }
 .series__team.is-pending .series__score { color: var(--muted); }
+.series__team.is-empty { color: var(--muted); }
+.series__team.is-empty .series__name,
+.series__team.is-empty .series__score { color: var(--muted); font-style: normal; font-weight: 400; }
 .series__team.is-live { color: var(--text); }
 .series__team.is-live .series__score { color: var(--text); font-weight: 800; }
 .series__team.is-user.is-pending .series__score,
@@ -321,8 +325,12 @@
 .run-summary { padding: 20px 22px; }
 .run-summary__scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
 .run-summary__roster { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.run-summary__roster li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.run-summary__roster strong { font-size: 13px; }
+.run-summary__roster li { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.run-summary__player { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.run-summary__player strong { font-size: 13px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-summary__player small { color: var(--muted); font-size: 10px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-summary__ovr { font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); text-align: right; font-variant-numeric: tabular-nums; }
+.run-summary__heroCard { width: 72px; }
 .career-panel { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; margin-top: 44px; padding-top: 30px; border-top: 1px solid var(--line); }
 .career-panel__heading { grid-column: 1 / -1; }
 .career-panel__heading h2 { margin: 10px 0 6px; font-size: clamp(32px, 5vw, 64px); line-height: .95; letter-spacing: -.05em; }
