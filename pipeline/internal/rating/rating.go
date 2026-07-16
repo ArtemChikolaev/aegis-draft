@@ -14,7 +14,11 @@ import "github.com/aegis-draft/pipeline/internal/model"
 // — только UI; (2) снят event-оверlay; (3) Hero Synergy = сумма по 5 героям; (4) Chemistry =
 // сыгранность (совместные игры), не winrate.
 // v1.5.2: synergyScale 50→20 (калибровка Hero Synergy под 322-0).
-const ModelVersion = "v1.5.2"
+// v1.6.0 (322-0 parity, 3 правки): (1) Base = PER-EVENT (BuildEventRatings — OVR игрока = форма
+// на конкретном турнире, не глобально; иначе Save-/Noone всегда максимум); (2) Hero Synergy value —
+// games-driven (насыщение по pro-играм, а не centered-winrate; согласовано с матчингом по играм);
+// (3) Chemistry chemMaxPerPair 7→4.3 (калибровка под реальные величины 322-0).
+const ModelVersion = "v1.6.0"
 
 type ImpactMetricWeights struct {
 	KDA           float64

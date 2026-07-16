@@ -213,6 +213,13 @@
 - **DoD:** реальный emit с ≥N событий, где `squadSynergy` содержит кросс-командные пары с ненулевым сигналом и Chemistry на живом драфте перестаёт быть ≈0; JSON Schema зелёная; `manifest` версионирован; детерминизм (raw+версия ⇒ тот же output); бюджетный `--collect-window` прогон описан операционно.
 - **Deps:** M2.5/S1–S4, T1.2 (resumable window), T4.3 (курируемый tier-1 список для valve_legacy). **Разблокирует:** TREF6, реальный scoring.
 
+### TDATA-SCORE1 — Скоринг-parity с 322-0: per-event OVR + games-driven synergy + chem-калибровка ✅
+> Из аудита [audits/2026-07-16-scoring-parity.md](audits/2026-07-16-scoring-parity.md). Три подтверждённых дефекта закрыты (`ratingModelVersion v1.6.0`).
+- ✅ **#1 Base/OVR → per-event (P0).** `domain.BuildEventRatings` — OVR/IMP/ECO/REL считаются из матчей ТОЛЬКО этого события (когорта = участники события), ключ `(eventId→accountId)`; `BuildPacks` берёт event-scoped рейтинг, глобальный `BuildRatings` удалён. Тест `TestBuildEventRatingsPerEvent` (сильное событие OVR > слабого). Чинит «всегда выгодно брать только Save-/Noone». **Эффект — после прогона пайплайна** (форма данных та же, `packs[].players[].ovr`).
+- ✅ **#2 Hero Synergy value → games-driven (P1).** `assign.pairScore` = насыщение по pro-играм (`2·g/(g+25)`), не centered-winrate; `heroSynergyBonus` = сумма по 5. Матчинг не тронут (по играм) — value и matching согласованы, как в 322-0.
+- ✅ **#3 Chemistry величина (P2).** `SCORING.chemMaxPerPair` 7→4.3 — под реальные величины 322-0 (498 игр→~2.2). Форма/структура (co-games saturating) без изменений.
+- **Файлы:** `pipeline/internal/domain/{players,packs,build}.go`, `internal/rating/rating.go`, `web/src/game/{assign,score}.ts`. Go+tsc+vitest(86)+golden+build зелёные.
+
 ## M5 — Полный Roguelite Run
 ### T5.1 — Stage engine + win/loss ✅
 - **Цель:** результат Classic draft провести через воспроизводимый турнирный цикл: 18-team field → две группы → double-elimination playoffs → Grand Final → итоговое место.

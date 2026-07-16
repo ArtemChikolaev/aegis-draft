@@ -22,7 +22,7 @@ type eventLineup struct {
 // BuildPacks строит Team Packs как реальные составы команд на событии: топ-5 игроков
 // по числу игр в событии, с рейтингами (S3c) и ролями (S2). Placement не выводится из
 // OpenDota (deferred). Пак включается только при полном составе (>=5 игроков).
-func BuildPacks(matches []normalize.NormalizedMatch, events []model.EventInfo, ratings map[int]rating.PlayerRating, roleByAccount map[int]model.Role, nickByAccount map[int]string, teams []opendota.Team) []model.Pack {
+func BuildPacks(matches []normalize.NormalizedMatch, events []model.EventInfo, eventRatings map[string]map[int]rating.PlayerRating, roleByAccount map[int]model.Role, nickByAccount map[int]string, teams []opendota.Team) []model.Pack {
 	teamInfo := make(map[int]opendota.Team, len(teams))
 	for _, team := range teams {
 		teamInfo[int(team.TeamID)] = team
@@ -37,7 +37,7 @@ func BuildPacks(matches []normalize.NormalizedMatch, events []model.EventInfo, r
 		}
 		sort.Ints(teamIDs)
 		for _, teamID := range teamIDs {
-			pack, ok := buildPack(eventID, teamID, lineups[eventID][teamID], ratings, roleByAccount, nickByAccount, teamInfo)
+			pack, ok := buildPack(eventID, teamID, lineups[eventID][teamID], eventRatings[eventID], roleByAccount, nickByAccount, teamInfo)
 			if ok {
 				packs = append(packs, pack)
 			}

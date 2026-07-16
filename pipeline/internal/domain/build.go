@@ -58,12 +58,13 @@ func Build(in Input) (*model.Dataset, error) {
 		nickByAccount[player.AccountID] = nicknameOf(player)
 	}
 
-	ratings, err := BuildRatings(matches, rolesList, in.Config)
+	events := BuildEvents(matches, in.Leagues, in.AsOf, in.MinEventMatches)
+	// Base = per-event (PRD §5.4.1): OVR игрока в паке = его форма на ЭТОМ турнире, не глобально.
+	eventRatings, err := BuildEventRatings(matches, events, rolesList, in.Config)
 	if err != nil {
 		return nil, err
 	}
-	events := BuildEvents(matches, in.Leagues, in.AsOf, in.MinEventMatches)
-	packs := BuildPacks(matches, events, ratings, roleByAccount, nickByAccount, in.Teams)
+	packs := BuildPacks(matches, events, eventRatings, roleByAccount, nickByAccount, in.Teams)
 	players := BuildPlayers(in.Snapshot, rolesList, in.Teams, matches)
 	teamSuccess := BuildTeamSuccess(matches, in.Leagues, in.AsOf, in.Config)
 	heroes := convertHeroes(in.Heroes)

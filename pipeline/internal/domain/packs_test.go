@@ -67,9 +67,10 @@ var fixtureTeams = []opendota.Team{{TeamID: 10, Name: "Alpha", Tag: "AL"}, {Team
 func TestBuildPacksRealLineup(t *testing.T) {
 	matches := fixtureMatches()
 	rolesList := roles.Infer(matches)
-	ratings, err := BuildRatings(matches, rolesList, rating.Default())
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
+	eventRatings, err := BuildEventRatings(matches, events, rolesList, rating.Default())
 	if err != nil {
-		t.Fatalf("BuildRatings: %v", err)
+		t.Fatalf("BuildEventRatings: %v", err)
 	}
 	roleByAccount := map[int]model.Role{}
 	nickByAccount := map[int]string{}
@@ -79,8 +80,7 @@ func TestBuildPacksRealLineup(t *testing.T) {
 	for _, p := range fixtureSnapshot().Players {
 		nickByAccount[p.AccountID] = p.Name
 	}
-	events := BuildEvents(matches, testLeagues, asOf(), 0)
-	packs := BuildPacks(matches, events, ratings, roleByAccount, nickByAccount, fixtureTeams)
+	packs := BuildPacks(matches, events, eventRatings, roleByAccount, nickByAccount, fixtureTeams)
 
 	if len(packs) != 2 {
 		t.Fatalf("expected 2 packs (team10, team20), got %d", len(packs))
@@ -107,6 +107,33 @@ func TestBuildPacksRealLineup(t *testing.T) {
 	}
 	if len(alpha.SignatureHeroes) == 0 {
 		t.Fatal("expected signature heroes")
+	}
+}
+
+func TestBuildEventRatingsPerEvent(t *testing.T) {
+	// Один игрок (acc 1, carry) в двух событиях: на league-100 отыграл сильно (GPM 700),
+	// на league-200 — слабо (GPM 300). Per-event ⇒ OVR на сильном событии выше слабого
+	// (глобальный рейтинг дал бы одинаковый — это и есть суть фикса).
+	strong := []fplayer{{1, 1, 44, 700, false}, {2, 2, 74, 650, false}, {3, 3, 114, 550, false}, {4, 1, 26, 350, false}, {5, 3, 5, 300, true}}
+	weak := []fplayer{{1, 1, 44, 300, false}, {2, 2, 74, 280, false}, {3, 3, 114, 240, false}, {4, 1, 26, 180, false}, {5, 3, 5, 150, true}}
+	var matches []normalize.NormalizedMatch
+	for i := 0; i < 8; i++ {
+		mA := packMatch(int64(100+i), strong, team20, 10, 20)
+		mA.LeagueID = 100
+		mB := packMatch(int64(300+i), weak, team20, 10, 20)
+		mB.LeagueID = 200
+		matches = append(matches, mA, mB)
+	}
+	rolesList := roles.Infer(matches)
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
+	er, err := BuildEventRatings(matches, events, rolesList, rating.Default())
+	if err != nil {
+		t.Fatalf("BuildEventRatings: %v", err)
+	}
+	winOVR := er["league-100"][1].OVR
+	loseOVR := er["league-200"][1].OVR
+	if winOVR <= loseOVR {
+		t.Fatalf("per-event: OVR на сильном событии (%d) должен быть выше слабого (%d)", winOVR, loseOVR)
 	}
 }
 

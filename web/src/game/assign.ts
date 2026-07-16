@@ -13,7 +13,11 @@ export interface Assignment {
   avg: number;
 }
 
-/** Скор пары (игрок, герой) — сглаженный winrate; сигнатурный герой → умеренный prior. */
+/** Hero Synergy value — games-driven (как в 322-0: «more games is better»). Вклад пары
+ *  (игрок, герой) = насыщающая функция от числа pro-игр на герое, НЕ winrate: много игр → к капу,
+ *  мало → ≈0. Калибровка: 5 хорошо сыгранных героев ≈ +7 (уровень champion-ростера 322-0). */
+export const SYNERGY_MAX_PER_HERO = 2;
+export const SYNERGY_HALF_GAMES = 25;
 export function pairScore(
   accountId: number,
   heroId: number,
@@ -21,9 +25,8 @@ export function pairScore(
   signatures: SignatureLookup = {},
 ): number {
   const stat = phs[String(accountId)]?.[String(heroId)];
-  if (stat) return smoothedWinrate(stat);
-  if (signatures[accountId]?.includes(heroId)) return smoothedWinrate(SIGNATURE_PRIOR);
-  return smoothedWinrate(undefined);
+  const games = stat?.games ?? (signatures[accountId]?.includes(heroId) ? SIGNATURE_PRIOR.games : 0);
+  return games > 0 ? (SYNERGY_MAX_PER_HERO * games) / (games + SYNERGY_HALF_GAMES) : 0;
 }
 
 /**

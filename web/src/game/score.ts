@@ -14,10 +14,9 @@ import { assignWithFixed, bestAssignment, synergyTotalForAssignment, type Assign
  * на Base; (3) Hero Synergy = СУММА по 5 героям, не среднее; (4) Chemistry = сыгранность (games),
  * не winrate. Калибровка по 322-0: пара ~500 игр → ~2, Hero Synergy ~7 = INSANE. */
 export const SCORING = {
-  synergyScale: 20,
-  /** Химия = сыгранность (совместные игры), насыщающая кривая max·g/(g+half) — как «experience»
-   * в 322-0 (543 игры→~2.4, 431→~1.9), НЕ winrate. Калибровка по 322-0: бывшая пара ~500 игр → ~2. */
-  chemMaxPerPair: 7,
+  /** Химия = сыгранность (совместные игры), насыщающая кривая max·g/(g+half), НЕ winrate.
+   * Калибровка по реальным величинам 322-0: пара 498 игр → ~2.2, 588 → ~2.3, 153 (former) → ~0.6. */
+  chemMaxPerPair: 4.3,
   chemHalfGames: 500,
   /** Текущий ростер (teamId+eventId) весит больше бывших тиммейтов (в Team Packs пары почти всегда former). */
   chemistryCurrentMult: 1,
@@ -58,10 +57,9 @@ export function baseRating(players: PackPlayer[]): number {
  * давало в 5× меньше и не дотягивало до порогов great/insane). `assignment.total` = Σ сглаж.
  * winrate по назначенным героям; `assigned*0.5` — нейтральная база. Сглаживание уже учитывает
  * игры (мало игр → тянет к 0.5), поэтому «more games is better» соблюдается. */
-export function heroSynergyBonus(assignment: Assignment, scale = SCORING.synergyScale): number {
-  const assigned = Object.keys(assignment.byPlayer).length;
-  if (assigned === 0) return 0;
-  return Math.max(0, (assignment.total - assigned * 0.5) * scale);
+export function heroSynergyBonus(assignment: Assignment): number {
+  // total = сумма games-driven вкладов по 5 парам (см. assign.pairScore). Без игроков → 0.
+  return Object.keys(assignment.byPlayer).length === 0 ? 0 : assignment.total;
 }
 
 function pairKey(a: number, b: number): string {

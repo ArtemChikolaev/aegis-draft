@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"fmt"
 	"sort"
 	"strconv"
 
@@ -41,22 +42,41 @@ func matchPerformances(matches []normalize.NormalizedMatch, roleByAccount map[in
 	return out
 }
 
-// BuildRatings считает per-account рейтинг (OVR/IMP/ECO/REL) из окна матчей.
-// Каждый игрок в одной primaryRole ⇒ ровно один PlayerRating на account.
-func BuildRatings(matches []normalize.NormalizedMatch, rolesList []roles.PlayerRoles, cfg rating.Config) (map[int]rating.PlayerRating, error) {
+// BuildEventRatings — рейтинг PER EVENT (Base = форма игрока на КОНКРЕТНОМ турнире, PRD §5.4.1,
+// как в 322-0). Для каждого события OVR/IMP/ECO/REL считаются из матчей ТОЛЬКО этого события, а
+// когорта-нормализация — среди участников этого события. Ключ (eventId → accountId). Так игрок,
+// провалившийся на ивенте, получает низкий OVR именно там — в отличие от глобального per-account
+// рейтинга (иначе Save-/Noone всегда с максимумом ⇒ выгодно брать только их).
+func BuildEventRatings(matches []normalize.NormalizedMatch, events []model.EventInfo, rolesList []roles.PlayerRoles, cfg rating.Config) (map[string]map[int]rating.PlayerRating, error) {
 	roleByAccount := make(map[int]model.Role, len(rolesList))
 	for _, pr := range rolesList {
 		roleByAccount[pr.AccountID] = pr.PrimaryRole
 	}
-	rated, err := rating.RatePlayers("opendota-window", matchPerformances(matches, roleByAccount), cfg)
-	if err != nil {
-		return nil, err
+	leagueToEvent := make(map[int64]string, len(events))
+	for _, event := range events {
+		if leagueID, ok := parseLeagueID(event.ID); ok {
+			leagueToEvent[leagueID] = event.ID
+		}
 	}
-	byAccount := make(map[int]rating.PlayerRating, len(rated))
-	for _, r := range rated {
-		byAccount[r.AccountID] = r
+	byEvent := make(map[string][]normalize.NormalizedMatch)
+	for _, match := range matches {
+		if eventID, ok := leagueToEvent[match.LeagueID]; ok {
+			byEvent[eventID] = append(byEvent[eventID], match)
+		}
 	}
-	return byAccount, nil
+	out := make(map[string]map[int]rating.PlayerRating, len(byEvent))
+	for eventID, evMatches := range byEvent {
+		rated, err := rating.RatePlayers(eventID, matchPerformances(evMatches, roleByAccount), cfg)
+		if err != nil {
+			return nil, fmt.Errorf("rate event %s: %w", eventID, err)
+		}
+		byAccount := make(map[int]rating.PlayerRating, len(rated))
+		for _, r := range rated {
+			byAccount[r.AccountID] = r
+		}
+		out[eventID] = byAccount
+	}
+	return out, nil
 }
 
 // gamesByAccountTeam считает игры игрока за каждую команду (для players[].teams).
