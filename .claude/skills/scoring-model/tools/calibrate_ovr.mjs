@@ -82,8 +82,8 @@ console.log(row("РЕФЕРЕНС team base", basesOf(ref)));
 // решаем под целевое распределение — иначе «константа» = цель, а не поправка, и она врёт:
 // при Mid=74.1 данные дают mean 74.7, потому что ранг центрирован не ровно в 50 (перцентиль с
 // ties + веса ролей + округление). Текущие значения обязаны совпадать с rating.Default().
-const CUR_MID = Number(process.env.CAL_MID ?? 73.5);
-const CUR_SPREAD = Number(process.env.CAL_SPREAD ?? 0.639);
+const CUR_MID = Number(process.env.CAL_MID ?? 73.8);
+const CUR_SPREAD = Number(process.env.CAL_SPREAD ?? 0.426);
 const rankMean = 50 + (mean(ourOvr) - CUR_MID) / CUR_SPREAD;
 const rankSd = sd(ourOvr) / CUR_SPREAD;
 const spread = sd(refOvr) / rankSd;
