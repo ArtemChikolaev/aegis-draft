@@ -34,6 +34,8 @@ import {
 import { useHero } from "../draft/heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { CareerPanel } from "./CareerPanel.tsx";
+import { BracketConnectors } from "./BracketConnectors.tsx";
+import { LOWER_BRACKET_EDGES, UPPER_BRACKET_EDGES } from "./bracketConnectors.ts";
 import "../result/result.css";
 import "./tournament.css";
 
@@ -167,7 +169,7 @@ function renderSeriesMatch(
   const teamB = slotsVisible ? series.teamB : null;
   const hasUser = slotsVisible && (series.teamA.isUser || series.teamB.isUser);
   return (
-    <div key={series.id} className={`match ${extraClass} ${hasUser ? "has-user" : ""} ${live ? "is-live" : ""} ${started ? "" : "is-pending"} ${slotsVisible ? "" : "is-locked"}`.trim()}>
+    <div key={series.id} data-series-id={series.id} className={`match ${extraClass} ${hasUser ? "has-user" : ""} ${live ? "is-live" : ""} ${started ? "" : "is-pending"} ${slotsVisible ? "" : "is-locked"} ${finished ? "is-finished" : ""}`.trim()}>
       <TeamRow team={teamA ?? series.teamA} score={scoreA} won={finished && series.winnerId === series.teamA.id} pending={slotsVisible && !started} live={live} empty={!slotsVisible} />
       <TeamRow team={teamB ?? series.teamB} score={scoreB} won={finished && series.winnerId === series.teamB.id} pending={slotsVisible && !started} live={live} empty={!slotsVisible} />
     </div>
@@ -217,6 +219,8 @@ export function TournamentScreen() {
   const groupResultsRef = useRef<HTMLDivElement | null>(null);
   const playoffsRef = useRef<HTMLDivElement | null>(null);
   const resultRef = useRef<HTMLDivElement | null>(null);
+  const upperGridRef = useRef<HTMLDivElement | null>(null);
+  const lowerGridRef = useRef<HTMLDivElement | null>(null);
 
   // Матчи групп: серия A + серия B за тик-серию (как TI), чтобы счёт рос синхронно.
   const orderedGroupMatches = useMemo(() => {
@@ -250,6 +254,33 @@ export function TournamentScreen() {
       : 0;
   const stepMs = stage === "groups" ? GROUP_MATCH_STEP_MS : PLAYOFF_MAP_STEP_MS;
   const { n, done, skip } = useReveal(revealTotal, stage, stepMs);
+
+  // Серии, уже доигранные на текущем шаге — от них рисуем коннектор к следующему слоту.
+  const finishedSeriesIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!tournament || stage !== "playoffs") return ids;
+    for (const round of tournament.playoffRounds) {
+      for (const series of round.series) {
+        if (done || seriesFinished(series, playoffSimTicks, n)) ids.add(series.id);
+      }
+    }
+    if (done || seriesFinished(tournament.grandFinal, playoffSimTicks, n)) ids.add(tournament.grandFinal.id);
+    return ids;
+  }, [done, n, playoffSimTicks, stage, tournament]);
+
+  const accentSeriesIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!tournament) return ids;
+    for (const round of tournament.playoffRounds) {
+      for (const series of round.series) {
+        if (series.teamA.isUser || series.teamB.isUser) ids.add(series.id);
+      }
+    }
+    if (tournament.grandFinal.teamA.isUser || tournament.grandFinal.teamB.isUser) {
+      ids.add(tournament.grandFinal.id);
+    }
+    return ids;
+  }, [tournament]);
 
   // После доигранных групп: пауза → стаггер-раскраска путей (UB/LB/OUT сверху вниз) → плей-офф.
   // Это «закрашивание, кто куда попал» из 322-0. reduced-motion → мгновенно, без задержек.
@@ -300,13 +331,14 @@ export function TournamentScreen() {
     list.scrollTop = list.scrollHeight;
   }, [revealedGroupMatches.length, stage]);
 
+  const eventNameById = useMemo(
+    () => new Map((data?.events ?? []).map((e) => [e.id, e.short ?? e.name])),
+    [data?.events],
+  );
+
   if (!tournament || !snapshot?.score || !config || !data) return null;
 
   const { roster, score } = snapshot;
-  const eventNameById = useMemo(
-    () => new Map(data.events.map((e) => [e.id, e.short ?? e.name])),
-    [data.events],
-  );
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";
   const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates);
@@ -444,7 +476,13 @@ export function TournamentScreen() {
             <div className="bracket">
               <section className="bracket__side">
                 <h3 className="bracket__side-title">{t("tournament.upperBracket")}</h3>
-                <div className="bracket-grid bracket-grid--upper">
+                <div className="bracket-grid bracket-grid--upper" ref={upperGridRef}>
+                  <BracketConnectors
+                    gridRef={upperGridRef}
+                    edges={UPPER_BRACKET_EDGES}
+                    finishedIds={finishedSeriesIds}
+                    accentFromIds={accentSeriesIds}
+                  />
                   {tournament.playoffRounds.filter((round) => round.id.startsWith("ub")).map((round, index) => renderRound(round, tournament, playoffFeeders, playoffSimTicks, n, done, [1, 3, 5][index]))}
                   <div className="bracket-col bracket-col--gf bracket-col--slot-6">
                     <h4 className="bracket-col__title bracket-col__title--gf">{t("tournament.grandFinalShort")}</h4>
@@ -456,7 +494,15 @@ export function TournamentScreen() {
               </section>
               <section className="bracket__side">
                 <h3 className="bracket__side-title">{t("tournament.lowerBracket")}</h3>
-                <div className="bracket-grid bracket-grid--lower">{tournament.playoffRounds.filter((round) => round.id.startsWith("lb")).map((round, index) => renderRound(round, tournament, playoffFeeders, playoffSimTicks, n, done, index + 1))}</div>
+                <div className="bracket-grid bracket-grid--lower" ref={lowerGridRef}>
+                  <BracketConnectors
+                    gridRef={lowerGridRef}
+                    edges={LOWER_BRACKET_EDGES}
+                    finishedIds={finishedSeriesIds}
+                    accentFromIds={accentSeriesIds}
+                  />
+                  {tournament.playoffRounds.filter((round) => round.id.startsWith("lb")).map((round, index) => renderRound(round, tournament, playoffFeeders, playoffSimTicks, n, done, index + 1))}
+                </div>
               </section>
             </div>
           </div>

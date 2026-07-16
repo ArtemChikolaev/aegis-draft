@@ -154,6 +154,7 @@
    Ширина = 100% контейнера (как баннер чемпиона снизу): ячейки и gap делят строку поровну. */
 .bracket-grid {
   --bracket-gap: clamp(16px, 2vw, 26px);
+  position: relative;
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: stretch;
@@ -164,7 +165,7 @@
   column-gap: var(--bracket-gap);
   padding: 0 0 10px;
 }
-.bracket-col { display: flex; flex-direction: column; width: auto; min-width: 0; max-width: none; }
+.bracket-col { position: relative; z-index: 1; display: flex; flex-direction: column; width: auto; min-width: 0; max-width: none; }
 .bracket-col--slot-1 { grid-column: 1; }
 .bracket-col--slot-2 { grid-column: 2; }
 .bracket-col--slot-3 { grid-column: 3; }
@@ -176,6 +177,7 @@
 .bracket-col__title--gf { color: var(--accent); }
 .match {
   position: relative;
+  z-index: 1;
   flex: 0 0 68px;
   width: 100%;
   height: 68px;
@@ -184,8 +186,49 @@
   border: 1px solid var(--line);
   border-radius: 14px;
 }
-/* коннектор к следующей колонке */
-.bracket-col:not(:last-child) .match::after { content: ""; position: absolute; left: 100%; top: 50%; z-index: 1; width: var(--bracket-gap); height: 2px; background: var(--line); transform: translateY(-50%); pointer-events: none; }
+/* SVG-коннекторы поверх gap между колонками (Manhattan, как Liquipedia/TI). */
+.bracket-connectors {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.bracket-col {
+  position: relative;
+  z-index: 1;
+}
+.bracket-connector {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 2;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+  opacity: 0;
+  stroke-dasharray: var(--connector-len, 1);
+  stroke-dashoffset: var(--connector-len, 1);
+  transition: stroke-dashoffset .45s ease-out, opacity .15s ease;
+}
+.bracket-connector.is-active {
+  opacity: 1;
+  stroke-dashoffset: 0;
+}
+.bracket-connector.is-instant,
+.bracket-connector.is-active.is-instant {
+  transition: none;
+}
+.bracket-connector.is-accent {
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+@media (prefers-reduced-motion: reduce) {
+  .bracket-connector {
+    transition: none;
+  }
+}
 .match.has-user {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
