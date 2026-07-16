@@ -1,7 +1,7 @@
 // Итоговый счёт команды (скилл scoring-model): Team OVR = Base + Hero Synergy + Chemistry.
 // Base приходит числом из данных (event ovr). Synergy/Chemistry считаем на клиенте из
 // сглаживание winrate — модель сглаживания меняется без пересборки данных (инвариант data-contract).
-import type { PackPlayer, PlayerHeroStats, SquadSynergy, Teammates, GameData, Stat } from "../types/data.ts";
+import type { PackPlayer, PlayerHeroStats, SquadGroup, SquadSynergy, Teammates, GameData } from "../types/data.ts";
 import type { Candidate } from "./packs.ts";
 import { assignWithFixed, bestAssignment, synergyTotalForAssignment, type Assignment, type SignatureLookup } from "./assign.ts";
 
@@ -14,13 +14,23 @@ import { assignWithFixed, bestAssignment, synergyTotalForAssignment, type Assign
  * на Base; (3) Hero Synergy = СУММА по 5 героям, не среднее; (4) Chemistry = сыгранность (games),
  * не winrate. Калибровка по 322-0: пара ~500 игр → ~2, Hero Synergy ~7 = INSANE. */
 export const SCORING = {
-  /** Химия = сыгранность (совместные игры), насыщающая кривая max·g/(g+half), НЕ winrate.
-   * Калибровка по реальным величинам 322-0: пара 498 игр → ~2.2, 588 → ~2.3, 153 (former) → ~0.6. */
-  chemMaxPerPair: 4.3,
-  chemHalfGames: 500,
-  /** Текущий ростер (teamId+eventId) весит больше бывших тиммейтов (в Team Packs пары почти всегда former). */
-  chemistryCurrentMult: 1,
-  chemistryFormerMult: 0.6,
+  /** Вклад ГРУППЫ = min(chemMaxPerGroup, games / chemFullGames) — линейно до жёсткого потолка,
+   * не гипербола. Замерено на 322-0: 350 игр → 1.5, 823 → 3.6, 267 → 1.2, 271 → 1.2; прежняя
+   * гипербола 4.3·g/(g+500) мимо на всех четырёх (1.77 / 2.67 / 1.50 / 1.51). */
+  chemMaxPerGroup: 4,
+  chemFullGames: 230,
+  /** Множитель по размеру сыгравшейся группы: пятёрка, отыгравшая вместе, ценнее суммы своих пар.
+   * Поэтому squadSynergy хранит группы 2–5, а не только пары. */
+  chemGroupMultiplier: { 2: 1, 3: 1.6, 4: 2.2, 5: 3 } as Record<number, number>,
+  /** Потолок суммарной химии: у реального ростера 26 подгрупп, без него сумма улетает. */
+  chemTotalMax: 13,
+} as const;
+
+/** Пороговые подписи (замерено в 322-0): base(88, 94), hero synergy(4.5, 6.5), chemistry(5, 9). */
+export const TIERS = {
+  base: { great: 88, insane: 94 },
+  heroSynergy: { great: 4.5, insane: 6.5 },
+  chemistry: { great: 5, insane: 9 },
 } as const;
 
 export interface ChemistryPlayer {
@@ -60,89 +70,46 @@ export function heroSynergyBonus(assignment: Assignment): number {
   return Object.keys(assignment.byPlayer).length === 0 ? 0 : assignment.total;
 }
 
-function pairKey(a: number, b: number): string {
-  return a < b ? `${a}:${b}` : `${b}:${a}`;
+/** Вклад одной сыгравшейся группы: линейно до жёсткого потолка, со множителем по размеру. */
+function groupBonus(group: SquadGroup): number {
+  const mult = SCORING.chemGroupMultiplier[group.ids.length] ?? 1;
+  return mult * Math.min(SCORING.chemMaxPerGroup, group.games / SCORING.chemFullGames);
 }
 
-function isCurrentRoster(a: ChemistryPlayer, b: ChemistryPlayer): boolean {
-  return a.teamId === b.teamId && a.eventId === b.eventId;
+/** Группы squadSynergy, ЦЕЛИКОМ лежащие внутри ростера. У реального состава их до 26
+ * (10 пар + 10 троек + 5 четвёрок + пятёрка), у кросс-командного фэнтези — одна-две. */
+function rosterGroups(roster: ChemistryPlayer[], squad: SquadSynergy): SquadGroup[] {
+  const inRoster = new Set(roster.map((p) => p.accountId));
+  return squad.filter((g) => g.ids.length >= 2 && g.ids.every((id) => inRoster.has(id)));
 }
 
-function everTeammates(
-  a: number,
-  b: number,
-  squadIndex: Map<string, Stat & { games: number }>,
-  teammates: Teammates,
-): boolean {
-  const pair = squadIndex.get(pairKey(a, b));
-  if (pair && pair.games > 0) return true;
-  return teammates[String(a)]?.includes(b) ?? false;
-}
-
-/** Химия пары = сыгранность (совместные игры), насыщающая кривая max·g/(g+half) — «experience»
- * как в 322-0, а НЕ winrate (v1.5.0: раньше был winrate-centered → ~0.2 за 500 игр, что абсурд).
+/** Chemistry = Σ по сыгравшимся подгруппам ростера, с потолком. Нет совместных pro-игр ⇒ 0.
  *
- * v1.7.0: НЕТ совместных pro-игр ⇒ НЕТ бонуса. Раньше паре текущего ростера без данных давался
- * chemistryCurrentBaseline, и химия набегала из множества фантомных +0.1 — в 322-0 такие пары не
- * показываются вовсе (у них на ростер бывает одна пара: Saksa+Whitemon 350 игр → +1.5). Сам счёт
- * игр теперь тоже честный: squadSynergy считается только из pro-матчей, без pub-пар из peers. */
-function pairChemistryBonus(
-  a: ChemistryPlayer,
-  b: ChemistryPlayer,
-  squadIndex: Map<string, Stat & { games: number }>,
-  teammates: Teammates,
-): { bonus: number; games: number } {
-  if (!everTeammates(a.accountId, b.accountId, squadIndex, teammates)) return { bonus: 0, games: 0 };
-
-  const games = squadIndex.get(pairKey(a.accountId, b.accountId))?.games ?? 0;
-  if (games <= 0) return { bonus: 0, games: 0 };
-
-  const mult = isCurrentRoster(a, b) ? SCORING.chemistryCurrentMult : SCORING.chemistryFormerMult;
-  return {
-    bonus: SCORING.chemMaxPerPair * games / (games + SCORING.chemHalfGames) * mult,
-    games,
-  };
-}
-
-/**
- * Chemistry: текущий состав (teamId+eventId) — полный вес; бывшие тиммейты — ×0.35;
- * никогда не играли вместе — 0. Отрицательных значений нет.
- */
+ * v1.7.0: считаем ГРУППАМИ, а не парами. Пятёрка, отыгравшая вместе сотни игр, — это не то же
+ * самое, что десять независимых пар, и в 322-0 она весит ×3. Ни current/former-множителей, ни
+ * baseline за «состоят в одном ростере» нет: их формула таких понятий не знает. */
 export function chemistryBonus(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
 ): number {
-  const squadIndex = new Map<string, Stat & { games: number }>();
-  for (const pair of squad) squadIndex.set(pairKey(pair.ids[0], pair.ids[1]), pair);
-
-  let sum = 0;
-  for (let i = 0; i < roster.length; i++) {
-    for (let j = i + 1; j < roster.length; j++) {
-      sum += pairChemistryBonus(roster[i], roster[j], squadIndex, teammates).bonus;
-    }
-  }
-  return sum;
+  void teammates; // сыгранность выводится из squadSynergy; teammates — справочник для UI
+  const sum = rosterGroups(roster, squad).reduce((acc, g) => acc + groupBonus(g), 0);
+  return Math.min(sum, SCORING.chemTotalMax);
 }
 
-/** Парные вклады Chemistry для визуализации связей на радаре. */
+/** Парные вклады Chemistry для визуализации связей на радаре: только пары — рёбра рисуются
+ * между двумя точками. Группы 3+ участвуют в счёте, но линией их не изобразить. */
 export function chemistryPairEdges(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
 ): ChemistryEdge[] {
-  const squadIndex = new Map<string, Stat & { games: number }>();
-  for (const pair of squad) squadIndex.set(pairKey(pair.ids[0], pair.ids[1]), pair);
-
-  const edges: ChemistryEdge[] = [];
-  for (let i = 0; i < roster.length; i++) {
-    for (let j = i + 1; j < roster.length; j++) {
-      const { bonus, games } = pairChemistryBonus(roster[i], roster[j], squadIndex, teammates);
-      if (bonus < 0.05) continue;
-      edges.push({ a: roster[i].accountId, b: roster[j].accountId, games, bonus });
-    }
-  }
-  return edges;
+  void teammates;
+  return rosterGroups(roster, squad)
+    .filter((g) => g.ids.length === 2)
+    .map((g) => ({ a: g.ids[0], b: g.ids[1], games: g.games, bonus: groupBonus(g) }))
+    .filter((edge) => edge.bonus >= 0.05);
 }
 
 export interface HeroSynergyRow {
@@ -191,11 +158,25 @@ export function heroSynergyRows(
   });
 }
 
-/** Пороговые подписи Hero Synergy (322-0: GREAT / INSANE!). */
-export function heroSynergyTier(value: number): "great" | "insane" | null {
-  if (value >= 7) return "insane";
-  if (value >= 4) return "great";
+/** Подпись по порогам (322-0: GREAT / INSANE!). Пороги — в TIERS, замерены, не на глаз. */
+export function tierOf(value: number, tier: { great: number; insane: number }): "great" | "insane" | null {
+  if (value >= tier.insane) return "insane";
+  if (value >= tier.great) return "great";
   return null;
+}
+
+/** Пороговые подписи Hero Synergy. */
+export function heroSynergyTier(value: number): "great" | "insane" | null {
+  return tierOf(value, TIERS.heroSynergy);
+}
+
+/** Пороговые подписи Base и Chemistry — в 322-0 они тоже с подписями (у них «90 BASE / GREAT»). */
+export function baseTier(value: number): "great" | "insane" | null {
+  return tierOf(value, TIERS.base);
+}
+
+export function chemistryTier(value: number): "great" | "insane" | null {
+  return tierOf(value, TIERS.chemistry);
 }
 
 /** Строки Squad Chemistry для UI, по убыванию бонуса. */
@@ -209,26 +190,19 @@ export function squadChemistryRows(
   for (const slot of roster) {
     if (slot.candidate) nick.set(slot.candidate.player.accountId, slot.candidate.player.nickname);
   }
-  const squadIndex = new Map<string, Stat & { games: number }>();
-  for (const pair of squad) squadIndex.set(pairKey(pair.ids[0], pair.ids[1]), pair);
-
-  const rows: SquadChemistryRow[] = [];
-  for (let i = 0; i < chem.length; i++) {
-    for (let j = i + 1; j < chem.length; j++) {
-      const { bonus, games } = pairChemistryBonus(chem[i], chem[j], squadIndex, teammates);
-      // Пара без совместных pro-игр не даёт бонуса и не показывается — как в 322-0, где у
-      // кросс-командного ростера в списке бывает одна строка, а не десять по +0.0.
-      if (games <= 0) continue;
-      rows.push({
-        accountIdA: chem[i].accountId,
-        accountIdB: chem[j].accountId,
-        nicknameA: nick.get(chem[i].accountId) ?? String(chem[i].accountId),
-        nicknameB: nick.get(chem[j].accountId) ?? String(chem[j].accountId),
-        games,
-        bonus,
-      });
-    }
-  }
+  void teammates;
+  // Только пары: строка UI подписана «A + B». Группы 3+ идут в счёт (chemistryBonus), но
+  // отдельными строками их не показываем — как в 322-0, где список тоже парный.
+  const rows: SquadChemistryRow[] = rosterGroups(chem, squad)
+    .filter((g) => g.ids.length === 2)
+    .map((g) => ({
+      accountIdA: g.ids[0],
+      accountIdB: g.ids[1],
+      nicknameA: nick.get(g.ids[0]) ?? String(g.ids[0]),
+      nicknameB: nick.get(g.ids[1]) ?? String(g.ids[1]),
+      games: g.games,
+      bonus: groupBonus(g),
+    }));
   return rows.sort((a, b) => b.bonus - a.bonus || b.games - a.games);
 }
 

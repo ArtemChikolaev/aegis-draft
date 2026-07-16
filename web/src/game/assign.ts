@@ -16,8 +16,13 @@ export interface Assignment {
 /** Hero Synergy value — games-driven (как в 322-0: «more games is better»). Вклад пары
  *  (игрок, герой) = насыщающая функция от числа pro-игр на герое, НЕ winrate: много игр → к капу,
  *  мало → ≈0. Калибровка: 5 хорошо сыгранных героев ≈ +7 (уровень champion-ростера 322-0). */
-export const SYNERGY_MAX_PER_HERO = 2;
-export const SYNERGY_HALF_GAMES = 25;
+/** Вклад одного героя в Hero Synergy: линейный рост до ЖЁСТКОГО потолка на SYNERGY_FULL_GAMES.
+ * Не гипербола: гипербола не описывает наблюдаемые величины 322-0 в принципе — им нужно, чтобы
+ * герой с 30 играми был УЖЕ на максимуме, а с 14 — заметно ниже; перебор M·g/(g+h) даёт ошибку
+ * 0.5, линейный-до-потолка — 0.04. Смысл: ~25 игр на герое = максимум, дальше не растёт, поэтому
+ * виабельны десятки героев, а не только 300-игровые. Сумма по пяти ⇒ максимум ровно 7.5. */
+export const SYNERGY_MAX_PER_HERO = 1.5;
+export const SYNERGY_FULL_GAMES = 25;
 export function pairScore(
   accountId: number,
   heroId: number,
@@ -26,7 +31,7 @@ export function pairScore(
 ): number {
   const stat = phs[String(accountId)]?.[String(heroId)];
   const games = stat?.games ?? (signatures[accountId]?.includes(heroId) ? SIGNATURE_PRIOR.games : 0);
-  return games > 0 ? (SYNERGY_MAX_PER_HERO * games) / (games + SYNERGY_HALF_GAMES) : 0;
+  return games > 0 ? SYNERGY_MAX_PER_HERO * Math.min(1, games / SYNERGY_FULL_GAMES) : 0;
 }
 
 /**

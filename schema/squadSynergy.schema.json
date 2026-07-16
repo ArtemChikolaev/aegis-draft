@@ -2,21 +2,36 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "aegis-draft/squadSynergy.schema.json",
   "title": "Squad Synergy",
-  "description": "Сыгранность пар игроков. Питает Chemistry.",
+  "description": "Сыгранность ГРУПП игроков (2–5), не только пар. Питает Chemistry: вклад группы растёт с её размером (пара < тройка < пятёрка), поэтому пары одни картину не дают.",
   "type": "array",
   "items": {
     "type": "object",
-    "required": ["ids", "games", "winrate"],
+    "required": [
+      "ids",
+      "games",
+      "winrate"
+    ],
     "additionalProperties": false,
     "properties": {
       "ids": {
         "type": "array",
         "minItems": 2,
-        "maxItems": 2,
-        "items": { "type": "integer", "description": "accountId (пара, отсортирована по возрастанию)" }
+        "maxItems": 5,
+        "items": {
+          "type": "integer",
+          "description": "accountId (группа 2–5 игроков, отсортирована по возрастанию)"
+        },
+        "uniqueItems": true
       },
-      "games": { "type": "integer", "minimum": 1 },
-      "winrate": { "type": "number", "minimum": 0, "maximum": 1 }
+      "games": {
+        "type": "integer",
+        "minimum": 1
+      },
+      "winrate": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
     }
   }
 }

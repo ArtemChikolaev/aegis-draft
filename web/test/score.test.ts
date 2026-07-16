@@ -140,10 +140,15 @@ describe("heroSynergyRows / squadChemistryRows", () => {
     }
   });
 
-  it("heroSynergyTier: пороги great / insane", () => {
-    expect(heroSynergyTier(3)).toBeNull();
-    expect(heroSynergyTier(4)).toBe("great");
-    expect(heroSynergyTier(7)).toBe("insane");
+  // Пороги замерены в 322-0 (их бандл: No(e.heroBonus,4.5,6.5)), не подобраны на глаз.
+  // Их ролл с синергией 6.8 подписан INSANE! — при прежнем пороге 7 мы бы показали GREAT.
+  it("heroSynergyTier: пороги great / insane по замеру 322-0 (4.5 / 6.5)", () => {
+    expect(heroSynergyTier(4.4)).toBeNull();
+    expect(heroSynergyTier(4.5)).toBe("great");
+    expect(heroSynergyTier(6.4)).toBe("great");
+    expect(heroSynergyTier(6.5)).toBe("insane");
+    expect(heroSynergyTier(6.8)).toBe("insane");
+    expect(heroSynergyTier(7.5)).toBe("insane"); // максимум модели: 5 героев × 1.5
   });
 
   it("squadChemistryRows: все пары ростера показаны; сыгранные пары дают bonus>0 (v1.5.0 games-driven)", () => {

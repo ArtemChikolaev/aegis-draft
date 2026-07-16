@@ -91,8 +91,12 @@ type PlayerProfile struct {
 	Peak        map[Role]PlayerPeak `json:"peak,omitempty"`
 }
 
-type SquadPair struct {
-	IDs     [2]int  `json:"ids"`
+// SquadGroup — сыгранность ГРУППЫ из 2–5 игроков (совместные pro-игры за одну команду).
+// Не только пары: Chemistry считает вклад тем больше, чем крупнее сыгравшаяся группа
+// (пара < тройка < пятёрка), поэтому одними парами сыгранность состава не описать.
+// IDs отсортированы по возрастанию — ключ группы канонический.
+type SquadGroup struct {
+	IDs     []int   `json:"ids"`
 	Games   int     `json:"games"`
 	Winrate float64 `json:"winrate"`
 }
@@ -131,7 +135,7 @@ type Dataset struct {
 	PlayerHeroStats       map[string]map[string]Stat
 	CareerPlayerHeroStats map[string]map[string]Stat
 	Teammates             map[string][]int
-	SquadSynergy          []SquadPair
+	SquadSynergy          []SquadGroup
 	EventHeroStats        map[string]map[string]map[string]Stat
 	TeamSuccess           map[string]map[Format]TeamWindowSuccess
 }

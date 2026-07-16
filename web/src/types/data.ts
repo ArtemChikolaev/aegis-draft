@@ -56,12 +56,14 @@ export type PlayerHeroStats = Record<string, Record<string, Stat>>;
 /** accountId -> [accountId] */
 export type Teammates = Record<string, number[]>;
 
-export interface SquadPair {
-  ids: [number, number];
+/** Сыгранность ГРУППЫ из 2–5 игроков (совместные pro-игры за одну команду), не только пар:
+ * Chemistry весит крупную сыгравшуюся группу выше (пара ×1, пятёрка ×3). ids отсортированы. */
+export interface SquadGroup {
+  ids: number[];
   games: number;
   winrate: number;
 }
-export type SquadSynergy = SquadPair[];
+export type SquadSynergy = SquadGroup[];
 
 /** eventId -> accountId -> heroId -> Stat */
 export type EventHeroStats = Record<string, Record<string, Record<string, Stat>>>;

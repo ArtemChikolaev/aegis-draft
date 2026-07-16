@@ -12,6 +12,7 @@ import (
 	"github.com/aegis-draft/pipeline/internal/opendota"
 	"github.com/aegis-draft/pipeline/internal/rating"
 	"github.com/aegis-draft/pipeline/internal/roles"
+	"github.com/aegis-draft/pipeline/internal/tier1"
 )
 
 // Input — всё, что нужно для сборки доменного датасета из OpenDota.
@@ -28,16 +29,26 @@ type Input struct {
 	WindowStartUnix    int64
 }
 
-// FilterMatchesByWindow оставляет матчи с startTime >= windowStart (0 = без фильтра).
-func FilterMatchesByWindow(matches []normalize.NormalizedMatch, windowStart int64) []normalize.NormalizedMatch {
+// FilterMatchesByWindow оставляет матчи с startTime >= windowStart (0 = без фильтра),
+// НО пропускает valve_legacy-лиги (все TI + Valve Major) независимо от окна: формат
+// valve_legacy обещает «все TI за всю историю», а rolling-окно (last_5y) резало их до
+// 2021 года. Коллектор такие лиги специально тянет всей историей (WindowStartUnix: 0),
+// и раньше этот фильтр их тут же выбрасывал — TI2011..TI2019 не доживали до BuildEvents.
+func FilterMatchesByWindow(matches []normalize.NormalizedMatch, windowStart int64, leagues []opendota.League) []normalize.NormalizedMatch {
 	if windowStart <= 0 {
 		out := make([]normalize.NormalizedMatch, len(matches))
 		copy(out, matches)
 		return out
 	}
+	legacy := make(map[int64]struct{})
+	for _, league := range leagues {
+		if tier1.IsValveLegacy(league.LeagueID, league.Name) {
+			legacy[league.LeagueID] = struct{}{}
+		}
+	}
 	out := make([]normalize.NormalizedMatch, 0, len(matches))
 	for _, match := range matches {
-		if match.StartTime >= windowStart {
+		if _, isLegacy := legacy[match.LeagueID]; isLegacy || match.StartTime >= windowStart {
 			out = append(out, match)
 		}
 	}
@@ -47,7 +58,7 @@ func FilterMatchesByWindow(matches []normalize.NormalizedMatch, windowStart int6
 // Build собирает полный model.Dataset из OpenDota-входов. Чистый и детерминированный.
 // Liquipedia-зависимые поля (placements/prize/valve_legacy) остаются deferred.
 func Build(in Input) (*model.Dataset, error) {
-	matches := FilterMatchesByWindow(in.Snapshot.Matches, in.WindowStartUnix)
+	matches := FilterMatchesByWindow(in.Snapshot.Matches, in.WindowStartUnix, in.Leagues)
 	// Глобальные роли нужны ТОЛЬКО для players[].primaryRole/rolesPlayed (справочник игрока).
 	// Паки и когорты рейтинга берут роли на событии — см. selectRoster/BuildEventRatings.
 	rolesList := roles.Infer(matches)

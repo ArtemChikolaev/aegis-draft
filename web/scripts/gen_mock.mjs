@@ -215,13 +215,28 @@ for (const { players: set } of byTeam.values()) {
 for (const k of Object.keys(teammates)) teammates[k].sort((x, y) => x - y);
 write("teammates.json", teammates);
 
-// squadSynergy.json — пары внутри команды
+// squadSynergy.json — сыгранность ГРУПП 2–5 внутри команды (зеркало aggregate.FromOpenDota).
+// Не только пары: Chemistry весит крупную группу выше (пара ×1, пятёрка ×3), и мок обязан это
+// воспроизводить, иначе golden-тесты гоняют модель на данных, которых в проде не бывает.
+// Игр у группы тем меньше, чем она больше — как в реальности (впятером играли реже, чем вдвоём).
+const subsets = (arr, min, max) => {
+  const out = [];
+  const walk = (start, current) => {
+    if (current.length >= min) out.push([...current]);
+    if (current.length === max) return;
+    for (let i = start; i < arr.length; i++) walk(i + 1, [...current, arr[i]]);
+  };
+  walk(0, []);
+  return out;
+};
 const squad = [];
 for (const { players: set } of byTeam.values()) {
   const arr = [...set].sort((a, b) => a - b);
-  for (let i = 0; i < arr.length; i++)
-    for (let j = i + 1; j < arr.length; j++)
-      squad.push({ ids: [arr[i], arr[j]], games: 20 + Math.floor(rand(arr[i] + arr[j]) * 200), winrate: wr(arr[i], arr[j]) });
+  for (const group of subsets(arr, 2, 5)) {
+    const seed = group.reduce((s, id) => s + id, 0);
+    const games = Math.max(5, Math.floor((20 + rand(seed) * 200) / (group.length - 1)));
+    squad.push({ ids: group, games, winrate: wr(group[0], group[group.length - 1]) });
+  }
 }
 write("squadSynergy.json", squad);
 

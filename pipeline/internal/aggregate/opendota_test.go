@@ -3,6 +3,7 @@ package aggregate
 import (
 	"encoding/json"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/aegis-draft/pipeline/internal/model"
@@ -129,11 +130,27 @@ func fixture() *normalize.OpenDotaSnapshot {
 	}}
 }
 
-func findPair(result *OpenDotaResult, a, b int) *model.SquadPair {
+func findPair(result *OpenDotaResult, a, b int) *model.SquadGroup {
+	return findGroup(result, a, b)
+}
+
+// findGroup — группа ровно из переданных id (в любом порядке; в данных они отсортированы).
+func findGroup(result *OpenDotaResult, ids ...int) *model.SquadGroup {
+	sort.Ints(ids)
 	for i := range result.SquadSynergy {
-		pair := &result.SquadSynergy[i]
-		if pair.IDs == [2]int{a, b} {
-			return pair
+		group := &result.SquadSynergy[i]
+		if len(group.IDs) != len(ids) {
+			continue
+		}
+		match := true
+		for k := range ids {
+			if group.IDs[k] != ids[k] {
+				match = false
+				break
+			}
+		}
+		if match {
+			return group
 		}
 	}
 	return nil
