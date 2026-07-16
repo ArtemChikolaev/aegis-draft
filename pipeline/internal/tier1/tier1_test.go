@@ -64,3 +64,27 @@ func TestIsValveLegacy(t *testing.T) {
 		t.Error("junk 'major' name must not be valve_legacy")
 	}
 }
+
+// Регрессия v1.7.0: ветка premium возвращала true до проверки tier1Exclude, поэтому DPC-квалы
+// (они premium в OpenDota) проходили фильтр — 1104 пака из 2258 были составами из квалов.
+func TestIsTier1ExcludesQualifiersInBothTierBranches(t *testing.T) {
+	qualifiers := []string{
+		"DPC EEU Tour 1 Qualifier",
+		"DPC SA Closed Qualifier Tour 1 – 2021/2022 by 4D Esports",
+		"DPC WEU Division II Winter Tour - 2021/2022 - DreamLeague Season 16 presented by Intel",
+		"DPC SEA 2023 Tour 1: Division II Qualifiers",
+	}
+	for _, name := range qualifiers {
+		for _, tier := range []string{"premium", "professional"} {
+			if IsTier1(tier, name) {
+				t.Errorf("квал не должен быть tier-1 (tier=%s): %q", tier, name)
+			}
+		}
+	}
+	// Основные турниры не задеты.
+	for _, name := range []string{"The International 2024", "DreamLeague Season 22 powered by Intel", "ESL One Birmingham 2026"} {
+		if !IsTier1("premium", name) {
+			t.Errorf("основной турнир должен остаться tier-1: %q", name)
+		}
+	}
+}

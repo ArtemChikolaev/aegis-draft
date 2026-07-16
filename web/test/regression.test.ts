@@ -125,3 +125,28 @@ describe("regression: matching ≥ greedy (CI failure 2026-07-12)", () => {
     expect(matching).toBeGreaterThanOrEqual(greedy);
   });
 });
+
+describe("regression: chemistry только за реальные совместные pro-игры", () => {
+  it("BUG-2026-07-16: пара без совместных игр не даёт бонуса и не показывается (v1.7.0)", () => {
+    const data = loadGameData();
+    // Кросс-командный фэнтези-ростер: берём по игроку из пяти РАЗНЫХ паков — большинство
+    // пар вместе не играли. Раньше каждая такая пара набегала chemistryCurrentBaseline и
+    // химия складывалась из фантомных +0.1; в 322-0 таких строк нет вовсе.
+    const picks = data.packs.slice(0, 5).map((pack, i) => ({
+      accountId: pack.players[i].accountId,
+      teamId: pack.teamId,
+      eventId: pack.eventId,
+    }));
+    const roster = picks.map((p, i) => ({
+      candidate: {
+        player: data.packs[i].players[i],
+        teamId: p.teamId,
+        eventId: p.eventId,
+        signatureHeroes: data.packs[i].signatureHeroes,
+      },
+    }));
+    const rows = squadChemistryRows(roster as never, data.squadSynergy, data.teammates);
+    expect(rows.every((r) => r.games > 0)).toBe(true);
+    expect(rows.every((r) => r.bonus > 0)).toBe(true);
+  });
+});

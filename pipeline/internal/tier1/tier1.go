@@ -33,28 +33,44 @@ var tier1Series = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)china dota\s?2? super ?major`),
 }
 
-// tier1Exclude — отсекает квалы/дивизионы у совпавших серий (напр. «DreamLeague Division 2»).
+// tier1Exclude — отсекает квалы/дивизионы (напр. «DreamLeague Division 2», «DPC EEU Tour 1
+// Qualifier»). Применяется к ОБЕИМ ветками тира: DPC-квалы размечены в OpenDota как premium,
+// поэтому ранняя ветка premium пропускала их насквозь мимо этого списка — половина паков
+// датасета (1104 из 2258) оказывалась составами из открытых и закрытых квалификаций.
 var tier1Exclude = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)qualifier`),
 	regexp.MustCompile(`(?i)division`),
 	regexp.MustCompile(`(?i)closed`),
+	regexp.MustCompile(`(?i)open qual`),
 	regexp.MustCompile(`(?i)relegation`),
 	regexp.MustCompile(`(?i)ticket`),
 }
 
+// isQualifier — имя лиги указывает на квал/дивизион, а не на основной турнир.
+func isQualifier(name string) bool {
+	for _, ex := range tier1Exclude {
+		if ex.MatchString(name) {
+			return true
+		}
+	}
+	return false
+}
+
 // IsTier1 — лига относится к tier-1 сцене: premium, либо professional, чьё имя совпало с
-// курируемым списком tier-1 серий (и не является квалом/дивизионом). Это отсекает низкотировые
-// professional-лиги (Snake Trophy, CCT, региональные кубки). amateur/excluded/пустой — не tier-1.
+// курируемым списком tier-1 серий. Квалы/дивизионы не tier-1 ни в одной из веток — игра про
+// драфт про-ростеров, состав из открытого квала в ней шум. amateur/excluded/пустой — не tier-1.
+//
+// ВНИМАНИЕ: это фильтр по ИМЕНИ СОБЫТИЯ. Квал, приезжающий внутри легитимного leagueId
+// (ESL One Fall 2021 = 103 команды вместо 16), им не отсекается — для этого нужна стадия
+// матча, которой у нас из OpenDota нет. Отдельная задача, см. BACKLOG.
 func IsTier1(tier, name string) bool {
+	if isQualifier(name) {
+		return false
+	}
 	switch tier {
 	case "premium":
 		return true
 	case "professional":
-		for _, ex := range tier1Exclude {
-			if ex.MatchString(name) {
-				return false
-			}
-		}
 		for _, p := range tier1Series {
 			if p.MatchString(name) {
 				return true

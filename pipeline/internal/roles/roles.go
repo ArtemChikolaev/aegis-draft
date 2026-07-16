@@ -32,7 +32,17 @@ type PlayerRoles struct {
 	Appearances int          `json:"appearances"`
 }
 
+// InferMatch — роли всех игроков одного матча (обе команды), с гарантией разбиения
+// 1/1/1/2 на полной пятёрке. Экспортируется для агрегации в ЛЮБОЙ области: глобальной
+// (Infer) или событийной (packs). Глобальный primaryRole теряет роль на конкретном
+// турнире — для паков/рейтингов агрегируй эти же роли по (event, team).
+func InferMatch(match normalize.NormalizedMatch) map[int]model.Role {
+	return inferMatchRoles(match)
+}
+
 // Infer агрегирует по-матчевые роли в per-account primaryRole/rolesPlayed.
+// Это ГЛОБАЛЬНАЯ область: primaryRole = роль за всю выборку. Для составов на событии
+// она непригодна (игрок мог играть там другую роль) — см. InferMatch.
 func Infer(matches []normalize.NormalizedMatch) []PlayerRoles {
 	counts := make(map[int]map[model.Role]int)
 	appearances := make(map[int]int)
