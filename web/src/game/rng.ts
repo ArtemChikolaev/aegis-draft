@@ -48,6 +48,13 @@ export class Rng {
   pick<T>(arr: readonly T[]): T {
     return arr[this.int(arr.length)];
   }
+  /** Нормальное N(mean, sd) по Боксу–Мюллеру. Тратит два float — последовательность
+   * сида меняется, если вставлять вызов в середину существующей цепочки. */
+  normal(mean: number, sd: number): number {
+    const u = Math.max(1e-9, this.float());
+    const v = this.float();
+    return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
   /** копия массива, перемешанная по Фишеру–Йетсу (детерминированно). */
   shuffle<T>(arr: readonly T[]): T[] {
     const a = [...arr];

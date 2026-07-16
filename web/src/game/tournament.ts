@@ -85,17 +85,17 @@ const USER_ID = "aegis-user-team";
 // Final) + итоговая таблица + твой результат на одном экране (без отдельных final/complete).
 const STAGES: TournamentStage[] = ["field", "groups", "playoffs"];
 
-// Сила одного бота из ФИКСИРОВАННОГО распределения поля tier-1 турнира (как в 322-0),
-// НЕ привязанного к силе игрока. Форма снята с рероллов 322-0: пара элитных ~93-96, основная
-// масса 82-90, длинный хвост 76-81; медиана ~84. Место игрока зависит от того, куда попадает
-// его OVR в этом поле (сильный драфт → 1-3, средний → середина, слабый → низ) — а не «всегда 2-3».
+/** Поле tier-1 турнира — параметры сняты из бандла 322-0 дословно (docs/reference-322-0.md):
+ *  strength = round(clamp(76, 99, Normal(86, 5))).
+ *  Раньше здесь стояла кусочная лестница, подобранная мной по их скриншотам: она давала
+ *  mean 83.8 / sd 5.2 вместо 86.0 / 4.9 — поле было мягче на два очка и ступенчатым. */
+const BOT_FIELD = { mean: 86, sd: 5, min: 76, max: 99 } as const;
+
+// Сила бота НЕ привязана к силе игрока: место зависит от того, куда попадает его OVR в этом
+// поле (сильный драфт → 1-3, средний → середина, слабый → низ), а не «всегда 2-3».
 function sampleBotStrength(rng: Rng): number {
-  const r = rng.float();
-  if (r < 0.06) return 93 + rng.int(4); // 93-96 элита (редко)
-  if (r < 0.2) return 89 + rng.int(4); // 89-92 сильные
-  if (r < 0.48) return 84 + rng.int(5); // 84-88 верх-мид
-  if (r < 0.76) return 80 + rng.int(4); // 80-83 низ-мид
-  return 76 + rng.int(4); // 76-79 хвост
+  const raw = rng.normal(BOT_FIELD.mean, BOT_FIELD.sd);
+  return Math.round(Math.min(BOT_FIELD.max, Math.max(BOT_FIELD.min, raw)));
 }
 
 function rollBotStrengths(rng: Rng, count: number): number[] {
@@ -135,6 +135,20 @@ function opponentPool(metaRng: Rng, fieldRng: Rng): TournamentTeam[] {
   }));
 }
 
+/** Развод по группам змейкой 1-4-5-8 (322-0, дословно: `i%4===0||i%4===3 ? "A" : "B"`).
+ *  `field` обязан быть отсортирован по силе убыв. — змейка читает индекс как посев.
+ *
+ *  Раньше поле просто шаффлилось: на 20k роллов это давало средний перекос силы между
+ *  группами 1.82 очка и до 9.3 в худших — то есть одна группа выходила смертельной, вторая
+ *  прогулкой, чисто по броску. Змейка держит перекос на 0.39 (худший 1.8), как на реальных
+ *  турнирах с посевом. Детерминизма это не отнимает: сид всё так же правит силы и симуляцию. */
+function snakeSeed(field: TournamentTeam[]): [TournamentTeam[], TournamentTeam[]] {
+  const a: TournamentTeam[] = [];
+  const b: TournamentTeam[] = [];
+  field.forEach((team, index) => ((index % 4 === 0 || index % 4 === 3) ? a : b).push(team));
+  return [a, b];
+}
+
 function projectionForRank(rank: number): ProjectionKey {
   if (rank === 1) return "1";
   if (rank <= 4) return "2-4";
@@ -144,8 +158,14 @@ function projectionForRank(rank: number): ProjectionKey {
   return "17-18";
 }
 
+/** Делитель ELO-кривой (322-0, дословно): чем меньше, тем решительнее побеждает фаворит.
+ *  Прежние `Math.exp(Δ/12)` — это база 10 с делителем 27.6, то есть кривая была заметно
+ *  площе: при перевесе в 10 очков фаворит брал 70% вместо 74%. */
+const ELO_DIVISOR = 22;
+
+/** Вероятность победы a над b — ELO по основанию 10. */
 function winProbability(a: TournamentTeam, b: TournamentTeam): number {
-  return 1 / (1 + Math.exp((b.strength - a.strength) / 12));
+  return 1 / (1 + Math.pow(10, -(a.strength - b.strength) / ELO_DIVISOR));
 }
 
 function playSeries(
@@ -225,9 +245,9 @@ function buildResult(data: GameData, format: Format, seed: string, userStrength:
   const field = [...opponentPool(metaRng, fieldRng), user]
     .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
   const projection = projectionForRank(field.findIndex((team) => team.isUser) + 1);
-  const draw = simRng.shuffle(field);
-  const groupA = buildGroup(simRng, "A", draw.slice(0, 9));
-  const groupB = buildGroup(simRng, "B", draw.slice(9));
+  const [drawA, drawB] = snakeSeed(field);
+  const groupA = buildGroup(simRng, "A", drawA);
+  const groupB = buildGroup(simRng, "B", drawB);
   const groups = [groupA.group, groupB.group];
   const groupMatches = [...groupA.matches, ...groupB.matches];
   const a = groups[0].standings;

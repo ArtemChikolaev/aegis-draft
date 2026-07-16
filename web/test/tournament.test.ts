@@ -107,3 +107,35 @@ describe("TournamentEngine", () => {
     expect(engine.snapshot.stage).toBe("playoffs");
   });
 });
+
+// Три параметра симуляции сняты из бандла 322-0 дословно (docs/reference-322-0.md).
+// Раньше все три были подобраны мной на глаз по их скриншотам и промахивались.
+describe("параметры симуляции по замеру 322-0", () => {
+  it("поле ботов ~ Normal(86, 5), кламп [76, 99] — не кусочная лестница (mean была 83.8)", () => {
+    const strengths: number[] = [];
+    for (let seed = 0; seed < 400; seed++) {
+      const engine = new TournamentEngine(loadGameData(), "last_2y", `field-${seed}`, 80, "T");
+      for (const team of engine.snapshot.field) if (!team.isUser) strengths.push(team.strength);
+    }
+    const mean = strengths.reduce((s, x) => s + x, 0) / strengths.length;
+    const sd = Math.sqrt(strengths.reduce((s, x) => s + (x - mean) ** 2, 0) / strengths.length);
+    expect(Math.min(...strengths)).toBeGreaterThanOrEqual(76);
+    expect(Math.max(...strengths)).toBeLessThanOrEqual(99);
+    expect(mean).toBeGreaterThan(85.3);
+    expect(mean).toBeLessThan(86.7);
+    expect(sd).toBeGreaterThan(4.3);
+    expect(sd).toBeLessThan(5.5);
+  });
+
+  it("группы разводятся змейкой по силе: перекос средней силы околонулевой (шафл давал до 9.3)", () => {
+    let worstGap = 0;
+    for (let seed = 0; seed < 300; seed++) {
+      const engine = new TournamentEngine(loadGameData(), "last_2y", `snake-${seed}`, 80, "T");
+      const [a, b] = engine.snapshot.groups;
+      const avg = (g: typeof a) => g.standings.reduce((s, r) => s + r.team.strength, 0) / g.standings.length;
+      worstGap = Math.max(worstGap, Math.abs(avg(a) - avg(b)));
+    }
+    // Змейка 1-4-5-8 гарантирует перекос в пределах ~2; случайный шафл давал 9+.
+    expect(worstGap).toBeLessThan(3);
+  });
+});

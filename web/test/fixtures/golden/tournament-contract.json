@@ -21,33 +21,33 @@
     "bot-9"
   ],
   "userPlacement": "18",
-  "championId": "bot-5",
-  "grandFinalWinnerId": "bot-5",
+  "championId": "bot-12",
+  "grandFinalWinnerId": "bot-12",
   "grandFinalBestOf": 5,
   "playoffRoundCount": 9,
   "standingsPlacements": [
     {
-      "teamId": "bot-5",
+      "teamId": "bot-12",
       "placement": "1",
       "isUser": false
     },
     {
-      "teamId": "bot-10",
+      "teamId": "bot-17",
       "placement": "2",
       "isUser": false
     },
     {
-      "teamId": "bot-11",
+      "teamId": "bot-14",
       "placement": "3",
       "isUser": false
     },
     {
-      "teamId": "bot-8",
+      "teamId": "bot-2",
       "placement": "4",
       "isUser": false
     },
     {
-      "teamId": "bot-9",
+      "teamId": "bot-4",
       "placement": "5-6",
       "isUser": false
     },
@@ -57,7 +57,7 @@
       "isUser": false
     },
     {
-      "teamId": "bot-13",
+      "teamId": "bot-3",
       "placement": "7-8",
       "isUser": false
     },
@@ -67,17 +67,7 @@
       "isUser": false
     },
     {
-      "teamId": "bot-12",
-      "placement": "9-12",
-      "isUser": false
-    },
-    {
-      "teamId": "bot-17",
-      "placement": "9-12",
-      "isUser": false
-    },
-    {
-      "teamId": "bot-15",
+      "teamId": "bot-9",
       "placement": "9-12",
       "isUser": false
     },
@@ -87,27 +77,37 @@
       "isUser": false
     },
     {
-      "teamId": "bot-3",
+      "teamId": "bot-11",
+      "placement": "9-12",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-10",
+      "placement": "9-12",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-8",
       "placement": "13-16",
       "isUser": false
     },
     {
-      "teamId": "bot-4",
+      "teamId": "bot-13",
       "placement": "13-16",
       "isUser": false
     },
     {
-      "teamId": "bot-2",
-      "placement": "13-16",
-      "isUser": false
-    },
-    {
-      "teamId": "bot-14",
+      "teamId": "bot-15",
       "placement": "13-16",
       "isUser": false
     },
     {
       "teamId": "bot-6",
+      "placement": "13-16",
+      "isUser": false
+    },
+    {
+      "teamId": "bot-5",
       "placement": "17",
       "isUser": false
     },
@@ -121,19 +121,19 @@
     {
       "id": "A",
       "upper": [
-        "bot-5",
-        "bot-10",
-        "bot-8",
-        "bot-9"
+        "bot-9",
+        "bot-14",
+        "bot-17",
+        "bot-16"
       ],
       "lower": [
-        "bot-1",
-        "bot-7",
+        "bot-2",
         "bot-15",
-        "bot-14"
+        "bot-10",
+        "bot-13"
       ],
       "out": [
-        "bot-6"
+        "bot-5"
       ],
       "mapsPlayed": [
         16,
@@ -150,16 +150,16 @@
     {
       "id": "B",
       "upper": [
-        "bot-13",
-        "bot-16",
-        "bot-11",
-        "bot-12"
+        "bot-12",
+        "bot-3",
+        "bot-1",
+        "bot-4"
       ],
       "lower": [
-        "bot-17",
-        "bot-2",
-        "bot-3",
-        "bot-4"
+        "bot-7",
+        "bot-8",
+        "bot-11",
+        "bot-6"
       ],
       "out": [
         "aegis-user-team"
