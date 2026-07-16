@@ -69,19 +69,19 @@
   },
   "10020555": {
     "last_1y": {
-      "successScore": 35,
-      "games": 24,
-      "winrate": 0.5
+      "successScore": 34.05,
+      "games": 27,
+      "winrate": 0.4815
     },
     "last_2y": {
-      "successScore": 35,
-      "games": 24,
-      "winrate": 0.5
+      "successScore": 34.05,
+      "games": 27,
+      "winrate": 0.4815
     },
     "last_5y": {
-      "successScore": 35,
-      "games": 24,
-      "winrate": 0.5
+      "successScore": 34.05,
+      "games": 27,
+      "winrate": 0.4815
     }
   },
   "10028038": {
@@ -154,36 +154,36 @@
   },
   "10136357": {
     "last_1y": {
-      "successScore": 41.56,
-      "games": 22,
-      "winrate": 0.6364
+      "successScore": 38,
+      "games": 25,
+      "winrate": 0.56
     },
     "last_2y": {
-      "successScore": 41.56,
-      "games": 22,
-      "winrate": 0.6364
+      "successScore": 38,
+      "games": 25,
+      "winrate": 0.56
     },
     "last_5y": {
-      "successScore": 41.56,
-      "games": 22,
-      "winrate": 0.6364
+      "successScore": 38,
+      "games": 25,
+      "winrate": 0.56
     }
   },
   "10144195": {
     "last_1y": {
-      "successScore": 17.5,
-      "games": 10,
-      "winrate": 0
+      "successScore": 20.42,
+      "games": 14,
+      "winrate": 0.1429
     },
     "last_2y": {
-      "successScore": 17.5,
-      "games": 10,
-      "winrate": 0
+      "successScore": 20.42,
+      "games": 14,
+      "winrate": 0.1429
     },
     "last_5y": {
-      "successScore": 17.5,
-      "games": 10,
-      "winrate": 0
+      "successScore": 20.42,
+      "games": 14,
+      "winrate": 0.1429
     }
   },
   "10150413": {
@@ -205,19 +205,19 @@
   },
   "10150538": {
     "last_1y": {
-      "successScore": 40.83,
-      "games": 38,
-      "winrate": 0.6053
+      "successScore": 39.2,
+      "games": 40,
+      "winrate": 0.575
     },
     "last_2y": {
-      "successScore": 40.83,
-      "games": 38,
-      "winrate": 0.6053
+      "successScore": 39.2,
+      "games": 40,
+      "winrate": 0.575
     },
     "last_5y": {
-      "successScore": 40.83,
-      "games": 38,
-      "winrate": 0.6053
+      "successScore": 39.2,
+      "games": 40,
+      "winrate": 0.575
     }
   },
   "10182299": {
@@ -256,26 +256,26 @@
   },
   "10182357": {
     "last_1y": {
-      "successScore": 42,
-      "games": 10,
-      "winrate": 0.7
+      "successScore": 39.57,
+      "games": 13,
+      "winrate": 0.6154
     },
     "last_2y": {
-      "successScore": 42,
-      "games": 10,
-      "winrate": 0.7
+      "successScore": 39.57,
+      "games": 13,
+      "winrate": 0.6154
     },
     "last_5y": {
-      "successScore": 42,
-      "games": 10,
-      "winrate": 0.7
+      "successScore": 39.57,
+      "games": 13,
+      "winrate": 0.6154
     }
   },
   "1061269": {
     "last_5y": {
-      "successScore": 53.46,
-      "games": 149,
-      "winrate": 0.5369
+      "successScore": 53.99,
+      "games": 153,
+      "winrate": 0.5425
     }
   },
   "111474": {
@@ -285,9 +285,9 @@
       "winrate": 0.5
     },
     "last_5y": {
-      "successScore": 37.99,
-      "games": 162,
-      "winrate": 0.4074
+      "successScore": 37.86,
+      "games": 168,
+      "winrate": 0.4048
     }
   },
   "1119297": {
@@ -304,6 +304,13 @@
       "winrate": 0
     }
   },
+  "144100": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
   "15": {
     "last_2y": {
       "successScore": 26.92,
@@ -311,9 +318,9 @@
       "winrate": 0.3125
     },
     "last_5y": {
-      "successScore": 56.22,
-      "games": 424,
-      "winrate": 0.6392
+      "successScore": 55.33,
+      "games": 480,
+      "winrate": 0.6292
     }
   },
   "1520578": {
@@ -344,25 +351,39 @@
       "winrate": 0.25
     }
   },
-  "1838315": {
+  "1746869": {
     "last_5y": {
-      "successScore": 46.14,
-      "games": 295,
-      "winrate": 0.5153
-    }
-  },
-  "1840636": {
-    "last_5y": {
-      "successScore": 45.45,
+      "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
   },
+  "1782289": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "1838315": {
+    "last_5y": {
+      "successScore": 44.8,
+      "games": 350,
+      "winrate": 0.5114
+    }
+  },
+  "1840636": {
+    "last_5y": {
+      "successScore": 39.64,
+      "games": 4,
+      "winrate": 0.25
+    }
+  },
   "1883502": {
     "last_5y": {
-      "successScore": 54.81,
-      "games": 62,
-      "winrate": 0.6129
+      "successScore": 56.92,
+      "games": 68,
+      "winrate": 0.6324
     }
   },
   "2025203": {
@@ -395,19 +416,19 @@
   },
   "2163": {
     "last_1y": {
-      "successScore": 40.89,
-      "games": 252,
-      "winrate": 0.5714
+      "successScore": 41.23,
+      "games": 272,
+      "winrate": 0.5772
     },
     "last_2y": {
-      "successScore": 41.52,
-      "games": 549,
-      "winrate": 0.5792
+      "successScore": 41.41,
+      "games": 591,
+      "winrate": 0.5787
     },
     "last_5y": {
-      "successScore": 46.37,
-      "games": 1065,
-      "winrate": 0.585
+      "successScore": 46.39,
+      "games": 1161,
+      "winrate": 0.5857
     }
   },
   "2221395": {
@@ -419,9 +440,9 @@
   },
   "2289950": {
     "last_5y": {
-      "successScore": 44.94,
-      "games": 79,
-      "winrate": 0.443
+      "successScore": 46.15,
+      "games": 81,
+      "winrate": 0.4568
     }
   },
   "2382482": {
@@ -438,31 +459,38 @@
       "winrate": 0.2083
     },
     "last_2y": {
-      "successScore": 20.85,
-      "games": 37,
-      "winrate": 0.2432
+      "successScore": 22.86,
+      "games": 39,
+      "winrate": 0.2821
     },
     "last_5y": {
-      "successScore": 20.85,
-      "games": 37,
-      "winrate": 0.2432
+      "successScore": 22.86,
+      "games": 39,
+      "winrate": 0.2821
     }
   },
   "2586976": {
     "last_1y": {
-      "successScore": 26.52,
-      "games": 122,
-      "winrate": 0.3689
+      "successScore": 28.59,
+      "games": 132,
+      "winrate": 0.4015
     },
     "last_2y": {
-      "successScore": 27.67,
-      "games": 205,
-      "winrate": 0.3902
+      "successScore": 29.3,
+      "games": 217,
+      "winrate": 0.4147
     },
     "last_5y": {
-      "successScore": 39.66,
-      "games": 620,
-      "winrate": 0.4887
+      "successScore": 40.8,
+      "games": 696,
+      "winrate": 0.5043
+    }
+  },
+  "2597561": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "2640025": {
@@ -474,9 +502,9 @@
   },
   "2650160": {
     "last_5y": {
-      "successScore": 57.14,
-      "games": 4,
-      "winrate": 0.75
+      "successScore": 56.25,
+      "games": 6,
+      "winrate": 0.6667
     }
   },
   "2656747": {
@@ -495,8 +523,8 @@
   },
   "2668269": {
     "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
+      "successScore": 39.38,
+      "games": 6,
       "winrate": 0.6667
     }
   },
@@ -509,9 +537,9 @@
   },
   "2768293": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "2811630": {
@@ -523,9 +551,9 @@
   },
   "2833068": {
     "last_5y": {
-      "successScore": 53.33,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 61.11,
+      "games": 8,
+      "winrate": 0.75
     }
   },
   "2891290": {
@@ -549,6 +577,13 @@
       "winrate": 0.3333
     }
   },
+  "3206548": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
   "3322951": {
     "last_5y": {
       "successScore": 57.78,
@@ -556,18 +591,32 @@
       "winrate": 0.6
     }
   },
+  "3338336": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "3441550": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "350190": {
     "last_5y": {
-      "successScore": 44.85,
-      "games": 200,
-      "winrate": 0.465
+      "successScore": 45.02,
+      "games": 217,
+      "winrate": 0.4654
     }
   },
   "3546438": {
     "last_5y": {
-      "successScore": 40,
-      "games": 5,
-      "winrate": 0.2
+      "successScore": 37.5,
+      "games": 6,
+      "winrate": 0.1667
     }
   },
   "3578904": {
@@ -579,31 +628,38 @@
   },
   "36": {
     "last_1y": {
-      "successScore": 35.25,
-      "games": 105,
-      "winrate": 0.4762
+      "successScore": 36.35,
+      "games": 119,
+      "winrate": 0.4958
     },
     "last_2y": {
-      "successScore": 34.76,
-      "games": 185,
-      "winrate": 0.4811
+      "successScore": 35.46,
+      "games": 199,
+      "winrate": 0.4925
     },
     "last_5y": {
-      "successScore": 40.51,
-      "games": 353,
-      "winrate": 0.4816
+      "successScore": 40.71,
+      "games": 370,
+      "winrate": 0.4865
+    }
+  },
+  "3625908": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "39": {
     "last_2y": {
-      "successScore": 26.55,
-      "games": 106,
-      "winrate": 0.3679
+      "successScore": 28.85,
+      "games": 121,
+      "winrate": 0.405
     },
     "last_5y": {
-      "successScore": 43.26,
-      "games": 466,
-      "winrate": 0.5107
+      "successScore": 43.95,
+      "games": 532,
+      "winrate": 0.5188
     }
   },
   "3931330": {
@@ -615,9 +671,9 @@
   },
   "4": {
     "last_5y": {
-      "successScore": 44.31,
-      "games": 105,
-      "winrate": 0.4476
+      "successScore": 42.86,
+      "games": 109,
+      "winrate": 0.4312
     }
   },
   "4273353": {
@@ -634,6 +690,20 @@
       "winrate": 0.3279
     }
   },
+  "4868025": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "4994299": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "5": {
     "last_2y": {
       "successScore": 38.46,
@@ -641,9 +711,9 @@
       "winrate": 0.4762
     },
     "last_5y": {
-      "successScore": 44.15,
-      "games": 309,
-      "winrate": 0.5049
+      "successScore": 42.36,
+      "games": 344,
+      "winrate": 0.4855
     }
   },
   "5014799": {
@@ -658,9 +728,9 @@
       "winrate": 0.2
     },
     "last_5y": {
-      "successScore": 49.87,
-      "games": 124,
-      "winrate": 0.5161
+      "successScore": 49.86,
+      "games": 130,
+      "winrate": 0.5231
     }
   },
   "5020794": {
@@ -684,6 +754,20 @@
       "winrate": 0
     }
   },
+  "5157593": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "5193892": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "5200855": {
     "last_5y": {
       "successScore": 54.55,
@@ -693,8 +777,8 @@
   },
   "5201642": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -752,9 +836,9 @@
   },
   "5837443": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "5870115": {
@@ -766,9 +850,9 @@
   },
   "5894738": {
     "last_5y": {
-      "successScore": 53.33,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 52.94,
+      "games": 7,
+      "winrate": 0.5714
     }
   },
   "5895656": {
@@ -779,6 +863,13 @@
     }
   },
   "5897445": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "5945105": {
     "last_5y": {
       "successScore": 31.82,
       "games": 1,
@@ -799,23 +890,44 @@
       "winrate": 0
     }
   },
+  "6143737": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
   "6209166": {
     "last_5y": {
-      "successScore": 48.55,
-      "games": 351,
-      "winrate": 0.5328
+      "successScore": 49.34,
+      "games": 404,
+      "winrate": 0.5446
     }
   },
   "6209804": {
     "last_5y": {
-      "successScore": 47.44,
-      "games": 171,
-      "winrate": 0.5088
+      "successScore": 48.37,
+      "games": 186,
+      "winrate": 0.5161
+    }
+  },
+  "6209963": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "6298416": {
     "last_5y": {
-      "successScore": 45.45,
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
+    }
+  },
+  "6326141": {
+    "last_5y": {
+      "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
@@ -834,18 +946,32 @@
       "winrate": 0.4
     }
   },
+  "6490258": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
   "6490995": {
     "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 37.33,
+      "games": 5,
+      "winrate": 0.6
+    }
+  },
+  "6568822": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
     }
   },
   "6569202": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "6571774": {
@@ -857,8 +983,8 @@
   },
   "6613052": {
     "last_5y": {
-      "successScore": 56.25,
-      "games": 6,
+      "successScore": 57.89,
+      "games": 9,
       "winrate": 0.6667
     }
   },
@@ -867,6 +993,13 @@
       "successScore": 43.75,
       "games": 6,
       "winrate": 0.3333
+    }
+  },
+  "6644195": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
     }
   },
   "6659456": {
@@ -878,19 +1011,19 @@
   },
   "67": {
     "last_1y": {
-      "successScore": 24.06,
-      "games": 22,
-      "winrate": 0.2727
+      "successScore": 22.7,
+      "games": 27,
+      "winrate": 0.2593
     },
     "last_2y": {
-      "successScore": 24.06,
-      "games": 22,
-      "winrate": 0.2727
+      "successScore": 22.7,
+      "games": 27,
+      "winrate": 0.2593
     },
     "last_5y": {
-      "successScore": 24.06,
-      "games": 22,
-      "winrate": 0.2727
+      "successScore": 22.7,
+      "games": 27,
+      "winrate": 0.2593
     }
   },
   "6765751": {
@@ -902,9 +1035,9 @@
   },
   "6767112": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 52.94,
+      "games": 7,
+      "winrate": 0.5714
     }
   },
   "6767209": {
@@ -916,9 +1049,23 @@
   },
   "6789594": {
     "last_5y": {
-      "successScore": 53.85,
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
+    }
+  },
+  "6794437": {
+    "last_5y": {
+      "successScore": 32.31,
       "games": 3,
-      "winrate": 0.6667
+      "winrate": 0.3333
+    }
+  },
+  "6847820": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
     }
   },
   "6850910": {
@@ -947,6 +1094,13 @@
       "successScore": 46.15,
       "games": 3,
       "winrate": 0.3333
+    }
+  },
+  "6908669": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
     }
   },
   "6929282": {
@@ -993,19 +1147,19 @@
   },
   "7119388": {
     "last_1y": {
-      "successScore": 42.61,
-      "games": 231,
-      "winrate": 0.5974
+      "successScore": 42.62,
+      "games": 249,
+      "winrate": 0.5984
     },
     "last_2y": {
-      "successScore": 43.21,
-      "games": 481,
-      "winrate": 0.605
+      "successScore": 43.31,
+      "games": 509,
+      "winrate": 0.6071
     },
     "last_5y": {
-      "successScore": 48.53,
-      "games": 970,
-      "winrate": 0.6155
+      "successScore": 48.54,
+      "games": 1048,
+      "winrate": 0.6135
     }
   },
   "7121518": {
@@ -1029,11 +1183,18 @@
       "winrate": 0
     }
   },
+  "7234053": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "7234600": {
     "last_5y": {
-      "successScore": 52.63,
-      "games": 9,
-      "winrate": 0.5556
+      "successScore": 55.8,
+      "games": 14,
+      "winrate": 0.7143
     }
   },
   "7236753": {
@@ -1045,24 +1206,38 @@
   },
   "726228": {
     "last_1y": {
-      "successScore": 30.91,
-      "games": 67,
-      "winrate": 0.4328
+      "successScore": 31.67,
+      "games": 74,
+      "winrate": 0.4459
     },
     "last_2y": {
-      "successScore": 30.91,
-      "games": 67,
-      "winrate": 0.4328
+      "successScore": 31.67,
+      "games": 74,
+      "winrate": 0.4459
     },
     "last_5y": {
-      "successScore": 42.79,
-      "games": 228,
-      "winrate": 0.4825
+      "successScore": 43.42,
+      "games": 240,
+      "winrate": 0.4917
     }
   },
   "7266156": {
     "last_5y": {
       "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "7266882": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "7266995": {
+    "last_5y": {
+      "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
@@ -1090,30 +1265,30 @@
   },
   "7298384": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.67,
+      "games": 5,
+      "winrate": 0.4
     }
   },
   "7300277": {
     "last_5y": {
-      "successScore": 50.32,
-      "games": 95,
-      "winrate": 0.5053
+      "successScore": 50.3,
+      "games": 98,
+      "winrate": 0.5102
     }
   },
   "7316989": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
   "7355202": {
     "last_5y": {
-      "successScore": 63.16,
-      "games": 9,
-      "winrate": 0.7778
+      "successScore": 60,
+      "games": 10,
+      "winrate": 0.7
     }
   },
   "7356881": {
@@ -1125,16 +1300,16 @@
   },
   "7390454": {
     "last_5y": {
-      "successScore": 50,
-      "games": 140,
-      "winrate": 0.5
+      "successScore": 46.99,
+      "games": 156,
+      "winrate": 0.4679
     }
   },
   "7391077": {
     "last_5y": {
-      "successScore": 49.9,
-      "games": 219,
-      "winrate": 0.5205
+      "successScore": 49.12,
+      "games": 233,
+      "winrate": 0.5107
     }
   },
   "7396034": {
@@ -1160,19 +1335,26 @@
   },
   "7422789": {
     "last_2y": {
-      "successScore": 23.33,
-      "games": 8,
-      "winrate": 0.125
+      "successScore": 20.42,
+      "games": 14,
+      "winrate": 0.1429
     },
     "last_5y": {
-      "successScore": 46.08,
-      "games": 263,
-      "winrate": 0.5133
+      "successScore": 43.28,
+      "games": 315,
+      "winrate": 0.4921
     }
   },
   "7423685": {
     "last_5y": {
       "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "7438040": {
+    "last_5y": {
+      "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
@@ -1193,8 +1375,8 @@
   },
   "7514691": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -1207,25 +1389,32 @@
   },
   "7554697": {
     "last_1y": {
-      "successScore": 36.52,
-      "games": 98,
-      "winrate": 0.4694
+      "successScore": 35.09,
+      "games": 102,
+      "winrate": 0.451
     },
     "last_2y": {
-      "successScore": 31.6,
-      "games": 224,
-      "winrate": 0.4286
+      "successScore": 31.11,
+      "games": 241,
+      "winrate": 0.4232
     },
     "last_5y": {
-      "successScore": 35.85,
-      "games": 384,
-      "winrate": 0.4401
+      "successScore": 34.89,
+      "games": 422,
+      "winrate": 0.4336
+    }
+  },
+  "7555013": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "7566076": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -1239,6 +1428,13 @@
   "7569030": {
     "last_5y": {
       "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "7577871": {
+    "last_5y": {
+      "successScore": 38.18,
       "games": 1,
       "winrate": 1
     }
@@ -1285,11 +1481,53 @@
       "winrate": 0
     }
   },
+  "7653630": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "7672215": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
   "7682624": {
     "last_5y": {
-      "successScore": 40.91,
-      "games": 12,
-      "winrate": 0.3333
+      "successScore": 39.13,
+      "games": 13,
+      "winrate": 0.3077
+    }
+  },
+  "7683713": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "7684556": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "7699827": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "7714587": {
+    "last_5y": {
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "7718331": {
@@ -1306,14 +1544,21 @@
       "winrate": 0.3077
     },
     "last_2y": {
-      "successScore": 32.06,
-      "games": 98,
-      "winrate": 0.4286
+      "successScore": 31.27,
+      "games": 114,
+      "winrate": 0.4211
     },
     "last_5y": {
-      "successScore": 43.95,
-      "games": 320,
-      "winrate": 0.5
+      "successScore": 43.18,
+      "games": 355,
+      "winrate": 0.4958
+    }
+  },
+  "7761146": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "7764384": {
@@ -1332,9 +1577,9 @@
   },
   "7802017": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "7817577": {
@@ -1349,6 +1594,27 @@
       "successScore": 50,
       "games": 40,
       "winrate": 0.5
+    }
+  },
+  "7819054": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "7849541": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "7851972": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "7890543": {
@@ -1374,9 +1640,9 @@
   },
   "7939423": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "7980263": {
@@ -1393,10 +1659,24 @@
       "winrate": 0.5
     }
   },
+  "8047718": {
+    "last_5y": {
+      "successScore": 37.69,
+      "games": 3,
+      "winrate": 0.6667
+    }
+  },
+  "8070355": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8078411": {
     "last_5y": {
       "successScore": 50,
-      "games": 2,
+      "games": 4,
       "winrate": 0.5
     }
   },
@@ -1430,16 +1710,16 @@
   },
   "8112124": {
     "last_5y": {
-      "successScore": 42.58,
-      "games": 63,
-      "winrate": 0.4286
+      "successScore": 42.91,
+      "games": 66,
+      "winrate": 0.4394
     }
   },
   "8113549": {
     "last_5y": {
-      "successScore": 46.67,
-      "games": 5,
-      "winrate": 0.4
+      "successScore": 41.05,
+      "games": 9,
+      "winrate": 0.4444
     }
   },
   "8118197": {
@@ -1463,11 +1743,18 @@
       "winrate": 0.3429
     }
   },
+  "8125069": {
+    "last_5y": {
+      "successScore": 37.69,
+      "games": 3,
+      "winrate": 0.6667
+    }
+  },
   "8125750": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8126806": {
@@ -1493,9 +1780,9 @@
   },
   "8131728": {
     "last_5y": {
-      "successScore": 46.23,
-      "games": 96,
-      "winrate": 0.4583
+      "successScore": 46.49,
+      "games": 104,
+      "winrate": 0.4615
     }
   },
   "8150770": {
@@ -1506,6 +1793,13 @@
     }
   },
   "8151452": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
+    }
+  },
+  "8151636": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
@@ -1533,11 +1827,25 @@
       "winrate": 0.5161
     }
   },
+  "8168819": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8169489": {
+    "last_5y": {
+      "successScore": 43.08,
+      "games": 3,
+      "winrate": 1
+    }
+  },
   "8169775": {
     "last_5y": {
-      "successScore": 54.79,
-      "games": 136,
-      "winrate": 0.5515
+      "successScore": 54.3,
+      "games": 141,
+      "winrate": 0.5461
     }
   },
   "8172071": {
@@ -1568,11 +1876,18 @@
       "winrate": 0
     }
   },
+  "8188433": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8204512": {
     "last_5y": {
-      "successScore": 35.2,
-      "games": 41,
-      "winrate": 0.3659
+      "successScore": 37.32,
+      "games": 46,
+      "winrate": 0.3913
     }
   },
   "8204562": {
@@ -1591,9 +1906,9 @@
   },
   "8214850": {
     "last_5y": {
-      "successScore": 50.51,
-      "games": 232,
-      "winrate": 0.5259
+      "successScore": 48.97,
+      "games": 242,
+      "winrate": 0.5083
     }
   },
   "8221486": {
@@ -1603,11 +1918,25 @@
       "winrate": 0
     }
   },
+  "8223327": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
   "8223827": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
+    }
+  },
+  "8229855": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8230115": {
@@ -1619,9 +1948,9 @@
   },
   "8232544": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8237558": {
@@ -1647,15 +1976,29 @@
   },
   "8244493": {
     "last_5y": {
-      "successScore": 49.04,
-      "games": 147,
-      "winrate": 0.4898
+      "successScore": 48.45,
+      "games": 151,
+      "winrate": 0.4834
     }
   },
   "8244563": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
+    }
+  },
+  "8245107": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "8245323": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
       "winrate": 0
     }
   },
@@ -1675,19 +2018,19 @@
   },
   "8254145": {
     "last_1y": {
-      "successScore": 19.44,
-      "games": 8,
-      "winrate": 0
+      "successScore": 20.42,
+      "games": 14,
+      "winrate": 0.1429
     },
     "last_2y": {
-      "successScore": 22.91,
-      "games": 45,
-      "winrate": 0.2889
+      "successScore": 23.69,
+      "games": 55,
+      "winrate": 0.3091
     },
     "last_5y": {
-      "successScore": 42.44,
-      "games": 214,
-      "winrate": 0.4579
+      "successScore": 38.85,
+      "games": 257,
+      "winrate": 0.428
     }
   },
   "8254383": {
@@ -1699,14 +2042,14 @@
   },
   "8254400": {
     "last_2y": {
-      "successScore": 28.79,
-      "games": 68,
-      "winrate": 0.3676
+      "successScore": 28.02,
+      "games": 70,
+      "winrate": 0.3571
     },
     "last_5y": {
-      "successScore": 46.17,
-      "games": 370,
-      "winrate": 0.5108
+      "successScore": 44.31,
+      "games": 434,
+      "winrate": 0.4954
     }
   },
   "8254446": {
@@ -1718,33 +2061,33 @@
   },
   "8255756": {
     "last_5y": {
-      "successScore": 43.54,
-      "games": 288,
-      "winrate": 0.4861
+      "successScore": 43.19,
+      "games": 319,
+      "winrate": 0.4828
     }
   },
   "8255888": {
     "last_1y": {
-      "successScore": 40.53,
-      "games": 233,
-      "winrate": 0.5579
+      "successScore": 41.02,
+      "games": 249,
+      "winrate": 0.5663
     },
     "last_2y": {
-      "successScore": 41.51,
-      "games": 477,
-      "winrate": 0.5744
+      "successScore": 41.96,
+      "games": 512,
+      "winrate": 0.582
     },
     "last_5y": {
-      "successScore": 43.58,
-      "games": 817,
-      "winrate": 0.5643
+      "successScore": 44.28,
+      "games": 879,
+      "winrate": 0.5734
     }
   },
   "8259584": {
     "last_5y": {
-      "successScore": 57.14,
-      "games": 4,
-      "winrate": 0.75
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
     }
   },
   "8260932": {
@@ -1756,9 +2099,9 @@
   },
   "8260983": {
     "last_5y": {
-      "successScore": 49.69,
-      "games": 266,
-      "winrate": 0.5451
+      "successScore": 47.33,
+      "games": 315,
+      "winrate": 0.5238
     }
   },
   "8261114": {
@@ -1784,26 +2127,26 @@
   },
   "8261397": {
     "last_5y": {
-      "successScore": 29.73,
-      "games": 13,
-      "winrate": 0.1538
+      "successScore": 31.9,
+      "games": 14,
+      "winrate": 0.2143
     }
   },
   "8261500": {
     "last_1y": {
-      "successScore": 36.47,
-      "games": 218,
-      "winrate": 0.4954
+      "successScore": 37.59,
+      "games": 232,
+      "winrate": 0.5129
     },
     "last_2y": {
-      "successScore": 37.25,
-      "games": 400,
-      "winrate": 0.51
+      "successScore": 37.32,
+      "games": 433,
+      "winrate": 0.5127
     },
     "last_5y": {
-      "successScore": 43.01,
-      "games": 733,
-      "winrate": 0.543
+      "successScore": 42.95,
+      "games": 784,
+      "winrate": 0.5459
     }
   },
   "8261554": {
@@ -1815,8 +2158,8 @@
   },
   "8261642": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -1829,9 +2172,9 @@
   },
   "8261774": {
     "last_5y": {
-      "successScore": 52.32,
-      "games": 37,
-      "winrate": 0.5946
+      "successScore": 57.7,
+      "games": 49,
+      "winrate": 0.6735
     }
   },
   "8261882": {
@@ -1841,25 +2184,46 @@
       "winrate": 0.4472
     }
   },
-  "8262189": {
+  "8261981": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
       "winrate": 0
     }
   },
-  "8262199": {
+  "8261992": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8262006": {
     "last_5y": {
       "successScore": 46.15,
       "games": 3,
       "winrate": 0.3333
     }
   },
+  "8262189": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8262199": {
+    "last_5y": {
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
+    }
+  },
   "8262282": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8262639": {
@@ -1876,6 +2240,27 @@
       "winrate": 0
     }
   },
+  "8263841": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8270237": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8271688": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8272008": {
     "last_5y": {
       "successScore": 43.75,
@@ -1883,11 +2268,25 @@
       "winrate": 0.3333
     }
   },
+  "8272344": {
+    "last_5y": {
+      "successScore": 58.33,
+      "games": 2,
+      "winrate": 1
+    }
+  },
   "8272699": {
     "last_5y": {
       "successScore": 31.33,
       "games": 73,
       "winrate": 0.2877
+    }
+  },
+  "8273184": {
+    "last_5y": {
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "8273304": {
@@ -1899,9 +2298,9 @@
   },
   "8283144": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8284776": {
@@ -1913,26 +2312,26 @@
   },
   "8290971": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "8291895": {
     "last_1y": {
-      "successScore": 40.47,
-      "games": 217,
-      "winrate": 0.5576
+      "successScore": 39.96,
+      "games": 232,
+      "winrate": 0.5517
     },
     "last_2y": {
-      "successScore": 42.44,
-      "games": 493,
-      "winrate": 0.5862
+      "successScore": 42.61,
+      "games": 519,
+      "winrate": 0.5896
     },
     "last_5y": {
-      "successScore": 46.19,
-      "games": 930,
-      "winrate": 0.5871
+      "successScore": 46.55,
+      "games": 1013,
+      "winrate": 0.5903
     }
   },
   "8298349": {
@@ -1944,14 +2343,21 @@
   },
   "8299997": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8300512": {
     "last_5y": {
       "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8300758": {
+    "last_5y": {
+      "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
@@ -1970,6 +2376,20 @@
       "winrate": 0
     }
   },
+  "8307472": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8309219": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
   "8310936": {
     "last_5y": {
       "successScore": 30,
@@ -1979,23 +2399,30 @@
   },
   "8311668": {
     "last_5y": {
-      "successScore": 53.85,
-      "games": 3,
-      "winrate": 0.6667
+      "successScore": 57.14,
+      "games": 4,
+      "winrate": 0.75
     }
   },
   "8318683": {
     "last_5y": {
-      "successScore": 46.16,
-      "games": 128,
-      "winrate": 0.4609
+      "successScore": 46.27,
+      "games": 131,
+      "winrate": 0.4656
+    }
+  },
+  "8320448": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8326341": {
     "last_5y": {
-      "successScore": 50,
-      "games": 10,
-      "winrate": 0.5
+      "successScore": 52.38,
+      "games": 11,
+      "winrate": 0.5455
     }
   },
   "8327650": {
@@ -2012,14 +2439,28 @@
       "winrate": 0.5
     }
   },
+  "8335032": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
   "8335298": {
     "last_5y": {
-      "successScore": 45.83,
-      "games": 14,
-      "winrate": 0.4286
+      "successScore": 50,
+      "games": 16,
+      "winrate": 0.5
     }
   },
   "8342495": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "8343322": {
     "last_5y": {
       "successScore": 54.55,
       "games": 1,
@@ -2035,9 +2476,9 @@
   },
   "8344223": {
     "last_5y": {
-      "successScore": 39.44,
-      "games": 8,
-      "winrate": 0.375
+      "successScore": 44.95,
+      "games": 13,
+      "winrate": 0.5385
     }
   },
   "8344439": {
@@ -2045,6 +2486,20 @@
       "successScore": 38.18,
       "games": 1,
       "winrate": 1
+    }
+  },
+  "8344536": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8344559": {
+    "last_5y": {
+      "successScore": 35,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8344760": {
@@ -2056,9 +2511,9 @@
   },
   "8344770": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
     }
   },
   "8344882": {
@@ -2066,6 +2521,13 @@
       "successScore": 47.06,
       "games": 7,
       "winrate": 0.4286
+    }
+  },
+  "8344922": {
+    "last_5y": {
+      "successScore": 39.38,
+      "games": 6,
+      "winrate": 0.6667
     }
   },
   "8345961": {
@@ -2077,37 +2539,44 @@
   },
   "8350517": {
     "last_5y": {
-      "successScore": 52.94,
-      "games": 24,
-      "winrate": 0.5417
+      "successScore": 54.29,
+      "games": 25,
+      "winrate": 0.56
     }
   },
   "8350896": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
+    }
+  },
+  "8351558": {
     "last_5y": {
       "successScore": 41.67,
       "games": 2,
       "winrate": 0
     }
   },
-  "8351558": {
-    "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "8352473": {
     "last_5y": {
-      "successScore": 42.14,
-      "games": 18,
-      "winrate": 0.3889
+      "successScore": 41.38,
+      "games": 20,
+      "winrate": 0.4
+    }
+  },
+  "8352568": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8352873": {
     "last_5y": {
-      "successScore": 53.33,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 63.16,
+      "games": 9,
+      "winrate": 0.7778
     }
   },
   "8359891": {
@@ -2119,9 +2588,9 @@
   },
   "8359896": {
     "last_5y": {
-      "successScore": 25.01,
-      "games": 17,
-      "winrate": 0.1176
+      "successScore": 32.57,
+      "games": 23,
+      "winrate": 0.3043
     }
   },
   "8360138": {
@@ -2131,11 +2600,25 @@
       "winrate": 0.4409
     }
   },
+  "8360733": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
   "8360860": {
     "last_5y": {
-      "successScore": 53.47,
-      "games": 8,
-      "winrate": 0.625
+      "successScore": 56.4,
+      "games": 10,
+      "winrate": 0.7
+    }
+  },
+  "8366985": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8367062": {
@@ -2159,6 +2642,13 @@
       "winrate": 0
     }
   },
+  "8374959": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8375259": {
     "last_2y": {
       "successScore": 31.38,
@@ -2171,6 +2661,13 @@
       "winrate": 0.4295
     }
   },
+  "8375411": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8375518": {
     "last_5y": {
       "successScore": 31.82,
@@ -2180,23 +2677,23 @@
   },
   "8375883": {
     "last_5y": {
-      "successScore": 50.13,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 47.37,
+      "games": 9,
+      "winrate": 0.5556
     }
   },
   "8376016": {
     "last_5y": {
-      "successScore": 53.85,
-      "games": 3,
-      "winrate": 0.6667
+      "successScore": 43.87,
+      "games": 5,
+      "winrate": 0.4
     }
   },
   "8376282": {
     "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 37.69,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "8376426": {
@@ -2225,9 +2722,9 @@
   },
   "8381141": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 36.92,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8384026": {
@@ -2258,11 +2755,25 @@
       "winrate": 0.5271
     }
   },
+  "8391724": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8400061": {
     "last_5y": {
       "successScore": 54.55,
       "games": 1,
       "winrate": 1
+    }
+  },
+  "8406229": {
+    "last_5y": {
+      "successScore": 35,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8406582": {
@@ -2279,18 +2790,39 @@
       "winrate": 0.375
     }
   },
-  "8421326": {
+  "8412548": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "8413258": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8421259": {
     "last_5y": {
       "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
   },
+  "8421326": {
+    "last_5y": {
+      "successScore": 35,
+      "games": 4,
+      "winrate": 0.5
+    }
+  },
   "8421850": {
     "last_5y": {
-      "successScore": 40.09,
-      "games": 47,
-      "winrate": 0.383
+      "successScore": 42.29,
+      "games": 52,
+      "winrate": 0.4231
     }
   },
   "8428207": {
@@ -2298,6 +2830,13 @@
       "successScore": 45.45,
       "games": 1,
       "winrate": 0
+    }
+  },
+  "8428246": {
+    "last_5y": {
+      "successScore": 35,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8429237": {
@@ -2309,9 +2848,9 @@
   },
   "8430642": {
     "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
-      "winrate": 0.6667
+      "successScore": 42.78,
+      "games": 8,
+      "winrate": 0.75
     }
   },
   "8435496": {
@@ -2349,6 +2888,34 @@
       "winrate": 0.2581
     }
   },
+  "8443533": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "8444847": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8449573": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8451900": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8457633": {
     "last_5y": {
       "successScore": 40,
@@ -2358,30 +2925,30 @@
   },
   "8457653": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
   "8463268": {
     "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
+      "successScore": 35,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "8463436": {
     "last_5y": {
-      "successScore": 43.87,
-      "games": 5,
-      "winrate": 0.4
+      "successScore": 41.01,
+      "games": 7,
+      "winrate": 0.4286
     }
   },
   "8464068": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 52.94,
+      "games": 7,
+      "winrate": 0.5714
     }
   },
   "8464227": {
@@ -2389,6 +2956,13 @@
       "successScore": 42.86,
       "games": 4,
       "winrate": 0.25
+    }
+  },
+  "8469014": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8469113": {
@@ -2400,9 +2974,9 @@
   },
   "8469159": {
     "last_5y": {
-      "successScore": 55.32,
-      "games": 37,
-      "winrate": 0.5676
+      "successScore": 54.17,
+      "games": 38,
+      "winrate": 0.5526
     }
   },
   "8469195": {
@@ -2421,9 +2995,9 @@
   },
   "8469775": {
     "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
+      "successScore": 35,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "8469802": {
@@ -2433,11 +3007,39 @@
       "winrate": 0
     }
   },
+  "8469910": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8471785": {
+    "last_5y": {
+      "successScore": 37.69,
+      "games": 3,
+      "winrate": 0.6667
+    }
+  },
+  "8474157": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
+    }
+  },
   "8475680": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
       "winrate": 0
+    }
+  },
+  "8476249": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8476829": {
@@ -2447,11 +3049,25 @@
       "winrate": 0
     }
   },
+  "8481724": {
+    "last_5y": {
+      "successScore": 38.18,
+      "games": 1,
+      "winrate": 1
+    }
+  },
   "8482384": {
     "last_5y": {
       "successScore": 50,
       "games": 2,
       "winrate": 0.5
+    }
+  },
+  "8482520": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8482620": {
@@ -2466,6 +3082,13 @@
       "successScore": 53.85,
       "games": 3,
       "winrate": 0.6667
+    }
+  },
+  "8488976": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8489432": {
@@ -2484,14 +3107,49 @@
   },
   "8494848": {
     "last_5y": {
-      "successScore": 41.38,
-      "games": 48,
-      "winrate": 0.3958
+      "successScore": 40.43,
+      "games": 49,
+      "winrate": 0.3878
+    }
+  },
+  "8494950": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
     }
   },
   "8495038": {
     "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8495044": {
+    "last_5y": {
       "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8495068": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8495090": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8495183": {
+    "last_5y": {
+      "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
@@ -2503,6 +3161,13 @@
       "winrate": 1
     }
   },
+  "8495308": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8495317": {
     "last_5y": {
       "successScore": 45.45,
@@ -2510,14 +3175,49 @@
       "winrate": 0
     }
   },
+  "8496013": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8496030": {
     "last_5y": {
-      "successScore": 56.25,
+      "successScore": 57.89,
+      "games": 9,
+      "winrate": 0.6667
+    }
+  },
+  "8496276": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8496362": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8496442": {
+    "last_5y": {
+      "successScore": 31.82,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8496575": {
+    "last_5y": {
+      "successScore": 39.38,
       "games": 6,
       "winrate": 0.6667
     }
   },
-  "8496575": {
+  "8496580": {
     "last_5y": {
       "successScore": 35,
       "games": 2,
@@ -2526,42 +3226,91 @@
   },
   "8496581": {
     "last_5y": {
-      "successScore": 47.5,
-      "games": 6,
-      "winrate": 0.5
+      "successScore": 52.8,
+      "games": 15,
+      "winrate": 0.6667
     }
   },
   "8496587": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 32.8,
+      "games": 5,
+      "winrate": 0.2
+    }
+  },
+  "8496590": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
       "winrate": 0
     }
   },
   "8496595": {
+    "last_5y": {
+      "successScore": 35,
+      "games": 4,
+      "winrate": 0.5
+    }
+  },
+  "8496602": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8496604": {
+    "last_5y": {
+      "successScore": 41.18,
+      "games": 7,
+      "winrate": 0.7143
+    }
+  },
+  "8496605": {
+    "last_5y": {
+      "successScore": 45.29,
+      "games": 7,
+      "winrate": 0.8571
+    }
+  },
+  "8496607": {
     "last_5y": {
       "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
   },
-  "8496604": {
+  "8497384": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8497614": {
+    "last_5y": {
+      "successScore": 29.17,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8497700": {
     "last_5y": {
       "successScore": 35,
       "games": 2,
       "winrate": 0.5
     }
   },
-  "8496605": {
-    "last_5y": {
-      "successScore": 43.75,
-      "games": 6,
-      "winrate": 0.8333
-    }
-  },
   "8500028": {
     "last_5y": {
-      "successScore": 45.45,
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8500925": {
+    "last_5y": {
+      "successScore": 31.82,
       "games": 1,
       "winrate": 0
     }
@@ -2573,6 +3322,13 @@
       "winrate": 0.5
     }
   },
+  "8501096": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8501424": {
     "last_5y": {
       "successScore": 41.67,
@@ -2582,9 +3338,9 @@
   },
   "8501711": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8507465": {
@@ -2596,9 +3352,9 @@
   },
   "8508104": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8509628": {
@@ -2622,6 +3378,20 @@
       "winrate": 0.375
     }
   },
+  "8519423": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8519600": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8519653": {
     "last_5y": {
       "successScore": 51.61,
@@ -2638,8 +3408,8 @@
   },
   "8520329": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -2659,9 +3429,9 @@
   },
   "8524498": {
     "last_5y": {
-      "successScore": 53.85,
-      "games": 3,
-      "winrate": 0.6667
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "8525778": {
@@ -2669,6 +3439,13 @@
       "successScore": 50.67,
       "games": 140,
       "winrate": 0.5071
+    }
+  },
+  "8528363": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8532175": {
@@ -2680,16 +3457,23 @@
   },
   "8533044": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
     }
   },
   "8533517": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 58.82,
+      "games": 7,
+      "winrate": 0.7143
+    }
+  },
+  "8533603": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8534805": {
@@ -2697,6 +3481,13 @@
       "successScore": 47.73,
       "games": 34,
       "winrate": 0.4706
+    }
+  },
+  "8534835": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8538804": {
@@ -2713,11 +3504,18 @@
       "winrate": 1
     }
   },
-  "8540246": {
+  "8539356": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
       "winrate": 0
+    }
+  },
+  "8540246": {
+    "last_5y": {
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "8542963": {
@@ -2727,11 +3525,25 @@
       "winrate": 0
     }
   },
+  "8543794": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8544425": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 46.67,
+      "games": 5,
+      "winrate": 0.4
+    }
+  },
+  "8544523": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8545223": {
@@ -2743,9 +3555,9 @@
   },
   "8545488": {
     "last_5y": {
-      "successScore": 48.11,
-      "games": 96,
-      "winrate": 0.4792
+      "successScore": 50.45,
+      "games": 101,
+      "winrate": 0.505
     }
   },
   "8549118": {
@@ -2765,7 +3577,7 @@
   "8549303": {
     "last_5y": {
       "successScore": 50,
-      "games": 2,
+      "games": 4,
       "winrate": 0.5
     }
   },
@@ -2806,16 +3618,16 @@
   },
   "8550343": {
     "last_5y": {
-      "successScore": 54.17,
-      "games": 14,
-      "winrate": 0.5714
+      "successScore": 53.85,
+      "games": 16,
+      "winrate": 0.5625
     }
   },
   "8550405": {
     "last_5y": {
-      "successScore": 56.52,
-      "games": 13,
-      "winrate": 0.6154
+      "successScore": 60,
+      "games": 15,
+      "winrate": 0.6667
     }
   },
   "8550575": {
@@ -2827,16 +3639,23 @@
   },
   "8550607": {
     "last_5y": {
-      "successScore": 58.82,
-      "games": 7,
-      "winrate": 0.7143
+      "successScore": 60,
+      "games": 10,
+      "winrate": 0.7
     }
   },
   "8550770": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
+    }
+  },
+  "8551033": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
     }
   },
   "8554105": {
@@ -2848,9 +3667,9 @@
   },
   "8555685": {
     "last_5y": {
-      "successScore": 53.85,
-      "games": 3,
-      "winrate": 0.6667
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "8556080": {
@@ -2862,15 +3681,15 @@
   },
   "8556812": {
     "last_5y": {
-      "successScore": 54.55,
-      "games": 1,
-      "winrate": 1
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8561892": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -2883,12 +3702,19 @@
   },
   "8563045": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
   "8563309": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8563443": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
@@ -2946,6 +3772,13 @@
   },
   "8573611": {
     "last_5y": {
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
+    }
+  },
+  "8573821": {
+    "last_5y": {
       "successScore": 45.45,
       "games": 1,
       "winrate": 0
@@ -2953,27 +3786,41 @@
   },
   "8574561": {
     "last_2y": {
-      "successScore": 29.56,
-      "games": 35,
-      "winrate": 0.4
+      "successScore": 28.82,
+      "games": 41,
+      "winrate": 0.3902
     },
     "last_5y": {
-      "successScore": 48.18,
-      "games": 289,
-      "winrate": 0.5467
+      "successScore": 45.66,
+      "games": 317,
+      "winrate": 0.5237
+    }
+  },
+  "8575105": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
+    }
+  },
+  "8578859": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8580032": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8580438": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -2986,16 +3833,16 @@
   },
   "8580996": {
     "last_5y": {
-      "successScore": 53.33,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 58.82,
+      "games": 7,
+      "winrate": 0.7143
     }
   },
   "8581174": {
     "last_5y": {
-      "successScore": 57.14,
-      "games": 4,
-      "winrate": 0.75
+      "successScore": 56.25,
+      "games": 6,
+      "winrate": 0.6667
     }
   },
   "8581426": {
@@ -3005,11 +3852,25 @@
       "winrate": 0.4231
     }
   },
+  "8581679": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8582076": {
     "last_5y": {
       "successScore": 47.37,
       "games": 104,
       "winrate": 0.4712
+    }
+  },
+  "8582303": {
+    "last_5y": {
+      "successScore": 61.54,
+      "games": 3,
+      "winrate": 1
     }
   },
   "8582368": {
@@ -3021,9 +3882,9 @@
   },
   "8582591": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8582977": {
@@ -3049,9 +3910,16 @@
   },
   "8588969": {
     "last_5y": {
-      "successScore": 55.47,
-      "games": 127,
-      "winrate": 0.5591
+      "successScore": 56.64,
+      "games": 133,
+      "winrate": 0.5714
+    }
+  },
+  "8589385": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8589493": {
@@ -3059,6 +3927,13 @@
       "successScore": 50,
       "games": 2,
       "winrate": 0.5
+    }
+  },
+  "8589557": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8589621": {
@@ -3070,16 +3945,23 @@
   },
   "8589710": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
     }
   },
   "8589832": {
     "last_5y": {
       "successScore": 50,
-      "games": 2,
+      "games": 6,
       "winrate": 0.5
+    }
+  },
+  "8590016": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
     }
   },
   "8590133": {
@@ -3091,8 +3973,8 @@
   },
   "8590437": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -3112,9 +3994,9 @@
   },
   "8590538": {
     "last_5y": {
-      "successScore": 52.17,
-      "games": 13,
-      "winrate": 0.5385
+      "successScore": 52,
+      "games": 15,
+      "winrate": 0.5333
     }
   },
   "8590717": {
@@ -3147,9 +4029,9 @@
   },
   "8590960": {
     "last_5y": {
-      "successScore": 52.38,
-      "games": 11,
-      "winrate": 0.5455
+      "successScore": 54.17,
+      "games": 14,
+      "winrate": 0.5714
     }
   },
   "8591029": {
@@ -3196,9 +4078,9 @@
   },
   "8597166": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 42.86,
+      "games": 4,
+      "winrate": 0.25
     }
   },
   "8597183": {
@@ -3231,9 +4113,16 @@
   },
   "8597734": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 52.94,
+      "games": 7,
+      "winrate": 0.5714
+    }
+  },
+  "8597835": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8597898": {
@@ -3245,21 +4134,21 @@
   },
   "8597930": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8597976": {
     "last_2y": {
-      "successScore": 23.22,
-      "games": 88,
-      "winrate": 0.2955
+      "successScore": 24.88,
+      "games": 93,
+      "winrate": 0.3226
     },
     "last_5y": {
-      "successScore": 42.79,
-      "games": 391,
-      "winrate": 0.491
+      "successScore": 42.74,
+      "games": 438,
+      "winrate": 0.4932
     }
   },
   "8598039": {
@@ -3285,8 +4174,8 @@
   },
   "8598190": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -3299,9 +4188,9 @@
   },
   "8598279": {
     "last_5y": {
-      "successScore": 58.33,
-      "games": 2,
-      "winrate": 1
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "8598332": {
@@ -3313,9 +4202,9 @@
   },
   "8598364": {
     "last_5y": {
-      "successScore": 50,
-      "games": 8,
-      "winrate": 0.5
+      "successScore": 52.63,
+      "games": 9,
+      "winrate": 0.5556
     }
   },
   "8598377": {
@@ -3341,8 +4230,8 @@
   },
   "8598424": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -3355,9 +4244,9 @@
   },
   "8598515": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
     }
   },
   "8598556": {
@@ -3370,15 +4259,15 @@
   "8598592": {
     "last_5y": {
       "successScore": 50,
-      "games": 2,
+      "games": 4,
       "winrate": 0.5
     }
   },
   "8598627": {
     "last_5y": {
-      "successScore": 64.71,
-      "games": 7,
-      "winrate": 0.8571
+      "successScore": 61.9,
+      "games": 11,
+      "winrate": 0.7273
     }
   },
   "8598631": {
@@ -3391,22 +4280,22 @@
   "8598632": {
     "last_5y": {
       "successScore": 50,
-      "games": 4,
+      "games": 6,
       "winrate": 0.5
     }
   },
   "8598633": {
     "last_5y": {
-      "successScore": 45.52,
-      "games": 124,
-      "winrate": 0.4516
+      "successScore": 46.32,
+      "games": 126,
+      "winrate": 0.4603
     }
   },
   "8598642": {
     "last_5y": {
-      "successScore": 54.55,
-      "games": 1,
-      "winrate": 1
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
     }
   },
   "8598655": {
@@ -3425,9 +4314,9 @@
   },
   "8598739": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8598757": {
@@ -3439,23 +4328,23 @@
   },
   "8598773": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
   "8598805": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "8598880": {
     "last_5y": {
-      "successScore": 53.33,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 57.89,
+      "games": 9,
+      "winrate": 0.6667
     }
   },
   "8598955": {
@@ -3493,14 +4382,14 @@
       "winrate": 0.3462
     },
     "last_2y": {
-      "successScore": 36.45,
-      "games": 203,
-      "winrate": 0.4975
+      "successScore": 37.13,
+      "games": 220,
+      "winrate": 0.5091
     },
     "last_5y": {
-      "successScore": 47.17,
-      "games": 671,
-      "winrate": 0.5797
+      "successScore": 47.35,
+      "games": 733,
+      "winrate": 0.5812
     }
   },
   "8599111": {
@@ -3531,6 +4420,13 @@
       "winrate": 0.6
     }
   },
+  "8599262": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8599287": {
     "last_5y": {
       "successScore": 45.45,
@@ -3554,12 +4450,26 @@
   },
   "8599346": {
     "last_5y": {
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
+    }
+  },
+  "8599357": {
+    "last_5y": {
       "successScore": 45.45,
       "games": 1,
       "winrate": 0
     }
   },
   "8599483": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8599524": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
@@ -3582,9 +4492,9 @@
   },
   "8599645": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 50,
+      "games": 6,
+      "winrate": 0.5
     }
   },
   "8599668": {
@@ -3603,9 +4513,9 @@
   },
   "8599697": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8599698": {
@@ -3620,6 +4530,13 @@
       "successScore": 50,
       "games": 2,
       "winrate": 0.5
+    }
+  },
+  "8599748": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
     }
   },
   "8599759": {
@@ -3645,9 +4562,9 @@
   },
   "8599809": {
     "last_5y": {
-      "successScore": 60,
-      "games": 5,
-      "winrate": 0.8
+      "successScore": 52.94,
+      "games": 7,
+      "winrate": 0.5714
     }
   },
   "8599839": {
@@ -3671,17 +4588,24 @@
       "winrate": 0
     }
   },
+  "8599901": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8599942": {
     "last_5y": {
-      "successScore": 57.89,
-      "games": 9,
-      "winrate": 0.6667
+      "successScore": 61.9,
+      "games": 11,
+      "winrate": 0.7273
     }
   },
   "8599959": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -3708,30 +4632,30 @@
   },
   "8600019": {
     "last_5y": {
-      "successScore": 53.33,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 58.82,
+      "games": 7,
+      "winrate": 0.7143
     }
   },
   "8600043": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8600106": {
     "last_5y": {
-      "successScore": 56.25,
-      "games": 6,
-      "winrate": 0.6667
+      "successScore": 60,
+      "games": 10,
+      "winrate": 0.7
     }
   },
   "8600126": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8600142": {
@@ -3743,8 +4667,8 @@
   },
   "8600520": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -3755,11 +4679,25 @@
       "winrate": 0
     }
   },
+  "8600745": {
+    "last_5y": {
+      "successScore": 54.55,
+      "games": 1,
+      "winrate": 1
+    }
+  },
+  "8600767": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8600786": {
     "last_5y": {
-      "successScore": 53.33,
-      "games": 5,
-      "winrate": 0.6
+      "successScore": 50,
+      "games": 6,
+      "winrate": 0.5
     }
   },
   "8600817": {
@@ -3785,37 +4723,37 @@
   },
   "8600877": {
     "last_5y": {
-      "successScore": 52.63,
-      "games": 9,
-      "winrate": 0.5556
+      "successScore": 57.14,
+      "games": 11,
+      "winrate": 0.6364
     }
   },
   "8602698": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
   "8604271": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8604313": {
     "last_5y": {
-      "successScore": 66.67,
-      "games": 8,
-      "winrate": 0.875
+      "successScore": 61.9,
+      "games": 11,
+      "winrate": 0.7273
     }
   },
   "8604354": {
     "last_5y": {
-      "successScore": 58.33,
-      "games": 2,
-      "winrate": 1
+      "successScore": 57.14,
+      "games": 4,
+      "winrate": 0.75
     }
   },
   "8604371": {
@@ -3834,9 +4772,9 @@
   },
   "8604908": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8604954": {
@@ -3846,25 +4784,39 @@
       "winrate": 0.5339
     }
   },
-  "8605094": {
-    "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
-    }
-  },
-  "8605098": {
-    "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
-    }
-  },
-  "8605127": {
+  "8605091": {
     "last_5y": {
       "successScore": 50,
       "games": 2,
       "winrate": 0.5
+    }
+  },
+  "8605094": {
+    "last_5y": {
+      "successScore": 55.56,
+      "games": 8,
+      "winrate": 0.625
+    }
+  },
+  "8605098": {
+    "last_5y": {
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
+    }
+  },
+  "8605119": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8605127": {
+    "last_5y": {
+      "successScore": 57.14,
+      "games": 4,
+      "winrate": 0.75
     }
   },
   "8605296": {
@@ -3876,15 +4828,15 @@
   },
   "8605306": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8605375": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -3892,6 +4844,13 @@
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
+      "winrate": 0
+    }
+  },
+  "8605467": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -3904,9 +4863,9 @@
   },
   "8605546": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
-      "winrate": 0
+      "successScore": 53.85,
+      "games": 3,
+      "winrate": 0.6667
     }
   },
   "8605626": {
@@ -3919,7 +4878,7 @@
   "8605679": {
     "last_5y": {
       "successScore": 50,
-      "games": 2,
+      "games": 4,
       "winrate": 0.5
     }
   },
@@ -3937,6 +4896,13 @@
       "winrate": 1
     }
   },
+  "8605836": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
   "8605863": {
     "last_2y": {
       "successScore": 42.16,
@@ -3944,16 +4910,23 @@
       "winrate": 0.48
     },
     "last_5y": {
-      "successScore": 48.01,
-      "games": 299,
-      "winrate": 0.5251
+      "successScore": 48.36,
+      "games": 355,
+      "winrate": 0.5408
     }
   },
   "8605870": {
     "last_5y": {
-      "successScore": 61.54,
-      "games": 3,
-      "winrate": 1
+      "successScore": 57.14,
+      "games": 4,
+      "winrate": 0.75
+    }
+  },
+  "8605939": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8606066": {
@@ -3968,6 +4941,13 @@
       "successScore": 58.33,
       "games": 2,
       "winrate": 1
+    }
+  },
+  "8606185": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
     }
   },
   "8606232": {
@@ -4014,9 +4994,9 @@
   },
   "8606370": {
     "last_5y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
     }
   },
   "8606395": {
@@ -4068,11 +5048,18 @@
       "winrate": 0
     }
   },
+  "8606700": {
+    "last_5y": {
+      "successScore": 50,
+      "games": 2,
+      "winrate": 0.5
+    }
+  },
   "8606822": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 50,
+      "games": 6,
+      "winrate": 0.5
     }
   },
   "8606828": {
@@ -4091,6 +5078,13 @@
   },
   "8607067": {
     "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8607109": {
+    "last_5y": {
       "successScore": 45.45,
       "games": 1,
       "winrate": 0
@@ -4104,6 +5098,13 @@
     }
   },
   "8607344": {
+    "last_5y": {
+      "successScore": 46.15,
+      "games": 3,
+      "winrate": 0.3333
+    }
+  },
+  "8607373": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
@@ -4119,30 +5120,37 @@
   },
   "8607683": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8607726": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
   "8607769": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
   "8607786": {
     "last_5y": {
-      "successScore": 50,
-      "games": 2,
-      "winrate": 0.5
+      "successScore": 57.14,
+      "games": 4,
+      "winrate": 0.75
     }
   },
   "8607803": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 53.33,
+      "games": 5,
+      "winrate": 0.6
     }
   },
   "8607954": {
@@ -4152,10 +5160,17 @@
       "winrate": 0.5
     }
   },
-  "8607999": {
+  "8607980": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
+      "winrate": 0
+    }
+  },
+  "8607999": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -4166,14 +5181,42 @@
       "winrate": 0.3333
     }
   },
+  "8608251": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8608306": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
   "8608309": {
     "last_5y": {
-      "successScore": 46.15,
-      "games": 3,
-      "winrate": 0.3333
+      "successScore": 50,
+      "games": 4,
+      "winrate": 0.5
     }
   },
   "8608311": {
+    "last_5y": {
+      "successScore": 41.67,
+      "games": 2,
+      "winrate": 0
+    }
+  },
+  "8608315": {
+    "last_5y": {
+      "successScore": 45.45,
+      "games": 1,
+      "winrate": 0
+    }
+  },
+  "8608319": {
     "last_5y": {
       "successScore": 45.45,
       "games": 1,
@@ -4287,9 +5330,9 @@
   },
   "8668460": {
     "last_5y": {
-      "successScore": 49.79,
-      "games": 156,
-      "winrate": 0.5256
+      "successScore": 49.17,
+      "games": 171,
+      "winrate": 0.5263
     }
   },
   "8678767": {
@@ -4637,9 +5680,9 @@
   },
   "8721219": {
     "last_5y": {
-      "successScore": 58.54,
-      "games": 72,
-      "winrate": 0.5972
+      "successScore": 54.44,
+      "games": 80,
+      "winrate": 0.55
     }
   },
   "8722443": {
@@ -4670,9 +5713,9 @@
       "winrate": 0.25
     },
     "last_5y": {
-      "successScore": 51.25,
-      "games": 179,
-      "winrate": 0.5419
+      "successScore": 46.51,
+      "games": 222,
+      "winrate": 0.5135
     }
   },
   "8725475": {
@@ -4691,14 +5734,14 @@
   },
   "8728920": {
     "last_2y": {
-      "successScore": 36.39,
-      "games": 92,
-      "winrate": 0.4891
+      "successScore": 34.93,
+      "games": 100,
+      "winrate": 0.47
     },
     "last_5y": {
-      "successScore": 45.55,
-      "games": 236,
-      "winrate": 0.5212
+      "successScore": 41.93,
+      "games": 276,
+      "winrate": 0.4891
     }
   },
   "8732747": {
@@ -4927,9 +5970,9 @@
   },
   "8741331": {
     "last_5y": {
-      "successScore": 60,
-      "games": 25,
-      "winrate": 0.64
+      "successScore": 58.33,
+      "games": 26,
+      "winrate": 0.6154
     }
   },
   "8741350": {
@@ -5032,9 +6075,9 @@
   },
   "8757202": {
     "last_5y": {
-      "successScore": 40,
-      "games": 5,
-      "winrate": 0.2
+      "successScore": 43.75,
+      "games": 6,
+      "winrate": 0.3333
     }
   },
   "8760250": {
@@ -5081,9 +6124,9 @@
   },
   "8832315": {
     "last_5y": {
-      "successScore": 46.43,
-      "games": 18,
-      "winrate": 0.4444
+      "successScore": 48.28,
+      "games": 19,
+      "winrate": 0.4737
     }
   },
   "8838314": {
@@ -5184,9 +6227,9 @@
       "winrate": 0.5263
     },
     "last_5y": {
-      "successScore": 46.37,
-      "games": 201,
-      "winrate": 0.5423
+      "successScore": 47.9,
+      "games": 243,
+      "winrate": 0.5761
     }
   },
   "8909721": {
@@ -5212,8 +6255,8 @@
   },
   "8927192": {
     "last_5y": {
-      "successScore": 38.46,
-      "games": 3,
+      "successScore": 35.71,
+      "games": 4,
       "winrate": 0
     }
   },
@@ -5247,8 +6290,8 @@
   },
   "8943230": {
     "last_5y": {
-      "successScore": 45.45,
-      "games": 1,
+      "successScore": 41.67,
+      "games": 2,
       "winrate": 0
     }
   },
@@ -5275,9 +6318,9 @@
   },
   "8943698": {
     "last_5y": {
-      "successScore": 40,
-      "games": 5,
-      "winrate": 0.2
+      "successScore": 43.75,
+      "games": 6,
+      "winrate": 0.3333
     }
   },
   "8943702": {
@@ -5513,14 +6556,14 @@
   },
   "9017006": {
     "last_2y": {
-      "successScore": 31.82,
-      "games": 23,
-      "winrate": 0.4348
+      "successScore": 32.31,
+      "games": 29,
+      "winrate": 0.4483
     },
     "last_5y": {
-      "successScore": 39.61,
-      "games": 67,
-      "winrate": 0.4328
+      "successScore": 39.27,
+      "games": 73,
+      "winrate": 0.4384
     }
   },
   "9017079": {
@@ -5768,9 +6811,9 @@
   },
   "9080826": {
     "last_5y": {
-      "successScore": 50,
-      "games": 4,
-      "winrate": 0.5
+      "successScore": 39.38,
+      "games": 6,
+      "winrate": 0.3333
     }
   },
   "9080848": {
@@ -5829,6 +6872,13 @@
       "winrate": 0.6176
     }
   },
+  "9114743": {
+    "last_5y": {
+      "successScore": 26.92,
+      "games": 3,
+      "winrate": 0
+    }
+  },
   "911552": {
     "last_5y": {
       "successScore": 45.45,
@@ -5855,36 +6905,36 @@
   },
   "9247354": {
     "last_1y": {
-      "successScore": 44.91,
-      "games": 233,
-      "winrate": 0.6137
+      "successScore": 45.59,
+      "games": 248,
+      "winrate": 0.625
     },
     "last_2y": {
-      "successScore": 43.62,
-      "games": 492,
-      "winrate": 0.5996
+      "successScore": 43.82,
+      "games": 525,
+      "winrate": 0.6038
     },
     "last_5y": {
-      "successScore": 45,
-      "games": 636,
-      "winrate": 0.6242
+      "successScore": 45.03,
+      "games": 676,
+      "winrate": 0.6257
     }
   },
   "9247798": {
     "last_1y": {
-      "successScore": 25.79,
-      "games": 9,
-      "winrate": 0.2222
+      "successScore": 25.2,
+      "games": 15,
+      "winrate": 0.2667
     },
     "last_2y": {
-      "successScore": 25.79,
-      "games": 9,
-      "winrate": 0.2222
+      "successScore": 25.2,
+      "games": 15,
+      "winrate": 0.2667
     },
     "last_5y": {
-      "successScore": 25.79,
-      "games": 9,
-      "winrate": 0.2222
+      "successScore": 25.2,
+      "games": 15,
+      "winrate": 0.2667
     }
   },
   "9248240": {
@@ -5901,26 +6951,26 @@
   },
   "9255039": {
     "last_1y": {
-      "successScore": 37.97,
-      "games": 49,
-      "winrate": 0.551
+      "successScore": 36.09,
+      "games": 54,
+      "winrate": 0.5185
     },
     "last_2y": {
-      "successScore": 39.54,
-      "games": 133,
-      "winrate": 0.5489
+      "successScore": 39.07,
+      "games": 140,
+      "winrate": 0.5429
     },
     "last_5y": {
-      "successScore": 38.33,
-      "games": 141,
-      "winrate": 0.5319
+      "successScore": 37.39,
+      "games": 154,
+      "winrate": 0.5195
     }
   },
   "9255706": {
     "last_5y": {
-      "successScore": 32.44,
-      "games": 72,
-      "winrate": 0.4583
+      "successScore": 34.64,
+      "games": 87,
+      "winrate": 0.4943
     }
   },
   "9256222": {
@@ -5966,53 +7016,60 @@
   },
   "9303484": {
     "last_1y": {
-      "successScore": 37.26,
-      "games": 126,
-      "winrate": 0.5
+      "successScore": 37.72,
+      "games": 130,
+      "winrate": 0.5077
     },
     "last_2y": {
-      "successScore": 33.79,
-      "games": 294,
-      "winrate": 0.4592
+      "successScore": 34.2,
+      "games": 313,
+      "winrate": 0.4665
     },
     "last_5y": {
-      "successScore": 32.03,
-      "games": 369,
-      "winrate": 0.439
+      "successScore": 33.04,
+      "games": 415,
+      "winrate": 0.4554
     }
   },
   "9338413": {
     "last_1y": {
-      "successScore": 34.66,
-      "games": 198,
-      "winrate": 0.4949
+      "successScore": 34.84,
+      "games": 207,
+      "winrate": 0.4976
     },
     "last_2y": {
-      "successScore": 32.19,
-      "games": 227,
-      "winrate": 0.4581
+      "successScore": 32.74,
+      "games": 238,
+      "winrate": 0.4664
     },
     "last_5y": {
-      "successScore": 30.69,
-      "games": 250,
-      "winrate": 0.436
+      "successScore": 31.41,
+      "games": 273,
+      "winrate": 0.4469
     }
   },
   "9351740": {
     "last_1y": {
-      "successScore": 23.66,
-      "games": 77,
-      "winrate": 0.2857
+      "successScore": 22.33,
+      "games": 88,
+      "winrate": 0.2727
     },
     "last_2y": {
-      "successScore": 25.79,
-      "games": 130,
-      "winrate": 0.3385
+      "successScore": 26.47,
+      "games": 153,
+      "winrate": 0.3529
     },
     "last_5y": {
-      "successScore": 25.79,
-      "games": 130,
-      "winrate": 0.3385
+      "successScore": 26.47,
+      "games": 153,
+      "winrate": 0.3529
+    }
+  },
+  "9368468": {
+    "last_5y": {
+      "successScore": 24.71,
+      "games": 7,
+      "winrate": 0.1429
     }
   },
   "9373270": {
@@ -6034,86 +7091,93 @@
       "winrate": 0.5
     },
     "last_2y": {
-      "successScore": 23.33,
-      "games": 14,
-      "winrate": 0.2143
+      "successScore": 21.54,
+      "games": 16,
+      "winrate": 0.1875
     },
     "last_5y": {
-      "successScore": 23.33,
-      "games": 14,
-      "winrate": 0.2143
+      "successScore": 21.54,
+      "games": 16,
+      "winrate": 0.1875
+    }
+  },
+  "9389381": {
+    "last_5y": {
+      "successScore": 25.79,
+      "games": 9,
+      "winrate": 0.2222
     }
   },
   "9432799": {
     "last_2y": {
-      "successScore": 35,
-      "games": 8,
-      "winrate": 0.5
+      "successScore": 31.5,
+      "games": 10,
+      "winrate": 0.4
     },
     "last_5y": {
-      "successScore": 35,
-      "games": 8,
-      "winrate": 0.5
+      "successScore": 31.5,
+      "games": 10,
+      "winrate": 0.4
     }
   },
   "9450071": {
     "last_2y": {
-      "successScore": 28,
-      "games": 5,
-      "winrate": 0.2
+      "successScore": 24.71,
+      "games": 7,
+      "winrate": 0.1429
     },
     "last_5y": {
-      "successScore": 28,
-      "games": 5,
-      "winrate": 0.2
+      "successScore": 24.71,
+      "games": 7,
+      "winrate": 0.1429
     }
   },
   "9461007": {
     "last_2y": {
-      "successScore": 28.82,
-      "games": 7,
-      "winrate": 0.2857
+      "successScore": 25.79,
+      "games": 9,
+      "winrate": 0.2222
     },
     "last_5y": {
-      "successScore": 28.82,
-      "games": 7,
-      "winrate": 0.2857
+      "successScore": 25.79,
+      "games": 9,
+      "winrate": 0.2222
     }
   },
   "9467224": {
     "last_1y": {
-      "successScore": 42.41,
-      "games": 235,
-      "winrate": 0.5957
+      "successScore": 41.89,
+      "games": 253,
+      "winrate": 0.5889
     },
     "last_2y": {
-      "successScore": 39.75,
-      "games": 388,
-      "winrate": 0.5515
+      "successScore": 39.72,
+      "games": 413,
+      "winrate": 0.5521
     },
     "last_5y": {
-      "successScore": 39.61,
-      "games": 400,
-      "winrate": 0.55
+      "successScore": 39.62,
+      "games": 437,
+      "winrate": 0.5515
     }
   },
   "9467430": {
     "last_5y": {
-      "successScore": 28.64,
-      "games": 12,
-      "winrate": 0.3333
+      "successScore": 35,
+      "games": 24,
+      "winrate": 0.5
     }
   },
   "9470838": {
     "last_2y": {
-      "successScore": 25,
-      "games": 4,
-      "winrate": 0
+      "successScore": 24.71,
+      "games": 7,
+      "winrate": 0.1429
     },
     "last_5y": {
-      "successScore": 25,
-      "games": 4,
-      "winrate": 0
+      "successScore": 24.71,
+      "games": 7,
+      "winrate": 0.1429
     }
   },
   "9488084": {
@@ -6135,55 +7199,55 @@
       "winrate": 0.4667
     },
     "last_2y": {
-      "successScore": 29.78,
-      "games": 171,
-      "winrate": 0.4211
+      "successScore": 28.64,
+      "games": 188,
+      "winrate": 0.4043
     },
     "last_5y": {
-      "successScore": 29.78,
-      "games": 171,
-      "winrate": 0.4211
+      "successScore": 28.64,
+      "games": 188,
+      "winrate": 0.4043
     }
   },
   "9530947": {
     "last_2y": {
-      "successScore": 22.11,
-      "games": 9,
-      "winrate": 0.1111
+      "successScore": 17.5,
+      "games": 14,
+      "winrate": 0.0714
     },
     "last_5y": {
-      "successScore": 22.11,
-      "games": 9,
-      "winrate": 0.1111
+      "successScore": 17.5,
+      "games": 14,
+      "winrate": 0.0714
     }
   },
   "9545759": {
     "last_2y": {
-      "successScore": 27.67,
-      "games": 33,
-      "winrate": 0.3636
+      "successScore": 30,
+      "games": 39,
+      "winrate": 0.4103
     },
     "last_5y": {
-      "successScore": 27.67,
-      "games": 33,
-      "winrate": 0.3636
+      "successScore": 30,
+      "games": 39,
+      "winrate": 0.4103
     }
   },
   "9572001": {
     "last_1y": {
-      "successScore": 42.66,
-      "games": 182,
-      "winrate": 0.5824
+      "successScore": 43.32,
+      "games": 197,
+      "winrate": 0.5939
     },
     "last_2y": {
-      "successScore": 45.88,
-      "games": 392,
-      "winrate": 0.6429
+      "successScore": 46.05,
+      "games": 424,
+      "winrate": 0.6462
     },
     "last_5y": {
-      "successScore": 45.88,
-      "games": 392,
-      "winrate": 0.6429
+      "successScore": 46.05,
+      "games": 424,
+      "winrate": 0.6462
     }
   },
   "9593895": {
@@ -6234,14 +7298,14 @@
   },
   "9634742": {
     "last_2y": {
-      "successScore": 33.33,
-      "games": 32,
-      "winrate": 0.4688
+      "successScore": 33.54,
+      "games": 38,
+      "winrate": 0.4737
     },
     "last_5y": {
-      "successScore": 33.33,
-      "games": 32,
-      "winrate": 0.4688
+      "successScore": 33.54,
+      "games": 38,
+      "winrate": 0.4737
     }
   },
   "9635124": {
@@ -6258,19 +7322,19 @@
   },
   "9640842": {
     "last_1y": {
-      "successScore": 42.53,
-      "games": 63,
-      "winrate": 0.5556
+      "successScore": 40.09,
+      "games": 67,
+      "winrate": 0.5224
     },
     "last_2y": {
-      "successScore": 39.09,
-      "games": 151,
-      "winrate": 0.5364
+      "successScore": 38.1,
+      "games": 155,
+      "winrate": 0.5226
     },
     "last_5y": {
-      "successScore": 39.09,
-      "games": 151,
-      "winrate": 0.5364
+      "successScore": 38.1,
+      "games": 155,
+      "winrate": 0.5226
     }
   },
   "9651185": {
@@ -6304,31 +7368,31 @@
   },
   "9678064": {
     "last_2y": {
-      "successScore": 35,
-      "games": 8,
-      "winrate": 0.5
+      "successScore": 26.25,
+      "games": 14,
+      "winrate": 0.2857
     },
     "last_5y": {
-      "successScore": 35,
-      "games": 8,
-      "winrate": 0.5
+      "successScore": 26.25,
+      "games": 14,
+      "winrate": 0.2857
     }
   },
   "9691969": {
     "last_1y": {
-      "successScore": 23.27,
-      "games": 37,
-      "winrate": 0.2432
+      "successScore": 23.24,
+      "games": 43,
+      "winrate": 0.2558
     },
     "last_2y": {
-      "successScore": 23.27,
-      "games": 37,
-      "winrate": 0.2432
+      "successScore": 23.24,
+      "games": 43,
+      "winrate": 0.2558
     },
     "last_5y": {
-      "successScore": 23.27,
-      "games": 37,
-      "winrate": 0.2432
+      "successScore": 23.24,
+      "games": 43,
+      "winrate": 0.2558
     }
   },
   "9699533": {
@@ -6374,72 +7438,72 @@
   },
   "9741253": {
     "last_2y": {
-      "successScore": 22.83,
-      "games": 36,
-      "winrate": 0.2778
+      "successScore": 22.88,
+      "games": 42,
+      "winrate": 0.2857
     },
     "last_5y": {
-      "successScore": 22.83,
-      "games": 36,
-      "winrate": 0.2778
+      "successScore": 22.88,
+      "games": 42,
+      "winrate": 0.2857
     }
   },
   "9758040": {
     "last_1y": {
-      "successScore": 30,
-      "games": 39,
-      "winrate": 0.4103
+      "successScore": 30.38,
+      "games": 43,
+      "winrate": 0.4186
     },
     "last_2y": {
-      "successScore": 31.23,
-      "games": 55,
-      "winrate": 0.4364
+      "successScore": 31.45,
+      "games": 59,
+      "winrate": 0.4407
     },
     "last_5y": {
-      "successScore": 31.23,
-      "games": 55,
-      "winrate": 0.4364
+      "successScore": 31.45,
+      "games": 59,
+      "winrate": 0.4407
     }
   },
   "9766941": {
     "last_2y": {
-      "successScore": 42,
-      "games": 35,
-      "winrate": 0.6286
+      "successScore": 39.8,
+      "games": 41,
+      "winrate": 0.5854
     },
     "last_5y": {
-      "successScore": 42,
-      "games": 35,
-      "winrate": 0.6286
+      "successScore": 39.8,
+      "games": 41,
+      "winrate": 0.5854
     }
   },
   "9780800": {
     "last_2y": {
-      "successScore": 24.71,
-      "games": 7,
-      "winrate": 0.1429
+      "successScore": 23.33,
+      "games": 14,
+      "winrate": 0.2143
     },
     "last_5y": {
-      "successScore": 24.71,
-      "games": 7,
-      "winrate": 0.1429
+      "successScore": 23.33,
+      "games": 14,
+      "winrate": 0.2143
     }
   },
   "9823272": {
     "last_1y": {
-      "successScore": 41.93,
-      "games": 197,
-      "winrate": 0.6041
+      "successScore": 40.78,
+      "games": 208,
+      "winrate": 0.5865
     },
     "last_2y": {
-      "successScore": 40.76,
-      "games": 215,
-      "winrate": 0.586
+      "successScore": 39.75,
+      "games": 226,
+      "winrate": 0.5708
     },
     "last_5y": {
-      "successScore": 40.76,
-      "games": 215,
-      "winrate": 0.586
+      "successScore": 39.75,
+      "games": 226,
+      "winrate": 0.5708
     }
   },
   "9824702": {
@@ -6461,19 +7525,19 @@
   },
   "9828897": {
     "last_1y": {
-      "successScore": 15.42,
-      "games": 49,
-      "winrate": 0.1633
+      "successScore": 15.56,
+      "games": 53,
+      "winrate": 0.1698
     },
     "last_2y": {
-      "successScore": 15.42,
-      "games": 49,
-      "winrate": 0.1633
+      "successScore": 15.56,
+      "games": 53,
+      "winrate": 0.1698
     },
     "last_5y": {
-      "successScore": 15.42,
-      "games": 49,
-      "winrate": 0.1633
+      "successScore": 15.56,
+      "games": 53,
+      "winrate": 0.1698
     }
   },
   "9828954": {
@@ -6507,19 +7571,19 @@
   },
   "9872667": {
     "last_1y": {
-      "successScore": 38.62,
-      "games": 19,
-      "winrate": 0.5789
+      "successScore": 37.06,
+      "games": 24,
+      "winrate": 0.5417
     },
     "last_2y": {
-      "successScore": 38.62,
-      "games": 19,
-      "winrate": 0.5789
+      "successScore": 37.06,
+      "games": 24,
+      "winrate": 0.5417
     },
     "last_5y": {
-      "successScore": 38.62,
-      "games": 19,
-      "winrate": 0.5789
+      "successScore": 37.06,
+      "games": 24,
+      "winrate": 0.5417
     }
   },
   "9885310": {
@@ -6541,36 +7605,36 @@
   },
   "9895247": {
     "last_1y": {
-      "successScore": 33.79,
-      "games": 19,
-      "winrate": 0.4737
+      "successScore": 36.13,
+      "games": 21,
+      "winrate": 0.5238
     },
     "last_2y": {
-      "successScore": 33.79,
-      "games": 19,
-      "winrate": 0.4737
+      "successScore": 36.13,
+      "games": 21,
+      "winrate": 0.5238
     },
     "last_5y": {
-      "successScore": 33.79,
-      "games": 19,
-      "winrate": 0.4737
+      "successScore": 36.13,
+      "games": 21,
+      "winrate": 0.5238
     }
   },
   "9895392": {
     "last_1y": {
-      "successScore": 28.14,
-      "games": 92,
-      "winrate": 0.3913
+      "successScore": 29.01,
+      "games": 101,
+      "winrate": 0.4059
     },
     "last_2y": {
-      "successScore": 28.14,
-      "games": 92,
-      "winrate": 0.3913
+      "successScore": 29.01,
+      "games": 101,
+      "winrate": 0.4059
     },
     "last_5y": {
-      "successScore": 28.14,
-      "games": 92,
-      "winrate": 0.3913
+      "successScore": 29.01,
+      "games": 101,
+      "winrate": 0.4059
     }
   },
   "9928403": {
@@ -6592,36 +7656,36 @@
   },
   "9964962": {
     "last_1y": {
-      "successScore": 29.22,
-      "games": 93,
-      "winrate": 0.4086
+      "successScore": 26.1,
+      "games": 108,
+      "winrate": 0.3611
     },
     "last_2y": {
-      "successScore": 29.22,
-      "games": 93,
-      "winrate": 0.4086
+      "successScore": 26.1,
+      "games": 108,
+      "winrate": 0.3611
     },
     "last_5y": {
-      "successScore": 29.22,
-      "games": 93,
-      "winrate": 0.4086
+      "successScore": 26.1,
+      "games": 108,
+      "winrate": 0.3611
     }
   },
   "9989179": {
     "last_1y": {
-      "successScore": 25.79,
-      "games": 9,
-      "winrate": 0.2222
+      "successScore": 26.25,
+      "games": 14,
+      "winrate": 0.2857
     },
     "last_2y": {
-      "successScore": 25.79,
-      "games": 9,
-      "winrate": 0.2222
+      "successScore": 26.25,
+      "games": 14,
+      "winrate": 0.2857
     },
     "last_5y": {
-      "successScore": 25.79,
-      "games": 9,
-      "winrate": 0.2222
+      "successScore": 26.25,
+      "games": 14,
+      "winrate": 0.2857
     }
   },
   "9997040": {

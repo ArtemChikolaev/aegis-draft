@@ -1,208 +1,10 @@
 [
   {
-    "id": "league-600",
-    "name": "The International 2014",
-    "type": "ti",
-    "year": 2014,
-    "startDate": "2014-07-09",
-    "endDate": "2014-07-21",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-2733",
-    "name": "The International 2015",
-    "type": "ti",
-    "year": 2015,
-    "startDate": "2015-07-27",
-    "endDate": "2015-08-09",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-4266",
-    "name": "Winter Major 2016",
-    "type": "major",
-    "year": 2016,
-    "startDate": "2016-01-08",
-    "endDate": "2016-03-06",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-4664",
-    "name": "The International 2016",
-    "type": "ti",
-    "year": 2016,
-    "startDate": "2016-08-03",
-    "endDate": "2016-08-14",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-4874",
-    "name": "The Fall Major 2016",
-    "type": "major",
-    "year": 2016,
-    "startDate": "2016-10-29",
-    "endDate": "2016-12-11",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-5157",
-    "name": "Kiev Major",
-    "type": "major",
-    "year": 2017,
-    "startDate": "2017-03-13",
-    "endDate": "2017-04-30",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-5401",
-    "name": "The International 2017",
-    "type": "ti",
-    "year": 2017,
-    "startDate": "2017-08-03",
-    "endDate": "2017-08-13",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-9584",
-    "name": "PGL BUCHAREST MAJOR 2018",
-    "type": "major",
-    "year": 2018,
-    "startDate": "2018-01-11",
-    "endDate": "2018-03-11",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-9870",
-    "name": "The International 2018",
-    "type": "ti",
-    "year": 2018,
-    "startDate": "2018-08-16",
-    "endDate": "2018-08-26",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-9943",
-    "name": "CHINA DOTA2 SUPER MAJOR",
-    "type": "major",
-    "year": 2018,
-    "startDate": "2018-04-23",
-    "endDate": "2018-06-10",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-10296",
-    "name": "The Kuala Lumpur Major",
-    "type": "major",
-    "year": 2018,
-    "startDate": "2018-09-20",
-    "endDate": "2018-11-18",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-10482",
-    "name": "The Chongqing Major",
-    "type": "major",
-    "year": 2019,
-    "startDate": "2018-11-29",
-    "endDate": "2019-01-27",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-10749",
-    "name": "The International 2019",
-    "type": "ti",
-    "year": 2019,
-    "startDate": "2019-08-16",
-    "endDate": "2019-08-25",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-10810",
-    "name": "MDL Disneyland® Paris Major",
-    "type": "major",
-    "year": 2019,
-    "startDate": "2019-03-30",
-    "endDate": "2019-05-12",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-10826",
-    "name": "EPICENTER Major 2019",
-    "type": "major",
-    "year": 2019,
-    "startDate": "2019-05-18",
-    "endDate": "2019-06-30",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-11280",
-    "name": "MDL Chengdu Major",
-    "type": "major",
-    "year": 2019,
-    "startDate": "2019-10-07",
-    "endDate": "2019-11-24",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-12906",
-    "name": "The Singapore Major",
-    "type": "major",
-    "year": 2021,
-    "startDate": "2021-03-27",
-    "endDate": "2021-04-04",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-12964",
-    "name": "WePlay Kyiv Major 2021",
-    "type": "major",
-    "year": 2021,
-    "startDate": "2021-06-02",
-    "endDate": "2021-06-13",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
     "id": "league-13256",
     "name": "The International 2021",
     "type": "ti",
     "year": 2021,
-    "startDate": "2021-10-08",
+    "startDate": "2021-10-07",
     "endDate": "2021-10-17",
     "formats": [
       "last_5y",
@@ -225,7 +27,7 @@
     "name": "ESL One Fall 2021 powered by Intel",
     "type": "tier1",
     "year": 2021,
-    "startDate": "2021-08-08",
+    "startDate": "2021-08-07",
     "endDate": "2021-08-29",
     "formats": [
       "last_5y"
@@ -324,7 +126,7 @@
     "name": "DPC EEU Tour 1 Qualifier",
     "type": "tier1",
     "year": 2021,
-    "startDate": "2021-11-27",
+    "startDate": "2021-11-26",
     "endDate": "2021-11-28",
     "formats": [
       "last_5y"
@@ -798,7 +600,7 @@
     "name": "The International 2022",
     "type": "ti",
     "year": 2022,
-    "startDate": "2022-10-16",
+    "startDate": "2022-10-15",
     "endDate": "2022-10-30",
     "formats": [
       "last_5y",
@@ -1295,7 +1097,7 @@
     "name": "Lima Major 2023",
     "type": "major",
     "year": 2023,
-    "startDate": "2023-02-23",
+    "startDate": "2023-02-22",
     "endDate": "2023-03-05",
     "formats": [
       "last_5y",
@@ -1461,7 +1263,7 @@
     "name": "DreamLeague Season 19 powered by Intel",
     "type": "tier1",
     "year": 2023,
-    "startDate": "2023-04-10",
+    "startDate": "2023-04-09",
     "endDate": "2023-04-23",
     "formats": [
       "last_5y"
@@ -1472,7 +1274,7 @@
     "name": "ESL One The Berlin Major powered by Intel",
     "type": "major",
     "year": 2023,
-    "startDate": "2023-04-27",
+    "startDate": "2023-04-26",
     "endDate": "2023-05-07",
     "formats": [
       "last_5y",
@@ -1682,7 +1484,7 @@
     "name": "The Bali Major",
     "type": "major",
     "year": 2023,
-    "startDate": "2023-06-30",
+    "startDate": "2023-06-29",
     "endDate": "2023-07-09",
     "formats": [
       "last_5y",
@@ -1694,7 +1496,7 @@
     "name": "DreamLeague Season 20 powered by Intel",
     "type": "tier1",
     "year": 2023,
-    "startDate": "2023-06-12",
+    "startDate": "2023-06-11",
     "endDate": "2023-06-25",
     "formats": [
       "last_5y"
@@ -1705,7 +1507,7 @@
     "name": "Riyadh Masters 2023 by Gamers8",
     "type": "tier1",
     "year": 2023,
-    "startDate": "2023-07-21",
+    "startDate": "2023-06-19",
     "endDate": "2023-07-28",
     "formats": [
       "last_5y"
@@ -1816,7 +1618,7 @@
     "name": "DreamLeague Season 22 powered by Intel",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-02-26",
+    "startDate": "2024-02-25",
     "endDate": "2024-03-10",
     "formats": [
       "last_5y"
@@ -1827,7 +1629,7 @@
     "name": "Elite League by FISSURE and ESB",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-04-03",
+    "startDate": "2024-03-31",
     "endDate": "2024-04-14",
     "formats": [
       "last_5y"
@@ -1883,7 +1685,7 @@
     "name": "Riyadh Masters 2024 at Esports World Cup",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-07-10",
+    "startDate": "2024-07-04",
     "endDate": "2024-07-21",
     "formats": [
       "last_2y",
@@ -1944,7 +1746,7 @@
     "name": "DreamLeague Season 24 powered by Intel",
     "type": "tier1",
     "year": 2024,
-    "startDate": "2024-10-28",
+    "startDate": "2024-10-27",
     "endDate": "2024-11-10",
     "formats": [
       "last_2y",
@@ -1992,7 +1794,7 @@
     "name": "DreamLeague Season 25 powered by Intel",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-02-17",
+    "startDate": "2025-02-16",
     "endDate": "2025-03-04",
     "formats": [
       "last_2y",
@@ -2076,7 +1878,7 @@
     "name": "DreamLeague Season 26",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-05-20",
+    "startDate": "2025-05-19",
     "endDate": "2025-06-01",
     "formats": [
       "last_2y",
@@ -2205,7 +2007,7 @@
     "name": "DreamLeague Season 27",
     "type": "tier1",
     "year": 2025,
-    "startDate": "2025-12-11",
+    "startDate": "2025-12-10",
     "endDate": "2025-12-21",
     "formats": [
       "last_1y",
@@ -2257,7 +2059,7 @@
     "name": "DreamLeague Season 28",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-02-18",
+    "startDate": "2026-02-16",
     "endDate": "2026-03-01",
     "formats": [
       "last_1y",
@@ -2309,7 +2111,7 @@
     "name": "DreamLeague Season 29",
     "type": "tier1",
     "year": 2026,
-    "startDate": "2026-05-14",
+    "startDate": "2026-05-13",
     "endDate": "2026-05-24",
     "formats": [
       "last_1y",
@@ -2323,33 +2125,11 @@
     "type": "tier1",
     "year": 2026,
     "startDate": "2026-07-07",
-    "endDate": "2026-07-14",
+    "endDate": "2026-07-15",
     "formats": [
       "last_1y",
       "last_2y",
       "last_5y"
-    ]
-  },
-  {
-    "id": "league-65001",
-    "name": "The International 2012",
-    "type": "ti",
-    "year": 2012,
-    "startDate": "2012-08-26",
-    "endDate": "2012-09-03",
-    "formats": [
-      "valve_legacy"
-    ]
-  },
-  {
-    "id": "league-65006",
-    "name": "The International 2013",
-    "type": "ti",
-    "year": 2013,
-    "startDate": "2013-08-03",
-    "endDate": "2013-08-12",
-    "formats": [
-      "valve_legacy"
     ]
   }
 ]
