@@ -18,7 +18,17 @@ import "github.com/aegis-draft/pipeline/internal/model"
 // на конкретном турнире, не глобально; иначе Save-/Noone всегда максимум); (2) Hero Synergy value —
 // games-driven (насыщение по pro-играм, а не centered-winrate; согласовано с матчингом по играм);
 // (3) Chemistry chemMaxPerPair 7→4.3 (калибровка под реальные величины 322-0).
-const ModelVersion = "v1.6.0"
+// v1.7.0 — ШКАЛА OVR. v1.4.0–v1.6.0 крутили бонусы (synergy ≤+7, chemistry ≤+4.3) и не могли
+// починить главное: перцентиль прибивал медиану OVR к 50, поле ботов турнира живёт на шкале
+// 322-0 (медиана ~84), максимум Team Base по датасету был 76.6 ⇒ победа невозможна арифметически.
+// Четыре правки: (1) normalizeByRole переносит ранг на шкалу референса (CalibrationMid/Spread);
+// (2) роли для составов и когорт рейтинга — НА СОБЫТИИ (roles.InferMatch + assignPackRoles), а не
+// глобальный primaryRole (он выбрасывал паки без покрытия ролей: 13 команд на TI2021 из 18);
+// (3) квалы/дивизионы не tier-1 ни в одной ветке тира (premium пропускал их мимо tier1Exclude);
+// (4) Chemistry — только совместные PRO-игры: /players/{id}/peers убран (его with_games —
+// пожизненный тотал с пабами, а фильтр «оба игрока про» пабы не отсекает; он ещё и затирал
+// точный pro-счёт пары), и снят chemistryCurrentBaseline — нет совместных игр ⇒ нет бонуса.
+const ModelVersion = "v1.7.0"
 
 type ImpactMetricWeights struct {
 	KDA           float64
@@ -67,10 +77,17 @@ type PlacementWeights struct {
 // Зафиксированные решения PRD §5: без деления саппортов 4/5; сглаживание winrate;
 // Peak = скользящее окно; team-success для Mixed.
 type Config struct {
-	SmoothMu            float64 // μ базового winrate (~0.5)
-	SmoothM             float64 // сила сглаживания (~10)
-	PeakWindowD         int     // длина окна пика в днях (90–180)
-	PeakMinN            int     // минимум игр в окне
+	SmoothMu    float64 // μ базового winrate (~0.5)
+	SmoothM     float64 // сила сглаживания (~10)
+	PeakWindowD int     // длина окна пика в днях (90–180)
+	PeakMinN    int     // минимум игр в окне
+	// CalibrationMid/Spread — перенос ранга на шкалу OVR (см. normalizeByRole). Mid = OVR
+	// медианного игрока; Spread — во сколько раз сжать ранг вокруг него. Тюнится по ЗАМЕРУ
+	// распределения референса, НЕ на глаз:
+	//   node .claude/skills/scoring-model/tools/calibrate_ovr.mjs
+	// Прогонять после каждого рефреша: состав пула меняет sd, а с ним и Spread.
+	CalibrationMid      float64
+	CalibrationSpread   float64
 	SamplePriorGames    float64
 	ImpactWeights       ImpactMetricWeights
 	EconomyWeights      EconomyMetricWeights
@@ -91,6 +108,10 @@ type Config struct {
 func Default() Config {
 	return Config{
 		SmoothMu: 0.5, SmoothM: 10, PeakWindowD: 120, PeakMinN: 15,
+		// Стартовые константы калибровки — замер референса (322-0 packs.json, 3516 игроков):
+		// mean 74.1, sd 7.8. Spread — отношение целевого sd к нашему после фильтра квалов
+		// (7.8/12.9). Обе ПОДЛЕЖАТ пересчёту после каждого рефреша: tools/calibrate_ovr.mjs.
+		CalibrationMid: 74.1, CalibrationSpread: 0.606,
 		SamplePriorGames:   8,
 		ImpactWeights:      ImpactMetricWeights{KDA: 0.35, Participation: 0.30, DamagePerMin: 0.35},
 		EconomyWeights:     EconomyMetricWeights{GPM: 0.45, XPM: 0.35, LastHitsPerMin: 0.20},

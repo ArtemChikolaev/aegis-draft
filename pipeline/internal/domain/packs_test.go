@@ -66,21 +66,16 @@ var fixtureTeams = []opendota.Team{{TeamID: 10, Name: "Alpha", Tag: "AL"}, {Team
 
 func TestBuildPacksRealLineup(t *testing.T) {
 	matches := fixtureMatches()
-	rolesList := roles.Infer(matches)
 	events := BuildEvents(matches, testLeagues, asOf(), 0)
-	eventRatings, err := BuildEventRatings(matches, events, rolesList, rating.Default())
+	eventRatings, err := BuildEventRatings(matches, events, rating.Default())
 	if err != nil {
 		t.Fatalf("BuildEventRatings: %v", err)
 	}
-	roleByAccount := map[int]model.Role{}
 	nickByAccount := map[int]string{}
-	for _, pr := range rolesList {
-		roleByAccount[pr.AccountID] = pr.PrimaryRole
-	}
 	for _, p := range fixtureSnapshot().Players {
 		nickByAccount[p.AccountID] = p.Name
 	}
-	packs := BuildPacks(matches, events, eventRatings, roleByAccount, nickByAccount, fixtureTeams)
+	packs := BuildPacks(matches, events, eventRatings, nickByAccount, fixtureTeams)
 
 	if len(packs) != 2 {
 		t.Fatalf("expected 2 packs (team10, team20), got %d", len(packs))
@@ -124,9 +119,8 @@ func TestBuildEventRatingsPerEvent(t *testing.T) {
 		mB.LeagueID = 200
 		matches = append(matches, mA, mB)
 	}
-	rolesList := roles.Infer(matches)
 	events := BuildEvents(matches, testLeagues, asOf(), 0)
-	er, err := BuildEventRatings(matches, events, rolesList, rating.Default())
+	er, err := BuildEventRatings(matches, events, rating.Default())
 	if err != nil {
 		t.Fatalf("BuildEventRatings: %v", err)
 	}
@@ -139,12 +133,8 @@ func TestBuildEventRatingsPerEvent(t *testing.T) {
 
 func TestPackPlayerIDs(t *testing.T) {
 	matches := fixtureMatches()
-	roleByAccount := map[int]model.Role{}
-	for _, pr := range roles.Infer(matches) {
-		roleByAccount[pr.AccountID] = pr.PrimaryRole
-	}
 	events := BuildEvents(matches, testLeagues, asOf(), 0)
-	ids := PackPlayerIDs(matches, events, roleByAccount)
+	ids := PackPlayerIDs(matches, events)
 
 	// Оба core-ростера (team10 1..5, team20 21..25) = 10 аккаунтов; стенд-ин acc6 исключён.
 	if len(ids) != 10 {
@@ -174,5 +164,73 @@ func TestBuildPlayersProfiles(t *testing.T) {
 	}
 	if len(ace.Teams) != 1 || ace.Teams[0].TeamID != 10 || ace.Teams[0].TeamName != "Alpha" || ace.Teams[0].Games != 4 {
 		t.Fatalf("player 1 teams: %+v", ace.Teams)
+	}
+}
+
+// Регрессия v1.7.0: состав пака строился по ГЛОБАЛЬНОМУ primaryRole. Если по всей выборке
+// два игрока команды сходятся в одну роль, у состава на событии выходило два офлейна и ноль
+// мидов, и пак выбрасывался целиком (13 команд на TI2021 вместо 18).
+//
+// На league-100 team30 играет нормально (31 safe, 32 mid, 33 off). Но на league-200 acc32 и
+// acc33 играют офлейн в РАЗНЫХ командах ⇒ глобально оба офлейнеры ⇒ у team30 нет мида.
+func TestBuildPacksUsesEventRolesNotGlobalPrimaryRole(t *testing.T) {
+	atEvent := []fplayer{{31, 1, 44, 600, false}, {32, 2, 74, 550, false}, {33, 3, 114, 450, false}, {34, 1, 26, 250, false}, {35, 3, 5, 200, true}}
+	// Составы на league-200: acc32 и acc33 — офлейнеры в разных командах.
+	off32 := []fplayer{{32, 3, 74, 450, false}, {41, 1, 44, 600, false}, {42, 2, 11, 550, false}, {43, 1, 26, 250, false}, {44, 3, 5, 200, true}}
+	off33 := []fplayer{{33, 3, 114, 450, false}, {51, 1, 44, 600, false}, {52, 2, 11, 550, false}, {53, 1, 26, 250, false}, {54, 3, 5, 200, true}}
+
+	var matches []normalize.NormalizedMatch
+	for i := 0; i < 3; i++ {
+		matches = append(matches, packMatch(int64(500+i), atEvent, team20, 30, 20))
+	}
+	for i := 0; i < 9; i++ {
+		a := packMatch(int64(600+i), off32, team20, 40, 20)
+		a.LeagueID = 200
+		b := packMatch(int64(700+i), off33, team20, 50, 20)
+		b.LeagueID = 200
+		matches = append(matches, a, b)
+	}
+
+	// Фикстура обязана воспроизводить баг: глобально оба — офлейн, мида у team30 нет.
+	global := map[int]model.Role{}
+	for _, pr := range roles.Infer(matches) {
+		global[pr.AccountID] = pr.PrimaryRole
+	}
+	if global[32] != model.RoleOfflane || global[33] != model.RoleOfflane {
+		t.Fatalf("фикстура не воспроизводит баг: глобальные роли acc32=%s acc33=%s, ожидались оба offlane", global[32], global[33])
+	}
+
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
+	eventRatings, err := BuildEventRatings(matches, events, rating.Default())
+	if err != nil {
+		t.Fatalf("BuildEventRatings: %v", err)
+	}
+	teams := append(fixtureTeams, opendota.Team{TeamID: 30, Name: "Charlie", Tag: "CH"})
+	packs := BuildPacks(matches, events, eventRatings, map[int]string{}, teams)
+
+	var pack model.Pack
+	for _, p := range packs {
+		if p.TeamID == 30 && p.EventID == "league-100" {
+			pack = p
+		}
+	}
+	if pack.ID == "" {
+		t.Fatal("пак team30 на league-100 выброшен — роли на событии не применились")
+	}
+	byRole := map[model.Role]int{}
+	for _, pl := range pack.Players {
+		byRole[pl.Role]++
+	}
+	want := map[model.Role]int{model.RoleSafelane: 1, model.RoleMid: 1, model.RoleOfflane: 1, model.RoleSupport: 2}
+	for role, n := range want {
+		if byRole[role] != n {
+			t.Errorf("роль %s: %d, ожидалось %d (состав: %v)", role, byRole[role], n, byRole)
+		}
+	}
+	// Роль в паке — сыгранная НА СОБЫТИИ, а не глобальная.
+	for _, pl := range pack.Players {
+		if pl.AccountID == 32 && pl.Role != model.RoleMid {
+			t.Errorf("acc32 на league-100 играл мид, в паке роль %s (глобальная — offlane)", pl.Role)
+		}
 	}
 }

@@ -48,11 +48,9 @@ func FilterMatchesByWindow(matches []normalize.NormalizedMatch, windowStart int6
 // Liquipedia-зависимые поля (placements/prize/valve_legacy) остаются deferred.
 func Build(in Input) (*model.Dataset, error) {
 	matches := FilterMatchesByWindow(in.Snapshot.Matches, in.WindowStartUnix)
+	// Глобальные роли нужны ТОЛЬКО для players[].primaryRole/rolesPlayed (справочник игрока).
+	// Паки и когорты рейтинга берут роли на событии — см. selectRoster/BuildEventRatings.
 	rolesList := roles.Infer(matches)
-	roleByAccount := make(map[int]model.Role, len(rolesList))
-	for _, pr := range rolesList {
-		roleByAccount[pr.AccountID] = pr.PrimaryRole
-	}
 	nickByAccount := make(map[int]string, len(in.Snapshot.Players))
 	for _, player := range in.Snapshot.Players {
 		nickByAccount[player.AccountID] = nicknameOf(player)
@@ -60,11 +58,11 @@ func Build(in Input) (*model.Dataset, error) {
 
 	events := BuildEvents(matches, in.Leagues, in.AsOf, in.MinEventMatches)
 	// Base = per-event (PRD §5.4.1): OVR игрока в паке = его форма на ЭТОМ турнире, не глобально.
-	eventRatings, err := BuildEventRatings(matches, events, rolesList, in.Config)
+	eventRatings, err := BuildEventRatings(matches, events, in.Config)
 	if err != nil {
 		return nil, err
 	}
-	packs := BuildPacks(matches, events, eventRatings, roleByAccount, nickByAccount, in.Teams)
+	packs := BuildPacks(matches, events, eventRatings, nickByAccount, in.Teams)
 	players := BuildPlayers(in.Snapshot, rolesList, in.Teams, matches)
 	teamSuccess := BuildTeamSuccess(matches, in.Leagues, in.AsOf, in.Config)
 	heroes := convertHeroes(in.Heroes)
@@ -98,18 +96,14 @@ func Build(in Input) (*model.Dataset, error) {
 	return ds, nil
 }
 
-// PackPlayerAccounts — аккаунты, попадающие в паки, прямо из снапшота: роли (roles.Infer)
-// и события (BuildEvents) выводятся внутри, поэтому пул считается до сетевого career/peers.
+// PackPlayerAccounts — аккаунты, попадающие в паки, прямо из снапшота: роли и события
+// (BuildEvents) выводятся внутри, поэтому пул считается до сетевого career/peers.
 // Позволяет обогащать только пак-игроков — полное окно (~1500 игроков) в дневной бюджет не
 // влезает, а непаковые аккаунты в датасет всё равно не попадают.
 func PackPlayerAccounts(snapshot *normalize.OpenDotaSnapshot, leagues []opendota.League, asOf time.Time, minEventMatches int) map[int]struct{} {
 	matches := snapshot.Matches
-	roleByAccount := make(map[int]model.Role)
-	for _, pr := range roles.Infer(matches) {
-		roleByAccount[pr.AccountID] = pr.PrimaryRole
-	}
 	events := BuildEvents(matches, leagues, asOf, minEventMatches)
-	return PackPlayerIDs(matches, events, roleByAccount)
+	return PackPlayerIDs(matches, events)
 }
 
 func convertHeroes(heroes []opendota.Hero) []model.Hero {

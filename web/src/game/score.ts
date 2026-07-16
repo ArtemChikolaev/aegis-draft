@@ -21,8 +21,6 @@ export const SCORING = {
   /** Текущий ростер (teamId+eventId) весит больше бывших тиммейтов (в Team Packs пары почти всегда former). */
   chemistryCurrentMult: 1,
   chemistryFormerMult: 0.6,
-  /** Базовый вклад, если в текущем составе ещё нет squad-пары в данных. */
-  chemistryCurrentBaseline: 0.15,
 } as const;
 
 export interface ChemistryPlayer {
@@ -82,26 +80,26 @@ function everTeammates(
 }
 
 /** Химия пары = сыгранность (совместные игры), насыщающая кривая max·g/(g+half) — «experience»
- * как в 322-0, а НЕ winrate (v1.5.0: раньше был winrate-centered → ~0.2 за 500 игр, что абсурд). */
+ * как в 322-0, а НЕ winrate (v1.5.0: раньше был winrate-centered → ~0.2 за 500 игр, что абсурд).
+ *
+ * v1.7.0: НЕТ совместных pro-игр ⇒ НЕТ бонуса. Раньше паре текущего ростера без данных давался
+ * chemistryCurrentBaseline, и химия набегала из множества фантомных +0.1 — в 322-0 такие пары не
+ * показываются вовсе (у них на ростер бывает одна пара: Saksa+Whitemon 350 игр → +1.5). Сам счёт
+ * игр теперь тоже честный: squadSynergy считается только из pro-матчей, без pub-пар из peers. */
 function pairChemistryBonus(
   a: ChemistryPlayer,
   b: ChemistryPlayer,
   squadIndex: Map<string, Stat & { games: number }>,
   teammates: Teammates,
 ): { bonus: number; games: number } {
-  const current = isCurrentRoster(a, b);
-  const ever = everTeammates(a.accountId, b.accountId, squadIndex, teammates);
-  if (!current && !ever) return { bonus: 0, games: 0 };
+  if (!everTeammates(a.accountId, b.accountId, squadIndex, teammates)) return { bonus: 0, games: 0 };
 
-  const pair = squadIndex.get(pairKey(a.accountId, b.accountId));
-  const games = pair?.games ?? 0;
-  const mult = current ? SCORING.chemistryCurrentMult : SCORING.chemistryFormerMult;
-  const experience = games > 0
-    ? SCORING.chemMaxPerPair * games / (games + SCORING.chemHalfGames)
-    : current ? SCORING.chemistryCurrentBaseline : 0;
+  const games = squadIndex.get(pairKey(a.accountId, b.accountId))?.games ?? 0;
+  if (games <= 0) return { bonus: 0, games: 0 };
 
+  const mult = isCurrentRoster(a, b) ? SCORING.chemistryCurrentMult : SCORING.chemistryFormerMult;
   return {
-    bonus: experience * mult,
+    bonus: SCORING.chemMaxPerPair * games / (games + SCORING.chemHalfGames) * mult,
     games,
   };
 }
@@ -217,10 +215,10 @@ export function squadChemistryRows(
   const rows: SquadChemistryRow[] = [];
   for (let i = 0; i < chem.length; i++) {
     for (let j = i + 1; j < chem.length; j++) {
-      const current = isCurrentRoster(chem[i], chem[j]);
-      const ever = everTeammates(chem[i].accountId, chem[j].accountId, squadIndex, teammates);
-      if (!current && !ever) continue;
       const { bonus, games } = pairChemistryBonus(chem[i], chem[j], squadIndex, teammates);
+      // Пара без совместных pro-игр не даёт бонуса и не показывается — как в 322-0, где у
+      // кросс-командного ростера в списке бывает одна строка, а не десять по +0.0.
+      if (games <= 0) continue;
       rows.push({
         accountIdA: chem[i].accountId,
         accountIdB: chem[j].accountId,

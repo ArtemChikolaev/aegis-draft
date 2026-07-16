@@ -31,9 +31,6 @@ type CollectionStatus struct {
 	CareerTargetPlayers   int    `json:"careerTargetPlayers"`
 	CareerPlayersComplete int    `json:"careerPlayersComplete"`
 	CareerComplete        bool   `json:"careerComplete"`
-	PeersTargetPlayers    int    `json:"peersTargetPlayers"`
-	PeersPlayersComplete  int    `json:"peersPlayersComplete"`
-	PeersComplete         bool   `json:"peersComplete"`
 	CacheHits             int    `json:"cacheHits"`
 	NetworkRequests       int    `json:"networkRequests"`
 }

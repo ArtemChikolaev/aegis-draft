@@ -40,13 +40,18 @@ func TestRatePlayersShrinksOneGameOutlierTowardNeutral(t *testing.T) {
 		Kills: 30, Deaths: 0, Assists: 20, TeamKills: 50, GoldPerMin: 1000, XPPerMin: 1000, LastHits: 500, HeroDamage: 60000,
 	})
 
-	ratings, err := RatePlayers("event-a", samples, Default())
+	cfg := Default()
+	ratings, err := RatePlayers("event-a", samples, cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
 	outlier := findRating(t, ratings, 3)
-	if outlier.OVR > 56 || outlier.Impact > 56 || outlier.Economy > 56 {
-		t.Fatalf("one-game outlier escaped confidence shrinkage: %+v", outlier)
+	// Нейтраль — CalibrationMid (шкала референса), а не 50: перцентиль-ранг переносится на
+	// шкалу OVR аффинно. Порог выражен через конфиг, иначе тест протухает на каждой калибровке.
+	// 6 — допуск в очках РАНГА (как было), на шкале OVR это 6*Spread.
+	limit := cfg.CalibrationMid + 6*cfg.CalibrationSpread
+	if float64(outlier.OVR) > limit || float64(outlier.Impact) > limit || float64(outlier.Economy) > limit {
+		t.Fatalf("one-game outlier escaped confidence shrinkage (limit %.1f): %+v", limit, outlier)
 	}
 }
 

@@ -95,7 +95,7 @@ func RatePlayers(scopeID string, samples []MatchPerformance, cfg Config) ([]Play
 		return ordered[i].key.role < ordered[j].key.role
 	})
 	shrinkByRole(ordered, cfg.SamplePriorGames)
-	normalizeByRole(ordered, cfg.SamplePriorGames)
+	normalizeByRole(ordered, cfg.SamplePriorGames, cfg.CalibrationMid, cfg.CalibrationSpread)
 
 	result := make([]PlayerRating, 0, len(ordered))
 	for _, entry := range ordered {
@@ -200,7 +200,19 @@ func shrinkByRole(groups []*group, priorGames float64) {
 	}
 }
 
-func normalizeByRole(groups []*group, priorGames float64) {
+// normalizeByRole переводит сглаженную метрику в очки шкалы OVR.
+//
+// Перцентиль внутри когорты роли даёт ранг, но НЕ шкалу: медиана перцентиля равна 50 по
+// построению, поэтому раньше средний про-игрок получал ровно 50, а поле ботов турнира живёт
+// на шкале 322-0 (медиана ~84). Разрыв в ~23 очка делал победу арифметически невозможной:
+// максимум Team Base по всему датасету был 76.6. Ни один из бонусов (Hero Synergy ≤ +7,
+// Chemistry ≤ +4.3) этот разрыв закрыть не мог — крутили не ту ручку (v1.4.0–v1.6.0).
+//
+// calibrationMid/Spread переносят ранг на шкалу референса (замерено на его публичных packs.json:
+// player OVR mean 74.1, sd 7.8, диапазон 55–98). Преобразование АФФИННОЕ и монотонное — порядок
+// игроков не меняется, меняется только шкала. Веса ролей в combine() дают в сумме 1, поэтому
+// impact/economy/reliability и OVR масштабируются одинаково.
+func normalizeByRole(groups []*group, priorGames, calibrationMid, calibrationSpread float64) {
 	for metric := 0; metric < metricCount; metric++ {
 		for _, role := range roles() {
 			cohort := make([]*group, 0)
@@ -212,7 +224,8 @@ func normalizeByRole(groups []*group, priorGames float64) {
 			for _, entry := range cohort {
 				percentile := percentileRank(entry.shrunk[metric], cohort, metric, metric != 6)
 				confidence := effectiveGames(entry, metric) / (effectiveGames(entry, metric) + priorGames)
-				entry.scores[metric] = 50 + (percentile-50)*confidence
+				rank := 50 + (percentile-50)*confidence
+				entry.scores[metric] = calibrationMid + (rank-50)*calibrationSpread
 			}
 		}
 	}
@@ -281,6 +294,10 @@ func validateSample(sample MatchPerformance) error {
 }
 
 func validateConfig(cfg Config) error {
+	if !finite(cfg.CalibrationMid) || cfg.CalibrationMid <= 0 || cfg.CalibrationMid > 100 ||
+		!finite(cfg.CalibrationSpread) || cfg.CalibrationSpread <= 0 {
+		return fmt.Errorf("invalid OVR calibration mid/spread")
+	}
 	if !finite(cfg.SamplePriorGames) || cfg.SamplePriorGames <= 0 ||
 		!validWeights(cfg.ImpactWeights.KDA, cfg.ImpactWeights.Participation, cfg.ImpactWeights.DamagePerMin) ||
 		!validWeights(cfg.EconomyWeights.GPM, cfg.EconomyWeights.XPM, cfg.EconomyWeights.LastHitsPerMin) ||

@@ -47,11 +47,9 @@ func matchPerformances(matches []normalize.NormalizedMatch, roleByAccount map[in
 // когорта-нормализация — среди участников этого события. Ключ (eventId → accountId). Так игрок,
 // провалившийся на ивенте, получает низкий OVR именно там — в отличие от глобального per-account
 // рейтинга (иначе Save-/Noone всегда с максимумом ⇒ выгодно брать только их).
-func BuildEventRatings(matches []normalize.NormalizedMatch, events []model.EventInfo, rolesList []roles.PlayerRoles, cfg rating.Config) (map[string]map[int]rating.PlayerRating, error) {
-	roleByAccount := make(map[int]model.Role, len(rolesList))
-	for _, pr := range rolesList {
-		roleByAccount[pr.AccountID] = pr.PrimaryRole
-	}
+// Роль для когорты — тоже НА СОБЫТИИ (roles.InferMatch), а не глобальный primaryRole:
+// перцентиль должен сравнивать игрока с теми, кто играл ту же роль на том же турнире.
+func BuildEventRatings(matches []normalize.NormalizedMatch, events []model.EventInfo, cfg rating.Config) (map[string]map[int]rating.PlayerRating, error) {
 	leagueToEvent := make(map[int64]string, len(events))
 	for _, event := range events {
 		if leagueID, ok := parseLeagueID(event.ID); ok {
@@ -59,13 +57,29 @@ func BuildEventRatings(matches []normalize.NormalizedMatch, events []model.Event
 		}
 	}
 	byEvent := make(map[string][]normalize.NormalizedMatch)
+	roleGames := make(map[string]map[int]map[model.Role]int)
 	for _, match := range matches {
-		if eventID, ok := leagueToEvent[match.LeagueID]; ok {
-			byEvent[eventID] = append(byEvent[eventID], match)
+		eventID, ok := leagueToEvent[match.LeagueID]
+		if !ok {
+			continue
+		}
+		byEvent[eventID] = append(byEvent[eventID], match)
+		if roleGames[eventID] == nil {
+			roleGames[eventID] = make(map[int]map[model.Role]int)
+		}
+		for accountID, role := range roles.InferMatch(match) {
+			if roleGames[eventID][accountID] == nil {
+				roleGames[eventID][accountID] = make(map[model.Role]int)
+			}
+			roleGames[eventID][accountID][role]++
 		}
 	}
 	out := make(map[string]map[int]rating.PlayerRating, len(byEvent))
 	for eventID, evMatches := range byEvent {
+		roleByAccount := make(map[int]model.Role, len(roleGames[eventID]))
+		for accountID, byRole := range roleGames[eventID] {
+			roleByAccount[accountID] = eventRole(byRole)
+		}
 		rated, err := rating.RatePlayers(eventID, matchPerformances(evMatches, roleByAccount), cfg)
 		if err != nil {
 			return nil, fmt.Errorf("rate event %s: %w", eventID, err)

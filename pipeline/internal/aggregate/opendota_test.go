@@ -110,56 +110,6 @@ func TestFromOpenDotaIsDeterministic(t *testing.T) {
 	}
 }
 
-func TestMergePeersAddsLifetimeCrossTeamPairs(t *testing.T) {
-	result, err := FromOpenDota(fixture(), 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if findPair(result, 1, 4) != nil {
-		t.Fatal("precondition: 1 и 4 всегда соперники — оконной пары быть не должно")
-	}
-	known := map[int]struct{}{1: {}, 2: {}, 3: {}, 4: {}}
-	err = MergePeers(result, 1, []opendota.Peer{
-		{AccountID: 4, WithGames: 185, WithWins: 110}, // кросс-командная пожизненная пара
-		{AccountID: 2, WithGames: 200, WithWins: 120}, // перекрывает тонкий оконный счёт
-		{AccountID: 999, WithGames: 50, WithWins: 25}, // вне pro-вселенной — игнор
-		{AccountID: 1, WithGames: 10, WithWins: 5},    // сам себе — игнор
-		{AccountID: 3, WithGames: 0, WithWins: 0},     // нет совместных игр — игнор
-	}, known)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if pair := findPair(result, 1, 4); pair == nil || pair.Games != 185 || pair.Winrate < 0.59 || pair.Winrate > 0.60 {
-		t.Fatalf("кросс-командная пожизненная пара=%+v", pair)
-	}
-	if pair := findPair(result, 1, 2); pair == nil || pair.Games != 200 {
-		t.Fatalf("пожизненные тоталы должны перекрыть оконный счёт: %+v", pair)
-	}
-	if findPair(result, 1, 999) != nil {
-		t.Fatal("peer вне pro-вселенной не должен попадать в пары")
-	}
-	if !containsSorted(result.Teammates["1"], 4) || !containsSorted(result.Teammates["4"], 1) {
-		t.Fatalf("teammates не симметричны: %v / %v", result.Teammates["1"], result.Teammates["4"])
-	}
-	if err := Validate(result); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestMergePeersRejectsBadSourceAndStat(t *testing.T) {
-	result, err := FromOpenDota(fixture(), 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	known := map[int]struct{}{1: {}, 2: {}}
-	if err := MergePeers(result, 5, nil, known); err == nil {
-		t.Fatal("ожидалась ошибка: источник вне pro-вселенной")
-	}
-	if err := MergePeers(result, 1, []opendota.Peer{{AccountID: 2, WithGames: 10, WithWins: 11}}, known); err == nil {
-		t.Fatal("ожидалась ошибка: with_win > with_games")
-	}
-}
-
 func fixture() *normalize.OpenDotaSnapshot {
 	return &normalize.OpenDotaSnapshot{Matches: []normalize.NormalizedMatch{
 		{

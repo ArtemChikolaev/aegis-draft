@@ -159,59 +159,6 @@ func encodeHeroStats(heroes map[int]map[int]*counter) map[string]map[string]mode
 	return out
 }
 
-// MergePeers upserts пожизненные совместные игры из /players/{id}/peers в SquadSynergy
-// и Teammates. Оставляем только пары, где второй игрок тоже в pro-вселенной (known) —
-// pub-тиммейты не протекают. Peers — пожизненные тоталы и имеют приоритет над тонким
-// оконным счётом пары: именно это оживляет кросс-командную Chemistry (напр. Saksa+Watson).
-func MergePeers(result *OpenDotaResult, accountID int, peers []opendota.Peer, known map[int]struct{}) error {
-	if result == nil || accountID <= 0 {
-		return fmt.Errorf("invalid peers merge target %d", accountID)
-	}
-	if _, ok := known[accountID]; !ok {
-		return fmt.Errorf("peers source %d is outside the known pro universe", accountID)
-	}
-	pairs := make(map[pairKey]model.SquadPair, len(result.SquadSynergy))
-	for _, pair := range result.SquadSynergy {
-		pairs[pairKey(pair.IDs)] = pair
-	}
-	teammates := teammateSet(result.Teammates)
-	for _, peer := range peers {
-		peerID := int(peer.AccountID)
-		if peerID <= 0 || peerID == accountID {
-			continue
-		}
-		if _, ok := known[peerID]; !ok {
-			continue
-		}
-		if peer.WithGames <= 0 {
-			continue
-		}
-		if peer.WithWins < 0 || peer.WithWins > peer.WithGames {
-			return fmt.Errorf("peer %d↔%d has invalid with_win/with_games %d/%d", accountID, peerID, peer.WithWins, peer.WithGames)
-		}
-		a, b := accountID, peerID
-		if a > b {
-			a, b = b, a
-		}
-		key := pairKey{a, b}
-		lifetime := model.SquadPair{IDs: [2]int{a, b}, Games: peer.WithGames, Winrate: float64(peer.WithWins) / float64(peer.WithGames)}
-		if existing, ok := pairs[key]; !ok || peer.WithGames >= existing.Games {
-			pairs[key] = lifetime
-		}
-		if teammates[a] == nil {
-			teammates[a] = make(map[int]struct{})
-		}
-		if teammates[b] == nil {
-			teammates[b] = make(map[int]struct{})
-		}
-		teammates[a][b] = struct{}{}
-		teammates[b][a] = struct{}{}
-	}
-	result.SquadSynergy = squadSlice(pairs)
-	result.Teammates = emitTeammates(teammates)
-	return nil
-}
-
 func squadSlice(pairs map[pairKey]model.SquadPair) []model.SquadPair {
 	out := make([]model.SquadPair, 0, len(pairs))
 	for _, pair := range pairs {

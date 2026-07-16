@@ -98,7 +98,7 @@ func Run(ctx context.Context, cfg Config) error {
 			}
 			log.Printf("[fetch] tier-1 фильтр: %d rolling лиг + %d valve_legacy (TI/Major) лиг", len(rollingLeagues), len(legacyLeagues))
 			// Прогреваем справочники teams/heroes ЗАРАНЕЕ (пока бюджет свежий), чтобы позже
-			// emit-domain взял их из кэша даже если career/peers исчерпали бюджет прогона.
+			// emit-domain взял их из кэша даже если сбор деталей исчерпал бюджет прогона.
 			if _, err := od.FetchTeams(ctx); err != nil {
 				return domainFetchErr("teams", err)
 			}
@@ -147,51 +147,13 @@ func Run(ctx context.Context, cfg Config) error {
 			if err != nil {
 				return fmt.Errorf("aggregate OpenDota: %w", err)
 			}
-			// Peers: пожизненные co-games — прямой источник Chemistry. MergePeers апсертит пары
-			// в squadSynergy/teammates, фильтруя по known (пул пак-игроков).
-			enrichTargets := snapshot.Players
-			if cfg.EmitDomain {
-				leagues, lerr := od.FetchLeagues(ctx)
-				if lerr != nil {
-					return domainFetchErr("leagues", lerr)
-				}
-				asOfTime, perr := time.Parse("2006-01-02", asOf)
-				if perr != nil {
-					return fmt.Errorf("invalid as-of date %q: %w", asOf, perr)
-				}
-				windowSnapshot := &normalize.OpenDotaSnapshot{
-					Matches: domain.FilterMatchesByWindow(snapshot.Matches, windowStart),
-					Players: snapshot.Players,
-				}
-				packAccounts := domain.PackPlayerAccounts(windowSnapshot, leagues, asOfTime, cfg.MinEventMatches)
-				targets := make([]normalize.NormalizedPlayer, 0, len(packAccounts))
-				for _, player := range snapshot.Players {
-					if _, ok := packAccounts[player.AccountID]; ok {
-						targets = append(targets, player)
-					}
-				}
-				enrichTargets = targets
-				log.Printf("[fetch] peers scope: %d pack-игроков из %d в pro-вселенной", len(enrichTargets), len(snapshot.Players))
-			}
-
-			known := make(map[int]struct{}, len(enrichTargets))
-			for _, player := range enrichTargets {
-				known[player.AccountID] = struct{}{}
-			}
-			peersComplete := 0
-			for _, player := range enrichTargets {
-				peers, fetchErr := od.FetchPlayerPeers(ctx, int64(player.AccountID))
-				if errors.Is(fetchErr, sourcehttp.ErrBudgetExhausted) {
-					break
-				}
-				if fetchErr != nil {
-					return fetchErr
-				}
-				if err := aggregate.MergePeers(aggregates, player.AccountID, peers, known); err != nil {
-					return err
-				}
-				peersComplete++
-			}
+			// Chemistry считается ТОЛЬКО из наших нормализованных pro-матчей (aggregate.FromOpenDota:
+			// пара = два игрока одной команды в одном матче). /players/{id}/peers отсюда убран
+			// (v1.7.0): его with_games — пожизненный тотал по ВСЕМ матчам, включая пабы, а фильтр
+			// «оба игрока — про» пабы не отсекает (два про в дуо-ранкеде оба про). Peers ещё и
+			// затирали точный pro-счёт пары своим раздутым числом, из-за чего Yatoro+Save- получали
+			// «81 совместную игру», никогда не играв вместе в про. Тот же вывод, что и по героям
+			// (v1.5.0: pro window, career — только UI). Бонусом: минус ~1 запрос на пак-игрока.
 			target := len(collected.ProMatches)
 			if cfg.MatchDetailLimit > 0 && cfg.MatchDetailLimit < target {
 				target = cfg.MatchDetailLimit
@@ -202,10 +164,8 @@ func Run(ctx context.Context, cfg Config) error {
 				PagesRead: collected.PagesRead, DiscoveredMatches: len(collected.ProMatches), DiscoveryComplete: collected.DiscoveryComplete,
 				DetailTargetMatches: target, DetailsComplete: collected.DetailsComplete,
 				CareerTargetPlayers: 0, CareerPlayersComplete: 0,
-				CareerComplete:     cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete,
-				PeersTargetPlayers: len(enrichTargets), PeersPlayersComplete: peersComplete,
-				PeersComplete: peersComplete == len(enrichTargets),
-				CacheHits:     stats.CacheHits, NetworkRequests: stats.NetworkRequests,
+				CareerComplete: cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete,
+				CacheHits:      stats.CacheHits, NetworkRequests: stats.NetworkRequests,
 			}
 			snapshot.Collection = status
 			aggregates.Collection = status
@@ -218,25 +178,19 @@ func Run(ctx context.Context, cfg Config) error {
 			if err := artifact.WriteJSON(cfg.AggregateOut, aggregates); err != nil {
 				return fmt.Errorf("write OpenDota aggregates: %w", err)
 			}
-			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) proCareer=%t peers=%d/%d (complete=%t); network=%d cache=%d",
+			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) proCareer=%t; network=%d cache=%d",
 				collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
-				status.CareerComplete,
-				peersComplete, len(enrichTargets), status.PeersComplete, stats.NetworkRequests, stats.CacheHits)
+				status.CareerComplete, stats.NetworkRequests, stats.CacheHits)
 
 			if cfg.EmitDomain {
-				// Полное окно: emit, когда готовы discovery+details (пакеты/рейтинги/synergy
-				// уже считаемы). career+peers — обогащение (углубляют hero-synergy и chemistry):
-				// они докручиваются в следующих прогонах и апсертятся в датасет, поэтому НЕ
-				// блокируют первый emit. Пока даже details не готовы — прогрев кэша, добор дальше.
+				// Полное окно: emit, когда готовы discovery+details — из них считаются пакеты,
+				// рейтинги, hero synergy и chemistry (всё выводится из наших pro-матчей, внешнего
+				// обогащения на пару игроков больше нет). Пока details не готовы — прогрев кэша.
 				if cfg.CollectWindow {
 					if !status.DiscoveryComplete || !status.DetailsComplete {
 						log.Printf("[progress] emit-domain отложен: discovery=%t details=%t; кэш прогрет, добор в след. прогоне",
 							status.DiscoveryComplete, status.DetailsComplete)
 						return nil
-					}
-					if !status.CareerComplete || !status.PeersComplete {
-						log.Printf("[progress] emit частичный: proCareer=%t peers=%d/%d — peers продолжится в след. прогонах",
-							status.CareerComplete, status.PeersPlayersComplete, status.PeersTargetPlayers)
 					}
 				}
 				if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {

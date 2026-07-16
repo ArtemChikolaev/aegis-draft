@@ -22,6 +22,9 @@ on:
       maxMatchesPerLeague:
         description: "Потолок деталей на событие (0 = без потолка, нужен для pro career parity с 322-0)"
         default: "0"
+      dryRun:
+        description: "true = собрать и показать распределение OVR, но НЕ коммитить данные"
+        default: "false"
 
 permissions:
   contents: write # коммит обновлённых данных в main
@@ -66,7 +69,15 @@ jobs:
       - name: Sanity check (непустой датасет)
         run: |
           node -e "const p=require('./web/public/data/packs.json'); if(!Array.isArray(p)||p.length===0){console.error('пустой packs.json — не коммитим');process.exit(1)}; console.log('packs:',p.length)"
+      # Калибровка шкалы OVR — единственное место, где её видно на ПОЛНОМ датасете: сырьё
+      # OpenDota живёт в кэше этого джоба, локально его не пересобрать (Free Tier ~дни).
+      # Печатает распределение против референса и константы для rating.Default(). Сеть до
+      # 322-0 может отвалиться — это не повод валить рефреш, поэтому continue-on-error.
+      - name: Распределение OVR против референса (калибровка)
+        continue-on-error: true
+        run: node .claude/skills/scoring-model/tools/calibrate_ovr.mjs
       - name: Commit & push refreshed data
+        if: ${{ github.event.inputs.dryRun != 'true' }}
         run: |
           git config user.name "aegis-data-bot"
           git config user.email "actions@users.noreply.github.com"
