@@ -114,3 +114,50 @@ func hasFormat(formats []model.Format, target model.Format) bool {
 	}
 	return false
 }
+
+// Регрессия v1.8.0: снятие rolling-окна с valve_legacy занесло в датасет квалы, которые в
+// OpenDota сидят ВНУТРИ того же leagueId, что и мейн-ивент (TI2015: 59 команд вместо 16,
+// TI2017: 70 вместо 18). Отделяем по разрыву дат: мейн — последний непрерывный блок.
+func TestFilterMatchesByWindowKeepsOnlyLegacyMainEvent(t *testing.T) {
+	day := int64(24 * 60 * 60)
+	mainStart := time.Date(2015, 8, 3, 0, 0, 0, 0, time.UTC).Unix()
+	qualStart := mainStart - 55*day // квалы TI2015 шли за ~2 месяца до мейна
+	legacy := []opendota.League{{LeagueID: 2733, Name: "The International 2015", Tier: "professional"}}
+
+	mk := func(id int64, start int64, league int64) normalize.NormalizedMatch {
+		return normalize.NormalizedMatch{MatchID: id, LeagueID: league, StartTime: start, Duration: 2400}
+	}
+	matches := []normalize.NormalizedMatch{
+		mk(1, qualStart, 2733), mk(2, qualStart+day, 2733), // квал-блок
+		mk(3, mainStart, 2733), mk(4, mainStart+3*day, 2733), // мейн (перерыв группы→плей-офф 3 дня НЕ рвёт блок)
+	}
+	// Окно отрезает всё: и квалы, и мейн 2015-го. Legacy обязан пройти — но только мейном.
+	windowStart := time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	got := FilterMatchesByWindow(matches, windowStart, legacy)
+
+	ids := map[int64]bool{}
+	for _, m := range got {
+		ids[m.MatchID] = true
+	}
+	if len(got) != 2 || !ids[3] || !ids[4] {
+		t.Fatalf("ожидались только матчи мейн-ивента (3,4), получено %d: %v", len(got), ids)
+	}
+	if ids[1] || ids[2] {
+		t.Fatal("квал-матчи legacy-лиги просочились в датасет")
+	}
+}
+
+// Не-legacy лига окном режется как раньше — правило мейн-ивента её не касается.
+func TestFilterMatchesByWindowStillWindowsRollingLeagues(t *testing.T) {
+	day := int64(24 * 60 * 60)
+	windowStart := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
+	rolling := []opendota.League{{LeagueID: 999, Name: "DreamLeague Season 22", Tier: "professional"}}
+	matches := []normalize.NormalizedMatch{
+		{MatchID: 1, LeagueID: 999, StartTime: windowStart - 100*day, Duration: 2400}, // вне окна
+		{MatchID: 2, LeagueID: 999, StartTime: windowStart + 10*day, Duration: 2400},  // в окне
+	}
+	got := FilterMatchesByWindow(matches, windowStart, rolling)
+	if len(got) != 1 || got[0].MatchID != 2 {
+		t.Fatalf("rolling-лига должна резаться окном, получено: %+v", got)
+	}
+}

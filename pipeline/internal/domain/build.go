@@ -29,11 +29,46 @@ type Input struct {
 	WindowStartUnix    int64
 }
 
+// legacyStageGapDays — разрыв в днях, с которого матчи считаются другой стадией лиги.
+// Квалы TI отделены от мейн-ивента неделями (TI2015: квалы май, мейн — конец июля, разрыв 55
+// дней), а перерыв внутри мейна между группами и плей-офф — 2-3 дня. 14 дней разводит их с
+// запасом: результат одинаков при 7, 14 и 30 (проверено на TI2014..TI2023).
+const legacyStageGapDays = 14
+
+// mainEventMatches — матчи ПОСЛЕДНЕГО непрерывного блока лиги, то есть основного турнира.
+// Зачем: в OpenDota квалификации сидят ВНУТРИ того же leagueId, что и мейн-ивент, — у TI2015
+// 59 команд вместо 16, у TI2017 — 70 вместо 18. Фильтр по имени (tier1.IsTier1) их не берёт,
+// он отсекает лишь отдельные квал-турниры. Отделять по числу игр нельзя: в квалах тоже
+// round-robin, 48 из 58 команд TI2015 имеют >=8 игр. А вот по датам блок отбивается чисто —
+// TI2014 53→19, TI2018 55→18, TI2019 59→18, TI2021 88→18 (все в точку).
+//
+// ВНИМАНИЕ: правило не универсально. Если квалы шли без разрыва с мейном (ESL One Fall 2021:
+// один блок, 121 команда), оно не поможет — для таких нужна стадия матча, которой OpenDota не
+// отдаёт. Поэтому применяем только к legacy-лигам, где эффект замерен.
+func mainEventMatches(matches []normalize.NormalizedMatch) []normalize.NormalizedMatch {
+	if len(matches) < 2 {
+		return matches
+	}
+	sorted := make([]normalize.NormalizedMatch, len(matches))
+	copy(sorted, matches)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].StartTime < sorted[j].StartTime })
+	gap := int64(legacyStageGapDays) * 24 * 60 * 60
+	start := 0
+	for i := 1; i < len(sorted); i++ {
+		if sorted[i].StartTime-sorted[i-1].StartTime > gap {
+			start = i
+		}
+	}
+	return sorted[start:]
+}
+
 // FilterMatchesByWindow оставляет матчи с startTime >= windowStart (0 = без фильтра),
 // НО пропускает valve_legacy-лиги (все TI + Valve Major) независимо от окна: формат
 // valve_legacy обещает «все TI за всю историю», а rolling-окно (last_5y) резало их до
 // 2021 года. Коллектор такие лиги специально тянет всей историей (WindowStartUnix: 0),
 // и раньше этот фильтр их тут же выбрасывал — TI2011..TI2019 не доживали до BuildEvents.
+// От legacy-лиги берём только мейн-ивент (mainEventMatches) — иначе вместе с TI приезжают
+// его же квалы, сидящие под тем же leagueId.
 func FilterMatchesByWindow(matches []normalize.NormalizedMatch, windowStart int64, leagues []opendota.League) []normalize.NormalizedMatch {
 	if windowStart <= 0 {
 		out := make([]normalize.NormalizedMatch, len(matches))
@@ -46,11 +81,24 @@ func FilterMatchesByWindow(matches []normalize.NormalizedMatch, windowStart int6
 			legacy[league.LeagueID] = struct{}{}
 		}
 	}
+	byLegacyLeague := make(map[int64][]normalize.NormalizedMatch)
 	out := make([]normalize.NormalizedMatch, 0, len(matches))
 	for _, match := range matches {
-		if _, isLegacy := legacy[match.LeagueID]; isLegacy || match.StartTime >= windowStart {
+		if _, isLegacy := legacy[match.LeagueID]; isLegacy {
+			byLegacyLeague[match.LeagueID] = append(byLegacyLeague[match.LeagueID], match)
+			continue
+		}
+		if match.StartTime >= windowStart {
 			out = append(out, match)
 		}
+	}
+	leagueIDs := make([]int64, 0, len(byLegacyLeague))
+	for id := range byLegacyLeague {
+		leagueIDs = append(leagueIDs, id)
+	}
+	sort.Slice(leagueIDs, func(i, j int) bool { return leagueIDs[i] < leagueIDs[j] })
+	for _, id := range leagueIDs {
+		out = append(out, mainEventMatches(byLegacyLeague[id])...)
 	}
 	return out
 }

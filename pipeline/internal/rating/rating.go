@@ -41,6 +41,8 @@ import "github.com/aegis-draft/pipeline/internal/model"
 // их же ролл с 6.8 как GREAT вместо INSANE.
 // (5) valve_legacy больше не режется rolling-окном: коллектор тянул TI2011..TI2019 всей
 // историей, а FilterMatchesByWindow тут же их выбрасывал — формат жил на 2021+ вместо 2011+.
+// От legacy-лиги берётся только МЕЙН-ИВЕНТ (последний непрерывный блок матчей): квалы в
+// OpenDota сидят под тем же leagueId, и без этого TI2015 давал 59 команд вместо 16.
 const ModelVersion = "v1.8.0"
 
 type ImpactMetricWeights struct {
