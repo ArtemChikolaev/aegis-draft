@@ -69,6 +69,12 @@ jobs:
       - name: Sanity check (непустой датасет)
         run: |
           node -e "const p=require('./web/public/data/packs.json'); if(!Array.isArray(p)||p.length===0){console.error('пустой packs.json — не коммитим');process.exit(1)}; console.log('packs:',p.length)"
+      # Форма датасета: размеры файлов, состав squadSynergy, команд на valve_legacy-событие.
+      # Ловит протечку квалов внутрь leagueId (реальный TI = 16–20 команд, с квалами = 40–70)
+      # и рост файлов. Локально не проверить — сырьё живёт в кэше этого джоба.
+      - name: Форма датасета (файлы, группы, valve_legacy)
+        continue-on-error: true
+        run: node .claude/skills/data-contract/tools/dataset_shape.mjs
       # Калибровка шкалы OVR — единственное место, где её видно на ПОЛНОМ датасете: сырьё
       # OpenDota живёт в кэше этого джоба, локально его не пересобрать (Free Tier ~дни).
       # Печатает распределение против референса и константы для rating.Default(). Сеть до
