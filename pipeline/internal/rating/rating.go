@@ -43,7 +43,18 @@ import "github.com/aegis-draft/pipeline/internal/model"
 // историей, а FilterMatchesByWindow тут же их выбрасывал — формат жил на 2021+ вместо 2011+.
 // От legacy-лиги берётся только МЕЙН-ИВЕНТ (последний непрерывный блок матчей): квалы в
 // OpenDota сидят под тем же leagueId, и без этого TI2015 давал 59 команд вместо 16.
-const ModelVersion = "v1.8.0"
+// v1.9.0 — BASE стал КОМАНДНЫМ. Замер их packs.json: OVR игрока у 322-0 на 92% объясняется
+// тем, как сыграла его команда на событии, и лишь на 8% им самим (разброс OVR внутри команды
+// 2.0 при общем sd 7.8; корреляция placement и team base −0.858). У нас было 54/46 — и на
+// составе Falcons, ВЫИГРАВШЕМ турнир, выходило 96 у AMMAR_THE_F и 71 у Malr1ne.
+// OVR = calib( W·ранг_команды_на_событии + (1−W)·ранг_индивидуальный ), W = TeamComponentWeight.
+// Ранг команды — перцентиль по сглаженному winrate НА СОБЫТИИ (teamRanks): настоящий placement
+// из OpenDota не достать, победы на турнире — прямой его прокси.
+// Следствие, а не баг: OVR больше НЕ равен взвешенной сумме показанных IMP/ECO/REL — у 322-0
+// ровно так же, расхождение доходит до 21.7. Компоненты остаются чисто индивидуальными.
+// Формулу их Base из бандла достать нельзя (ovr приходит готовым из их пайплайна) — модель
+// выведена из поведения их данных.
+const ModelVersion = "v1.9.0"
 
 type ImpactMetricWeights struct {
 	KDA           float64
@@ -101,8 +112,14 @@ type Config struct {
 	// распределения референса, НЕ на глаз:
 	//   node .claude/skills/scoring-model/tools/calibrate_ovr.mjs
 	// Прогонять после каждого рефреша: состав пула меняет sd, а с ним и Spread.
-	CalibrationMid      float64
-	CalibrationSpread   float64
+	CalibrationMid    float64
+	CalibrationSpread float64
+	// TeamComponentWeight — доля ранга КОМАНДЫ на событии в OVR игрока (0 = чистая
+	// индивидуалка, 1 = только команда). У 322-0 замерено 92% дисперсии OVR — командные,
+	// 8% — индивидуальные (разброс OVR внутри команды 2.0 при общем sd 7.8). У нас без
+	// этого было 54/46, и на выигравшем турнир составе выходило 96 у одного и 71 у другого.
+	// Тюнится по ЗАМЕРУ внутрикомандного разброса (цель ~2.0), а не на глаз.
+	TeamComponentWeight float64
 	SamplePriorGames    float64
 	ImpactWeights       ImpactMetricWeights
 	EconomyWeights      EconomyMetricWeights
@@ -128,10 +145,13 @@ func Default() Config {
 		// давали mean 74.7 / sd 7.4 — ранг центрирован не ровно в 50 (перцентиль с ties +
 		// веса ролей + округление), поэтому Mid — это поправка, а не цель.
 		CalibrationMid: 73.5, CalibrationSpread: 0.639,
-		SamplePriorGames:   8,
-		ImpactWeights:      ImpactMetricWeights{KDA: 0.35, Participation: 0.30, DamagePerMin: 0.35},
-		EconomyWeights:     EconomyMetricWeights{GPM: 0.45, XPM: 0.35, LastHitsPerMin: 0.20},
-		ReliabilityWeights: ReliabilityMetricWeights{Survival: 0.65, Consistency: 0.35},
+		// Стартовое значение: наш разброс OVR внутри команды 4.9, цель 2.0 ⇒ доля
+		// индивидуального ≈ 2.0/4.9 = 0.41. Уточнить по сухому прогону.
+		TeamComponentWeight: 0.6,
+		SamplePriorGames:    8,
+		ImpactWeights:       ImpactMetricWeights{KDA: 0.35, Participation: 0.30, DamagePerMin: 0.35},
+		EconomyWeights:      EconomyMetricWeights{GPM: 0.45, XPM: 0.35, LastHitsPerMin: 0.20},
+		ReliabilityWeights:  ReliabilityMetricWeights{Survival: 0.65, Consistency: 0.35},
 		RoleWeights: map[model.Role]ComponentWeights{
 			model.RoleSafelane: {Impact: 0.40, Economy: 0.45, Reliability: 0.15},
 			model.RoleMid:      {Impact: 0.45, Economy: 0.40, Reliability: 0.15},

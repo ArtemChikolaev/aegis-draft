@@ -14,6 +14,8 @@ type MatchPerformance struct {
 	MatchID         int64
 	AccountID       int
 	Role            model.Role
+	TeamID          int  // нужен для командного члена OVR — см. teamRanks
+	Won             bool // исход матча для команды игрока
 	DurationSeconds int
 	Kills           int
 	Deaths          int
@@ -40,12 +42,76 @@ type ratingKey struct {
 	role      model.Role
 }
 
+// teamRanks — ранг каждой команды события по её выступлению НА ЭТОМ событии: сглаженный
+// winrate, переведённый в перцентиль среди команд события. Прокси места: настоящего
+// placement из OpenDota не достать (deferred), а победы на турнире — прямое его отражение.
+//
+// Зачем вообще: у 322-0 OVR игрока на 92% определяется тем, как сыграла его команда, и лишь
+// на 8% им самим (замер их packs.json: разброс OVR внутри команды 2.0 при общем sd 7.8;
+// корреляция места и team base −0.858). У нас было 54/46 — отсюда AMMAR 96 и Malr1ne 71 в
+// составе, выигравшем турнир. Индивидуальные IMP/ECO/REL при этом остаются собой.
+func teamRanks(samples []MatchPerformance, cfg Config) map[int]float64 {
+	type record struct{ games, wins int }
+	perTeam := make(map[int]*record)
+	seen := make(map[[2]int]struct{}, len(samples)) // матч×команда считаем один раз, не по 5 игрокам
+	for _, sample := range samples {
+		if sample.TeamID <= 0 {
+			continue
+		}
+		entry := perTeam[sample.TeamID]
+		if entry == nil {
+			entry = &record{}
+			perTeam[sample.TeamID] = entry
+		}
+		key := [2]int{int(sample.MatchID), sample.TeamID}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		entry.games++
+		if sample.Won {
+			entry.wins++
+		}
+	}
+	teamIDs := make([]int, 0, len(perTeam))
+	for id := range perTeam {
+		teamIDs = append(teamIDs, id)
+	}
+	sort.Ints(teamIDs) // детерминизм
+	// Сглаживание обязательно: команда 2-0 на вылете не должна обгонять чемпиона 24-8.
+	strength := make(map[int]float64, len(teamIDs))
+	for _, id := range teamIDs {
+		entry := perTeam[id]
+		strength[id] = (float64(entry.wins) + cfg.SmoothM*cfg.SmoothMu) / (float64(entry.games) + cfg.SmoothM)
+	}
+	out := make(map[int]float64, len(teamIDs))
+	for _, id := range teamIDs {
+		if len(teamIDs) <= 1 {
+			out[id] = 50
+			continue
+		}
+		less, equal := 0, 0
+		for _, other := range teamIDs {
+			switch {
+			case strength[other] < strength[id]:
+				less++
+			case math.Abs(strength[other]-strength[id]) < 1e-12:
+				equal++
+			}
+		}
+		out[id] = 100 * (float64(less) + 0.5*float64(equal-1)) / float64(len(teamIDs)-1)
+	}
+	return out
+}
+
 type group struct {
 	key    ratingKey
+	teamID int
 	games  []gameMetrics
 	raw    [metricCount]float64
 	shrunk [metricCount]float64
-	scores [metricCount]float64
+	ranks  [metricCount]float64 // перцентиль-ранг ДО калибровки — из него собирается OVR
+	scores [metricCount]float64 // ранг, перенесённый на шкалу OVR — из него IMP/ECO/REL
 }
 
 type gameMetrics struct {
@@ -77,7 +143,7 @@ func RatePlayers(scopeID string, samples []MatchPerformance, cfg Config) ([]Play
 		key := ratingKey{accountID: sample.AccountID, role: sample.Role}
 		entry := groups[key]
 		if entry == nil {
-			entry = &group{key: key}
+			entry = &group{key: key, teamID: sample.TeamID}
 			groups[key] = entry
 		}
 		entry.games = append(entry.games, metricsOf(sample))
@@ -96,17 +162,37 @@ func RatePlayers(scopeID string, samples []MatchPerformance, cfg Config) ([]Play
 	})
 	shrinkByRole(ordered, cfg.SamplePriorGames)
 	normalizeByRole(ordered, cfg.SamplePriorGames, cfg.CalibrationMid, cfg.CalibrationSpread)
+	byTeam := teamRanks(samples, cfg)
 
 	result := make([]PlayerRating, 0, len(ordered))
 	for _, entry := range ordered {
+		// IMP/ECO/REL — чисто индивидуальные, на калиброванной шкале: их и показываем.
 		impact := entry.scores[0]*cfg.ImpactWeights.KDA + entry.scores[1]*cfg.ImpactWeights.Participation + entry.scores[2]*cfg.ImpactWeights.DamagePerMin
 		economy := entry.scores[3]*cfg.EconomyWeights.GPM + entry.scores[4]*cfg.EconomyWeights.XPM + entry.scores[5]*cfg.EconomyWeights.LastHitsPerMin
 		reliability := entry.scores[6]*cfg.ReliabilityWeights.Survival + entry.scores[7]*cfg.ReliabilityWeights.Consistency
 		weights := cfg.RoleWeights[entry.key.role]
+
+		// OVR собирается из РАНГОВ (до калибровки), потому что к ним подмешивается ранг команды.
+		// Смешивать на калиброванной шкале нельзя: калибровка аффинна, и повторное применение
+		// сдвинуло бы центр. Отсюда же следует, что OVR ПЕРЕСТАЁТ быть взвешенной суммой
+		// показанных IMP/ECO/REL — ровно как у 322-0, где расхождение доходит до 21.7.
+		individualRank := combine(
+			entry.ranks[0]*cfg.ImpactWeights.KDA+entry.ranks[1]*cfg.ImpactWeights.Participation+entry.ranks[2]*cfg.ImpactWeights.DamagePerMin,
+			entry.ranks[3]*cfg.EconomyWeights.GPM+entry.ranks[4]*cfg.EconomyWeights.XPM+entry.ranks[5]*cfg.EconomyWeights.LastHitsPerMin,
+			entry.ranks[6]*cfg.ReliabilityWeights.Survival+entry.ranks[7]*cfg.ReliabilityWeights.Consistency,
+			weights,
+		)
+		teamRank, hasTeam := byTeam[entry.teamID]
+		if !hasTeam {
+			teamRank = individualRank // нет команды у сэмпла — падаем на чистую индивидуалку
+		}
+		rank := cfg.TeamComponentWeight*teamRank + (1-cfg.TeamComponentWeight)*individualRank
+		ovr := cfg.CalibrationMid + (rank-50)*cfg.CalibrationSpread
+
 		result = append(result, PlayerRating{
 			AccountID: entry.key.accountID, Role: entry.key.role, Games: len(entry.games),
 			Impact: rounded(impact), Economy: rounded(economy), Reliability: rounded(reliability),
-			OVR: rounded(combine(impact, economy, reliability, weights)),
+			OVR: rounded(ovr),
 		})
 	}
 	return result, nil
@@ -225,6 +311,7 @@ func normalizeByRole(groups []*group, priorGames, calibrationMid, calibrationSpr
 				percentile := percentileRank(entry.shrunk[metric], cohort, metric, metric != 6)
 				confidence := effectiveGames(entry, metric) / (effectiveGames(entry, metric) + priorGames)
 				rank := 50 + (percentile-50)*confidence
+				entry.ranks[metric] = rank
 				entry.scores[metric] = calibrationMid + (rank-50)*calibrationSpread
 			}
 		}
@@ -294,6 +381,9 @@ func validateSample(sample MatchPerformance) error {
 }
 
 func validateConfig(cfg Config) error {
+	if !finite(cfg.TeamComponentWeight) || cfg.TeamComponentWeight < 0 || cfg.TeamComponentWeight > 1 {
+		return fmt.Errorf("invalid team component weight %v (want 0..1)", cfg.TeamComponentWeight)
+	}
 	if !finite(cfg.CalibrationMid) || cfg.CalibrationMid <= 0 || cfg.CalibrationMid > 100 ||
 		!finite(cfg.CalibrationSpread) || cfg.CalibrationSpread <= 0 {
 		return fmt.Errorf("invalid OVR calibration mid/spread")

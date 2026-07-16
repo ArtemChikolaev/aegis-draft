@@ -33,6 +33,7 @@ func matchPerformances(matches []normalize.NormalizedMatch, roleByAccount map[in
 			}
 			out = append(out, rating.MatchPerformance{
 				MatchID: match.MatchID, AccountID: app.AccountID, Role: role,
+				TeamID: app.TeamID, Won: teamWon(match, app.TeamID),
 				DurationSeconds: match.Duration, Kills: app.Kills, Deaths: app.Deaths, Assists: app.Assists,
 				TeamKills: teamKills[app.TeamID], GoldPerMin: app.GoldPerMin, XPPerMin: app.XPPerMin,
 				LastHits: app.LastHits, HeroDamage: app.HeroDamage,

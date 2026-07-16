@@ -134,3 +134,83 @@ func findRating(t *testing.T, ratings []PlayerRating, accountID int) PlayerRatin
 	t.Fatalf("missing rating for %d", accountID)
 	return PlayerRating{}
 }
+
+// v1.9.0: OVR игрока на большую часть определяется тем, как сыграла его КОМАНДА на событии.
+// Без этого на выигравшем турнир составе выходило 96 у одного игрока и 71 у другого (замер
+// 322-0: 92% дисперсии OVR — командные, разброс внутри команды 2.0 при общем sd 7.8).
+func TestRatePlayersOVRFollowsTeamResultNotOnlyIndividualStats(t *testing.T) {
+	cfg := Default()
+	// Две команды. Слабый по личной статистике игрок (acc 2) в команде-победителе против
+	// сильного по личной статистике (acc 11) в команде, проигравшей всё.
+	var samples []MatchPerformance
+	for i := 0; i < 10; i++ {
+		winner := i%2 == 0 // команда 100 выигрывает все матчи, команда 200 — ни одного
+		samples = append(samples,
+			// Победители: скромная личная статистика.
+			perf(int64(i*2+1), 1, 100, true, model.RoleMid, 6, 3, 8, 500),
+			perf(int64(i*2+1), 2, 100, true, model.RoleSafelane, 5, 4, 6, 450),
+			// Проигравшие: раздутая личная статистика (фарм на проигранной карте).
+			perf(int64(i*2+1), 11, 200, false, model.RoleMid, 12, 5, 10, 800),
+			perf(int64(i*2+1), 12, 200, false, model.RoleSafelane, 11, 5, 9, 780),
+		)
+		_ = winner
+	}
+	ratings, err := RatePlayers("event-team", samples, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	winnerCarry := findRating(t, ratings, 2)
+	loserMid := findRating(t, ratings, 11)
+
+	// Личная статистика у проигравшего мида ВЫШЕ — это ожидаемо и остаётся в компонентах.
+	if loserMid.Economy <= winnerCarry.Economy {
+		t.Fatalf("фикстура не воспроизводит случай: ECO проигравшего (%d) должен быть выше победителя (%d)",
+			loserMid.Economy, winnerCarry.Economy)
+	}
+	// Но OVR обязан следовать за результатом команды.
+	if winnerCarry.OVR <= loserMid.OVR {
+		t.Errorf("OVR игрока команды-победителя (%d) должен быть выше игрока команды, проигравшей всё (%d)",
+			winnerCarry.OVR, loserMid.OVR)
+	}
+}
+
+// Внутри одной команды OVR не должен разъезжаться так, как личная статистика.
+func TestRatePlayersOVRSpreadWithinTeamIsTighterThanComponents(t *testing.T) {
+	cfg := Default()
+	var samples []MatchPerformance
+	for i := 0; i < 10; i++ {
+		samples = append(samples,
+			perf(int64(i*2+1), 1, 100, true, model.RoleMid, 14, 2, 12, 900),    // звезда
+			perf(int64(i*2+1), 2, 100, true, model.RoleSafelane, 3, 7, 4, 300), // тащат
+			perf(int64(i*2+1), 11, 200, false, model.RoleMid, 6, 6, 6, 500),
+			perf(int64(i*2+1), 12, 200, false, model.RoleSafelane, 6, 6, 6, 500),
+		)
+	}
+	ratings, err := RatePlayers("event-spread", samples, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	star := findRating(t, ratings, 1)
+	passenger := findRating(t, ratings, 2)
+	ovrGap := abs(star.OVR - passenger.OVR)
+	ecoGap := abs(star.Economy - passenger.Economy)
+	if ovrGap >= ecoGap {
+		t.Errorf("разрыв OVR внутри команды (%d) должен быть МЕНЬШЕ разрыва ECO (%d): командный член его гасит",
+			ovrGap, ecoGap)
+	}
+}
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func perf(matchID int64, acc, team int, won bool, role model.Role, kills, deaths, assists, gpm int) MatchPerformance {
+	return MatchPerformance{
+		MatchID: matchID, AccountID: acc, TeamID: team, Won: won, Role: role,
+		DurationSeconds: 2400, Kills: kills, Deaths: deaths, Assists: assists, TeamKills: 30,
+		GoldPerMin: gpm, XPPerMin: gpm - 40, LastHits: gpm / 3, HeroDamage: gpm * 30,
+	}
+}

@@ -95,6 +95,29 @@ console.log(`
    CalibrationSpread: ${Math.round(spread * 1000) / 1000}
    (ранг: mean=${Math.round(rankMean * 10) / 10} sd=${Math.round(rankSd * 10) / 10} -> цель mean=${Math.round(mean(refOvr) * 10) / 10} sd=${Math.round(sd(refOvr) * 10) / 10})`);
 
+// Разброс ВНУТРИ команды — чем тюнится TeamComponentWeight. У 322-0 OVR игрока на 92%
+// определяется командой: их пятёрка укладывается в 2.0, при том что компоненты гуляют на
+// 4–6. Если наш разброс OVR заметно выше — вес командного члена мал, и на выигравшем
+// турнир составе снова выйдет 96 у одного и 71 у другого.
+const withinSpread = (packs, field) =>
+  mean(packs.map((p) => sd(p.players.map((pl) => pl[field]))));
+console.log(`
+Разброс ВНУТРИ команды (цель — как у 322-0; тюнится TeamComponentWeight):`);
+console.log(`  ${"поле".padEnd(13)} ${"наш".padStart(5)} ${"322-0".padStart(6)}`);
+for (const field of ["ovr", "impact", "economy", "reliability"]) {
+  const a = withinSpread(ours, field);
+  const b = withinSpread(ref, field);
+  const flag = field === "ovr" && a > b * 1.4 ? "  ⚠️ командный член слаб" : "";
+  console.log(`  ${field.padEnd(13)} ${a.toFixed(1).padStart(5)} ${b.toFixed(1).padStart(6)}${flag}`);
+}
+// Доля «командного» в дисперсии OVR игрока: 1 − внутрикомандная / общая.
+const teamShare = (packs) => {
+  const all = packs.flatMap((p) => p.players.map((pl) => pl.ovr));
+  const within = mean(packs.map((p) => sd(p.players.map((pl) => pl.ovr)) ** 2));
+  return 100 * (1 - within / sd(all) ** 2);
+};
+console.log(`  доля команды в OVR: наш ${teamShare(ours).toFixed(0)}%  vs 322-0 ${teamShare(ref).toFixed(0)}%`);
+
 console.log(`
 Куда попадает драфт (Base + ~8 за synergy/chemistry) в поле ботов (медиана ${BOT_FIELD_MEDIAN}):`);
 const bases = basesOf(ours);
