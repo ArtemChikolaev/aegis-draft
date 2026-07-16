@@ -78,22 +78,23 @@ console.log(row("РЕФЕРЕНС player OVR", refOvr));
 console.log(row("НАШ team base", basesOf(ours)));
 console.log(row("РЕФЕРЕНС team base", basesOf(ref)));
 
-// Наблюдаемый OVR = Mid_cur + (rank - 50) * Spread_cur. Восстанавливаем статистику РАНГА и
-// решаем под целевое распределение — иначе «константа» = цель, а не поправка, и она врёт:
-// при Mid=74.1 данные дают mean 74.7, потому что ранг центрирован не ровно в 50 (перцентиль с
-// ties + веса ролей + округление). Текущие значения обязаны совпадать с rating.Default().
+// Наблюдаемый OVR = Mid_cur + z·Spread_cur (z-смешивание, см. rating.probit). Восстанавливаем
+// статистику z и решаем под целевое распределение — иначе «константа» = цель, а не поправка.
+// CUR_* ОБЯЗАНЫ совпадать с rating.Default(): один раз они протухли (остались 73.8/0.426 из
+// аффинной эпохи, когда в конфиге уже стояло 74.1/12.3) — инструмент насчитал Spread=0.458
+// вместо 13.1, то есть полную чушь. Расходятся — правь здесь.
 const CUR_MID = Number(process.env.CAL_MID ?? 73.8);
-const CUR_SPREAD = Number(process.env.CAL_SPREAD ?? 0.426);
-const rankMean = 50 + (mean(ourOvr) - CUR_MID) / CUR_SPREAD;
-const rankSd = sd(ourOvr) / CUR_SPREAD;
-const spread = sd(refOvr) / rankSd;
-const mid = mean(refOvr) - (rankMean - 50) * spread;
+const CUR_SPREAD = Number(process.env.CAL_SPREAD ?? 13.1);
+const zMean = (mean(ourOvr) - CUR_MID) / CUR_SPREAD;
+const zSd = sd(ourOvr) / CUR_SPREAD;
+const spread = sd(refOvr) / zSd;
+const mid = mean(refOvr) - zMean * spread;
 console.log(`
 => КОНСТАНТЫ для rating.Default() (текущие: Mid=${CUR_MID} Spread=${CUR_SPREAD};
    переопределить — CAL_MID/CAL_SPREAD в env):
    CalibrationMid:    ${Math.round(mid * 10) / 10}
-   CalibrationSpread: ${Math.round(spread * 1000) / 1000}
-   (ранг: mean=${Math.round(rankMean * 10) / 10} sd=${Math.round(rankSd * 10) / 10} -> цель mean=${Math.round(mean(refOvr) * 10) / 10} sd=${Math.round(sd(refOvr) * 10) / 10})`);
+   CalibrationSpread: ${Math.round(spread * 10) / 10}
+   (z: mean=${Math.round(zMean * 1000) / 1000} sd=${Math.round(zSd * 1000) / 1000} -> цель mean=${Math.round(mean(refOvr) * 10) / 10} sd=${Math.round(sd(refOvr) * 10) / 10})`);
 
 // Разброс ВНУТРИ команды — чем тюнится TeamComponentWeight. У 322-0 OVR игрока на 92%
 // определяется командой: их пятёрка укладывается в 2.0, при том что компоненты гуляют на

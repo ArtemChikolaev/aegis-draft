@@ -153,9 +153,10 @@ func Default() Config {
 		// Цели замерены у 322-0: mean 74.1, sd 7.8, разброс внутри команды 2.0, доля
 		// команды 92%. Spread и TeamComponentWeight СВЯЗАНЫ — порознь не тюнить: обе цели
 		// зависят от обеих ручек. При sd(teamZ)=1, sd(indivZ)=0.426 и их корреляции 0.86
-		//   sd(z) = sqrt(W² + (1−W)²·0.426² + 2W(1−W)·0.86·0.426) = 0.633 при W=0.40
-		//   Spread = 7.8 / 0.633 = 12.3   ⇒ внутрикомандный = 12.3·0.6·0.271 = 2.0 ✓
-		CalibrationMid: 74.1, CalibrationSpread: 12.3,
+		// Замер прогона (z-смешивание, W=0.40): sd(z)=0.593, mean(z)=0.024 ⇒
+		//   Spread = 7.8 / 0.593 = 13.1,  Mid = 74.1 − 0.024·13.1 = 73.8
+		// При них: sd 7.8, внутрикомандный 2.0, доля команды 92% — все три как у 322-0.
+		CalibrationMid: 73.8, CalibrationSpread: 13.1,
 		TeamComponentWeight: 0.40,
 		SamplePriorGames:    8,
 		ImpactWeights:       ImpactMetricWeights{KDA: 0.35, Participation: 0.30, DamagePerMin: 0.35},
