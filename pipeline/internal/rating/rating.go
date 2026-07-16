@@ -108,10 +108,11 @@ type Config struct {
 func Default() Config {
 	return Config{
 		SmoothMu: 0.5, SmoothM: 10, PeakWindowD: 120, PeakMinN: 15,
-		// Стартовые константы калибровки — замер референса (322-0 packs.json, 3516 игроков):
-		// mean 74.1, sd 7.8. Spread — отношение целевого sd к нашему после фильтра квалов
-		// (7.8/12.9). Обе ПОДЛЕЖАТ пересчёту после каждого рефреша: tools/calibrate_ovr.mjs.
-		CalibrationMid: 74.1, CalibrationSpread: 0.606,
+		// Замерено на сухом прогоне 2026-07-16 (1075 паков после фильтра квалов) против
+		// референса (322-0 packs.json, 3516 игроков: mean 74.1, sd 7.8). Прошлые 74.1/0.606
+		// давали mean 74.7 / sd 7.4 — ранг центрирован не ровно в 50 (перцентиль с ties +
+		// веса ролей + округление), поэтому Mid — это поправка, а не цель.
+		CalibrationMid: 73.5, CalibrationSpread: 0.639,
 		SamplePriorGames:   8,
 		ImpactWeights:      ImpactMetricWeights{KDA: 0.35, Participation: 0.30, DamagePerMin: 0.35},
 		EconomyWeights:     EconomyMetricWeights{GPM: 0.45, XPM: 0.35, LastHitsPerMin: 0.20},

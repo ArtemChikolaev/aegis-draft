@@ -78,22 +78,51 @@ console.log(row("РЕФЕРЕНС player OVR", refOvr));
 console.log(row("НАШ team base", basesOf(ours)));
 console.log(row("РЕФЕРЕНС team base", basesOf(ref)));
 
-// Наблюдаемый OVR уже прошёл текущую калибровку. Восстанавливаем ранг, чтобы константы
-// не зависели от того, с какими значениями собран текущий датасет.
-const spread = sd(refOvr) / sd(ourOvr);
-const mid = mean(refOvr);
+// Наблюдаемый OVR = Mid_cur + (rank - 50) * Spread_cur. Восстанавливаем статистику РАНГА и
+// решаем под целевое распределение — иначе «константа» = цель, а не поправка, и она врёт:
+// при Mid=74.1 данные дают mean 74.7, потому что ранг центрирован не ровно в 50 (перцентиль с
+// ties + веса ролей + округление). Текущие значения обязаны совпадать с rating.Default().
+const CUR_MID = Number(process.env.CAL_MID ?? 73.5);
+const CUR_SPREAD = Number(process.env.CAL_SPREAD ?? 0.639);
+const rankMean = 50 + (mean(ourOvr) - CUR_MID) / CUR_SPREAD;
+const rankSd = sd(ourOvr) / CUR_SPREAD;
+const spread = sd(refOvr) / rankSd;
+const mid = mean(refOvr) - (rankMean - 50) * spread;
 console.log(`
-=> КОНСТАНТЫ для rating.Default() (умножаются на ТЕКУЩИЕ, если датасет уже калиброван):
+=> КОНСТАНТЫ для rating.Default() (текущие: Mid=${CUR_MID} Spread=${CUR_SPREAD};
+   переопределить — CAL_MID/CAL_SPREAD в env):
    CalibrationMid:    ${Math.round(mid * 10) / 10}
-   CalibrationSpread: ${Math.round(spread * 1000) / 1000}  (= sd_реф ${Math.round(sd(refOvr) * 10) / 10} / sd_наш ${Math.round(sd(ourOvr) * 10) / 10})`);
+   CalibrationSpread: ${Math.round(spread * 1000) / 1000}
+   (ранг: mean=${Math.round(rankMean * 10) / 10} sd=${Math.round(rankSd * 10) / 10} -> цель mean=${Math.round(mean(refOvr) * 10) / 10} sd=${Math.round(sd(refOvr) * 10) / 10})`);
 
 console.log(`
 Куда попадает драфт (Base + ~8 за synergy/chemistry) в поле ботов (медиана ${BOT_FIELD_MEDIAN}):`);
 const bases = basesOf(ours);
-for (const [label, p] of [["средний пак", 0.5], ["хороший (p90)", 0.9], ["отличный (p99)", 0.99], ["лучший", 1]]) {
+for (const [label, p] of [["средний пак", 0.5], ["хороший (p90)", 0.9], ["отличный (p99)", 0.99], ["лучший пак", 1]]) {
   const base = pct(bases, p);
   console.log(`  ${label.padEnd(16)} base=${(Math.round(base * 10) / 10).toString().padStart(5)} -> OVR ${(Math.round((base + 8) * 10) / 10).toString().padStart(5)} -> место ${avgPlace(base + 8).toFixed(1)}`);
 }
+
+// ПОТОЛОК ЧЕРРИ-ПИКА — та цифра, которую видит игрок. Строки выше берут пятёрку ОДНОГО пака;
+// игра же собирает по игроку из разных, поэтому реальный максимум заметно выше «лучшего пака».
+// (На этом я один раз уже ошибся, назвав потолком лучший пак.) 322-0 здесь даёт ~105; игроки
+// собирают 102. Если наш потолок сильно ниже — верх шкалы не дотягивает.
+function cherryPick(packs) {
+  const byRole = {};
+  for (const p of packs) for (const pl of p.players) (byRole[pl.role] ??= []).push(pl.ovr);
+  for (const r of Object.keys(byRole)) byRole[r].sort((a, b) => b - a);
+  const five = [byRole.safelane?.[0], byRole.mid?.[0], byRole.offlane?.[0], byRole.support?.[0], byRole.support?.[1]];
+  return five.some((x) => x == null) ? null : { five, base: mean(five) };
+}
+const ourTop = cherryPick(ours);
+const refTop = cherryPick(ref);
 console.log(`
-Здоровый расклад: средний пак ~середина, хороший ~топ-3, лучший ~1. Если ВСЁ упирается
-в 18 — шкалы разъехались, и никакой тюнинг synergy/chemistry этого не починит.`);
+Потолок черри-пика (лучший по каждой роли во всём пуле — так и собирает игрок):`);
+for (const [label, t] of [["НАШ", ourTop], ["322-0", refTop]]) {
+  if (!t) continue;
+  console.log(`  ${label.padEnd(6)} ${t.five.join("/")} -> base ${(Math.round(t.base * 10) / 10).toString().padStart(5)} -> Team OVR ~${Math.round((t.base + 9) * 10) / 10}`);
+}
+console.log(`
+Здоровый расклад: средний пак ~середина, хороший ~топ-3, лучший ~1, потолок черри-пика
+близко к 322-0. Если ВСЁ упирается в 18 — шкалы разъехались, и никакой тюнинг
+synergy/chemistry этого не починит.`);
