@@ -345,12 +345,12 @@ Career-best форма игрока, **не привязанная к турни
 - [x] Единый `accountId` и сглаживание в контракте/моках; реальные данные ещё не собраны.
 
 ### 6.2. После MVP
-- [ ] Остальные форматы (`last_1y`, `last_5y`, `valve_legacy`).
+- [x] Остальные форматы (`last_1y`, `last_5y`, `valve_legacy`). Все четыре в датасете и выбираются на старте (`formatAvailable` = `manifest.formats`); `valve_legacy` собирается отдельной осью по `tier1.IsValveLegacy` (BACKLOG M2.5/B). Замер live 2026-07-17: `last_1y` 18 событий, `last_2y` 37, `last_5y` 69, `valve_legacy` 30. Окно формата выводится от даты сборки — источник истины `formats.Assign`.
 - [ ] **Peak Rating** (если не вошёл в MVP).
 - [ ] **Daily challenge** (общий сид дня + лидерборд) → здесь появляется Go API.
 - [x] Сохранение забегов/история; **career-статистика** (места 1st/2nd/…/Last, undefeated/flawless, games won/lost, last N runs с ростерами — как в 322-0). Спека и подход — BACKLOG `TREF-CAREER1`. **Сделано локально, per-device** (`localStorage`: `aegis:run:v1` — resume незавершённого забега, `aegis:career:v1` — история): у ПК и телефона своя статистика, как в 322-0. Сервер здесь не нужен; **cross-device sync остаётся опциональной надстройкой T8.4**, а не переделкой. Правила сейва (когда чистится, чем инвалидируется) — BACKLOG `T7.1`.
 - [ ] Режимы **Esports Manager** и **Real Tournament** по §5.9.1.
-- [ ] Локализация RU/EN.
+- [x] Локализация RU/EN. Типизированные словари `i18n/core.ts` + переключатель в шелле; первый locale: сохранённый → язык браузера → fallback. Детали и DoD — BACKLOG `T7.2`.
 - [ ] Полный Roguelite Run из §5.9–5.10; Quick Draft остаётся отдельным коротким режимом.
 
 ### 6.3. Нефункциональные
