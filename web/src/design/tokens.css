@@ -59,6 +59,14 @@
   --route-out: var(--tier-weak);
   --win: var(--tier-elite);
   --loss: var(--tier-weak);
+
+  /* Движение (docs/design-language.md §Движение). Не тема-зависимое — не дублируется в light.
+     Один ease на весь продукт: быстрый старт, мягкое торможение. Бюджет входа 0.3–0.5s,
+     стаггер 0.1–0.15s: дольше — игрок ждёт, короче — не читается как раздача. */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);
+  --motion-deal: 380ms;        /* вход одной карты пака */
+  --motion-deal-stagger: 70ms; /* шаг: 10 карт ⇒ хвост 630ms, вся раздача ~1.0s */
+  --motion-count: 320ms;       /* набег числа (TEAM OVR) */
 }
 
 html[data-theme="light"] {

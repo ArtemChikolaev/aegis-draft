@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
-import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
+import { Button, Dealt, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { PlayerInspector } from "./PlayerInspector.tsx";
 import { SynergyBreakdown } from "./SynergyBreakdown.tsx";
@@ -43,6 +43,10 @@ export function DraftScreen() {
   const { currentPack, roster, rerollsLeft, score, heroes, packHeroes, rosterFilled } = snapshot;
   const rerollCount = rerollsLeft === Infinity ? "∞" : String(rerollsLeft);
   const picked = rosterFilled + heroes.length;
+  // Ключ раздачи: новый пак приходит либо после пика, либо после реролла — оба меняют ключ,
+  // React пересоздаёт узлы и анимация играет заново. По содержимому пака ключ строить нельзя:
+  // реролл может выдать пак с тем же первым игроком, и раздача молча не сыграет.
+  const dealKey = `${picked}:${rerollsLeft}`;
   const chemistryEdges = data
     ? chemistryPairEdges(
       chemistryPlayersFromRoster(roster),
@@ -115,7 +119,11 @@ export function DraftScreen() {
           <Button variant="secondary" onClick={reroll} disabled={rerollsLeft <= 0}>↻ {t("draft.reroll")}<small>{t("draft.rerollsLeft", { count: rerollCount })}</small></Button>
         </div>
         <div className="candidates">
-          {currentPack.candidates.map((candidate, index) => <CandidateCard key={candidate.player.accountId} candidate={candidate} enabled={canPickPlayer(index)} onPick={() => pickPlayer(index)} index={index} />)}
+          {currentPack.candidates.map((candidate, index) => (
+            <Dealt key={candidate.player.accountId} index={index} dealKey={dealKey}>
+              <CandidateCard candidate={candidate} enabled={canPickPlayer(index)} onPick={() => pickPlayer(index)} index={index} />
+            </Dealt>
+          ))}
         </div>
 
         <div className="hero-pool hero-pool--pack">
@@ -124,12 +132,15 @@ export function DraftScreen() {
             className="hero-pool__chips hero-pool__chips--pack"
             style={{ gridTemplateColumns: `repeat(${Math.max(1, packHeroes.length)}, minmax(0, 1fr))` }}
           >
-            {packHeroes.map((id) => {
+            {packHeroes.map((id, index) => {
               const h = hero(id);
               return (
-                <button key={id} type="button" className="hero-pick hero-pick--card" disabled={!canPickHero(id)} onClick={() => pickHero(id)} data-testid={`pack-hero-${id}`}>
-                  <HeroThumb picture={h.picture} name={h.name} layout="card" />
-                </button>
+                // Нумерация сквозная: герои идут после игроков, пак раздаётся одной волной.
+                <Dealt key={id} index={currentPack.candidates.length + index} dealKey={dealKey}>
+                  <button type="button" className="hero-pick hero-pick--card" disabled={!canPickHero(id)} onClick={() => pickHero(id)} data-testid={`pack-hero-${id}`}>
+                    <HeroThumb picture={h.picture} name={h.name} layout="card" />
+                  </button>
+                </Dealt>
               );
             })}
           </div>

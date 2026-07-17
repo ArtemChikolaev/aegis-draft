@@ -3,7 +3,7 @@ import type { RosterSlot } from "../../game/engine.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey } from "../../i18n/core.ts";
-import { HeroThumb } from "../../ui/index.ts";
+import { HeroThumb, useCountUp } from "../../ui/index.ts";
 import { useHero } from "./heroes.ts";
 import "./pentagon.css";
 
@@ -65,6 +65,9 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
 }) {
   const { t } = useI18n();
   const hero = useHero();
+  // Team OVR — главный фидбек драфта: набегает, а не прыгает. У 322-0 тут скачок, это
+  // улучшение сверх референса. Хук сам гасится при prefers-reduced-motion.
+  const shownOvr = useCountUp(teamOvr);
   const filled = roster.filter((slot) => slot.candidate).length;
   const layouts = vertexLayouts(roster.length);
   const polygon = layouts.map((l) => l.vertex).map((p) => `${p.x},${p.y}`).join(" ");
@@ -132,7 +135,7 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
 
         {filled > 0 && teamOvr != null && (
           <>
-            <text x={C} y={C - 12} className="pentagon__ovr">{Math.round(teamOvr)}</text>
+            <text x={C} y={C - 12} className="pentagon__ovr">{Math.round(shownOvr ?? teamOvr)}</text>
             <text x={C} y={C + 16} className="pentagon__ovrlabel">{t("common.teamOvr")}</text>
           </>
         )}

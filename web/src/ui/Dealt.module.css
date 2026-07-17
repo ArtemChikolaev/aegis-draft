@@ -1,0 +1,12 @@
+/* Раздача карты пака. Keyframe deal-in и токены движения — design/{base,tokens}.css.
+   Задержку считаем из --deal-index, который ставит компонент: чистый CSS, без JS-таймеров. */
+.dealt {
+  animation: deal-in var(--motion-deal) var(--ease-out) both;
+  animation-delay: calc(var(--deal-index, 0) * var(--motion-deal-stagger));
+}
+
+/* Обёртка не должна ломать раскладку хозяина: списки/гриды кладут её как обычный item,
+   а внутренняя кнопка занимает всю ширину. */
+.dealt > * {
+  width: 100%;
+}

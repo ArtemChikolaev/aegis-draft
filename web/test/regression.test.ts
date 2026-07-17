@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { bestAssignment, assignmentPairScore, synergyTotalForAssignment } from "../src/game/assign.ts";
 import { RunEngine } from "../src/game/engine.ts";
@@ -148,5 +149,31 @@ describe("regression: chemistry только за реальные совмес�
     const rows = squadChemistryRows(roster as never, data.squadSynergy, data.teammates);
     expect(rows.every((r) => r.games > 0)).toBe(true);
     expect(rows.every((r) => r.bonus > 0)).toBe(true);
+  });
+});
+
+describe("regression: движение драфта (TREF9/TREF10)", () => {
+  it("BUG-2026-07-17: раздача пака гасится prefers-reduced-motion глобальным правилом", () => {
+    // У 322-0 ровно тут опечатка: анимация висит на .card-flip, а гасят .flip-in — их флип
+    // не отключается. У нас правило по `*`, поэтому проверяем САМ факт глобальности, а не
+    // перечисление: иначе будущий keyframe добавят, а гасить забудут.
+    const base = readFileSync(new URL("../src/design/base.css", import.meta.url), "utf8");
+    const rule = base.match(/@media \(prefers-reduced-motion: reduce\)[^}]*\{[^}]*\}/)?.[0] ?? "";
+    expect(rule).toContain("*");
+    expect(rule).toContain("animation-duration");
+    // Ни один keyframe не должен полагаться на перечисление классов.
+    expect(rule).not.toMatch(/\.deal-in|\.card-flip|\.flip-in/);
+  });
+
+  it("BUG-2026-07-17: константы движения — токены, не литералы в компонентах", () => {
+    const tokens = readFileSync(new URL("../src/design/tokens.css", import.meta.url), "utf8");
+    for (const token of ["--ease-out", "--motion-deal", "--motion-deal-stagger", "--motion-count"]) {
+      expect(tokens).toContain(token);
+    }
+    // Dealt берёт длительность/шаг из токенов, а не хардкодит миллисекунды.
+    const dealt = readFileSync(new URL("../src/ui/Dealt.module.css", import.meta.url), "utf8");
+    expect(dealt).toContain("var(--motion-deal)");
+    expect(dealt).toContain("var(--motion-deal-stagger)");
+    expect(dealt).not.toMatch(/\d+ms|\d+s\b/);
   });
 });

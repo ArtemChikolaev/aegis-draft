@@ -17,7 +17,7 @@ import {
   seriesStarted,
 } from "../../game/tournamentPlayback.ts";
 import { useRun } from "../../state/runStore.ts";
-import { Button, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -50,9 +50,6 @@ const scoreTier = (score: number): "elite" | "strong" | "mid" | "low" | "weak" =
 // Группы: один тик = весь матч (финальный счёт сразу). Плей-офф: тик = одна карта серии.
 const GROUP_MATCH_STEP_MS = 70;
 const PLAYOFF_MAP_STEP_MS = 200;
-
-const prefersReducedMotion = () =>
-  typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 // Презентационный прогрессивный reveal: движок уже посчитал весь результат детерминированно,
 // а здесь мы лишь «проигрываем» его по одному элементу с возможностью Skip. Сбрасывается при

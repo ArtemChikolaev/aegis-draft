@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState, type CSSProperties, type RefObject } from "react";
+import { prefersReducedMotion } from "../../ui/index.ts";
 import {
   manhattanPath,
   pathLengthApprox,
@@ -11,10 +12,6 @@ interface ConnectorPath {
   length: number;
   active: boolean;
   accent: boolean;
-}
-
-function prefersReducedMotion(): boolean {
-  return typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
 /** SVG-линии сетки (как Liquipedia/TI): появляются после победы в серии-источнике. */
