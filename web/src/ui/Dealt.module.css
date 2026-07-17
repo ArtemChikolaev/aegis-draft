@@ -1,5 +1,12 @@
-/* Раздача карты пака. Keyframe deal-in и токены движения — design/{base,tokens}.css.
+/* Раздача карты пака. Токены движения — design/tokens.css.
+   Kейфрейм ОБЯЗАН лежать здесь, а не в design/base.css: CSS Modules скоупят имена keyframes,
+   и ссылка из модуля на глобальный `deal-in` компилируется в несуществующее `_deal-in_hash` —
+   animation-name в getComputedStyle есть, а кадров нет, анимация молча не играет.
    Задержку считаем из --deal-index, который ставит компонент: чистый CSS, без JS-таймеров. */
+@keyframes deal-in {
+  from { opacity: 0; transform: translateY(10px) scale(.97); }
+}
+
 .dealt {
   animation: deal-in var(--motion-deal) var(--ease-out) both;
   animation-delay: calc(var(--deal-index, 0) * var(--motion-deal-stagger));

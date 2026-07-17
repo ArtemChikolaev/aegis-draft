@@ -20,9 +20,8 @@ h1, h2, .brand { font-family: "Space Grotesk", Manrope, sans-serif; }
 
 @keyframes pulse { 50% { opacity: .35; transform: scale(.7); } }
 @keyframes drift { to { transform: translate3d(5%, 12%, 0) rotate(-22deg) scale(1.08); } }
-/* Раздача пака: карта приезжает снизу и проявляется. Задержку ставит ui/Dealt (index × шаг) —
-   без неё карты появились бы разом и «раздача» не читалась бы. `both` держит стартовый кадр
-   до своей задержки, иначе карта успевает мигнуть на месте. Гасится глобальным
-   prefers-reduced-motion ниже — перечислять классы не надо (у 322-0 ровно тут опечатка). */
-@keyframes deal-in { from { opacity: 0; transform: translateY(10px) scale(.97); } }
+/* Кейфрейм раздачи живёт в ui/Dealt.module.css, а НЕ здесь: CSS Modules скоупят имена
+   keyframes, и ссылка из модуля на глобальное `deal-in` компилируется в несуществующее
+   `_deal-in_hash`. Анимация тогда «есть» в getComputedStyle, но не играет (getAnimations()
+   пуст) — молчаливый провал. Общий keyframe нужен модулю ⇒ клади рядом с ним. */
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

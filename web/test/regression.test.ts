@@ -165,6 +165,19 @@ describe("regression: движение драфта (TREF9/TREF10)", () => {
     expect(rule).not.toMatch(/\.deal-in|\.card-flip|\.flip-in/);
   });
 
+  // Раздача НЕ играла: keyframe лежал в design/base.css, а ссылка шла из CSS-модуля.
+  // CSS Modules скоупят имена keyframes ⇒ `deal-in` компилировался в `_deal-in_hash`,
+  // которого не существует. getComputedStyle при этом бодро показывал animation-name и
+  // playState:"running" — и ввёл меня в заблуждение. Честный признак: getAnimations().
+  it("BUG-2026-07-17: keyframe раздачи лежит в ТОМ ЖЕ модуле, что и ссылка на него", () => {
+    const dealt = readFileSync(new URL("../src/ui/Dealt.module.css", import.meta.url), "utf8");
+    expect(dealt).toMatch(/@keyframes\s+deal-in/);
+    expect(dealt).toContain("animation: deal-in");
+    // В глобальном base.css кейфрейма быть не должно — иначе снова разъедется.
+    const base = readFileSync(new URL("../src/design/base.css", import.meta.url), "utf8");
+    expect(base).not.toMatch(/@keyframes\s+deal-in/);
+  });
+
   it("BUG-2026-07-17: константы движения — токены, не литералы в компонентах", () => {
     const tokens = readFileSync(new URL("../src/design/tokens.css", import.meta.url), "utf8");
     for (const token of ["--ease-out", "--motion-deal", "--motion-deal-stagger", "--motion-count"]) {
