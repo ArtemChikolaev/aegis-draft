@@ -197,6 +197,7 @@ function renderRound(
 export function TournamentScreen() {
   const tournament = useRun((state) => state.tournament);
   const advance = useRun((state) => state.advanceTournament);
+  const finishTournament = useRun((state) => state.finishTournament);
   const rerollField = useRun((state) => state.rerollField);
   const reset = useRun((state) => state.reset);
   const restartSameConfig = useRun((state) => state.restartSameConfig);
@@ -317,8 +318,10 @@ export function TournamentScreen() {
   }, [stage, scrollTo]);
   const playoffsDone = stage === "playoffs" && done;
   useEffect(() => {
-    if (playoffsDone) scrollTo(resultRef.current);
-  }, [playoffsDone, scrollTo]);
+    if (!playoffsDone) return;
+    finishTournament();
+    scrollTo(resultRef.current);
+  }, [playoffsDone, finishTournament, scrollTo]);
 
   const revealedGroupMatches = stage === "groups" ? orderedGroupMatches.slice(0, n) : orderedGroupMatches;
   const groupsDone = stage === "playoffs" || (stage === "groups" && done);
@@ -437,7 +440,7 @@ export function TournamentScreen() {
             {tournament.groups.map((group) => (
               <Surface key={group.id} className="group-table">
                 <h2>Group {group.id}</h2>
-                <div className="table-head"><span>#</span><span>{t("tournament.team")}</span><span>{t("tournament.record")}</span><span>{t("tournament.route")}</span></div>
+                <div className="table-head"><span>#</span><span aria-hidden="true" /><span>{t("tournament.team")}</span><span>{t("tournament.record")}</span><span>{t("tournament.route")}</span></div>
                 <div className="table-body">
                   {liveStandings(group, tournament.groupMatches, revealedGroupMatches, groupsDone).map((row) => {
                     const routed = stage === "playoffs" || groupRoutesRevealed;
@@ -448,10 +451,8 @@ export function TournamentScreen() {
                       style={{ ["--route-i" as string]: row.rank - 1 } as React.CSSProperties}
                     >
                       <span>{row.rank}</span>
-                      <span className="table-row__team">
-                        <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
-                        <span><strong>{row.team.name}</strong><small>{row.team.eventLabel || "\u00A0"}</small></span>
-                      </span>
+                      <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
+                      <span className="table-row__team"><strong>{row.team.name}</strong><small>{row.team.eventLabel || "\u00A0"}</small></span>
                       <span>{row.wins}–{row.losses}</span><span className={routed ? `route-tag route-tag--${row.route}` : ""}>{groupsDone ? t(`tournament.${row.route}` as MessageKey) : "·"}</span>
                     </div>
                     );

@@ -13,7 +13,9 @@ import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
   clearSavedRun,
-  isRunCompatible,
+  freezeRoster,
+  frozenRostersMatch,
+  isSavedRunResumable,
   loadSavedRun,
   loadTeamName,
   saveRun,
@@ -58,6 +60,8 @@ interface RunStore {
   tournamentEngine: TournamentEngine | null;
   tournament: TournamentSnapshot | null;
   tournamentStep: number;
+  /** Reveal плей-офф доигран до экрана результатов — сейв больше не нужен. */
+  resultsSeen: boolean;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -75,6 +79,8 @@ interface RunStore {
   resumeRun: () => void;
   discardResume: () => void;
   advanceTournament: () => void;
+  /** Вызывать, когда UI доиграл playoffs reveal до итоговой таблицы (не при входе в стадию). */
+  finishTournament: () => void;
   restartSameConfig: () => void;
 }
 
@@ -119,19 +125,31 @@ function replay(engine: RunEngine, actions: RunAction[]): void {
 
 export const useRun = create<RunStore>((set, get) => {
   // Сохранить текущий забег (config+seed+лог) под версию активного датасета.
+  // Плей-офф с canAdvance=false — ещё НЕ финал для игрока: идёт reveal-анимация.
+  // Сейв чистим только после finishTournament (reveal доигран до экрана результатов).
   const persist = () => {
-    const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine } = get();
+    const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine, engine, resultsSeen } = get();
     if (!data || !config || !selectedMode) return;
+    if (resultsSeen) {
+      clearSavedRun();
+      return;
+    }
+    const score = engine?.score();
+    const frozenRoster = engine?.isComplete && score
+      ? freezeRoster(engine.rosterView, score.assignment.byPlayer)
+      : undefined;
     saveRun({
       v: 1,
       schemaVersion: data.manifest.schemaVersion,
       ratingModelVersion: data.manifest.ratingModelVersion,
+      dataBuiltAt: data.manifest.builtAt,
       mode: selectedMode,
       config,
       seed,
       actions,
       tournamentStep,
       tournamentStarted: tournamentEngine != null,
+      frozenRoster: frozenRoster ?? undefined,
     });
   };
   // Записать действие в лог и сохранить.
@@ -178,16 +196,19 @@ export const useRun = create<RunStore>((set, get) => {
     tournamentEngine: null,
     tournament: null,
     tournamentStep: 0,
+    resultsSeen: false,
 
     async loadData() {
       try {
         const data = await new StaticDataSource().load();
-        const saved = loadSavedRun();
-        const compatible = saved
-          && isRunCompatible(saved, data.manifest.schemaVersion, data.manifest.ratingModelVersion)
-          && saved.actions.length > 0;
-        if (saved && !compatible) clearSavedRun(); // датасет обновился — старый забег невалиден
-        set({ data, phase: "start", teamName: loadTeamName(), resumable: compatible ? saved : null });
+        const rawSaved = loadSavedRun();
+        const { schemaVersion, ratingModelVersion, builtAt } = data.manifest;
+        // Пустой actions = только стартовали; первый пак уже зафиксирован seed'ом — resume нужен.
+        const saved = isSavedRunResumable(rawSaved, schemaVersion, ratingModelVersion, builtAt)
+          ? rawSaved
+          : null;
+        if (rawSaved && !saved) clearSavedRun();
+        set({ data, phase: "start", teamName: loadTeamName(), resumable: saved });
         logDataLoaded(data);
       } catch (e) {
         set({ error: e instanceof Error ? e.message : String(e) });
@@ -200,7 +221,10 @@ export const useRun = create<RunStore>((set, get) => {
       try {
         const engine = new RunEngine(data, config, seed);
         const snapshot = snap(engine);
-        set({ engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0 });
+        set({
+          engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null,
+          tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
+        });
         logRunStart(config, seed, data);
         debugSnap("after start", engine, snapshot, config, seed, data);
         persist();
@@ -298,7 +322,10 @@ export const useRun = create<RunStore>((set, get) => {
 
     reset() {
       clearSavedRun();
-      set({ phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [], resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0 });
+      set({
+        phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
+        resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
+      });
     },
 
     setSelectedMode(selectedMode) {
@@ -316,10 +343,15 @@ export const useRun = create<RunStore>((set, get) => {
       try {
         const engine = new RunEngine(data, resumable.config, resumable.seed);
         replay(engine, resumable.actions);
+        if (resumable.frozenRoster) {
+          const score = engine.score();
+          const replayed = score ? freezeRoster(engine.rosterView, score.assignment.byPlayer) : null;
+          if (!replayed || !frozenRostersMatch(resumable.frozenRoster, replayed)) {
+            throw new Error("Replay roster mismatch");
+          }
+        }
         let tournamentEngine: TournamentEngine | null = null;
         let tournament: TournamentSnapshot | null = null;
-        // Стадии field(0)→groups(1)→playoffs(2). Завершённый драфт всегда открывает турнир
-        // (стадия по сохранённому шагу): бесшовный флоу — отдельного экрана-итога нет.
         const tournamentStep = Math.max(0, Math.min(2, resumable.tournamentStep ?? 0));
         if (engine.isComplete) {
           const score = engine.score();
@@ -343,11 +375,13 @@ export const useRun = create<RunStore>((set, get) => {
           tournamentEngine,
           tournament,
           tournamentStep,
+          resultsSeen: false,
         });
-        if (tournament) recordCareer(tournament);
-      } catch {
-        clearSavedRun(); // сейв не воспроизвёлся (данные разошлись) — отбрасываем
-        set({ resumable: null });
+      } catch (e) {
+        // Сейв не воспроизвёлся — сбрасываем; раньше баннер просто исчезал без объяснения.
+        console.warn("[aegis] resume failed", e);
+        clearSavedRun();
+        set({ resumable: null, error: "resume.failed" });
       }
     },
 
@@ -363,8 +397,16 @@ export const useRun = create<RunStore>((set, get) => {
       set({ tournament, tournamentStep: tournamentStep + 1 });
       const ovr = snapshot?.score?.teamOvr ?? 0;
       logTournament(tournament, { teamName: teamName || "Aegis Five", teamOvr: ovr });
-      recordCareer(tournament);
+      // Career и clearSavedRun — только в finishTournament после reveal итогов.
       persist();
+    },
+
+    finishTournament() {
+      const { tournament, resultsSeen } = get();
+      if (resultsSeen || !tournament || tournament.canAdvance) return;
+      recordCareer(tournament);
+      set({ resultsSeen: true });
+      clearSavedRun();
     },
 
     restartSameConfig() {

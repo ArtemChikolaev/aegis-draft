@@ -220,6 +220,7 @@ const ru = {
   "resume.tournamentText": "Этап турнира: {stage}. Продолжить с сохранённого места?",
   "resume.button": "Продолжить забег",
   "resume.discard": "Начать заново",
+  "resume.failed": "Не удалось восстановить забег — сейв сброшен. Начните новый.",
   "pentagon.label": "Радар состава Aegis Draft",
   "footer.note": "Aegis Draft · Независимый проект, вдохновлённый Dota 2 esports",
 } as const;
@@ -447,6 +448,7 @@ const en: Dictionary = {
   "resume.tournamentText": "Tournament stage: {stage}. Resume where you left off?",
   "resume.button": "Resume run",
   "resume.discard": "Start over",
+  "resume.failed": "Could not restore the run — save cleared. Start a new one.",
   "pentagon.label": "Aegis Draft roster radar",
   "footer.note": "Aegis Draft · An independent project inspired by Dota 2 esports",
 };

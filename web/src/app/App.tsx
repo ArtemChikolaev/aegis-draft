@@ -54,7 +54,11 @@ export function App() {
         </div>
       </header>
 
-      {error && <Banner title={t("app.error")}>{error}</Banner>}
+      {error && (
+        <Banner title={t(error === "resume.failed" ? "resume.failed" : "app.error")}>
+          {error === "resume.failed" ? null : error}
+        </Banner>
+      )}
 
       {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
       {phase === "start" && <ResumeBanner />}

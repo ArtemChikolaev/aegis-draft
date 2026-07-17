@@ -7,5 +7,6 @@ import { aegisGameLogPlugin } from "./vite-plugin-game-log.ts";
 export default defineConfig({
   base: process.env.VITE_BASE || "/",
   plugins: [react(), aegisGameLogPlugin()],
-  server: { port: 5173 },
+  // strictPort: иначе Vite уйдёт на 5174+ и localStorage (resume) окажется «пустым».
+  server: { port: 5173, strictPort: true },
 });

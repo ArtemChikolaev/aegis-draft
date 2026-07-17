@@ -155,10 +155,36 @@ function hash(value: string): string {
   return (result >>> 0).toString(16).padStart(8, "0");
 }
 
+/** Stable id забега для career-дедупа и «уже завершён — не resume». */
+export function careerRunIdFromRun(
+  seed: string,
+  datasetSchemaVersion: number,
+  ratingModelVersion: string,
+  config: RunConfig,
+): string {
+  return hash(JSON.stringify([
+    seed,
+    datasetSchemaVersion,
+    ratingModelVersion,
+    config.format,
+    difficultyLabel(config.rerolls),
+    config.scoring,
+    config.draftStyle,
+  ]));
+}
+
 /** Stable across reloads; intentionally excludes finishedAt, score and roster. */
 export function careerRunId(entry: CareerEntry): string {
   const { seed, datasetSchemaVersion, ratingModelVersion, configLabel } = entry;
-  return hash(JSON.stringify([seed, datasetSchemaVersion, ratingModelVersion, configLabel.format, configLabel.difficulty, configLabel.scoring, configLabel.draftStyle]));
+  return hash(JSON.stringify([
+    seed,
+    datasetSchemaVersion,
+    ratingModelVersion,
+    configLabel.format,
+    configLabel.difficulty,
+    configLabel.scoring,
+    configLabel.draftStyle,
+  ]));
 }
 
 export function appendCareerEntry(entries: CareerEntry[], entry: CareerEntry): CareerEntry[] {

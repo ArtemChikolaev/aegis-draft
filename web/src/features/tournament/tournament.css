@@ -9,17 +9,26 @@
 .tournament__projection { display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; padding: 26px; color: var(--on-invert); border-radius: var(--radius); background: var(--surface-invert); }
 .tournament__projection span { color: var(--brand-green); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .tournament__projection strong { font-size: clamp(42px, 5vw, 76px); line-height: .9; letter-spacing: -.05em; }
-.field-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 0; padding: 0 4px 0 8px; list-style: none; }
-.field-list li { display: grid; grid-template-columns: 24px auto 1fr auto; align-items: center; gap: 8px; min-height: 42px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+.field-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 12px; margin: 0; padding: 0; list-style: none; }
+.field-list li {
+  display: grid;
+  grid-template-columns: 24px auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+  font-size: 11px;
+}
 /* Только номер строки: `> span` без :first-child цеплял бы и знак команды (он тоже span)
    и перебивал его цвет — селектор специфичнее, чем .sigil в модуле. */
 .field-list li > span:first-child, .field-list small { color: var(--muted); font-size: 10px; }
-.field-list li strong { font-size: 12px; }
+.field-list li strong { font-size: 12px; font-weight: 700; }
 .field-list .is-user {
   color: var(--accent);
-  border-radius: 12px;
-  border-bottom-color: transparent;
-  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-soft));
 }
 .field-list .is-user strong { color: var(--accent); }
 .tournament__groups {
@@ -94,7 +103,7 @@
 .group-result.is-user { background: var(--accent-soft); }
 .table-head, .table-row {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) 52px 40px;
+  grid-template-columns: 22px 22px minmax(0, 1fr) 52px 40px;
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
@@ -108,6 +117,8 @@
   letter-spacing: .08em;
   text-transform: uppercase;
 }
+.table-head > span:nth-child(4),
+.table-head > span:nth-child(5) { text-align: right; }
 /* Карточка-строка как виджет: rounded surface + левый акцент пути UB/LB/OUT. */
 .table-row {
   position: relative;
@@ -120,10 +131,8 @@
   font-size: 11px;
 }
 .table-row > span:nth-child(1) { color: var(--muted); font-size: 10px; font-weight: 700; }
-/* Ячейка команды: знак + двухстрочный блок (имя / событие). Знак сидит в ячейке, а не
-   отдельной колонкой грида — иначе шапка .table-head разъехалась бы с телом таблицы. */
-.table-row__team { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.table-row__team > span {
+.table-row > span:nth-child(2) { display: flex; align-items: center; justify-content: center; }
+.table-row__team {
   display: grid;
   grid-template-rows: 14px 10px;
   gap: 2px;
@@ -148,8 +157,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.table-row > span:nth-child(3) { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
-.table-row > span:nth-child(4) { text-align: right; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.table-row > span:nth-child(4) { color: var(--text); font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
+.table-row > span:nth-child(5) { text-align: right; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .table-row.is-user { background: color-mix(in srgb, var(--accent) 10%, var(--surface-soft)); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
 .table-row.is-user strong { color: var(--accent); }
 /* Связанная сетка как в 322-0: верхняя над нижней, раунды колонками слева-направо,
@@ -302,23 +311,29 @@
 .score-tier--weak { color: var(--tier-weak); }
 .field-list li b.field-strength { justify-self: end; font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); }
 
-/* Пути UB/LB/OUT: жирный left-border идёт по скруглению ячейки (как виджет Claude).
-   Раскрашиваются со стаггером сверху вниз (.is-routed, --route-i = ранг-1). */
+/* Пути UB/LB/OUT: полоска через ::before — без сдвига контента при раскраске. */
 .table-row.is-routed {
-  border-left-width: 5px;
-  transition: border-color .35s ease, background-color .35s ease, border-left-width .35s ease;
+  transition: background-color .35s ease;
   transition-delay: calc(var(--route-i, 0) * 70ms);
 }
+.table-row.is-routed::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  border-radius: 11px 0 0 11px;
+  background: var(--route-stripe, transparent);
+}
 .table-row.route--upper {
-  border-left-color: var(--route-ub);
+  --route-stripe: var(--route-ub);
   background: color-mix(in srgb, var(--route-ub) 7%, var(--surface-soft));
 }
 .table-row.route--lower {
-  border-left-color: var(--route-lb);
+  --route-stripe: var(--route-lb);
   background: color-mix(in srgb, var(--route-lb) 7%, var(--surface-soft));
 }
 .table-row.route--out {
-  border-left-color: var(--route-out);
+  --route-stripe: var(--route-out);
   background: color-mix(in srgb, var(--route-out) 8%, var(--surface-soft));
 }
 .table-row.is-user.is-routed { background: color-mix(in srgb, var(--accent) 12%, var(--surface-soft)); }
@@ -450,13 +465,14 @@
 .run__field .tournament__projection { min-height: 0; padding: 16px 18px; }
 .run__field .field-list {
   flex: none;
-  max-height: min(360px, calc(100vh - 280px));
+  /* 9 строк × 2 колонки: карточки выше полосатых строк — 360px резало 17–18 места. */
+  max-height: min(520px, calc(100vh - 200px));
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   align-content: start;
 }
-.run__field .field-list li { min-height: 36px; }
+.run__field .field-list li { padding: 8px 10px; }
 .run__field-actions { display: grid; gap: 10px; width: 100%; }
 .run__field-actions [data-testid="tournament-simulate"],
 .run__field-actions [data-testid="tournament-field-reroll"] { width: 100%; }
