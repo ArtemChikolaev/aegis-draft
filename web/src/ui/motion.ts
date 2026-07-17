@@ -18,30 +18,47 @@ export function motionMs(token: string, fallback: number): number {
   return raw.endsWith("ms") ? value : value * 1000;
 }
 
-/** Набег числа к target. Возвращает промежуточное значение; в конце — РОВНО target
- *  (иначе округление оставит 87 вместо 88, и golden-тесты поймают расхождение).
- *  prefers-reduced-motion ⇒ мгновенный скачок. */
-export function useCountUp(target: number | null): number | null {
+/** Куда поехало число: вверх — рост, вниз — падение, null — покой/первое появление. */
+export type CountDirection = "up" | "down" | null;
+
+/** Набег числа к target + направление последнего изменения.
+ *  В конце ставится РОВНО target (иначе округление оставит 87 вместо 88, и golden поймает).
+ *  Направление держится --motion-flash после набега и гаснет: цвет — вспышка-сигнал, а не
+ *  постоянное состояние, иначе радар будет вечно красным после одного слабого пика.
+ *  prefers-reduced-motion ⇒ число прыгает, но направление всё равно сообщается: цвет не
+ *  вестибулярный раздражитель, и лишать его смысла нет. */
+export function useCountUp(target: number | null): { value: number | null; direction: CountDirection } {
   const [display, setDisplay] = useState(target);
+  const [direction, setDirection] = useState<CountDirection>(null);
   const fromRef = useRef(target);
   const frameRef = useRef(0);
+  const flashRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (target == null) {
       setDisplay(null);
+      setDirection(null);
       fromRef.current = null;
       return;
     }
     const from = fromRef.current;
-    // Первое появление числа и reduced-motion — без набега.
+    if (from === target) return;
+
+    // Первое появление числа — не «рост», сигналить нечего.
+    const dir: CountDirection = from == null ? null : target > from ? "up" : "down";
+    setDirection(dir);
+    if (dir) {
+      clearTimeout(flashRef.current);
+      flashRef.current = setTimeout(() => setDirection(null), motionMs("--motion-count", 420) + motionMs("--motion-flash", 900));
+    }
+
     if (from == null || prefersReducedMotion()) {
       fromRef.current = target;
       setDisplay(target);
       return;
     }
-    if (from === target) return;
 
-    const duration = motionMs("--motion-count", 320);
+    const duration = motionMs("--motion-count", 420);
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min(1, (now - start) / duration);
@@ -58,5 +75,7 @@ export function useCountUp(target: number | null): number | null {
     return () => cancelAnimationFrame(frameRef.current);
   }, [target]);
 
-  return display;
+  useEffect(() => () => clearTimeout(flashRef.current), []);
+
+  return { value: display, direction };
 }

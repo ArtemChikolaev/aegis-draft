@@ -51,6 +51,17 @@ function ringTone(bonus: number | undefined): "thin" | "chem" {
   return "chem";
 }
 
+/** Сила связи цветом по общей tier-шкале (токены --chem-*). Пороги — в очках бонуса пары:
+ *  вклад = min(4, games/230), то есть 3.0 ≈ 690 совместных игр (годы в одном составе),
+ *  а 0.7 ≈ 160 (один-два сезона). У 322-0 все связи одного цвета и различаются лишь
+ *  толщиной — цвет сообщает силу нагляднее, это наше улучшение, а не копия. */
+function chemTier(bonus: number): "strong" | "good" | "mid" | "weak" {
+  if (bonus >= 3) return "strong";
+  if (bonus >= 1.5) return "good";
+  if (bonus >= 0.7) return "mid";
+  return "weak";
+}
+
 /** Радар-пентагон: SVG-сетка + HTML-карточки на вершинах + связи Chemistry. */
 export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPlayer = {}, onSelectPlayer, swapMode = false, swapSelectedId = null, onSwapTap }: {
   roster: RosterSlot[];
@@ -67,7 +78,7 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
   const hero = useHero();
   // Team OVR — главный фидбек драфта: набегает, а не прыгает. У 322-0 тут скачок, это
   // улучшение сверх референса. Хук сам гасится при prefers-reduced-motion.
-  const shownOvr = useCountUp(teamOvr);
+  const { value: shownOvr, direction: ovrDirection } = useCountUp(teamOvr);
   const filled = roster.filter((slot) => slot.candidate).length;
   const layouts = vertexLayouts(roster.length);
   const polygon = layouts.map((l) => l.vertex).map((p) => `${p.x},${p.y}`).join(" ");
@@ -100,7 +111,7 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
           const b = layouts[ib].vertex;
           const mx = (a.x + b.x) / 2;
           const my = (a.y + b.y) / 2;
-          const tone = "pos";
+          const tone = chemTier(edge.bonus);
           return (
             <g key={`${edge.a}:${edge.b}`} className={`pentagon__edge pentagon__edge--${tone}`}>
               <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="pentagon__edge-line" strokeWidth={CHORD_STROKE} />
@@ -118,7 +129,12 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
           const mx = (l.vertex.x + next.vertex.x) / 2;
           const my = (l.vertex.y + next.vertex.y) / 2;
           return (
-            <g key={`ring-${i}`} className={`pentagon__ring pentagon__ring--${tone}`}>
+            <g
+              key={`ring-${i}`}
+              className={tone === "chem" && bonus != null
+                ? `pentagon__ring pentagon__ring--chem pentagon__ring--${chemTier(bonus)}`
+                : `pentagon__ring pentagon__ring--${tone}`}
+            >
               <line
                 x1={l.vertex.x}
                 y1={l.vertex.y}
@@ -135,7 +151,11 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
 
         {filled > 0 && teamOvr != null && (
           <>
-            <text x={C} y={C - 12} className="pentagon__ovr">{Math.round(shownOvr ?? teamOvr)}</text>
+            <text
+              x={C}
+              y={C - 12}
+              className={ovrDirection ? `pentagon__ovr pentagon__ovr--${ovrDirection}` : "pentagon__ovr"}
+            >{Math.round(shownOvr ?? teamOvr)}</text>
             <text x={C} y={C + 16} className="pentagon__ovrlabel">{t("common.teamOvr")}</text>
           </>
         )}

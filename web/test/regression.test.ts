@@ -190,3 +190,30 @@ describe("regression: движение драфта (TREF9/TREF10)", () => {
     expect(dealt).not.toMatch(/\d+ms|\d+s\b/);
   });
 });
+
+describe("regression: цвета радара (TREF10+)", () => {
+  it("BUG-2026-07-17: fallback цвета связи объявлен ДО тиров — иначе все линии зелёные", () => {
+    // Все селекторы одной специфичности (один класс) ⇒ побеждает последний в источнике.
+    // Fallback ниже тиров молча перекрасил бы всё в --brand-green.
+    const css = readFileSync(new URL("../src/features/draft/pentagon.css", import.meta.url), "utf8");
+    const fallback = css.indexOf(".pentagon__ring--chem, .pentagon__edge {");
+    const firstTier = css.indexOf(".pentagon__ring--strong");
+    expect(fallback).toBeGreaterThan(-1);
+    expect(firstTier).toBeGreaterThan(-1);
+    expect(fallback).toBeLessThan(firstTier);
+  });
+
+  it("BUG-2026-07-17: цвета радара — токены, не литералы", () => {
+    const css = readFileSync(new URL("../src/features/draft/pentagon.css", import.meta.url), "utf8");
+    // Направление Team OVR и сила связи берут семантические токены.
+    expect(css).toContain("fill: var(--win)");
+    expect(css).toContain("fill: var(--loss)");
+    for (const tier of ["--chem-strong", "--chem-good", "--chem-mid", "--chem-weak"]) {
+      expect(css).toContain(`var(${tier})`);
+    }
+    // Ноль хардкод-цветов в радаре. Комментарии вырезаем: в них документирован цвет
+    // 322-0 (#1fd0bd) — это ссылка на замер, а не литерал в стилях.
+    const code = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(code).not.toMatch(/#[0-9a-fA-F]{3,6}|rgba?\(/);
+  });
+});

@@ -3,20 +3,43 @@
 .pentagon { display: block; width: 100%; height: auto; overflow: visible; }
 .pentagon__web { fill: color-mix(in srgb, var(--brand-green) 5%, transparent); stroke: none; }
 .pentagon__spoke { stroke: var(--line-invert); }
-.pentagon__ovr { fill: var(--on-invert); font-size: 46px; font-weight: 800; text-anchor: middle; }
+/* Team OVR: цвет — ВСПЫШКА направления, не состояние. Держится --motion-flash и гаснет,
+   иначе радар остался бы вечно красным после одного слабого пика. Переход по fill
+   гасится глобальным prefers-reduced-motion (transition-duration: .01ms). */
+.pentagon__ovr {
+  fill: var(--on-invert);
+  font-size: 46px;
+  font-weight: 800;
+  text-anchor: middle;
+  transition: fill var(--motion-count) var(--ease-out);
+}
+.pentagon__ovr--up { fill: var(--win); }
+.pentagon__ovr--down { fill: var(--loss); }
 .pentagon__ovrlabel { fill: var(--muted-invert); font-size: 9px; letter-spacing: 1px; text-anchor: middle; }
 
-/* Внешний контур: тонкий по умолчанию; толстый зелёный только при chemistry на смежной паре (322-0). */
+/* Внешний контур: тонкий по умолчанию; при chemistry — толстый и окрашенный по СИЛЕ пары.
+   У 322-0 все связи одного цвета (#1fd0bd) и различаются лишь толщиной; цвет по tier-шкале
+   сообщает силу нагляднее — это наше улучшение. Цвет задаётся один раз на группе (--chem-line),
+   чтобы линия, подпись и свечение не разъезжались. */
 .pentagon__ring line { stroke-linecap: round; }
 .pentagon__ring--thin line { stroke: var(--line-invert); }
-.pentagon__ring--chem line { stroke: var(--brand-green); filter: drop-shadow(0 0 5px var(--brand-glow)); }
-.pentagon__ring--chem .pentagon__edge-label { fill: var(--brand-green); }
+.pentagon__ring--chem line { stroke: var(--chem-line); filter: drop-shadow(0 0 5px var(--chem-line)); }
+.pentagon__ring--chem .pentagon__edge-label { fill: var(--chem-line); }
 
-/* Хорды chemistry — тоньше периметра. */
+/* Хорды chemistry — тоньше периметра, та же шкала цвета. */
 .pentagon__edge-line { stroke-linecap: round; }
-.pentagon__edge--pos .pentagon__edge-line { stroke: var(--brand-green); opacity: .75; filter: drop-shadow(0 0 3px var(--brand-glow)); }
-.pentagon__edge--neg .pentagon__edge-line { stroke: var(--stat-chemistry); opacity: .65; }
-.pentagon__edge--pos .pentagon__edge-label { fill: var(--brand-green); }
+.pentagon__edge .pentagon__edge-line { stroke: var(--chem-line); opacity: .75; filter: drop-shadow(0 0 3px var(--chem-line)); }
+.pentagon__edge .pentagon__edge-label { fill: var(--chem-line); }
+
+/* Fallback ПЕРЕД тирами: у всех селекторов одна специфичность (один класс), побеждает
+   последний в источнике. Поставь fallback ниже — и все связи станут зелёными. */
+.pentagon__ring--chem, .pentagon__edge { --chem-line: var(--brand-green); }
+
+/* Тир силы связи → цвет. Общий для хорд и периметра: один класс, оба элемента. */
+.pentagon__ring--strong, .pentagon__edge--strong { --chem-line: var(--chem-strong); }
+.pentagon__ring--good, .pentagon__edge--good { --chem-line: var(--chem-good); }
+.pentagon__ring--mid, .pentagon__edge--mid { --chem-line: var(--chem-mid); }
+.pentagon__ring--weak, .pentagon__edge--weak { --chem-line: var(--chem-weak); }
 
 /* HTML-карточки на вершинах — фиксированная ширина, ellipsis, как в 322-0. */
 .pentagon__nodes { position: absolute; inset: 0; pointer-events: none; }
