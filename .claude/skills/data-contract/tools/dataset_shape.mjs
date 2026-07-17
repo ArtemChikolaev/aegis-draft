@@ -56,8 +56,13 @@ for (const p of packsForHeroes) {
   poolSizes[n] = (poolSizes[n] ?? 0) + 1;
 }
 console.log(`  размер пула на пак: ${JSON.stringify(poolSizes)}`);
-if (Object.keys(poolSizes).some((n) => Number(n) < 10)) {
-  console.log("  ⚠️ пул уже 10 — клиент показывает 5 из <10, разнообразие падает");
+// Отдельные паки с пулом <10 — норма: ростер, отыгравший за турнир всего 5 разных героев,
+// десяти дать не может. Тревожно, только если таких много — значит пайплайн режет пул.
+const narrow = packsForHeroes.filter((p) => new Set(p.signatureHeroes).size < 10).length;
+const narrowShare = narrow / packsForHeroes.length;
+console.log(`  паков с пулом <10: ${narrow} (${(100 * narrowShare).toFixed(1)}%) — норма, если ростер отыграл мало разных героев`);
+if (narrowShare > 0.15) {
+  console.log("  ⚠️ таких паков много — похоже, пул режется в пайплайне (signaturePoolSize)");
 }
 const heroFreq = {};
 for (const p of packsForHeroes) for (const h of new Set(p.signatureHeroes)) heroFreq[h] = (heroFreq[h] ?? 0) + 1;
