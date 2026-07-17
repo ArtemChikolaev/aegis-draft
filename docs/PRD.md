@@ -348,7 +348,7 @@ Career-best форма игрока, **не привязанная к турни
 - [ ] Остальные форматы (`last_1y`, `last_5y`, `valve_legacy`).
 - [ ] **Peak Rating** (если не вошёл в MVP).
 - [ ] **Daily challenge** (общий сид дня + лидерборд) → здесь появляется Go API.
-- [ ] Сохранение забегов/история; **career-статистика** (места 1st/2nd/…/Last, undefeated/flawless, games won/lost, last N runs с ростерами — как в 322-0). Спека и подход — BACKLOG `TREF-CAREER1`.
+- [x] Сохранение забегов/история; **career-статистика** (места 1st/2nd/…/Last, undefeated/flawless, games won/lost, last N runs с ростерами — как в 322-0). Спека и подход — BACKLOG `TREF-CAREER1`. **Сделано локально, per-device** (`localStorage`: `aegis:run:v1` — resume незавершённого забега, `aegis:career:v1` — история): у ПК и телефона своя статистика, как в 322-0. Сервер здесь не нужен; **cross-device sync остаётся опциональной надстройкой T8.4**, а не переделкой. Правила сейва (когда чистится, чем инвалидируется) — BACKLOG `T7.1`.
 - [ ] Режимы **Esports Manager** и **Real Tournament** по §5.9.1.
 - [ ] Локализация RU/EN.
 - [ ] Полный Roguelite Run из §5.9–5.10; Quick Draft остаётся отдельным коротким режимом.
