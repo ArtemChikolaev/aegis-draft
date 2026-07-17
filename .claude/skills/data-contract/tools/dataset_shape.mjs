@@ -43,6 +43,32 @@ console.log(`  совместных игр: min=${games[0]} p50=${q(0.5)} p90=${
 const tiny = squad.filter((g) => g.games < 5).length;
 console.log(`  групп с <5 игр: ${tiny} (${((100 * tiny) / squad.length).toFixed(0)}%) — вклад в Chemistry <0.02, невидим`);
 
+// Пул героев пака. Клиент показывает 5 случайных из этого списка (engine.withFullHeroOffer),
+// поэтому список ОБЯЗАН быть шире показа — иначе пятёрка всегда одна и та же. Ловит регрессию,
+// из-за которой Anti-Mage выпадал в 0.9% паков против ~2% у 322-0.
+console.log("\n=== signatureHeroes: пул героев пака (клиент показывает 5 случайных) ===");
+const packsForHeroes = load("packs.json");
+const heroesRef = load("heroes.json");
+const heroName = Object.fromEntries(heroesRef.map((h) => [h.id, h.name]));
+const poolSizes = {};
+for (const p of packsForHeroes) {
+  const n = new Set(p.signatureHeroes).size;
+  poolSizes[n] = (poolSizes[n] ?? 0) + 1;
+}
+console.log(`  размер пула на пак: ${JSON.stringify(poolSizes)}`);
+if (Object.keys(poolSizes).some((n) => Number(n) < 10)) {
+  console.log("  ⚠️ пул уже 10 — клиент показывает 5 из <10, разнообразие падает");
+}
+const heroFreq = {};
+for (const p of packsForHeroes) for (const h of new Set(p.signatureHeroes)) heroFreq[h] = (heroFreq[h] ?? 0) + 1;
+const freqs = Object.entries(heroFreq).map(([h, c]) => ({ h: Number(h), share: c / packsForHeroes.length }));
+freqs.sort((a, b) => b.share - a.share);
+const rare = freqs.filter((f) => f.share < 0.01);
+console.log(`  героев в пуле: ${freqs.length} из ${heroesRef.length}`);
+console.log(`  самый частый: ${heroName[freqs[0].h]} ${(100 * freqs[0].share).toFixed(1)}%  ·  медиана ${(100 * freqs[Math.floor(freqs.length / 2)].share).toFixed(1)}%`);
+console.log(`  героев с шансом <1% на пак: ${rare.length}${rare.length > 5 ? "  ⚠️ у 322-0 таких 2" : ""}`);
+if (rare.length) console.log(`    редчайшие: ${rare.slice(-5).map((f) => `${heroName[f.h]} ${(100 * f.share).toFixed(1)}%`).join(", ")}`);
+
 console.log("\n=== события по форматам ===");
 const events = load("events.json");
 const packs = load("packs.json");
