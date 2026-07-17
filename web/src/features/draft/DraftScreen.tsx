@@ -40,13 +40,9 @@ export function DraftScreen() {
   const { locale, t } = useI18n();
   if (!snapshot || !config) return null;
 
-  const { currentPack, roster, rerollsLeft, score, heroes, packHeroes, rosterFilled } = snapshot;
+  const { currentPack, roster, rerollsLeft, score, heroes, packHeroes, rosterFilled, packSerial } = snapshot;
   const rerollCount = rerollsLeft === Infinity ? "∞" : String(rerollsLeft);
   const picked = rosterFilled + heroes.length;
-  // Ключ раздачи: новый пак приходит либо после пика, либо после реролла — оба меняют ключ,
-  // React пересоздаёт узлы и анимация играет заново. По содержимому пака ключ строить нельзя:
-  // реролл может выдать пак с тем же первым игроком, и раздача молча не сыграет.
-  const dealKey = `${picked}:${rerollsLeft}`;
   const chemistryEdges = data
     ? chemistryPairEdges(
       chemistryPlayersFromRoster(roster),
@@ -120,7 +116,7 @@ export function DraftScreen() {
         </div>
         <div className="candidates">
           {currentPack.candidates.map((candidate, index) => (
-            <Dealt key={candidate.player.accountId} index={index} dealKey={dealKey}>
+            <Dealt key={`${packSerial}:${candidate.player.accountId}`} index={index}>
               <CandidateCard candidate={candidate} enabled={canPickPlayer(index)} onPick={() => pickPlayer(index)} index={index} />
             </Dealt>
           ))}
@@ -136,7 +132,7 @@ export function DraftScreen() {
               const h = hero(id);
               return (
                 // Нумерация сквозная: герои идут после игроков, пак раздаётся одной волной.
-                <Dealt key={id} index={currentPack.candidates.length + index} dealKey={dealKey}>
+                <Dealt key={`${packSerial}:${id}`} index={currentPack.candidates.length + index}>
                   <button type="button" className="hero-pick hero-pick--card" disabled={!canPickHero(id)} onClick={() => pickHero(id)} data-testid={`pack-hero-${id}`}>
                     <HeroThumb picture={h.picture} name={h.name} layout="card" />
                   </button>

@@ -123,7 +123,10 @@ describe("regression: matching ≥ greedy (CI failure 2026-07-12)", () => {
     const assignment = bestAssignment(spirit.players, spirit.signatureHeroes, phs, sig);
     const matching = assignmentPairScoreTotal(assignment.byPlayer, phs, sig);
     const greedy = greedyAssignmentPairScore(spirit.players, spirit.signatureHeroes, phs, sig);
-    expect(matching).toBeGreaterThanOrEqual(greedy);
+    // Допуск на флоат: при совпадении оптимума суммы равны, но порядок слагаемых разный —
+    // точное >= падало на 13-м знаке (117002.63541726189 против 117002.6354172619).
+    // Инвариант не ослаблен: 1e-9 при значениях ~1e5 — это 1e-14 относительной погрешности.
+    expect(matching).toBeGreaterThanOrEqual(greedy - 1e-9);
   });
 });
 
@@ -215,5 +218,32 @@ describe("regression: цвета радара (TREF10+)", () => {
     // 322-0 (#1fd0bd) — это ссылка на замер, а не литерал в стилях.
     const code = css.replace(/\/\*[\s\S]*?\*\//g, "");
     expect(code).not.toMatch(/#[0-9a-fA-F]{3,6}|rgba?\(/);
+  });
+});
+
+describe("regression: пул героев пака (2026-07-17)", () => {
+  it("BUG-2026-07-17: пак хранит 10 сигнатурных героев, показывает случайные 5", () => {
+    // Раньше хранили ровно 5 и всегда показывали их же: пул был вдвое уже, а пайплайн ещё и
+    // сортирует по heroId — без шаффла slice(0,5) брал бы пятёрку с наименьшими id.
+    // Замер до фикса: Anti-Mage в 13 паках из 1415 (0.9% на пак), 16 героев с шансом <1%;
+    // у 322-0 при том же среднем таких героев 2, и они хранят 10 (shuffle(sig).slice(0,5)).
+    const data = loadGameData();
+    for (const pack of data.packs) {
+      expect(new Set(pack.signatureHeroes).size).toBeGreaterThanOrEqual(10);
+    }
+  });
+
+  it("BUG-2026-07-17: показанная пятёрка зависит от seed, но воспроизводима", () => {
+    const data = loadGameData();
+    const shown = (seed: string) => {
+      const engine = new RunEngine(data, defaultRunConfig, seed);
+      return engine.packHeroes.join(",");
+    };
+    // Тот же seed — та же пятёрка (детерминизм забега).
+    expect(shown("hero-pool-a")).toBe(shown("hero-pool-a"));
+    // Разные seed на десяти прогонах дают больше одной комбинации: пятёрка не прибита к
+    // первым пяти по id. Без шаффла все варианты совпали бы.
+    const variants = new Set(Array.from({ length: 10 }, (_, i) => shown(`hero-pool-${i}`)));
+    expect(variants.size).toBeGreaterThan(1);
   });
 });

@@ -174,7 +174,14 @@ export class RunEngine {
   // Мягкий анти-повтор: следующий пак — не та же команда, что сейчас (но команда
   // возвращается позже — чтобы можно было собрать бывших тиммейтов). Вечного
   // исключения команды нет (иначе Chemistry структурно невозможна).
+  /** Монотонный номер пака: растёт на каждый draw(). Единственный честный признак «пак
+   *  сменился» для UI. Считать по rerollsLeft нельзя — на Easy он равен Infinity, и реролл
+   *  ключ не менял: раздача молча не переигрывалась. По содержимому пака тоже нельзя —
+   *  реролл может выдать тот же первый игрок. */
+  packSerial = 0;
+
   private draw(): DraftPack {
+    this.packSerial += 1;
     const avoid = new Set<number>();
     const currentTeam = this.currentPack?.candidates[0]?.teamId;
     if (this.config.draftStyle === "team" && currentTeam != null) avoid.add(currentTeam);
@@ -183,13 +190,20 @@ export class RunEngine {
   }
 
   /**
-   * Каждый новый пак предлагает ровно пять ещё не взятых героев. Сначала сохраняем
-   * сигнатурных героев выбранного пака, затем детерминированно добираем сигнатурных
-   * героев из того же format-pool. Это не требует runtime API и не предлагает дубль.
+   * Каждый новый пак предлагает ровно пять ещё не взятых героев: СЛУЧАЙНЫЕ пять из
+   * сигнатурного пула пака (в данных их 10), затем добор из того же format-pool, если
+   * своих не хватило. Не требует runtime API и не предлагает дубль.
+   *
+   * Шаффл обязателен: пайплайн отдаёт signatureHeroes отсортированными по heroId, и без
+   * него `slice(0, 5)` всегда показывал бы пятёрку с наименьшими id — пул сузился бы вдвое
+   * и стал предсказуемым. Так же делает 322-0: `shuffle(signatureHeroes).slice(0, 5)`.
+   * Детерминизм сохраняется: this.rng сеян seed'ом забега.
    */
   private withFullHeroOffer(pack: DraftPack): DraftPack {
     const drafted = new Set(this.heroes);
-    const preferred = [...new Set(pack.signatureHeroes)].filter((heroId) => !drafted.has(heroId));
+    const preferred = this.rng.shuffle(
+      [...new Set(pack.signatureHeroes)].filter((heroId) => !drafted.has(heroId)),
+    );
     const preferredSet = new Set(preferred);
     const fallback = this.rng.shuffle(
       [...new Set(this.pool.flatMap((source) => source.signatureHeroes))]

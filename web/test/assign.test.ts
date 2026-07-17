@@ -24,7 +24,11 @@ describe("bestAssignment", () => {
     const assignment = bestAssignment(spirit.players, spirit.signatureHeroes, phs, sig);
     const matchingTotal = assignmentPairScoreTotal(assignment.byPlayer, phs, sig);
     const greedyTotal = greedyAssignmentPairScore(spirit.players, spirit.signatureHeroes, phs, sig);
-    expect(matchingTotal).toBeGreaterThanOrEqual(greedyTotal);
+    // Допуск на флоат: при совпадении оптимума матчинг и жадность дают одну сумму, но
+    // порядок слагаемых разный — точное >= падало на разнице в 13-м знаке (117002.63541726189
+    // против 117002.6354172619). Инвариант «матчинг не хуже» это не ослабляет: 1e-9 при
+    // значениях ~1e5 — это 1e-14 относительной погрешности.
+    expect(matchingTotal).toBeGreaterThanOrEqual(greedyTotal - 1e-9);
   });
 
   it("assignmentPairScore: любой опыт на герое бьёт отсутствие данных", () => {

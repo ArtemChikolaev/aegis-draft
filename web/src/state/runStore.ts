@@ -39,6 +39,7 @@ interface Snapshot {
   heroes: number[]; // драфтованные герои
   heroesLeft: number;
   packHeroes: number[]; // драфтуемые герои текущего пака
+  packSerial: number;   // номер пака: меняется на каждую новую раздачу
   score: ScoreBreakdown | null;
 }
 
@@ -88,6 +89,7 @@ function snap(engine: RunEngine): Snapshot {
     heroes: engine.heroes,
     heroesLeft: engine.heroesLeft,
     packHeroes: engine.packHeroes,
+    packSerial: engine.packSerial,
     score: engine.score(),
   };
 }

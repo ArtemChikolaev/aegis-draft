@@ -15,6 +15,10 @@ import (
 
 const rosterSize = 5
 
+// signaturePoolSize — сколько сигнатурных героев кладём в пак. Клиент показывает
+// HERO_TARGET (5) случайных из них, поэтому пул должен быть шире показа.
+const signaturePoolSize = 10
+
 type eventLineup struct {
 	games     map[int]int                // accountID -> игры в событии
 	heroes    map[int]map[int]int        // accountID -> heroID -> пики
@@ -215,7 +219,13 @@ func buildPack(eventID string, teamID int, lineup *eventLineup, ratings map[int]
 	}, true
 }
 
-// signatureHeroes — самые частые герои состава на событии (топ-5, tie по heroID).
+// signatureHeroes — самые частые герои состава на событии (топ-N, tie по heroID).
+//
+// Хранится ВДВОЕ больше, чем показывается: клиент случайно берёт 5 из этого пула на каждый
+// ролл (как 322-0: `shuffle(signatureHeroes).slice(0, 5)`). Раньше хранили ровно 5 и всегда
+// показывали их же — пул героев был вдвое уже, и редкие герои почти не выпадали: Anti-Mage
+// встречался в 13 паках из 1415 (0.9% на пак), 16 героев имели шанс <1%. У референса при
+// том же среднем таких героев всего 2.
 func signatureHeroes(lineup *eventLineup, roster []int) []int {
 	counts := make(map[int]int)
 	for _, accountID := range roster {
@@ -235,8 +245,8 @@ func signatureHeroes(lineup *eventLineup, roster []int) []int {
 		}
 		return heroes[i] < heroes[j]
 	})
-	if len(heroes) > rosterSize {
-		heroes = heroes[:rosterSize]
+	if len(heroes) > signaturePoolSize {
+		heroes = heroes[:signaturePoolSize]
 	}
 	sort.Ints(heroes)
 	return heroes

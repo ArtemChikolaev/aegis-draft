@@ -51,6 +51,20 @@ const clampStat = (v) => Math.max(40, Math.min(99, v));
 const stat = (ovr, role, axis) => clampStat(ovr + roleDelta[role][axis]);
 
 const p = (accountId, nickname, role, ovr) => ({ accountId, nickname, role, ovr });
+/** signatureHeroes пака: SIGNATURE_POOL штук, как emit'ит пайплайн (domain.signaturePoolSize).
+ *  Клиент показывает случайные 5 из них — мок обязан воспроизводить ФОРМУ прода, иначе golden
+ *  гоняет модель на данных, которых в проде не бывает. Пятёрка команды + детерминированный
+ *  добор из общего списка героев; порядок по id, как sort.Ints в пайплайне. */
+const SIGNATURE_POOL = 10;
+function signaturePool(team) {
+  const out = [...new Set(team.sig)];
+  for (const heroId of heroIds) {
+    if (out.length >= SIGNATURE_POOL) break;
+    if (!out.includes(heroId)) out.push(heroId);
+  }
+  return out.slice(0, SIGNATURE_POOL).sort((a, b) => a - b);
+}
+
 const TEAMS = {
   spirit: {
     teamId: 8291895, teamName: "Team Spirit", tag: "TSpirit", sig: [44, 74, 114, 26, 5],
@@ -119,7 +133,7 @@ for (const ev of EVENTS) {
         impact: stat(pl.ovr, pl.role, "impact"), economy: stat(pl.ovr, pl.role, "economy"),
         reliability: stat(pl.ovr, pl.role, "reliability"), games,
       })),
-      signatureHeroes: team.sig,
+      signatureHeroes: signaturePool(team),
     });
   }
 }

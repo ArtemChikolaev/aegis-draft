@@ -5,20 +5,21 @@ interface DealtProps {
   /** Позиция в раздаче: задержка = index × --motion-deal-stagger. Сквозная по паку —
    *  герои продолжают нумерацию игроков, иначе две группы стартуют разом и раздача рвётся. */
   index: number;
-  /** Ключ раздачи (id пака). Меняется ⇒ React пересоздаёт узел ⇒ анимация играет заново.
-   *  Без этого второй пак въехал бы без движения: те же DOM-узлы, CSS-анимация не рестартует. */
-  dealKey: string | number;
   className?: string;
   children: ReactNode;
 }
 
 /** Обёртка раздачи: карта пака приезжает со сдвигом по index (см. design-language §Движение).
  *  Презентационная — ни i18n, ни темы; вид задают токены. Гасится глобальным
- *  prefers-reduced-motion в design/base.css. */
-export function Dealt({ index, dealKey, className, children }: DealtProps) {
+ *  prefers-reduced-motion в design/base.css.
+ *
+ *  ВАЖНО: CSS-анимация играет только при МОНТИРОВАНИИ узла. Чтобы раздача повторялась на
+ *  новом паке, вызывающий обязан включить номер пака во ВНЕШНИЙ key:
+ *      <Dealt key={`${packSerial}:${id}`} index={i}>
+ *  Внутренний key на корневом div для этого ненадёжен — React сверяет массив по внешнему. */
+export function Dealt({ index, className, children }: DealtProps) {
   return (
     <div
-      key={dealKey}
       className={className ? `${styles.dealt} ${className}` : styles.dealt}
       style={{ "--deal-index": index } as CSSProperties}
     >
