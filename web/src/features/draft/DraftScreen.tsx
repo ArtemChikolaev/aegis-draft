@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -82,7 +83,7 @@ export function DraftScreen() {
         <div><Eyebrow>{t("draft.picked", { current: picked, total: 10 })}</Eyebrow><h1><TeamName value={teamName} placeholder={t("team.placeholder")} editLabel={t("team.edit")} onChange={setTeamName} /></h1></div>
         <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
       </header>
-      <Surface className="draft__radar">
+      <Surface className="draft__radar enter">
         <Pentagon
           roster={roster}
           teamOvr={score?.teamOvr ?? null}
@@ -106,7 +107,7 @@ export function DraftScreen() {
           />
         )}
       </Surface>
-      <Surface className="pack-panel">
+      <Surface className="pack-panel enter" style={{ "--enter-i": 1 } as CSSProperties}>
         <div className="pack-heading">
           <div>
             <Eyebrow className="pack-eyebrow">{currentPack.kind === "mixed" ? t("draft.freeAgents") : currentPack.label}</Eyebrow>

@@ -185,7 +185,7 @@ function renderRound(
   slot: number,
 ) {
   return (
-    <div key={round.id} className={`bracket-col bracket-col--slot-${slot}`}>
+    <div key={round.id} className={`bracket-col bracket-col--slot-${slot} enter-fade`} style={{ ["--enter-i" as string]: slot } as React.CSSProperties}>
       <h4 className="bracket-col__title">{round.label}</h4>
       <div className="bracket-col__matches">
         {round.series.map((series) => renderSeriesMatch(series, tournament, feeders, ticks, step, revealComplete))}
@@ -369,7 +369,7 @@ export function TournamentScreen() {
   return (
     <main className="run" data-testid="run-screen">
       {/* Постоянная тим-панель: пентагон + разбор + ростер (как левая колонка 322-0). */}
-      <div className="result__grid run__team">
+      <div className="result__grid run__team enter">
         <Surface className="result__radar">
           <Pentagon
             roster={roster}
@@ -402,7 +402,7 @@ export function TournamentScreen() {
           )}
         </Surface>
 
-        <Surface className="result__report run__field">
+        <Surface className="result__report run__field enter-fade" style={{ ["--enter-i" as string]: 1 } as React.CSSProperties}>
           <header className="run__field-head">
             <div>
               <Eyebrow>{t("tournament.eyebrow")}</Eyebrow>
@@ -410,13 +410,13 @@ export function TournamentScreen() {
             </div>
             {stage === "field" && <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>}
           </header>
-          <div className="tournament__projection">
+          <div className="tournament__projection enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>
             <span>{t("tournament.yourProjection")}</span>
             <strong>{t(projectionKey(tournament.projection))}</strong>
           </div>
           <ol className="field-list" data-testid="tournament-stage-field">
             {tournament.field.map((team, index) => (
-              <li key={team.id} className={team.isUser ? "is-user" : ""}>
+              <li key={team.id} className={`enter ${team.isUser ? "is-user" : ""}`.trim()} style={{ ["--enter-i" as string]: index } as React.CSSProperties}>
                 <span>{index + 1}</span>
                 <TeamSigil monogram={team.sigil.monogram} color={team.sigil.color} />
                 <strong>{team.name}</strong>
@@ -437,8 +437,8 @@ export function TournamentScreen() {
       <div className="run__sim">
         {stage !== "field" && (
           <div className="tournament__groups" data-testid="tournament-stage-groups" ref={groupsRef}>
-            {tournament.groups.map((group) => (
-              <Surface key={group.id} className="group-table">
+            {tournament.groups.map((group, gi) => (
+              <Surface key={group.id} className="group-table enter" style={{ ["--enter-i" as string]: gi } as React.CSSProperties}>
                 <h2>Group {group.id}</h2>
                 <div className="table-head"><span>#</span><span aria-hidden="true" /><span>{t("tournament.team")}</span><span>{t("tournament.record")}</span><span>{t("tournament.route")}</span></div>
                 <div className="table-body">
@@ -447,8 +447,8 @@ export function TournamentScreen() {
                     return (
                     <div
                       key={row.team.id}
-                      className={`table-row ${row.team.isUser ? "is-user" : ""} ${routed ? `is-routed route--${row.route}` : ""}`.trim()}
-                      style={{ ["--route-i" as string]: row.rank - 1 } as React.CSSProperties}
+                      className={`table-row enter ${row.team.isUser ? "is-user" : ""} ${routed ? `is-routed route--${row.route}` : ""}`.trim()}
+                      style={{ ["--route-i" as string]: row.rank - 1, ["--enter-i" as string]: row.rank - 1 } as React.CSSProperties}
                     >
                       <span>{row.rank}</span>
                       <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
@@ -460,11 +460,11 @@ export function TournamentScreen() {
                 </div>
               </Surface>
             ))}
-            <Surface className="group-results">
+            <Surface className="group-results enter" style={{ ["--enter-i" as string]: 2 } as React.CSSProperties}>
               <h3 className="bracket__side-title">{t("tournament.results")}</h3>
               <div className="group-results__list" ref={groupResultsRef}>
                 {revealedGroupMatches.map((match) => (
-                  <div key={match.id} className={`group-result ${match.teamA.isUser || match.teamB.isUser ? "is-user" : ""}`}>
+                  <div key={match.id} className={`group-result enter-fade ${match.teamA.isUser || match.teamB.isUser ? "is-user" : ""}`.trim()}>
                     <span className="group-result__tag">{match.group}</span>
                     <span className={`group-result__team is-a ${match.teamA.isUser ? "is-user" : ""} ${match.scoreA > match.scoreB ? "is-win" : match.scoreA < match.scoreB ? "is-loss" : ""}`.trim()}>
                       <span className="group-result__name">{match.teamA.name}</span>
@@ -495,7 +495,7 @@ export function TournamentScreen() {
                     accentFromIds={accentSeriesIds}
                   />
                   {tournament.playoffRounds.filter((round) => round.id.startsWith("ub")).map((round, index) => renderRound(round, tournament, playoffFeeders, playoffSimTicks, n, done, [1, 3, 5][index]))}
-                  <div className="bracket-col bracket-col--gf bracket-col--slot-6">
+                  <div className="bracket-col bracket-col--gf bracket-col--slot-6 enter-fade" style={{ ["--enter-i" as string]: 6 } as React.CSSProperties}>
                     <h4 className="bracket-col__title bracket-col__title--gf">{t("tournament.grandFinalShort")}</h4>
                     <div className="bracket-col__matches">
                       {renderSeriesMatch(tournament.grandFinal, tournament, playoffFeeders, playoffSimTicks, n, done, "match--gf")}
@@ -521,7 +521,7 @@ export function TournamentScreen() {
 
         {playoffsDone && (
           <div ref={resultRef}>
-            <Surface className="tournament__champion">
+            <Surface className="tournament__champion enter">
               <div>
                 <span>{t("tournament.yourFinish")}</span>
                 <strong className={tournament.champion.isUser ? "is-user" : ""}>{t(placementKey(tournament.userPlacement))}</strong>
@@ -535,7 +535,7 @@ export function TournamentScreen() {
               </div>
             </Surface>
             <div className="tournament__report">
-              <Surface className="final-table">
+              <Surface className="final-table enter" style={{ ["--enter-i" as string]: 1 } as React.CSSProperties}>
                 <h3 className="bracket__side-title">{t("tournament.finalStandings")}</h3>
                 {tournament.standings.map((row) => (
                   <div key={row.team.id} className={row.team.isUser ? "is-user" : ""}>
@@ -546,7 +546,7 @@ export function TournamentScreen() {
                   </div>
                 ))}
               </Surface>
-              <Surface className="run-summary">
+              <Surface className="run-summary enter" style={{ ["--enter-i" as string]: 2 } as React.CSSProperties}>
                 <h3 className="bracket__side-title">{t("tournament.yourRun")}</h3>
                 <div className="run-summary__scores">
                   <StatTile label={t("common.base")} value={Math.round(score.base).toString()} kind="base" />
@@ -584,7 +584,9 @@ export function TournamentScreen() {
                 </ul>
               </Surface>
             </div>
-            <CareerPanel />
+            <div className="enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>
+              <CareerPanel />
+            </div>
           </div>
         )}
 

@@ -24,4 +24,18 @@ h1, h2, .brand { font-family: "Space Grotesk", Manrope, sans-serif; }
    keyframes, и ссылка из модуля на глобальное `deal-in` компилируется в несуществующее
    `_deal-in_hash`. Анимация тогда «есть» в getComputedStyle, но не играет (getAnimations()
    пуст) — молчаливый провал. Общий keyframe нужен модулю ⇒ клади рядом с ним. */
+/* Появление секций/строк симуляции (плавный вход, тот же темп — проход не растягиваем).
+   Глобальный двойник ui/Dealt для feature-CSS, где обёртка-компонент ломает семантику
+   (<li>, строка таблицы, колонка сетки). Каскад — через --enter-i, как --deal-index у Dealt.
+   Эти keyframes глобальные (не в CSS-модуле), поэтому feature-CSS ссылается на них штатно.
+   Гасится глобальным reduced-motion ниже (animation-duration → .01ms). */
+/* --enter-i не наследуется: иначе вложенный .enter (напр. .group-result внутри .group-results)
+   подхватил бы --enter-i предка и получил чужую задержку. Каждый элемент держит свой индекс. */
+@property --enter-i { syntax: "<number>"; inherits: false; initial-value: 0; }
+@keyframes fade-rise { from { opacity: 0; transform: translateY(8px); } }
+@keyframes fade-soft { from { opacity: 0; } }
+.enter { animation: fade-rise var(--motion-enter) var(--ease-out) both; animation-delay: calc(var(--enter-i, 0) * var(--motion-enter-stagger)); }
+/* Только прозрачность: для сетки плей-офф, где translate сдвинул бы измеряемую геометрию коннекторов. */
+.enter-fade { animation: fade-soft var(--motion-enter) var(--ease-out) both; animation-delay: calc(var(--enter-i, 0) * var(--motion-enter-stagger)); }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
