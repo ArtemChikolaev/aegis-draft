@@ -74,13 +74,15 @@
 .group-results__list {
   display: flex;
   flex: 1;
+  /* Прижато к низу: новый матч приходит снизу, лента растёт вверх. Рендерим только
+     столько последних, сколько влезает целиком (resultsCapacity в TournamentScreen),
+     поэтому скролла и обрезанной строки сверху нет. */
   flex-direction: column;
+  justify-content: flex-end;
   align-items: stretch;
   min-height: 0;
   gap: 2px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+  overflow: hidden;
 }
 .group-result {
   display: grid;

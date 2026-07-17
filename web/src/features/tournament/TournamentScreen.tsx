@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type {
@@ -17,7 +17,7 @@ import {
   seriesStarted,
 } from "../../game/tournamentPlayback.ts";
 import { useRun } from "../../state/runStore.ts";
-import { Button, Eyebrow, HeroThumb, Modal, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, motionMs, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -48,21 +48,25 @@ const scoreTier = (score: number): "elite" | "strong" | "mid" | "low" | "weak" =
   score >= 90 ? "elite" : score >= 86 ? "strong" : score >= 82 ? "mid" : score >= 78 ? "low" : "weak";
 
 // Группы: один тик = весь матч (финальный счёт сразу). Плей-офф: тик = одна карта серии.
-const GROUP_MATCH_STEP_MS = 70;
+const GROUP_MATCH_STEP_MS = 95;
 const PLAYOFF_MAP_STEP_MS = 200;
+// Число команд в группе — им же меряется каскад «наполнения» перед стартом матчей.
+const GROUP_TEAM_ROWS = 9;
 
 // Презентационный прогрессивный reveal: движок уже посчитал весь результат детерминированно,
 // а здесь мы лишь «проигрываем» его по одному элементу с возможностью Skip. Сбрасывается при
 // смене стадии (resetKey). Состояние эфемерное — в persist забега не попадает (при resume
 // стадия открывается сразу, а reveal доиграется/скипнется заново).
-function useReveal(total: number, resetKey: unknown, stepMs: number) {
+function useReveal(total: number, resetKey: unknown, stepMs: number, startDelayMs = 0) {
   const [n, setN] = useState(0);
   const timer = useRef<number | null>(null);
+  const startTimer = useRef<number | null>(null);
   const resetKeyRef = useRef(resetKey);
   const keyChanged = resetKeyRef.current !== resetKey;
   if (keyChanged) resetKeyRef.current = resetKey;
 
   const stop = useCallback(() => {
+    if (startTimer.current != null) { window.clearTimeout(startTimer.current); startTimer.current = null; }
     if (timer.current == null) return;
     window.clearInterval(timer.current);
     timer.current = null;
@@ -72,13 +76,23 @@ function useReveal(total: number, resetKey: unknown, stepMs: number) {
     setN(0);
     if (total <= 0) return;
     let current = 0;
-    timer.current = window.setInterval(() => {
-      current += 1;
-      setN(current);
-      if (current >= total) stop();
-    }, stepMs);
+    const begin = () => {
+      timer.current = window.setInterval(() => {
+        current += 1;
+        setN(current);
+        if (current >= total) stop();
+      }, stepMs);
+    };
+    // Стадия сперва «наполняется» (каскад строк въезжает), и лишь потом идёт живой reveal
+    // матчей: иначе пересортировка стоящих таблиц дерётся с входной анимацией строк и они
+    // моргают. reduced-motion → без задержки (входной анимации всё равно нет).
+    if (startDelayMs > 0 && !prefersReducedMotion()) {
+      startTimer.current = window.setTimeout(begin, startDelayMs);
+    } else {
+      begin();
+    }
     return stop;
-  }, [resetKey, stepMs, stop, total]);
+  }, [resetKey, stepMs, stop, total, startDelayMs]);
   const skip = useCallback(() => {
     stop();
     setN(total);
@@ -252,7 +266,13 @@ export function TournamentScreen() {
       ? playoffSimTicks.length
       : 0;
   const stepMs = stage === "groups" ? GROUP_MATCH_STEP_MS : PLAYOFF_MAP_STEP_MS;
-  const { n, done, skip } = useReveal(revealTotal, stage, stepMs);
+  // Группы: держим матчи, пока строки-команды не «въехали» + пауза, чтобы группа «вдохнула»
+  // перед играми (наполнилась → замерла → пошли матчи). См. useReveal.
+  const groupFillMs = useMemo(
+    () => motionMs("--motion-enter", 360) + (GROUP_TEAM_ROWS - 1) * motionMs("--motion-enter-stagger", 45) + 450,
+    [],
+  );
+  const { n, done, skip } = useReveal(revealTotal, stage, stepMs, stage === "groups" ? groupFillMs : 0);
 
   // Серии, уже доигранные на текущем шаге — от них рисуем коннектор к следующему слоту.
   const finishedSeriesIds = useMemo(() => {
@@ -316,6 +336,12 @@ export function TournamentScreen() {
     if (stage === "groups") scrollTo(groupsRef.current);
     else if (stage === "playoffs") scrollTo(playoffsRef.current);
   }, [stage, scrollTo]);
+  // Драфт завершается на прокрученной вниз странице, а run-вид наследует scrollY (был ~1400px)
+  // и открывается где-то в середине — визуально «прыжок». На входе в run (стадия field) ставим
+  // верх ДО отрисовки (useLayoutEffect, без мигания кадра): экран открывается с пентагона.
+  useLayoutEffect(() => {
+    if (stage === "field") window.scrollTo(0, 0);
+  }, [stage]);
   const playoffsDone = stage === "playoffs" && done;
   useEffect(() => {
     if (!playoffsDone) return;
@@ -325,12 +351,31 @@ export function TournamentScreen() {
 
   const revealedGroupMatches = stage === "groups" ? orderedGroupMatches.slice(0, n) : orderedGroupMatches;
   const groupsDone = stage === "playoffs" || (stage === "groups" && done);
+  // Входной каскад строк — ТОЛЬКО пока группа наполняется (матчи ещё не пошли, n === 0).
+  // Как только начинаются игры, строки пересортировываются, и оставленная на них
+  // opacity-анимация подхватывается при переезде строки → моргание. Снимаем .enter —
+  // пересортировка снова мгновенная, без мигания (как было до анимаций).
+  const groupFillPhase = stage === "groups" && n === 0;
+  // Лента результатов не скроллится с обрезанной строкой сверху, а показывает столько
+  // ПОСЛЕДНИХ матчей, сколько влезает ЦЕЛИКОМ: панель фиксированной высоты, а строка не
+  // делится на неё нацело (471/30 ≈ 15.7) — иначе верхняя пара вечно срезана.
+  const [resultsCapacity, setResultsCapacity] = useState(0);
   useEffect(() => {
-    if (stage !== "groups") return;
     const list = groupResultsRef.current;
     if (!list) return;
-    list.scrollTop = list.scrollHeight;
-  }, [revealedGroupMatches.length, stage]);
+    const measure = () => {
+      const rows = list.querySelectorAll<HTMLElement>(".group-result");
+      const stride = rows.length >= 2
+        ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top
+        : 30; // min-height 28 + gap 2 — фолбэк, пока строк нет
+      if (list.clientHeight > 0 && stride > 0) setResultsCapacity(Math.max(1, Math.floor(list.clientHeight / stride)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(list);
+    return () => ro.disconnect();
+  }, [stage]);
+  const shownGroupResults = resultsCapacity > 0 ? revealedGroupMatches.slice(-resultsCapacity) : revealedGroupMatches;
 
   const eventNameById = useMemo(
     () => new Map((data?.events ?? []).map((e) => [e.id, e.short ?? e.name])),
@@ -447,7 +492,7 @@ export function TournamentScreen() {
                     return (
                     <div
                       key={row.team.id}
-                      className={`table-row enter ${row.team.isUser ? "is-user" : ""} ${routed ? `is-routed route--${row.route}` : ""}`.trim()}
+                      className={`table-row ${groupFillPhase ? "enter" : ""} ${row.team.isUser ? "is-user" : ""} ${routed ? `is-routed route--${row.route}` : ""}`.replace(/\s+/g, " ").trim()}
                       style={{ ["--route-i" as string]: row.rank - 1, ["--enter-i" as string]: row.rank - 1 } as React.CSSProperties}
                     >
                       <span>{row.rank}</span>
@@ -463,7 +508,7 @@ export function TournamentScreen() {
             <Surface className="group-results enter" style={{ ["--enter-i" as string]: 2 } as React.CSSProperties}>
               <h3 className="bracket__side-title">{t("tournament.results")}</h3>
               <div className="group-results__list" ref={groupResultsRef}>
-                {revealedGroupMatches.map((match) => (
+                {shownGroupResults.map((match) => (
                   <div key={match.id} className={`group-result enter-fade ${match.teamA.isUser || match.teamB.isUser ? "is-user" : ""}`.trim()}>
                     <span className="group-result__tag">{match.group}</span>
                     <span className={`group-result__team is-a ${match.teamA.isUser ? "is-user" : ""} ${match.scoreA > match.scoreB ? "is-win" : match.scoreA < match.scoreB ? "is-loss" : ""}`.trim()}>

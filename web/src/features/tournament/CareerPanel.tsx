@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import {
@@ -37,6 +38,15 @@ export function CareerPanel() {
     .sort((left, right) => right.finishedAt.localeCompare(left.finishedAt))
     .slice(0, LAST_RUNS);
 
+  // Список забегов — скролл-контейнер на 2 карточки. Свежий забег идёт первым (сверху), но
+  // если контейнер оказался прокручен, верхняя карточка прячется. На появлении нового забега
+  // возвращаем ленту наверх — только что сыгранный всегда виден.
+  const runsListRef = useRef<HTMLDivElement>(null);
+  const newestRunId = recent.length ? careerRunId(recent[0]) : "";
+  useEffect(() => {
+    runsListRef.current?.scrollTo({ top: 0 });
+  }, [newestRunId]);
+
   const placementStats = (Object.keys(placementLabels) as CareerPlacementBucket[]).map((bucket, index) => ({
     label: t(placementLabels[bucket]), value: summary.placements[bucket], kind: (["base", "synergy", "chemistry"] as const)[index % 3],
   }));
@@ -65,7 +75,7 @@ export function CareerPanel() {
       </Surface>
       <Surface className="career-runs">
         <h3 className="bracket__side-title">{t("career.lastRuns", { count: LAST_RUNS })}</h3>
-        <div className="career-runs__list">
+        <div className="career-runs__list" ref={runsListRef}>
           {recent.map((entry) => (
             <article className="career-run" key={careerRunId(entry)}>
               <header className="career-run__heading">
