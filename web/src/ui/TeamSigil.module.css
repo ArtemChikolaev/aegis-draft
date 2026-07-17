@@ -1,0 +1,37 @@
+/* Знак команды: монограмма в плашке цвета опознания. Цвет — --sigil-tone, его выставляет
+   модификатор ниже; сам знак не знает ни про тему, ни про то, чья это команда. */
+.sigil {
+  --sigil-tone: var(--sigil-4);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  /* Плашка — в rem, а не в em: иначе кегль монограммы тянул бы за собой её размер, и
+     уменьшить буквы, не уменьшив квадрат, было бы нельзя. */
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--sigil-tone) 45%, transparent);
+  background: color-mix(in srgb, var(--sigil-tone) 14%, transparent);
+  color: var(--sigil-tone);
+  font-size: .56rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1;
+  /* Монограмма — опознание, а не текст: не даём ей растягивать строку и ловить выделение. */
+  user-select: none;
+}
+
+.c0 { --sigil-tone: var(--sigil-0); }
+.c1 { --sigil-tone: var(--sigil-1); }
+.c2 { --sigil-tone: var(--sigil-2); }
+.c3 { --sigil-tone: var(--sigil-3); }
+.c4 { --sigil-tone: var(--sigil-4); }
+
+/* Своя команда — акцент темы (зелёный в dark, оранжевый в light), плотнее прочих:
+   игрок должен находить себя в таблице из 18 строк мгновенно. */
+.user {
+  --sigil-tone: var(--accent);
+  border-color: color-mix(in srgb, var(--sigil-tone) 70%, transparent);
+  background: color-mix(in srgb, var(--sigil-tone) 22%, transparent);
+}

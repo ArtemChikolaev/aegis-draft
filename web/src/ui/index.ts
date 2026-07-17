@@ -10,6 +10,7 @@ export { prefersReducedMotion, motionMs, useCountUp } from "./motion.ts";
 export { HeroThumb } from "./HeroThumb.tsx";
 export { RoleTag } from "./RoleTag.tsx";
 export { TeamName } from "./TeamName.tsx";
+export { TeamSigil } from "./TeamSigil.tsx";
 export { SoonBadge } from "./SoonBadge.tsx";
 export { StatTile, type StatKind } from "./StatTile.tsx";
 export { Select, type SelectOption } from "./Select.tsx";

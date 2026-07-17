@@ -11,7 +11,22 @@ export interface TournamentTeam {
   eventLabel: string;
   strength: number;
   isUser: boolean;
+  /** Опознавательный знак команды: монограмма из имени + индекс цвета опознания (--sigil-N).
+   *  Нужен, потому что имена ботов намеренно похожи («Ranked Techies» / «Ranked Goblins»):
+   *  на live-симуляции глазу не за что зацепиться, чтобы следить за конкретной командой. */
+  sigil: TeamSigil;
 }
+
+export interface TeamSigil {
+  /** Две буквы: инициалы префикса и существительного. Уникальны в пределах поля. */
+  monogram: string;
+  /** Индекс в палитре опознания 0..SIGIL_COLORS-1, либо "user" для своей команды (--accent).
+   *  Это НЕ сила: цвета опознания взяты вне tier-шкалы, чтобы знак не читался как оценка. */
+  color: number | "user";
+}
+
+/** Размер палитры опознания — должен совпадать с числом токенов --sigil-N в design/tokens.css. */
+export const SIGIL_COLORS = 5;
 
 export interface GroupStanding {
   team: TournamentTeam;
@@ -117,21 +132,48 @@ const BOT_NOUN = [
   "Bots", "Creeps", "Rejects", "Dragons", "Goblins", "Demons", "Techies", "Smurfs", "Pugs",
 ];
 
+/** Монограмма — ровно две буквы: инициалы первых двух слов, а для односложного имени
+ *  («Roshan») его первые две буквы. Имя команды правит игрок, поэтому нельзя рассчитывать
+ *  ни на два слова, ни на латиницу. */
+function monogramOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const letters = words.length >= 2 ? words[0][0] + words[1][0] : (words[0] ?? "").slice(0, 2);
+  return letters.toUpperCase();
+}
+
+/** Имена ботов с ГАРАНТИРОВАННО уникальной монограммой в пределах поля: «Divine Wards» и
+ *  «Disconnected Wards» дают одинаковое DW, и знак перестал бы опознавать команду. Комбинаций
+ *  с разными инициалами хватает с запасом (12 инициалов префикса × 9 существительного). */
 function botNames(rng: Rng, count: number): string[] {
   const combos: string[] = [];
   for (const prefix of BOT_PREFIX) for (const noun of BOT_NOUN) combos.push(`${prefix} ${noun}`);
-  return rng.shuffle(combos).slice(0, count);
+  const picked: string[] = [];
+  const seen = new Set<string>();
+  for (const name of rng.shuffle(combos)) {
+    if (picked.length === count) break;
+    const mono = monogramOf(name);
+    if (seen.has(mono)) continue;
+    seen.add(mono);
+    picked.push(name);
+  }
+  return picked;
 }
 
-function opponentPool(metaRng: Rng, fieldRng: Rng): TournamentTeam[] {
-  const names = botNames(metaRng, 17);
+function opponentPool(fieldRng: Rng): TournamentTeam[] {
+  // Имена и силы — оба от fieldRng: реролл поля меняет СОПЕРНИКОВ, а не только их очки
+  // (так же в 322-0: у них и то и другое сидит на fieldSeed).
+  const names = botNames(fieldRng, 17);
   const strengths = rollBotStrengths(fieldRng, 17);
+  // Цвет опознания раздаётся по кругу перетасованной палитры: 17 команд на 6 цветов дают
+  // по 2-3 повтора, но пара (монограмма, цвет) при уникальной монограмме всё равно уникальна.
+  const palette = fieldRng.shuffle(Array.from({ length: SIGIL_COLORS }, (_, i) => i));
   return names.map((name, index) => ({
     id: `bot-${index + 1}`,
     name,
     eventLabel: "",
     strength: strengths[index],
     isUser: false,
+    sigil: { monogram: monogramOf(name), color: palette[index % SIGIL_COLORS] },
   }));
 }
 
@@ -238,11 +280,11 @@ function round(rng: Rng, id: string, label: string, pairs: [TournamentTeam, Tour
 function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0): TournamentResult {
   void data;
   void format;
-  const metaRng = new Rng(`${seed}:tournament:meta`);
   const fieldRng = new Rng(`${seed}:tournament:field-${fieldReroll}`);
   const simRng = new Rng(`${seed}:tournament:sim-${fieldReroll}`);
-  const user: TournamentTeam = { id: USER_ID, name: userName.trim() || "Aegis Five", eventLabel: "Fantasy roster", strength: userStrength, isUser: true };
-  const field = [...opponentPool(metaRng, fieldRng), user]
+  const name = userName.trim() || "Aegis Five";
+  const user: TournamentTeam = { id: USER_ID, name, eventLabel: "Fantasy roster", strength: userStrength, isUser: true, sigil: { monogram: monogramOf(name), color: "user" } };
+  const field = [...opponentPool(fieldRng), user]
     .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
   const projection = projectionForRank(field.findIndex((team) => team.isUser) + 1);
   const [drawA, drawB] = snakeSeed(field);

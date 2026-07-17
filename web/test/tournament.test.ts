@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TournamentEngine } from "../src/game/tournament.ts";
+import { SIGIL_COLORS, TournamentEngine } from "../src/game/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
 import { advanceToEnd, collectStages, createTournament } from "./helpers/tournament.ts";
 
@@ -90,14 +90,44 @@ describe("TournamentEngine", () => {
     });
   });
 
-  it("field reroll: новые очки, те же имена", () => {
+  // Реролл поля меняет СОПЕРНИКОВ (имена + очки), а не только их очки: кнопка обещает
+  // «перевыбрать соперников», и в 322-0 и то и другое сидит на fieldSeed. Раньше имена шли
+  // от отдельного metaRng и переживали реролл — менялся лишь порядок строк в таблице.
+  it("field reroll: и имена, и очки — новые", () => {
     const userOvr = 88;
     const first = createTournament(data, "field-reroll", userOvr).snapshot;
     const second = new TournamentEngine(data, "last_2y", "field-reroll", userOvr, "Test Five", 1).snapshot;
     const botNames = (snap: typeof first) => snap.field.filter((t) => !t.isUser).map((t) => t.name).sort();
     const botStrengths = (snap: typeof first) => snap.field.filter((t) => !t.isUser).map((t) => t.strength).sort();
-    expect(botNames(first)).toEqual(botNames(second));
+    expect(botNames(first)).not.toEqual(botNames(second));
     expect(botStrengths(first)).not.toEqual(botStrengths(second));
+    // Свою команду реролл не трогает — рероллится поле, а не состав игрока.
+    expect(second.field.find((t) => t.isUser)!.strength).toBe(userOvr);
+  });
+
+  it("знаки команд: монограмма уникальна в поле, цвет — из палитры опознания", () => {
+    const snapshot = createTournament(data, "sigils", 88).snapshot;
+    const monograms = snapshot.field.map((t) => t.sigil.monogram);
+    expect(new Set(monograms).size).toBe(snapshot.field.length);
+    expect(monograms.every((m) => m.length === 2)).toBe(true);
+    // Знак не должен зависеть от силы: у ботов только индексы палитры, "user" — у своей.
+    const user = snapshot.field.find((t) => t.isUser)!;
+    expect(user.sigil.color).toBe("user");
+    for (const bot of snapshot.field.filter((t) => !t.isUser)) {
+      expect(bot.sigil.color).toBeTypeOf("number");
+      expect(bot.sigil.color as number).toBeGreaterThanOrEqual(0);
+      expect(bot.sigil.color as number).toBeLessThan(SIGIL_COLORS);
+    }
+  });
+
+  it("знак стабилен для команды в пределах забега", () => {
+    const a = createTournament(data, "sigil-stable", 88).snapshot;
+    const b = createTournament(data, "sigil-stable", 88).snapshot;
+    const byId = (snap: typeof a) => snap.field.map((t) => `${t.id}:${t.sigil.monogram}:${t.sigil.color}`);
+    expect(byId(a)).toEqual(byId(b));
+    // Тот же знак и в сетке, и в финальной таблице — объект команды один и тот же.
+    const champion = a.champion;
+    expect(a.standings.find((r) => r.team.id === champion.id)!.team.sigil).toEqual(champion.sigil);
   });
 
   it("этапы: field → groups → playoffs (терминальный)", () => {

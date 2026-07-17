@@ -10,8 +10,10 @@
 .tournament__projection span { color: var(--brand-green); font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 .tournament__projection strong { font-size: clamp(42px, 5vw, 76px); line-height: .9; letter-spacing: -.05em; }
 .field-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 20px; margin: 0; padding: 0 4px 0 8px; list-style: none; }
-.field-list li { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 8px; min-height: 42px; padding: 0 16px; border-bottom: 1px solid var(--line); }
-.field-list li > span, .field-list small { color: var(--muted); font-size: 10px; }
+.field-list li { display: grid; grid-template-columns: 24px auto 1fr auto; align-items: center; gap: 8px; min-height: 42px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+/* Только номер строки: `> span` без :first-child цеплял бы и знак команды (он тоже span)
+   и перебивал его цвет — селектор специфичнее, чем .sigil в модуле. */
+.field-list li > span:first-child, .field-list small { color: var(--muted); font-size: 10px; }
 .field-list li strong { font-size: 12px; }
 .field-list .is-user {
   color: var(--accent);
@@ -83,8 +85,10 @@
   font-size: 11px;
 }
 .group-result__tag { color: var(--muted); font: 800 9px sans-serif; }
-.group-result__team { overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; }
-.group-result__team.is-a { text-align: right; }
+/* Знак прижат к счёту с обеих сторон: у is-a строка идёт имя→знак, у is-b знак→имя. */
+.group-result__team { display: flex; align-items: center; gap: 6px; min-width: 0; color: var(--muted); }
+.group-result__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.group-result__team.is-a { justify-content: flex-end; text-align: right; }
 .group-result__team.is-user { color: var(--accent); font-weight: 800; }
 .group-result__score { flex: none; color: var(--text); font-weight: 800; }
 .group-result.is-user { background: var(--accent-soft); }
@@ -116,7 +120,10 @@
   font-size: 11px;
 }
 .table-row > span:nth-child(1) { color: var(--muted); font-size: 10px; font-weight: 700; }
-.table-row > span:nth-child(2) {
+/* Ячейка команды: знак + двухстрочный блок (имя / событие). Знак сидит в ячейке, а не
+   отдельной колонкой грида — иначе шапка .table-head разъехалась бы с телом таблицы. */
+.table-row__team { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.table-row__team > span {
   display: grid;
   grid-template-rows: 14px 10px;
   gap: 2px;
@@ -247,7 +254,8 @@
 .series__team {
   display: grid;
   box-sizing: border-box;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* знак · имя · счёт; у неопределённого слота знака нет — имя занимает первые две колонки */
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   height: 34px;
@@ -277,6 +285,7 @@
 .series__team.is-pending { color: var(--muted); }
 .series__team.is-pending .series__score { color: var(--muted); }
 .series__team.is-empty { color: var(--muted); }
+.series__team.is-empty .series__name { grid-column: 1 / 3; }
 .series__team.is-empty .series__name,
 .series__team.is-empty .series__score { color: var(--muted); font-style: normal; font-weight: 400; }
 .series__team.is-live { color: var(--text); }
@@ -339,7 +348,7 @@
 .final-table > .bracket__side-title { margin: 0 0 8px; }
 .final-table > div {
   display: grid;
-  grid-template-columns: 90px 1fr auto;
+  grid-template-columns: 90px auto 1fr auto;
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
@@ -348,7 +357,8 @@
   background: var(--surface-soft);
   font-size: 11px;
 }
-.final-table span, .final-table small { color: var(--muted); }
+/* Только место: голый `.final-table span` цеплял бы и знак команды (span) и гасил его цвет. */
+.final-table > div > span:first-child, .final-table small { color: var(--muted); }
 .final-table strong { font-weight: 700; }
 .final-table .is-user {
   color: var(--accent);
@@ -363,7 +373,7 @@
 .tournament__champion strong { display: block; margin-top: 4px; font-size: 30px; line-height: 1.05; }
 .tournament__champion strong.is-user { color: var(--accent); }
 .tournament__champion-name { text-align: right; }
-.tournament__champion-name strong { font-size: 20px; }
+.tournament__champion-name strong { display: inline-flex; align-items: center; gap: 8px; font-size: 20px; }
 .tournament__report { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
 .run-summary { padding: 20px 22px; }
 .run-summary__scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }

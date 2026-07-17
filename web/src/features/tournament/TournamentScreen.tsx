@@ -17,7 +17,7 @@ import {
   seriesStarted,
 } from "../../game/tournamentPlayback.ts";
 import { useRun } from "../../state/runStore.ts";
-import { Button, Eyebrow, HeroThumb, Modal, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -120,7 +120,7 @@ function liveStandings(
     .map((r, index) => ({ ...r, rank: index + 1, route: "out" as const }));
 }
 
-// Строка команды в серии (виджет Claude): ★ у своей, имя + счёт; win зелёный / loss коралл.
+// Строка команды в серии: знак + имя + счёт; win зелёный / loss коралл.
 // live — карта идёт; pending — серия ещё не началась; empty — слот ещё не определён фидерами.
 function TeamRow({
   team,
@@ -140,7 +140,8 @@ function TeamRow({
   const state = empty ? "is-empty" : pending ? "is-pending" : live ? "is-live" : won ? "is-winner" : "is-loser";
   return (
     <span className={`series__team ${state} ${!empty && team.isUser ? "is-user" : ""}`}>
-      <em className="series__name">{empty ? "·" : team.isUser ? `★ ${team.name}` : team.name}</em>
+      {!empty && <TeamSigil monogram={team.sigil.monogram} color={team.sigil.color} />}
+      <em className="series__name">{empty ? "·" : team.name}</em>
       <b className="series__score">{empty || pending ? "·" : score}</b>
     </span>
   );
@@ -413,7 +414,9 @@ export function TournamentScreen() {
           <ol className="field-list" data-testid="tournament-stage-field">
             {tournament.field.map((team, index) => (
               <li key={team.id} className={team.isUser ? "is-user" : ""}>
-                <span>{index + 1}</span><strong>{team.name}</strong>
+                <span>{index + 1}</span>
+                <TeamSigil monogram={team.sigil.monogram} color={team.sigil.color} />
+                <strong>{team.name}</strong>
                 <b className={`field-strength score-tier--${scoreTier(team.strength)}`}>{Math.round(team.strength)}</b>
               </li>
             ))}
@@ -444,7 +447,11 @@ export function TournamentScreen() {
                       className={`table-row ${row.team.isUser ? "is-user" : ""} ${routed ? `is-routed route--${row.route}` : ""}`.trim()}
                       style={{ ["--route-i" as string]: row.rank - 1 } as React.CSSProperties}
                     >
-                      <span>{row.rank}</span><span><strong>{row.team.name}</strong><small>{row.team.eventLabel || "\u00A0"}</small></span>
+                      <span>{row.rank}</span>
+                      <span className="table-row__team">
+                        <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
+                        <span><strong>{row.team.name}</strong><small>{row.team.eventLabel || "\u00A0"}</small></span>
+                      </span>
                       <span>{row.wins}–{row.losses}</span><span className={routed ? `route-tag route-tag--${row.route}` : ""}>{groupsDone ? t(`tournament.${row.route}` as MessageKey) : "·"}</span>
                     </div>
                     );
@@ -458,9 +465,15 @@ export function TournamentScreen() {
                 {revealedGroupMatches.map((match) => (
                   <div key={match.id} className={`group-result ${match.teamA.isUser || match.teamB.isUser ? "is-user" : ""}`}>
                     <span className="group-result__tag">{match.group}</span>
-                    <span className={`group-result__team is-a ${match.teamA.isUser ? "is-user" : ""} ${match.scoreA > match.scoreB ? "is-win" : match.scoreA < match.scoreB ? "is-loss" : ""}`.trim()}>{match.teamA.name}</span>
+                    <span className={`group-result__team is-a ${match.teamA.isUser ? "is-user" : ""} ${match.scoreA > match.scoreB ? "is-win" : match.scoreA < match.scoreB ? "is-loss" : ""}`.trim()}>
+                      <span className="group-result__name">{match.teamA.name}</span>
+                      <TeamSigil monogram={match.teamA.sigil.monogram} color={match.teamA.sigil.color} />
+                    </span>
                     <b className="group-result__score">{match.scoreA}–{match.scoreB}</b>
-                    <span className={`group-result__team is-b ${match.teamB.isUser ? "is-user" : ""} ${match.scoreB > match.scoreA ? "is-win" : match.scoreB < match.scoreA ? "is-loss" : ""}`.trim()}>{match.teamB.name}</span>
+                    <span className={`group-result__team is-b ${match.teamB.isUser ? "is-user" : ""} ${match.scoreB > match.scoreA ? "is-win" : match.scoreB < match.scoreA ? "is-loss" : ""}`.trim()}>
+                      <TeamSigil monogram={match.teamB.sigil.monogram} color={match.teamB.sigil.color} />
+                      <span className="group-result__name">{match.teamB.name}</span>
+                    </span>
                   </div>
                 ))}
               </div>
@@ -514,7 +527,10 @@ export function TournamentScreen() {
               </div>
               <div className="tournament__champion-name">
                 <span>{t("tournament.champion")}</span>
-                <strong>{tournament.champion.name}</strong>
+                <strong>
+                  <TeamSigil monogram={tournament.champion.sigil.monogram} color={tournament.champion.sigil.color} />
+                  {tournament.champion.name}
+                </strong>
               </div>
             </Surface>
             <div className="tournament__report">
@@ -522,7 +538,10 @@ export function TournamentScreen() {
                 <h3 className="bracket__side-title">{t("tournament.finalStandings")}</h3>
                 {tournament.standings.map((row) => (
                   <div key={row.team.id} className={row.team.isUser ? "is-user" : ""}>
-                    <span>{t(placementKey(row.placement))}</span><strong>{row.team.name}</strong><b className={`score-tier--${scoreTier(row.team.strength)}`}>{Math.round(row.team.strength)}</b>
+                    <span>{t(placementKey(row.placement))}</span>
+                    <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
+                    <strong>{row.team.name}</strong>
+                    <b className={`score-tier--${scoreTier(row.team.strength)}`}>{Math.round(row.team.strength)}</b>
                   </div>
                 ))}
               </Surface>
