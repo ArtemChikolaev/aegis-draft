@@ -13,7 +13,9 @@ description: >-
 
 Слои состояния игры (**не смешивать**):
 - **Mode shell** (`state/`, `selectedMode`) — какой режим выбран (Classic / Esports Manager / Real Tournament). Живёт отдельно от конкретного забега.
-- **RunConfig** (`game/packs.ts`) — **только реально исполнимые** опции забега (`draftStyle`, `format`, `rerolls`, `scoring`, `allocation`). Не засоряй неработающими режимами/полями.
+- **RunConfig** (`game/packs.ts`) — **только реально исполнимые** опции забега (`draftStyle`, `format`, `rerolls`, `scoring`, `allocation`, `hardMode`). Не засоряй неработающими режимами/полями.
+- **Новое поле RunConfig — опциональным.** `config` целиком лежит в сейве (`runPersist`) и в метке карьеры: обязательное поле сломало бы чтение уже сохранённых забегов. Так добавлен `hardMode`.
+- **Ограничения режима — на уровне UI-аффордансов, не движка.** `hardMode` убирает клик по игроку и перевыбор поля; RNG, лог действий и детерминизм не трогает ⇒ golden не двигается и `ratingModelVersion` не бампается. Если опция начнёт менять выдачу движка — это уже другая история, с бампом.
 - **RunEngine** (`game/engine.ts`) — чистая логика забега (ростер по слотам, пул героев, счёт, рерроллы). Не зависит от `ui/` и от mode shell.
 - **Stage orchestration** (будущее, M5) — этапы roguelite (groups → playoffs → final, экономика, boss-условия) **поверх** RunEngine, отдельным слоем. Не вливать в RunEngine.
 

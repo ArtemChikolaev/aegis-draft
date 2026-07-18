@@ -41,6 +41,10 @@ const SCORING: Opt<Scoring>[] = [
   { value: "event", label: "start.eventRating", hint: "start.eventRatingHint" },
   { value: "peak", label: "start.peakRating", hint: "start.peakRatingHint", soon: true },
 ];
+const HARD_MODE: Opt<boolean>[] = [
+  { value: false, label: "hard.off", hint: "hard.offHint" },
+  { value: true, label: "hard.on", hint: "hard.onHint" },
+];
 const ALLOCATION: Opt<Allocation>[] = [
   { value: "auto", label: "start.automatic", hint: "start.automaticHint" },
   { value: "manual", label: "start.manual", hint: "start.manualHint" },
@@ -58,6 +62,7 @@ export function StartScreen() {
     rerolls: 1,
     scoring: "event",
     allocation: "auto",
+    hardMode: false,
   });
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
   const formatAvailable = (format: Format) => formats.includes(format);
@@ -134,6 +139,7 @@ export function StartScreen() {
           <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY)} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
           <OptionGroup title={t("start.scoring")} soonLabel={t("common.soon")} options={toOptions(SCORING)} value={config.scoring} onChange={(value) => set("scoring", value)} />
           <OptionGroup title={t("start.allocation")} soonLabel={t("common.soon")} options={toOptions(ALLOCATION)} value={config.allocation} onChange={(value) => set("allocation", value)} />
+          <OptionGroup title={t("hard.title")} soonLabel={t("common.soon")} options={toOptions(HARD_MODE)} value={config.hardMode ?? false} onChange={(value) => set("hardMode", value)} />
         </Surface>
         <Surface as="aside" className="launch-panel">
           <span className="launch-panel__glow" aria-hidden="true" />

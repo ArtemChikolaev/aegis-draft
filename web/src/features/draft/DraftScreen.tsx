@@ -39,6 +39,9 @@ export function DraftScreen() {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
+  // Хардкор: профиль игрока закрыт — состав собираешь вслепую, без подсмотра статистики.
+  const hardMode = config?.hardMode === true;
+  const inspectPlayer = hardMode ? undefined : setInspectedPlayer;
   const hero = useHero();
   const { locale, t } = useI18n();
   if (!snapshot || !config) return null;
@@ -95,7 +98,7 @@ export function DraftScreen() {
           teamOvr={score?.teamOvr ?? null}
           chemistryEdges={chemistryEdges}
           assignmentByPlayer={score?.assignment.byPlayer ?? {}}
-          onSelectPlayer={setInspectedPlayer}
+          onSelectPlayer={inspectPlayer}
         />
         <div className="score-strip">
           <StatTile label={t("common.base")} value={score ? Math.round(score.base).toString() : "0"} kind="base" />
@@ -108,7 +111,7 @@ export function DraftScreen() {
             chemistryRows={chemistryRows}
             onPlayerClick={(accountId) => {
               const candidate = roster.find((slot) => slot.candidate?.player.accountId === accountId)?.candidate;
-              if (candidate) setInspectedPlayer(candidate);
+              if (candidate) inspectPlayer?.(candidate);
             }}
           />
         )}

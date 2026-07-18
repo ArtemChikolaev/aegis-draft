@@ -5,7 +5,6 @@
 .brand__copy { display: grid; }
 .brand__copy strong { font-size: 19px; letter-spacing: -.02em; }
 .brand__copy small { color: var(--muted); font: 700 8px/1.4 Manrope, sans-serif; letter-spacing: .1em; }
-.preferences { display: flex; gap: 10px; }
 .muted, .run-meta { color: var(--muted); }
 .run-meta { margin: 18px 0; font-size: 10px; }
 .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; text-align: center; }
@@ -24,7 +23,6 @@
   }
   .topbar { align-items: flex-start; }
   .brand__copy small { display: none; }
-  .preferences { gap: 5px; }
   .footer { margin-top: 28px; }
 }
 @media (max-width: 430px) {

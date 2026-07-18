@@ -26,7 +26,10 @@ function configKeys(config: CareerConfigLabel): MessageKey[] {
   };
   const scoring: Record<CareerConfigLabel["scoring"], MessageKey> = { event: "start.eventRating", peak: "start.peakRating" };
   const draft: Record<CareerConfigLabel["draftStyle"], MessageKey> = { team: "start.teamPacks", mixed: "start.mixedDraft" };
-  return [format[config.format], difficulty[config.difficulty], scoring[config.scoring], draft[config.draftStyle]];
+  const keys: MessageKey[] = [format[config.format], difficulty[config.difficulty], scoring[config.scoring], draft[config.draftStyle]];
+  // Хардкор дописываем в конец, а не подменяем сложность: это независимая опция.
+  if (config.hardMode) keys.push("hard.badge");
+  return keys;
 }
 
 export function CareerPanel() {

@@ -1,26 +1,33 @@
 import { useEffect } from "react";
 import { useRun } from "../state/runStore.ts";
+import { useShell } from "../state/shellStore.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
+import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
-import { useTheme } from "../design/theme/ThemeProvider.tsx";
-import { Banner, Select } from "../ui/index.ts";
-import type { Locale } from "../i18n/core.ts";
-import type { ThemeMode } from "../design/theme/core.ts";
+import { Banner, Button } from "../ui/index.ts";
 import "./App.css";
 
 export function App() {
   const phase = useRun((s) => s.phase);
   const error = useRun((s) => s.error);
   const loadData = useRun((s) => s.loadData);
-  const { locale, setLocale, t } = useI18n();
-  const { mode, setMode } = useTheme();
+  const { t } = useI18n();
+  const view = useShell((s) => s.view);
+  const setView = useShell((s) => s.setView);
+  const syncFromHash = useShell((s) => s.syncFromHash);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  // Кнопка «назад» браузера: на телефоне это единственный способ уйти со страницы.
+  useEffect(() => {
+    window.addEventListener("popstate", syncFromHash);
+    return () => window.removeEventListener("popstate", syncFromHash);
+  }, [syncFromHash]);
 
   return (
     <div className="app-shell">
@@ -32,26 +39,11 @@ export function App() {
             <small>{t("brand.kicker")}</small>
           </span>
         </div>
-        <div className="preferences">
-          <Select
-            label={t("shell.language")}
-            value={locale}
-            options={[{ value: "ru", label: "RU" }, { value: "en", label: "EN" }]}
-            onChange={(value) => setLocale(value as Locale)}
-            data-testid="locale-select"
-          />
-          <Select
-            label={t("shell.theme")}
-            value={mode}
-            options={[
-              { value: "system", label: t("theme.system") },
-              { value: "dark", label: t("theme.dark") },
-              { value: "light", label: t("theme.light") },
-            ]}
-            onChange={(value) => setMode(value as ThemeMode)}
-            data-testid="theme-select"
-          />
-        </div>
+        {/* Язык и тема переехали на отдельную страницу: в топбаре два селекта съедали
+            всю ширину на телефоне, а меняют их раз в жизни. */}
+        <Button variant="secondary" data-testid="open-settings" onClick={() => setView("settings")}>
+          ⚙ {t("shell.menu")}
+        </Button>
       </header>
 
       {error && (
@@ -60,11 +52,15 @@ export function App() {
         </Banner>
       )}
 
-      {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
-      {phase === "start" && <ResumeBanner />}
-      {phase === "start" && <StartScreen />}
-      {phase === "draft" && <DraftScreen />}
-      {phase === "tournament" && <TournamentScreen />}
+      {view === "settings" ? <SettingsScreen /> : (
+        <>
+          {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
+          {phase === "start" && <ResumeBanner />}
+          {phase === "start" && <StartScreen />}
+          {phase === "draft" && <DraftScreen />}
+          {phase === "tournament" && <TournamentScreen />}
+        </>
+      )}
       <footer className="footer">{t("footer.note")}</footer>
     </div>
   );

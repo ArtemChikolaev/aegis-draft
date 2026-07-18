@@ -13,6 +13,8 @@ export interface CareerConfigLabel {
   difficulty: DifficultyLabel;
   scoring: Scoring;
   draftStyle: DraftStyle;
+  /** Забег пройден в хардкоре. Опционально: записи до появления режима метки не имеют. */
+  hardMode?: boolean;
 }
 
 export interface CareerRosterPlayer {
@@ -136,6 +138,7 @@ export function buildCareerEntry(input: {
       difficulty: difficultyLabel(input.config.rerolls),
       scoring: input.config.scoring,
       draftStyle: input.config.draftStyle,
+      hardMode: input.config.hardMode === true ? true : undefined,
     },
     placement: input.tournament.userPlacement,
     score: {

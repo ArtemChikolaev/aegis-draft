@@ -235,6 +235,8 @@ export function TournamentScreen() {
   const { locale, t } = useI18n();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
+  // Хардкор: профили закрыты, поле соперников не перевыбрать (см. game/packs RunConfig).
+  const hardMode = config?.hardMode === true;
   const [swapSelectedId, setSwapSelectedId] = useState<number | null>(null);
 
   // «Камера»: авто-скролл к активной секции при смене стадии.
@@ -456,7 +458,7 @@ export function TournamentScreen() {
             swapMode={canSwap}
             swapSelectedId={swapSelectedId}
             onSwapTap={canSwap ? handleSwapTap : undefined}
-            onSelectPlayer={canSwap ? undefined : setInspectedPlayer}
+            onSelectPlayer={canSwap || hardMode ? undefined : setInspectedPlayer}
           />
           <div className="score-strip">
             <StatTile label={t("common.base")} value={Math.round(score.base).toString()} kind="base" />
@@ -468,7 +470,7 @@ export function TournamentScreen() {
             chemistryRows={chemistryRows}
             onPlayerClick={(accountId) => {
               const candidate = roster.find((slot) => slot.candidate?.player.accountId === accountId)?.candidate;
-              if (candidate) setInspectedPlayer(candidate);
+              if (candidate && !hardMode) setInspectedPlayer(candidate);
             }}
           />
           {canSwap && (
@@ -504,7 +506,9 @@ export function TournamentScreen() {
           {stage === "field" && (
             <div className="run__field-actions">
               <Button variant="primary" data-testid="tournament-simulate" onClick={advance}>{t("tournament.simulate")}<span>→</span></Button>
-              <Button variant="secondary" data-testid="tournament-field-reroll" onClick={rerollField}>↻ {t("tournament.rerollField")}<small>{t("tournament.rerollFieldHint")}</small></Button>
+              {!hardMode && (
+                <Button variant="secondary" data-testid="tournament-field-reroll" onClick={rerollField}>↻ {t("tournament.rerollField")}<small>{t("tournament.rerollFieldHint")}</small></Button>
+              )}
             </div>
           )}
         </Surface>

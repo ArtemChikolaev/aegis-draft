@@ -18,6 +18,10 @@ export interface RunConfig {
   rerolls: number;
   scoring: Scoring;
   allocation: Allocation;
+  /** Хардкор: закрывает профили игроков и перевыбор соперников. Опционально — старые
+   *  сейвы и записи карьеры читаются без него (см. state/runPersist, state/careerStore).
+   *  На движок НЕ влияет: ограничивает только доступные игроку действия, не RNG. */
+  hardMode?: boolean;
 }
 
 /** Кандидат в паке — игрок с указанием происхождения. */
