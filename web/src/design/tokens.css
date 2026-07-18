@@ -49,15 +49,27 @@
 
   /* Турнир — семантический градиент силы (зелёный→красный) + пути + победа/поражение.
      Тема-зависимые (light — темнее для читаемости на светлой поверхности). */
-  --tier-elite: #8ff0b5;   /* ≥90 / победа / UB */
-  --tier-strong: #c6e88a;  /* 86–89 */
-  --tier-mid: #ffd66b;     /* 82–85 / LB */
-  --tier-low: #ffab5e;     /* 78–81 */
-  --tier-weak: #ff806d;    /* ≤77 / поражение / OUT */
-  --tier-elite-shine: #ffe6a3; /* бегущий блик «фольги» на elite-OVR; тёплое золото читается и на ivory */
+  /* Инвертный набор (фикс в обеих темах) — для всегда-тёмных панелей: радар, модалки.
+     Тёмная тема просто ссылается на него, светлая переопределяет только --tier-*.
+     Панель ремапит --tier-* на эти значения у себя (см. base.css .on-invert-surface),
+     поэтому глобальные классы тира внутри неё работают без override'ов. */
+  --tier-elite-invert: #8ff0b5;
+  --tier-strong-invert: #c6e88a;
+  --tier-mid-invert: #ffd66b;
+  --tier-low-invert: #ffab5e;
+  --tier-weak-invert: #ff806d;
+  --tier-elite-shine-invert: #ffe6a3;
+  --tier-liability-veil-invert: color-mix(in srgb, #000 62%, transparent);
+
+  --tier-elite: var(--tier-elite-invert);   /* ≥90 / победа / UB */
+  --tier-strong: var(--tier-strong-invert); /* 86–89 */
+  --tier-mid: var(--tier-mid-invert);       /* 82–85 / LB */
+  --tier-low: var(--tier-low-invert);       /* 78–81 */
+  --tier-weak: var(--tier-weak-invert);     /* ≤77 / поражение / OUT */
+  --tier-elite-shine: var(--tier-elite-shine-invert); /* бегущий блик «фольги»; тёплое золото */
   /* Вуаль «погасшей» карточки (liability <60). На чёрном гасим В ТЕНЬ — карточка проваливается;
      на ivory та же тень даёт грязно-серое пятно, поэтому там вуаль другая по природе (см. light). */
-  --tier-liability-veil: color-mix(in srgb, #000 62%, transparent);
+  --tier-liability-veil: var(--tier-liability-veil-invert);
   --route-ub: var(--tier-elite);
   --route-lb: var(--tier-mid);
   --route-out: var(--tier-weak);

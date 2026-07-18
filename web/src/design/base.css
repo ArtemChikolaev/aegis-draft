@@ -60,8 +60,81 @@ h1, h2, .brand { font-family: "Space Grotesk", Manrope, sans-serif; }
   animation: ovr-shine 2.6s linear infinite;
 }
 @keyframes ovr-shine { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+
+/* Всегда-тёмная поверхность (радар): tier-токены НЕ должны следовать светлой теме,
+   иначе на чёрной панели окажутся тёмные «ivory-версии». Ремапим их на инвертный набор
+   один раз здесь — и глобальные классы тира внутри работают без override'ов
+   в компонентах (правило: никаких html[data-theme=…] в feature CSS). */
+.on-invert-surface {
+  --tier-elite: var(--tier-elite-invert);
+  --tier-strong: var(--tier-strong-invert);
+  --tier-mid: var(--tier-mid-invert);
+  --tier-low: var(--tier-low-invert);
+  --tier-weak: var(--tier-weak-invert);
+  --tier-elite-shine: var(--tier-elite-shine-invert);
+  --tier-liability-veil: var(--tier-liability-veil-invert);
+}
+
+/* Тир КАРТОЧКИ игрока — общий словарь для всех поверхностей, где показан игрок:
+   пак (features/draft), ростер на радаре (pentagon), ростер итога и карьера.
+   `--card-tint` поверхность подмешивает сама (у каждой свой фон и радиус). */
+.card-tint--liability { --card-tint: var(--tier-weak); }
+.card-tint--weak { --card-tint: var(--tier-weak); }
+.card-tint--low { --card-tint: var(--tier-low); }
+.card-tint--mid { --card-tint: var(--tier-mid); }
+.card-tint--strong { --card-tint: var(--tier-strong); }
+.card-tint--elite { --card-tint: var(--tier-elite); }
+
+/* Края шкалы — «событийные» карточки (пороги и доли — в ui/ovrTier.ts).
+   Elite ОТРАЖАЕТ свет: кант + медленный блик фольги наискось поверх карточки.
+   Блик втрое медленнее, чем у номера (2.6s), — иначе два ритма спорят и карточка рябит.
+   Кант нужен отдельно от блика: держит статус в фазе, когда блик ушёл за край.
+   Liability ПОГЛОЩАЕТ свет: холодная виньетка внутрь + глухой кант, ноль анимации.
+   Контраст именно в этом — один светится, второй потух; красной заливки не хватало,
+   потому что тем же красным уже покрашены ~29% (weak).
+   Мелкие карточки (радар, чипы карьеры) блик не тянут — там `.card-edge--flat`. */
+/* ВАЖНО: здесь НЕ трогаем `position` — правило общее, а хосты позиционированы по-разному
+   (карточка радара — absolute на вершине). Ставили relative — и элитные ноды срывало с
+   вершин. Контекст для ::after обеспечивает сама поверхность. */
+.card-tint--elite { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tier-elite) 26%, transparent); }
+.card-tint--elite::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 40%, color-mix(in srgb, var(--tier-elite-shine) 20%, transparent) 50%, transparent 60%);
+  background-size: 300% 100%;
+  pointer-events: none;
+  animation: card-foil 7.2s linear infinite;
+}
+@keyframes card-foil { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+.card-tint--liability { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tier-weak) 20%, transparent); }
+.card-tint--liability::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: radial-gradient(115% 145% at 50% 40%, transparent 18%, var(--tier-liability-veil) 100%);
+  pointer-events: none;
+}
+/* Два независимых модификатора — их можно комбинировать:
+   --gold  : кант золотой вместо зелёного. Для поверхностей, где зелёный уже занят смыслом
+             (на радаре им говорят «наведён / выбран для свапа») или где он теряется.
+   --still : снять бегущий блик. Для совсем мелких карточек: на 76px сweep читается как
+             мигание, а на радаре их сразу пять поверх арта пентагона. */
+.card-edge--gold.card-tint--elite { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tier-elite-shine) 45%, transparent); }
+.card-edge--gold.card-tint--liability { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tier-weak) 38%, transparent); }
+.card-edge--still.card-tint--elite::after {
+  background: linear-gradient(120deg, transparent 45%, color-mix(in srgb, var(--tier-elite-shine) 16%, transparent) 100%);
+  background-size: auto;
+  animation: none;
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
   /* Градиентный шайн гасим целиком: с animation-duration .01ms он застыл бы на случайном кадре. */
   .ovr-tier--elite { background: none; -webkit-text-fill-color: currentColor; color: var(--tier-elite); filter: none; animation: none; }
+  /* То же для блика карточки: статус остаётся на канте, он не анимированный. */
+  .card-tint--elite::after { animation: none; background: none; }
 }

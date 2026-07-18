@@ -88,7 +88,7 @@ export function DraftScreen() {
           <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
         </div>
       </header>
-      <Surface className="draft__radar enter">
+      <Surface className="draft__radar on-invert-surface enter">
         <span className="draft__radar-glow" aria-hidden="true" />
         <Pentagon
           roster={roster}

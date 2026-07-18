@@ -410,8 +410,20 @@
 .tournament__report { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
 .run-summary { padding: 20px 22px; }
 .run-summary__scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-.run-summary__roster { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
-.run-summary__roster li { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.run-summary__roster { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+/* Строки ростера — карточки, а не строки таблицы: тем же языком, что пак (тонировка по
+   тиру + краевые эффекты). Разделители-бордюры заменены зазором, иначе кант краевой
+   карточки дрался бы с border-bottom соседней. */
+.run-summary__roster li {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: linear-gradient(100deg, var(--surface-soft) 55%, color-mix(in srgb, var(--card-tint, transparent) 11%, var(--surface-soft)));
+}
 .run-summary__player { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .run-summary__player strong { font-size: 13px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .run-summary__player small { color: var(--muted); font-size: 10px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -470,7 +482,21 @@
   clip-path: inset(0 round 10px);
   overflow: hidden;
 }
-.career-run__roster li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+/* Чип игрока в истории забегов: тот же словарь тиров, что в паке и ростере (кант золотой —
+   на этой карточке зелёный теряется). Тонировка в фоне, краевые — через ::after в base.css.
+   Фазу блика разводим, иначе у чемпионского состава (элитны все пятеро) строка мигает
+   разом. Два подобранных параметра:
+   1) Шаг МЕНЬШЕ времени прохода блика по одной карточке (~2.9s из цикла 7.2s): при большем
+      шаге соседи не передают свет друг другу и вспыхивают вразнобой (шаг 1.4s так и выглядел).
+   2) Порядок ОБРАТНЫЙ индексу: чем отрицательнее задержка, тем карточка дальше по циклу и
+      вспыхивает РАНЬШЕ. Поэтому самая отрицательная — у первой: волна идёт слева направо.
+      С прямым порядком (-0.6s у второй … -2.4s у пятой) волна шла справа налево. */
+.career-run__roster li:nth-child(1)::after { animation-delay: -2.4s; }
+.career-run__roster li:nth-child(2)::after { animation-delay: -1.8s; }
+.career-run__roster li:nth-child(3)::after { animation-delay: -1.2s; }
+.career-run__roster li:nth-child(4)::after { animation-delay: -0.6s; }
+.career-run__roster li:nth-child(5)::after { animation-delay: 0s; }
+.career-run__roster li { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(120deg, var(--surface) 60%, color-mix(in srgb, var(--card-tint, transparent) 12%, var(--surface))); }
 .career-run__roster li > span:first-child { grid-column: 1 / -1; justify-self: start; }
 .career-run__roster strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .tournament__actions { width: min(480px, 100%); margin-left: auto; margin-top: 8px; }

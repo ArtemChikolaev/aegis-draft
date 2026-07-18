@@ -20,6 +20,9 @@ export interface CareerRosterPlayer {
   nickname: string;
   accountId: number;
   heroId: number;
+  /** OVR на момент забега. Опционален: записи, сохранённые до его появления, его не имеют —
+   *  такие карточки просто рисуются без тира, ре-симулировать историю ради этого незачем. */
+  ovr?: number;
 }
 
 export interface CareerResults {
@@ -119,7 +122,7 @@ export function buildCareerEntry(input: {
     const accountId = slot.candidate.player.accountId;
     const heroId = input.score.assignment.byPlayer[accountId];
     if (heroId == null) throw new Error("Career entry requires a hero for every player");
-    return { role: slot.role, nickname: slot.candidate.player.nickname, accountId, heroId };
+    return { role: slot.role, nickname: slot.candidate.player.nickname, accountId, heroId, ovr: slot.candidate.player.ovr };
   });
   if (roster.length !== 5) throw new Error("Career entry requires exactly five players");
   return {

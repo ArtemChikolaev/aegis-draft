@@ -3,7 +3,7 @@ import type { RosterSlot } from "../../game/engine.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey } from "../../i18n/core.ts";
-import { HeroThumb, useCountUp } from "../../ui/index.ts";
+import { HeroThumb, playerOvrTier, useCountUp } from "../../ui/index.ts";
 import { useHero } from "./heroes.ts";
 import "./pentagon.css";
 
@@ -183,6 +183,9 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
               className={[
                 "pentagon-node",
                 slot.candidate ? "pentagon-node--filled" : "pentagon-node--empty",
+                // Края шкалы видны и в ростере. Карточка мелкая ⇒ flat: без бегущего блика
+                // и без канта (кант тут занят состояниями «наведён / выбран для свапа»).
+                slot.candidate ? `card-edge--gold card-edge--still card-tint--${playerOvrTier(slot.candidate.player.ovr)}` : "",
                 interactive ? "pentagon-node--interactive" : "",
                 selected ? "pentagon-node--selected" : "",
               ].filter(Boolean).join(" ")}
@@ -208,7 +211,7 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
                   <span className="pentagon-node__name" title={slot.candidate.player.nickname}>
                     {slot.candidate.player.nickname}
                   </span>
-                  <span className="pentagon-node__ovr">{slot.candidate.player.ovr}</span>
+                  <span className={`pentagon-node__ovr ovr-tier--${playerOvrTier(slot.candidate.player.ovr)}`}>{slot.candidate.player.ovr}</span>
                 </>
               )}
             </Tag>

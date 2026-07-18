@@ -19,7 +19,7 @@ import {
 } from "../../game/tournamentPlayback.ts";
 import { isNarrowViewport } from "../../design/breakpoints.ts";
 import { useRun } from "../../state/runStore.ts";
-import { Button, Eyebrow, HeroThumb, Modal, motionMs, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -446,7 +446,7 @@ export function TournamentScreen() {
     <main className="run" data-testid="run-screen">
       {/* Постоянная тим-панель: пентагон + разбор + ростер (как левая колонка 322-0). */}
       <div className="result__grid run__team enter">
-        <Surface className="result__radar">
+        <Surface className="result__radar on-invert-surface">
           <span className="result__radar-glow" aria-hidden="true" />
           <Pentagon
             roster={roster}
@@ -644,7 +644,7 @@ export function TournamentScreen() {
                     const eventName = slot.candidate ? (eventNameById.get(slot.candidate.eventId) ?? slot.candidate.eventId) : undefined;
                     const ovr = player?.ovr ?? 0;
                     return (
-                      <li key={index}>
+                      <li key={index} className={`card-tint--${playerOvrTier(ovr)}`}>
                         <RoleTag role={slot.role}>{t(roleMessageKey(slot.role))}</RoleTag>
                         <div className="run-summary__player">
                           <strong>{player?.nickname ?? "—"}</strong>
@@ -654,7 +654,9 @@ export function TournamentScreen() {
                               : "—"}
                           </small>
                         </div>
-                        <b className={`run-summary__ovr score-tier--${scoreTier(ovr)}`}>{Math.round(ovr)}</b>
+                        {/* Шкала ИГРОКА (54–99), не командная: scoreTier (78–90) красил
+                            две трети ростера в красный — типовой 74 попадал в «weak». */}
+                        <b className={`run-summary__ovr ovr-tier--${playerOvrTier(ovr)}`}>{Math.round(ovr)}</b>
                         {info && (
                           <span className="run-summary__heroCard">
                             <HeroThumb picture={info.picture} name={info.name} layout="card" showName />

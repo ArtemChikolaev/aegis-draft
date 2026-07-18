@@ -8,7 +8,7 @@ import {
   type CareerConfigLabel,
   type CareerPlacementBucket,
 } from "../../state/careerStore.ts";
-import { Eyebrow, HeroThumb, RoleTag, StatTile, Surface } from "../../ui/index.ts";
+import { Eyebrow, HeroThumb, playerOvrTier, RoleTag, StatTile, Surface } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 
 const LAST_RUNS = 8;
@@ -88,7 +88,10 @@ export function CareerPanel() {
                 {entry.roster.map((player) => {
                   const info = hero(player.heroId);
                   return (
-                    <li key={player.accountId}>
+                    <li
+                      key={player.accountId}
+                      className={player.ovr != null ? `card-edge--gold card-tint--${playerOvrTier(player.ovr)}` : undefined}
+                    >
                       <RoleTag role={player.role}>{t(roleMessageKey(player.role))}</RoleTag>
                       <strong>{player.nickname}</strong>
                       <HeroThumb picture={info.picture} name={info.name} showName={false} />
