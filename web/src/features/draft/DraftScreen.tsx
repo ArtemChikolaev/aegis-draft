@@ -89,6 +89,7 @@ export function DraftScreen() {
         </div>
       </header>
       <Surface className="draft__radar enter">
+        <span className="draft__radar-glow" aria-hidden="true" />
         <Pentagon
           roster={roster}
           teamOvr={score?.teamOvr ?? null}
@@ -172,15 +173,23 @@ export function DraftScreen() {
         <ScoringLegend />
       </Surface>
       {confirmLeave && (
-        <Modal mark="A" title={t("draft.leaveTitle")} description={t("draft.leaveText")} labelledBy="leave-title" onClose={() => setConfirmLeave(false)}>
-          <Button variant="secondaryInvert" autoFocus onClick={() => setConfirmLeave(false)}>{t("draft.leaveCancel")}</Button>
-          <Button variant="danger" data-testid="confirm-leave" onClick={reset}>{t("draft.leaveConfirm")}</Button>
+        <Modal mark="A" title={t("draft.leaveTitle")} description={t("draft.leaveText")} labelledBy="leave-title" dismissLabel={t("common.close")} onClose={() => setConfirmLeave(false)}>
+          {({ close }) => (
+            <>
+              <Button variant="secondaryInvert" autoFocus onClick={close}>{t("draft.leaveCancel")}</Button>
+              <Button variant="danger" data-testid="confirm-leave" onClick={reset}>{t("draft.leaveConfirm")}</Button>
+            </>
+          )}
         </Modal>
       )}
       {confirmRestart && (
-        <Modal mark="A" title={t("draft.restartTitle")} description={t("draft.restartText")} labelledBy="restart-title" onClose={() => setConfirmRestart(false)}>
-          <Button variant="secondaryInvert" autoFocus onClick={() => setConfirmRestart(false)}>{t("draft.restartCancel")}</Button>
-          <Button variant="danger" data-testid="confirm-restart" onClick={() => { setConfirmRestart(false); restartSameConfig(); }}>{t("draft.restartConfirm")}</Button>
+        <Modal mark="A" title={t("draft.restartTitle")} description={t("draft.restartText")} labelledBy="restart-title" dismissLabel={t("common.close")} onClose={() => setConfirmRestart(false)}>
+          {({ close }) => (
+            <>
+              <Button variant="secondaryInvert" autoFocus onClick={close}>{t("draft.restartCancel")}</Button>
+              <Button variant="danger" data-testid="confirm-restart" onClick={() => { setConfirmRestart(false); restartSameConfig(); }}>{t("draft.restartConfirm")}</Button>
+            </>
+          )}
         </Modal>
       )}
       {inspectedPlayer && data && (

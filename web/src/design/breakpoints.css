@@ -1,0 +1,16 @@
+/* Breakpoints — канон ширины для @media во всём web/.
+ *
+ * В @media НЕЛЬЗЯ писать var(--bp-*): спецификация media queries не резолвит
+ * custom properties. Копируй литералы ниже (и держи синхрон с breakpoints.ts).
+ *
+ *   sm  430px  — phone
+ *   md  680px  — узкий / large phone
+ *   lg  980px  — tablet / слом двух колонок
+ *
+ * Правило раскладки: explicit grid-template-areas (или container), не «N детей
+ * в M колонок без areas» — иначе wide/narrow разъезжаются по-разному. */
+:root {
+  --bp-sm: 430px;
+  --bp-md: 680px;
+  --bp-lg: 980px;
+}

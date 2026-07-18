@@ -24,7 +24,7 @@ export function BracketConnectors({
   gridRef: RefObject<HTMLDivElement | null>;
   edges: BracketEdge[];
   finishedIds: Set<string>;
-  /** Подсветка линий от матчей со своей командой. */
+  /** Серии, где победил юзер — от них зелёный winner-edge вперёд. */
   accentFromIds?: Set<string>;
 }) {
   const [paths, setPaths] = useState<ConnectorPath[]>([]);
@@ -44,7 +44,11 @@ export function BracketConnectors({
         const from = fromEl.getBoundingClientRect();
         const to = toEl.getBoundingClientRect();
         const x1 = from.right - root.left;
-        const y1 = from.top - root.top + from.height / 2;
+        // Старт с строки победителя (data-winner-slot), иначе центр карточки.
+        const fromRowH = from.height / 2;
+        const winnerSlot = fromEl.dataset.winnerSlot;
+        const fromSlot = winnerSlot === "0" || winnerSlot === "1" ? Number(winnerSlot) : null;
+        const y1 = from.top - root.top + (fromSlot != null ? fromRowH * (fromSlot + 0.5) : from.height / 2);
         // Цель — середина строки teamA/teamB в следующем матче.
         const rowH = to.height / 2;
         const y2 = to.top - root.top + rowH * (edge.slot + 0.5);

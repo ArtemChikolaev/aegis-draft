@@ -15,7 +15,9 @@ import {
   seriesLive,
   seriesSlotsVisible,
   seriesStarted,
+  userPlayoffCameraTarget,
 } from "../../game/tournamentPlayback.ts";
+import { isNarrowViewport } from "../../design/breakpoints.ts";
 import { useRun } from "../../state/runStore.ts";
 import { Button, Eyebrow, HeroThumb, Modal, motionMs, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
@@ -180,8 +182,16 @@ function renderSeriesMatch(
   const teamA = slotsVisible ? series.teamA : null;
   const teamB = slotsVisible ? series.teamB : null;
   const hasUser = slotsVisible && (series.teamA.isUser || series.teamB.isUser);
+  const winnerSlot = finished
+    ? series.winnerId === series.teamA.id ? "0" : "1"
+    : undefined;
   return (
-    <div key={series.id} data-series-id={series.id} className={`match ${extraClass} ${hasUser ? "has-user" : ""} ${live ? "is-live" : ""} ${started ? "" : "is-pending"} ${slotsVisible ? "" : "is-locked"} ${finished ? "is-finished" : ""}`.trim()}>
+    <div
+      key={series.id}
+      data-series-id={series.id}
+      data-winner-slot={winnerSlot}
+      className={`match ${extraClass} ${hasUser ? "has-user" : ""} ${live ? "is-live" : ""} ${started ? "" : "is-pending"} ${slotsVisible ? "" : "is-locked"} ${finished ? "is-finished" : ""}`.trim()}
+    >
       <TeamRow team={teamA ?? series.teamA} score={scoreA} won={finished && series.winnerId === series.teamA.id} pending={slotsVisible && !started} live={live} empty={!slotsVisible} />
       <TeamRow team={teamB ?? series.teamB} score={scoreB} won={finished && series.winnerId === series.teamB.id} pending={slotsVisible && !started} live={live} empty={!slotsVisible} />
     </div>
@@ -287,17 +297,19 @@ export function TournamentScreen() {
     return ids;
   }, [done, n, playoffSimTicks, stage, tournament]);
 
+  // Зелёный коннектор вперёд — только если юзер выиграл серию-источник.
+  // Участие без победы (дроп в LB) не должно красить winner-edge.
   const accentSeriesIds = useMemo(() => {
     const ids = new Set<string>();
     if (!tournament) return ids;
+    const addIfUserWon = (series: SeriesResult) => {
+      if (series.teamA.isUser && series.winnerId === series.teamA.id) ids.add(series.id);
+      else if (series.teamB.isUser && series.winnerId === series.teamB.id) ids.add(series.id);
+    };
     for (const round of tournament.playoffRounds) {
-      for (const series of round.series) {
-        if (series.teamA.isUser || series.teamB.isUser) ids.add(series.id);
-      }
+      for (const series of round.series) addIfUserWon(series);
     }
-    if (tournament.grandFinal.teamA.isUser || tournament.grandFinal.teamB.isUser) {
-      ids.add(tournament.grandFinal.id);
-    }
+    addIfUserWon(tournament.grandFinal);
     return ids;
   }, [tournament]);
 
@@ -318,24 +330,43 @@ export function TournamentScreen() {
     return () => { window.clearTimeout(revealT); if (advanceT !== undefined) window.clearTimeout(advanceT); };
   }, [stage, done, tournament?.canAdvance, advance]);
 
-  // «Камера» ведёт к текущей секции. reduced-motion → без плавной анимации.
-  const scrollTo = useCallback((el: HTMLElement | null) => {
+  // «Камера» ведёт к активной секции / матчу. reduced-motion → без плавной анимации.
+  const scrollTo = useCallback((el: HTMLElement | null, block: ScrollLogicalPosition = "start") => {
     if (!el) return;
-    if (prefersReducedMotion()) { el.scrollIntoView({ block: "start" }); return; }
+    if (prefersReducedMotion()) { el.scrollIntoView({ block }); return; }
     // Плавно на реальных браузерах; в webview/TMA, где smooth scrollIntoView — no-op,
     // мгновенный фолбэк (срабатывает, только если скролл вообще не сдвинулся — анимацию не рубит).
     const startY = window.scrollY;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.scrollIntoView({ behavior: "smooth", block });
     window.setTimeout(() => {
       if (window.scrollY === startY && Math.abs(el.getBoundingClientRect().top) > 120) {
-        el.scrollIntoView({ block: "start" });
+        el.scrollIntoView({ block });
       }
     }, 250);
   }, []);
+  // Группы: сразу к таблице со своей командой (A или B), не всегда к первой.
   useEffect(() => {
-    if (stage === "groups") scrollTo(groupsRef.current);
-    else if (stage === "playoffs") scrollTo(playoffsRef.current);
+    if (stage !== "groups") return;
+    const userGroup = groupsRef.current?.querySelector<HTMLElement>("[data-user-group]");
+    scrollTo(userGroup ?? groupsRef.current);
   }, [stage, scrollTo]);
+  // Плей-офф: камера на текущий матч юзера (UB → LB при дропе → GF при выходе в финал).
+  const playoffCameraId = useMemo(() => {
+    if (!tournament || stage !== "playoffs") return null;
+    return userPlayoffCameraTarget(tournament, playoffFeeders, playoffSimTicks, n, done);
+  }, [done, n, playoffFeeders, playoffSimTicks, stage, tournament]);
+  // На широком сетка видна целиком — ставим её один раз и больше не дёргаем: слежение
+  // за серией там только мешает (экран прыгает, хотя нужный матч и так на виду).
+  useEffect(() => {
+    if (stage !== "playoffs" || done || isNarrowViewport()) return;
+    scrollTo(playoffsRef.current, "start");
+  }, [done, scrollTo, stage]);
+  // На узком колонки не влезают — ведём камеру за текущей серией юзера.
+  useEffect(() => {
+    if (stage !== "playoffs" || !playoffCameraId || done || !isNarrowViewport()) return;
+    const match = playoffsRef.current?.querySelector<HTMLElement>(`[data-series-id="${playoffCameraId}"]`);
+    scrollTo(match ?? playoffsRef.current, match ? "center" : "start");
+  }, [done, playoffCameraId, scrollTo, stage]);
   // Драфт завершается на прокрученной вниз странице, а run-вид наследует scrollY (был ~1400px)
   // и открывается где-то в середине — визуально «прыжок». На входе в run (стадия field) ставим
   // верх ДО отрисовки (useLayoutEffect, без мигания кадра): экран открывается с пентагона.
@@ -416,6 +447,7 @@ export function TournamentScreen() {
       {/* Постоянная тим-панель: пентагон + разбор + ростер (как левая колонка 322-0). */}
       <div className="result__grid run__team enter">
         <Surface className="result__radar">
+          <span className="result__radar-glow" aria-hidden="true" />
           <Pentagon
             roster={roster}
             teamOvr={score.teamOvr}
@@ -483,7 +515,12 @@ export function TournamentScreen() {
         {stage !== "field" && (
           <div className="tournament__groups" data-testid="tournament-stage-groups" ref={groupsRef}>
             {tournament.groups.map((group, gi) => (
-              <Surface key={group.id} className="group-table enter" style={{ ["--enter-i" as string]: gi } as React.CSSProperties}>
+              <Surface
+                key={group.id}
+                className="group-table enter"
+                style={{ ["--enter-i" as string]: gi } as React.CSSProperties}
+                {...(group.standings.some((row) => row.team.isUser) ? { "data-user-group": group.id } : {})}
+              >
                 <h2>Group {group.id}</h2>
                 <div className="table-head"><span>#</span><span aria-hidden="true" /><span>{t("tournament.team")}</span><span>{t("tournament.record")}</span><span>{t("tournament.route")}</span></div>
                 <div className="table-body">
@@ -652,9 +689,13 @@ export function TournamentScreen() {
       </div>
 
       {confirmLeave && (
-        <Modal mark="A" title={t("tournament.leaveTitle")} description={t("tournament.leaveText")} labelledBy="tournament-leave-title" onClose={() => setConfirmLeave(false)}>
-          <Button variant="primaryInvert" onClick={() => setConfirmLeave(false)}>{t("tournament.leaveCancel")}</Button>
-          <Button variant="danger" onClick={reset}>{t("tournament.leaveConfirm")}</Button>
+        <Modal mark="A" title={t("tournament.leaveTitle")} description={t("tournament.leaveText")} labelledBy="tournament-leave-title" dismissLabel={t("common.close")} onClose={() => setConfirmLeave(false)}>
+          {({ close }) => (
+            <>
+              <Button variant="primaryInvert" onClick={close}>{t("tournament.leaveCancel")}</Button>
+              <Button variant="danger" onClick={reset}>{t("tournament.leaveConfirm")}</Button>
+            </>
+          )}
         </Modal>
       )}
       {inspectedPlayer && (

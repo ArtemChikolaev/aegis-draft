@@ -4,9 +4,39 @@
 /* Кнопка leave несёт свой margin-bottom: 6px — повторяем его, чтобы низы совпали. */
 .draft__heading-actions { display: flex; align-items: end; gap: 10px; }
 .draft__reset { margin-bottom: 6px; }
-.draft__radar { position: sticky; top: 18px; overflow: hidden; padding: 16px 24px 22px; color: var(--on-invert); background: var(--surface-invert); }
-.draft__radar::before { content: ""; position: absolute; z-index: 0; width: 180px; height: 180px; right: -40px; top: -50px; border-radius: 50%; background: var(--brand-glow); filter: blur(24px); opacity: .42; pointer-events: none; }
-.draft__radar > * { position: relative; z-index: 1; }
+/* Свечение радара: тот же Safari-паттерн, что у launch-panel (clip-path по дуге). */
+.draft__radar {
+  position: sticky;
+  top: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  contain: paint;
+  padding: 16px 24px 22px;
+  color: var(--on-invert);
+  background: var(--surface-invert);
+  border-radius: var(--radius);
+  clip-path: inset(0 round var(--radius));
+}
+.draft__radar-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  clip-path: inset(1px round calc(var(--radius) - 1px));
+}
+.draft__radar-glow::after {
+  content: "";
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  right: -40px;
+  top: -50px;
+  border-radius: 50%;
+  background: var(--brand-glow);
+  filter: blur(24px);
+  opacity: .42;
+}
+.draft__radar > *:not(.draft__radar-glow) { position: relative; z-index: 1; }
 .score-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .draft__radar .synergy-breakdown { margin-top: 14px; }
 

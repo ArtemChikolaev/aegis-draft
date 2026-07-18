@@ -25,11 +25,7 @@ export function PlayerInspector({ candidate, data, onClose }: {
     <Modal
       title={candidate.player.nickname}
       description={`${candidate.teamName} · ${event?.name ?? candidate.eventId}`}
-      labelledBy="player-inspector-title"
-      onClose={onClose}
-      layout="content"
-    >
-      <div className="player-inspector">
+      subhead={(
         <a
           className="player-inspector__external"
           href={`https://datdota.com/players/${candidate.player.accountId}`}
@@ -38,10 +34,19 @@ export function PlayerInspector({ candidate, data, onClose }: {
         >
           {t("draft.openDatdota")} ↗
         </a>
-        <HeroStats title={t("draft.eventHeroStats", { event: event?.short ?? event?.name ?? candidate.eventId })} rows={eventRows} heroes={heroes} />
-        <HeroStats title={t("draft.careerHeroStats")} rows={careerRows} heroes={heroes} />
-        <Button variant="primaryInvert" onClick={onClose}>{t("draft.closePlayerStats")}</Button>
-      </div>
+      )}
+      labelledBy="player-inspector-title"
+      onClose={onClose}
+      dismissLabel={t("common.close")}
+      layout="content"
+    >
+      {({ close }) => (
+        <div className="player-inspector">
+          <HeroStats title={t("draft.eventHeroStats", { event: event?.short ?? event?.name ?? candidate.eventId })} rows={eventRows} heroes={heroes} />
+          <HeroStats title={t("draft.careerHeroStats")} rows={careerRows} heroes={heroes} />
+          <Button variant="primaryInvert" onClick={close}>{t("draft.closePlayerStats")}</Button>
+        </div>
+      )}
     </Modal>
   );
 }

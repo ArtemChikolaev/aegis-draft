@@ -32,15 +32,79 @@
 .mode-preview__art strong { font: 500 clamp(32px, 5vw, 70px)/1 "Space Grotesk"; letter-spacing: -.05em; }
 .mode-preview__art span { color: var(--muted-invert); }
 
-/* Classic: hero-баннер */
-.hero-copy { position: relative; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr); align-items: center; gap: 60px; min-height: 560px; margin: 12px 0 22px; padding: 76px 0; color: var(--text); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.hero-copy .hero-eyebrow { position: absolute; top: 72px; left: 0; color: var(--muted); }
-.hero-copy h1 { position: relative; z-index: 1; max-width: none; margin: 58px 0 30px; font-size: clamp(52px, 6.4vw, 88px); font-weight: 500; line-height: .96; letter-spacing: -.06em; }
-.hero-copy__text { position: relative; z-index: 1; max-width: 560px; margin-bottom: 0; color: var(--muted); font-size: 18px; }
-.hero-art { position: relative; z-index: 2; display: grid; grid-template-rows: minmax(130px, 1fr) repeat(3, 76px); width: 100%; min-height: 430px; aspect-ratio: 1.42; padding: 28px; overflow: hidden; border-radius: 16px; color: var(--on-invert); background: radial-gradient(circle at 75% 22%, rgba(190, 255, 185, .95), transparent 18%), radial-gradient(ellipse at 42% 48%, #42c978 0%, #0c5f3d 34%, transparent 67%), linear-gradient(135deg, #04160f, #132a22 50%, #050706); }
-.hero-art::before, .hero-art::after { content: ""; position: absolute; width: 160%; height: 42%; left: -30%; border-radius: 50%; background: linear-gradient(90deg, transparent, rgba(157, 255, 175, .75), transparent); filter: blur(14px); transform: rotate(-28deg); animation: drift 8s ease-in-out infinite alternate; }
-.hero-art::before { top: 12%; } .hero-art::after { top: 48%; opacity: .55; animation-delay: -3s; }
-.hero-art span { position: relative; z-index: 2; grid-column: 1; display: grid; grid-template-columns: minmax(190px, .8fr) 1.2fr auto; align-items: center; gap: 22px; min-height: 76px; border-top: 1px solid rgba(255, 255, 255, .4); }
+/* Classic: hero-баннер — explicit areas (wide: copy|art; narrow: copy → art). */
+.hero-copy {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+  grid-template-areas: "copy art";
+  align-items: center;
+  gap: 60px;
+  min-height: 560px;
+  margin: 12px 0 22px;
+  padding: 76px 0;
+  color: var(--text);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.hero-copy__lead {
+  grid-area: copy;
+  display: grid;
+  align-content: center;
+  gap: 0;
+  min-width: 0;
+}
+.hero-copy .hero-eyebrow { margin: 0 0 18px; color: var(--muted); }
+.hero-copy h1 {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(52px, 6.4vw, 88px);
+  font-weight: 500;
+  line-height: .96;
+  letter-spacing: -.06em;
+}
+.hero-art {
+  grid-area: art;
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: minmax(130px, 1fr) repeat(3, 76px);
+  width: 100%;
+  min-height: 430px;
+  aspect-ratio: 1.42;
+  padding: 28px;
+  overflow: hidden;
+  border-radius: 16px;
+  color: var(--on-invert);
+  background:
+    radial-gradient(circle at 75% 22%, rgba(190, 255, 185, .95), transparent 18%),
+    radial-gradient(ellipse at 42% 48%, #42c978 0%, #0c5f3d 34%, transparent 67%),
+    linear-gradient(135deg, #04160f, #132a22 50%, #050706);
+}
+.hero-art::before, .hero-art::after {
+  content: "";
+  position: absolute;
+  width: 160%;
+  height: 42%;
+  left: -30%;
+  border-radius: 50%;
+  background: linear-gradient(90deg, transparent, rgba(157, 255, 175, .75), transparent);
+  filter: blur(14px);
+  transform: rotate(-28deg);
+  animation: drift 8s ease-in-out infinite alternate;
+}
+.hero-art::before { top: 12%; }
+.hero-art::after { top: 48%; opacity: .55; animation-delay: -3s; }
+.hero-art span {
+  position: relative;
+  z-index: 2;
+  grid-column: 1;
+  display: grid;
+  grid-template-columns: minmax(190px, .8fr) 1.2fr auto;
+  align-items: center;
+  gap: 22px;
+  min-height: 76px;
+  border-top: 1px solid rgba(255, 255, 255, .4);
+}
 .hero-art span:nth-of-type(1) { grid-row: 2; }
 .hero-art span:nth-of-type(2) { grid-row: 3; }
 .hero-art span:nth-of-type(3) { grid-row: 4; }
@@ -51,12 +115,45 @@
 .classic-art__copy strong { font: 500 clamp(28px, 3vw, 44px)/1 "Space Grotesk"; letter-spacing: -.04em; }
 .classic-art__copy p { margin: 12px 0 0; color: rgba(255, 255, 255, .76); font-size: 12px; }
 
-/* Classic: конфиг + launch */
+/* Classic: конфиг + launch.
+   Свечение — тот же blur-blob, но в отдельном слое + clip-path: на iOS Safari
+   overflow:hidden не обрезает filter:blur по border-radius (зелёный «хвостик» за углом). */
 .start__layout { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(290px, .65fr); gap: 22px; align-items: start; }
 .config-panel { padding: 28px; }
-.launch-panel { position: sticky; top: 18px; overflow: hidden; isolation: isolate; contain: paint; padding: 30px; color: var(--on-invert); background: var(--surface-invert); }
-.launch-panel::after { content: ""; position: absolute; z-index: 0; width: 150px; height: 150px; right: -55px; top: -60px; border-radius: 50%; background: var(--brand-glow); filter: blur(18px); opacity: .85; pointer-events: none; }
-.launch-panel > * { position: relative; z-index: 1; }
+.launch-panel {
+  position: sticky;
+  top: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  contain: paint;
+  padding: 30px;
+  color: var(--on-invert);
+  background: var(--surface-invert);
+  border-radius: var(--radius);
+  clip-path: inset(0 round var(--radius));
+}
+.launch-panel__glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Safari режет blur прямоугольником при overflow+radius; clip-path — по дуге.
+     inset 1px → между зеленью и внешним краем остаётся чёрная кромка по скруглению. */
+  clip-path: inset(1px round calc(var(--radius) - 1px));
+}
+.launch-panel__glow::after {
+  content: "";
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  right: -55px;
+  top: -60px;
+  border-radius: 50%;
+  background: var(--brand-glow);
+  filter: blur(18px);
+  opacity: .85;
+}
+.launch-panel > *:not(.launch-panel__glow) { position: relative; z-index: 1; }
 .launch-panel__icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 58px; color: var(--surface-invert); background: var(--on-invert); font: 800 18px "Space Grotesk"; }
 .launch-panel h2 { margin-bottom: 10px; font-size: 25px; letter-spacing: -.035em; }
 .launch-panel p { color: var(--muted-invert); font-size: 13px; }
@@ -65,7 +162,7 @@
 .launch-panel li::before { content: "✓"; margin-right: 8px; color: var(--brand-green); }
 .notice { margin-top: 12px; color: var(--danger) !important; font-size: 11px !important; }
 
-@media (max-width: 980px) {
+@media (max-width: 980px) { /* bp.lg */
   .start__layout { grid-template-columns: 1fr; }
   .launch-panel { position: static; }
   .hero-copy { gap: 32px; }
@@ -73,17 +170,35 @@
   .mode-grid { grid-template-columns: 1fr; }
   .mode-card { min-height: 330px; }
 }
-@media (max-width: 680px) {
+@media (max-width: 680px) { /* bp.md */
   .mode-select { padding-top: 50px; }
   .mode-select__heading { grid-template-columns: 1fr; gap: 20px; }
   .mode-select__heading h1 { font-size: 50px; }
   .mode-preview__art { grid-template-columns: 1fr; }
-  .hero-copy { grid-template-columns: 1fr; min-height: 480px; padding: 52px 0; }
-  .hero-copy .hero-eyebrow { top: 48px; }
-  .hero-copy h1 { font-size: 48px; }
-  .hero-art { min-height: 410px; aspect-ratio: auto; padding: 20px; }
-  .hero-art span { grid-template-columns: 1fr auto; gap: 8px; min-height: 92px; }
-  .hero-art span small { grid-column: 1; font-size: 10px; }
-  .hero-art span::after { grid-column: 2; grid-row: 1 / 3; }
+  .hero-copy {
+    grid-template-columns: 1fr;
+    grid-template-areas: "copy" "art";
+    min-height: 0;
+    gap: 28px;
+    padding: 40px 0;
+  }
+  .hero-copy .hero-eyebrow { margin-bottom: 12px; }
+  .hero-copy h1 { font-size: clamp(36px, 10vw, 48px); }
+  .hero-art {
+    min-height: 0;
+    aspect-ratio: auto;
+    padding: 20px;
+    grid-template-rows: auto repeat(3, auto);
+  }
+  .hero-art span {
+    grid-template-columns: 1fr auto;
+    gap: 6px 10px;
+    min-height: 0;
+    padding: 14px 0;
+  }
+  .hero-art span strong { font-size: clamp(16px, 4.5vw, 22px); }
+  .hero-art span small { grid-column: 1; font-size: 11px; line-height: 1.35; }
+  .hero-art span::after { grid-column: 2; grid-row: 1 / 3; align-self: center; }
+  .classic-art__copy { padding-bottom: 16px; max-width: none; }
   .config-panel, .launch-panel { padding: 18px; }
 }

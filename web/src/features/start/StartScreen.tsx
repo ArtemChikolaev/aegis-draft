@@ -116,9 +116,10 @@ export function StartScreen() {
     <main className="start">
       <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>
       <section className="hero-copy">
-        <Eyebrow className="hero-eyebrow">{t("start.eyebrow")}</Eyebrow>
-        <h1>{t("start.title")}</h1>
-        <p className="hero-copy__text">{t("start.description")}</p>
+        <div className="hero-copy__lead">
+          <Eyebrow className="hero-eyebrow">{t("start.eyebrow")}</Eyebrow>
+          <h1>{t("start.title")}</h1>
+        </div>
         <div className="hero-art">
           <div className="classic-art__copy"><strong>{t("start.classicArtTitle")}</strong><p>{t("start.classicArtText")}</p></div>
           <span><strong>TEAM PACKS</strong><small>{t("start.teamPacksHint")}</small></span>
@@ -135,6 +136,7 @@ export function StartScreen() {
           <OptionGroup title={t("start.allocation")} soonLabel={t("common.soon")} options={toOptions(ALLOCATION)} value={config.allocation} onChange={(value) => set("allocation", value)} />
         </Surface>
         <Surface as="aside" className="launch-panel">
+          <span className="launch-panel__glow" aria-hidden="true" />
           <span className="launch-panel__icon" aria-hidden="true">A</span>
           <h2>{t("start.launchTitle")}</h2>
           <p>{t("start.launchText")}</p>

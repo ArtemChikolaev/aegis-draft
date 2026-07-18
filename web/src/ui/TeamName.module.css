@@ -12,7 +12,9 @@
 }
 .name,
 .placeholder {
-  overflow: hidden;
+  /* overflow-x only: полный overflow:hidden съедает descenders (g, y) при tight line-height. */
+  overflow-x: hidden;
+  overflow-y: visible;
   font: inherit;
   text-overflow: ellipsis;
   white-space: nowrap;

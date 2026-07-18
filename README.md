@@ -18,6 +18,10 @@
 ```bash
 # Фронт (Node 24+): dev-сервер на http://localhost:5173
 cd web && npm install && npm run dev
+# или из корня репо:
+#   make dev        — только комп (localhost:5173)
+#   make dev-phone  — комп + телефон в одной Wi-Fi (тот же порт; с телефона по LAN IP)
+#   make help       — список целей
 # Тесты и валидация (реальный датасет в git; unit/golden — после gen:mock):
 npm run validate:data && npm run test && npm run test:e2e && npm run typecheck
 # Локально: mock для golden/fixtures и детерминированных unit-тестов:

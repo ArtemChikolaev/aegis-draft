@@ -59,6 +59,7 @@
   flex-direction: column;
   overflow: hidden;
   padding: var(--group-card-pad);
+  scroll-margin-top: 16px;
 }
 .group-table h2 { flex: none; margin: 0 0 14px; font-size: 18px; }
 .group-table .table-head { flex: none; }
@@ -165,7 +166,7 @@
 .table-row.is-user strong { color: var(--accent); }
 /* Связанная сетка как в 322-0: верхняя над нижней, раунды колонками слева-направо,
    между сериями — коннекторы; своя команда и победитель подсвечены. */
-.bracket { display: grid; gap: 22px; width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; }
+.bracket { display: grid; gap: 22px; width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; padding-bottom: 28px; }
 .bracket__side { width: 100%; max-width: 100%; }
 .bracket__side-title { margin: 0 0 12px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 /* 6 колонок с пустыми слотами 2/4 в upper — древовидное центрирование как в 322-0.
@@ -203,6 +204,7 @@
   background: var(--surface-soft);
   border: 1px solid var(--line);
   border-radius: 14px;
+  scroll-margin-block: 96px;
 }
 /* SVG-коннекторы поверх gap между колонками (Manhattan, как Liquipedia/TI). */
 .bracket-connectors {
@@ -389,8 +391,22 @@
 .tournament__champion span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .tournament__champion strong { display: block; margin-top: 4px; font-size: 30px; line-height: 1.05; }
 .tournament__champion strong.is-user { color: var(--accent); }
-.tournament__champion-name { text-align: right; }
-.tournament__champion-name strong { display: inline-flex; align-items: center; gap: 8px; font-size: 20px; }
+/* Колонка как у «Your finish»: лейбл сверху, знак+имя снизу — иначе span и strong
+   сидят в одной строке без gap и «Champion[MT]» слипаются (узкий и широкий). */
+.tournament__champion-name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+}
+.tournament__champion-name strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  font-size: 20px;
+}
 .tournament__report { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
 .run-summary { padding: 20px 22px; }
 .run-summary__scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
@@ -406,19 +422,58 @@
 .career-panel__heading h2 { margin: 10px 0 6px; font-size: clamp(32px, 5vw, 64px); line-height: .95; letter-spacing: -.05em; }
 .career-panel__heading p { margin: 0; color: var(--muted); font-size: 12px; }
 .career-stats, .career-runs { padding: 22px; }
+.career-runs { overflow: hidden; }
 .career-stats__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.career-runs__list { --career-run-height: 174px; display: grid; grid-auto-rows: var(--career-run-height); height: calc(var(--career-run-height) * 2 + 12px); min-height: 0; gap: 12px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scroll-snap-type: y proximity; scrollbar-gutter: stable; }
-.career-run { box-sizing: border-box; height: var(--career-run-height); overflow: hidden; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-soft); scroll-snap-align: start; }
+.career-runs__list {
+  --career-run-height: 174px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(var(--career-run-height) * 2 + 12px);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Без scroll-snap: иначе ползунок «не доезжает» и нижняя рамка съедается. */
+  padding-right: 4px;
+  /* 1px под рамку последней карточки — иначе кромка скроллера съедает её border. */
+  padding-bottom: 1px;
+  scrollbar-gutter: stable;
+  /* Карточки уезжают под дугу рамки, а не под прямую кромку (как .run__field .field-list). */
+  border-radius: var(--radius);
+  clip-path: inset(0 round var(--radius));
+  -webkit-overflow-scrolling: touch;
+}
+.career-run {
+  box-sizing: border-box;
+  flex: none;
+  height: var(--career-run-height);
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
 .career-run__heading { display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 12px; }
 .career-run__heading strong { color: var(--accent); font-size: 22px; }
 .career-run__heading span { font-size: 12px; font-weight: 800; }
 .career-run__heading small { justify-self: end; color: var(--muted); font-size: 9px; }
 .career-run__config { margin: 5px 0 12px; color: var(--muted); font-size: 9px; }
-.career-run__roster { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.career-run__roster {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Табличка ростера: обрезка по радиусу карточек игрока (10px). */
+  border-radius: 10px;
+  clip-path: inset(0 round 10px);
+  overflow: hidden;
+}
 .career-run__roster li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
 .career-run__roster li > span:first-child { grid-column: 1 / -1; justify-self: start; }
 .career-run__roster strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.tournament__actions { width: min(480px, 100%); margin-left: auto; }
+.tournament__actions { width: min(480px, 100%); margin-left: auto; margin-top: 8px; }
 .tournament__restart { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tournament__restart > button { min-height: 52px; }
 
@@ -432,14 +487,16 @@
 @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .tournament__live-dot::before { animation: none; } }
 
-@media (max-width: 900px) {
+/* bp.lg — тот же слом двух колонок, что у draft/result/start. На 900 турнирный экран
+   разъезжался сам с собой: тим-панель уже схлопнута (980), а группы/отчёт ещё в две. */
+@media (max-width: 980px) {
   .tournament__field, .tournament__complete, .tournament__report { grid-template-columns: 1fr; }
   .career-panel { grid-template-columns: 1fr; }
   .run-summary__scores { grid-template-columns: repeat(2, 1fr); }
   .tournament__groups { grid-template-columns: 1fr; }
   .tournament__heading { align-items: start; flex-direction: column; }
 }
-@media (max-width: 620px) {
+@media (max-width: 680px) { /* bp.md — одна колонка поля уже с md, не с 620 */
   .tournament__progress { grid-template-columns: 1fr; }
   .tournament__progress span { display: none; }
   .tournament__progress .is-active:last-of-type { display: block; }
@@ -453,7 +510,7 @@
   .career-run__heading { grid-template-columns: auto 1fr; }
   .career-run__heading small { grid-column: 1 / -1; justify-self: start; }
   .career-run__roster { grid-template-columns: 1fr; }
-  .career-runs__list { grid-auto-rows: auto; height: min(70vh, 620px); }
+  .career-runs__list { height: min(70vh, 620px); }
   .career-run { height: auto; overflow: visible; }
   .tournament__restart { grid-template-columns: 1fr; }
 }
@@ -463,7 +520,13 @@
 .run__team { align-items: start; }
 .run__field { display: flex; flex-direction: column; gap: 16px; }
 .run__field-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
-.run__field-head h1 { margin: 6px 0 0; font-size: clamp(28px, 4vw, 44px); line-height: .95; letter-spacing: -.04em; }
+.run__field-head h1 {
+  margin: 6px 0 0;
+  padding-bottom: 0.08em; /* запас под descender «g» в Aegis Five */
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1.12;
+  letter-spacing: -.04em;
+}
 .run__field .tournament__projection { min-height: 0; padding: 16px 18px; }
 .run__field .field-list {
   flex: none;
@@ -473,11 +536,30 @@
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   align-content: start;
+  padding-bottom: 4px;
+  box-sizing: border-box;
+  /* Скролл клипит по дуге карточек (12px), не прямой кромкой — Safari: clip-path. */
+  border-radius: 12px;
+  clip-path: inset(0 round 12px);
 }
 .run__field .field-list li { padding: 8px 10px; }
 .run__field-actions { display: grid; gap: 10px; width: 100%; }
 .run__field-actions [data-testid="tournament-simulate"],
 .run__field-actions [data-testid="tournament-field-reroll"] { width: 100%; }
 .run__field-actions small { display: block; margin-top: 2px; color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: none; }
+
+@media (max-width: 680px) { /* bp.md: список не должен съедать весь экран — место под CTA и safe-area */
+  .run {
+    gap: 18px;
+    /* Запас под home-indicator / URL-bar и нижнюю рамку (career / bracket / CTA). */
+    padding-bottom: max(64px, calc(env(safe-area-inset-bottom, 0px) + 40px));
+  }
+  .run__field .field-list {
+    /* dvh учитывает chrome Safari; запас под projection + Simulate/Reroll + низ экрана */
+    max-height: min(340px, 42dvh, calc(100vh - 320px));
+  }
+  .bracket { padding-bottom: 48px; }
+  .tournament__actions { margin-top: 16px; padding-bottom: 8px; }
+}
 .run__sim { display: grid; gap: 24px; min-width: 0; max-width: 100%; }
 .run__sim > div { scroll-margin-top: 16px; min-width: 0; }

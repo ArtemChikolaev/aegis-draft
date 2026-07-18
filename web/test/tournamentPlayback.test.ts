@@ -11,7 +11,9 @@ import {
   orderGroupMatchesBySeries,
   seriesFrame,
   seriesFinished,
+  seriesLive,
   seriesSlotsVisible,
+  userPlayoffCameraTarget,
 } from "../src/game/tournamentPlayback.ts";
 import { advanceToEnd, createTournament } from "./helpers/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
@@ -120,5 +122,60 @@ describe("tournamentPlayback", () => {
     expect(stepAfterUbQf).toBeGreaterThan(0);
     expect(seriesSlotsVisible("ub-sf-1", snapshot, feeders, ticks, stepAfterUbQf, false)).toBe(true);
     expect(seriesSlotsVisible("grand-final", snapshot, feeders, ticks, stepAfterUbQf, false)).toBe(false);
+  });
+
+  it("камера плей-офф следит за сериями юзера (включая LB)", () => {
+    const snapshot = advanceToEnd(createTournament(data, "playback-camera-lb", 88));
+    const userSeries = [
+      ...snapshot.playoffRounds.flatMap((round) => round.series),
+      snapshot.grandFinal,
+    ].filter((series) => series.teamA.isUser || series.teamB.isUser);
+    expect(userSeries.some((series) => series.id.startsWith("lb-"))).toBe(true);
+
+    const feeders = buildPlayoffFeeders(snapshot);
+    const order = [
+      ...snapshot.playoffRounds.flatMap((round) => round.series.map((series) => series.id)),
+      snapshot.grandFinal.id,
+    ];
+    const ticks = buildPlayoffSimTicks(snapshot, order);
+
+    for (const series of userSeries) {
+      let liveStep = 0;
+      for (let step = 1; step <= ticks.length; step += 1) {
+        if (seriesLive(series, ticks, step)) {
+          liveStep = step;
+          break;
+        }
+      }
+      if (!liveStep) continue;
+      expect(userPlayoffCameraTarget(snapshot, feeders, ticks, liveStep, false)).toBe(series.id);
+    }
+
+    expect(userPlayoffCameraTarget(snapshot, feeders, ticks, ticks.length, true)).toBe(
+      userSeries[userSeries.length - 1].id,
+    );
+  });
+
+  it("камера плей-офф возвращается к Grand Final", () => {
+    const snapshot = advanceToEnd(createTournament(data, "playback-camera-gf-b", 98));
+    expect(snapshot.grandFinal.teamA.isUser || snapshot.grandFinal.teamB.isUser).toBe(true);
+
+    const feeders = buildPlayoffFeeders(snapshot);
+    const order = [
+      ...snapshot.playoffRounds.flatMap((round) => round.series.map((series) => series.id)),
+      snapshot.grandFinal.id,
+    ];
+    const ticks = buildPlayoffSimTicks(snapshot, order);
+
+    let gfLive = 0;
+    for (let step = 1; step <= ticks.length; step += 1) {
+      if (seriesLive(snapshot.grandFinal, ticks, step)) {
+        gfLive = step;
+        break;
+      }
+    }
+    expect(gfLive).toBeGreaterThan(0);
+    expect(userPlayoffCameraTarget(snapshot, feeders, ticks, gfLive, false)).toBe("grand-final");
+    expect(userPlayoffCameraTarget(snapshot, feeders, ticks, ticks.length, true)).toBe("grand-final");
   });
 });

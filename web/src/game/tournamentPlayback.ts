@@ -218,3 +218,45 @@ export function seriesSlotsVisible(
     return dep != null && seriesFinished(dep, ticks, step);
   });
 }
+
+function seriesHasUser(series: SeriesResult): boolean {
+  return series.teamA.isUser || series.teamB.isUser;
+}
+
+/**
+ * Серия для «камеры» плей-офф: живой матч юзера → идущий → следующий открытый →
+ * последний доигранный (в т.ч. Grand Final после выхода из LB).
+ */
+export function userPlayoffCameraTarget(
+  tournament: TournamentSnapshot,
+  feeders: Map<string, string[]>,
+  ticks: SimTick[],
+  step: number,
+  revealComplete: boolean,
+): string | null {
+  const userSeries = [
+    ...tournament.playoffRounds.flatMap((round) => round.series),
+    tournament.grandFinal,
+  ].filter(seriesHasUser);
+  if (!userSeries.length) return null;
+
+  const live = userSeries.find((series) => seriesLive(series, ticks, step));
+  if (live) return live.id;
+
+  const inProgress = userSeries.find(
+    (series) => seriesStarted(series.id, ticks, step) && !seriesFinished(series, ticks, step),
+  );
+  if (inProgress) return inProgress.id;
+
+  const upcoming = userSeries.find(
+    (series) =>
+      !seriesStarted(series.id, ticks, step)
+      && seriesSlotsVisible(series.id, tournament, feeders, ticks, step, revealComplete),
+  );
+  if (upcoming) return upcoming.id;
+
+  for (let i = userSeries.length - 1; i >= 0; i -= 1) {
+    if (seriesFinished(userSeries[i], ticks, step)) return userSeries[i].id;
+  }
+  return userSeries[0]?.id ?? null;
+}
