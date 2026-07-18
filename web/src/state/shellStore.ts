@@ -21,6 +21,11 @@ function hashForView(view: AppView): string {
   return view === "game" ? "" : `#/${view}`;
 }
 
+/** Новый экран не должен наследовать scrollY длинного справочника/турнирной страницы. */
+function scrollToViewStart() {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+}
+
 interface ShellStore {
   view: AppView;
   setView: (view: AppView) => void;
@@ -38,10 +43,12 @@ export const useShell = create<ShellStore>((set, get) => ({
     const next = hashForView(view);
     // Именно pushState: каждый переход — запись в истории, иначе «назад» уводит из приложения.
     window.history.pushState(null, "", next || window.location.pathname + window.location.search);
+    scrollToViewStart();
   },
 
   syncFromHash() {
     if (typeof window === "undefined") return;
     set({ view: viewFromHash(window.location.hash) });
+    scrollToViewStart();
   },
 }));

@@ -259,11 +259,13 @@ describe("regression: пул героев пака (2026-07-17)", () => {
 
 describe("regression: тиры игрока по OVR (ui/ovrTier)", () => {
   // Пороги — не вкусовые: калиброваны по реальному распределению packs.json (7075
-  // значений). Края шкалы редкие и потому «событийные»: elite ~4.8%, liability ~1.9%.
+  // значений). Края шкалы редкие: immortal ~0.13%, elite ~4.6%, liability ~1.9%.
   // Тест держит и границы, и саму редкость — если пайплайн сдвинет шкалу OVR,
   // эффекты либо расползутся на полпака, либо исчезнут, и это упадёт здесь.
   it("границы тиров совпадают с задокументированными", () => {
-    expect(playerOvrTier(99)).toBe("elite");
+    expect(playerOvrTier(99)).toBe("immortal");
+    expect(playerOvrTier(95)).toBe("immortal");
+    expect(playerOvrTier(94)).toBe("elite");
     expect(playerOvrTier(88)).toBe("elite");
     expect(playerOvrTier(87)).toBe("strong");
     expect(playerOvrTier(82)).toBe("strong");
@@ -287,6 +289,9 @@ describe("regression: тиры игрока по OVR (ui/ovrTier)", () => {
     // Эффект должен быть событием, а не фоном: elite и liability вместе — меньше 12%.
     expect(share("elite")).toBeGreaterThan(0.01);
     expect(share("elite")).toBeLessThan(0.1);
+    // immortal — вершина шкалы: единицы слотов на весь датасет, иначе «особое» обесценится.
+    expect(share("immortal")).toBeGreaterThan(0);
+    expect(share("immortal")).toBeLessThan(0.01);
     expect(share("liability")).toBeGreaterThan(0.002);
     expect(share("liability")).toBeLessThan(0.05);
   });

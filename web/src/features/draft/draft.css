@@ -51,7 +51,8 @@
 .candidate { position: relative; display: grid; grid-template-columns: auto minmax(100px, 1fr) auto 56px; align-items: center; gap: 12px; min-height: 82px; padding: 12px 14px; text-align: left; border: 0; border-radius: 20px; background: linear-gradient(100deg, var(--surface-soft) 55%, color-mix(in srgb, var(--card-tint, transparent) 11%, var(--surface-soft))); transition: transform .15s, background .15s, box-shadow .15s; }
 /* Словарь тиров (.card-tint--*, включая краевые эффекты) — в design/base.css:
    его делят пак, радар и карьера. Здесь только раскладка карточки кандидата. */
-/* На hover карточка целиком зеленеет — краевой эффект убираем, иначе спорит с accent. */
+/* На hover карточка целиком зеленеет — оба краевых слоя убираем, иначе спорят с accent. */
+.candidate:hover:not(:disabled)::before,
 .candidate:hover:not(:disabled)::after { opacity: 0; }
 .candidate:hover:not(:disabled) { transform: translateX(-4px) rotate(-.15deg); color: var(--on-accent); background: var(--accent); box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 16%, transparent); }
 .candidate:hover:not(:disabled) .candidate__identity small, .candidate:hover:not(:disabled) .candidate__stats, .candidate:hover:not(:disabled) .candidate__ovr small { color: color-mix(in srgb, var(--on-accent) 62%, transparent); }

@@ -58,10 +58,47 @@ describe("design tokens", () => {
     const declared = new Set<string>();
     root.walkDecls((decl) => { if (decl.prop.startsWith("--")) declared.add(decl.prop); });
 
-    for (const tier of ["elite", "strong", "mid", "low", "weak"]) {
+    for (const tier of ["immortal", "elite", "strong", "mid", "low", "weak"]) {
       expect(declared).toContain(`--tier-${tier}-invert`);
     }
+    expect(declared).toContain("--tier-immortal-shine-invert");
     expect(declared).toContain("--tier-elite-shine-invert");
     expect(declared).toContain("--tier-liability-veil-invert");
+  });
+
+  it("всегда тёмная поверхность ремапит тема-зависимые тиры", () => {
+    const root = postcss.parse(readFileSync(join(SRC, "design/base.css"), "utf8"));
+    const remapped = new Map<string, string>();
+    root.walkRules((rule) => {
+      if (rule.selector !== ".on-invert-surface") return;
+      rule.walkDecls((decl) => remapped.set(decl.prop, decl.value));
+    });
+
+    for (const tier of ["immortal", "elite", "strong", "mid", "low", "weak"]) {
+      expect(remapped.get(`--tier-${tier}`)).toBe(`var(--tier-${tier}-invert)`);
+    }
+    expect(remapped.get("--tier-immortal-shine")).toBe("var(--tier-immortal-shine-invert)");
+    expect(remapped.get("--tier-elite-shine")).toBe("var(--tier-elite-shine-invert)");
+    expect(remapped.get("--tier-liability-veil")).toBe("var(--tier-liability-veil-invert)");
+  });
+
+  it("reduced-motion полностью гасит движение immortal, сохраняя статичный статус", () => {
+    const root = postcss.parse(readFileSync(join(SRC, "design/base.css"), "utf8"));
+    const reducedRules = new Map<string, Map<string, string>>();
+    root.walkAtRules("media", (media) => {
+      if (media.params !== "(prefers-reduced-motion: reduce)") return;
+      media.walkRules((rule) => {
+        const declarations = new Map<string, string>();
+        rule.walkDecls((decl) => declarations.set(decl.prop, decl.value));
+        for (const selector of rule.selectors) reducedRules.set(selector, declarations);
+      });
+    });
+
+    for (const selector of [".card-tint--immortal::before", ".card-tint--immortal::after"]) {
+      expect(reducedRules.get(selector)?.get("animation")).toBe("none");
+      expect(reducedRules.get(selector)?.get("background")).toBe("none");
+    }
+    expect(reducedRules.get(".ovr-tier--immortal")?.get("animation")).toBe("none");
+    expect(reducedRules.get(".ovr-tier--immortal")?.get("filter")).toContain("--tier-immortal");
   });
 });

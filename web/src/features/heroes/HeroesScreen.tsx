@@ -2,8 +2,10 @@ import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
+import type { PlayerProfile } from "../../types/data.ts";
 import { Button, Eyebrow, HeroThumb, Select, Surface } from "../../ui/index.ts";
 import { heroPopularity, sortHeroes, type HeroSort } from "./heroPopularity.ts";
+import { PlayerPicker } from "./PlayerPicker.tsx";
 import "./heroes.css";
 
 export function HeroesScreen() {
@@ -12,12 +14,27 @@ export function HeroesScreen() {
   const { t } = useI18n();
   const [sort, setSort] = useState<HeroSort>("games");
   const [query, setQuery] = useState("");
+  const [player, setPlayer] = useState<PlayerProfile | null>(null);
 
-  // Агрегация по 5246 игрокам — считаем один раз на датасет, не на каждый ввод в поиске.
-  const rows = useMemo(
-    () => (data ? heroPopularity(data.heroes, data.careerPlayerHeroStats) : []),
-    [data],
-  );
+  // Выбираем только тех, по кому вообще есть статистика: иначе можно ткнуть в игрока
+  // и получить пустую страницу.
+  const pickable = useMemo(() => {
+    if (!data) return [];
+    return Object.values(data.players)
+      .filter((profile) => Object.values(data.careerPlayerHeroStats[String(profile.accountId)] ?? {})
+        .some((stat) => stat.games > 0))
+      .sort((left, right) => left.nickname.localeCompare(right.nickname) || left.accountId - right.accountId);
+  }, [data]);
+
+  // Одна и та же агрегация на оба режима: для игрока подаём срез из одного ключа.
+  // Общий свод считаем один раз на датасет, не на каждый ввод в поиске.
+  const rows = useMemo(() => {
+    if (!data) return [];
+    if (!player) return heroPopularity(data.heroes, data.careerPlayerHeroStats);
+    const own = data.careerPlayerHeroStats[String(player.accountId)] ?? {};
+    return heroPopularity(data.heroes, { [String(player.accountId)]: own })
+      .filter((row) => row.games > 0);
+  }, [data, player]);
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const filtered = needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
@@ -27,14 +44,15 @@ export function HeroesScreen() {
   // Шкала бара — от лидера ТЕКУЩЕЙ сортировки, иначе при сортировке по винрейту
   // все бары схлопываются в одинаковые (винрейты жмутся к 50%).
   const peak = visible.length ? Math.max(...visible.map((row) => barValue(row, sort))) : 0;
+  const note = player ? "heroes.playerNote" : "heroes.note";
 
   return (
     <main className="heroes" data-testid="heroes-screen">
       <Button variant="back" onClick={() => setView("settings")}>← {t("codex.back")}</Button>
       <header className="screen-heading">
         <Eyebrow>{t("codex.eyebrow")}</Eyebrow>
-        <h1>{t("heroes.title")}</h1>
-        <p>{t("heroes.subtitle")}</p>
+        <h1>{player ? player.nickname : t("heroes.title")}</h1>
+        <p>{player ? t("heroes.playerSubtitle") : t("heroes.subtitle")}</p>
       </header>
 
       <Surface className="heroes__controls">
@@ -46,19 +64,34 @@ export function HeroesScreen() {
           aria-label={t("heroes.search")}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <Select
-          label={t("heroes.sort")}
-          value={sort}
-          options={[
-            { value: "games", label: t("heroes.sortGames") },
-            { value: "players", label: t("heroes.sortPlayers") },
-            { value: "winrate", label: t("heroes.sortWinrate") },
-          ]}
-          onChange={(value) => setSort(value as HeroSort)}
+        <PlayerPicker
+          players={pickable}
+          value={player}
+          onPick={(picked) => { setPlayer(picked); setSort("games"); setQuery(""); }}
+          onClear={() => { setPlayer(null); setQuery(""); }}
+          label={t("heroes.player")}
+          placeholder={t("heroes.playerSearch")}
+          clearLabel={t("heroes.playerClear")}
+          shortQueryLabel={t("heroes.playerSearchHint")}
+          noResultsLabel={t("heroes.playerNotFound")}
+          accountLabel={t("heroes.playerAccountId")}
         />
+        <div className="heroes__sort">
+          <Select
+            label={t("heroes.sort")}
+            value={sort}
+            options={[
+              { value: "games", label: t("heroes.sortGames") },
+              // «По числу игроков» осмысленно только в общем своде: у одного игрока там всегда 1.
+              ...(player ? [] : [{ value: "players", label: t("heroes.sortPlayers") }]),
+              { value: "winrate", label: t("heroes.sortWinrate") },
+            ]}
+            onChange={(value) => setSort(value as HeroSort)}
+          />
+        </div>
       </Surface>
 
-      <Surface className="heroes__list">
+      <Surface className={`heroes__list${player ? " heroes__list--player" : ""}`}>
         {visible.length === 0 ? <p className="muted">{t("common.empty")}</p> : (
           <ol>
             {visible.map((row, index) => (
@@ -69,7 +102,7 @@ export function HeroesScreen() {
                   <span style={{ width: `${peak > 0 ? (barValue(row, sort) / peak) * 100 : 0}%` }} />
                 </span>
                 <span className="heroes__stat"><b>{row.games.toLocaleString()}</b>{t("heroes.games")}</span>
-                <span className="heroes__stat"><b>{row.players}</b>{t("heroes.players")}</span>
+                {!player && <span className="heroes__stat"><b>{row.players}</b>{t("heroes.players")}</span>}
                 <span className="heroes__stat">
                   <b>{row.winrate == null ? "—" : `${(row.winrate * 100).toFixed(1)}%`}</b>{t("heroes.winrate")}
                 </span>
@@ -78,7 +111,7 @@ export function HeroesScreen() {
           </ol>
         )}
       </Surface>
-      <p className="heroes__note">{t("heroes.note")}</p>
+      <p className="heroes__note">{t(note)}</p>
     </main>
   );
 }

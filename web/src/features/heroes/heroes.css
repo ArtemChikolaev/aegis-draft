@@ -1,8 +1,17 @@
 .heroes { display: grid; justify-items: start; gap: 18px; }
 .heroes > .heroes__controls, .heroes > .heroes__list, .heroes > header { justify-self: stretch; width: 100%; }
-.heroes__controls { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; padding: 16px 18px; }
+.heroes__controls {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 1.1fr) minmax(260px, 1fr) auto;
+  grid-template-areas: "hero-search player-search sort";
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+}
 .heroes__search {
-  flex: 1 1 220px;
+  grid-area: hero-search;
+  width: 100%;
   min-width: 0;
   padding: 10px 14px;
   color: var(--text);
@@ -12,7 +21,67 @@
   font: inherit;
   font-size: 13px;
 }
+.heroes__search:focus-visible,
+.player-picker__control:focus-visible,
+.player-picker__control:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 .heroes__search::placeholder { color: var(--muted); }
+.heroes__sort { grid-area: sort; min-width: 0; }
+
+.player-picker { position: relative; grid-area: player-search; min-width: 0; z-index: 3; }
+.player-picker__control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 42px;
+  padding: 5px 12px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+.player-picker__input {
+  width: 100%;
+  min-width: 0;
+  padding: 5px 2px;
+  color: var(--text);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+}
+.player-picker__input::placeholder { color: var(--muted); }
+.player-picker__control--chosen { grid-template-columns: minmax(0, 1fr) auto; padding-right: 7px; cursor: pointer; text-align: left; }
+.player-picker__control--chosen:hover { border-color: var(--line-strong); }
+.player-picker__chosen-name { overflow: hidden; font-size: 13px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.player-picker__clear { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--surface); color: var(--muted); font-size: 17px; line-height: 1; }
+.player-picker__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  background: var(--surface-solid);
+  box-shadow: var(--shadow);
+}
+.player-picker__message { margin: 0; padding: 14px; color: var(--muted); font-size: 12px; text-align: center; }
+.player-picker__list { display: grid; gap: 2px; max-height: min(320px, 50vh); margin: 0; padding: 6px; overflow-y: auto; list-style: none; }
+.player-picker__list li {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  padding: 9px 11px;
+  border-radius: 11px;
+  cursor: pointer;
+}
+.player-picker__list li[aria-selected="true"],
+.player-picker__list li:hover { background: var(--surface-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.player-picker__list strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.player-picker__list small { overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .heroes__list { padding: 8px 10px; }
 .heroes__list ol { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; counter-reset: hero; }
 /* Колонки фиксированной ширины, чтобы числа стояли в столбик, а не «плясали» по строкам. */
@@ -24,6 +93,8 @@
   padding: 7px 10px;
   border-radius: 12px;
 }
+/* Режим игрока: колонка «игроков» скрыта (у одного игрока там всегда 1) — детей пять. */
+.heroes__list--player li { grid-template-columns: 34px minmax(120px, 1fr) minmax(60px, 1.4fr) repeat(2, 68px); }
 .heroes__list li:nth-child(odd) { background: var(--surface-soft); }
 /* Капсула HeroThumb — блочный span и растянулась бы на всю колонку светлым прямоугольником. */
 .heroes__list li > :nth-child(2) { justify-self: start; max-width: 100%; }
@@ -35,6 +106,16 @@
 .heroes__note { max-width: 640px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
 
 @media (max-width: 680px) { /* bp.md — числа уходят под имя, бар растягивается на всю ширину */
+  .heroes__controls {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "hero-search"
+      "player-search"
+      "sort";
+  }
+  .heroes__controls > * { width: 100%; min-width: 0; }
+  .heroes__sort > * { width: 100%; }
+  .player-picker__panel { position: static; margin-top: 8px; }
   /* Селекторы по nth-child, а НЕ nth-of-type: дети — все span, и nth-of-type(1) попал бы
      в ранг, а не в первую цифру. Класс HeroThumb хеширован CSS-модулем, за него не цепляемся. */
   .heroes__list li {
@@ -52,5 +133,13 @@
   .heroes__list li > :nth-child(4) { grid-area: st1; }
   .heroes__list li > :nth-child(5) { grid-area: st2; }
   .heroes__list li > :nth-child(6) { grid-area: st3; }
+  /* В режиме игрока цифр две — вторая занимает место третьей, чтобы не было дыры. */
+  .heroes__list--player li {
+    grid-template-areas:
+      "rank hero hero hero"
+      "bar  bar  bar  bar"
+      "st1  st1  st2  st2";
+  }
+  .heroes__list--player li > :nth-child(5) { grid-area: st2; }
   .heroes__stat { align-items: flex-start; text-align: left; }
 }

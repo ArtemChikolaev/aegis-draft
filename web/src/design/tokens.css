@@ -53,6 +53,11 @@
      Тёмная тема просто ссылается на него, светлая переопределяет только --tier-*.
      Панель ремапит --tier-* на эти значения у себя (см. base.css .on-invert-surface),
      поэтому глобальные классы тира внутри неё работают без override'ов. */
+  /* immortal (≥95) стоит ВНЕ зелёно-красной шкалы: она занята «сильный→слабый», и «выше
+     зелёного» внутри неё не выразить. Холодный циан читается как более редкий и не спорит
+     ни с ролями (саппорт — фиолетовый), ни с акцентом. */
+  --tier-immortal-invert: #7ce7ff;
+  --tier-immortal-shine-invert: #f2fdff;
   --tier-elite-invert: #8ff0b5;
   --tier-strong-invert: #c6e88a;
   --tier-mid-invert: #ffd66b;
@@ -61,6 +66,8 @@
   --tier-elite-shine-invert: #ffe6a3;
   --tier-liability-veil-invert: color-mix(in srgb, #000 62%, transparent);
 
+  --tier-immortal: var(--tier-immortal-invert);
+  --tier-immortal-shine: var(--tier-immortal-shine-invert);
   --tier-elite: var(--tier-elite-invert);   /* ≥90 / победа / UB */
   --tier-strong: var(--tier-strong-invert); /* 86–89 */
   --tier-mid: var(--tier-mid-invert);       /* 82–85 / LB */
@@ -130,6 +137,8 @@ html[data-theme="light"] {
   --role-support: #714397;
 
   /* Турнир — те же тиры, но темнее для читаемости на светлой поверхности. */
+  --tier-immortal: #0f7f9e;
+  --tier-immortal-shine: #59c3dd;
   --tier-elite: #2e9e63;
   --tier-strong: #5f9e26;
   --tier-mid: #b07d0a;

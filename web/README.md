@@ -20,11 +20,14 @@ web/src/
 ├─ i18n/         # общий словарь RU/EN (core.ts) + I18nProvider
 ├─ ui/           # UIKIT — общие темизированные примитивы (CSS Modules):
 │                #   Button, Surface, Eyebrow, Banner, Chip, RoleTag, SoonBadge,
-│                #   StatTile, Select, Modal, OptionGroup + index.ts (barrel)
+│                #   StatTile, Select, Modal, OptionGroup, HeroThumb, Dealt,
+│                #   TeamName, TeamSigil + index.ts (barrel)
 ├─ features/     # экраны, собранные ИЗ ui/ (+ локальный CSS раскладки):
 │  ├─ start/       #   StartScreen + start.css
 │  ├─ draft/       #   DraftScreen, Pentagon (+ draft.css, pentagon.css), heroes.ts
-│  └─ result/      #   ResultScreen + result.css
+│  ├─ tournament/  #   симуляция турнира, сетка, итог и карьера
+│  ├─ settings/    #   язык, тема, паспорт датасета и ссылки на справочники
+│  └─ heroes/      #   популярность героев + feature-комбобокс про-игрока
 ├─ game/         # логика: score/assign/packs/engine (не зависит от UI)
 ├─ data/         # DataSource (загрузка JSON)
 ├─ state/        # Zustand store забега
@@ -44,6 +47,7 @@ public/data/     # ← сюда пайплайн кладёт JSON
 - **assign.ts** — оптимальное назначение 5 героев 5 игрокам (max-weight matching).
 - **packs.ts** — Team Packs (ростер команды) и Mixed Draft (5 из разных команд, порядок 1→5).
 - **DataSource** — абстракция над источником данных (статика сейчас → API в фазе 2).
+- **heroes/heroPopularity.ts** — единая агрегация career player×hero для общего свода и режима выбранного игрока; UI не дублирует расчёт и не ходит во внешний API.
 
 ## Тесты (T3.13, 2026-07-14)
 
