@@ -5,6 +5,7 @@ import { RunEngine } from "../src/game/engine.ts";
 import { playerHeroGames, squadChemistryRows } from "../src/game/score.ts";
 import type { PackPlayer } from "../src/types/data.ts";
 import { loadGameData } from "./helpers/data.ts";
+import { isMockBaseline } from "./helpers/dataset.ts";
 import { playerOvrTier } from "../src/ui/ovrTier.ts";
 import { assignmentPairScoreTotal, greedyAssignmentPairScore, sigFromPack } from "./helpers/assignment.ts";
 import { defaultRunConfig, rosterFromPack } from "./helpers/packs.ts";
@@ -276,7 +277,9 @@ describe("regression: тиры игрока по OVR (ui/ovrTier)", () => {
     expect(playerOvrTier(54)).toBe("liability");
   });
 
-  it("края шкалы остаются редкими на реальном датасете", () => {
+  // Свойство РЕАЛЬНОГО датасета: на моке шкала OVR синтетическая (elite там ~30%), поэтому
+  // на нём проверять нечего — тот же приём, что у golden (skipIf isMockBaseline).
+  it.skipIf(isMockBaseline(loadGameData().manifest))("края шкалы остаются редкими (реальный датасет)", () => {
     const data = loadGameData();
     const ovrs = data.packs.flatMap((pack) => pack.players.map((player) => player.ovr));
     const share = (tier: string) =>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { heroPopularity, sortHeroes } from "../src/features/heroes/heroPopularity.ts";
 import type { Hero, PlayerHeroStats } from "../src/types/data.ts";
 import { loadGameData } from "./helpers/data.ts";
+import { isMockBaseline } from "./helpers/dataset.ts";
 
 const heroes: Hero[] = [
   { id: 1, name: "Anti-Mage", picture: "antimage" },
@@ -50,10 +51,16 @@ describe("heroPopularity", () => {
     expect(rows.map((row) => row.id)).toEqual([2, 1, 3]);
   });
 
-  it("на реальном датасете покрывает всех героев и даёт осмысленный топ", () => {
+  it("покрывает всех героев из справочника (любой датасет)", () => {
+    const data = loadGameData();
+    const rows = heroPopularity(data.heroes, data.careerPlayerHeroStats);
+    expect(rows).toHaveLength(data.heroes.length);
+  });
+
+  // Масштаб — свойство РЕАЛЬНОГО датасета: у мока другие порядки (лидер ~35 игроков).
+  it.skipIf(isMockBaseline(loadGameData().manifest))("даёт осмысленный топ (реальный датасет)", () => {
     const data = loadGameData();
     const rows = sortHeroes(heroPopularity(data.heroes, data.careerPlayerHeroStats), "games");
-    expect(rows).toHaveLength(data.heroes.length);
     // Лидер должен быть заметно сыгран — если агрегация сломается, тут будут нули.
     expect(rows[0].games).toBeGreaterThan(500);
     expect(rows[0].players).toBeGreaterThan(50);
