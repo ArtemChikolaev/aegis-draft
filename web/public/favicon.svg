@@ -1,5 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="18" fill="#0d121d"/>
-  <path d="M32 7 53 18v25L32 57 11 43V18Z" fill="#55e6d4" fill-opacity=".12" stroke="#55e6d4" stroke-width="3"/>
-  <path d="m22 42 10-24 10 24m-16-9h12" fill="none" stroke="#f4f8fb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Aegis Draft">
+  <!-- Знак продукта: pure black + brand-green «A», ровно как описывает design-language.md
+       (чёрный фон, зелёный как редкий акцент). Повторяет монограмму из шапки приложения,
+       но в игровом цвете, а не в белом.
+
+       Цвета — из design/tokens.css (bg #000, brand-green #8ff0b5), а не подобранные:
+       у прежнего значка были navy и бирюза, которых в палитре нет вовсе.
+
+       Рассчитан на два применения: фавикон 16px и круглый аватар бота в Telegram.
+       Буква вписана в безопасный круг, поэтому обрезка в круг ничего не срезает;
+       штрих достаточно жирный, чтобы не схлопнуться на 16px.
+
+       Внимание: в XML-комментарии нельзя писать два дефиса подряд, поэтому имена
+       CSS-токенов здесь без ведущих дефисов. -->
+  <rect width="64" height="64" rx="14" fill="#000"/>
+  <path d="M32 15 45 49h-6.6l-2.4-6.6h-8L25.6 49H19L32 15Zm0 12.8-2.6 8.4h5.2L32 27.8Z" fill="#8ff0b5"/>
 </svg>
