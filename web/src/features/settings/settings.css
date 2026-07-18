@@ -9,3 +9,26 @@
 .settings__facts dt { color: var(--muted); font-size: 12px; }
 .settings__facts dd { margin: 0; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .settings__source { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+/* Входы в справочник. Строка-ссылка, а не Button: нужен двухстрочный блок с подписью,
+   у Button такого варианта нет и ради одного места его заводить не стоит. */
+.settings__links { display: grid; gap: 8px; }
+.settings__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  color: inherit;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  transition: border-color .15s, transform .15s;
+}
+.settings__link:hover { border-color: var(--accent); transform: translateX(2px); }
+.settings__link span { display: grid; gap: 2px; min-width: 0; }
+.settings__link strong { font-size: 15px; }
+.settings__link small { color: var(--muted); font-size: 11px; }
+.settings__link em { color: var(--accent); font-style: normal; font-size: 18px; }

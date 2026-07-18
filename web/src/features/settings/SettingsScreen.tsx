@@ -49,6 +49,20 @@ export function SettingsScreen() {
         />
       </Surface>
 
+      {/* Справочник — отсюда же, чтобы вход в приложение был один: шестерёнка в топбаре. */}
+      <Surface className="settings__panel">
+        <h2 className="settings__section">{t("codex.eyebrow")}</h2>
+        <nav className="settings__links">
+          <button type="button" className="settings__link" data-testid="open-heroes" onClick={() => setView("heroes")}>
+            <span>
+              <strong>{t("codex.heroes")}</strong>
+              <small>{t("codex.heroesHint")}</small>
+            </span>
+            <em>→</em>
+          </button>
+        </nav>
+      </Surface>
+
       {/* Паспорт данных: по какому срезу играем. Версии — те же поля, что решают
           совместимость сейва (state/runPersist), поэтому полезны и при разборе багов. */}
       <Surface className="settings__panel">

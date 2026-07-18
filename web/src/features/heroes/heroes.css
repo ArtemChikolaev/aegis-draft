@@ -1,0 +1,56 @@
+.heroes { display: grid; justify-items: start; gap: 18px; }
+.heroes > .heroes__controls, .heroes > .heroes__list, .heroes > header { justify-self: stretch; width: 100%; }
+.heroes__controls { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; padding: 16px 18px; }
+.heroes__search {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 10px 14px;
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  font: inherit;
+  font-size: 13px;
+}
+.heroes__search::placeholder { color: var(--muted); }
+.heroes__list { padding: 8px 10px; }
+.heroes__list ol { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; counter-reset: hero; }
+/* Колонки фиксированной ширины, чтобы числа стояли в столбик, а не «плясали» по строкам. */
+.heroes__list li {
+  display: grid;
+  grid-template-columns: 34px minmax(120px, 1fr) minmax(60px, 1.4fr) repeat(3, 68px);
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 12px;
+}
+.heroes__list li:nth-child(odd) { background: var(--surface-soft); }
+/* Капсула HeroThumb — блочный span и растянулась бы на всю колонку светлым прямоугольником. */
+.heroes__list li > :nth-child(2) { justify-self: start; max-width: 100%; }
+.heroes__rank { color: var(--muted); font: 800 12px/1 "Space Grotesk", sans-serif; font-variant-numeric: tabular-nums; text-align: right; }
+.heroes__bar { display: block; height: 6px; overflow: hidden; border-radius: 999px; background: color-mix(in srgb, var(--line) 60%, transparent); }
+.heroes__bar > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-strong), var(--accent)); }
+.heroes__stat { display: flex; flex-direction: column; gap: 1px; color: var(--muted); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; text-align: right; }
+.heroes__stat b { color: var(--text); font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.heroes__note { max-width: 640px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+@media (max-width: 680px) { /* bp.md — числа уходят под имя, бар растягивается на всю ширину */
+  /* Селекторы по nth-child, а НЕ nth-of-type: дети — все span, и nth-of-type(1) попал бы
+     в ранг, а не в первую цифру. Класс HeroThumb хеширован CSS-модулем, за него не цепляемся. */
+  .heroes__list li {
+    grid-template-columns: 26px repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "rank hero hero hero"
+      "bar  bar  bar  bar"
+      "st1  st1  st2  st3";
+    gap: 8px;
+    padding: 10px;
+  }
+  .heroes__list li > :nth-child(1) { grid-area: rank; }
+  .heroes__list li > :nth-child(2) { grid-area: hero; min-width: 0; }
+  .heroes__list li > :nth-child(3) { grid-area: bar; }
+  .heroes__list li > :nth-child(4) { grid-area: st1; }
+  .heroes__list li > :nth-child(5) { grid-area: st2; }
+  .heroes__list li > :nth-child(6) { grid-area: st3; }
+  .heroes__stat { align-items: flex-start; text-align: left; }
+}
