@@ -7,9 +7,9 @@
 // (на телефоне это единственный способ выйти со страницы) и ссылку можно переслать.
 import { create } from "zustand";
 
-export type AppView = "game" | "settings" | "heroes";
+export type AppView = "game" | "settings" | "heroes" | "teammates";
 
-const VIEWS: AppView[] = ["settings", "heroes"];
+const VIEWS: AppView[] = ["settings", "heroes", "teammates"];
 
 /** hash → вид. Незнакомый хеш = игра, а не 404: ссылка из будущей версии не должна ломать. */
 export function viewFromHash(hash: string): AppView {

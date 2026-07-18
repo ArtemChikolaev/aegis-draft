@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { findPlayerMatches } from "../src/features/heroes/PlayerPicker.tsx";
+import { findPlayerMatches } from "../src/ui/PlayerPicker.tsx";
 import type { PlayerProfile } from "../src/types/data.ts";
 
 const player = (accountId: number, nickname: string): PlayerProfile => ({

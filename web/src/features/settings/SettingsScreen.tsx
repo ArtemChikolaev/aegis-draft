@@ -60,6 +60,13 @@ export function SettingsScreen() {
             </span>
             <em>→</em>
           </button>
+          <button type="button" className="settings__link" data-testid="open-teammates" onClick={() => setView("teammates")}>
+            <span>
+              <strong>{t("codex.teammates")}</strong>
+              <small>{t("codex.teammatesHint")}</small>
+            </span>
+            <em>→</em>
+          </button>
         </nav>
       </Surface>
 

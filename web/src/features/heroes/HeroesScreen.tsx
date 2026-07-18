@@ -3,9 +3,8 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import type { PlayerProfile } from "../../types/data.ts";
-import { Button, Eyebrow, HeroThumb, Select, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface } from "../../ui/index.ts";
 import { heroPopularity, sortHeroes, type HeroSort } from "./heroPopularity.ts";
-import { PlayerPicker } from "./PlayerPicker.tsx";
 import "./heroes.css";
 
 export function HeroesScreen() {
@@ -65,6 +64,7 @@ export function HeroesScreen() {
           onChange={(event) => setQuery(event.target.value)}
         />
         <PlayerPicker
+          className="heroes__player-picker"
           players={pickable}
           value={player}
           onPick={(picked) => { setPlayer(picked); setSort("games"); setQuery(""); }}

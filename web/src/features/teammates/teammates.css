@@ -1,0 +1,40 @@
+.teammates { display: grid; justify-items: start; gap: 18px; }
+.teammates > .teammates__controls,
+.teammates > .teammates__web,
+.teammates > .teammates__list,
+.teammates > .teammates__empty,
+.teammates > header { justify-self: stretch; width: 100%; }
+.teammates__controls { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; padding: 16px 18px; }
+.teammates__picker { min-width: 0; }
+.teammates__empty { padding: 28px; color: var(--muted); font-size: 13px; text-align: center; }
+
+/* Паутина всегда тёмная (как радар драфта) — там читаются лучи и подписи; поэтому на
+   контейнере .on-invert-surface, и tier-токены внутри берут инвертный набор. */
+.teammates__web { display: grid; place-items: center; padding: 12px; background: var(--surface-invert); color: var(--on-invert); }
+.teammates__svg { width: 100%; max-width: 560px; height: auto; }
+.teammates__web-empty { margin: 40px 0; color: var(--muted-invert); font-size: 13px; }
+.teammates__edge { stroke: var(--brand-green); }
+.teammates__dot { fill: var(--brand-green); }
+.teammates__node g { cursor: pointer; }
+.teammates__node g:hover .teammates__dot,
+.teammates__node g:focus-visible .teammates__dot { fill: var(--on-invert); }
+.teammates__node g:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 2px; }
+.teammates__name { fill: var(--on-invert); font: 700 10px Manrope, sans-serif; text-anchor: middle; }
+.teammates__events { fill: var(--muted-invert); font: 800 9px "Space Grotesk", sans-serif; text-anchor: middle; }
+.teammates__center-dot { fill: color-mix(in srgb, var(--brand-green) 22%, var(--surface-invert)); stroke: var(--brand-green); stroke-width: 1.5; }
+.teammates__center-name { fill: var(--on-invert); font: 800 13px "Space Grotesk", sans-serif; text-anchor: middle; }
+
+.teammates__list { padding: 18px 20px; }
+.teammates__list ul { display: grid; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; }
+.teammates__list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px 10px; border-radius: 12px; }
+.teammates__list li:nth-child(odd) { background: var(--surface-soft); }
+.teammates__list li button { display: grid; gap: 2px; min-width: 0; padding: 0; color: inherit; text-align: left; border: 0; background: transparent; }
+.teammates__list li button:hover strong { color: var(--accent); }
+.teammates__list strong { overflow: hidden; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.teammates__list small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.teammates__count { color: var(--muted); font-size: 10px; font-weight: 800; white-space: nowrap; }
+.teammates__note { max-width: 640px; margin: 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+
+@media (max-width: 680px) { /* bp.md */
+  .teammates__controls { grid-template-columns: 1fr; }
+}

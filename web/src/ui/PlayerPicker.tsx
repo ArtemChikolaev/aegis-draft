@@ -1,5 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
-import type { PlayerProfile } from "../../types/data.ts";
+import type { PlayerProfile } from "../types/data.ts";
+import styles from "./PlayerPicker.module.css";
 
 const MAX_SUGGESTIONS = 8;
 const MIN_QUERY = 2;
@@ -26,6 +27,7 @@ export function findPlayerMatches(players: readonly PlayerProfile[], query: stri
  * букве совпадений сотни, и это бесполезная стена.
  */
 export function PlayerPicker({
+  className,
   players,
   value,
   onPick,
@@ -37,6 +39,8 @@ export function PlayerPicker({
   noResultsLabel,
   accountLabel,
 }: {
+  /** Размещение в сетке экрана задаёт вызывающий — примитив о чужой раскладке не знает. */
+  className?: string;
   players: PlayerProfile[];
   value: PlayerProfile | null;
   onPick: (player: PlayerProfile) => void;
@@ -131,28 +135,28 @@ export function PlayerPicker({
 
   if (value) {
     return (
-      <div className="player-picker">
+      <div className={[styles.picker, className].filter(Boolean).join(" ")}>
         <button
           ref={chosenRef}
           type="button"
-          className="player-picker__control player-picker__control--chosen"
+          className={`${styles.control} ${styles.chosen}`}
           onClick={clear}
           data-testid="player-clear"
           aria-label={`${clearLabel}: ${value.nickname}`}
         >
-          <span className="player-picker__chosen-name">{value.nickname}</span>
-          <span className="player-picker__clear" aria-hidden="true">×</span>
+          <span className={styles.chosenName}>{value.nickname}</span>
+          <span className={styles.clear} aria-hidden="true">×</span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className="player-picker" ref={boxRef} onBlur={onBlur}>
-      <div className="player-picker__control">
+    <div className={[styles.picker, className].filter(Boolean).join(" ")} ref={boxRef} onBlur={onBlur}>
+      <div className={styles.control}>
         <input
           ref={inputRef}
-          className="player-picker__input"
+          className={styles.input}
           type="search"
           role="combobox"
           aria-autocomplete="list"
@@ -171,11 +175,11 @@ export function PlayerPicker({
         />
       </div>
       {open && (
-        <div className="player-picker__panel" id={panelId} role="listbox">
-          {!queryReady ? <p className="player-picker__message" role="status">{shortQueryLabel}</p> : matches.length === 0 ? (
-            <p className="player-picker__message" role="status">{noResultsLabel}</p>
+        <div className={styles.panel} id={panelId} role="listbox">
+          {!queryReady ? <p className={styles.message} role="status">{shortQueryLabel}</p> : matches.length === 0 ? (
+            <p className={styles.message} role="status">{noResultsLabel}</p>
           ) : (
-            <ul className="player-picker__list">
+            <ul className={styles.list}>
               {matches.map((player, index) => {
                 const team = latestTeamName(player);
                 return (

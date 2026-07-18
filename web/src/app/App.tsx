@@ -7,6 +7,7 @@ import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
 import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
+import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { Banner, Button } from "../ui/index.ts";
 import "./App.css";
@@ -53,7 +54,7 @@ export function App() {
         </Banner>
       )}
 
-      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : (
+      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : (
         <>
           {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
           {phase === "start" && <ResumeBanner />}

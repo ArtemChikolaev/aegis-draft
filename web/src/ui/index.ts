@@ -15,5 +15,6 @@ export { TeamSigil } from "./TeamSigil.tsx";
 export { SoonBadge } from "./SoonBadge.tsx";
 export { StatTile, type StatKind } from "./StatTile.tsx";
 export { Select, type SelectOption } from "./Select.tsx";
+export { PlayerPicker, findPlayerMatches } from "./PlayerPicker.tsx";
 export { Modal } from "./Modal.tsx";
 export { OptionGroup, type Option } from "./OptionGroup.tsx";
