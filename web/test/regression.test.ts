@@ -5,6 +5,7 @@ import { RunEngine } from "../src/game/engine.ts";
 import { playerHeroGames, squadChemistryRows } from "../src/game/score.ts";
 import type { PackPlayer } from "../src/types/data.ts";
 import { loadGameData } from "./helpers/data.ts";
+import { playerOvrTier } from "../src/ui/ovrTier.ts";
 import { assignmentPairScoreTotal, greedyAssignmentPairScore, sigFromPack } from "./helpers/assignment.ts";
 import { defaultRunConfig, rosterFromPack } from "./helpers/packs.ts";
 import { runToEnd } from "./helpers/engine.ts";
@@ -252,5 +253,38 @@ describe("regression: пул героев пака (2026-07-17)", () => {
     // первым пяти по id. Без шаффла все варианты совпали бы.
     const variants = new Set(Array.from({ length: 10 }, (_, i) => shown(`hero-pool-${i}`)));
     expect(variants.size).toBeGreaterThan(1);
+  });
+});
+
+describe("regression: тиры игрока по OVR (ui/ovrTier)", () => {
+  // Пороги — не вкусовые: калиброваны по реальному распределению packs.json (7075
+  // значений). Края шкалы редкие и потому «событийные»: elite ~4.8%, liability ~1.9%.
+  // Тест держит и границы, и саму редкость — если пайплайн сдвинет шкалу OVR,
+  // эффекты либо расползутся на полпака, либо исчезнут, и это упадёт здесь.
+  it("границы тиров совпадают с задокументированными", () => {
+    expect(playerOvrTier(99)).toBe("elite");
+    expect(playerOvrTier(88)).toBe("elite");
+    expect(playerOvrTier(87)).toBe("strong");
+    expect(playerOvrTier(82)).toBe("strong");
+    expect(playerOvrTier(81)).toBe("mid");
+    expect(playerOvrTier(76)).toBe("mid");
+    expect(playerOvrTier(75)).toBe("low");
+    expect(playerOvrTier(70)).toBe("low");
+    expect(playerOvrTier(69)).toBe("weak");
+    expect(playerOvrTier(60)).toBe("weak");
+    expect(playerOvrTier(59)).toBe("liability");
+    expect(playerOvrTier(54)).toBe("liability");
+  });
+
+  it("края шкалы остаются редкими на реальном датасете", () => {
+    const data = loadGameData();
+    const ovrs = data.packs.flatMap((pack) => pack.players.map((player) => player.ovr));
+    const share = (tier: string) =>
+      ovrs.filter((ovr) => playerOvrTier(ovr) === tier).length / ovrs.length;
+    // Эффект должен быть событием, а не фоном: elite и liability вместе — меньше 12%.
+    expect(share("elite")).toBeGreaterThan(0.01);
+    expect(share("elite")).toBeLessThan(0.1);
+    expect(share("liability")).toBeGreaterThan(0.002);
+    expect(share("liability")).toBeLessThan(0.05);
   });
 });

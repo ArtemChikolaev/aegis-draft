@@ -55,6 +55,9 @@
   --tier-low: #ffab5e;     /* 78–81 */
   --tier-weak: #ff806d;    /* ≤77 / поражение / OUT */
   --tier-elite-shine: #ffe6a3; /* бегущий блик «фольги» на elite-OVR; тёплое золото читается и на ivory */
+  /* Вуаль «погасшей» карточки (liability <60). На чёрном гасим В ТЕНЬ — карточка проваливается;
+     на ivory та же тень даёт грязно-серое пятно, поэтому там вуаль другая по природе (см. light). */
+  --tier-liability-veil: color-mix(in srgb, #000 62%, transparent);
   --route-ub: var(--tier-elite);
   --route-lb: var(--tier-mid);
   --route-out: var(--tier-weak);
@@ -121,6 +124,9 @@ html[data-theme="light"] {
   --tier-low: #c2691a;
   --tier-weak: #c63e2b;
   --tier-elite-shine: #b5892b;
+  /* На светлой «потухший» = выцветший, а не затемнённый: холодный серо-бежевый налёт,
+     который приглушает карточку, не превращая её в грязное пятно. */
+  --tier-liability-veil: color-mix(in srgb, #6b6558 22%, transparent);
 
   /* Знаки команд — те же хью, но темнее: на ivory светлые нечитаемы. */
   --sigil-0: #315fae;

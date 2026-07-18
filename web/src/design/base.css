@@ -42,6 +42,9 @@ h1, h2, .brand { font-family: "Space Grotesk", Manrope, sans-serif; }
    Глобальные, потому что нужны и драфту, и итогу. mid/low/weak — только цвет; strong светится;
    elite (топ ~4%) «переливается» — бегущий золотой блик поверх зелёного номера (foil).
    reduced-motion → сплошной цвет без блика (перекрыто ниже). */
+/* liability (<60) — тот же красный, что и weak: гасить ЧИСЛО нельзя, бледная цифра
+   читается как «менее важный», а не «худший». Разницу несёт карточка (draft.css). */
+.ovr-tier--liability,
 .ovr-tier--weak { color: var(--tier-weak); }
 .ovr-tier--low { color: var(--tier-low); }
 .ovr-tier--mid { color: var(--tier-mid); }

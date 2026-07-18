@@ -49,11 +49,50 @@
    градиент от нейтрального к чуть окрашенному со стороны OVR — карточки не бесцветные,
    а сила читается ещё и фоном. Очень субтильно (≤11%), на hover перекрывается accent'ом. */
 .candidate { display: grid; grid-template-columns: auto minmax(100px, 1fr) auto 56px; align-items: center; gap: 12px; min-height: 82px; padding: 12px 14px; text-align: left; border: 0; border-radius: 20px; background: linear-gradient(100deg, var(--surface-soft) 55%, color-mix(in srgb, var(--card-tint, transparent) 11%, var(--surface-soft))); transition: transform .15s, background .15s, box-shadow .15s; }
+.card-tint--liability { --card-tint: var(--tier-weak); }
 .card-tint--weak { --card-tint: var(--tier-weak); }
 .card-tint--low { --card-tint: var(--tier-low); }
 .card-tint--mid { --card-tint: var(--tier-mid); }
 .card-tint--strong { --card-tint: var(--tier-strong); }
 .card-tint--elite { --card-tint: var(--tier-elite); }
+
+/* Края шкалы — «событийные» карточки (пороги и доли — в ui/ovrTier.ts).
+   Elite ОТРАЖАЕТ свет: кант + медленный блик фольги наискось поверх всей карточки.
+   Блик втрое медленнее, чем у номера (2.6s), — иначе два ритма спорят и карточка рябит.
+   Кант нужен отдельно от блика: он держит статус в фазе, когда блик ушёл за край. */
+.card-tint--elite { position: relative; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tier-elite) 26%, transparent); }
+.card-tint--elite::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 40%, color-mix(in srgb, var(--tier-elite-shine) 20%, transparent) 50%, transparent 60%);
+  background-size: 300% 100%;
+  pointer-events: none;
+  animation: card-foil 7.2s linear infinite;
+}
+@keyframes card-foil { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+/* Liability ПОГЛОЩАЕТ свет: холодная виньетка внутрь + глухой кант, никакой анимации.
+   Контраст с elite именно в этом — один светится, второй потух; красной заливки не хватало,
+   потому что тем же красным уже покрашены ~29% (weak). */
+.card-tint--liability { position: relative; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tier-weak) 20%, transparent); }
+.card-tint--liability::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  background: radial-gradient(115% 145% at 50% 40%, transparent 18%, var(--tier-liability-veil) 100%);
+  pointer-events: none;
+}
+/* На hover карточка целиком зеленеет — оба краевых эффекта убираем, иначе спорят с accent. */
+.candidate:hover:not(:disabled)::after { opacity: 0; }
+@media (prefers-reduced-motion: reduce) {
+  /* Блик гасим целиком: с animation-duration .01ms он застыл бы на случайном кадре.
+     Статус остаётся на канте — он не анимированный. */
+  .card-tint--elite::after { animation: none; background: none; }
+}
 .candidate:hover:not(:disabled) { transform: translateX(-4px) rotate(-.15deg); color: var(--on-accent); background: var(--accent); box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 16%, transparent); }
 .candidate:hover:not(:disabled) .candidate__identity small, .candidate:hover:not(:disabled) .candidate__stats, .candidate:hover:not(:disabled) .candidate__ovr small { color: color-mix(in srgb, var(--on-accent) 62%, transparent); }
 .candidate:hover:not(:disabled) .candidate__stats b, .candidate:hover:not(:disabled) .candidate__ovr { color: var(--on-accent); }
