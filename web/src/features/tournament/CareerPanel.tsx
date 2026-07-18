@@ -26,10 +26,7 @@ function configKeys(config: CareerConfigLabel): MessageKey[] {
   };
   const scoring: Record<CareerConfigLabel["scoring"], MessageKey> = { event: "start.eventRating", peak: "start.peakRating" };
   const draft: Record<CareerConfigLabel["draftStyle"], MessageKey> = { team: "start.teamPacks", mixed: "start.mixedDraft" };
-  const keys: MessageKey[] = [format[config.format], difficulty[config.difficulty], scoring[config.scoring], draft[config.draftStyle]];
-  // Хардкор дописываем в конец, а не подменяем сложность: это независимая опция.
-  if (config.hardMode) keys.push("hard.badge");
-  return keys;
+  return [format[config.format], difficulty[config.difficulty], scoring[config.scoring], draft[config.draftStyle]];
 }
 
 export function CareerPanel() {
@@ -80,13 +77,19 @@ export function CareerPanel() {
         <h3 className="bracket__side-title">{t("career.lastRuns", { count: LAST_RUNS })}</h3>
         <div className="career-runs__list" ref={runsListRef}>
           {recent.map((entry) => (
-            <article className="career-run" key={careerRunId(entry)}>
+            <article
+              className={`career-run${entry.configLabel.hardMode ? " career-run--hardcore" : ""}`}
+              key={careerRunId(entry)}
+            >
               <header className="career-run__heading">
                 <strong>{t(`tournament.place.${entry.placement}` as MessageKey)}</strong>
                 <span>{t("career.teamOvr", { value: Math.round(entry.score.teamOvr) })}</span>
                 <small>{new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(entry.finishedAt))}</small>
               </header>
-              <p className="career-run__config">{configKeys(entry.configLabel).map((key) => t(key)).join(" · ")}</p>
+              <p className="career-run__config">
+                {configKeys(entry.configLabel).map((key) => t(key)).join(" · ")}
+                {entry.configLabel.hardMode && <> · <em className="career-run__hard">{t("hard.badge")}</em></>}
+              </p>
               <ul className="career-run__roster">
                 {entry.roster.map((player) => {
                   const info = hero(player.heroId);

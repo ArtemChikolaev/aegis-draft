@@ -465,6 +465,19 @@
   border-radius: var(--radius);
   background: var(--surface-soft);
 }
+/* Хардкорный забег. Красный — из --danger (метка режима), а НЕ --tier-weak: та шкала про
+   силу игрока, и «слабый» тут читался бы неверно. Обводка статичная, без блика: хардкор —
+   состояние забега, а не редкая находка, за движение уже отвечают краевые тиры карточек.
+   Три слоя дают «раскалённую» рамку вместо плоской линии: сама рамка, тонкое внешнее
+   свечение и мягкий внутренний подпал от краёв к центру. */
+.career-run--hardcore {
+  border-color: color-mix(in srgb, var(--danger) 52%, var(--line));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--danger) 16%, transparent),
+    0 0 18px -6px color-mix(in srgb, var(--danger) 45%, transparent),
+    inset 0 0 30px -10px color-mix(in srgb, var(--danger) 60%, transparent);
+}
+.career-run__hard { color: var(--danger); font-style: normal; font-weight: 800; letter-spacing: .08em; }
 .career-run__heading { display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 12px; }
 .career-run__heading strong { color: var(--accent); font-size: 22px; }
 .career-run__heading span { font-size: 12px; font-weight: 800; }
