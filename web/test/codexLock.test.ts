@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isCodexLocked } from "../src/state/runStore.ts";
+import type { SavedRun } from "../src/state/runPersist.ts";
 import type { RunConfig } from "../src/game/packs.ts";
 
 const config = (hardMode?: boolean): RunConfig => ({
@@ -11,6 +12,19 @@ const config = (hardMode?: boolean): RunConfig => ({
   hardMode,
 });
 
+const saved = (hardMode: boolean): SavedRun => ({
+  v: 1,
+  schemaVersion: 1,
+  ratingModelVersion: "v1",
+  dataBuiltAt: "2026-07-18T00:00:00Z",
+  mode: "classic",
+  config: config(hardMode),
+  seed: "seed",
+  actions: [],
+  tournamentStep: 0,
+  tournamentStarted: false,
+});
+
 describe("isCodexLocked", () => {
   it("закрывает справочник, пока идёт хардкорный забег", () => {
     expect(isCodexLocked(config(true), "draft")).toBe(true);
@@ -20,6 +34,12 @@ describe("isCodexLocked", () => {
   it("обычный забег справочник не трогает", () => {
     expect(isCodexLocked(config(false), "draft")).toBe(false);
     expect(isCodexLocked(config(), "tournament")).toBe(false);
+  });
+
+  it("незавершённый хардкорный сейв тоже запирает: иначе reload открывал бы лазейку", () => {
+    // Перезагрузка страницы возвращает phase=start и config=null, но забег ещё идёт.
+    expect(isCodexLocked(null, "start", saved(true))).toBe(true);
+    expect(isCodexLocked(null, "start", saved(false))).toBe(false);
   });
 
   it("вне забега открыт даже после хардкора: подсматривать уже нечего", () => {

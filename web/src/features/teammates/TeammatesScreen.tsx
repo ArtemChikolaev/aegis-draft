@@ -27,7 +27,7 @@ export function TeammatesScreen() {
   const [centerId, setCenterId] = useState<number | null>(null);
   // Вся ценность страницы — «кто с кем в составе», то есть ровно то, что закрывает
   // хардкор. Прячем целиком, а не отдельные поля: иначе смысл блокировки теряется.
-  const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase));
+  const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase), useRun((state) => state.resumable));
 
   const index = useMemo(
     () => (data ? buildTeammateIndex(data.packs, data.events, format) : null),

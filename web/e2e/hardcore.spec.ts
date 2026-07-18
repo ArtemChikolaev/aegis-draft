@@ -46,15 +46,17 @@ test.describe("hardcore", () => {
     await expect(page.getByTestId("draft-screen")).toBeVisible();
 
     await page.getByTestId("open-settings").click();
-    await page.getByTestId("open-heroes").click();
-
-    // Поле выбора игрока на месте, но недоступно; общий список героев продолжает работать.
-    await expect(page.getByTestId("player-search")).toBeDisabled();
+    // Обе плитки справочника недоступны, причина подписана под ними.
+    await expect(page.getByTestId("open-heroes")).toBeDisabled();
+    await expect(page.getByTestId("open-teammates")).toBeDisabled();
     await expect(page.getByRole("note")).toContainText("hardcore run is in progress");
+
+    // Прямая ссылка мимо плиток тоже не открывает данные: поля на самих страницах закрыты.
+    await page.goto("/#/heroes");
+    await expect(page.getByTestId("player-search")).toBeDisabled();
     await expect(page.locator(".heroes__list li").first()).toBeVisible();
 
-    await page.getByTestId("open-settings").click();
-    await page.getByTestId("open-teammates").click();
+    await page.goto("/#/teammates");
     await expect(page.getByTestId("player-search")).toBeDisabled();
     await expect(page.locator(".teammates__svg")).toHaveCount(0);
   });

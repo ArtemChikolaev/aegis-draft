@@ -88,8 +88,15 @@ interface RunStore {
  *  тиммейтов» показывают ровно то, что хардкор прячет в самом забеге (на чём играет
  *  игрок и кто с кем в составе). Иначе режим обходится в два клика через меню.
  *  Чистая функция — тестируется без стора. */
-export function isCodexLocked(config: RunConfig | null, phase: Phase): boolean {
-  return config?.hardMode === true && (phase === "draft" || phase === "tournament");
+export function isCodexLocked(
+  config: RunConfig | null,
+  phase: Phase,
+  resumable?: SavedRun | null,
+): boolean {
+  if (config?.hardMode === true && (phase === "draft" || phase === "tournament")) return true;
+  // Незавершённый хардкорный забег в сейве тоже запирает справочник: иначе достаточно
+  // перезагрузить страницу (забег ещё не возобновлён), подсмотреть и продолжить.
+  return resumable?.config.hardMode === true;
 }
 
 function snap(engine: RunEngine): Snapshot {

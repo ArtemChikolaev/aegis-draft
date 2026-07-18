@@ -14,7 +14,7 @@ export function HeroesScreen() {
   const [sort, setSort] = useState<HeroSort>("games");
   const [query, setQuery] = useState("");
   const [player, setPlayer] = useState<PlayerProfile | null>(null);
-  const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase));
+  const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase), useRun((state) => state.resumable));
   // Забег в хардкоре мог начаться, пока страница открыта, — выбранного игрока сбрасываем.
   const shownPlayer = locked ? null : player;
 
