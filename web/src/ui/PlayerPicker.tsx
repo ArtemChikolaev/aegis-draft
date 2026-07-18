@@ -28,6 +28,7 @@ export function findPlayerMatches(players: readonly PlayerProfile[], query: stri
  */
 export function PlayerPicker({
   className,
+  disabled = false,
   players,
   value,
   onPick,
@@ -41,6 +42,8 @@ export function PlayerPicker({
 }: {
   /** Размещение в сетке экрана задаёт вызывающий — примитив о чужой раскладке не знает. */
   className?: string;
+  /** Поле видно, но недоступно (например, справочник закрыт правилами режима). */
+  disabled?: boolean;
   players: PlayerProfile[];
   value: PlayerProfile | null;
   onPick: (player: PlayerProfile) => void;
@@ -141,6 +144,7 @@ export function PlayerPicker({
           type="button"
           className={`${styles.control} ${styles.chosen}`}
           onClick={clear}
+          disabled={disabled}
           data-testid="player-clear"
           aria-label={`${clearLabel}: ${value.nickname}`}
         >
@@ -168,13 +172,14 @@ export function PlayerPicker({
           autoComplete="off"
           value={query}
           placeholder={placeholder}
+          disabled={disabled}
           data-testid="player-search"
           onChange={(event) => { setQuery(event.target.value); setOpen(true); setActiveIndex(0); }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => { if (!disabled) setOpen(true); }}
           onKeyDown={onKeyDown}
         />
       </div>
-      {open && (
+      {open && !disabled && (
         <div className={styles.panel} id={panelId} role="listbox">
           {!queryReady ? <p className={styles.message} role="status">{shortQueryLabel}</p> : matches.length === 0 ? (
             <p className={styles.message} role="status">{noResultsLabel}</p>

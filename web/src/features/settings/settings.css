@@ -32,3 +32,6 @@
 .settings__link strong { font-size: 15px; }
 .settings__link small { color: var(--muted); font-size: 11px; }
 .settings__link em { color: var(--accent); font-style: normal; font-size: 18px; }
+
+/* Пометка «закрыто хардкором» на плитке справочника — тем же красным, что и обводка забега. */
+.settings__lock { color: var(--danger); font-size: 12px; }

@@ -1,6 +1,6 @@
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useTheme } from "../../design/theme/ThemeProvider.tsx";
-import { useRun } from "../../state/runStore.ts";
+import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import { Button, Eyebrow, OptionGroup, Surface } from "../../ui/index.ts";
 import type { Locale } from "../../i18n/core.ts";
@@ -14,6 +14,7 @@ export function SettingsScreen() {
   const { mode, setMode } = useTheme();
   const setView = useShell((state) => state.setView);
   const manifest = useRun((state) => state.data?.manifest);
+  const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase));
 
   return (
     <main className="settings" data-testid="settings-screen">
@@ -62,8 +63,8 @@ export function SettingsScreen() {
           </button>
           <button type="button" className="settings__link" data-testid="open-teammates" onClick={() => setView("teammates")}>
             <span>
-              <strong>{t("codex.teammates")}</strong>
-              <small>{t("codex.teammatesHint")}</small>
+              <strong>{t("codex.teammates")}{locked && <span className="settings__lock" title={t("codex.lockedTeammates")}> 🔒</span>}</strong>
+              <small>{locked ? t("codex.locked") : t("codex.teammatesHint")}</small>
             </span>
             <em>→</em>
           </button>

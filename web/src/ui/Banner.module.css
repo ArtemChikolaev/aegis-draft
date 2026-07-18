@@ -1,2 +1,6 @@
 .banner { display: grid; gap: 3px; margin: 18px 0; padding: 14px 18px; border-radius: 14px; }
 .error { color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent); background: color-mix(in srgb, var(--danger) 8%, transparent); }
+/* Заблокировано режимом (хардкор). Тот же красный, что у обводки хардкорного забега,
+   но рамка пунктирная: это не ошибка, а сознательно закрытая дверь. */
+.locked { color: var(--danger); border: 1px dashed color-mix(in srgb, var(--danger) 45%, transparent); background: color-mix(in srgb, var(--danger) 7%, transparent); }
+.locked strong { display: flex; align-items: center; gap: 8px; }

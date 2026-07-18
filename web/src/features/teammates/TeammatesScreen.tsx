@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
-import { useRun } from "../../state/runStore.ts";
+import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import type { Format, PlayerProfile } from "../../types/data.ts";
-import { Button, Eyebrow, PlayerPicker, Select, Surface } from "../../ui/index.ts";
+import { Banner, Button, Eyebrow, PlayerPicker, Select, Surface } from "../../ui/index.ts";
 import { buildTeammateIndex, nicknameIndex, teammateLinks, type TeammateLink } from "./teammateGraph.ts";
 import "./teammates.css";
 
@@ -25,6 +25,9 @@ export function TeammatesScreen() {
   const { t } = useI18n();
   const [format, setFormat] = useState<Format>("last_2y");
   const [centerId, setCenterId] = useState<number | null>(null);
+  // Вся ценность страницы — «кто с кем в составе», то есть ровно то, что закрывает
+  // хардкор. Прячем целиком, а не отдельные поля: иначе смысл блокировки теряется.
+  const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase));
 
   const index = useMemo(
     () => (data ? buildTeammateIndex(data.packs, data.events, format) : null),
@@ -74,6 +77,7 @@ export function TeammatesScreen() {
       <Surface className="teammates__controls">
         <PlayerPicker
           className="teammates__picker"
+          disabled={locked}
           players={pickable}
           value={centerProfile}
           onPick={(picked) => setCenterId(picked.accountId)}
@@ -90,11 +94,15 @@ export function TeammatesScreen() {
           value={format}
           options={WINDOWS.map((window) => ({ value: window.value, label: t(window.label) }))}
           onChange={(value) => setFormat(value as Format)}
+          disabled={locked}
         />
       </Surface>
 
-      {centerId == null ? (
-        <Surface className="teammates__empty">{t("teammates.pickFirst")}</Surface>
+      {/* Пометка под полями, а не вместо них. */}
+      {locked && <Banner tone="locked" title={<>🔒 {t("codex.locked")}</>}>{t("codex.lockedTeammates")}</Banner>}
+
+      {locked || centerId == null ? (
+        <Surface className="teammates__empty">{t(locked ? "codex.lockedTeammates" : "teammates.pickFirst")}</Surface>
       ) : (
         <>
           <Surface className="teammates__web on-invert-surface">

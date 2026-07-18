@@ -202,3 +202,13 @@
   .classic-art__copy { padding-bottom: 16px; max-width: none; }
   .config-panel, .launch-panel { padding: 18px; }
 }
+
+/* Окно правил хардкора: список ограничений + чекбокс-гейт + подтверждение.
+   Чекбокс здесь одноразовый, поэтому размечен на месте, а не заведён примитивом в ui/. */
+.hard-gate { display: grid; gap: 18px; }
+.hard-gate__rules { display: grid; gap: 10px; margin: 0; padding-left: 18px; color: var(--on-invert); font-size: 13px; line-height: 1.45; }
+.hard-gate__rules li::marker { color: var(--danger); }
+.hard-gate__ack { display: flex; align-items: start; gap: 10px; padding: 12px 14px; border: 1px dashed color-mix(in srgb, var(--danger) 45%, transparent); border-radius: 12px; color: var(--on-invert); font-size: 13px; cursor: pointer; }
+.hard-gate__ack input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--danger); cursor: pointer; }
+/* Класс Button хеширован CSS-модулем — цепляемся за элемент, а не за .danger. */
+.hard-gate button:disabled { opacity: .4; filter: grayscale(.5); cursor: not-allowed; }

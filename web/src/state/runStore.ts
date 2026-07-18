@@ -84,6 +84,14 @@ interface RunStore {
   restartSameConfig: () => void;
 }
 
+/** Справочник закрыт, пока идёт ХАРДКОРНЫЙ забег: страницы «герои игрока» и «паутина
+ *  тиммейтов» показывают ровно то, что хардкор прячет в самом забеге (на чём играет
+ *  игрок и кто с кем в составе). Иначе режим обходится в два клика через меню.
+ *  Чистая функция — тестируется без стора. */
+export function isCodexLocked(config: RunConfig | null, phase: Phase): boolean {
+  return config?.hardMode === true && (phase === "draft" || phase === "tournament");
+}
+
 function snap(engine: RunEngine): Snapshot {
   return {
     currentPack: engine.currentPack,

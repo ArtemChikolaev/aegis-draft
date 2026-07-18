@@ -4,7 +4,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/packs.ts";
 import type { Format } from "../../types/data.ts";
-import { Button, Eyebrow, OptionGroup, type Option, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, Modal, OptionGroup, type Option, Surface } from "../../ui/index.ts";
 import { createRunSeed } from "../../game/rng.ts";
 import "./start.css";
 
@@ -56,6 +56,10 @@ export function StartScreen() {
   const { t } = useI18n();
   const mode = useRun((state) => state.selectedMode);
   const setMode = useRun((state) => state.setSelectedMode);
+  // Хардкор включается только осознанно: сперва правила, затем чекбокс, затем кнопка.
+  // Закрыть модалку (крестик/Esc/свайп) можно всегда — режим тогда просто не включится.
+  const [hardGate, setHardGate] = useState(false);
+  const [hardAck, setHardAck] = useState(false);
   const [config, setConfig] = useState<RunConfig>({
     draftStyle: "team",
     format: "last_2y",
@@ -139,7 +143,14 @@ export function StartScreen() {
           <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY)} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
           <OptionGroup title={t("start.scoring")} soonLabel={t("common.soon")} options={toOptions(SCORING)} value={config.scoring} onChange={(value) => set("scoring", value)} />
           <OptionGroup title={t("start.allocation")} soonLabel={t("common.soon")} options={toOptions(ALLOCATION)} value={config.allocation} onChange={(value) => set("allocation", value)} />
-          <OptionGroup title={t("hard.title")} soonLabel={t("common.soon")} options={toOptions(HARD_MODE)} value={config.hardMode ?? false} onChange={(value) => set("hardMode", value)} />
+          <OptionGroup
+            title={t("hard.title")}
+            soonLabel={t("common.soon")}
+            options={toOptions(HARD_MODE)}
+            value={config.hardMode ?? false}
+            // Выключение — сразу; включение — через окно с правилами.
+            onChange={(value) => { if (value) { setHardAck(false); setHardGate(true); } else set("hardMode", false); }}
+          />
         </Surface>
         <Surface as="aside" className="launch-panel">
           <span className="launch-panel__glow" aria-hidden="true" />
@@ -151,6 +162,45 @@ export function StartScreen() {
           {!formatAvailable(config.format) && <p className="notice">{t("start.unavailable")}</p>}
         </Surface>
       </div>
+      {hardGate && (
+        <Modal
+          mark="!"
+          title={t("hard.gateTitle")}
+          description={t("hard.gateText")}
+          labelledBy="hard-gate-title"
+          dismissLabel={t("common.close")}
+          layout="content"
+          onClose={() => setHardGate(false)}
+        >
+          {({ close }) => (
+            <div className="hard-gate">
+              <ul className="hard-gate__rules">
+                <li>{t("hard.rule1")}</li>
+                <li>{t("hard.rule2")}</li>
+                <li>{t("hard.rule3")}</li>
+                <li>{t("hard.rule4")}</li>
+              </ul>
+              <label className="hard-gate__ack">
+                <input
+                  type="checkbox"
+                  checked={hardAck}
+                  data-testid="hard-gate-ack"
+                  onChange={(event) => setHardAck(event.target.checked)}
+                />
+                <span>{t("hard.gateAck")}</span>
+              </label>
+              <Button
+                variant="danger"
+                disabled={!hardAck}
+                data-testid="hard-gate-confirm"
+                onClick={() => { set("hardMode", true); close(); }}
+              >
+                {t("hard.gateConfirm")}
+              </Button>
+            </div>
+          )}
+        </Modal>
+      )}
     </main>
   );
 }
