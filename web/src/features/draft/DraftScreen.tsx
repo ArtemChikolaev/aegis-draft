@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
-import { Button, Dealt, Eyebrow, HeroThumb, Modal, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
+import { Button, Dealt, Eyebrow, HeroThumb, Modal, playerOvrTier, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { PlayerInspector } from "./PlayerInspector.tsx";
 import { SynergyBreakdown } from "./SynergyBreakdown.tsx";
@@ -31,11 +31,13 @@ export function DraftScreen() {
   const canPickPlayer = useRun((state) => state.canPickPlayer);
   const canPickHero = useRun((state) => state.canPickHero);
   const reset = useRun((state) => state.reset);
+  const restartSameConfig = useRun((state) => state.restartSameConfig);
   const config = useRun((state) => state.config);
   const data = useRun((state) => state.data);
   const teamName = useRun((state) => state.teamName);
   const setTeamName = useRun((state) => state.setTeamName);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
   const hero = useHero();
   const { locale, t } = useI18n();
@@ -81,7 +83,10 @@ export function DraftScreen() {
     <main className="draft" data-testid="draft-screen">
       <header className="screen-heading draft__heading">
         <div><Eyebrow>{t("draft.picked", { current: picked, total: 10 })}</Eyebrow><h1><TeamName value={teamName} placeholder={t("team.placeholder")} editLabel={t("team.edit")} onChange={setTeamName} /></h1></div>
-        <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
+        <div className="draft__heading-actions">
+          <Button variant="secondary" className="draft__reset" data-testid="draft-restart" onClick={() => setConfirmRestart(true)}>↻ {t("draft.restart")}</Button>
+          <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>
+        </div>
       </header>
       <Surface className="draft__radar enter">
         <Pentagon
@@ -172,6 +177,12 @@ export function DraftScreen() {
           <Button variant="danger" data-testid="confirm-leave" onClick={reset}>{t("draft.leaveConfirm")}</Button>
         </Modal>
       )}
+      {confirmRestart && (
+        <Modal mark="A" title={t("draft.restartTitle")} description={t("draft.restartText")} labelledBy="restart-title" onClose={() => setConfirmRestart(false)}>
+          <Button variant="secondaryInvert" autoFocus onClick={() => setConfirmRestart(false)}>{t("draft.restartCancel")}</Button>
+          <Button variant="danger" data-testid="confirm-restart" onClick={() => { setConfirmRestart(false); restartSameConfig(); }}>{t("draft.restartConfirm")}</Button>
+        </Modal>
+      )}
       {inspectedPlayer && data && (
         <PlayerInspector candidate={inspectedPlayer} data={data} onClose={() => setInspectedPlayer(null)} />
       )}
@@ -182,12 +193,13 @@ export function DraftScreen() {
 function CandidateCard({ candidate, enabled, onPick, index }: { candidate: Candidate; enabled: boolean; onPick: () => void; index: number }) {
   const { t } = useI18n();
   const player = candidate.player;
+  const tier = playerOvrTier(player.ovr);
   return (
-    <button className="candidate" onClick={onPick} disabled={!enabled} data-testid={`candidate-${index}`}>
+    <button className={`candidate card-tint--${tier}`} onClick={onPick} disabled={!enabled} data-testid={`candidate-${index}`}>
       <RoleTag role={player.role}>{t(roleMessageKey(player.role))}</RoleTag>
       <span className="candidate__identity"><strong>{player.nickname}</strong><small>{candidate.teamName}</small></span>
       <span className="candidate__stats"><span><b>{player.impact}</b> IMP</span><span><b>{player.economy}</b> ECO</span><span><b>{player.reliability}</b> REL</span></span>
-      <span className="candidate__ovr">{player.ovr}<small>OVR</small></span>
+      <span className={`candidate__ovr ovr-tier--${tier}`}>{player.ovr}<small>OVR</small></span>
       <span className="candidate__action">{t("draft.pick")} →</span>
     </button>
   );

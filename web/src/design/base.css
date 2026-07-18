@@ -38,4 +38,27 @@ h1, h2, .brand { font-family: "Space Grotesk", Manrope, sans-serif; }
 /* Только прозрачность: для сетки плей-офф, где translate сдвинул бы измеряемую геометрию коннекторов. */
 .enter-fade { animation: fade-soft var(--motion-enter) var(--ease-out) both; animation-delay: calc(var(--enter-i, 0) * var(--motion-enter-stagger)); }
 
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+/* OVR игрока по тирам (ui/ovrTier.playerOvrTier): цвет по tier-шкале + НАРАСТАЮЩИЙ акцент.
+   Глобальные, потому что нужны и драфту, и итогу. mid/low/weak — только цвет; strong светится;
+   elite (топ ~4%) «переливается» — бегущий золотой блик поверх зелёного номера (foil).
+   reduced-motion → сплошной цвет без блика (перекрыто ниже). */
+.ovr-tier--weak { color: var(--tier-weak); }
+.ovr-tier--low { color: var(--tier-low); }
+.ovr-tier--mid { color: var(--tier-mid); }
+.ovr-tier--strong { color: var(--tier-strong); text-shadow: 0 0 10px color-mix(in srgb, var(--tier-strong) 40%, transparent); }
+.ovr-tier--elite {
+  color: var(--tier-elite);
+  background: linear-gradient(100deg, var(--tier-elite) 38%, var(--tier-elite-shine) 50%, var(--tier-elite) 62%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--tier-elite) 45%, transparent));
+  animation: ovr-shine 2.6s linear infinite;
+}
+@keyframes ovr-shine { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  /* Градиентный шайн гасим целиком: с animation-duration .01ms он застыл бы на случайном кадре. */
+  .ovr-tier--elite { background: none; -webkit-text-fill-color: currentColor; color: var(--tier-elite); filter: none; animation: none; }
+}

@@ -7,6 +7,7 @@ export { Banner } from "./Banner.tsx";
 export { Chip } from "./Chip.tsx";
 export { Dealt } from "./Dealt.tsx";
 export { prefersReducedMotion, motionMs, useCountUp } from "./motion.ts";
+export { playerOvrTier, type OvrTier } from "./ovrTier.ts";
 export { HeroThumb } from "./HeroThumb.tsx";
 export { RoleTag } from "./RoleTag.tsx";
 export { TeamName } from "./TeamName.tsx";

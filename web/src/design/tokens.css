@@ -54,6 +54,7 @@
   --tier-mid: #ffd66b;     /* 82–85 / LB */
   --tier-low: #ffab5e;     /* 78–81 */
   --tier-weak: #ff806d;    /* ≤77 / поражение / OUT */
+  --tier-elite-shine: #ffe6a3; /* бегущий блик «фольги» на elite-OVR; тёплое золото читается и на ivory */
   --route-ub: var(--tier-elite);
   --route-lb: var(--tier-mid);
   --route-out: var(--tier-weak);
@@ -119,6 +120,7 @@ html[data-theme="light"] {
   --tier-mid: #b07d0a;
   --tier-low: #c2691a;
   --tier-weak: #c63e2b;
+  --tier-elite-shine: #b5892b;
 
   /* Знаки команд — те же хью, но темнее: на ivory светлые нечитаемы. */
   --sigil-0: #315fae;
