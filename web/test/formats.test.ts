@@ -4,6 +4,7 @@ import { poolForFormat, type Format } from "../src/game/packs.ts";
 import { loadGameData } from "./helpers/data.ts";
 import { defaultRunConfig } from "./helpers/packs.ts";
 import { engineSignature, runToEnd } from "./helpers/engine.ts";
+import { mixedSupportsFormat } from "../src/game/teamSuccess.ts";
 
 // Слепое пятно до этого: движок/скоринг гонялись только на last_2y (defaultRunConfig), а на
 // проде живут все форматы манифеста. Здесь — инварианты по КАЖДОМУ объявленному формату:
@@ -25,7 +26,14 @@ describe("форматы: полный забег по каждому объяв
         expect(new Set(pool.map((p) => p.teamId)).size, format).toBeGreaterThanOrEqual(5);
       });
 
-      for (const draftStyle of ["team", "mixed"] as const) {
+      // Mixed оценивает игроков по успеху команды за окно, поэтому играбелен только там, где
+      // team-success собран. Сегодня пуст valve_legacy (плейсменты/призовые ждут Liquipedia,
+      // T1.3 ⛔) — в нём режим честно закрыт в UI, и гонять забег бессмысленно. Проверка по
+      // данным, а не по имени формата: наполнится — тест начнёт его покрывать сам.
+      const styles = mixedSupportsFormat(data.teamSuccess, format)
+        ? (["team", "mixed"] as const)
+        : (["team"] as const);
+      for (const draftStyle of styles) {
         it(`${draftStyle}: забег доигрывается, ростер 5, счёт конечен`, () => {
           const engine = new RunEngine(data, { ...defaultRunConfig, draftStyle, format }, `fmt-${format}-${draftStyle}`);
           runToEnd(engine);

@@ -173,7 +173,7 @@ export function DraftScreen() {
             })}
           </div>
         </div>
-        <ScoringLegend />
+        <ScoringLegend draftStyle={config.draftStyle} />
       </Surface>
       {confirmLeave && (
         <Modal mark="A" title={t("draft.leaveTitle")} description={t("draft.leaveText")} labelledBy="leave-title" dismissLabel={t("common.close")} onClose={() => setConfirmLeave(false)}>

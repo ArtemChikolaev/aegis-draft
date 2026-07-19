@@ -251,12 +251,15 @@ export function scoreTeam(
   chemistryRoster: ChemistryPlayer[],
   signatures: SignatureLookup = {},
   fixed?: Record<number, number>,
+  /** Mixed Draft: base приходит извне (успех команды за окно, см. game/teamSuccess.ts).
+   *  Team Packs его не передаёт и продолжает считаться по event OVR — без изменений. */
+  baseOverride?: number,
 ): ScoreBreakdown {
   const assignment = fixed && Object.keys(fixed).length > 0
     ? assignWithFixed(players, heroPool, phs, fixed, signatures)
     : bestAssignment(players, heroPool, phs, signatures);
   const synergyTotal = synergyTotalForAssignment(assignment.byPlayer, phs, signatures);
-  const base = baseRating(players);
+  const base = baseOverride ?? baseRating(players);
   const heroSynergy = heroSynergyBonus({ ...assignment, total: synergyTotal });
   const chemistry = chemistryBonus(chemistryRoster, squad, teammates);
   return { base, heroSynergy, chemistry, teamOvr: base + heroSynergy + chemistry, assignment };

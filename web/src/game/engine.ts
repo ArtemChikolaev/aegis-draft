@@ -12,6 +12,7 @@ import {
   type DraftPack,
   type RunConfig,
 } from "./packs.ts";
+import { hasTeamSuccess, mixedBaseRating } from "./teamSuccess.ts";
 import { scoreTeam, type ScoreBreakdown, heroStatsForAssignment, signatureLookup, chemistryPlayersFromRoster } from "./score.ts";
 
 /** Сколько героев драфтится (по одному на игрока, как в 322-0). */
@@ -159,6 +160,16 @@ export class RunEngine {
     const chemistryRoster = chemistryPlayersFromRoster(
       ROLE_SEQUENCE.map((role, i) => ({ role, candidate: this.roster[i] })),
     );
+    // Mixed: base = успех команд за окно вместо формы на событии (PRD §5.4.3).
+    // teamId берём из того же chemistryRoster — он уже несёт привязку игрок→команда.
+    const mixedBase = this.config.draftStyle === "mixed"
+      ? mixedBaseRating(
+        players,
+        new Map(chemistryRoster.map((p) => [p.accountId, p.teamId])),
+        this.data.teamSuccess,
+        this.config.format,
+      )
+      : undefined;
     return scoreTeam(
       players,
       this.heroes,
@@ -168,6 +179,7 @@ export class RunEngine {
       chemistryRoster,
       signatures,
       fixed,
+      mixedBase,
     );
   }
 
@@ -185,7 +197,11 @@ export class RunEngine {
     const avoid = new Set<number>();
     const currentTeam = this.currentPack?.candidates[0]?.teamId;
     if (this.config.draftStyle === "team" && currentTeam != null) avoid.add(currentTeam);
-    const pack = generatePack(this.pool, this.config, this.rng, { excludeTeamIds: avoid, excludePlayerIds: this.usedPlayers });
+    const pack = generatePack(this.pool, this.config, this.rng, {
+      excludeTeamIds: avoid,
+      excludePlayerIds: this.usedPlayers,
+      teamAllowed: (teamId) => hasTeamSuccess(this.data.teamSuccess, teamId, this.config.format),
+    });
     return this.withFullHeroOffer(pack);
   }
 

@@ -6,6 +6,7 @@ import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/pack
 import type { Format } from "../../types/data.ts";
 import { Button, Eyebrow, Modal, OptionGroup, type Option, Surface } from "../../ui/index.ts";
 import { createRunSeed } from "../../game/rng.ts";
+import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
 import "./start.css";
 
 interface Opt<T> {
@@ -53,6 +54,7 @@ const ALLOCATION: Opt<Allocation>[] = [
 export function StartScreen() {
   const start = useRun((state) => state.start);
   const formats = useRun((state) => state.data?.manifest.formats ?? []);
+  const teamSuccess = useRun((state) => state.data?.teamSuccess);
   const { t } = useI18n();
   const mode = useRun((state) => state.selectedMode);
   const setMode = useRun((state) => state.setSelectedMode);
@@ -69,7 +71,11 @@ export function StartScreen() {
     hardMode: false,
   });
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
-  const formatAvailable = (format: Format) => formats.includes(format);
+  // Mixed оценивает игроков по успеху команды за окно, поэтому окно без team-success
+  // в нём неиграбельно — гасим так же, как форматы, которых нет в датасете.
+  const formatAvailable = (format: Format) =>
+    formats.includes(format)
+    && (config.draftStyle !== "mixed" || !teamSuccess || mixedSupportsFormat(teamSuccess, format));
 
   // Перевод Opt<MessageKey> → Option<string> для UIkit OptionGroup.
   const toOptions = <T,>(items: Opt<T>[]): Option<T>[] =>

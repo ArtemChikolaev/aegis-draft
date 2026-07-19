@@ -71,8 +71,17 @@ export function teamPack(pack: Pack): DraftPack {
 
 /** Mixed-пак: ровно один кандидат на слот, все игроки и команды уникальны.
  *  excludePlayers — уже драфтованные игроки (не предлагать повторно). */
-export function mixedPack(pool: Pack[], rng: Rng, excludePlayers: Set<number> = new Set()): DraftPack {
-  const all = pool.flatMap(candidatesOf).filter((c) => !excludePlayers.has(c.player.accountId));
+export function mixedPack(
+  pool: Pack[],
+  rng: Rng,
+  excludePlayers: Set<number> = new Set(),
+  /** Команда без team-success не может быть оценена в Mixed (PRD запрещает нейтральный
+   *  fallback), поэтому её не показываем вовсе — это честнее, чем падать посреди забега. */
+  teamAllowed: (teamId: number) => boolean = () => true,
+): DraftPack {
+  const all = pool
+    .flatMap(candidatesOf)
+    .filter((c) => !excludePlayers.has(c.player.accountId) && teamAllowed(c.teamId));
   const byRole = new Map<Role, Candidate[]>();
   for (const c of all) {
     const arr = byRole.get(c.player.role) ?? [];
@@ -122,9 +131,11 @@ export function generatePack(
   pool: Pack[],
   config: RunConfig,
   rng: Rng,
-  opts: { excludeTeamIds?: Set<number>; excludePlayerIds?: Set<number> } = {},
+  opts: { excludeTeamIds?: Set<number>; excludePlayerIds?: Set<number>; teamAllowed?: (teamId: number) => boolean } = {},
 ): DraftPack {
-  if (config.draftStyle === "mixed") return mixedPack(pool, rng, opts.excludePlayerIds ?? new Set());
+  if (config.draftStyle === "mixed") {
+    return mixedPack(pool, rng, opts.excludePlayerIds ?? new Set(), opts.teamAllowed);
+  }
   const exclude = opts.excludeTeamIds ?? new Set<number>();
   const available = pool.filter((p) => !exclude.has(p.teamId));
   const from = available.length > 0 ? available : pool;

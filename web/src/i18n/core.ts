@@ -118,6 +118,9 @@ const ru = {
   "draft.heroAllocationHint": "Нажми двух игроков, чтобы поменять героев",
   "draft.scoringLegendBaseTitle": "Base rating:",
   "draft.scoringLegendBase": "сырой рейтинг игрока из выбранного турнира.",
+  // Осознанно говорим «винрейт с поправкой на тир лиги», а не «плейсменты и призовые»:
+  // последние в данных нулевые до Liquipedia (T1.3). Обещать их значит врать игроку.
+  "draft.scoringLegendBaseMixed": "успех команды игрока за выбранное окно — винрейт на про-сцене с поправкой на тир лиги, скорректированный на его личную форму.",
   "draft.scoringLegendSynergyTitle": "Hero synergy:",
   "draft.scoringLegendSynergy": "оптимальное назначение player×hero (больше игр — лучше). В Manual можно переставить героев.",
   "draft.scoringLegendChemistryTitle": "Chemistry:",
@@ -422,6 +425,7 @@ const en: Dictionary = {
   "draft.heroAllocationHint": "Tap two players to swap their heroes",
   "draft.scoringLegendBaseTitle": "Base rating:",
   "draft.scoringLegendBase": "raw player rating from the selected event.",
+  "draft.scoringLegendBaseMixed": "how his team performed over the selected window — pro-scene winrate weighted by league tier, adjusted by his own form.",
   "draft.scoringLegendSynergyTitle": "Hero synergy:",
   "draft.scoringLegendSynergy": "optimal player×hero assignment (more games is better). In Manual you can swap heroes.",
   "draft.scoringLegendChemistryTitle": "Chemistry:",
