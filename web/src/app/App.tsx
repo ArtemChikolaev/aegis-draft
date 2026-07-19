@@ -3,6 +3,7 @@ import { useRun } from "../state/runStore.ts";
 import { useShell } from "../state/shellStore.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
+import { RunLinkPrompt } from "../features/start/RunLinkPrompt.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
@@ -20,6 +21,7 @@ export function App() {
   const view = useShell((s) => s.view);
   const setView = useShell((s) => s.setView);
   const syncFromHash = useShell((s) => s.syncFromHash);
+  const syncLinkFromHash = useRun((s) => s.syncLinkFromHash);
 
   useEffect(() => {
     void loadData();
@@ -30,6 +32,14 @@ export function App() {
     window.addEventListener("popstate", syncFromHash);
     return () => window.removeEventListener("popstate", syncFromHash);
   }, [syncFromHash]);
+
+  // Ссылку на забег могли открыть в УЖЕ открытом приложении: меняется только hash,
+  // перезагрузки нет, и loadData повторно не вызывается. Без этого присланная ссылка
+  // молча не срабатывала бы у всех, у кого игра уже открыта во вкладке.
+  useEffect(() => {
+    window.addEventListener("hashchange", syncLinkFromHash);
+    return () => window.removeEventListener("hashchange", syncLinkFromHash);
+  }, [syncLinkFromHash]);
 
   return (
     <div className="app-shell">
@@ -63,6 +73,9 @@ export function App() {
           {phase === "tournament" && <TournamentScreen />}
         </>
       )}
+      {/* Вне переключателя вида: ссылку могли открыть, стоя на любом экране, и предложение
+          не должно зависеть от того, где игрок находится. */}
+      <RunLinkPrompt />
       <footer className="footer">{t("footer.note")}</footer>
     </div>
   );

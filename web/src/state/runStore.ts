@@ -25,6 +25,7 @@ import {
   type SavedRun,
 } from "./runPersist.ts";
 import { logDataLoaded, logDraftSnap, logRunStart, logScreen, logTournament } from "../debug/logDraft.ts";
+import { clearRunLinkHash, runLinkFromHash, runLinkIssue, type RunLink, type RunLinkIssue } from "./runLink.ts";
 
 // Бесшовный Classic-флоу (TREF-TOUR2): после драфта нет отдельного экрана-итога —
 // сразу непрерывный `tournament`-вид (разбор счёта + поле + одна CTA «Симулировать»).
@@ -57,6 +58,10 @@ interface RunStore {
   teamName: string;
   actions: RunAction[]; // лог действий текущего забега (для персиста/replay)
   resumable: SavedRun | null; // незавершённый совместимый забег, предложить продолжить
+  /** Забег из ссылки, ожидающий подтверждения. Не стартуем молча: у игрока может идти свой. */
+  pendingLink: RunLink | null;
+  /** Почему присланная ссылка невоспроизводима (несовпадение версий), иначе null. */
+  pendingLinkIssue: RunLinkIssue | null;
   tournamentEngine: TournamentEngine | null;
   tournament: TournamentSnapshot | null;
   tournamentStep: number;
@@ -78,6 +83,12 @@ interface RunStore {
   setTeamName: (name: string) => void;
   resumeRun: () => void;
   discardResume: () => void;
+  /** Забег из присланной ссылки: обнаружен в URL, ждёт решения игрока. */
+  acceptPendingLink: () => void;
+  dismissPendingLink: () => void;
+  /** Перечитать ссылку из адресной строки. Нужен, когда её открыли в УЖЕ открытом
+   *  приложении: меняется только hash, перезагрузки нет, и loadData повторно не идёт. */
+  syncLinkFromHash: () => void;
   advanceTournament: () => void;
   /** Вызывать, когда UI доиграл playoffs reveal до итоговой таблицы (не при входе в стадию). */
   finishTournament: () => void;
@@ -208,6 +219,8 @@ export const useRun = create<RunStore>((set, get) => {
     teamName: "",
     actions: [],
     resumable: null,
+    pendingLink: null,
+    pendingLinkIssue: null,
     tournamentEngine: null,
     tournament: null,
     tournamentStep: 0,
@@ -223,7 +236,18 @@ export const useRun = create<RunStore>((set, get) => {
           ? rawSaved
           : null;
         if (rawSaved && !saved) clearSavedRun();
-        set({ data, phase: "start", teamName: loadTeamName(), resumable: saved });
+        // Ссылку разбираем ЗДЕСЬ, а не в UI: без манифеста нечем проверить совместимость.
+        // Забег из неё не стартуем — сперва спросим (у игрока может идти свой, а CLAUDE.md
+        // требует confirm на любую потерю прогресса).
+        const link = typeof window === "undefined" ? null : runLinkFromHash(window.location.hash);
+        set({
+          data,
+          phase: "start",
+          teamName: loadTeamName(),
+          resumable: saved,
+          pendingLink: link,
+          pendingLinkIssue: link ? runLinkIssue(link, schemaVersion, ratingModelVersion) : null,
+        });
         logDataLoaded(data);
       } catch (e) {
         set({ error: e instanceof Error ? e.message : String(e) });
@@ -403,6 +427,32 @@ export const useRun = create<RunStore>((set, get) => {
     discardResume() {
       clearSavedRun();
       set({ resumable: null });
+    },
+
+    acceptPendingLink() {
+      const { pendingLink, pendingLinkIssue } = get();
+      // Невоспроизводимую ссылку не запускаем: паки на этих версиях будут другими, и
+      // «тот же забег» окажется неправдой. UI объясняет причину, а не молча стартует.
+      if (!pendingLink || pendingLinkIssue) return;
+      clearSavedRun();
+      set({ pendingLink: null, pendingLinkIssue: null, resumable: null, selectedMode: pendingLink.mode });
+      get().start(pendingLink.config, pendingLink.seed);
+      clearRunLinkHash();
+    },
+
+    dismissPendingLink() {
+      set({ pendingLink: null, pendingLinkIssue: null });
+      clearRunLinkHash();
+    },
+
+    syncLinkFromHash() {
+      const { data } = get();
+      // Без манифеста проверить совместимость нечем; loadData разберёт ссылку сам.
+      if (!data || typeof window === "undefined") return;
+      const link = runLinkFromHash(window.location.hash);
+      if (!link) return;
+      const { schemaVersion, ratingModelVersion } = data.manifest;
+      set({ pendingLink: link, pendingLinkIssue: runLinkIssue(link, schemaVersion, ratingModelVersion) });
     },
 
     advanceTournament() {

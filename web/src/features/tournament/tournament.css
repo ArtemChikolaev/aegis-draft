@@ -574,8 +574,8 @@
 .career-run__roster li { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; min-width: 0; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(120deg, var(--surface) 60%, color-mix(in srgb, var(--card-tint, transparent) 12%, var(--surface))); }
 .career-run__roster li > span:first-child { grid-column: 1 / -1; justify-self: start; }
 .career-run__roster strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.tournament__actions { width: min(480px, 100%); margin-left: auto; margin-top: 8px; }
-.tournament__restart { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.tournament__actions { width: min(760px, 100%); margin-left: auto; margin-top: 8px; }
+.tournament__restart { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .tournament__restart > button { min-height: 52px; }
 
 /* live-симуляция: стили .match/.series pending|live — рядом с карточкой матча выше. */

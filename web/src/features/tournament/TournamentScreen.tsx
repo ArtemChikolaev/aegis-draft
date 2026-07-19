@@ -36,6 +36,7 @@ import {
 import { useHero } from "../draft/heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { CareerPanel } from "./CareerPanel.tsx";
+import { ShareRunButton } from "./ShareRunButton.tsx";
 import { BracketConnectors } from "./BracketConnectors.tsx";
 import { LOWER_BRACKET_EDGES, UPPER_BRACKET_EDGES } from "./bracketConnectors.ts";
 import "../result/result.css";
@@ -755,6 +756,7 @@ export function TournamentScreen() {
             <div className="tournament__restart" data-testid="tournament-complete">
               <Button variant="primary" data-testid="tournament-restart" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
               <Button variant="secondary" onClick={reset}>{t("tournament.restartChange")}</Button>
+              <ShareRunButton />
             </div>
           ) : null}
         </div>
