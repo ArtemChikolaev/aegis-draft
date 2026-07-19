@@ -37,6 +37,9 @@
   touch-action: pan-y;
   will-change: transform;
 }
+/* Панель — программная цель фокуса на открытии (см. Modal.tsx), а не интерактивный
+   элемент: обводить её нечего. Tab-обход внутри свою рамку рисует сам. */
+.panel:focus, .panel:focus-visible { outline: none; }
 
 /* Липкая зона: title / description / subhead / крестик — не уезжает при скролле. */
 .head {

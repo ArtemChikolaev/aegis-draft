@@ -8,7 +8,7 @@
   outline: none;
   background: var(--surface-soft);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--control-font);
   transition: border-color .16s, box-shadow .16s;
 }
 .field::placeholder { color: var(--muted); }

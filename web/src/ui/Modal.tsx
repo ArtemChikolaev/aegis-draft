@@ -39,7 +39,6 @@ export function Modal({
 }) {
   const panelRef = useRef<HTMLElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
-  const closeRef = useRef<HTMLButtonElement | null>(null);
   const exitTimerRef = useRef<number | undefined>(undefined);
   const dragRef = useRef<{ startY: number; startT: number; fromHead: boolean } | null>(null);
   const dragYRef = useRef(0);
@@ -99,13 +98,17 @@ export function Modal({
   }, []);
 
   // aria-modal без фокуса внутри — фикция: Tab продолжает ходить по экрану за диалогом.
-  // Забираем фокус на открытии (autoFocus-элемент, иначе крестик) и возвращаем на закрытии.
+  // Забираем фокус на открытии (autoFocus-элемент, иначе сама панель) и возвращаем на закрытии.
+  // Именно панель, а не крестик: на крестике браузер зажигает :focus-visible (зелёная рамка
+  // из base.css), и модалка без autoFocus открывалась с обведённым крестиком — при том, что
+  // пользователь её открыл тапом, а не с клавиатуры. Панель — нейтральная цель, Tab дальше
+  // идёт по элементам внутри (ловушка ниже это учитывает: panel.contains(panel) === true).
   useEffect(() => {
     const panel = panelRef.current;
     if (!panel) return;
     const restoreTo = document.activeElement as HTMLElement | null;
-    const target = panel.querySelector<HTMLElement>("[autofocus]") ?? closeRef.current;
-    target?.focus();
+    const target = panel.querySelector<HTMLElement>("[autofocus]") ?? panel;
+    target.focus({ preventScroll: true });
     return () => restoreTo?.focus?.();
   }, []);
 
@@ -254,11 +257,12 @@ export function Modal({
         className={`${styles.panel} ${isContent ? styles.contentPanel : ""}`}
         role="dialog"
         aria-modal="true"
+        tabIndex={-1}
         aria-labelledby={labelledBy}
         style={panelStyle}
       >
         <header className={styles.head}>
-          <button ref={closeRef} type="button" className={styles.close} aria-label={dismissLabel} onClick={requestClose}>
+          <button type="button" className={styles.close} aria-label={dismissLabel} onClick={requestClose}>
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
               <path
                 d="M1.2 1.2l11.6 11.6M12.8 1.2L1.2 12.8"

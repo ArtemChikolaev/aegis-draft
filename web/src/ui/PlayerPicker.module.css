@@ -28,7 +28,7 @@
   outline: 0;
   background: transparent;
   font: inherit;
-  font-size: 13px;
+  font-size: var(--control-font);
 }
 .input::placeholder { color: var(--muted); }
 
