@@ -33,11 +33,11 @@
 .field-list .is-user strong { color: var(--accent); }
 .tournament__groups {
   --group-team-rows: 9;
-  --group-row-height: 42px;
-  --group-row-gap: 6px;
-  --group-head-height: 28px;
-  --group-card-pad: 20px;
-  --group-title-block: 32px;
+  --group-row-height: 36px;
+  --group-row-gap: 4px;
+  --group-head-height: 24px;
+  --group-card-pad: 16px;
+  --group-title-block: 28px;
   --group-panel-height: calc(
     var(--group-card-pad) * 2 + var(--group-title-block) + var(--group-head-height)
     + var(--group-team-rows) * var(--group-row-height)
@@ -61,7 +61,7 @@
   padding: var(--group-card-pad);
   scroll-margin-top: 16px;
 }
-.group-table h2 { flex: none; margin: 0 0 14px; font-size: 18px; }
+.group-table h2 { flex: none; margin: 0 0 10px; font-size: 16px; }
 .group-table .table-head { flex: none; }
 .group-table .table-body {
   display: flex;
@@ -135,9 +135,12 @@
 }
 .table-row > span:nth-child(1) { color: var(--muted); font-size: 10px; font-weight: 700; }
 .table-row > span:nth-child(2) { display: flex; align-items: center; justify-content: center; }
+/* Строки auto, а не 14px/10px: подстрока события есть не у всех команд, и жёсткая вторая
+   строка держала под неё место даже пустое. Высота самой строки фиксирована (.table-row),
+   так что разнобоя между строками с подстрокой и без неё не возникает. */
 .table-row__team {
   display: grid;
-  grid-template-rows: 14px 10px;
+  grid-auto-rows: auto;
   gap: 2px;
   align-content: center;
   min-width: 0;
@@ -166,7 +169,9 @@
 .table-row.is-user strong { color: var(--accent); }
 /* Связанная сетка как в 322-0: верхняя над нижней, раунды колонками слева-направо,
    между сериями — коннекторы; своя команда и победитель подсвечены. */
-.bracket { display: grid; gap: 22px; width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; padding-bottom: 28px; }
+/* padding-bottom только под горизонтальный скроллбар: 28px + слак grid min-height + gap
+   секции давали ~70px пустоты между последним матчем и панелью чемпиона. */
+.bracket { display: grid; gap: 22px; width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scrollbar-gutter: stable; padding-bottom: 8px; }
 .bracket__side { width: 100%; max-width: 100%; }
 .bracket__side-title { margin: 0 0 12px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 /* 6 колонок с пустыми слотами 2/4 в upper — древовидное центрирование как в 322-0.
@@ -315,11 +320,11 @@
 .score-tier--weak { color: var(--tier-weak); }
 .field-list li b.field-strength { justify-self: end; font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); }
 
-/* Пути UB/LB/OUT: полоска через ::before — без сдвига контента при раскраске. */
-.table-row.is-routed {
-  transition: background-color .35s ease;
-  transition-delay: calc(var(--route-i, 0) * 70ms);
-}
+/* Пути UB/LB/OUT: полоска через ::before — без сдвига контента при раскраске.
+   Стаггер задаёт JS (фаза распределения красит строку за строкой), не transition-delay:
+   задержка по индексу размазывала все 18 строк одной волной и не давала привязать
+   раскраску к подписи маршрута. */
+.table-row.is-routed { transition: background-color .35s ease; }
 .table-row.is-routed::before {
   content: "";
   position: absolute;
@@ -345,6 +350,25 @@
 .route-tag--lower { color: var(--route-lb); }
 .route-tag--out { color: var(--route-out); }
 
+/* Подпись фазы распределения — на всю ширину сетки групп, цветом своего маршрута. */
+.route-caption {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: clamp(18px, 2.4vw, 28px);
+  font-weight: 800;
+  letter-spacing: .02em;
+  text-align: center;
+  text-transform: uppercase;
+  animation: route-caption-in var(--motion-enter, .36s) cubic-bezier(.2, .8, .2, 1) both;
+}
+.route-caption--upper { color: var(--route-ub); }
+.route-caption--lower { color: var(--route-lb); }
+.route-caption--out { color: var(--route-out); }
+@keyframes route-caption-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
 /* История матчей группы: победитель зелёный, проигравший коралл (ничья 1-1 — нейтрально). */
 .group-result__team.is-win { color: var(--win); }
 .group-result__team.is-loss { color: var(--loss); opacity: .8; }
@@ -361,23 +385,33 @@
 .final-table {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 22px;
+  padding: 18px;
 }
 .final-table > .bracket__side-title { margin: 0 0 8px; }
-.final-table > div {
+/* Колоночный поток: 9 строк в колонке, 10-е место начинает вторую — порядок читается
+   сверху вниз, как в турнирной таблице, а не змейкой слева направо. */
+.final-table__list {
   display: grid;
-  grid-template-columns: 90px auto 1fr auto;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(9, auto);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+.final-table__list > div {
+  display: grid;
+  /* 64px под «9th–12th» — самое длинное место; шире только гонит имена в многоточие. */
+  grid-template-columns: 64px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 9px 10px;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   background: var(--surface-soft);
   font-size: 11px;
 }
+.final-table__list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Только место: голый `.final-table span` цеплял бы и знак команды (span) и гасил его цвет. */
-.final-table > div > span:first-child, .final-table small { color: var(--muted); }
+.final-table__list > div > span:first-child, .final-table small { color: var(--muted); }
 .final-table strong { font-weight: 700; }
 .final-table .is-user {
   color: var(--accent);
@@ -407,10 +441,21 @@
   margin-top: 0;
   font-size: 20px;
 }
-.tournament__report { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
-.run-summary { padding: 20px 22px; }
-.run-summary__scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
-.run-summary__roster { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+/* Итоговой таблице чуть больше ширины: у неё две колонки имён, у ростера — одна. */
+.tournament__report { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; margin-top: 20px; }
+/* Колонка, чтобы ростер мог забрать остаток высоты панели (см. .run-summary__roster). */
+.run-summary { display: flex; flex-direction: column; padding: 18px; }
+.run-summary__scores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+/* Плитки поджаты ТОЛЬКО здесь, не в примитиве ui/StatTile: тот же компонент стоит в драфте,
+   на радаре и в карьере, и там своя высота. Правим не хешированный класс модуля, а элементы
+   внутри контейнера — иначе пришлось бы дырявить границу ui/. Итог: 66px → 52px на плитку.
+   На терминальном экране цифра — итог, а не рабочий индикатор, ей не нужен прежний вес. */
+.run-summary__scores > * { padding: 8px 6px; }
+.run-summary__scores strong { font-size: 19px; }
+/* Пять строк делят остаток высоты поровну (`1fr`), а не жмутся вверх, оставляя пустой низ:
+   панель равна соседней таблице мест по высоте, значит и заполнена должна быть так же.
+   Растёт не отступ, а сама строка — портрет и текст остаются на месте по центру. */
+.run-summary__roster { display: grid; flex: 1 1 auto; grid-auto-rows: minmax(min-content, 1fr); gap: 5px; margin: 0; padding: 0; list-style: none; }
 /* Строки ростера — карточки, а не строки таблицы: тем же языком, что пак (тонировка по
    тиру + краевые эффекты). Разделители-бордюры заменены зазором, иначе кант краевой
    карточки дрался бы с border-bottom соседней. */
@@ -419,8 +464,8 @@
   display: grid;
   grid-template-columns: auto 1fr auto auto;
   align-items: center;
-  gap: 14px;
-  padding: 8px 10px;
+  gap: 12px;
+  padding: 5px 8px;
   border-radius: 12px;
   background: linear-gradient(100deg, var(--surface-soft) 55%, color-mix(in srgb, var(--card-tint, transparent) 11%, var(--surface-soft)));
 }
@@ -428,20 +473,37 @@
 .run-summary__player strong { font-size: 13px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .run-summary__player small { color: var(--muted); font-size: 10px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .run-summary__ovr { font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); text-align: right; font-variant-numeric: tabular-nums; }
-.run-summary__heroCard { width: 72px; }
-.career-panel { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; margin-top: 44px; padding-top: 30px; border-top: 1px solid var(--line); }
+/* Ширина карточки героя задаёт высоту строки ростера, а та — высоту всей панели. Без подписи
+   карточка = портрет 16:9 + паддинги, то есть на ту же высоту строки портрет влезает заметно
+   шире: 44 → 68px при неизменных 62px строки и, значит, при сошедшихся панелях. */
+.run-summary__heroCard { width: 68px; }
+/* Отбивку до карьеры уже даёт gap секции (.run__sim, 24px) — свои 44+30 сверху делали
+   между таблицей мест и заголовком «Your run history» почти 100px пустоты. Разделительной
+   линии тоже не нужно: крупный заголовок «Your run history» и так режет страницу на разделы,
+   а линия поверх него добавляла ещё одну горизонталь и требовала воздуха с обеих сторон. */
+/* Разделительной линии не нужно — крупный заголовок «Your run history» и так режет
+   страницу на разделы. Но отбивка нужна: 8px поверх gap секции слипались с панелями выше,
+   прежние 44+30 под линию давали ~100px пустоты. 32px (с gap секции — ~56px) — середина. */
+.career-panel { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; margin-top: 32px; padding-top: 0; }
 .career-panel__heading { grid-column: 1 / -1; }
 .career-panel__heading h2 { margin: 10px 0 6px; font-size: clamp(32px, 5vw, 64px); line-height: .95; letter-spacing: -.05em; }
 .career-panel__heading p { margin: 0; color: var(--muted); font-size: 12px; }
 .career-stats, .career-runs { padding: 22px; }
-.career-runs { overflow: hidden; }
+/* Колонка, чтобы список забрал остаток высоты: пара «статистика / забеги» тогда всегда
+   кончается на одной линии, а лишние забеги уходят в скролл, а не тянут панель вниз. */
+.career-runs { display: flex; flex-direction: column; overflow: hidden; }
 .career-stats__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .career-runs__list {
-  --career-run-height: 174px;
+  --career-run-height: 143px;
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 12px;
-  height: calc(var(--career-run-height) * 2 + 12px);
+  /* Две ручки, и обе нужны. `max-height` — потолок: без него десять забегов растят grid-row,
+     панель тянется вниз и скролл пропадает (ровно эта регрессия и была). `flex: 1` — низ:
+     когда соседняя статистика выше, список дотягивается до её края, а не оставляет дыру.
+     Фиксированный `height` не годится: при одном забеге он давал пустую панель. */
+  max-height: calc(var(--career-run-height) * 2 + 12px);
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -460,7 +522,7 @@
   flex: none;
   height: var(--career-run-height);
   overflow: hidden;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-soft);
@@ -482,7 +544,7 @@
 .career-run__heading strong { color: var(--accent); font-size: 22px; }
 .career-run__heading span { font-size: 12px; font-weight: 800; }
 .career-run__heading small { justify-self: end; color: var(--muted); font-size: 9px; }
-.career-run__config { margin: 5px 0 12px; color: var(--muted); font-size: 9px; }
+.career-run__config { margin: 3px 0 8px; color: var(--muted); font-size: 9px; }
 .career-run__roster {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -509,7 +571,7 @@
 .career-run__roster li:nth-child(3)::after { animation-delay: -1.2s; }
 .career-run__roster li:nth-child(4)::after { animation-delay: -0.6s; }
 .career-run__roster li:nth-child(5)::after { animation-delay: 0s; }
-.career-run__roster li { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(120deg, var(--surface) 60%, color-mix(in srgb, var(--card-tint, transparent) 12%, var(--surface))); }
+.career-run__roster li { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; min-width: 0; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(120deg, var(--surface) 60%, color-mix(in srgb, var(--card-tint, transparent) 12%, var(--surface))); }
 .career-run__roster li > span:first-child { grid-column: 1 / -1; justify-self: start; }
 .career-run__roster strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .tournament__actions { width: min(480px, 100%); margin-left: auto; margin-top: 8px; }
@@ -534,6 +596,23 @@
   .run-summary__scores { grid-template-columns: repeat(2, 1fr); }
   .tournament__groups { grid-template-columns: 1fr; }
   .tournament__heading { align-items: start; flex-direction: column; }
+  /* В одну колонку подпись уезжает под обе таблицы и панель результатов — то есть за
+     пределы экрана ровно в тот момент, когда красятся строки. Липнем к низу окна, чтобы
+     «кто куда попал» читалось одновременно с заливкой. */
+  .route-caption {
+    position: sticky;
+    bottom: 12px;
+    z-index: 3;
+    justify-self: center;
+    margin: 0;
+    padding: 10px 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    /* В одну строку: перенос делает плашку в пол-экрана высотой. */
+    font-size: 14px;
+  }
 }
 @media (max-width: 680px) { /* bp.md — одна колонка поля уже с md, не с 620 */
   .tournament__progress { grid-template-columns: 1fr; }
@@ -543,20 +622,58 @@
   .grand-final { grid-template-columns: 1fr; text-align: center; }
   .grand-final > span { grid-column: auto; }
   .grand-final div { flex-direction: column; }
-  .final-table > div { grid-template-columns: 74px 1fr; }
-  .final-table small { grid-column: 2; }
+  /* Одна колонка, но строка остаётся ОДНОЙ строкой: `74px 1fr` разносил 4 ячейки на два
+     ряда, имя переносилось, и каждое место занимало ~150px — 18 мест давали 2700px
+     прокрутки при пустой правой половине карточки. */
+  .final-table { padding: 14px; }
+  /* 18 мест в одну колонку — 644px, отдельный экран прокрутки. Режем примерно пополам
+     (9 строк + краешек десятой — обрезанный край и есть признак скролла на мобиле, где
+     overlay-скроллбар не виден) и скроллим внутри, как career stats рядом. */
+  .final-table__list {
+    grid-auto-flow: row;
+    grid-template-rows: none;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    max-height: 340px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 4px;
+    scrollbar-gutter: stable;
+    border-radius: 10px;
+    clip-path: inset(0 round 10px);
+  }
+  .final-table__list > div { grid-template-columns: 58px auto minmax(0, 1fr) auto; gap: 8px; padding: 6px 8px; }
   .career-stats__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .career-run__heading { grid-template-columns: auto 1fr; }
   .career-run__heading small { grid-column: 1 / -1; justify-self: start; }
-  .career-run__roster { grid-template-columns: 1fr; }
-  .career-runs__list { height: min(70vh, 620px); }
+  /* 3×2 вместо колонки: одной колонкой карточка забега вырастала до ~600px и вылезала за
+     панель, пятью — чипы не влезали в 375px и роль обрезалась на «SUPPOR». Три чипа в ряд
+     дают ~110px на чип: и роль целиком, и герой. */
+  /* Группы на узком: три панели по 470px = ~1400px прокрутки на одну стадию. Ужимаем
+     строку — таблица остаётся читаемой, а стадия помещается в заметно меньше экранов. */
+  .tournament__groups {
+    --group-row-height: 32px;
+    --group-row-gap: 3px;
+    --group-head-height: 20px;
+    --group-card-pad: 12px;
+    --group-title-block: 24px;
+    gap: 12px;
+  }
+  .career-run__roster { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .career-run__roster li { padding: 6px; }
+  /* Чипы в 3×2 не влезают в фиксированные 174px — высоту задаёт контент, а скроллится
+     список. Прокрутку держим на нём, иначе восемь забегов растянут страницу. */
   .career-run { height: auto; overflow: visible; }
+  .career-runs__list { max-height: min(60vh, 560px); }
   .tournament__restart { grid-template-columns: 1fr; }
 }
 
 /* Бесшовный run-вид (TREF-TOUR2): тим-панель сверху + поле справа, симуляция стекается ниже. */
 .run { display: grid; gap: 24px; min-width: 0; max-width: 100%; }
-.run__team { align-items: start; }
+/* stretch, а не start: панели рядом обязаны кончаться на одной линии. Высоту задаёт радар
+   (он размера контента), а поле подстраивается — см. .run__field .field-list ниже. */
+.run__team { align-items: stretch; }
 .run__field { display: flex; flex-direction: column; gap: 16px; }
 .run__field-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
 .run__field-head h1 {
@@ -568,9 +685,11 @@
 }
 .run__field .tournament__projection { min-height: 0; padding: 16px 18px; }
 .run__field .field-list {
-  flex: none;
-  /* 9 строк × 2 колонки: карточки выше полосатых строк — 360px резало 17–18 места. */
-  max-height: min(520px, calc(100vh - 200px));
+  /* Список — амортизатор пары: забирает ровно ту высоту, что осталась от радара, и
+     скроллится внутри. Фиксированный max-height давал панели собственную высоту, и она
+     не совпадала с соседней (замер: 789 против 736). */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
@@ -590,15 +709,18 @@
 @media (max-width: 680px) { /* bp.md: список не должен съедать весь экран — место под CTA и safe-area */
   .run {
     gap: 18px;
-    /* Запас под home-indicator / URL-bar и нижнюю рамку (career / bracket / CTA). */
-    padding-bottom: max(64px, calc(env(safe-area-inset-bottom, 0px) + 40px));
+    /* Запас под home-indicator / URL-bar уже держит .app-shell (max(56px, safe-area+32px)).
+       Свои 64px сверху складывались с ним в ~120px пустоты между кнопками и подвалом. */
+    padding-bottom: 0;
   }
   .run__field .field-list {
     /* dvh учитывает chrome Safari; запас под projection + Simulate/Reroll + низ экрана */
     max-height: min(340px, 42dvh, calc(100vh - 320px));
   }
-  .bracket { padding-bottom: 48px; }
-  .tournament__actions { margin-top: 16px; padding-bottom: 8px; }
+  /* Здесь сетка ещё и скроллится вбок, так что место под горизонтальный скроллбар нужно —
+     но 48px давали ~70px пустоты до панели чемпиона вместе с gap секции. */
+  .bracket { padding-bottom: 12px; }
+  .tournament__actions { margin-top: 12px; }
 }
 .run__sim { display: grid; gap: 24px; min-width: 0; max-width: 100%; }
 .run__sim > div { scroll-margin-top: 16px; min-width: 0; }

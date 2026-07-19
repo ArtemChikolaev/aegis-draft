@@ -1,6 +1,6 @@
 /* Выбор режима */
-.mode-select { padding: 80px 0 30px; }
-.mode-select__heading { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: end; gap: 60px; margin-bottom: 54px; }
+.mode-select { padding: 36px 0 30px; }
+.mode-select__heading { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: end; gap: 60px; margin-bottom: 34px; }
 .mode-select__heading .ms-eyebrow { grid-column: 1 / -1; margin: 0; }
 .mode-select__heading h1 { max-width: 900px; margin: 0; font-size: clamp(48px, 6vw, 88px); font-weight: 500; line-height: .96; letter-spacing: -.06em; }
 .mode-select__heading > p:last-child { max-width: 480px; margin: 0 0 8px; color: var(--muted); font-size: 17px; }
@@ -23,7 +23,7 @@
 
 /* Превью недоступного режима */
 .mode-preview { min-height: 72vh; padding: 24px 0 50px; }
-.mode-preview .mp-eyebrow { margin-top: 80px; }
+.mode-preview .mp-eyebrow { margin-top: 36px; }
 .mode-preview h1 { max-width: 900px; margin: 24px 0; font-size: clamp(54px, 7vw, 104px); font-weight: 500; line-height: .93; letter-spacing: -.065em; }
 .mode-preview .mp-text { max-width: 620px; color: var(--muted); font-size: 18px; }
 .mode-preview__art { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 30px; min-height: 290px; margin-top: 60px; padding: 34px; color: var(--on-invert); border-radius: 18px; background: var(--surface-invert); }
@@ -39,9 +39,12 @@
   grid-template-areas: "copy art";
   align-items: center;
   gap: 60px;
-  min-height: 560px;
-  margin: 12px 0 22px;
-  padding: 76px 0;
+  /* Высоту задаёт арт (.hero-art), а не min-height: копия в нём — 195px, и на 560px копия
+     центрировалась в пустоте. Паддинги — воздух ДО и ПОСЛЕ карточки, 76px на каждый были
+     лишними; сам арт не трогаем, он несёт три строки режимов. */
+  min-height: 0;
+  margin: 4px 0 14px;
+  padding: 22px 0;
   color: var(--text);
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -69,6 +72,8 @@
   display: grid;
   grid-template-rows: minmax(130px, 1fr) repeat(3, 76px);
   width: 100%;
+  /* Не опускать: внутренние ряды (130 + 3×76) плюс паддинги дают 414px, и на меньшей
+     высоте overflow:hidden срезает третью строку — «GROUPS → PLAYOFFS → FINAL». */
   min-height: 430px;
   aspect-ratio: 1.42;
   padding: 28px;
@@ -171,7 +176,7 @@
   .mode-card { min-height: 330px; }
 }
 @media (max-width: 680px) { /* bp.md */
-  .mode-select { padding-top: 50px; }
+  .mode-select { padding-top: 24px; }
   .mode-select__heading { grid-template-columns: 1fr; gap: 20px; }
   .mode-select__heading h1 { font-size: 50px; }
   .mode-preview__art { grid-template-columns: 1fr; }
@@ -179,8 +184,8 @@
     grid-template-columns: 1fr;
     grid-template-areas: "copy" "art";
     min-height: 0;
-    gap: 28px;
-    padding: 40px 0;
+    gap: 24px;
+    padding: 22px 0;
   }
   .hero-copy .hero-eyebrow { margin-bottom: 12px; }
   .hero-copy h1 { font-size: clamp(36px, 10vw, 48px); }

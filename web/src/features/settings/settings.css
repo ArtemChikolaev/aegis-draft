@@ -1,4 +1,7 @@
-.settings { display: grid; justify-items: start; gap: 18px; max-width: 720px; }
+/* Колонка по центру: на 1320px прижатая влево она оставляла полэкрана пустоты справа.
+   Центрированная читается как осознанная мера строки, а не как недоделанная раскладка —
+   растягивать настройки на всю ширину нельзя, строки формы длиннее ~760px не читаются. */
+.settings { display: grid; justify-items: start; gap: 14px; width: 100%; max-width: 760px; margin-inline: auto; }
 /* Surface приходит с хешированным классом CSS-модуля — цепляемся за свой .settings__panel. */
 .settings > .settings__panel, .settings > header { justify-self: stretch; width: 100%; }
 .settings__panel { display: grid; gap: 22px; padding: 24px; }

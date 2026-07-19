@@ -21,5 +21,5 @@
 .leave { min-width: 210px; margin-bottom: 6px; padding: 12px 20px; color: #17120f; border-radius: 999px; background: var(--ember); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
 .leave:hover:not(:disabled) { filter: brightness(1.08); }
 
-.back { margin: 24px 0 0; padding: 8px 0; color: var(--muted); border-radius: 0; background: transparent; font-size: 12px; font-weight: 700; }
+.back { margin: 4px 0 0; padding: 6px 0; color: var(--muted); border-radius: 0; background: transparent; font-size: 12px; font-weight: 700; }
 .back:hover:not(:disabled) { color: var(--text); }

@@ -54,6 +54,14 @@ const GROUP_MATCH_STEP_MS = 95;
 const PLAYOFF_MAP_STEP_MS = 200;
 // Число команд в группе — им же меряется каскад «наполнения» перед стартом матчей.
 const GROUP_TEAM_ROWS = 9;
+// Фаза распределения после групп (замер 322-0, бандл index-BCFh8CR5.js, фаза `quali`):
+// подпись маршрута + построчная раскраска 140мс, пауза 1100мс между маршрутами.
+const ROUTE_STEP_MS = 140;
+const ROUTE_HOLD_MS = 1100;
+const ROUTE_LEAD_MS = 600;
+// Порядок маршрутов = порядок, в котором команды узнают свою судьбу: вверх → вниз → вылет.
+const ROUTE_ORDER = ["upper", "lower", "out"] as const;
+type RouteKey = (typeof ROUTE_ORDER)[number];
 
 // Презентационный прогрессивный reveal: движок уже посчитал весь результат детерминированно,
 // а здесь мы лишь «проигрываем» его по одному элементу с возможностью Skip. Сбрасывается при
@@ -315,22 +323,62 @@ export function TournamentScreen() {
     return ids;
   }, [tournament]);
 
-  // После доигранных групп: пауза → стаггер-раскраска путей (UB/LB/OUT сверху вниз) → плей-офф.
-  // Это «закрашивание, кто куда попал» из 322-0. reduced-motion → мгновенно, без задержек.
-  // field→groups запускает пользователь кнопкой «Симулировать».
-  const [groupRoutesRevealed, setGroupRoutesRevealed] = useState(false);
-  useEffect(() => { setGroupRoutesRevealed(false); }, [stage]);
+  // После доигранных групп — фаза распределения (как `quali` в 322-0): маршрут за маршрутом
+  // объявляется подписью, и под неё построчно закрашиваются ровно те команды, которых она
+  // касается. Красить всё разом нельзя: тогда подпись не к чему привязать, и игрок не видит,
+  // КТО именно поехал вниз — а это единственный момент, где решается судьба его команды.
+  // reduced-motion → всё сразу, без задержек. field→groups запускает пользователь кнопкой.
+  const [routedTeams, setRoutedTeams] = useState<ReadonlySet<string>>(() => new Set());
+  const [routeCaption, setRouteCaption] = useState<RouteKey | null>(null);
+  // Команды по маршрутам в порядке объявления: сначала все группы по местам вверх, потом вниз.
+  const routeQueue = useMemo(() => {
+    const byRoute = new Map<RouteKey, string[]>(ROUTE_ORDER.map((r) => [r, []]));
+    for (const group of tournament?.groups ?? []) {
+      for (const row of [...group.standings].sort((a, b) => a.rank - b.rank)) {
+        byRoute.get(row.route as RouteKey)?.push(row.team.id);
+      }
+    }
+    return byRoute;
+  }, [tournament?.groups]);
+  useEffect(() => { setRoutedTeams(new Set()); setRouteCaption(null); }, [stage]);
   useEffect(() => {
     if (stage !== "groups" || !done) return;
+    const revealAll = () => {
+      setRoutedTeams(new Set([...routeQueue.values()].flat()));
+      setRouteCaption(null);
+    };
     if (prefersReducedMotion()) {
-      setGroupRoutesRevealed(true);
+      revealAll();
       if (tournament?.canAdvance) advance();
       return;
     }
-    const revealT = window.setTimeout(() => setGroupRoutesRevealed(true), 600);
-    const advanceT = tournament?.canAdvance ? window.setTimeout(() => advance(), 2400) : undefined;
-    return () => { window.clearTimeout(revealT); if (advanceT !== undefined) window.clearTimeout(advanceT); };
-  }, [stage, done, tournament?.canAdvance, advance]);
+    let cancelled = false;
+    const timers: number[] = [];
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => { timers.push(window.setTimeout(resolve, ms)); });
+    void (async () => {
+      await wait(ROUTE_LEAD_MS);
+      for (const route of ROUTE_ORDER) {
+        const ids = routeQueue.get(route) ?? [];
+        if (ids.length === 0) continue;
+        if (cancelled) return;
+        setRouteCaption(route);
+        for (const id of ids) {
+          await wait(ROUTE_STEP_MS);
+          if (cancelled) return;
+          setRoutedTeams((prev) => new Set(prev).add(id));
+        }
+        await wait(ROUTE_HOLD_MS);
+        if (cancelled) return;
+      }
+      setRouteCaption(null);
+      if (tournament?.canAdvance) advance();
+    })();
+    return () => {
+      cancelled = true;
+      for (const t of timers) window.clearTimeout(t);
+    };
+  }, [stage, done, tournament?.canAdvance, advance, routeQueue]);
 
   // «Камера» ведёт к активной секции / матчу. reduced-motion → без плавной анимации.
   const scrollTo = useCallback((el: HTMLElement | null, block: ScrollLogicalPosition = "start") => {
@@ -529,17 +577,19 @@ export function TournamentScreen() {
                 <div className="table-head"><span>#</span><span aria-hidden="true" /><span>{t("tournament.team")}</span><span>{t("tournament.record")}</span><span>{t("tournament.route")}</span></div>
                 <div className="table-body">
                   {liveStandings(group, tournament.groupMatches, revealedGroupMatches, groupsDone).map((row) => {
-                    const routed = stage === "playoffs" || groupRoutesRevealed;
+                    const routed = stage === "playoffs" || routedTeams.has(row.team.id);
                     return (
                     <div
                       key={row.team.id}
                       className={`table-row ${groupFillPhase ? "enter" : ""} ${row.team.isUser ? "is-user" : ""} ${routed ? `is-routed route--${row.route}` : ""}`.replace(/\s+/g, " ").trim()}
-                      style={{ ["--route-i" as string]: row.rank - 1, ["--enter-i" as string]: row.rank - 1 } as React.CSSProperties}
+                      style={{ ["--enter-i" as string]: row.rank - 1 } as React.CSSProperties}
                     >
                       <span>{row.rank}</span>
                       <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
-                      <span className="table-row__team"><strong>{row.team.name}</strong><small>{row.team.eventLabel || "\u00A0"}</small></span>
-                      <span>{row.wins}–{row.losses}</span><span className={routed ? `route-tag route-tag--${row.route}` : ""}>{groupsDone ? t(`tournament.${row.route}` as MessageKey) : "·"}</span>
+                      {/* \u041F\u043E\u0434\u0441\u0442\u0440\u043E\u043A\u0430 \u0441\u043E\u0431\u044B\u0442\u0438\u044F \u2014 \u0442\u043E\u043B\u044C\u043A\u043E \u043A\u043E\u0433\u0434\u0430 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C: \u043F\u0443\u0441\u0442\u043E\u0439 <small> \u0441 nbsp \u0441\u044A\u0435\u0434\u0430\u043B 12px
+                          \u0432\u044B\u0441\u043E\u0442\u044B \u0432 \u043A\u0430\u0436\u0434\u043E\u0439 \u0438\u0437 18 \u0441\u0442\u0440\u043E\u043A \u0438 \u0443\u0436\u0438\u043C\u0430\u043B \u0438\u043C\u044F \u0434\u043E \u00ABCursed Dra\u2026\u00BB. */}
+                      <span className="table-row__team"><strong>{row.team.name}</strong>{row.team.eventLabel ? <small>{row.team.eventLabel}</small> : null}</span>
+                      <span>{row.wins}–{row.losses}</span><span className={routed ? `route-tag route-tag--${row.route}` : ""}>{routed ? t(`tournament.${row.route}` as MessageKey) : "·"}</span>
                     </div>
                     );
                   })}
@@ -565,6 +615,12 @@ export function TournamentScreen() {
                 ))}
               </div>
             </Surface>
+            {/* Подпись фазы распределения: живёт ровно столько, сколько красятся её строки. */}
+            {routeCaption && (
+              <p className={`route-caption route-caption--${routeCaption}`} role="status">
+                {t(`tournament.routeCaption.${routeCaption}` as MessageKey)}
+              </p>
+            )}
           </div>
         )}
 
@@ -623,14 +679,18 @@ export function TournamentScreen() {
             <div className="tournament__report">
               <Surface className="final-table enter" style={{ ["--enter-i" as string]: 1 } as React.CSSProperties}>
                 <h3 className="bracket__side-title">{t("tournament.finalStandings")}</h3>
-                {tournament.standings.map((row) => (
-                  <div key={row.team.id} className={row.team.isUser ? "is-user" : ""}>
-                    <span>{t(placementKey(row.placement))}</span>
-                    <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
-                    <strong>{row.team.name}</strong>
-                    <b className={`score-tier--${scoreTier(row.team.strength)}`}>{Math.round(row.team.strength)}</b>
-                  </div>
-                ))}
+                {/* 18 мест в две колонки (как в 322-0): одной колонкой панель вдвое выше
+                    соседнего «твоего состава» — рядом стоят поля разной высоты. */}
+                <div className="final-table__list">
+                  {tournament.standings.map((row) => (
+                    <div key={row.team.id} className={row.team.isUser ? "is-user" : ""}>
+                      <span>{t(placementKey(row.placement))}</span>
+                      <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
+                      <strong>{row.team.name}</strong>
+                      <b className={`score-tier--${scoreTier(row.team.strength)}`}>{Math.round(row.team.strength)}</b>
+                    </div>
+                  ))}
+                </div>
               </Surface>
               <Surface className="run-summary enter" style={{ ["--enter-i" as string]: 2 } as React.CSSProperties}>
                 <h3 className="bracket__side-title">{t("tournament.yourRun")}</h3>
@@ -661,9 +721,12 @@ export function TournamentScreen() {
                         {/* Шкала ИГРОКА (54–99), не командная: scoreTier (78–90) красил
                             две трети ростера в красный — типовой 74 попадал в «weak». */}
                         <b className={`run-summary__ovr ovr-tier--${playerOvrTier(ovr)}`}>{Math.round(ovr)}</b>
+                        {/* Портрет без подписи: в строке ростера ширина зажата, и поле под имя
+                            усыхало до 34px — «Crystal Maiden» читался как «Cry…». Снятая
+                            подпись отдана портрету, он опознаёт героя лучше трёх букв. */}
                         {info && (
                           <span className="run-summary__heroCard">
-                            <HeroThumb picture={info.picture} name={info.name} layout="card" showName />
+                            <HeroThumb picture={info.picture} name={info.name} layout="card" showName={false} />
                           </span>
                         )}
                       </li>
