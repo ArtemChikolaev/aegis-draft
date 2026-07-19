@@ -72,11 +72,11 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-rows: minmax(130px, 1fr) repeat(3, 76px);
+  /* 4-й ряд auto — многострочный GROUPS…; лишняя высота уходит в 1fr сверху. */
+  grid-template-rows: minmax(130px, 1fr) 76px 76px auto;
   width: 100%;
-  /* Не опускать: внутренние ряды (130 + 3×76) плюс паддинги дают 414px, и на меньшей
-     высоте overflow:hidden срезает третью строку — «GROUPS → PLAYOFFS → FINAL». */
-  min-height: 430px;
+  /* 430 мало после роста 4-го ряда — overflow:hidden режет FINAL. */
+  min-height: 470px;
   aspect-ratio: 1.42;
   padding: 28px;
   overflow: hidden;
@@ -115,6 +115,12 @@
 .hero-art span:nth-of-type(1) { grid-row: 2; }
 .hero-art span:nth-of-type(2) { grid-row: 3; }
 .hero-art span:nth-of-type(3) { grid-row: 4; }
+@media (min-width: 681px) {
+  .hero-art span:nth-of-type(3) {
+    align-items: start;
+    padding-top: 24px;
+  }
+}
 .hero-art span strong { font: 600 clamp(18px, 1.8vw, 27px)/1 "Space Grotesk"; letter-spacing: -.03em; }
 .hero-art span small { color: rgba(255, 255, 255, .78); font: 600 12px/1.4 Manrope; }
 .hero-art span::after { content: "→"; font-size: 22px; }
@@ -188,6 +194,9 @@
     min-height: 0;
     gap: 24px;
     padding: 22px 0;
+    /* Убираем нижний margin: воздух под картой (22px паддинг) должен совпадать с
+       воздухом над ней (24px gap до заголовка), а margin-bottom добавлял лишние 14px. */
+    margin-bottom: 0;
   }
   .hero-copy .hero-eyebrow { margin-bottom: 12px; }
   .hero-copy h1 { font-size: clamp(36px, 10vw, 48px); }
