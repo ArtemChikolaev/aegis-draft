@@ -1,6 +1,8 @@
 /* Выбор режима */
-.mode-select { padding: 36px 0 30px; }
-.mode-select__heading { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: end; gap: 60px; margin-bottom: 34px; }
+/* padding-bottom нулевой: воздух под последней карточкой должен быть тем же, что между
+   карточками (14px из .mode-grid), а его добирает отбивка подвала. */
+.mode-select { padding: 10px 0 0; }
+.mode-select__heading { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: end; gap: 60px; margin-bottom: 20px; }
 .mode-select__heading .ms-eyebrow { grid-column: 1 / -1; margin: 0; }
 .mode-select__heading h1 { max-width: 900px; margin: 0; font-size: clamp(48px, 6vw, 88px); font-weight: 500; line-height: .96; letter-spacing: -.06em; }
 .mode-select__heading > p:last-child { max-width: 480px; margin: 0 0 8px; color: var(--muted); font-size: 17px; }
@@ -176,7 +178,7 @@
   .mode-card { min-height: 330px; }
 }
 @media (max-width: 680px) { /* bp.md */
-  .mode-select { padding-top: 24px; }
+  .mode-select { padding-top: 10px; }
   .mode-select__heading { grid-template-columns: 1fr; gap: 20px; }
   .mode-select__heading h1 { font-size: 50px; }
   .mode-preview__art { grid-template-columns: 1fr; }

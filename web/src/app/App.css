@@ -7,7 +7,9 @@
 .brand__copy small { color: var(--muted); font: 700 8px/1.4 Manrope, sans-serif; letter-spacing: .1em; }
 .muted, .run-meta { color: var(--muted); }
 .run-meta { margin: 18px 0; font-size: 10px; }
-.footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; text-align: center; }
+/* 14px — тот же зазор, что между карточками режимов: под последним блоком экрана не должно
+   быть больше воздуха, чем внутри него. Разделяет уже сама линия, дублировать её отступом не надо. */
+.footer { margin-top: 14px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; text-align: center; }
 .loading { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 60vh; color: var(--muted); }
 .loading__orb { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 24px var(--accent); animation: pulse 1.2s ease-in-out infinite; }
 .screen-heading { padding: 10px 0 14px; }
@@ -23,7 +25,6 @@
   }
   .topbar { align-items: flex-start; }
   .brand__copy small { display: none; }
-  .footer { margin-top: 28px; }
 }
 @media (max-width: 430px) {
   .brand__mark { width: 38px; height: 38px; }
