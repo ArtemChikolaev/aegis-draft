@@ -675,7 +675,8 @@
    (он размера контента), а поле подстраивается — см. .run__field .field-list ниже. */
 .run__team { align-items: stretch; }
 .run__field { display: flex; flex-direction: column; gap: 16px; }
-.run__field-head { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+/* wrap — страховка: если имя команды длинное, кнопка уходит на свою строку, а не за панель. */
+.run__field-head { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 16px; }
 .run__field-head h1 {
   margin: 6px 0 0;
   padding-bottom: 0.08em; /* запас под descender «g» в Aegis Five */
@@ -723,4 +724,7 @@
   .tournament__actions { margin-top: 12px; }
 }
 .run__sim { display: grid; gap: 24px; min-width: 0; max-width: 100%; }
+/* На стадии field секция пуста, но как grid-item всё равно съедает gap у .run — 24px
+   мёртвого зазора между панелями и подвалом. */
+.run__sim:empty { display: none; }
 .run__sim > div { scroll-margin-top: 16px; min-width: 0; }

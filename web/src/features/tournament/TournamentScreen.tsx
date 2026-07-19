@@ -741,6 +741,9 @@ export function TournamentScreen() {
           </div>
         )}
 
+        {/* Контейнер рисуем только когда внутри что-то есть: пустой он всё равно приносил
+            свой margin-top и оставлял мёртвый зазор под панелями на стадии field. */}
+        {(playing || playoffsDone) && (
         <div className="tournament__actions">
           {playing ? (
             <div className="tournament__live">
@@ -755,6 +758,7 @@ export function TournamentScreen() {
             </div>
           ) : null}
         </div>
+        )}
       </div>
 
       {confirmLeave && (

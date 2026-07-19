@@ -20,8 +20,10 @@
   .app-shell {
     width: min(100% - 24px, 1320px);
     padding-top: max(12px, env(safe-area-inset-top, 0px));
-    /* Запас под home-indicator + низ карточек (field list / CTA), не вплотную к краю. */
-    padding-bottom: max(56px, calc(env(safe-area-inset-bottom, 0px) + 32px));
+    /* Запас под home-indicator, но не больше нужного: фиксированный пол 56px давал на
+       десктопном узком вьюпорте (где safe-area = 0) полэкрана пустоты под подвалом.
+       На реальном телефоне inset ~34px ⇒ ~50px, то есть запас сохраняется. */
+    padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px));
   }
   .topbar { align-items: flex-start; }
   .brand__copy small { display: none; }

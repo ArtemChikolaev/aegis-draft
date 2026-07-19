@@ -23,3 +23,9 @@
 
 .back { margin: 4px 0 0; padding: 6px 0; color: var(--muted); border-radius: 0; background: transparent; font-size: 12px; font-weight: 700; }
 .back:hover:not(:disabled) { color: var(--text); }
+
+@media (max-width: 680px) { /* bp.md */
+  /* 210px не влезают рядом с именем команды: на 375px шапка панели 313px, заголовок ест 154,
+     и кнопка вылезала за панель на 48px. По контенту она ~130px и помещается. */
+  .leave { min-width: 0; padding: 10px 16px; }
+}
