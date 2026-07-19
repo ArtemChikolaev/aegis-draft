@@ -100,9 +100,60 @@ func TestBuildTeamSuccessTierAndSmoothing(t *testing.T) {
 	if ts["1"][model.Last1y].SuccessScore != ts["1"][model.Last5y].SuccessScore {
 		t.Fatalf("windows should nest identically for in-1y matches")
 	}
-	// valve_legacy не заполняется (deferred).
+	// valve_legacy — курируемый набор лиг, а не окно по времени: обычная premium-лига
+	// в него не входит, сколько бы матчей команда там ни сыграла.
 	if _, ok := ts["1"][model.ValveLegacy]; ok {
-		t.Fatal("valve_legacy should be deferred, not built")
+		t.Fatal("обычная лига не должна попадать в valve_legacy")
+	}
+}
+
+// valve_legacy пустовал не потому, что данных нет, а потому что цикл агрегации был построен
+// вокруг «N лет назад от asOf», а этот формат — курируемый набор лиг (все TI + Valve/DPC
+// Major). Из-за этого Mixed Draft в valve_legacy было нечем считать. Liquipedia для прокси
+// не нужна: winrate и tier лиги есть на тех же матчах.
+func TestBuildTeamSuccessValveLegacy(t *testing.T) {
+	leagues := []opendota.League{
+		{LeagueID: 100, Name: "Premium Cup", Tier: "premium"},
+		{LeagueID: 500, Name: "The International 2015", Tier: "premium"},
+	}
+	// Специально СТАРЫЙ матч — вне всех rolling-окон (asOf = 2026-07-11).
+	ti := time.Date(2015, 8, 5, 0, 0, 0, 0, time.UTC)
+	recent := time.Date(2026, 1, 15, 0, 0, 0, 0, time.UTC)
+	var matches []normalize.NormalizedMatch
+	id := int64(1)
+	add := func(league int64, when time.Time, team, opp, wins, total int) {
+		for i := 0; i < total; i++ {
+			matches = append(matches, md(id, league, when, team, opp, i < wins))
+			id++
+		}
+	}
+	add(500, ti, 1, 91, 8, 10)     // TI 2015: 80%
+	add(500, ti, 2, 92, 2, 10)     // TI 2015: 20%
+	add(100, recent, 3, 93, 8, 10) // обычная лига, свежая
+
+	ts := BuildTeamSuccess(matches, leagues, asOf(), rating.Default())
+
+	// Главное: матч 2015 года даёт valve_legacy, хотя во все rolling-окна не попадает.
+	legacy, ok := ts["1"][model.ValveLegacy]
+	if !ok {
+		t.Fatal("TI-матч должен попасть в valve_legacy")
+	}
+	if legacy.Games != 10 {
+		t.Fatalf("valve_legacy games = %d, ожидалось 10", legacy.Games)
+	}
+	if _, ok := ts["1"][model.Last5y]; ok {
+		t.Fatal("матч 2015 не должен попадать в last_5y при asOf 2026")
+	}
+	// Сильная команда обгоняет слабую внутри окна.
+	if legacy.SuccessScore <= ts["2"][model.ValveLegacy].SuccessScore {
+		t.Fatalf("8-2 (%.2f) должно обгонять 2-8 (%.2f)", legacy.SuccessScore, ts["2"][model.ValveLegacy].SuccessScore)
+	}
+	// Команда из обычной лиги в valve_legacy не попадает, но rolling-окна у неё есть.
+	if _, ok := ts["3"][model.ValveLegacy]; ok {
+		t.Fatal("обычная лига не должна давать valve_legacy")
+	}
+	if _, ok := ts["3"][model.Last1y]; !ok {
+		t.Fatal("свежий матч обычной лиги должен давать last_1y")
 	}
 }
 
