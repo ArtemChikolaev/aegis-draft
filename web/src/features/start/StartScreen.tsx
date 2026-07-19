@@ -7,6 +7,8 @@ import type { Format } from "../../types/data.ts";
 import { Button, Eyebrow, Modal, OptionGroup, type Option, Surface } from "../../ui/index.ts";
 import { createRunSeed } from "../../game/rng.ts";
 import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
+import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
+import { SeedField } from "./SeedField.tsx";
 import "./start.css";
 
 interface Opt<T> {
@@ -53,8 +55,9 @@ const ALLOCATION: Opt<Allocation>[] = [
 
 export function StartScreen() {
   const start = useRun((state) => state.start);
-  const formats = useRun((state) => state.data?.manifest.formats ?? []);
-  const teamSuccess = useRun((state) => state.data?.teamSuccess);
+  const data = useRun((state) => state.data);
+  const formats = data?.manifest.formats ?? [];
+  const teamSuccess = data?.teamSuccess;
   const { t } = useI18n();
   const mode = useRun((state) => state.selectedMode);
   const setMode = useRun((state) => state.setSelectedMode);
@@ -62,6 +65,7 @@ export function StartScreen() {
   // Закрыть модалку (крестик/Esc/свайп) можно всегда — режим тогда просто не включится.
   const [hardGate, setHardGate] = useState(false);
   const [hardAck, setHardAck] = useState(false);
+  const [seedInput, setSeedInput] = useState("");
   const [config, setConfig] = useState<RunConfig>({
     draftStyle: "team",
     format: "last_2y",
@@ -88,8 +92,30 @@ export function StartScreen() {
     ALLOCATION.find((option) => option.value === config.allocation)?.label ?? "start.automatic",
   ];
 
+  const seedValidation: RunLinkInputValidation = data && mode
+    ? validateRunLinkInput(
+      seedInput,
+      mode,
+      config,
+      data.manifest.schemaVersion,
+      data.manifest.ratingModelVersion,
+    )
+    : { link: null, issue: seedInput.trim() ? "invalid" : null };
+  const seedConfig = seedValidation.link?.config;
+  const seedExpectedSettings = seedValidation.issue === "config" && seedConfig
+    ? [
+      DRAFT.find((option) => option.value === seedConfig.draftStyle)?.label,
+      FORMAT.find((option) => option.value === seedConfig.format)?.label,
+      DIFFICULTY.find((option) => option.value === seedConfig.rerolls)?.label,
+      SCORING.find((option) => option.value === seedConfig.scoring)?.label,
+      ALLOCATION.find((option) => option.value === seedConfig.allocation)?.label,
+      HARD_MODE.find((option) => option.value === (seedConfig.hardMode ?? false))?.label,
+    ].filter((label): label is MessageKey => Boolean(label)).map((label) => t(label)).join(" · ")
+    : undefined;
+
   const onStart = () => {
-    start(config, createRunSeed());
+    if (seedValidation.issue) return;
+    start(config, seedValidation.link?.seed ?? createRunSeed());
   };
 
   if (mode === null) {
@@ -164,7 +190,20 @@ export function StartScreen() {
           <h2>{t("start.launchTitle")}</h2>
           <p>{t("start.launchText")}</p>
           <ul>{selectedLabels.map((label) => <li key={label}>{t(label)}</li>)}</ul>
-          <Button variant="primaryInvert" data-testid="start-run" onClick={onStart} disabled={!formatAvailable(config.format)}>{t("start.launch")}<span>→</span></Button>
+          <Button
+            variant="primaryInvert"
+            data-testid="start-run"
+            onClick={onStart}
+            disabled={!formatAvailable(config.format) || seedValidation.issue !== null}
+          >
+            {t("start.launch")}<span>→</span>
+          </Button>
+          <SeedField
+            value={seedInput}
+            validation={seedValidation}
+            expectedSettings={seedExpectedSettings}
+            onChange={setSeedInput}
+          />
           {!formatAvailable(config.format) && <p className="notice">{t("start.unavailable")}</p>}
         </Surface>
       </div>

@@ -3,7 +3,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import type { PlayerProfile } from "../../types/data.ts";
-import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface } from "../../ui/index.ts";
+import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface, TextField } from "../../ui/index.ts";
 import { heroPopularity, sortHeroes, type HeroSort } from "./heroPopularity.ts";
 import "./heroes.css";
 
@@ -58,7 +58,7 @@ export function HeroesScreen() {
       </header>
 
       <Surface className="heroes__controls">
-        <input
+        <TextField
           className="heroes__search"
           type="search"
           value={query}

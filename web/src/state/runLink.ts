@@ -26,7 +26,18 @@ export interface RunLink {
 /** Почему ссылка не воспроизводима. Разные причины — разные объяснения игроку. */
 export type RunLinkIssue = "schema" | "model";
 
+/** Результат проверки кода, вставленного на экране настроек (T3.14). */
+export type RunLinkInputIssue = "invalid" | RunLinkIssue | "mode" | "config";
+
+export interface RunLinkInputValidation {
+  link: RunLink | null;
+  issue: RunLinkInputIssue | null;
+}
+
 const HASH_PREFIX = "#/run=";
+/** Поле не должно превращаться в неограниченный base64/JSON-парсер. Реальная ссылка
+ *  сейчас короче 500 символов; 2048 оставляет большой запас для будущих полей. */
+export const MAX_RUN_LINK_INPUT_LENGTH = 2048;
 /** JSON не умеет Infinity (Easy = бесконечные рероллы): stringify даёт null, и забег
  *  восстанавливается с нулём рероллов. Та же грабля уже поймана в runPersist —
  *  кодируем явным сторожевым числом. */
@@ -39,7 +50,7 @@ function encodeRerolls(rerolls: number): number {
 function decodeRerolls(value: unknown): number | null {
   if (typeof value !== "number" || Number.isNaN(value)) return null;
   if (value === INFINITE_REROLLS) return Infinity;
-  return value >= 0 ? value : null;
+  return value === 0 || value === 1 || value === 2 ? value : null;
 }
 
 /** base64url без паддинга — безопасен в hash, не требует percent-encoding. */
@@ -91,19 +102,20 @@ export function decodeRunLink(encoded: string): RunLink | null {
   }
   if (!raw || raw.v !== 1) return null;
   const rerolls = decodeRerolls(raw.n);
-  const seed = typeof raw.seed === "string" ? raw.seed : null;
+  const seed = typeof raw.seed === "string" && raw.seed.trim() ? raw.seed : null;
   if (rerolls === null || !seed) return null;
-  if (typeof raw.s !== "number" || typeof raw.r !== "string") return null;
+  if (typeof raw.s !== "number" || !Number.isInteger(raw.s) || raw.s < 1 || typeof raw.r !== "string" || !raw.r) return null;
+  if (raw.m !== "classic" && raw.m !== "manager" && raw.m !== "tournament") return null;
   if (raw.d !== "team" && raw.d !== "mixed") return null;
   if (raw.c !== "event" && raw.c !== "peak") return null;
   if (raw.a !== "auto" && raw.a !== "manual") return null;
-  if (typeof raw.f !== "string") return null;
-  const mode = raw.m === "manager" || raw.m === "tournament" ? raw.m : "classic";
+  if (raw.f !== "last_1y" && raw.f !== "last_2y" && raw.f !== "last_5y" && raw.f !== "valve_legacy") return null;
+  if (raw.h !== undefined && raw.h !== 1) return null;
   return {
     v: 1,
     s: raw.s,
     r: raw.r,
-    mode,
+    mode: raw.m,
     seed,
     config: {
       draftStyle: raw.d,
@@ -133,6 +145,31 @@ export function runLinkFromHash(hash: string): RunLink | null {
   return decodeRunLink(hash.slice(HASH_PREFIX.length));
 }
 
+/**
+ * Разобрать ввод на экране настроек: принимаем как короткий код, так и целиком
+ * скопированную ссылку. Это тот же payload T3.12 — отдельного типа seed/хранилища нет.
+ */
+export function runLinkFromInput(input: string): RunLink | null {
+  const trimmed = input.trim();
+  if (!trimmed || trimmed.length > MAX_RUN_LINK_INPUT_LENGTH) return null;
+  let encoded = trimmed;
+  if (trimmed.startsWith(HASH_PREFIX)) {
+    encoded = trimmed.slice(HASH_PREFIX.length);
+  } else if (trimmed.includes(HASH_PREFIX)) {
+    try {
+      const url = new URL(trimmed);
+      if ((url.protocol !== "https:" && url.protocol !== "http:") || !url.hash.startsWith(HASH_PREFIX)) return null;
+      encoded = url.hash.slice(HASH_PREFIX.length);
+    } catch {
+      return null;
+    }
+  }
+  // В полноценной ссылке после payload ничего быть не должно. Ранний guard также не даёт
+  // atob молча принять base64-префикс от строки с пробелами/параметрами.
+  if (!encoded || /[\s#?&]/.test(encoded)) return null;
+  return decodeRunLink(encoded);
+}
+
 /** Убрать ссылку из адресной строки после того, как её обработали. Единственная функция
  *  здесь с побочным эффектом — иначе перезагрузка страницы снова показывала бы уже
  *  отвеченное предложение, а «назад» возвращал в него же. replaceState, не pushState:
@@ -158,4 +195,36 @@ export function runLinkIssue(
   if (link.s !== schemaVersion) return "schema";
   if (link.r !== ratingModelVersion) return "model";
   return null;
+}
+
+/** hardMode до T3.10 был опциональным; отсутствие ключа и false — один и тот же конфиг. */
+export function runConfigsMatch(left: RunConfig, right: RunConfig): boolean {
+  return left.draftStyle === right.draftStyle
+    && left.format === right.format
+    && left.rerolls === right.rerolls
+    && left.scoring === right.scoring
+    && left.allocation === right.allocation
+    && (left.hardMode ?? false) === (right.hardMode ?? false);
+}
+
+/**
+ * Полная проверка введённого кода для StartScreen. Порядок причин намеренный:
+ * сперва целостность, затем версии (забег в принципе невоспроизводим), затем режим/настройки.
+ * Пустой ввод — штатный случайный запуск, поэтому это не ошибка.
+ */
+export function validateRunLinkInput(
+  input: string,
+  mode: RunMode,
+  config: RunConfig,
+  schemaVersion: number,
+  ratingModelVersion: string,
+): RunLinkInputValidation {
+  if (!input.trim()) return { link: null, issue: null };
+  const link = runLinkFromInput(input);
+  if (!link) return { link: null, issue: "invalid" };
+  const versionIssue = runLinkIssue(link, schemaVersion, ratingModelVersion);
+  if (versionIssue) return { link, issue: versionIssue };
+  if (link.mode !== mode) return { link, issue: "mode" };
+  if (!runConfigsMatch(link.config, config)) return { link, issue: "config" };
+  return { link, issue: null };
 }

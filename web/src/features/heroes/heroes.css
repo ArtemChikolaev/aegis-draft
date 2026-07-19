@@ -13,16 +13,7 @@
   grid-area: hero-search;
   width: 100%;
   min-width: 0;
-  padding: 10px 14px;
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-soft);
-  font: inherit;
-  font-size: 13px;
 }
-.heroes__search:focus-visible,
-.heroes__search::placeholder { color: var(--muted); }
 .heroes__sort { grid-area: sort; min-width: 0; }
 /* Пикер — общий примитив (ui/PlayerPicker); экран задаёт только его место в сетке. */
 .heroes__player-picker { grid-area: player-search; }

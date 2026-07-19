@@ -74,3 +74,56 @@ test.describe("шеринг забега ссылкой", () => {
     await expect(page.getByTestId("mode-classic")).toBeVisible();
   });
 });
+
+test.describe("поле Seed на экране настроек", () => {
+  test.beforeEach(async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-classic").click();
+    await expect(page.getByTestId("seed-input")).toBeVisible();
+  });
+
+  test("короткий код и полная ссылка запускают один и тот же первый пак", async ({ page }) => {
+    const encoded = await linkFor(page, { seed: "e2e-seed-field" });
+    const seed = page.getByTestId("seed-input");
+    await seed.fill(encoded);
+    await expect(page.getByTestId("seed-status")).toContainText("Seed found");
+    await expect(page.getByTestId("start-run")).toBeEnabled();
+    await page.getByTestId("start-run").click();
+    await expect(page.getByTestId("draft-screen")).toBeVisible();
+    const first = await packSignature(page);
+
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-classic").click();
+    const fullUrl = `${page.url().split("#")[0]}#/run=${encoded}`;
+    await page.getByTestId("seed-input").fill(fullUrl);
+    await expect(page.getByTestId("seed-status")).toContainText("Seed found");
+    await page.getByTestId("start-run").click();
+    await expect(page.getByTestId("draft-screen")).toBeVisible();
+    expect(await packSignature(page)).toEqual(first);
+  });
+
+  test("неизвестный код показывает ошибку и блокирует запуск", async ({ page }) => {
+    const seed = page.getByTestId("seed-input");
+    await seed.fill("definitely-not-a-run-code");
+    await expect(page.getByTestId("seed-input")).toHaveAttribute("aria-invalid", "true");
+    await expect(page.getByTestId("seed-status")).toContainText("Seed not found");
+    await expect(page.getByTestId("start-run")).toBeDisabled();
+
+    // Очистка возвращает прежний golden path: никакой ошибки, обычный случайный запуск.
+    await seed.fill("");
+    await expect(page.getByTestId("seed-status")).toHaveCount(0);
+    await expect(page.getByTestId("start-run")).toBeEnabled();
+  });
+
+  test("несовпадение настроек исправляется выбором настроек сида", async ({ page }) => {
+    const easy = await linkFor(page, { n: -1, seed: "e2e-easy-seed" });
+    await page.getByTestId("seed-input").fill(easy);
+    await expect(page.getByTestId("seed-status")).toContainText("settings differ");
+    await expect(page.getByTestId("seed-status")).toContainText("Easy");
+    await expect(page.getByTestId("start-run")).toBeDisabled();
+
+    await page.getByText("Easy", { exact: true }).click();
+    await expect(page.getByTestId("seed-status")).toContainText("Seed found");
+    await expect(page.getByTestId("start-run")).toBeEnabled();
+  });
+});

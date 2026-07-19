@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   decodeRunLink,
   encodeRunLink,
+  runConfigsMatch,
   runLinkFromHash,
+  runLinkFromInput,
   runLinkHash,
   runLinkIssue,
   runLinkUrl,
+  validateRunLinkInput,
   type RunLink,
 } from "../src/state/runLink.ts";
 import { defaultRunConfig } from "./helpers/packs.ts";
@@ -78,6 +81,16 @@ describe("runLink: ссылка на забег", () => {
     expect(decodeRunLink(btoa(JSON.stringify({ v: 1, hello: "world" })))).toBeNull();
     // Версия из будущего не притворяется совместимой.
     expect(decodeRunLink(btoa(JSON.stringify({ v: 2, seed: "x" })))).toBeNull();
+    const otherwiseValid = { v: 1, s: 1, r: "v1.11.0", m: "classic", d: "team", f: "last_2y", n: 1, c: "event", a: "auto", seed: "x" };
+    for (const changed of [
+      { ...otherwiseValid, m: "unknown" },
+      { ...otherwiseValid, f: "future_window" },
+      { ...otherwiseValid, n: 999 },
+      { ...otherwiseValid, h: 0 },
+      { ...otherwiseValid, seed: "   " },
+    ]) {
+      expect(decodeRunLink(btoa(JSON.stringify(changed)))).toBeNull();
+    }
   });
 
   it("чужой хеш — не ссылка на забег (роутинг оболочки не ломается)", () => {
@@ -103,6 +116,51 @@ describe("runLink: ссылка на забег", () => {
   it("builtAt НЕ влияет на совместимость (иначе ссылка живёт меньше суток)", () => {
     // Датасет пересобирается кроном ежедневно; значимы только schema и модель рейтингов.
     expect(runLinkIssue(base, 1, "v1.11.0")).toBeNull();
+  });
+
+  describe("поле Seed на экране настроек (T3.14)", () => {
+    it("принимает короткий код и полную ссылку, игнорируя пробелы по краям", () => {
+      const code = encodeRunLink(base);
+      expect(runLinkFromInput(`  ${code}\n`)).toEqual(base);
+      expect(runLinkFromInput(`https://example.github.io/aegis-draft/${runLinkHash(base)}`)).toEqual(base);
+    });
+
+    it("отвергает мусор, хвост после payload и чрезмерно длинный ввод", () => {
+      expect(runLinkFromInput("not-a-seed")).toBeNull();
+      expect(runLinkFromInput(`not-a-url${runLinkHash(base)}`)).toBeNull();
+      expect(runLinkFromInput(`${encodeRunLink(base)}&extra=1`)).toBeNull();
+      expect(runLinkFromInput("a".repeat(2049))).toBeNull();
+    });
+
+    it("пустое поле означает обычный случайный запуск, валидное — найденный seed", () => {
+      expect(validateRunLinkInput("  ", "classic", base.config, 1, "v1.11.0"))
+        .toEqual({ link: null, issue: null });
+      expect(validateRunLinkInput(encodeRunLink(base), "classic", base.config, 1, "v1.11.0"))
+        .toEqual({ link: base, issue: null });
+    });
+
+    it("называет точную причину несовместимости и проверяет её в правильном порядке", () => {
+      const code = encodeRunLink(base);
+      expect(validateRunLinkInput("broken", "classic", base.config, 1, "v1.11.0").issue).toBe("invalid");
+      expect(validateRunLinkInput(code, "classic", base.config, 2, "old").issue).toBe("schema");
+      expect(validateRunLinkInput(code, "classic", base.config, 1, "old").issue).toBe("model");
+      expect(validateRunLinkInput(code, "manager", base.config, 1, "v1.11.0").issue).toBe("mode");
+      expect(validateRunLinkInput(code, "classic", { ...base.config, rerolls: 1 }, 1, "v1.11.0").issue).toBe("config");
+    });
+
+    it("считает отсутствующий hardMode и false одинаковыми, но сверяет остальные оси", () => {
+      expect(runConfigsMatch(base.config, { ...base.config, hardMode: false })).toBe(true);
+      for (const changed of [
+        { ...base.config, draftStyle: "mixed" as const },
+        { ...base.config, format: "last_1y" as const },
+        { ...base.config, rerolls: 1 },
+        { ...base.config, scoring: "peak" as const },
+        { ...base.config, allocation: "manual" as const },
+        { ...base.config, hardMode: true },
+      ]) {
+        expect(runConfigsMatch(base.config, changed)).toBe(false);
+      }
+    });
   });
 });
 
