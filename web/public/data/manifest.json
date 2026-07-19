@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "ratingModelVersion": "v1.10.0",
-  "builtAt": "2026-07-19T08:24:48Z",
+  "ratingModelVersion": "v1.11.0",
+  "builtAt": "2026-07-19T13:44:21Z",
   "source": {
     "opendota": "OpenDota API — https://www.opendota.com",
     "liquipedia": "placements/призовые/ростеры — deferred (нет доступа Liquipedia)"
