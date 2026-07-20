@@ -12,6 +12,7 @@
 | Минимум (last_5y) | **~58.9** (перебор среди худших ~12 игроков на роль → 58.88) |
 | Минимум (last_2y) | **~59.2** (перебор среди худших 8 на роль) |
 | 116.90 за ≤100 рероллов? | **Да**, seed `hbfcp4o79` — **91** суммарный реролл при оптимальной стратегии (см. ниже). |
+| 113.10 (last_2y) за ≤100? | **Да**, seed `c23cgfldv` — **79** суммарных рероллов (см. секцию Last 2 years). |
 
 ---
 
@@ -75,7 +76,45 @@ Team OVR    116.9   (отображается как 116.90)
 | Support | Save- | 92 | BoomBoys (`league-19543`) |
 | Support | Kataomi\` | 91 | Cloud9 (`league-16881`) |
 
-Герои: Terrorblade, Storm Spirit, Beastmaster, Muerta, Tusk → base 92.6 + syn 7.5 + chem 13 = **113.10**.
+Герои (пример идеального matching): Terrorblade, Storm Spirit, Beastmaster, Muerta, Tusk → base 92.6 + syn 7.5 + chem 13 = **113.10**.  
+На seed ниже Auto может назначить другой валидный набор с той же синергией 7.5 (см. план).
+
+### Seed за ≤100 рероллов
+
+**Настройки:** Team packs · **Last 2 years** · Easy · Event · Auto · Hard off
+
+**Seed:** `c23cgfldv` — **79** суммарных рероллов (герои 3 + игроки 76)
+
+**Run code:**
+
+```
+eyJ2IjoxLCJzIjoxLCJyIjoidjEuMTIuMCIsIm0iOiJjbGFzc2ljIiwiZCI6InRlYW0iLCJmIjoibGFzdF8yeSIsIm4iOi0xLCJjIjoiZXZlbnQiLCJhIjoiYXV0byIsInNlZWQiOiJjMjNjZ2ZsZHYifQ
+```
+
+**Ссылка:**
+
+```
+https://artemchikolaev.github.io/aegis-draft/#/run=eyJ2IjoxLCJzIjoxLCJyIjoidjEuMTIuMCIsIm0iOiJjbGFzc2ljIiwiZCI6InRlYW0iLCJmIjoibGFzdF8yeSIsIm4iOi0xLCJjIjoiZXZlbnQiLCJhIjoiYXV0byIsInNlZWQiOiJjMjNjZ2ZsZHYifQ
+```
+
+**План действий по шагам (ровно 79 рероллов):**
+
+1. Hero: сделать **3** реролла, взять **Terrorblade**.
+2. Hero: без реролла взять **Beastmaster**.
+3. Hero: без реролла взять **Pugna**.
+4. Hero: без реролла взять **Kunkka**.
+5. Hero: без реролла взять **Lich**.
+6. Player: сделать **12** рероллов, взять **No[o]ne-** (mid 94, Cloud9 / `league-16881`).
+7. Player: сделать **19** рероллов, взять **MieRo** (offlane 91, BoomBoys / `league-19543`).
+8. Player: сделать **26** рероллов, взять **Save-** (support 92, BoomBoys / `league-19543`).
+9. Player: сделать **11** рероллов, взять **Kataomi\`** (support 91, Cloud9 / `league-16881`).
+10. Player: сделать **8** рероллов, взять **Satanic** (safelane 95, TEAM VISION / `league-18111`).
+
+Проверка суммы: герои **3** (3+0+0+0+0), игроки **76** (12+19+26+11+8), всего **79**.
+
+Итог Auto-назначения на этом seed: Satanic→Terrorblade, No[o]ne-→Kunkka, MieRo→Beastmaster, Save-→Pugna, Kataomi\`→Lich → **113.10**.
+
+> Порядок важен: **сначала все 5 героев, потом игроки**. Иначе на том же seed бюджет уедет далеко за 100.
 
 ---
 
