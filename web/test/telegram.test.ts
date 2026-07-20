@@ -70,9 +70,22 @@ describe("watchTelegramColorScheme", () => {
     expect(seen).toEqual([]);
   });
 
+  it("во встроенном браузере Telegram молчит: там colorScheme всегда light по умолчанию", async () => {
+    // Ссылка из чата, а не мини-приложение: WebApp есть, параметров запуска нет.
+    const webApp = { platform: "unknown", colorScheme: "light", onEvent: () => {}, offEvent: () => {} };
+    withWindow({ location: { hash: "" }, Telegram: { WebApp: webApp } });
+
+    const seen: boolean[] = [];
+    const stop = watchTelegramColorScheme((dark) => seen.push(dark));
+    await Promise.resolve();
+    stop();
+    expect(seen).toEqual([]); // системную тему не трогаем — её знает matchMedia
+  });
+
   it("отдаёт тему Telegram и переподписывается на её смену", async () => {
     const listeners: Array<() => void> = [];
     const webApp = {
+      platform: "ios",
       colorScheme: "dark" as "light" | "dark",
       onEvent: (_: string, cb: () => void) => listeners.push(cb),
       offEvent: (_: string, cb: () => void) => listeners.splice(listeners.indexOf(cb), 1),

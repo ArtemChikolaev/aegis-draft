@@ -134,6 +134,13 @@ export function watchTelegramColorScheme(onChange: (prefersDark: boolean) => voi
 
   void loadTelegram().then((webApp) => {
     if (disposed || !webApp) return;
+    // ТОЛЬКО настоящий Mini App. Во ВСТРОЕННОМ БРАУЗЕРЕ Telegram (обычная ссылка, а не
+    // мини-приложение) объект WebApp тоже существует, но параметров запуска нет — и SDK
+    // отдаёт `colorScheme: "light"` по умолчанию. Без этой проверки мы перекрывали системную
+    // тёмную тему светлой у всех, кто просто открыл ссылку из чата (поймано на телефоне
+    // 2026-07-20). Признак — `platform`: у мини-приложения это ios/android/tdesktop/…,
+    // без параметров запуска SDK ставит "unknown".
+    if (webApp.platform === "unknown") return;
     app = webApp;
     sync();
     tgSafe(() => webApp.onEvent("themeChanged", sync));
