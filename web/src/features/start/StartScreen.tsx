@@ -16,6 +16,8 @@ interface Opt<T> {
   label: MessageKey;
   hint?: MessageKey;
   soon?: boolean;
+  /** Опция есть, но недоступна при текущих настройках (в отличие от `soon` — «будет позже»). */
+  disabled?: boolean;
 }
 
 const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: MessageKey; available: boolean }[] = [
@@ -34,8 +36,10 @@ const FORMAT: Opt<Format>[] = [
   { value: "last_5y", label: "start.last5y" },
   { value: "valve_legacy", label: "start.valveLegacy", hint: "start.legacyHint" },
 ];
+/** Сложность = число рероллов пака. Хардкор равен нулю рероллов, отсюда и связка ниже. */
+const HARDCORE_REROLLS = 0;
 const DIFFICULTY: Opt<number>[] = [
-  { value: 0, label: "start.hard", hint: "start.rerolls0" },
+  { value: HARDCORE_REROLLS, label: "start.hard", hint: "start.rerolls0" },
   { value: 1, label: "start.normal", hint: "start.rerolls1" },
   { value: 2, label: "start.smurfing", hint: "start.rerolls2" },
   { value: Infinity, label: "start.easy", hint: "start.rerollsInfinite" },
@@ -83,7 +87,13 @@ export function StartScreen() {
 
   // Перевод Opt<MessageKey> → Option<string> для UIkit OptionGroup.
   const toOptions = <T,>(items: Opt<T>[]): Option<T>[] =>
-    items.map((item) => ({ value: item.value, label: t(item.label), hint: item.hint ? t(item.hint) : undefined, soon: item.soon }));
+    items.map((item) => ({
+      value: item.value,
+      label: t(item.label),
+      hint: item.hint ? t(item.hint) : undefined,
+      soon: item.soon,
+      disabled: item.disabled,
+    }));
 
   const selectedLabels: MessageKey[] = [
     DRAFT.find((option) => option.value === config.draftStyle)?.label ?? "start.teamPacks",
@@ -172,7 +182,12 @@ export function StartScreen() {
         <Surface className="config-panel">
           <OptionGroup title={t("start.draftStyle")} soonLabel={t("common.soon")} options={toOptions(DRAFT)} value={config.draftStyle} onChange={(value) => set("draftStyle", value)} />
           <OptionGroup title={t("start.format")} soonLabel={t("common.soon")} options={toOptions(FORMAT.map((option) => ({ ...option, soon: !formatAvailable(option.value) })))} value={config.format} onChange={(value) => set("format", value)} />
-          <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY)} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
+          <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY.map((option) => ({
+              ...option,
+              // Не просто ставим Hard при включении, а держим: иначе игрок вернул бы Easy
+              // сразу после окна, и забег уехал бы в историю «хардкорным» с рероллами.
+              disabled: (config.hardMode ?? false) && option.value !== HARDCORE_REROLLS,
+            })))} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
           <OptionGroup title={t("start.scoring")} soonLabel={t("common.soon")} options={toOptions(SCORING)} value={config.scoring} onChange={(value) => set("scoring", value)} />
           <OptionGroup title={t("start.allocation")} soonLabel={t("common.soon")} options={toOptions(ALLOCATION)} value={config.allocation} onChange={(value) => set("allocation", value)} />
           <OptionGroup
@@ -224,6 +239,7 @@ export function StartScreen() {
                 <li>{t("hard.rule2")}</li>
                 <li>{t("hard.rule3")}</li>
                 <li>{t("hard.rule4")}</li>
+                <li>{t("hard.rule5")}</li>
               </ul>
               <label className="hard-gate__ack">
                 <input
@@ -238,7 +254,9 @@ export function StartScreen() {
                 variant="danger"
                 disabled={!hardAck}
                 data-testid="hard-gate-confirm"
-                onClick={() => { set("hardMode", true); close(); }}
+                // Хардкор и рероллы несовместимы по смыслу, поэтому включение само ставит
+                // Hard: иначе окно обещало бы «рероллов нет», а на панели остался бы Easy.
+                onClick={() => { setConfig((current) => ({ ...current, hardMode: true, rerolls: HARDCORE_REROLLS })); close(); }}
               >
                 {t("hard.gateConfirm")}
               </Button>

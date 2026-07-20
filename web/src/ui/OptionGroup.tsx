@@ -6,6 +6,8 @@ export interface Option<T> {
   label: string;
   hint?: string;
   soon?: boolean;
+  /** Недоступна при текущих настройках — в отличие от `soon` («будет позже»), бейджа нет. */
+  disabled?: boolean;
 }
 
 /** Группа выбора одной опции (draft style, формат, сложность …). Презентационная. */
@@ -25,7 +27,7 @@ export function OptionGroup<T>({ title, options, value, onChange, soonLabel }: {
             type="button"
             key={String(option.value)}
             className={`${styles.option} ${option.value === value ? styles.active : ""}`}
-            disabled={option.soon}
+            disabled={option.soon || option.disabled}
             aria-pressed={option.value === value}
             onClick={() => onChange(option.value)}
           >
