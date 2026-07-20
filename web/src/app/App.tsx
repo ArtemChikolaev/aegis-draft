@@ -10,6 +10,7 @@ import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
 import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
 import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
+import { CareerScreen } from "../features/career/CareerScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
@@ -75,7 +76,7 @@ export function App() {
         </Banner>
       )}
 
-      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : (
+      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : (
         <>
           {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
           {phase === "start" && <ResumeBanner />}

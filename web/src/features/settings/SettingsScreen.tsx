@@ -80,6 +80,20 @@ export function SettingsScreen() {
         {locked && <Banner tone="locked" title={<>🔒 {t("codex.locked")}</>}>{t("codex.lockedTiles")}</Banner>}
       </Surface>
 
+      {/* История — отдельной секцией от справочника: это твои данные, а не сведения о сцене. */}
+      <Surface className="settings__panel">
+        <h2 className="settings__section">{t("career.eyebrow")}</h2>
+        <nav className="settings__links">
+          <button type="button" className="settings__link" data-testid="open-career" disabled={locked} onClick={() => setView("career")}>
+            <span>
+              <strong>{t("codex.career")}{locked && <span className="settings__lock" aria-hidden="true"> 🔒</span>}</strong>
+              <small>{t("codex.careerHint")}</small>
+            </span>
+            <em>→</em>
+          </button>
+        </nav>
+      </Surface>
+
       {/* Паспорт данных: по какому срезу играем. Версии — те же поля, что решают
           совместимость сейва (state/runPersist), поэтому полезны и при разборе багов. */}
       <Surface className="settings__panel">

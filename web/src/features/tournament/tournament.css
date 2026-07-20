@@ -484,6 +484,9 @@
 /* Разделительной линии не нужно — крупный заголовок «Your run history» и так режет
    страницу на разделы. Но отбивка нужна: 8px поверх gap секции слипались с панелями выше,
    прежние 44+30 под линию давали ~100px пустоты. 32px (с gap секции — ~56px) — середина. */
+/* Карточка забега (.career-run*) переехала в features/career/career.css: её рисует не
+   только эта сводка, но и страница истории в настройках. Здесь остаётся только раскладка
+   пары «статистика / последние забеги» на экране итога. */
 .career-panel { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 18px; margin-top: 32px; padding-top: 0; }
 .career-panel__heading { grid-column: 1 / -1; }
 .career-panel__heading h2 { margin: 10px 0 6px; font-size: clamp(32px, 5vw, 64px); line-height: .95; letter-spacing: -.05em; }
@@ -517,63 +520,6 @@
   clip-path: inset(0 round var(--radius));
   -webkit-overflow-scrolling: touch;
 }
-.career-run {
-  box-sizing: border-box;
-  flex: none;
-  height: var(--career-run-height);
-  overflow: hidden;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  background: var(--surface-soft);
-}
-/* Хардкорный забег. Красный — из --danger (метка режима), а НЕ --tier-weak: та шкала про
-   силу игрока, и «слабый» тут читался бы неверно. Обводка статичная, без блика: хардкор —
-   состояние забега, а не редкая находка, за движение уже отвечают краевые тиры карточек.
-   Три слоя дают «раскалённую» рамку вместо плоской линии: сама рамка, тонкое внешнее
-   свечение и мягкий внутренний подпал от краёв к центру. */
-.career-run--hardcore {
-  border-color: color-mix(in srgb, var(--danger) 52%, var(--line));
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--danger) 16%, transparent),
-    0 0 18px -6px color-mix(in srgb, var(--danger) 45%, transparent),
-    inset 0 0 30px -10px color-mix(in srgb, var(--danger) 60%, transparent);
-}
-.career-run__hard { color: var(--danger); font-style: normal; font-weight: 800; letter-spacing: .08em; }
-.career-run__heading { display: grid; grid-template-columns: auto auto 1fr; align-items: baseline; gap: 12px; }
-.career-run__heading strong { color: var(--accent); font-size: 22px; }
-.career-run__heading span { font-size: 12px; font-weight: 800; }
-.career-run__heading small { justify-self: end; color: var(--muted); font-size: 9px; }
-.career-run__config { margin: 3px 0 8px; color: var(--muted); font-size: 9px; }
-.career-run__roster {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  /* Табличка ростера: обрезка по радиусу карточек игрока (10px). */
-  border-radius: 10px;
-  clip-path: inset(0 round 10px);
-  overflow: hidden;
-}
-/* Чип игрока в истории забегов: тот же словарь тиров, что в паке и ростере (кант золотой —
-   на этой карточке зелёный теряется). Тонировка в фоне, краевые — через ::after в base.css.
-   Фазу блика разводим, иначе у чемпионского состава (элитны все пятеро) строка мигает
-   разом. Два подобранных параметра:
-   1) Шаг МЕНЬШЕ времени прохода блика по одной карточке (~2.9s из цикла 7.2s): при большем
-      шаге соседи не передают свет друг другу и вспыхивают вразнобой (шаг 1.4s так и выглядел).
-   2) Порядок ОБРАТНЫЙ индексу: чем отрицательнее задержка, тем карточка дальше по циклу и
-      вспыхивает РАНЬШЕ. Поэтому самая отрицательная — у первой: волна идёт слева направо.
-      С прямым порядком (-0.6s у второй … -2.4s у пятой) волна шла справа налево. */
-.career-run__roster li:nth-child(1)::after { animation-delay: -2.4s; }
-.career-run__roster li:nth-child(2)::after { animation-delay: -1.8s; }
-.career-run__roster li:nth-child(3)::after { animation-delay: -1.2s; }
-.career-run__roster li:nth-child(4)::after { animation-delay: -0.6s; }
-.career-run__roster li:nth-child(5)::after { animation-delay: 0s; }
-.career-run__roster li { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px; min-width: 0; padding: 6px; border: 1px solid var(--line); border-radius: 10px; background: linear-gradient(120deg, var(--surface) 60%, color-mix(in srgb, var(--card-tint, transparent) 12%, var(--surface))); }
-.career-run__roster li > span:first-child { grid-column: 1 / -1; justify-self: start; }
-.career-run__roster strong { overflow: hidden; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .tournament__actions { width: min(760px, 100%); margin-left: auto; margin-top: 8px; }
 .tournament__restart { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .tournament__restart > button { min-height: 52px; }
