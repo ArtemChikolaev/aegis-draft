@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "gen:mock": "node scripts/gen_mock.mjs",
+    "gen:bot-assets": "node scripts/render_bot_assets.mjs",
     "validate:data": "node ../.claude/skills/data-contract/tools/validate_data.mjs public/data"
   },
   "dependencies": {

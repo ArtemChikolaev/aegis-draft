@@ -18,6 +18,7 @@ import {
   squadChemistryRows,
 } from "../../game/score.ts";
 import { useHero } from "./heroes.ts";
+import { tgHaptic } from "../../tma/telegram.ts";
 import type { Candidate } from "../../game/packs.ts";
 import "./draft.css";
 
@@ -127,7 +128,7 @@ export function DraftScreen() {
         <div className="candidates">
           {currentPack.candidates.map((candidate, index) => (
             <Dealt key={`${packSerial}:${candidate.player.accountId}`} index={index}>
-              <CandidateCard candidate={candidate} enabled={canPickPlayer(index)} onPick={() => pickPlayer(index)} index={index} />
+              <CandidateCard candidate={candidate} enabled={canPickPlayer(index)} onPick={() => { tgHaptic(); pickPlayer(index); }} index={index} />
             </Dealt>
           ))}
         </div>
@@ -143,7 +144,7 @@ export function DraftScreen() {
               return (
                 // Нумерация сквозная: герои идут после игроков, пак раздаётся одной волной.
                 <Dealt key={`${packSerial}:${id}`} index={currentPack.candidates.length + index}>
-                  <button type="button" className="hero-pick hero-pick--card" disabled={!canPickHero(id)} onClick={() => pickHero(id)} data-testid={`pack-hero-${id}`}>
+                  <button type="button" className="hero-pick hero-pick--card" disabled={!canPickHero(id)} onClick={() => { tgHaptic(); pickHero(id); }} data-testid={`pack-hero-${id}`}>
                     <HeroThumb picture={h.picture} name={h.name} layout="card" />
                   </button>
                 </Dealt>

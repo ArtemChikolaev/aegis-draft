@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { watchTelegramColorScheme } from "../../tma/telegram.ts";
 import { isThemeMode, resolveTheme, type ResolvedTheme, type ThemeMode } from "./core.ts";
 
 const STORAGE_KEY = "aegis-draft.theme";
@@ -29,6 +30,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, []);
+
+  // В Telegram «система» — это тема Telegram, а не ОС: splash он рисует по своей теме ещё до
+  // старта нашего кода, и при расхождении первый кадр приложения перекрашивается на глазах.
+  // Подписка приходит позже matchMedia (SDK грузится асинхронно) и потому перекрывает его —
+  // так и задумано. Явный выбор light/dark пользователя это не трогает: prefersDark участвует
+  // только в режиме "system" (resolveTheme).
+  useEffect(() => watchTelegramColorScheme(setPrefersDark), []);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, mode);

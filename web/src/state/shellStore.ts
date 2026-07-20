@@ -42,7 +42,9 @@ export const useShell = create<ShellStore>((set, get) => ({
     if (typeof window === "undefined") return;
     const next = hashForView(view);
     // Именно pushState: каждый переход — запись в истории, иначе «назад» уводит из приложения.
-    window.history.pushState(null, "", next || window.location.pathname + window.location.search);
+    // В state кладём метку: по ней кнопка «назад» Telegram отличает «есть куда возвращаться
+    // внутри приложения» от «открыли сразу этот экран по ссылке» (src/tma/useTelegramShell).
+    window.history.pushState({ aegisView: view }, "", next || window.location.pathname + window.location.search);
     scrollToViewStart();
   },
 

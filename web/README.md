@@ -30,6 +30,11 @@ web/src/
 │  ├─ settings/    #   язык, тема, паспорт датасета и ссылки на справочники
 │  ├─ heroes/      #   справочник: популярность героев (+ режим выбранного игрока)
 │  └─ teammates/   #   справочник: ростер-веб (кто с кем играл в одном ростере)
+├─ tma/          # адаптер Telegram Mini App — ЕДИНСТВЕННОЕ место, знающее про Telegram:
+│                #   ленивая загрузка SDK, BackButton↔shellStore, цвет чрома, хаптика.
+│                #   Вне Telegram весь модуль — no-op (features/ и ui/ о нём не знают).
+│                #   Единственный потребитель за пределами app/ — ThemeProvider: в режиме
+│                #   "system" тема берётся у Telegram, а не у ОС (палитра остаётся наша)
 ├─ game/         # логика: score/assign/packs/engine/tournament/rng (не зависит от UI)
 ├─ data/         # DataSource (загрузка JSON)
 ├─ state/        # Zustand-сторы: runStore (забег), shellStore (вид), careerStore (история),

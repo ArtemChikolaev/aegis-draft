@@ -10,6 +10,7 @@ import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
 import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
 import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
+import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
 import "./App.css";
 
@@ -22,6 +23,9 @@ export function App() {
   const setView = useShell((s) => s.setView);
   const syncFromHash = useShell((s) => s.syncFromHash);
   const syncLinkFromHash = useRun((s) => s.syncLinkFromHash);
+
+  // Шелл Telegram (кнопка «назад», цвет хедера, подтверждение закрытия). Вне Telegram — no-op.
+  useTelegramShell();
 
   useEffect(() => {
     void loadData();
