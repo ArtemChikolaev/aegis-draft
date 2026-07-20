@@ -16,8 +16,8 @@ import {
   freezeRoster,
   frozenRostersMatch,
   isSavedRunResumable,
-  loadSavedRun,
-  loadTeamName,
+  loadSavedRunAsync,
+  loadTeamNameAsync,
   saveRun,
   saveTeamName,
   type RunAction,
@@ -228,8 +228,13 @@ export const useRun = create<RunStore>((set, get) => {
 
     async loadData() {
       try {
-        const data = await new StaticDataSource().load();
-        const rawSaved = loadSavedRun();
+        // Сейв и имя команды читаем ПАРАЛЛЕЛЬНО с данными: в Telegram это поход в CloudStorage,
+        // и последовательные ожидания сложились бы в заметную паузу перед стартовым экраном.
+        const [data, rawSaved, savedTeamName] = await Promise.all([
+          new StaticDataSource().load(),
+          loadSavedRunAsync(),
+          loadTeamNameAsync(),
+        ]);
         const { schemaVersion, ratingModelVersion, builtAt } = data.manifest;
         // Пустой actions = только стартовали; первый пак уже зафиксирован seed'ом — resume нужен.
         const saved = isSavedRunResumable(rawSaved, schemaVersion, ratingModelVersion, builtAt)
@@ -243,7 +248,7 @@ export const useRun = create<RunStore>((set, get) => {
         set({
           data,
           phase: "start",
-          teamName: loadTeamName(),
+          teamName: savedTeamName,
           resumable: saved,
           pendingLink: link,
           pendingLinkIssue: link ? runLinkIssue(link, schemaVersion, ratingModelVersion) : null,

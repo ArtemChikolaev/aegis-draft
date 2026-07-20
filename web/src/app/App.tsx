@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRun } from "../state/runStore.ts";
 import { useShell } from "../state/shellStore.ts";
+import { useCareer } from "../state/careerStore.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { RunLinkPrompt } from "../features/start/RunLinkPrompt.tsx";
@@ -30,6 +31,12 @@ export function App() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  // Карьера рисуется из синхронного кэша, а в Telegram он между запусками пустеет (T9.6) —
+  // догружаем из CloudStorage. Вне Telegram читает тот же кэш и ничего не меняет.
+  useEffect(() => {
+    void useCareer.getState().hydrate();
+  }, []);
 
   // Кнопка «назад» браузера: на телефоне это единственный способ уйти со страницы.
   useEffect(() => {

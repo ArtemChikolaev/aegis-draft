@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { watchTelegramColorScheme } from "../../tma/telegram.ts";
+import { readCached, readPersisted, writePersisted } from "../../state/persist.ts";
 import { isThemeMode, resolveTheme, type ResolvedTheme, type ThemeMode } from "./core.ts";
 
 const STORAGE_KEY = "aegis-draft.theme";
@@ -15,7 +16,8 @@ const ThemeContext = createContext<ThemeValue | null>(null);
 
 function initialMode(): ThemeMode {
   if (typeof window === "undefined") return "system";
-  const stored = window.localStorage.getItem(STORAGE_KEY);
+  // Синхронно и только из кэша: первый кадр рисуется до всякого асинхронного хранилища.
+  const stored = readCached(STORAGE_KEY);
   return isThemeMode(stored) ? stored : "system";
 }
 
@@ -38,14 +40,31 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // только в режиме "system" (resolveTheme).
   useEffect(() => watchTelegramColorScheme(setPrefersDark), []);
 
+  // Выбор темы в Telegram переживает перезапуск только через CloudStorage: кэш webview
+  // очищается (T9.6). Флаг «игрок уже трогал» защищает от гонки — облако не должно
+  // перебить переключение, сделанное за те миллисекунды, пока оно отвечало.
+  const touched = useRef(false);
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, mode);
+    let alive = true;
+    void readPersisted(STORAGE_KEY).then((stored) => {
+      if (!alive || touched.current || !isThemeMode(stored)) return;
+      setMode(stored);
+    });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    void writePersisted(STORAGE_KEY, mode);
     document.documentElement.dataset.themeMode = mode;
     document.documentElement.dataset.theme = resolved;
     document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved === "dark" ? "#080b12" : "#f3f6fb");
   }, [mode, resolved]);
 
-  const value = useMemo(() => ({ mode, resolved, setMode }), [mode, resolved]);
+  const value = useMemo(() => ({
+    mode,
+    resolved,
+    setMode: (next: ThemeMode) => { touched.current = true; setMode(next); },
+  }), [mode, resolved]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

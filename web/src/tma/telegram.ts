@@ -39,6 +39,17 @@ export interface TelegramWebApp {
     impactOccurred(style: HapticStyle): void;
     selectionChanged(): void;
   };
+  /**
+   * Хранилище на стороне Telegram, привязанное к паре «пользователь × бот». Сервера не требует.
+   * Ограничения (закодированы в state/persist.ts): ключ `[A-Za-z0-9_-]{1,128}`, значение до
+   * 4096 символов, до 1024 ключей на пользователя. Bot API 6.9+ — на старых клиентах его нет.
+   */
+  CloudStorage?: {
+    getItem(key: string, cb: (err: string | null, value?: string) => void): void;
+    getItems(keys: string[], cb: (err: string | null, values?: Record<string, string>) => void): void;
+    setItem(key: string, value: string, cb?: (err: string | null, ok?: boolean) => void): void;
+    removeItems(keys: string[], cb?: (err: string | null, ok?: boolean) => void): void;
+  };
 }
 
 declare global {

@@ -7,6 +7,7 @@
 import type { RosterSlot } from "../game/engine.ts";
 import type { RunConfig } from "../game/packs.ts";
 import type { Role } from "../types/data.ts";
+import { readCached, readPersisted, removePersisted, writePersisted } from "./persist.ts";
 
 export type RunMode = "classic" | "manager" | "tournament";
 
@@ -43,11 +44,8 @@ const RUN_KEY = "aegis:run:v1";
 const TEAM_KEY = "aegis:teamName:v1";
 
 export function saveRun(run: SavedRun): void {
-  try {
-    localStorage.setItem(RUN_KEY, JSON.stringify(run));
-  } catch {
-    /* localStorage недоступен (private mode) — просто не персистим */
-  }
+  // Синхронно в кэш + фоном в CloudStorage (state/persist): в webview Telegram кэш эфемерный.
+  void writePersisted(RUN_KEY, JSON.stringify(run));
 }
 
 /**
@@ -61,9 +59,8 @@ export function normalizeSavedRun(run: SavedRun): SavedRun {
   return { ...run, config: { ...run.config, rerolls: Infinity } };
 }
 
-export function loadSavedRun(): SavedRun | null {
+function parseSavedRun(raw: string | null): SavedRun | null {
   try {
-    const raw = localStorage.getItem(RUN_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SavedRun;
     if (!parsed || parsed.v !== 1 || !Array.isArray(parsed.actions)) return null;
@@ -73,12 +70,18 @@ export function loadSavedRun(): SavedRun | null {
   }
 }
 
+/** Синхронное чтение из кэша. В Telegram кэш может быть пуст — там нужен `loadSavedRunAsync`. */
+export function loadSavedRun(): SavedRun | null {
+  return parseSavedRun(readCached(RUN_KEY));
+}
+
+/** Чтение с учётом облака: зовётся из `loadData`, который и так асинхронный. */
+export async function loadSavedRunAsync(): Promise<SavedRun | null> {
+  return parseSavedRun(await readPersisted(RUN_KEY));
+}
+
 export function clearSavedRun(): void {
-  try {
-    localStorage.removeItem(RUN_KEY);
-  } catch {
-    /* ignore */
-  }
+  void removePersisted(RUN_KEY);
 }
 
 /** Сейв совместим с текущим датасетом (иначе паки/seed разошлись — resume невалиден). */
@@ -137,17 +140,14 @@ export function frozenRostersMatch(saved: FrozenRosterSlot[], replayed: FrozenRo
 }
 
 export function saveTeamName(name: string): void {
-  try {
-    localStorage.setItem(TEAM_KEY, name);
-  } catch {
-    /* ignore */
-  }
+  void writePersisted(TEAM_KEY, name);
 }
 
 export function loadTeamName(): string {
-  try {
-    return localStorage.getItem(TEAM_KEY) ?? "";
-  } catch {
-    return "";
-  }
+  return readCached(TEAM_KEY) ?? "";
+}
+
+/** Имя команды с учётом облака — читается там же, где сейв забега. */
+export async function loadTeamNameAsync(): Promise<string> {
+  return (await readPersisted(TEAM_KEY)) ?? "";
 }

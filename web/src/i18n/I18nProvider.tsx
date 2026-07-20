@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { detectLocale, translate, type Locale, type MessageKey } from "./core.ts";
+import { readCached, readPersisted, writePersisted } from "../state/persist.ts";
 
 const STORAGE_KEY = "aegis-draft.locale";
 
@@ -13,20 +14,33 @@ const I18nContext = createContext<I18nValue | null>(null);
 
 function initialLocale(): Locale {
   if (typeof window === "undefined") return "en";
-  return detectLocale(window.localStorage.getItem(STORAGE_KEY), window.navigator.language);
+  // Только кэш: первый кадр рисуется до ответа асинхронного хранилища (см. state/persist.ts).
+  return detectLocale(readCached(STORAGE_KEY), window.navigator.language);
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(initialLocale);
 
+  // Язык в Telegram переживает перезапуск только через CloudStorage (T9.6). Флаг «игрок уже
+  // трогал» не даёт облаку перебить выбор, сделанный пока оно отвечало.
+  const touched = useRef(false);
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, locale);
+    let alive = true;
+    void readPersisted(STORAGE_KEY).then((stored) => {
+      if (!alive || touched.current || !stored) return;
+      setLocale(detectLocale(stored, window.navigator.language));
+    });
+    return () => { alive = false; };
+  }, []);
+
+  useEffect(() => {
+    void writePersisted(STORAGE_KEY, locale);
     document.documentElement.lang = locale;
   }, [locale]);
 
   const value = useMemo<I18nValue>(() => ({
     locale,
-    setLocale,
+    setLocale: (next: Locale) => { touched.current = true; setLocale(next); },
     t: (key, vars) => translate(locale, key, vars),
   }), [locale]);
 

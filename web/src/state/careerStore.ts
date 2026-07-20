@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { readCached, readPersisted, writePersisted } from "./persist.ts";
 import type { RosterSlot } from "../game/engine.ts";
 import type { DraftStyle, RunConfig, Scoring } from "../game/packs.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
@@ -64,6 +65,8 @@ interface PersistedCareer {
 interface CareerStore {
   entries: CareerEntry[];
   record: (entry: CareerEntry) => boolean;
+  /** Догрузка из CloudStorage (T9.6). Вне Telegram — no-op поверх того же кэша. */
+  hydrate: () => Promise<void>;
 }
 
 const CAREER_KEY = "aegis:career:v1";
@@ -214,9 +217,8 @@ export function summarizeCareer(entries: CareerEntry[]): CareerSummary {
   return { runs: entries.length, placements, undefeated, flawlessGroups, gamesWon, gamesLost };
 }
 
-function loadCareer(): CareerEntry[] {
+function parseCareer(raw: string | null): CareerEntry[] {
   try {
-    const raw = localStorage.getItem(CAREER_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as PersistedCareer;
     return parsed?.v === 1 && Array.isArray(parsed.entries) ? parsed.entries : [];
@@ -226,16 +228,15 @@ function loadCareer(): CareerEntry[] {
 }
 
 function saveCareer(entries: CareerEntry[]): void {
-  try {
-    const persisted: PersistedCareer = { v: 1, entries };
-    localStorage.setItem(CAREER_KEY, JSON.stringify(persisted));
-  } catch {
-    /* private mode/quota: keep the in-memory session alive */
-  }
+  const persisted: PersistedCareer = { v: 1, entries };
+  // Карьера — единственное, что не влезает в одно значение CloudStorage (873 байта на забег
+  // против лимита 4096), поэтому persist режет её на чанки. См. state/persist.ts.
+  void writePersisted(CAREER_KEY, JSON.stringify(persisted));
 }
 
 export const useCareer = create<CareerStore>((set, get) => ({
-  entries: loadCareer(),
+  // Первый кадр — из синхронного кэша; облако догружается hydrate() из App.
+  entries: parseCareer(readCached(CAREER_KEY)),
   record(entry) {
     const current = get().entries;
     const next = appendCareerEntry(current, entry);
@@ -243,5 +244,14 @@ export const useCareer = create<CareerStore>((set, get) => ({
     saveCareer(next);
     set({ entries: next });
     return true;
+  },
+
+  async hydrate() {
+    const remote = parseCareer(await readPersisted(CAREER_KEY));
+    if (!remote.length) return;
+    // ОБЪЕДИНЯЕМ, а не заменяем: забег, дописанный в кэш, пока облако ещё отвечало, иначе
+    // потерялся бы. Дедуп по runId живёт в appendCareerEntry — второго правила не заводим.
+    const merged = remote.reduce(appendCareerEntry, get().entries);
+    if (merged.length !== get().entries.length) set({ entries: merged });
   },
 }));

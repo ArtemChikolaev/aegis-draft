@@ -38,7 +38,8 @@ web/src/
 ├─ game/         # логика: score/assign/packs/engine/tournament/rng (не зависит от UI)
 ├─ data/         # DataSource (загрузка JSON)
 ├─ state/        # Zustand-сторы: runStore (забег), shellStore (вид), careerStore (история),
-│                #   runPersist (сейв через replay лога), runLink (кодек ссылки/сида)
+│                #   runPersist (сейв через replay лога), runLink (кодек ссылки/сида),
+│                #   persist (КУДА пишем: CloudStorage в Telegram, localStorage в вебе)
 └─ types/        # типы из schema/
 public/data/     # ← сюда пайплайн кладёт JSON
 ```
@@ -59,6 +60,7 @@ public/data/     # ← сюда пайплайн кладёт JSON
 - **DataSource** — абстракция над источником данных (статика сейчас → API в фазе 2).
 - **heroes/heroPopularity.ts** — единая агрегация career player×hero для общего свода и режима выбранного игрока; UI не дублирует расчёт и не ходит во внешний API.
 - **teammates/teammateGraph.ts** — совместные ростеры игроков в окне (ростер-веб справочника).
+- **state/persist.ts** — единственное место, знающее, КУДА мы пишем. В Telegram источник правды — `CloudStorage` (в webview `localStorage` не переживает перезапуск), в вебе — `localStorage`. Он же режет длинные значения на чанки: карьера (≈873 байта на забег) не влезает в лимит 4096 уже на ~5 забегах. localStorage остаётся синхронным кэшем для первого кадра — тема и язык нужны до React, а облако асинхронное.
 - **state/runPersist.ts** — сейв не сериализует забег целиком: хранит `config + seed + лог действий` и восстанавливает детерминированным replay; несовместимый с новым датасетом сейв отбрасывается.
 - **state/runLink.ts** — кодек ссылки/сид-кода: ссылка несёт **условия** забега (seed + config + версии), а не результат — те же паки, драфтит получатель сам.
 
