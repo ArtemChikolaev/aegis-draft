@@ -1176,14 +1176,14 @@
   },
   "7119388": {
     "last_1y": {
-      "successScore": 41.85,
-      "games": 247,
-      "winrate": 0.587
+      "successScore": 41.51,
+      "games": 244,
+      "winrate": 0.582
     },
     "last_2y": {
-      "successScore": 43.21,
-      "games": 507,
-      "winrate": 0.6055
+      "successScore": 43.33,
+      "games": 504,
+      "winrate": 0.6071
     },
     "last_5y": {
       "successScore": 46.11,
@@ -1686,9 +1686,9 @@
       "winrate": 0.5129
     },
     "last_2y": {
-      "successScore": 37.27,
-      "games": 428,
-      "winrate": 0.5117
+      "successScore": 37.45,
+      "games": 426,
+      "winrate": 0.5141
     },
     "last_5y": {
       "successScore": 38.97,
@@ -1738,14 +1738,14 @@
   },
   "8291895": {
     "last_1y": {
-      "successScore": 40.23,
-      "games": 227,
-      "winrate": 0.5551
+      "successScore": 40.58,
+      "games": 225,
+      "winrate": 0.56
     },
     "last_2y": {
-      "successScore": 42.62,
-      "games": 514,
-      "winrate": 0.5895
+      "successScore": 42.6,
+      "games": 511,
+      "winrate": 0.589
     },
     "last_5y": {
       "successScore": 44.22,
@@ -2382,9 +2382,9 @@
   },
   "8894818": {
     "last_2y": {
-      "successScore": 35,
-      "games": 16,
-      "winrate": 0.5
+      "successScore": 33.48,
+      "games": 13,
+      "winrate": 0.4615
     },
     "last_5y": {
       "successScore": 41.12,
@@ -2447,9 +2447,9 @@
       "winrate": 0.5789
     },
     "last_2y": {
-      "successScore": 40.7,
-      "games": 33,
-      "winrate": 0.6061
+      "successScore": 40.53,
+      "games": 28,
+      "winrate": 0.6071
     },
     "last_5y": {
       "successScore": 41.48,
@@ -2459,9 +2459,9 @@
   },
   "9247354": {
     "last_1y": {
-      "successScore": 45.18,
-      "games": 244,
-      "winrate": 0.6189
+      "successScore": 45.75,
+      "games": 241,
+      "winrate": 0.6266
     },
     "last_2y": {
       "successScore": 43.92,
@@ -3107,9 +3107,9 @@
   },
   "9824702": {
     "last_1y": {
-      "successScore": 44.03,
-      "games": 52,
-      "winrate": 0.6538
+      "successScore": 43.17,
+      "games": 50,
+      "winrate": 0.64
     },
     "last_2y": {
       "successScore": 43.08,
