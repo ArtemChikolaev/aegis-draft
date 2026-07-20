@@ -85,7 +85,12 @@ jobs:
   deploy:
     name: Deploy to GitHub Pages
     needs: [pipeline, web, antipatterns]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # workflow_dispatch пускаем в деплой намеренно. Артефакт `github-pages` собирается ВНУТРИ
+    # этого джоба, поэтому «Re-run failed jobs» заливает в тот же run второй артефакт с тем же
+    # именем, и deploy-pages падает на «Multiple artifacts named github-pages» (поймано 2026-07-20
+    # после аварии Pages). Лечится только НОВЫМ запуском — без этого условия единственным
+    # способом его получить был бы пустой коммит.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       pages: write
