@@ -1,0 +1,42 @@
+# Fly.io — публичный деплой контейнера server/ (T9.0, ADR 0002).
+# Один сервис, без k8s. Игровые данные тут НЕ живут — они static-first на CDN (GitHub Pages).
+# Деплой воспроизводим командой: из server/ — `fly deploy`. CI — .github/workflows/deploy-server.yml.
+#
+# Имя приложения и регион можно сменить (`fly apps create <name>`, primary_region).
+# fra = Frankfurt, ближе к RU/EU-аудитории; список — `fly platform regions`.
+
+app = 'aegis-draft-api'
+primary_region = 'fra'
+
+[build]
+  # Собираем наш многоступенчатый Dockerfile (лежит рядом), а не билдпаки Fly.
+  dockerfile = 'Dockerfile'
+
+[env]
+  # Не секреты — обычная конфигурация. Секреты (DATABASE_URL, BOT_TOKEN, …) кладём
+  # через `fly secrets set`, они инъектятся в env и читаются config.Load(). См. README.
+  APP_ENV = 'prod'
+  PORT = '8080'
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Idle → машина усыпляется (suspend), стоимость простоя ~ноль. Resume у Fly — сотни мс
+  # (не Render-cold-start). Когда встанет webhook бота (T9.1) — поднять min до 1.
+  auto_stop_machines = 'suspend'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+  # Liveness снаружи — тот самый /healthz из DoD T9.0. БД не трогает (это readiness, позже).
+  [[http_service.checks]]
+    interval = '15s'
+    timeout = '2s'
+    grace_period = '5s'
+    method = 'GET'
+    path = '/healthz'
+
+[[vm]]
+  # Health-сервер на Go крошечный; самый дешёвый инстанс. Поднимем при появлении БД/нагрузки.
+  size = 'shared-cpu-1x'
+  memory = '256mb'
