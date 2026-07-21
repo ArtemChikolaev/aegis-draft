@@ -4,7 +4,7 @@
 
 ## Стек (T8.0)
 - **Router:** `chi` (поверх stdlib `net/http`).
-- **БД:** Postgres, запросы через `sqlc`, миграции `goose` (с T8.2).
+- **БД:** Postgres, запросы через `sqlc`, миграции `goose` (T8.2 — `users`/`identities`).
 - **Auth:** Steam OpenID, **опционально** — анонимная игра работает без логина (local-first), вход только для синхронизации/лидерборда (с T8.3).
 
 ## Слои (`internal/`, не пробивать)
@@ -34,6 +34,21 @@ curl http://localhost:8080/api/healthz
 Сборка образа: `docker compose -f infra/docker-compose.yml build api`
 ```
 
+## БД и стор — `users`/`identities` (T8.2, срез аккаунтов)
+Схема — единственный источник в goose-миграциях [`internal/store/migrations`](internal/store/migrations); запросы типобезопасные через `sqlc`. `users.id` — личность приложения (НЕ игровой `accountId`); способ входа (telegram/google/steam) — в `identities`, «любой один» из ADR 0002.
+
+- **Миграции на старте:** `store.Migrate` (goose, embed) прогоняется в `main`, если задан `DATABASE_URL`. Без него сервер поднимается **без БД** (liveness ок, `/readyz` → `"disabled"`) — для локали без Docker.
+- **Стор:** `store.UserRepo.FindOrCreateByIdentity` — идемпотентный find-or-create в транзакции (гонка по `UNIQUE(provider,uid)` → перечитывание). Наружу отдаёт `model`-типы, не `sqlcgen` (граница слоя).
+- **Тесты стора** гоняются против реального Postgres из `DATABASE_URL`; без него **скипаются** (локально зелено). В CI их поднимает postgres service-container (`ci.yml`, джоб `server`).
+
+**Регенерация после правки SQL** (схемы/запросов) — коммитим сгенерированное:
+```bash
+go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0   # разово
+cd server && "$(go env GOPATH)/bin/sqlc" generate        # → internal/store/sqlcgen/
+```
+
+**Локальный прогон с БД** (нужен свой Postgres): `DATABASE_URL=postgres://… go test ./...`.
+
 ## Публичный деплой (Fly.io, T9.0)
 Один контейнер, без k8s (ADR 0002). Конфиг — [`fly.toml`](fly.toml) рядом; Fly собирает наш `Dockerfile` напрямую. Игровые данные тут НЕ живут — они static-first на GitHub Pages.
 
@@ -55,6 +70,6 @@ fly tokens create deploy -x 999999h      # deploy-scoped токен
 **Секреты приложения из env** (появятся с БД/ботом): `fly secrets set DATABASE_URL=… BOT_TOKEN=…` — Fly инъектит их в env, читает `config.Load()`. В `fly.toml` держим только НЕсекретное (`APP_ENV`, `PORT`).
 
 ## Статус
-Скелет (T8.1): health, конфиг, единый контракт ошибок, graceful shutdown. Дальше — БД+миграции (T8.2), auth (T8.3), сейвы (T8.4), дейлик/ре-симуляция (T8.5), лидерборд (T8.6). См. [BACKLOG M8](../docs/BACKLOG.md).
+Скелет (T8.1) + срез аккаунтов (T8.2): health/readiness, конфиг, единый контракт ошибок, graceful shutdown, `users`/`identities` (goose+sqlc), валидатор Telegram initData (T9.8). Дальше — auth-эндпоинт (T8.3), сейвы (T8.4), дейлик/ре-симуляция (T8.5), лидерборд (T8.6). См. [BACKLOG M8](../docs/BACKLOG.md).
 
 > Анти-чит (T8.5): дейлик/лидерборд валидируются сервером ре-симуляцией на Go. Для переиспользования `pipeline/internal/{model,rating}` потребуется вынести их из `internal/` в общий модуль (кросс-модульно `internal/` не импортируется) — решить в T8.5.

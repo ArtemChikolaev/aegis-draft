@@ -1,0 +1,25 @@
+# sqlc — типобезопасные запросы из SQL (ADR 0002). Схема читается из goose-миграций
+# (sqlc понимает `-- +goose Up/Down` и игнорирует Down). Генерируемый код коммитим.
+# Генерация: из server/ — `sqlc generate` (бинарь: см. server/README «Стор»).
+version: "2"
+sql:
+  - engine: postgresql
+    schema: internal/store/migrations
+    queries: internal/store/queries
+    gen:
+      go:
+        package: sqlcgen
+        out: internal/store/sqlcgen
+        sql_package: pgx/v5
+        emit_json_tags: false
+        emit_interface: false
+        emit_empty_slices: true
+        overrides:
+          - db_type: uuid
+            go_type:
+              import: github.com/google/uuid
+              type: UUID
+          - db_type: timestamptz
+            go_type:
+              import: time
+              type: Time
