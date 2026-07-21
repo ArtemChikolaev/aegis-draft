@@ -50,16 +50,14 @@ export function useTelegramShell(): void {
     tgSafe(() => (canGoBack() ? app.BackButton.show() : app.BackButton.hide()));
   }, [app, view, selectedMode, phase]);
 
-  // Настройки — в системное «…»-меню Telegram (SettingsButton). Пока меню активно, прячем
+  // Настройки — в системное «…»-меню Telegram (SettingsButton). Пока меню доступно, прячем
   // нашу кнопку в топбаре (флаг settingsInMenu). На старых клиентах SettingsButton нет —
   // флаг остаётся false, наша кнопка на месте (фолбэк).
   useEffect(() => {
-    if (!app) return;
+    if (!app?.SettingsButton) return;
     const settings = app.SettingsButton;
-    if (!settings) return;
     const onSettings = () => setView("settings");
     tgSafe(() => settings.onClick(onSettings));
-    tgSafe(() => settings.show());
     useTmaChrome.getState().setSettingsInMenu(true);
     return () => {
       tgSafe(() => settings.offClick(onSettings));
@@ -67,6 +65,14 @@ export function useTelegramShell(): void {
       useTmaChrome.getState().setSettingsInMenu(false);
     };
   }, [app, setView]);
+
+  // Прячем пункт «Настройки» из «…»-меню, когда мы УЖЕ на странице настроек: предлагать
+  // «в настройки», стоя в настройках, незачем. На остальных экранах пункт виден.
+  useEffect(() => {
+    const settings = app?.SettingsButton;
+    if (!settings) return;
+    tgSafe(() => (view === "settings" ? settings.hide() : settings.show()));
+  }, [app, view]);
 
   // Fullscreen (T9.10). В fullscreen приложение уезжает во весь холст, а кнопки Telegram
   // (back/collapse/…) становятся ПЛАВАЮЩИМИ поверх нашего верха. requestFullscreen есть с
@@ -77,11 +83,33 @@ export function useTelegramShell(): void {
   useEffect(() => {
     if (!app) return;
     tgSafe(() => app.requestFullscreen?.());
-    const apply = () => applyTelegramInsets(app);
+    const apply = () => {
+      applyTelegramInsets(app);
+      // Вход/выход fullscreen сбрасывает запрет вертикальных свайпов обратно — переустанавливаем,
+      // иначе Telegram снова перехватывает свайп пальцем и контент перестаёт скроллиться вниз.
+      tgSafe(() => app.disableVerticalSwipes?.());
+    };
     apply();
     const events: TelegramEvent[] = ["fullscreenChanged", "safeAreaChanged", "contentSafeAreaChanged"];
     events.forEach((event) => tgSafe(() => app.onEvent(event, apply)));
     return () => events.forEach((event) => tgSafe(() => app.offEvent(event, apply)));
+  }, [app]);
+
+  // Скролл пальцем в fullscreen держится на disableVerticalSwipes. При «Закрыть» → открыть
+  // Telegram переиспользует ТЁПЛЫЙ вебвью (хук не перемонтируется, вызов с маунта не повторяется),
+  // а свернуть/развернуть сбрасывает жест — и свайп снова перехватывается Telegram (баг: после
+  // resume не скроллится вниз). Переустанавливаем запрет на возврате вебвью в фокус/видимость.
+  useEffect(() => {
+    if (!app) return;
+    const reassert = () => {
+      if (document.visibilityState === "visible") tgSafe(() => app.disableVerticalSwipes?.());
+    };
+    window.addEventListener("focus", reassert);
+    document.addEventListener("visibilitychange", reassert);
+    return () => {
+      window.removeEventListener("focus", reassert);
+      document.removeEventListener("visibilitychange", reassert);
+    };
   }, [app]);
 
   // Тема остаётся наша (design-language: pure black — часть айдентики), Telegram лишь

@@ -94,6 +94,11 @@ export function SettingsScreen() {
             <em>→</em>
           </button>
         </nav>
+        {locked && (
+          <Banner tone="locked" title={<>🔒 {t("codex.locked")}</>}>
+            {t("career.lockedHistory")}
+          </Banner>
+        )}
       </Surface>
 
       {/* Паспорт данных: по какому срезу играем. Версии — те же поля, что решают
