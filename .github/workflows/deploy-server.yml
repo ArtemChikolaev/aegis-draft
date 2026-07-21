@@ -18,53 +18,52 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Пока в репозитории нет секрета FLY_API_TOKEN (аккаунт Fly ещё не заведён — см. T9.0),
+  # deploy-job ниже чисто ПРОПУСКАЕТСЯ (skipped), а не падает красным. Секрет в job-level
+  # `if` по контракту GitHub недоступен, а output этого джоба (контекст needs) — доступен.
+  check:
+    name: есть ли FLY_API_TOKEN
+    runs-on: ubuntu-latest
+    outputs:
+      present: ${{ steps.guard.outputs.present }}
+    steps:
+      - id: guard
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          set +e
+          present=false
+          if [ -n "$FLY_API_TOKEN" ]; then present=true; fi
+          echo "present=$present" >> "$GITHUB_OUTPUT"
+          echo "FLY_API_TOKEN present=$present"
+          exit 0
+
   deploy:
     name: fly deploy
+    needs: check
+    if: needs.check.outputs.present == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: server
     steps:
-      # Guard: пока в репозитории нет секрета FLY_API_TOKEN (аккаунт Fly ещё не заведён —
-      # см. T9.0), деплой чисто ПРОПУСКАЕТСЯ, а не падает красным. Секрет в job-level `if`
-      # недоступен по контракту GitHub, поэтому гейтим шаги через output этого шага.
-      - name: Есть ли FLY_API_TOKEN
-        id: guard
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          if [ -z "$FLY_API_TOKEN" ]; then
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::FLY_API_TOKEN не задан — деплой пропущен. T9.0 ждёт аккаунт Fly + токен в Secrets."
-          else
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          fi
-
       - uses: actions/checkout@v4
-        if: steps.guard.outputs.present == 'true'
 
       # Гейт: не деплоим красное. Дублирует проверки server-джоба из ci.yml намеренно —
       # так деплой самодостаточен и не зависит от порядка/статуса другого workflow.
       - uses: actions/setup-go@v5
-        if: steps.guard.outputs.present == 'true'
         with:
           go-version-file: server/go.mod
           cache-dependency-path: server/go.sum
       - name: gofmt (нет неотформатированных файлов)
-        if: steps.guard.outputs.present == 'true'
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
-        if: steps.guard.outputs.present == 'true'
       - run: go build ./...
-        if: steps.guard.outputs.present == 'true'
       - run: go test ./...
-        if: steps.guard.outputs.present == 'true'
 
       # Деплой воспроизводим той же командой, что и локально: `fly deploy`.
       # --remote-only: образ собирается на билдере Fly, локальный Docker не нужен.
       - uses: superfly/flyctl-actions/setup-flyctl@master
-        if: steps.guard.outputs.present == 'true'
       - run: flyctl deploy --remote-only
-        if: steps.guard.outputs.present == 'true'
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
