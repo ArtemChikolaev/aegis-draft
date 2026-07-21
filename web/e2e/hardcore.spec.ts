@@ -23,7 +23,7 @@ test.describe("hardcore", () => {
     await page.getByTestId("mode-classic").click();
   });
 
-  test("окно правил: без чекбокса не включить, закрытие оставляет режим выключенным", async ({ page }) => {
+  test("окно правил: открывается только при переходе Off → On", async ({ page }) => {
     const on = hardcoreOption(page, 1);
     await on.click();
 
@@ -38,6 +38,18 @@ test.describe("hardcore", () => {
     // Повторное открытие: чекбокс сброшен, подтверждение включает режим.
     await enableHardcore(page);
     await expect(on).toHaveAttribute("aria-pressed", "true");
+
+    // Уже выбранный On ничего не делает: правила только что приняты.
+    await on.click();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+
+    // После явного выключения новый переход Off → On снова требует подтверждения.
+    const off = hardcoreOption(page, 0);
+    await off.click();
+    await expect(off).toHaveAttribute("aria-pressed", "true");
+    await on.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByTestId("hard-gate-confirm")).toBeDisabled();
   });
 
   test("во время хардкора справочник закрыт: поля недоступны, причина подписана", async ({ page }) => {

@@ -198,8 +198,17 @@ export function StartScreen() {
             soonLabel={t("common.soon")}
             options={toOptions(HARD_MODE)}
             value={config.hardMode ?? false}
-            // Выключение — сразу; включение — через окно с правилами.
-            onChange={(value) => { if (value) { setHardAck(false); setHardGate(true); } else set("hardMode", false); }}
+            // Повторный тап по выбранной опции — no-op. Выключение — сразу; только реальный
+            // переход Off → On требует повторно принять правила.
+            onChange={(value) => {
+              if (value === (config.hardMode ?? false)) return;
+              if (value) {
+                setHardAck(false);
+                setHardGate(true);
+              } else {
+                set("hardMode", false);
+              }
+            }}
           />
         </Surface>
         <Surface as="aside" className="launch-panel">
