@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useRun } from "../state/runStore.ts";
 import { useShell } from "../state/shellStore.ts";
+import { useTmaChrome } from "../state/tmaChrome.ts";
 import { useCareer } from "../state/careerStore.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
@@ -23,6 +24,8 @@ export function App() {
   const { t } = useI18n();
   const view = useShell((s) => s.view);
   const setView = useShell((s) => s.setView);
+  // В TMA настройки уезжают в системное «…»-меню (SettingsButton) — нашу кнопку прячем.
+  const settingsInMenu = useTmaChrome((s) => s.settingsInMenu);
   const syncFromHash = useShell((s) => s.syncFromHash);
   const syncLinkFromHash = useRun((s) => s.syncLinkFromHash);
 
@@ -64,10 +67,12 @@ export function App() {
           </span>
         </div>
         {/* Язык и тема переехали на отдельную страницу: в топбаре два селекта съедали
-            всю ширину на телефоне, а меняют их раз в жизни. */}
-        <Button variant="secondary" data-testid="open-settings" onClick={() => setView("settings")}>
-          ⚙ {t("shell.menu")}
-        </Button>
+            всю ширину на телефоне, а меняют их раз в жизни. В TMA кнопка уезжает в «…»-меню. */}
+        {!settingsInMenu && (
+          <Button variant="secondary" data-testid="open-settings" onClick={() => setView("settings")}>
+            ⚙ {t("shell.menu")}
+          </Button>
+        )}
       </header>
 
       {error && (

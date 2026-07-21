@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import { canGoBack, navigateBack } from "../state/navigation.ts";
 import { useRun } from "../state/runStore.ts";
 import { useShell } from "../state/shellStore.ts";
+import { useTmaChrome } from "../state/tmaChrome.ts";
 import { applyTelegramInsets, loadTelegram, shellBackgroundColor, tgSafe, type TelegramEvent, type TelegramWebApp } from "./telegram.ts";
 
 /**
@@ -11,6 +13,7 @@ export function useTelegramShell(): void {
   const view = useShell((s) => s.view);
   const setView = useShell((s) => s.setView);
   const phase = useRun((s) => s.phase);
+  const selectedMode = useRun((s) => s.selectedMode);
   const [app, setApp] = useState<TelegramWebApp | null>(null);
 
   useEffect(() => {
@@ -30,25 +33,40 @@ export function useTelegramShell(): void {
     };
   }, []);
 
-  // Кнопка «назад» Telegram. В TMA нет браузерного хрома, поэтому она ЗАМЕНЯЕТ кнопку «назад»
-  // браузера — и должна вести себя так же: history.back() → popstate → shellStore.syncFromHash.
-  // Своя логика «куда возвращаться» тут была бы вторым источником правды о навигации.
+  // Кнопка «назад» Telegram — единственный back в TMA (браузерного хрома нет), поэтому она
+  // делегирует в navigateBack — ОДИН источник правды о навигации (state/navigation.ts), а не
+  // своя логика «куда возвращаться» в адаптере.
   useEffect(() => {
     if (!app) return;
-    const onBack = () => {
-      // Ссылку могли открыть сразу на справочнике: своей записи в истории нет, back() увёл бы
-      // из приложения. Тогда просто идём на игру.
-      if (window.history.state?.aegisView) window.history.back();
-      else setView("game");
-    };
+    const onBack = () => navigateBack();
     tgSafe(() => app.BackButton.onClick(onBack));
     return () => tgSafe(() => app.BackButton.offClick(onBack));
-  }, [app, setView]);
+  }, [app]);
 
+  // Показываем «назад» не только на видах, но и на экране деталей режима (баг: там был Close
+  // вместо Back). В корне (picker) и в самом забеге — прячем (там Close + closing-confirm).
   useEffect(() => {
     if (!app) return;
-    tgSafe(() => (view === "game" ? app.BackButton.hide() : app.BackButton.show()));
-  }, [app, view]);
+    tgSafe(() => (canGoBack() ? app.BackButton.show() : app.BackButton.hide()));
+  }, [app, view, selectedMode, phase]);
+
+  // Настройки — в системное «…»-меню Telegram (SettingsButton). Пока меню активно, прячем
+  // нашу кнопку в топбаре (флаг settingsInMenu). На старых клиентах SettingsButton нет —
+  // флаг остаётся false, наша кнопка на месте (фолбэк).
+  useEffect(() => {
+    if (!app) return;
+    const settings = app.SettingsButton;
+    if (!settings) return;
+    const onSettings = () => setView("settings");
+    tgSafe(() => settings.onClick(onSettings));
+    tgSafe(() => settings.show());
+    useTmaChrome.getState().setSettingsInMenu(true);
+    return () => {
+      tgSafe(() => settings.offClick(onSettings));
+      tgSafe(() => settings.hide());
+      useTmaChrome.getState().setSettingsInMenu(false);
+    };
+  }, [app, setView]);
 
   // Fullscreen (T9.10). В fullscreen приложение уезжает во весь холст, а кнопки Telegram
   // (back/collapse/…) становятся ПЛАВАЮЩИМИ поверх нашего верха. requestFullscreen есть с

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useRun, type RunMode } from "../../state/runStore.ts";
+import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/packs.ts";
@@ -65,6 +66,8 @@ export function StartScreen() {
   const { t } = useI18n();
   const mode = useRun((state) => state.selectedMode);
   const setMode = useRun((state) => state.setSelectedMode);
+  // В TMA «назад» в выбор режимов даёт телеграмная кнопка — свою прячем (нативный хром).
+  const backNative = useTmaChrome((state) => state.backNative);
   // Хардкор включается только осознанно: сперва правила, затем чекбокс, затем кнопка.
   // Закрыть модалку (крестик/Esc/свайп) можно всегда — режим тогда просто не включится.
   const [hardGate, setHardGate] = useState(false);
@@ -154,7 +157,7 @@ export function StartScreen() {
     const selectedMode = MODES.find((item) => item.value === mode)!;
     return (
       <main className={`mode-preview mode-preview--${mode}`}>
-        <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>
+        {!backNative && <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>}
         <Eyebrow className="mp-eyebrow">{t(selectedMode.label)}</Eyebrow>
         <h1>{t("start.comingSoon")}</h1>
         <p className="mp-text">{t(selectedMode.detail)}</p>
@@ -165,7 +168,7 @@ export function StartScreen() {
 
   return (
     <main className="start">
-      <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>
+      {!backNative && <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>}
       <section className="hero-copy">
         <div className="hero-copy__lead">
           <Eyebrow className="hero-eyebrow">{t("start.eyebrow")}</Eyebrow>

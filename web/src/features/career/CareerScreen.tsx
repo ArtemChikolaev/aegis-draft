@@ -1,6 +1,7 @@
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
+import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { careerRunId, summarizeCareer, useCareer, type CareerPlacementBucket } from "../../state/careerStore.ts";
 import { Banner, Button, Eyebrow, StatTile, Surface } from "../../ui/index.ts";
 import { CareerRunCard, placementLabels, sortRunsNewestFirst } from "./CareerRunCard.tsx";
@@ -13,6 +14,7 @@ import "./career.css";
 export function CareerScreen() {
   const { t } = useI18n();
   const setView = useShell((state) => state.setView);
+  const backNative = useTmaChrome((state) => state.backNative);
   const entries = useCareer((state) => state.entries);
   // Тот же замок, что на справочнике: карточка забега показывает, на каком герое играл
   // конкретный игрок, — ровно то, что хардкор прячет. Своя история тут не исключение,
@@ -37,7 +39,7 @@ export function CareerScreen() {
 
   return (
     <main className="career-page" data-testid="career-screen">
-      <Button variant="back" onClick={() => setView("settings")}>← {t("codex.back")}</Button>
+      {!backNative && <Button variant="back" onClick={() => setView("settings")}>← {t("codex.back")}</Button>}
       <header className="screen-heading">
         <Eyebrow>{t("career.eyebrow")}</Eyebrow>
         <h1>{t("career.title")}</h1>

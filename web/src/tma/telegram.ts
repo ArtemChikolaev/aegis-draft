@@ -60,6 +60,14 @@ export interface TelegramWebApp {
     onClick(cb: () => void): void;
     offClick(cb: () => void): void;
   };
+  /** Bot API 7.0+: пункт «Settings» в системном «…»-меню мини-аппа. На старых клиентах
+   *  отсутствует — тогда оставляем нашу кнопку настроек в топбаре (фолбэк). */
+  SettingsButton?: {
+    show(): void;
+    hide(): void;
+    onClick(cb: () => void): void;
+    offClick(cb: () => void): void;
+  };
   HapticFeedback?: {
     impactOccurred(style: HapticStyle): void;
     selectionChanged(): void;
