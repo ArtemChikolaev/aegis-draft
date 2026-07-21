@@ -19,6 +19,16 @@ type Identity struct {
 	CreatedAt   time.Time
 }
 
+type Safe struct {
+	UserID             uuid.UUID
+	Kind               string
+	Payload            []byte
+	Rev                int64
+	SchemaVersion      string
+	RatingModelVersion string
+	UpdatedAt          time.Time
+}
+
 type User struct {
 	ID        uuid.UUID
 	CreatedAt time.Time

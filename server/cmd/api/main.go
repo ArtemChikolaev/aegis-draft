@@ -62,7 +62,9 @@ func main() {
 			log.Fatalf("[server] session issuer: %v", err)
 		}
 		deps.Auth = service.NewAuthService(cfg.BotToken, initDataMaxAge, store.NewUserRepo(db), issuer)
-		log.Printf("[server] auth включён (telegram)")
+		deps.Sessions = issuer                                     // проверка Bearer на защищённых ручках
+		deps.Saves = service.NewSaveService(store.NewSaveRepo(db)) // облачные сейвы (T8.4)
+		log.Printf("[server] auth + сейвы включены (telegram)")
 	} else {
 		log.Printf("[server] auth выключен (нужны DATABASE_URL + SESSION_SECRET + BOT_TOKEN)")
 	}

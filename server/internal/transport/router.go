@@ -28,20 +28,24 @@ type Authenticator interface {
 // Deps — зависимости сервера. Поля-nil → соответствующие маршруты не регистрируются
 // (сервер поднимается в урезанном режиме — напр. без БД/auth локально).
 type Deps struct {
-	DB   Pinger
-	Auth Authenticator
+	DB       Pinger
+	Auth     Authenticator
+	Sessions Verifier // проверка Bearer на защищённых маршрутах
+	Saves    Saves
 }
 
 // Server держит зависимости хендлеров.
 type Server struct {
-	env  string
-	db   Pinger
-	auth Authenticator
+	env      string
+	db       Pinger
+	auth     Authenticator
+	sessions Verifier
+	saves    Saves
 }
 
 // NewServer собирает сервер из зависимостей. nil-поля Deps выключают свои маршруты.
 func NewServer(cfg config.Config, deps Deps) *Server {
-	return &Server{env: cfg.Env, db: deps.DB, auth: deps.Auth}
+	return &Server{env: cfg.Env, db: deps.DB, auth: deps.Auth, sessions: deps.Sessions, saves: deps.Saves}
 }
 
 // Handler строит корневой http.Handler со стандартным middleware-стеком.
@@ -61,6 +65,14 @@ func (s *Server) Handler() http.Handler {
 	if s.auth != nil {
 		r.Route("/api/auth", func(r chi.Router) {
 			r.Post("/telegram", s.authTelegram)
+		})
+	}
+	// Облачные сейвы — под Bearer (первый защищённый маршрут). Требуют и сессии, и стор.
+	if s.saves != nil && s.sessions != nil {
+		r.Route("/api/saves", func(r chi.Router) {
+			r.Use(s.requireAuth)
+			r.Get("/{kind}", s.getSave)
+			r.Put("/{kind}", s.putSave)
 		})
 	}
 	return r
