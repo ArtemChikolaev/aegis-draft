@@ -46,10 +46,16 @@ test.describe("hardcore", () => {
     await expect(page.getByTestId("draft-screen")).toBeVisible();
 
     await page.getByTestId("open-settings").click();
-    // Обе плитки справочника недоступны, причина подписана под ними.
+    // Плитки справочника и карьера недоступны; у каждой секции своя точная причина.
     await expect(page.getByTestId("open-heroes")).toBeDisabled();
     await expect(page.getByTestId("open-teammates")).toBeDisabled();
-    await expect(page.getByRole("note")).toContainText("hardcore run is in progress");
+    await expect(page.getByTestId("open-career")).toBeDisabled();
+    const lockNotes = page.getByRole("note");
+    await expect(lockNotes).toHaveCount(2);
+    await expect(lockNotes).toContainText([
+      "codex is locked",
+      "history is locked",
+    ]);
 
     // Прямая ссылка мимо плиток тоже не открывает данные: поля на самих страницах закрыты.
     await page.goto("/#/heroes");
