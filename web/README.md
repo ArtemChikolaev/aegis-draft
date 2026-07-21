@@ -36,7 +36,7 @@ web/src/
 │                #   Единственный потребитель за пределами app/ — ThemeProvider: в режиме
 │                #   "system" тема берётся у Telegram, а не у ОС (палитра остаётся наша)
 ├─ game/         # логика: score/assign/packs/engine/tournament/rng (не зависит от UI)
-├─ data/         # DataSource (загрузка JSON)
+├─ data/         # DataSource (статика: загрузка JSON) + api/ (динамика: Go API — auth/сейвы)
 ├─ state/        # Zustand-сторы: runStore (забег), shellStore (вид), careerStore (история),
 │                #   runPersist (сейв через replay лога), runLink (кодек ссылки/сида),
 │                #   persist (КУДА пишем: CloudStorage в Telegram, localStorage в вебе)
@@ -57,7 +57,8 @@ public/data/     # ← сюда пайплайн кладёт JSON
 - **assign.ts** — оптимальное назначение 5 героев 5 игрокам (max-weight matching).
 - **packs.ts** — Team Packs (ростер команды) и Mixed Draft (5 из разных команд, порядок 1→5).
 - **tournament.ts / engine.ts** — путь `groups → playoffs → final` и состояние забега (чистая логика, без UI).
-- **DataSource** — абстракция над источником данных (статика сейчас → API в фазе 2).
+- **DataSource** — абстракция над источником игровых данных (статика с CDN; ADR 0002 — статику не проксируем через сервер).
+- **data/api/** (T8.7) — клиент **динамики** (Go API), отдельно от DataSource: `authenticateTelegram` (initData → JWT), `fetchSave`/`pushSave` (облачные сейвы с 409-конфликтом по `rev`), токен через `state/persist`. База — `VITE_API_BASE`; пусто = не сконфигурен, приложение работает локально/анонимно (задаётся, когда поднимется Fly). Оркестрация синхронизации (когда пушить/тянуть) — поверх, отдельно.
 - **heroes/heroPopularity.ts** — единая агрегация career player×hero для общего свода и режима выбранного игрока; UI не дублирует расчёт и не ходит во внешний API.
 - **teammates/teammateGraph.ts** — совместные ростеры игроков в окне (ростер-веб справочника).
 - **state/persist.ts** — единственное место, знающее, КУДА мы пишем. В Telegram источник правды — `CloudStorage` (в webview `localStorage` не переживает перезапуск), в вебе — `localStorage`. Он же режет длинные значения на чанки: карьера (≈873 байта на забег) не влезает в лимит 4096 уже на ~5 забегах. localStorage остаётся синхронным кэшем для первого кадра — тема и язык нужны до React, а облако асинхронное.
