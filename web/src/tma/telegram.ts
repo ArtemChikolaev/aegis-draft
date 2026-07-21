@@ -12,6 +12,23 @@ const SDK_URL = "https://telegram.org/js/telegram-web-app.js";
 
 export type HapticStyle = "light" | "medium" | "heavy" | "rigid" | "soft";
 
+/** События SDK, на которые подписываемся. */
+export type TelegramEvent =
+  | "themeChanged"
+  | "safeAreaChanged"
+  | "contentSafeAreaChanged"
+  | "fullscreenChanged"
+  | "fullscreenFailed";
+
+/** Отступы в px. `safeAreaInset` — вырез устройства; `contentSafeAreaInset` — место под
+ *  плавающими контролами Telegram (появляются в fullscreen поверх контента). */
+export interface SafeAreaInset {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
 /** Только то, чем реально пользуемся. Полный тип SDK тащить незачем — он живёт в telegram.org. */
 export interface TelegramWebApp {
   initData: string;
@@ -19,10 +36,18 @@ export interface TelegramWebApp {
   version: string;
   /** Тема САМОГО Telegram (не ОС). Ей же он рисует splash до старта нашего кода. */
   colorScheme: "light" | "dark";
-  onEvent(event: "themeChanged", cb: () => void): void;
-  offEvent(event: "themeChanged", cb: () => void): void;
+  onEvent(event: TelegramEvent, cb: () => void): void;
+  offEvent(event: TelegramEvent, cb: () => void): void;
   ready(): void;
   expand(): void;
+  /** Bot API 8.0+: fullscreen поверх статус-бара. На старых клиентах/десктопе метода нет —
+   *  зовём через tgSafe, остаёмся в Fullsize. */
+  requestFullscreen?(): void;
+  exitFullscreen?(): void;
+  isFullscreen?: boolean;
+  /** Bot API 8.0+: обновляются ПЕРЕД событиями safeAreaChanged/contentSafeAreaChanged. */
+  safeAreaInset?: SafeAreaInset;
+  contentSafeAreaInset?: SafeAreaInset;
   setHeaderColor(color: string): void;
   setBackgroundColor(color: string): void;
   enableClosingConfirmation(): void;
@@ -151,6 +176,35 @@ export function watchTelegramColorScheme(onChange: (prefersDark: boolean) => voi
     const subscribed = app;
     if (subscribed) tgSafe(() => subscribed.offEvent("themeChanged", sync));
   };
+}
+
+const ZERO_INSET: SafeAreaInset = { top: 0, right: 0, bottom: 0, left: 0 };
+
+/**
+ * Инсеты Telegram → значения CSS-переменных `--tg-safe-*`. По каждой стороне складываем
+ * вырез устройства (`safeAreaInset`) и место под плавающими контролами (`contentSafeAreaInset`):
+ * в fullscreen CSS `env(safe-area-inset-*)` часто = 0, поэтому источник правды — SDK. Вёрстка
+ * берёт `max(env(…), var(--tg-safe-*))`, так что двойного учёта нет. Чистая — юнит-тестируется.
+ */
+export function telegramInsetVars(app: TelegramWebApp): Record<string, string> {
+  const safe = app.safeAreaInset ?? ZERO_INSET;
+  const content = app.contentSafeAreaInset ?? ZERO_INSET;
+  const px = (n: number) => `${Math.max(0, Math.round(n))}px`;
+  return {
+    "--tg-safe-top": px(safe.top + content.top),
+    "--tg-safe-right": px(safe.right + content.right),
+    "--tg-safe-bottom": px(safe.bottom + content.bottom),
+    "--tg-safe-left": px(safe.left + content.left),
+  };
+}
+
+/** Раскладывает инсеты Telegram в CSS-переменные на `<html>` (паттерн `--control-font`). */
+export function applyTelegramInsets(app: TelegramWebApp): void {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  for (const [name, value] of Object.entries(telegramInsetVars(app))) {
+    root.style.setProperty(name, value);
+  }
 }
 
 /** `#abc` / `rgb(0, 0, 0)` → `#aabbcc`. Telegram принимает только `#rrggbb`. */

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { isTelegramLaunch, tgHaptic, tgSafe, toHexColor, watchTelegramColorScheme } from "../src/tma/telegram.ts";
+import { isTelegramLaunch, tgHaptic, tgSafe, telegramInsetVars, toHexColor, watchTelegramColorScheme, type TelegramWebApp } from "../src/tma/telegram.ts";
 
 /** Тесты идут в Node без DOM: window подставляем ровно на время кейса. */
 function withWindow(value: Record<string, unknown>): void {
@@ -28,6 +28,36 @@ describe("toHexColor", () => {
   it("на непонятном значении отдаёт null, а не мусорный цвет", () => {
     expect(toHexColor("color-mix(in srgb, red, blue)")).toBeNull();
     expect(toHexColor("")).toBeNull();
+  });
+});
+
+describe("telegramInsetVars", () => {
+  const app = (over: Partial<TelegramWebApp>) => over as TelegramWebApp;
+
+  it("складывает вырез устройства и контролы Telegram по каждой стороне", () => {
+    const vars = telegramInsetVars(app({
+      safeAreaInset: { top: 44, right: 0, bottom: 34, left: 0 },
+      contentSafeAreaInset: { top: 46, right: 0, bottom: 0, left: 0 },
+    }));
+    // top = 44 (вырез) + 46 (плавающие кнопки Telegram) = 90.
+    expect(vars["--tg-safe-top"]).toBe("90px");
+    expect(vars["--tg-safe-bottom"]).toBe("34px");
+    expect(vars["--tg-safe-left"]).toBe("0px");
+  });
+
+  it("отсутствующие инсеты (Fullsize / старый клиент) → 0px, а не NaN", () => {
+    const vars = telegramInsetVars(app({}));
+    expect(vars).toEqual({
+      "--tg-safe-top": "0px",
+      "--tg-safe-right": "0px",
+      "--tg-safe-bottom": "0px",
+      "--tg-safe-left": "0px",
+    });
+  });
+
+  it("дробные значения округляет (px без хвоста)", () => {
+    const vars = telegramInsetVars(app({ contentSafeAreaInset: { top: 45.6, right: 0, bottom: 0, left: 0 } }));
+    expect(vars["--tg-safe-top"]).toBe("46px");
   });
 });
 

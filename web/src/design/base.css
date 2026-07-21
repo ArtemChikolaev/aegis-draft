@@ -1,6 +1,9 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 * { box-sizing: border-box; }
+/* Инсеты Telegram fullscreen (T9.10): 0 вне Telegram/в Fullsize, реальные значения кладёт
+   адаптор tma/ в fullscreen. Вёрстка читает через max(env(…), var(--tg-safe-*)). */
+:root { --tg-safe-top: 0px; --tg-safe-right: 0px; --tg-safe-bottom: 0px; --tg-safe-left: 0px; }
 html { min-width: 320px; background: var(--bg); }
 body {
   margin: 0;

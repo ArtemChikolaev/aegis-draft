@@ -4,7 +4,9 @@
   display: grid;
   place-items: center;
   inset: 0;
-  padding: 20px;
+  /* top/bottom учитывают инсеты Telegram fullscreen (--tg-safe-*, T9.10): центрированная
+     панель не должна залезать под плавающие кнопки Telegram или home-indicator. */
+  padding: max(20px, var(--tg-safe-top)) 20px max(20px, var(--tg-safe-bottom));
   background: rgba(0, 0, 0, 0);
   backdrop-filter: blur(0px);
   transition: background .56s ease, backdrop-filter .56s ease;

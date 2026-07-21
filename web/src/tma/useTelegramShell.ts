@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRun } from "../state/runStore.ts";
 import { useShell } from "../state/shellStore.ts";
-import { loadTelegram, shellBackgroundColor, tgSafe, type TelegramWebApp } from "./telegram.ts";
+import { applyTelegramInsets, loadTelegram, shellBackgroundColor, tgSafe, type TelegramEvent, type TelegramWebApp } from "./telegram.ts";
 
 /**
  * Связывает шелл Telegram с нашим состоянием (T9.4/T9.5). Вызывается один раз из App;
@@ -49,6 +49,22 @@ export function useTelegramShell(): void {
     if (!app) return;
     tgSafe(() => (view === "game" ? app.BackButton.hide() : app.BackButton.show()));
   }, [app, view]);
+
+  // Fullscreen (T9.10). В fullscreen приложение уезжает во весь холст, а кнопки Telegram
+  // (back/collapse/…) становятся ПЛАВАЮЩИМИ поверх нашего верха. requestFullscreen есть с
+  // Bot API 8.0 — на старых клиентах и десктопе метода нет, tgSafe оставит нас в Fullsize.
+  // Место под контролами приходит инсетами (safeAreaInset + contentSafeAreaInset) → в CSS-
+  // переменные `--tg-safe-*`, которые читает вёрстка (топбар/модалка отодвигаются). Инсеты
+  // меняются на лету (вход в fullscreen, поворот) — пересчитываем по событиям.
+  useEffect(() => {
+    if (!app) return;
+    tgSafe(() => app.requestFullscreen?.());
+    const apply = () => applyTelegramInsets(app);
+    apply();
+    const events: TelegramEvent[] = ["fullscreenChanged", "safeAreaChanged", "contentSafeAreaChanged"];
+    events.forEach((event) => tgSafe(() => app.onEvent(event, apply)));
+    return () => events.forEach((event) => tgSafe(() => app.offEvent(event, apply)));
+  }, [app]);
 
   // Тема остаётся наша (design-language: pure black — часть айдентики), Telegram лишь
   // подкрашиваем под неё.

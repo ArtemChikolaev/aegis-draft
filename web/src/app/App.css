@@ -1,4 +1,7 @@
-.app-shell { position: relative; width: min(1320px, calc(100% - 40px)); min-height: 100vh; margin: 0 auto; padding: 24px 0 34px; overflow-x: clip; }
+/* padding top/bottom учитывает инсеты Telegram fullscreen (--tg-safe-*, T9.10): в fullscreen
+   плавающие кнопки Telegram висят поверх верха — отодвигаем контент из-под них. Вне Telegram
+   переменные = 0, поведение прежнее. */
+.app-shell { position: relative; width: min(1320px, calc(100% - 40px)); min-height: 100vh; margin: 0 auto; padding: max(24px, var(--tg-safe-top)) 0 max(34px, var(--tg-safe-bottom)); overflow-x: clip; }
 .topbar { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 0 22px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand__mark { display: grid; place-items: center; width: 34px; height: 34px; color: var(--bg); background: var(--text); font-size: 15px; font-weight: 800; }
@@ -19,11 +22,11 @@
 @media (max-width: 680px) { /* bp.md */
   .app-shell {
     width: min(100% - 24px, 1320px);
-    padding-top: max(12px, env(safe-area-inset-top, 0px));
+    padding-top: max(12px, env(safe-area-inset-top, 0px), var(--tg-safe-top));
     /* Запас под home-indicator, но не больше нужного: фиксированный пол 56px давал на
        десктопном узком вьюпорте (где safe-area = 0) полэкрана пустоты под подвалом.
        На реальном телефоне inset ~34px ⇒ ~50px, то есть запас сохраняется. */
-    padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+    padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px), var(--tg-safe-bottom));
   }
   .topbar { align-items: flex-start; }
   .brand__copy small { display: none; }
