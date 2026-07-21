@@ -49,6 +49,13 @@ cd server && "$(go env GOPATH)/bin/sqlc" generate        # → internal/store/sq
 
 **Локальный прогон с БД** (нужен свой Postgres): `DATABASE_URL=postgres://… go test ./...`.
 
+## Auth — сессия по Telegram initData (T8.3)
+`POST /api/auth/telegram` `{ "initData": "<raw>" }` → проверка подписи ([internal/telegram](internal/telegram/initdata.go), T9.8) → `UserRepo.FindOrCreateByIdentity("telegram", …)` → **сессионный JWT** (HS256, Bearer). Ответ: `{ token, user: { id }, created }`. Дальше клиент шлёт `Authorization: Bearer <token>`.
+
+- **JWT stateless** ([internal/auth](internal/auth/session.go)): подпись `SESSION_SECRET` из env, TTL 30 дней, alg жёстко HS256 (защита от alg-confusion). Отзыв до истечения не поддержан намеренно — если понадобится, отдельная таблица `sessions`.
+- **Маршрут включается**, только когда есть `DATABASE_URL` + `SESSION_SECRET` + `BOT_TOKEN`; иначе `/api/auth/*` не регистрируется (404) — сервер живёт в урезанном режиме.
+- Провайдеры Google/Apple/Steam (ADR 0002) лягут тем же путём: свой `Validate` → `FindOrCreateByIdentity(provider, …)` → тот же issuer.
+
 ## Публичный деплой (Fly.io, T9.0)
 Один контейнер, без k8s (ADR 0002). Конфиг — [`fly.toml`](fly.toml) рядом; Fly собирает наш `Dockerfile` напрямую. Игровые данные тут НЕ живут — они static-first на GitHub Pages.
 
@@ -67,9 +74,9 @@ fly tokens create deploy -x 999999h      # deploy-scoped токен
 # → GitHub → Settings → Secrets and variables → Actions → New secret: FLY_API_TOKEN
 ```
 
-**Секреты приложения из env** (появятся с БД/ботом): `fly secrets set DATABASE_URL=… BOT_TOKEN=…` — Fly инъектит их в env, читает `config.Load()`. В `fly.toml` держим только НЕсекретное (`APP_ENV`, `PORT`).
+**Секреты приложения из env**: `fly secrets set DATABASE_URL=… BOT_TOKEN=… SESSION_SECRET=…` — Fly инъектит их в env, читает `config.Load()` (без всех трёх auth-маршрут не поднимается). В `fly.toml` держим только НЕсекретное (`APP_ENV`, `PORT`).
 
 ## Статус
-Скелет (T8.1) + срез аккаунтов (T8.2): health/readiness, конфиг, единый контракт ошибок, graceful shutdown, `users`/`identities` (goose+sqlc), валидатор Telegram initData (T9.8). Дальше — auth-эндпоинт (T8.3), сейвы (T8.4), дейлик/ре-симуляция (T8.5), лидерборд (T8.6). См. [BACKLOG M8](../docs/BACKLOG.md).
+Скелет (T8.1) + аккаунты (T8.2) + Telegram-auth (T8.3, T9.8): health/readiness, конфиг, единый контракт ошибок, graceful shutdown, `users`/`identities` (goose+sqlc), валидатор initData, `POST /api/auth/telegram` → JWT. Дальше — провайдеры Google/Steam (T8.3), сейвы (T8.4), дейлик/ре-симуляция (T8.5), лидерборд (T8.6). См. [BACKLOG M8](../docs/BACKLOG.md).
 
 > Анти-чит (T8.5): дейлик/лидерборд валидируются сервером ре-симуляцией на Go. Для переиспользования `pipeline/internal/{model,rating}` потребуется вынести их из `internal/` в общий модуль (кросс-модульно `internal/` не импортируется) — решить в T8.5.

@@ -10,7 +10,7 @@ import (
 )
 
 func TestHealthz(t *testing.T) {
-	handler := NewServer(config.Config{Env: "test"}, nil).Handler()
+	handler := NewServer(config.Config{Env: "test"}, Deps{}).Handler()
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)
@@ -29,7 +29,7 @@ func TestHealthz(t *testing.T) {
 
 // Без БД readiness рапортует "disabled" и 200 (сервер работает в skeleton-режиме).
 func TestReadyz_NoDB(t *testing.T) {
-	handler := NewServer(config.Config{Env: "test"}, nil).Handler()
+	handler := NewServer(config.Config{Env: "test"}, Deps{}).Handler()
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, req)

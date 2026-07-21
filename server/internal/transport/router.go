@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/aegis-draft/server/internal/config"
+	"github.com/aegis-draft/server/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -18,15 +19,29 @@ type Pinger interface {
 	Ping(context.Context) error
 }
 
-// Server держит зависимости хендлеров (env + readiness-проба; дальше — services).
-type Server struct {
-	env string
-	db  Pinger // nil, если сервер поднят без БД (DATABASE_URL пуст)
+// Authenticator — зависимость auth-хендлеров. Интерфейс (а не *service.AuthService)
+// ради изоляции HTTP-слоя в тестах. Реализуется *service.AuthService.
+type Authenticator interface {
+	AuthenticateTelegram(ctx context.Context, initData string) (*service.Session, error)
 }
 
-// NewServer собирает сервер. db может быть nil — тогда /readyz рапортует "disabled".
-func NewServer(cfg config.Config, db Pinger) *Server {
-	return &Server{env: cfg.Env, db: db}
+// Deps — зависимости сервера. Поля-nil → соответствующие маршруты не регистрируются
+// (сервер поднимается в урезанном режиме — напр. без БД/auth локально).
+type Deps struct {
+	DB   Pinger
+	Auth Authenticator
+}
+
+// Server держит зависимости хендлеров.
+type Server struct {
+	env  string
+	db   Pinger
+	auth Authenticator
+}
+
+// NewServer собирает сервер из зависимостей. nil-поля Deps выключают свои маршруты.
+func NewServer(cfg config.Config, deps Deps) *Server {
+	return &Server{env: cfg.Env, db: deps.DB, auth: deps.Auth}
 }
 
 // Handler строит корневой http.Handler со стандартным middleware-стеком.
@@ -42,7 +57,11 @@ func (s *Server) Handler() http.Handler {
 	r.Get("/healthz", s.health) // liveness: процесс жив (Fly бьёт сюда)
 	r.Get("/readyz", s.ready)   // readiness: БД доступна
 
-	// Динамика (аккаунты/сейвы/лидерборд/дейлик) появится здесь под /api — M8.
-	// Игровые данные НЕ проксируем: они static-first через CDN (ADR 0002).
+	// Динамика под /api. Игровые данные НЕ проксируем: static-first через CDN (ADR 0002).
+	if s.auth != nil {
+		r.Route("/api/auth", func(r chi.Router) {
+			r.Post("/telegram", s.authTelegram)
+		})
+	}
 	return r
 }
