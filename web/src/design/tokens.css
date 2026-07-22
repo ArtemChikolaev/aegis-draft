@@ -186,10 +186,26 @@ html[data-theme="light"] {
   --brand-art-mid: #7b56d1;
   --brand-art-deep: #291653;
 }
+/* Светлая тема: акцент на ivory-поверхностях (эйброу, кнопки) должен быть ГЛУБОКИМ +
+   белый текст — как базовый оранж #d97757. Бледные дарк-значения на светлом тонут (эйброу
+   режимов нечитаем). Токены свечения (brand-glow, brand-art) НЕ трогаем: они рисуются на
+   всегда-тёмных панелях (карточки режимов, радар) и остаются яркими в обеих темах. */
 html[data-theme="light"] [data-accent="violet"] {
-  --accent: #7b56d1;
-  --accent-strong: #5f3fb0;
-  --accent-soft: rgba(123, 86, 209, .14);
+  --accent: #6b3fa8;
+  --accent-strong: #55308a;
+  --accent-soft: rgba(107, 63, 168, .12);
+  --on-accent: #fff;
+}
+html[data-theme="light"] [data-accent="orange"] {
+  --accent: #c2661f;
+  --accent-strong: #a0521a;
+  --accent-soft: rgba(194, 102, 31, .12);
+  --on-accent: #fff;
+}
+html[data-theme="light"] [data-accent="blue"] {
+  --accent: #315fae;
+  --accent-strong: #26497f;
+  --accent-soft: rgba(49, 95, 174, .12);
   --on-accent: #fff;
 }
 [data-accent="orange"] {
