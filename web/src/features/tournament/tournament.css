@@ -523,6 +523,9 @@
 .tournament__actions { width: min(760px, 100%); margin-left: auto; margin-top: 8px; }
 .tournament__restart { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .tournament__restart > button { min-height: 52px; }
+/* Ante-итог: две кнопки (Next stage / Give up) прижаты вправо, как терминальный CTA Classic. */
+.tournament__restart--ante { display: flex; justify-content: flex-end; }
+.tournament__restart--ante > button { min-width: 200px; }
 
 /* live-симуляция: стили .match/.series pending|live — рядом с карточкой матча выше. */
 .group-result.is-live { background: color-mix(in srgb, var(--accent) 10%, transparent); }
@@ -613,6 +616,8 @@
   .career-run { height: auto; overflow: visible; }
   .career-runs__list { max-height: min(60vh, 560px); }
   .tournament__restart { grid-template-columns: 1fr; }
+  .tournament__restart--ante { flex-direction: column; }
+  .tournament__restart--ante > button { min-width: 0; }
 }
 
 /* Бесшовный run-вид (TREF-TOUR2): тим-панель сверху + поле справа, симуляция стекается ниже. */
@@ -674,3 +679,30 @@
    мёртвого зазора между панелями и подвалом. */
 .run__sim:empty { display: none; }
 .run__sim > div { scroll-margin-top: 16px; min-width: 0; }
+
+/* Roguelite Run (T5.7): статус этапа над полем + баннер исхода этапа. Токены обеих тем. */
+.ante-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 12px;
+  margin: 10px 0 2px;
+  font-size: 13px;
+}
+.ante-status__stage { color: var(--muted); font-weight: 500; letter-spacing: 0.02em; }
+.ante-status__target { color: var(--text); }
+.ante-status__field { color: var(--danger); font-style: normal; font-size: 12px; font-weight: 500; }
+
+.ante-result {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 0;
+  border-left: 3px solid var(--accent);
+}
+.ante-result strong { font-size: 16px; color: var(--text); }
+.ante-result span { color: var(--muted); font-size: 13px; }
+.ante-result--won { border-left-color: var(--brand-green); }
+.ante-result--lost { border-left-color: var(--danger); }

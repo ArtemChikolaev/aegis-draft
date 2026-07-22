@@ -55,6 +55,7 @@ test.describe("шеринг забега ссылкой", () => {
 
   test("идущий забег не затирается молча", async ({ page }) => {
     await page.getByTestId("mode-classic").click();
+    await page.getByTestId("variant-quick").click();
     await page.getByTestId("start-run").click();
     await expect(page.getByTestId("draft-screen")).toBeVisible();
     await page.locator('[data-testid^="candidate-"]').first().click();
@@ -79,6 +80,7 @@ test.describe("поле Seed на экране настроек", () => {
   test.beforeEach(async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-classic").click();
+    await page.getByTestId("variant-quick").click();
     await expect(page.getByTestId("seed-input")).toBeVisible();
   });
 
@@ -94,6 +96,7 @@ test.describe("поле Seed на экране настроек", () => {
 
     await gotoFreshApp(page);
     await page.getByTestId("mode-classic").click();
+    await page.getByTestId("variant-quick").click();
     const fullUrl = `${page.url().split("#")[0]}#/run=${encoded}`;
     await page.getByTestId("seed-input").fill(fullUrl);
     await expect(page.getByTestId("seed-status")).toContainText("Seed found");

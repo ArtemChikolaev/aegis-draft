@@ -14,6 +14,7 @@ export function useTelegramShell(): void {
   const setView = useShell((s) => s.setView);
   const phase = useRun((s) => s.phase);
   const selectedMode = useRun((s) => s.selectedMode);
+  const startStep = useRun((s) => s.startStep);
   const [app, setApp] = useState<TelegramWebApp | null>(null);
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function useTelegramShell(): void {
   useEffect(() => {
     if (!app) return;
     tgSafe(() => (canGoBack() ? app.BackButton.show() : app.BackButton.hide()));
-  }, [app, view, selectedMode, phase]);
+  }, [app, view, selectedMode, startStep, phase]);
 
   // Настройки — в системное «…»-меню Telegram (SettingsButton). Пока меню доступно, прячем
   // нашу кнопку в топбаре (флаг settingsInMenu). На старых клиентах SettingsButton нет —

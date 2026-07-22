@@ -27,6 +27,12 @@ const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: Mess
   { value: "tournament", label: "start.modeTournament", hint: "start.modeTournamentHint", detail: "start.modeTournamentLong", available: false },
 ];
 
+/** Режимы, использующие Classic-конфиг драфта (Quick Draft и Roguelite Run поверх него).
+ *  Обе ветки открываются из одной карточки Classic через шаг выбора варианта. */
+const DRAFT_CONFIG_MODES: RunMode[] = ["classic", "run"];
+/** Roguelite Run фиксирует рероллы (стартовых всегда максимум 2) — сложность не выбирается. */
+const ROGUELITE_REROLLS = 2;
+
 const DRAFT: Opt<DraftStyle>[] = [
   { value: "team", label: "start.teamPacks", hint: "start.teamPacksHint" },
   { value: "mixed", label: "start.mixedDraft", hint: "start.mixedDraftHint" },
@@ -66,21 +72,18 @@ export function StartScreen() {
   const { t } = useI18n();
   const mode = useRun((state) => state.selectedMode);
   const setMode = useRun((state) => state.setSelectedMode);
+  const startStep = useRun((state) => state.startStep);
+  const setStartStep = useRun((state) => state.setStartStep);
+  const config = useRun((state) => state.startConfig);
+  const setConfig = useRun((state) => state.setStartConfig);
+  const seedInput = useRun((state) => state.startSeedInput);
+  const setSeedInput = useRun((state) => state.setStartSeedInput);
   // В TMA «назад» в выбор режимов даёт телеграмная кнопка — свою прячем (нативный хром).
   const backNative = useTmaChrome((state) => state.backNative);
   // Хардкор включается только осознанно: сперва правила, затем чекбокс, затем кнопка.
   // Закрыть модалку (крестик/Esc/свайп) можно всегда — режим тогда просто не включится.
   const [hardGate, setHardGate] = useState(false);
   const [hardAck, setHardAck] = useState(false);
-  const [seedInput, setSeedInput] = useState("");
-  const [config, setConfig] = useState<RunConfig>({
-    draftStyle: "team",
-    format: "last_2y",
-    rerolls: 1,
-    scoring: "event",
-    allocation: "auto",
-    hardMode: false,
-  });
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
   // Mixed оценивает игроков по успеху команды за окно, поэтому окно без team-success
   // в нём неиграбельно — гасим так же, как форматы, которых нет в датасете.
@@ -101,7 +104,8 @@ export function StartScreen() {
   const selectedLabels: MessageKey[] = [
     DRAFT.find((option) => option.value === config.draftStyle)?.label ?? "start.teamPacks",
     FORMAT.find((option) => option.value === config.format)?.label ?? "start.last2y",
-    DIFFICULTY.find((option) => option.value === config.rerolls)?.label ?? "start.normal",
+    // Roguelite Run фиксирует рероллы → сложность не показываем в сводке.
+    ...(mode === "run" ? [] : [DIFFICULTY.find((option) => option.value === config.rerolls)?.label ?? "start.normal"] as MessageKey[]),
     ALLOCATION.find((option) => option.value === config.allocation)?.label ?? "start.automatic",
   ];
 
@@ -131,6 +135,40 @@ export function StartScreen() {
     start(config, seedValidation.link?.seed ?? createRunSeed());
   };
 
+  if (startStep === "variants") {
+    return (
+      <main className="mode-select variant-select">
+        {!backNative && <Button variant="back" onClick={() => setStartStep("modes")}>← {t("start.backToModes")}</Button>}
+        <header className="mode-select__heading">
+          <Eyebrow className="ms-eyebrow">{t("start.modeClassic")}</Eyebrow>
+          <h1>{t("start.variantTitle")}</h1>
+          <p>{t("start.variantText")}</p>
+        </header>
+        <div className="mode-grid variant-grid">
+          <button
+            className="mode-card mode-card--quick"
+            data-testid="variant-quick"
+            onClick={() => { setMode("classic"); setStartStep("config"); }}
+          >
+            <span className="mode-card__index">A</span>
+            <span className="mode-card__body"><strong>{t("start.variantQuick")}</strong><small>{t("start.variantQuickHint")}</small><span>{t("start.variantQuickLong")}</span></span>
+            <span className="mode-card__action">{t("start.variantAction")} →</span>
+          </button>
+          <button
+            className="mode-card mode-card--run"
+            data-testid="variant-run"
+            data-accent="violet"
+            onClick={() => { setConfig((current) => ({ ...current, rerolls: ROGUELITE_REROLLS, hardMode: false })); setMode("run"); setStartStep("config"); }}
+          >
+            <span className="mode-card__index">B</span>
+            <span className="mode-card__body"><strong>{t("start.modeRun")}</strong><small>{t("start.modeRunHint")}</small><span>{t("start.modeRunLong")}</span></span>
+            <span className="mode-card__action">{t("start.variantAction")} →</span>
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (mode === null) {
     return (
       <main className="mode-select">
@@ -141,7 +179,15 @@ export function StartScreen() {
         </header>
         <div className="mode-grid">
           {MODES.map((item, index) => (
-            <button key={item.value} className={`mode-card mode-card--${item.value}`} data-testid={`mode-${item.value}`} onClick={() => setMode(item.value)}>
+            <button
+              key={item.value}
+              className={`mode-card mode-card--${item.value}`}
+              data-testid={`mode-${item.value}`}
+              onClick={() => {
+                if (item.value === "classic") setStartStep("variants");
+                else setMode(item.value);
+              }}
+            >
               <span className="mode-card__index">0{index + 1}</span>
               <span className="mode-card__body"><strong>{t(item.label)}</strong><small>{t(item.hint)}</small><span>{t(item.detail)}</span></span>
               {!item.available && <em>{t("common.soon")}</em>}
@@ -153,11 +199,11 @@ export function StartScreen() {
     );
   }
 
-  if (mode !== "classic") {
+  if (!DRAFT_CONFIG_MODES.includes(mode)) {
     const selectedMode = MODES.find((item) => item.value === mode)!;
     return (
       <main className={`mode-preview mode-preview--${mode}`}>
-        {!backNative && <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>}
+        {!backNative && <Button variant="back" onClick={() => { setMode(null); setStartStep("modes"); }}>← {t("start.backToModes")}</Button>}
         <Eyebrow className="mp-eyebrow">{t(selectedMode.label)}</Eyebrow>
         <h1>{t("start.comingSoon")}</h1>
         <p className="mp-text">{t(selectedMode.detail)}</p>
@@ -166,37 +212,53 @@ export function StartScreen() {
     );
   }
 
+  const heroRows: { label: MessageKey; hint: MessageKey }[] = mode === "run"
+    ? [
+        { label: "start.runRuleDraft", hint: "start.runRuleDraftHint" },
+        { label: "start.runRuleTargets", hint: "start.runRuleTargetsHint" },
+        { label: "start.runRuleDeath", hint: "start.runRuleDeathHint" },
+      ]
+    : [
+        { label: "start.teamPacks", hint: "start.teamPacksHint" },
+        { label: "start.mixedDraft", hint: "start.mixedDraftHint" },
+        { label: "start.classicPath", hint: "start.description" },
+      ];
+
   return (
     <main className="start">
-      {!backNative && <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>}
+      {!backNative && <Button variant="back" onClick={() => { setMode(null); setStartStep("variants"); }}>← {t("start.backChoice")}</Button>}
       <section className="hero-copy">
         <div className="hero-copy__lead">
-          <Eyebrow className="hero-eyebrow">{t("start.eyebrow")}</Eyebrow>
-          <h1>{t("start.title")}</h1>
+          <Eyebrow className="hero-eyebrow">{t(mode === "run" ? "start.runEyebrow" : "start.eyebrow")}</Eyebrow>
+          <h1>{t(mode === "run" ? "start.runTitle" : "start.title")}</h1>
         </div>
-        <div className="hero-art">
-          <div className="classic-art__copy"><strong>{t("start.classicArtTitle")}</strong><p>{t("start.classicArtText")}</p></div>
-          <span><strong>TEAM PACKS</strong><small>{t("start.teamPacksHint")}</small></span>
-          <span><strong>MIXED DRAFT</strong><small>{t("start.mixedDraftHint")}</small></span>
-          <span><strong>GROUPS → PLAYOFFS → FINAL</strong><small>{t("start.description")}</small></span>
+        <div className={`hero-art hero-art--${mode === "run" ? "run" : "quick"}`}>
+          <div className="classic-art__copy"><strong>{t(mode === "run" ? "start.runArtTitle" : "start.classicArtTitle")}</strong><p>{t(mode === "run" ? "start.runArtText" : "start.classicArtText")}</p></div>
+          {heroRows.map((row) => (
+            <span key={row.label}><strong>{t(row.label)}</strong><small>{t(row.hint)}</small></span>
+          ))}
         </div>
       </section>
       <div className="start__layout">
         <Surface className="config-panel">
           <OptionGroup title={t("start.draftStyle")} soonLabel={t("common.soon")} options={toOptions(DRAFT)} value={config.draftStyle} onChange={(value) => set("draftStyle", value)} />
           <OptionGroup title={t("start.format")} soonLabel={t("common.soon")} options={toOptions(FORMAT.map((option) => ({ ...option, soon: !formatAvailable(option.value) })))} value={config.format} onChange={(value) => set("format", value)} />
-          <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY.map((option) => ({
+          {/* Roguelite Run фиксирует рероллы (всегда максимум 2) → выбор сложности убран. */}
+          {mode !== "run" && (
+            <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY.map((option) => ({
               ...option,
               // Не просто ставим Hard при включении, а держим: иначе игрок вернул бы Easy
               // сразу после окна, и забег уехал бы в историю «хардкорным» с рероллами.
               disabled: (config.hardMode ?? false) && option.value !== HARDCORE_REROLLS,
             })))} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
+          )}
           <OptionGroup title={t("start.scoring")} soonLabel={t("common.soon")} options={toOptions(SCORING)} value={config.scoring} onChange={(value) => set("scoring", value)} />
           <OptionGroup title={t("start.allocation")} soonLabel={t("common.soon")} options={toOptions(ALLOCATION)} value={config.allocation} onChange={(value) => set("allocation", value)} />
           <OptionGroup
             title={t("hard.title")}
             soonLabel={t("common.soon")}
-            options={toOptions(HARD_MODE)}
+            // В Roguelite Run хардкор не трогает рероллы (их 2) — подсказка «вслепую», без «no rerolls».
+            options={toOptions(HARD_MODE.map((option) => (option.value === true && mode === "run" ? { ...option, hint: "hard.onHintRun" as MessageKey } : option)))}
             value={config.hardMode ?? false}
             // Повторный тап по выбранной опции — no-op. Выключение — сразу; только реальный
             // переход Off → On требует повторно принять правила.
@@ -214,8 +276,8 @@ export function StartScreen() {
         <Surface as="aside" className="launch-panel">
           <span className="launch-panel__glow" aria-hidden="true" />
           <span className="launch-panel__icon" aria-hidden="true">A</span>
-          <h2>{t("start.launchTitle")}</h2>
-          <p>{t("start.launchText")}</p>
+          <h2>{t(mode === "run" ? "start.runLaunchTitle" : "start.launchTitle")}</h2>
+          <p>{t(mode === "run" ? "start.runLaunchText" : "start.launchText")}</p>
           <ul>{selectedLabels.map((label) => <li key={label}>{t(label)}</li>)}</ul>
           <Button
             variant="primaryInvert"
@@ -248,8 +310,14 @@ export function StartScreen() {
             <div className="hard-gate">
               <ul className="hard-gate__rules">
                 <li>{t("hard.rule1")}</li>
-                <li>{t("hard.rule2")}</li>
-                <li>{t("hard.rule3")}</li>
+                {/* Правила про рероллы — только Classic: в Roguelite Run соперники и число
+                    рероллов уже фиксированы самим режимом, а не включением хардкора. */}
+                {mode !== "run" && (
+                  <>
+                    <li>{t("hard.rule2")}</li>
+                    <li>{t("hard.rule3")}</li>
+                  </>
+                )}
                 <li>{t("hard.rule4")}</li>
                 <li>{t("hard.rule5")}</li>
               </ul>
@@ -266,9 +334,10 @@ export function StartScreen() {
                 variant="danger"
                 disabled={!hardAck}
                 data-testid="hard-gate-confirm"
-                // Хардкор и рероллы несовместимы по смыслу, поэтому включение само ставит
-                // Hard: иначе окно обещало бы «рероллов нет», а на панели остался бы Easy.
-                onClick={() => { setConfig((current) => ({ ...current, hardMode: true, rerolls: HARDCORE_REROLLS })); close(); }}
+                // Хардкор в Classic = 0 рероллов + закрытый справочник. В Roguelite Run рероллы
+                // фиксированы (2), поэтому там хардкор запирает только справочник («вслепую»),
+                // а число рероллов не трогает.
+                onClick={() => { setConfig((current) => ({ ...current, hardMode: true, rerolls: mode === "run" ? ROGUELITE_REROLLS : HARDCORE_REROLLS })); close(); }}
               >
                 {t("hard.gateConfirm")}
               </Button>

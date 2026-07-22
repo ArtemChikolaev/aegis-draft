@@ -5,7 +5,7 @@ import { useShell } from "../src/state/shellStore.ts";
 
 beforeEach(() => {
   useShell.setState({ view: "game" });
-  useRun.setState({ selectedMode: null, phase: "start" });
+  useRun.setState({ selectedMode: null, phase: "start", startStep: "modes" });
 });
 
 describe("canGoBack", () => {
@@ -18,8 +18,10 @@ describe("canGoBack", () => {
     expect(canGoBack()).toBe(true);
   });
 
-  it("экран деталей режима (mode выбран, забег не начат) → true", () => {
-    useRun.setState({ selectedMode: "classic", phase: "start" });
+  it("выбор варианта и конфиг → true", () => {
+    useRun.setState({ startStep: "variants" });
+    expect(canGoBack()).toBe(true);
+    useRun.setState({ selectedMode: "run", startStep: "config" });
     expect(canGoBack()).toBe(true);
   });
 
@@ -30,8 +32,18 @@ describe("canGoBack", () => {
 });
 
 describe("navigateBack", () => {
-  it("с экрана деталей режима возвращает в выбор режимов", () => {
-    useRun.setState({ selectedMode: "classic", phase: "start" });
+  it("из конфига возвращает в выбор Quick/Roguelite, сохраняя двухшаговую иерархию", () => {
+    useRun.setState({ selectedMode: "run", startStep: "config", phase: "start" });
+    navigateBack();
+    expect(useRun.getState().selectedMode).toBeNull();
+    expect(useRun.getState().startStep).toBe("variants");
+
+    navigateBack();
+    expect(useRun.getState().startStep).toBe("modes");
+  });
+
+  it("из preview недоступного режима возвращает в корень", () => {
+    useRun.setState({ selectedMode: "manager", startStep: "modes", phase: "start" });
     navigateBack();
     expect(useRun.getState().selectedMode).toBeNull();
   });
@@ -40,6 +52,12 @@ describe("navigateBack", () => {
     useShell.setState({ view: "settings" });
     navigateBack();
     expect(useShell.getState().view).toBe("game");
+  });
+
+  it("прямо открытый дочерний вид возвращает в settings", () => {
+    useShell.setState({ view: "career" });
+    navigateBack();
+    expect(useShell.getState().view).toBe("settings");
   });
 
   it("в корне ничего не ломает (некуда идти)", () => {

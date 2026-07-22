@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { PlacementKey } from "../src/game/tournament.ts";
 import {
   appendCareerEntry,
+  careerEntriesForMode,
   careerRunId,
   placementBucket,
   summarizeCareer,
@@ -83,6 +84,16 @@ describe("careerStore", () => {
     expect(careerRunId(entry)).toBe(careerRunId(later));
   });
 
+  it("runId Roguelite-забега не зависит от этапа результата", () => {
+    const base = sampleEntry("roguelite-stage");
+    const entry = {
+      ...base,
+      configLabel: { ...base.configLabel, mode: "run" as const },
+      rogueliteStage: { index: 1, count: 5 },
+    };
+    expect(careerRunId(entry)).toBe(careerRunId({ ...entry, rogueliteStage: { index: 3, count: 5 } }));
+  });
+
   it("appendCareerEntry дедуплицирует повторный runId", () => {
     const entry = sampleEntry("career-contract");
     const later = { ...entry, finishedAt: "2026-07-13T12:00:00.000Z" };
@@ -91,6 +102,33 @@ describe("careerStore", () => {
     expect(once).toHaveLength(1);
     expect(twice).toHaveLength(1);
     expect(twice).toBe(once);
+  });
+
+  it("Quick Draft и Roguelite Run с одинаковым seed — разные записи", () => {
+    const quick = sampleEntry("shared-seed");
+    const roguelite = {
+      ...quick,
+      configLabel: { ...quick.configLabel, mode: "run" as const },
+    };
+    const entries = appendCareerEntry(appendCareerEntry([], quick), roguelite);
+    expect(entries).toHaveLength(2);
+    expect(careerRunId(quick)).not.toBe(careerRunId(roguelite));
+  });
+
+  it("финальная история разделяет Quick Draft и Roguelite, старые записи считает Quick Draft", () => {
+    const legacyQuick = sampleEntry("legacy-quick");
+    const explicitQuick = {
+      ...sampleEntry("explicit-quick"),
+      configLabel: { ...legacyQuick.configLabel, mode: "classic" as const },
+    };
+    const roguelite = {
+      ...sampleEntry("roguelite"),
+      configLabel: { ...legacyQuick.configLabel, mode: "run" as const },
+    };
+    const entries = [legacyQuick, explicitQuick, roguelite];
+
+    expect(careerEntriesForMode(entries, "classic")).toEqual([legacyQuick, explicitQuick]);
+    expect(careerEntriesForMode(entries, "run")).toEqual([roguelite]);
   });
 
   it("record добавляет забег ровно один раз", () => {

@@ -1,12 +1,14 @@
 import { useEffect, useRef } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { careerRunId, summarizeCareer, useCareer, type CareerPlacementBucket } from "../../state/careerStore.ts";
+import { careerEntriesForMode, careerRunId, summarizeCareer, useCareer, type CareerPlacementBucket } from "../../state/careerStore.ts";
+import type { RunMode } from "../../state/runPersist.ts";
 import { Eyebrow, StatTile, Surface } from "../../ui/index.ts";
 import { CareerRunCard, placementLabels, sortRunsNewestFirst } from "../career/CareerRunCard.tsx";
 
 const LAST_RUNS = 8;
-export function CareerPanel() {
-  const entries = useCareer((state) => state.entries);
+export function CareerPanel({ mode }: { mode: RunMode }) {
+  const allEntries = useCareer((state) => state.entries);
+  const entries = careerEntriesForMode(allEntries, mode);
   const summary = summarizeCareer(entries);
   const { t } = useI18n();
   // Здесь сознательно СРЕЗ: полная история живёт на своей странице (features/career).
@@ -36,8 +38,8 @@ export function CareerPanel() {
     <section className="career-panel">
       <header className="career-panel__heading">
         <Eyebrow>{t("career.eyebrow")}</Eyebrow>
-        <h2>{t("career.title")}</h2>
-        <p>{t("career.subtitle")}</p>
+        <h2>{t(mode === "run" ? "career.runTitle" : "career.quickTitle")}</h2>
+        <p>{t(mode === "run" ? "career.runSubtitle" : "career.quickSubtitle")}</p>
       </header>
       <Surface className="career-stats">
         <h3 className="bracket__side-title">{t("career.stats")}</h3>

@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { readCached, readPersisted, writePersisted } from "./persist.ts";
 import type { RosterSlot } from "../game/engine.ts";
 import type { DraftStyle, RunConfig, Scoring } from "../game/packs.ts";
+import type { RunMode } from "./runPersist.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import type { PlacementKey, TournamentSnapshot } from "../game/tournament.ts";
 import type { Format, Role } from "../types/data.ts";
@@ -16,6 +17,8 @@ export interface CareerConfigLabel {
   draftStyle: DraftStyle;
   /** Забег пройден в хардкоре. Опционально: записи до появления режима метки не имеют. */
   hardMode?: boolean;
+  /** Режим забега. "run" = Roguelite Run; classic/quick и старые записи метки не имеют. */
+  mode?: RunMode;
 }
 
 export interface CareerRosterPlayer {
@@ -35,6 +38,13 @@ export interface CareerResults {
   undefeated: boolean;
 }
 
+export interface CareerRogueliteStage {
+  /** Индекс завершённого ante-этапа с 0 — та же семантика, что у AnteRunState. */
+  index: number;
+  /** Всего этапов в этом Roguelite-забеге. */
+  count: number;
+}
+
 export interface CareerEntry {
   v: 1;
   finishedAt: string;
@@ -42,6 +52,8 @@ export interface CareerEntry {
   datasetSchemaVersion: number;
   ratingModelVersion: string;
   configLabel: CareerConfigLabel;
+  /** Этап, на котором закончился Roguelite Run. Старые и Quick Draft записи поля не имеют. */
+  rogueliteStage?: CareerRogueliteStage;
   placement: PlacementKey;
   score: Pick<ScoreBreakdown, "base" | "heroSynergy" | "chemistry" | "teamOvr">;
   roster: CareerRosterPlayer[];
@@ -118,6 +130,8 @@ export function buildCareerEntry(input: {
   datasetSchemaVersion: number;
   ratingModelVersion: string;
   config: RunConfig;
+  mode?: RunMode;
+  rogueliteStage?: CareerRogueliteStage;
   score: ScoreBreakdown;
   roster: RosterSlot[];
   tournament: TournamentSnapshot;
@@ -142,7 +156,11 @@ export function buildCareerEntry(input: {
       scoring: input.config.scoring,
       draftStyle: input.config.draftStyle,
       hardMode: input.config.hardMode === true ? true : undefined,
+      mode: input.mode === "run" ? "run" : undefined,
     },
+    rogueliteStage: input.mode === "run" && input.rogueliteStage
+      ? { index: input.rogueliteStage.index, count: input.rogueliteStage.count }
+      : undefined,
     placement: input.tournament.userPlacement,
     score: {
       base: input.score.base,
@@ -170,6 +188,7 @@ export function careerRunIdFromRun(
   datasetSchemaVersion: number,
   ratingModelVersion: string,
   config: RunConfig,
+  mode?: RunMode,
 ): string {
   return hash(JSON.stringify([
     seed,
@@ -179,6 +198,7 @@ export function careerRunIdFromRun(
     difficultyLabel(config.rerolls),
     config.scoring,
     config.draftStyle,
+    mode === "run" ? "run" : "quick",
   ]));
 }
 
@@ -193,7 +213,17 @@ export function careerRunId(entry: CareerEntry): string {
     configLabel.difficulty,
     configLabel.scoring,
     configLabel.draftStyle,
+    configLabel.mode === "run" ? "run" : "quick",
   ]));
+}
+
+/**
+ * История на финальном экране разделена на два самостоятельных режима. Старые записи
+ * без mode относятся к Quick Draft; полная CareerScreen этот фильтр намеренно не вызывает.
+ */
+export function careerEntriesForMode(entries: CareerEntry[], mode: RunMode): CareerEntry[] {
+  const roguelite = mode === "run";
+  return entries.filter((entry) => (entry.configLabel.mode === "run") === roguelite);
 }
 
 export function appendCareerEntry(entries: CareerEntry[], entry: CareerEntry): CareerEntry[] {

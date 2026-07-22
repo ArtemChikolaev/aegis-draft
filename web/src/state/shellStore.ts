@@ -29,6 +29,8 @@ function scrollToViewStart() {
 interface ShellStore {
   view: AppView;
   setView: (view: AppView) => void;
+  /** Прямой вход без внутренней истории: заменить текущий URL родительским экраном. */
+  replaceView: (view: AppView) => void;
   /** Синхронизация из адресной строки (кнопка «назад»). */
   syncFromHash: () => void;
 }
@@ -38,13 +40,25 @@ export const useShell = create<ShellStore>((set, get) => ({
 
   setView(view) {
     if (get().view === view) return;
+    const from = get().view;
     set({ view });
     if (typeof window === "undefined") return;
     const next = hashForView(view);
     // Именно pushState: каждый переход — запись в истории, иначе «назад» уводит из приложения.
     // В state кладём метку: по ней кнопка «назад» Telegram отличает «есть куда возвращаться
     // внутри приложения» от «открыли сразу этот экран по ссылке» (src/tma/useTelegramShell).
-    window.history.pushState({ aegisView: view }, "", next || window.location.pathname + window.location.search);
+    window.history.pushState({ aegisView: view, aegisFrom: from }, "", next || window.location.pathname + window.location.search);
+    scrollToViewStart();
+  },
+
+  replaceView(view) {
+    if (get().view === view) return;
+    set({ view });
+    if (typeof window === "undefined") return;
+    const next = hashForView(view);
+    // Прямо открытый дочерний экран не имеет внутреннего predecessor. Replace не создаёт
+    // цикл heroes → settings → heroes при следующем Back.
+    window.history.replaceState({ aegisView: view, aegisFrom: null }, "", next || window.location.pathname + window.location.search);
     scrollToViewStart();
   },
 

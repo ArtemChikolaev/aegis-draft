@@ -44,6 +44,11 @@
   --line-invert-strong: rgba(255, 255, 255, .28);
   --brand-green: #8ff0b5;   /* акцент радара, фикс */
   --brand-glow: #72e79b;    /* свечение-блобы, фикс */
+  /* Тёплое зелёное арт-поле стартовых карточек. Это одна палитра для Classic,
+     Quick Draft и Roguelite Run; форма арта различает режимы, hue — бренд. */
+  --brand-art-hot: #a8ffbd;
+  --brand-art-mid: #42c978;
+  --brand-art-deep: #0b4f34;
   --stat-base: #8bbcff;     /* цвета stat-strip на тёмном радаре, фикс */
   --stat-chemistry: #ffc66b;
 
@@ -162,6 +167,38 @@ html[data-theme="light"] {
   --sigil-2: #146b85;
   --sigil-3: #b03e73;
   --sigil-4: #4f5a68;
+}
+
+/* Гамма акцента по режиму (T5.7). Базовая (Classic / Quick Draft) — зелёная в тёмной теме и
+   оранжевая в светлой (см. выше). Roguelite Run переопределяет акцент на фиолетовый; скоуп
+   вешается на обёртку ФАЗ ЗАБЕГА в App, поэтому топбар/Settings/справочник остаются базовыми.
+   `orange`/`blue` — заготовки под Manager/Tournament (SOON): включатся вместе с их геймплеем,
+   чтобы каждый режим нёс свою гамму. Меняем только бренд-акцент/свечение; шкала OVR
+   (--tier-*, зелёный→красный) остаётся сигналом и не перекрашивается. */
+[data-accent="violet"] {
+  --accent: #d7bcff;
+  --accent-strong: #a98bff;
+  --accent-soft: rgba(150, 110, 230, .16);
+  --on-accent: #241338;
+  --brand-green: #d0b3ff;
+  --brand-glow: #8f6fe0;
+  --brand-art-hot: #d7bcff;
+  --brand-art-mid: #7b56d1;
+  --brand-art-deep: #291653;
+}
+html[data-theme="light"] [data-accent="violet"] {
+  --accent: #7b56d1;
+  --accent-strong: #5f3fb0;
+  --accent-soft: rgba(123, 86, 209, .14);
+  --on-accent: #fff;
+}
+[data-accent="orange"] {
+  --accent: #ffc18c; --accent-strong: #e0864f; --accent-soft: rgba(216, 119, 87, .16); --on-accent: #2a1509;
+  --brand-green: #ffc18c; --brand-glow: #d97757; --brand-art-hot: #ffc18c; --brand-art-mid: #d97757; --brand-art-deep: #532619;
+}
+[data-accent="blue"] {
+  --accent: #a9c6ff; --accent-strong: #6f9be0; --accent-soft: rgba(68, 109, 180, .18); --on-accent: #0b1524;
+  --brand-green: #a9c6ff; --brand-glow: #5b86c8; --brand-art-hot: #a9c6ff; --brand-art-mid: #446db4; --brand-art-deep: #17233b;
 }
 
 /* Тач-устройства: любой контрол ввода — минимум 16px, иначе iOS Safari зумит вьюпорт

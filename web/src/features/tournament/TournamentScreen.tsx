@@ -229,6 +229,9 @@ function renderRound(
 
 export function TournamentScreen() {
   const tournament = useRun((state) => state.tournament);
+  const ante = useRun((state) => state.ante);
+  const selectedMode = useRun((state) => state.selectedMode);
+  const advanceAnteStage = useRun((state) => state.advanceAnteStage);
   const advance = useRun((state) => state.advanceTournament);
   const finishTournament = useRun((state) => state.finishTournament);
   const rerollField = useRun((state) => state.rerollField);
@@ -492,6 +495,9 @@ export function TournamentScreen() {
     : null;
 
   const playing = revealTotal > 0 && !done;
+  // Порог топ-1 читается как «выиграть финал», а не «топ-1».
+  const anteTargetLabel = ante ? (ante.target <= 1 ? t("ante.targetWin") : t("ante.target", { rank: ante.target })) : "";
+  const anteNextLabel = ante ? (ante.target <= 1 ? t("ante.nextTargetWin") : t("ante.nextTargetTop", { rank: ante.target })) : "";
 
   return (
     <main className="run" data-testid="run-screen">
@@ -538,6 +544,13 @@ export function TournamentScreen() {
             </div>
             {stage === "field" && <Button variant="leave" onClick={() => setConfirmLeave(true)}>{t("draft.leave")}</Button>}
           </header>
+          {ante && (
+            <div className="ante-status" data-testid="ante-status">
+              <span className="ante-status__stage">{t("ante.stage", { n: ante.index + 1, count: ante.count })}</span>
+              <strong className="ante-status__target">{anteTargetLabel}</strong>
+              {ante.index > 0 && <em className="ante-status__field">↑ {t("ante.fieldStronger")}</em>}
+            </div>
+          )}
           <div className="tournament__projection enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>
             <span>{t("tournament.yourProjection")}</span>
             <strong>{t(projectionKey(tournament.projection))}</strong>
@@ -555,7 +568,7 @@ export function TournamentScreen() {
           {stage === "field" && (
             <div className="run__field-actions">
               <Button variant="primary" data-testid="tournament-simulate" onClick={advance}>{t("tournament.simulate")}<span>→</span></Button>
-              {!hardMode && (
+              {!hardMode && !ante && (
                 <Button variant="secondary" data-testid="tournament-field-reroll" onClick={rerollField}>↻ {t("tournament.rerollField")}<small>{t("tournament.rerollFieldHint")}</small></Button>
               )}
             </div>
@@ -664,6 +677,12 @@ export function TournamentScreen() {
 
         {playoffsDone && (
           <div ref={resultRef}>
+            {ante && (
+              <Surface className={`ante-result ante-result--${ante.phase} enter`} data-testid="ante-result">
+                <strong>{ante.phase === "won" ? t("ante.won") : ante.phase === "lost" ? t("ante.eliminated") : t("ante.passed")}</strong>
+                <span>{ante.phase === "won" ? t("ante.wonText") : ante.phase === "lost" ? t("ante.lostText") : anteNextLabel}</span>
+              </Surface>
+            )}
             <Surface className="tournament__champion enter">
               <div>
                 <span>{t("tournament.yourFinish")}</span>
@@ -736,9 +755,12 @@ export function TournamentScreen() {
                 </ul>
               </Surface>
             </div>
-            <div className="enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>
-              <CareerPanel />
-            </div>
+            {/* Карьера — итог ВСЕГО забега; между ante-этапами (phase playing) её не показываем. */}
+            {(!ante || ante.phase !== "playing") && (
+              <div className="enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>
+                <CareerPanel mode={selectedMode ?? "classic"} />
+              </div>
+            )}
           </div>
         )}
 
@@ -753,11 +775,18 @@ export function TournamentScreen() {
               <Button variant="leave" data-testid="tournament-skip" onClick={skip}>{t("tournament.skip")}</Button>
             </div>
           ) : playoffsDone ? (
-            <div className="tournament__restart" data-testid="tournament-complete">
-              <Button variant="primary" data-testid="tournament-restart" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
-              <Button variant="secondary" onClick={reset}>{t("tournament.restartChange")}</Button>
-              <ShareRunButton />
-            </div>
+            ante && ante.phase === "playing" ? (
+              <div className="tournament__restart tournament__restart--ante" data-testid="ante-next">
+                <Button variant="primary" data-testid="ante-next-stage" onClick={advanceAnteStage}>{t("ante.nextStage")}<span>→</span></Button>
+                <Button variant="secondary" onClick={() => setConfirmLeave(true)}>{t("ante.giveUp")}</Button>
+              </div>
+            ) : (
+              <div className="tournament__restart" data-testid="tournament-complete">
+                <Button variant="primary" data-testid="tournament-restart" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
+                <Button variant="secondary" onClick={reset}>{t("tournament.restartChange")}</Button>
+                <ShareRunButton />
+              </div>
+            )
           ) : null}
         </div>
         )}

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
-import { useShell } from "../../state/shellStore.ts";
+import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import type { Format, PlayerProfile } from "../../types/data.ts";
 import { Banner, Button, Eyebrow, PlayerPicker, Select, Surface } from "../../ui/index.ts";
@@ -21,7 +21,6 @@ const CENTER = SIZE / 2;
 const RING = 168;
 
 export function TeammatesScreen() {
-  const setView = useShell((state) => state.setView);
   const backNative = useTmaChrome((state) => state.backNative);
   const data = useRun((state) => state.data);
   const { t } = useI18n();
@@ -69,7 +68,7 @@ export function TeammatesScreen() {
 
   return (
     <main className="teammates" data-testid="teammates-screen">
-      {!backNative && <Button variant="back" onClick={() => setView("settings")}>← {t("codex.back")}</Button>}
+      {!backNative && <Button variant="back" onClick={navigateBack}>← {t("codex.back")}</Button>}
       <header className="screen-heading">
         <Eyebrow>{t("codex.eyebrow")}</Eyebrow>
         <h1>{t("teammates.title")}</h1>

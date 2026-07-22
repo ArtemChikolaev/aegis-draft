@@ -185,8 +185,10 @@ describe("runPersist", () => {
     const a = careerRunIdFromRun("seed-a", 1, "v1.3.0", defaultRunConfig);
     const b = careerRunIdFromRun("seed-a", 1, "v1.3.0", defaultRunConfig);
     const c = careerRunIdFromRun("seed-b", 1, "v1.3.0", defaultRunConfig);
+    const roguelite = careerRunIdFromRun("seed-a", 1, "v1.3.0", defaultRunConfig, "run");
     expect(a).toBe(b);
     expect(a).not.toBe(c);
+    expect(a).not.toBe(roguelite);
   });
 });
 

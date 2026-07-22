@@ -9,6 +9,7 @@ import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
+import { AnteRunEngine, ANTE_TARGETS, type AnteRunState } from "../game/anteRun.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
@@ -30,7 +31,17 @@ import { clearRunLinkHash, runLinkFromHash, runLinkIssue, type RunLink, type Run
 // Бесшовный Classic-флоу (TREF-TOUR2): после драфта нет отдельного экрана-итога —
 // сразу непрерывный `tournament`-вид (разбор счёта + поле + одна CTA «Симулировать»).
 type Phase = "loading" | "start" | "draft" | "tournament";
+export type StartStep = "modes" | "variants" | "config";
 export type { RunMode } from "./runPersist.ts";
+
+const DEFAULT_START_CONFIG: RunConfig = {
+  draftStyle: "team",
+  format: "last_2y",
+  rerolls: 1,
+  scoring: "event",
+  allocation: "auto",
+  hardMode: false,
+};
 
 interface Snapshot {
   currentPack: DraftPack;
@@ -55,6 +66,12 @@ interface RunStore {
   seed: string;
   snapshot: Snapshot | null;
   selectedMode: RunMode | null;
+  /** Позиция внутри стартового флоу. Живёт в store, чтобы Settings/справочник не сбрасывали её. */
+  startStep: StartStep;
+  /** Ещё не запущенная конфигурация; сохраняется при служебной навигации вне game-view. */
+  startConfig: RunConfig;
+  /** Введённый seed/link на стартовом экране; Settings не должен стирать пользовательский ввод. */
+  startSeedInput: string;
   teamName: string;
   actions: RunAction[]; // лог действий текущего забега (для персиста/replay)
   resumable: SavedRun | null; // незавершённый совместимый забег, предложить продолжить
@@ -67,6 +84,10 @@ interface RunStore {
   tournamentStep: number;
   /** Reveal плей-офф доигран до экрана результатов — сейв больше не нужен. */
   resultsSeen: boolean;
+  /** Roguelite Run (mode "run"): движок ante-петли поверх этапов, иначе null. */
+  anteRun: AnteRunEngine | null;
+  /** Снимок состояния ante-забега для рендера (этап/порог/фаза/место). */
+  ante: AnteRunState | null;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -80,6 +101,9 @@ interface RunStore {
   rerollField: () => void;
   reset: () => void;
   setSelectedMode: (mode: RunMode | null) => void;
+  setStartStep: (step: StartStep) => void;
+  setStartConfig: (config: RunConfig | ((current: RunConfig) => RunConfig)) => void;
+  setStartSeedInput: (value: string) => void;
   setTeamName: (name: string) => void;
   resumeRun: () => void;
   discardResume: () => void;
@@ -92,6 +116,8 @@ interface RunStore {
   advanceTournament: () => void;
   /** Вызывать, когда UI доиграл playoffs reveal до итоговой таблицы (не при входе в стадию). */
   finishTournament: () => void;
+  /** Roguelite Run: перейти к следующему этапу после пройденного порога (кнопка «Next stage»). */
+  advanceAnteStage: () => void;
   restartSameConfig: () => void;
 }
 
@@ -154,7 +180,7 @@ export const useRun = create<RunStore>((set, get) => {
   // Плей-офф с canAdvance=false — ещё НЕ финал для игрока: идёт reveal-анимация.
   // Сейв чистим только после finishTournament (reveal доигран до экрана результатов).
   const persist = () => {
-    const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine, engine, resultsSeen } = get();
+    const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine, engine, resultsSeen, anteRun } = get();
     if (!data || !config || !selectedMode) return;
     if (resultsSeen) {
       clearSavedRun();
@@ -176,6 +202,7 @@ export const useRun = create<RunStore>((set, get) => {
       tournamentStep,
       tournamentStarted: tournamentEngine != null,
       frozenRoster: frozenRoster ?? undefined,
+      anteStageIndex: anteRun ? anteRun.state.index : undefined,
     });
   };
   // Записать действие в лог и сохранить.
@@ -186,21 +213,36 @@ export const useRun = create<RunStore>((set, get) => {
   // Собрать турнир (стадия field) из готового снапшота драфта. Детерминизм: seed+teamOvr.
   // Имя команды по умолчанию фиксируем как durable-настройку (как раньше в startTournament).
   const buildTournamentFields = (snapshot: Snapshot, rerolls = fieldRerollCount(get().actions)) => {
-    const { data, config, seed, teamName } = get();
+    const { data, config, seed, teamName, selectedMode } = get();
     if (!data || !config || !snapshot.score) return null;
     const resolvedName = teamName.trim() || "Aegis Five";
     if (!teamName.trim()) saveTeamName(resolvedName);
+    // Roguelite Run: этапы гонит AnteRunEngine (поле растёт по этапу), но UI-рендер тот же —
+    // ante.tournament подставляется в тот же tournamentEngine/tournament, что и Quick Draft.
+    if (selectedMode === "run") {
+      const anteRun = new AnteRunEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName);
+      return {
+        anteRun, ante: anteRun.state,
+        tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot,
+        tournamentStep: 0, teamName: resolvedName,
+      };
+    }
     const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
-    return { tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName };
+    return {
+      anteRun: null, ante: null,
+      tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName,
+    };
   };
-  const recordCareer = (tournament: TournamentSnapshot) => {
-    const { data, config, seed, snapshot } = get();
+  const recordCareer = (tournament: TournamentSnapshot, rogueliteStage?: { index: number; count: number }) => {
+    const { data, config, seed, snapshot, selectedMode } = get();
     if (tournament.canAdvance || !data || !config || !snapshot?.score || !snapshot.isComplete) return;
     useCareer.getState().record(buildCareerEntry({
       seed,
       datasetSchemaVersion: data.manifest.schemaVersion,
       ratingModelVersion: data.manifest.ratingModelVersion,
       config,
+      mode: selectedMode ?? undefined,
+      rogueliteStage,
       score: snapshot.score,
       roster: snapshot.roster,
       tournament,
@@ -216,6 +258,9 @@ export const useRun = create<RunStore>((set, get) => {
     seed: "",
     snapshot: null,
     selectedMode: null,
+    startStep: "modes",
+    startConfig: DEFAULT_START_CONFIG,
+    startSeedInput: "",
     teamName: "",
     actions: [],
     resumable: null,
@@ -225,6 +270,8 @@ export const useRun = create<RunStore>((set, get) => {
     tournament: null,
     tournamentStep: 0,
     resultsSeen: false,
+    anteRun: null,
+    ante: null,
 
     async loadData() {
       try {
@@ -267,7 +314,9 @@ export const useRun = create<RunStore>((set, get) => {
         const snapshot = snap(engine);
         set({
           engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null,
+          startStep: "config", startConfig: config,
           tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
+          anteRun: null, ante: null,
         });
         logRunStart(config, seed, data);
         debugSnap("after start", engine, snapshot, config, seed, data);
@@ -324,8 +373,20 @@ export const useRun = create<RunStore>((set, get) => {
         const snapshot = snap(engine);
         // До запуска симуляции (стадия field) свап меняет teamOvr → пересобираем поле,
         // чтобы посев остался консистентным. После старта групп ростер залочен.
-        const rebuild = get().tournament?.stage === "field" ? buildTournamentFields(snapshot) : null;
-        set(rebuild ? { snapshot, ...rebuild } : { snapshot });
+        const { anteRun, tournament } = get();
+        if (tournament?.stage === "field" && snapshot.score) {
+          if (anteRun) {
+            // Ante: пересобираем поле ТЕКУЩЕГО этапа под новый teamOvr, прогресс сохраняется
+            // (fresh AnteRunEngine сбросил бы забег на этап 0).
+            anteRun.rebuildCurrentStage(snapshot.score.teamOvr);
+            set({ snapshot, anteRun, ante: anteRun.state, tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot, tournamentStep: 0 });
+          } else {
+            const rebuild = buildTournamentFields(snapshot);
+            set(rebuild ? { snapshot, ...rebuild } : { snapshot });
+          }
+        } else {
+          set({ snapshot });
+        }
         debugSnap("swapHeroes", engine, snapshot, config, seed, data, { accountIdA, accountIdB });
         record({ t: "swap", a: accountIdA, b: accountIdB });
       } catch {
@@ -346,7 +407,9 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     rerollField() {
-      const { tournament, snapshot, config, data, teamName } = get();
+      const { tournament, snapshot, config, data, teamName, anteRun } = get();
+      // Ante: поле этапа фиксировано по seed — перевыбора соперников нет (кнопка скрыта в UI).
+      if (anteRun) return;
       if (!tournament || tournament.stage !== "field" || !snapshot?.score || !config || !data) return;
       record({ t: "fieldReroll" });
       const rebuilt = buildTournamentFields(snapshot, fieldRerollCount(get().actions));
@@ -369,11 +432,24 @@ export const useRun = create<RunStore>((set, get) => {
       set({
         phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
         resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
+        anteRun: null, ante: null,
       });
     },
 
     setSelectedMode(selectedMode) {
       set({ selectedMode });
+    },
+
+    setStartStep(startStep) {
+      set({ startStep });
+    },
+
+    setStartConfig(next) {
+      set((state) => ({ startConfig: typeof next === "function" ? next(state.startConfig) : next }));
+    },
+
+    setStartSeedInput(startSeedInput) {
+      set({ startSeedInput });
     },
 
     setTeamName(name) {
@@ -396,13 +472,25 @@ export const useRun = create<RunStore>((set, get) => {
         }
         let tournamentEngine: TournamentEngine | null = null;
         let tournament: TournamentSnapshot | null = null;
+        let anteRun: AnteRunEngine | null = null;
+        let ante: AnteRunState | null = null;
         const tournamentStep = Math.max(0, Math.min(2, resumable.tournamentStep ?? 0));
         if (engine.isComplete) {
           const score = engine.score();
           if (!score) throw new Error("Completed draft has no score");
           const resolvedName = get().teamName.trim() || "Aegis Five";
-          const rerolls = fieldRerollCount(resumable.actions);
-          tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, rerolls);
+          if (resumable.mode === "run") {
+            // Ante-забег: пересобираем движок и перематываем на сохранённый этап (детерминизм —
+            // пройденные этапы по seed те же), затем доигрываем reveal-шаги текущего этапа.
+            anteRun = new AnteRunEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName);
+            const stageIndex = Math.max(0, Math.min(ANTE_TARGETS.length - 1, resumable.anteStageIndex ?? 0));
+            anteRun.jumpToStage(stageIndex);
+            ante = anteRun.state;
+            tournamentEngine = anteRun.tournament;
+          } else {
+            const rerolls = fieldRerollCount(resumable.actions);
+            tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, rerolls);
+          }
           for (let step = 0; step < tournamentStep; step += 1) tournamentEngine.advance();
           tournament = tournamentEngine.snapshot;
         }
@@ -411,6 +499,8 @@ export const useRun = create<RunStore>((set, get) => {
           config: resumable.config,
           seed: resumable.seed,
           selectedMode: resumable.mode,
+          startStep: "config",
+          startConfig: resumable.config,
           actions: resumable.actions,
           snapshot: snap(engine),
           phase: engine.isComplete ? "tournament" : "draft",
@@ -420,6 +510,8 @@ export const useRun = create<RunStore>((set, get) => {
           tournament,
           tournamentStep,
           resultsSeen: false,
+          anteRun,
+          ante,
         });
       } catch (e) {
         // Сейв не воспроизвёлся — сбрасываем; раньше баннер просто исчезал без объяснения.
@@ -472,11 +564,40 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     finishTournament() {
-      const { tournament, resultsSeen } = get();
+      const { tournament, resultsSeen, anteRun } = get();
       if (resultsSeen || !tournament || tournament.canAdvance) return;
+      // Roguelite Run: этап доигран → решаем порог. Пройден и не последний → забег жив
+      // (кнопка «Next stage»); победа/смерть → пишем карьеру и чистим сейв, как Quick Draft.
+      if (anteRun) {
+        const phase = anteRun.resolveStage();
+        const resolvedAnte = anteRun.state;
+        set({ ante: resolvedAnte, resultsSeen: true });
+        if (phase === "playing") {
+          persist();
+        } else {
+          recordCareer(tournament, { index: resolvedAnte.index, count: resolvedAnte.count });
+          clearSavedRun();
+        }
+        return;
+      }
       recordCareer(tournament);
       set({ resultsSeen: true });
       clearSavedRun();
+    },
+
+    advanceAnteStage() {
+      const { anteRun, ante } = get();
+      if (!anteRun || !ante || ante.phase !== "playing") return;
+      // resolveStage уже перевёл движок на следующий этап (stage "field") — подставляем его
+      // турнир в тот же tournamentEngine/tournament, что рендерит экран; reveal сбросится.
+      set({
+        tournamentEngine: anteRun.tournament,
+        tournament: anteRun.tournament.snapshot,
+        tournamentStep: 0,
+        resultsSeen: false,
+        ante: anteRun.state,
+      });
+      persist();
     },
 
     restartSameConfig() {

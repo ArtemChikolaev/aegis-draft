@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
-import { useShell } from "../../state/shellStore.ts";
+import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import type { PlayerProfile } from "../../types/data.ts";
 import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface, TextField } from "../../ui/index.ts";
@@ -9,7 +9,6 @@ import { heroPopularity, sortHeroes, type HeroSort } from "./heroPopularity.ts";
 import "./heroes.css";
 
 export function HeroesScreen() {
-  const setView = useShell((state) => state.setView);
   const backNative = useTmaChrome((state) => state.backNative);
   const data = useRun((state) => state.data);
   const { t } = useI18n();
@@ -52,7 +51,7 @@ export function HeroesScreen() {
 
   return (
     <main className="heroes" data-testid="heroes-screen">
-      {!backNative && <Button variant="back" onClick={() => setView("settings")}>← {t("codex.back")}</Button>}
+      {!backNative && <Button variant="back" onClick={navigateBack}>← {t("codex.back")}</Button>}
       <header className="screen-heading">
         <Eyebrow>{t("codex.eyebrow")}</Eyebrow>
         <h1>{shownPlayer ? shownPlayer.nickname : t("heroes.title")}</h1>

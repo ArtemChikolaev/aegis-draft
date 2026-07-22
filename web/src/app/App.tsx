@@ -19,8 +19,15 @@ import "./App.css";
 
 export function App() {
   const phase = useRun((s) => s.phase);
+  const mode = useRun((s) => s.selectedMode);
   const error = useRun((s) => s.error);
   const loadData = useRun((s) => s.loadData);
+  // Гамма всего опыта режима (T5.7): каждый режим несёт свою — Roguelite Run фиолетовую,
+  // Manager оранжевую, Real Tournament синюю; Classic/Quick Draft — базовую зелёную (без
+  // override). Нейтрально, пока режим не выбран (mode === null): это mode-select и экран выбора
+  // варианта. Вешается на весь app-shell, поэтому Settings/справочник, открытые ИЗ режима, тоже
+  // наследуют его гамму (карточку варианта Roguelite тегаем отдельно — она на нейтральном экране).
+  const modeAccent = mode === "run" ? "violet" : mode === "manager" ? "orange" : mode === "tournament" ? "blue" : undefined;
   const { t } = useI18n();
   const view = useShell((s) => s.view);
   const setView = useShell((s) => s.setView);
@@ -42,10 +49,15 @@ export function App() {
     void useCareer.getState().hydrate();
   }, []);
 
-  // Кнопка «назад» браузера: на телефоне это единственный способ уйти со страницы.
+  // Browser Back/Forward и прямое изменение hash должны вести в один и тот же shell-view.
+  // pushState из setView обновляет store сам и событий не создаёт — двойного рендера нет.
   useEffect(() => {
     window.addEventListener("popstate", syncFromHash);
-    return () => window.removeEventListener("popstate", syncFromHash);
+    window.addEventListener("hashchange", syncFromHash);
+    return () => {
+      window.removeEventListener("popstate", syncFromHash);
+      window.removeEventListener("hashchange", syncFromHash);
+    };
   }, [syncFromHash]);
 
   // Ссылку на забег могли открыть в УЖЕ открытом приложении: меняется только hash,
@@ -57,7 +69,7 @@ export function App() {
   }, [syncLinkFromHash]);
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-accent={modeAccent}>
       <header className="topbar">
         <div className="brand" data-testid="brand">
           <span className="brand__mark" aria-hidden="true">A</span>

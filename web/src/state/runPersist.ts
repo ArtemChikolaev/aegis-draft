@@ -9,7 +9,7 @@ import type { RunConfig } from "../game/packs.ts";
 import type { Role } from "../types/data.ts";
 import { readCached, readPersisted, removePersisted, writePersisted } from "./persist.ts";
 
-export type RunMode = "classic" | "manager" | "tournament";
+export type RunMode = "classic" | "run" | "manager" | "tournament";
 
 /** Действие игрока в забеге. Replay на движке восстанавливает точное состояние. */
 export type RunAction =
@@ -36,6 +36,8 @@ export interface SavedRun {
   /** Число открытых турнирных этапов; результат пересобирается из seed. */
   tournamentStep?: number;
   tournamentStarted?: boolean;
+  /** Roguelite Run: индекс текущего ante-этапа (mode "run"). Прочие режимы не пишут. */
+  anteStageIndex?: number;
   /** Ростер на момент persist; replay должен совпасть побайтно. */
   frozenRoster?: FrozenRosterSlot[];
 }

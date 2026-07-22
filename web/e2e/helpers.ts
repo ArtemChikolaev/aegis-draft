@@ -32,11 +32,39 @@ export async function completeDraft(page: Page) {
   }
 }
 
+// Classic-карточка ведёт в шаг выбора варианта: Quick Draft или Roguelite Run.
 export async function startClassicRun(page: Page) {
   await page.getByTestId("mode-classic").click();
+  await page.getByTestId("variant-quick").click();
   await expect(page.getByTestId("start-run")).toBeVisible();
   await page.getByTestId("start-run").click();
   await expect(page.getByTestId("draft-screen")).toBeVisible();
+}
+
+export async function startRogueliteRun(page: Page) {
+  await page.getByTestId("mode-classic").click();
+  await page.getByTestId("variant-run").click();
+  await expect(page.getByTestId("start-run")).toBeVisible();
+  await page.getByTestId("start-run").click();
+  await expect(page.getByTestId("draft-screen")).toBeVisible();
+}
+
+/** Симулировать текущий ante-этап до исхода: появляется либо «следующий этап»
+ *  (порог пройден), либо терминальный итог забега (победа/смерть). */
+export async function simulateAnteStageToOutcome(page: Page) {
+  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  await page.getByTestId("tournament-simulate").click();
+  const next = page.getByTestId("ante-next-stage");
+  const complete = page.getByTestId("tournament-complete");
+  const skip = page.getByTestId("tournament-skip");
+  for (
+    let i = 0;
+    i < 12 && !(await next.isVisible().catch(() => false)) && !(await complete.isVisible().catch(() => false));
+    i += 1
+  ) {
+    await skip.click({ timeout: 1_500 }).catch(() => {});
+    await page.waitForTimeout(200);
+  }
 }
 
 /** Бесшовный запуск: одна CTA «Симулировать», дальше группы → (авто) плей-офф проигрываются

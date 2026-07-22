@@ -11,9 +11,31 @@
 .mode-card:hover { transform: translateY(-5px); border-color: rgba(255, 255, 255, .42); }
 .mode-card::before { content: ""; position: absolute; inset: 0; opacity: .72; transition: transform .5s; }
 .mode-card:hover::before { transform: scale(1.06); }
-.mode-card--classic::before { background: radial-gradient(circle at 72% 28%, #a8ffbd, transparent 18%), radial-gradient(ellipse at 45% 46%, #42c978, #0b4f34 40%, transparent 72%); }
+.mode-card--classic::before { background: radial-gradient(circle at 72% 28%, var(--brand-art-hot), transparent 18%), radial-gradient(ellipse at 45% 46%, var(--brand-art-mid), var(--brand-art-deep) 40%, transparent 72%); }
 .mode-card--manager::before { background: radial-gradient(circle at 76% 22%, #ffc18c, transparent 18%), radial-gradient(ellipse at 45% 45%, #d97757, #532619 42%, transparent 72%); }
 .mode-card--tournament::before { background: radial-gradient(circle at 76% 22%, #a9c6ff, transparent 18%), radial-gradient(ellipse at 45% 45%, #446db4, #17233b 42%, transparent 72%); }
+/* Выбор варианта внутри Classic. Всего две карточки, поэтому центрируем весь блок (без третьей
+   карточки грид режимов смотрелся бы прижатым влево). Палитра у вариантов одна — фирменная:
+   Quick читается одним коротким импульсом, Roguelite — растущей цепочкой этапов. */
+.variant-select { max-width: 880px; margin-inline: auto; }
+.variant-select .mode-select__heading { grid-template-columns: 1fr; justify-items: center; text-align: center; gap: 14px; }
+.variant-select .mode-select__heading .ms-eyebrow { margin: 0; }
+.variant-select .mode-select__heading > p:last-child { max-width: 520px; margin: 0; }
+.variant-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.variant-grid .mode-card::before { opacity: .9; }
+.mode-card--quick::before {
+  background:
+    radial-gradient(circle at 72% 28%, var(--brand-art-hot) 0 2%, color-mix(in srgb, var(--brand-art-hot) 55%, transparent) 8%, transparent 17%),
+    radial-gradient(ellipse at 66% 32%, color-mix(in srgb, var(--brand-art-mid) 34%, transparent), transparent 42%),
+    linear-gradient(137deg, transparent 44%, color-mix(in srgb, var(--brand-art-deep) 24%, transparent) 56%, transparent 68%);
+}
+.mode-card--run::before {
+  background:
+    radial-gradient(circle at 73% 25%, var(--brand-art-hot), transparent 12%),
+    radial-gradient(circle at 52% 43%, color-mix(in srgb, var(--brand-art-hot) 78%, transparent), transparent 10%),
+    radial-gradient(circle at 32% 61%, color-mix(in srgb, var(--brand-art-mid) 76%, transparent), transparent 9%),
+    linear-gradient(137deg, transparent 34%, color-mix(in srgb, var(--brand-art-deep) 72%, transparent) 49.5%, transparent 50.5%);
+}
 .mode-card > * { position: relative; z-index: 1; }
 .mode-card__index { font: 600 12px "Space Grotesk"; letter-spacing: .1em; }
 .mode-card__body { display: grid; gap: 10px; margin-top: auto; padding-top: 90px; }
@@ -83,8 +105,8 @@
   border-radius: 16px;
   color: var(--on-invert);
   background:
-    radial-gradient(circle at 75% 22%, rgba(190, 255, 185, .95), transparent 18%),
-    radial-gradient(ellipse at 42% 48%, #42c978 0%, #0c5f3d 34%, transparent 67%),
+    radial-gradient(circle at 75% 22%, var(--brand-art-hot), transparent 18%),
+    radial-gradient(ellipse at 42% 48%, var(--brand-art-mid) 0%, var(--brand-art-deep) 34%, transparent 67%),
     linear-gradient(135deg, #04160f, #132a22 50%, #050706);
 }
 .hero-art::before, .hero-art::after {
@@ -94,13 +116,25 @@
   height: 42%;
   left: -30%;
   border-radius: 50%;
-  background: linear-gradient(90deg, transparent, rgba(157, 255, 175, .75), transparent);
+  /* Токен, а не хардкод-зелёный: glow следует гамме режима (зелёный в Classic, фиолетовый
+     в Roguelite Run через [data-accent] на app-shell). */
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand-glow) 80%, transparent), transparent);
   filter: blur(14px);
   transform: rotate(-28deg);
   animation: drift 8s ease-in-out infinite alternate;
 }
 .hero-art::before { top: 12%; }
 .hero-art::after { top: 48%; opacity: .55; animation-delay: -3s; }
+.hero-art--run {
+  background:
+    radial-gradient(circle at 78% 20%, var(--brand-art-hot), transparent 16%),
+    radial-gradient(circle at 59% 39%, color-mix(in srgb, var(--brand-art-mid) 78%, transparent), transparent 13%),
+    radial-gradient(circle at 40% 58%, color-mix(in srgb, var(--brand-art-mid) 52%, transparent), transparent 11%),
+    linear-gradient(135deg, color-mix(in srgb, var(--brand-art-deep) 62%, var(--surface-invert)), color-mix(in srgb, var(--brand-art-deep) 8%, var(--surface-invert)) 68%);
+}
+.hero-art--run::before, .hero-art--run::after { animation: none; }
+.hero-art--run::before { top: 18%; opacity: .5; }
+.hero-art--run::after { top: 56%; opacity: .26; }
 .hero-art span {
   position: relative;
   z-index: 2;
@@ -121,7 +155,7 @@
     padding-top: 24px;
   }
 }
-.hero-art span strong { font: 600 clamp(18px, 1.8vw, 27px)/1 "Space Grotesk"; letter-spacing: -.03em; }
+.hero-art span strong { font: 600 clamp(18px, 1.8vw, 27px)/1 "Space Grotesk"; letter-spacing: -.03em; text-transform: uppercase; }
 .hero-art span small { color: rgba(255, 255, 255, .78); font: 600 12px/1.4 Manrope; }
 .hero-art span::after { content: "→"; font-size: 22px; }
 .classic-art__copy { position: relative; z-index: 2; align-self: end; max-width: 440px; padding-bottom: 22px; }

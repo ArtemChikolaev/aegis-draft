@@ -41,10 +41,16 @@ export function CareerRunCard({ entry }: { entry: CareerEntry }) {
     <article className={`career-run${entry.configLabel.hardMode ? " career-run--hardcore" : ""}`}>
       <header className="career-run__heading">
         <strong>{t(`tournament.place.${entry.placement}` as MessageKey)}</strong>
-        <span>{t("career.teamOvr", { value: Math.round(entry.score.teamOvr) })}</span>
+        <span>
+          {t("career.teamOvr", { value: Math.round(entry.score.teamOvr) })}
+          {entry.configLabel.mode === "run" && entry.rogueliteStage && (
+            <> · <em className="career-run__stage">{t("ante.stage", { n: entry.rogueliteStage.index + 1, count: entry.rogueliteStage.count })}</em></>
+          )}
+        </span>
         <small>{new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(entry.finishedAt))}</small>
       </header>
       <p className="career-run__config">
+        {entry.configLabel.mode === "run" && <><em className="career-run__mode">{t("career.roguelite")}</em> · </>}
         {configKeys(entry.configLabel).map((key) => t(key)).join(" · ")}
         {entry.configLabel.hardMode && <> · <em className="career-run__hard">{t("hard.badge")}</em></>}
       </p>

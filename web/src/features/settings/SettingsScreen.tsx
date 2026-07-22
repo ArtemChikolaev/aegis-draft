@@ -2,6 +2,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useTheme } from "../../design/theme/ThemeProvider.tsx";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
+import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { Banner, Button, Eyebrow, OptionGroup, Surface } from "../../ui/index.ts";
 import type { Locale } from "../../i18n/core.ts";
@@ -20,7 +21,7 @@ export function SettingsScreen() {
 
   return (
     <main className="settings" data-testid="settings-screen">
-      {!backNative && <Button variant="back" onClick={() => setView("game")}>← {t("settings.back")}</Button>}
+      {!backNative && <Button variant="back" onClick={navigateBack}>← {t("settings.back")}</Button>}
       <header className="screen-heading">
         <Eyebrow>{t("settings.eyebrow")}</Eyebrow>
         <h1>{t("settings.title")}</h1>

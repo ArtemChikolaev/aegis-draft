@@ -277,14 +277,23 @@ function round(rng: Rng, id: string, label: string, pairs: [TournamentTeam, Tour
   return { id, label, series: pairs.map(([a, b], index) => playSeries(rng, `${id}-${index + 1}`, label, a, b, 3)) };
 }
 
-function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0): TournamentResult {
+function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldBoost = 0): TournamentResult {
   void data;
   void format;
   const fieldRng = new Rng(`${seed}:tournament:field-${fieldReroll}`);
   const simRng = new Rng(`${seed}:tournament:sim-${fieldReroll}`);
   const name = userName.trim() || "Aegis Five";
   const user: TournamentTeam = { id: USER_ID, name, eventLabel: "Fantasy roster", strength: userStrength, isUser: true, sigil: { monogram: monogramOf(name), color: "user" } };
-  const field = [...opponentPool(fieldRng), user]
+  // Roguelite Run (PRD §5.9.2): поле сильнее с каждым этапом. Сдвигаем силы ботов вверх на
+  // fieldBoost и переклампливаем в [min,max]; при fieldBoost=0 (Quick Draft) — тождественно,
+  // поэтому golden Classic не двигается.
+  const bots = fieldBoost === 0
+    ? opponentPool(fieldRng)
+    : opponentPool(fieldRng).map((bot) => ({
+        ...bot,
+        strength: Math.min(BOT_FIELD.max, Math.max(BOT_FIELD.min, bot.strength + fieldBoost)),
+      }));
+  const field = [...bots, user]
     .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
   const projection = projectionForRank(field.findIndex((team) => team.isUser) + 1);
   const [drawA, drawB] = snakeSeed(field);
@@ -334,8 +343,8 @@ export class TournamentEngine {
   private stageIndex = 0;
   private readonly result: TournamentResult;
 
-  constructor(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0) {
-    this.result = buildResult(data, format, seed, userStrength, userName, fieldReroll);
+  constructor(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldBoost = 0) {
+    this.result = buildResult(data, format, seed, userStrength, userName, fieldReroll, fieldBoost);
   }
 
   get snapshot(): TournamentSnapshot {

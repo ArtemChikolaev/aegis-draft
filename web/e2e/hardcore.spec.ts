@@ -21,6 +21,7 @@ test.describe("hardcore", () => {
   test.beforeEach(async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-classic").click();
+    await page.getByTestId("variant-quick").click();
   });
 
   test("окно правил: открывается только при переходе Off → On", async ({ page }) => {
@@ -50,6 +51,18 @@ test.describe("hardcore", () => {
     await on.click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page.getByTestId("hard-gate-confirm")).toBeDisabled();
+  });
+
+  test("правило про реролл соперников показывается только в Quick Draft", async ({ page }) => {
+    await hardcoreOption(page, 1).click();
+    await expect(page.getByRole("dialog")).toContainText("No opponent reroll");
+
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-classic").click();
+    await page.getByTestId("variant-run").click();
+    await hardcoreOption(page, 1).click();
+
+    await expect(page.getByRole("dialog")).not.toContainText("No opponent reroll");
   });
 
   test("во время хардкора справочник закрыт: поля недоступны, причина подписана", async ({ page }) => {
