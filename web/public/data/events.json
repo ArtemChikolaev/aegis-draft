@@ -577,7 +577,6 @@
     "startDate": "2024-07-04",
     "endDate": "2024-07-21",
     "formats": [
-      "last_2y",
       "last_5y"
     ]
   },
