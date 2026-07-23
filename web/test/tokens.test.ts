@@ -101,4 +101,22 @@ describe("design tokens", () => {
     expect(reducedRules.get(".ovr-tier--immortal")?.get("animation")).toBe("none");
     expect(reducedRules.get(".ovr-tier--immortal")?.get("filter")).toContain("--tier-immortal");
   });
+
+  it("camp-карточка контейнит absolute-фойл, не меняя позиционирование общего tier-словаря", () => {
+    const campRoot = postcss.parse(readFileSync(join(SRC, "features/run/camp.css"), "utf8"));
+    const baseRoot = postcss.parse(readFileSync(join(SRC, "design/base.css"), "utf8"));
+    let campPosition: string | undefined;
+    const tierPositions: string[] = [];
+
+    campRoot.walkRules(".camp-player-card", (rule) => {
+      rule.walkDecls("position", (decl) => { campPosition = decl.value; });
+    });
+    baseRoot.walkRules((rule) => {
+      if (!rule.selector.includes(".card-tint--") || rule.selector.includes("::")) return;
+      rule.walkDecls("position", (decl) => tierPositions.push(decl.value));
+    });
+
+    expect(campPosition).toBe("relative");
+    expect(tierPositions).toEqual([]);
+  });
 });

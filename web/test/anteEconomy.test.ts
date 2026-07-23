@@ -8,19 +8,25 @@ import {
 } from "../src/game/anteEconomy.ts";
 
 describe("prizeForStage", () => {
-  it("база без места, бонус за overperformance", () => {
-    // порог топ-8; место 7-8 (worst 8) → ровно порог, бонуса нет
-    expect(prizeForStage("7-8", 8)).toBe(ECONOMY.prizeBase);
-    // место 3-4 (worst 4) при пороге 8 → +4 ранга бонуса
-    expect(prizeForStage("3-4", 8)).toBe(ECONOMY.prizeBase + 4 * ECONOMY.prizeSurplusPerRank);
-    // 1-е место при пороге 8 → +7
-    expect(prizeForStage("1", 8)).toBe(ECONOMY.prizeBase + 7 * ECONOMY.prizeSurplusPerRank);
-    // null (нет места) → только база
-    expect(prizeForStage(null, 8)).toBe(ECONOMY.prizeBase);
+  it("база растёт по этапам, первое место даёт одинаковый performance-cap", () => {
+    expect(prizeForStage("7-8", 8, 1)).toBe(ECONOMY.prizeBase);
+    expect(prizeForStage("3", 3, 4))
+      .toBe(ECONOMY.prizeBase + 3 * ECONOMY.prizeStageStep);
+    expect(prizeForStage("1", 10, 1))
+      .toBe(ECONOMY.prizeBase + ECONOMY.prizePerformanceMax);
+    expect(prizeForStage("1", 3, 4))
+      .toBe(ECONOMY.prizeBase + 3 * ECONOMY.prizeStageStep + ECONOMY.prizePerformanceMax);
+    expect(prizeForStage(null, 8, 2))
+      .toBe(ECONOMY.prizeBase + ECONOMY.prizeStageStep);
   });
 
   it("место хуже порога не даёт отрицательного бонуса", () => {
-    expect(prizeForStage("9-12", 8)).toBe(ECONOMY.prizeBase);
+    expect(prizeForStage("9-12", 8, 1)).toBe(ECONOMY.prizeBase);
+  });
+
+  it("overperformance учитывает относительный отрыв от порога, а не ширину раннего stage", () => {
+    expect(prizeForStage("2", 6, 2)).toBe(6);
+    expect(prizeForStage("2", 3, 4)).toBe(8);
   });
 });
 
@@ -28,6 +34,13 @@ describe("детерминизм офферов", () => {
   it("тот же seed+campId → те же reward-офферы", () => {
     expect(rewardOffers("s", 1)).toEqual(rewardOffers("s", 1));
     expect(rewardOffers("s", 1)).not.toEqual(rewardOffers("s", 2));
+  });
+
+  it("золотые reward-карты растут вместе со stage", () => {
+    const stage1 = rewardOffers("s", 1).filter((offer) => offer.kind === "gold");
+    const stage4 = rewardOffers("s", 4).filter((offer) => offer.kind === "gold");
+    expect(stage1.map((offer) => offer.goldGain)).toEqual([3, 6]);
+    expect(stage4.map((offer) => offer.goldGain)).toEqual([6, 12]);
   });
 
   it("тот же seed+campId+rerollN → те же market-офферы; reroll меняет набор", () => {

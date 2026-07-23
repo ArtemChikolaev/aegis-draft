@@ -1,20 +1,20 @@
-// Экономический слой Roguelite Run (T5.2, срез 2). Чистый модуль ПОВЕРХ AnteRunEngine —
+// Экономический слой Roguelite Run (T5.2, срезы 2–3). Чистый модуль ПОВЕРХ AnteRunEngine —
 // движок ante-петли и турнир не трогаем (скилл game-state-architecture: экономика — часть
 // stage-оркестрации, отдельным слоем, не вливать в RunEngine/TournamentEngine).
 //
 // Между этапами игрок попадает в Буткемп (Camp): за пройденный этап начисляются призовые
 // (валюта = «золото»), затем Reward (выбор 1 из 3) и Market (3 рычага над слагаемыми
-// Team OVR + reroll). Покупки — это ДЕЛЬТЫ слагаемых `Base + Hero Synergy + Chemistry`, а не
-// мутация игроков: слой полностью развязан со scoreTeam (PRD §5.9.2/§5.10 — «Tactics
-// модифицируют понятные слагаемые; UI показывает источник каждого изменения»). Сила
-// сбрасывается вместе с забегом (fresh RunEconomy на новый забег).
+// Team OVR + reroll). Срез 2 хранит stat-дельты, срез 3 позволяет карточке нести payload
+// конкретного player/hero swap; саму мутацию выполняет RunEngine, экономика только валидирует
+// цену, списывает золото и фиксирует оффер. Сила сбрасывается с забегом.
 //
 // Детерминизм: `seed + campId + rerollN ⇒ те же офферы`. Числа — placeholder-конфиг ECONOMY
 // в одном месте (кандидат в balanceConfigVersion, точная калибровка — §10.F, после T6.3).
-// Резерв игрока / hero pool / редкость героев — поздние срезы (срез 3 / 3b), здесь их нет.
+// Редкость героев остаётся отдельным срезом 3b.
 import { Rng } from "./rng.ts";
 import { placementWorstRank } from "./anteRun.ts";
 import type { PlacementKey } from "./tournament.ts";
+import type { CandidateRef } from "./packs.ts";
 
 /** Слагаемое Team OVR, на которое действует покупка. */
 export type Summand = "base" | "heroSynergy" | "chemistry";
@@ -27,7 +27,24 @@ export interface StatEffect {
   tradeoffDelta?: number;
 }
 
-export type OfferKind = "stat" | "gold";
+export interface SummandValues {
+  base: number;
+  heroSynergy: number;
+  chemistry: number;
+}
+
+export interface PlayerSwapEffect {
+  slotIndex: number;
+  outgoingAccountId: number;
+  incoming: CandidateRef;
+}
+
+export interface HeroSwapEffect {
+  outgoingHeroId: number;
+  incomingHeroId: number;
+}
+
+export type OfferKind = "stat" | "gold" | "player" | "hero";
 
 /** Оффер награды/рынка. Единый контракт для Reward и Market — задел под карточки T6.1. */
 export interface Offer {
@@ -41,6 +58,16 @@ export interface Offer {
   effect?: StatEffect;
   /** Прибавка золота (kind "gold"). */
   goldGain?: number;
+  /** Конкретная перестройка ростера (slice 3). */
+  playerSwap?: PlayerSwapEffect;
+  heroSwap?: HeroSwapEffect;
+  /** Реальный scoreTeam breakdown и auto-assignment до/после структурной покупки. */
+  preview?: {
+    before: SummandValues;
+    after: SummandValues;
+    beforeAssignment?: Record<number, number>;
+    afterAssignment?: Record<number, number>;
+  };
 }
 
 /** Суммарные модификаторы по слагаемым от всех применённых покупок забега. */
@@ -67,6 +94,9 @@ export interface RunEconomyState {
   inCamp: boolean;
   /** Счётчик reroll рынка текущего Буткемпа (сид офферов). */
   marketRerolls: number;
+  /** Контекстные офферы среза 3 фиксируются в сейве: оставшиеся карты не меняются
+   *  после первой покупки и воспроизводятся в точности при resume. */
+  preparedMarketOffers?: Offer[];
 }
 
 /** Placeholder-баланс. Точная калибровка — отдельный balance spec (§10.F), после симуляции T6.3.
@@ -74,12 +104,16 @@ export interface RunEconomyState {
  *  прирост Team OVR, чтобы усиливаться было обязательно, но одной покупки не хватало «на всё». */
 export const ECONOMY = {
   rerollCost: 2,
-  /** Базовые призовые за пройденный этап. */
+  /** Базовые призовые первого этапа; каждый следующий пройденный этап добавляет stageStep. */
   prizeBase: 3,
-  /** Бонус за каждое место выше порога этапа (overperformance). */
-  prizeSurplusPerRank: 1,
-  /** Reward-варианты золота (мелкий/крупный). */
-  rewardGold: { small: 3, large: 6 },
+  prizeStageStep: 1,
+  /** Максимальный бонус за результат внутри пройденного порога (первое место). */
+  prizePerformanceMax: 3,
+  /** Reward-варианты золота растут вместе с этапом, но рынок сохраняет фиксированные цены. */
+  rewardGold: {
+    small: { base: 3, stageStep: 1 },
+    large: { base: 6, stageStep: 2 },
+  },
   /** Рычаги рынка по слагаемым. `step`/`costStep` — разброс качества при reroll. */
   levers: {
     base: { delta: 3, step: 1, cost: 5, costStep: 2, tradeoff: { summand: "chemistry" as Summand, delta: -1 } },
@@ -90,10 +124,46 @@ export const ECONOMY = {
 
 const MARKET_SUMMANDS: readonly Summand[] = ["base", "heroSynergy", "chemistry"];
 
-/** Призовые за пройденный этап: база + бонус за место лучше порога. Без RNG — детерминизм тривиален. */
-export function prizeForStage(placement: PlacementKey | null, target: number): number {
-  const surplus = placement == null ? 0 : Math.max(0, target - placementWorstRank(placement));
-  return ECONOMY.prizeBase + surplus * ECONOMY.prizeSurplusPerRank;
+/** Цена игрока в паке-рулетке растёт с его OVR: сильный дороже, слабый доступен рано (Balatro-
+ *  ценообразование). Placeholder под balance spec (§10.F). */
+export function playerCost(ovr: number): number {
+  return Math.max(2, Math.round((ovr - 60) / 4));
+}
+
+/** Суммарные дельты по слагаемым от применённых stat-эффектов. Чистая — переиспользуется и в
+ *  RunEconomy, и в UI (турнирный экран показывает effective OVR, совпадающий с полем). */
+export function summandModifiers(applied: StatEffect[]): SummandModifiers {
+  const mod: SummandModifiers = { base: 0, heroSynergy: 0, chemistry: 0 };
+  for (const e of applied) {
+    mod[e.summand] += e.delta;
+    if (e.tradeoffSummand && e.tradeoffDelta) mod[e.tradeoffSummand] += e.tradeoffDelta;
+  }
+  return mod;
+}
+
+/** Индекс Camp — номер только что пройденного этапа, 1-based. Старые/битые нули трактуем как 1. */
+function clearedStage(campStageIndex: number): number {
+  return Math.max(1, Math.floor(campStageIndex));
+}
+
+function stageGold(base: number, stageStep: number, campStageIndex: number): number {
+  return base + (clearedStage(campStageIndex) - 1) * stageStep;
+}
+
+/** Призовые = растущая база этапа + нормализованный бонус за overperformance.
+ *  Нормализация важна: первое место даёт одинаковый максимум +3 и при top-10, и при top-3,
+ *  поэтому широкий ранний порог не печатает в несколько раз больше золота, чем поздний. */
+export function prizeForStage(
+  placement: PlacementKey | null,
+  target: number,
+  campStageIndex: number,
+): number {
+  const base = stageGold(ECONOMY.prizeBase, ECONOMY.prizeStageStep, campStageIndex);
+  if (placement == null || target <= 1) return base;
+  const rank = placementWorstRank(placement);
+  if (rank >= target) return base;
+  const progressToFirst = (target - rank) / (target - 1);
+  return base + Math.round(progressToFirst * ECONOMY.prizePerformanceMax);
 }
 
 /** Три reward-оффера Буткемпа (детерминированы по seed+campId): мелкое золото, крупное золото,
@@ -102,9 +172,19 @@ export function rewardOffers(seed: string, campStageIndex: number): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:reward`);
   const summand = rng.pick(MARKET_SUMMANDS);
   const cfg = ECONOMY.levers[summand];
+  const smallGold = stageGold(
+    ECONOMY.rewardGold.small.base,
+    ECONOMY.rewardGold.small.stageStep,
+    campStageIndex,
+  );
+  const largeGold = stageGold(
+    ECONOMY.rewardGold.large.base,
+    ECONOMY.rewardGold.large.stageStep,
+    campStageIndex,
+  );
   return [
-    { id: `rwd-${campStageIndex}-0`, kind: "gold", labelKey: "reward.goldSmall", cost: 0, goldGain: ECONOMY.rewardGold.small },
-    { id: `rwd-${campStageIndex}-1`, kind: "gold", labelKey: "reward.goldLarge", cost: 0, goldGain: ECONOMY.rewardGold.large },
+    { id: `rwd-${campStageIndex}-0`, kind: "gold", labelKey: "reward.goldSmall", cost: 0, goldGain: smallGold },
+    { id: `rwd-${campStageIndex}-1`, kind: "gold", labelKey: "reward.goldLarge", cost: 0, goldGain: largeGold },
     { id: `rwd-${campStageIndex}-2`, kind: "stat", labelKey: `reward.stat.${summand}`, cost: 0, effect: { summand, delta: cfg.delta } },
   ];
 }
@@ -147,6 +227,7 @@ function emptyState(): RunEconomyState {
     campStageIndex: 0,
     inCamp: false,
     marketRerolls: 0,
+    preparedMarketOffers: undefined,
   };
 }
 
@@ -165,6 +246,7 @@ export class RunEconomy {
       applied: this.state.applied.map((e) => ({ ...e })),
       consumed: [...this.state.consumed],
       awardedCamps: [...this.state.awardedCamps],
+      preparedMarketOffers: this.state.preparedMarketOffers?.map(cloneOffer),
     };
   }
 
@@ -174,12 +256,7 @@ export class RunEconomy {
 
   /** Суммарные дельты по слагаемым от всех применённых покупок. */
   modifiers(): SummandModifiers {
-    const mod: SummandModifiers = { base: 0, heroSynergy: 0, chemistry: 0 };
-    for (const e of this.state.applied) {
-      mod[e.summand] += e.delta;
-      if (e.tradeoffSummand && e.tradeoffDelta) mod[e.tradeoffSummand] += e.tradeoffDelta;
-    }
-    return mod;
+    return summandModifiers(this.state.applied);
   }
 
   /** Итоговая прибавка к Team OVR (сумма всех модификаторов слагаемых). */
@@ -191,7 +268,7 @@ export class RunEconomy {
   /** Начислить призовые за пройденный этап. Идемпотентно на camp (защита от двойного эффекта). */
   awardStageClear(campStageIndex: number, placement: PlacementKey | null, target: number): void {
     if (this.state.awardedCamps.includes(campStageIndex)) return;
-    this.state.gold += prizeForStage(placement, target);
+    this.state.gold += prizeForStage(placement, target, campStageIndex);
     this.state.awardedCamps.push(campStageIndex);
   }
 
@@ -201,6 +278,7 @@ export class RunEconomy {
     this.state.inCamp = true;
     this.state.chosenRewardId = null;
     this.state.marketRerolls = 0;
+    this.state.preparedMarketOffers = undefined;
   }
 
   /** Выйти из Буткемпа (переход к следующему этапу). */
@@ -213,8 +291,20 @@ export class RunEconomy {
   }
 
   private currentMarketOffers(): Offer[] {
-    return marketOffers(this.seed, this.state.campStageIndex, this.state.marketRerolls)
+    return (this.state.preparedMarketOffers
+      ?? marketOffers(this.seed, this.state.campStageIndex, this.state.marketRerolls))
       .filter((o) => !this.state.consumed.includes(o.id));
+  }
+
+  /** Зафиксировать контекстные офферы, рассчитанные от текущего реального ростера. */
+  prepareMarketOffers(offers: Offer[]): void {
+    if (this.state.preparedMarketOffers) return;
+    this.state.preparedMarketOffers = offers.map(cloneOffer);
+  }
+
+  /** Сохранить те же структурные карты, но обновить их breakdown после другого swap. */
+  replacePreparedMarketOffers(offers: Offer[]): void {
+    this.state.preparedMarketOffers = offers.map(cloneOffer);
   }
 
   private apply(effect: StatEffect): void {
@@ -234,13 +324,21 @@ export class RunEconomy {
 
   /** Купить market-оффер: списать золото (без ухода в минус), применить эффект. */
   buyMarket(offerId: string): boolean {
+    return this.purchaseMarket(offerId) != null;
+  }
+
+  /** Купить оффер и вернуть его payload оркестратору, который применит roster/hero swap. */
+  purchaseMarket(offerId: string): Offer | null {
     const offer = this.currentMarketOffers().find((o) => o.id === offerId);
-    if (!offer || offer.kind !== "stat" || !offer.effect) return false;
-    if (offer.cost > this.state.gold) return false;
+    if (!offer || offer.kind === "gold") return null;
+    if (offer.kind === "stat" && !offer.effect) return null;
+    if (offer.kind === "player" && !offer.playerSwap) return null;
+    if (offer.kind === "hero" && !offer.heroSwap) return null;
+    if (offer.cost > this.state.gold) return null;
     this.state.gold -= offer.cost;
-    this.apply(offer.effect);
+    if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
     this.state.consumed.push(offerId);
-    return true;
+    return cloneOffer(offer);
   }
 
   /** Реролл рынка: списать фиксированную цену (без минуса), сгенерировать новый набор офферов. */
@@ -248,6 +346,7 @@ export class RunEconomy {
     if (ECONOMY.rerollCost > this.state.gold) return false;
     this.state.gold -= ECONOMY.rerollCost;
     this.state.marketRerolls += 1;
+    this.state.preparedMarketOffers = undefined;
     return true;
   }
 
@@ -264,4 +363,27 @@ export class RunEconomy {
       canReroll: this.state.gold >= ECONOMY.rerollCost,
     };
   }
+}
+
+function cloneOffer(offer: Offer): Offer {
+  return {
+    ...offer,
+    effect: offer.effect ? { ...offer.effect } : undefined,
+    playerSwap: offer.playerSwap
+      ? { ...offer.playerSwap, incoming: { ...offer.playerSwap.incoming } }
+      : undefined,
+    heroSwap: offer.heroSwap ? { ...offer.heroSwap } : undefined,
+    preview: offer.preview
+      ? {
+        before: { ...offer.preview.before },
+        after: { ...offer.preview.after },
+        beforeAssignment: offer.preview.beforeAssignment
+          ? { ...offer.preview.beforeAssignment }
+          : undefined,
+        afterAssignment: offer.preview.afterAssignment
+          ? { ...offer.preview.afterAssignment }
+          : undefined,
+      }
+      : undefined,
+  };
 }

@@ -33,6 +33,7 @@ import {
   heroSynergyTier,
   squadChemistryRows,
 } from "../../game/score.ts";
+import { summandModifiers } from "../../game/anteEconomy.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { CareerPanel } from "./CareerPanel.tsx";
@@ -238,6 +239,7 @@ export function TournamentScreen() {
   const reset = useRun((state) => state.reset);
   const restartSameConfig = useRun((state) => state.restartSameConfig);
   const snapshot = useRun((state) => state.snapshot);
+  const economyView = useRun((state) => state.economyView);
   const config = useRun((state) => state.config);
   const data = useRun((state) => state.data);
   const teamName = useRun((state) => state.teamName);
@@ -470,6 +472,16 @@ export function TournamentScreen() {
   if (!tournament || !snapshot?.score || !config || !data) return null;
 
   const { roster, score } = snapshot;
+  const economyModifiers = summandModifiers(economyView?.applied ?? []);
+  const effectiveScore = {
+    base: score.base + economyModifiers.base,
+    heroSynergy: score.heroSynergy + economyModifiers.heroSynergy,
+    chemistry: score.chemistry + economyModifiers.chemistry,
+    teamOvr: score.teamOvr
+      + economyModifiers.base
+      + economyModifiers.heroSynergy
+      + economyModifiers.chemistry,
+  };
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";
   const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates);
@@ -478,7 +490,7 @@ export function TournamentScreen() {
   const heroRows = heroSynergyRows(roster, score.assignment, phs, displayPhs);
   const chemistryRows = squadChemistryRows(roster, data.squadSynergy, data.teammates);
   const assignmentByPlayer = score.assignment.byPlayer;
-  const synergyTier = heroSynergyTier(score.heroSynergy);
+  const synergyTier = heroSynergyTier(effectiveScore.heroSynergy);
   const synergySublabel = synergyTier === "insane" ? t("draft.synergyInsane") : synergyTier === "great" ? t("draft.synergyGreat") : undefined;
 
   const handleSwapTap = (accountId: number) => {
@@ -507,7 +519,7 @@ export function TournamentScreen() {
           <span className="result__radar-glow" aria-hidden="true" />
           <Pentagon
             roster={roster}
-            teamOvr={score.teamOvr}
+            teamOvr={effectiveScore.teamOvr}
             chemistryEdges={chemistryEdges}
             assignmentByPlayer={assignmentByPlayer}
             swapMode={canSwap}
@@ -516,9 +528,9 @@ export function TournamentScreen() {
             onSelectPlayer={canSwap || hardMode ? undefined : setInspectedPlayer}
           />
           <div className="score-strip">
-            <StatTile label={t("common.base")} value={Math.round(score.base).toString()} kind="base" />
-            <StatTile label={t("common.heroSynergy")} value={fmt(score.heroSynergy)} kind="synergy" sublabel={synergySublabel} />
-            <StatTile label={t("common.chemistry")} value={fmt(score.chemistry)} kind="chemistry" />
+            <StatTile label={t("common.base")} value={Math.round(effectiveScore.base).toString()} kind="base" />
+            <StatTile label={t("common.heroSynergy")} value={fmt(effectiveScore.heroSynergy)} kind="synergy" sublabel={synergySublabel} />
+            <StatTile label={t("common.chemistry")} value={fmt(effectiveScore.chemistry)} kind="chemistry" />
           </div>
           <SynergyBreakdown
             heroRows={heroRows}
@@ -561,7 +573,12 @@ export function TournamentScreen() {
                 <span>{index + 1}</span>
                 <TeamSigil monogram={team.sigil.monogram} color={team.sigil.color} />
                 <strong>{team.name}</strong>
-                <b className={`field-strength score-tier--${scoreTier(team.strength)}`}>{Math.round(team.strength)}</b>
+                <b
+                  className={`field-strength score-tier--${scoreTier(team.strength)}`}
+                  data-testid={team.isUser ? "tournament-user-strength" : undefined}
+                >
+                  {Math.round(team.strength)}
+                </b>
               </li>
             ))}
           </ol>
@@ -715,10 +732,10 @@ export function TournamentScreen() {
               <Surface className="run-summary enter" style={{ ["--enter-i" as string]: 2 } as React.CSSProperties}>
                 <h3 className="bracket__side-title">{t("tournament.yourRun")}</h3>
                 <div className="run-summary__scores">
-                  <StatTile label={t("common.base")} value={Math.round(score.base).toString()} kind="base" />
-                  <StatTile label={t("common.heroSynergy")} value={fmt(score.heroSynergy)} kind="synergy" />
-                  <StatTile label={t("common.chemistry")} value={fmt(score.chemistry)} kind="chemistry" />
-                  <StatTile label={t("common.teamOvr")} value={Math.round(score.teamOvr).toString()} kind="base" />
+                  <StatTile label={t("common.base")} value={Math.round(effectiveScore.base).toString()} kind="base" />
+                  <StatTile label={t("common.heroSynergy")} value={fmt(effectiveScore.heroSynergy)} kind="synergy" />
+                  <StatTile label={t("common.chemistry")} value={fmt(effectiveScore.chemistry)} kind="chemistry" />
+                  <StatTile label={t("common.teamOvr")} value={Math.round(effectiveScore.teamOvr).toString()} kind="base" />
                 </div>
                 <ul className="run-summary__roster">
                   {roster.map((slot, index) => {

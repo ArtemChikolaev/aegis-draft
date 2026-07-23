@@ -2,6 +2,9 @@
    плавающие кнопки Telegram висят поверх верха — отодвигаем контент из-под них. Вне Telegram
    переменные = 0, поведение прежнее. */
 .app-shell { position: relative; width: min(1320px, calc(100% - 40px)); min-height: 100vh; margin: 0 auto; padding: max(24px, var(--tg-safe-top)) 0 max(34px, var(--tg-safe-bottom)); overflow-x: clip; }
+/* Буткемп держит постоянный радар и пять рыночных карточек в одном рабочем месте.
+   Дополнительная ширина локальна этой фазе: остальные экраны сохраняют привычные 1320px. */
+.app-shell.app-shell--camp { width: min(1520px, calc(100% - 40px)); }
 .topbar { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 8px 0 22px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand__mark { display: grid; place-items: center; width: 34px; height: 34px; color: var(--bg); background: var(--text); font-size: 15px; font-weight: 800; }
@@ -28,6 +31,7 @@
        На реальном телефоне inset ~34px ⇒ ~50px, то есть запас сохраняется. */
     padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px), var(--tg-safe-bottom));
   }
+  .app-shell.app-shell--camp { width: min(100% - 24px, 1520px); }
   .topbar { align-items: flex-start; }
   .brand__copy small { display: none; }
 }
@@ -35,4 +39,3 @@
   .brand__mark { width: 38px; height: 38px; }
   .brand__copy strong { font-size: 16px; }
 }
-

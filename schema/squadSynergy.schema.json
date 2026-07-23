@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "aegis-draft/squadSynergy.schema.json",
   "title": "Squad Synergy",
-  "description": "Сыгранность ГРУПП игроков (2–5), не только пар. Питает Chemistry: вклад группы растёт с её размером (пара < тройка < пятёрка), поэтому пары одни картину не дают.",
+  "description": "Сыгранность групп игроков (2–5) по совместным pro-играм. Chemistry v1.13 использует уникальные записи-пары; группы 3–5 сохранены как исторический агрегат.",
   "type": "array",
   "items": {
     "type": "object",

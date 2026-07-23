@@ -6,9 +6,12 @@ import type { GameData, PackPlayer, Role } from "../types/data.ts";
 import { Rng } from "./rng.ts";
 import {
   ROLE_SEQUENCE,
+  candidateMatchesRef,
+  candidatesOf,
   generatePack,
   poolForFormat,
   type Candidate,
+  type CandidateRef,
   type DraftPack,
   type RunConfig,
 } from "./packs.ts";
@@ -35,6 +38,8 @@ export class RunEngine {
   rerollsLeft: number;
   private usedPlayers = new Set<number>();
   private manual: Record<number, number> = {}; // accountId -> heroId (ручной режим)
+  private benchPlayers: Candidate[] = [];
+  private benchHeroes: number[] = [];
 
   constructor(data: GameData, config: RunConfig, seed: string) {
     this.data = data;
@@ -66,6 +71,17 @@ export class RunEngine {
 
   get players(): PackPlayer[] {
     return this.roster.filter((c): c is Candidate => c !== null).map((c) => c.player);
+  }
+
+  /** Скамейка: каждая покупка на рынке отправляет снятого игрока сюда (Balatro-стиль —
+   *  можно купить несколько, все снятые остаются доступны для бесплатного swap-back). */
+  get reservePlayers(): Candidate[] {
+    return [...this.benchPlayers];
+  }
+
+  /** Малый резерв hero pool. Снятый при re-pick герой кладётся сюда, максимум три. */
+  get reserveHeroes(): number[] {
+    return [...this.benchHeroes];
   }
 
   get heroesLeft(): number {
@@ -141,6 +157,124 @@ export class RunEngine {
     return this.score()?.assignment.byPlayer ?? {};
   }
 
+  /** Кандидаты рынка из того же format-pool, ещё не встречавшиеся в активном/резервном составе. */
+  get marketPlayerCandidates(): Candidate[] {
+    const bestByPlayer = new Map<number, Candidate>();
+    for (const candidate of this.pool
+      .flatMap(candidatesOf)
+      .filter((candidate) => {
+        if (this.usedPlayers.has(candidate.player.accountId)) return false;
+        return this.config.draftStyle !== "mixed"
+          || hasTeamSuccess(this.data.teamSuccess, candidate.teamId, this.config.format);
+      })) {
+      const current = bestByPlayer.get(candidate.player.accountId);
+      if (!current || candidate.player.ovr > current.player.ovr) {
+        bestByPlayer.set(candidate.player.accountId, candidate);
+      }
+    }
+    return [...bestByPlayer.values()];
+  }
+
+  /** Герои рынка из текущего format-pool, кроме активных и уже лежащих в резерве. */
+  get marketHeroCandidates(): number[] {
+    const unavailable = new Set([...this.heroes, ...this.benchHeroes]);
+    return [...new Set(this.pool.flatMap((source) => source.signatureHeroes))]
+      .filter((heroId) => !unavailable.has(heroId));
+  }
+
+  /** Герои с наибольшим объёмом реальных pro-игр у текущей пятёрки — короткий пул,
+   * из которого точный matching уже выбирает лучший re-pick. */
+  get marketHeroCandidatesShortlist(): number[] {
+    const stats = heroStatsForAssignment(this.data);
+    return this.marketHeroCandidates
+      .map((heroId) => ({
+        heroId,
+        games: this.players.reduce(
+          (sum, player) => sum + (stats[String(player.accountId)]?.[String(heroId)]?.games ?? 0),
+          0,
+        ),
+      }))
+      .sort((a, b) => b.games - a.games || a.heroId - b.heroId)
+      .slice(0, 20)
+      .map((row) => row.heroId);
+  }
+
+  /** Разрешить persisted CandidateRef обратно в объект текущего совместимого датасета. */
+  candidateByRef(ref: CandidateRef): Candidate | null {
+    return this.pool.flatMap(candidatesOf).find((candidate) => candidateMatchesRef(candidate, ref)) ?? null;
+  }
+
+  /** Реальный breakdown после замены игрока без мутации забега. */
+  previewPlayerReplacement(slotIndex: number, incoming: Candidate): ScoreBreakdown {
+    this.assertPlayerReplacement(slotIndex, incoming);
+    const roster = [...this.roster];
+    const outgoing = roster[slotIndex]!;
+    roster[slotIndex] = incoming;
+    return this.scoreFor(roster, this.heroes, this.manualWithoutPlayer(outgoing.player.accountId));
+  }
+
+  /** Купить/применить замену: снятый игрок уходит на скамейку (в конец списка). */
+  replacePlayer(slotIndex: number, incoming: Candidate): void {
+    this.assertPlayerReplacement(slotIndex, incoming);
+    const outgoing = this.roster[slotIndex]!;
+    this.roster[slotIndex] = incoming;
+    this.benchPlayers.push(outgoing);
+    this.usedPlayers.add(incoming.player.accountId);
+    this.manual = this.manualWithoutPlayer(outgoing.player.accountId);
+  }
+
+  /** Найти запасного по accountId (или бросить). */
+  private benchPlayerOf(accountId: number): Candidate {
+    const bench = this.benchPlayers.find((c) => c.player.accountId === accountId);
+    if (!bench) throw new Error("Нет такого запасного игрока");
+    return bench;
+  }
+
+  /** Бесплатно вернуть конкретного запасного в активный состав; снятый активный игрок занимает скамейку. */
+  previewReservePlayerSwap(slotIndex: number, benchAccountId: number): ScoreBreakdown {
+    const bench = this.benchPlayerOf(benchAccountId);
+    this.assertPlayerReplacement(slotIndex, bench, true);
+    const roster = [...this.roster];
+    const outgoing = roster[slotIndex]!;
+    roster[slotIndex] = bench;
+    return this.scoreFor(roster, this.heroes, this.manualWithoutPlayer(outgoing.player.accountId));
+  }
+
+  /** Бесплатно вернуть конкретного запасного в активный состав; снятый активный игрок занимает скамейку. */
+  swapReservePlayer(slotIndex: number, benchAccountId: number): void {
+    const incoming = this.benchPlayerOf(benchAccountId);
+    this.assertPlayerReplacement(slotIndex, incoming, true);
+    const outgoing = this.roster[slotIndex]!;
+    this.roster[slotIndex] = incoming;
+    this.benchPlayers = this.benchPlayers.filter((c) => c.player.accountId !== benchAccountId);
+    this.benchPlayers.push(outgoing);
+    this.manual = this.manualWithoutPlayer(outgoing.player.accountId);
+  }
+
+  /** Реальный breakdown после re-pick героя без мутации забега. */
+  previewHeroReplacement(outgoingHeroId: number, incomingHeroId: number): ScoreBreakdown {
+    this.assertHeroReplacement(outgoingHeroId, incomingHeroId);
+    const heroes = this.heroes.map((heroId) => heroId === outgoingHeroId ? incomingHeroId : heroId);
+    return this.scoreFor(this.roster, heroes, this.manualWithoutHero(outgoingHeroId));
+  }
+
+  /** Re-pick: новый герой активен, снятый уходит в малый резерв hero pool. */
+  replaceHero(outgoingHeroId: number, incomingHeroId: number): void {
+    this.assertHeroReplacement(outgoingHeroId, incomingHeroId);
+    this.heroes = this.heroes.map((heroId) => heroId === outgoingHeroId ? incomingHeroId : heroId);
+    this.benchHeroes = [
+      outgoingHeroId,
+      ...this.benchHeroes.filter((heroId) => heroId !== incomingHeroId && heroId !== outgoingHeroId),
+    ].slice(0, 3);
+    this.manual = this.manualWithoutHero(outgoingHeroId);
+  }
+
+  /** Бесплатный swap активного героя с одним из уже купленных резервных. */
+  swapReserveHero(outgoingHeroId: number, reserveHeroId: number): void {
+    if (!this.benchHeroes.includes(reserveHeroId)) throw new Error("Герой не в резерве");
+    this.replaceHero(outgoingHeroId, reserveHeroId);
+  }
+
   /** Реролл текущего пака. false, если рерроллы исчерпаны. */
   reroll(): boolean {
     if (this.isComplete) return false;
@@ -154,11 +288,21 @@ export class RunEngine {
   score(): ScoreBreakdown | null {
     const players = this.players;
     if (players.length === 0) return null;
-    const fixed = Object.keys(this.manual).length > 0 ? this.manual : undefined;
+    return this.scoreFor(this.roster, this.heroes, this.manual);
+  }
+
+  private scoreFor(
+    roster: (Candidate | null)[],
+    heroes: number[],
+    manual: Record<number, number>,
+  ): ScoreBreakdown {
+    const players = roster.filter((candidate): candidate is Candidate => candidate !== null)
+      .map((candidate) => candidate.player);
+    const fixed = Object.keys(manual).length > 0 ? manual : undefined;
     const phs = heroStatsForAssignment(this.data);
-    const signatures = signatureLookup(this.roster);
+    const signatures = signatureLookup(roster);
     const chemistryRoster = chemistryPlayersFromRoster(
-      ROLE_SEQUENCE.map((role, i) => ({ role, candidate: this.roster[i] })),
+      ROLE_SEQUENCE.map((role, i) => ({ role, candidate: roster[i] })),
     );
     // Mixed: base = успех команд за окно вместо формы на событии (PRD §5.4.3).
     // teamId берём из того же chemistryRoster — он уже несёт привязку игрок→команда.
@@ -172,7 +316,7 @@ export class RunEngine {
       : undefined;
     return scoreTeam(
       players,
-      this.heroes,
+      heroes,
       phs,
       this.data.squadSynergy,
       this.data.teammates,
@@ -181,6 +325,36 @@ export class RunEngine {
       fixed,
       mixedBase,
     );
+  }
+
+  private assertPlayerReplacement(slotIndex: number, incoming: Candidate, allowUsed = false): void {
+    if (!this.isComplete) throw new Error("Замена доступна только после завершения драфта");
+    const outgoing = this.roster[slotIndex];
+    const role = ROLE_SEQUENCE[slotIndex];
+    if (!outgoing || !role) throw new Error(`Нет активного игрока в слоте ${slotIndex}`);
+    if (incoming.player.role !== role) throw new Error("Запасной должен закрывать ту же роль");
+    if (!allowUsed && this.usedPlayers.has(incoming.player.accountId)) throw new Error("Игрок уже использован в забеге");
+    if (this.roster.some((candidate) => candidate?.player.accountId === incoming.player.accountId)) {
+      throw new Error("Игрок уже в активном составе");
+    }
+  }
+
+  private assertHeroReplacement(outgoingHeroId: number, incomingHeroId: number): void {
+    if (!this.isComplete) throw new Error("Re-pick доступен только после завершения драфта");
+    if (!this.heroes.includes(outgoingHeroId)) throw new Error("Снимаемый герой не в составе");
+    if (this.heroes.includes(incomingHeroId)) throw new Error("Новый герой уже в составе");
+  }
+
+  private manualWithoutPlayer(accountId: number): Record<number, number> {
+    const next = { ...this.manual };
+    delete next[accountId];
+    return next;
+  }
+
+  private manualWithoutHero(heroId: number): Record<number, number> {
+    return Object.fromEntries(
+      Object.entries(this.manual).filter(([, assignedHero]) => assignedHero !== heroId),
+    ) as Record<number, number>;
   }
 
   // Мягкий анти-повтор: следующий пак — не та же команда, что сейчас (но команда

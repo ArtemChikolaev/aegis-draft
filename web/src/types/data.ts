@@ -56,8 +56,9 @@ export type PlayerHeroStats = Record<string, Record<string, Stat>>;
 /** accountId -> [accountId] */
 export type Teammates = Record<string, number[]>;
 
-/** Сыгранность ГРУППЫ из 2–5 игроков (совместные pro-игры за одну команду), не только пар:
- * Chemistry весит крупную сыгравшуюся группу выше (пара ×1, пятёрка ×3). ids отсортированы. */
+/** Сыгранность группы из 2–5 игроков (совместные pro-игры за одну команду).
+ * Chemistry v1.13 считает уникальные записи-пары; группы 3–5 остаются историческим агрегатом.
+ * ids отсортированы. */
 export interface SquadGroup {
   ids: number[];
   games: number;

@@ -58,7 +58,7 @@ function ringTone(bonus: number | undefined): "thin" | "chem" {
  *  с видимой связью, p50=0.13, p90=0.62, p95=1.00, p99=2.14, max=4.00), а не доли от
  *  теоретического максимума. Первая версия (3.0/1.5/0.7) была подобрана «на глаз» от max=4 и
  *  промахнулась: strong доставался 0.3% связей, то есть был практически недостижим.
- *  Пересчитывать при смене chemFullGames/chemMaxPerGroup — распределение поедет. */
+ *  Пересчитывать при смене chemFullGames/chemMaxPerPair — распределение поедет. */
 function chemTier(bonus: number): "strong" | "good" | "mid" | "weak" {
   if (bonus >= 2) return "strong"; // p99: ~460+ совместных pro-игр, годы в одном составе
   if (bonus >= 1) return "good";   // p95: ~230+
@@ -158,6 +158,7 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
             <text
               x={C}
               y={C - 12}
+              data-testid="pentagon-team-ovr"
               className={ovrDirection ? `pentagon__ovr pentagon__ovr--${ovrDirection}` : "pentagon__ovr"}
             >{Math.round(shownOvr ?? teamOvr)}</text>
             <text x={C} y={C + 16} className="pentagon__ovrlabel">{t("common.teamOvr")}</text>
@@ -190,6 +191,7 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
                 selected ? "pentagon-node--selected" : "",
               ].filter(Boolean).join(" ")}
               style={{ left: pct(card.x), top: pct(card.y) }}
+              data-account-id={accountId}
               aria-label={slot.candidate?.player.nickname}
               aria-pressed={selected || undefined}
               onClick={() => {

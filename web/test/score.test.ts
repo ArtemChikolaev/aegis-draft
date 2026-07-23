@@ -173,4 +173,31 @@ describe("chemistryBonus", () => {
     const badSynergy = [{ ids: [1, 2] as [number, number], games: 100, winrate: 0.3 }];
     expect(chemistryBonus(players, badSynergy, {})).toBeGreaterThanOrEqual(0);
   });
+
+  it("считает уникальные пары без повторного учёта вложенных групп", () => {
+    const player = (accountId: number) => ({ accountId, teamId: 1, eventId: "ev" });
+    const before = [player(1), player(2), player(3), player(4), player(5)];
+    const after = [player(1), player(2), player(3), player(6), player(5)];
+    const pairs = [
+      { ids: [1, 2], games: 1241, winrate: 0.5 },
+      { ids: [1, 3], games: 632, winrate: 0.5 },
+      { ids: [2, 3], games: 869, winrate: 0.5 },
+      { ids: [1, 6], games: 166, winrate: 0.5 },
+      { ids: [2, 6], games: 166, winrate: 0.5 },
+      { ids: [3, 6], games: 166, winrate: 0.5 },
+    ];
+    const nestedGroups = [
+      { ids: [1, 2, 3], games: 623, winrate: 0.5 },
+      { ids: [1, 2, 3, 6], games: 166, winrate: 0.5 },
+    ];
+
+    const beforeScore = chemistryBonus(before, [...pairs, ...nestedGroups], {});
+    const afterScore = chemistryBonus(after, [...pairs, ...nestedGroups], {});
+    const afterPairsOnly = chemistryBonus(after, pairs, {});
+
+    expect(beforeScore).toBeCloseTo(10.526, 3);
+    expect(afterScore).toBeCloseTo(12.691, 3);
+    expect(afterScore).toBeGreaterThan(beforeScore);
+    expect(afterScore).toBe(afterPairsOnly);
+  });
 });

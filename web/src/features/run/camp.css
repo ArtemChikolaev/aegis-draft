@@ -1,11 +1,11 @@
-/* Буткемп Roguelite Run (T5.2). Цвета — токены (акцент режима --accent = фиолетовый у Roguelite),
-   без хардкода. Раскладка — колонка панелей, офферы — адаптивная сетка. */
+/* Буткемп — рабочее место между этапами: постоянный team radar слева, решения справа.
+   Все цвета идут через design tokens; брейкпоинты — канонические 980/680/430. */
 .camp {
-  max-width: 860px;
+  width: 100%;
+  max-width: 1520px;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  gap: 18px;
 }
 
 .camp__head {
@@ -37,11 +37,50 @@
 .camp__gold-icon { color: var(--gold); }
 .camp__gold strong { font-size: 20px; color: var(--gold); }
 
-/* Surface сам по себе без внутренних отступов — задаём их тут, иначе заголовок и плитки
-   упираются в рамку (особенно в нижний край). */
-.camp__team {
-  padding: 16px;
+.camp__workbench {
+  display: grid;
+  grid-template-columns: minmax(420px, .84fr) minmax(0, 1.16fr);
+  align-items: start;
+  gap: 18px;
+  min-width: 0;
 }
+.camp__economy {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.camp__team {
+  position: sticky;
+  top: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  contain: paint;
+  padding: 16px 24px 22px;
+  color: var(--on-invert);
+  background: var(--surface-invert);
+  clip-path: inset(0 round var(--radius));
+}
+.camp__team-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  clip-path: inset(1px round calc(var(--radius) - 1px));
+}
+.camp__team-glow::after {
+  content: "";
+  position: absolute;
+  width: 190px;
+  height: 190px;
+  right: -45px;
+  top: -55px;
+  border-radius: 50%;
+  background: var(--brand-glow);
+  filter: blur(26px);
+  opacity: .42;
+}
+.camp__team > *:not(.camp__team-glow) { position: relative; z-index: 1; }
 .camp__team-title,
 .camp__section-title {
   margin: 0 0 12px;
@@ -50,89 +89,362 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.camp__stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-}
-/* Плитки TEAM NOW чуть выше и с большей подписью-бонусом: глобальный StatTile em (7px)
-   рассчитан на турнирный радар и здесь нечитаем. Скоуп — только Буткемп. */
-.camp__team .camp__stats > * {
-  padding-block: 16px;
-}
+.camp__team .camp__team-title { color: var(--muted-invert); }
+.camp__stats { margin-top: -4px; }
+.camp__team .camp__stats > * { padding-block: 16px; }
 .camp__team .camp__stats em {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: .06em;
 }
+.camp__team .synergy-breakdown { margin-top: 14px; }
 
 .camp__section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  gap: 10px;
 }
 .camp__section-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
-.camp__section-head .camp__section-title { margin: 0; }
+.camp__section-head .camp__section-title { margin-bottom: 3px; }
+.camp__section-hint {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
 
 .camp__offers {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 8px;
 }
+.camp__offers--reward { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-.camp-offer {
+/* Две пак-рулетки по 5 карт: игроки и герои. */
+.camp__market-group-title {
+  margin: 4px 0 -2px;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.camp__pack {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.camp-pack-card {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px;
+  gap: 8px;
+  padding: 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-soft);
 }
-.camp-offer.is-chosen {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
-  background: var(--accent-soft);
-}
-.camp-offer__body { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-.camp-offer__label { font-size: 15px; }
-.camp-offer__deltas { display: flex; flex-wrap: wrap; gap: 6px; }
-.camp-offer__delta {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 6%, transparent);
-}
-.camp-offer__delta--up { color: var(--accent); }
-.camp-offer__delta--down { color: #e0736b; }
-.camp-offer__delta--gold { color: var(--gold); }
-
-.camp-offer__buy {
+.camp-pack-card .camp-player-card { flex: 1; }
+.camp-pack-card--hero .camp-offer__deltas { margin-top: auto; }
+.camp-pack-card__buy {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
+.camp-pack-card__buy button { padding: 9px 14px; }
+
+.camp-offer {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.camp-offer--reward {
+  flex-direction: column;
+  min-width: 0;
+}
+.camp-offer.is-chosen {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: var(--accent-soft);
+}
+.camp-offer__body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+}
+.camp-offer__label { font-size: 15px; }
+.camp-offer__deltas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.camp-offer__delta {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+}
+.camp-offer__delta--up { color: var(--accent); }
+.camp-offer__delta--down { color: var(--danger); }
+.camp-offer__delta--gold { color: var(--gold); }
 .camp-offer__cost {
   font-size: 13px;
   font-weight: 700;
   color: var(--gold);
 }
 
+.camp-player-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 8px;
+}
+.camp-player-compare__arrow {
+  align-self: center;
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 800;
+}
+.camp-player-card {
+  /* Свой контекст позиционирования: immortal/elite-фойл рисуется через ::before/::after с
+     position:absolute; inset:0. Без relative он раздувается до ближайшего позиционированного
+     предка (.app-shell) и переливается на всю страницу. Радар-ноды сюда не входят. */
+  position: relative;
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(
+    110deg,
+    var(--surface) 55%,
+    color-mix(in srgb, var(--card-tint, transparent) 11%, var(--surface))
+  );
+}
+.camp-player-card__top,
+.camp-player-card__identity,
+.camp-player-card__bottom {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.camp-player-card__label {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.camp-player-card__identity > span:first-child {
+  display: grid;
+  min-width: 0;
+}
+.camp-player-card__identity strong,
+.camp-player-card__identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.camp-player-card__identity strong { font-size: 14px; }
+.camp-player-card__identity small { color: var(--muted); font-size: 9px; }
+.camp-player-card__identity img { width: 34px; height: 20px; object-fit: cover; }
+.camp-player-card__stats {
+  display: flex;
+  min-width: 0;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 7px;
+}
+.camp-player-card__stats span { display: grid; justify-items: center; }
+.camp-player-card__stats b { color: var(--text); font-size: 10px; }
+.camp-player-card__ovr {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: center;
+  font: 800 24px/1 "Space Grotesk";
+}
+.camp-player-card__ovr small {
+  color: var(--muted);
+  font: 700 7px Manrope;
+  letter-spacing: .12em;
+  -webkit-text-fill-color: currentColor;
+}
+.camp-hero-compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 5px;
+}
+.camp-hero-compare__hero {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.camp-hero-compare__hero small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.camp-hero-compare__arrow {
+  color: var(--accent);
+  font-weight: 800;
+}
+.camp-hero-offer {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+}
+.camp-offer__fit {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 6px;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+}
+.camp-offer__fit small {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.camp-offer__fit strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.camp-offer__fit span {
+  color: var(--muted);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.camp__reserve { padding: 12px; }
+.camp__reserve-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 10px;
+}
+.camp-reserve-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.camp-reserve-card > small {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.camp-reserve-card__actions { display: grid; gap: 7px; }
+.camp-reserve-swap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.camp-reserve-swap__summary {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  font-size: 12px;
+}
+.camp-reserve-swap__summary > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.camp-reserve-swap__summary b { color: var(--accent); }
+.camp-reserve-card--hero label { width: 100%; }
+.camp-reserve-card--hero .camp-offer__deltas { min-height: 22px; }
+.camp-reserve-card--hero .camp-hero-compare > span:not(.camp-hero-compare__arrow) {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+.camp-reserve-card--hero .camp-hero-compare > span:not(.camp-hero-compare__arrow) > img {
+  flex: 0 0 auto;
+}
+.camp-reserve-card--hero .camp-hero-compare > span:not(.camp-hero-compare__arrow) > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .camp__actions {
   display: flex;
   gap: 10px;
-  margin-top: 4px;
+}
+.camp__actions > :first-child { flex: 1; justify-content: space-between; }
+
+@media (max-width: 980px) {
+  .camp__workbench { grid-template-columns: 1fr; }
+  .camp__team { position: relative; top: auto; }
 }
 
-@media (max-width: 640px) {
-  .camp__stats { grid-template-columns: repeat(2, 1fr); }
-  .camp__offers { grid-template-columns: 1fr; }
-  .camp-offer { flex-direction: row; align-items: center; justify-content: space-between; }
-  .camp-offer__buy { flex-direction: column; align-items: flex-end; }
+@media (max-width: 680px) {
+  .camp__pack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .camp__offers--reward { grid-template-columns: 1fr; }
+  .camp-offer--reward {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .camp__reserve-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 430px) {
+  .camp__team { padding-inline: 12px; }
+  /* Карточки вершин выходят за SVG примерно на половину своей ширины. На телефоне
+     оставляем им явные поля, иначе contain:paint честно обрезает крайних игроков. */
+  .camp__team .pentagon-wrap { width: calc(100% - 68px); }
+  .camp-player-compare {
+    grid-template-columns: 1fr;
+  }
+  .camp-player-compare__arrow {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+  .camp-offer--reward {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .camp__section-head { align-items: flex-end; }
+  .camp__actions { flex-direction: column; }
 }

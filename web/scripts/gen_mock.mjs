@@ -250,9 +250,9 @@ for (const { players: set } of byTeam.values()) {
 for (const k of Object.keys(teammates)) teammates[k].sort((x, y) => x - y);
 write("teammates.json", teammates);
 
-// squadSynergy.json — сыгранность ГРУПП 2–5 внутри команды (зеркало aggregate.FromOpenDota).
-// Не только пары: Chemistry весит крупную группу выше (пара ×1, пятёрка ×3), и мок обязан это
-// воспроизводить, иначе golden-тесты гоняют модель на данных, которых в проде не бывает.
+// squadSynergy.json — сыгранность групп 2–5 внутри команды (зеркало aggregate.FromOpenDota).
+// Chemistry v1.13 считает уникальные пары; группы 3–5 остаются в моке как в production-данных,
+// чтобы тесты ловили повторный учёт вложенных групп.
 // Игр у группы тем меньше, чем она больше — как в реальности (впятером играли реже, чем вдвоём).
 const subsets = (arr, min, max) => {
   const out = [];
@@ -333,7 +333,7 @@ write("teamSuccess.json", teamSuccess);
 const formatsPresent = ALL_FORMATS.filter((f) => events.some((ev) => ev.formats.includes(f)));
 const manifest = {
   schemaVersion: 1,
-  ratingModelVersion: "mock-1",
+  ratingModelVersion: "mock-2",
   builtAt: BUILT_AT,
   dataHash: dataHash(),
   source: {

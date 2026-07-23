@@ -156,3 +156,60 @@ describe("RunEngine hero draft gating", () => {
     expect(() => hd.pickHero(outsideHero)).toThrow();
   });
 });
+
+describe("RunEngine roguelite reserve", () => {
+  const data = loadGameData();
+
+  it("player swap кладёт снятого на скамейку (список) и обратим по accountId", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "reserve-player");
+    runToEnd(engine);
+    const option = engine.marketPlayerCandidates.find((candidate) =>
+      engine.rosterView.some((slot) => slot.role === candidate.player.role))!;
+    const slotIndex = engine.rosterView.findIndex((slot) => slot.role === option.player.role);
+    const outgoing = engine.rosterView[slotIndex].candidate!;
+    expect(engine.previewPlayerReplacement(slotIndex, option).teamOvr).toBeGreaterThan(0);
+
+    engine.replacePlayer(slotIndex, option);
+    expect(engine.reservePlayers.map((c) => c.player.accountId)).toContain(outgoing.player.accountId);
+    expect(engine.rosterView[slotIndex].candidate?.player.accountId).toBe(option.player.accountId);
+
+    engine.swapReservePlayer(slotIndex, outgoing.player.accountId);
+    expect(engine.rosterView[slotIndex].candidate?.player.accountId).toBe(outgoing.player.accountId);
+    expect(engine.reservePlayers.map((c) => c.player.accountId)).toContain(option.player.accountId);
+  });
+
+  it("несколько покупок кладут ВСЕХ снятых на скамейку (Balatro-мульти)", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "reserve-multi");
+    runToEnd(engine);
+    const removed: number[] = [];
+    for (const role of ["safelane", "mid"] as const) {
+      const slotIndex = engine.rosterView.findIndex((slot) => slot.role === role);
+      if (slotIndex < 0) continue;
+      const option = engine.marketPlayerCandidates.find((c) => c.player.role === role);
+      if (!option) continue;
+      removed.push(engine.rosterView[slotIndex].candidate!.player.accountId);
+      engine.replacePlayer(slotIndex, option);
+    }
+    expect(removed.length).toBe(2);
+    const bench = engine.reservePlayers.map((c) => c.player.accountId);
+    for (const accountId of removed) expect(bench).toContain(accountId);
+  });
+
+  it("hero re-pick кладёт снятого героя в пул, swap не создаёт дубли", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "reserve-hero");
+    runToEnd(engine);
+    const outgoing = engine.heroes[0];
+    const incoming = engine.marketHeroCandidates[0];
+    expect(engine.previewHeroReplacement(outgoing, incoming).teamOvr).toBeGreaterThan(0);
+
+    engine.replaceHero(outgoing, incoming);
+    expect(engine.heroes).toContain(incoming);
+    expect(engine.reserveHeroes).toContain(outgoing);
+
+    engine.swapReserveHero(incoming, outgoing);
+    expect(engine.heroes).toContain(outgoing);
+    expect(engine.reserveHeroes).toContain(incoming);
+    expect(new Set([...engine.heroes, ...engine.reserveHeroes]).size)
+      .toBe(engine.heroes.length + engine.reserveHeroes.length);
+  });
+});

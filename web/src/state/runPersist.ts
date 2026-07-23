@@ -5,7 +5,7 @@
 // После завершённого турнира сейв очищаем — но только когда UI доиграл reveal до
 // экрана результатов (finishTournament). Сама стадия playoffs ещё «в процессе».
 import type { RosterSlot } from "../game/engine.ts";
-import type { RunConfig } from "../game/packs.ts";
+import type { CandidateRef, RunConfig } from "../game/packs.ts";
 import type { RunEconomyState } from "../game/anteEconomy.ts";
 import type { Role } from "../types/data.ts";
 import { readCached, readPersisted, removePersisted, writePersisted } from "./persist.ts";
@@ -19,7 +19,11 @@ export type RunAction =
   | { t: "reroll" }
   | { t: "fieldReroll" }
   | { t: "assign"; accountId: number; heroId: number }
-  | { t: "swap"; a: number; b: number };
+  | { t: "swap"; a: number; b: number }
+  | { t: "replacePlayer"; slotIndex: number; incoming: CandidateRef }
+  | { t: "swapReservePlayer"; slotIndex: number; benchAccountId: number }
+  | { t: "replaceHero"; outgoingHeroId: number; incomingHeroId: number }
+  | { t: "swapReserveHero"; outgoingHeroId: number; reserveHeroId: number };
 
 /** Замороженный ростер после драфта — проверка replay после смены датасета. */
 export type FrozenRosterSlot = { role: Role; accountId: number; heroId: number };

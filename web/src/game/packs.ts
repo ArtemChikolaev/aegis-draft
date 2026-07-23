@@ -33,6 +33,28 @@ export interface Candidate {
   signatureHeroes: number[];
 }
 
+/** Stable pointer to a candidate inside the versioned dataset.
+ *  accountId alone is insufficient: the same player may have several event/team snapshots. */
+export interface CandidateRef {
+  accountId: number;
+  teamId: number;
+  eventId: string;
+}
+
+export function candidateRef(candidate: Candidate): CandidateRef {
+  return {
+    accountId: candidate.player.accountId,
+    teamId: candidate.teamId,
+    eventId: candidate.eventId,
+  };
+}
+
+export function candidateMatchesRef(candidate: Candidate, ref: CandidateRef): boolean {
+  return candidate.player.accountId === ref.accountId
+    && candidate.teamId === ref.teamId
+    && candidate.eventId === ref.eventId;
+}
+
 export interface DraftPack {
   kind: DraftStyle;
   label: string;
@@ -48,7 +70,7 @@ export function poolForFormat(packs: Pack[], events: EventInfo[], format: Format
   return packs.filter((p) => formatsByEvent.get(p.eventId)?.includes(format));
 }
 
-function candidatesOf(pack: Pack): Candidate[] {
+export function candidatesOf(pack: Pack): Candidate[] {
   return pack.players.map((player) => ({
     player,
     teamId: pack.teamId,

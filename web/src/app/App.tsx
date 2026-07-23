@@ -70,7 +70,10 @@ export function App() {
   }, [syncLinkFromHash]);
 
   return (
-    <div className="app-shell" data-accent={modeAccent}>
+    <div
+      className={`app-shell${phase === "camp" && view === "game" ? " app-shell--camp" : ""}`}
+      data-accent={modeAccent}
+    >
       <header className="topbar">
         <div className="brand" data-testid="brand">
           <span className="brand__mark" aria-hidden="true">A</span>

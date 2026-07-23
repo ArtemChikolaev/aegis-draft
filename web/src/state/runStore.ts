@@ -4,13 +4,14 @@
 // восстанавливается детерминированным replay; имя команды — отдельная durable-настройка.
 import { create } from "zustand";
 import { RunEngine, type RosterSlot } from "../game/engine.ts";
-import type { RunConfig, DraftPack } from "../game/packs.ts";
+import type { RunConfig, DraftPack, Candidate } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
 import { AnteRunEngine, ANTE_TARGETS, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState } from "../game/anteEconomy.ts";
+import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
@@ -57,6 +58,21 @@ interface Snapshot {
   packHeroes: number[]; // драфтуемые герои текущего пака
   packSerial: number;   // номер пака: меняется на каждую новую раздачу
   score: ScoreBreakdown | null;
+  /** Скамейка (Balatro-стиль: несколько запасных). У каждого — точный scoreTeam-превью
+   *  для каждого допустимого бесплатного swap-back в слот его роли. */
+  reservePlayers: ReservePlayerView[];
+  /** Резерв героев с точным preview для каждого активного героя, которого можно убрать. */
+  reserveHeroes: ReserveHeroView[];
+}
+
+export interface ReservePlayerView {
+  candidate: Candidate;
+  previews: Array<{ slotIndex: number; score: ScoreBreakdown }>;
+}
+
+export interface ReserveHeroView {
+  heroId: number;
+  previews: Array<{ outgoingHeroId: number; score: ScoreBreakdown }>;
 }
 
 interface RunStore {
@@ -132,6 +148,10 @@ interface RunStore {
   buyMarket: (offerId: string) => void;
   /** Буткемп: реролл рынка за золото. */
   rerollMarket: () => void;
+  /** Буткемп: поменять активного игрока на единственного запасного той же роли. */
+  swapReservePlayer: (slotIndex: number, benchAccountId: number) => void;
+  /** Буткемп: поменять активного героя на героя из малого резервного пула. */
+  swapReserveHero: (outgoingHeroId: number, reserveHeroId: number) => void;
   /** Roguelite Run: выйти из Буткемпа и играть следующий этап (кнопка «Next stage»). */
   advanceAnteStage: () => void;
   restartSameConfig: () => void;
@@ -153,6 +173,14 @@ export function isCodexLocked(
 }
 
 function snap(engine: RunEngine): Snapshot {
+  const reservePlayers: ReservePlayerView[] = engine.reservePlayers.map((candidate) => ({
+    candidate,
+    previews: engine.rosterView.flatMap((slot, slotIndex) => (
+      slot.candidate && slot.role === candidate.player.role
+        ? [{ slotIndex, score: engine.previewReservePlayerSwap(slotIndex, candidate.player.accountId) }]
+        : []
+    )),
+  }));
   return {
     currentPack: engine.currentPack,
     roster: engine.rosterView,
@@ -165,6 +193,14 @@ function snap(engine: RunEngine): Snapshot {
     packHeroes: engine.packHeroes,
     packSerial: engine.packSerial,
     score: engine.score(),
+    reservePlayers,
+    reserveHeroes: engine.reserveHeroes.map((heroId) => ({
+      heroId,
+      previews: engine.heroes.map((outgoingHeroId) => ({
+        outgoingHeroId,
+        score: engine.previewHeroReplacement(outgoingHeroId, heroId),
+      })),
+    })),
   };
 }
 
@@ -188,6 +224,13 @@ function replay(engine: RunEngine, actions: RunAction[]): void {
     else if (action.t === "reroll") engine.reroll();
     else if (action.t === "assign") engine.assign(action.accountId, action.heroId);
     else if (action.t === "swap") engine.swapHeroes(action.a, action.b);
+    else if (action.t === "replacePlayer") {
+      const incoming = engine.candidateByRef(action.incoming);
+      if (!incoming) throw new Error("Market player is missing from dataset");
+      engine.replacePlayer(action.slotIndex, incoming);
+    } else if (action.t === "swapReservePlayer") engine.swapReservePlayer(action.slotIndex, action.benchAccountId);
+    else if (action.t === "replaceHero") engine.replaceHero(action.outgoingHeroId, action.incomingHeroId);
+    else if (action.t === "swapReserveHero") engine.swapReserveHero(action.outgoingHeroId, action.reserveHeroId);
   }
 }
 
@@ -225,8 +268,22 @@ export const useRun = create<RunStore>((set, get) => {
   };
   // Обновить снимки экономики/Буткемпа для рендера и сохранить (во время camp резалтов нет).
   const syncCamp = () => {
-    const { economy } = get();
-    if (!economy) return;
+    const { economy, engine, seed } = get();
+    if (!economy || !engine) return;
+    const economyState = economy.snapshot;
+    if (economyState.preparedMarketOffers) {
+      economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
+        engine,
+        economy.campView().marketOffers,
+      ));
+    } else {
+      economy.prepareMarketOffers(buildAnteMarketRoulette(
+        engine,
+        seed,
+        economyState.campStageIndex,
+        economyState.marketRerolls,
+      ));
+    }
     set({ economyView: economy.snapshot, camp: economy.campView() });
     persist();
   };
@@ -522,6 +579,22 @@ export const useRun = create<RunStore>((set, get) => {
             anteRun.jumpToStage(stageIndex);
             // Экономика: восстанавливаем валюту/покупки, применяем их модификаторы к полю этапа.
             economy = new RunEconomy(resumable.seed, resumable.economy);
+            if (economy.snapshot.inCamp) {
+              const economyState = economy.snapshot;
+              if (economyState.preparedMarketOffers) {
+                economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
+                  engine,
+                  economy.campView().marketOffers,
+                ));
+              } else {
+                economy.prepareMarketOffers(buildAnteMarketRoulette(
+                  engine,
+                  resumable.seed,
+                  economyState.campStageIndex,
+                  economyState.marketRerolls,
+                ));
+              }
+            }
             anteRun.rebuildCurrentStage(score.teamOvr + economy.totalModifier());
             inCamp = economy.snapshot.inCamp;
             ante = anteRun.state;
@@ -623,6 +696,16 @@ export const useRun = create<RunStore>((set, get) => {
           const target = ANTE_TARGETS[campId - 1];
           economy.awardStageClear(campId, resolvedAnte.lastPlacement, target);
           economy.openCamp(campId);
+          const economyState = economy.snapshot;
+          const engine = get().engine;
+          if (engine) {
+            economy.prepareMarketOffers(buildAnteMarketRoulette(
+              engine,
+              get().seed,
+              economyState.campStageIndex,
+              economyState.marketRerolls,
+            ));
+          }
           set({ ante: resolvedAnte, resultsSeen: false, economyView: economy.snapshot, camp: economy.campView() });
           persist();
         } else {
@@ -651,15 +734,75 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     buyMarket(offerId) {
-      const { economy } = get();
-      if (!economy || !economy.buyMarket(offerId)) return;
-      syncCamp();
+      const { economy, engine } = get();
+      if (!economy || !engine) return;
+      const offer = economy.campView().marketOffers.find((candidate) => candidate.id === offerId);
+      if (!offer) return;
+      try {
+        // Сначала проверяем payload на текущем ростере; золото списываем только после
+        // успешной валидации, чтобы сломанный/устаревший оффер не съел валюту.
+        let action: RunAction | null = null;
+        let incomingPlayer: Candidate | null = null;
+        if (offer.kind === "player" && offer.playerSwap) {
+          incomingPlayer = engine.candidateByRef(offer.playerSwap.incoming);
+          if (!incomingPlayer) return;
+          if (engine.rosterView[offer.playerSwap.slotIndex].candidate?.player.accountId
+            !== offer.playerSwap.outgoingAccountId) return;
+          engine.previewPlayerReplacement(offer.playerSwap.slotIndex, incomingPlayer);
+          action = { t: "replacePlayer", slotIndex: offer.playerSwap.slotIndex, incoming: offer.playerSwap.incoming };
+        } else if (offer.kind === "hero" && offer.heroSwap) {
+          engine.previewHeroReplacement(offer.heroSwap.outgoingHeroId, offer.heroSwap.incomingHeroId);
+          action = { t: "replaceHero", ...offer.heroSwap };
+        }
+        if (!economy.purchaseMarket(offerId)) return;
+        if (offer.kind === "player" && offer.playerSwap && incomingPlayer) {
+          engine.replacePlayer(offer.playerSwap.slotIndex, incomingPlayer);
+        } else if (offer.kind === "hero" && offer.heroSwap) {
+          engine.replaceHero(offer.heroSwap.outgoingHeroId, offer.heroSwap.incomingHeroId);
+        }
+        const snapshot = snap(engine);
+        economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
+          engine,
+          economy.campView().marketOffers,
+        ));
+        set({ snapshot, economyView: economy.snapshot, camp: economy.campView() });
+        if (action) record(action);
+        else persist();
+      } catch {
+        /* stale/invalid structural offer: leave state untouched */
+      }
     },
 
     rerollMarket() {
       const { economy } = get();
       if (!economy || !economy.rerollMarket()) return;
       syncCamp();
+    },
+
+    swapReservePlayer(slotIndex, benchAccountId) {
+      const { engine, phase } = get();
+      if (!engine || phase !== "camp") return;
+      try {
+        engine.swapReservePlayer(slotIndex, benchAccountId);
+        set({ snapshot: snap(engine) });
+        syncCamp();
+        record({ t: "swapReservePlayer", slotIndex, benchAccountId });
+      } catch {
+        /* invalid role/slot */
+      }
+    },
+
+    swapReserveHero(outgoingHeroId, reserveHeroId) {
+      const { engine, phase } = get();
+      if (!engine || phase !== "camp") return;
+      try {
+        engine.swapReserveHero(outgoingHeroId, reserveHeroId);
+        set({ snapshot: snap(engine) });
+        syncCamp();
+        record({ t: "swapReserveHero", outgoingHeroId, reserveHeroId });
+      } catch {
+        /* invalid hero swap */
+      }
     },
 
     advanceAnteStage() {

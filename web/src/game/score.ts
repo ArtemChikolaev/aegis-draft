@@ -12,17 +12,16 @@ import { assignWithFixed, bestAssignment, synergyTotalForAssignment, type Assign
  * v1.5.0 (2026-07-15): (1) heroStatsForAssignment = только pro window (playerHeroStats), без
  * career/pub — career только для отображения игр в UI; (2) снят event-овerlay; Event Rating только
  * на Base; (3) Hero Synergy = СУММА по 5 героям, не среднее; (4) Chemistry = сыгранность (games),
- * не winrate. Калибровка по 322-0: пара ~500 игр → ~2, Hero Synergy ~7 = INSANE. */
+ * не winrate. Калибровка по 322-0: пара ~500 игр → ~2, Hero Synergy ~7 = INSANE.
+ * v1.13.0 (2026-07-23): Chemistry снова считается по уникальным парам. Одновременный учёт
+ * пар, троек и четвёрок повторял одни и те же связи и слишком рано упирался в общий cap. */
 export const SCORING = {
-  /** Вклад ГРУППЫ = min(chemMaxPerGroup, games / chemFullGames) — линейно до жёсткого потолка,
+  /** Вклад ПАРЫ = min(chemMaxPerPair, games / chemFullGames) — линейно до жёсткого потолка,
    * не гипербола. Замерено на 322-0: 350 игр → 1.5, 823 → 3.6, 267 → 1.2, 271 → 1.2; прежняя
    * гипербола 4.3·g/(g+500) мимо на всех четырёх (1.77 / 2.67 / 1.50 / 1.51). */
-  chemMaxPerGroup: 4,
+  chemMaxPerPair: 4,
   chemFullGames: 230,
-  /** Множитель по размеру сыгравшейся группы: пятёрка, отыгравшая вместе, ценнее суммы своих пар.
-   * Поэтому squadSynergy хранит группы 2–5, а не только пары. */
-  chemGroupMultiplier: { 2: 1, 3: 1.6, 4: 2.2, 5: 3 } as Record<number, number>,
-  /** Потолок суммарной химии: у реального ростера 26 подгрупп, без него сумма улетает. */
+  /** Потолок суммы десяти уникальных пар пятёрки. */
   chemTotalMax: 13,
 } as const;
 
@@ -70,44 +69,42 @@ export function heroSynergyBonus(assignment: Assignment): number {
   return Object.keys(assignment.byPlayer).length === 0 ? 0 : assignment.total;
 }
 
-/** Вклад одной сыгравшейся группы: линейно до жёсткого потолка, со множителем по размеру. */
+/** Вклад одной сыгравшейся пары: линейно до жёсткого потолка. */
 function groupBonus(group: SquadGroup): number {
-  const mult = SCORING.chemGroupMultiplier[group.ids.length] ?? 1;
-  return mult * Math.min(SCORING.chemMaxPerGroup, group.games / SCORING.chemFullGames);
+  return Math.min(SCORING.chemMaxPerPair, group.games / SCORING.chemFullGames);
 }
 
-/** Группы squadSynergy, ЦЕЛИКОМ лежащие внутри ростера. У реального состава их до 26
- * (10 пар + 10 троек + 5 четвёрок + пятёрка), у кросс-командного фэнтези — одна-две. */
-function rosterGroups(roster: ChemistryPlayer[], squad: SquadSynergy): SquadGroup[] {
+/** Уникальные пары squadSynergy, целиком лежащие внутри ростера. В полном составе их до 10.
+ * Датасет может содержать исторические группы 3–5 игроков, но они не добавляются поверх
+ * собственных пар: иначе одна и та же сыгранность учитывается несколько раз. */
+function rosterPairs(roster: ChemistryPlayer[], squad: SquadSynergy): SquadGroup[] {
   const inRoster = new Set(roster.map((p) => p.accountId));
-  return squad.filter((g) => g.ids.length >= 2 && g.ids.every((id) => inRoster.has(id)));
+  return squad.filter((g) => g.ids.length === 2 && g.ids.every((id) => inRoster.has(id)));
 }
 
-/** Chemistry = Σ по сыгравшимся подгруппам ростера, с потолком. Нет совместных pro-игр ⇒ 0.
+/** Chemistry = Σ по уникальным сыгравшимся парам ростера, с потолком.
+ * Нет совместных pro-игр ⇒ 0.
  *
- * v1.7.0: считаем ГРУППАМИ, а не парами. Пятёрка, отыгравшая вместе сотни игр, — это не то же
- * самое, что десять независимых пар, и в 322-0 она весит ×3. Ни current/former-множителей, ни
- * baseline за «состоят в одном ростере» нет: их формула таких понятий не знает. */
+ * v1.13.0: только пары. Группы 3–5 дублируют уже учтённые отношения и раньше насыщали общий
+ * cap до того, как замена действительно сыгранного игрока могла изменить Chemistry. */
 export function chemistryBonus(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
 ): number {
   void teammates; // сыгранность выводится из squadSynergy; teammates — справочник для UI
-  const sum = rosterGroups(roster, squad).reduce((acc, g) => acc + groupBonus(g), 0);
+  const sum = rosterPairs(roster, squad).reduce((acc, g) => acc + groupBonus(g), 0);
   return Math.min(sum, SCORING.chemTotalMax);
 }
 
-/** Парные вклады Chemistry для визуализации связей на радаре: только пары — рёбра рисуются
- * между двумя точками. Группы 3+ участвуют в счёте, но линией их не изобразить. */
+/** Парные вклады Chemistry для визуализации связей на радаре. */
 export function chemistryPairEdges(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
 ): ChemistryEdge[] {
   void teammates;
-  return rosterGroups(roster, squad)
-    .filter((g) => g.ids.length === 2)
+  return rosterPairs(roster, squad)
     .map((g) => ({ a: g.ids[0], b: g.ids[1], games: g.games, bonus: groupBonus(g) }))
     .filter((edge) => edge.bonus >= 0.05);
 }
@@ -191,10 +188,8 @@ export function squadChemistryRows(
     if (slot.candidate) nick.set(slot.candidate.player.accountId, slot.candidate.player.nickname);
   }
   void teammates;
-  // Только пары: строка UI подписана «A + B». Группы 3+ идут в счёт (chemistryBonus), но
-  // отдельными строками их не показываем — как в 322-0, где список тоже парный.
-  const rows: SquadChemistryRow[] = rosterGroups(chem, squad)
-    .filter((g) => g.ids.length === 2)
+  // Пары одновременно являются строками UI и единственными слагаемыми Chemistry.
+  const rows: SquadChemistryRow[] = rosterPairs(chem, squad)
     .map((g) => ({
       accountIdA: g.ids[0],
       accountIdB: g.ids[1],

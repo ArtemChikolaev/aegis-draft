@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { RunEngine } from "../src/game/engine.ts";
+import { buildAnteMarketRoulette } from "../src/game/anteMarket.ts";
+import { RunEconomy } from "../src/game/anteEconomy.ts";
 import { careerRunIdFromRun } from "../src/state/careerStore.ts";
 import {
   clearSavedRun,
@@ -256,6 +258,85 @@ describe("useRun.resumeRun Easy + reroll", () => {
     expect(state.tournament?.stage).toBe("field");
     expect(state.error).toBeNull();
     expect(state.snapshot?.isComplete).toBe(true);
+  });
+
+  it("Roguelite structural market: бесплатная перестановка с резервом переживает replay/resume", () => {
+    const seed = "structural-market-resume";
+    const { engine, actions } = draftWithLog(data, defaultRunConfig, seed);
+    const economy = new RunEconomy(seed);
+    // Этот тест проверяет replay/persist двух структурных покупок, а не баланс кошелька:
+    // наполняем его легальными идемпотентными наградами разных этапов.
+    for (const campStageIndex of [1, 2, 3, 4]) {
+      economy.awardStageClear(campStageIndex, "1", 20);
+    }
+    economy.openCamp(1);
+    const offers = buildAnteMarketRoulette(engine, seed, 1, 0);
+    economy.prepareMarketOffers(offers);
+    const offer = offers.find((candidate) => candidate.kind === "player" && candidate.playerSwap);
+    expect(offer?.playerSwap).toBeDefined();
+    const incoming = engine.candidateByRef(offer!.playerSwap!.incoming)!;
+    expect(economy.purchaseMarket(offer!.id)).not.toBeNull();
+    engine.replacePlayer(offer!.playerSwap!.slotIndex, incoming);
+    actions.push({
+      t: "replacePlayer",
+      slotIndex: offer!.playerSwap!.slotIndex,
+      incoming: offer!.playerSwap!.incoming,
+    });
+    const originalAccountId = engine.reservePlayers[0]!.player.accountId;
+    engine.swapReservePlayer(offer!.playerSwap!.slotIndex, originalAccountId);
+    actions.push({ t: "swapReservePlayer", slotIndex: offer!.playerSwap!.slotIndex, benchAccountId: originalAccountId });
+    const heroOffer = offers.find((candidate) => candidate.kind === "hero" && candidate.heroSwap);
+    // Малый mock может не иметь ни одного положительного Hero Synergy re-pick: рынок тогда
+    // корректно отдаёт stat-fallback. Persist резерва всё равно проверяем на валидной паре.
+    const heroSwap = heroOffer?.heroSwap ?? {
+      outgoingHeroId: engine.heroes[0],
+      incomingHeroId: engine.marketHeroCandidates[0],
+    };
+    expect(heroSwap.outgoingHeroId).toBeDefined();
+    expect(heroSwap.incomingHeroId).toBeDefined();
+    if (heroOffer) expect(economy.purchaseMarket(heroOffer.id)).not.toBeNull();
+    engine.replaceHero(heroSwap.outgoingHeroId, heroSwap.incomingHeroId);
+    actions.push({ t: "replaceHero", ...heroSwap });
+    engine.swapReserveHero(heroSwap.incomingHeroId, heroSwap.outgoingHeroId);
+    actions.push({
+      t: "swapReserveHero",
+      outgoingHeroId: heroSwap.incomingHeroId,
+      reserveHeroId: heroSwap.outgoingHeroId,
+    });
+    const score = engine.score()!;
+
+    saveRun({
+      v: 1,
+      schemaVersion: data.manifest.schemaVersion,
+      ratingModelVersion: data.manifest.ratingModelVersion,
+      dataHash: data.manifest.dataHash,
+      mode: "run",
+      config: defaultRunConfig,
+      seed,
+      actions,
+      tournamentStep: 0,
+      tournamentStarted: true,
+      anteStageIndex: 1,
+      economy: economy.snapshot,
+      frozenRoster: freezeRoster(engine.rosterView, score.assignment.byPlayer) ?? undefined,
+    });
+    useRun.setState({ resumable: loadSavedRun(), data, phase: "start" });
+    useRun.getState().resumeRun();
+
+    const resumed = useRun.getState();
+    expect(resumed.phase).toBe("camp");
+    expect(resumed.snapshot?.reservePlayers.length).toBeGreaterThan(0);
+    expect(resumed.snapshot?.roster[offer!.playerSwap!.slotIndex].candidate?.player.accountId)
+      .toBe(originalAccountId);
+    expect(resumed.snapshot?.reservePlayers[0]?.candidate.player.accountId).toBe(incoming.player.accountId);
+    expect(resumed.snapshot?.reservePlayers[0]?.previews.length).toBeGreaterThanOrEqual(1);
+    expect(resumed.snapshot?.heroes).toContain(heroSwap.outgoingHeroId);
+    expect(resumed.snapshot?.reserveHeroes.some((reserve) =>
+      reserve.heroId === heroSwap.incomingHeroId)).toBe(true);
+    expect(resumed.snapshot?.reserveHeroes.find((reserve) =>
+      reserve.heroId === heroSwap.incomingHeroId)?.previews).toHaveLength(5);
+    expect(resumed.camp?.marketOffers.some((candidate) => candidate.id === offer!.id)).toBe(false);
+    expect(resumed.error).toBeNull();
   });
 
   it("вход в playoffs не чистит сейв; finishTournament — чистит и пишет career", () => {

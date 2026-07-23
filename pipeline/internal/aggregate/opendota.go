@@ -151,9 +151,8 @@ func FromOpenDota(snapshot *normalize.OpenDotaSnapshot, windowStartUnix int64) (
 					teammates[accounts[j]][accounts[i]] = struct{}{}
 				}
 			}
-			// Все подгруппы 2..5 сыгравшего состава, а не только пары: Chemistry весит
-			// крупную сыгравшуюся группу выше суммы её пар (пятёрка ×3 против пары ×1),
-			// и по одним парам «эта пятёрка играла вместе 749 игр» не восстановить.
+			// Все подгруппы 2..5 сыгравшего состава остаются историческим агрегатом.
+			// Chemistry v1.13 читает только пары, не складывая поверх них вложенные группы.
 			forEachSubset(accounts, minGroupSize, maxGroupSize, func(group []int) {
 				key := groupKey(group)
 				stat := groups[key]
