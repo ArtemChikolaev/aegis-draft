@@ -49,12 +49,26 @@ export async function startRogueliteRun(page: Page) {
   await expect(page.getByTestId("draft-screen")).toBeVisible();
 }
 
+/** Детерминированный roguelite-старт по фиксированному seed через run-link (формат — как кодек
+ *  state/runLink.ts, версии берём из манифеста → устойчиво к обновлению датасета). Нужен, когда
+ *  тесту важен исход этапа: `camp-e2e-22` проходит этап 1 жадным драфтом (см. подбор в истории). */
+export async function startRogueliteSeed(page: Page, seed: string) {
+  const encoded = await page.evaluate(async (seed) => {
+    const m = await fetch("data/manifest.json").then((r) => r.json());
+    const payload = { v: 1, s: m.schemaVersion, r: m.ratingModelVersion, m: "run", d: "team", f: "last_2y", n: 2, c: "event", a: "auto", seed };
+    return btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }, seed);
+  await page.goto(`#/run=${encoded}`);
+  await page.getByTestId("run-link-accept").click();
+  await expect(page.getByTestId("draft-screen")).toBeVisible();
+}
+
 /** Симулировать текущий ante-этап до исхода: появляется либо «следующий этап»
  *  (порог пройден), либо терминальный итог забега (победа/смерть). */
 export async function simulateAnteStageToOutcome(page: Page) {
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
   await page.getByTestId("tournament-simulate").click();
-  const next = page.getByTestId("ante-next-stage");
+  const next = page.getByTestId("ante-to-camp");
   const complete = page.getByTestId("tournament-complete");
   const skip = page.getByTestId("tournament-skip");
   for (

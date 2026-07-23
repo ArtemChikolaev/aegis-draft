@@ -52,6 +52,13 @@ describe("runLink: ссылка на забег", () => {
     expect(soft?.config.hardMode ?? false).toBe(false);
   });
 
+  it("Roguelite Run (mode \"run\") переживает round-trip", () => {
+    // Ссылка = стартовые условия рогалита (draft+seed); прогресс/Буткемп в ссылку не входят,
+    // забег воспроизводится детерминированно с этапа 0. Нужен для seeded/daily рогалита и e2e.
+    const decoded = decodeRunLink(encodeRunLink({ ...base, mode: "run" }));
+    expect(decoded?.mode).toBe("run");
+  });
+
   it("все оси конфига переживают round-trip", () => {
     for (const draftStyle of ["team", "mixed"] as const) {
       for (const allocation of ["auto", "manual"] as const) {

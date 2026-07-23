@@ -10,12 +10,20 @@
 import type { Format, GameData } from "../types/data.ts";
 import { TournamentEngine, type PlacementKey } from "./tournament.ts";
 
-/** Стартовая лестница порогов (PRD §5.9.2, открытый вопрос §10.E — закрепить замером).
- *  Значение = максимальное числовое место, которое ещё считается пройденным: 8 = топ-8. */
-export const ANTE_TARGETS: readonly number[] = [8, 4, 2, 2, 1];
+/** Стартовая лестница порогов (PRD §5.9.2, §10.E — откалибрована симуляцией 2026-07-23).
+ *  Значение = максимальное числовое место, которое ещё считается пройденным: 10 = топ-10.
+ *  Плавная рампа (не обрыв топ-2/топ-2): статичный состав живёт до середины, победа требует
+ *  докупки силы в Буткемпе. */
+export const ANTE_TARGETS: readonly number[] = [10, 6, 4, 3, 1];
 
-/** Насколько сильнее поле каждый следующий этап (в очках силы бота). Этап 0 — без буста. */
+/** Насколько сильнее поле каждый следующий этап (в очках силы бота). */
 export const ANTE_FIELD_STEP = 3;
+
+/** Стартовый гандикап: на раннем этапе поле СЛАБЕЕ игрока (сдвиг вниз), иначе teamOvr (~78–85)
+ *  сидит ниже медианы пула ботов N(86,5) и топ-10 берётся редко — забег ощущается непроходимым.
+ *  За забег поле деградирует от -HANDICAP до 0 (idx*STEP − HANDICAP), к финалу = базовый пул.
+ *  Откалибровано 2026-07-23 (§10.E); точная величина — placeholder под balance spec. */
+export const ANTE_FIELD_HANDICAP = 12;
 
 export type AntePhase = "playing" | "won" | "lost";
 
@@ -66,9 +74,12 @@ export class AnteRunEngine {
 
   private buildStage(index: number): TournamentEngine {
     // Своё seed-пространство на этап: этапы не должны делить поток Rng, иначе исход одного
-    // зависел бы от числа роллов другого. fieldBoost=0 на нулевом этапе.
+    // зависел бы от числа роллов другого. Сдвиг поля = idx*STEP − HANDICAP: ранние этапы
+    // слабее игрока (проходимы), поздние догоняют. Quick Draft зовёт турнир с boost=0 отдельно
+    // (mode "run" only) — golden не двигается.
     const stageSeed = `${this.seed}:ante:stage-${index}`;
-    return new TournamentEngine(this.data, this.format, stageSeed, this.teamOvr, this.teamName, 0, index * ANTE_FIELD_STEP);
+    const fieldBoost = index * ANTE_FIELD_STEP - ANTE_FIELD_HANDICAP;
+    return new TournamentEngine(this.data, this.format, stageSeed, this.teamOvr, this.teamName, 0, fieldBoost);
   }
 
   /** Турнир текущего этапа. UI гонит его reveal (advance) как в Quick Draft. */

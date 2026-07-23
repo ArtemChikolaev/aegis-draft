@@ -231,7 +231,7 @@ export function TournamentScreen() {
   const tournament = useRun((state) => state.tournament);
   const ante = useRun((state) => state.ante);
   const selectedMode = useRun((state) => state.selectedMode);
-  const advanceAnteStage = useRun((state) => state.advanceAnteStage);
+  const enterCamp = useRun((state) => state.enterCamp);
   const advance = useRun((state) => state.advanceTournament);
   const finishTournament = useRun((state) => state.finishTournament);
   const rerollField = useRun((state) => state.rerollField);
@@ -777,7 +777,7 @@ export function TournamentScreen() {
           ) : playoffsDone ? (
             ante && ante.phase === "playing" ? (
               <div className="tournament__restart tournament__restart--ante" data-testid="ante-next">
-                <Button variant="primary" data-testid="ante-next-stage" onClick={advanceAnteStage}>{t("ante.nextStage")}<span>→</span></Button>
+                <Button variant="primary" data-testid="ante-to-camp" onClick={enterCamp}>{t("ante.toCamp")}<span>→</span></Button>
                 <Button variant="secondary" onClick={() => setConfirmLeave(true)}>{t("ante.giveUp")}</Button>
               </div>
             ) : (

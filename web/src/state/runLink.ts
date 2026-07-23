@@ -105,7 +105,7 @@ export function decodeRunLink(encoded: string): RunLink | null {
   const seed = typeof raw.seed === "string" && raw.seed.trim() ? raw.seed : null;
   if (rerolls === null || !seed) return null;
   if (typeof raw.s !== "number" || !Number.isInteger(raw.s) || raw.s < 1 || typeof raw.r !== "string" || !raw.r) return null;
-  if (raw.m !== "classic" && raw.m !== "manager" && raw.m !== "tournament") return null;
+  if (raw.m !== "classic" && raw.m !== "run" && raw.m !== "manager" && raw.m !== "tournament") return null;
   if (raw.d !== "team" && raw.d !== "mixed") return null;
   if (raw.c !== "event" && raw.c !== "peak") return null;
   if (raw.a !== "auto" && raw.a !== "manual") return null;

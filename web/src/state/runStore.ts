@@ -10,6 +10,7 @@ import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
 import { AnteRunEngine, ANTE_TARGETS, type AnteRunState } from "../game/anteRun.ts";
+import { RunEconomy, type CampView, type RunEconomyState } from "../game/anteEconomy.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
@@ -30,7 +31,8 @@ import { clearRunLinkHash, runLinkFromHash, runLinkIssue, type RunLink, type Run
 
 // Бесшовный Classic-флоу (TREF-TOUR2): после драфта нет отдельного экрана-итога —
 // сразу непрерывный `tournament`-вид (разбор счёта + поле + одна CTA «Симулировать»).
-type Phase = "loading" | "start" | "draft" | "tournament";
+// Roguelite Run добавляет фазу "camp" (Буткемп между этапами: reward + market), см. T5.2.
+type Phase = "loading" | "start" | "draft" | "tournament" | "camp";
 export type StartStep = "modes" | "variants" | "config";
 export type { RunMode } from "./runPersist.ts";
 
@@ -88,6 +90,12 @@ interface RunStore {
   anteRun: AnteRunEngine | null;
   /** Снимок состояния ante-забега для рендера (этап/порог/фаза/место). */
   ante: AnteRunState | null;
+  /** Экономика забега (валюта/покупки/офферы) поверх ante-петли, иначе null. */
+  economy: RunEconomy | null;
+  /** Сериализуемый снимок экономики для persist. */
+  economyView: RunEconomyState | null;
+  /** Снимок Буткемпа для рендера (offers/gold/breakdown), иначе null. */
+  camp: CampView | null;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -116,7 +124,15 @@ interface RunStore {
   advanceTournament: () => void;
   /** Вызывать, когда UI доиграл playoffs reveal до итоговой таблицы (не при входе в стадию). */
   finishTournament: () => void;
-  /** Roguelite Run: перейти к следующему этапу после пройденного порога (кнопка «Next stage»). */
+  /** Roguelite Run: открыть Буткемп после пройденного этапа (кнопка «В Буткемп»). */
+  enterCamp: () => void;
+  /** Буткемп: выбрать одну reward-карту (бесплатно, один раз). */
+  chooseReward: (offerId: string) => void;
+  /** Буткемп: купить market-оффер за золото. */
+  buyMarket: (offerId: string) => void;
+  /** Буткемп: реролл рынка за золото. */
+  rerollMarket: () => void;
+  /** Roguelite Run: выйти из Буткемпа и играть следующий этап (кнопка «Next stage»). */
   advanceAnteStage: () => void;
   restartSameConfig: () => void;
 }
@@ -180,7 +196,7 @@ export const useRun = create<RunStore>((set, get) => {
   // Плей-офф с canAdvance=false — ещё НЕ финал для игрока: идёт reveal-анимация.
   // Сейв чистим только после finishTournament (reveal доигран до экрана результатов).
   const persist = () => {
-    const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine, engine, resultsSeen, anteRun } = get();
+    const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine, engine, resultsSeen, anteRun, economy } = get();
     if (!data || !config || !selectedMode) return;
     if (resultsSeen) {
       clearSavedRun();
@@ -203,7 +219,15 @@ export const useRun = create<RunStore>((set, get) => {
       tournamentStarted: tournamentEngine != null,
       frozenRoster: frozenRoster ?? undefined,
       anteStageIndex: anteRun ? anteRun.state.index : undefined,
+      economy: economy ? economy.snapshot : undefined,
     });
+  };
+  // Обновить снимки экономики/Буткемпа для рендера и сохранить (во время camp резалтов нет).
+  const syncCamp = () => {
+    const { economy } = get();
+    if (!economy) return;
+    set({ economyView: economy.snapshot, camp: economy.campView() });
+    persist();
   };
   // Записать действие в лог и сохранить.
   const record = (action: RunAction) => {
@@ -221,15 +245,16 @@ export const useRun = create<RunStore>((set, get) => {
     // ante.tournament подставляется в тот же tournamentEngine/tournament, что и Quick Draft.
     if (selectedMode === "run") {
       const anteRun = new AnteRunEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName);
+      const economy = new RunEconomy(seed);
       return {
-        anteRun, ante: anteRun.state,
+        anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
         tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot,
         tournamentStep: 0, teamName: resolvedName,
       };
     }
     const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
     return {
-      anteRun: null, ante: null,
+      anteRun: null, ante: null, economy: null, economyView: null, camp: null,
       tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName,
     };
   };
@@ -272,6 +297,9 @@ export const useRun = create<RunStore>((set, get) => {
     resultsSeen: false,
     anteRun: null,
     ante: null,
+    economy: null,
+    economyView: null,
+    camp: null,
 
     async loadData() {
       try {
@@ -316,7 +344,7 @@ export const useRun = create<RunStore>((set, get) => {
           engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null,
           startStep: "config", startConfig: config,
           tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-          anteRun: null, ante: null,
+          anteRun: null, ante: null, economy: null, economyView: null, camp: null,
         });
         logRunStart(config, seed, data);
         debugSnap("after start", engine, snapshot, config, seed, data);
@@ -373,12 +401,12 @@ export const useRun = create<RunStore>((set, get) => {
         const snapshot = snap(engine);
         // До запуска симуляции (стадия field) свап меняет teamOvr → пересобираем поле,
         // чтобы посев остался консистентным. После старта групп ростер залочен.
-        const { anteRun, tournament } = get();
+        const { anteRun, tournament, economy } = get();
         if (tournament?.stage === "field" && snapshot.score) {
           if (anteRun) {
-            // Ante: пересобираем поле ТЕКУЩЕГО этапа под новый teamOvr, прогресс сохраняется
-            // (fresh AnteRunEngine сбросил бы забег на этап 0).
-            anteRun.rebuildCurrentStage(snapshot.score.teamOvr);
+            // Ante: пересобираем поле ТЕКУЩЕГО этапа под новый teamOvr (+ модификаторы экономики
+            // от прошлых Буткемпов), прогресс сохраняется (fresh AnteRunEngine сбросил бы на этап 0).
+            anteRun.rebuildCurrentStage(snapshot.score.teamOvr + (economy?.totalModifier() ?? 0));
             set({ snapshot, anteRun, ante: anteRun.state, tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot, tournamentStep: 0 });
           } else {
             const rebuild = buildTournamentFields(snapshot);
@@ -432,7 +460,7 @@ export const useRun = create<RunStore>((set, get) => {
       set({
         phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
         resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-        anteRun: null, ante: null,
+        anteRun: null, ante: null, economy: null, economyView: null, camp: null,
       });
     },
 
@@ -474,7 +502,9 @@ export const useRun = create<RunStore>((set, get) => {
         let tournament: TournamentSnapshot | null = null;
         let anteRun: AnteRunEngine | null = null;
         let ante: AnteRunState | null = null;
-        const tournamentStep = Math.max(0, Math.min(2, resumable.tournamentStep ?? 0));
+        let economy: RunEconomy | null = null;
+        let inCamp = false;
+        const savedStep = Math.max(0, Math.min(2, resumable.tournamentStep ?? 0));
         if (engine.isComplete) {
           const score = engine.score();
           if (!score) throw new Error("Completed draft has no score");
@@ -485,13 +515,19 @@ export const useRun = create<RunStore>((set, get) => {
             anteRun = new AnteRunEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName);
             const stageIndex = Math.max(0, Math.min(ANTE_TARGETS.length - 1, resumable.anteStageIndex ?? 0));
             anteRun.jumpToStage(stageIndex);
+            // Экономика: восстанавливаем валюту/покупки, применяем их модификаторы к полю этапа.
+            economy = new RunEconomy(resumable.seed, resumable.economy);
+            anteRun.rebuildCurrentStage(score.teamOvr + economy.totalModifier());
+            inCamp = economy.snapshot.inCamp;
             ante = anteRun.state;
             tournamentEngine = anteRun.tournament;
           } else {
             const rerolls = fieldRerollCount(resumable.actions);
             tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, rerolls);
           }
-          for (let step = 0; step < tournamentStep; step += 1) tournamentEngine.advance();
+          // В Буткемпе следующий этап ещё не доигрывался — reveal не мотаем, поле свежее (step 0).
+          const revealSteps = inCamp ? 0 : savedStep;
+          for (let step = 0; step < revealSteps; step += 1) tournamentEngine.advance();
           tournament = tournamentEngine.snapshot;
         }
         set({
@@ -503,15 +539,18 @@ export const useRun = create<RunStore>((set, get) => {
           startConfig: resumable.config,
           actions: resumable.actions,
           snapshot: snap(engine),
-          phase: engine.isComplete ? "tournament" : "draft",
+          phase: inCamp ? "camp" : engine.isComplete ? "tournament" : "draft",
           resumable: null,
           error: null,
           tournamentEngine,
           tournament,
-          tournamentStep,
+          tournamentStep: inCamp ? 0 : savedStep,
           resultsSeen: false,
           anteRun,
           ante,
+          economy,
+          economyView: economy ? economy.snapshot : null,
+          camp: inCamp && economy ? economy.campView() : null,
         });
       } catch (e) {
         // Сейв не воспроизвёлся — сбрасываем; раньше баннер просто исчезал без объяснения.
@@ -564,17 +603,25 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     finishTournament() {
-      const { tournament, resultsSeen, anteRun } = get();
+      const { tournament, resultsSeen, anteRun, economy } = get();
       if (resultsSeen || !tournament || tournament.canAdvance) return;
-      // Roguelite Run: этап доигран → решаем порог. Пройден и не последний → забег жив
-      // (кнопка «Next stage»); победа/смерть → пишем карьеру и чистим сейв, как Quick Draft.
+      // Буткемп уже открыт для этого прохода — не разрешаем этап повторно (защита от двойного эффекта).
+      if (anteRun && economy?.snapshot.inCamp) return;
+      // Roguelite Run: этап доигран → решаем порог. Пройден и не последний → начисляем призовые и
+      // открываем Буткемп (кнопка «В Буткемп»); победа/смерть → пишем карьеру и чистим сейв.
       if (anteRun) {
         const phase = anteRun.resolveStage();
         const resolvedAnte = anteRun.state;
-        set({ ante: resolvedAnte, resultsSeen: true });
-        if (phase === "playing") {
+        if (phase === "playing" && economy) {
+          // resolveStage продвинул индекс на следующий этап; призовые — за только что пройденный.
+          const campId = resolvedAnte.index;
+          const target = ANTE_TARGETS[campId - 1];
+          economy.awardStageClear(campId, resolvedAnte.lastPlacement, target);
+          economy.openCamp(campId);
+          set({ ante: resolvedAnte, resultsSeen: false, economyView: economy.snapshot, camp: economy.campView() });
           persist();
         } else {
+          set({ ante: resolvedAnte, resultsSeen: true });
           recordCareer(tournament, { index: resolvedAnte.index, count: resolvedAnte.count });
           clearSavedRun();
         }
@@ -585,17 +632,47 @@ export const useRun = create<RunStore>((set, get) => {
       clearSavedRun();
     },
 
+    enterCamp() {
+      const { economy, phase } = get();
+      // Буткемп открыт экономикой в finishTournament; здесь только переключаем UI-фазу.
+      if (!economy || !economy.snapshot.inCamp || phase === "camp") return;
+      set({ phase: "camp", economyView: economy.snapshot, camp: economy.campView() });
+    },
+
+    chooseReward(offerId) {
+      const { economy } = get();
+      if (!economy || !economy.chooseReward(offerId)) return;
+      syncCamp();
+    },
+
+    buyMarket(offerId) {
+      const { economy } = get();
+      if (!economy || !economy.buyMarket(offerId)) return;
+      syncCamp();
+    },
+
+    rerollMarket() {
+      const { economy } = get();
+      if (!economy || !economy.rerollMarket()) return;
+      syncCamp();
+    },
+
     advanceAnteStage() {
-      const { anteRun, ante } = get();
-      if (!anteRun || !ante || ante.phase !== "playing") return;
-      // resolveStage уже перевёл движок на следующий этап (stage "field") — подставляем его
-      // турнир в тот же tournamentEngine/tournament, что рендерит экран; reveal сбросится.
+      const { anteRun, ante, economy, snapshot } = get();
+      if (!anteRun || !ante || ante.phase !== "playing" || !snapshot?.score) return;
+      // Выходим из Буткемпа и пересобираем поле следующего этапа под итоговый effectiveTeamOvr
+      // (base teamOvr + все покупки забега). Турнир текущего этапа рендерится тем же экраном.
+      economy?.leaveCamp();
+      if (economy) anteRun.rebuildCurrentStage(snapshot.score.teamOvr + economy.totalModifier());
       set({
+        phase: "tournament",
         tournamentEngine: anteRun.tournament,
         tournament: anteRun.tournament.snapshot,
         tournamentStep: 0,
         resultsSeen: false,
         ante: anteRun.state,
+        economyView: economy ? economy.snapshot : null,
+        camp: null,
       });
       persist();
     },

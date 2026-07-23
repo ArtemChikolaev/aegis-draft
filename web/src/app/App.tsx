@@ -8,6 +8,7 @@ import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { RunLinkPrompt } from "../features/start/RunLinkPrompt.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
+import { CampScreen } from "../features/run/CampScreen.tsx";
 import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
 import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
 import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
@@ -100,6 +101,7 @@ export function App() {
           {phase === "start" && <StartScreen />}
           {phase === "draft" && <DraftScreen />}
           {phase === "tournament" && <TournamentScreen />}
+          {phase === "camp" && <CampScreen />}
         </>
       )}
       {/* Вне переключателя вида: ссылку могли открыть, стоя на любом экране, и предложение

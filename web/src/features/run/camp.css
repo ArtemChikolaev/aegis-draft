@@ -1,0 +1,138 @@
+/* Буткемп Roguelite Run (T5.2). Цвета — токены (акцент режима --accent = фиолетовый у Roguelite),
+   без хардкода. Раскладка — колонка панелей, офферы — адаптивная сетка. */
+.camp {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.camp__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.camp__cleared {
+  margin: 4px 0 0;
+  font-size: clamp(20px, 4vw, 28px);
+  color: var(--accent);
+}
+.camp__next {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.camp__gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--line));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--gold) 10%, var(--surface-soft));
+  white-space: nowrap;
+}
+.camp__gold-icon { color: var(--gold); }
+.camp__gold strong { font-size: 20px; color: var(--gold); }
+
+/* Surface сам по себе без внутренних отступов — задаём их тут, иначе заголовок и плитки
+   упираются в рамку (особенно в нижний край). */
+.camp__team {
+  padding: 16px;
+}
+.camp__team-title,
+.camp__section-title {
+  margin: 0 0 12px;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.camp__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+/* Плитки TEAM NOW чуть выше и с большей подписью-бонусом: глобальный StatTile em (7px)
+   рассчитан на турнирный радар и здесь нечитаем. Скоуп — только Буткемп. */
+.camp__team .camp__stats > * {
+  padding-block: 16px;
+}
+.camp__team .camp__stats em {
+  margin-top: 4px;
+  font-size: 12px;
+  letter-spacing: .06em;
+}
+
+.camp__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.camp__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.camp__section-head .camp__section-title { margin: 0; }
+
+.camp__offers {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.camp-offer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.camp-offer.is-chosen {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+  background: var(--accent-soft);
+}
+.camp-offer__body { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.camp-offer__label { font-size: 15px; }
+.camp-offer__deltas { display: flex; flex-wrap: wrap; gap: 6px; }
+.camp-offer__delta {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+}
+.camp-offer__delta--up { color: var(--accent); }
+.camp-offer__delta--down { color: #e0736b; }
+.camp-offer__delta--gold { color: var(--gold); }
+
+.camp-offer__buy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.camp-offer__cost {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.camp__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .camp__stats { grid-template-columns: repeat(2, 1fr); }
+  .camp__offers { grid-template-columns: 1fr; }
+  .camp-offer { flex-direction: row; align-items: center; justify-content: space-between; }
+  .camp-offer__buy { flex-direction: column; align-items: flex-end; }
+}

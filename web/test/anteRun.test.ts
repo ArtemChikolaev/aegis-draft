@@ -107,8 +107,8 @@ describe("AnteRunEngine", () => {
     expect(engine.state).toEqual(after);
   });
 
-  it("слабый состав не проходит стартовый порог топ-8", () => {
-    // teamOvr сильно ниже поля (mean 86) → место у дна → промах топ-8 на этапе 0.
+  it("слабый состав не проходит стартовый порог топ-10", () => {
+    // teamOvr сильно ниже даже гандикапнутого поля (N74 на этапе 0) → место у дна → промах.
     const engine = new AnteRunEngine(data, "last_2y", "ante-weak", 45, "Five");
     expect(engine.resolveStage()).toBe("lost");
     expect(placementWorstRank(engine.state.lastPlacement!)).toBeGreaterThan(ANTE_TARGETS[0]);
