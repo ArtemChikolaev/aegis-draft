@@ -8,8 +8,11 @@ const CAMP_SEED = "camp-e2e-3";
 // Roguelite Run (T5.7 срез 1 + T5.2 срез 2): драфт → этап → Буткемп (reward/market) → следующий
 // этап; растущий порог, промах = конец.
 test("roguelite run: этапы через Буткемп и завершение забега", async ({ page }) => {
+  // До 5 этапов × (reveal турнира + Буткемп) — на медленном CI-mobile не влезает в 30с.
+  // Фикс-seed делает число этапов детерминированным, slow() утраивает бюджет.
+  test.slow();
   await gotoFreshApp(page);
-  await startRogueliteRun(page);
+  await startRogueliteSeed(page, CAMP_SEED);
   await completeDraft(page);
 
   let stagesPlayed = 0;
