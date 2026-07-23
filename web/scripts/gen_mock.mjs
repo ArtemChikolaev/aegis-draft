@@ -7,6 +7,7 @@
 // Правило формата — зеркало pipeline/internal/formats/Assign; меняешь одно — правь оба.
 // Запуск: node web/scripts/gen_mock.mjs
 import { readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -14,6 +15,26 @@ const here = dirname(fileURLToPath(import.meta.url));
 const dataDir = join(here, "..", "public", "data");
 const read = (f) => JSON.parse(readFileSync(join(dataDir, f), "utf8"));
 const write = (f, o) => writeFileSync(join(dataDir, f), JSON.stringify(o, null, 2) + "\n");
+const DATA_FILES = [
+  "events.json",
+  "heroes.json",
+  "packs.json",
+  "players.json",
+  "playerHeroStats.json",
+  "careerPlayerHeroStats.json",
+  "teammates.json",
+  "squadSynergy.json",
+  "eventHeroStats.json",
+  "teamSuccess.json",
+];
+const dataHash = () => {
+  const hash = createHash("sha256");
+  for (const file of DATA_FILES) {
+    hash.update(`${file}\0`);
+    hash.update(readFileSync(join(dataDir, file)));
+  }
+  return `sha256:${hash.digest("hex")}`;
+};
 
 // Дата сборки = as-of окон. UTC-полночь, календарное вычитание лет (как Go AddDate).
 const BUILT_AT = "2026-07-11T00:00:00Z";
@@ -314,6 +335,7 @@ const manifest = {
   schemaVersion: 1,
   ratingModelVersion: "mock-1",
   builtAt: BUILT_AT,
+  dataHash: dataHash(),
   source: {
     opendota: "mock dataset — not real OpenDota data",
     liquipedia: "mock dataset — not real Liquipedia data",

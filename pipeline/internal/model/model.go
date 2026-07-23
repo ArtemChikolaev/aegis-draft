@@ -120,6 +120,7 @@ type Manifest struct {
 	SchemaVersion      int            `json:"schemaVersion"`
 	RatingModelVersion string         `json:"ratingModelVersion"`
 	BuiltAt            string         `json:"builtAt"`
+	DataHash           string         `json:"dataHash"`
 	Source             *Source        `json:"source,omitempty"`
 	Formats            []Format       `json:"formats"`
 	Counts             map[string]int `json:"counts,omitempty"`

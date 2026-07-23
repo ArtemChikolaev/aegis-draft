@@ -57,7 +57,7 @@ describe("runPersist", () => {
     v: 1,
     schemaVersion: data.manifest.schemaVersion,
     ratingModelVersion: data.manifest.ratingModelVersion,
-    dataBuiltAt: data.manifest.builtAt,
+    dataHash: data.manifest.dataHash,
     mode: "classic",
     config: defaultRunConfig,
     seed: "persist-seed",
@@ -68,11 +68,19 @@ describe("runPersist", () => {
     clearSavedRun();
   });
 
-  it("isRunCompatible требует совпадения schema, rating и builtAt", () => {
-    const { schemaVersion, ratingModelVersion, builtAt } = data.manifest;
-    expect(isRunCompatible(baseRun, schemaVersion, ratingModelVersion, builtAt)).toBe(true);
-    expect(isRunCompatible(baseRun, schemaVersion, ratingModelVersion, "2020-01-01T00:00:00Z")).toBe(false);
-    expect(isRunCompatible({ ...baseRun, ratingModelVersion: "v0" }, schemaVersion, ratingModelVersion, builtAt)).toBe(false);
+  it("isRunCompatible требует совпадения schema, rating и dataHash, но не builtAt", () => {
+    const { schemaVersion, ratingModelVersion, dataHash, builtAt } = data.manifest;
+    expect(isRunCompatible(baseRun, schemaVersion, ratingModelVersion, dataHash, builtAt)).toBe(true);
+    expect(isRunCompatible(baseRun, schemaVersion, ratingModelVersion, dataHash, "2020-01-01T00:00:00Z")).toBe(true);
+    expect(isRunCompatible(baseRun, schemaVersion, ratingModelVersion, "sha256:other", builtAt)).toBe(false);
+    expect(isRunCompatible({ ...baseRun, ratingModelVersion: "v0" }, schemaVersion, ratingModelVersion, dataHash, builtAt)).toBe(false);
+  });
+
+  it("legacy-сейв совместим только при совпавшем builtAt", () => {
+    const { schemaVersion, ratingModelVersion, dataHash, builtAt } = data.manifest;
+    const legacy: SavedRun = { ...baseRun, dataHash: undefined, dataBuiltAt: builtAt };
+    expect(isRunCompatible(legacy, schemaVersion, ratingModelVersion, dataHash, builtAt)).toBe(true);
+    expect(isRunCompatible(legacy, schemaVersion, ratingModelVersion, dataHash, "2020-01-01T00:00:00Z")).toBe(false);
   });
 
   it("freezeRoster + frozenRostersMatch ловят расхождение replay", () => {
@@ -117,14 +125,15 @@ describe("runPersist", () => {
   });
 
   it("isSavedRunResumable: пустой actions после start — всё ещё resume", () => {
-    const { schemaVersion, ratingModelVersion, builtAt } = data.manifest;
+    const { schemaVersion, ratingModelVersion, dataHash, builtAt } = data.manifest;
     const started: SavedRun = { ...baseRun, actions: [] };
-    expect(isSavedRunResumable(started, schemaVersion, ratingModelVersion, builtAt)).toBe(true);
-    expect(isSavedRunResumable(null, schemaVersion, ratingModelVersion, builtAt)).toBe(false);
+    expect(isSavedRunResumable(started, schemaVersion, ratingModelVersion, dataHash, builtAt)).toBe(true);
+    expect(isSavedRunResumable(null, schemaVersion, ratingModelVersion, dataHash, builtAt)).toBe(false);
     expect(isSavedRunResumable(
-      { ...started, dataBuiltAt: "other" },
+      { ...started, dataHash: "sha256:other" },
       schemaVersion,
       ratingModelVersion,
+      dataHash,
       builtAt,
     )).toBe(false);
 
@@ -164,6 +173,7 @@ describe("runPersist", () => {
       loaded,
       data.manifest.schemaVersion,
       data.manifest.ratingModelVersion,
+      data.manifest.dataHash,
       data.manifest.builtAt,
     )).toBe(true);
 
@@ -226,7 +236,7 @@ describe("useRun.resumeRun Easy + reroll", () => {
       v: 1,
       schemaVersion: data.manifest.schemaVersion,
       ratingModelVersion: data.manifest.ratingModelVersion,
-      dataBuiltAt: data.manifest.builtAt,
+      dataHash: data.manifest.dataHash,
       mode: "classic",
       config: easy,
       seed,
@@ -283,7 +293,7 @@ describe("useRun.resumeRun Easy + reroll", () => {
       v: 1,
       schemaVersion: data.manifest.schemaVersion,
       ratingModelVersion: data.manifest.ratingModelVersion,
-      dataBuiltAt: data.manifest.builtAt,
+      dataHash: data.manifest.dataHash,
       mode: "classic",
       config: defaultRunConfig,
       seed,

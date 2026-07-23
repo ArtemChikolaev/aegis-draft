@@ -94,6 +94,7 @@ export interface Manifest {
   schemaVersion: number;
   ratingModelVersion: string;
   builtAt: string;
+  dataHash: string;
   source?: { opendota?: string; liquipedia?: string };
   formats: Format[];
   counts?: Record<string, number>;

@@ -16,7 +16,7 @@ const saved = (hardMode: boolean): SavedRun => ({
   v: 1,
   schemaVersion: 1,
   ratingModelVersion: "v1",
-  dataBuiltAt: "2026-07-18T00:00:00Z",
+  dataHash: "sha256:test",
   mode: "classic",
   config: config(hardMode),
   seed: "seed",

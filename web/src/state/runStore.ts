@@ -210,6 +210,7 @@ export const useRun = create<RunStore>((set, get) => {
       v: 1,
       schemaVersion: data.manifest.schemaVersion,
       ratingModelVersion: data.manifest.ratingModelVersion,
+      dataHash: data.manifest.dataHash,
       dataBuiltAt: data.manifest.builtAt,
       mode: selectedMode,
       config,
@@ -310,11 +311,15 @@ export const useRun = create<RunStore>((set, get) => {
           loadSavedRunAsync(),
           loadTeamNameAsync(),
         ]);
-        const { schemaVersion, ratingModelVersion, builtAt } = data.manifest;
+        const { schemaVersion, ratingModelVersion, dataHash, builtAt } = data.manifest;
         // Пустой actions = только стартовали; первый пак уже зафиксирован seed'ом — resume нужен.
-        const saved = isSavedRunResumable(rawSaved, schemaVersion, ratingModelVersion, builtAt)
-          ? rawSaved
-          : null;
+        let saved: SavedRun | null = isSavedRunResumable(
+          rawSaved, schemaVersion, ratingModelVersion, dataHash, builtAt,
+        ) ? rawSaved : null;
+        if (saved && !saved.dataHash) {
+          saved = { ...saved, dataHash };
+          saveRun(saved);
+        }
         if (rawSaved && !saved) clearSavedRun();
         // Ссылку разбираем ЗДЕСЬ, а не в UI: без манифеста нечем проверить совместимость.
         // Забег из неё не стартуем — сперва спросим (у игрока может идти свой, а CLAUDE.md

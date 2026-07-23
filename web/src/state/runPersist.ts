@@ -1,7 +1,7 @@
 // Персист состояния забега и имени команды в localStorage (game-state-architecture).
 // Забег НЕ сериализуется целиком: сохраняем config+seed+лог действий, а состояние
 // восстанавливаем детерминированным replay на свежем RunEngine (seed+data ⇒ тот же забег).
-// Версии данных + builtAt пишем в сейв: при обновлении датасета несовместимый забег отбрасываем.
+// Версии данных + dataHash пишем в сейв: при изменении датасета несовместимый забег отбрасываем.
 // После завершённого турнира сейв очищаем — но только когда UI доиграл reveal до
 // экрана результатов (finishTournament). Сама стадия playoffs ещё «в процессе».
 import type { RosterSlot } from "../game/engine.ts";
@@ -28,8 +28,10 @@ export interface SavedRun {
   v: 1;
   schemaVersion: number;
   ratingModelVersion: string;
-  /** manifest.builtAt на момент сохранения — инвалидирует сейв при data-refresh без bump версии. */
-  dataBuiltAt: string;
+  /** manifest.dataHash на момент сохранения — builtAt-only refresh не инвалидирует сейв. */
+  dataHash?: string;
+  /** Legacy-fallback для миграции старого сейва и отката на прежний frontend. */
+  dataBuiltAt?: string;
   mode: RunMode;
   config: RunConfig;
   seed: string;
@@ -94,12 +96,16 @@ export function isRunCompatible(
   run: SavedRun,
   schemaVersion: number,
   ratingModelVersion: string,
-  dataBuiltAt: string,
+  dataHash: string,
+  dataBuiltAt?: string,
 ): boolean {
+  const sameData = run.dataHash
+    ? run.dataHash === dataHash
+    : Boolean(run.dataBuiltAt && dataBuiltAt && run.dataBuiltAt === dataBuiltAt);
   return (
     run.schemaVersion === schemaVersion
     && run.ratingModelVersion === ratingModelVersion
-    && run.dataBuiltAt === dataBuiltAt
+    && sameData
   );
 }
 
@@ -108,11 +114,12 @@ export function isSavedRunResumable(
   run: SavedRun | null,
   schemaVersion: number,
   ratingModelVersion: string,
-  dataBuiltAt: string,
+  dataHash: string,
+  dataBuiltAt?: string,
 ): run is SavedRun {
   return Boolean(
     run
-    && isRunCompatible(run, schemaVersion, ratingModelVersion, dataBuiltAt)
+    && isRunCompatible(run, schemaVersion, ratingModelVersion, dataHash, dataBuiltAt)
     && run.seed
     && run.config,
   );

@@ -11,12 +11,13 @@
 1. **Единый канонический `accountId`.** В оригинале игроки в разных файлах шли под разными id (`steamId` в паках vs иные account_id в статистике) → часть связей не матчилась. У нас **везде один и тот же `accountId`** (OpenDota 32-bit account_id) — в паках, статистике, тиммейтах, synergy.
 2. **Все производные рейтинги версионируются.** Поля `ovr/impact/economy/reliability` и team-success считаются по явной модели; версия пишется в `manifest.ratingModelVersion`.
 3. **Сглаженные winrate.** Сырые `winrate` при малых `games` шумят — фронт использует сглаживание (`score = (winrate·games + m·μ)/(games+m)`), но в данных храним сырые `games`/`winrate`, чтобы модель сглаживания можно было менять на клиенте.
+4. **Совместимость сейва — по контенту.** `manifest.dataHash` — SHA-256 всех игровых JSON в фиксированном порядке, без самого `manifest.json`. Поэтому новый `builtAt` при неизменных данных не ломает resume, а изменение любого игрового файла меняет хеш.
 
 ## Файлы данных
 
 | Файл | Тип | Назначение | Schema |
 |---|---|---|---|
-| `manifest.json` | object | Версии, дата сборки, список форматов | `manifest.schema.json` |
+| `manifest.json` | object | Версии, дата сборки, контент-хеш данных, список форматов | `manifest.schema.json` |
 | `events.json` | array | Турниры | `events.schema.json` |
 | `heroes.json` | array | Герои (Valve hero_id) | `heroes.schema.json` |
 | `packs.json` | array | Team Packs (команда × турнир) | `packs.schema.json` |

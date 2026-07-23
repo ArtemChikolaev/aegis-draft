@@ -3,12 +3,17 @@
   "$id": "aegis-draft/manifest.schema.json",
   "title": "Manifest",
   "type": "object",
-  "required": ["schemaVersion", "ratingModelVersion", "builtAt", "formats"],
+  "required": ["schemaVersion", "ratingModelVersion", "builtAt", "dataHash", "formats"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": { "type": "integer", "const": 1 },
     "ratingModelVersion": { "type": "string", "description": "Версия модели рейтингов (IMP/ECO/REL/OVR, team-success, peak)" },
     "builtAt": { "type": "string", "format": "date-time" },
+    "dataHash": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$",
+      "description": "SHA-256 содержимого игровых JSON без manifest.json; стабилен при no-op refresh"
+    },
     "source": {
       "type": "object",
       "description": "Атрибуция источников (обязательна для Liquipedia CC-BY-SA)",

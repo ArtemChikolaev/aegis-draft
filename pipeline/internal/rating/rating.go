@@ -85,7 +85,7 @@ import "github.com/aegis-draft/pipeline/internal/model"
 // (от Liquipedia зависят только titles/prizeUsd, нулевые во всех окнах одинаково).
 // Значения last_1y/2y/5y НЕ меняются — добавился лишь новый ключ формата.
 // Версию всё равно бампаем: manifest.ratingModelVersion обязан отличать разный output
-// модели, а сейвы и так инвалидируются по dataBuiltAt при каждом рефреше.
+// модели; dataHash отличает реальное изменение датасета от builtAt-only refresh.
 const ModelVersion = "v1.12.0"
 
 type ImpactMetricWeights struct {
