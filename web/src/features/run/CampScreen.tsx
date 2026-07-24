@@ -2,7 +2,7 @@
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
 import { useMemo, useState } from "react";
-import type { Offer, Summand, SummandValues } from "../../game/anteEconomy.ts";
+import { playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
 import {
@@ -116,6 +116,7 @@ export function CampScreen() {
   const data = useRun((s) => s.data);
   const config = useRun((s) => s.config);
   const tactics = useRun((s) => s.tactics);
+  const boss = useRun((s) => s.boss);
   const chooseReward = useRun((s) => s.chooseReward);
   const buyMarket = useRun((s) => s.buyMarket);
   const rerollMarket = useRun((s) => s.rerollMarket);
@@ -326,6 +327,33 @@ export function CampScreen() {
         </Surface>
 
         <div className="camp__economy">
+          {boss && (
+            <section
+              className={`camp-boss camp-boss--${boss.met ? "met" : "active"}`}
+              data-testid="camp-boss"
+              data-boss-id={boss.bossId}
+            >
+              <div className="camp-boss__head">
+                <Eyebrow>{t("boss.next")}</Eyebrow>
+                <strong className="camp-boss__name">{t(`boss.${boss.bossId}` as MessageKey)}</strong>
+              </div>
+              <p className="camp-boss__desc">{t(`boss.desc.${boss.bossId}` as MessageKey)}</p>
+              <div className="camp-boss__status">
+                <span className={`camp-boss__reason camp-boss__reason--${boss.met ? "met" : "warn"}`}>
+                  {t(boss.reasonKey as MessageKey, boss.reasonParams)}
+                </span>
+                {boss.met ? (
+                  <span className="camp-boss__tag camp-boss__tag--met" data-testid="camp-boss-met">
+                    ✓ {t("boss.metLabel")}
+                  </span>
+                ) : (
+                  <span className="camp-boss__tag camp-boss__tag--warn" data-testid="camp-boss-penalty">
+                    {t("boss.penaltyValue", { n: fmt(boss.penalty) })}
+                  </span>
+                )}
+              </div>
+            </section>
+          )}
           <section className="camp__section" data-testid="camp-reward">
             <h3 className="camp__section-title">
               {camp.rewardChosen ? t("camp.rewardChosen") : t("camp.reward")}
@@ -495,7 +523,10 @@ export function CampScreen() {
                 if (!incoming) return null;
                 const outgoing = snapshot.roster[offer.playerSwap!.slotIndex]?.candidate;
                 const afterHeroId = offer.preview?.afterAssignment?.[incoming.player.accountId];
-                const affordable = offer.cost <= camp.gold;
+                // Stand-in делает ОДНУ замену игрока бесплатной — цена и доступность это учитывают,
+                // иначе дорогая карта остаётся заблокированной, хотя движок списал бы 0 (баг live).
+                const freeSwap = camp.freePlayerSwaps > 0;
+                const affordable = playerOfferAffordable(offer.cost, camp.gold, camp.freePlayerSwaps);
                 const ovrDelta = teamOvrDelta(offer);
                 return (
                   <div key={offer.id} className="camp-pack-card" data-offer-kind="player">
@@ -518,7 +549,9 @@ export function CampScreen() {
                       {deltaRows(offer.preview!.before, offer.preview!.after)}
                     </div>
                     <div className="camp-pack-card__buy">
-                      <span className="camp-offer__cost">{t("camp.cost", { cost: offer.cost })}</span>
+                      <span className={`camp-offer__cost${freeSwap ? " camp-offer__cost--free" : ""}`}>
+                        {freeSwap ? t("camp.free") : t("camp.cost", { cost: offer.cost })}
+                      </span>
                       <Button
                         variant="primary"
                         disabled={!affordable}

@@ -3,6 +3,7 @@ import {
   ECONOMY,
   RunEconomy,
   marketOffers,
+  playerOfferAffordable,
   prizeForStage,
   rewardOffers,
 } from "../src/game/anteEconomy.ts";
@@ -223,6 +224,13 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(after.id).toBe(before.id);
     expect(after.kind).toBe(before.kind);
     expect(after.cardId).toBe(before.cardId);
+  });
+
+  it("stand-in делает дорогую замену игрока доступной и бесплатной (регресс live-бага)", () => {
+    // UI не давал купить игрока за 7 при 6 золота, хотя был бесплатный свап от Stand-in.
+    expect(playerOfferAffordable(7, 6, 1)).toBe(true);  // бесплатный свап игнорирует цену
+    expect(playerOfferAffordable(7, 6, 0)).toBe(false); // без свапа — по золоту
+    expect(playerOfferAffordable(5, 6, 0)).toBe(true);
   });
 
   it("snapshot восстанавливает экипировку и разыгранные действия", () => {

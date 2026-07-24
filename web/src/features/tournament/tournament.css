@@ -693,6 +693,29 @@
 .ante-status__target { color: var(--text); }
 .ante-status__field { color: var(--danger); font-style: normal; font-size: 12px; font-weight: 500; }
 
+/* Boss condition активного этапа (срез 5): правило + статус штрафа над проекцией. */
+.ante-boss {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 2px 0 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 13px;
+}
+.ante-boss--active {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+}
+.ante-boss--met { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.ante-boss__label { color: var(--muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+.ante-boss__name { color: var(--text); }
+.ante-boss__tag { margin-left: auto; font-weight: 800; font-size: 12px; }
+.ante-boss__tag--met { color: var(--accent); }
+.ante-boss__tag--warn { color: var(--danger); }
+
 .ante-result {
   display: flex;
   flex-direction: column;

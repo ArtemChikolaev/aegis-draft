@@ -201,6 +201,7 @@
   font-weight: 700;
   color: var(--gold);
 }
+.camp-offer__cost--free { color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
 .camp-offer__head {
   display: flex;
   align-items: center;
@@ -311,6 +312,51 @@
 }
 .camp-card-tag--tactic { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
 .camp-card-tag--action { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
+
+/* Boss condition предстоящего этапа: заранее видимое правило + до→после (срез 5). */
+.camp-boss {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.camp-boss--active {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+  background: color-mix(in srgb, var(--danger) 7%, var(--surface-soft));
+}
+.camp-boss--met { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.camp-boss__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.camp-boss__name { font-size: 16px; }
+.camp-boss__desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.camp-boss__status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.camp-boss__reason { font-size: 12px; font-weight: 700; }
+.camp-boss__reason--met { color: var(--accent); }
+.camp-boss__reason--warn { color: var(--danger); }
+.camp-boss__tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.camp-boss__tag--met { background: var(--accent-soft); color: var(--accent); }
+.camp-boss__tag--warn { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
 
 .camp-player-compare {
   display: grid;

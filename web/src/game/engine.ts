@@ -175,6 +175,12 @@ export class RunEngine {
     return [...bestByPlayer.values()];
   }
 
+  /** Стабильный универсум героев формата (все сигнатурные из пула, отсортированы). В отличие от
+   *  marketHeroCandidates не зависит от текущего ростера — нужен для детерминированных boss-банов. */
+  get allFormatHeroes(): number[] {
+    return [...new Set(this.pool.flatMap((source) => source.signatureHeroes))].sort((a, b) => a - b);
+  }
+
   /** Герои рынка из текущего format-pool, кроме активных и уже лежащих в резерве. */
   get marketHeroCandidates(): number[] {
     const unavailable = new Set([...this.heroes, ...this.benchHeroes]);

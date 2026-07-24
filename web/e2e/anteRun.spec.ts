@@ -116,6 +116,71 @@ test("roguelite run: экипировка тактики и розыгрыш д�
   await expect(page.getByTestId("camp-tactics").locator('[data-card-id="oldTeammates"]')).toBeVisible();
 });
 
+// Срез 5: boss conditions. CAMP_SEED даёт правило со stage 2 (chemistryBlackout); этапы 0–1 —
+// онбординг без правил. Босс виден заранее в Буткемпе и на активном этапе.
+test("roguelite run: boss condition виден заранее и на этапе", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CAMP_SEED);
+  await completeDraft(page);
+
+  // Этап 0 пройден → Буткемп превью этапа 1: правил ещё нет (онбординг).
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await expect(page.getByTestId("camp-boss")).toHaveCount(0);
+  await page.getByTestId("camp-next-stage").click();
+
+  // Этап 1 пройден → Буткемп превью этапа 2: заранее видимое boss condition.
+  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  const campBoss = page.getByTestId("camp-boss");
+  await expect(campBoss).toBeVisible();
+  await expect(campBoss).toHaveAttribute("data-boss-id", "chemistryBlackout");
+
+  // На самом этапе 2 правило тоже показано (активное условие).
+  await page.getByTestId("camp-next-stage").click();
+  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  const anteBoss = page.getByTestId("ante-boss");
+  await expect(anteBoss).toBeVisible();
+  await expect(anteBoss).toHaveAttribute("data-boss-id", "chemistryBlackout");
+
+  // Штраф босса входит в силу состава так же, как в таблицу поля: центр радара = сила в поле.
+  const strength = await page.getByTestId("tournament-user-strength").innerText();
+  await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
+});
+
+// Регресс live-бага: Stand-in (бесплатный свап игрока) должен делать покупку игрока доступной,
+// даже если цена выше золота. camp-e2e-23 выдаёт Stand-in третьей reward-картой на этапе 1.
+test("roguelite run: stand-in делает замену игрока бесплатной", async ({ page }) => {
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, "camp-e2e-229");
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  // Взять Stand-in и разыграть — появляется бесплатный свап игрока.
+  await page.getByTestId("reward-rwd-1-2").click();
+  await expect(page.getByTestId("action-play-standIn")).toBeVisible();
+  await page.getByTestId("action-play-standIn").click();
+
+  // Все карты игроков теперь бесплатны и покупаемы, независимо от цены/золота.
+  const playerCards = page.getByTestId("camp-pack").locator('[data-offer-kind="player"]');
+  await expect(playerCards.first()).toBeVisible();
+  const freeCosts = playerCards.locator(".camp-offer__cost--free");
+  await expect(freeCosts.first()).toBeVisible();
+  const firstBuy = playerCards.first().getByRole("button", { name: /^(Buy|Купить)$/ });
+  await expect(firstBuy).toBeEnabled();
+
+  // Покупка не тратит золото (свап бесплатный).
+  const goldBefore = Number(await page.getByTestId("camp-gold").innerText());
+  await firstBuy.click();
+  await expect(page.getByTestId("camp-gold")).toHaveText(String(goldBefore));
+});
+
 // Quick Draft (classic) НЕ показывает ante-статус и Буткемп — режим не затронут.
 test("quick draft не показывает ante-статус", async ({ page }) => {
   await gotoFreshApp(page);

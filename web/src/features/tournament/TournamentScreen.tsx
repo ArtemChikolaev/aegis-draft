@@ -231,6 +231,7 @@ function renderRound(
 export function TournamentScreen() {
   const tournament = useRun((state) => state.tournament);
   const ante = useRun((state) => state.ante);
+  const boss = useRun((state) => state.boss);
   const selectedMode = useRun((state) => state.selectedMode);
   const enterCamp = useRun((state) => state.enterCamp);
   const advance = useRun((state) => state.advanceTournament);
@@ -480,13 +481,17 @@ export function TournamentScreen() {
     ...(economyView?.temporary ?? []).map((t) => t.effect),
   ]);
   const tacticModifiers = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
+  // Штраф босса — плоский к силе состава (не привязан к слагаемому): вычитаем только из итогового
+  // Team OVR, чтобы центр радара совпадал с силой в таблице поля; плитки base/synergy/chem не трогаем.
+  const bossPenalty = boss?.penalty ?? 0;
   const effectiveScore = {
     base: score.base + economyModifiers.base + tacticModifiers.base,
     heroSynergy: score.heroSynergy + economyModifiers.heroSynergy + tacticModifiers.heroSynergy,
     chemistry: score.chemistry + economyModifiers.chemistry + tacticModifiers.chemistry,
     teamOvr: score.teamOvr
       + economyModifiers.base + economyModifiers.heroSynergy + economyModifiers.chemistry
-      + tacticModifiers.base + tacticModifiers.heroSynergy + tacticModifiers.chemistry,
+      + tacticModifiers.base + tacticModifiers.heroSynergy + tacticModifiers.chemistry
+      - bossPenalty,
   };
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";
@@ -567,6 +572,19 @@ export function TournamentScreen() {
               <span className="ante-status__stage">{t("ante.stage", { n: ante.index + 1, count: ante.count })}</span>
               <strong className="ante-status__target">{anteTargetLabel}</strong>
               {ante.index > 0 && <em className="ante-status__field">↑ {t("ante.fieldStronger")}</em>}
+            </div>
+          )}
+          {ante && boss && (
+            <div
+              className={`ante-boss ante-boss--${boss.met ? "met" : "active"}`}
+              data-testid="ante-boss"
+              data-boss-id={boss.bossId}
+            >
+              <span className="ante-boss__label">{t("boss.active")}</span>
+              <strong className="ante-boss__name">{t(`boss.${boss.bossId}` as MessageKey)}</strong>
+              <span className={`ante-boss__tag ante-boss__tag--${boss.met ? "met" : "warn"}`}>
+                {boss.met ? `✓ ${t("boss.metLabel")}` : t("boss.penaltyValue", { n: Math.round(boss.penalty * 10) / 10 })}
+              </span>
             </div>
           )}
           <div className="tournament__projection enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>

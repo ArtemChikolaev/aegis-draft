@@ -153,6 +153,13 @@ export function playerCost(ovr: number): number {
   return Math.max(2, Math.round((ovr - 60) / 4));
 }
 
+/** Доступна ли покупка игрока: stand-in делает ОДНУ замену бесплатной, поэтому при наличии
+ *  бесплатного свапа карта доступна независимо от цены. UI обязан считать так же, как движок
+ *  (purchaseMarket), иначе дорогая карта остаётся заблокированной при живом бесплатном свапе. */
+export function playerOfferAffordable(cost: number, gold: number, freePlayerSwaps: number): boolean {
+  return freePlayerSwaps > 0 || cost <= gold;
+}
+
 /** Суммарные дельты по слагаемым от применённых stat-эффектов. Чистая — переиспользуется и в
  *  RunEconomy, и в UI (турнирный экран показывает effective OVR, совпадающий с полем). */
 export function summandModifiers(applied: StatEffect[]): SummandModifiers {
