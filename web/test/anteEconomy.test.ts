@@ -135,3 +135,102 @@ describe("RunEconomy — сериализация", () => {
       .toEqual(eco.campView().marketOffers.map((o) => o.id));
   });
 });
+
+/** Найти Буткемп, где reward выдаёт карточку нужного типа (набор детерминирован по seed+camp). */
+function campWithCard(eco: RunEconomy, kind: "tactic" | "action"): string {
+  for (let camp = 1; camp <= 5; camp += 1) {
+    eco.openCamp(camp);
+    const card = eco.campView().rewardOffers.find((o) => o.kind === kind);
+    if (card) return card.id;
+  }
+  throw new Error(`no ${kind} reward offer in first 5 camps`);
+}
+
+describe("RunEconomy — карточки билда (срез 4)", () => {
+  it("reward третьей картой выдаёт Tactic или Camp Action", () => {
+    const eco = new RunEconomy("s");
+    eco.openCamp(1);
+    const third = eco.campView().rewardOffers[2];
+    expect(["tactic", "action", "stat"]).toContain(third.kind);
+  });
+
+  it("взятая тактика занимает слот и не считается модификатором экономики", () => {
+    const eco = new RunEconomy("tac");
+    const cardId = campWithCard(eco, "tactic");
+    expect(eco.chooseReward(cardId)).toBe(true);
+    expect(eco.campView().equippedTactics.length).toBe(1);
+    // Условные тактики не входят в economy.modifiers — их вклад считает game/tactics.
+    expect(eco.totalModifier()).toBe(0);
+  });
+
+  it("нельзя взять больше трёх тактик; сброс освобождает слот", () => {
+    const eco = new RunEconomy("many");
+    let taken = 0;
+    for (let camp = 1; camp <= 20 && taken < 4; camp += 1) {
+      eco.openCamp(camp);
+      const card = eco.campView().rewardOffers.find((o) => o.kind === "tactic");
+      if (card && eco.chooseReward(card.id)) taken += 1;
+    }
+    expect(eco.campView().equippedTactics.length).toBe(3);
+    const first = eco.campView().equippedTactics[0];
+    expect(eco.discardTactic(first)).toBe(true);
+    expect(eco.campView().equippedTactics.length).toBe(2);
+  });
+
+  it("одна и та же карта не выпадает дважды (ownedCards)", () => {
+    const eco = new RunEconomy("dup");
+    const seen = new Set<string>();
+    for (let camp = 1; camp <= 10; camp += 1) {
+      eco.openCamp(camp);
+      const card = eco.campView().rewardOffers.find((o) => o.kind === "tactic" || o.kind === "action");
+      if (card?.cardId && eco.chooseReward(card.id)) {
+        expect(seen.has(card.cardId)).toBe(false);
+        seen.add(card.cardId);
+      }
+    }
+  });
+
+  it("Camp Action разыгрывается на один этап и сгорает на следующем Буткемпе", () => {
+    const eco = new RunEconomy("act");
+    const cardId = campWithCard(eco, "action");
+    const campStage = eco.snapshot.campStageIndex;
+    eco.chooseReward(cardId);
+    const actionId = eco.campView().heldActions[0];
+    expect(eco.playCampAction(actionId)).toBe(true);
+    // Статовые действия дают временный эффект; утилитарные — разведку/бесплатную замену.
+    const view = eco.campView();
+    const hasEffect = view.temporary.length > 0;
+    const hasUtility = view.scouted || view.freePlayerSwaps > 0;
+    expect(hasEffect || hasUtility).toBe(true);
+    // Следующий Буткемп чистит временные эффекты.
+    eco.openCamp(campStage + 1);
+    expect(eco.campView().temporary).toEqual([]);
+  });
+
+  it("карточный reward не меняет личность после того, как его взяли", () => {
+    // Регресс: cardOffer фильтровал ownedCards, поэтому после взятия карта под тем же id
+    // «переезжала» на другую (взяли Old Teammates — показывалось Fresh Project с ✓).
+    const eco = new RunEconomy("stable");
+    let cardCamp = 0;
+    for (let camp = 1; camp <= 5; camp += 1) {
+      eco.openCamp(camp);
+      if (eco.campView().rewardOffers[2].kind !== "gold") { cardCamp = camp; break; }
+    }
+    expect(cardCamp).toBeGreaterThan(0);
+    const before = eco.campView().rewardOffers[2];
+    expect(eco.chooseReward(before.id)).toBe(true);
+    const after = eco.campView().rewardOffers[2];
+    expect(after.id).toBe(before.id);
+    expect(after.kind).toBe(before.kind);
+    expect(after.cardId).toBe(before.cardId);
+  });
+
+  it("snapshot восстанавливает экипировку и разыгранные действия", () => {
+    const eco = new RunEconomy("persist");
+    const cardId = campWithCard(eco, "tactic");
+    eco.chooseReward(cardId);
+    const restored = new RunEconomy("persist", eco.snapshot);
+    expect(restored.campView().equippedTactics).toEqual(eco.campView().equippedTactics);
+    expect(restored.snapshot.ownedCards).toEqual(eco.snapshot.ownedCards);
+  });
+});

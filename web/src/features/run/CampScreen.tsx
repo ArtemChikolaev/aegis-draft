@@ -115,9 +115,13 @@ export function CampScreen() {
   const snapshot = useRun((s) => s.snapshot);
   const data = useRun((s) => s.data);
   const config = useRun((s) => s.config);
+  const tactics = useRun((s) => s.tactics);
   const chooseReward = useRun((s) => s.chooseReward);
   const buyMarket = useRun((s) => s.buyMarket);
   const rerollMarket = useRun((s) => s.rerollMarket);
+  const discardTactic = useRun((s) => s.discardTactic);
+  const discardAction = useRun((s) => s.discardAction);
+  const playCampAction = useRun((s) => s.playCampAction);
   const swapReservePlayer = useRun((s) => s.swapReservePlayer);
   const swapReserveHero = useRun((s) => s.swapReserveHero);
   const advanceAnteStage = useRun((s) => s.advanceAnteStage);
@@ -132,10 +136,18 @@ export function CampScreen() {
   const score = snapshot?.score;
   if (!camp || !ante || !score || !snapshot || !data || !config) return null;
 
+  // Итоговые слагаемые = счёт ростера + модификаторы экономики (покупки/временные действия) +
+  // вклад условных Tactics. Ровно та же сумма, что стор кладёт в поле следующего этапа.
+  const tacticMods = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
+  const mods = {
+    base: camp.modifiers.base + tacticMods.base,
+    heroSynergy: camp.modifiers.heroSynergy + tacticMods.heroSynergy,
+    chemistry: camp.modifiers.chemistry + tacticMods.chemistry,
+  };
   const current: SummandValues = {
-    base: score.base + camp.modifiers.base,
-    heroSynergy: score.heroSynergy + camp.modifiers.heroSynergy,
-    chemistry: score.chemistry + camp.modifiers.chemistry,
+    base: score.base + mods.base,
+    heroSynergy: score.heroSynergy + mods.heroSynergy,
+    chemistry: score.chemistry + mods.chemistry,
   };
   const effectiveOvr = current.base + current.heroSynergy + current.chemistry;
   const playerOffers = camp.marketOffers.filter((o) => o.kind === "player");
@@ -157,14 +169,14 @@ export function CampScreen() {
     ? t("draft.synergyInsane")
     : synergyTier === "great"
       ? t("draft.synergyGreat")
-      : camp.modifiers.heroSynergy
-        ? signed(camp.modifiers.heroSynergy)
+      : mods.heroSynergy
+        ? signed(mods.heroSynergy)
         : undefined;
 
   function deltaRows(before: SummandValues, after: SummandValues) {
     return (["base", "heroSynergy", "chemistry"] as const).flatMap((summand) => {
-      const from = before[summand] + camp!.modifiers[summand];
-      const to = after[summand] + camp!.modifiers[summand];
+      const from = before[summand] + mods[summand];
+      const to = after[summand] + mods[summand];
       const delta = to - from;
       if (Math.abs(delta) < 0.01) return [];
       return [(
@@ -183,6 +195,13 @@ export function CampScreen() {
       return [
         <span key="g" className="camp-offer__delta camp-offer__delta--gold">
           {signed(offer.goldGain ?? 0)} ◈
+        </span>,
+      ];
+    }
+    if ((offer.kind === "tactic" || offer.kind === "action") && offer.cardId) {
+      return [
+        <span key="card" className="camp-offer__card-desc">
+          {t(`${offer.kind}.desc.${offer.cardId}` as MessageKey)}
         </span>,
       ];
     }
@@ -279,7 +298,7 @@ export function CampScreen() {
               label={t("common.base")}
               value={fmt(current.base)}
               kind="base"
-              sublabel={camp.modifiers.base ? signed(camp.modifiers.base) : undefined}
+              sublabel={mods.base ? signed(mods.base) : undefined}
             />
             <StatTile
               label={t("common.heroSynergy")}
@@ -291,7 +310,7 @@ export function CampScreen() {
               label={t("common.chemistry")}
               value={fmt(current.chemistry)}
               kind="chemistry"
-              sublabel={camp.modifiers.chemistry ? signed(camp.modifiers.chemistry) : undefined}
+              sublabel={mods.chemistry ? signed(mods.chemistry) : undefined}
             />
           </div>
           <SynergyBreakdown
@@ -314,18 +333,32 @@ export function CampScreen() {
             <div className="camp__offers camp__offers--reward">
               {camp.rewardOffers.map((offer) => {
                 const isChosen = camp.chosenRewardId === offer.id;
+                const slotFull = (offer.kind === "tactic" && camp.equippedTactics.length >= camp.tacticSlots)
+                  || (offer.kind === "action" && camp.heldActions.length >= camp.actionSlots);
+                const isCard = offer.kind === "tactic" || offer.kind === "action";
                 return (
                   <div
                     key={offer.id}
-                    className={`camp-offer camp-offer--reward${isChosen ? " is-chosen" : ""}`}
+                    className={`camp-offer camp-offer--reward${isChosen ? " is-chosen" : ""}${isCard ? " camp-offer--card" : ""}`}
+                    data-offer-kind={offer.kind}
                   >
                     <div className="camp-offer__body">
-                      <strong className="camp-offer__label">{t(offer.labelKey as MessageKey)}</strong>
+                      <span className="camp-offer__head">
+                        <strong className="camp-offer__label">{t(offer.labelKey as MessageKey)}</strong>
+                        {isCard && (
+                          <span className={`camp-card-tag camp-card-tag--${offer.kind}`}>
+                            {t(offer.kind === "tactic" ? "camp.tactics" : "camp.campActions")}
+                          </span>
+                        )}
+                      </span>
                       <div className="camp-offer__deltas">{effectRows(offer)}</div>
+                      {slotFull && !isChosen && (
+                        <span className="camp-offer__note">{t("camp.slotFull")}</span>
+                      )}
                     </div>
                     <Button
                       variant={isChosen ? "secondary" : "primary"}
-                      disabled={camp.rewardChosen}
+                      disabled={camp.rewardChosen || (slotFull && !isChosen)}
                       data-testid={`reward-${offer.id}`}
                       onClick={() => chooseReward(offer.id)}
                     >
@@ -334,6 +367,108 @@ export function CampScreen() {
                   </div>
                 );
               })}
+            </div>
+          </section>
+
+          <section className="camp__section" data-testid="camp-build">
+            <div className="camp__build">
+              <div className="camp__build-col" data-testid="camp-tactics">
+                <div className="camp__build-head">
+                  <h3 className="camp__section-title">{t("camp.tactics")}</h3>
+                  <span className="camp__slot-count">
+                    {t("camp.slotsUsed", { used: camp.equippedTactics.length, total: camp.tacticSlots })}
+                  </span>
+                </div>
+                <p className="camp__section-hint">{t("camp.tacticsHint")}</p>
+                <div className="camp__slots">
+                  {Array.from({ length: camp.tacticSlots }, (_, slot) => {
+                    const tacticId = camp.equippedTactics[slot];
+                    if (!tacticId) {
+                      return <div key={`t-empty-${slot}`} className="camp-slot camp-slot--empty">{t("camp.emptySlot")}</div>;
+                    }
+                    const reasons = (tactics?.sources ?? []).filter((source) => source.tacticId === tacticId);
+                    return (
+                      <div key={tacticId} className="camp-slot camp-slot--tactic" data-card-id={tacticId}>
+                        <div className="camp-slot__head">
+                          <strong>{t(`tactic.${tacticId}` as MessageKey)}</strong>
+                          <button
+                            type="button"
+                            className="camp-slot__discard"
+                            aria-label={t("camp.discard")}
+                            data-testid={`tactic-discard-${tacticId}`}
+                            onClick={() => discardTactic(tacticId)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="camp-slot__desc">{t(`tactic.desc.${tacticId}` as MessageKey)}</p>
+                        <div className="camp-offer__deltas">
+                          {reasons.length === 0 && (
+                            <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>
+                          )}
+                          {reasons.map((source, i) => (
+                            <span
+                              key={i}
+                              className={`camp-offer__delta camp-offer__delta--${source.delta >= 0 ? "up" : "down"}`}
+                            >
+                              {t(source.reasonKey as MessageKey, source.reasonParams)} · {t(`common.${source.summand}` as MessageKey)} {signed(source.delta)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="camp__build-col" data-testid="camp-actions-panel">
+                <div className="camp__build-head">
+                  <h3 className="camp__section-title">{t("camp.campActions")}</h3>
+                  <span className="camp__slot-count">
+                    {t("camp.slotsUsed", { used: camp.heldActions.length, total: camp.actionSlots })}
+                  </span>
+                </div>
+                <p className="camp__section-hint">{t("camp.campActionsHint")}</p>
+                {camp.scouted && <p className="camp__scouted" data-testid="camp-scouted">{t("camp.scouted")}</p>}
+                {camp.freeMarketRerolls > 0 && (
+                  <p className="camp__perk">{t("camp.freeReroll", { n: camp.freeMarketRerolls })}</p>
+                )}
+                {camp.freePlayerSwaps > 0 && (
+                  <p className="camp__perk">{t("camp.freeSwap", { n: camp.freePlayerSwaps })}</p>
+                )}
+                <div className="camp__slots">
+                  {Array.from({ length: camp.actionSlots }, (_, slot) => {
+                    const actionId = camp.heldActions[slot];
+                    if (!actionId) {
+                      return <div key={`a-empty-${slot}`} className="camp-slot camp-slot--empty">{t("camp.emptySlot")}</div>;
+                    }
+                    return (
+                      <div key={actionId} className="camp-slot camp-slot--action" data-card-id={actionId}>
+                        <div className="camp-slot__head">
+                          <strong>{t(`action.${actionId}` as MessageKey)}</strong>
+                          <button
+                            type="button"
+                            className="camp-slot__discard"
+                            aria-label={t("camp.discard")}
+                            data-testid={`action-discard-${actionId}`}
+                            onClick={() => discardAction(actionId)}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="camp-slot__desc">{t(`action.desc.${actionId}` as MessageKey)}</p>
+                        <Button
+                          variant="primary"
+                          data-testid={`action-play-${actionId}`}
+                          onClick={() => playCampAction(actionId)}
+                        >
+                          {t("camp.play")}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </section>
 

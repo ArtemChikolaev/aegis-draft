@@ -240,6 +240,7 @@ export function TournamentScreen() {
   const restartSameConfig = useRun((state) => state.restartSameConfig);
   const snapshot = useRun((state) => state.snapshot);
   const economyView = useRun((state) => state.economyView);
+  const tactics = useRun((state) => state.tactics);
   const config = useRun((state) => state.config);
   const data = useRun((state) => state.data);
   const teamName = useRun((state) => state.teamName);
@@ -472,15 +473,20 @@ export function TournamentScreen() {
   if (!tournament || !snapshot?.score || !config || !data) return null;
 
   const { roster, score } = snapshot;
-  const economyModifiers = summandModifiers(economyView?.applied ?? []);
+  // Эффективные слагаемые обязаны совпадать с силой, ушедшей в поле этапа (иначе радар и таблица
+  // разъедутся): покупки + временные Camp Actions (economy) + условные Tactics.
+  const economyModifiers = summandModifiers([
+    ...(economyView?.applied ?? []),
+    ...(economyView?.temporary ?? []).map((t) => t.effect),
+  ]);
+  const tacticModifiers = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
   const effectiveScore = {
-    base: score.base + economyModifiers.base,
-    heroSynergy: score.heroSynergy + economyModifiers.heroSynergy,
-    chemistry: score.chemistry + economyModifiers.chemistry,
+    base: score.base + economyModifiers.base + tacticModifiers.base,
+    heroSynergy: score.heroSynergy + economyModifiers.heroSynergy + tacticModifiers.heroSynergy,
+    chemistry: score.chemistry + economyModifiers.chemistry + tacticModifiers.chemistry,
     teamOvr: score.teamOvr
-      + economyModifiers.base
-      + economyModifiers.heroSynergy
-      + economyModifiers.chemistry,
+      + economyModifiers.base + economyModifiers.heroSynergy + economyModifiers.chemistry
+      + tacticModifiers.base + tacticModifiers.heroSynergy + tacticModifiers.chemistry,
   };
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";

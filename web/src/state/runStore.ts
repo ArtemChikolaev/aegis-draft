@@ -10,8 +10,9 @@ import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
 import { AnteRunEngine, ANTE_TARGETS, type AnteRunState } from "../game/anteRun.ts";
-import { RunEconomy, type CampView, type RunEconomyState } from "../game/anteEconomy.ts";
+import { RunEconomy, addModifiers, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
+import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
@@ -112,6 +113,9 @@ interface RunStore {
   economyView: RunEconomyState | null;
   /** Снимок Буткемпа для рендера (offers/gold/breakdown), иначе null. */
   camp: CampView | null;
+  /** Вклад экипированных Tactics при текущем ростере + причины срабатывания (срез 4).
+   *  Отдельно от `camp`, потому что условия зависят от состава и пересчитываются на каждый swap. */
+  tactics: TacticEvaluation | null;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -148,6 +152,12 @@ interface RunStore {
   buyMarket: (offerId: string) => void;
   /** Буткемп: реролл рынка за золото. */
   rerollMarket: () => void;
+  /** Буткемп: снять пассивную тактику, освободив слот. */
+  discardTactic: (tacticId: string) => void;
+  /** Буткемп: выбросить неразыгранное одноразовое действие. */
+  discardAction: (actionId: string) => void;
+  /** Буткемп: разыграть одноразовое Camp Action (эффект живёт один следующий этап). */
+  playCampAction: (actionId: string) => void;
   /** Буткемп: поменять активного игрока на единственного запасного той же роли. */
   swapReservePlayer: (slotIndex: number, benchAccountId: number) => void;
   /** Буткемп: поменять активного героя на героя из малого резервного пула. */
@@ -266,6 +276,32 @@ export const useRun = create<RunStore>((set, get) => {
       economy: economy ? economy.snapshot : undefined,
     });
   };
+  // Пересчитать вклад экипированных Tactics от ТЕКУЩЕГО ростера. Вызывать после любого swap:
+  // условия карточек («сыгранные пары», «нет суперзвёзд», «одна эпоха») зависят от состава,
+  // поэтому кэшировать их как разовую дельту нельзя — этим они и отличаются от покупок.
+  const evaluateRunTactics = (): TacticEvaluation | null => {
+    const { economy, engine, data } = get();
+    const score = engine?.score();
+    if (!economy || !engine || !data || !score) return null;
+    const ctx = buildTacticContext(
+      engine.rosterView,
+      score.assignment.byPlayer,
+      data,
+      economy.snapshot.campStageIndex,
+    );
+    return evaluateTactics(economy.equippedTactics, ctx);
+  };
+  // Итоговые модификаторы забега: покупки/временные действия (экономика) + условные Tactics.
+  // Единственное место, где два слоя складываются, — чтобы поле этапа и UI не разъезжались.
+  const effectiveModifiers = (tactics: TacticEvaluation | null): SummandModifiers => {
+    const { economy } = get();
+    const economyMods = economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 };
+    return tactics ? addModifiers(economyMods, tactics.modifiers) : economyMods;
+  };
+  const totalModifier = (tactics: TacticEvaluation | null): number => {
+    const m = effectiveModifiers(tactics);
+    return m.base + m.heroSynergy + m.chemistry;
+  };
   // Обновить снимки экономики/Буткемпа для рендера и сохранить (во время camp резалтов нет).
   const syncCamp = () => {
     const { economy, engine, seed } = get();
@@ -282,9 +318,10 @@ export const useRun = create<RunStore>((set, get) => {
         seed,
         economyState.campStageIndex,
         economyState.marketRerolls,
+        economy.equippedTactics,
       ));
     }
-    set({ economyView: economy.snapshot, camp: economy.campView() });
+    set({ economyView: economy.snapshot, camp: economy.campView(), tactics: evaluateRunTactics() });
     persist();
   };
   // Записать действие в лог и сохранить.
@@ -306,13 +343,14 @@ export const useRun = create<RunStore>((set, get) => {
       const economy = new RunEconomy(seed);
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
+        tactics: null,
         tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot,
         tournamentStep: 0, teamName: resolvedName,
       };
     }
     const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
     return {
-      anteRun: null, ante: null, economy: null, economyView: null, camp: null,
+      anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null,
       tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName,
     };
   };
@@ -358,6 +396,7 @@ export const useRun = create<RunStore>((set, get) => {
     economy: null,
     economyView: null,
     camp: null,
+    tactics: null,
 
     async loadData() {
       try {
@@ -406,7 +445,7 @@ export const useRun = create<RunStore>((set, get) => {
           engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null,
           startStep: "config", startConfig: config,
           tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-          anteRun: null, ante: null, economy: null, economyView: null, camp: null,
+          anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null,
         });
         logRunStart(config, seed, data);
         debugSnap("after start", engine, snapshot, config, seed, data);
@@ -467,9 +506,11 @@ export const useRun = create<RunStore>((set, get) => {
         if (tournament?.stage === "field" && snapshot.score) {
           if (anteRun) {
             // Ante: пересобираем поле ТЕКУЩЕГО этапа под новый teamOvr (+ модификаторы экономики
-            // от прошлых Буткемпов), прогресс сохраняется (fresh AnteRunEngine сбросил бы на этап 0).
-            anteRun.rebuildCurrentStage(snapshot.score.teamOvr + (economy?.totalModifier() ?? 0));
-            set({ snapshot, anteRun, ante: anteRun.state, tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot, tournamentStep: 0 });
+            // и Tactics от прошлых Буткемпов), прогресс сохраняется (fresh AnteRunEngine сбросил
+            // бы на этап 0). Свап героев меняет назначения → пересчёт условных тактик обязателен.
+            const tactics = economy ? evaluateRunTactics() : null;
+            anteRun.rebuildCurrentStage(snapshot.score.teamOvr + totalModifier(tactics));
+            set({ snapshot, anteRun, ante: anteRun.state, tactics, tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot, tournamentStep: 0 });
           } else {
             const rebuild = buildTournamentFields(snapshot);
             set(rebuild ? { snapshot, ...rebuild } : { snapshot });
@@ -522,7 +563,7 @@ export const useRun = create<RunStore>((set, get) => {
       set({
         phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
         resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-        anteRun: null, ante: null, economy: null, economyView: null, camp: null,
+        anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null,
       });
     },
 
@@ -565,6 +606,7 @@ export const useRun = create<RunStore>((set, get) => {
         let anteRun: AnteRunEngine | null = null;
         let ante: AnteRunState | null = null;
         let economy: RunEconomy | null = null;
+        let tactics: TacticEvaluation | null = null;
         let inCamp = false;
         const savedStep = Math.max(0, Math.min(2, resumable.tournamentStep ?? 0));
         if (engine.isComplete) {
@@ -592,10 +634,23 @@ export const useRun = create<RunStore>((set, get) => {
                   resumable.seed,
                   economyState.campStageIndex,
                   economyState.marketRerolls,
+                  economy.equippedTactics,
                 ));
               }
             }
-            anteRun.rebuildCurrentStage(score.teamOvr + economy.totalModifier());
+            // Условные Tactics восстанавливаются из ростера, а не из сейва (их вклад — производная
+            // состава); складываем с экономикой в поле этапа, чтобы resume совпал с исходным полем.
+            const tacticCtx = buildTacticContext(
+              engine.rosterView,
+              score.assignment.byPlayer,
+              data,
+              economy.snapshot.campStageIndex,
+            );
+            tactics = evaluateTactics(economy.equippedTactics, tacticCtx);
+            anteRun.rebuildCurrentStage(
+              score.teamOvr + economy.totalModifier()
+              + tactics.modifiers.base + tactics.modifiers.heroSynergy + tactics.modifiers.chemistry,
+            );
             inCamp = economy.snapshot.inCamp;
             ante = anteRun.state;
             tournamentEngine = anteRun.tournament;
@@ -629,6 +684,7 @@ export const useRun = create<RunStore>((set, get) => {
           economy,
           economyView: economy ? economy.snapshot : null,
           camp: inCamp && economy ? economy.campView() : null,
+          tactics,
         });
       } catch (e) {
         // Сейв не воспроизвёлся — сбрасываем; раньше баннер просто исчезал без объяснения.
@@ -704,9 +760,16 @@ export const useRun = create<RunStore>((set, get) => {
               get().seed,
               economyState.campStageIndex,
               economyState.marketRerolls,
+              economy.equippedTactics,
             ));
           }
-          set({ ante: resolvedAnte, resultsSeen: false, economyView: economy.snapshot, camp: economy.campView() });
+          set({
+            ante: resolvedAnte,
+            resultsSeen: false,
+            economyView: economy.snapshot,
+            camp: economy.campView(),
+            tactics: evaluateRunTactics(),
+          });
           persist();
         } else {
           set({ ante: resolvedAnte, resultsSeen: true });
@@ -724,12 +787,16 @@ export const useRun = create<RunStore>((set, get) => {
       const { economy, phase } = get();
       // Буткемп открыт экономикой в finishTournament; здесь только переключаем UI-фазу.
       if (!economy || !economy.snapshot.inCamp || phase === "camp") return;
-      set({ phase: "camp", economyView: economy.snapshot, camp: economy.campView() });
+      set({ phase: "camp", economyView: economy.snapshot, camp: economy.campView(), tactics: evaluateRunTactics() });
     },
 
     chooseReward(offerId) {
       const { economy } = get();
-      if (!economy || !economy.chooseReward(offerId)) return;
+      if (!economy) return;
+      const reward = economy.campView().rewardOffers.find((offer) => offer.id === offerId);
+      if (!economy.chooseReward(offerId)) return;
+      // Взяли тактику — её trade-off меняет цены/размер рынка, пересобираем офферы.
+      if (reward?.kind === "tactic") economy.invalidateMarketOffers();
       syncCamp();
     },
 
@@ -765,7 +832,8 @@ export const useRun = create<RunStore>((set, get) => {
           engine,
           economy.campView().marketOffers,
         ));
-        set({ snapshot, economyView: economy.snapshot, camp: economy.campView() });
+        // Замена меняет состав → условные Tactics пересчитываются (напр. new star гасит No Superstars).
+        set({ snapshot, economyView: economy.snapshot, camp: economy.campView(), tactics: evaluateRunTactics() });
         if (action) record(action);
         else persist();
       } catch {
@@ -776,6 +844,28 @@ export const useRun = create<RunStore>((set, get) => {
     rerollMarket() {
       const { economy } = get();
       if (!economy || !economy.rerollMarket()) return;
+      syncCamp();
+    },
+
+    discardTactic(tacticId) {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.discardTactic(tacticId)) return;
+      // Тактика меняет цены/размер рынка (её trade-off) — пересобираем офферы под новый набор.
+      economy.invalidateMarketOffers();
+      syncCamp();
+    },
+
+    discardAction(actionId) {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.discardAction(actionId)) return;
+      syncCamp();
+    },
+
+    playCampAction(actionId) {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.playCampAction(actionId)) return;
+      // Разведка даёт бесплатный реролл — рынок пересобираем, чтобы он был доступен сразу.
+      economy.invalidateMarketOffers();
       syncCamp();
     },
 
@@ -809,9 +899,11 @@ export const useRun = create<RunStore>((set, get) => {
       const { anteRun, ante, economy, snapshot } = get();
       if (!anteRun || !ante || ante.phase !== "playing" || !snapshot?.score) return;
       // Выходим из Буткемпа и пересобираем поле следующего этапа под итоговый effectiveTeamOvr
-      // (base teamOvr + все покупки забега). Турнир текущего этапа рендерится тем же экраном.
+      // (base teamOvr + покупки забега + условные Tactics). Турнир текущего этапа рендерится
+      // тем же экраном. Tactics снимаем ДО leaveCamp — контекст ещё в Буткемпе, состав финальный.
+      const tactics = economy ? evaluateRunTactics() : null;
       economy?.leaveCamp();
-      if (economy) anteRun.rebuildCurrentStage(snapshot.score.teamOvr + economy.totalModifier());
+      if (economy) anteRun.rebuildCurrentStage(snapshot.score.teamOvr + totalModifier(tactics));
       set({
         phase: "tournament",
         tournamentEngine: anteRun.tournament,
@@ -821,6 +913,7 @@ export const useRun = create<RunStore>((set, get) => {
         ante: anteRun.state,
         economyView: economy ? economy.snapshot : null,
         camp: null,
+        tactics,
       });
       persist();
     },

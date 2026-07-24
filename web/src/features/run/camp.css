@@ -201,6 +201,116 @@
   font-weight: 700;
   color: var(--gold);
 }
+.camp-offer__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.camp-offer__card-desc {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.camp-offer__note {
+  color: var(--danger);
+  font-size: 10.5px;
+}
+.camp-offer--card { border-color: color-mix(in srgb, var(--accent) 32%, var(--line)); }
+
+/* Билд-панель: слоты Tactics и Camp Actions рядом. */
+.camp__build {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.camp__build-col {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+.camp__build-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.camp__slot-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.camp__slots {
+  display: grid;
+  gap: 8px;
+}
+.camp__scouted {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.camp__perk {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gold);
+}
+.camp-slot {
+  display: grid;
+  gap: 7px;
+  padding: 11px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.camp-slot--empty {
+  align-items: center;
+  justify-items: center;
+  padding: 16px;
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.camp-slot--tactic { border-color: color-mix(in srgb, var(--accent) 34%, var(--line)); }
+.camp-slot__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.camp-slot__head strong { font-size: 14px; }
+.camp-slot__desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+.camp-slot__idle {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+}
+.camp-slot__discard {
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+.camp-slot__discard:hover { color: var(--danger); border-color: var(--danger); }
+.camp-card-tag {
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+.camp-card-tag--tactic { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.camp-card-tag--action { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
 
 .camp-player-compare {
   display: grid;
@@ -421,6 +531,7 @@
 @media (max-width: 680px) {
   .camp__pack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .camp__offers--reward { grid-template-columns: 1fr; }
+  .camp__build { grid-template-columns: 1fr; }
   .camp-offer--reward {
     flex-direction: row;
     align-items: center;

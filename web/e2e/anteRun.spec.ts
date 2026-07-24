@@ -73,6 +73,49 @@ test("roguelite run: Буткемп — reward и покупка меняют к
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
 });
 
+// Срез 4: Tactics + Camp Actions. CAMP_SEED детерминированно выдаёт тактику (oldTeammates)
+// третьей reward-картой на этапе 1 и действие (heroPractice) на этапе 2.
+test("roguelite run: экипировка тактики и розыгрыш действия", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CAMP_SEED);
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  // Билд-панель всегда на экране; тактические слоты пусты в начале забега.
+  const tactics = page.getByTestId("camp-tactics");
+  await expect(tactics).toBeVisible();
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("0/3");
+  await expect(tactics.locator(".camp-slot--empty")).toHaveCount(3);
+
+  // Взять тактику из reward → занят один слот, карточка появилась с описанием.
+  await page.getByTestId("reward-rwd-1-2").click();
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("1/3");
+  await expect(tactics.locator('[data-card-id="oldTeammates"]')).toBeVisible();
+
+  // Тактика — условный модификатор Chemistry: он входит в тот же teamOvr, что уйдёт в поле.
+  await page.getByTestId("camp-next-stage").click();
+  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  const strength = await page.getByTestId("tournament-user-strength").innerText();
+  await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
+
+  // Этап 2 → Буткемп с Camp Action в reward.
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  const actions = page.getByTestId("camp-actions-panel");
+  await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
+  await page.getByTestId("reward-rwd-2-2").click();
+  await expect(actions.locator(".camp__slot-count")).toHaveText("1/2");
+
+  // Разыграть действие → слот освобождается (одноразовое), тактика первого этапа осталась.
+  await page.getByTestId("action-play-heroPractice").click();
+  await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
+  await expect(page.getByTestId("camp-tactics").locator('[data-card-id="oldTeammates"]')).toBeVisible();
+});
+
 // Quick Draft (classic) НЕ показывает ante-статус и Буткемп — режим не затронут.
 test("quick draft не показывает ante-статус", async ({ page }) => {
   await gotoFreshApp(page);

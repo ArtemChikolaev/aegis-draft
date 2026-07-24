@@ -7,6 +7,7 @@ import { Rng } from "./rng.ts";
 import { candidateRef, ROLE_SEQUENCE, type Candidate } from "./packs.ts";
 import { RunEngine } from "./engine.ts";
 import { marketOffers, playerCost, type Offer, type SummandValues } from "./anteEconomy.ts";
+import { tacticMarketEffects } from "./tactics.ts";
 
 interface HeroOption {
   outgoingHeroId: number;
@@ -89,8 +90,9 @@ function bestHeroOption(engine: RunEngine, incomingHeroId: number): HeroOption {
 
 /** Пять разных hero re-pick. Как и player-pack, это рулетка, а не скрытый фильтр
  * «только апгрейды»: входящий герой может быть ловушкой. Но для каждого входящего героя
- * карта показывает его лучший способ войти в текущий активный пул, а не случайную пару. */
-function heroOptions(engine: RunEngine, rng: Rng): HeroOption[] {
+ * карта показывает его лучший способ войти в текущий активный пул, а не случайную пару.
+ * Last Dance сужает пак (trade-off тактики) — но не ниже одной карты. */
+function heroOptions(engine: RunEngine, rng: Rng, packSize: number): HeroOption[] {
   const incomingHeroes = rng.shuffle(engine.marketHeroCandidatesShortlist);
   if (engine.heroes.length !== ROLE_SEQUENCE.length || incomingHeroes.length < ROLE_SEQUENCE.length) {
     throw new Error(
@@ -99,19 +101,23 @@ function heroOptions(engine: RunEngine, rng: Rng): HeroOption[] {
     );
   }
   return incomingHeroes
-    .slice(0, ROLE_SEQUENCE.length)
+    .slice(0, packSize)
     .map((incomingHeroId) => bestHeroOption(engine, incomingHeroId));
 }
 
 /** Рынок Буткемпа: две пак-рулетки по 5 карт — игроки и hero re-pick. Ни один пак не
  * фильтруется по gain: в нём бывают и сильные варианты, и ловушки, игрок решает по полному
- * preview. Детерминизм по `seed + campId + rerollN`. */
+ * preview. Детерминизм по `seed + campId + rerollN`; экипированные тактики меняют только цену
+ * и размер паков (их trade-off), но не то, КАКИЕ карты выпадают. */
 export function buildAnteMarketRoulette(
   engine: RunEngine,
   seed: string,
   campStageIndex: number,
   rerollN: number,
+  equippedTactics: readonly string[] = [],
 ): Offer[] {
+  const tactics = tacticMarketEffects(equippedTactics);
+  const packSize = Math.max(1, ROLE_SEQUENCE.length - tactics.packSizePenalty);
   const before = engine.score();
   if (!before) throw new Error("Market pack доступен только после завершения драфта");
 
@@ -144,7 +150,7 @@ export function buildAnteMarketRoulette(
       id: `mkt-${campStageIndex}-${rerollN}-slot-${packSlotIndex}`,
       kind: "player",
       labelKey: "market.player",
-      cost: playerCost(candidate.player.ovr),
+      cost: playerCost(candidate.player.ovr) + tactics.playerCostSurcharge,
       playerSwap: {
         slotIndex: option.slotIndex,
         outgoingAccountId: outgoing.player.accountId,
@@ -163,12 +169,16 @@ export function buildAnteMarketRoulette(
       `Нельзя собрать player market pack: нужно ${ROLE_SEQUENCE.length} карт, получено ${offers.length}`,
     );
   }
+  // Пак собирается целиком, а урезается в конце: удержанные карты остаются в точности теми же,
+  // что и без тактики, — Last Dance забирает варианты, а не подменяет их.
+  offers.splice(packSize);
 
   const heroCost = marketOffers(seed, campStageIndex, rerollN)
     .find((offer) => offer.effect?.summand === "heroSynergy")!.cost;
   const heroes = heroOptions(
     engine,
     new Rng(`${seed}:camp-${campStageIndex}:market-${rerollN}:heroes`),
+    packSize,
   );
   heroes.forEach((hero, heroIndex) => {
     offers.push({

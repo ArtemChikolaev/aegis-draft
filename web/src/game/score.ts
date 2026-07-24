@@ -69,9 +69,16 @@ export function heroSynergyBonus(assignment: Assignment): number {
   return Object.keys(assignment.byPlayer).length === 0 ? 0 : assignment.total;
 }
 
+/** Вклад пары по числу совместных игр: линейно до жёсткого потолка.
+ * Экспортируется, чтобы слои поверх формулы (Tactics в game/tactics.ts) считали свои
+ * «виртуальные co-games» той же кривой, а не переизобретали её рядом. */
+export function pairChemistryBonus(games: number): number {
+  return Math.min(SCORING.chemMaxPerPair, games / SCORING.chemFullGames);
+}
+
 /** Вклад одной сыгравшейся пары: линейно до жёсткого потолка. */
 function groupBonus(group: SquadGroup): number {
-  return Math.min(SCORING.chemMaxPerPair, group.games / SCORING.chemFullGames);
+  return pairChemistryBonus(group.games);
 }
 
 /** Уникальные пары squadSynergy, целиком лежащие внутри ростера. В полном составе их до 10.
