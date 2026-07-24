@@ -3,7 +3,15 @@
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
 import { useMemo, useState } from "react";
 import { playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
-import { RARITY, nextRarity, rarityModifiers, rollRarity, upgradeCost, type Rarity } from "../../game/heroRarity.ts";
+import {
+  RARITY,
+  nextRarity,
+  rarityModifiers,
+  raritySwapDelta,
+  rollRarity,
+  upgradeCost,
+  type Rarity,
+} from "../../game/heroRarity.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
 import {
@@ -50,12 +58,14 @@ function RarityBadge({ rarity, label }: { rarity: Rarity; label: string }) {
   return <span className={`rarity-badge rarity-badge--${rarity}`}>{label}</span>;
 }
 
-/** Изменение Team OVR оффера (сумма слагаемых после − до). Для пак-карты — главный сигнал. */
-function teamOvrDelta(offer: Offer): number {
+/** Изменение Team OVR оффера (сумма слагаемых после − до). Для пак-карты — главный сигнал.
+ *  `extra` учитывает эффекты поверх score-превью движка — например, смену редкости героя. */
+function teamOvrDelta(offer: Offer, extra: Partial<SummandValues> = {}): number {
   if (!offer.preview) return 0;
   const b = offer.preview.before;
   const a = offer.preview.after;
-  return (a.base + a.heroSynergy + a.chemistry) - (b.base + b.heroSynergy + b.chemistry);
+  return (a.base + a.heroSynergy + a.chemistry) - (b.base + b.heroSynergy + b.chemistry)
+    + (extra.base ?? 0) + (extra.heroSynergy ?? 0) + (extra.chemistry ?? 0);
 }
 
 function valuesOf(score: { base: number; heroSynergy: number; chemistry: number }): SummandValues {
@@ -184,10 +194,14 @@ export function CampScreen() {
         ? signed(mods.heroSynergy)
         : undefined;
 
-  function deltaRows(before: SummandValues, after: SummandValues) {
+  function deltaRows(
+    before: SummandValues,
+    after: SummandValues,
+    extra: Partial<SummandValues> = {},
+  ) {
     return (["base", "heroSynergy", "chemistry"] as const).flatMap((summand) => {
       const from = before[summand] + mods[summand];
-      const to = after[summand] + mods[summand];
+      const to = after[summand] + mods[summand] + (extra[summand] ?? 0);
       const delta = to - from;
       if (Math.abs(delta) < 0.01) return [];
       return [(
@@ -576,38 +590,50 @@ export function CampScreen() {
               })}
             </div>
             <h4 className="camp__market-group-title">{t("camp.marketHeroes")}</h4>
-            {/* Второй полноценный пак: 5 разных hero re-pick. Структура карты уже оставляет
-                место под будущие rarity/quality-бонусы из среза 3b. */}
+            {/* Второй полноценный пак: 5 разных hero re-pick с полным score + rarity preview. */}
             <div className="camp__pack" data-testid="camp-hero-pack">
               {heroOffers.map((offer) => {
                 const affordable = offer.cost <= camp.gold;
-                const ovrDelta = teamOvrDelta(offer);
                 // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
-                // ролл, что применит покупка, поэтому показываем её честно в превью.
+                // ролл, что применит покупка. Из неё вычитаем вклад редкости снимаемого героя:
+                // иначе mythic, заменяющий immortal, выглядел как +1.4 при фактическом падении.
                 const incomingRarity: Rarity = camp.rarityEnabled && offer.heroSwap
                   ? rollRarity(seed, offer.heroSwap.incomingHeroId, camp.campStageIndex)
                   : "common";
+                const outgoingRarity: Rarity = camp.rarityEnabled && offer.heroSwap
+                  ? camp.heroRarity[String(offer.heroSwap.outgoingHeroId)] ?? "common"
+                  : "common";
+                const rarityDelta = raritySwapDelta(outgoingRarity, incomingRarity);
+                const ovrDelta = teamOvrDelta(offer, rarityDelta);
                 return (
                   <div
                     key={offer.id}
                     className="camp-pack-card camp-pack-card--hero"
                     data-offer-kind="hero"
                     data-incoming-rarity={incomingRarity}
+                    data-outgoing-rarity={outgoingRarity}
                   >
                     {offerIdentity(offer)}
-                    {incomingRarity !== "common" && (
+                    {(incomingRarity !== "common" || outgoingRarity !== "common") && (
                       <div className="camp-hero-rarity">
                         <RarityBadge rarity={incomingRarity} label={t(`rarity.${incomingRarity}` as MessageKey)} />
-                        <span className="camp-offer__delta camp-offer__delta--up">
-                          {t("common.heroSynergy")} {signed(RARITY.heroSynergyBonus[incomingRarity])}
-                        </span>
+                        {Math.abs(rarityDelta.heroSynergy) >= 0.01 && (
+                          <span className={`camp-offer__delta camp-offer__delta--${rarityDelta.heroSynergy >= 0 ? "up" : "down"}`}>
+                            {t("common.heroSynergy")} {signed(rarityDelta.heroSynergy)}
+                          </span>
+                        )}
+                        {Math.abs(rarityDelta.base) >= 0.01 && (
+                          <span className={`camp-offer__delta camp-offer__delta--${rarityDelta.base >= 0 ? "up" : "down"}`}>
+                            {t("common.base")} {signed(rarityDelta.base)}
+                          </span>
+                        )}
                       </div>
                     )}
                     <div className="camp-offer__deltas">
                       <span className={`camp-offer__delta camp-offer__delta--${ovrDelta >= 0 ? "up" : "down"}`}>
                         {t("common.teamOvr")} {signed(ovrDelta)}
                       </span>
-                      {offer.preview && deltaRows(offer.preview.before, offer.preview.after)}
+                      {offer.preview && deltaRows(offer.preview.before, offer.preview.after, rarityDelta)}
                     </div>
                     <div className="camp-pack-card__buy">
                       <span className="camp-offer__cost">{t("camp.cost", { cost: offer.cost })}</span>

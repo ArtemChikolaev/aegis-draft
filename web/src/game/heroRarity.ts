@@ -74,6 +74,23 @@ export function rollRarity(seed: string, heroId: number, stageIndex: number): Ra
   return "common";
 }
 
+/** Вклад ОДНОГО героя этой редкости в слагаемые (heroSynergy + base у immortal). Для превью
+ *  замены/резерва: чистый прирост = вклад входящего − вклад заменяемого. */
+export function rarityContribution(rarity: Rarity): { heroSynergy: number; base: number } {
+  return {
+    heroSynergy: RARITY.heroSynergyBonus[rarity],
+    base: rarity === "immortal" ? RARITY.immortalBaseBonus : 0,
+  };
+}
+
+/** Чистый сдвиг слагаемых при замене героя `outgoing`→`incoming` (их редкости). Именно этого не
+ *  хватало превью рынка/резерва: показывался бонус входящего без вычитания редкости заменяемого. */
+export function raritySwapDelta(outgoing: Rarity, incoming: Rarity): { heroSynergy: number; base: number } {
+  const o = rarityContribution(outgoing);
+  const i = rarityContribution(incoming);
+  return { heroSynergy: i.heroSynergy - o.heroSynergy, base: i.base - o.base };
+}
+
 /** Вклад редкости АКТИВНЫХ героев в слагаемые Team OVR. Чистая: те же вход ⇒ тот же выход.
  *  Пересчитывается при каждой замене героя (как tactics), поэтому без состояния. */
 export function rarityModifiers(

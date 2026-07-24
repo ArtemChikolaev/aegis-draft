@@ -3,8 +3,10 @@ import {
   RARITIES,
   RARITY,
   nextRarity,
+  rarityContribution,
   rarityModifiers,
   rarityRank,
+  raritySwapDelta,
   rollRarity,
   upgradeCost,
   type Rarity,
@@ -52,6 +54,21 @@ describe("rollRarity — детерминизм и кривая по этапу"
 });
 
 describe("rarityModifiers", () => {
+  it("считает чистый вклад замены, а не бонус входящего героя", () => {
+    expect(rarityContribution("immortal")).toEqual({
+      heroSynergy: RARITY.heroSynergyBonus.immortal,
+      base: RARITY.immortalBaseBonus,
+    });
+    expect(raritySwapDelta("immortal", "mythic")).toEqual({
+      heroSynergy: RARITY.heroSynergyBonus.mythic - RARITY.heroSynergyBonus.immortal,
+      base: -RARITY.immortalBaseBonus,
+    });
+    expect(raritySwapDelta("common", "immortal")).toEqual({
+      heroSynergy: RARITY.heroSynergyBonus.immortal,
+      base: RARITY.immortalBaseBonus,
+    });
+  });
+
   it("суммирует Hero Synergy по активным героям, immortal добавляет Base", () => {
     const map = { "1": "unique", "2": "mythic", "3": "immortal" } as Record<string, Rarity>;
     const mods = rarityModifiers(map, [1, 2, 3, 4, 5]); // 4,5 — common (нет в карте)
