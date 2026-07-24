@@ -120,6 +120,20 @@ describe("runLink: ссылка на забег", () => {
     expect(runLinkIssue(base, 2, "v1.10.0")).toBe("schema");
   });
 
+  it("balanceConfigVersion (T6.3): переживает round-trip и флагится только для run", () => {
+    const runLink: RunLink = { ...base, mode: "run", b: "b1.1.0" };
+    expect(decodeRunLink(encodeRunLink(runLink))?.b).toBe("b1.1.0");
+    // Совпадение — ок; расхождение баланса для run — issue "balance".
+    expect(runLinkIssue(runLink, 1, "v1.11.0", "b1.1.0")).toBeNull();
+    expect(runLinkIssue(runLink, 1, "v1.11.0", "b2.0.0")).toBe("balance");
+    // Классическая ссылка баланс не несёт и не проверяет.
+    expect(runLinkIssue({ ...base, mode: "classic" }, 1, "v1.11.0", "b2.0.0")).toBeNull();
+    // Старая run-ссылка без версии баланса — lenient (предшествует версионированию).
+    expect(runLinkIssue({ ...base, mode: "run" }, 1, "v1.11.0", "b2.0.0")).toBeNull();
+    // Классическая ссылка не пишет ключ b (короче URL, точный round-trip).
+    expect(decodeRunLink(encodeRunLink(base))?.b).toBeUndefined();
+  });
+
   it("builtAt НЕ влияет на совместимость (иначе ссылка живёт меньше суток)", () => {
     // Датасет пересобирается кроном ежедневно; значимы только schema и модель рейтингов.
     expect(runLinkIssue(base, 1, "v1.11.0")).toBeNull();

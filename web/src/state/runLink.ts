@@ -18,13 +18,17 @@ export interface RunLink {
   s: number;
   /** ratingModelVersion на момент создания ссылки. */
   r: string;
+  /** balanceConfigVersion (T6.3): версия игровых коэффициентов орка/экономики/боссов. Значима
+   *  только для mode "run" (Quick Draft/Classic их не используют). Старые ссылки без ключа —
+   *  lenient (предшествуют версионированию). */
+  b?: string;
   mode: RunMode;
   config: RunConfig;
   seed: string;
 }
 
 /** Почему ссылка не воспроизводима. Разные причины — разные объяснения игроку. */
-export type RunLinkIssue = "schema" | "model";
+export type RunLinkIssue = "schema" | "model" | "balance";
 
 /** Результат проверки кода, вставленного на экране настроек (T3.14). */
 export type RunLinkInputIssue = "invalid" | RunLinkIssue | "mode" | "config";
@@ -77,6 +81,9 @@ export function encodeRunLink(link: RunLink): string {
     v: link.v,
     s: link.s,
     r: link.r,
+    // Версию баланса кладём только когда она есть (mode "run"): классические ссылки короче,
+    // а round-trip старых ссылок без ключа остаётся точным.
+    ...(link.b ? { b: link.b } : {}),
     m: link.mode,
     d: link.config.draftStyle,
     f: link.config.format,
@@ -111,10 +118,12 @@ export function decodeRunLink(encoded: string): RunLink | null {
   if (raw.a !== "auto" && raw.a !== "manual") return null;
   if (raw.f !== "last_1y" && raw.f !== "last_2y" && raw.f !== "last_5y" && raw.f !== "valve_legacy") return null;
   if (raw.h !== undefined && raw.h !== 1) return null;
+  if (raw.b !== undefined && (typeof raw.b !== "string" || !raw.b)) return null;
   return {
     v: 1,
     s: raw.s,
     r: raw.r,
+    ...(typeof raw.b === "string" && raw.b ? { b: raw.b } : {}),
     mode: raw.m,
     seed,
     config: {
@@ -190,9 +199,15 @@ export function runLinkIssue(
   link: RunLink,
   schemaVersion: number,
   ratingModelVersion: string,
+  balanceConfigVersion?: string,
 ): RunLinkIssue | null {
   if (link.s !== schemaVersion) return "schema";
   if (link.r !== ratingModelVersion) return "model";
+  // Баланс значим только для Roguelite Run и только когда обе версии известны: у забега на разных
+  // коэффициентах поле/награды/рынок/боссы разойдутся, «тот же забег» перестанет быть правдой.
+  if (link.mode === "run" && link.b && balanceConfigVersion && link.b !== balanceConfigVersion) {
+    return "balance";
+  }
   return null;
 }
 
@@ -217,11 +232,12 @@ export function validateRunLinkInput(
   config: RunConfig,
   schemaVersion: number,
   ratingModelVersion: string,
+  balanceConfigVersion?: string,
 ): RunLinkInputValidation {
   if (!input.trim()) return { link: null, issue: null };
   const link = runLinkFromInput(input);
   if (!link) return { link: null, issue: "invalid" };
-  const versionIssue = runLinkIssue(link, schemaVersion, ratingModelVersion);
+  const versionIssue = runLinkIssue(link, schemaVersion, ratingModelVersion, balanceConfigVersion);
   if (versionIssue) return { link, issue: versionIssue };
   if (link.mode !== mode) return { link, issue: "mode" };
   if (!runConfigsMatch(link.config, config)) return { link, issue: "config" };

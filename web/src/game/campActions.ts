@@ -38,7 +38,8 @@ export interface CampActionDef {
   summand?: Summand;
 }
 
-/** Placeholder-баланс, как ECONOMY и TACTICS: калибровка — balance spec (§10.F) после T6.3.
+/** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
+ *  Placeholder, как ECONOMY/TACTICS: калибровка — balance spec (§10.F), инструмент `npm run sim`.
  *  Величины намеренно выше тактик (одноразово и только на один этап), но каждая с trade-off,
  *  чтобы разыгрывать карточку было решением, а не бесплатным «+N ко всему». */
 export const CAMP_ACTIONS: Record<CampActionId, CampActionDef> = {

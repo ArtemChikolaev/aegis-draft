@@ -11,6 +11,7 @@ const ISSUE_MESSAGES: Record<NonNullable<RunLinkInputValidation["issue"]>, Messa
   invalid: "seed.invalid",
   schema: "seed.schemaMismatch",
   model: "seed.modelMismatch",
+  balance: "seed.balanceMismatch",
   mode: "seed.modeMismatch",
   config: "seed.configMismatch",
 };

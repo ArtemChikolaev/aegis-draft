@@ -9,6 +9,7 @@ import { Button, Eyebrow, Modal, OptionGroup, type Option, Surface } from "../..
 import { createRunSeed } from "../../game/rng.ts";
 import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
+import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
 import { SeedField } from "./SeedField.tsx";
 import "./start.css";
 
@@ -116,6 +117,7 @@ export function StartScreen() {
       config,
       data.manifest.schemaVersion,
       data.manifest.ratingModelVersion,
+      BALANCE_CONFIG_VERSION,
     )
     : { link: null, issue: seedInput.trim() ? "invalid" : null };
   const seedConfig = seedValidation.link?.config;

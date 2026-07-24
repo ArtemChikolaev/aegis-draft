@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import { runLinkUrl } from "../../state/runLink.ts";
+import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
 import { Button } from "../../ui/index.ts";
 
 /** «Скопировать ссылку» на итоге забега (T3.9 → T3.12). Ссылка кодирует условия забега:
@@ -16,8 +17,18 @@ export function ShareRunButton() {
 
   if (!config || !seed || !manifest) return null;
 
+  const resolvedMode = mode ?? "classic";
   const url = runLinkUrl(
-    { v: 1, s: manifest.schemaVersion, r: manifest.ratingModelVersion, mode: mode ?? "classic", config, seed },
+    {
+      v: 1,
+      s: manifest.schemaVersion,
+      r: manifest.ratingModelVersion,
+      // Версию баланса несёт только Roguelite Run — остальным она не нужна и не проверяется.
+      ...(resolvedMode === "run" ? { b: BALANCE_CONFIG_VERSION } : {}),
+      mode: resolvedMode,
+      config,
+      seed,
+    },
     window.location.origin,
     window.location.pathname,
   );

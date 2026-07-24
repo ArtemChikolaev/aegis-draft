@@ -47,6 +47,10 @@ export interface SavedRun {
   anteStageIndex?: number;
   /** Roguelite Run: экономика забега (валюта/покупки/Буткемп). Опционально — старые сейвы без неё читаются. */
   economy?: RunEconomyState;
+  /** Roguelite Run: balanceConfigVersion на момент сохранения (T6.3). Смена коэффициентов орка/
+   *  экономики/боссов меняет поле/награды → resume на новой версии невалиден. Legacy без ключа
+   *  предшествует версионированию и читается lenient. */
+  balanceConfigVersion?: string;
   /** Ростер на момент persist; replay должен совпасть побайтно. */
   frozenRoster?: FrozenRosterSlot[];
 }
@@ -95,21 +99,29 @@ export function clearSavedRun(): void {
   void removePersisted(RUN_KEY);
 }
 
-/** Сейв совместим с текущим датасетом (иначе паки/seed разошлись — resume невалиден). */
+/** Сейв совместим с текущим датасетом (иначе паки/seed разошлись — resume невалиден).
+ *  Для Roguelite Run дополнительно сверяется balanceConfigVersion: смена коэффициентов меняет
+ *  поле/награды/боссы. Значима только для mode "run"; legacy-сейв без ключа — lenient. */
 export function isRunCompatible(
   run: SavedRun,
   schemaVersion: number,
   ratingModelVersion: string,
   dataHash: string,
   dataBuiltAt?: string,
+  balanceConfigVersion?: string,
 ): boolean {
   const sameData = run.dataHash
     ? run.dataHash === dataHash
     : Boolean(run.dataBuiltAt && dataBuiltAt && run.dataBuiltAt === dataBuiltAt);
+  const sameBalance = run.mode !== "run"
+    || run.balanceConfigVersion === undefined
+    || balanceConfigVersion === undefined
+    || run.balanceConfigVersion === balanceConfigVersion;
   return (
     run.schemaVersion === schemaVersion
     && run.ratingModelVersion === ratingModelVersion
     && sameData
+    && sameBalance
   );
 }
 
@@ -120,10 +132,11 @@ export function isSavedRunResumable(
   ratingModelVersion: string,
   dataHash: string,
   dataBuiltAt?: string,
+  balanceConfigVersion?: string,
 ): run is SavedRun {
   return Boolean(
     run
-    && isRunCompatible(run, schemaVersion, ratingModelVersion, dataHash, dataBuiltAt)
+    && isRunCompatible(run, schemaVersion, ratingModelVersion, dataHash, dataBuiltAt, balanceConfigVersion)
     && run.seed
     && run.config,
   );

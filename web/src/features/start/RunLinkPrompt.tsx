@@ -28,7 +28,7 @@ export function RunLinkPrompt() {
   ].join(" · ");
 
   const description = issue
-    ? t(issue === "schema" ? "link.issueSchema" : "link.issueModel")
+    ? t(issue === "schema" ? "link.issueSchema" : issue === "balance" ? "link.issueBalance" : "link.issueModel")
     : losesProgress
       ? t("link.replaceWarning")
       : t("link.description");

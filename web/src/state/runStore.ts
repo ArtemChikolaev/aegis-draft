@@ -14,6 +14,7 @@ import { RunEconomy, addModifiers, type CampView, type RunEconomyState, type Sum
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
+import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, useCareer } from "./careerStore.ts";
 import {
@@ -278,6 +279,8 @@ export const useRun = create<RunStore>((set, get) => {
       frozenRoster: frozenRoster ?? undefined,
       anteStageIndex: anteRun ? anteRun.state.index : undefined,
       economy: economy ? economy.snapshot : undefined,
+      // Только Roguelite Run зависит от коэффициентов баланса — остальным режимам ключ не нужен.
+      balanceConfigVersion: selectedMode === "run" ? BALANCE_CONFIG_VERSION : undefined,
     });
   };
   // Пересчитать вклад экипированных Tactics от ТЕКУЩЕГО ростера. Вызывать после любого swap:
@@ -444,7 +447,7 @@ export const useRun = create<RunStore>((set, get) => {
         const { schemaVersion, ratingModelVersion, dataHash, builtAt } = data.manifest;
         // Пустой actions = только стартовали; первый пак уже зафиксирован seed'ом — resume нужен.
         let saved: SavedRun | null = isSavedRunResumable(
-          rawSaved, schemaVersion, ratingModelVersion, dataHash, builtAt,
+          rawSaved, schemaVersion, ratingModelVersion, dataHash, builtAt, BALANCE_CONFIG_VERSION,
         ) ? rawSaved : null;
         if (saved && !saved.dataHash) {
           saved = { ...saved, dataHash };
@@ -461,7 +464,7 @@ export const useRun = create<RunStore>((set, get) => {
           teamName: savedTeamName,
           resumable: saved,
           pendingLink: link,
-          pendingLinkIssue: link ? runLinkIssue(link, schemaVersion, ratingModelVersion) : null,
+          pendingLinkIssue: link ? runLinkIssue(link, schemaVersion, ratingModelVersion, BALANCE_CONFIG_VERSION) : null,
         });
         logDataLoaded(data);
       } catch (e) {
@@ -779,7 +782,7 @@ export const useRun = create<RunStore>((set, get) => {
       const link = runLinkFromHash(window.location.hash);
       if (!link) return;
       const { schemaVersion, ratingModelVersion } = data.manifest;
-      set({ pendingLink: link, pendingLinkIssue: runLinkIssue(link, schemaVersion, ratingModelVersion) });
+      set({ pendingLink: link, pendingLinkIssue: runLinkIssue(link, schemaVersion, ratingModelVersion, BALANCE_CONFIG_VERSION) });
     },
 
     advanceTournament() {

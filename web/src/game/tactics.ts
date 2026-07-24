@@ -39,7 +39,8 @@ export function isTacticId(value: string): value is TacticId {
   return (TACTIC_IDS as readonly string[]).includes(value);
 }
 
-/** Placeholder-баланс, как и ECONOMY: точные коэффициенты — за balance spec (§10.F) после T6.3.
+/** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
+ *  Placeholder, как и ECONOMY: точные коэффициенты — за balance spec (§10.F), инструмент `npm run sim`.
  *  Ориентир тот же: этап поля стоит ANTE_FIELD_STEP=3 очка, поэтому одна тактика даёт заметно
  *  меньше этапа — билд из трёх должен примерно покрывать один шаг угрозы, а не обгонять её. */
 export const TACTICS = {

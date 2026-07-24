@@ -122,7 +122,8 @@ export interface RunEconomyState {
   freePlayerSwaps: number;
 }
 
-/** Placeholder-баланс. Точная калибровка — отдельный balance spec (§10.F), после симуляции T6.3.
+/** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
+ *  Placeholder. Точная калибровка — отдельный balance spec (§10.F), инструмент — `npm run sim`.
  *  Ориентир: поле растёт ANTE_FIELD_STEP=3 очка/этап, покупка должна давать сопоставимый
  *  прирост Team OVR, чтобы усиливаться было обязательно, но одной покупки не хватало «на всё». */
 export const ECONOMY = {

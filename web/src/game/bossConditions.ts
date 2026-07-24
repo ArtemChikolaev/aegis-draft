@@ -38,7 +38,8 @@ export function isBossId(value: string): value is BossId {
   return (BOSS_IDS as readonly string[]).includes(value);
 }
 
-/** Placeholder-баланс (как ECONOMY/TACTICS): точная калибровка — balance spec §10.F после T6.3.
+/** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
+ *  Placeholder (как ECONOMY/TACTICS): точная калибровка — balance spec §10.F, инструмент `npm run sim`.
  *  Штрафы соизмеримы с шагом поля (ANTE_FIELD_STEP=3): проигнорировать босса ≈ потерять этап,
  *  адаптация его снимает. Пороги — под текущие диапазоны слагаемых (Base ~78–92, Hero Synergy
  *  ~0–8, Chemistry ~0–13). */

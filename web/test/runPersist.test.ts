@@ -85,6 +85,19 @@ describe("runPersist", () => {
     expect(isRunCompatible(legacy, schemaVersion, ratingModelVersion, dataHash, "2020-01-01T00:00:00Z")).toBe(false);
   });
 
+  it("balanceConfigVersion (T6.3) инвалидирует ТОЛЬКО roguelite-сейв", () => {
+    const { schemaVersion, ratingModelVersion, dataHash, builtAt } = data.manifest;
+    const ok = (run: SavedRun, bal?: string) =>
+      isRunCompatible(run, schemaVersion, ratingModelVersion, dataHash, builtAt, bal);
+    const runSave: SavedRun = { ...baseRun, mode: "run", balanceConfigVersion: "b1.1.0" };
+    expect(ok(runSave, "b1.1.0")).toBe(true);
+    expect(ok(runSave, "b2.0.0")).toBe(false); // смена коэффициентов → resume невалиден
+    // Classic-сейв баланс не касается — та же смена его не роняет.
+    expect(ok({ ...baseRun, mode: "classic", balanceConfigVersion: "b1.1.0" }, "b2.0.0")).toBe(true);
+    // Legacy roguelite-сейв без версии — lenient (предшествует версионированию).
+    expect(ok({ ...baseRun, mode: "run" }, "b2.0.0")).toBe(true);
+  });
+
   it("freezeRoster + frozenRostersMatch ловят расхождение replay", () => {
     const engine = new RunEngine(data, defaultRunConfig, "roster-freeze");
     runToEnd(engine);
