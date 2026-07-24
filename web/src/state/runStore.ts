@@ -14,9 +14,10 @@ import { RunEconomy, addModifiers, type CampView, type RunEconomyState, type Sum
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
+import { rarityModifiers } from "../game/heroRarity.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
-import { buildCareerEntry, useCareer } from "./careerStore.ts";
+import { buildCareerEntry, careerEntriesForMode, useCareer } from "./careerStore.ts";
 import {
   clearSavedRun,
   freezeRoster,
@@ -163,6 +164,8 @@ interface RunStore {
   discardAction: (actionId: string) => void;
   /** Буткемп: разыграть одноразовое Camp Action (эффект живёт один следующий этап). */
   playCampAction: (actionId: string) => void;
+  /** Буткемп: улучшить редкость активного героя за золото (срез 3b). */
+  upgradeHeroRarity: (heroId: number) => void;
   /** Буткемп: поменять активного игрока на единственного запасного той же роли. */
   swapReservePlayer: (slotIndex: number, benchAccountId: number) => void;
   /** Буткемп: поменять активного героя на героя из малого резервного пула. */
@@ -298,12 +301,21 @@ export const useRun = create<RunStore>((set, get) => {
     );
     return evaluateTactics(economy.equippedTactics, ctx);
   };
-  // Итоговые модификаторы забега: покупки/временные действия (экономика) + условные Tactics.
-  // Единственное место, где два слоя складываются, — чтобы поле этапа и UI не разъезжались.
+  // Вклад редкости активных героев (срез 3b): heroSynergy + base у immortal. Пересчитывается от
+  // engine.heroes + карты редкости в экономике, поэтому зависит от текущего состава (как tactics).
+  const rarityMods = (): SummandModifiers => {
+    const { economy, engine } = get();
+    if (!economy || !engine) return { base: 0, heroSynergy: 0, chemistry: 0 };
+    return rarityModifiers(economy.heroRarity, engine.heroes);
+  };
+  // Итоговые модификаторы забега: покупки/временные действия (экономика) + условные Tactics +
+  // редкость героев. Единственное место, где слои складываются, — чтобы поле этапа и UI не
+  // разъезжались; редкость вложена сюда, поэтому все места сборки силы получают её автоматически.
   const effectiveModifiers = (tactics: TacticEvaluation | null): SummandModifiers => {
     const { economy } = get();
     const economyMods = economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 };
-    return tactics ? addModifiers(economyMods, tactics.modifiers) : economyMods;
+    const withTactics = tactics ? addModifiers(economyMods, tactics.modifiers) : economyMods;
+    return addModifiers(withTactics, rarityMods());
   };
   const totalModifier = (tactics: TacticEvaluation | null): number => {
     const m = effectiveModifiers(tactics);
@@ -378,6 +390,10 @@ export const useRun = create<RunStore>((set, get) => {
     if (selectedMode === "run") {
       const anteRun = new AnteRunEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName);
       const economy = new RunEconomy(seed);
+      // Мета-гейт редкости (срез 3b): первый-когда-либо roguelite-забег весь на common; редкость
+      // включается со второго. Считаем по истории careerStore (T6.4-lite до появления Штаба).
+      const rogueliteRuns = careerEntriesForMode(useCareer.getState().entries, "run").length;
+      economy.setRarityEnabled(rogueliteRuns >= 1);
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
         tactics: null, boss: null,
@@ -692,14 +708,16 @@ export const useRun = create<RunStore>((set, get) => {
               chemistry: tactics.modifiers.chemistry,
             };
             const econMods = economy.modifiers();
+            // Редкость восстанавливается из карты в экономике (хранится напрямую) + активных героев.
+            const rarMods = rarityModifiers(economy.heroRarity, engine.heroes);
             // Босс восстанавливается из ростера (как tactics), а не из сейва: правило детерминировано
             // по seed+stage, штраф — производная состава. Без него resume дал бы более лёгкое поле.
             const bossId = bossForStage(resumable.seed, stageIndex);
             boss = bossId
               ? evaluateBoss(bossId, {
-                base: score.base + econMods.base + tacticMods.base,
-                heroSynergy: score.heroSynergy + econMods.heroSynergy + tacticMods.heroSynergy,
-                chemistry: score.chemistry + econMods.chemistry + tacticMods.chemistry,
+                base: score.base + econMods.base + tacticMods.base + rarMods.base,
+                heroSynergy: score.heroSynergy + econMods.heroSynergy + tacticMods.heroSynergy + rarMods.heroSynergy,
+                chemistry: score.chemistry + econMods.chemistry + tacticMods.chemistry + rarMods.chemistry,
                 playerOvrs: engine.players.map((p) => p.ovr),
                 activeHeroes: engine.heroes,
                 bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes),
@@ -708,6 +726,7 @@ export const useRun = create<RunStore>((set, get) => {
             anteRun.rebuildCurrentStage(
               score.teamOvr + economy.totalModifier()
               + tacticMods.base + tacticMods.heroSynergy + tacticMods.chemistry
+              + rarMods.base + rarMods.heroSynergy + rarMods.chemistry
               - (boss?.penalty ?? 0),
             );
             inCamp = economy.snapshot.inCamp;
@@ -896,6 +915,9 @@ export const useRun = create<RunStore>((set, get) => {
           engine.replacePlayer(offer.playerSwap.slotIndex, incomingPlayer);
         } else if (offer.kind === "hero" && offer.heroSwap) {
           engine.replaceHero(offer.heroSwap.outgoingHeroId, offer.heroSwap.incomingHeroId);
+          // Срез 3b: входящий на re-pick герой роллит редкость по этапу (лут прогрессии).
+          // Детерминизм по seed+heroId+stage — совпадает с превью на карте.
+          economy.rollHeroRarity(offer.heroSwap.incomingHeroId, economy.snapshot.campStageIndex);
         }
         const snapshot = snap(engine);
         economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
@@ -936,6 +958,15 @@ export const useRun = create<RunStore>((set, get) => {
       if (!economy || phase !== "camp" || !economy.playCampAction(actionId)) return;
       // Разведка даёт бесплатный реролл — рынок пересобираем, чтобы он был доступен сразу.
       economy.invalidateMarketOffers();
+      syncCamp();
+    },
+
+    upgradeHeroRarity(heroId) {
+      const { economy, engine, phase } = get();
+      // Улучшать можно только активного героя в Буткемпе; редкость меняет силу → пересчёт camp.
+      if (!economy || !engine || phase !== "camp") return;
+      if (!engine.heroes.includes(heroId)) return;
+      if (!economy.upgradeHeroRarity(heroId)) return;
       syncCamp();
     },
 

@@ -14,11 +14,14 @@ import { ECONOMY } from "./anteEconomy.ts";
 import { TACTICS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
 import { BOSSES } from "./bossConditions.ts";
+import { RARITY } from "./heroRarity.ts";
 
 /** Версия набора игровых коэффициентов Roguelite Run. Бампать при любой правке чисел баланса.
  *  b1.1.0 (2026-07-24): ANTE_FIELD_HANDICAP 12→16 по прогону симулятора — наивный win-rate
- *  8%→20% (skilled ≈ PRD-цель 30–40%), статик остаётся ≈0%. */
-export const BALANCE_CONFIG_VERSION = "b1.1.0";
+ *  8%→20% (skilled ≈ PRD-цель 30–40%), статик остаётся ≈0%.
+ *  b1.2.0 (2026-07-24): срез 3b — редкость героев (RARITY: бонусы Hero Synergy/Base + цены
+ *  улучшения). Новая ось силы забега → воспроизводимое состояние меняется. */
+export const BALANCE_CONFIG_VERSION = "b1.2.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
@@ -29,4 +32,5 @@ export const BALANCE = {
   tactics: TACTICS,
   campActions: CAMP_ACTIONS,
   bosses: BOSSES,
+  rarity: RARITY,
 } as const;

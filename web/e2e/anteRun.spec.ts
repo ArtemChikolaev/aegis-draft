@@ -181,6 +181,41 @@ test("roguelite run: stand-in делает замену игрока беспл�
   await expect(page.getByTestId("camp-gold")).toHaveText(String(goldBefore));
 });
 
+// Срез 3b: редкость героев под мета-гейтом. Первый-когда-либо roguelite-забег весь common.
+test("roguelite run: редкость скрыта в первом забеге (мета-гейт)", async ({ page }) => {
+  await gotoFreshApp(page); // пустая карьера → гейт закрыт
+  await startRogueliteSeed(page, CAMP_SEED);
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await expect(page.getByTestId("camp-rarity")).toHaveCount(0);
+});
+
+// Со второго забега (в careerStore есть завершённый roguelite-забег) редкость активна.
+test("roguelite run: со второго забега редкость активна и улучшается", async ({ page }) => {
+  // addInitScript переживает clearPersist+reload внутри gotoFreshApp (пере-применяется до скриптов).
+  await page.addInitScript(() => {
+    localStorage.setItem("aegis:career:v1", JSON.stringify({ v: 1, entries: [{ configLabel: { mode: "run" } }] }));
+  });
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CAMP_SEED);
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  const rarity = page.getByTestId("camp-rarity");
+  await expect(rarity).toBeVisible();
+
+  // Добираем золото, улучшаем первого героя common→unique — появляется бейдж редкости.
+  await page.getByTestId("reward-rwd-1-1").click();
+  const upgrade = page.locator('[data-testid^="rarity-upgrade-"]').first();
+  await expect(upgrade).toBeEnabled();
+  await upgrade.click();
+  await expect(rarity.locator(".rarity-badge").first()).toBeVisible();
+});
+
 // Quick Draft (classic) НЕ показывает ante-статус и Буткемп — режим не затронут.
 test("quick draft не показывает ante-статус", async ({ page }) => {
   await gotoFreshApp(page);

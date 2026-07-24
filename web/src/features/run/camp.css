@@ -313,6 +313,55 @@
 .camp-card-tag--tactic { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
 .camp-card-tag--action { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
 
+/* Редкость героев (срез 3b): бейдж + сетка улучшений. Цвет — только токены --rarity-*. */
+.rarity-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--rarity-color, var(--rarity-common));
+  background: color-mix(in srgb, var(--rarity-color, var(--rarity-common)) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rarity-color, var(--rarity-common)) 45%, transparent);
+}
+.rarity-badge--unique { --rarity-color: var(--rarity-unique); }
+.rarity-badge--mythic { --rarity-color: var(--rarity-mythic); }
+.rarity-badge--immortal { --rarity-color: var(--rarity-immortal); }
+.camp-hero-rarity { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.camp__rarity-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+.camp-rarity-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.camp-rarity-card[data-rarity="unique"] { border-color: color-mix(in srgb, var(--rarity-unique) 45%, var(--line)); }
+.camp-rarity-card[data-rarity="mythic"] { border-color: color-mix(in srgb, var(--rarity-mythic) 45%, var(--line)); }
+.camp-rarity-card[data-rarity="immortal"] { border-color: color-mix(in srgb, var(--rarity-immortal) 50%, var(--line)); }
+.camp-rarity-card__hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.camp-rarity-card__max {
+  margin-top: auto;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
+
 /* Boss condition предстоящего этапа: заранее видимое правило + до→после (срез 5). */
 .camp-boss {
   display: grid;
@@ -576,6 +625,7 @@
 
 @media (max-width: 680px) {
   .camp__pack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .camp__rarity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .camp__offers--reward { grid-template-columns: 1fr; }
   .camp__build { grid-template-columns: 1fr; }
   .camp-offer--reward {

@@ -3,6 +3,7 @@
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
 import { useMemo, useState } from "react";
 import { playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
+import { RARITY, nextRarity, rarityModifiers, rollRarity, upgradeCost, type Rarity } from "../../game/heroRarity.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
 import {
@@ -41,6 +42,12 @@ function fmt(value: number): string {
 
 function signed(value: number): string {
   return value > 0 ? `+${fmt(value)}` : fmt(value);
+}
+
+/** Бейдж редкости героя (срез 3b). Цвет — токен `--rarity-*`; common не показываем (фон). */
+function RarityBadge({ rarity, label }: { rarity: Rarity; label: string }) {
+  if (rarity === "common") return null;
+  return <span className={`rarity-badge rarity-badge--${rarity}`}>{label}</span>;
 }
 
 /** Изменение Team OVR оффера (сумма слагаемых после − до). Для пак-карты — главный сигнал. */
@@ -123,6 +130,8 @@ export function CampScreen() {
   const discardTactic = useRun((s) => s.discardTactic);
   const discardAction = useRun((s) => s.discardAction);
   const playCampAction = useRun((s) => s.playCampAction);
+  const upgradeHeroRarity = useRun((s) => s.upgradeHeroRarity);
+  const seed = useRun((s) => s.seed);
   const swapReservePlayer = useRun((s) => s.swapReservePlayer);
   const swapReserveHero = useRun((s) => s.swapReserveHero);
   const advanceAnteStage = useRun((s) => s.advanceAnteStage);
@@ -138,12 +147,13 @@ export function CampScreen() {
   if (!camp || !ante || !score || !snapshot || !data || !config) return null;
 
   // Итоговые слагаемые = счёт ростера + модификаторы экономики (покупки/временные действия) +
-  // вклад условных Tactics. Ровно та же сумма, что стор кладёт в поле следующего этапа.
+  // вклад условных Tactics + редкость активных героев. Ровно та же сумма, что стор кладёт в поле.
   const tacticMods = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
+  const rarityMods = rarityModifiers(camp.heroRarity, snapshot.heroes);
   const mods = {
-    base: camp.modifiers.base + tacticMods.base,
-    heroSynergy: camp.modifiers.heroSynergy + tacticMods.heroSynergy,
-    chemistry: camp.modifiers.chemistry + tacticMods.chemistry,
+    base: camp.modifiers.base + tacticMods.base + rarityMods.base,
+    heroSynergy: camp.modifiers.heroSynergy + tacticMods.heroSynergy + rarityMods.heroSynergy,
+    chemistry: camp.modifiers.chemistry + tacticMods.chemistry + rarityMods.chemistry,
   };
   const current: SummandValues = {
     base: score.base + mods.base,
@@ -572,13 +582,27 @@ export function CampScreen() {
               {heroOffers.map((offer) => {
                 const affordable = offer.cost <= camp.gold;
                 const ovrDelta = teamOvrDelta(offer);
+                // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
+                // ролл, что применит покупка, поэтому показываем её честно в превью.
+                const incomingRarity: Rarity = camp.rarityEnabled && offer.heroSwap
+                  ? rollRarity(seed, offer.heroSwap.incomingHeroId, camp.campStageIndex)
+                  : "common";
                 return (
                   <div
                     key={offer.id}
                     className="camp-pack-card camp-pack-card--hero"
                     data-offer-kind="hero"
+                    data-incoming-rarity={incomingRarity}
                   >
                     {offerIdentity(offer)}
+                    {incomingRarity !== "common" && (
+                      <div className="camp-hero-rarity">
+                        <RarityBadge rarity={incomingRarity} label={t(`rarity.${incomingRarity}` as MessageKey)} />
+                        <span className="camp-offer__delta camp-offer__delta--up">
+                          {t("common.heroSynergy")} {signed(RARITY.heroSynergyBonus[incomingRarity])}
+                        </span>
+                      </div>
+                    )}
                     <div className="camp-offer__deltas">
                       <span className={`camp-offer__delta camp-offer__delta--${ovrDelta >= 0 ? "up" : "down"}`}>
                         {t("common.teamOvr")} {signed(ovrDelta)}
@@ -600,6 +624,63 @@ export function CampScreen() {
                 );
               })}
             </div>
+
+            {camp.rarityEnabled && (
+              <>
+                <h4 className="camp__market-group-title">{t("camp.rarityUpgrade")}</h4>
+                <p className="camp__section-hint">{t("camp.rarityHint")}</p>
+                {/* Улучшение — второе действие рынка героев (реролл его не качает): поднимает тир
+                    активного героя, растит его вклад в Hero Synergy (+OVR игроку у immortal). */}
+                <div className="camp__rarity-grid" data-testid="camp-rarity">
+                  {snapshot.heroes.map((heroId) => {
+                    const current: Rarity = (camp.heroRarity[String(heroId)] as Rarity) ?? "common";
+                    const up = nextRarity(current);
+                    const cost = upgradeCost(current);
+                    const thumb = hero(heroId);
+                    const affordable = cost != null && cost <= camp.gold;
+                    const gain = up ? RARITY.heroSynergyBonus[up] - RARITY.heroSynergyBonus[current] : 0;
+                    return (
+                      <div key={heroId} className="camp-rarity-card" data-hero-id={heroId} data-rarity={current}>
+                        <div className="camp-rarity-card__hero">
+                          <HeroThumb {...thumb} size="md" />
+                          <RarityBadge rarity={current} label={t(`rarity.${current}` as MessageKey)} />
+                        </div>
+                        {up ? (
+                          <>
+                            <div className="camp-offer__deltas">
+                              <span className="camp-offer__delta camp-offer__delta--up">
+                                → {t(`rarity.${up}` as MessageKey)}
+                              </span>
+                              <span className="camp-offer__delta camp-offer__delta--up">
+                                {t("common.heroSynergy")} {signed(gain)}
+                              </span>
+                              {up === "immortal" && (
+                                <span className="camp-offer__delta camp-offer__delta--up">
+                                  {t("common.base")} {signed(RARITY.immortalBaseBonus)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="camp-pack-card__buy">
+                              <span className="camp-offer__cost">{t("camp.cost", { cost: cost ?? 0 })}</span>
+                              <Button
+                                variant="primary"
+                                disabled={!affordable}
+                                data-testid={`rarity-upgrade-${heroId}`}
+                                onClick={() => upgradeHeroRarity(heroId)}
+                              >
+                                {t("camp.rarityBuy")}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <span className="camp-rarity-card__max">{t("camp.rarityMax")}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </section>
 
           {(snapshot.reservePlayers.length > 0 || snapshot.reserveHeroes.length > 0) && (

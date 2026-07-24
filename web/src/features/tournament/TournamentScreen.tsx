@@ -34,6 +34,7 @@ import {
   squadChemistryRows,
 } from "../../game/score.ts";
 import { summandModifiers } from "../../game/anteEconomy.ts";
+import { rarityModifiers } from "../../game/heroRarity.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { CareerPanel } from "./CareerPanel.tsx";
@@ -481,16 +482,19 @@ export function TournamentScreen() {
     ...(economyView?.temporary ?? []).map((t) => t.effect),
   ]);
   const tacticModifiers = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
+  // Редкость активных героев (срез 3b) — тот же слой модификаторов, что в поле этапа.
+  const rarityMods = rarityModifiers(economyView?.heroRarity ?? {}, snapshot.heroes);
   // Штраф босса — плоский к силе состава (не привязан к слагаемому): вычитаем только из итогового
   // Team OVR, чтобы центр радара совпадал с силой в таблице поля; плитки base/synergy/chem не трогаем.
   const bossPenalty = boss?.penalty ?? 0;
   const effectiveScore = {
-    base: score.base + economyModifiers.base + tacticModifiers.base,
-    heroSynergy: score.heroSynergy + economyModifiers.heroSynergy + tacticModifiers.heroSynergy,
-    chemistry: score.chemistry + economyModifiers.chemistry + tacticModifiers.chemistry,
+    base: score.base + economyModifiers.base + tacticModifiers.base + rarityMods.base,
+    heroSynergy: score.heroSynergy + economyModifiers.heroSynergy + tacticModifiers.heroSynergy + rarityMods.heroSynergy,
+    chemistry: score.chemistry + economyModifiers.chemistry + tacticModifiers.chemistry + rarityMods.chemistry,
     teamOvr: score.teamOvr
       + economyModifiers.base + economyModifiers.heroSynergy + economyModifiers.chemistry
       + tacticModifiers.base + tacticModifiers.heroSynergy + tacticModifiers.chemistry
+      + rarityMods.base + rarityMods.heroSynergy + rarityMods.chemistry
       - bossPenalty,
   };
   const isManual = config.allocation === "manual";

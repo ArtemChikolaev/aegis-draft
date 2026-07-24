@@ -233,6 +233,35 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(playerOfferAffordable(5, 6, 0)).toBe(true);
   });
 
+  it("редкость героев (срез 3b): гейт, ролл, улучшение, персист", () => {
+    const eco = new RunEconomy("rar");
+    eco.openCamp(3);
+    // Вне мета-гейта — всё common, улучшение недоступно.
+    expect(eco.rarityEnabled).toBe(false);
+    expect(eco.rollHeroRarity(14, 3)).toBe("common");
+    expect(eco.rarityUpgradeCost(14)).toBeNull();
+    expect(eco.upgradeHeroRarity(14)).toBe(false);
+
+    eco.setRarityEnabled(true);
+    eco.awardStageClear(3, "1", 4); // немного золота
+    eco.awardStageClear(4, "1", 3);
+    // Ролл детерминирован и записывается в карту (не-common).
+    const rolled = eco.rollHeroRarity(14, 5);
+    expect(rolled).toBe(eco.rarityOf(14));
+    // Улучшение поднимает тир текущего героя и списывает золото.
+    const heroId = 99;
+    const before = eco.rarityOf(heroId); // common
+    const cost = eco.rarityUpgradeCost(heroId)!;
+    const goldBefore = eco.gold;
+    expect(eco.upgradeHeroRarity(heroId)).toBe(true);
+    expect(eco.rarityOf(heroId)).not.toBe(before);
+    expect(eco.gold).toBe(goldBefore - cost);
+    // Персист восстанавливает карту и гейт.
+    const restored = new RunEconomy("rar", eco.snapshot);
+    expect(restored.rarityEnabled).toBe(true);
+    expect(restored.heroRarity).toEqual(eco.heroRarity);
+  });
+
   it("snapshot восстанавливает экипировку и разыгранные действия", () => {
     const eco = new RunEconomy("persist");
     const cardId = campWithCard(eco, "tactic");

@@ -17,6 +17,7 @@ import type { PlacementKey } from "./tournament.ts";
 import type { CandidateRef } from "./packs.ts";
 import { TACTIC_IDS, TACTIC_SLOTS, isTacticId } from "./tactics.ts";
 import { CAMP_ACTION_IDS, CAMP_ACTION_SLOTS, campActionDef, isCampActionId } from "./campActions.ts";
+import { nextRarity, rollRarity, upgradeCost, type Rarity } from "./heroRarity.ts";
 
 /** Слагаемое Team OVR, на которое действует покупка. */
 export type Summand = "base" | "heroSynergy" | "chemistry";
@@ -120,6 +121,12 @@ export interface RunEconomyState {
   freeMarketRerolls: number;
   /** Бесплатные замены игрока, накопленные stand-in. */
   freePlayerSwaps: number;
+  /** Редкость героев забега (heroId → тир), срез 3b. Стартовый драфт весь common (записей нет);
+   *  re-pick роллит редкость, «улучшение» бампит тир. Хранится напрямую → resume без ре-ролла. */
+  heroRarity: Record<string, Rarity>;
+  /** Мета-гейт: редкость активна только со второго забега (первый весь common). Ставится на старте
+   *  из careerStore, персистится, чтобы не «включиться» посреди забега. */
+  rarityEnabled: boolean;
 }
 
 /** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
@@ -296,6 +303,12 @@ export interface CampView {
   scouted: boolean;
   freeMarketRerolls: number;
   freePlayerSwaps: number;
+  /** Редкость героев активна (мета-гейт пройден). Вне неё UI редкости скрыт. */
+  rarityEnabled: boolean;
+  /** heroId → тир для рендера бейджей/улучшений (срез 3b). */
+  heroRarity: Record<string, Rarity>;
+  /** Индекс этапа текущего Буткемпа — для превью редкости входящих на re-pick героев. */
+  campStageIndex: number;
 }
 
 function emptyState(): RunEconomyState {
@@ -316,6 +329,8 @@ function emptyState(): RunEconomyState {
     scoutedCamps: [],
     freeMarketRerolls: 0,
     freePlayerSwaps: 0,
+    heroRarity: {},
+    rarityEnabled: false,
   };
 }
 
@@ -341,6 +356,7 @@ export class RunEconomy {
       heldActions: [...this.state.heldActions],
       temporary: this.state.temporary.map((t) => ({ effect: { ...t.effect }, campId: t.campId })),
       scoutedCamps: [...this.state.scoutedCamps],
+      heroRarity: { ...this.state.heroRarity },
     };
   }
 
@@ -528,6 +544,53 @@ export class RunEconomy {
     return true;
   }
 
+  /** Включить редкость героев для этого забега (мета-гейт, ставится на старте из careerStore). */
+  setRarityEnabled(enabled: boolean): void {
+    this.state.rarityEnabled = enabled;
+  }
+
+  get rarityEnabled(): boolean {
+    return this.state.rarityEnabled;
+  }
+
+  /** Карта редкости активных/резервных героев (heroId → тир). Common не хранится (default). */
+  get heroRarity(): Record<string, Rarity> {
+    return { ...this.state.heroRarity };
+  }
+
+  rarityOf(heroId: number): Rarity {
+    return this.state.heroRarity[String(heroId)] ?? "common";
+  }
+
+  /** Ролл редкости входящему на re-pick герою по этапу. Вне мета-гейта — always common (no-op).
+   *  Детерминизм: тот же (seed, heroId, stage) ⇒ та же редкость, что и в превью. */
+  rollHeroRarity(heroId: number, stageIndex: number): Rarity {
+    if (!this.state.rarityEnabled) return "common";
+    const rarity = rollRarity(this.seed, heroId, stageIndex);
+    if (rarity === "common") delete this.state.heroRarity[String(heroId)];
+    else this.state.heroRarity[String(heroId)] = rarity;
+    return rarity;
+  }
+
+  /** Стоимость поднять героя на следующий тир (учёт золота проверяет вызывающий). */
+  rarityUpgradeCost(heroId: number): number | null {
+    if (!this.state.rarityEnabled) return null;
+    return upgradeCost(this.rarityOf(heroId));
+  }
+
+  /** Улучшить героя на один тир за золото (без ухода в минус). Реролл того же героя его НЕ качает —
+   *  поднять качество можно только здесь (PRD §5.9.2). Возвращает успех. */
+  upgradeHeroRarity(heroId: number): boolean {
+    if (!this.state.rarityEnabled) return false;
+    const current = this.rarityOf(heroId);
+    const target = nextRarity(current);
+    const cost = upgradeCost(current);
+    if (!target || cost == null || cost > this.state.gold) return false;
+    this.state.gold -= cost;
+    this.state.heroRarity[String(heroId)] = target;
+    return true;
+  }
+
   /** Снимок Буткемпа для UI. */
   campView(): CampView {
     return {
@@ -547,6 +610,9 @@ export class RunEconomy {
       scouted: this.state.scoutedCamps.includes(this.state.campStageIndex),
       freeMarketRerolls: this.state.freeMarketRerolls,
       freePlayerSwaps: this.state.freePlayerSwaps,
+      rarityEnabled: this.state.rarityEnabled,
+      heroRarity: { ...this.state.heroRarity },
+      campStageIndex: this.state.campStageIndex,
     };
   }
 }

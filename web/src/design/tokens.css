@@ -82,6 +82,13 @@
   /* Вуаль «погасшей» карточки (liability <60). На чёрном гасим В ТЕНЬ — карточка проваливается;
      на ivory та же тень даёт грязно-серое пятно, поэтому там вуаль другая по природе (см. light). */
   --tier-liability-veil: var(--tier-liability-veil-invert);
+  /* Редкость героев (срез 3b) — ОТДЕЛЬНЫЙ неймспейс, не смешиваем с --tier-* (там immortal уже
+     занят циан-шкалой «сила игрока»). По-дотовски: common серый, unique синий, mythic фиолетовый,
+     immortal золото. Фикс в обеих темах (карточки редкости всегда на тёмной/нейтральной подложке). */
+  --rarity-common: #9aa6b2;
+  --rarity-unique: #4b8bff;
+  --rarity-mythic: #b070ff;
+  --rarity-immortal: #e4ae39;
   --route-ub: var(--tier-elite);
   --route-lb: var(--tier-mid);
   --route-out: var(--tier-weak);
