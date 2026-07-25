@@ -519,9 +519,9 @@
   },
   "2576071": {
     "last_1y": {
-      "successScore": 23.33,
-      "games": 20,
-      "winrate": 0.25
+      "successScore": 25,
+      "games": 18,
+      "winrate": 0.2778
     },
     "last_2y": {
       "successScore": 22.86,
@@ -543,9 +543,9 @@
   },
   "2586976": {
     "last_1y": {
-      "successScore": 29.42,
-      "games": 128,
-      "winrate": 0.4141
+      "successScore": 29.34,
+      "games": 126,
+      "winrate": 0.4127
     },
     "last_2y": {
       "successScore": 29.64,
@@ -1919,8 +1919,8 @@
   },
   "8376696": {
     "last_1y": {
-      "successScore": 25,
-      "games": 4,
+      "successScore": 29.17,
+      "games": 2,
       "winrate": 0
     },
     "last_2y": {
@@ -2510,9 +2510,9 @@
   },
   "9255039": {
     "last_1y": {
-      "successScore": 33.83,
-      "games": 50,
-      "winrate": 0.48
+      "successScore": 35,
+      "games": 48,
+      "winrate": 0.5
     },
     "last_2y": {
       "successScore": 39.07,
@@ -2602,9 +2602,9 @@
   },
   "9338413": {
     "last_1y": {
-      "successScore": 35.49,
-      "games": 203,
-      "winrate": 0.5074
+      "successScore": 35.17,
+      "games": 199,
+      "winrate": 0.5025
     },
     "last_2y": {
       "successScore": 32.74,
@@ -2773,9 +2773,9 @@
   },
   "9498970": {
     "last_1y": {
-      "successScore": 32.94,
-      "games": 41,
-      "winrate": 0.4634
+      "successScore": 31.43,
+      "games": 39,
+      "winrate": 0.4359
     },
     "last_2y": {
       "successScore": 28.64,
@@ -2928,9 +2928,9 @@
   },
   "9651185": {
     "last_1y": {
-      "successScore": 28.33,
-      "games": 26,
-      "winrate": 0.2692
+      "successScore": 25.37,
+      "games": 24,
+      "winrate": 0.2083
     },
     "last_2y": {
       "successScore": 27.79,
@@ -3008,9 +3008,9 @@
   },
   "9729720": {
     "last_1y": {
-      "successScore": 33.7,
-      "games": 17,
-      "winrate": 0.4706
+      "successScore": 30.8,
+      "games": 15,
+      "winrate": 0.4
     },
     "last_2y": {
       "successScore": 35,
@@ -3049,9 +3049,9 @@
   },
   "9758040": {
     "last_1y": {
-      "successScore": 30,
-      "games": 39,
-      "winrate": 0.4103
+      "successScore": 31.28,
+      "games": 37,
+      "winrate": 0.4324
     },
     "last_2y": {
       "successScore": 31.45,
