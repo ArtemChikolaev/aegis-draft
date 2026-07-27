@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
+import { balancedPackSlots, buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
 import { RunEconomy, playerCost } from "../src/game/anteEconomy.ts";
 import { RunEngine } from "../src/game/engine.ts";
+import { ROLE_SEQUENCE } from "../src/game/packs.ts";
+import { Rng } from "../src/game/rng.ts";
+import { TACTICS } from "../src/game/tactics.ts";
 import { loadGameData } from "./helpers/data.ts";
 import { defaultRunConfig } from "./helpers/packs.ts";
 import { runToEnd } from "./helpers/engine.ts";
@@ -134,6 +137,66 @@ describe("Roguelite market roulette (5 игроков + 5 героев)", () => 
         engine.previewHeroReplacement(outgoingHeroId, offer.heroSwap!.incomingHeroId).teamOvr));
       const after = offer.preview!.after;
       expect(after.base + after.heroSynergy + after.chemistry).toBeCloseTo(bestTeamOvr, 6);
+    }
+  });
+});
+
+// R9.1 — регресс: сужение пака тактикой не должно убивать роль целиком.
+describe("Last Dance: сбалансированное сужение пака", () => {
+  const data = loadGameData();
+  const roles = ROLE_SEQUENCE;
+
+  function completed(seed: string): RunEngine {
+    const engine = new RunEngine(data, defaultRunConfig, seed);
+    runToEnd(engine);
+    return engine;
+  }
+
+  it("держит минимум один core и один support при любом seed", () => {
+    for (let rerollN = 0; rerollN < 40; rerollN += 1) {
+      const kept = balancedPackSlots(roles, 3, new Rng(`trim-${rerollN}`));
+      expect(kept).toHaveLength(3);
+      expect(kept.some((i) => roles[i] !== "support")).toBe(true);
+      expect(kept.some((i) => roles[i] === "support")).toBe(true);
+      // Порядок отображения остаётся исходным порядком слотов.
+      expect([...kept].sort((a, b) => a - b)).toEqual(kept);
+    }
+  });
+
+  it("вырожденные размеры пака не падают", () => {
+    expect(balancedPackSlots(roles, 5, new Rng("edge"))).toEqual([0, 1, 2, 3, 4]);
+    expect(balancedPackSlots(roles, 9, new Rng("edge"))).toEqual([0, 1, 2, 3, 4]);
+    expect(balancedPackSlots(roles, 1, new Rng("edge"))).toHaveLength(1);
+    expect(balancedPackSlots(roles, 0, new Rng("edge"))).toEqual([]);
+  });
+
+  it("support-оффер выживает при активной Last Dance (раньше срезался всегда)", () => {
+    const engine = completed("last-dance-market");
+    let sawSupport = false;
+    for (let rerollN = 0; rerollN < 8; rerollN += 1) {
+      const offers = buildAnteMarketRoulette(engine, "last-dance-market", 1, rerollN, ["lastDance"]);
+      const players = offers.filter((offer) => offer.kind === "player");
+      expect(players).toHaveLength(5 - TACTICS.lastDance.marketPackPenalty);
+      const offeredRoles = players.map((offer) =>
+        engine.candidateByRef(offer.playerSwap!.incoming)!.player.role);
+      // Инвариант на КАЖДОМ реролле: роль не вымирает целиком.
+      expect(offeredRoles.some((role) => role !== "support")).toBe(true);
+      if (offeredRoles.includes("support")) sawSupport = true;
+    }
+    expect(sawSupport).toBe(true);
+  });
+
+  it("сужение детерминировано и не подменяет удержанные карты", () => {
+    const engine = completed("last-dance-determinism");
+    const a = buildAnteMarketRoulette(engine, "last-dance-determinism", 2, 0, ["lastDance"]);
+    const b = buildAnteMarketRoulette(engine, "last-dance-determinism", 2, 0, ["lastDance"]);
+    expect(a).toEqual(b);
+    // Полный пак без тактики содержит те же карты — тактика забирает варианты, а не меняет их.
+    const full = buildAnteMarketRoulette(engine, "last-dance-determinism", 2, 0);
+    const fullPlayerIds = new Set(full.filter((o) => o.kind === "player").map((o) => o.id));
+    for (const offer of a.filter((o) => o.kind === "player")) {
+      expect(fullPlayerIds.has(offer.id)).toBe(true);
+      expect(offer).toEqual(full.find((o) => o.id === offer.id));
     }
   });
 });

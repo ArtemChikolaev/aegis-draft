@@ -124,9 +124,30 @@ export interface RunEconomyState {
   /** Редкость героев забега (heroId → тир), срез 3b. Стартовый драфт весь common (записей нет);
    *  re-pick роллит редкость, «улучшение» бампит тир. Хранится напрямую → resume без ре-ролла. */
   heroRarity: Record<string, Rarity>;
-  /** Мета-гейт: редкость активна только со второго забега (первый весь common). Ставится на старте
-   *  из careerStore, персистится, чтобы не «включиться» посреди забега. */
-  rarityEnabled: boolean;
+  /** Мета-гейт СЛУЧАЙНЫХ дропов повышенного качества: в первом-ever забеге всё, что приходит с
+   *  рынка, — common. Ставится на старте из careerStore, персистится, чтобы не «включиться»
+   *  посреди забега. */
+  rarityDropsEnabled: boolean;
+  /** Ручное улучшение качества в Буткемпе. Доступно **с первого забега**: это не лут, а осознанная
+   *  трата золота, и именно она знакомит игрока с системой качества.
+   *
+   *  Раньше оба поведения глушил один флаг `rarityEnabled` — и первый забег оставался вообще без
+   *  качества героев (баг PF-8). Legacy-сейвы читаются через `normalizeEconomyState`. */
+  rarityUpgradesEnabled: boolean;
+}
+
+/** Сейв мог быть записан до разделения флагов редкости (R3.1). Поднимаем legacy `rarityEnabled`
+ *  в обе новые оси, чтобы уже идущий забег не менял правила на середине. Резкой миграции не
+ *  требуется: `BALANCE_CONFIG_VERSION` всё равно инвалидирует несовместимый roguelite-resume,
+ *  это лишь мягкий фолбэк на случай совместимой версии. */
+function normalizeEconomyState(initial: RunEconomyState): RunEconomyState {
+  const legacy = (initial as RunEconomyState & { rarityEnabled?: boolean }).rarityEnabled;
+  if (legacy == null) return initial;
+  return {
+    ...initial,
+    rarityDropsEnabled: initial.rarityDropsEnabled ?? legacy,
+    rarityUpgradesEnabled: initial.rarityUpgradesEnabled ?? legacy,
+  };
 }
 
 /** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
@@ -303,8 +324,11 @@ export interface CampView {
   scouted: boolean;
   freeMarketRerolls: number;
   freePlayerSwaps: number;
-  /** Редкость героев активна (мета-гейт пройден). Вне неё UI редкости скрыт. */
-  rarityEnabled: boolean;
+  /** Случайные повышенные качества могут выпадать (мета-гейт пройден). */
+  rarityDropsEnabled: boolean;
+  /** Доступно ручное улучшение качества в Буткемпе. Бейджи тира при этом показываются всегда:
+   *  даже пока дропы закрыты гейтом, игрок качает героев руками и должен видеть результат. */
+  rarityUpgradesEnabled: boolean;
   /** heroId → тир для рендера бейджей/улучшений (срез 3b). */
   heroRarity: Record<string, Rarity>;
   /** Индекс этапа текущего Буткемпа — для превью редкости входящих на re-pick героев. */
@@ -330,7 +354,8 @@ function emptyState(): RunEconomyState {
     freeMarketRerolls: 0,
     freePlayerSwaps: 0,
     heroRarity: {},
-    rarityEnabled: false,
+    rarityDropsEnabled: false,
+    rarityUpgradesEnabled: true,
   };
 }
 
@@ -339,7 +364,7 @@ export class RunEconomy {
   private state: RunEconomyState;
 
   constructor(private readonly seed: string, initial?: RunEconomyState) {
-    this.state = initial ? { ...emptyState(), ...initial } : emptyState();
+    this.state = initial ? { ...emptyState(), ...normalizeEconomyState(initial) } : emptyState();
   }
 
   /** Клон состояния для persist/рендера. */
@@ -544,13 +569,19 @@ export class RunEconomy {
     return true;
   }
 
-  /** Включить редкость героев для этого забега (мета-гейт, ставится на старте из careerStore). */
-  setRarityEnabled(enabled: boolean): void {
-    this.state.rarityEnabled = enabled;
+  /** Настроить оси редкости для этого забега (ставится на старте из careerStore).
+   *  `drops` — мета-гейт случайных повышенных качеств; `upgrades` — ручная прокачка в Буткемпе. */
+  setRarityFlags(flags: { drops: boolean; upgrades: boolean }): void {
+    this.state.rarityDropsEnabled = flags.drops;
+    this.state.rarityUpgradesEnabled = flags.upgrades;
   }
 
-  get rarityEnabled(): boolean {
-    return this.state.rarityEnabled;
+  get rarityDropsEnabled(): boolean {
+    return this.state.rarityDropsEnabled;
+  }
+
+  get rarityUpgradesEnabled(): boolean {
+    return this.state.rarityUpgradesEnabled;
   }
 
   /** Карта редкости активных/резервных героев (heroId → тир). Common не хранится (default). */
@@ -565,7 +596,7 @@ export class RunEconomy {
   /** Ролл редкости входящему на re-pick герою по этапу. Вне мета-гейта — always common (no-op).
    *  Детерминизм: тот же (seed, heroId, stage) ⇒ та же редкость, что и в превью. */
   rollHeroRarity(heroId: number, stageIndex: number): Rarity {
-    if (!this.state.rarityEnabled) return "common";
+    if (!this.state.rarityDropsEnabled) return "common";
     const rarity = rollRarity(this.seed, heroId, stageIndex);
     if (rarity === "common") delete this.state.heroRarity[String(heroId)];
     else this.state.heroRarity[String(heroId)] = rarity;
@@ -574,14 +605,14 @@ export class RunEconomy {
 
   /** Стоимость поднять героя на следующий тир (учёт золота проверяет вызывающий). */
   rarityUpgradeCost(heroId: number): number | null {
-    if (!this.state.rarityEnabled) return null;
+    if (!this.state.rarityUpgradesEnabled) return null;
     return upgradeCost(this.rarityOf(heroId));
   }
 
   /** Улучшить героя на один тир за золото (без ухода в минус). Реролл того же героя его НЕ качает —
    *  поднять качество можно только здесь (PRD §5.9.2). Возвращает успех. */
   upgradeHeroRarity(heroId: number): boolean {
-    if (!this.state.rarityEnabled) return false;
+    if (!this.state.rarityUpgradesEnabled) return false;
     const current = this.rarityOf(heroId);
     const target = nextRarity(current);
     const cost = upgradeCost(current);
@@ -610,7 +641,8 @@ export class RunEconomy {
       scouted: this.state.scoutedCamps.includes(this.state.campStageIndex),
       freeMarketRerolls: this.state.freeMarketRerolls,
       freePlayerSwaps: this.state.freePlayerSwaps,
-      rarityEnabled: this.state.rarityEnabled,
+      rarityDropsEnabled: this.state.rarityDropsEnabled,
+      rarityUpgradesEnabled: this.state.rarityUpgradesEnabled,
       heroRarity: { ...this.state.heroRarity },
       campStageIndex: this.state.campStageIndex,
     };

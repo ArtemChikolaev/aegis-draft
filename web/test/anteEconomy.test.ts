@@ -233,16 +233,17 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(playerOfferAffordable(5, 6, 0)).toBe(true);
   });
 
-  it("редкость героев (срез 3b): гейт, ролл, улучшение, персист", () => {
+  it("редкость героев (срез 3b): дропы, ролл, улучшение, персист", () => {
     const eco = new RunEconomy("rar");
     eco.openCamp(3);
-    // Вне мета-гейта — всё common, улучшение недоступно.
-    expect(eco.rarityEnabled).toBe(false);
+    // Первый забег: случайных повышенных качеств нет...
+    expect(eco.rarityDropsEnabled).toBe(false);
     expect(eco.rollHeroRarity(14, 3)).toBe("common");
-    expect(eco.rarityUpgradeCost(14)).toBeNull();
-    expect(eco.upgradeHeroRarity(14)).toBe(false);
+    // ...но ручное улучшение доступно сразу (R3.1: раньше один флаг глушил и его — баг PF-8).
+    expect(eco.rarityUpgradesEnabled).toBe(true);
+    expect(eco.rarityUpgradeCost(14)).not.toBeNull();
 
-    eco.setRarityEnabled(true);
+    eco.setRarityFlags({ drops: true, upgrades: true });
     eco.awardStageClear(3, "1", 4); // немного золота
     eco.awardStageClear(4, "1", 3);
     // Ролл детерминирован и записывается в карту (не-common).
@@ -256,10 +257,48 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(eco.upgradeHeroRarity(heroId)).toBe(true);
     expect(eco.rarityOf(heroId)).not.toBe(before);
     expect(eco.gold).toBe(goldBefore - cost);
-    // Персист восстанавливает карту и гейт.
+    // Персист восстанавливает карту и обе оси гейта.
     const restored = new RunEconomy("rar", eco.snapshot);
-    expect(restored.rarityEnabled).toBe(true);
+    expect(restored.rarityDropsEnabled).toBe(true);
+    expect(restored.rarityUpgradesEnabled).toBe(true);
     expect(restored.heroRarity).toEqual(eco.heroRarity);
+  });
+
+  it("R3.1: первый забег качает героя руками, но не получает случайных дропов", () => {
+    const eco = new RunEconomy("first-run");
+    eco.setRarityFlags({ drops: false, upgrades: true });
+    eco.openCamp(1);
+    eco.awardStageClear(1, "1", 8);
+    eco.awardStageClear(2, "1", 6);
+    // Любой ролл рынка остаётся common, каким бы поздним ни был этап.
+    for (const stage of [1, 5, 9]) expect(eco.rollHeroRarity(42, stage)).toBe("common");
+    // Но common можно поднять до unique за золото, и это переживает resume.
+    expect(eco.upgradeHeroRarity(42)).toBe(true);
+    expect(eco.rarityOf(42)).toBe("unique");
+    const view = eco.campView();
+    expect(view.rarityUpgradesEnabled).toBe(true);
+    expect(view.rarityDropsEnabled).toBe(false);
+    expect(new RunEconomy("first-run", eco.snapshot).rarityOf(42)).toBe("unique");
+  });
+
+  it("R3.1: legacy-сейв с одним rarityEnabled поднимается в обе оси", () => {
+    // Настоящий legacy-сейв новых полей НЕ содержит вовсе — только один rarityEnabled.
+    const legacy = (enabled: boolean) => {
+      const state = { ...new RunEconomy("legacy").snapshot, rarityEnabled: enabled };
+      delete (state as Partial<typeof state>).rarityDropsEnabled;
+      delete (state as Partial<typeof state>).rarityUpgradesEnabled;
+      return state as never;
+    };
+    const legacyOn = legacy(true);
+    const on = new RunEconomy("legacy", legacyOn);
+    expect(on.rarityDropsEnabled).toBe(true);
+    expect(on.rarityUpgradesEnabled).toBe(true);
+
+    // Забег, начатый ДО фикса как «первый» (всё выключено), не должен менять правила на середине.
+    const legacyOff = legacy(false);
+    const off = new RunEconomy("legacy", legacyOff);
+    expect(off.rarityDropsEnabled).toBe(false);
+    expect(off.rarityUpgradesEnabled).toBe(false);
   });
 
   it("snapshot восстанавливает экипировку и разыгранные действия", () => {

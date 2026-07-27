@@ -181,19 +181,44 @@ test("roguelite run: stand-in делает замену игрока беспл�
   await expect(page.getByTestId("camp-gold")).toHaveText(String(goldBefore));
 });
 
-// Срез 3b: редкость героев под мета-гейтом. Первый-когда-либо roguelite-забег весь common.
-test("roguelite run: редкость скрыта в первом забеге (мета-гейт)", async ({ page }) => {
-  await gotoFreshApp(page); // пустая карьера → гейт закрыт
+// Срез 3b + R3.1/R3.2: в первом-ever забеге закрыты только СЛУЧАЙНЫЕ повышенные качества.
+// Ручное улучшение доступно сразу — раньше один флаг rarityEnabled глушил и его (баг PF-8).
+test("roguelite run: первый забег — дропы common, но улучшать можно руками", async ({ page }) => {
+  await gotoFreshApp(page); // пустая карьера → дропы закрыты
   await startRogueliteSeed(page, CAMP_SEED);
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
-  await expect(page.getByTestId("camp-rarity")).toHaveCount(0);
+
+  // Дропы выключены: ни одна карта рынка героев не предлагает качество выше common.
+  const heroCards = page.getByTestId("camp-hero-pack").locator("[data-incoming-rarity]");
+  await expect(heroCards.first()).toBeVisible();
+  for (const card of await heroCards.all()) {
+    await expect(card).toHaveAttribute("data-incoming-rarity", "common");
+  }
+
+  // Блок улучшения виден и работает: common → unique за золото.
+  const rarity = page.getByTestId("camp-rarity");
+  await expect(rarity).toBeVisible();
+  await page.getByTestId("reward-rwd-1-1").click();
+  const upgrade = page.locator('[data-testid^="rarity-upgrade-"]').first();
+  await expect(upgrade).toBeEnabled();
+  const card = rarity.locator(".camp-rarity-card").first();
+  await upgrade.click();
+  await expect(card).toHaveAttribute("data-rarity", "unique");
+
+  // Resume первого забега сохраняет вручную поднятое качество.
+  await page.reload();
+  await expect(page.getByTestId("resume-banner")).toBeVisible();
+  await page.getByTestId("resume-continue").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await expect(page.getByTestId("camp-rarity").locator(".camp-rarity-card").first())
+    .toHaveAttribute("data-rarity", "unique");
 });
 
 // Со второго забега (в careerStore есть завершённый roguelite-забег) редкость активна.
-test("roguelite run: со второго забега редкость активна и улучшается", async ({ page }) => {
+test("roguelite run: со второго забега открываются случайные повышенные качества", async ({ page }) => {
   // addInitScript переживает clearPersist+reload внутри gotoFreshApp (пере-применяется до скриптов).
   await page.addInitScript(() => {
     localStorage.setItem("aegis:career:v1", JSON.stringify({ v: 1, entries: [{ configLabel: { mode: "run" } }] }));

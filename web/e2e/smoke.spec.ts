@@ -19,6 +19,25 @@ test.describe("smoke: classic run", () => {
     await expect(page.getByTestId("tournament-stage-field")).toBeVisible();
     await expect(page.getByTestId("tournament-simulate")).toBeVisible();
   });
+
+  // R1.1: «Показать результат» — presentation shortcut, доступный и до старта симуляции.
+  // Он не второй симулятор: движок считает исход в конструкторе, кнопка лишь доводит показ.
+  test("Show result выдаёт итог турнира одним кликом и пишет карьеру один раз", async ({ page }) => {
+    await startClassicRun(page);
+    await completeDraft(page);
+    await expect(page.getByTestId("tournament-show-result")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("tournament-show-result").click();
+
+    // Сразу терминальный экран: итоговая таблица + пост-турнирные действия, без reveal.
+    await expect(page.getByTestId("tournament-complete")).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("tournament-skip")).toHaveCount(0);
+    await expect(page.getByTestId("tournament-show-result")).toHaveCount(0);
+
+    // Карьера получила ровно одну запись, и она переживает reload (сейв забега очищен).
+    await expect(page.locator(".career-run")).toHaveCount(1);
+    await page.reload();
+    await expect(page.getByTestId("resume-banner")).toHaveCount(0);
+  });
 });
 
 test.describe("responsive: no horizontal overflow", () => {

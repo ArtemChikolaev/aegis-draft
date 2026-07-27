@@ -17,6 +17,7 @@ import {
 } from "../src/game/tournamentPlayback.ts";
 import { advanceToEnd, createTournament } from "./helpers/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
+import { useRun } from "../src/state/runStore.ts";
 
 describe("tournamentPlayback", () => {
   const data = loadGameData();
@@ -177,5 +178,67 @@ describe("tournamentPlayback", () => {
     expect(gfLive).toBeGreaterThan(0);
     expect(userPlayoffCameraTarget(snapshot, feeders, ticks, gfLive, false)).toBe("grand-final");
     expect(userPlayoffCameraTarget(snapshot, feeders, ticks, ticks.length, true)).toBe("grand-final");
+  });
+});
+
+// R1.1 «Показать результат» — презентационный шорткат, а не второй симулятор. Исход считает
+// конструктор TournamentEngine, поэтому шорткат обязан быть неотличим от полного просмотра.
+describe("completeTournamentPlayback (Show result)", () => {
+  const data = loadGameData();
+
+  function storeWithTournament(seed: string) {
+    const engine = createTournament(data, seed);
+    useRun.setState({
+      tournamentEngine: engine,
+      tournament: engine.snapshot,
+      tournamentStep: 0,
+      resultsSeen: false,
+      anteRun: null,
+      economy: null,
+      snapshot: null,
+      data: null,
+      config: null,
+      selectedMode: "classic",
+    });
+    return engine;
+  }
+
+  it("даёт тот же snapshot, что и полный просмотр", () => {
+    const watched = advanceToEnd(createTournament(data, "show-result"));
+    storeWithTournament("show-result");
+    useRun.getState().completeTournamentPlayback();
+    expect(JSON.stringify(useRun.getState().tournament)).toBe(JSON.stringify(watched));
+  });
+
+  it("доводит стадию до терминальной за один вызов и не двигает её дальше", () => {
+    storeWithTournament("show-result-stage");
+    useRun.getState().completeTournamentPlayback();
+    expect(useRun.getState().tournament?.stage).toBe("playoffs");
+    expect(useRun.getState().tournament?.canAdvance).toBe(false);
+    // tournamentStep = индекс стадии (field=0 → playoffs=2), он же уезжает в сейв.
+    expect(useRun.getState().tournamentStep).toBe(2);
+
+    useRun.getState().completeTournamentPlayback();
+    expect(useRun.getState().tournamentStep).toBe(2);
+  });
+
+  it("с середины просмотра доигрывает остаток, а не начинает заново", () => {
+    const engine = storeWithTournament("show-result-mid");
+    useRun.getState().advanceTournament(); // field → groups
+    expect(useRun.getState().tournamentStep).toBe(1);
+    useRun.getState().completeTournamentPlayback();
+    expect(useRun.getState().tournamentStep).toBe(2);
+    expect(JSON.stringify(useRun.getState().tournament)).toBe(JSON.stringify(engine.snapshot));
+  });
+
+  it("finishTournament после шортката отрабатывает ровно один раз", () => {
+    storeWithTournament("show-result-finish");
+    useRun.getState().completeTournamentPlayback();
+    expect(useRun.getState().resultsSeen).toBe(false);
+    useRun.getState().finishTournament();
+    expect(useRun.getState().resultsSeen).toBe(true);
+    // Повторный вызов (второй эффект UI, resume, повторный рендер) — no-op.
+    useRun.getState().finishTournament();
+    expect(useRun.getState().resultsSeen).toBe(true);
   });
 });

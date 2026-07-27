@@ -70,7 +70,9 @@ type RouteKey = (typeof ROUTE_ORDER)[number];
 // а здесь мы лишь «проигрываем» его по одному элементу с возможностью Skip. Сбрасывается при
 // смене стадии (resetKey). Состояние эфемерное — в persist забега не попадает (при resume
 // стадия открывается сразу, а reveal доиграется/скипнется заново).
-function useReveal(total: number, resetKey: unknown, stepMs: number, startDelayMs = 0) {
+// `instant` — режим «Показать результат»: reveal не проигрывается, а сразу считается доигранным.
+// Это ровно тот же снапшот движка, просто без анимации, поэтому отдельной ветки рендера не нужно.
+function useReveal(total: number, resetKey: unknown, stepMs: number, startDelayMs = 0, instant = false) {
   const [n, setN] = useState(0);
   const timer = useRef<number | null>(null);
   const startTimer = useRef<number | null>(null);
@@ -86,6 +88,7 @@ function useReveal(total: number, resetKey: unknown, stepMs: number, startDelayM
   }, []);
   useEffect(() => {
     stop();
+    if (instant) { setN(total); return; }
     setN(0);
     if (total <= 0) return;
     let current = 0;
@@ -105,13 +108,15 @@ function useReveal(total: number, resetKey: unknown, stepMs: number, startDelayM
       begin();
     }
     return stop;
-  }, [resetKey, stepMs, stop, total, startDelayMs]);
+  }, [resetKey, stepMs, stop, total, startDelayMs, instant]);
   const skip = useCallback(() => {
     stop();
     setN(total);
   }, [stop, total]);
   // Синхронный сброс при смене стадии: иначе n от групп (72) > тиков плей-офф (~68) → done=true на 1 кадр.
-  const step = keyChanged ? 0 : n;
+  // В instant-режиме стадия меняется скачком (field→playoffs), и «сброс в 0» дал бы кадр с пустой
+  // сеткой до того, как эффект успеет доставить total.
+  const step = keyChanged ? (instant ? total : 0) : n;
   return { n: step, done: total > 0 && step >= total, skip };
 }
 
@@ -236,6 +241,7 @@ export function TournamentScreen() {
   const selectedMode = useRun((state) => state.selectedMode);
   const enterCamp = useRun((state) => state.enterCamp);
   const advance = useRun((state) => state.advanceTournament);
+  const completeTournamentPlayback = useRun((state) => state.completeTournamentPlayback);
   const finishTournament = useRun((state) => state.finishTournament);
   const rerollField = useRun((state) => state.rerollField);
   const reset = useRun((state) => state.reset);
@@ -301,7 +307,18 @@ export function TournamentScreen() {
     () => motionMs("--motion-enter", 360) + (GROUP_TEAM_ROWS - 1) * motionMs("--motion-enter-stagger", 45) + 450,
     [],
   );
-  const { n, done, skip } = useReveal(revealTotal, stage, stepMs, stage === "groups" ? groupFillMs : 0);
+  // «Показать результат» — презентационный шорткат: движок доводится до терминальной стадии, а
+  // reveal объявляется доигранным. Сбрасывается на входе в новый турнир (любой начинается со
+  // стадии field), поэтому следующий этап забега снова играется вживую.
+  const [instantReveal, setInstantReveal] = useState(false);
+  useEffect(() => {
+    if (stage === "field") setInstantReveal(false);
+  }, [stage]);
+  const { n, done, skip } = useReveal(revealTotal, stage, stepMs, stage === "groups" ? groupFillMs : 0, instantReveal);
+  const showResult = useCallback(() => {
+    setInstantReveal(true);
+    completeTournamentPlayback();
+  }, [completeTournamentPlayback]);
 
   // Серии, уже доигранные на текущем шаге — от них рисуем коннектор к следующему слоту.
   const finishedSeriesIds = useMemo(() => {
@@ -613,6 +630,10 @@ export function TournamentScreen() {
           {stage === "field" && (
             <div className="run__field-actions">
               <Button variant="primary" data-testid="tournament-simulate" onClick={advance}>{t("tournament.simulate")}<span>→</span></Button>
+              {/* Пропуск целиком доступен и до старта: на позднем этапе забега смотреть турнир
+                  целиком хочется не всегда, а решение это ситуативное — прятать его в Settings
+                  значит заставлять выходить из забега ради одного клика. */}
+              <Button variant="secondary" data-testid="tournament-show-result" onClick={showResult}>{t("tournament.showResult")}<small>{t("tournament.showResultHint")}</small></Button>
               {!hardMode && !ante && (
                 <Button variant="secondary" data-testid="tournament-field-reroll" onClick={rerollField}>↻ {t("tournament.rerollField")}<small>{t("tournament.rerollFieldHint")}</small></Button>
               )}
@@ -817,7 +838,10 @@ export function TournamentScreen() {
             <div className="tournament__live">
               <span className="tournament__live-dot">{t("tournament.live")}</span>
               <em>{t(stage === "groups" ? "tournament.playingGroups" : "tournament.playingPlayoffs")}</em>
+              {/* Две РАЗНЫЕ операции: «Пропустить фазу» перематывает текущий reveal (группы либо
+                  сетку), «Показать результат» доводит весь турнир до итоговой таблицы. */}
               <Button variant="leave" data-testid="tournament-skip" onClick={skip}>{t("tournament.skip")}</Button>
+              <Button variant="leave" data-testid="tournament-show-result" onClick={showResult}>{t("tournament.showResult")}</Button>
             </div>
           ) : playoffsDone ? (
             ante && ante.phase === "playing" ? (

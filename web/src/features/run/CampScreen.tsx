@@ -597,10 +597,16 @@ export function CampScreen() {
                 // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
                 // ролл, что применит покупка. Из неё вычитаем вклад редкости снимаемого героя:
                 // иначе mythic, заменяющий immortal, выглядел как +1.4 при фактическом падении.
-                const incomingRarity: Rarity = camp.rarityEnabled && offer.heroSwap
+                // Превью обязано совпадать с покупкой: ролл здесь и `economy.rollHeroRarity`
+                // смотрят на ОДИН флаг. Пока дропы закрыты мета-гейтом, входящий всегда common —
+                // иначе карта обещала бы unique, а покупка выдавала common (поймано e2e R3.2).
+                const incomingRarity: Rarity = camp.rarityDropsEnabled && offer.heroSwap
                   ? rollRarity(seed, offer.heroSwap.incomingHeroId, camp.campStageIndex)
                   : "common";
-                const outgoingRarity: Rarity = camp.rarityEnabled && offer.heroSwap
+                // Снимаемый герой — из реальной карты забега, без гейта: в первом забеге дропов
+                // нет, но вручную поднятый тир существует, и его потеря при замене должна быть
+                // видна в дельте.
+                const outgoingRarity: Rarity = offer.heroSwap
                   ? camp.heroRarity[String(offer.heroSwap.outgoingHeroId)] ?? "common"
                   : "common";
                 const rarityDelta = raritySwapDelta(outgoingRarity, incomingRarity);
@@ -651,7 +657,7 @@ export function CampScreen() {
               })}
             </div>
 
-            {camp.rarityEnabled && (
+            {camp.rarityUpgradesEnabled && (
               <>
                 <h4 className="camp__market-group-title">{t("camp.rarityUpgrade")}</h4>
                 <p className="camp__section-hint">{t("camp.rarityHint")}</p>

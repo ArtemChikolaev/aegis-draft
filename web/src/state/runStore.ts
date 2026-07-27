@@ -148,6 +148,8 @@ interface RunStore {
    *  приложении: меняется только hash, перезагрузки нет, и loadData повторно не идёт. */
   syncLinkFromHash: () => void;
   advanceTournament: () => void;
+  /** «Показать результат»: довести турнир до терминальной стадии, не проигрывая reveal. */
+  completeTournamentPlayback: () => void;
   /** Вызывать, когда UI доиграл playoffs reveal до итоговой таблицы (не при входе в стадию). */
   finishTournament: () => void;
   /** Roguelite Run: открыть Буткемп после пройденного этапа (кнопка «В Буткемп»). */
@@ -390,10 +392,12 @@ export const useRun = create<RunStore>((set, get) => {
     if (selectedMode === "run") {
       const anteRun = new AnteRunEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName);
       const economy = new RunEconomy(seed);
-      // Мета-гейт редкости (срез 3b): первый-когда-либо roguelite-забег весь на common; редкость
-      // включается со второго. Считаем по истории careerStore (T6.4-lite до появления Штаба).
+      // Мета-гейт редкости (срез 3b, R3.1): в первом-ever roguelite-забеге не выпадают СЛУЧАЙНЫЕ
+      // повышенные качества — но ручное улучшение в Буткемпе доступно сразу, иначе первый забег
+      // вообще не показывает систему качества (баг PF-8). Считаем по истории careerStore
+      // (T6.4-lite до появления Штаба).
       const rogueliteRuns = careerEntriesForMode(useCareer.getState().entries, "run").length;
-      economy.setRarityEnabled(rogueliteRuns >= 1);
+      economy.setRarityFlags({ drops: rogueliteRuns >= 1, upgrades: true });
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
         tactics: null, boss: null,
@@ -812,6 +816,23 @@ export const useRun = create<RunStore>((set, get) => {
       const ovr = snapshot?.score?.teamOvr ?? 0;
       logTournament(tournament, { teamName: teamName || "Aegis Five", teamOvr: ovr });
       // Career и clearSavedRun — только в finishTournament после reveal итогов.
+      persist();
+    },
+
+    completeTournamentPlayback() {
+      const { tournamentEngine, tournamentStep, teamName, snapshot } = get();
+      if (!tournamentEngine) return;
+      // Исход НЕ пересчитывается: TournamentEngine считает весь турнир в конструкторе
+      // (buildResult), а advance() двигает только стадию показа. Поэтому «Показать результат»
+      // даёт байт-в-байт тот же snapshot, что и полный просмотр, не трогает seed и не заводит
+      // второй «быстрый симулятор». Награду по-прежнему начисляет finishTournament() — он
+      // идемпотентен по resultsSeen, и UI зовёт его, доиграв reveal до терминальной стадии.
+      let step = tournamentStep;
+      while (tournamentEngine.advance()) step += 1;
+      if (step === tournamentStep) return;
+      const tournament = tournamentEngine.snapshot;
+      set({ tournament, tournamentStep: step });
+      logTournament(tournament, { teamName: teamName || "Aegis Five", teamOvr: snapshot?.score?.teamOvr ?? 0 });
       persist();
     },
 

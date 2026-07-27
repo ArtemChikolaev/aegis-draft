@@ -88,6 +88,37 @@ function bestHeroOption(engine: RunEngine, incomingHeroId: number): HeroOption {
     });
 }
 
+/** Какие карты player-пака остаются, когда тактика сужает рынок (Last Dance).
+ *
+ * Раньше здесь стоял `offers.splice(packSize)` — обрезка хвоста ФИКСИРОВАННОГО `ROLE_SEQUENCE`
+ * (`safelane, mid, offlane, support, support`). То есть тактика не «убирала пару случайных
+ * вариантов», а систематически удаляла ОБОИХ саппортов: саппорт-слот при активной Last Dance
+ * нельзя было усилить в принципе. Trade-off обязан забирать КОЛИЧЕСТВО опций, а не запрещать
+ * роль, поэтому выборка сбалансирована: минимум один core и минимум один support, пока размер
+ * пака это позволяет.
+ *
+ * Детерминизм по `seed + camp + rerollN`: тот же забег ⇒ тот же сокращённый пак. Порядок
+ * отображения сохраняется (сортировка по исходному слоту), а сами удержанные карты остаются в
+ * точности теми же, что и без тактики, — сужение не подменяет вероятности скрытым образом. */
+export function balancedPackSlots(roles: readonly Role[], packSize: number, rng: Rng): number[] {
+  const all = roles.map((_, index) => index);
+  if (packSize >= all.length) return all;
+  if (packSize <= 0) return [];
+  const picked = new Set<number>();
+  // Гарантия обеих групп имеет смысл только когда в паке есть место хотя бы под две карты.
+  if (packSize >= 2) {
+    const core = all.filter((index) => roles[index] !== "support");
+    const support = all.filter((index) => roles[index] === "support");
+    if (core.length) picked.add(rng.pick(core));
+    if (support.length) picked.add(rng.pick(support));
+  }
+  for (const index of rng.shuffle(all.filter((i) => !picked.has(i)))) {
+    if (picked.size >= packSize) break;
+    picked.add(index);
+  }
+  return [...picked].sort((a, b) => a - b);
+}
+
 /** Пять разных hero re-pick. Как и player-pack, это рулетка, а не скрытый фильтр
  * «только апгрейды»: входящий герой может быть ловушкой. Но для каждого входящего героя
  * карта показывает его лучший способ войти в текущий активный пул, а не случайную пару.
@@ -170,8 +201,16 @@ export function buildAnteMarketRoulette(
     );
   }
   // Пак собирается целиком, а урезается в конце: удержанные карты остаются в точности теми же,
-  // что и без тактики, — Last Dance забирает варианты, а не подменяет их.
-  offers.splice(packSize);
+  // что и без тактики, — Last Dance забирает варианты, а не подменяет их. Какие именно варианты
+  // уходят — решает balancedPackSlots (роль не должна вымирать целиком).
+  const keptSlots = new Set(balancedPackSlots(
+    engine.rosterView.map((slot) => slot.role),
+    packSize,
+    new Rng(`${seed}:camp-${campStageIndex}:pack-trim-${rerollN}`),
+  ));
+  const players = offers.filter((_, packSlotIndex) => keptSlots.has(packSlotIndex));
+  offers.length = 0;
+  offers.push(...players);
 
   const heroCost = marketOffers(seed, campStageIndex, rerollN)
     .find((offer) => offer.effect?.summand === "heroSynergy")!.cost;
