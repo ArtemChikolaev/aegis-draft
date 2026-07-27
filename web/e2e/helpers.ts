@@ -124,3 +124,22 @@ export async function boostInCamp(page: Page) {
     await button.click();
   }
 }
+
+/** Перезагрузить страницу и продолжить сохранённый забег.
+ *
+ *  Resume — самая тяжёлая операция набора: детерминированный replay всего лога действий на свежем
+ *  движке плюс пересборка рынка. Под пятью параллельными воркерами дефолтных 5с на первый экран
+ *  иногда не хватает, и тест краснеет по таймингу, а не по существу. Ждём явно и в одном месте,
+ *  чтобы это не расползалось по спекам разными числами. */
+export async function reloadAndResume(page: Page) {
+  await page.reload();
+  const banner = page.getByTestId("resume-banner");
+  await expect(banner).toBeVisible();
+  // Клик сразу после reload иногда приходится на момент гидратации и теряется — баннер остаётся
+  // висеть, и тест краснеет по тайммингу, а не по существу. Повторяем клик, пока баннер не уйдёт;
+  // реальный отказ resume всё равно упадёт, просто позже.
+  await expect(async () => {
+    if (await banner.count()) await page.getByTestId("resume-continue").click({ timeout: 5_000 });
+    await expect(banner).toHaveCount(0, { timeout: 5_000 });
+  }).toPass({ timeout: 30_000 });
+}

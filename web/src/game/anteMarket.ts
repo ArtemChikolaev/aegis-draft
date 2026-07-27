@@ -76,6 +76,63 @@ export function formTiersOf(pool: readonly Candidate[]): Record<FormTier, Candid
   return tiers;
 }
 
+/** Нижняя граница рынка (R5.1-fix). Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION. */
+export const FORM_FLOOR = {
+  /** Какую долю пула роли рынок перестаёт выставлять К КОНЦУ сезона (в начале — ничего). */
+  endPercentile: 0.5,
+  /** Насколько ниже слабейшего своего игрока этой роли рынок ещё показывает формы. */
+  rosterGapOvr: 6,
+  /** Пул не сжимаем ниже этого числа форм — иначе рулетка выродится в одну карту. */
+  minPoolSize: 12,
+} as const;
+
+/**
+ * Что рынок вообще выставляет для роли.
+ *
+ * Проблема, которую это чинит: после отказа от свёртки snapshot'ов (R5.1) пул стал честным, но
+ * абсолютно-перцентильным. Замер показал, что на последнем этапе 25% карт — это 56–74 OVR, ещё
+ * 35% — 74–82. Против состава 85+ такие карты бесполезны, а дорожающий реролл (R4.2) превращает
+ * их в чистую потерю золота.
+ *
+ * Важно: это НЕ отмена «ловушек» (решение 2026-07-23). Ловушка обязана быть соблазнительной и
+ * неправильной; карта 60 рядом с составом 85 никого не соблазняет — это шум, а не выбор. Формы
+ * чуть ниже своих (79–83 против 84) остаются и остаются ловушками.
+ *
+ * Порог — СТРОГИЙ ИЗ ДВУХ:
+ *  1) кривая по этапу — предсказуема и калибруется симулятором в отрыве от стратегии игрока;
+ *  2) «явно хуже того, что уже стоит в этой роли» — страхует случай, когда забег пошёл сильнее
+ *     кривой; она же не даёт рынку раздуться, потому что только УБИРАЕТ мёртвые карты.
+ *
+ * Отдельное правило для форм СВОЕГО игрока: у них меняется только Base (Chemistry и Hero Synergy
+ * считаются по accountId и переносятся), поэтому форма не сильнее текущей — доказуемо мёртвая
+ * карта, а не ловушка. Ровно так на рынок попадал «Nisha 90 → Nisha 90» с нулевой дельтой.
+ */
+export function stockedForms(
+  rolePool: readonly Candidate[],
+  opts: { seasonProgress: number; activeOvrs: readonly number[]; ownActiveOvr?: number },
+): Candidate[] {
+  const byOvr = [...rolePool].sort((a, b) => a.player.ovr - b.player.ovr);
+  if (!byOvr.length) return [];
+
+  const progress = Math.min(1, Math.max(0, opts.seasonProgress));
+  const cut = Math.floor(byOvr.length * FORM_FLOOR.endPercentile * progress);
+  const stageFloor = byOvr[Math.min(cut, byOvr.length - 1)].player.ovr;
+  const rosterFloor = opts.activeOvrs.length
+    ? Math.min(...opts.activeOvrs) - FORM_FLOOR.rosterGapOvr
+    : -Infinity;
+  const floor = Math.max(stageFloor, rosterFloor);
+
+  const kept = byOvr.filter((candidate) => candidate.player.ovr >= floor);
+  // Пул роли может почти целиком уйти под порог на позднем этапе сильного забега — тогда просто
+  // берём верхушку: лучше маленький сильный рынок, чем пустой.
+  return kept.length >= FORM_FLOOR.minPoolSize ? kept : byOvr.slice(-FORM_FLOOR.minPoolSize);
+}
+
+/** Первый непустой набор из перечисленных — для ступенчатого ослабления фильтров рынка. */
+function firstNonEmpty<T>(...lists: T[][]): T[] {
+  return lists.find((list) => list.length > 0) ?? [];
+}
+
 /** Кандидат роли: сперва по шансам выбирается ТИР формы, потом равномерно карта внутри тира.
  *
  *  Раньше здесь был равномерный `rng.pick` по всему пулу. После отказа от свёртки snapshot'ов
@@ -244,11 +301,39 @@ export function buildAnteMarketRoulette(
       || a.eventId.localeCompare(b.eventId));
   }
 
+  // Активные OVR по ролям — вход для нижней границы рынка и для правила «апгрейд формы обязан
+  // быть апгрейдом». Считаем один раз: пул фильтруется на каждый слот.
+  const activeOvrsByRole = new Map<Role, number[]>();
+  const activeOvrByAccount = new Map<number, number>();
+  for (const slot of engine.rosterView) {
+    if (!slot.candidate) continue;
+    activeOvrsByRole.set(slot.role, [...(activeOvrsByRole.get(slot.role) ?? []), slot.candidate.player.ovr]);
+    activeOvrByAccount.set(slot.candidate.player.accountId, slot.candidate.player.ovr);
+  }
+
   const takenAccounts = new Set<number>();
   const offers: Offer[] = [];
   engine.rosterView.forEach((slot, packSlotIndex) => {
     if (!slot.candidate) return;
-    const pool = (byRole.get(slot.role) ?? []).filter((c) => !takenAccounts.has(c.player.accountId));
+    const roleFull = byRole.get(slot.role) ?? [];
+    const stocked = stockedForms(roleFull, {
+      seasonProgress,
+      activeOvrs: activeOvrsByRole.get(slot.role) ?? [],
+    });
+    // Своя форма имеет смысл только как строгий апгрейд: у неё меняется лишь Base.
+    const usable = (c: Candidate) => {
+      if (takenAccounts.has(c.player.accountId)) return false;
+      const ownOvr = activeOvrByAccount.get(c.player.accountId);
+      return ownOvr == null || c.player.ovr > ownOvr;
+    };
+    // Порог — предпочтение, а не жёсткое условие: слот за слотом `takenAccounts` выедает пул, и
+    // на узкой роли отфильтрованный набор может опустеть. Пустой пул = исключение = сорванный
+    // Буткемп, поэтому ослабляем ступенчато, а не падаем.
+    const pool = firstNonEmpty(
+      stocked.filter(usable),
+      roleFull.filter(usable),
+      roleFull.filter((c) => !takenAccounts.has(c.player.accountId)),
+    );
     const rng = new Rng(`${seed}:camp-${campStageIndex}:roulette-${rerollN}:slot-${packSlotIndex}`);
     const candidate = roulettePick(pool, rng, seasonProgress);
     if (!candidate) {

@@ -220,6 +220,18 @@ export class RunEngine {
     }
   }
 
+  /** Можно ли вернуть запасного в этот слот. Нужен UI/снимку: после Form Upgrade на скамейке
+   *  лежит старая форма человека, чья личность уже активна, и второй слот той же роли для неё
+   *  законно закрыт — спрашивать об этом исключением нельзя (см. `snap` в runStore). */
+  canSwapReservePlayer(slotIndex: number, benchAccountId: number): boolean {
+    try {
+      this.assertPlayerReplacement(slotIndex, this.benchPlayerOf(benchAccountId), true);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /** Стабильный универсум героев формата (все сигнатурные из пула, отсортированы). В отличие от
    *  marketHeroCandidates не зависит от текущего ростера — нужен для детерминированных boss-банов. */
   get allFormatHeroes(): number[] {

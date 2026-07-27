@@ -15,7 +15,7 @@ import { TACTICS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
 import { BOSSES } from "./bossConditions.ts";
 import { RARITY } from "./heroRarity.ts";
-import { FORM_ODDS } from "./anteMarket.ts";
+import { FORM_ODDS, FORM_FLOOR } from "./anteMarket.ts";
 
 /** Версия набора игровых коэффициентов Roguelite Run. Бампать при любой правке чисел баланса.
  *  b1.1.0 (2026-07-24): ANTE_FIELD_HANDICAP 12→16 по прогону симулятора — наивный win-rate
@@ -35,8 +35,12 @@ import { FORM_ODDS } from "./anteMarket.ts";
  *  b1.5.0 (2026-07-27): P1 вехи M5R. R4.1 — цена hero re-pick по качеству (`RARITY.heroPrice`,
  *  не зависит от этапа). R4.2 — реролл дорожает внутри Буткемпа (`rerollCostBase/Step`).
  *  R5.1 — рынок больше не сворачивает snapshot'ы игрока и не банит активную личность; выбор формы
- *  идёт через взвешенные по прогрессу сезона тиры (`FORM_ODDS`). Состав рынка меняется целиком. */
-export const BALANCE_CONFIG_VERSION = "b1.5.0";
+ *  идёт через взвешенные по прогрессу сезона тиры (`FORM_ODDS`). Состав рынка меняется целиком.
+ *  b1.6.0 (2026-07-27): нижняя граница рынка (`FORM_FLOOR`) — рынок не выставляет формы ниже
+ *  строгого из двух порогов (кривая по этапу / «явно хуже своего в этой роли»), а форма СВОЕГО
+ *  игрока предлагается только как строгий апгрейд. Замер до фикса: на последнем этапе 25% карт
+ *  были 56–74 OVR против состава 85+ — шум, съедавший дорожающий реролл. */
+export const BALANCE_CONFIG_VERSION = "b1.6.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
@@ -48,6 +52,7 @@ export const BALANCE = {
   campActions: CAMP_ACTIONS,
   bosses: BOSSES,
   rarity: RARITY,
-  /** Шансы тиров формы игрока по прогрессу сезона (R5.1). */
+  /** Шансы тиров формы игрока по прогрессу сезона (R5.1) и нижняя граница рынка. */
   formOdds: FORM_ODDS,
+  formFloor: FORM_FLOOR,
 } as const;

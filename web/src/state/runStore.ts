@@ -192,11 +192,21 @@ export function isCodexLocked(
   return resumable?.config.hardMode === true;
 }
 
+/** `snap` обязан быть ТОТАЛЬНЫМ: он вызывается уже ПОСЛЕ мутации движка и экономики, а
+ *  `buyMarket` оборачивает всё в try/catch. Любое исключение отсюда означает «золото списано,
+ *  ростер изменён, а UI не обновился» — то есть молча сломанное состояние.
+ *
+ *  Так и было с Form Upgrade (R5.2): на скамейке оказывалась старая форма человека, чья личность
+ *  активна, и превью её возврата во ВТОРОЙ слот той же роли (у support их два) бросало «игрок уже
+ *  в активном составе». Покупка support-апгрейда выглядела как «кнопка не работает», хотя золото
+ *  уже ушло. Одиночные роли (carry/mid/offlane) не задевало — там второго слота нет. */
 function snap(engine: RunEngine): Snapshot {
   const reservePlayers: ReservePlayerView[] = engine.reservePlayers.map((candidate) => ({
     candidate,
     previews: engine.rosterView.flatMap((slot, slotIndex) => (
-      slot.candidate && slot.role === candidate.player.role
+      slot.candidate
+        && slot.role === candidate.player.role
+        && engine.canSwapReservePlayer(slotIndex, candidate.player.accountId)
         ? [{ slotIndex, score: engine.previewReservePlayerSwap(slotIndex, candidate.player.accountId) }]
         : []
     )),

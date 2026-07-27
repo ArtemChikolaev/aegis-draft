@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { balancedPackSlots, buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
+import { FORM_FLOOR, balancedPackSlots, buildAnteMarketRoulette, refreshAnteMarketOffers, stockedForms } from "../src/game/anteMarket.ts";
 import { RunEconomy, playerCost } from "../src/game/anteEconomy.ts";
 import { RunEngine } from "../src/game/engine.ts";
 import { heroPrice } from "../src/game/heroRarity.ts";
-import { ROLE_SEQUENCE } from "../src/game/packs.ts";
+import { ROLE_SEQUENCE, candidateRef } from "../src/game/packs.ts";
+import { useRun } from "../src/state/runStore.ts";
 import { Rng } from "../src/game/rng.ts";
 import { TACTICS } from "../src/game/tactics.ts";
 import { loadGameData } from "./helpers/data.ts";
@@ -234,5 +235,129 @@ describe("Last Dance: сбалансированное сужение пака",
       expect(fullPlayerIds.has(offer.id)).toBe(true);
       expect(offer).toEqual(full.find((o) => o.id === offer.id));
     }
+  });
+});
+
+// Регресс live-бага 2026-07-27: покупка Form Upgrade у SUPPORT молча не срабатывала.
+// snap() строил превью возврата запасного во ВСЕ слоты той же роли; после апгрейда на скамейке
+// лежала старая форма человека, чья личность активна, и превью во второй support-слот бросало
+// исключение. buyMarket его глотал: золото списано, ростер изменён, UI заморожен.
+describe("Form Upgrade у роли с двумя слотами", () => {
+  const data = loadGameData();
+
+  it("покупка support-апгрейда обновляет и ростер, и снимок стора, и золото — один раз", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "form-upgrade-support");
+    runToEnd(engine);
+
+    // Ищем активного support, у которого в пуле есть более сильная форма той же роли.
+    const supportSlots = engine.rosterView.flatMap((slot, index) => slot.role === "support" ? [index] : []);
+    expect(supportSlots).toHaveLength(2);
+    let found: { slotIndex: number; incoming: ReturnType<typeof engine.candidateByRef> } | null = null;
+    for (const slotIndex of supportSlots) {
+      const active = engine.rosterView[slotIndex].candidate!;
+      const better = engine.marketPlayerCandidates.find((c) =>
+        c.player.accountId === active.player.accountId
+        && c.player.role === "support"
+        && c.player.ovr > active.player.ovr);
+      if (better) { found = { slotIndex, incoming: better }; break; }
+    }
+    if (!found?.incoming) return; // у этого seed нет более сильной support-формы
+
+    const economy = new RunEconomy("form-upgrade-support");
+    economy.awardStageClear(1, "1", 8);
+    economy.openCamp(1);
+    economy.prepareMarketOffers([{
+      id: "mkt-form-upgrade",
+      kind: "player",
+      labelKey: "market.player",
+      cost: 1,
+      playerSwap: {
+        slotIndex: found.slotIndex,
+        outgoingAccountId: engine.rosterView[found.slotIndex].candidate!.player.accountId,
+        incoming: candidateRef(found.incoming),
+      },
+    }]);
+
+    useRun.setState({ engine, economy, phase: "camp", data, seed: "form-upgrade-support" });
+    const goldBefore = economy.gold;
+    useRun.getState().buyMarket("mkt-form-upgrade");
+
+    // Ростер получил новую форму...
+    expect(engine.rosterView[found.slotIndex].candidate!.eventId).toBe(found.incoming.eventId);
+    // ...снимок стора это увидел (до фикса snap бросал, и set() не выполнялся)...
+    expect(useRun.getState().snapshot?.roster[found.slotIndex].candidate?.eventId)
+      .toBe(found.incoming.eventId);
+    // ...и золото списано ровно один раз.
+    expect(economy.gold).toBe(goldBefore - 1);
+
+    // Старая форма на скамейке: вернуть её можно в СВОЙ слот и нельзя во второй той же роли.
+    const benchAccountId = engine.reservePlayers.at(-1)!.player.accountId;
+    const other = supportSlots.find((index) => index !== found!.slotIndex)!;
+    expect(engine.canSwapReservePlayer(found.slotIndex, benchAccountId)).toBe(true);
+    expect(engine.canSwapReservePlayer(other, benchAccountId)).toBe(false);
+  });
+
+  it("своя форма не сильнее текущей на рынок не попадает", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "no-sidegrade-forms");
+    runToEnd(engine);
+    const activeOvr = new Map(engine.rosterView.flatMap((slot) =>
+      slot.candidate ? [[slot.candidate.player.accountId, slot.candidate.player.ovr] as const] : []));
+
+    for (const stage of [1, 3, 5]) {
+      const offers = buildAnteMarketRoulette(engine, "no-sidegrade-forms", stage, 0, [], { stageCount: 5 });
+      for (const offer of offers.filter((o) => o.kind === "player")) {
+        const incoming = engine.candidateByRef(offer.playerSwap!.incoming)!;
+        const own = activeOvr.get(incoming.player.accountId);
+        // Nisha 90 → Nisha 90 с нулевой дельтой больше не предлагается.
+        if (own != null) expect(incoming.player.ovr).toBeGreaterThan(own);
+      }
+    }
+  });
+});
+
+// R5.1-fix: нижняя граница рынка. Поздний этап не должен показывать карты, которые заведомо
+// бесполезны против текущего состава, — это не ловушка, а шум, съедающий дорожающий реролл.
+describe("Нижняя граница рынка", () => {
+  const data = loadGameData();
+  const engine = (() => {
+    const e = new RunEngine(data, defaultRunConfig, "floor");
+    runToEnd(e);
+    return e;
+  })();
+  const pool = engine.marketPlayerCandidates.filter((c) => c.player.role === "support");
+  const minOvr = (list: readonly { player: { ovr: number } }[]) =>
+    list.reduce((m, c) => Math.min(m, c.player.ovr), Infinity);
+  const maxOvr = (list: readonly { player: { ovr: number } }[]) =>
+    list.reduce((m, c) => Math.max(m, c.player.ovr), -Infinity);
+
+  it("к концу сезона порог растёт, в начале не режет", () => {
+    const weak = [70, 72];
+    const start = stockedForms(pool, { seasonProgress: 0, activeOvrs: weak });
+    const end = stockedForms(pool, { seasonProgress: 1, activeOvrs: weak });
+    expect(minOvr(end)).toBeGreaterThan(minOvr(start));
+    expect(end.length).toBeLessThan(start.length);
+  });
+
+  it("сильный состав поднимает порог независимо от этапа", () => {
+    const strong = stockedForms(pool, { seasonProgress: 0, activeOvrs: [85, 86] });
+    // 85 − rosterGapOvr: карты, безнадёжно слабее своих, не выставляются даже на первом этапе.
+    expect(minOvr(strong)).toBeGreaterThanOrEqual(85 - FORM_FLOOR.rosterGapOvr);
+    // Ловушки живы: формы чуть слабее активных остаются.
+    expect(strong.some((c) => c.player.ovr < 85)).toBe(true);
+  });
+
+  it("верх пула не срезается никогда и пул не вырождается", () => {
+    const full = maxOvr(pool);
+    for (const activeOvrs of [[70, 72], [85, 86], [93, 94]]) {
+      for (const seasonProgress of [0, 0.5, 1]) {
+        const stocked = stockedForms(pool, { seasonProgress, activeOvrs });
+        expect(maxOvr(stocked)).toBe(full);
+        expect(stocked.length).toBeGreaterThanOrEqual(FORM_FLOOR.minPoolSize);
+      }
+    }
+  });
+
+  it("пустой пул роли не роняет расчёт", () => {
+    expect(stockedForms([], { seasonProgress: 1, activeOvrs: [88] })).toEqual([]);
   });
 });

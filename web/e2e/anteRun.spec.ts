@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { boostInCamp, completeDraft, gotoFreshApp, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
+import { boostInCamp, completeDraft, gotoFreshApp, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
 
 // Seed, проходящий этап 1 жадным авто-драфтом (completeDraft) с большим запасом (место 1) —
 // Буткемп достигается детерминированно. Подобран под текущие ante-константы (см. историю).
@@ -177,10 +177,8 @@ test("roguelite run: первый забег — дропы common, но улу�
   await expect(card).toHaveAttribute("data-rarity", "unique");
 
   // Resume первого забега сохраняет вручную поднятое качество.
-  await page.reload();
-  await expect(page.getByTestId("resume-banner")).toBeVisible();
-  await page.getByTestId("resume-continue").click();
-  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await reloadAndResume(page);
+  await expect(page.getByTestId("camp-screen")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("camp-rarity").locator(".camp-rarity-card").first())
     .toHaveAttribute("data-rarity", "unique");
 });
@@ -226,11 +224,8 @@ test("roguelite run: resume восстанавливает ante-этап пос�
   await expect(page.getByTestId("ante-status")).toContainText("Stage 1/5");
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
 
-  await page.reload();
-  await expect(page.getByTestId("resume-banner")).toBeVisible();
-  await page.getByTestId("resume-continue").click();
-
-  await expect(page.getByTestId("ante-status")).toContainText("Stage 1/5");
+  await reloadAndResume(page);
+  await expect(page.getByTestId("ante-status")).toContainText("Stage 1/5", { timeout: 20_000 });
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
 });
 
@@ -297,13 +292,8 @@ test("roguelite run: resume восстанавливает Буткемп пос
   const reservePlayer = await page.getByTestId("camp-reserve-player-name").innerText();
 
   // Перезагрузка во время Буткемпа → та же перестановка, запас и валюта.
-  await page.reload();
-  await expect(page.getByTestId("resume-banner")).toBeVisible();
-  await page.getByTestId("resume-continue").click();
-
-  // Resume — самая тяжёлая операция набора (replay лога + пересборка рынка), под параллельной
-  // нагрузкой дефолтных 5с иногда не хватало. Ждём дольше, а не «иногда красный».
-  await expect(page.getByTestId("camp-screen")).toBeVisible({ timeout: 15_000 });
+  await reloadAndResume(page);
+  await expect(page.getByTestId("camp-screen")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("camp-gold")).toHaveText(gold);
   await expect(page.getByTestId("camp-reserve-player-name")).toHaveText(reservePlayer);
   await expect(page.getByTestId("camp-team-radar").locator(`[data-account-id="${reserveBefore}"]`))
