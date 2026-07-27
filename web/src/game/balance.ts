@@ -9,7 +9,7 @@
 //
 // Это НЕ ratingModelVersion: формула Team OVR (score.ts) не меняется этими числами, только орка/
 // экономика/условия забега. Тонкая калибровка — через `npm run sim` (web/scripts/sim_run.ts).
-import { ANTE_TARGETS, ANTE_FIELD_STEP, ANTE_FIELD } from "./anteRun.ts";
+import { ANTE_TARGETS, ANTE_FIELD_STEP, ANTE_FIELD, ANTE_THREAT } from "./anteRun.ts";
 import { ECONOMY } from "./anteEconomy.ts";
 import { TACTICS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
@@ -50,14 +50,18 @@ import { FORM_ODDS, FORM_FLOOR } from "./anteMarket.ts";
  *  sd живой, качество ростера в [60,99]) вместо пост-сдвига с переклампом. `ANTE_FIELD_HANDICAP`
  *  удалён. `meanBase = 71` подобран так, чтобы профиль сложности остался прежним (naive 28.4%
  *  при n=800 против 26.7% при n=300 — в пределах шума), то есть правка меняет ФОРМУ поля, а не
- *  сложность: sd 0.99 → 5.0, доля ботов на границе 90% → ≤2%, гибель на этапе 1 27% → 12%. */
-export const BALANCE_CONFIG_VERSION = "b1.8.0";
+ *  сложность: sd 0.99 → 5.0, доля ботов на границе 90% → ≤2%, гибель на этапе 1 27% → 12%.
+ *  b1.9.0 (2026-07-27): R7.2 — угроза поля (`ANTE_THREAT`) сверх качества ростера: ускоряющаяся
+ *  надбавка за пройденные акты + надбавка финала акта; `stake` остаётся сидом снаружи. Заодно
+ *  рампа `mean` переведена внутрь акта — по абсолютному этапу она к 25-му ушла бы за 143 и вернула
+ *  бы спайк на верхней границе качества. */
+export const BALANCE_CONFIG_VERSION = "b1.9.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
 export const BALANCE = {
   version: BALANCE_CONFIG_VERSION,
-  ante: { targets: ANTE_TARGETS, fieldStep: ANTE_FIELD_STEP, field: ANTE_FIELD },
+  ante: { targets: ANTE_TARGETS, fieldStep: ANTE_FIELD_STEP, field: ANTE_FIELD, threat: ANTE_THREAT },
   economy: ECONOMY,
   tactics: TACTICS,
   campActions: CAMP_ACTIONS,

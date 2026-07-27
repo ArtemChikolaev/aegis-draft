@@ -59,14 +59,48 @@ export const ANTE_FIELD_STEP = 3;
  *  Часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts. */
 export const ANTE_FIELD = { meanBase: 71, sd: 5, min: 60, max: 99 } as const;
 
+/** Угроза поля сверх качества ростера (R7.2). Часть BALANCE_CONFIG_VERSION. */
+export const ANTE_THREAT = {
+  /** За каждый ПРОЙДЕННЫЙ акт. Внутри акта рампу даёт растущий `mean`, между актами — угроза:
+   *  так у двух источников сложности разные роли и их видно раздельно. */
+  perAct: 6,
+  /** Каждый следующий акт добавляет больше предыдущего. Без ускорения бесконечная Династия вышла
+   *  бы на плато: команда упирается в конечный потолок (пул игроков, caps, слоты), а угроза
+   *  обязана расти без границы — иначе штатным финалом перестаёт быть поражение (PRD §5.9.3). */
+  actAcceleration: 2,
+  /** Надбавка на финале акта (Boss Tournament). Правило босса остаётся главным — это лишь
+   *  «финал акта играется более сильным полем», а не замена условия числом. */
+  boss: 1,
+} as const;
+
+/** Суммарная угроза этапа. `stake` — сид под Stakes (T6.4): системы ещё нет, поэтому значение
+ *  приходит извне и по умолчанию 0, а не выдумывается здесь.
+ *
+ *  Угроза акта = сумма арифметической прогрессии по ПРОЙДЕННЫМ актам: за первый пройденный акт
+ *  `perAct`, за второй `perAct + actAcceleration` и так далее. В нынешнем односезонном забеге
+ *  (один акт из пяти этапов) она всегда 0 — наблюдаема только надбавка финала; нагрузку слагаемое
+ *  берёт на себя, когда появятся 25 этапов (R6.1) и Династия (T5.8). */
+export function anteThreat(absoluteStageIndex: number, opts: { stake?: number } = {}): number {
+  const completedActs = Math.max(0, Math.floor(absoluteStageIndex / ACT_LENGTH));
+  const actThreat = completedActs * ANTE_THREAT.perAct
+    + (ANTE_THREAT.actAcceleration * completedActs * (completedActs - 1)) / 2;
+  const bossThreat = isActFinale(absoluteStageIndex) ? ANTE_THREAT.boss : 0;
+  return actThreat + bossThreat + (opts.stake ?? 0);
+}
+
 /** Модель поля этапа `stageIndex` (0-based). Верхняя граница относится к КАЧЕСТВУ ростера;
  *  безлимитная угроза акта/босса/Stake приходит отдельным слагаемым `threat` (R7.2). */
-export function anteFieldModel(stageIndex: number): FieldModel {
+export function anteFieldModel(stageIndex: number, opts: { stake?: number } = {}): FieldModel {
+  // Рампа `mean` — ВНУТРИ акта, а не по абсолютному этапу. Иначе к 25-му этапу mean ушёл бы за
+  // 143, все боты уткнулись бы в потолок качества 99, и спайк, ради которого затевался R7.1,
+  // вернулся бы с другой стороны. Рост между актами несёт безлимитный `threat`.
+  const stageInAct = Math.max(0, stageIndex) % ACT_LENGTH;
   return {
-    mean: ANTE_FIELD.meanBase + stageIndex * ANTE_FIELD_STEP,
+    mean: ANTE_FIELD.meanBase + stageInAct * ANTE_FIELD_STEP,
     sd: ANTE_FIELD.sd,
     min: ANTE_FIELD.min,
     max: ANTE_FIELD.max,
+    threat: anteThreat(stageIndex, opts),
   };
 }
 

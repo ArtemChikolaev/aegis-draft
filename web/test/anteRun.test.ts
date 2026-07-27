@@ -4,13 +4,18 @@ import {
   ANTE_FIELD_STEP,
   ANTE_TARGETS,
   LEGAL_ANTE_TARGETS,
+  ANTE_FIELD,
+  ANTE_THREAT,
+  ACT_LENGTH,
   anteFieldModel,
+  anteThreat,
   isActFinale,
   isLegalAnteTarget,
   placementWorstRank,
 } from "../src/game/anteRun.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine } from "../src/game/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
+import { advanceToEnd } from "./helpers/tournament.ts";
 
 const data = loadGameData();
 
@@ -163,5 +168,59 @@ describe("AnteRunEngine", () => {
     const engine = new AnteRunEngine(data, "last_2y", "ante-weak", 45, "Five");
     expect(engine.resolveStage()).toBe("lost");
     expect(placementWorstRank(engine.state.lastPlacement!)).toBeGreaterThan(ANTE_TARGETS[0]);
+  });
+});
+
+// R7.2: угроза поля сверх качества ростера.
+describe("Угроза этапа (R7.2)", () => {
+  it("рампа mean живёт ВНУТРИ акта, рост между актами несёт threat", () => {
+    // Если бы mean рос по абсолютному этапу, к 25-му он ушёл бы за 143 и все боты уткнулись бы
+    // в потолок качества 99 — спайк, ради устранения которого затевался R7.1, вернулся бы сверху.
+    for (let stage = 0; stage < 30; stage += 1) {
+      const field = anteFieldModel(stage);
+      expect(field.mean).toBeGreaterThanOrEqual(ANTE_FIELD.meanBase);
+      expect(field.mean).toBeLessThanOrEqual(ANTE_FIELD.meanBase + (ACT_LENGTH - 1) * ANTE_FIELD_STEP);
+      expect(field.mean).toBeLessThan(ANTE_FIELD.max);
+    }
+    // Начало нового акта повторяет локальную рампу.
+    expect(anteFieldModel(ACT_LENGTH).mean).toBe(anteFieldModel(0).mean);
+  });
+
+  it("угроза не убывает, ускоряется по актам и не имеет потолка", () => {
+    let previous = -1;
+    for (let stage = 0; stage < 50; stage += ACT_LENGTH) {
+      const threat = anteThreat(stage);
+      expect(threat).toBeGreaterThan(previous);
+      previous = threat;
+    }
+    // Ускорение: прирост между актами сам растёт, иначе бесконечная Династия выходит на плато.
+    const perAct = (n: number) => anteThreat(n * ACT_LENGTH);
+    expect(perAct(3) - perAct(2)).toBeGreaterThan(perAct(2) - perAct(1));
+    expect(anteThreat(200)).toBeGreaterThan(100);
+  });
+
+  it("финал акта играется более сильным полем, но правило босса остаётся главным", () => {
+    // Надбавка — «финал акта сильнее», а не замена условия числом (PRD запрещает боссов,
+    // которые только поднимают цифру).
+    expect(anteThreat(ACT_LENGTH - 1) - anteThreat(ACT_LENGTH - 2)).toBe(ANTE_THREAT.boss);
+    expect(isActFinale(ACT_LENGTH - 1)).toBe(true);
+  });
+
+  it("Stakes — сид снаружи, а не выдуманное здесь число", () => {
+    expect(anteThreat(0)).toBe(0);
+    expect(anteThreat(0, { stake: 7 })).toBe(7);
+    expect(anteFieldModel(0, { stake: 7 }).threat).toBe(7);
+  });
+
+  it("угроза выводит силу соперника выше потолка качества, а турнир остаётся валидным", () => {
+    // Главный риск снятия cap 99 — не число само по себе, а то, что таблица перестанет сходиться.
+    const engine = new TournamentEngine(
+      data, "last_2y", "threat-late", 95, "Five", 0, anteFieldModel(24),
+    );
+    const snapshot = advanceToEnd(engine);
+    expect(Math.max(...snapshot.field.map((team) => team.strength))).toBeGreaterThan(99);
+    expect(snapshot.standings).toHaveLength(18);
+    expect(new Set(snapshot.standings.map((row) => row.team.id)).size).toBe(18);
+    expect(snapshot.userPlacement).toBeTruthy();
   });
 });
