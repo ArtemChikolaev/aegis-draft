@@ -227,6 +227,17 @@ export function CampScreen() {
         </span>,
       ];
     }
+    if (offer.kind === "reroll") {
+      return [
+        <span key="r" className="camp-offer__card-desc">{t("reward.rerollDesc", { n: offer.tokens ?? 0 })}</span>,
+        <span key="g" className="camp-offer__delta camp-offer__delta--gold">{signed(offer.goldGain ?? 0)} ◈</span>,
+      ];
+    }
+    if (offer.kind === "quality") {
+      return [
+        <span key="q" className="camp-offer__card-desc">{t("reward.qualityDesc", { n: offer.tokens ?? 0 })}</span>,
+      ];
+    }
     if ((offer.kind === "tactic" || offer.kind === "action") && offer.cardId) {
       return [
         <span key="card" className="camp-offer__card-desc">
@@ -304,6 +315,18 @@ export function CampScreen() {
           <Eyebrow>{t("camp.title")}</Eyebrow>
           <h2 className="camp__cleared">{t("camp.cleared", { n: ante.index })}</h2>
           <p className="camp__next">{nextLabel}</p>
+          {/* Автоматическая выплата показывается разложенной: иначе «проценты за накопление»
+              невидимы, и решение «потратить сейчас против накопить» не читается. */}
+          {camp.lastPayout && (
+            <p className="camp__payout" data-testid="camp-payout">
+              {t("camp.payout")} <b>+{camp.lastPayout.prize}</b> {t("camp.payoutPrize")}
+              {camp.lastPayout.interest > 0 && (
+                <>
+                  {" · "}<b data-testid="camp-interest">+{camp.lastPayout.interest}</b> {t("camp.payoutInterest")}
+                </>
+              )}
+            </p>
+          )}
         </div>
         {config.cheatMode && <CheatBadge />}
         <div className="camp__gold" aria-label={t("camp.gold")}>
@@ -685,7 +708,11 @@ export function CampScreen() {
                     const up = nextRarity(current);
                     const cost = upgradeCost(current);
                     const thumb = hero(heroId);
-                    const affordable = cost != null && (camp.unlimitedGold || cost <= camp.gold);
+                    // Токен «бесплатное улучшение» (награда R4.3) должен учитываться и в UI:
+                    // иначе карточка выглядит заблокированной, хотя движок списал бы 0 — тот же
+                    // класс бага, что уже ловили на stand-in.
+                    const freeUpgrade = camp.freeRarityUpgrades > 0;
+                    const affordable = cost != null && (freeUpgrade || camp.unlimitedGold || cost <= camp.gold);
                     const gain = up ? RARITY.heroSynergyBonus[up] - RARITY.heroSynergyBonus[current] : 0;
                     return (
                       <div key={heroId} className="camp-rarity-card" data-hero-id={heroId} data-rarity={current}>
@@ -709,7 +736,9 @@ export function CampScreen() {
                               )}
                             </div>
                             <div className="camp-pack-card__buy">
-                              <span className="camp-offer__cost">{t("camp.cost", { cost: cost ?? 0 })}</span>
+                              <span className={`camp-offer__cost${freeUpgrade ? " camp-offer__cost--free" : ""}`}>
+                                {freeUpgrade ? t("camp.free") : t("camp.cost", { cost: cost ?? 0 })}
+                              </span>
                               <Button
                                 variant="primary"
                                 disabled={!affordable}

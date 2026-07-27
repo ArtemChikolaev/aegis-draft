@@ -51,7 +51,10 @@ export interface HeroSwapEffect {
   incomingRarity?: Rarity;
 }
 
-export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "action";
+/** `reroll`/`quality` — награды-«токены» (R4.3): дают не силу и не деньги, а возможность искать
+ *  и улучшать. Нужны, чтобы выбор награды был между РАЗНЫМИ видами пользы, а не между «мало
+ *  золота» и «много золота» — вторая всегда доминировала первую, и выбора не было. */
+export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "action" | "reroll" | "quality";
 
 /** Оффер награды/рынка. Единый контракт для Reward и Market — задел под карточки T6.1. */
 export interface Offer {
@@ -63,8 +66,11 @@ export interface Offer {
   cost: number;
   /** Эффект (kind "stat"). */
   effect?: StatEffect;
-  /** Прибавка золота (kind "gold"). */
+  /** Прибавка золота (kind "gold", а также небольшая доплата к токен-наградам). */
   goldGain?: number;
+  /** Сколько токенов выдаёт награда (kind "reroll" — бесплатные реролы рынка,
+   *  kind "quality" — бесплатные улучшения качества героя). */
+  tokens?: number;
   /** Конкретная перестройка ростера (slice 3). */
   playerSwap?: PlayerSwapEffect;
   heroSwap?: HeroSwapEffect;
@@ -125,6 +131,11 @@ export interface RunEconomyState {
   freeMarketRerolls: number;
   /** Бесплатные замены игрока, накопленные stand-in. */
   freePlayerSwaps: number;
+  /** Бесплатные улучшения качества героя (награда-токен, R4.3). */
+  freeRarityUpgrades: number;
+  /** Из чего сложилась последняя автоматическая выплата — чтобы Буткемп мог показать
+   *  «призовые + проценты» раздельно, а не одно непрозрачное число. */
+  lastPayout?: { prize: number; interest: number };
   /** Редкость героев забега (heroId → тир), срез 3b. Стартовый драфт весь common (записей нет);
    *  re-pick роллит редкость, «улучшение» бампит тир. Хранится напрямую → resume без ре-ролла. */
   heroRarity: Record<string, Rarity>;
@@ -177,11 +188,20 @@ export const ECONOMY = {
   prizeStageStep: 1,
   /** Максимальный бонус за результат внутри пройденного порога (первое место). */
   prizePerformanceMax: 3,
-  /** Reward-варианты золота растут вместе с этапом, но рынок сохраняет фиксированные цены. */
-  rewardGold: {
-    small: { base: 3, stageStep: 1 },
-    large: { base: 6, stageStep: 2 },
-  },
+  /** Золотая reward-карта растёт вместе с этапом, но рынок сохраняет фиксированные цены.
+   *  Раньше их было ДВЕ (`small`/`large`), и большая строго доминировала меньшую — выбор был
+   *  фиктивным. Осталась одна, а конкурируют с ней содержательно другие награды (R4.3). */
+  rewardGold: { base: 6, stageStep: 2 },
+  /** Награда-«поиск»: бесплатные реролы рынка + небольшая доплата золотом. Ценность выросла
+   *  вместе с дорожающим реролом (R4.2) — теперь это реальная альтернатива деньгам. */
+  rewardReroll: { tokens: 2, gold: 2 },
+  /** Награда-«качество»: бесплатные улучшения тира героя. */
+  rewardQuality: { tokens: 1 },
+  /** Проценты за накопление (R4.3): +1 золото за каждые `interestPerGold` на руках, но не больше
+   *  `interestCap`. Начисляются автоматически вместе с призовыми и создают выбор «потратить
+   *  сейчас против накопить». В Cheat Mode не начисляются: бесконечное золото их обессмысливает. */
+  interestPerGold: 6,
+  interestCap: 3,
   /** Рычаги рынка по слагаемым. `step`/`costStep` — разброс качества при reroll. */
   levers: {
     base: { delta: 3, step: 1, cost: 5, costStep: 2, tradeoff: { summand: "chemistry" as Summand, delta: -1 } },
@@ -270,6 +290,12 @@ export function prizeForStage(
   return base + Math.round(progressToFirst * ECONOMY.prizePerformanceMax);
 }
 
+/** Проценты за удержанное золото. Чистая: UI показывает ровно то, что начислит движок. */
+export function interestFor(gold: number): number {
+  if (gold <= 0) return 0;
+  return Math.min(ECONOMY.interestCap, Math.floor(gold / ECONOMY.interestPerGold));
+}
+
 /** Ещё не полученная карточка Tactics/Camp Action, детерминированная по seed+campId.
  *  Возвращает null, когда игрок уже собрал весь набор — тогда третьим оффером остаётся
  *  прежний бесплатный stat-рычаг (срез 2), и Буткемп не выдаёт пустую карту. */
@@ -282,7 +308,9 @@ function cardOffer(seed: string, campStageIndex: number, owned: readonly string[
   const rng = new Rng(`${seed}:camp-${campStageIndex}:card`);
   const card = rng.pick(pool);
   return {
-    id: `rwd-${campStageIndex}-2`,
+    // Слот 1 — билд-карта (слот 0 = золото, слот 2 = утилита). До R4.3 карта стояла в слоте 2,
+    // где теперь утилита; несовместимые сейвы отсекает bump BALANCE_CONFIG_VERSION.
+    id: `rwd-${campStageIndex}-1`,
     kind: card.kind,
     labelKey: `${card.kind}.${card.id}`,
     cost: 0,
@@ -298,26 +326,36 @@ export function rewardOffers(
   campStageIndex: number,
   owned: readonly string[] = [],
   preparedCard?: Offer | null,
+  qualityAvailable = true,
 ): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:reward`);
   const summand = rng.pick(MARKET_SUMMANDS);
   const cfg = ECONOMY.levers[summand];
   const card = preparedCard !== undefined ? preparedCard : cardOffer(seed, campStageIndex, owned);
-  const smallGold = stageGold(
-    ECONOMY.rewardGold.small.base,
-    ECONOMY.rewardGold.small.stageStep,
-    campStageIndex,
-  );
-  const largeGold = stageGold(
-    ECONOMY.rewardGold.large.base,
-    ECONOMY.rewardGold.large.stageStep,
-    campStageIndex,
-  );
+  const gold = stageGold(ECONOMY.rewardGold.base, ECONOMY.rewardGold.stageStep, campStageIndex);
+  // Третий слот — утилита: поиск (реролы) либо качество. Выбор детерминирован по seed+camp,
+  // чтобы Буткемп не «мутировал» между рендерами, и уважает мета-гейт улучшений.
+  const utility: Offer = qualityAvailable && rng.int(2) === 0
+    ? {
+      id: `rwd-${campStageIndex}-2`,
+      kind: "quality",
+      labelKey: "reward.quality",
+      cost: 0,
+      tokens: ECONOMY.rewardQuality.tokens,
+    }
+    : {
+      id: `rwd-${campStageIndex}-2`,
+      kind: "reroll",
+      labelKey: "reward.reroll",
+      cost: 0,
+      tokens: ECONOMY.rewardReroll.tokens,
+      goldGain: ECONOMY.rewardReroll.gold,
+    };
   return [
-    { id: `rwd-${campStageIndex}-0`, kind: "gold", labelKey: "reward.goldSmall", cost: 0, goldGain: smallGold },
-    { id: `rwd-${campStageIndex}-1`, kind: "gold", labelKey: "reward.goldLarge", cost: 0, goldGain: largeGold },
+    { id: `rwd-${campStageIndex}-0`, kind: "gold", labelKey: "reward.gold", cost: 0, goldGain: gold },
     card
-      ?? { id: `rwd-${campStageIndex}-2`, kind: "stat", labelKey: `reward.stat.${summand}`, cost: 0, effect: { summand, delta: cfg.delta } },
+      ?? { id: `rwd-${campStageIndex}-1`, kind: "stat", labelKey: `reward.stat.${summand}`, cost: 0, effect: { summand, delta: cfg.delta } },
+    utility,
   ];
 }
 
@@ -360,6 +398,10 @@ export interface CampView {
   scouted: boolean;
   freeMarketRerolls: number;
   freePlayerSwaps: number;
+  /** Бесплатные улучшения качества героя (награда-токен). */
+  freeRarityUpgrades: number;
+  /** Разбор последней автоматической выплаты: призовые и проценты раздельно. */
+  lastPayout?: { prize: number; interest: number };
   /** Случайные повышенные качества могут выпадать (мета-гейт пройден). */
   rarityDropsEnabled: boolean;
   /** Доступно ручное улучшение качества в Буткемпе. Бейджи тира при этом показываются всегда:
@@ -391,6 +433,7 @@ function emptyState(): RunEconomyState {
     scoutedCamps: [],
     freeMarketRerolls: 0,
     freePlayerSwaps: 0,
+    freeRarityUpgrades: 0,
     heroRarity: {},
     rarityDropsEnabled: false,
     rarityUpgradesEnabled: true,
@@ -453,7 +496,12 @@ export class RunEconomy {
   /** Начислить призовые за пройденный этап. Идемпотентно на camp (защита от двойного эффекта). */
   awardStageClear(campStageIndex: number, placement: PlacementKey | null, target: number): void {
     if (this.state.awardedCamps.includes(campStageIndex)) return;
-    this.state.gold += prizeForStage(placement, target, campStageIndex);
+    const prize = prizeForStage(placement, target, campStageIndex);
+    // Проценты считаем с баланса, ДОнесённого до этого Буткемпа: так «накопить» — осознанное
+    // решение, а не побочный эффект. В Cheat Mode бессмысленны (золото и так бесконечно).
+    const interest = this.state.unlimitedGold ? 0 : interestFor(this.state.gold);
+    this.state.gold += prize + interest;
+    this.state.lastPayout = { prize, interest };
     this.state.awardedCamps.push(campStageIndex);
   }
 
@@ -479,7 +527,7 @@ export class RunEconomy {
   private currentRewardOffers(): Offer[] {
     // preparedRewardCard зафиксирован на openCamp; legacy-сейв без него выводит карту из ownedCards.
     const prepared = "preparedRewardCard" in this.state ? this.state.preparedRewardCard : undefined;
-    return rewardOffers(this.seed, this.state.campStageIndex, this.state.ownedCards, prepared);
+    return rewardOffers(this.seed, this.state.campStageIndex, this.state.ownedCards, prepared, this.state.rarityUpgradesEnabled);
   }
 
   private currentMarketOffers(): Offer[] {
@@ -524,7 +572,12 @@ export class RunEconomy {
     const offer = this.currentRewardOffers().find((o) => o.id === offerId);
     if (!offer) return false;
     if (offer.kind === "gold" && offer.goldGain) this.state.gold += offer.goldGain;
-    else if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
+    else if (offer.kind === "reroll") {
+      this.state.freeMarketRerolls += offer.tokens ?? 0;
+      this.state.gold += offer.goldGain ?? 0;
+    } else if (offer.kind === "quality") {
+      this.state.freeRarityUpgrades += offer.tokens ?? 0;
+    } else if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
     else if (offer.kind === "tactic" || offer.kind === "action") {
       const cardId = offer.cardId;
       if (!cardId || !this.canTakeCard(offer.kind)) return false;
@@ -675,8 +728,12 @@ export class RunEconomy {
     const current = this.rarityOf(heroId);
     const target = nextRarity(current);
     const cost = upgradeCost(current);
-    if (!target || cost == null || !this.affordable(cost)) return false;
-    this.spend(cost);
+    if (!target || cost == null) return false;
+    // Токен от reward-карты делает одно улучшение бесплатным — как stand-in для замены игрока.
+    const free = this.state.freeRarityUpgrades > 0;
+    if (!free && !this.affordable(cost)) return false;
+    if (free) this.state.freeRarityUpgrades -= 1;
+    else this.spend(cost);
     this.state.heroRarity[String(heroId)] = target;
     return true;
   }
@@ -700,6 +757,8 @@ export class RunEconomy {
       scouted: this.state.scoutedCamps.includes(this.state.campStageIndex),
       freeMarketRerolls: this.state.freeMarketRerolls,
       freePlayerSwaps: this.state.freePlayerSwaps,
+      freeRarityUpgrades: this.state.freeRarityUpgrades,
+      lastPayout: this.state.lastPayout,
       rarityDropsEnabled: this.state.rarityDropsEnabled,
       rarityUpgradesEnabled: this.state.rarityUpgradesEnabled,
       unlimitedGold: this.state.unlimitedGold,

@@ -143,3 +143,13 @@ export async function reloadAndResume(page: Page) {
     await expect(banner).toHaveCount(0, { timeout: 5_000 });
   }).toPass({ timeout: 30_000 });
 }
+
+/** Взять награду нужного ВИДА, а не по индексу слота: набор наград (R4.3) — три разных вида
+ *  пользы, и их порядок/состав может меняться при калибровке. Индексы тестов ломались бы на
+ *  каждой такой правке, вид — нет. */
+export async function chooseReward(page: Page, kinds: readonly string[]) {
+  const selector = kinds.map((kind) => `[data-offer-kind="${kind}"]`).join(", ");
+  const card = page.getByTestId("camp-reward").locator(selector).first();
+  await expect(card).toBeVisible();
+  await card.getByRole("button").click();
+}

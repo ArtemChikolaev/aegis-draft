@@ -75,7 +75,16 @@ function playCamp(engine: RunEngine, economy: RunEconomy, seed: string, style: S
   if (gold) economy.chooseReward(gold.id);
 
   const st = economy.snapshot;
-  economy.prepareMarketOffers(buildAnteMarketRoulette(engine, seed, st.campStageIndex, st.marketRerolls, economy.equippedTactics));
+  // Опции обязательны: без `stageCount` прогресс сезона всегда 0, и симулятор не проверял бы
+  // кривую нижней границы рынка (R5.1-fix) — то есть мерил бы не ту игру, в которую играют.
+  economy.prepareMarketOffers(buildAnteMarketRoulette(
+    engine,
+    seed,
+    st.campStageIndex,
+    st.marketRerolls,
+    economy.equippedTactics,
+    { rarityDrops: economy.rarityDropsEnabled, stageCount: ANTE_TARGETS.length },
+  ));
 
   let buys = 0; let guard = 0;
   while (guard++ < 12) {

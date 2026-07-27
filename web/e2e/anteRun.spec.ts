@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { boostInCamp, completeDraft, gotoFreshApp, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
+import { boostInCamp, chooseReward, completeDraft, gotoFreshApp, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
 
 // Seed, проходящий этап 1 жадным авто-драфтом (completeDraft) с большим запасом (место 1) —
 // Буткемп достигается детерминированно. Подобран под текущие ante-константы (см. историю).
@@ -95,7 +95,7 @@ test("roguelite run: экипировка тактики и розыгрыш д�
   await expect(tactics.locator(".camp-slot--empty")).toHaveCount(3);
 
   // Взять тактику из reward → занят один слот, карточка появилась с описанием.
-  await page.getByTestId("reward-rwd-1-2").click();
+  await chooseReward(page, ["tactic", "action"]);
   await expect(tactics.locator(".camp__slot-count")).toHaveText("1/3");
   await expect(tactics.locator('[data-card-id="oldTeammates"]')).toBeVisible();
 
@@ -111,7 +111,7 @@ test("roguelite run: экипировка тактики и розыгрыш д�
   await expect(page.getByTestId("camp-screen")).toBeVisible();
   const actions = page.getByTestId("camp-actions-panel");
   await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
-  await page.getByTestId("reward-rwd-2-2").click();
+  await chooseReward(page, ["tactic", "action"]);
   await expect(actions.locator(".camp__slot-count")).toHaveText("1/2");
 
   // Разыграть действие → слот освобождается (одноразовое), тактика первого этапа осталась.
@@ -131,7 +131,7 @@ test("roguelite run: stand-in делает замену игрока беспл�
   await expect(page.getByTestId("camp-screen")).toBeVisible();
 
   // Взять Stand-in и разыграть — появляется бесплатный свап игрока.
-  await page.getByTestId("reward-rwd-1-2").click();
+  await chooseReward(page, ["tactic", "action"]);
   await expect(page.getByTestId("action-play-standIn")).toBeVisible();
   await page.getByTestId("action-play-standIn").click();
 
@@ -169,7 +169,7 @@ test("roguelite run: первый забег — дропы common, но улу�
   // Блок улучшения виден и работает: common → unique за золото.
   const rarity = page.getByTestId("camp-rarity");
   await expect(rarity).toBeVisible();
-  await page.getByTestId("reward-rwd-1-1").click();
+  await chooseReward(page, ["gold"]);
   const upgrade = page.locator('[data-testid^="rarity-upgrade-"]').first();
   await expect(upgrade).toBeEnabled();
   const card = rarity.locator(".camp-rarity-card").first();
@@ -200,7 +200,7 @@ test("roguelite run: со второго забега открываются с�
   await expect(rarity).toBeVisible();
 
   // Добираем золото, улучшаем первого героя common→unique — появляется бейдж редкости.
-  await page.getByTestId("reward-rwd-1-1").click();
+  await chooseReward(page, ["gold"]);
   const upgrade = page.locator('[data-testid^="rarity-upgrade-"]').first();
   await expect(upgrade).toBeEnabled();
   await upgrade.click();
@@ -399,4 +399,44 @@ test("cheat mode: секция Special rules только в Roguelite, вклю
   await special.getByRole("button", { name: /Normal run economy/ }).click();
   await expect(page.getByTestId("cheat-gate-confirm")).toHaveCount(0);
   await expect(hardOn).toBeEnabled();
+});
+
+// R4.3: награды — три РАЗНЫХ вида пользы, доминируемой пары «мало/много золота» больше нет.
+test("roguelite run: награды разных видов, проценты и бесплатное улучшение", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CAMP_SEED);
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  // Ровно три награды, и ни один вид не повторяется — «строго лучше» невозможно.
+  const cards = page.getByTestId("camp-reward").locator("[data-offer-kind]");
+  await expect(cards).toHaveCount(3);
+  const kinds = await cards.evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-offer-kind")));
+  expect(new Set(kinds).size).toBe(3);
+  expect(kinds).toContain("gold");
+  expect(kinds.some((k) => k === "reroll" || k === "quality")).toBe(true);
+
+  // Автоматическая выплата разложена на призовые и проценты.
+  await expect(page.getByTestId("camp-payout")).toBeVisible();
+
+  const utility = kinds.find((k) => k === "reroll" || k === "quality")!;
+  await chooseReward(page, [utility]);
+
+  if (utility === "quality") {
+    // Токен делает улучшение качества бесплатным — карточка так и подписана.
+    const upgrade = page.locator('[data-testid^="rarity-upgrade-"]').first();
+    await expect(upgrade).toBeEnabled();
+    await expect(page.getByTestId("camp-rarity").locator(".camp-offer__cost--free").first()).toBeVisible();
+    const goldBefore = await page.getByTestId("camp-gold").innerText();
+    await upgrade.click();
+    await expect(page.getByTestId("camp-gold")).toHaveText(goldBefore);
+  } else {
+    // Скауты дают бесплатные реролы: реролл не тратит золото.
+    const goldBefore = await page.getByTestId("camp-gold").innerText();
+    await page.getByTestId("camp-reroll").click();
+    await expect(page.getByTestId("camp-gold")).toHaveText(goldBefore);
+  }
 });

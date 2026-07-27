@@ -662,3 +662,7 @@
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
   background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
+
+/* Разбор автоматической выплаты (призовые + проценты) под заголовком Буткемпа. */
+.camp__payout { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
+.camp__payout b { color: var(--gold); }

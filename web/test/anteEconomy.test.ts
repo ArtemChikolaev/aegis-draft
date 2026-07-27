@@ -3,6 +3,7 @@ import {
   ECONOMY,
   RunEconomy,
   formUpgradeCost,
+  interestFor,
   playerCost,
   rerollCostFor,
   marketOffers,
@@ -40,11 +41,32 @@ describe("детерминизм офферов", () => {
     expect(rewardOffers("s", 1)).not.toEqual(rewardOffers("s", 2));
   });
 
-  it("золотые reward-карты растут вместе со stage", () => {
+  it("золотая reward-карта растёт вместе со stage и она одна", () => {
+    // R4.3: пара «мало/много золота» была доминируемым выбором и убрана — золотая карта одна,
+    // а конкурируют с ней содержательно другие награды.
     const stage1 = rewardOffers("s", 1).filter((offer) => offer.kind === "gold");
     const stage4 = rewardOffers("s", 4).filter((offer) => offer.kind === "gold");
-    expect(stage1.map((offer) => offer.goldGain)).toEqual([3, 6]);
-    expect(stage4.map((offer) => offer.goldGain)).toEqual([6, 12]);
+    expect(stage1).toHaveLength(1);
+    expect(stage1[0].goldGain).toBe(ECONOMY.rewardGold.base);
+    expect(stage4[0].goldGain).toBe(ECONOMY.rewardGold.base + 3 * ECONOMY.rewardGold.stageStep);
+  });
+
+  it("R4.3: три награды — разные виды пользы, без доминируемых пар", () => {
+    for (let camp = 1; camp <= 6; camp += 1) {
+      const kinds = rewardOffers("variety", camp).map((offer) => offer.kind);
+      expect(kinds).toHaveLength(3);
+      // Деньги / билд / утилита — ни один вид не повторяется, поэтому «строго лучше» невозможно.
+      expect(new Set(kinds).size).toBe(3);
+      expect(kinds[0]).toBe("gold");
+      expect(["tactic", "action", "stat"]).toContain(kinds[1]);
+      expect(["reroll", "quality"]).toContain(kinds[2]);
+    }
+  });
+
+  it("R4.3: без мета-гейта улучшений утилита всегда «поиск», а не «качество»", () => {
+    for (let camp = 1; camp <= 6; camp += 1) {
+      expect(rewardOffers("gate", camp, [], undefined, false)[2].kind).toBe("reroll");
+    }
   });
 
   it("тот же seed+campId+rerollN → те же market-офферы; reroll меняет набор", () => {
@@ -151,11 +173,11 @@ function campWithCard(eco: RunEconomy, kind: "tactic" | "action"): string {
 }
 
 describe("RunEconomy — карточки билда (срез 4)", () => {
-  it("reward третьей картой выдаёт Tactic или Camp Action", () => {
+  it("reward второй картой выдаёт Tactic или Camp Action", () => {
     const eco = new RunEconomy("s");
     eco.openCamp(1);
-    const third = eco.campView().rewardOffers[2];
-    expect(["tactic", "action", "stat"]).toContain(third.kind);
+    const build = eco.campView().rewardOffers[1];
+    expect(["tactic", "action", "stat"]).toContain(build.kind);
   });
 
   it("взятая тактика занимает слот и не считается модификатором экономики", () => {
@@ -404,5 +426,104 @@ describe("Цена апгрейда формы", () => {
 
   it("чем сильнее входящая форма, тем дороже апгрейд", () => {
     expect(formUpgradeCost(92, 80)).toBeGreaterThan(formUpgradeCost(84, 80));
+  });
+});
+
+// R4.3: проценты за накопление и награды-токены.
+describe("Проценты за накопление", () => {
+  it("растут по удержанному золоту и упираются в cap", () => {
+    expect(interestFor(0)).toBe(0);
+    expect(interestFor(ECONOMY.interestPerGold - 1)).toBe(0);
+    expect(interestFor(ECONOMY.interestPerGold)).toBe(1);
+    expect(interestFor(ECONOMY.interestPerGold * 2)).toBe(2);
+    expect(interestFor(ECONOMY.interestPerGold * 99)).toBe(ECONOMY.interestCap);
+  });
+
+  it("начисляются вместе с призовыми и показываются раздельно", () => {
+    const eco = new RunEconomy("interest");
+    // Первый Буткемп: копить было нечего — только призовые.
+    eco.awardStageClear(1, "1", 8);
+    expect(eco.snapshot.lastPayout).toEqual({ prize: prizeForStage("1", 8, 1), interest: 0 });
+
+    // Второй: на руках уже есть баланс → сверху проценты с него.
+    const held = eco.gold;
+    eco.awardStageClear(2, "1", 6);
+    const payout = eco.snapshot.lastPayout!;
+    expect(payout.interest).toBe(interestFor(held));
+    expect(eco.gold).toBe(held + payout.prize + payout.interest);
+  });
+
+  it("накопить приносит проценты, спустить всё в ноль — нет", () => {
+    const saver = new RunEconomy("saver");
+    const spender = new RunEconomy("saver");
+    for (const eco of [saver, spender]) eco.awardStageClear(1, "1", 8);
+    expect(saver.gold).toBeGreaterThanOrEqual(ECONOMY.interestPerGold);
+
+    // «Транжира» сжигает баланс реролами до нуля, «копящий» держит его.
+    spender.openCamp(1);
+    while (spender.campView().canReroll) spender.rerollMarket();
+    expect(spender.gold).toBeLessThan(ECONOMY.interestPerGold);
+
+    for (const eco of [saver, spender]) eco.awardStageClear(2, "1", 6);
+    expect(saver.snapshot.lastPayout!.interest)
+      .toBeGreaterThan(spender.snapshot.lastPayout!.interest);
+  });
+
+  it("в Cheat Mode проценты не начисляются", () => {
+    const eco = new RunEconomy("cheat-interest");
+    eco.setUnlimitedGold(true);
+    eco.awardStageClear(1, "1", 8);
+    eco.awardStageClear(2, "1", 6);
+    expect(eco.snapshot.lastPayout!.interest).toBe(0);
+  });
+});
+
+describe("Награды-токены", () => {
+  function rewardOfKind(eco: RunEconomy, kind: "reroll" | "quality"): string | null {
+    for (let camp = 1; camp <= 12; camp += 1) {
+      eco.openCamp(camp);
+      const offer = eco.campView().rewardOffers.find((o) => o.kind === kind);
+      if (offer) return offer.id;
+    }
+    return null;
+  }
+
+  it("«Скауты» дают бесплатные реролы и не тратят золото", () => {
+    const eco = new RunEconomy("tokens-reroll");
+    const id = rewardOfKind(eco, "reroll");
+    expect(id).not.toBeNull();
+    expect(eco.chooseReward(id!)).toBe(true);
+    const view = eco.campView();
+    expect(view.freeMarketRerolls).toBe(ECONOMY.rewardReroll.tokens);
+    const goldBefore = eco.gold;
+    expect(eco.rerollMarket()).toBe(true);
+    expect(eco.gold).toBe(goldBefore); // реролл бесплатный
+    expect(eco.campView().freeMarketRerolls).toBe(ECONOMY.rewardReroll.tokens - 1);
+  });
+
+  it("«Тренировочный блок» делает улучшение качества бесплатным ровно один раз", () => {
+    const eco = new RunEconomy("tokens-quality");
+    const id = rewardOfKind(eco, "quality");
+    expect(id).not.toBeNull();
+    expect(eco.chooseReward(id!)).toBe(true);
+    expect(eco.campView().freeRarityUpgrades).toBe(ECONOMY.rewardQuality.tokens);
+
+    // Золота нет, но токен есть → улучшение проходит и не уводит баланс в минус.
+    expect(eco.gold).toBe(0);
+    expect(eco.upgradeHeroRarity(11)).toBe(true);
+    expect(eco.rarityOf(11)).toBe("unique");
+    expect(eco.gold).toBe(0);
+    expect(eco.campView().freeRarityUpgrades).toBe(0);
+    // Второй раз без золота уже нельзя.
+    expect(eco.upgradeHeroRarity(11)).toBe(false);
+  });
+
+  it("токены переживают resume", () => {
+    const eco = new RunEconomy("tokens-persist");
+    const id = rewardOfKind(eco, "quality") ?? rewardOfKind(eco, "reroll")!;
+    eco.chooseReward(id);
+    const restored = new RunEconomy("tokens-persist", eco.snapshot);
+    expect(restored.campView().freeRarityUpgrades).toBe(eco.campView().freeRarityUpgrades);
+    expect(restored.campView().freeMarketRerolls).toBe(eco.campView().freeMarketRerolls);
   });
 });
