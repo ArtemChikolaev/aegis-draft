@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { runModifiers, runModifierTotal } from "../src/game/runStrength.ts";
+import { rarityModifiers } from "../src/game/heroRarity.ts";
 import {
   ECONOMY,
   RunEconomy,
@@ -525,5 +527,41 @@ describe("Награды-токены", () => {
     const restored = new RunEconomy("tokens-persist", eco.snapshot);
     expect(restored.campView().freeRarityUpgrades).toBe(eco.campView().freeRarityUpgrades);
     expect(restored.campView().freeMarketRerolls).toBe(eco.campView().freeMarketRerolls);
+  });
+});
+
+// R10: композиция силы забега — одна на игру и на балансовый симулятор. Копии этой суммы уже
+// разъезжались (симулятор мерил билд без редкости и тактик, а по его числам калибровались
+// коэффициенты), поэтому инвариант зафиксирован тестом.
+describe("Композиция силы забега", () => {
+  const zero = { base: 0, heroSynergy: 0, chemistry: 0 };
+
+  it("складывает экономику, тактики и редкость активных героев", () => {
+    const input = {
+      economy: { base: 2, heroSynergy: 1, chemistry: 0.5 },
+      tactics: { base: 1, heroSynergy: 0, chemistry: 2 },
+      heroRarity: { "11": "immortal" as const, "22": "unique" as const },
+      activeHeroes: [11, 22],
+    };
+    const mods = runModifiers(input);
+    const rarity = rarityModifiers(input.heroRarity, input.activeHeroes);
+    expect(mods.base).toBeCloseTo(3 + rarity.base, 6);
+    expect(mods.heroSynergy).toBeCloseTo(1 + rarity.heroSynergy, 6);
+    expect(mods.chemistry).toBeCloseTo(2.5, 6);
+    expect(runModifierTotal(input)).toBeCloseTo(mods.base + mods.heroSynergy + mods.chemistry, 6);
+  });
+
+  it("учитывает редкость только АКТИВНЫХ героев", () => {
+    const heroRarity = { "11": "immortal" as const };
+    const active = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [11] });
+    const benched = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [99] });
+    expect(active.heroSynergy).toBeGreaterThan(0);
+    expect(benched).toEqual(zero);
+  });
+
+  it("без тактик и редкости равна модификаторам экономики", () => {
+    const economy = { base: 4, heroSynergy: -1, chemistry: 0 };
+    expect(runModifiers({ economy, tactics: null, heroRarity: {}, activeHeroes: [1, 2] }))
+      .toEqual(economy);
   });
 });

@@ -10,11 +10,11 @@ import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
 import { AnteRunEngine, ANTE_TARGETS, type AnteRunState } from "../game/anteRun.ts";
-import { RunEconomy, addModifiers, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
+import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
-import { rarityModifiers } from "../game/heroRarity.ts";
+import { runModifiers, runModifierTotal } from "../game/runStrength.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, careerEntriesForMode, useCareer } from "./careerStore.ts";
@@ -315,19 +315,19 @@ export const useRun = create<RunStore>((set, get) => {
   };
   // Вклад редкости активных героев (срез 3b): heroSynergy + base у immortal. Пересчитывается от
   // engine.heroes + карты редкости в экономике, поэтому зависит от текущего состава (как tactics).
-  const rarityMods = (): SummandModifiers => {
-    const { economy, engine } = get();
-    if (!economy || !engine) return { base: 0, heroSynergy: 0, chemistry: 0 };
-    return rarityModifiers(economy.heroRarity, engine.heroes);
-  };
   // Итоговые модификаторы забега: покупки/временные действия (экономика) + условные Tactics +
   // редкость героев. Единственное место, где слои складываются, — чтобы поле этапа и UI не
   // разъезжались; редкость вложена сюда, поэтому все места сборки силы получают её автоматически.
+  // Композиция слоёв — общая с балансовым симулятором (game/runStrength.ts). Складывать их здесь
+  // «своей» суммой нельзя: именно так копия в симуляторе однажды разъехалась с игрой.
   const effectiveModifiers = (tactics: TacticEvaluation | null): SummandModifiers => {
-    const { economy } = get();
-    const economyMods = economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 };
-    const withTactics = tactics ? addModifiers(economyMods, tactics.modifiers) : economyMods;
-    return addModifiers(withTactics, rarityMods());
+    const { economy, engine } = get();
+    return runModifiers({
+      economy: economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 },
+      tactics: tactics?.modifiers ?? null,
+      heroRarity: economy?.heroRarity ?? {},
+      activeHeroes: engine?.heroes ?? [],
+    });
   };
   const totalModifier = (tactics: TacticEvaluation | null): number => {
     const m = effectiveModifiers(tactics);
@@ -719,32 +719,30 @@ export const useRun = create<RunStore>((set, get) => {
               economy.snapshot.campStageIndex,
             );
             tactics = evaluateTactics(economy.equippedTactics, tacticCtx);
-            const tacticMods = {
-              base: tactics.modifiers.base,
-              heroSynergy: tactics.modifiers.heroSynergy,
-              chemistry: tactics.modifiers.chemistry,
+            // Та же композиция слоёв, что и в игре (game/runStrength.ts) — здесь она собиралась
+            // руками третьей копией, и именно так копии разъезжаются.
+            const strengthInput = {
+              economy: economy.modifiers(),
+              tactics: tactics.modifiers,
+              heroRarity: economy.heroRarity,
+              activeHeroes: engine.heroes,
             };
-            const econMods = economy.modifiers();
-            // Редкость восстанавливается из карты в экономике (хранится напрямую) + активных героев.
-            const rarMods = rarityModifiers(economy.heroRarity, engine.heroes);
+            const mods = runModifiers(strengthInput);
             // Босс восстанавливается из ростера (как tactics), а не из сейва: правило детерминировано
             // по seed+stage, штраф — производная состава. Без него resume дал бы более лёгкое поле.
             const bossId = bossForStage(resumable.seed, stageIndex);
             boss = bossId
               ? evaluateBoss(bossId, {
-                base: score.base + econMods.base + tacticMods.base + rarMods.base,
-                heroSynergy: score.heroSynergy + econMods.heroSynergy + tacticMods.heroSynergy + rarMods.heroSynergy,
-                chemistry: score.chemistry + econMods.chemistry + tacticMods.chemistry + rarMods.chemistry,
+                base: score.base + mods.base,
+                heroSynergy: score.heroSynergy + mods.heroSynergy,
+                chemistry: score.chemistry + mods.chemistry,
                 playerOvrs: engine.players.map((p) => p.ovr),
                 activeHeroes: engine.heroes,
                 bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes),
               })
               : null;
             anteRun.rebuildCurrentStage(
-              score.teamOvr + economy.totalModifier()
-              + tacticMods.base + tacticMods.heroSynergy + tacticMods.chemistry
-              + rarMods.base + rarMods.heroSynergy + rarMods.chemistry
-              - (boss?.penalty ?? 0),
+              score.teamOvr + runModifierTotal(strengthInput) - (boss?.penalty ?? 0),
             );
             inCamp = economy.snapshot.inCamp;
             ante = anteRun.state;
