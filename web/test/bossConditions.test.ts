@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   BOSSES,
-  BOSS_FIRST_STAGE,
   BOSS_IDS,
   bannedHeroesForStage,
   bossForStage,
   evaluateBoss,
   type BossContext,
 } from "../src/game/bossConditions.ts";
+import { ACT_LENGTH, isActFinale } from "../src/game/anteRun.ts";
 
 function ctx(over: Partial<BossContext> = {}): BossContext {
   return {
@@ -22,18 +22,19 @@ function ctx(over: Partial<BossContext> = {}): BossContext {
 }
 
 describe("bossForStage", () => {
-  it("ранние этапы без правила, поздние детерминированы по seed", () => {
-    for (let stage = 0; stage < BOSS_FIRST_STAGE; stage += 1) {
-      expect(bossForStage("s", stage)).toBeNull();
+  // R6.2: босс — только финал акта. Раньше он стоял на КАЖДОМ этапе с третьего (3 из 5).
+  it("босс только на финале акта, обычные этапы чисты, финал детерминирован по seed", () => {
+    for (let stage = 0; stage < 40; stage += 1) {
+      const boss = bossForStage("s", stage);
+      expect(boss == null).toBe(!isActFinale(stage));
     }
-    const boss = bossForStage("s", BOSS_FIRST_STAGE);
-    expect(boss).not.toBeNull();
-    expect(bossForStage("s", BOSS_FIRST_STAGE)).toBe(boss); // детерминизм
+    const finale = ACT_LENGTH - 1;
+    expect(bossForStage("s", finale)).toBe(bossForStage("s", finale)); // детерминизм
   });
 
   it("каждый тип встречается на каком-то этапе (полнота каталога)", () => {
     const seen = new Set<string>();
-    for (let stage = BOSS_FIRST_STAGE; stage < BOSS_FIRST_STAGE + 200; stage += 1) {
+    for (let stage = 0; stage < 1000; stage += 1) {
       const boss = bossForStage("catalog", stage);
       if (boss) seen.add(boss);
     }
@@ -96,7 +97,7 @@ describe("heroBan — рычаг hero pool", () => {
     const pool = Array.from({ length: 40 }, (_, i) => i + 1);
     // Найти heroBan-этап
     let banStage = -1;
-    for (let stage = BOSS_FIRST_STAGE; stage < BOSS_FIRST_STAGE + 60; stage += 1) {
+    for (let stage = 0; stage < 300; stage += 1) {
       if (bossForStage("banseed", stage) === "heroBan") { banStage = stage; break; }
     }
     expect(banStage).toBeGreaterThan(0);
@@ -105,7 +106,7 @@ describe("heroBan — рычаг hero pool", () => {
     expect(bannedHeroesForStage("banseed", banStage, pool)).toEqual(a); // детерминизм
     // Не-heroBan этап не банит.
     let other = -1;
-    for (let stage = BOSS_FIRST_STAGE; stage < BOSS_FIRST_STAGE + 60; stage += 1) {
+    for (let stage = 0; stage < 300; stage += 1) {
       if (bossForStage("banseed", stage) && bossForStage("banseed", stage) !== "heroBan") { other = stage; break; }
     }
     expect(bannedHeroesForStage("banseed", other, pool)).toEqual([]);

@@ -3,6 +3,13 @@ import { Rng } from "./rng.ts";
 
 export type TournamentStage = "field" | "groups" | "playoffs" | "final" | "complete";
 export type PlacementKey = "1" | "2" | "3" | "4" | "5-6" | "7-8" | "9-12" | "13-16" | "17" | "18";
+
+/** Все бакеты итоговой таблицы в порядке возрастания места. Runtime-список нужен потребителям,
+ *  которые обязаны говорить ровно на языке бакетов, — прежде всего порогам ante-этапов
+ *  (`LEGAL_ANTE_TARGETS`): «топ-10» невыразимо, потому что бакета, кончающегося на 10, нет. */
+export const PLACEMENT_KEYS: readonly PlacementKey[] = [
+  "1", "2", "3", "4", "5-6", "7-8", "9-12", "13-16", "17", "18",
+];
 export type ProjectionKey = "1" | "2-4" | "5-8" | "9-12" | "13-16" | "17-18";
 
 export interface TournamentTeam {

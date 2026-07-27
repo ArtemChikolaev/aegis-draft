@@ -19,6 +19,10 @@ export interface CareerConfigLabel {
   hardMode?: boolean;
   /** Режим забега. "run" = Roguelite Run; classic/quick и старые записи метки не имеют. */
   mode?: RunMode;
+  /** Забег пройден в Cheat Mode (R2.3) — несоревновательный. Запись хранится и видна в истории,
+   *  но исключается из ВСЕХ агрегатов и из счётчика забегов, по которому открывается
+   *  мета-прогрессия: иначе читерский забег открыл бы редкость следующему честному. */
+  cheatMode?: boolean;
 }
 
 export interface CareerRosterPlayer {
@@ -157,6 +161,7 @@ export function buildCareerEntry(input: {
       draftStyle: input.config.draftStyle,
       hardMode: input.config.hardMode === true ? true : undefined,
       mode: input.mode === "run" ? "run" : undefined,
+      cheatMode: input.config.cheatMode === true ? true : undefined,
     },
     rogueliteStage: input.mode === "run" && input.rogueliteStage
       ? { index: input.rogueliteStage.index, count: input.rogueliteStage.count }
@@ -221,9 +226,14 @@ export function careerRunId(entry: CareerEntry): string {
  * История на финальном экране разделена на два самостоятельных режима. Старые записи
  * без mode относятся к Quick Draft; полная CareerScreen этот фильтр намеренно не вызывает.
  */
+/** Соревновательные записи: cheat-забеги в статистику и мета-прогрессию не идут (R2.3). */
+export function competitiveEntries(entries: CareerEntry[]): CareerEntry[] {
+  return entries.filter((entry) => entry.configLabel.cheatMode !== true);
+}
+
 export function careerEntriesForMode(entries: CareerEntry[], mode: RunMode): CareerEntry[] {
   const roguelite = mode === "run";
-  return entries.filter((entry) => (entry.configLabel.mode === "run") === roguelite);
+  return competitiveEntries(entries).filter((entry) => (entry.configLabel.mode === "run") === roguelite);
 }
 
 export function appendCareerEntry(entries: CareerEntry[], entry: CareerEntry): CareerEntry[] {
@@ -237,14 +247,17 @@ export function summarizeCareer(entries: CareerEntry[]): CareerSummary {
   let flawlessGroups = 0;
   let gamesWon = 0;
   let gamesLost = 0;
-  for (const entry of entries) {
+  // Фильтр здесь, а не у вызывающих: агрегат — единственный источник career-счётчиков, и
+  // забыть отфильтровать cheat в одном из мест означало бы тихо испортить статистику.
+  const counted = competitiveEntries(entries);
+  for (const entry of counted) {
     placements[placementBucket(entry.placement)] += 1;
     if (entry.results.undefeated) undefeated += 1;
     if (entry.results.groupClean) flawlessGroups += 1;
     gamesWon += entry.results.gamesWon;
     gamesLost += entry.results.gamesLost;
   }
-  return { runs: entries.length, placements, undefeated, flawlessGroups, gamesWon, gamesLost };
+  return { runs: counted.length, placements, undefeated, flawlessGroups, gamesWon, gamesLost };
 }
 
 function parseCareer(raw: string | null): CareerEntry[] {

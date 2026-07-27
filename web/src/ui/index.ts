@@ -2,6 +2,7 @@
 // поэтому light/dark работают автоматически. Экраны собираются из этих компонентов.
 export { Button, type ButtonVariant } from "./Button.tsx";
 export { Surface } from "./Surface.tsx";
+export { CheatBadge } from "./CheatBadge.tsx";
 export { Eyebrow } from "./Eyebrow.tsx";
 export { Banner } from "./Banner.tsx";
 export { Chip } from "./Chip.tsx";

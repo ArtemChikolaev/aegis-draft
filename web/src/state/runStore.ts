@@ -398,6 +398,7 @@ export const useRun = create<RunStore>((set, get) => {
       // (T6.4-lite до появления Штаба).
       const rogueliteRuns = careerEntriesForMode(useCareer.getState().entries, "run").length;
       economy.setRarityFlags({ drops: rogueliteRuns >= 1, upgrades: true });
+      economy.setUnlimitedGold(config.cheatMode === true);
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
         tactics: null, boss: null,

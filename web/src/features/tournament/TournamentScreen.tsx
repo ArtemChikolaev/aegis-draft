@@ -19,7 +19,7 @@ import {
 } from "../../game/tournamentPlayback.ts";
 import { isNarrowViewport } from "../../design/breakpoints.ts";
 import { useRun } from "../../state/runStore.ts";
-import { Button, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -593,6 +593,9 @@ export function TournamentScreen() {
               <span className="ante-status__stage">{t("ante.stage", { n: ante.index + 1, count: ante.count })}</span>
               <strong className="ante-status__target">{anteTargetLabel}</strong>
               {ante.index > 0 && <em className="ante-status__field">↑ {t("ante.fieldStronger")}</em>}
+              {/* Постоянная маркировка несоревновательного забега (R2.3): видна на каждом этапе,
+                  чтобы скриншот результата нельзя было выдать за обычное прохождение. */}
+              {config.cheatMode && <CheatBadge />}
             </div>
           )}
           {ante && boss && (

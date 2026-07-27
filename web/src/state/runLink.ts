@@ -92,6 +92,7 @@ export function encodeRunLink(link: RunLink): string {
     a: link.config.allocation,
     // Хардкор пишем только когда включён — короче ссылка, и старые ссылки читаются как false.
     ...(link.config.hardMode ? { h: 1 } : {}),
+    ...(link.config.cheatMode ? { x: 1 } : {}),
     seed: link.seed,
   };
   return toBase64Url(JSON.stringify(payload));
@@ -118,6 +119,7 @@ export function decodeRunLink(encoded: string): RunLink | null {
   if (raw.a !== "auto" && raw.a !== "manual") return null;
   if (raw.f !== "last_1y" && raw.f !== "last_2y" && raw.f !== "last_5y" && raw.f !== "valve_legacy") return null;
   if (raw.h !== undefined && raw.h !== 1) return null;
+  if (raw.x !== undefined && raw.x !== 1) return null;
   if (raw.b !== undefined && (typeof raw.b !== "string" || !raw.b)) return null;
   return {
     v: 1,
@@ -135,6 +137,9 @@ export function decodeRunLink(encoded: string): RunLink | null {
       // Ключ только когда хардкор включён — симметрично кодеру. Иначе декодер ДОБАВЛЯЛ бы
       // hardMode:false в конфиг, которого там не было, и round-trip переставал быть точным.
       ...(raw.h === 1 ? { hardMode: true } : {}),
+      // Cheat-забег шерится только с явной меткой: получатель обязан видеть, что результат
+      // несоревновательный, ещё до старта.
+      ...(raw.x === 1 ? { cheatMode: true } : {}),
     },
   };
 }
@@ -218,7 +223,8 @@ export function runConfigsMatch(left: RunConfig, right: RunConfig): boolean {
     && left.rerolls === right.rerolls
     && left.scoring === right.scoring
     && left.allocation === right.allocation
-    && (left.hardMode ?? false) === (right.hardMode ?? false);
+    && (left.hardMode ?? false) === (right.hardMode ?? false)
+    && (left.cheatMode ?? false) === (right.cheatMode ?? false);
 }
 
 /**

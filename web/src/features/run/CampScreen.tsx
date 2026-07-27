@@ -29,6 +29,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import {
   Button,
+  CheatBadge,
   Eyebrow,
   HeroThumb,
   Modal,
@@ -301,9 +302,10 @@ export function CampScreen() {
           <h2 className="camp__cleared">{t("camp.cleared", { n: ante.index })}</h2>
           <p className="camp__next">{nextLabel}</p>
         </div>
+        {config.cheatMode && <CheatBadge />}
         <div className="camp__gold" aria-label={t("camp.gold")}>
           <span className="camp__gold-icon">◈</span>
-          <strong data-testid="camp-gold">{camp.gold}</strong>
+          <strong data-testid="camp-gold">{camp.unlimitedGold ? "∞" : camp.gold}</strong>
         </div>
       </header>
 
@@ -550,7 +552,7 @@ export function CampScreen() {
                 // Stand-in делает ОДНУ замену игрока бесплатной — цена и доступность это учитывают,
                 // иначе дорогая карта остаётся заблокированной, хотя движок списал бы 0 (баг live).
                 const freeSwap = camp.freePlayerSwaps > 0;
-                const affordable = playerOfferAffordable(offer.cost, camp.gold, camp.freePlayerSwaps);
+                const affordable = playerOfferAffordable(offer.cost, camp.gold, camp.freePlayerSwaps, camp.unlimitedGold);
                 const ovrDelta = teamOvrDelta(offer);
                 return (
                   <div key={offer.id} className="camp-pack-card" data-offer-kind="player">
@@ -593,7 +595,7 @@ export function CampScreen() {
             {/* Второй полноценный пак: 5 разных hero re-pick с полным score + rarity preview. */}
             <div className="camp__pack" data-testid="camp-hero-pack">
               {heroOffers.map((offer) => {
-                const affordable = offer.cost <= camp.gold;
+                const affordable = camp.unlimitedGold || offer.cost <= camp.gold;
                 // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
                 // ролл, что применит покупка. Из неё вычитаем вклад редкости снимаемого героя:
                 // иначе mythic, заменяющий immortal, выглядел как +1.4 при фактическом падении.
@@ -669,7 +671,7 @@ export function CampScreen() {
                     const up = nextRarity(current);
                     const cost = upgradeCost(current);
                     const thumb = hero(heroId);
-                    const affordable = cost != null && cost <= camp.gold;
+                    const affordable = cost != null && (camp.unlimitedGold || cost <= camp.gold);
                     const gain = up ? RARITY.heroSynergyBonus[up] - RARITY.heroSynergyBonus[current] : 0;
                     return (
                       <div key={heroId} className="camp-rarity-card" data-hero-id={heroId} data-rarity={current}>

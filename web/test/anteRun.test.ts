@@ -3,6 +3,9 @@ import {
   AnteRunEngine,
   ANTE_FIELD_STEP,
   ANTE_TARGETS,
+  LEGAL_ANTE_TARGETS,
+  isActFinale,
+  isLegalAnteTarget,
   placementWorstRank,
 } from "../src/game/anteRun.ts";
 import { TournamentEngine } from "../src/game/tournament.ts";
@@ -92,22 +95,40 @@ describe("AnteRunEngine", () => {
   });
 
   it("непроходимый порог = смерть на этом этапе", () => {
-    // target=0 недостижим (место всегда ≥ 1) → гарантированная смерть на этапе 0.
-    const engine = new AnteRunEngine(data, "last_2y", "ante-death", 90, "Five", [0, 8]);
+    // Слабый состав против требования чемпионства → гарантированная смерть на этапе 0.
+    // Раньше здесь стоял target=0: он «недостижим», но и не является реальным бакетом, а такие
+    // числа теперь запрещены (R9.3) — ложные подписи порогов ловятся конструктором.
+    const engine = new AnteRunEngine(data, "last_2y", "ante-death", 45, "Five", [1, 8]);
     expect(engine.resolveStage()).toBe("lost");
     expect(engine.state.index).toBe(0);
     expect(engine.state.lastPlacement).not.toBeNull();
   });
 
   it("после конца забега resolveStage — no-op", () => {
-    const engine = new AnteRunEngine(data, "last_2y", "ante-noop", 90, "Five", [0]);
+    const engine = new AnteRunEngine(data, "last_2y", "ante-noop", 45, "Five", [1]);
     engine.resolveStage();
     const after = engine.state;
     expect(engine.resolveStage()).toBe("lost");
     expect(engine.state).toEqual(after);
   });
 
-  it("слабый состав не проходит стартовый порог топ-10", () => {
+  it("порог обязан быть worst-rank реального бакета (R9.3)", () => {
+    // «топ-10» невыразимо: бакет 9-12 кончается на 12, поэтому target=10 вёл себя как топ-8.
+    expect(LEGAL_ANTE_TARGETS).toEqual([1, 2, 3, 4, 6, 8, 12, 16, 17, 18]);
+    expect(ANTE_TARGETS.every(isLegalAnteTarget)).toBe(true);
+    expect(() => new AnteRunEngine(data, "last_2y", "illegal", 80, "Five", [10]))
+      .toThrow(/worst-rank/);
+    // Смена подписи 10 → 8 не сдвинула ни один бакет: оба режут ровно «9-12» и ниже.
+    expect(placementWorstRank("7-8") <= 8).toBe(true);
+    expect(placementWorstRank("9-12") > 8).toBe(true);
+  });
+
+  it("боссы стоят только на финалах актов (R6.2)", () => {
+    expect([0, 1, 2, 3].map(isActFinale)).toEqual([false, false, false, false]);
+    expect([4, 9, 14, 19, 24].map(isActFinale)).toEqual([true, true, true, true, true]);
+  });
+
+  it("слабый состав не проходит стартовый порог топ-8", () => {
     // teamOvr сильно ниже даже гандикапнутого поля (N74 на этапе 0) → место у дна → промах.
     const engine = new AnteRunEngine(data, "last_2y", "ante-weak", 45, "Five");
     expect(engine.resolveStage()).toBe("lost");

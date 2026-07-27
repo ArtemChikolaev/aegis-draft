@@ -1,0 +1,17 @@
+/* Маркер несоревновательного забега. Держим его читаемым, но не кричащим: он висит постоянно,
+   поэтому берёт предупреждающий --gold (как SoonBadge), а не --danger, зарезервированный под
+   деструктивные действия. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  border-radius: 999px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .08em;
+  white-space: nowrap;
+}

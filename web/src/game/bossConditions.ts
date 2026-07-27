@@ -10,6 +10,7 @@
 // адаптируется через Market/резерв/Tactics; скрытого контра нет — правило и `до→после` видны в
 // Буткемпе заранее (DoD).
 import { Rng } from "./rng.ts";
+import { isActFinale } from "./anteRun.ts";
 import type { Summand } from "./anteEconomy.ts";
 
 export type BossId =
@@ -27,9 +28,13 @@ export const BOSS_IDS: readonly BossId[] = [
   "heroBan",
 ];
 
-/** С какого этапа (0-based) начинают появляться боссы. Первые два этапа — онбординг без правил,
- *  чтобы игрок сперва понял базовую петлю (PRD §5.9.2: сложность нарастает). */
-export const BOSS_FIRST_STAGE = 2;
+/** Боссы стоят на финалах актов и только там (R6.2, PRD §5.9.3): один Boss Tournament на пять
+ *  этапов, последний в сезоне — Showdown. Раньше здесь было `BOSS_FIRST_STAGE = 2` — босс на
+ *  КАЖДОМ этапе начиная с третьего, то есть три боссовых этапа из пяти. Это противоречило и PRD
+ *  («условие показывается заранее» как исключительное событие), и самой идее подготовки: готовиться
+ *  к тому, что происходит всегда, незачем. Cadence живёт в `anteRun.isActFinale` (там же длина
+ *  акта), поэтому переход на `5 актов × 5 этапов` (R6.1) её не тронет, а в бесконечной Династии
+ *  она продолжится сама. */
 
 /** Сколько героев баннит heroBan. Для контекста рынка/резерва — их видно, есть чем заменить. */
 const HERO_BAN_COUNT = 12;
@@ -51,10 +56,10 @@ export const BOSSES = {
   heroBan: { perHero: 1.5, max: 6, summand: "heroSynergy" as Summand },
 } as const;
 
-/** Босс этапа `absoluteStageIndex` (0-based). null — этап без правила (онбординг). Детерминизм по
+/** Босс этапа `absoluteStageIndex` (0-based). null — обычный этап без правила. Детерминизм по
  *  seed+stage; в бесконечной Династии (срез 6) индекс не ограничен и типы циклятся. */
 export function bossForStage(seed: string, absoluteStageIndex: number): BossId | null {
-  if (absoluteStageIndex < BOSS_FIRST_STAGE) return null;
+  if (!isActFinale(absoluteStageIndex)) return null;
   return new Rng(`${seed}:boss:stage-${absoluteStageIndex}`).pick(BOSS_IDS);
 }
 

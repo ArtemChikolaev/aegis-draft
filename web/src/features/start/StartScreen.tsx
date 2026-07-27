@@ -60,6 +60,10 @@ const HARD_MODE: Opt<boolean>[] = [
   { value: false, label: "hard.off", hint: "hard.offHint" },
   { value: true, label: "hard.on", hint: "hard.onHint" },
 ];
+const CHEAT_MODE: Opt<boolean>[] = [
+  { value: false, label: "cheat.off", hint: "cheat.offHint" },
+  { value: true, label: "cheat.on", hint: "cheat.onHint" },
+];
 const ALLOCATION: Opt<Allocation>[] = [
   { value: "auto", label: "start.automatic", hint: "start.automaticHint" },
   { value: "manual", label: "start.manual", hint: "start.manualHint" },
@@ -85,6 +89,7 @@ export function StartScreen() {
   // Закрыть модалку (крестик/Esc/свайп) можно всегда — режим тогда просто не включится.
   const [hardGate, setHardGate] = useState(false);
   const [hardAck, setHardAck] = useState(false);
+  const [cheatGate, setCheatGate] = useState(false);
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
   // Mixed оценивает игроков по успеху команды за окно, поэтому окно без team-success
   // в нём неиграбельно — гасим так же, как форматы, которых нет в датасете.
@@ -260,7 +265,14 @@ export function StartScreen() {
             title={t("hard.title")}
             soonLabel={t("common.soon")}
             // В Roguelite Run хардкор не трогает рероллы (их 2) — подсказка «вслепую», без «no rerolls».
-            options={toOptions(HARD_MODE.map((option) => (option.value === true && mode === "run" ? { ...option, hint: "hard.onHintRun" as MessageKey } : option)))}
+            // Cheat Mode и хардкор взаимоисключающи: интерфейс не должен одновременно обещать
+            // соревновательный и читерский забег. Блокируем с понятной подсказкой, а не молча.
+            options={toOptions(HARD_MODE.map((option) => {
+              const runHint = option.value === true && mode === "run" ? { ...option, hint: "hard.onHintRun" as MessageKey } : option;
+              return option.value === true && (config.cheatMode ?? false)
+                ? { ...runHint, disabled: true, hint: "hard.blockedByCheat" as MessageKey }
+                : runHint;
+            }))}
             value={config.hardMode ?? false}
             // Повторный тап по выбранной опции — no-op. Выключение — сразу; только реальный
             // переход Off → On требует повторно принять правила.
@@ -274,6 +286,26 @@ export function StartScreen() {
               }
             }}
           />
+          {/* Special rules — отдельная визуально отделённая секция и только для Roguelite Run:
+              Cheat Mode это правило КОНКРЕТНОГО забега (привязано к seed и сейву), поэтому в
+              глобальные Settings оно не переносится. */}
+          {mode === "run" && (
+            <div className="config-panel__special" data-testid="special-rules">
+              <Eyebrow>{t("cheat.section")}</Eyebrow>
+              <OptionGroup
+                title={t("cheat.title")}
+                soonLabel={t("common.soon")}
+                options={toOptions(CHEAT_MODE)}
+                value={config.cheatMode ?? false}
+                // Выключение — сразу; только переход Off → On требует подтверждения.
+                onChange={(value) => {
+                  if (value === (config.cheatMode ?? false)) return;
+                  if (value) setCheatGate(true);
+                  else set("cheatMode", false);
+                }}
+              />
+            </div>
+          )}
         </Surface>
         <Surface as="aside" className="launch-panel">
           <span className="launch-panel__glow" aria-hidden="true" />
@@ -342,6 +374,36 @@ export function StartScreen() {
                 onClick={() => { setConfig((current) => ({ ...current, hardMode: true, rerolls: mode === "run" ? ROGUELITE_REROLLS : HARDCORE_REROLLS })); close(); }}
               >
                 {t("hard.gateConfirm")}
+              </Button>
+            </div>
+          )}
+        </Modal>
+      )}
+      {cheatGate && (
+        <Modal
+          mark="∞"
+          title={t("cheat.gateTitle")}
+          description={t("cheat.gateText")}
+          labelledBy="cheat-gate-title"
+          dismissLabel={t("common.close")}
+          layout="content"
+          onClose={() => setCheatGate(false)}
+        >
+          {({ close }) => (
+            <div className="hard-gate">
+              <ul className="hard-gate__rules">
+                <li>{t("cheat.rule1")}</li>
+                <li>{t("cheat.rule2")}</li>
+                <li>{t("cheat.rule3")}</li>
+              </ul>
+              <Button
+                variant="danger"
+                data-testid="cheat-gate-confirm"
+                // Включение Cheat Mode само гасит хардкор — иначе забег обещал бы одновременно
+                // «вслепую и соревновательно» и «бесконечное золото».
+                onClick={() => { setConfig((current) => ({ ...current, cheatMode: true, hardMode: false })); close(); }}
+              >
+                {t("cheat.gateConfirm")}
               </Button>
             </div>
           )}

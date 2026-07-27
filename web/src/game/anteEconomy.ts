@@ -134,6 +134,11 @@ export interface RunEconomyState {
    *  Раньше оба поведения глушил один флаг `rarityEnabled` — и первый забег оставался вообще без
    *  качества героев (баг PF-8). Legacy-сейвы читаются через `normalizeEconomyState`. */
   rarityUpgradesEnabled: boolean;
+  /** Cheat Mode: золото бесконечно (R2.2). Хранится булевым флагом, а НЕ числовым `Infinity` —
+   *  `JSON.stringify(Infinity) === "null"`, на этой грабле уже горели рероллы Easy.
+   *  Обходит ровно одну вещь — проверку и списание золота. Бесплатные токены (реролл/свап),
+   *  слоты карточек и структурная валидация работают как обычно: одно правило, один тест. */
+  unlimitedGold: boolean;
 }
 
 /** Сейв мог быть записан до разделения флагов редкости (R3.1). Поднимаем legacy `rarityEnabled`
@@ -185,8 +190,13 @@ export function playerCost(ovr: number): number {
 /** Доступна ли покупка игрока: stand-in делает ОДНУ замену бесплатной, поэтому при наличии
  *  бесплатного свапа карта доступна независимо от цены. UI обязан считать так же, как движок
  *  (purchaseMarket), иначе дорогая карта остаётся заблокированной при живом бесплатном свапе. */
-export function playerOfferAffordable(cost: number, gold: number, freePlayerSwaps: number): boolean {
-  return freePlayerSwaps > 0 || cost <= gold;
+export function playerOfferAffordable(
+  cost: number,
+  gold: number,
+  freePlayerSwaps: number,
+  unlimitedGold = false,
+): boolean {
+  return unlimitedGold || freePlayerSwaps > 0 || cost <= gold;
 }
 
 /** Суммарные дельты по слагаемым от применённых stat-эффектов. Чистая — переиспользуется и в
@@ -329,6 +339,8 @@ export interface CampView {
   /** Доступно ручное улучшение качества в Буткемпе. Бейджи тира при этом показываются всегда:
    *  даже пока дропы закрыты гейтом, игрок качает героев руками и должен видеть результат. */
   rarityUpgradesEnabled: boolean;
+  /** Cheat Mode: UI показывает `∞` вместо числа и не блокирует покупки по цене. */
+  unlimitedGold: boolean;
   /** heroId → тир для рендера бейджей/улучшений (срез 3b). */
   heroRarity: Record<string, Rarity>;
   /** Индекс этапа текущего Буткемпа — для превью редкости входящих на re-pick героев. */
@@ -356,6 +368,7 @@ function emptyState(): RunEconomyState {
     heroRarity: {},
     rarityDropsEnabled: false,
     rarityUpgradesEnabled: true,
+    unlimitedGold: false,
   };
 }
 
@@ -550,9 +563,9 @@ export class RunEconomy {
     if (offer.kind === "hero" && !offer.heroSwap) return null;
     const free = offer.kind === "player" && this.state.freePlayerSwaps > 0;
     const price = free ? 0 : offer.cost;
-    if (price > this.state.gold) return null;
+    if (!this.affordable(price)) return null;
     if (free) this.state.freePlayerSwaps -= 1;
-    this.state.gold -= price;
+    this.spend(price);
     if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
     this.state.consumed.push(offerId);
     return cloneOffer(offer);
@@ -561,9 +574,9 @@ export class RunEconomy {
   /** Реролл рынка: сначала тратим бесплатный от разведки, иначе списываем цену (без минуса). */
   rerollMarket(): boolean {
     const free = this.state.freeMarketRerolls > 0;
-    if (!free && ECONOMY.rerollCost > this.state.gold) return false;
+    if (!free && !this.affordable(ECONOMY.rerollCost)) return false;
     if (free) this.state.freeMarketRerolls -= 1;
-    else this.state.gold -= ECONOMY.rerollCost;
+    else this.spend(ECONOMY.rerollCost);
     this.state.marketRerolls += 1;
     this.state.preparedMarketOffers = undefined;
     return true;
@@ -574,6 +587,25 @@ export class RunEconomy {
   setRarityFlags(flags: { drops: boolean; upgrades: boolean }): void {
     this.state.rarityDropsEnabled = flags.drops;
     this.state.rarityUpgradesEnabled = flags.upgrades;
+  }
+
+  /** Включить бесконечное золото на этот забег (ставится на старте из RunConfig.cheatMode). */
+  setUnlimitedGold(enabled: boolean): void {
+    this.state.unlimitedGold = enabled;
+  }
+
+  get unlimitedGold(): boolean {
+    return this.state.unlimitedGold;
+  }
+
+  /** Хватает ли золота. Единственная точка, где Cheat Mode вмешивается в экономику. */
+  private affordable(price: number): boolean {
+    return this.state.unlimitedGold || price <= this.state.gold;
+  }
+
+  /** Списать цену. В Cheat Mode баланс не двигается — UI и без того показывает `∞`. */
+  private spend(price: number): void {
+    if (!this.state.unlimitedGold) this.state.gold -= price;
   }
 
   get rarityDropsEnabled(): boolean {
@@ -616,8 +648,8 @@ export class RunEconomy {
     const current = this.rarityOf(heroId);
     const target = nextRarity(current);
     const cost = upgradeCost(current);
-    if (!target || cost == null || cost > this.state.gold) return false;
-    this.state.gold -= cost;
+    if (!target || cost == null || !this.affordable(cost)) return false;
+    this.spend(cost);
     this.state.heroRarity[String(heroId)] = target;
     return true;
   }
@@ -632,7 +664,7 @@ export class RunEconomy {
       marketOffers: this.currentMarketOffers(),
       modifiers: this.modifiers(),
       rerollCost: ECONOMY.rerollCost,
-      canReroll: this.state.freeMarketRerolls > 0 || this.state.gold >= ECONOMY.rerollCost,
+      canReroll: this.state.freeMarketRerolls > 0 || this.affordable(ECONOMY.rerollCost),
       equippedTactics: [...this.state.equippedTactics],
       heldActions: [...this.state.heldActions],
       tacticSlots: TACTIC_SLOTS,
@@ -643,6 +675,7 @@ export class RunEconomy {
       freePlayerSwaps: this.state.freePlayerSwaps,
       rarityDropsEnabled: this.state.rarityDropsEnabled,
       rarityUpgradesEnabled: this.state.rarityUpgradesEnabled,
+      unlimitedGold: this.state.unlimitedGold,
       heroRarity: { ...this.state.heroRarity },
       campStageIndex: this.state.campStageIndex,
     };

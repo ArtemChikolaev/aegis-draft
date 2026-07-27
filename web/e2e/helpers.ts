@@ -52,12 +52,17 @@ export async function startRogueliteRun(page: Page) {
 /** Детерминированный roguelite-старт по фиксированному seed через run-link (формат — как кодек
  *  state/runLink.ts, версии берём из манифеста → устойчиво к обновлению датасета). Нужен, когда
  *  тесту важен исход этапа: `camp-e2e-22` проходит этап 1 жадным драфтом (см. подбор в истории). */
-export async function startRogueliteSeed(page: Page, seed: string) {
-  const encoded = await page.evaluate(async (seed) => {
+export async function startRogueliteSeed(page: Page, seed: string, opts: { cheatMode?: boolean } = {}) {
+  const encoded = await page.evaluate(async ({ seed, cheatMode }) => {
     const m = await fetch("data/manifest.json").then((r) => r.json());
-    const payload = { v: 1, s: m.schemaVersion, r: m.ratingModelVersion, m: "run", d: "team", f: "last_2y", n: 2, c: "event", a: "auto", seed };
+    const payload = {
+      v: 1, s: m.schemaVersion, r: m.ratingModelVersion, m: "run", d: "team", f: "last_2y",
+      n: 2, c: "event", a: "auto", seed,
+      // `x` = cheatMode в кодеке runLink (R2.1).
+      ...(cheatMode ? { x: 1 } : {}),
+    };
     return btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  }, seed);
+  }, { seed, cheatMode: opts.cheatMode ?? false });
   await page.goto(`#/run=${encoded}`);
   await page.getByTestId("run-link-accept").click();
   await expect(page.getByTestId("draft-screen")).toBeVisible();
@@ -94,4 +99,28 @@ export async function simulateTournamentToEnd(page: Page) {
     await page.waitForTimeout(200);
   }
   await expect(complete).toBeVisible({ timeout: 15_000 });
+}
+
+/** Максимально усилиться в Буткемпе: забрать награду, купить все карты с положительной дельтой
+ *  Team OVR и поднять качество героев. Нужен тестам, которым важно ДОЙТИ до позднего этапа
+ *  (например до финала акта с боссом) — в паре с Cheat Mode это делает глубокий забег
+ *  детерминированно достижимым, без охоты за «проходным» seed. */
+export async function boostInCamp(page: Page) {
+  const reward = page.locator('[data-testid^="reward-rwd-"]').first();
+  if (await reward.count()) await reward.click().catch(() => {});
+  // Только апгрейды: в паках рынка есть честные ловушки, покупать их подряд бессмысленно.
+  const upgrades = page.locator(
+    '.camp-pack-card:has(.camp-offer__deltas > .camp-offer__delta--up:first-child) [data-testid^="market-mkt-"]',
+  );
+  for (let i = 0; i < 6; i += 1) {
+    const button = upgrades.first();
+    if (!(await button.count()) || !(await button.isEnabled().catch(() => false))) break;
+    await button.click();
+  }
+  const rarity = page.locator('[data-testid^="rarity-upgrade-"]');
+  for (let i = 0; i < 5; i += 1) {
+    const button = rarity.first();
+    if (!(await button.count()) || !(await button.isEnabled().catch(() => false))) break;
+    await button.click();
+  }
 }

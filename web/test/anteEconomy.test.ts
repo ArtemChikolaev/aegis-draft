@@ -301,6 +301,42 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(off.rarityUpgradesEnabled).toBe(false);
   });
 
+  it("R2.2: Cheat Mode обходит ТОЛЬКО золото — токены, слоты и валидация как обычно", () => {
+    const eco = new RunEconomy("cheat");
+    eco.setUnlimitedGold(true);
+    eco.openCamp(2);
+    expect(eco.gold).toBe(0); // призовые ещё не начислены
+
+    // Покупка/реролл/улучшение проходят при нулевом балансе и его не двигают.
+    expect(eco.rerollMarket()).toBe(true);
+    expect(eco.upgradeHeroRarity(7)).toBe(true);
+    expect(eco.rarityOf(7)).toBe("unique");
+    expect(eco.gold).toBe(0);
+    expect(eco.campView().canReroll).toBe(true);
+    expect(eco.campView().unlimitedGold).toBe(true);
+
+    // Валидация payload не отключается: несуществующий оффер по-прежнему не покупается.
+    expect(eco.purchaseMarket("mkt-нет-такого")).toBeNull();
+    // Слоты карточек тоже не расширяются — Cheat Mode даёт золото, а не место в билде.
+    const slots = eco.campView().tacticSlots;
+    for (let i = 0; i < slots; i += 1) expect(eco.canTakeCard("tactic")).toBe(true);
+    eco.chooseReward(campWithCard(eco, "tactic"));
+    expect(eco.campView().equippedTactics).toHaveLength(1);
+
+    // Persist/resume сохраняет режим.
+    expect(new RunEconomy("cheat", eco.snapshot).unlimitedGold).toBe(true);
+    // Обычный забег ведёт себя как раньше.
+    const normal = new RunEconomy("normal");
+    normal.openCamp(2);
+    expect(normal.rerollMarket()).toBe(false); // нет золота
+  });
+
+  it("R2.2: playerOfferAffordable в Cheat Mode не блокирует дорогую карту", () => {
+    expect(playerOfferAffordable(99, 0, 0, true)).toBe(true);
+    expect(playerOfferAffordable(99, 0, 0, false)).toBe(false);
+    expect(playerOfferAffordable(99, 0, 0)).toBe(false); // дефолт — обычный забег
+  });
+
   it("snapshot восстанавливает экипировку и разыгранные действия", () => {
     const eco = new RunEconomy("persist");
     const cardId = campWithCard(eco, "tactic");

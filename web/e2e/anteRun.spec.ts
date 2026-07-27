@@ -1,9 +1,13 @@
 import { expect, test } from "@playwright/test";
-import { completeDraft, gotoFreshApp, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
+import { boostInCamp, completeDraft, gotoFreshApp, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
 
 // Seed, проходящий этап 1 жадным авто-драфтом (completeDraft) с большим запасом (место 1) —
 // Буткемп достигается детерминированно. Подобран под текущие ante-константы (см. историю).
 const CAMP_SEED = "camp-e2e-3";
+// Cheat-забег, проходящий все пять этапов жадным драфтом + апгрейдами (подобран пробой; первый
+// этап остаётся коин-флипом из-за схлопнутого поля — см. R7.1). Нужен, чтобы дойти до финала акта
+// и проверить boss condition сквозным проходом.
+const CHEAT_SEED = "cheat-e2e-3";
 
 // Roguelite Run (T5.7 срез 1 + T5.2 срез 2): драфт → этап → Буткемп (reward/market) → следующий
 // этап; растущий порог, промах = конец.
@@ -114,42 +118,6 @@ test("roguelite run: экипировка тактики и розыгрыш д�
   await page.getByTestId("action-play-heroPractice").click();
   await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
   await expect(page.getByTestId("camp-tactics").locator('[data-card-id="oldTeammates"]')).toBeVisible();
-});
-
-// Срез 5: boss conditions. CAMP_SEED даёт правило со stage 2 (chemistryBlackout); этапы 0–1 —
-// онбординг без правил. Босс виден заранее в Буткемпе и на активном этапе.
-test("roguelite run: boss condition виден заранее и на этапе", async ({ page }) => {
-  test.slow();
-  await gotoFreshApp(page);
-  await startRogueliteSeed(page, CAMP_SEED);
-  await completeDraft(page);
-
-  // Этап 0 пройден → Буткемп превью этапа 1: правил ещё нет (онбординг).
-  await simulateAnteStageToOutcome(page);
-  await page.getByTestId("ante-to-camp").click();
-  await expect(page.getByTestId("camp-screen")).toBeVisible();
-  await expect(page.getByTestId("camp-boss")).toHaveCount(0);
-  await page.getByTestId("camp-next-stage").click();
-
-  // Этап 1 пройден → Буткемп превью этапа 2: заранее видимое boss condition.
-  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
-  await simulateAnteStageToOutcome(page);
-  await page.getByTestId("ante-to-camp").click();
-  await expect(page.getByTestId("camp-screen")).toBeVisible();
-  const campBoss = page.getByTestId("camp-boss");
-  await expect(campBoss).toBeVisible();
-  await expect(campBoss).toHaveAttribute("data-boss-id", "chemistryBlackout");
-
-  // На самом этапе 2 правило тоже показано (активное условие).
-  await page.getByTestId("camp-next-stage").click();
-  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
-  const anteBoss = page.getByTestId("ante-boss");
-  await expect(anteBoss).toBeVisible();
-  await expect(anteBoss).toHaveAttribute("data-boss-id", "chemistryBlackout");
-
-  // Штраф босса входит в силу состава так же, как в таблицу поля: центр радара = сила в поле.
-  const strength = await page.getByTestId("tournament-user-strength").innerText();
-  await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
 });
 
 // Регресс live-бага: Stand-in (бесплатный свап игрока) должен делать покупку игрока доступной,
@@ -338,4 +306,96 @@ test("roguelite run: resume восстанавливает Буткемп пос
   // Экономические модификаторы входят и в силу симуляции, и в радар: два числа не расходятся.
   const simulatedStrength = await page.getByTestId("tournament-user-strength").innerText();
   await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(simulatedStrength);
+});
+
+// R2 — Cheat Mode: правило конкретного забега.
+//
+// Здесь же живёт покрытие cadence боссов (R6.2): босс стоит только на финале акта, а дойти до
+// него можно лишь глубоким забегом — Cheat Mode делает это детерминированно, без охоты за
+// «проходным» seed. Тест проверяет ОБЕ половины правила: на этапах 1–4 боссов нет, на 5-м есть.
+// Отдельного узкого теста «обычные этапы без босса» поэтому не держим.
+test("cheat mode: ∞ золото, маркировка, boss на финале акта, забег вне статистики", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CHEAT_SEED, { cheatMode: true });
+  await completeDraft(page);
+
+  // Маркировка видна с первого этапа.
+  await expect(page.getByTestId("cheat-badge").first()).toBeVisible();
+
+  let sawBossPreview = false;
+  let sawBossOnStage = false;
+  for (let stage = 0; stage < 5; stage += 1) {
+    await simulateAnteStageToOutcome(page);
+    if (!(await page.getByTestId("ante-to-camp").isVisible().catch(() => false))) break;
+    await page.getByTestId("ante-to-camp").click();
+    await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+    // Золото показано как ∞ и покупки его не тратят.
+    await expect(page.getByTestId("camp-gold")).toHaveText("∞");
+    await boostInCamp(page);
+    await expect(page.getByTestId("camp-gold")).toHaveText("∞");
+
+    // Босс — только на финале акта (5-й этап), и в Буткемпе он виден заранее.
+    const bossPreview = await page.getByTestId("camp-boss").count();
+    expect(bossPreview > 0).toBe(stage === 3);
+    if (bossPreview) sawBossPreview = true;
+
+    await page.getByTestId("camp-next-stage").click();
+    await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+    if (stage === 3) {
+      const anteBoss = page.getByTestId("ante-boss");
+      await expect(anteBoss).toBeVisible();
+      await expect(anteBoss).toHaveAttribute("data-boss-id", /.+/);
+      sawBossOnStage = true;
+      // Штраф босса входит в силу состава так же, как в таблицу поля: центр радара = сила в поле.
+      const strength = await page.getByTestId("tournament-user-strength").innerText();
+      await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
+    }
+  }
+  expect(sawBossPreview).toBe(true);
+  expect(sawBossOnStage).toBe(true);
+
+  // Забег дошёл до конца, запись сохранена с меткой — но в статистику не пошла.
+  const stored = await page.evaluate(() => localStorage.getItem("aegis:career:v1"));
+  expect(stored).toContain('"cheatMode":true');
+  // Счётчик «Забеги» остаётся нулевым: cheat-запись есть в истории, но не в агрегатах.
+  await expect(page.locator(".career-panel").getByText(/^Runs$/).locator("..")).toContainText("0");
+});
+
+// R2.1: Cheat Mode — правило конкретного забега, живёт на экране его конфигурации.
+test("cheat mode: секция Special rules только в Roguelite, включение через подтверждение", async ({ page }) => {
+  await gotoFreshApp(page);
+
+  // Quick Draft — обычная конфигурация без особых правил.
+  await page.getByTestId("mode-classic").click();
+  await page.getByTestId("variant-quick").click();
+  await expect(page.getByTestId("start-run")).toBeVisible();
+  await expect(page.getByTestId("special-rules")).toHaveCount(0);
+
+  // Roguelite Run — секция есть; по умолчанию Cheat Mode выключен.
+  await gotoFreshApp(page);
+  await page.getByTestId("mode-classic").click();
+  await page.getByTestId("variant-run").click();
+  const special = page.getByTestId("special-rules");
+  await expect(special).toBeVisible();
+  const on = special.getByRole("button", { name: /Unlimited gold/ });
+  await expect(on).toHaveAttribute("aria-pressed", "false");
+
+  // Включение не проходит молча: сперва модалка.
+  await on.click();
+  await expect(page.getByTestId("cheat-gate-confirm")).toBeVisible();
+  await expect(on).toHaveAttribute("aria-pressed", "false");
+  await page.getByTestId("cheat-gate-confirm").click();
+  await expect(on).toHaveAttribute("aria-pressed", "true");
+
+  // Хардкор и Cheat Mode взаимоисключающи: опция блокируется с понятной подсказкой.
+  const hardOn = page.getByRole("group", { name: /Hardcore/i }).getByRole("button").last();
+  await expect(hardOn).toBeDisabled();
+  await expect(hardOn).toContainText(/Unavailable with Cheat Mode/i);
+
+  // Выключение — сразу, без модалки, и хардкор снова доступен.
+  await special.getByRole("button", { name: /Normal run economy/ }).click();
+  await expect(page.getByTestId("cheat-gate-confirm")).toHaveCount(0);
+  await expect(hardOn).toBeEnabled();
 });

@@ -155,3 +155,46 @@ describe("careerStore", () => {
     expect(summary.flawlessGroups).toBe(Number(entry.results.groupClean) + 1);
   });
 });
+
+// R2.3: cheat-забег хранится в истории, но не влияет ни на статистику, ни на мета-прогрессию.
+describe("Cheat Mode в карьере", () => {
+  function entry(over: Partial<CareerEntry> = {}): CareerEntry {
+    return {
+      v: 1,
+      finishedAt: "2026-07-27T00:00:00.000Z",
+      seed: "s",
+      datasetSchemaVersion: 1,
+      ratingModelVersion: "v1",
+      configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team" },
+      placement: "1",
+      score: { base: 80, heroSynergy: 4, chemistry: 3, teamOvr: 87 },
+      roster: [],
+      results: { gamesWon: 10, gamesLost: 0, groupClean: true, undefeated: true },
+      ...over,
+    };
+  }
+
+  it("cheat-запись не двигает ни один career-счётчик", () => {
+    const honest = entry({ seed: "honest" });
+    const cheat = entry({ seed: "cheat", configLabel: { ...honest.configLabel, cheatMode: true } });
+    const both = summarizeCareer([honest, cheat]);
+    expect(both).toEqual(summarizeCareer([honest]));
+    expect(both.runs).toBe(1);
+    expect(both.placements["1"]).toBe(1);
+    expect(both.undefeated).toBe(1);
+  });
+
+  it("cheat-забег не открывает мета-прогрессию следующему честному", () => {
+    // Гейт редкости считает roguelite-записи: читерский забег не должен делать следующий вторым.
+    const cheatRun = entry({
+      seed: "cheat-run",
+      configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team", mode: "run", cheatMode: true },
+    });
+    expect(careerEntriesForMode([cheatRun], "run")).toHaveLength(0);
+    const honestRun = entry({
+      seed: "honest-run",
+      configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team", mode: "run" },
+    });
+    expect(careerEntriesForMode([cheatRun, honestRun], "run")).toHaveLength(1);
+  });
+});

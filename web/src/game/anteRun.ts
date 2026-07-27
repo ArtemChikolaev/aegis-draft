@@ -8,14 +8,41 @@
 // состав рано или поздно не пробьёт порог. Пробил порог → следующий этап; промах → смерть.
 // Экономика/рынок/редкость/боссы — поздние срезы (PRD §5.9.2), здесь их намеренно нет.
 import type { Format, GameData } from "../types/data.ts";
-import { TournamentEngine, type PlacementKey } from "./tournament.ts";
+import { PLACEMENT_KEYS, TournamentEngine, type PlacementKey } from "./tournament.ts";
 
-/** Стартовая лестница порогов (PRD §5.9.2, §10.E — откалибрована симуляцией 2026-07-23).
- *  Значение = максимальное числовое место, которое ещё считается пройденным: 10 = топ-10.
+/** Длина акта: пять этапов, последний — Boss Tournament (PRD §5.9.3). Пока сезон сам состоит из
+ *  одного акта, но cadence боссов и разметка UI уже считаются от этого числа, чтобы переход на
+ *  `5 актов × 5 этапов` (R6.1) не переписывал оркестратор. */
+export const ACT_LENGTH = 5;
+
+/** Босс стоит только на финале акта — заранее видимое исключительное событие, а не фон каждого
+ *  второго этапа (R6.2). Раньше `BOSS_FIRST_STAGE = 2` давал босса на КАЖДОМ этапе с третьего:
+ *  три боссовых этапа из пяти, что прямо противоречило PRD. */
+export function isActFinale(absoluteStageIndex: number): boolean {
+  return absoluteStageIndex >= 0 && (absoluteStageIndex + 1) % ACT_LENGTH === 0;
+}
+
+/** Легальные пороги = worst-rank реальных placement-бакетов (R9.3/R6.4).
+ *
+ *  Любое другое число даёт ложную подпись. Прежний `target = 10` не пропускал бакет «9-12»
+ *  (worst 12), то есть «топ-10» фактически требовал топ-8 — игрок читал одно правило, а играл по
+ *  другому. Проверяется в конструкторе, чтобы будущая калибровка не завела новое ложное число. */
+export const LEGAL_ANTE_TARGETS: readonly number[] = [
+  ...new Set(PLACEMENT_KEYS.map(placementWorstRank)),
+].sort((a, b) => a - b);
+
+export function isLegalAnteTarget(target: number): boolean {
+  return LEGAL_ANTE_TARGETS.includes(target);
+}
+
+/** Стартовая лестница порогов (PRD §5.9.2/§5.9.3, §10.E — откалибрована симуляцией 2026-07-23).
+ *  Значение = максимальное числовое место, которое ещё считается пройденным: 8 = топ-8.
  *  Плавная рампа (не обрыв топ-2/топ-2): статичный состав живёт до середины, победа требует
  *  докупки силы в Буткемпе.
+ *  Первый порог был записан как `10`, хотя вёл себя как `8`; 2026-07-27 подпись приведена к
+ *  фактическому поведению — проходимость этапа при этом не изменилась ни на один бакет.
  *  Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts). */
-export const ANTE_TARGETS: readonly number[] = [10, 6, 4, 3, 1];
+export const ANTE_TARGETS: readonly number[] = [8, 6, 4, 3, 1];
 
 /** Насколько сильнее поле каждый следующий этап (в очках силы бота). */
 export const ANTE_FIELD_STEP = 3;
@@ -73,6 +100,13 @@ export class AnteRunEngine {
     private readonly targets: readonly number[] = ANTE_TARGETS,
   ) {
     if (targets.length === 0) throw new Error("Ante run needs at least one stage");
+    const illegal = targets.filter((target) => !isLegalAnteTarget(target));
+    if (illegal.length) {
+      throw new Error(
+        `Порог этапа обязан совпадать с worst-rank реального бакета `
+        + `(${LEGAL_ANTE_TARGETS.join(", ")}), получено: ${illegal.join(", ")}`,
+      );
+    }
     this.currentEngine = this.buildStage(0);
   }
 

@@ -262,3 +262,13 @@
 .hard-gate__ack input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--danger); cursor: pointer; }
 /* Класс Button хеширован CSS-модулем — цепляемся за элемент, а не за .danger. */
 .hard-gate button:disabled { opacity: .4; filter: grayscale(.5); cursor: not-allowed; }
+
+/* Special rules — правила конкретного забега (Cheat Mode). Визуально отделены от осей драфта
+   линией и отступом: это не «ещё одна настройка», а исключение из обычных правил. */
+.config-panel__special {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+}
