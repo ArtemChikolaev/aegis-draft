@@ -3,12 +3,12 @@
 // game-state-architecture: этапы — отдельный слой, не вливать в RunEngine/TournamentEngine).
 //
 // Забег = последовательность этапов с растущим порогом места. На каждом этапе играется один
-// турнир (тот же TournamentEngine), но поле сильнее по индексу этапа (fieldBoost). Ростер в
+// турнир (тот же TournamentEngine), но поле сильнее по индексу этапа (растёт mean). Ростер в
 // срезе 1 персистит без изменений, поэтому teamOvr постоянный, а поле обгоняет его — статичный
 // состав рано или поздно не пробьёт порог. Пробил порог → следующий этап; промах → смерть.
 // Экономика/рынок/редкость/боссы — поздние срезы (PRD §5.9.2), здесь их намеренно нет.
 import type { Format, GameData } from "../types/data.ts";
-import { PLACEMENT_KEYS, TournamentEngine, type PlacementKey } from "./tournament.ts";
+import { PLACEMENT_KEYS, TournamentEngine, type FieldModel, type PlacementKey } from "./tournament.ts";
 
 /** Длина акта: пять этапов, последний — Boss Tournament (PRD §5.9.3). Пока сезон сам состоит из
  *  одного акта, но cadence боссов и разметка UI уже считаются от этого числа, чтобы переход на
@@ -44,17 +44,31 @@ export function isLegalAnteTarget(target: number): boolean {
  *  Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts). */
 export const ANTE_TARGETS: readonly number[] = [8, 6, 4, 3, 1];
 
-/** Насколько сильнее поле каждый следующий этап (в очках силы бота). */
+/** На сколько растёт СРЕДНЯЯ сила поля с каждым этапом. */
 export const ANTE_FIELD_STEP = 3;
 
-/** Стартовый гандикап: на раннем этапе поле СЛАБЕЕ игрока (сдвиг вниз), иначе teamOvr (~78–85)
- *  сидит ниже медианы пула ботов N(86,5) и топ-10 берётся редко — забег ощущается непроходимым.
- *  За забег поле деградирует от -HANDICAP до -1 (idx*STEP − HANDICAP), к финалу почти базовый пул.
- *  Пере-калибровано 2026-07-24 симулятором (`npm run sim`, balanceConfigVersion b1.1.0): при 12
- *  наивная-но-осмысленная игра выигрывала ~8% (PRD-цель 30–40% для хорошего состава с апгрейдами)
- *  и статик гиб уже на этапе 0 вместо «жил до середины»; 16 поднимает наивный симулятор до ~20%
- *  (skilled-человек ≈ цель), статик остаётся ≈0%. Часть BALANCE_CONFIG_VERSION — правишь, бампай. */
-export const ANTE_FIELD_HANDICAP = 16;
+/** Средняя сила поля на первом этапе и границы качества ростера соперника (R7.1).
+ *
+ *  Раньше здесь стоял `ANTE_FIELD_HANDICAP`: поле Quick Draft сдвигалось вниз и переклампливалось
+ *  в `[76, 99]`. Замер показал, что это ломало саму выборку — на первом этапе **90.2% ботов
+ *  стояли ровно на 76** при `sd ≈ 0.99`, то есть поле было одним значением, а не распределением:
+ *  боты играли между собой в монетку, и место игрока решала жеребьёвка. Теперь по этапу двигается
+ *  `mean`, а `sd` остаётся живым; нижняя граница качества опущена до 60, чтобы ранние этапы не
+ *  упирались в неё снова.
+ *
+ *  Часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts. */
+export const ANTE_FIELD = { meanBase: 71, sd: 5, min: 60, max: 99 } as const;
+
+/** Модель поля этапа `stageIndex` (0-based). Верхняя граница относится к КАЧЕСТВУ ростера;
+ *  безлимитная угроза акта/босса/Stake приходит отдельным слагаемым `threat` (R7.2). */
+export function anteFieldModel(stageIndex: number): FieldModel {
+  return {
+    mean: ANTE_FIELD.meanBase + stageIndex * ANTE_FIELD_STEP,
+    sd: ANTE_FIELD.sd,
+    min: ANTE_FIELD.min,
+    max: ANTE_FIELD.max,
+  };
+}
 
 export type AntePhase = "playing" | "won" | "lost";
 
@@ -73,8 +87,8 @@ export interface AnteStageView {
   count: number;
   /** Порог места текущего этапа (числовой, worst-rank). */
   target: number;
-  /** Насколько поле этого этапа сильнее нулевого. */
-  fieldBoost: number;
+  /** Средняя сила поля этого этапа — то, что растёт от этапа к этапу. */
+  fieldMean: number;
 }
 
 export interface AnteRunState extends AnteStageView {
@@ -112,12 +126,12 @@ export class AnteRunEngine {
 
   private buildStage(index: number): TournamentEngine {
     // Своё seed-пространство на этап: этапы не должны делить поток Rng, иначе исход одного
-    // зависел бы от числа роллов другого. Сдвиг поля = idx*STEP − HANDICAP: ранние этапы
-    // слабее игрока (проходимы), поздние догоняют. Quick Draft зовёт турнир с boost=0 отдельно
-    // (mode "run" only) — golden не двигается.
+    // зависел бы от числа роллов другого. Поле задаётся моделью этапа; Quick Draft зовёт турнир
+    // вообще без неё (дефолт QUICK_DRAFT_FIELD) — golden не двигается.
     const stageSeed = `${this.seed}:ante:stage-${index}`;
-    const fieldBoost = index * ANTE_FIELD_STEP - ANTE_FIELD_HANDICAP;
-    return new TournamentEngine(this.data, this.format, stageSeed, this.teamOvr, this.teamName, 0, fieldBoost);
+    return new TournamentEngine(
+      this.data, this.format, stageSeed, this.teamOvr, this.teamName, 0, anteFieldModel(index),
+    );
   }
 
   /** Турнир текущего этапа. UI гонит его reveal (advance) как в Quick Draft. */
@@ -130,7 +144,7 @@ export class AnteRunEngine {
       index: this.stageIndex,
       count: this.targets.length,
       target: this.targets[this.stageIndex],
-      fieldBoost: this.stageIndex * ANTE_FIELD_STEP,
+      fieldMean: anteFieldModel(this.stageIndex).mean,
       phase: this.phase,
       lastPlacement: this.lastPlacement,
     };

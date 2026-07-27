@@ -9,7 +9,7 @@
 //
 // Это НЕ ratingModelVersion: формула Team OVR (score.ts) не меняется этими числами, только орка/
 // экономика/условия забега. Тонкая калибровка — через `npm run sim` (web/scripts/sim_run.ts).
-import { ANTE_TARGETS, ANTE_FIELD_STEP, ANTE_FIELD_HANDICAP } from "./anteRun.ts";
+import { ANTE_TARGETS, ANTE_FIELD_STEP, ANTE_FIELD } from "./anteRun.ts";
 import { ECONOMY } from "./anteEconomy.ts";
 import { TACTICS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
@@ -45,14 +45,19 @@ import { FORM_ODDS, FORM_FLOOR } from "./anteMarket.ts";
  *  Исправлено в b1.7.0 — доверять следует числам от b1.7.0 и новее.
  *  b1.7.0 (2026-07-27): R4.3 — ревизия наград. Доминируемая пара «мало/много золота» убрана,
  *  награды стали тремя РАЗНЫМИ видами пользы (деньги / билд / утилита-токен), добавлены проценты
- *  за накопление (`interestPerGold`/`interestCap`). Состав наград и денежный поток другие. */
-export const BALANCE_CONFIG_VERSION = "b1.7.0";
+ *  за накопление (`interestPerGold`/`interestCap`). Состав наград и денежный поток другие.
+ *  b1.8.0 (2026-07-27): R7.1 — поле Roguelite задаётся моделью этапа (`ANTE_FIELD`: mean растёт,
+ *  sd живой, качество ростера в [60,99]) вместо пост-сдвига с переклампом. `ANTE_FIELD_HANDICAP`
+ *  удалён. `meanBase = 71` подобран так, чтобы профиль сложности остался прежним (naive 28.4%
+ *  при n=800 против 26.7% при n=300 — в пределах шума), то есть правка меняет ФОРМУ поля, а не
+ *  сложность: sd 0.99 → 5.0, доля ботов на границе 90% → ≤2%, гибель на этапе 1 27% → 12%. */
+export const BALANCE_CONFIG_VERSION = "b1.8.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
 export const BALANCE = {
   version: BALANCE_CONFIG_VERSION,
-  ante: { targets: ANTE_TARGETS, fieldStep: ANTE_FIELD_STEP, fieldHandicap: ANTE_FIELD_HANDICAP },
+  ante: { targets: ANTE_TARGETS, fieldStep: ANTE_FIELD_STEP, field: ANTE_FIELD },
   economy: ECONOMY,
   tactics: TACTICS,
   campActions: CAMP_ACTIONS,

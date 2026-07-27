@@ -4,11 +4,12 @@ import {
   ANTE_FIELD_STEP,
   ANTE_TARGETS,
   LEGAL_ANTE_TARGETS,
+  anteFieldModel,
   isActFinale,
   isLegalAnteTarget,
   placementWorstRank,
 } from "../src/game/anteRun.ts";
-import { TournamentEngine } from "../src/game/tournament.ts";
+import { QUICK_DRAFT_FIELD, TournamentEngine } from "../src/game/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
 
 const data = loadGameData();
@@ -45,18 +46,47 @@ describe("placementWorstRank", () => {
   });
 });
 
-describe("TournamentEngine fieldBoost", () => {
-  it("boost=0 тождественен Quick Draft (golden не двигается)", () => {
+describe("TournamentEngine FieldModel", () => {
+  const sd = (xs: number[]) => {
+    const m = mean(xs);
+    return Math.sqrt(xs.reduce((acc, x) => acc + (x - m) ** 2, 0) / xs.length);
+  };
+
+  it("явная модель Quick Draft тождественна дефолту (golden не двигается)", () => {
     const base = new TournamentEngine(data, "last_2y", "ante-fb", 80, "N");
-    const explicit = new TournamentEngine(data, "last_2y", "ante-fb", 80, "N", 0, 0);
+    const explicit = new TournamentEngine(data, "last_2y", "ante-fb", 80, "N", 0, QUICK_DRAFT_FIELD);
     expect(botStrengths(explicit)).toEqual(botStrengths(base));
     expect(explicit.snapshot.userPlacement).toBe(base.snapshot.userPlacement);
   });
 
-  it("boost>0 усиливает поле (растущий этап)", () => {
-    const flat = new TournamentEngine(data, "last_2y", "ante-fb", 80, "N", 0, 0);
-    const boosted = new TournamentEngine(data, "last_2y", "ante-fb", 80, "N", 0, 9);
-    expect(mean(botStrengths(boosted))).toBeGreaterThan(mean(botStrengths(flat)));
+  it("сдвиг mean поднимает поле и НЕ схлопывает разброс", () => {
+    // Ровно то, что было сломано: прежний пост-сдвиг с переклампом давал sd ≈ 1 (спайк на
+    // границе). Модель этапа обязана сохранять живой разброс на любом mean.
+    const low = botStrengths(new TournamentEngine(
+      data, "last_2y", "ante-fb", 80, "N", 0, { mean: 70, sd: 5, min: 60, max: 99 },
+    ));
+    const high = botStrengths(new TournamentEngine(
+      data, "last_2y", "ante-fb", 80, "N", 0, { mean: 88, sd: 5, min: 60, max: 99 },
+    ));
+    expect(mean(high)).toBeGreaterThan(mean(low));
+    expect(sd(low)).toBeGreaterThan(2);
+    expect(sd(high)).toBeGreaterThan(2);
+    // Ни одно значение не «прилипает» к границе большинством.
+    const atFloor = low.filter((x) => x === 60).length / low.length;
+    expect(atFloor).toBeLessThan(0.2);
+  });
+
+  it("threat поднимает итоговую силу выше потолка качества ростера", () => {
+    const capped = botStrengths(new TournamentEngine(
+      data, "last_2y", "ante-threat", 80, "N", 0, { mean: 95, sd: 5, min: 60, max: 99 },
+    ));
+    const withThreat = botStrengths(new TournamentEngine(
+      data, "last_2y", "ante-threat", 80, "N", 0, { mean: 95, sd: 5, min: 60, max: 99, threat: 20 },
+    ));
+    expect(Math.max(...capped)).toBeLessThanOrEqual(99);
+    // Потолка 99 у итоговой силы больше нет — иначе поздняя угроза упиралась бы в стену.
+    expect(Math.max(...withThreat)).toBeGreaterThan(99);
+    expect(mean(withThreat) - mean(capped)).toBeCloseTo(20, 6);
   });
 });
 
@@ -83,7 +113,7 @@ describe("AnteRunEngine", () => {
     engine.resolveStage();
     const stage2 = mean(botStrengths(engine.tournament));
     expect(engine.state.index).toBe(2);
-    expect(engine.state.fieldBoost).toBe(2 * ANTE_FIELD_STEP);
+    expect(engine.state.fieldMean).toBe(anteFieldModel(2).mean);
     expect(stage2).toBeGreaterThan(stage0);
   });
 

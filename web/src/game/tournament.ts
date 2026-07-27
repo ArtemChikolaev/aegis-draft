@@ -107,23 +107,53 @@ const USER_ID = "aegis-user-team";
 // Final) + итоговая таблица + твой результат на одном экране (без отдельных final/complete).
 const STAGES: TournamentStage[] = ["field", "groups", "playoffs"];
 
-/** Поле tier-1 турнира — параметры сняты из бандла 322-0 дословно (docs/reference-322-0.md):
- *  strength = round(clamp(76, 99, Normal(86, 5))).
- *  Раньше здесь стояла кусочная лестница, подобранная мной по их скриншотам: она давала
- *  mean 83.8 / sd 5.2 вместо 86.0 / 4.9 — поле было мягче на два очка и ступенчатым. */
-const BOT_FIELD = { mean: 86, sd: 5, min: 76, max: 99 } as const;
+/**
+ * Модель поля соперников (R7.1).
+ *
+ * Разделены две разные вещи:
+ *  - **качество ростера** соперника — сэмплируется из `N(mean, sd)` и ограничено `[min, max]`,
+ *    потому что это оценка живых игроков и у неё есть естественный потолок;
+ *  - **`threat`** — надбавка к итоговой силе сверх качества ростера (акт/босс/Stake, R7.2).
+ *    Она НЕ клампится: именно здесь снимается потолок 99, из-за которого поздняя угроза упиралась
+ *    в стену.
+ *
+ * Зачем параметризация вместо прежнего «сдвинуть и переклампить»: Roguelite двигал уже
+ * ограниченную выборку и переклампливал её, из-за чего распределение схлопывалось в спайк на
+ * границе. Замер на этапе 1: **90.2% ботов стояли ровно на 76**, `sd ≈ 0.99` — то есть поле было
+ * не распределением, а одним значением, матчи ботов между собой превращались в монетку, и место
+ * игрока определялось жеребьёвкой, а не силой. Теперь по этапу двигается сам `mean`, а `sd`
+ * остаётся живым.
+ */
+export interface FieldModel {
+  /** Средняя сила ростера соперников на этом этапе. */
+  mean: number;
+  sd: number;
+  /** Границы КАЧЕСТВА ростера (не итоговой силы). */
+  min: number;
+  max: number;
+  /** Надбавка к итоговой силе сверх качества ростера. Без верхней границы. */
+  threat?: number;
+}
+
+/** Поле Quick Draft — `round(clamp(76, 99, Normal(86, 5)))`, параметры сняты из бандла 322-0
+ *  дословно (docs/reference-322-0.md) и НЕ меняются: на них стоят golden-фикстуры и
+ *  parity-аудит. */
+export const QUICK_DRAFT_FIELD: FieldModel = { mean: 86, sd: 5, min: 76, max: 99 };
 
 // Сила бота НЕ привязана к силе игрока: место зависит от того, куда попадает его OVR в этом
 // поле (сильный драфт → 1-3, средний → середина, слабый → низ), а не «всегда 2-3».
-function sampleBotStrength(rng: Rng): number {
-  const raw = rng.normal(BOT_FIELD.mean, BOT_FIELD.sd);
-  return Math.round(Math.min(BOT_FIELD.max, Math.max(BOT_FIELD.min, raw)));
+function sampleBotStrength(rng: Rng, field: FieldModel): number {
+  const raw = rng.normal(field.mean, field.sd);
+  // Клампится КАЧЕСТВО ростера — у оценки живых игроков есть естественный потолок. Угроза
+  // (`threat`) прибавляется уже после и потолка не имеет.
+  const quality = Math.round(Math.min(field.max, Math.max(field.min, raw)));
+  return quality + (field.threat ?? 0);
 }
 
-function rollBotStrengths(rng: Rng, count: number): number[] {
+function rollBotStrengths(rng: Rng, count: number, field: FieldModel): number[] {
   // Каждый бот — независимая выборка из поля. Число ботов выше игрока варьируется само
   // (для OVR 94 — обычно 0-2 → 1-3 место; для 84 — ~7 → середина), даёт динамику как в 322-0.
-  return Array.from({ length: count }, () => sampleBotStrength(rng));
+  return Array.from({ length: count }, () => sampleBotStrength(rng, field));
 }
 
 // Соперники — фэнтезийные бот-команды (как в 322-0: «Naga Spirits», «No Techies»…),
@@ -166,11 +196,11 @@ function botNames(rng: Rng, count: number): string[] {
   return picked;
 }
 
-function opponentPool(fieldRng: Rng): TournamentTeam[] {
+function opponentPool(fieldRng: Rng, field: FieldModel): TournamentTeam[] {
   // Имена и силы — оба от fieldRng: реролл поля меняет СОПЕРНИКОВ, а не только их очки
   // (так же в 322-0: у них и то и другое сидит на fieldSeed).
   const names = botNames(fieldRng, 17);
-  const strengths = rollBotStrengths(fieldRng, 17);
+  const strengths = rollBotStrengths(fieldRng, 17, field);
   // Цвет опознания раздаётся по кругу перетасованной палитры: 17 команд на 6 цветов дают
   // по 2-3 повтора, но пара (монограмма, цвет) при уникальной монограмме всё равно уникальна.
   const palette = fieldRng.shuffle(Array.from({ length: SIGIL_COLORS }, (_, i) => i));
@@ -284,22 +314,17 @@ function round(rng: Rng, id: string, label: string, pairs: [TournamentTeam, Tour
   return { id, label, series: pairs.map(([a, b], index) => playSeries(rng, `${id}-${index + 1}`, label, a, b, 3)) };
 }
 
-function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldBoost = 0): TournamentResult {
+function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldModel: FieldModel = QUICK_DRAFT_FIELD): TournamentResult {
   void data;
   void format;
   const fieldRng = new Rng(`${seed}:tournament:field-${fieldReroll}`);
   const simRng = new Rng(`${seed}:tournament:sim-${fieldReroll}`);
   const name = userName.trim() || "Aegis Five";
   const user: TournamentTeam = { id: USER_ID, name, eventLabel: "Fantasy roster", strength: userStrength, isUser: true, sigil: { monogram: monogramOf(name), color: "user" } };
-  // Roguelite Run (PRD §5.9.2): поле сильнее с каждым этапом. Сдвигаем силы ботов вверх на
-  // fieldBoost и переклампливаем в [min,max]; при fieldBoost=0 (Quick Draft) — тождественно,
-  // поэтому golden Classic не двигается.
-  const bots = fieldBoost === 0
-    ? opponentPool(fieldRng)
-    : opponentPool(fieldRng).map((bot) => ({
-        ...bot,
-        strength: Math.min(BOT_FIELD.max, Math.max(BOT_FIELD.min, bot.strength + fieldBoost)),
-      }));
+  // Roguelite Run (PRD §5.9.3): поле задаётся моделью этапа, а не пост-сдвигом уже
+  // ограниченной выборки. Quick Draft передаёт QUICK_DRAFT_FIELD ⇒ те же роллы в том же
+  // порядке ⇒ golden Classic байт-в-байт.
+  const bots = opponentPool(fieldRng, fieldModel);
   const field = [...bots, user]
     .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
   const projection = projectionForRank(field.findIndex((team) => team.isUser) + 1);
@@ -350,8 +375,8 @@ export class TournamentEngine {
   private stageIndex = 0;
   private readonly result: TournamentResult;
 
-  constructor(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldBoost = 0) {
-    this.result = buildResult(data, format, seed, userStrength, userName, fieldReroll, fieldBoost);
+  constructor(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldModel: FieldModel = QUICK_DRAFT_FIELD) {
+    this.result = buildResult(data, format, seed, userStrength, userName, fieldReroll, fieldModel);
   }
 
   get snapshot(): TournamentSnapshot {
