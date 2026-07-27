@@ -15,6 +15,7 @@ import { TACTICS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
 import { BOSSES } from "./bossConditions.ts";
 import { RARITY } from "./heroRarity.ts";
+import { FORM_ODDS } from "./anteMarket.ts";
 
 /** Версия набора игровых коэффициентов Roguelite Run. Бампать при любой правке чисел баланса.
  *  b1.1.0 (2026-07-24): ANTE_FIELD_HANDICAP 12→16 по прогону симулятора — наивный win-rate
@@ -30,8 +31,12 @@ import { RARITY } from "./heroRarity.ts";
  *  этапе 2 упала 15 → 6 (там стоял босс). Забег стал измеримо легче — это осознанное следствие
  *  устранения дефекта, а не калибровка; профиль пере-калибруют R6.4/R10, компенсировать другими
  *  плейсхолдерами «на глаз» запрещено. Плюс R9.3: первый порог записан как `8` вместо ложного
- *  `10` (поведение не изменилось — оба режут бакет «9-12») и добавлен Cheat Mode (opt-in). */
-export const BALANCE_CONFIG_VERSION = "b1.4.0";
+ *  `10` (поведение не изменилось — оба режут бакет «9-12») и добавлен Cheat Mode (opt-in).
+ *  b1.5.0 (2026-07-27): P1 вехи M5R. R4.1 — цена hero re-pick по качеству (`RARITY.heroPrice`,
+ *  не зависит от этапа). R4.2 — реролл дорожает внутри Буткемпа (`rerollCostBase/Step`).
+ *  R5.1 — рынок больше не сворачивает snapshot'ы игрока и не банит активную личность; выбор формы
+ *  идёт через взвешенные по прогрессу сезона тиры (`FORM_ODDS`). Состав рынка меняется целиком. */
+export const BALANCE_CONFIG_VERSION = "b1.5.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
@@ -43,4 +48,6 @@ export const BALANCE = {
   campActions: CAMP_ACTIONS,
   bosses: BOSSES,
   rarity: RARITY,
+  /** Шансы тиров формы игрока по прогрессу сезона (R5.1). */
+  formOdds: FORM_ODDS,
 } as const;

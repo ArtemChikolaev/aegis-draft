@@ -362,6 +362,7 @@ export const useRun = create<RunStore>((set, get) => {
         economyState.campStageIndex,
         economyState.marketRerolls,
         economy.equippedTactics,
+        { rarityDrops: economy.rarityDropsEnabled, stageCount: ANTE_TARGETS.length },
       ));
     }
     const tactics = evaluateRunTactics();
@@ -695,6 +696,7 @@ export const useRun = create<RunStore>((set, get) => {
                   economyState.campStageIndex,
                   economyState.marketRerolls,
                   economy.equippedTactics,
+                  { rarityDrops: economy.rarityDropsEnabled, stageCount: ANTE_TARGETS.length },
                 ));
               }
             }
@@ -862,6 +864,7 @@ export const useRun = create<RunStore>((set, get) => {
               economyState.campStageIndex,
               economyState.marketRerolls,
               economy.equippedTactics,
+              { rarityDrops: economy.rarityDropsEnabled, stageCount: ANTE_TARGETS.length },
             ));
           }
           const campTactics = evaluateRunTactics();

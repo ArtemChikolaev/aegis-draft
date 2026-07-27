@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   RARITIES,
   RARITY,
+  heroPrice,
   nextRarity,
   rarityContribution,
   rarityModifiers,
@@ -11,6 +12,25 @@ import {
   upgradeCost,
   type Rarity,
 } from "../src/game/heroRarity.ts";
+
+// R4.1: цена входящего героя определяется КАЧЕСТВОМ и не зависит от номера этапа.
+describe("цена героя по качеству", () => {
+  it("монотонна по тиру", () => {
+    expect(RARITIES.map(heroPrice)).toEqual([4, 7, 12, 20]);
+    for (let i = 1; i < RARITIES.length; i += 1) {
+      expect(heroPrice(RARITIES[i])).toBeGreaterThan(heroPrice(RARITIES[i - 1]));
+    }
+  });
+
+  it("инвариант: купить готовый тир = вырастить его из common", () => {
+    // Оба пути к каждому тиру равноценны по золоту, иначе один из них становится ловушкой.
+    let ladder = heroPrice("common");
+    for (const rarity of RARITIES.slice(1) as Exclude<Rarity, "common">[]) {
+      ladder += RARITY.upgradeCost[rarity];
+      expect(heroPrice(rarity)).toBe(ladder);
+    }
+  });
+});
 
 describe("тиры редкости", () => {
   it("порядок и ранги", () => {

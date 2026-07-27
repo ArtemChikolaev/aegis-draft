@@ -254,12 +254,21 @@ test("roguelite run: resume восстанавливает Буткемп пос
   await expect(heroCards).toHaveCount(5);
   await expect(heroCards.first().locator(".camp-hero-compare")).toBeVisible();
   await expect(heroCards.first().locator(".camp-offer__delta").first()).toContainText(/TEAM OVR/i);
-  const packBuys = packCards.getByRole("button", { name: /^(Buy|Купить)$/ });
-  const packN = await packBuys.count();
+  // Берём карту с ДРУГОЙ личностью: после R5.2 рынок умеет и Form Upgrade (тот же accountId в
+  // лучшей форме), а этот тест про перестановку людей между составом и скамейкой. Апгрейд формы
+  // покрыт юнитами `engine.test.ts` — там же, где живёт правило «личность ≠ форма».
+  const activeAccountIds = await page.getByTestId("camp-team-radar")
+    .locator(".pentagon-node")
+    .evaluateAll((nodes) => nodes.map((n) => n.getAttribute("data-account-id")));
+  const packN = await packCards.count();
   let bought = false;
   for (let i = 0; i < packN; i += 1) {
-    if (!(await packBuys.nth(i).isEnabled())) continue;
-    await packBuys.nth(i).click();
+    const card = packCards.nth(i);
+    const incoming = await card.locator(".camp-player-card").getAttribute("data-account-id");
+    if (incoming && activeAccountIds.includes(incoming)) continue;
+    const buy = card.getByRole("button", { name: /^(Buy|Купить)$/ });
+    if (!(await buy.isEnabled())) continue;
+    await buy.click();
     bought = true;
     break;
   }
@@ -292,7 +301,9 @@ test("roguelite run: resume восстанавливает Буткемп пос
   await expect(page.getByTestId("resume-banner")).toBeVisible();
   await page.getByTestId("resume-continue").click();
 
-  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  // Resume — самая тяжёлая операция набора (replay лога + пересборка рынка), под параллельной
+  // нагрузкой дефолтных 5с иногда не хватало. Ждём дольше, а не «иногда красный».
+  await expect(page.getByTestId("camp-screen")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId("camp-gold")).toHaveText(gold);
   await expect(page.getByTestId("camp-reserve-player-name")).toHaveText(reservePlayer);
   await expect(page.getByTestId("camp-team-radar").locator(`[data-account-id="${reserveBefore}"]`))

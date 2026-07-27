@@ -8,7 +8,6 @@ import {
   nextRarity,
   rarityModifiers,
   raritySwapDelta,
-  rollRarity,
   upgradeCost,
   type Rarity,
 } from "../../game/heroRarity.ts";
@@ -142,7 +141,6 @@ export function CampScreen() {
   const discardAction = useRun((s) => s.discardAction);
   const playCampAction = useRun((s) => s.playCampAction);
   const upgradeHeroRarity = useRun((s) => s.upgradeHeroRarity);
-  const seed = useRun((s) => s.seed);
   const swapReservePlayer = useRun((s) => s.swapReservePlayer);
   const swapReserveHero = useRun((s) => s.swapReserveHero);
   const advanceAnteStage = useRun((s) => s.advanceAnteStage);
@@ -153,6 +151,11 @@ export function CampScreen() {
   const [heroTargets, setHeroTargets] = useState<Record<number, number>>({});
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
   const candidates = useMemo(() => (data?.packs ?? []).flatMap(candidatesOf), [data]);
+  const eventNames = useMemo(
+    () => new Map((data?.events ?? []).map((event) => [event.id, event.short ?? event.name])),
+    [data?.events],
+  );
+  const eventLabel = (eventId: string) => eventNames.get(eventId) ?? eventId;
 
   const score = snapshot?.score;
   if (!camp || !ante || !score || !snapshot || !data || !config) return null;
@@ -562,11 +565,24 @@ export function CampScreen() {
                       label={t(roleMessageKey(incoming.player.role))}
                     />
                     {outgoing && (
-                      <div className="camp-offer__fit">
-                        <small>{t("camp.replacesPlayer")}</small>
-                        <strong>{outgoing.player.nickname}</strong>
-                        <span>{outgoing.player.ovr} OVR</span>
-                      </div>
+                      // Form Upgrade (R5.2): та же личность в другой турнирной форме. Без явной
+                      // подписи карта читалась бы как «Satanic заменит Satanic» — игрок обязан
+                      // видеть, что меняется не человек, а его форма, и откуда она.
+                      outgoing.player.accountId === incoming.player.accountId ? (
+                        <div className="camp-offer__fit camp-offer__fit--form" data-form-upgrade="true">
+                          <small>{t("camp.formUpgrade")}</small>
+                          {/* Формы различает СОБЫТИЕ, а не команда: у одного человека бывает
+                              несколько снимков внутри одной организации. */}
+                          <strong>{eventLabel(outgoing.eventId)}</strong>
+                          <span>{outgoing.player.ovr} OVR →</span>
+                        </div>
+                      ) : (
+                        <div className="camp-offer__fit">
+                          <small>{t("camp.replacesPlayer")}</small>
+                          <strong>{outgoing.player.nickname}</strong>
+                          <span>{outgoing.player.ovr} OVR</span>
+                        </div>
+                      )
                     )}
                     <div className="camp-offer__deltas">
                       <span className={`camp-offer__delta camp-offer__delta--${ovrDelta >= 0 ? "up" : "down"}`}>
@@ -599,12 +615,10 @@ export function CampScreen() {
                 // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
                 // ролл, что применит покупка. Из неё вычитаем вклад редкости снимаемого героя:
                 // иначе mythic, заменяющий immortal, выглядел как +1.4 при фактическом падении.
-                // Превью обязано совпадать с покупкой: ролл здесь и `economy.rollHeroRarity`
-                // смотрят на ОДИН флаг. Пока дропы закрыты мета-гейтом, входящий всегда common —
-                // иначе карта обещала бы unique, а покупка выдавала common (поймано e2e R3.2).
-                const incomingRarity: Rarity = camp.rarityDropsEnabled && offer.heroSwap
-                  ? rollRarity(seed, offer.heroSwap.incomingHeroId, camp.campStageIndex)
-                  : "common";
+                // Качество входящего берём С ОФФЕРА (R4.1), а не роллим здесь заново: цена карты
+                // считается от него же, и разойтись с покупкой они больше не могут. Ровно это
+                // расхождение и было багом первого забега.
+                const incomingRarity: Rarity = offer.heroSwap?.incomingRarity ?? "common";
                 // Снимаемый герой — из реальной карты забега, без гейта: в первом забеге дропов
                 // нет, но вручную поднятый тир существует, и его потеря при замене должна быть
                 // видна в дельте.

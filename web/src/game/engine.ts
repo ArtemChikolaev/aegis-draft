@@ -26,6 +26,12 @@ export interface RosterSlot {
   candidate: Candidate | null;
 }
 
+/** Стабильный ключ конкретной ФОРМЫ игрока (личность + команда + событие). Совпадает по смыслу с
+ *  `CandidateRef`: accountId одного мало — у человека несколько event/team-снимков. */
+function snapshotKey(candidate: Candidate): string {
+  return `${candidate.player.accountId}:${candidate.teamId}:${candidate.eventId}`;
+}
+
 export class RunEngine {
   readonly config: RunConfig;
   readonly rng: Rng;
@@ -36,7 +42,18 @@ export class RunEngine {
   heroes: number[] = []; // драфтованные герои (≤ HERO_TARGET)
   currentPack!: DraftPack;
   rerollsLeft: number;
+  /** Личности (accountId), уже прошедшие через забег. Правит ДРАФТОМ: один и тот же человек не
+   *  предлагается в паках повторно. */
   private usedPlayers = new Set<number>();
+  /** Конкретные ФОРМЫ (accountId+team+event), уже прошедшие через забег: активные и на скамейке.
+   *  Правит РЫНКОМ (R5.1/R5.2).
+   *
+   *  Раньше рынок исключал всю личность (`usedPlayers`) и вдобавок сворачивал все snapshot'ы
+   *  игрока до максимального по OVR (`bestByPlayer`). Отсюда были сразу две проблемы: своего
+   *  игрока нельзя было улучшить до более сильной турнирной формы, а чужого рынок сразу показывал
+   *  на максимуме вместо честной рулетки форм. Личность ограничивает только активный состав —
+   *  один человек не занимает два слота; другая его форма приходит как Form Upgrade. */
+  private seenSnapshots = new Set<string>();
   private manual: Record<number, number> = {}; // accountId -> heroId (ручной режим)
   private benchPlayers: Candidate[] = [];
   private benchHeroes: number[] = [];
@@ -108,6 +125,7 @@ export class RunEngine {
     const slot = this.slotForRole(c.player.role);
     this.roster[slot] = c;
     this.usedPlayers.add(c.player.accountId);
+    this.seenSnapshots.add(snapshotKey(c));
     if (!this.isComplete) this.currentPack = this.draw();
   }
 
@@ -157,22 +175,49 @@ export class RunEngine {
     return this.score()?.assignment.byPlayer ?? {};
   }
 
-  /** Кандидаты рынка из того же format-pool, ещё не встречавшиеся в активном/резервном составе. */
+  /**
+   * Кандидаты рынка: ВСЕ формы format-pool, кроме тех, что уже проходили через забег (активные и
+   * на скамейке) — иначе одна и та же карта возвращалась бы бесконечно.
+   *
+   * Личность здесь НЕ фильтруется: другая форма уже стоящего в составе человека — это и есть
+   * `Form Upgrade`, главный товар R5.2. Ограничение «один человек не в двух слотах» живёт там,
+   * где ему место, — в проверке самой замены (`canReplacePlayer`).
+   *
+   * Snapshot'ы НЕ сворачиваются до максимального по OVR: разные формы одного человека — разные
+   * товары, и выбор между ними делает взвешенная по этапу рулетка тиров (`anteMarket`), а не
+   * «всегда лучший». Свёртка + бан личности как раз и давали баг «того же игрока в лучшей форме
+   * получить нельзя».
+   */
   get marketPlayerCandidates(): Candidate[] {
-    const bestByPlayer = new Map<number, Candidate>();
-    for (const candidate of this.pool
-      .flatMap(candidatesOf)
-      .filter((candidate) => {
-        if (this.usedPlayers.has(candidate.player.accountId)) return false;
-        return this.config.draftStyle !== "mixed"
-          || hasTeamSuccess(this.data.teamSuccess, candidate.teamId, this.config.format);
-      })) {
-      const current = bestByPlayer.get(candidate.player.accountId);
-      if (!current || candidate.player.ovr > current.player.ovr) {
-        bestByPlayer.set(candidate.player.accountId, candidate);
-      }
+    const slotsByAccount = new Map<number, number[]>();
+    this.roster.forEach((candidate, index) => {
+      if (!candidate) return;
+      const key = candidate.player.accountId;
+      slotsByAccount.set(key, [...(slotsByAccount.get(key) ?? []), index]);
+    });
+    return this.pool.flatMap(candidatesOf).filter((candidate) => {
+      if (this.seenSnapshots.has(snapshotKey(candidate))) return false;
+      // Личность может уже стоять в составе, но в ДРУГОЙ роли (в одном событии человек играл mid,
+      // в другом — offlane). Тогда его mid-форму девать некуда: занять второй слот он не может, а
+      // свой offlane-слот не той роли. Такие карты в пул не пускаем — иначе рынок собрал бы оффер,
+      // который невозможно применить.
+      const occupied = slotsByAccount.get(candidate.player.accountId);
+      if (occupied && !occupied.some((index) => ROLE_SEQUENCE[index] === candidate.player.role)) return false;
+      return this.config.draftStyle !== "mixed"
+        || hasTeamSuccess(this.data.teamSuccess, candidate.teamId, this.config.format);
+    });
+  }
+
+  /** Можно ли поставить эту форму в этот слот. Рынку нужен предикат, а не исключение: у входящего
+   *  игрока перебираются все слоты его роли, и часть из них законно недоступна (например второй
+   *  support-слот, когда та же личность уже стоит в первом). */
+  canReplacePlayer(slotIndex: number, incoming: Candidate): boolean {
+    try {
+      this.assertPlayerReplacement(slotIndex, incoming);
+      return true;
+    } catch {
+      return false;
     }
-    return [...bestByPlayer.values()];
   }
 
   /** Стабильный универсум героев формата (все сигнатурные из пула, отсортированы). В отличие от
@@ -216,17 +261,25 @@ export class RunEngine {
     const roster = [...this.roster];
     const outgoing = roster[slotIndex]!;
     roster[slotIndex] = incoming;
-    return this.scoreFor(roster, this.heroes, this.manualWithoutPlayer(outgoing.player.accountId));
+    return this.scoreFor(roster, this.heroes, this.manualAfterSwap(outgoing, incoming));
   }
 
-  /** Купить/применить замену: снятый игрок уходит на скамейку (в конец списка). */
+  /** Купить/применить замену: снятый игрок уходит на скамейку (в конец списка).
+   *  Апгрейд формы того же человека — та же операция: старая форма тоже уезжает на скамейку, а не
+   *  исчезает (второго правила рядом с существующим резервом не заводим). */
   replacePlayer(slotIndex: number, incoming: Candidate): void {
     this.assertPlayerReplacement(slotIndex, incoming);
     const outgoing = this.roster[slotIndex]!;
     this.roster[slotIndex] = incoming;
-    this.benchPlayers.push(outgoing);
+    // Скамейка держит не больше ОДНОЙ альтернативной формы на человека: иначе после двух апгрейдов
+    // подряд там оказались бы две формы X, а резерв адресуется по accountId (в т.ч. в логе
+    // действий) — выбор «какую именно» стал бы недетерминированным.
+    this.benchPlayers = this.benchPlayers
+      .filter((c) => c.player.accountId !== outgoing.player.accountId)
+      .concat(outgoing);
     this.usedPlayers.add(incoming.player.accountId);
-    this.manual = this.manualWithoutPlayer(outgoing.player.accountId);
+    this.seenSnapshots.add(snapshotKey(incoming));
+    this.manual = this.manualAfterSwap(outgoing, incoming);
   }
 
   /** Найти запасного по accountId (или бросить). */
@@ -243,7 +296,7 @@ export class RunEngine {
     const roster = [...this.roster];
     const outgoing = roster[slotIndex]!;
     roster[slotIndex] = bench;
-    return this.scoreFor(roster, this.heroes, this.manualWithoutPlayer(outgoing.player.accountId));
+    return this.scoreFor(roster, this.heroes, this.manualAfterSwap(outgoing, bench));
   }
 
   /** Бесплатно вернуть конкретного запасного в активный состав; снятый активный игрок занимает скамейку. */
@@ -252,9 +305,10 @@ export class RunEngine {
     this.assertPlayerReplacement(slotIndex, incoming, true);
     const outgoing = this.roster[slotIndex]!;
     this.roster[slotIndex] = incoming;
-    this.benchPlayers = this.benchPlayers.filter((c) => c.player.accountId !== benchAccountId);
-    this.benchPlayers.push(outgoing);
-    this.manual = this.manualWithoutPlayer(outgoing.player.accountId);
+    this.benchPlayers = this.benchPlayers
+      .filter((c) => c.player.accountId !== benchAccountId && c.player.accountId !== outgoing.player.accountId)
+      .concat(outgoing);
+    this.manual = this.manualAfterSwap(outgoing, incoming);
   }
 
   /** Реальный breakdown после re-pick героя без мутации забега. */
@@ -333,16 +387,34 @@ export class RunEngine {
     );
   }
 
-  private assertPlayerReplacement(slotIndex: number, incoming: Candidate, allowUsed = false): void {
+  /** `fromReserve` — возврат со скамейки: эта форма заведомо «видена», её и возвращаем. */
+  private assertPlayerReplacement(slotIndex: number, incoming: Candidate, fromReserve = false): void {
     if (!this.isComplete) throw new Error("Замена доступна только после завершения драфта");
     const outgoing = this.roster[slotIndex];
     const role = ROLE_SEQUENCE[slotIndex];
     if (!outgoing || !role) throw new Error(`Нет активного игрока в слоте ${slotIndex}`);
     if (incoming.player.role !== role) throw new Error("Запасной должен закрывать ту же роль");
-    if (!allowUsed && this.usedPlayers.has(incoming.player.accountId)) throw new Error("Игрок уже использован в забеге");
-    if (this.roster.some((candidate) => candidate?.player.accountId === incoming.player.accountId)) {
+    // Личность: один человек не может занимать ДРУГОЙ активный слот. Проверка именно «другой» —
+    // без неё Form Upgrade невозможен в принципе: входящая форма имеет тот же accountId, что и
+    // заменяемая, и апгрейд в свой же слот падал бы как «игрок уже в составе».
+    if (this.roster.some((candidate, index) => (
+      index !== slotIndex && candidate?.player.accountId === incoming.player.accountId
+    ))) {
       throw new Error("Игрок уже в активном составе");
     }
+    // Форма: ровно этот snapshot уже проходил через забег — повторно он не продаётся.
+    if (!fromReserve && this.seenSnapshots.has(snapshotKey(incoming))) {
+      throw new Error("Эта форма игрока уже использована в забеге");
+    }
+  }
+
+  /** Manual-назначения после замены: героя теряет только УШЕДШАЯ личность. При апгрейде формы того
+   *  же accountId назначение сохраняется — иначе Hungarian переназначил бы героя заново, и апгрейд
+   *  «в лучшую форму» мог молча испортить hero synergy. */
+  private manualAfterSwap(outgoing: Candidate, incoming: Candidate): Record<number, number> {
+    return outgoing.player.accountId === incoming.player.accountId
+      ? { ...this.manual }
+      : this.manualWithoutPlayer(outgoing.player.accountId);
   }
 
   private assertHeroReplacement(outgoingHeroId: number, incomingHeroId: number): void {

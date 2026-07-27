@@ -213,3 +213,102 @@ describe("RunEngine roguelite reserve", () => {
       .toBe(engine.heroes.length + engine.reserveHeroes.length);
   });
 });
+
+// R5.1/R5.2 — баг «нельзя найти того же игрока в лучшей форме». Рынок теперь различает ЛИЧНОСТЬ
+// (один accountId не занимает два активных слота) и ФОРМУ (accountId+team+event).
+describe("RunEngine формы игроков", () => {
+  const data = loadGameData();
+
+  /** Активный игрок, у которого в пуле есть ДРУГАЯ форма (другой event/team). */
+  function withAlternateForm(engine: RunEngine) {
+    for (const [slotIndex, slot] of engine.rosterView.entries()) {
+      const active = slot.candidate;
+      if (!active) continue;
+      // Роль должна совпасть со слотом: один человек в разных событиях мог играть разные позиции.
+      const alternate = engine.marketPlayerCandidates.find((c) =>
+        c.player.accountId === active.player.accountId && c.player.role === slot.role);
+      if (alternate) return { slotIndex, active, alternate };
+    }
+    return null;
+  }
+
+  it("рынок не сворачивает snapshot'ы игрока до максимального по OVR", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "forms-pool");
+    runToEnd(engine);
+    const byAccount = new Map<number, number>();
+    for (const candidate of engine.marketPlayerCandidates) {
+      byAccount.set(candidate.player.accountId, (byAccount.get(candidate.player.accountId) ?? 0) + 1);
+    }
+    // Хотя бы у одного человека в пуле больше одной формы — иначе тест ничего не проверяет.
+    expect([...byAccount.values()].some((count) => count > 1)).toBe(true);
+  });
+
+  it("активная личность из рынка исключена, но её другие формы доступны", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "forms-active");
+    runToEnd(engine);
+    const activeIds = new Set(engine.rosterView.flatMap((s) => s.candidate ? [s.candidate.player.accountId] : []));
+    const pool = engine.marketPlayerCandidates;
+    // Ни одна карта рынка не совпадает с уже стоящей ФОРМОЙ...
+    for (const slot of engine.rosterView) {
+      const active = slot.candidate;
+      if (!active) continue;
+      expect(pool.some((c) =>
+        c.player.accountId === active.player.accountId
+        && c.teamId === active.teamId
+        && c.eventId === active.eventId)).toBe(false);
+    }
+    // ...но личность как таковая рынком не забанена: у кого-то есть альтернативная форма.
+    expect(pool.some((c) => activeIds.has(c.player.accountId))).toBe(true);
+  });
+
+  it("Form Upgrade: того же игрока можно улучшить до другой формы", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "forms-upgrade");
+    runToEnd(engine);
+    const found = withAlternateForm(engine);
+    expect(found).not.toBeNull();
+    const { slotIndex, active, alternate } = found!;
+
+    // Раньше это падало: usedPlayers содержал accountId, и апгрейд считался «игрок уже использован».
+    expect(engine.previewPlayerReplacement(slotIndex, alternate).teamOvr).toBeGreaterThan(0);
+    engine.replacePlayer(slotIndex, alternate);
+
+    const now = engine.rosterView[slotIndex].candidate!;
+    expect(now.player.accountId).toBe(active.player.accountId);
+    expect(`${now.teamId}:${now.eventId}`).not.toBe(`${active.teamId}:${active.eventId}`);
+    // Личность не задвоилась в активном составе.
+    const activeIds = engine.rosterView.flatMap((s) => s.candidate ? [s.candidate.player.accountId] : []);
+    expect(activeIds.filter((id) => id === active.player.accountId)).toHaveLength(1);
+    // Старая форма ушла на скамейку, и скамейка держит одну форму на человека.
+    const bench = engine.reservePlayers.filter((c) => c.player.accountId === active.player.accountId);
+    expect(bench).toHaveLength(1);
+    expect(bench[0].eventId).toBe(active.eventId);
+    // Та же форма повторно не продаётся.
+    expect(() => engine.replacePlayer(slotIndex, alternate)).toThrow(/форма/i);
+  });
+
+  it("Form Upgrade сохраняет назначенного героя, обычная замена — нет", () => {
+    const manual = new RunEngine(data, { ...defaultRunConfig, allocation: "manual" }, "forms-hero");
+    runToEnd(manual);
+    const found = withAlternateForm(manual);
+    expect(found).not.toBeNull();
+    const { slotIndex, active, alternate } = found!;
+
+    const heroId = manual.effectiveAssignment()[active.player.accountId];
+    manual.assign(active.player.accountId, heroId);
+    manual.replacePlayer(slotIndex, alternate);
+    // Личность та же ⇒ ручное назначение переносится на новую форму, а не сбрасывается.
+    expect(manual.manualAssignment[active.player.accountId]).toBe(heroId);
+  });
+
+  it("один человек не может занять два активных слота", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "forms-duplicate");
+    runToEnd(engine);
+    const supports = engine.rosterView.flatMap((slot, index) => slot.role === "support" ? [index] : []);
+    expect(supports).toHaveLength(2);
+    const [first, second] = supports;
+    const occupant = engine.rosterView[first].candidate!;
+    const otherForm = engine.marketPlayerCandidates.find((c) => c.player.accountId === occupant.player.accountId);
+    if (!otherForm) return; // у этого seed нет второй формы саппорта — инвариант проверять нечем
+    expect(() => engine.replacePlayer(second, otherForm)).toThrow(/активном составе/i);
+  });
+});

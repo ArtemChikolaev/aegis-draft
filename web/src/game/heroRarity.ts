@@ -38,7 +38,23 @@ export const RARITY = {
   immortalBaseBonus: 1,
   /** Цена «улучшения» — стоимость ДОСТИЖЕНИЯ тира (бамп на один шаг вверх). */
   upgradeCost: { unique: 3, mythic: 5, immortal: 8 } as Record<Exclude<Rarity, "common">, number>,
+  /** Базовая цена hero re-pick по качеству входящего героя (R4.1).
+   *
+   *  **Не зависит от номера этапа** (PRD §5.9.3): один и тот же товар того же качества стоит
+   *  одинаково на этапе 2 и на этапе 22. Этап влияет на ВЕРОЯТНОСТЬ качества, доход и boss
+   *  pressure — но не на базовую формулу цены. Раньше hero-оффер брал цену generic-рычага Hero
+   *  Synergy, и common стоил столько же, сколько immortal.
+   *
+   *  Инвариант (закреплён тестом): `heroPrice(тир) === heroPrice("common") + Σ upgradeCost` —
+   *  купить готовый тир стоит ровно столько же, сколько вырастить его из common. Оба пути к
+   *  immortal равноценны (`4+3=7`, `7+5=12`, `12+8=20`); калибровка не должна ломать это молча. */
+  heroPrice: { common: 4, unique: 7, mythic: 12, immortal: 20 } as Record<Rarity, number>,
 } as const;
+
+/** Базовая цена входящего героя этого качества. */
+export function heroPrice(rarity: Rarity): number {
+  return RARITY.heroPrice[rarity];
+}
 
 /** Цена поднять героя из `from` в следующий тир; null если уже immortal. `nextRarity` никогда не
  *  возвращает common (это первый тир), поэтому target всегда есть в таблице цен. */

@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   ECONOMY,
   RunEconomy,
+  formUpgradeCost,
+  playerCost,
+  rerollCostFor,
   marketOffers,
   playerOfferAffordable,
   prizeForStage,
@@ -344,5 +347,62 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     const restored = new RunEconomy("persist", eco.snapshot);
     expect(restored.campView().equippedTactics).toEqual(eco.campView().equippedTactics);
     expect(restored.snapshot.ownedCards).toEqual(eco.snapshot.ownedCards);
+  });
+});
+
+// R4.2: реролл дорожает внутри Буткемпа и сбрасывается в следующем (принцип магазина Balatro).
+describe("Дорожающий реролл рынка", () => {
+  it("цена растёт по счётчику и сбрасывается в новом Буткемпе", () => {
+    expect([0, 1, 2, 3].map(rerollCostFor)).toEqual([2, 3, 4, 5]);
+
+    const eco = new RunEconomy("reroll");
+    eco.openCamp(1);
+    eco.awardStageClear(1, "1", 8);
+    const paid: number[] = [];
+    let gold = eco.gold;
+    while (eco.campView().canReroll && paid.length < 3) {
+      const cost = eco.campView().rerollCost;
+      expect(eco.rerollMarket()).toBe(true);
+      expect(eco.gold).toBe(gold - cost);
+      gold = eco.gold;
+      paid.push(cost);
+    }
+    // Каждый следующий реролл в том же Буткемпе дороже предыдущего.
+    expect(paid.length).toBeGreaterThan(1);
+    for (let i = 1; i < paid.length; i += 1) expect(paid[i]).toBeGreaterThan(paid[i - 1]);
+
+    // Следующий Буткемп — цена снова базовая.
+    eco.openCamp(2);
+    expect(eco.campView().rerollCost).toBe(rerollCostFor(0));
+  });
+
+  it("бесплатный реролл от разведки не двигает цену следующего", () => {
+    const eco = new RunEconomy("reroll-free");
+    eco.openCamp(1);
+    const before = eco.campView().rerollCost;
+    eco.setUnlimitedGold(true); // чтобы дойти до реролла без призовых
+    expect(eco.rerollMarket()).toBe(true);
+    expect(eco.campView().rerollCost).toBeGreaterThan(before);
+  });
+});
+
+// R5.3: за человека уже заплачено — апгрейд его формы идёт по trade-in.
+describe("Цена апгрейда формы", () => {
+  it("дешевле покупки того же игрока со стороны, но не бесплатна", () => {
+    const incoming = 88;
+    const current = 80;
+    const full = playerCost(incoming);
+    const upgrade = formUpgradeCost(incoming, current);
+    expect(upgrade).toBeLessThan(full);
+    expect(upgrade).toBeGreaterThanOrEqual(ECONOMY.formUpgradeMinCost);
+  });
+
+  it("сайдгрейд и даунгрейд не становятся бесплатными", () => {
+    expect(formUpgradeCost(80, 80)).toBeGreaterThanOrEqual(ECONOMY.formUpgradeMinCost);
+    expect(formUpgradeCost(70, 92)).toBeGreaterThanOrEqual(ECONOMY.formUpgradeMinCost);
+  });
+
+  it("чем сильнее входящая форма, тем дороже апгрейд", () => {
+    expect(formUpgradeCost(92, 80)).toBeGreaterThan(formUpgradeCost(84, 80));
   });
 });

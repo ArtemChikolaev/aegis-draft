@@ -45,6 +45,10 @@ export interface PlayerSwapEffect {
 export interface HeroSwapEffect {
   outgoingHeroId: number;
   incomingHeroId: number;
+  /** Качество, с которым герой ПРИДЁТ (R4.1). Едет на самом оффере, поэтому цена, превью на
+   *  карточке и результат покупки читают одно значение вместо трёх независимых роллов — именно
+   *  расхождение этих роллов было багом первого забега. Legacy-офферы поля не имеют ⇒ common. */
+  incomingRarity?: Rarity;
 }
 
 export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "action";
@@ -160,7 +164,14 @@ function normalizeEconomyState(initial: RunEconomyState): RunEconomyState {
  *  Ориентир: поле растёт ANTE_FIELD_STEP=3 очка/этап, покупка должна давать сопоставимый
  *  прирост Team OVR, чтобы усиливаться было обязательно, но одной покупки не хватало «на всё». */
 export const ECONOMY = {
-  rerollCost: 2,
+  /** Реролл рынка дорожает ВНУТРИ одного Буткемпа и сбрасывается в следующем (R4.2, принцип
+   *  магазина Balatro): `2 → 3 → 4 → …`. Ограничивает принудительный поиск идеальной карты —
+   *  раньше цена была плоской, и при накопленном золоте рынок можно было крутить бесконечно. */
+  rerollCostBase: 2,
+  rerollCostStep: 1,
+  /** Доля стоимости текущей формы, засчитываемая при апгрейде той же личности (R5.3). */
+  formTradeInRate: 0.6,
+  formUpgradeMinCost: 1,
   /** Базовые призовые первого этапа; каждый следующий пройденный этап добавляет stageStep. */
   prizeBase: 3,
   prizeStageStep: 1,
@@ -181,10 +192,25 @@ export const ECONOMY = {
 
 const MARKET_SUMMANDS: readonly Summand[] = ["base", "heroSynergy", "chemistry"];
 
+/** Цена очередного реролла в ТЕКУЩЕМ Буткемпе. Чистая: UI и движок обязаны считать одинаково. */
+export function rerollCostFor(rerollsInCamp: number): number {
+  return ECONOMY.rerollCostBase + Math.max(0, Math.floor(rerollsInCamp)) * ECONOMY.rerollCostStep;
+}
+
 /** Цена игрока в паке-рулетке растёт с его OVR: сильный дороже, слабый доступен рано (Balatro-
  *  ценообразование). Placeholder под balance spec (§10.F). */
 export function playerCost(ovr: number): number {
   return Math.max(2, Math.round((ovr - 60) / 4));
+}
+
+/** Цена апгрейда ФОРМЫ той же личности (R5.3): за человека уже заплачено, поэтому старая форма
+ *  идёт в зачёт. Без trade-in игрок платил бы полную цену второй раз за того же игрока, и апгрейд
+ *  формы был бы всегда хуже покупки нового человека той же силы.
+ *  Нижняя граница не даёт сделать сильный сайдгрейд бесплатным. */
+export function formUpgradeCost(incomingOvr: number, currentOvr: number): number {
+  const incoming = playerCost(incomingOvr);
+  const credit = Math.floor(playerCost(currentOvr) * ECONOMY.formTradeInRate);
+  return Math.max(ECONOMY.formUpgradeMinCost, incoming - credit);
 }
 
 /** Доступна ли покупка игрока: stand-in делает ОДНУ замену бесплатной, поэтому при наличии
@@ -574,9 +600,10 @@ export class RunEconomy {
   /** Реролл рынка: сначала тратим бесплатный от разведки, иначе списываем цену (без минуса). */
   rerollMarket(): boolean {
     const free = this.state.freeMarketRerolls > 0;
-    if (!free && !this.affordable(ECONOMY.rerollCost)) return false;
+    const cost = rerollCostFor(this.state.marketRerolls);
+    if (!free && !this.affordable(cost)) return false;
     if (free) this.state.freeMarketRerolls -= 1;
-    else this.spend(ECONOMY.rerollCost);
+    else this.spend(cost);
     this.state.marketRerolls += 1;
     this.state.preparedMarketOffers = undefined;
     return true;
@@ -663,8 +690,8 @@ export class RunEconomy {
       rewardOffers: this.currentRewardOffers(),
       marketOffers: this.currentMarketOffers(),
       modifiers: this.modifiers(),
-      rerollCost: ECONOMY.rerollCost,
-      canReroll: this.state.freeMarketRerolls > 0 || this.affordable(ECONOMY.rerollCost),
+      rerollCost: rerollCostFor(this.state.marketRerolls),
+      canReroll: this.state.freeMarketRerolls > 0 || this.affordable(rerollCostFor(this.state.marketRerolls)),
       equippedTactics: [...this.state.equippedTactics],
       heldActions: [...this.state.heldActions],
       tacticSlots: TACTIC_SLOTS,

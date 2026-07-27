@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { balancedPackSlots, buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
 import { RunEconomy, playerCost } from "../src/game/anteEconomy.ts";
 import { RunEngine } from "../src/game/engine.ts";
+import { heroPrice } from "../src/game/heroRarity.ts";
 import { ROLE_SEQUENCE } from "../src/game/packs.ts";
 import { Rng } from "../src/game/rng.ts";
 import { TACTICS } from "../src/game/tactics.ts";
@@ -52,6 +53,41 @@ describe("Roguelite market roulette (5 игроков + 5 героев)", () => 
       expect(offer.preview).toBeDefined();
       expect(offer.preview!.beforeAssignment).toBeDefined();
       expect(offer.preview!.afterAssignment).toBeDefined();
+    }
+  });
+
+  it("R4.1: цена hero-карты = цена её качества, одинаково на раннем и позднем этапе", () => {
+    const engine = completed("hero-price");
+    // Дропы открыты: качества разные, и цена каждой карты равна цене её тира.
+    const late = buildAnteMarketRoulette(engine, "hero-price", 9, 0, [], { rarityDrops: true });
+    const heroes = late.filter((offer) => offer.kind === "hero");
+    expect(heroes.length).toBeGreaterThan(0);
+    for (const offer of heroes) {
+      expect(offer.cost).toBe(heroPrice(offer.heroSwap!.incomingRarity ?? "common"));
+    }
+    // Тот же тир стоит столько же на этапе 2 и на этапе 22 — этап в базовую цену не входит.
+    for (const stage of [2, 22]) {
+      for (const offer of buildAnteMarketRoulette(engine, "hero-price", stage, 0, [], { rarityDrops: true })) {
+        if (offer.kind !== "hero") continue;
+        expect(offer.cost).toBe(heroPrice(offer.heroSwap!.incomingRarity ?? "common"));
+      }
+    }
+    // Мета-гейт закрыт → всё common по базовой цене (первый забег не платит за качество).
+    for (const offer of buildAnteMarketRoulette(engine, "hero-price", 9, 0, [], { rarityDrops: false })) {
+      if (offer.kind !== "hero") continue;
+      expect(offer.heroSwap!.incomingRarity).toBe("common");
+      expect(offer.cost).toBe(heroPrice("common"));
+    }
+  });
+
+  it("R4.1: refresh сохраняет качество и цену карты после соседнего swap", () => {
+    const engine = completed("hero-price-refresh");
+    const offers = buildAnteMarketRoulette(engine, "hero-price-refresh", 9, 0, [], { rarityDrops: true });
+    const refreshed = refreshAnteMarketOffers(engine, offers);
+    for (const offer of refreshed.filter((o) => o.kind === "hero")) {
+      const original = offers.find((o) => o.id === offer.id)!;
+      expect(offer.heroSwap!.incomingRarity).toBe(original.heroSwap!.incomingRarity);
+      expect(offer.cost).toBe(original.cost);
     }
   });
 

@@ -655,3 +655,10 @@
   .camp__section-head { align-items: flex-end; }
   .camp__actions { flex-direction: column; }
 }
+
+/* Form Upgrade: та же личность в другой форме. Отделяем от обычной замены акцентной рамкой —
+   у такой карты по обе стороны один ник, и без метки она читается как ошибка. */
+.camp-offer__fit--form {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}

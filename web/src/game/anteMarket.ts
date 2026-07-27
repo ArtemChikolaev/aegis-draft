@@ -6,7 +6,8 @@ import type { ScoreBreakdown } from "./score.ts";
 import { Rng } from "./rng.ts";
 import { candidateRef, ROLE_SEQUENCE, type Candidate } from "./packs.ts";
 import { RunEngine } from "./engine.ts";
-import { marketOffers, playerCost, type Offer, type SummandValues } from "./anteEconomy.ts";
+import { formUpgradeCost, playerCost, type Offer, type SummandValues } from "./anteEconomy.ts";
+import { heroPrice, rollRarity } from "./heroRarity.ts";
 import { tacticMarketEffects } from "./tactics.ts";
 
 interface HeroOption {
@@ -29,17 +30,81 @@ function values(score: ScoreBreakdown): SummandValues {
   };
 }
 
-/** Случайный кандидат роли из всего доступного пула — БЕЗ фильтра «только апгрейд»: пак
- *  показывает разное качество, включая слабых-ловушек (Balatro-рулетка, решение 2026-07-23). */
-function roulettePick(pool: Candidate[], rng: Rng): Candidate | null {
-  return pool.length ? rng.pick(pool) : null;
+/** Тир формы игрока — по percentile OVR ВНУТРИ роли (не по универсальному порогу): support с 80
+ *  и керри с 80 — разные явления, а сравнивать надо однородное. */
+export type FormTier = "standard" | "strong" | "elite" | "peak";
+
+export const FORM_TIERS: readonly FormTier[] = ["standard", "strong", "elite", "peak"];
+
+/** Верхняя граница percentile для каждого тира (доля пула роли снизу). */
+const FORM_TIER_BOUNDS: Record<FormTier, number> = {
+  standard: 0.50,
+  strong: 0.80,
+  elite: 0.95,
+  peak: 1,
+};
+
+/** Шансы тиров по ходу сезона (R5.1). Жёсткой привязки тиров к актам НЕТ: игрок уровня 95 может
+ *  встретиться уже в первом Буткемпе — это редкое, дорогое и определяющее событие (перенос
+ *  принципа Balatro «редкая сильная карта может выпасть рано»). Этап влияет на ВЕРОЯТНОСТЬ, а не
+ *  на eligibility.
+ *  Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION. */
+export const FORM_ODDS: readonly Record<FormTier, number>[] = [
+  { standard: 70, strong: 24, elite: 5, peak: 1 },
+  { standard: 58, strong: 29, elite: 11, peak: 2 },
+  { standard: 45, strong: 34, elite: 17, peak: 4 },
+  { standard: 34, strong: 36, elite: 23, peak: 7 },
+  { standard: 25, strong: 35, elite: 28, peak: 12 },
+];
+
+/** Строка шансов по прогрессу сезона `0..1`. Индексируем прогрессом, а не номером акта, чтобы
+ *  таблица одинаково работала и на нынешнем пятиэтапном сезоне, и на целевом 25-этапном (R6.1). */
+export function formOdds(seasonProgress: number): Record<FormTier, number> {
+  const clamped = Math.min(1, Math.max(0, seasonProgress));
+  return FORM_ODDS[Math.min(FORM_ODDS.length - 1, Math.floor(clamped * FORM_ODDS.length))];
+}
+
+/** Разбить пул роли на тиры по percentile OVR. Порядок внутри тира стабилен (сортировка пула). */
+export function formTiersOf(pool: readonly Candidate[]): Record<FormTier, Candidate[]> {
+  const sorted = [...pool].sort((a, b) => a.player.ovr - b.player.ovr);
+  const tiers: Record<FormTier, Candidate[]> = { standard: [], strong: [], elite: [], peak: [] };
+  sorted.forEach((candidate, index) => {
+    const percentile = sorted.length <= 1 ? 1 : (index + 1) / sorted.length;
+    const tier = FORM_TIERS.find((t) => percentile <= FORM_TIER_BOUNDS[t]) ?? "peak";
+    tiers[tier].push(candidate);
+  });
+  return tiers;
+}
+
+/** Кандидат роли: сперва по шансам выбирается ТИР формы, потом равномерно карта внутри тира.
+ *
+ *  Раньше здесь был равномерный `rng.pick` по всему пулу. После отказа от свёртки snapshot'ов
+ *  (R5.1) это стало прямым смещением: у одного человека в окне бывает под шесть десятков
+ *  event-снимков, и равномерная выборка показывала бы «кто чаще играл», а не «кто сильнее».
+ *  Фильтр «только апгрейд» по-прежнему отсутствует: слабые формы остаются честными ловушками. */
+function roulettePick(pool: Candidate[], rng: Rng, seasonProgress: number): Candidate | null {
+  if (!pool.length) return null;
+  const tiers = formTiersOf(pool);
+  const odds = formOdds(seasonProgress);
+  // Пустые тиры не съедают свой вес: перенормируем по фактически доступным.
+  const available = FORM_TIERS.filter((tier) => tiers[tier].length > 0);
+  const total = available.reduce((sum, tier) => sum + odds[tier], 0);
+  if (total <= 0) return rng.pick(pool);
+  let roll = rng.int(total);
+  for (const tier of available) {
+    roll -= odds[tier];
+    if (roll < 0) return rng.pick(tiers[tier]);
+  }
+  return rng.pick(tiers[available[available.length - 1]]);
 }
 
 /** Лучший same-role слот для конкретного входящего игрока. Обычно он один, но у двух
  * support-слотов выбор должен зависеть от полного scoreTeam, а не от позиции карты в паке. */
 function bestPlayerOption(engine: RunEngine, candidate: Candidate): PlayerOption {
   const options = engine.rosterView.flatMap((slot, slotIndex) => (
-    slot.candidate && slot.role === candidate.player.role
+    // canReplacePlayer, а не только совпадение роли: у Form Upgrade та же личность уже стоит в
+    // составе, и второй слот той же роли для неё законно недоступен.
+    slot.candidate && slot.role === candidate.player.role && engine.canReplacePlayer(slotIndex, candidate)
       ? [{
           slotIndex,
           candidate,
@@ -146,7 +211,19 @@ export function buildAnteMarketRoulette(
   campStageIndex: number,
   rerollN: number,
   equippedTactics: readonly string[] = [],
+  opts: {
+    /** Открыты ли случайные повышенные качества (мета-гейт первого забега, R3.1). Пробрасывается
+     *  сюда, а не читается заново, чтобы цена и превью карты не могли разойтись с покупкой. */
+    rarityDrops?: boolean;
+    /** Всего этапов в сезоне — из него считается прогресс для шансов тиров формы (R5.1). */
+    stageCount?: number;
+  } = {},
 ): Offer[] {
+  const { rarityDrops = false, stageCount = 0 } = opts;
+  // Прогресс сезона 0..1 по номеру пройденного этапа; при неизвестной длине остаёмся на старте.
+  const seasonProgress = stageCount > 1
+    ? Math.min(1, Math.max(0, (campStageIndex - 1) / (stageCount - 1)))
+    : 0;
   const tactics = tacticMarketEffects(equippedTactics);
   const packSize = Math.max(1, ROLE_SEQUENCE.length - tactics.packSizePenalty);
   const before = engine.score();
@@ -159,8 +236,13 @@ export function buildAnteMarketRoulette(
     list.push(candidate);
     byRole.set(candidate.player.role, list);
   }
-  // Стабильный порядок пула до RNG — иначе pick не воспроизводится по seed.
-  for (const list of byRole.values()) list.sort((a, b) => a.player.accountId - b.player.accountId);
+  // Стабильный порядок пула до RNG — иначе pick не воспроизводится по seed. Сортируем по ПОЛНОМУ
+  // ключу формы: после R5.1 у одного accountId в пуле несколько снимков, и одного id мало.
+  for (const list of byRole.values()) {
+    list.sort((a, b) => a.player.accountId - b.player.accountId
+      || a.teamId - b.teamId
+      || a.eventId.localeCompare(b.eventId));
+  }
 
   const takenAccounts = new Set<number>();
   const offers: Offer[] = [];
@@ -168,7 +250,7 @@ export function buildAnteMarketRoulette(
     if (!slot.candidate) return;
     const pool = (byRole.get(slot.role) ?? []).filter((c) => !takenAccounts.has(c.player.accountId));
     const rng = new Rng(`${seed}:camp-${campStageIndex}:roulette-${rerollN}:slot-${packSlotIndex}`);
-    const candidate = roulettePick(pool, rng);
+    const candidate = roulettePick(pool, rng, seasonProgress);
     if (!candidate) {
       throw new Error(
         `Нельзя собрать player market pack: нет нового кандидата для слота ${packSlotIndex} (${slot.role})`,
@@ -177,11 +259,16 @@ export function buildAnteMarketRoulette(
     takenAccounts.add(candidate.player.accountId);
     const option = bestPlayerOption(engine, candidate);
     const outgoing = engine.rosterView[option.slotIndex].candidate!;
+    // Апгрейд формы той же личности идёт по trade-in: за человека уже заплачено (R5.3).
+    const isFormUpgrade = outgoing.player.accountId === candidate.player.accountId;
+    const base = isFormUpgrade
+      ? formUpgradeCost(candidate.player.ovr, outgoing.player.ovr)
+      : playerCost(candidate.player.ovr);
     offers.push({
       id: `mkt-${campStageIndex}-${rerollN}-slot-${packSlotIndex}`,
       kind: "player",
       labelKey: "market.player",
-      cost: playerCost(candidate.player.ovr) + tactics.playerCostSurcharge,
+      cost: base + tactics.playerCostSurcharge,
       playerSwap: {
         slotIndex: option.slotIndex,
         outgoingAccountId: outgoing.player.accountId,
@@ -212,22 +299,26 @@ export function buildAnteMarketRoulette(
   offers.length = 0;
   offers.push(...players);
 
-  const heroCost = marketOffers(seed, campStageIndex, rerollN)
-    .find((offer) => offer.effect?.summand === "heroSynergy")!.cost;
   const heroes = heroOptions(
     engine,
     new Rng(`${seed}:camp-${campStageIndex}:market-${rerollN}:heroes`),
     packSize,
   );
   heroes.forEach((hero, heroIndex) => {
+    // Качество входящего героя определяет цену (R4.1) и едет на оффере: раньше hero-карта брала
+    // цену generic-рычага Hero Synergy, поэтому common и immortal стоили одинаково.
+    const incomingRarity = rarityDrops
+      ? rollRarity(seed, hero.incomingHeroId, campStageIndex)
+      : "common";
     offers.push({
       id: `mkt-${campStageIndex}-${rerollN}-hero-${heroIndex}`,
       kind: "hero",
       labelKey: "market.heroSynergy",
-      cost: heroCost,
+      cost: heroPrice(incomingRarity),
       heroSwap: {
         outgoingHeroId: hero.outgoingHeroId,
         incomingHeroId: hero.incomingHeroId,
+        incomingRarity,
       },
       preview: {
         before: values(before),
@@ -279,6 +370,9 @@ export function refreshAnteMarketOffers(engine: RunEngine, offers: Offer[]): Off
           heroSwap: {
             outgoingHeroId: option.outgoingHeroId,
             incomingHeroId: option.incomingHeroId,
+            // Identity карты сохраняется: пересчитывается только вытесняемый слот, а качество и
+            // цена входящего героя остаются теми, что игрок уже увидел.
+            incomingRarity: offer.heroSwap.incomingRarity,
           },
           preview: {
             before: values(before),
