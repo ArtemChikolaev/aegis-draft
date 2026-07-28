@@ -60,7 +60,8 @@ describe("детерминизм офферов", () => {
       // Деньги / билд / утилита — ни один вид не повторяется, поэтому «строго лучше» невозможно.
       expect(new Set(kinds).size).toBe(3);
       expect(kinds[0]).toBe("gold");
-      expect(["tactic", "action", "stat"]).toContain(kinds[1]);
+      // Предметы (R8.3) — тот же класс пассивной карточки, что тактики: делят слоты и пул.
+      expect(["tactic", "item", "action", "stat"]).toContain(kinds[1]);
       expect(["reroll", "quality"]).toContain(kinds[2]);
     }
   });
@@ -164,39 +165,43 @@ describe("RunEconomy — сериализация", () => {
   });
 });
 
-/** Найти Буткемп, где reward выдаёт карточку нужного типа (набор детерминирован по seed+camp). */
-function campWithCard(eco: RunEconomy, kind: "tactic" | "action"): string {
-  for (let camp = 1; camp <= 5; camp += 1) {
+/** Найти Буткемп, где reward выдаёт карточку нужного класса (набор детерминирован по seed+camp).
+ *  `passive` — тактика ИЛИ предмет: после R8.3 они делят слоты, и тестам важен именно класс. */
+function campWithCard(eco: RunEconomy, kind: "passive" | "action"): string {
+  const matches = (offerKind: string) => kind === "action"
+    ? offerKind === "action"
+    : offerKind === "tactic" || offerKind === "item";
+  for (let camp = 1; camp <= 12; camp += 1) {
     eco.openCamp(camp);
-    const card = eco.campView().rewardOffers.find((o) => o.kind === kind);
+    const card = eco.campView().rewardOffers.find((o) => matches(o.kind));
     if (card) return card.id;
   }
-  throw new Error(`no ${kind} reward offer in first 5 camps`);
+  throw new Error(`no ${kind} reward offer in first 12 camps`);
 }
 
 describe("RunEconomy — карточки билда (срез 4)", () => {
-  it("reward второй картой выдаёт Tactic или Camp Action", () => {
+  it("reward второй картой выдаёт пассивную карточку или Camp Action", () => {
     const eco = new RunEconomy("s");
     eco.openCamp(1);
     const build = eco.campView().rewardOffers[1];
-    expect(["tactic", "action", "stat"]).toContain(build.kind);
+    expect(["tactic", "item", "action", "stat"]).toContain(build.kind);
   });
 
   it("взятая тактика занимает слот и не считается модификатором экономики", () => {
     const eco = new RunEconomy("tac");
-    const cardId = campWithCard(eco, "tactic");
+    const cardId = campWithCard(eco, "passive");
     expect(eco.chooseReward(cardId)).toBe(true);
     expect(eco.campView().equippedTactics.length).toBe(1);
     // Условные тактики не входят в economy.modifiers — их вклад считает game/tactics.
     expect(eco.totalModifier()).toBe(0);
   });
 
-  it("нельзя взять больше трёх тактик; сброс освобождает слот", () => {
+  it("нельзя взять больше трёх пассивных карточек; сброс освобождает слот", () => {
     const eco = new RunEconomy("many");
     let taken = 0;
-    for (let camp = 1; camp <= 20 && taken < 4; camp += 1) {
+    for (let camp = 1; camp <= 40 && taken < 4; camp += 1) {
       eco.openCamp(camp);
-      const card = eco.campView().rewardOffers.find((o) => o.kind === "tactic");
+      const card = eco.campView().rewardOffers.find((o) => o.kind === "tactic" || o.kind === "item");
       if (card && eco.chooseReward(card.id)) taken += 1;
     }
     expect(eco.campView().equippedTactics.length).toBe(3);
@@ -347,7 +352,7 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     // Слоты карточек тоже не расширяются — Cheat Mode даёт золото, а не место в билде.
     const slots = eco.campView().tacticSlots;
     for (let i = 0; i < slots; i += 1) expect(eco.canTakeCard("tactic")).toBe(true);
-    eco.chooseReward(campWithCard(eco, "tactic"));
+    eco.chooseReward(campWithCard(eco, "passive"));
     expect(eco.campView().equippedTactics).toHaveLength(1);
 
     // Persist/resume сохраняет режим.
@@ -366,7 +371,7 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
 
   it("snapshot восстанавливает экипировку и разыгранные действия", () => {
     const eco = new RunEconomy("persist");
-    const cardId = campWithCard(eco, "tactic");
+    const cardId = campWithCard(eco, "passive");
     eco.chooseReward(cardId);
     const restored = new RunEconomy("persist", eco.snapshot);
     expect(restored.campView().equippedTactics).toEqual(eco.campView().equippedTactics);

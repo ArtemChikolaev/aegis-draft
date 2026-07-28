@@ -77,9 +77,9 @@ test("roguelite run: Буткемп — reward и покупка меняют к
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
 });
 
-// Срез 4: Tactics + Camp Actions. CAMP_SEED детерминированно выдаёт тактику (oldTeammates)
-// третьей reward-картой на этапе 1 и действие (heroPractice) на этапе 2.
-test("roguelite run: экипировка тактики и розыгрыш действия", async ({ page }) => {
+// Срез 4 + R8.3: пассивные карточки (тактики И предметы делят слоты) + Camp Actions. Конкретные
+// id не фиксируем — пул карточек общий и растёт; тесту важен класс карты и занятый слот.
+test("roguelite run: пассивные карточки занимают слоты и входят в силу этапа", async ({ page }) => {
   test.slow();
   await gotoFreshApp(page);
   await startRogueliteSeed(page, CAMP_SEED);
@@ -94,10 +94,12 @@ test("roguelite run: экипировка тактики и розыгрыш д�
   await expect(tactics.locator(".camp__slot-count")).toHaveText("0/3");
   await expect(tactics.locator(".camp-slot--empty")).toHaveCount(3);
 
-  // Взять тактику из reward → занят один слот, карточка появилась с описанием.
-  await chooseReward(page, ["tactic", "action"]);
+  // Взять пассивную карточку из reward → занят один слот, карточка появилась с описанием.
+  // Конкретный id не фиксируем: пул общий для тактик и предметов (R8.3), и он растёт.
+  await chooseReward(page, ["item", "tactic"]);
   await expect(tactics.locator(".camp__slot-count")).toHaveText("1/3");
-  await expect(tactics.locator('[data-card-id="oldTeammates"]')).toBeVisible();
+  await expect(tactics.locator("[data-card-id]").first()).toBeVisible();
+  await expect(tactics.locator("[data-card-id]").first().locator(".camp-slot__desc").first()).toBeVisible();
 
   // Тактика — условный модификатор Chemistry: он входит в тот же teamOvr, что уйдёт в поле.
   await page.getByTestId("camp-next-stage").click();
@@ -105,35 +107,34 @@ test("roguelite run: экипировка тактики и розыгрыш д�
   const strength = await page.getByTestId("tournament-user-strength").innerText();
   await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
 
-  // Этап 2 → Буткемп с Camp Action в reward.
+  // Этап 2 → Буткемп: берём вторую пассивную карточку, слот заполняется дальше.
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
-  const actions = page.getByTestId("camp-actions-panel");
-  await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
-  await chooseReward(page, ["tactic", "action"]);
-  await expect(actions.locator(".camp__slot-count")).toHaveText("1/2");
-
-  // Разыграть действие → слот освобождается (одноразовое), тактика первого этапа осталась.
-  await page.getByTestId("action-play-heroPractice").click();
-  await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
-  await expect(page.getByTestId("camp-tactics").locator('[data-card-id="oldTeammates"]')).toBeVisible();
+  await chooseReward(page, ["item", "tactic"]);
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("2/3");
+  await expect(tactics.locator("[data-card-id]")).toHaveCount(2);
 });
 
 // Регресс live-бага: Stand-in (бесплатный свап игрока) должен делать покупку игрока доступной,
-// даже если цена выше золота. camp-e2e-23 выдаёт Stand-in третьей reward-картой на этапе 1.
+// даже если цена выше золота. Seed подобран оффлайн под расширенный пул карточек (R8.3):
+// camp-e2e-30 проходит этап 1 и выдаёт Stand-in карточной наградой первого Буткемпа.
 test("roguelite run: stand-in делает замену игрока бесплатной", async ({ page }) => {
   await gotoFreshApp(page);
-  await startRogueliteSeed(page, "camp-e2e-229");
+  await startRogueliteSeed(page, "camp-e2e-30");
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
 
-  // Взять Stand-in и разыграть — появляется бесплатный свап игрока.
-  await chooseReward(page, ["tactic", "action"]);
+  // Взять Stand-in и разыграть — слот действий занимается и освобождается, появляется свободный свап.
+  const actions = page.getByTestId("camp-actions-panel");
+  await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
+  await chooseReward(page, ["action"]);
+  await expect(actions.locator(".camp__slot-count")).toHaveText("1/2");
   await expect(page.getByTestId("action-play-standIn")).toBeVisible();
   await page.getByTestId("action-play-standIn").click();
+  await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
 
   // Все карты игроков теперь бесплатны и покупаемы, независимо от цены/золота.
   const playerCards = page.getByTestId("camp-pack").locator('[data-offer-kind="player"]');
@@ -439,4 +440,35 @@ test("roguelite run: награды разных видов, проценты и
     await page.getByTestId("camp-reroll").click();
     await expect(page.getByTestId("camp-gold")).toHaveText(goldBefore);
   }
+});
+
+// R8.3: предмет в пассивном слоте зажигает разложение силы забега. Seed подобран оффлайн так,
+// чтобы карточная награда первого Буткемпа была предметом, чьё условие на текущем ростере
+// выполняется (иначе панель законно не показывается — пустых слоёв она не рисует).
+test("roguelite run: предмет в слоте показывает разложение силы", async ({ page }) => {
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, "camp-e2e-1");
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  // До взятия предмета слои пусты, поэтому панели нет — «+0 / ×1.00» рисовать нечего.
+  await expect(page.getByTestId("camp-power")).toHaveCount(0);
+
+  await chooseReward(page, ["item"]);
+  const slot = page.getByTestId("camp-tactics").locator(".camp-slot--item").first();
+  await expect(slot).toBeVisible();
+  await expect(slot.locator(".camp-slot__desc").first()).not.toBeEmpty();
+
+  // Разложение появилось и показывает итог, отличный от чистого Team OVR.
+  const power = page.getByTestId("camp-power");
+  await expect(power).toBeVisible();
+  await expect(page.getByTestId("camp-power-total")).not.toBeEmpty();
+
+  // Сила, с которой команда выходит на этап, совпадает с показанным итогом.
+  await page.getByTestId("camp-next-stage").click();
+  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  const strength = await page.getByTestId("tournament-user-strength").innerText();
+  await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
 });

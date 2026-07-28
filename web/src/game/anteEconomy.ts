@@ -17,6 +17,7 @@ import type { PlacementKey } from "./tournament.ts";
 import type { CandidateRef } from "./packs.ts";
 import { TACTIC_IDS, TACTIC_SLOTS, isTacticId } from "./tactics.ts";
 import { CAMP_ACTION_IDS, CAMP_ACTION_SLOTS, campActionDef, isCampActionId } from "./campActions.ts";
+import { ITEM_IDS, evaluateItems, isItemId } from "./items.ts";
 import { nextRarity, rollRarity, upgradeCost, type Rarity } from "./heroRarity.ts";
 
 /** Слагаемое Team OVR, на которое действует покупка. */
@@ -54,7 +55,7 @@ export interface HeroSwapEffect {
 /** `reroll`/`quality` — награды-«токены» (R4.3): дают не силу и не деньги, а возможность искать
  *  и улучшать. Нужны, чтобы выбор награды был между РАЗНЫМИ видами пользы, а не между «мало
  *  золота» и «много золота» — вторая всегда доминировала первую, и выбора не было. */
-export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "action" | "reroll" | "quality";
+export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "item" | "action" | "reroll" | "quality";
 
 /** Оффер награды/рынка. Единый контракт для Reward и Market — задел под карточки T6.1. */
 export interface Offer {
@@ -291,9 +292,9 @@ export function prizeForStage(
 }
 
 /** Проценты за удержанное золото. Чистая: UI показывает ровно то, что начислит движок. */
-export function interestFor(gold: number): number {
+export function interestFor(gold: number, capBonus = 0): number {
   if (gold <= 0) return 0;
-  return Math.min(ECONOMY.interestCap, Math.floor(gold / ECONOMY.interestPerGold));
+  return Math.min(ECONOMY.interestCap + capBonus, Math.floor(gold / ECONOMY.interestPerGold));
 }
 
 /** Ещё не полученная карточка Tactics/Camp Action, детерминированная по seed+campId.
@@ -302,6 +303,9 @@ export function interestFor(gold: number): number {
 function cardOffer(seed: string, campStageIndex: number, owned: readonly string[]): Offer | null {
   const pool = [
     ...TACTIC_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "tactic" as const, id })),
+    // Предметы (R8.3) — такие же пассивные карточки и занимают ТЕ ЖЕ слоты, что тактики:
+    // второй инвентарь рядом с Tactics PRD §5.10.1 запрещает.
+    ...ITEM_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "item" as const, id })),
     ...CAMP_ACTION_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "action" as const, id })),
   ];
   if (pool.length === 0) return null;
@@ -471,9 +475,16 @@ export class RunEconomy {
     return this.state.gold;
   }
 
-  /** Экипированные пассивные Tactics — вход для evaluateTactics/tacticMarketEffects. */
+  /** Экипированные пассивные карточки (Tactics и Items — они делят слоты). Имя поля осталось
+   *  прежним намеренно: это же поле лежит в сейве, и переименование стоило бы миграции ради нуля. */
   get equippedTactics(): string[] {
     return [...this.state.equippedTactics];
+  }
+
+  /** Экономические эффекты экипированных предметов. Они безусловны (не зависят от ростера),
+   *  поэтому экономика вычисляет их сама и не тянет за собой знание о составе. */
+  private itemEconomy() {
+    return evaluateItems(this.state.equippedTactics, { activeHeroes: [] });
   }
 
   /** Временные эффекты разыгранных Camp Actions: действуют на один следующий этап. */
@@ -499,9 +510,14 @@ export class RunEconomy {
     const prize = prizeForStage(placement, target, campStageIndex);
     // Проценты считаем с баланса, ДОнесённого до этого Буткемпа: так «накопить» — осознанное
     // решение, а не побочный эффект. В Cheat Mode бессмысленны (золото и так бесконечно).
-    const interest = this.state.unlimitedGold ? 0 : interestFor(this.state.gold);
-    this.state.gold += prize + interest;
-    this.state.lastPayout = { prize, interest };
+    const items = this.itemEconomy();
+    const interest = this.state.unlimitedGold
+      ? 0
+      : interestFor(this.state.gold, items.interestCapBonus);
+    // Доход предметов идёт в те же призовые: для игрока это одна автоматическая выплата.
+    const prizeWithItems = Math.max(0, prize + items.goldPerCamp);
+    this.state.gold += prizeWithItems + interest;
+    this.state.lastPayout = { prize: prizeWithItems, interest };
     this.state.awardedCamps.push(campStageIndex);
   }
 
@@ -517,6 +533,9 @@ export class RunEconomy {
     // Фиксируем карточный оффер по составу владения на момент открытия — до любых взятий этого
     // Буткемпа, чтобы карта не переезжала на другую после выбора.
     this.state.preparedRewardCard = cardOffer(this.seed, campStageIndex, this.state.ownedCards);
+    // Бесплатные реролы от предметов — свойство Буткемпа, а не накопление: иначе неиспользованные
+    // копились бы забегом и обесценивали дорожающий реролл.
+    this.state.freeMarketRerolls += this.itemEconomy().freeRerolls;
   }
 
   /** Выйти из Буткемпа (переход к следующему этапу). */
@@ -559,7 +578,7 @@ export class RunEconomy {
 
   /** Есть ли свободный слот под карточку этого типа. UI объясняет отказ до клика. */
   canTakeCard(kind: OfferKind): boolean {
-    if (kind === "tactic") return this.state.equippedTactics.length < TACTIC_SLOTS;
+    if (kind === "tactic" || kind === "item") return this.state.equippedTactics.length < TACTIC_SLOTS;
     if (kind === "action") return this.state.heldActions.length < CAMP_ACTION_SLOTS;
     return true;
   }
@@ -578,13 +597,16 @@ export class RunEconomy {
     } else if (offer.kind === "quality") {
       this.state.freeRarityUpgrades += offer.tokens ?? 0;
     } else if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
-    else if (offer.kind === "tactic" || offer.kind === "action") {
+    else if (offer.kind === "tactic" || offer.kind === "item" || offer.kind === "action") {
       const cardId = offer.cardId;
       if (!cardId || !this.canTakeCard(offer.kind)) return false;
-      if (offer.kind === "tactic" ? !isTacticId(cardId) : !isCampActionId(cardId)) return false;
+      const valid = offer.kind === "tactic" ? isTacticId(cardId)
+        : offer.kind === "item" ? isItemId(cardId)
+        : isCampActionId(cardId);
+      if (!valid) return false;
       this.state.ownedCards.push(cardId);
-      if (offer.kind === "tactic") this.state.equippedTactics.push(cardId);
-      else this.state.heldActions.push(cardId);
+      if (offer.kind === "action") this.state.heldActions.push(cardId);
+      else this.state.equippedTactics.push(cardId);
     }
     this.state.chosenRewardId = offerId;
     return true;

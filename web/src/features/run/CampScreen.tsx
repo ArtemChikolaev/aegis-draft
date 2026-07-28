@@ -11,6 +11,8 @@ import {
   upgradeCost,
   type Rarity,
 } from "../../game/heroRarity.ts";
+import { evaluateItems, itemDef, itemLabel, type ItemDef } from "../../game/items.ts";
+import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
 import {
@@ -34,6 +36,7 @@ import {
   Modal,
   playerOvrTier,
   RoleTag,
+  PowerBreakdown,
   Select,
   StatTile,
   Surface,
@@ -50,6 +53,21 @@ function fmt(value: number): string {
 
 function signed(value: number): string {
   return value > 0 ? `+${fmt(value)}` : fmt(value);
+}
+
+/** Параметры шаблона описания предмета: теги и атрибуты переводятся, числа остаются числами.
+ *  Описание собирается из тех же данных, что и эффект, поэтому текст не может разойтись с числом. */
+function itemLabelParams(
+  params: Record<string, string | number>,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+): Record<string, string | number> {
+  const out: Record<string, string | number> = {};
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "tag") out[key] = t(`heroTag.${value}` as MessageKey);
+    else if (key === "attr") out[key] = t(`heroAttr.${value}` as MessageKey);
+    else out[key] = value;
+  }
+  return out;
 }
 
 /** Бейдж редкости героя (срез 3b). Цвет — токен `--rarity-*`; common не показываем (фон). */
@@ -74,6 +92,39 @@ function valuesOf(score: { base: number; heroSynergy: number; chemistry: number 
     heroSynergy: score.heroSynergy,
     chemistry: score.chemistry,
   };
+}
+
+/** Подпись вклада предмета. `economy`/`boss` — НЕ силовые слои, поэтому числа здесь не показываем:
+ *  их несёт описание карточки. Раньше оба слоя падали в общий fallback и подписывались «Roster»,
+ *  из-за чего Linken's Sphere (потолок штрафа босса = 2) читался как «+2 к силе ростера». */
+function layerChip(
+  source: { layer: "flat" | "additive" | "xMult" | "economy" | "boss"; value: number; met: boolean },
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+): string {
+  if (source.layer === "xMult") return `${t("camp.powerX")} ×${source.value.toFixed(2)}`;
+  if (source.layer === "additive") {
+    return `${t("camp.powerAdditive")} ${source.value > 0 ? "+" : ""}${fmt(source.value)}%`;
+  }
+  if (source.layer === "flat") {
+    return `${t("camp.powerRoster")} ${source.value > 0 ? "+" : ""}${fmt(source.value)}`;
+  }
+  const label = t(source.layer === "boss" ? "camp.powerBoss" : "camp.powerEconomy");
+  return source.met ? `${label} · ${t("camp.layerActive")}` : `${label} · ${t("camp.tacticNoEffect")}`;
+}
+
+/** Что предмет даст ПРЯМО СЕЙЧАС на текущем ростере — чтобы награду можно было сравнить с золотом. */
+function itemContribution(
+  def: ItemDef,
+  activeHeroes: readonly number[],
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+): { text: string; positive: boolean } | null {
+  const evaluation = evaluateItems([def.id], { activeHeroes });
+  const parts: string[] = [];
+  if (evaluation.flat !== 0) parts.push(`${t("camp.powerRoster")} ${evaluation.flat > 0 ? "+" : ""}${fmt(evaluation.flat)}`);
+  if (evaluation.additive !== 0) parts.push(`${t("camp.powerAdditive")} ${evaluation.additive > 0 ? "+" : ""}${fmt(evaluation.additive)}%`);
+  for (const mult of evaluation.xMults) parts.push(`${t("camp.powerX")} ×${mult.toFixed(2)}`);
+  if (!parts.length) return { text: t("camp.tacticNoEffect"), positive: false };
+  return { text: parts.join(" · "), positive: evaluation.flat >= 0 && evaluation.additive >= 0 };
 }
 
 function CampPlayerCard({
@@ -175,6 +226,11 @@ export function CampScreen() {
     chemistry: score.chemistry + mods.chemistry,
   };
   const effectiveOvr = current.base + current.heroSynergy + current.chemistry;
+  // Вклад предметов при текущем ростере (R8.3) + разложение силы забега для панели.
+  const itemEval = evaluateItems(camp.equippedTactics, { activeHeroes: snapshot.heroes });
+  const power = powerBreakdown(powerLayers(effectiveOvr, {
+    flat: itemEval.flat, additive: itemEval.additive, xMults: itemEval.xMults,
+  }));
   const playerOffers = camp.marketOffers.filter((o) => o.kind === "player");
   const heroOffers = camp.marketOffers.filter((o) => o.kind === "hero");
   const nextLabel = ante.target <= 1
@@ -232,6 +288,31 @@ export function CampScreen() {
         <span key="r" className="camp-offer__card-desc">{t("reward.rerollDesc", { n: offer.tokens ?? 0 })}</span>,
         <span key="g" className="camp-offer__delta camp-offer__delta--gold">{signed(offer.goldGain ?? 0)} ◈</span>,
       ];
+    }
+    // Предмет обязан показывать эффект И его цену прямо на карточке награды: иначе его нельзя
+    // сравнить с «+12 золота», и выбор награды снова становится нелегибельным (PF-3).
+    if (offer.kind === "item" && offer.cardId) {
+      const def = itemDef(offer.cardId);
+      if (def) {
+        const main = itemLabel(def.effect);
+        const cost = def.drawback ? itemLabel(def.drawback) : null;
+        const preview = itemContribution(def, snapshot?.heroes ?? [], t);
+        return [
+          <span key="d" className="camp-offer__card-desc">
+            {t(main.template as MessageKey, itemLabelParams(main.params, t))}
+          </span>,
+          ...(cost ? [
+            <span key="c" className="camp-offer__card-desc camp-offer__card-desc--cost">
+              {t(cost.template as MessageKey, itemLabelParams(cost.params, t))}
+            </span>,
+          ] : []),
+          ...(preview ? [
+            <span key="p" className={`camp-offer__delta camp-offer__delta--${preview.positive ? "up" : "down"}`}>
+              {preview.text}
+            </span>,
+          ] : []),
+        ];
+      }
     }
     if (offer.kind === "quality") {
       return [
@@ -460,11 +541,69 @@ export function CampScreen() {
                   </span>
                 </div>
                 <p className="camp__section-hint">{t("camp.tacticsHint")}</p>
+                {/* Разложение силы забега. Показывается ТОЛЬКО когда хоть один слой активен —
+                    иначе это была бы строка «×1.00 / +0», не несущая информации (R8.2). */}
+                {!power.trivial && (
+                  <PowerBreakdown
+                    testId="camp-power"
+                    roster={power.teamOvr + power.flat}
+                    additive={power.additive}
+                    xMult={power.xMult}
+                    total={power.total}
+                    labels={{
+                      roster: t("camp.powerRoster"), additive: t("camp.powerAdditive"),
+                      xMult: t("camp.powerX"), total: t("camp.powerTotal"),
+                    }}
+                  />
+                )}
                 <div className="camp__slots">
                   {Array.from({ length: camp.tacticSlots }, (_, slot) => {
                     const tacticId = camp.equippedTactics[slot];
                     if (!tacticId) {
                       return <div key={`t-empty-${slot}`} className="camp-slot camp-slot--empty">{t("camp.emptySlot")}</div>;
+                    }
+                    // Предмет и тактика делят слот (R8.3): различаются только тем, куда целится
+                    // эффект — в слагаемые Team OVR или в слои силы забега.
+                    const item = itemDef(tacticId);
+                    if (item) {
+                      const contributions = itemEval.sources.filter((source) => source.itemId === tacticId);
+                      const label = itemLabel(item.effect);
+                      const cost = item.drawback ? itemLabel(item.drawback) : null;
+                      return (
+                        <div key={tacticId} className="camp-slot camp-slot--item" data-card-id={tacticId}>
+                          <div className="camp-slot__head">
+                            <strong>{t(`item.${tacticId}` as MessageKey)}</strong>
+                            <button
+                              type="button"
+                              className="camp-slot__discard"
+                              aria-label={t("camp.discard")}
+                              data-testid={`tactic-discard-${tacticId}`}
+                              onClick={() => discardTactic(tacticId)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          <p className="camp-slot__desc">{t(label.template as MessageKey, itemLabelParams(label.params, t))}</p>
+                          {cost && (
+                            <p className="camp-slot__desc camp-slot__desc--cost">
+                              {t(cost.template as MessageKey, itemLabelParams(cost.params, t))}
+                            </p>
+                          )}
+                          <div className="camp-offer__deltas">
+                            {contributions.length === 0 && (
+                              <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>
+                            )}
+                            {contributions.map((source, i) => (
+                              <span
+                                key={i}
+                                className={`camp-offer__delta camp-offer__delta--${source.met ? "up" : "down"}`}
+                              >
+                                {layerChip(source, t)}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
                     }
                     const reasons = (tactics?.sources ?? []).filter((source) => source.tacticId === tacticId);
                     return (

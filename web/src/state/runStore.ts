@@ -14,6 +14,7 @@ import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers 
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
+import { evaluateItems, protectedBossPenalty } from "../game/items.ts";
 import { runModifiers, stageStrength as runStageStrength } from "../game/runStrength.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
@@ -338,7 +339,8 @@ export const useRun = create<RunStore>((set, get) => {
     const bossId = bossForStage(seed, stageIndex);
     if (!bossId) return null;
     const mods = effectiveModifiers(tactics);
-    return evaluateBoss(bossId, {
+    const items = runItems();
+    const raw = evaluateBoss(bossId, {
       base: score.base + mods.base,
       heroSynergy: score.heroSynergy + mods.heroSynergy,
       chemistry: score.chemistry + mods.chemistry,
@@ -346,18 +348,30 @@ export const useRun = create<RunStore>((set, get) => {
       activeHeroes: engine.heroes,
       bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes),
     });
+    // Предметы-защита смягчают штраф, но не отменяют правило (R8.3).
+    return { ...raw, penalty: protectedBossPenalty(raw.penalty, items) };
   };
   // Итоговая сила поля этапа: сила состава + модификаторы − штраф босса (не ниже нуля вклада).
   // Через общий слой (game/runStrength.ts): он же проводит счёт через слои Tournament Power,
   // которые сегодня пусты, а в R8.3 наполнятся предметами.
+  /** Вклад экипированных предметов при текущем ростере (R8.3). Условия на тегах героев, поэтому
+   *  пересчитывается на каждый swap — как tactics. */
+  const runItems = () => {
+    const { economy, engine } = get();
+    return evaluateItems(economy?.equippedTactics ?? [], { activeHeroes: engine?.heroes ?? [] });
+  };
   const stageStrength = (baseTeamOvr: number, tactics: TacticEvaluation | null, boss: BossEvaluation | null): number => {
     const { economy, engine } = get();
+    const items = runItems();
     return runStageStrength(baseTeamOvr, {
       economy: economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 },
       tactics: tactics?.modifiers ?? null,
       heroRarity: economy?.heroRarity ?? {},
       activeHeroes: engine?.heroes ?? [],
-    }, { bossPenalty: boss?.penalty });
+    }, {
+      bossPenalty: boss?.penalty,
+      power: { flat: items.flat, additive: items.additive, xMults: items.xMults },
+    });
   };
   // Обновить снимки экономики/Буткемпа для рендера и сохранить (во время camp резалтов нет).
   const syncCamp = () => {

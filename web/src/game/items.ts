@@ -1,0 +1,341 @@
+// Предметы Roguelite Run (R8.3) — первый production-набор пассивных карточек, выраженных в слоях
+// Tournament Power (R8.2) и условных по тегам героев (R8.1).
+//
+// ПОЧЕМУ ЭТО НЕ ВТОРОЙ ИНВЕНТАРЬ. PRD §5.10.1 прямо запрещает заводить рядом с Tactics ещё одно
+// абстрактное хранилище. Поэтому предмет — такая же пассивная карточка и занимает ТЕ ЖЕ три слота:
+// в сейве это тот же список id, в награде — тот же карточный оффер. Разница только в том, куда
+// целится эффект: тактика двигает слагаемые `Team OVR`, предмет — слои силы забега, экономику или
+// защиту от босса. Team OVR предметами по-прежнему не умножается (инвариант R8.2).
+//
+// ПОЧЕМУ ОПИСАНИЯ ГЕНЕРИРУЮТСЯ, А НЕ ПИШУТСЯ РУКАМИ. У каждого предмета эффект — данные, поэтому
+// строка описания собирается из шаблона по этим же данным. Иначе текст и число разъезжаются при
+// первой же калибровке, и карточка начинает врать игроку.
+import { countAttr, countTag, distinctGameplayTags, type HeroAttr, type HeroTag } from "./heroTags.ts";
+import { POWER_LIMITS } from "./tournamentPower.ts";
+
+export type ItemCategory =
+  | "tagSynergy"
+  | "buildDefining"
+  | "economy"
+  | "bossProtection"
+  | "riskReward"
+  | "copy";
+
+/** Эффект предмета. Дискриминированный союз: описание, оценка и применение читают ОДНО описание
+ *  эффекта, поэтому карточка не может показывать одно, а делать другое. */
+export type ItemEffect =
+  /** Плоская прибавка к силе ростера за каждого героя с тегом. */
+  | { kind: "flatPerTag"; tag: HeroTag; per: number; cap?: number }
+  /** Аддитивный множитель (процентные пункты) за каждого героя с тегом. */
+  | { kind: "additivePerTag"; tag: HeroTag; per: number; cap?: number }
+  /** Аддитивный множитель за каждого героя с атрибутом. */
+  | { kind: "additivePerAttr"; attr: HeroAttr; per: number; cap?: number }
+  /** X Mult при выполнении условия «разных gameplay-тегов не меньше N». */
+  | { kind: "xMultOnDiversity"; min: number; mult: number }
+  /** X Mult при выполнении условия «героев с тегом не меньше N». */
+  | { kind: "xMultOnTag"; tag: HeroTag; min: number; mult: number }
+  /** X Mult при ОТСУТСТВИИ героев с тегом (анти-жадность). */
+  | { kind: "xMultWithoutTag"; tag: HeroTag; mult: number }
+  /** Безусловный X Mult — платой служит отдельный `drawback`. */
+  | { kind: "xMultFlat"; mult: number }
+  /** Повторяет лучший ЧУЖОЙ X Mult с указанной эффективностью. */
+  | { kind: "copyBestXMult"; rate: number }
+  /** Золото каждый Буткемп (отрицательное — цена карточки). */
+  | { kind: "goldPerCamp"; gold: number }
+  /** Бесплатные реролы рынка каждый Буткемп. */
+  | { kind: "freeRerolls"; count: number }
+  /** Прибавка к потолку процентов за накопление. */
+  | { kind: "interestCap"; bonus: number }
+  /** Множитель штрафа босса: 0.4 — штраф уменьшается на 60%. */
+  | { kind: "bossPenaltyFactor"; factor: number }
+  /** Абсолютный потолок штрафа босса. */
+  | { kind: "bossPenaltyCap"; cap: number };
+
+export interface ItemDef {
+  id: string;
+  category: ItemCategory;
+  effect: ItemEffect;
+  /** Цена карточки: второй эффект, ухудшающий положение. Trade-off обязателен у сильных карт —
+   *  безусловные «+N ко всему» PRD запрещает (§5.10.3). */
+  drawback?: ItemEffect;
+}
+
+/** Каталог (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
+ *  Числа — placeholder под калибровку `R10`; важна структура и наличие trade-off у сильных карт.
+ *  Ориентир силы: один шаг угрозы этапа = `ANTE_FIELD_STEP` (3 очка), поэтому одиночная карточка
+ *  должна давать заметно меньше этапа, а собранный билд из трёх — примерно покрывать один шаг. */
+export const ITEMS: readonly ItemDef[] = [
+  // ── Синергия по gameplay-тегам: награда за осознанный подбор героев ────────────────────────
+  { id: "necronomicon", category: "tagSynergy", effect: { kind: "flatPerTag", tag: "summon", per: 2.5, cap: 3 } },
+  { id: "mantaStyle", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "illusion", per: 6, cap: 3 } },
+  { id: "scytheOfVyse", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "control", per: 2, cap: 5 } },
+  { id: "bootsOfTravel", category: "tagSynergy", effect: { kind: "flatPerTag", tag: "global", per: 2, cap: 3 } },
+  { id: "guardianGreaves", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "heal", per: 5, cap: 3 } },
+  { id: "forceStaff", category: "tagSynergy", effect: { kind: "flatPerTag", tag: "mobility", per: 1.5, cap: 4 } },
+  { id: "shadowBlade", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "stealth", per: 8, cap: 3 } },
+  { id: "assaultCuirass", category: "tagSynergy", effect: { kind: "flatPerTag", tag: "push", per: 2, cap: 4 } },
+  { id: "octarineCore", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "burst", per: 4, cap: 4 } },
+  { id: "battleFury", category: "tagSynergy", effect: { kind: "flatPerTag", tag: "scaling", per: 2, cap: 4 } },
+  { id: "pipeOfInsight", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "teamfight", per: 3, cap: 4 } },
+  { id: "silverEdge", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "pickoff", per: 3, cap: 4 } },
+
+  // ── Синергия по lore: другая ось подбора, часто конфликтует с gameplay-осью ────────────────
+  { id: "maskOfMadness", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "beast", per: 4, cap: 4 } },
+  { id: "eulsScepter", category: "tagSynergy", effect: { kind: "flatPerTag", tag: "spirit", per: 2.5, cap: 3 } },
+  { id: "dagon", category: "tagSynergy", effect: { kind: "additivePerTag", tag: "dark", per: 4, cap: 4 } },
+  { id: "holyLocket", category: "tagSynergy", effect: { kind: "flatPerTag", tag: "light", per: 4, cap: 3 } },
+  { id: "heartOfTarrasque", category: "tagSynergy", effect: { kind: "additivePerAttr", attr: "str", per: 4, cap: 4 } },
+  { id: "butterfly", category: "tagSynergy", effect: { kind: "additivePerAttr", attr: "agi", per: 4, cap: 4 } },
+
+  // ── Build-defining: множители за структуру состава, а не за отдельного героя ───────────────
+  { id: "aghanimsScepter", category: "buildDefining", effect: { kind: "xMultOnDiversity", min: 9, mult: 1.18 } },
+  { id: "aghanimsShard", category: "buildDefining", effect: { kind: "xMultOnDiversity", min: 7, mult: 1.10 } },
+  { id: "bloodstone", category: "buildDefining", effect: { kind: "xMultWithoutTag", tag: "scaling", mult: 1.22 } },
+  { id: "vladmirsOffering", category: "buildDefining", effect: { kind: "xMultOnTag", tag: "teamfight", min: 3, mult: 1.15 } },
+  { id: "desolator", category: "buildDefining", effect: { kind: "xMultOnTag", tag: "pickoff", min: 3, mult: 1.15 } },
+
+  // ── Copy: сильны только в уже собранном билде ──────────────────────────────────────────────
+  { id: "refresherOrb", category: "copy", effect: { kind: "copyBestXMult", rate: 0.7 } },
+
+  // ── Экономика: не дают силы напрямую (PRD §5.9.3) ──────────────────────────────────────────
+  { id: "handOfMidas", category: "economy", effect: { kind: "goldPerCamp", gold: 4 } },
+  { id: "bottle", category: "economy", effect: { kind: "freeRerolls", count: 1 } },
+  { id: "magicWand", category: "economy", effect: { kind: "interestCap", bonus: 2 } },
+  { id: "observerWard", category: "economy", effect: { kind: "freeRerolls", count: 2 }, drawback: { kind: "goldPerCamp", gold: -2 } },
+
+  // ── Защита от босса: контрится подготовкой, а не отменяет правило ──────────────────────────
+  { id: "blackKingBar", category: "bossProtection", effect: { kind: "bossPenaltyFactor", factor: 0.4 } },
+  { id: "linkensSphere", category: "bossProtection", effect: { kind: "bossPenaltyCap", cap: 2 } },
+
+  // ── Risk/reward: большой множитель за реальную цену ────────────────────────────────────────
+  { id: "divineRapier", category: "riskReward", effect: { kind: "xMultFlat", mult: 1.35 }, drawback: { kind: "goldPerCamp", gold: -5 } },
+  { id: "radiance", category: "riskReward", effect: { kind: "additivePerTag", tag: "teamfight", per: 6, cap: 5 }, drawback: { kind: "goldPerCamp", gold: -3 } },
+  // Порог был 2 stealth-героя при доле тега 9% — выгода не срабатывала почти никогда, а цена
+  // платилась всегда: карта выходила доминируемой, то есть не ловушкой, а просто плохой. Замер
+  // срабатывания (40 ростеров) это и показал.
+  { id: "smokeOfDeceit", category: "riskReward", effect: { kind: "xMultOnTag", tag: "stealth", min: 1, mult: 1.25 }, drawback: { kind: "flatPerTag", tag: "control", per: -1, cap: 2 } },
+  { id: "helmOfTheDominator", category: "riskReward", effect: { kind: "xMultOnTag", tag: "summon", min: 2, mult: 1.25 }, drawback: { kind: "goldPerCamp", gold: -1 } },
+];
+
+export const ITEM_IDS: readonly string[] = ITEMS.map((item) => item.id);
+
+const BY_ID = new Map(ITEMS.map((item) => [item.id, item]));
+
+export function isItemId(value: string): boolean {
+  return BY_ID.has(value);
+}
+
+export function itemDef(id: string): ItemDef | null {
+  return BY_ID.get(id) ?? null;
+}
+
+/** Что предмет знает о ростере. Только теги активных героев — состав игроков предметы не читают:
+ *  за игроков отвечают тактики и слагаемые Team OVR. */
+export interface ItemContext {
+  activeHeroes: readonly number[];
+}
+
+/** Вклад предметов: слои силы + экономика + защита от босса. Чистая функция от ростера, как
+ *  tactics: условие пере-вычисляется после каждой замены героя. */
+export interface ItemEvaluation {
+  flat: number;
+  additive: number;
+  xMults: number[];
+  goldPerCamp: number;
+  freeRerolls: number;
+  interestCapBonus: number;
+  /** Множитель штрафа босса (произведение факторов) и абсолютный потолок, если он задан. */
+  bossPenaltyFactor: number;
+  bossPenaltyCap: number | null;
+  /** Построчный разбор для UI: игрок обязан видеть, что именно сработало. */
+  sources: ItemSource[];
+}
+
+export interface ItemSource {
+  itemId: string;
+  /** Слой, в который лёг вклад — подпись в разложении силы. */
+  layer: "flat" | "additive" | "xMult" | "economy" | "boss";
+  value: number;
+  /** Условие выполнено. Невыполненное условие тоже показывается — иначе непонятно, почему ноль. */
+  met: boolean;
+}
+
+function emptyEvaluation(): ItemEvaluation {
+  return {
+    flat: 0, additive: 0, xMults: [], goldPerCamp: 0, freeRerolls: 0,
+    interestCapBonus: 0, bossPenaltyFactor: 1, bossPenaltyCap: null, sources: [],
+  };
+}
+
+/** Насколько раз сработало условие «за каждого героя с тегом», с учётом cap. */
+function tagCount(effect: { tag: HeroTag; cap?: number }, ctx: ItemContext): number {
+  const n = countTag(ctx.activeHeroes, effect.tag);
+  return effect.cap == null ? n : Math.min(effect.cap, n);
+}
+
+function applyEffect(
+  effect: ItemEffect, itemId: string, ctx: ItemContext, out: ItemEvaluation,
+): void {
+  switch (effect.kind) {
+    case "flatPerTag": {
+      const value = tagCount(effect, ctx) * effect.per;
+      out.flat += value;
+      out.sources.push({ itemId, layer: "flat", value, met: value !== 0 });
+      return;
+    }
+    case "additivePerTag": {
+      const value = tagCount(effect, ctx) * effect.per;
+      out.additive += value;
+      out.sources.push({ itemId, layer: "additive", value, met: value !== 0 });
+      return;
+    }
+    case "additivePerAttr": {
+      const raw = countAttr(ctx.activeHeroes, effect.attr);
+      const value = (effect.cap == null ? raw : Math.min(effect.cap, raw)) * effect.per;
+      out.additive += value;
+      out.sources.push({ itemId, layer: "additive", value, met: value !== 0 });
+      return;
+    }
+    case "xMultOnDiversity": {
+      const met = distinctGameplayTags(ctx.activeHeroes) >= effect.min;
+      if (met) out.xMults.push(effect.mult);
+      out.sources.push({ itemId, layer: "xMult", value: met ? effect.mult : 1, met });
+      return;
+    }
+    case "xMultOnTag": {
+      const met = countTag(ctx.activeHeroes, effect.tag) >= effect.min;
+      if (met) out.xMults.push(effect.mult);
+      out.sources.push({ itemId, layer: "xMult", value: met ? effect.mult : 1, met });
+      return;
+    }
+    case "xMultWithoutTag": {
+      const met = countTag(ctx.activeHeroes, effect.tag) === 0;
+      if (met) out.xMults.push(effect.mult);
+      out.sources.push({ itemId, layer: "xMult", value: met ? effect.mult : 1, met });
+      return;
+    }
+    case "xMultFlat": {
+      out.xMults.push(effect.mult);
+      out.sources.push({ itemId, layer: "xMult", value: effect.mult, met: true });
+      return;
+    }
+    case "copyBestXMult":
+      // Обрабатывается вторым проходом: нужен уже собранный список чужих множителей.
+      return;
+    case "goldPerCamp": {
+      out.goldPerCamp += effect.gold;
+      out.sources.push({ itemId, layer: "economy", value: effect.gold, met: true });
+      return;
+    }
+    case "freeRerolls": {
+      out.freeRerolls += effect.count;
+      out.sources.push({ itemId, layer: "economy", value: effect.count, met: true });
+      return;
+    }
+    case "interestCap": {
+      out.interestCapBonus += effect.bonus;
+      out.sources.push({ itemId, layer: "economy", value: effect.bonus, met: true });
+      return;
+    }
+    case "bossPenaltyFactor": {
+      out.bossPenaltyFactor *= effect.factor;
+      out.sources.push({ itemId, layer: "boss", value: effect.factor, met: true });
+      return;
+    }
+    case "bossPenaltyCap": {
+      out.bossPenaltyCap = out.bossPenaltyCap == null
+        ? effect.cap
+        : Math.min(out.bossPenaltyCap, effect.cap);
+      out.sources.push({ itemId, layer: "boss", value: effect.cap, met: true });
+      return;
+    }
+  }
+}
+
+export function evaluateItems(equipped: readonly string[], ctx: ItemContext): ItemEvaluation {
+  const out = emptyEvaluation();
+  const items = equipped.map(itemDef).filter((item): item is ItemDef => item != null);
+
+  for (const item of items) {
+    applyEffect(item.effect, item.id, ctx, out);
+    if (item.drawback) applyEffect(item.drawback, item.id, ctx, out);
+  }
+
+  // Copy-эффекты вторым проходом: они удваивают лучший ЧУЖОЙ множитель, поэтому обязаны видеть
+  // итоговый список. Без второго прохода результат зависел бы от порядка карточек в слотах.
+  for (const item of items) {
+    if (item.effect.kind !== "copyBestXMult") continue;
+    const best = out.xMults.reduce((top, mult) => Math.max(top, mult), 1);
+    const copied = best > 1 ? 1 + (best - 1) * item.effect.rate : 1;
+    if (copied > 1) out.xMults.push(copied);
+    out.sources.push({ itemId: item.id, layer: "xMult", value: copied, met: copied > 1 });
+  }
+
+  return out;
+}
+
+/** Данные для генерации подписи карточки. UI собирает строку по шаблону, поэтому текст не может
+ *  разойтись с числом при калибровке. */
+export interface ItemLabel {
+  template: string;
+  params: Record<string, string | number>;
+}
+
+export function itemLabel(effect: ItemEffect): ItemLabel {
+  switch (effect.kind) {
+    case "flatPerTag":
+      return { template: "item.effect.flatPerTag", params: { per: effect.per, tag: effect.tag, cap: effect.cap ?? 0 } };
+    case "additivePerTag":
+      return { template: "item.effect.additivePerTag", params: { per: effect.per, tag: effect.tag, cap: effect.cap ?? 0 } };
+    case "additivePerAttr":
+      return { template: "item.effect.additivePerAttr", params: { per: effect.per, attr: effect.attr, cap: effect.cap ?? 0 } };
+    case "xMultOnDiversity":
+      return { template: "item.effect.xMultOnDiversity", params: { mult: effect.mult, min: effect.min } };
+    case "xMultOnTag":
+      return { template: "item.effect.xMultOnTag", params: { mult: effect.mult, min: effect.min, tag: effect.tag } };
+    case "xMultWithoutTag":
+      return { template: "item.effect.xMultWithoutTag", params: { mult: effect.mult, tag: effect.tag } };
+    case "xMultFlat":
+      return { template: "item.effect.xMultFlat", params: { mult: effect.mult } };
+    case "copyBestXMult":
+      return { template: "item.effect.copyBestXMult", params: { rate: Math.round(effect.rate * 100) } };
+    case "goldPerCamp":
+      return { template: "item.effect.goldPerCamp", params: { gold: effect.gold } };
+    case "freeRerolls":
+      return { template: "item.effect.freeRerolls", params: { count: effect.count } };
+    case "interestCap":
+      return { template: "item.effect.interestCap", params: { bonus: effect.bonus } };
+    case "bossPenaltyFactor":
+      return { template: "item.effect.bossPenaltyFactor", params: { percent: Math.round((1 - effect.factor) * 100) } };
+    case "bossPenaltyCap":
+      return { template: "item.effect.bossPenaltyCap", params: { cap: effect.cap } };
+  }
+}
+
+/** Проверка каталога (зовётся тестом): множители в объявленных границах, у сильных карт есть цена. */
+export function validateItems(): string[] {
+  const issues: string[] = [];
+  for (const item of ITEMS) {
+    const mult = item.effect.kind === "xMultOnDiversity" || item.effect.kind === "xMultOnTag"
+      || item.effect.kind === "xMultWithoutTag" || item.effect.kind === "xMultFlat"
+      ? item.effect.mult
+      : null;
+    if (mult != null && (mult < POWER_LIMITS.xMultMin || mult > POWER_LIMITS.xMultMax)) {
+      issues.push(`${item.id}: X Mult ${mult} вне полосы ${POWER_LIMITS.xMultMin}–${POWER_LIMITS.xMultMax}`);
+    }
+    // Безусловный множитель обязан иметь цену — иначе это «+N ко всему», запрещённое PRD.
+    if (item.effect.kind === "xMultFlat" && !item.drawback) {
+      issues.push(`${item.id}: безусловный X Mult без trade-off`);
+    }
+  }
+  if (new Set(ITEM_IDS).size !== ITEM_IDS.length) issues.push("дублирующиеся id предметов");
+  return issues;
+}
+
+/** Штраф босса после защиты предметами: сначала множитель, затем абсолютный потолок.
+ *  Предметы СМЯГЧАЮТ правило, но не отменяют его — босс обязан оставаться поводом
+ *  перестроить состав, а не строкой, которую можно выключить покупкой (PRD §5.9.3). */
+export function protectedBossPenalty(penalty: number, items: ItemEvaluation): number {
+  const scaled = Math.max(0, penalty) * items.bossPenaltyFactor;
+  return items.bossPenaltyCap == null ? scaled : Math.min(scaled, items.bossPenaltyCap);
+}

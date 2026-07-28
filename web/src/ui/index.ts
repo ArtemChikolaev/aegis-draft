@@ -20,3 +20,4 @@ export { PlayerPicker, findPlayerMatches } from "./PlayerPicker.tsx";
 export { Modal } from "./Modal.tsx";
 export { OptionGroup, type Option } from "./OptionGroup.tsx";
 export { TextField, type TextFieldTone, type TextFieldVariant } from "./TextField.tsx";
+export { PowerBreakdown } from "./PowerBreakdown.tsx";

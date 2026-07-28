@@ -26,6 +26,7 @@ import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/an
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../src/game/tactics.ts";
 import { rarityModifiers, upgradeCost, type Rarity } from "../src/game/heroRarity.ts";
 import { runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
+import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
 import { BALANCE_CONFIG_VERSION } from "../src/game/balance.ts";
 import { Rng } from "../src/game/rng.ts";
@@ -72,7 +73,7 @@ function bossPenalty(
 ): number {
   const score = engine.score();
   if (!score || !bossId) return 0;
-  return evaluateBoss(bossId, {
+  const raw = evaluateBoss(bossId, {
     base: score.base + mods.base,
     heroSynergy: score.heroSynergy + mods.heroSynergy,
     chemistry: score.chemistry + mods.chemistry,
@@ -80,6 +81,13 @@ function bossPenalty(
     activeHeroes: engine.heroes,
     bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes),
   }).penalty;
+  // Защита предметами — как в игре (R8.3), иначе симулятор мерил бы более тяжёлых боссов.
+  return protectedBossPenalty(raw, itemsOf(engine, economy));
+}
+
+/** Вклад экипированных предметов при текущем ростере. */
+function itemsOf(engine: RunEngine, economy: RunEconomy) {
+  return evaluateItems(economy.equippedTactics, { activeHeroes: engine.heroes });
 }
 
 /** Итоговая сила состава на этапе — то, что уезжает в поле турнира. Через тот же слой, что игра
@@ -90,8 +98,10 @@ function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, sta
   const tactics = tacticsOf(engine, economy);
   const mods = effectiveMods(engine, economy, tactics);
   const bossId = useBoss ? bossForStage(seed, stageIndex) : null;
+  const items = itemsOf(engine, economy);
   return runStageStrength(score.teamOvr, strengthInput(engine, economy, tactics), {
     bossPenalty: bossPenalty(engine, economy, seed, stageIndex, mods, bossId),
+    power: { flat: items.flat, additive: items.additive, xMults: items.xMults },
   });
 }
 
@@ -135,7 +145,7 @@ const AGENTS: Agent[] = [
   },
   // Нижняя граница: покупает что попало из того, что по карману.
   {
-    name: "random", weights: { base: 1, hero: 1, chem: 1 }, rewardPref: ["gold", "tactic", "action", "reroll", "quality"],
+    name: "random", weights: { base: 1, hero: 1, chem: 1 }, rewardPref: ["gold", "item", "tactic", "action", "reroll", "quality"],
     holdGold: 0, maxRerolls: 1, buysQuality: false, bossAware: false, random: true,
   },
   // Жадность по сырому Team OVR — не видит ни редкости, ни условий тактик.
@@ -157,7 +167,7 @@ const AGENTS: Agent[] = [
   },
   // Билд: приоритет карточкам и связкам, адаптируется к боссу.
   {
-    name: "synergy-build", weights: { base: 1, hero: 1.3, chem: 1.6 }, rewardPref: ["tactic", "action", "quality", "gold"],
+    name: "synergy-build", weights: { base: 1, hero: 1.3, chem: 1.6 }, rewardPref: ["item", "tactic", "action", "quality", "gold"],
     holdGold: 0, maxRerolls: 1, buysQuality: true, bossAware: true, powerAware: true,
   },
   // Верхняя граница ЖАДНОЙ игры (не истинный оптимум): лучшая по замеру политика наград плюс все
@@ -564,6 +574,6 @@ if (compareSeasons) {
 
 console.log(
   "\nsurvival[i] = доля забегов, сыгравших этап i+1. Всё это НИЖНЯЯ граница: агенты жадные,"
-  + "\nосмысленная игра человека выигрывает не хуже. Слои Tournament Power в контракте есть, но"
-  + `\nисточников у них нет до R8.3; Stakes — T6.4, Династия — T5.8. ACT_LENGTH=${ACT_LENGTH}.\n`,
+  + "\nосмысленная игра человека выигрывает не хуже. Предметы (R8.3) экипируются и считаются;"
+  + `\nStakes — T6.4, Династия — T5.8. ACT_LENGTH=${ACT_LENGTH}.\n`,
 );

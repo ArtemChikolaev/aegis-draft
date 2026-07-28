@@ -1,0 +1,10 @@
+/* Разложение силы забега. Цвета — только токены (правило frontend-architecture). */
+.power-breakdown {
+  display: flex; flex-wrap: wrap; gap: 4px 14px;
+  margin: 0 0 8px; padding: 8px 10px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+.power-breakdown__row { display: inline-flex; align-items: baseline; gap: 6px; font-size: 12px; }
+.power-breakdown__row small { color: var(--muted); }
+.power-breakdown__row--total b { color: var(--accent); }

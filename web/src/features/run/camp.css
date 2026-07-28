@@ -666,3 +666,6 @@
 /* Разбор автоматической выплаты (призовые + проценты) под заголовком Буткемпа. */
 .camp__payout { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
 .camp__payout b { color: var(--gold); }
+
+.camp-slot--item .camp-slot__desc--cost { color: var(--danger); }
+.camp-offer__card-desc--cost { color: var(--danger); }

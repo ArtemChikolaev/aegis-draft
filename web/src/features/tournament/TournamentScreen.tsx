@@ -19,7 +19,9 @@ import {
 } from "../../game/tournamentPlayback.ts";
 import { isNarrowViewport } from "../../design/breakpoints.ts";
 import { useRun } from "../../state/runStore.ts";
-import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { evaluateItems } from "../../game/items.ts";
+import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
+import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -514,6 +516,13 @@ export function TournamentScreen() {
       + rarityMods.base + rarityMods.heroSynergy + rarityMods.chemistry
       - bossPenalty,
   };
+  // Сила забега с учётом предметов (R8.3). Порядок как в сторе: слои применяются к счёту состава,
+  // штраф босса вычитается ПОСЛЕ — иначе радар и поле показали бы разные числа.
+  const itemEval = evaluateItems(economyView?.equippedTactics ?? [], { activeHeroes: snapshot.heroes });
+  const power = powerBreakdown(powerLayers(effectiveScore.teamOvr + bossPenalty, {
+    flat: itemEval.flat, additive: itemEval.additive, xMults: itemEval.xMults,
+  }));
+  const stagePower = power.total - bossPenalty;
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";
   const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates);
@@ -551,7 +560,7 @@ export function TournamentScreen() {
           <span className="result__radar-glow" aria-hidden="true" />
           <Pentagon
             roster={roster}
-            teamOvr={effectiveScore.teamOvr}
+            teamOvr={stagePower}
             chemistryEdges={chemistryEdges}
             assignmentByPlayer={assignmentByPlayer}
             swapMode={canSwap}
@@ -559,6 +568,19 @@ export function TournamentScreen() {
             onSwapTap={canSwap ? handleSwapTap : undefined}
             onSelectPlayer={canSwap || hardMode ? undefined : setInspectedPlayer}
           />
+          {!power.trivial && (
+            <PowerBreakdown
+              testId="run-power"
+              roster={power.teamOvr + power.flat}
+              additive={power.additive}
+              xMult={power.xMult}
+              total={stagePower}
+              labels={{
+                roster: t("camp.powerRoster"), additive: t("camp.powerAdditive"),
+                xMult: t("camp.powerX"), total: t("camp.powerTotal"),
+              }}
+            />
+          )}
           <div className="score-strip">
             <StatTile label={t("common.base")} value={Math.round(effectiveScore.base).toString()} kind="base" />
             <StatTile label={t("common.heroSynergy")} value={fmt(effectiveScore.heroSynergy)} kind="synergy" sublabel={synergySublabel} />
