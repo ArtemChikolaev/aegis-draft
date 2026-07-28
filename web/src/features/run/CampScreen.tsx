@@ -123,8 +123,15 @@ function itemContribution(
   if (evaluation.flat !== 0) parts.push(`${t("camp.powerRoster")} ${evaluation.flat > 0 ? "+" : ""}${fmt(evaluation.flat)}`);
   if (evaluation.additive !== 0) parts.push(`${t("camp.powerAdditive")} ${evaluation.additive > 0 ? "+" : ""}${fmt(evaluation.additive)}%`);
   for (const mult of evaluation.xMults) parts.push(`${t("camp.powerX")} ×${mult.toFixed(2)}`);
-  if (!parts.length) return { text: t("camp.tacticNoEffect"), positive: false };
-  return { text: parts.join(" · "), positive: evaluation.flat >= 0 && evaluation.additive >= 0 };
+  if (parts.length) return { text: parts.join(" · "), positive: evaluation.flat >= 0 && evaluation.additive >= 0 };
+  // Пустой силовой вклад ≠ «условие не выполнено». У экономических и антибоссовых предметов
+  // силовых слоёв нет ПО ПОСТРОЕНИЮ, и их эффект уже описан текстом карточки — приписывать им
+  // невыполненное условие значит врать про карту, у которой условия нет вовсе.
+  const hasPowerCondition = evaluation.sources.some(
+    (source) => source.layer === "flat" || source.layer === "additive" || source.layer === "xMult",
+  );
+  if (!hasPowerCondition) return null;
+  return { text: t("camp.conditionUnmet"), positive: false };
 }
 
 function CampPlayerCard({
@@ -422,7 +429,10 @@ export function CampScreen() {
           <h3 className="camp__team-title">{t("camp.teamNow")}</h3>
           <Pentagon
             roster={snapshot.roster}
-            teamOvr={effectiveOvr}
+            /* Ровно та сила, с которой команда выйдет на этап (R8.3): иначе радар показывал бы
+               сумму слагаемых, а в поле уходил Tournament Power — два разных числа на одном
+               экране. Разрыв объясняет панель разложения выше. */
+            teamOvr={power.total}
             chemistryEdges={chemistryEdges}
             assignmentByPlayer={score.assignment.byPlayer}
             onSelectPlayer={openInspector}
