@@ -1,12 +1,16 @@
-.thumb { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--surface-soft); font-size: 10px; }
-.thumb img { display: block; border-radius: 6px; object-fit: cover; background: var(--line); }
+/* `max-width`/`min-width:0` — не косметика: без них капсула с длинным именем («Shadow Demon»)
+   раздувает флекс-родителя и вылезает ЗА карточку в обе стороны. Ловилось замером на карточке
+   улучшения героя шириной 114px. Ограничение включается только когда иначе был бы выход за
+   границы, поэтому все остальные места остаются как были. */
+.thumb { display: inline-flex; align-items: center; gap: 7px; max-width: 100%; min-width: 0; padding: 4px 10px 4px 4px; border-radius: 999px; background: var(--surface-soft); font-size: 10px; }
+.thumb img { display: block; flex: none; border-radius: 6px; object-fit: cover; background: var(--line); }
 .thumb:has(img) { padding-left: 4px; }
 .thumb:not(:has(img)) { padding-left: 10px; }
 .sm img { width: 34px; height: 19px; }
 .md img { width: 46px; height: 26px; }
 .lg img { width: 68px; height: 38px; border-radius: 8px; }
 .lg { gap: 9px; padding: 5px 13px 5px 5px; font-size: 12px; }
-.name { white-space: nowrap; }
+.name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Вертикальная карточка — 5 в ряд на экране пика (как 322-0). */
 .card {

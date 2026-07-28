@@ -71,9 +71,18 @@ function itemLabelParams(
 }
 
 /** Бейдж тира — один примитив на обе шкалы: редкость героя (`--rarity-*`) и качество пассивной
- *  карточки (`--card-tier-*`, R11.5). Базовый тир не рисуем вовсе: он и есть фон. */
-function RarityBadge({ rarity, label }: { rarity: string; label: string }) {
-  if (rarity === "common" || rarity === "standard") return null;
+ *  карточки (`--card-tier-*`, R11.5).
+ *
+ *  У героя базовый тир не рисуем: common — это норма состава, и бейдж на каждой карточке был бы
+ *  шумом. У ПРЕДМЕТА наоборот (`showBase`): отсутствие бейджа читалось как «у этой карточки
+ *  качества нет вообще» — именно так игрок и понял standard-предмет. Явный «Обычная» снимает
+ *  двусмысленность: качество есть у каждой карточки, вопрос только какое. */
+function RarityBadge({ rarity, label, showBase = false }: {
+  rarity: string;
+  label: string;
+  showBase?: boolean;
+}) {
+  if (!showBase && (rarity === "common" || rarity === "standard")) return null;
   return <span className={`rarity-badge rarity-badge--${rarity}`}>{label}</span>;
 }
 
@@ -315,13 +324,12 @@ export function CampScreen() {
         const cost = scaled.drawback ? itemLabel(scaled.drawback) : null;
         const preview = itemContribution(def, snapshot?.heroes ?? [], t, rarity);
         return [
-          ...(rarity !== "common" ? [
-            <RarityBadge
-              key="r"
-              rarity={itemTier(rarity)}
-              label={t(`cardTier.${itemTier(rarity)}` as MessageKey)}
-            />,
-          ] : []),
+          <RarityBadge
+            key="r"
+            rarity={itemTier(rarity)}
+            label={t(`cardTier.${itemTier(rarity)}` as MessageKey)}
+            showBase
+          />,
           <span key="d" className="camp-offer__card-desc">
             {t(main.template as MessageKey, itemLabelParams(main.params, t))}
           </span>,
@@ -639,6 +647,7 @@ export function CampScreen() {
                             <RarityBadge
                               rarity={itemTier(cardRarity)}
                               label={t(`cardTier.${itemTier(cardRarity)}` as MessageKey)}
+                              showBase
                             />
                             <button
                               type="button"

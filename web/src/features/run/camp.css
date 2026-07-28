@@ -132,9 +132,13 @@
   letter-spacing: .08em;
   text-transform: uppercase;
 }
+/* `auto-fit` вместо жёстких пяти колонок: между 980px и «широким» экраном пять карт ужимались до
+   76px, и содержимое (роль-тег, портрет, кнопка) честно вылезало за границы — ловилось замером,
+   на глаз это единицы пикселей. Теперь сетка переносит карты, а не давит их ниже читаемой ширины;
+   на широком экране по-прежнему пять в ряд. */
 .camp__pack {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   gap: 8px;
 }
 .camp-pack-card {
@@ -155,7 +159,10 @@
   justify-content: space-between;
   gap: 8px;
 }
-.camp-pack-card__buy button { padding: 9px 14px; }
+.camp-pack-card__buy button { padding: 9px 14px; min-width: 0; flex: 1 1 auto; }
+/* Узкая карточка (5 в ряд на среднем экране) не вмещает «цена + кнопка» одной строкой — кнопка
+   уезжала за границу на два десятка пикселей. Переносим её на свою строку вместо переполнения. */
+.camp-pack-card__buy { flex-wrap: wrap; }
 
 .camp-offer {
   display: flex;
@@ -332,6 +339,7 @@
     0 0 28px -4px color-mix(in srgb, var(--rarity-color) 90%, transparent);
 }
 /* Бейдж качества предмета — тот же примитив `.rarity-badge`, только своя палитра. */
+.rarity-badge--standard { --rarity-color: var(--card-tier-standard); }
 .rarity-badge--refined { --rarity-color: var(--card-tier-refined); }
 .rarity-badge--exotic { --rarity-color: var(--card-tier-exotic); }
 .rarity-badge--arcana { --rarity-color: var(--card-tier-arcana); }
@@ -387,7 +395,7 @@
 
 .camp__rarity-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   gap: 8px;
 }
 .camp-rarity-card {
