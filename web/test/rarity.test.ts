@@ -31,6 +31,32 @@ describe("rollRarity — детерминизм и кривая по этапу"
     expect(heroes).not.toEqual(cards);
   });
 
+  // R11.4: жёсткой привязки тиров к этапу нет — верхние тиры возможны с первого Буткемпа, как
+  // `FORM_ODDS` для форм игроков. Раньше mythic был невозможен на этапе 1, immortal — до этапа 4.
+  it("верхние тиры возможны уже на первом этапе", () => {
+    const counts: Record<Rarity, number> = { common: 0, unique: 0, mythic: 0, immortal: 0 };
+    for (let h = 0; h < 3000; h++) counts[rollRarity("floor", `hero-${h}`, 1)] += 1;
+    expect(counts.mythic).toBeGreaterThan(0);
+    expect(counts.immortal).toBeGreaterThan(0);
+    // Но остаются редкостью: вместе меньше десятой части первого Буткемпа.
+    expect(counts.mythic + counts.immortal).toBeLessThan(3000 * 0.1);
+    // Common всё ещё доминирует на старте.
+    expect(counts.common).toBeGreaterThan(3000 * 0.6);
+  });
+
+  it("доля каждого верхнего тира не убывает с этапом", () => {
+    const share = (stage: number, tier: Rarity) => {
+      let n = 0;
+      for (let h = 0; h < 1200; h++) if (rollRarity("curve2", `hero-${h}`, stage) === tier) n += 1;
+      return n / 1200;
+    };
+    for (const tier of ["mythic", "immortal"] as Rarity[]) {
+      const shares = [1, 3, 5].map((s) => share(s, tier));
+      expect(shares[1]).toBeGreaterThan(shares[0]);
+      expect(shares[2]).toBeGreaterThan(shares[1]);
+    }
+  });
+
   it("ранние этапы почти всё common, поздние дают редких заметно чаще", () => {
     const dist = (stage: number) => {
       const counts: Record<Rarity, number> = { common: 0, unique: 0, mythic: 0, immortal: 0 };

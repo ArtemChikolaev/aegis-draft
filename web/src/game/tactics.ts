@@ -311,6 +311,28 @@ export function evaluateTactics(equipped: readonly string[], ctx: TacticContext)
   return { modifiers, sources };
 }
 
+/** Числа для подписи карточки тактики — берутся из ТОГО ЖЕ `TACTICS`, что и сам эффект.
+ *
+ *  Зачем. Описания тактик были статическими строками с плейсхолдером `{n}`, которому никто не
+ *  передавал значение: на карточке буквально печаталось «Первые {n} pro-игр». Предметы этот класс
+ *  ошибки уже решили (описание собирается из данных эффекта), а тактики остались в стороне.
+ *  Здесь тот же принцип: текст и число приходят из одного места, поэтому калибровка не может их
+ *  рассинхронизировать. */
+export function tacticLabelParams(id: TacticId): Record<string, number> {
+  switch (id) {
+    case "signatureSpecialists":
+      return { n: TACTICS.signatureSpecialists.gamesWindow, star: TACTICS.signatureSpecialists.starOvr };
+    case "oldTeammates":
+      return { n: TACTICS.oldTeammates.minGames, gold: TACTICS.oldTeammates.playerCostSurcharge };
+    case "freshProject":
+      return { n: TACTICS.freshProject.virtualGamesPerStage };
+    case "noSuperstars":
+      return { n: TACTICS.noSuperstars.starOvr, bonus: TACTICS.noSuperstars.bonus };
+    case "lastDance":
+      return { n: TACTICS.lastDance.minGroup, cards: TACTICS.lastDance.marketPackPenalty };
+  }
+}
+
 /** Trade-off'ы тактик, действующие на рынок (не на счёт). */
 export function tacticMarketEffects(equipped: readonly string[]): TacticMarketEffects {
   return {

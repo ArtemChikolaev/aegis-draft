@@ -25,15 +25,31 @@ export function nextRarity(r: Rarity): Rarity | null {
   return RARITIES[rarityRank(r) + 1] ?? null;
 }
 
-/** Веса редкости при ролле на этапе `stageIndex` (1-based, номер этапа Буткемпа).
- *  Ранние этапы почти всё common, поздние сдвигают к mythic/immortal (лут прогрессии). */
+/**
+ * Веса редкости при ролле на этапе `stageIndex` (1-based, номер этапа Буткемпа).
+ * Часть `BALANCE_CONFIG_VERSION`: правишь числа — бампай версию.
+ *
+ * Ранние этапы почти всё common, поздние сдвигают к mythic/immortal (лут прогрессии). Но у верхних
+ * тиров есть **ненулевой пол с первого этапа** — жёсткой привязки тиров к этапу нет.
+ *
+ * Почему пол обязателен (R11.4). Прошлые веса были `mythic = max(0, s-1)`, `immortal = max(0, s-3)`:
+ * на первом Буткемпе mythic буквально невозможен, immortal — до четвёртого. Это ровно та «жёсткая
+ * привязка тиров к актам», которую `R5.1` уже отверг для форм игроков (`FORM_ODDS`): редкая сильная
+ * карта обязана иметь шанс выпасть рано — это редкое, дорогое и определяющее событие, перенос
+ * принципа Balatro. Одна и та же лестница не может следовать этому принципу для форм и нарушать
+ * его для качества.
+ *
+ * Веса заданы «на сотню» для читаемости: на этапе 1 это ≈73% common, 22% unique, 4% mythic,
+ * 1% immortal. Рост линейный и упирается в потолок, чтобы длинный сезон (`R6.1`, 25 этапов) не
+ * выродился в immortal-фарм.
+ */
 function rollWeights(stageIndex: number): Record<Rarity, number> {
-  const s = Math.max(1, Math.floor(stageIndex));
+  const step = Math.max(0, Math.floor(stageIndex) - 1);
   return {
-    common: Math.max(1, 12 - s * 2),
-    unique: 2 + s,
-    mythic: Math.max(0, s - 1),
-    immortal: Math.max(0, s - 3),
+    common: Math.max(4, 74 - 17 * step),
+    unique: Math.min(55, 22 + 8 * step),
+    mythic: Math.min(30, 4 + 6 * step),
+    immortal: Math.min(15, 1 + 3 * step),
   };
 }
 

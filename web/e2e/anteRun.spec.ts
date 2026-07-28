@@ -492,13 +492,17 @@ test("roguelite run: тир предмета в описании и во вкл�
   const slot = page.getByTestId("camp-tactics").locator(".camp-slot--item").first();
   await expect(slot).toBeVisible();
   const rarity = await slot.getAttribute("data-card-rarity");
+  // У предмета своя шкала имён (R11.5): механический тир `unique` показывается как `refined`.
+  const tier = await slot.getAttribute("data-card-tier");
   test.skip(rarity === "common", "в этом Буткемпе выпал common — масштабировать нечего");
 
   // Тир виден игроку и в награде, и в слоте — один и тот же. Сверяем по классу-модификатору, а не
   // по тексту: бейдж рендерится через `text-transform`, и `innerText` («UNIQUE») не равен тексту
   // DOM («Unique»).
-  await expect(slot.locator(`.rarity-badge--${rarity}`)).toBeVisible();
-  await expect(page.locator(`.camp-offer--reward .rarity-badge--${rarity}`)).toBeVisible();
+  await expect(slot.locator(`.rarity-badge--${tier}`)).toBeVisible();
+  await expect(page.locator(`.camp-offer--reward .rarity-badge--${tier}`)).toBeVisible();
+  // Шкала предмета — НЕ шкала героя: имена тиров не должны совпадать.
+  expect(tier).not.toBe(rarity);
   const firstNumber = (text: string) => text.match(/-?\d+(\.\d+)?/)?.[0];
   const desc = await slot.locator(".camp-slot__desc").first().innerText();
   const chip = await slot.locator(".camp-offer__delta").first().innerText();

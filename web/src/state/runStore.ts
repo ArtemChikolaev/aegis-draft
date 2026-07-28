@@ -157,6 +157,10 @@ interface RunStore {
   enterCamp: () => void;
   /** Буткемп: выбрать одну reward-карту (бесплатно, один раз). */
   chooseReward: (offerId: string) => void;
+  /** Что даст ЕЩЁ НЕ ВЗЯТАЯ тактика на текущем ростере. Живёт в сторе, а не в UI: контекст условий
+   *  строится ровно тем же `buildTacticContext`, что и боевой расчёт, и второй копии тут быть не
+   *  должно (на разъехавшихся копиях этот проект уже горел — см. R10). */
+  previewTactic: (tacticId: string) => TacticEvaluation | null;
   /** Буткемп: купить market-оффер за золото. */
   buyMarket: (offerId: string) => void;
   /** Буткемп: реролл рынка за золото. */
@@ -302,17 +306,21 @@ export const useRun = create<RunStore>((set, get) => {
   // Пересчитать вклад экипированных Tactics от ТЕКУЩЕГО ростера. Вызывать после любого swap:
   // условия карточек («сыгранные пары», «нет суперзвёзд», «одна эпоха») зависят от состава,
   // поэтому кэшировать их как разовую дельту нельзя — этим они и отличаются от покупок.
-  const evaluateRunTactics = (): TacticEvaluation | null => {
+  const tacticContext = () => {
     const { economy, engine, data } = get();
     const score = engine?.score();
     if (!economy || !engine || !data || !score) return null;
-    const ctx = buildTacticContext(
+    return buildTacticContext(
       engine.rosterView,
       score.assignment.byPlayer,
       data,
       economy.snapshot.campStageIndex,
     );
-    return evaluateTactics(economy.equippedTactics, ctx);
+  };
+  const evaluateRunTactics = (): TacticEvaluation | null => {
+    const ctx = tacticContext();
+    const economy = get().economy;
+    return ctx && economy ? evaluateTactics(economy.equippedTactics, ctx) : null;
   };
   // Вклад редкости активных героев (срез 3b): heroSynergy + base у immortal. Пересчитывается от
   // engine.heroes + карты редкости в экономике, поэтому зависит от текущего состава (как tactics).
@@ -947,6 +955,10 @@ export const useRun = create<RunStore>((set, get) => {
       });
     },
 
+    previewTactic(tacticId) {
+      const ctx = tacticContext();
+      return ctx ? evaluateTactics([tacticId], ctx) : null;
+    },
     chooseReward(offerId) {
       const { economy } = get();
       if (!economy) return;

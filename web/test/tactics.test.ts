@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
   TACTICS,
+  TACTIC_IDS,
   TACTIC_SLOTS,
   evaluateTactics,
+  tacticLabelParams,
   tacticMarketEffects,
   type TacticContext,
   type TacticPlayer,
 } from "../src/game/tactics.ts";
+import { translate, type MessageKey } from "../src/i18n/core.ts";
 
 function player(over: Partial<TacticPlayer> & { accountId: number }): TacticPlayer {
   return { ovr: 80, eventYear: 2020, assignedHeroGames: 0, ...over };
@@ -125,5 +128,24 @@ describe("tacticMarketEffects — trade-off'ы на рынке", () => {
 describe("слоты", () => {
   it("тактик ровно три", () => {
     expect(TACTIC_SLOTS).toBe(3);
+  });
+});
+
+// R11.5: описание тактики печатало буквально «{n}» — плейсхолдеру никто не передавал значение.
+// Числа теперь приходят из того же `TACTICS`, что и эффект; тест сторожит сам класс ошибки.
+describe("описания тактик подставляют все числа", () => {
+  it("ни один плейсхолдер не остаётся в тексте — ни в RU, ни в EN", () => {
+    for (const locale of ["ru", "en"] as const) {
+      for (const id of TACTIC_IDS) {
+        const text = translate(locale, `tactic.desc.${id}` as MessageKey, tacticLabelParams(id));
+        expect(text, `${locale}/${id}`).not.toMatch(/[{}]/);
+      }
+    }
+  });
+
+  it("параметры описания берутся из TACTICS, а не дублируются числом в строке", () => {
+    expect(tacticLabelParams("signatureSpecialists").n).toBe(TACTICS.signatureSpecialists.gamesWindow);
+    expect(tacticLabelParams("noSuperstars").n).toBe(TACTICS.noSuperstars.starOvr);
+    expect(tacticLabelParams("lastDance").cards).toBe(TACTICS.lastDance.marketPackPenalty);
   });
 });

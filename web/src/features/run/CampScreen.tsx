@@ -10,7 +10,8 @@ import {
   upgradeCost,
 } from "../../game/heroRarity.ts";
 import { nextRarity, type Rarity } from "../../game/rarity.ts";
-import { evaluateItems, itemAt, itemDef, itemLabel, type ItemDef } from "../../game/items.ts";
+import { evaluateItems, itemAt, itemDef, itemLabel, itemTier, type ItemDef } from "../../game/items.ts";
+import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
@@ -69,9 +70,10 @@ function itemLabelParams(
   return out;
 }
 
-/** Бейдж редкости героя (срез 3b). Цвет — токен `--rarity-*`; common не показываем (фон). */
-function RarityBadge({ rarity, label }: { rarity: Rarity; label: string }) {
-  if (rarity === "common") return null;
+/** Бейдж тира — один примитив на обе шкалы: редкость героя (`--rarity-*`) и качество пассивной
+ *  карточки (`--card-tier-*`, R11.5). Базовый тир не рисуем вовсе: он и есть фон. */
+function RarityBadge({ rarity, label }: { rarity: string; label: string }) {
+  if (rarity === "common" || rarity === "standard") return null;
   return <span className={`rarity-badge rarity-badge--${rarity}`}>{label}</span>;
 }
 
@@ -193,6 +195,7 @@ export function CampScreen() {
   const tactics = useRun((s) => s.tactics);
   const boss = useRun((s) => s.boss);
   const chooseReward = useRun((s) => s.chooseReward);
+  const previewTactic = useRun((s) => s.previewTactic);
   const buyMarket = useRun((s) => s.buyMarket);
   const rerollMarket = useRun((s) => s.rerollMarket);
   const discardTactic = useRun((s) => s.discardTactic);
@@ -313,7 +316,11 @@ export function CampScreen() {
         const preview = itemContribution(def, snapshot?.heroes ?? [], t, rarity);
         return [
           ...(rarity !== "common" ? [
-            <RarityBadge key="r" rarity={rarity} label={t(`rarity.${rarity}` as MessageKey)} />,
+            <RarityBadge
+              key="r"
+              rarity={itemTier(rarity)}
+              label={t(`cardTier.${itemTier(rarity)}` as MessageKey)}
+            />,
           ] : []),
           <span key="d" className="camp-offer__card-desc">
             {t(main.template as MessageKey, itemLabelParams(main.params, t))}
@@ -337,10 +344,23 @@ export function CampScreen() {
       ];
     }
     if ((offer.kind === "tactic" || offer.kind === "action") && offer.cardId) {
+      // Числа описания приходят из того же `TACTICS`, что и эффект: раньше в тексте буквально
+      // печаталось «{n}», потому что плейсхолдеру никто не передавал значение.
+      const vars = offer.kind === "tactic" && isTacticId(offer.cardId)
+        ? tacticLabelParams(offer.cardId)
+        : undefined;
+      // Тактика обязана показывать, что даст ИМЕННО СЕЙЧАС, — ровно как предмет. Без этого
+      // «+Chemistry за сыгранные пары» невозможно сравнить с «+6 золота».
+      const now = offer.kind === "tactic" ? tacticContribution(offer.cardId) : null;
       return [
         <span key="card" className="camp-offer__card-desc">
-          {t(`${offer.kind}.desc.${offer.cardId}` as MessageKey)}
+          {t(`${offer.kind}.desc.${offer.cardId}` as MessageKey, vars)}
         </span>,
+        ...(now ? [
+          <span key="now" className={`camp-offer__delta camp-offer__delta--${now.positive ? "up" : "down"}`}>
+            {now.text}
+          </span>,
+        ] : []),
       ];
     }
     if (offer.preview) return deltaRows(offer.preview.before, offer.preview.after);
@@ -360,6 +380,20 @@ export function CampScreen() {
         {t(`common.${summand}` as MessageKey)} {fmt(current[summand])}→{fmt(current[summand] + delta)}
       </span>
     ));
+  }
+
+  /** Что тактика даст на ТЕКУЩЕМ ростере. Условие пере-вычисляется стором тем же контекстом, что
+   *  и боевой расчёт, поэтому карточка не может обещать одно, а дать другое. */
+  function tacticContribution(tacticId: string): { text: string; positive: boolean } | null {
+    const evaluation = previewTactic(tacticId);
+    if (!evaluation) return null;
+    const mods = evaluation.modifiers;
+    const total = mods.base + mods.heroSynergy + mods.chemistry;
+    if (Math.abs(total) < 0.05) return { text: t("camp.conditionUnmet"), positive: false };
+    const parts = ([["base", mods.base], ["heroSynergy", mods.heroSynergy], ["chemistry", mods.chemistry]] as const)
+      .filter(([, value]) => Math.abs(value) >= 0.05)
+      .map(([summand, value]) => `${t(`common.${summand}` as MessageKey)} ${signed(value)}`);
+    return { text: parts.join(" · "), positive: total > 0 };
   }
 
   function offerIdentity(offer: Offer) {
@@ -522,6 +556,7 @@ export function CampScreen() {
                     key={offer.id}
                     className={`camp-offer camp-offer--reward${isChosen ? " is-chosen" : ""}${isCard ? " camp-offer--card" : ""}`}
                     data-offer-kind={offer.kind}
+                    data-card-tier={itemTier(offer.cardRarity ?? "common")}
                   >
                     <div className="camp-offer__body">
                       <span className="camp-offer__head">
@@ -597,12 +632,14 @@ export function CampScreen() {
                           className="camp-slot camp-slot--item"
                           data-card-id={tacticId}
                           data-card-rarity={cardRarity}
+                          data-card-tier={itemTier(cardRarity)}
                         >
                           <div className="camp-slot__head">
                             <strong>{t(`item.${tacticId}` as MessageKey)}</strong>
-                            {cardRarity !== "common" && (
-                              <RarityBadge rarity={cardRarity} label={t(`rarity.${cardRarity}` as MessageKey)} />
-                            )}
+                            <RarityBadge
+                              rarity={itemTier(cardRarity)}
+                              label={t(`cardTier.${itemTier(cardRarity)}` as MessageKey)}
+                            />
                             <button
                               type="button"
                               className="camp-slot__discard"
@@ -650,7 +687,12 @@ export function CampScreen() {
                             ✕
                           </button>
                         </div>
-                        <p className="camp-slot__desc">{t(`tactic.desc.${tacticId}` as MessageKey)}</p>
+                        <p className="camp-slot__desc">
+                          {t(
+                            `tactic.desc.${tacticId}` as MessageKey,
+                            isTacticId(tacticId) ? tacticLabelParams(tacticId) : undefined,
+                          )}
+                        </p>
                         <div className="camp-offer__deltas">
                           {reasons.length === 0 && (
                             <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>
@@ -825,6 +867,7 @@ export function CampScreen() {
                     className="camp-pack-card camp-pack-card--hero"
                     data-offer-kind="hero"
                     data-incoming-rarity={incomingRarity}
+                    data-rarity-glow={incomingRarity}
                     data-outgoing-rarity={outgoingRarity}
                   >
                     {offerIdentity(offer)}
@@ -884,7 +927,13 @@ export function CampScreen() {
                     const affordable = cost != null && (freeUpgrade || camp.unlimitedGold || cost <= camp.gold);
                     const gain = up ? RARITY.heroSynergyBonus[up] - RARITY.heroSynergyBonus[current] : 0;
                     return (
-                      <div key={heroId} className="camp-rarity-card" data-hero-id={heroId} data-rarity={current}>
+                      <div
+                        key={heroId}
+                        className="camp-rarity-card"
+                        data-hero-id={heroId}
+                        data-rarity={current}
+                        data-rarity-glow={current}
+                      >
                         <div className="camp-rarity-card__hero">
                           <HeroThumb {...thumb} size="md" />
                           <RarityBadge rarity={current} label={t(`rarity.${current}` as MessageKey)} />

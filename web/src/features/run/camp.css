@@ -218,6 +218,10 @@
   font-size: 10.5px;
 }
 .camp-offer--card { border-color: color-mix(in srgb, var(--accent) 32%, var(--line)); }
+.camp-offer--reward[data-offer-kind="tactic"] {
+  border-color: color-mix(in srgb, var(--card-tactic) 45%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card-tactic) 14%, transparent);
+}
 
 /* Билд-панель: слоты Tactics и Camp Actions рядом. */
 .camp__build {
@@ -273,7 +277,12 @@
   color: var(--muted);
   font-size: 11.5px;
 }
-.camp-slot--tactic { border-color: color-mix(in srgb, var(--accent) 34%, var(--line)); }
+/* Тактика — свой цвет, не из шкалы качества предметов: у неё качества нет вовсе, и нейтральная
+   рамка читалась бы как «предмет нулевого тира». */
+.camp-slot--tactic {
+  border-color: color-mix(in srgb, var(--card-tactic) 45%, var(--line));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card-tactic) 14%, transparent);
+}
 .camp-slot__head {
   display: flex;
   align-items: center;
@@ -283,10 +292,49 @@
    и `space-between` увёл бы бейдж в середину строки. */
 .camp-slot__head .camp-slot__discard { margin-left: auto; }
 .camp-slot__head strong { font-size: 14px; }
-/* Тир карточки-предмета — той же палитрой, что тир героя: качество читается одинаково везде. */
-.camp-slot--item[data-card-rarity="unique"] { border-color: color-mix(in srgb, var(--rarity-unique) 45%, var(--line)); }
-.camp-slot--item[data-card-rarity="mythic"] { border-color: color-mix(in srgb, var(--rarity-mythic) 45%, var(--line)); }
-.camp-slot--item[data-card-rarity="immortal"] { border-color: color-mix(in srgb, var(--rarity-immortal) 50%, var(--line)); }
+/* Свечение по качеству — ОДИН блок на все карточки с тиром (предмет в награде, предмет в слоте,
+   hero re-pick, улучшение героя). Bespoke-правил на каждую карточку не заводим: качество должно
+   читаться одинаково везде, а цвет идёт только через токены `--rarity-*`. */
+[data-rarity-glow="unique"] { --rarity-color: var(--rarity-unique); }
+[data-rarity-glow="mythic"] { --rarity-color: var(--rarity-mythic); }
+[data-rarity-glow="immortal"] { --rarity-color: var(--rarity-immortal); }
+[data-rarity-glow="unique"],
+[data-rarity-glow="mythic"],
+[data-rarity-glow="immortal"] {
+  border-color: color-mix(in srgb, var(--rarity-color) 50%, var(--line));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--rarity-color) 16%, transparent),
+    0 0 20px -6px color-mix(in srgb, var(--rarity-color) 70%, transparent);
+}
+/* Immortal — заметно ярче остальных: это событие забега, а не просто «ещё один тир». */
+[data-rarity-glow="immortal"] {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--rarity-color) 26%, transparent),
+    0 0 26px -4px color-mix(in srgb, var(--rarity-color) 85%, transparent);
+}
+
+/* Качество ПАССИВНЫХ КАРТОЧЕК (R11.5) — та же механика свечения, но своя шкала цветов
+   (`--card-tier-*`), чтобы предмет не читался как герой того же тира. Вершина `arcana` красная. */
+[data-card-tier="refined"] { --rarity-color: var(--card-tier-refined); }
+[data-card-tier="exotic"] { --rarity-color: var(--card-tier-exotic); }
+[data-card-tier="arcana"] { --rarity-color: var(--card-tier-arcana); }
+[data-card-tier="refined"],
+[data-card-tier="exotic"] {
+  border-color: color-mix(in srgb, var(--rarity-color) 50%, var(--line));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--rarity-color) 16%, transparent),
+    0 0 20px -6px color-mix(in srgb, var(--rarity-color) 70%, transparent);
+}
+[data-card-tier="arcana"] {
+  border-color: color-mix(in srgb, var(--rarity-color) 62%, var(--line));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--rarity-color) 28%, transparent),
+    0 0 28px -4px color-mix(in srgb, var(--rarity-color) 90%, transparent);
+}
+/* Бейдж качества предмета — тот же примитив `.rarity-badge`, только своя палитра. */
+.rarity-badge--refined { --rarity-color: var(--card-tier-refined); }
+.rarity-badge--exotic { --rarity-color: var(--card-tier-exotic); }
+.rarity-badge--arcana { --rarity-color: var(--card-tier-arcana); }
 .camp-slot__desc {
   margin: 0;
   color: var(--muted);
@@ -316,7 +364,7 @@
   letter-spacing: .07em;
   text-transform: uppercase;
 }
-.camp-card-tag--tactic { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+.camp-card-tag--tactic { background: color-mix(in srgb, var(--card-tactic) 22%, transparent); color: var(--card-tactic); }
 .camp-card-tag--action { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
 
 /* Редкость героев (срез 3b): бейдж + сетка улучшений. Цвет — только токены --rarity-*. */
@@ -352,9 +400,6 @@
   border-radius: var(--radius);
   background: var(--surface-soft);
 }
-.camp-rarity-card[data-rarity="unique"] { border-color: color-mix(in srgb, var(--rarity-unique) 45%, var(--line)); }
-.camp-rarity-card[data-rarity="mythic"] { border-color: color-mix(in srgb, var(--rarity-mythic) 45%, var(--line)); }
-.camp-rarity-card[data-rarity="immortal"] { border-color: color-mix(in srgb, var(--rarity-immortal) 50%, var(--line)); }
 .camp-rarity-card__hero {
   display: flex;
   flex-direction: column;

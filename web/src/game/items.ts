@@ -177,6 +177,23 @@ export function itemAt(def: ItemDef, rarity: Rarity): { effect: ItemEffect; draw
   return { effect: scaleEffect(def.effect, rarity), drawback: def.drawback };
 }
 
+/** Название тира ПРЕДМЕТА (R11.5). Механическая лестница у героев и карточек одна (`rarity.ts`) —
+ *  это один рычаг баланса, и раздваивать его нельзя. А вот ЧИТАЕТСЯ качество предмета иначе:
+ *  «immortal-герой» и «immortal-предмет» рядом слипались бы в одну сущность. Поэтому у предметов
+ *  своя шкала имён и своя палитра (`--card-tier-*`), с красной вершиной. */
+export const ITEM_TIERS = {
+  common: "standard",
+  unique: "refined",
+  mythic: "exotic",
+  immortal: "arcana",
+} as const satisfies Record<Rarity, string>;
+
+export type ItemTier = (typeof ITEM_TIERS)[Rarity];
+
+export function itemTier(rarity: Rarity): ItemTier {
+  return ITEM_TIERS[rarity];
+}
+
 export const ITEM_IDS: readonly string[] = ITEMS.map((item) => item.id);
 
 const BY_ID = new Map(ITEMS.map((item) => [item.id, item]));
