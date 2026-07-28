@@ -11,6 +11,7 @@ import {
 } from "../../game/heroRarity.ts";
 import { nextRarity, type Rarity } from "../../game/rarity.ts";
 import {
+  conditionAxes,
   effectMatch,
   evaluateItems,
   itemAt,
@@ -21,6 +22,7 @@ import {
   type ItemDef,
 } from "../../game/items.ts";
 import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
+import { heroTags } from "../../game/heroTags.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
@@ -46,6 +48,8 @@ import {
   playerOvrTier,
   RoleTag,
   PowerBreakdown,
+  TagChips,
+  type TagChip,
   Select,
   StatTile,
   Surface,
@@ -460,6 +464,25 @@ export function CampScreen() {
         {t(`common.${summand}` as MessageKey)} {fmt(current[summand])}→{fmt(current[summand] + delta)}
       </span>
     ));
+  }
+
+  /** Теги героя, которые СЕЙЧАС во что-то играют: по ним есть условие у экипированных карточек.
+   *
+   *  Почему не весь набор. У героя в среднем четыре тега — на карточке шириной 148px это шум, из
+   *  которого не выцепить нужное. Вопрос в Буткемпе конкретный: «этот герой кормит мой билд?».
+   *  Полный набор живёт в справочнике героев, где герой и есть предмет разговора. */
+  function buildTagChips(heroId: number) {
+    const tags = heroTags(heroId);
+    if (!tags) return [];
+    const axes = conditionAxes(camp!.equippedTactics);
+    const own = new Set<string>([...tags.lore, ...tags.play]);
+    const chips: TagChip[] = axes.tags
+      .filter((tag) => own.has(tag))
+      .map((tag) => ({ key: tag, label: t(`heroTag.${tag}` as MessageKey), active: true }));
+    if (axes.attrs.includes(tags.attr)) {
+      chips.push({ key: tags.attr, label: t(`heroAttr.${tags.attr}` as MessageKey), active: true });
+    }
+    return chips;
   }
 
   /** Что тактика даст на ТЕКУЩЕМ ростере. Условие пере-вычисляется стором тем же контекстом, что
@@ -960,6 +983,14 @@ export function CampScreen() {
                     data-outgoing-rarity={outgoingRarity}
                   >
                     {offerIdentity(offer)}
+                    {/* Чем ВХОДЯЩИЙ герой кормит билд: без этого условие «за героя с тегом
+                        illusion» на карточке предмета невозможно связать с покупкой (R11.7). */}
+                    {offer.heroSwap && (
+                      <TagChips
+                        chips={buildTagChips(offer.heroSwap.incomingHeroId)}
+                        testId={`hero-offer-tags-${offer.heroSwap.incomingHeroId}`}
+                      />
+                    )}
                     {(incomingRarity !== "common" || outgoingRarity !== "common") && (
                       <div className="camp-hero-rarity">
                         <RarityBadge rarity={incomingRarity} label={t(`rarity.${incomingRarity}` as MessageKey)} />
@@ -1025,6 +1056,7 @@ export function CampScreen() {
                       >
                         <div className="camp-rarity-card__hero">
                           <HeroThumb {...thumb} size="md" />
+                          <TagChips chips={buildTagChips(heroId)} testId={`hero-build-tags-${heroId}`} />
                           <RarityBadge rarity={current} label={t(`rarity.${current}` as MessageKey)} />
                         </div>
                         {up ? (

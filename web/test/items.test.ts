@@ -3,6 +3,7 @@ import {
   ITEMS,
   ITEM_IDS,
   ITEM_RARITY,
+  conditionAxes,
   effectMatch,
   evaluateItems,
   itemAt,
@@ -343,5 +344,37 @@ describe("Подсветка подходящих героев", () => {
       expect(match.kind, id).toBe("none");
       expect(match.heroIds, id).toEqual([]);
     }
+  });
+});
+
+// R11.7: по каким осям у экипированного билда есть условие. Нужно, чтобы узкая карточка героя
+// показывала не все его теги (в среднем четыре — шум), а только играющие прямо сейчас.
+describe("Оси условий экипированного билда", () => {
+  it("собирает теги и атрибуты из эффектов", () => {
+    const axes = conditionAxes(["mantaStyle", "butterfly"]);
+    expect(axes.tags).toContain("illusion"); // mantaStyle
+    expect(axes.attrs).toContain("agi"); // butterfly
+  });
+
+  it("учитывает условие drawback наравне с основным", () => {
+    // smokeOfDeceit: выгода за stealth, ЦЕНА за control. Герой, за которого карточка берёт цену,
+    // для игрока не менее важен, чем тот, за которого платит.
+    const axes = conditionAxes(["smokeOfDeceit"]);
+    expect(axes.tags).toContain("stealth");
+    expect(axes.tags).toContain("control");
+  });
+
+  it("карточки без условий по героям осей не добавляют", () => {
+    expect(conditionAxes(["handOfMidas", "bottle", "refresherOrb"])).toEqual({ tags: [], attrs: [] });
+  });
+
+  it("пустой билд и неизвестные id не роняют расчёт", () => {
+    expect(conditionAxes([])).toEqual({ tags: [], attrs: [] });
+    expect(conditionAxes(["nope", "signatureSpecialists"])).toEqual({ tags: [], attrs: [] });
+  });
+
+  it("оси не дублируются, даже если условие повторяется в нескольких карточках", () => {
+    const axes = conditionAxes(["vladmirsOffering", "pipeOfInsight"]); // обе про teamfight
+    expect(axes.tags.filter((tag) => tag === "teamfight")).toHaveLength(1);
   });
 });

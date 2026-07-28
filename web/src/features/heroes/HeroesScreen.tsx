@@ -4,7 +4,9 @@ import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import type { PlayerProfile } from "../../types/data.ts";
-import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface, TextField } from "../../ui/index.ts";
+import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface, TagChips, TextField } from "../../ui/index.ts";
+import { heroTags } from "../../game/heroTags.ts";
+import type { MessageKey } from "../../i18n/core.ts";
 import { heroPopularity, sortHeroes, type HeroSort } from "./heroPopularity.ts";
 import "./heroes.css";
 
@@ -105,6 +107,7 @@ export function HeroesScreen() {
               <li key={row.id}>
                 <span className="heroes__rank">{index + 1}</span>
                 <HeroThumb picture={row.picture} name={row.name} />
+                <TagChips chips={heroChips(row.id, t)} testId={`hero-tags-${row.id}`} />
                 <span className="heroes__bar" aria-hidden="true">
                   <span style={{ width: `${peak > 0 ? (barValue(row, sort) / peak) * 100 : 0}%` }} />
                 </span>
@@ -121,6 +124,24 @@ export function HeroesScreen() {
       <p className="heroes__note">{t(note)}</p>
     </main>
   );
+}
+
+/** Чипы тегов героя для справочника (R11.7): атрибут (объективный слой) + lore + gameplay.
+ *  Здесь показываем ВЕСЬ набор — в отличие от узких карточек Буткемпа: справочник для того и
+ *  существует, чтобы ответить на вопрос «какой это герой», а не «сработает ли карточка». */
+function heroChips(
+  heroId: number,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+) {
+  const tags = heroTags(heroId);
+  if (!tags) return [];
+  return [
+    { key: tags.attr, label: t(`heroAttr.${tags.attr}` as MessageKey), attr: true },
+    ...[...tags.lore, ...tags.play].map((tag) => ({
+      key: tag,
+      label: t(`heroTag.${tag}` as MessageKey),
+    })),
+  ];
 }
 
 function barValue(row: { games: number; players: number; winrate: number | null }, sort: HeroSort): number {

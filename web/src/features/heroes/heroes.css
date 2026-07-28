@@ -23,14 +23,14 @@
 /* Колонки фиксированной ширины, чтобы числа стояли в столбик, а не «плясали» по строкам. */
 .heroes__list li {
   display: grid;
-  grid-template-columns: 34px minmax(120px, 1fr) minmax(60px, 1.4fr) repeat(3, 68px);
+  grid-template-columns: 34px minmax(120px, 1fr) minmax(0, 1.6fr) minmax(60px, 1fr) repeat(3, 68px);
   align-items: center;
   gap: 10px;
   padding: 7px 10px;
   border-radius: 12px;
 }
 /* Режим игрока: колонка «игроков» скрыта (у одного игрока там всегда 1) — детей пять. */
-.heroes__list--player li { grid-template-columns: 34px minmax(120px, 1fr) minmax(60px, 1.4fr) repeat(2, 68px); }
+.heroes__list--player li { grid-template-columns: 34px minmax(120px, 1fr) minmax(0, 1.6fr) minmax(60px, 1fr) repeat(2, 68px); }
 .heroes__list li:nth-child(odd) { background: var(--surface-soft); }
 /* Капсула HeroThumb — блочный span и растянулась бы на всю колонку светлым прямоугольником. */
 .heroes__list li > :nth-child(2) { justify-self: start; max-width: 100%; }
@@ -57,6 +57,7 @@
     grid-template-columns: 26px repeat(3, minmax(0, 1fr));
     grid-template-areas:
       "rank hero hero hero"
+      "tags tags tags tags"
       "bar  bar  bar  bar"
       "st1  st1  st2  st3";
     gap: 8px;
@@ -64,17 +65,19 @@
   }
   .heroes__list li > :nth-child(1) { grid-area: rank; }
   .heroes__list li > :nth-child(2) { grid-area: hero; min-width: 0; }
-  .heroes__list li > :nth-child(3) { grid-area: bar; }
-  .heroes__list li > :nth-child(4) { grid-area: st1; }
-  .heroes__list li > :nth-child(5) { grid-area: st2; }
-  .heroes__list li > :nth-child(6) { grid-area: st3; }
+  .heroes__list li > :nth-child(3) { grid-area: tags; }
+  .heroes__list li > :nth-child(4) { grid-area: bar; }
+  .heroes__list li > :nth-child(5) { grid-area: st1; }
+  .heroes__list li > :nth-child(6) { grid-area: st2; }
+  .heroes__list li > :nth-child(7) { grid-area: st3; }
   /* В режиме игрока цифр две — вторая занимает место третьей, чтобы не было дыры. */
   .heroes__list--player li {
     grid-template-areas:
       "rank hero hero hero"
+      "tags tags tags tags"
       "bar  bar  bar  bar"
       "st1  st1  st2  st2";
   }
-  .heroes__list--player li > :nth-child(5) { grid-area: st2; }
+  .heroes__list--player li > :nth-child(6) { grid-area: st2; }
   .heroes__stat { align-items: flex-start; text-align: left; }
 }

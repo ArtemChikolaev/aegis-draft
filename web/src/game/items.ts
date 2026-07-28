@@ -444,6 +444,30 @@ export function effectMatch(effect: ItemEffect, ctx: ItemContext): EffectMatch {
   }
 }
 
+/** По каким тегам и атрибутам у ЭКИПИРОВАННЫХ карточек сейчас есть условие (R11.7).
+ *
+ *  Нужно, чтобы на узкой карточке героя показывать не все его теги (их в среднем четыре — это
+ *  шум), а только те, что во что-то играют прямо сейчас. Редкость сюда не входит: тир меняет
+ *  ЧИСЛА эффекта, но не ось, по которой он смотрит.
+ *
+ *  Условие `drawback` учитывается наравне с основным: герой, за которого карточка берёт цену,
+ *  для игрока не менее важен, чем герой, за которого она платит. */
+export function conditionAxes(equipped: readonly string[]): { tags: HeroTag[]; attrs: HeroAttr[] } {
+  const tags = new Set<HeroTag>();
+  const attrs = new Set<HeroAttr>();
+  const scan = (effect: ItemEffect) => {
+    if ("tag" in effect) tags.add(effect.tag);
+    if ("attr" in effect) attrs.add(effect.attr);
+  };
+  for (const id of equipped) {
+    const def = itemDef(id);
+    if (!def) continue;
+    scan(def.effect);
+    if (def.drawback) scan(def.drawback);
+  }
+  return { tags: [...tags], attrs: [...attrs] };
+}
+
 /** Данные для генерации подписи карточки. UI собирает строку по шаблону, поэтому текст не может
  *  разойтись с числом при калибровке. */
 export interface ItemLabel {

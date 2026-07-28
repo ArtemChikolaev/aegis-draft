@@ -1,0 +1,29 @@
+.chips {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.chip {
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .03em;
+  white-space: nowrap;
+}
+/* «Играет прямо сейчас» — у экипированной карточки есть условие по этому тегу. Остальные теги
+   намеренно приглушены: у героя их в среднем четыре, и без разделения строка превращается в шум. */
+.active {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+/* Объективный слой (атрибут) — не тег, а факт о герое; отделяем его от подбираемых осей. */
+.attr {
+  border-color: color-mix(in srgb, var(--muted) 35%, var(--line));
+  color: var(--text);
+}
