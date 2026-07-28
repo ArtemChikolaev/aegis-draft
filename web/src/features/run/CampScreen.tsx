@@ -5,13 +5,12 @@ import { useMemo, useState } from "react";
 import { playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import {
   RARITY,
-  nextRarity,
   rarityModifiers,
   raritySwapDelta,
   upgradeCost,
-  type Rarity,
 } from "../../game/heroRarity.ts";
-import { evaluateItems, itemDef, itemLabel, type ItemDef } from "../../game/items.ts";
+import { nextRarity, type Rarity } from "../../game/rarity.ts";
+import { evaluateItems, itemAt, itemDef, itemLabel, type ItemDef } from "../../game/items.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
@@ -117,8 +116,9 @@ function itemContribution(
   def: ItemDef,
   activeHeroes: readonly number[],
   t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+  rarity: Rarity = "common",
 ): { text: string; positive: boolean } | null {
-  const evaluation = evaluateItems([def.id], { activeHeroes });
+  const evaluation = evaluateItems([def.id], { activeHeroes, cardRarity: { [def.id]: rarity } });
   const parts: string[] = [];
   if (evaluation.flat !== 0) parts.push(`${t("camp.powerRoster")} ${evaluation.flat > 0 ? "+" : ""}${fmt(evaluation.flat)}`);
   if (evaluation.additive !== 0) parts.push(`${t("camp.powerAdditive")} ${evaluation.additive > 0 ? "+" : ""}${fmt(evaluation.additive)}%`);
@@ -234,7 +234,10 @@ export function CampScreen() {
   };
   const effectiveOvr = current.base + current.heroSynergy + current.chemistry;
   // Вклад предметов при текущем ростере (R8.3) + разложение силы забега для панели.
-  const itemEval = evaluateItems(camp.equippedTactics, { activeHeroes: snapshot.heroes });
+  const itemEval = evaluateItems(camp.equippedTactics, {
+    activeHeroes: snapshot.heroes,
+    cardRarity: camp.cardRarity,
+  });
   const power = powerBreakdown(powerLayers(effectiveOvr, {
     flat: itemEval.flat, additive: itemEval.additive, xMults: itemEval.xMults,
   }));
@@ -301,10 +304,17 @@ export function CampScreen() {
     if (offer.kind === "item" && offer.cardId) {
       const def = itemDef(offer.cardId);
       if (def) {
-        const main = itemLabel(def.effect);
-        const cost = def.drawback ? itemLabel(def.drawback) : null;
-        const preview = itemContribution(def, snapshot?.heroes ?? [], t);
+        // Тир берём С ОФФЕРА и через него же собираем описание: карточка обязана показывать те
+        // числа, которые реально лягут в слот (R11.2).
+        const rarity: Rarity = offer.cardRarity ?? "common";
+        const scaled = itemAt(def, rarity);
+        const main = itemLabel(scaled.effect);
+        const cost = scaled.drawback ? itemLabel(scaled.drawback) : null;
+        const preview = itemContribution(def, snapshot?.heroes ?? [], t, rarity);
         return [
+          ...(rarity !== "common" ? [
+            <RarityBadge key="r" rarity={rarity} label={t(`rarity.${rarity}` as MessageKey)} />,
+          ] : []),
           <span key="d" className="camp-offer__card-desc">
             {t(main.template as MessageKey, itemLabelParams(main.params, t))}
           </span>,
@@ -577,12 +587,22 @@ export function CampScreen() {
                     const item = itemDef(tacticId);
                     if (item) {
                       const contributions = itemEval.sources.filter((source) => source.itemId === tacticId);
-                      const label = itemLabel(item.effect);
-                      const cost = item.drawback ? itemLabel(item.drawback) : null;
+                      const cardRarity: Rarity = camp.cardRarity[tacticId] ?? "common";
+                      const scaled = itemAt(item, cardRarity);
+                      const label = itemLabel(scaled.effect);
+                      const cost = scaled.drawback ? itemLabel(scaled.drawback) : null;
                       return (
-                        <div key={tacticId} className="camp-slot camp-slot--item" data-card-id={tacticId}>
+                        <div
+                          key={tacticId}
+                          className="camp-slot camp-slot--item"
+                          data-card-id={tacticId}
+                          data-card-rarity={cardRarity}
+                        >
                           <div className="camp-slot__head">
                             <strong>{t(`item.${tacticId}` as MessageKey)}</strong>
+                            {cardRarity !== "common" && (
+                              <RarityBadge rarity={cardRarity} label={t(`rarity.${cardRarity}` as MessageKey)} />
+                            )}
                             <button
                               type="button"
                               className="camp-slot__discard"

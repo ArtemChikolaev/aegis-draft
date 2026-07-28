@@ -277,10 +277,16 @@
 .camp-slot__head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
 }
+/* Кнопка сброса всегда крайняя справа: между ней и названием может встать бейдж качества (R11.2),
+   и `space-between` увёл бы бейдж в середину строки. */
+.camp-slot__head .camp-slot__discard { margin-left: auto; }
 .camp-slot__head strong { font-size: 14px; }
+/* Тир карточки-предмета — той же палитрой, что тир героя: качество читается одинаково везде. */
+.camp-slot--item[data-card-rarity="unique"] { border-color: color-mix(in srgb, var(--rarity-unique) 45%, var(--line)); }
+.camp-slot--item[data-card-rarity="mythic"] { border-color: color-mix(in srgb, var(--rarity-mythic) 45%, var(--line)); }
+.camp-slot--item[data-card-rarity="immortal"] { border-color: color-mix(in srgb, var(--rarity-immortal) 50%, var(--line)); }
 .camp-slot__desc {
   margin: 0;
   color: var(--muted);

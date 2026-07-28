@@ -24,7 +24,8 @@ import {
 } from "../src/game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../src/game/tactics.ts";
-import { rarityModifiers, upgradeCost, type Rarity } from "../src/game/heroRarity.ts";
+import { rarityModifiers, upgradeCost } from "../src/game/heroRarity.ts";
+import type { Rarity } from "../src/game/rarity.ts";
 import { runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
 import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
@@ -249,7 +250,7 @@ function prepareMarket(engine: RunEngine, economy: RunEconomy, seed: string, sta
   const st = economy.snapshot;
   economy.prepareMarketOffers(buildAnteMarketRoulette(
     engine, seed, st.campStageIndex, st.marketRerolls, economy.equippedTactics,
-    { rarityDrops: economy.rarityDropsEnabled, stageCount },
+    { rarityDrops: economy.rarityDropsEnabled, stageCount, heroRarity: economy.heroRarity },
   ));
 }
 

@@ -2,12 +2,15 @@ import { describe, expect, it } from "vitest";
 import {
   ITEMS,
   ITEM_IDS,
+  ITEM_RARITY,
   evaluateItems,
+  itemAt,
   itemDef,
   itemLabel,
   protectedBossPenalty,
   validateItems,
 } from "../src/game/items.ts";
+import { RARITIES } from "../src/game/rarity.ts";
 import { POWER_LIMITS, powerLayers, tournamentPower } from "../src/game/tournamentPower.ts";
 import { TACTIC_SLOTS } from "../src/game/tactics.ts";
 import { heroTags, taggedHeroIds } from "../src/game/heroTags.ts";
@@ -188,6 +191,76 @@ describe("Слой вклада соответствует виду эффект
       for (const source of sources) {
         expect(["flat", "additive", "xMult", "economy", "boss"]).toContain(source.layer);
       }
+    }
+  });
+});
+
+// R11.2: качество карточки. Слоты не растут, поэтому тир — единственный способ билду расти
+// после третьей карты; масштабируются ЧИСЛА эффекта, но не его цена.
+describe("Качество карточки", () => {
+  it("тир усиливает эффект и не трогает цену", () => {
+    const radiance = itemDef("radiance")!; // additivePerTag + drawback goldPerCamp
+    const common = itemAt(radiance, "common");
+    const immortal = itemAt(radiance, "immortal");
+    expect(common.effect.kind).toBe("additivePerTag");
+    if (common.effect.kind === "additivePerTag" && immortal.effect.kind === "additivePerTag") {
+      expect(immortal.effect.per).toBeGreaterThan(common.effect.per);
+      expect(immortal.effect.cap).toBe(common.effect.cap);
+    }
+    // Цена — тот же объект: высокий тир даёт лучшее СООТНОШЕНИЕ, а не раздутую карту целиком.
+    expect(immortal.drawback).toEqual(common.drawback);
+  });
+
+  it("масштаб монотонен по тиру у всех карточек каталога", () => {
+    const magnitudeOf = (effect: ReturnType<typeof itemAt>["effect"]): number => {
+      switch (effect.kind) {
+        case "flatPerTag": case "additivePerTag": case "additivePerAttr": return effect.per;
+        case "xMultOnDiversity": case "xMultOnTag": case "xMultWithoutTag": case "xMultFlat":
+          return effect.mult;
+        case "copyBestXMult": return effect.rate;
+        case "goldPerCamp": return effect.gold;
+        case "freeRerolls": return effect.count;
+        case "interestCap": return effect.bonus;
+        // Антибоссовые: сильнее = МЕНЬШЕ число, поэтому сравниваем со знаком минус.
+        case "bossPenaltyFactor": return -effect.factor;
+        case "bossPenaltyCap": return -effect.cap;
+      }
+    };
+    for (const item of ITEMS) {
+      const ladder = RARITIES.map((r) => magnitudeOf(itemAt(item, r).effect));
+      for (let i = 1; i < ladder.length; i += 1) {
+        expect(ladder[i]).toBeGreaterThanOrEqual(ladder[i - 1]);
+      }
+    }
+  });
+
+  it("X Mult высокого тира не пробивает абсолютный потолок", () => {
+    for (const item of ITEMS) {
+      const top = itemAt(item, "immortal").effect;
+      if ("mult" in top) expect(top.mult).toBeLessThanOrEqual(POWER_LIMITS.xMultHard);
+    }
+    // Валидатор каталога знает про тиры и молчит на текущем наборе.
+    expect(validateItems()).toEqual([]);
+  });
+
+  it("evaluateItems читает тир из контекста, отсутствие записи = common", () => {
+    const heroes = heroesWithTag("teamfight", 5);
+    const plain = evaluateItems(["radiance"], { activeHeroes: heroes });
+    const noRecord = evaluateItems(["radiance"], { activeHeroes: heroes, cardRarity: {} });
+    const mythic = evaluateItems(["radiance"], { activeHeroes: heroes, cardRarity: { radiance: "mythic" } });
+    expect(noRecord.additive).toBe(plain.additive);
+    expect(mythic.additive).toBeGreaterThan(plain.additive);
+    // Цена (goldPerCamp у radiance) осталась прежней.
+    expect(mythic.goldPerCamp).toBe(plain.goldPerCamp);
+  });
+
+  it("босс: высокий тир срезает больше штрафа, но иммунитет не выдаёт", () => {
+    const bkb = itemDef("blackKingBar")!;
+    const top = itemAt(bkb, "immortal").effect;
+    expect(top.kind).toBe("bossPenaltyFactor");
+    if (top.kind === "bossPenaltyFactor") {
+      expect(top.factor).toBeLessThan(0.4);
+      expect(top.factor).toBeGreaterThanOrEqual(ITEM_RARITY.bossFactorFloor);
     }
   });
 });

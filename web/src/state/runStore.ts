@@ -358,7 +358,10 @@ export const useRun = create<RunStore>((set, get) => {
    *  пересчитывается на каждый swap — как tactics. */
   const runItems = () => {
     const { economy, engine } = get();
-    return evaluateItems(economy?.equippedTactics ?? [], { activeHeroes: engine?.heroes ?? [] });
+    return evaluateItems(economy?.equippedTactics ?? [], {
+      activeHeroes: engine?.heroes ?? [],
+      cardRarity: economy?.cardRarity ?? {},
+    });
   };
   const stageStrength = (baseTeamOvr: number, tactics: TacticEvaluation | null, boss: BossEvaluation | null): number => {
     const { economy, engine } = get();
@@ -382,6 +385,7 @@ export const useRun = create<RunStore>((set, get) => {
       economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
         engine,
         economy.campView().marketOffers,
+        economy.heroRarity,
       ));
     } else {
       economy.prepareMarketOffers(buildAnteMarketRoulette(
@@ -390,7 +394,11 @@ export const useRun = create<RunStore>((set, get) => {
         economyState.campStageIndex,
         economyState.marketRerolls,
         economy.equippedTactics,
-        { rarityDrops: economy.rarityDropsEnabled, stageCount: ANTE_TARGETS.length },
+        {
+                rarityDrops: economy.rarityDropsEnabled,
+                stageCount: ANTE_TARGETS.length,
+                heroRarity: economy.heroRarity,
+              },
       ));
     }
     const tactics = evaluateRunTactics();
@@ -716,6 +724,7 @@ export const useRun = create<RunStore>((set, get) => {
                 economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
                   engine,
                   economy.campView().marketOffers,
+                  economy.heroRarity,
                 ));
               } else {
                 economy.prepareMarketOffers(buildAnteMarketRoulette(
@@ -724,7 +733,11 @@ export const useRun = create<RunStore>((set, get) => {
                   economyState.campStageIndex,
                   economyState.marketRerolls,
                   economy.equippedTactics,
-                  { rarityDrops: economy.rarityDropsEnabled, stageCount: ANTE_TARGETS.length },
+                  {
+                rarityDrops: economy.rarityDropsEnabled,
+                stageCount: ANTE_TARGETS.length,
+                heroRarity: economy.heroRarity,
+              },
                 ));
               }
             }
@@ -890,7 +903,11 @@ export const useRun = create<RunStore>((set, get) => {
               economyState.campStageIndex,
               economyState.marketRerolls,
               economy.equippedTactics,
-              { rarityDrops: economy.rarityDropsEnabled, stageCount: ANTE_TARGETS.length },
+              {
+                rarityDrops: economy.rarityDropsEnabled,
+                stageCount: ANTE_TARGETS.length,
+                heroRarity: economy.heroRarity,
+              },
             ));
           }
           const campTactics = evaluateRunTactics();
@@ -974,6 +991,7 @@ export const useRun = create<RunStore>((set, get) => {
         economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
           engine,
           economy.campView().marketOffers,
+          economy.heroRarity,
         ));
         // Замена меняет состав → условные Tactics пересчитываются (напр. new star гасит No Superstars).
         set({ snapshot, economyView: economy.snapshot, camp: economy.campView(), tactics: evaluateRunTactics() });

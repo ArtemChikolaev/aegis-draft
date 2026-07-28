@@ -18,7 +18,8 @@ import type { CandidateRef } from "./packs.ts";
 import { TACTIC_IDS, TACTIC_SLOTS, isTacticId } from "./tactics.ts";
 import { CAMP_ACTION_IDS, CAMP_ACTION_SLOTS, campActionDef, isCampActionId } from "./campActions.ts";
 import { ITEM_IDS, evaluateItems, isItemId } from "./items.ts";
-import { nextRarity, rollRarity, upgradeCost, type Rarity } from "./heroRarity.ts";
+import { rollHeroRarity, upgradeCost } from "./heroRarity.ts";
+import { nextRarity, rollRarity, type Rarity } from "./rarity.ts";
 
 /** Слагаемое Team OVR, на которое действует покупка. */
 export type Summand = "base" | "heroSynergy" | "chemistry";
@@ -77,6 +78,9 @@ export interface Offer {
   heroSwap?: HeroSwapEffect;
   /** id карточки Tactics/Camp Action (kind "tactic"/"action", срез 4). */
   cardId?: string;
+  /** Тир карточки-предмета (kind "item", R11.2). Едет на оффере по той же причине, что качество
+   *  героя: превью, описание и то, что реально ляжет в слот, обязаны читать ОДНО значение. */
+  cardRarity?: Rarity;
   /** Реальный scoreTeam breakdown и auto-assignment до/после структурной покупки. */
   preview?: {
     before: SummandValues;
@@ -137,6 +141,10 @@ export interface RunEconomyState {
   /** Из чего сложилась последняя автоматическая выплата — чтобы Буткемп мог показать
    *  «призовые + проценты» раздельно, а не одно непрозрачное число. */
   lastPayout?: { prize: number; interest: number };
+  /** Тир взятых карточек-предметов (id → редкость, R11.2). Отдельная карта, а не поле внутри
+   *  `equippedTactics`: слоты хранят строки, и превращать их в объекты значило бы переписывать
+   *  формат сейва там, где новая ось прекрасно живёт зеркалом `heroRarity`. Записи нет ⇒ common. */
+  cardRarity: Record<string, Rarity>;
   /** Редкость героев забега (heroId → тир), срез 3b. Стартовый драфт весь common (записей нет);
    *  re-pick роллит редкость, «улучшение» бампит тир. Хранится напрямую → resume без ре-ролла. */
   heroRarity: Record<string, Rarity>;
@@ -300,7 +308,12 @@ export function interestFor(gold: number, capBonus = 0): number {
 /** Ещё не полученная карточка Tactics/Camp Action, детерминированная по seed+campId.
  *  Возвращает null, когда игрок уже собрал весь набор — тогда третьим оффером остаётся
  *  прежний бесплатный stat-рычаг (срез 2), и Буткемп не выдаёт пустую карту. */
-function cardOffer(seed: string, campStageIndex: number, owned: readonly string[]): Offer | null {
+function cardOffer(
+  seed: string,
+  campStageIndex: number,
+  owned: readonly string[],
+  rarityDrops = false,
+): Offer | null {
   const pool = [
     ...TACTIC_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "tactic" as const, id })),
     // Предметы (R8.3) — такие же пассивные карточки и занимают ТЕ ЖЕ слоты, что тактики:
@@ -319,6 +332,11 @@ function cardOffer(seed: string, campStageIndex: number, owned: readonly string[
     labelKey: `${card.kind}.${card.id}`,
     cost: 0,
     cardId: card.id,
+    // Тир — только у предметов (R11.2) и под тем же мета-гейтом, что дропы качества у героев:
+    // первый забег знакомится с базовой картой, а не с масштабированной.
+    ...(card.kind === "item" && rarityDrops
+      ? { cardRarity: rollRarity(seed, `card-${card.id}`, campStageIndex) }
+      : {}),
   };
 }
 
@@ -331,11 +349,14 @@ export function rewardOffers(
   owned: readonly string[] = [],
   preparedCard?: Offer | null,
   qualityAvailable = true,
+  rarityDrops = false,
 ): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:reward`);
   const summand = rng.pick(MARKET_SUMMANDS);
   const cfg = ECONOMY.levers[summand];
-  const card = preparedCard !== undefined ? preparedCard : cardOffer(seed, campStageIndex, owned);
+  const card = preparedCard !== undefined
+    ? preparedCard
+    : cardOffer(seed, campStageIndex, owned, rarityDrops);
   const gold = stageGold(ECONOMY.rewardGold.base, ECONOMY.rewardGold.stageStep, campStageIndex);
   // Третий слот — утилита: поиск (реролы) либо качество. Выбор детерминирован по seed+camp,
   // чтобы Буткемп не «мутировал» между рендерами, и уважает мета-гейт улучшений.
@@ -415,6 +436,8 @@ export interface CampView {
   unlimitedGold: boolean;
   /** heroId → тир для рендера бейджей/улучшений (срез 3b). */
   heroRarity: Record<string, Rarity>;
+  /** id карточки → тир для рендера бейджей и масштабированных описаний (R11.2). */
+  cardRarity: Record<string, Rarity>;
   /** Индекс этапа текущего Буткемпа — для превью редкости входящих на re-pick героев. */
   campStageIndex: number;
 }
@@ -439,6 +462,7 @@ function emptyState(): RunEconomyState {
     freePlayerSwaps: 0,
     freeRarityUpgrades: 0,
     heroRarity: {},
+    cardRarity: {},
     rarityDropsEnabled: false,
     rarityUpgradesEnabled: true,
     unlimitedGold: false,
@@ -468,6 +492,7 @@ export class RunEconomy {
       temporary: this.state.temporary.map((t) => ({ effect: { ...t.effect }, campId: t.campId })),
       scoutedCamps: [...this.state.scoutedCamps],
       heroRarity: { ...this.state.heroRarity },
+      cardRarity: { ...(this.state.cardRarity ?? {}) },
     };
   }
 
@@ -484,7 +509,10 @@ export class RunEconomy {
   /** Экономические эффекты экипированных предметов. Они безусловны (не зависят от ростера),
    *  поэтому экономика вычисляет их сама и не тянет за собой знание о составе. */
   private itemEconomy() {
-    return evaluateItems(this.state.equippedTactics, { activeHeroes: [] });
+    return evaluateItems(this.state.equippedTactics, {
+      activeHeroes: [],
+      cardRarity: this.state.cardRarity ?? {},
+    });
   }
 
   /** Временные эффекты разыгранных Camp Actions: действуют на один следующий этап. */
@@ -532,7 +560,9 @@ export class RunEconomy {
     this.state.temporary = this.state.temporary.filter((t) => t.campId >= campStageIndex);
     // Фиксируем карточный оффер по составу владения на момент открытия — до любых взятий этого
     // Буткемпа, чтобы карта не переезжала на другую после выбора.
-    this.state.preparedRewardCard = cardOffer(this.seed, campStageIndex, this.state.ownedCards);
+    this.state.preparedRewardCard = cardOffer(
+      this.seed, campStageIndex, this.state.ownedCards, this.state.rarityDropsEnabled,
+    );
     // Бесплатные реролы от предметов — свойство Буткемпа, а не накопление: иначе неиспользованные
     // копились бы забегом и обесценивали дорожающий реролл.
     this.state.freeMarketRerolls += this.itemEconomy().freeRerolls;
@@ -546,7 +576,10 @@ export class RunEconomy {
   private currentRewardOffers(): Offer[] {
     // preparedRewardCard зафиксирован на openCamp; legacy-сейв без него выводит карту из ownedCards.
     const prepared = "preparedRewardCard" in this.state ? this.state.preparedRewardCard : undefined;
-    return rewardOffers(this.seed, this.state.campStageIndex, this.state.ownedCards, prepared, this.state.rarityUpgradesEnabled);
+    return rewardOffers(
+      this.seed, this.state.campStageIndex, this.state.ownedCards, prepared,
+      this.state.rarityUpgradesEnabled, this.state.rarityDropsEnabled,
+    );
   }
 
   private currentMarketOffers(): Offer[] {
@@ -605,6 +638,11 @@ export class RunEconomy {
         : isCampActionId(cardId);
       if (!valid) return false;
       this.state.ownedCards.push(cardId);
+      // Тир фиксируем ИЗ ОФФЕРА, а не роллим заново: карточка уже показала игроку свои числа,
+      // и второй ролл был бы вторым источником правды (та же грабля, что у героев в R4.1).
+      if (offer.cardRarity && offer.cardRarity !== "common") {
+        this.state.cardRarity = { ...(this.state.cardRarity ?? {}), [cardId]: offer.cardRarity };
+      }
       if (offer.kind === "action") this.state.heldActions.push(cardId);
       else this.state.equippedTactics.push(cardId);
     }
@@ -723,6 +761,11 @@ export class RunEconomy {
     return { ...this.state.heroRarity };
   }
 
+  /** Карта тиров взятых карточек (id → тир). Legacy-сейв поля не имеет ⇒ всё common. */
+  get cardRarity(): Record<string, Rarity> {
+    return { ...(this.state.cardRarity ?? {}) };
+  }
+
   rarityOf(heroId: number): Rarity {
     return this.state.heroRarity[String(heroId)] ?? "common";
   }
@@ -731,7 +774,7 @@ export class RunEconomy {
    *  Детерминизм: тот же (seed, heroId, stage) ⇒ та же редкость, что и в превью. */
   rollHeroRarity(heroId: number, stageIndex: number): Rarity {
     if (!this.state.rarityDropsEnabled) return "common";
-    const rarity = rollRarity(this.seed, heroId, stageIndex);
+    const rarity = rollHeroRarity(this.seed, heroId, stageIndex);
     if (rarity === "common") delete this.state.heroRarity[String(heroId)];
     else this.state.heroRarity[String(heroId)] = rarity;
     return rarity;
@@ -785,6 +828,7 @@ export class RunEconomy {
       rarityUpgradesEnabled: this.state.rarityUpgradesEnabled,
       unlimitedGold: this.state.unlimitedGold,
       heroRarity: { ...this.state.heroRarity },
+      cardRarity: { ...(this.state.cardRarity ?? {}) },
       campStageIndex: this.state.campStageIndex,
     };
   }

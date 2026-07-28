@@ -1,8 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { FORM_FLOOR, balancedPackSlots, buildAnteMarketRoulette, refreshAnteMarketOffers, stockedForms } from "../src/game/anteMarket.ts";
-import { RunEconomy, playerCost } from "../src/game/anteEconomy.ts";
+import {
+  FORM_FLOOR,
+  HERO_FLOOR,
+  balancedPackSlots,
+  buildAnteMarketRoulette,
+  refreshAnteMarketOffers,
+  stockedForms,
+} from "../src/game/anteMarket.ts";
+import { RunEconomy, playerCost, type Offer } from "../src/game/anteEconomy.ts";
 import { RunEngine } from "../src/game/engine.ts";
-import { heroPrice } from "../src/game/heroRarity.ts";
+import { heroPrice, raritySwapDelta } from "../src/game/heroRarity.ts";
+import type { Rarity } from "../src/game/rarity.ts";
 import { ROLE_SEQUENCE, candidateRef } from "../src/game/packs.ts";
 import { useRun } from "../src/state/runStore.ts";
 import { Rng } from "../src/game/rng.ts";
@@ -359,5 +367,66 @@ describe("Нижняя граница рынка", () => {
 
   it("пустой пул роли не роняет расчёт", () => {
     expect(stockedForms([], { seasonProgress: 1, activeOvrs: [88] })).toEqual([]);
+  });
+});
+
+// R11.1: у hero-пака своей нижней границы не было вовсе. Назначение героев уже оптимально по
+// Hungarian, поэтому случайный герой почти всегда даёт минус, и пак вырождался в мусор.
+describe("Нижняя граница hero-пака", () => {
+  const data = loadGameData();
+  const completed = (seed: string) => {
+    const engine = new RunEngine(data, defaultRunConfig, seed);
+    runToEnd(engine);
+    return engine;
+  };
+  /** Полная дельта карты — ровно та, что показывает Буткемп: счёт состава + сдвиг редкости. */
+  const cardDelta = (offer: Offer, heroRarity: Record<string, Rarity>) => {
+    const before = offer.preview!.before;
+    const after = offer.preview!.after;
+    const swap = raritySwapDelta(
+      heroRarity[String(offer.heroSwap!.outgoingHeroId)] ?? "common",
+      offer.heroSwap!.incomingRarity ?? "common",
+    );
+    return (after.base + after.heroSynergy + after.chemistry)
+      - (before.base + before.heroSynergy + before.chemistry)
+      + swap.heroSynergy + swap.base;
+  };
+
+  it("мёртвые карты уходят с рынка, пак остаётся полным", () => {
+    for (const seed of ["hero-floor-a", "hero-floor-b", "hero-floor-c"]) {
+      const engine = completed(seed);
+      for (const rerollN of [0, 1, 2]) {
+        const offers = buildAnteMarketRoulette(engine, seed, 4, rerollN, [], { rarityDrops: true });
+        const heroes = offers.filter((o) => o.kind === "hero");
+        expect(heroes).toHaveLength(5);
+        expect(new Set(heroes.map((o) => o.heroSwap!.incomingHeroId)).size).toBe(5);
+        for (const offer of heroes) {
+          expect(cardDelta(offer, {})).toBeGreaterThanOrEqual(-HERO_FLOOR.maxLossOvr - 1e-6);
+        }
+      }
+    }
+  });
+
+  it("если проходных карт меньше пака — добираем лучшими, а не пустым рынком", () => {
+    // Порог 0 отсекает всё, что не строгий апгрейд; пак обязан остаться полным и отсортированным
+    // по качеству добора, потому что рынок не имеет права ничего не предлагать.
+    const engine = completed("hero-floor-degenerate");
+    const offers = buildAnteMarketRoulette(engine, "hero-floor-degenerate", 1, 0);
+    const heroes = offers.filter((o) => o.kind === "hero");
+    expect(heroes).toHaveLength(5);
+    for (const offer of heroes) expect(offer.preview).toBeDefined();
+  });
+
+  it("не предлагает снести immortal ради выигрыша в голом score", () => {
+    // Вклад immortal (+3.4 к Team OVR) живёт слоем поверх score.ts. Без его вычета «лучший»
+    // вариант замены регулярно указывал именно на самого редкого героя.
+    const engine = completed("hero-floor-immortal");
+    const immortalHero = engine.heroes[0];
+    const heroRarity: Record<string, Rarity> = { [String(immortalHero)]: "immortal" };
+    const withRarity = buildAnteMarketRoulette(engine, "hero-floor-immortal", 4, 0, [], { heroRarity });
+    for (const offer of withRarity.filter((o) => o.kind === "hero")) {
+      expect(offer.heroSwap!.outgoingHeroId).not.toBe(immortalHero);
+      expect(cardDelta(offer, heroRarity)).toBeGreaterThanOrEqual(-HERO_FLOOR.maxLossOvr - 1e-6);
+    }
   });
 });

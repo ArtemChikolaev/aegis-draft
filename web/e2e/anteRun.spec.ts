@@ -472,3 +472,32 @@ test("roguelite run: предмет в слоте показывает разл�
   const strength = await page.getByTestId("tournament-user-strength").innerText();
   await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
 });
+
+// R11.2: у карточки-предмета есть тир, и он масштабирует ЧИСЛА эффекта. Тест сторожит ровно тот
+// дефект, на котором это ломается: описание карточки берёт тир, а разложение вклада — забывает,
+// и слот показывает два разных числа для одного эффекта.
+test("roguelite run: тир предмета в описании и во вкладе — одно число", async ({ page }) => {
+  // Второй забег: случайные повышенные качества открыты (мета-гейт по careerStore).
+  await page.addInitScript(() => {
+    localStorage.setItem("aegis:career:v1", JSON.stringify({ v: 1, entries: [{ configLabel: { mode: "run" } }] }));
+  });
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CAMP_SEED);
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  await chooseReward(page, ["item"]);
+  const slot = page.getByTestId("camp-tactics").locator(".camp-slot--item").first();
+  await expect(slot).toBeVisible();
+  const rarity = await slot.getAttribute("data-card-rarity");
+  test.skip(rarity === "common", "в этом Буткемпе выпал common — масштабировать нечего");
+
+  // Тир виден игроку и числа сходятся: первое число описания = первое число вклада.
+  await expect(slot.locator(".rarity-badge")).toBeVisible();
+  const firstNumber = (text: string) => text.match(/-?\d+(\.\d+)?/)?.[0];
+  const desc = await slot.locator(".camp-slot__desc").first().innerText();
+  const chip = await slot.locator(".camp-offer__delta").first().innerText();
+  expect(firstNumber(chip)).toBe(firstNumber(desc));
+});

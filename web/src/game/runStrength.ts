@@ -8,7 +8,8 @@
 //
 // Поэтому сумма собирается здесь, а `runStore` и `scripts/sim_run.ts` обязаны звать эту функцию.
 import { addModifiers, type SummandModifiers } from "./anteEconomy.ts";
-import { rarityModifiers, type Rarity } from "./heroRarity.ts";
+import { rarityModifiers } from "./heroRarity.ts";
+import type { Rarity } from "./rarity.ts";
 import { powerLayers, tournamentPower, type PowerLayers } from "./tournamentPower.ts";
 
 export interface RunStrengthInput {

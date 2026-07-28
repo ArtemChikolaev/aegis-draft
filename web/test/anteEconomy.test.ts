@@ -296,6 +296,32 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(restored.heroRarity).toEqual(eco.heroRarity);
   });
 
+  // R11.2: тир карточки-предмета. Гейт тот же, что у дропов героя; тир едет на оффере и
+  // фиксируется при взятии — второй ролл был бы вторым источником правды.
+  it("качество предметов: гейт, тир на оффере, персист", () => {
+    const first = new RunEconomy("card-rarity-first");
+    first.openCamp(6);
+    for (const offer of first.campView().rewardOffers) {
+      if (offer.kind === "item") expect(offer.cardRarity).toBeUndefined();
+    }
+
+    // Дропы открыты: ищем Буткемп, где билд-карта — предмет, и берём её.
+    const eco = new RunEconomy("card-rarity");
+    eco.setRarityFlags({ drops: true, upgrades: true });
+    let taken: { id: string; rarity: string } | null = null;
+    for (let camp = 1; camp <= 40 && !taken; camp += 1) {
+      eco.openCamp(camp);
+      const offer = eco.campView().rewardOffers.find((o) => o.kind === "item");
+      if (!offer?.cardId || !offer.cardRarity || offer.cardRarity === "common") continue;
+      expect(eco.chooseReward(offer.id)).toBe(true);
+      taken = { id: offer.cardId, rarity: offer.cardRarity };
+    }
+    expect(taken).not.toBeNull();
+    expect(eco.cardRarity[taken!.id]).toBe(taken!.rarity);
+    // Персист восстанавливает карту тиров как есть.
+    expect(new RunEconomy("card-rarity", eco.snapshot).cardRarity).toEqual(eco.cardRarity);
+  });
+
   it("R3.1: первый забег качает героя руками, но не получает случайных дропов", () => {
     const eco = new RunEconomy("first-run");
     eco.setRarityFlags({ drops: false, upgrades: true });

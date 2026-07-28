@@ -518,7 +518,10 @@ export function TournamentScreen() {
   };
   // Сила забега с учётом предметов (R8.3). Порядок как в сторе: слои применяются к счёту состава,
   // штраф босса вычитается ПОСЛЕ — иначе радар и поле показали бы разные числа.
-  const itemEval = evaluateItems(economyView?.equippedTactics ?? [], { activeHeroes: snapshot.heroes });
+  const itemEval = evaluateItems(economyView?.equippedTactics ?? [], {
+    activeHeroes: snapshot.heroes,
+    cardRarity: economyView?.cardRarity ?? {},
+  });
   const power = powerBreakdown(powerLayers(effectiveScore.teamOvr + bossPenalty, {
     flat: itemEval.flat, additive: itemEval.additive, xMults: itemEval.xMults,
   }));

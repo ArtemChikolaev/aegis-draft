@@ -8,26 +8,8 @@
 // Источник — ЛУТ с рынка (решение playtest 2026-07-24): стартовый драфт весь common, hero re-pick
 // на рынке роллит редкость по этапу (поздние этапы — шанс mythic/immortal), «улучшение» поднимает
 // тир текущего героя. Первый забег игрока весь common (мета-гейт по careerStore).
-import { Rng } from "./rng.ts";
+import { nextRarity, rollRarity, type Rarity } from "./rarity.ts";
 import type { SummandModifiers } from "./anteEconomy.ts";
-
-export type Rarity = "common" | "unique" | "mythic" | "immortal";
-
-/** По возрастанию качества. Индекс = ранг (0 = common). */
-export const RARITIES: readonly Rarity[] = ["common", "unique", "mythic", "immortal"];
-
-export function isRarity(value: string): value is Rarity {
-  return (RARITIES as readonly string[]).includes(value);
-}
-
-export function rarityRank(r: Rarity): number {
-  return RARITIES.indexOf(r);
-}
-
-/** Следующий тир вверх, либо null для immortal (потолок). */
-export function nextRarity(r: Rarity): Rarity | null {
-  return RARITIES[rarityRank(r) + 1] ?? null;
-}
 
 /** Баланс-коэффициенты редкости (часть BALANCE_CONFIG_VERSION — правишь числа, бампай в balance.ts).
  *  Placeholder, калибровка — `npm run sim`. Immortal редок, поэтому его пакет заметно сильнее. */
@@ -36,8 +18,14 @@ export const RARITY = {
   heroSynergyBonus: { common: 0, unique: 0.6, mythic: 1.4, immortal: 2.4 } as Record<Rarity, number>,
   /** Сверх Hero Synergy: immortal даёт маленький +OVR игроку (Base). */
   immortalBaseBonus: 1,
-  /** Цена «улучшения» — стоимость ДОСТИЖЕНИЯ тира (бамп на один шаг вверх). */
-  upgradeCost: { unique: 3, mythic: 5, immortal: 8 } as Record<Exclude<Rarity, "common">, number>,
+  /** Цена «улучшения» — стоимость ДОСТИЖЕНИЯ тира (бамп на один шаг вверх).
+   *
+   *  Считается ОТ СИЛЫ ШАГА, а не «на глаз». Прирост вклада в Team OVR: `unique +0.6`,
+   *  `mythic +0.8`, `immortal +2.0` (у immortal сверх Hero Synergy есть ещё `immortalBaseBonus`).
+   *  При старых `3/5/8` цена за единицу силы шла `5.0 → 6.25 → 4.0`: последний, самый сильный шаг
+   *  выходил САМЫМ дешёвым, и апгрейд до immortal доминировал любую другую трату золота.
+   *  Теперь `5.0 → 6.25 → 7.0` — дороже за очко на верхних тирах, как и должно быть. */
+  upgradeCost: { unique: 3, mythic: 5, immortal: 14 } as Record<Exclude<Rarity, "common">, number>,
   /** Базовая цена hero re-pick по качеству входящего героя (R4.1).
    *
    *  **Не зависит от номера этапа** (PRD §5.9.3): один и тот же товар того же качества стоит
@@ -45,10 +33,16 @@ export const RARITY = {
    *  pressure — но не на базовую формулу цены. Раньше hero-оффер брал цену generic-рычага Hero
    *  Synergy, и common стоил столько же, сколько immortal.
    *
-   *  Инвариант (закреплён тестом): `heroPrice(тир) === heroPrice("common") + Σ upgradeCost` —
-   *  купить готовый тир стоит ровно столько же, сколько вырастить его из common. Оба пути к
-   *  immortal равноценны (`4+3=7`, `7+5=12`, `12+8=20`); калибровка не должна ломать это молча. */
-  heroPrice: { common: 4, unique: 7, mythic: 12, immortal: 20 } as Record<Rarity, number>,
+   *  ПОЧЕМУ СНЯТ старый инвариант «купить готовый тир = вырастить его из common» (R11.3). Он
+   *  приравнивал два пути по золоту, молча предполагая, что смена героя ничего не стоит. А она
+   *  стоит: апгрейд усиливает героя, уже стоящего в составе и оптимально назначенного, тогда как
+   *  re-pick пересобирает matching и теряет career-связку «игрок×герой». Плюс стартовая пятёрка
+   *  досталась бесплатно, поэтому реальная цена грайнда шла от нуля, а не от `heroPrice("common")`.
+   *
+   *  Новый инвариант (закреплён тестом): `heroPrice(тир) < heroPrice("common") + Σ upgradeCost` —
+   *  купить готовое ДЕШЕВЛЕ, чем вырастить, потому что покупка несёт риск смены героя, а грайнд
+   *  гарантирован. Игрок платит премию именно за гарантию (`6<7`, `10<12`, `20<26`). */
+  heroPrice: { common: 4, unique: 6, mythic: 10, immortal: 20 } as Record<Rarity, number>,
 } as const;
 
 /** Базовая цена входящего героя этого качества. */
@@ -63,31 +57,9 @@ export function upgradeCost(from: Rarity): number | null {
   return target && target !== "common" ? RARITY.upgradeCost[target] : null;
 }
 
-/** Веса редкости при ролле re-pick на этапе `stageIndex` (1-based, номер этапа Буткемпа).
- *  Ранние этапы почти всё common, поздние сдвигают к mythic/immortal (лут прогрессии). */
-function rollWeights(stageIndex: number): Record<Rarity, number> {
-  const s = Math.max(1, Math.floor(stageIndex));
-  return {
-    common: Math.max(1, 12 - s * 2),
-    unique: 2 + s,
-    mythic: Math.max(0, s - 1),
-    immortal: Math.max(0, s - 3),
-  };
-}
-
-/** Детерминированный ролл редкости для входящего героя. Один и тот же (seed, heroId, stage) ⇒ та
- *  же редкость — поэтому market-карта может показать её в превью до покупки, а сама покупка выдаст
- *  ровно то же. */
-export function rollRarity(seed: string, heroId: number, stageIndex: number): Rarity {
-  const weights = rollWeights(stageIndex);
-  const total = RARITIES.reduce((sum, r) => sum + weights[r], 0);
-  const rng = new Rng(`${seed}:rarity:hero-${heroId}:stage-${stageIndex}`);
-  let roll = rng.int(total);
-  for (const r of RARITIES) {
-    roll -= weights[r];
-    if (roll < 0) return r;
-  }
-  return "common";
+/** Ролл редкости входящего героя — общая лестница (`rarity.ts`) под ключом героя. */
+export function rollHeroRarity(seed: string, heroId: number, stageIndex: number): Rarity {
+  return rollRarity(seed, `hero-${heroId}`, stageIndex);
 }
 
 /** Вклад ОДНОГО героя этой редкости в слагаемые (heroSynergy + base у immortal). Для превью
@@ -97,6 +69,13 @@ export function rarityContribution(rarity: Rarity): { heroSynergy: number; base:
     heroSynergy: RARITY.heroSynergyBonus[rarity],
     base: rarity === "immortal" ? RARITY.immortalBaseBonus : 0,
   };
+}
+
+/** Вклад редкости в Team OVR ОДНИМ числом. Team OVR — сумма слагаемых, поэтому и вклад редкости
+ *  в него — сумма её частей; рынку нужна именно она, чтобы сравнивать карты между собой. */
+export function rarityOvrContribution(rarity: Rarity): number {
+  const c = rarityContribution(rarity);
+  return c.heroSynergy + c.base;
 }
 
 /** Чистый сдвиг слагаемых при замене героя `outgoing`→`incoming` (их редкости). Именно этого не

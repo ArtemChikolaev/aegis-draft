@@ -7,13 +7,22 @@ import { Rng } from "./rng.ts";
 import { candidateRef, ROLE_SEQUENCE, type Candidate } from "./packs.ts";
 import { RunEngine } from "./engine.ts";
 import { formUpgradeCost, playerCost, type Offer, type SummandValues } from "./anteEconomy.ts";
-import { heroPrice, rollRarity } from "./heroRarity.ts";
+import { heroPrice, rarityOvrContribution, rollHeroRarity } from "./heroRarity.ts";
+import type { Rarity } from "./rarity.ts";
 import { tacticMarketEffects } from "./tactics.ts";
 
 interface HeroOption {
   outgoingHeroId: number;
   incomingHeroId: number;
   preview: ScoreBreakdown;
+}
+
+/** Карта hero re-pick до превращения в Offer: вариант замены, качество входящего и ПОЛНАЯ дельта
+ *  Team OVR — ровно та, что увидит игрок (счёт состава + сдвиг вклада редкости). */
+interface HeroCard {
+  option: HeroOption;
+  incomingRarity: Rarity;
+  ovrDelta: number;
 }
 
 interface PlayerOption {
@@ -185,8 +194,17 @@ function bestPlayerOption(engine: RunEngine, candidate: Candidate): PlayerOption
 
 /** Лучший честный вариант освобождения hero-slot под конкретного входящего героя.
  * Hungarian matching внутри preview заново оптимизирует назначения; здесь выбираем лишь,
- * кого убрать из активного пула, чтобы не показывать случайно испорченную замену. */
-function bestHeroOption(engine: RunEngine, incomingHeroId: number): HeroOption {
+ * кого убрать из активного пула, чтобы не показывать случайно испорченную замену.
+ *
+ * Выбор учитывает РЕДКОСТЬ снимаемого героя: `previewHeroReplacement` считает чистый score.ts, а
+ * вклад редкости живёт слоем поверх него, и без вычитания рынок охотно предлагал снести immortal
+ * (−3.4 к Team OVR) ради выигрыша в полочка score. Это тот же класс расхождения, который уже
+ * чинили в превью карточки, — только здесь он влиял на САМ выбор, а не на подпись. */
+function bestHeroOption(
+  engine: RunEngine,
+  incomingHeroId: number,
+  rarityOf: (heroId: number) => Rarity,
+): HeroOption {
   if (engine.heroes.length !== ROLE_SEQUENCE.length) {
     throw new Error(
       `Нельзя подобрать hero replacement: нужно ${ROLE_SEQUENCE.length} активных героев, `
@@ -194,15 +212,18 @@ function bestHeroOption(engine: RunEngine, incomingHeroId: number): HeroOption {
     );
   }
   return engine.heroes
-    .map((outgoingHeroId) => ({
-      outgoingHeroId,
-      incomingHeroId,
-      preview: engine.previewHeroReplacement(outgoingHeroId, incomingHeroId),
-    }))
+    .map((outgoingHeroId) => {
+      const preview = engine.previewHeroReplacement(outgoingHeroId, incomingHeroId);
+      return {
+        outgoingHeroId,
+        incomingHeroId,
+        preview,
+        // Вклад входящего одинаков во всех вариантах и на выбор не влияет — вычитаем только потерю.
+        adjusted: preview.teamOvr - rarityOvrContribution(rarityOf(outgoingHeroId)),
+      };
+    })
     .reduce((best, option) => {
-      if (option.preview.teamOvr !== best.preview.teamOvr) {
-        return option.preview.teamOvr > best.preview.teamOvr ? option : best;
-      }
+      if (option.adjusted !== best.adjusted) return option.adjusted > best.adjusted ? option : best;
       if (option.preview.heroSynergy !== best.preview.heroSynergy) {
         return option.preview.heroSynergy > best.preview.heroSynergy ? option : best;
       }
@@ -241,11 +262,41 @@ export function balancedPackSlots(roles: readonly Role[], packSize: number, rng:
   return [...picked].sort((a, b) => a - b);
 }
 
-/** Пять разных hero re-pick. Как и player-pack, это рулетка, а не скрытый фильтр
- * «только апгрейды»: входящий герой может быть ловушкой. Но для каждого входящего героя
- * карта показывает его лучший способ войти в текущий активный пул, а не случайную пару.
- * Last Dance сужает пак (trade-off тактики) — но не ниже одной карты. */
-function heroOptions(engine: RunEngine, rng: Rng, packSize: number): HeroOption[] {
+/** Нижняя граница hero-пака. Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION. */
+export const HERO_FLOOR = {
+  /** Насколько карта может УРОНИТЬ Team OVR и всё ещё считаться ловушкой, а не мусором.
+   *  Абсолютная величина, а не доля: назначение героев уже оптимально по Hungarian, поэтому
+   *  дельта карты — это разница с оптимумом, и она не растёт вместе с масштабом Team OVR.
+   *  Ориентир — `ANTE_FIELD_STEP` (3 очка на этап): порог держим заметно ниже одного этапа. */
+  maxLossOvr: 1,
+} as const;
+
+/**
+ * Пять разных hero re-pick. Как и player-pack, это рулетка, а не скрытый фильтр «только апгрейды»:
+ * входящий герой может быть ловушкой. Но для каждого входящего героя карта показывает его лучший
+ * способ войти в текущий активный пул, а не случайную пару.
+ *
+ * Проблема, которую чинит порог (тот же дефект, что `stockedForms` уже чинил для игроков). Стартовый
+ * драфт назначает героев венгерским алгоритмом, то есть активная пятёрка уже ОПТИМАЛЬНА. Поэтому
+ * случайный герой из shortlist почти всегда даёт минус, и на позднем этапе пак вырождался в 4–5
+ * карт вида «−2 Team OVR за 12 золота». Это не ловушка (ловушка обязана быть соблазнительной), а
+ * шум, который вдобавок съедал дорожающий реролл (R4.2).
+ *
+ * Порог считается по ПОЛНОЙ дельте, включая редкость: mythic-герой поднимает карту на свой вклад,
+ * и отбраковывать его по «голому» score.ts значило бы фильтровать не то число, что видит игрок.
+ *
+ * Пак никогда не пустеет: если проходных карт меньше размера пака, добираем лучшими из отсеянных —
+ * рынок обязан что-то предлагать, даже когда состав уже сильнее всего, что есть в shortlist.
+ * Last Dance сужает пак (trade-off тактики) — но не ниже одной карты.
+ */
+function heroOptions(
+  engine: RunEngine,
+  rng: Rng,
+  packSize: number,
+  beforeOvr: number,
+  rarityOf: (heroId: number) => Rarity,
+  incomingRarityOf: (heroId: number) => Rarity,
+): HeroCard[] {
   const incomingHeroes = rng.shuffle(engine.marketHeroCandidatesShortlist);
   if (engine.heroes.length !== ROLE_SEQUENCE.length || incomingHeroes.length < ROLE_SEQUENCE.length) {
     throw new Error(
@@ -253,9 +304,26 @@ function heroOptions(engine: RunEngine, rng: Rng, packSize: number): HeroOption[
       + `(активных ${engine.heroes.length}, доступно ${incomingHeroes.length})`,
     );
   }
-  return incomingHeroes
-    .slice(0, packSize)
-    .map((incomingHeroId) => bestHeroOption(engine, incomingHeroId));
+  const kept: HeroCard[] = [];
+  const rejected: HeroCard[] = [];
+  // Оцениваем лениво и останавливаемся, набрав пак: каждая оценка — пять полных scoreTeam с
+  // matching, а shortlist вчетверо длиннее пака.
+  for (const incomingHeroId of incomingHeroes) {
+    if (kept.length >= packSize) break;
+    const incomingRarity = incomingRarityOf(incomingHeroId);
+    const option = bestHeroOption(engine, incomingHeroId, rarityOf);
+    const rarityShift = rarityOvrContribution(incomingRarity)
+      - rarityOvrContribution(rarityOf(option.outgoingHeroId));
+    const card = { option, incomingRarity, ovrDelta: option.preview.teamOvr - beforeOvr + rarityShift };
+    (card.ovrDelta >= -HERO_FLOOR.maxLossOvr ? kept : rejected).push(card);
+  }
+  if (kept.length < packSize) {
+    kept.push(...[...rejected]
+      .sort((a, b) => b.ovrDelta - a.ovrDelta
+        || a.option.incomingHeroId - b.option.incomingHeroId)
+      .slice(0, packSize - kept.length));
+  }
+  return kept;
 }
 
 /** Рынок Буткемпа: две пак-рулетки по 5 карт — игроки и hero re-pick. Ни один пак не
@@ -274,9 +342,13 @@ export function buildAnteMarketRoulette(
     rarityDrops?: boolean;
     /** Всего этапов в сезоне — из него считается прогресс для шансов тиров формы (R5.1). */
     stageCount?: number;
+    /** Редкость АКТИВНЫХ героев забега. Нужна, чтобы карта не предлагала снести immortal и чтобы
+     *  нижняя граница пака считалась по той же дельте, что показывает карточка. */
+    heroRarity?: Record<string, Rarity>;
   } = {},
 ): Offer[] {
-  const { rarityDrops = false, stageCount = 0 } = opts;
+  const { rarityDrops = false, stageCount = 0, heroRarity = {} } = opts;
+  const rarityOf = (heroId: number): Rarity => heroRarity[String(heroId)] ?? "common";
   // Прогресс сезона 0..1 по номеру пройденного этапа; при неизвестной длине остаёмся на старте.
   const seasonProgress = stageCount > 1
     ? Math.min(1, Math.max(0, (campStageIndex - 1) / (stageCount - 1)))
@@ -388,13 +460,14 @@ export function buildAnteMarketRoulette(
     engine,
     new Rng(`${seed}:camp-${campStageIndex}:market-${rerollN}:heroes`),
     packSize,
-  );
-  heroes.forEach((hero, heroIndex) => {
+    before.teamOvr,
+    rarityOf,
     // Качество входящего героя определяет цену (R4.1) и едет на оффере: раньше hero-карта брала
-    // цену generic-рычага Hero Synergy, поэтому common и immortal стоили одинаково.
-    const incomingRarity = rarityDrops
-      ? rollRarity(seed, hero.incomingHeroId, campStageIndex)
-      : "common";
+    // цену generic-рычага Hero Synergy, поэтому common и immortal стоили одинаково. Роллим ЗДЕСЬ,
+    // а не после отбора: качество входит в дельту, по которой пак отсеивает мёртвые карты.
+    (heroId) => (rarityDrops ? rollHeroRarity(seed, heroId, campStageIndex) : "common"),
+  );
+  heroes.forEach(({ option: hero, incomingRarity }, heroIndex) => {
     offers.push({
       id: `mkt-${campStageIndex}-${rerollN}-hero-${heroIndex}`,
       kind: "hero",
@@ -419,7 +492,12 @@ export function buildAnteMarketRoulette(
 /** Пересчитать breakdown уже показанных карт после другой покупки/ручного swap.
  *  Identity карты — входящий игрок/герой — сохраняется, а лучший освобождаемый слот
  *  пересчитывается под актуальный состав. Ставшая невалидной карта исчезает. */
-export function refreshAnteMarketOffers(engine: RunEngine, offers: Offer[]): Offer[] {
+export function refreshAnteMarketOffers(
+  engine: RunEngine,
+  offers: Offer[],
+  heroRarity: Record<string, Rarity> = {},
+): Offer[] {
+  const rarityOf = (heroId: number): Rarity => heroRarity[String(heroId)] ?? "common";
   const before = engine.score();
   if (!before) return offers.filter((offer) => offer.kind === "stat");
   const refreshed: Offer[] = [];
@@ -449,7 +527,7 @@ export function refreshAnteMarketOffers(engine: RunEngine, offers: Offer[]): Off
           },
         });
       } else if (offer.kind === "hero" && offer.heroSwap) {
-        const option = bestHeroOption(engine, offer.heroSwap.incomingHeroId);
+        const option = bestHeroOption(engine, offer.heroSwap.incomingHeroId, rarityOf);
         refreshed.push({
           ...offer,
           heroSwap: {

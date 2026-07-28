@@ -10,8 +10,16 @@
 // ПОЧЕМУ ОПИСАНИЯ ГЕНЕРИРУЮТСЯ, А НЕ ПИШУТСЯ РУКАМИ. У каждого предмета эффект — данные, поэтому
 // строка описания собирается из шаблона по этим же данным. Иначе текст и число разъезжаются при
 // первой же калибровке, и карточка начинает врать игроку.
+//
+// КАЧЕСТВО КАРТОЧКИ (R11.2). Предмет и тактика делят ТРИ слота, и слоты не растут. Значит после
+// трёх взятых карт билд был бы заморожен навсегда: расти внутри слота нечем, а это ровно тот же
+// потолок, в который упирается рынок игроков на позднем этапе. Поэтому у карточки есть тир по той
+// же лестнице, что у героев (`rarity.ts`), и тир масштабирует ЧИСЛА эффекта.
+// Цена карточки (`drawback`) при этом НЕ масштабируется: смысл более высокого тира — лучшее
+// соотношение пользы к цене, а не пропорционально раздутая карта.
 import { countAttr, countTag, distinctGameplayTags, type HeroAttr, type HeroTag } from "./heroTags.ts";
 import { POWER_LIMITS } from "./tournamentPower.ts";
+import type { Rarity } from "./rarity.ts";
 
 export type ItemCategory =
   | "tagSynergy"
@@ -117,6 +125,58 @@ export const ITEMS: readonly ItemDef[] = [
   { id: "helmOfTheDominator", category: "riskReward", effect: { kind: "xMultOnTag", tag: "summon", min: 2, mult: 1.25 }, drawback: { kind: "goldPerCamp", gold: -1 } },
 ];
 
+/** Как тир карточки масштабирует её эффект (часть BALANCE_CONFIG_VERSION).
+ *  Placeholder под калибровку `npm run sim`. */
+export const ITEM_RARITY = {
+  /** Множитель числовой части эффекта по тиру. Каталог объявлен в common. */
+  magnitude: { common: 1, unique: 1.25, mythic: 1.6, immortal: 2 } as Record<Rarity, number>,
+  /** Нижняя граница множителя штрафа босса: полный иммунитет отменял бы правило, а не готовил
+   *  к нему (боссы обязаны контриться подготовкой, а не выключаться карточкой). */
+  bossFactorFloor: 0.15,
+} as const;
+
+const round2 = (n: number): number => Math.round(n * 100) / 100;
+
+/** Эффект карточки этого тира. Чистая: описание, оценка и превью читают ОДНУ функцию, поэтому
+ *  подпись не может разойтись с числом (тот же инвариант, что у `itemLabel` от `effect`). */
+export function scaleEffect(effect: ItemEffect, rarity: Rarity): ItemEffect {
+  const k = ITEM_RARITY.magnitude[rarity];
+  if (k === 1) return effect;
+  switch (effect.kind) {
+    case "flatPerTag":
+    case "additivePerTag":
+    case "additivePerAttr":
+      return { ...effect, per: round2(effect.per * k) };
+    case "xMultOnDiversity":
+    case "xMultOnTag":
+    case "xMultWithoutTag":
+    case "xMultFlat":
+      // Растёт ИЗБЫТОК над 1, а не сам множитель: ×1.10 и ×1.50 иначе росли бы несопоставимо.
+      // Потолок — `xMultHard`: полоса `xMultMax` описывает обычную карту, а высокий тир редок и
+      // проходит по тому же исключению, что risk/reward-карты.
+      return { ...effect, mult: Math.min(POWER_LIMITS.xMultHard, round2(1 + (effect.mult - 1) * k)) };
+    case "copyBestXMult":
+      return { ...effect, rate: Math.min(1, round2(effect.rate * k)) };
+    case "goldPerCamp":
+      return { ...effect, gold: Math.round(effect.gold * k) };
+    case "freeRerolls":
+      return { ...effect, count: Math.round(effect.count * k) };
+    case "interestCap":
+      return { ...effect, bonus: Math.round(effect.bonus * k) };
+    case "bossPenaltyFactor":
+      // Сильнее = МЕНЬШЕ фактор: растёт срезаемая доля штрафа.
+      return { ...effect, factor: Math.max(ITEM_RARITY.bossFactorFloor, round2(1 - (1 - effect.factor) * k)) };
+    case "bossPenaltyCap":
+      // Сильнее = НИЖЕ потолок штрафа.
+      return { ...effect, cap: round2(effect.cap / k) };
+  }
+}
+
+/** Карточка этого тира целиком: усиленный эффект и НЕ тронутая цена. */
+export function itemAt(def: ItemDef, rarity: Rarity): { effect: ItemEffect; drawback?: ItemEffect } {
+  return { effect: scaleEffect(def.effect, rarity), drawback: def.drawback };
+}
+
 export const ITEM_IDS: readonly string[] = ITEMS.map((item) => item.id);
 
 const BY_ID = new Map(ITEMS.map((item) => [item.id, item]));
@@ -133,6 +193,9 @@ export function itemDef(id: string): ItemDef | null {
  *  за игроков отвечают тактики и слагаемые Team OVR. */
 export interface ItemContext {
   activeHeroes: readonly number[];
+  /** Тир каждой карточки (id → редкость). Отсутствующая запись — common, поэтому старый сейв и
+   *  первый забег читаются без миграции. */
+  cardRarity?: Record<string, Rarity>;
 }
 
 /** Вклад предметов: слои силы + экономика + защита от босса. Чистая функция от ростера, как
@@ -254,7 +317,12 @@ function applyEffect(
 
 export function evaluateItems(equipped: readonly string[], ctx: ItemContext): ItemEvaluation {
   const out = emptyEvaluation();
-  const items = equipped.map(itemDef).filter((item): item is ItemDef => item != null);
+  const items = equipped
+    .map(itemDef)
+    .filter((item): item is ItemDef => item != null)
+    // Тир применяется ЗДЕСЬ, один раз: дальше вся оценка работает с уже усиленным эффектом, и
+    // ни одна ветка не может забыть про редкость.
+    .map((item) => ({ id: item.id, ...itemAt(item, ctx.cardRarity?.[item.id] ?? "common") }));
 
   for (const item of items) {
     applyEffect(item.effect, item.id, ctx, out);
@@ -326,6 +394,22 @@ export function validateItems(): string[] {
     // Безусловный множитель обязан иметь цену — иначе это «+N ко всему», запрещённое PRD.
     if (item.effect.kind === "xMultFlat" && !item.drawback) {
       issues.push(`${item.id}: безусловный X Mult без trade-off`);
+    }
+    // Даже на верхнем тире карточка не имеет права выйти за абсолютный потолок множителей и не
+    // имеет права стать слабее: масштаб редкости обязан быть монотонным.
+    if (mult != null) {
+      const top = scaleEffect(item.effect, "immortal");
+      const topMult = "mult" in top ? top.mult : mult;
+      if (topMult > POWER_LIMITS.xMultHard) {
+        issues.push(`${item.id}: immortal X Mult ${topMult} выше потолка ${POWER_LIMITS.xMultHard}`);
+      }
+      if (topMult < mult) issues.push(`${item.id}: immortal X Mult слабее common`);
+    }
+    // Экономическую и антибоссовую пользу редкость тоже обязана только усиливать.
+    const boss = scaleEffect(item.effect, "immortal");
+    if (item.effect.kind === "bossPenaltyFactor" && boss.kind === "bossPenaltyFactor"
+      && boss.factor > item.effect.factor) {
+      issues.push(`${item.id}: immortal срезает штраф босса слабее common`);
     }
   }
   if (new Set(ITEM_IDS).size !== ITEM_IDS.length) issues.push("дублирующиеся id предметов");
