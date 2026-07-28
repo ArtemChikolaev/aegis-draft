@@ -727,4 +727,34 @@
 .camp__payout b { color: var(--gold); }
 
 .camp-slot--item .camp-slot__desc--cost { color: var(--danger); }
+
+/* R11.7: кто из активных героев включает карточку. Портреты, а не список тегов — вопрос у игрока
+   конкретный («сработает или нет»), и отвечает на него состав, а не словарь. */
+.camp-item-match {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.camp-item-match__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.camp-item-match[data-met="true"] .camp-item-match__label { color: var(--accent); }
+/* Нарушители условия «без тега» — это цена, а не польза: подписываем их опасным цветом. */
+.camp-item-match[data-blockers="true"] .camp-item-match__label { color: var(--danger); }
+.camp-item-match__heroes {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.camp-item-match__note,
+.camp-item-match__empty {
+  font-size: 10px;
+  color: var(--muted);
+}
 .camp-offer__card-desc--cost { color: var(--danger); }

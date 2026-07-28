@@ -17,7 +17,15 @@
 // же лестнице, что у героев (`rarity.ts`), и тир масштабирует ЧИСЛА эффекта.
 // Цена карточки (`drawback`) при этом НЕ масштабируется: смысл более высокого тира — лучшее
 // соотношение пользы к цене, а не пропорционально раздутая карта.
-import { countAttr, countTag, distinctGameplayTags, type HeroAttr, type HeroTag } from "./heroTags.ts";
+import {
+  countAttr,
+  countTag,
+  distinctGameplayTags,
+  hasTag,
+  heroTags,
+  type HeroAttr,
+  type HeroTag,
+} from "./heroTags.ts";
 import { POWER_LIMITS } from "./tournamentPower.ts";
 import type { Rarity } from "./rarity.ts";
 
@@ -362,6 +370,78 @@ export function evaluateItems(equipped: readonly string[], ctx: ItemContext): It
   }
 
   return out;
+}
+
+/** Кто из АКТИВНЫХ героев участвует в условии эффекта (R11.7).
+ *
+ *  Зачем. Теги (`R8.1`) жили только в данных: карточка обещала «+9.6% за героя с тегом illusion»,
+ *  а посмотреть, есть ли такие в составе, было негде — половина каталога (`tagSynergy`) оставалась
+ *  непроверяемой глазами. Показывать «все теги героя» — шум (у героя их несколько); полезно ровно
+ *  обратное: по конкретной карточке показать, КТО её сейчас включает.
+ *
+ *  Считается из тех же `countTag`/`countAttr`/`distinctGameplayTags`, что и сам эффект, поэтому
+ *  подсветка не может разойтись с числом. */
+export type EffectMatchKind = "tag" | "attr" | "diversity" | "withoutTag" | "none";
+
+export interface EffectMatch {
+  kind: EffectMatchKind;
+  /** Герои, на которых смотрит условие. Для `withoutTag` — те, кто его ЛОМАЕТ. */
+  heroIds: number[];
+  /** Сколько из них реально засчитано (cap уже применён). */
+  counted: number;
+  /** Порог условия, если он есть. */
+  min?: number;
+  /** Потолок «за каждого», если он есть. */
+  cap?: number;
+  met: boolean;
+  tag?: HeroTag;
+  attr?: HeroAttr;
+  /** Для `diversity`: сколько разных gameplay-тегов набралось. */
+  distinct?: number;
+}
+
+const NO_MATCH: EffectMatch = { kind: "none", heroIds: [], counted: 0, met: true };
+
+export function effectMatch(effect: ItemEffect, ctx: ItemContext): EffectMatch {
+  const withTag = (tag: HeroTag) => ctx.activeHeroes.filter((id) => hasTag(id, tag));
+  switch (effect.kind) {
+    case "flatPerTag":
+    case "additivePerTag": {
+      const heroIds = withTag(effect.tag);
+      const counted = effect.cap == null ? heroIds.length : Math.min(effect.cap, heroIds.length);
+      return { kind: "tag", heroIds, counted, cap: effect.cap, met: counted > 0, tag: effect.tag };
+    }
+    case "additivePerAttr": {
+      const heroIds = ctx.activeHeroes.filter((id) => heroTags(id)?.attr === effect.attr);
+      const counted = effect.cap == null ? heroIds.length : Math.min(effect.cap, heroIds.length);
+      return { kind: "attr", heroIds, counted, cap: effect.cap, met: counted > 0, attr: effect.attr };
+    }
+    case "xMultOnTag": {
+      const heroIds = withTag(effect.tag);
+      return {
+        kind: "tag", heroIds, counted: heroIds.length, min: effect.min,
+        met: heroIds.length >= effect.min, tag: effect.tag,
+      };
+    }
+    case "xMultWithoutTag": {
+      // Условие «без тега»: подсвечиваем нарушителей — именно они выключают карточку.
+      const heroIds = withTag(effect.tag);
+      return {
+        kind: "withoutTag", heroIds, counted: heroIds.length,
+        met: heroIds.length === 0, tag: effect.tag,
+      };
+    }
+    case "xMultOnDiversity": {
+      const distinct = distinctGameplayTags(ctx.activeHeroes);
+      return {
+        kind: "diversity", heroIds: [], counted: distinct, min: effect.min,
+        met: distinct >= effect.min, distinct,
+      };
+    }
+    default:
+      // Экономика, защита от босса, безусловный множитель и copy условия по героям не имеют.
+      return NO_MATCH;
+  }
 }
 
 /** Данные для генерации подписи карточки. UI собирает строку по шаблону, поэтому текст не может

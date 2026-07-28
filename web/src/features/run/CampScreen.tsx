@@ -10,7 +10,16 @@ import {
   upgradeCost,
 } from "../../game/heroRarity.ts";
 import { nextRarity, type Rarity } from "../../game/rarity.ts";
-import { evaluateItems, itemAt, itemDef, itemLabel, itemTier, type ItemDef } from "../../game/items.ts";
+import {
+  effectMatch,
+  evaluateItems,
+  itemAt,
+  itemDef,
+  itemLabel,
+  itemTier,
+  type EffectMatch,
+  type ItemDef,
+} from "../../game/items.ts";
 import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import type { Candidate } from "../../game/packs.ts";
@@ -143,6 +152,53 @@ function itemContribution(
   );
   if (!hasPowerCondition) return null;
   return { text: t("camp.conditionUnmet"), positive: false };
+}
+
+/** Подсветка условия предмета: КТО из активных героев его сейчас включает (R11.7).
+ *
+ *  Показываем не «все теги героя» (их у каждого несколько — это шум), а обратную проекцию:
+ *  по конкретной карточке — конкретные герои. Для условия «без тега» подсвечиваем нарушителей:
+ *  именно они выключают карточку, и это ровно то, что игроку надо увидеть. */
+function ItemMatch({ match, hero, t }: {
+  match: EffectMatch;
+  hero: (heroId: number) => { picture: string; name: string };
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string;
+}) {
+  if (match.kind === "none") return null;
+  if (match.kind === "diversity") {
+    return (
+      <span className={`camp-offer__delta camp-offer__delta--${match.met ? "up" : "down"}`}>
+        {t("item.match.diversity", { have: match.distinct ?? 0, min: match.min ?? 0 })}
+      </span>
+    );
+  }
+  const blockers = match.kind === "withoutTag";
+  const label = blockers ? t("item.match.blockers") : t(`item.match.${match.kind}` as MessageKey);
+  if (!match.heroIds.length) {
+    // У «без тега» пустой список — это успех (нарушителей нет), у остальных — отсутствие условия.
+    return blockers ? null : (
+      <span className="camp-item-match__empty">{t("item.match.none")}</span>
+    );
+  }
+  const capped = match.cap != null && match.heroIds.length > match.cap;
+  return (
+    <div className="camp-item-match" data-met={match.met} data-blockers={blockers}>
+      <span className="camp-item-match__label">{label}</span>
+      <span className="camp-item-match__heroes">
+        {match.heroIds.map((heroId) => (
+          <HeroThumb key={heroId} {...hero(heroId)} size="sm" showName={false} />
+        ))}
+      </span>
+      {capped && (
+        <span className="camp-item-match__note">
+          {t("item.match.capped", { counted: match.counted, total: match.heroIds.length })}
+        </span>
+      )}
+      {!match.met && match.min != null && !blockers && (
+        <span className="camp-item-match__note">{t("item.match.needMore", { min: match.min })}</span>
+      )}
+    </div>
+  );
 }
 
 function CampPlayerCard({
@@ -342,6 +398,22 @@ export function CampScreen() {
             <span key="p" className={`camp-offer__delta camp-offer__delta--${preview.positive ? "up" : "down"}`}>
               {preview.text}
             </span>,
+          ] : []),
+          // Кто из состава включает эту карточку прямо сейчас — иначе условие по тегу
+          // непроверяемо глазами (R11.7).
+          <ItemMatch
+            key="m"
+            match={effectMatch(scaled.effect, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {} })}
+            hero={hero}
+            t={t}
+          />,
+          ...(scaled.drawback ? [
+            <ItemMatch
+              key="md"
+              match={effectMatch(scaled.drawback, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {} })}
+              hero={hero}
+              t={t}
+            />,
           ] : []),
         ];
       }
@@ -665,6 +737,14 @@ export function CampScreen() {
                               {t(cost.template as MessageKey, itemLabelParams(cost.params, t))}
                             </p>
                           )}
+                          <ItemMatch
+                            match={effectMatch(scaled.effect, {
+                              activeHeroes: snapshot.heroes,
+                              cardRarity: camp.cardRarity,
+                            })}
+                            hero={hero}
+                            t={t}
+                          />
                           <div className="camp-offer__deltas">
                             {contributions.length === 0 && (
                               <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>

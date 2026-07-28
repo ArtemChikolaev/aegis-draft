@@ -3,6 +3,7 @@ import {
   ITEMS,
   ITEM_IDS,
   ITEM_RARITY,
+  effectMatch,
   evaluateItems,
   itemAt,
   itemDef,
@@ -277,6 +278,70 @@ describe("Качество карточки", () => {
     if (top.kind === "bossPenaltyFactor") {
       expect(top.factor).toBeLessThan(0.4);
       expect(top.factor).toBeGreaterThanOrEqual(ITEM_RARITY.bossFactorFloor);
+    }
+  });
+});
+
+// R11.7: карточка обязана показывать, КТО из активных героев её включает. Считается из тех же
+// countTag/countAttr, что и сам эффект, — подсветка не может разойтись с числом.
+describe("Подсветка подходящих героев", () => {
+  it("per-tag: подсвечивает всех с тегом и честно говорит про потолок", () => {
+    const def = itemDef("mantaStyle")!; // additivePerTag illusion, cap 3
+    const heroes = heroesWithTag("illusion", 4);
+    const match = effectMatch(def.effect, { activeHeroes: heroes, cardRarity: {} });
+    expect(match.kind).toBe("tag");
+    expect(match.tag).toBe("illusion");
+    expect(match.heroIds).toEqual(heroes);
+    // Сверх потолка герои всё равно подсвечены, но засчитано ровно `cap`.
+    expect(match.counted).toBe(3);
+    expect(match.cap).toBe(3);
+    expect(match.met).toBe(true);
+  });
+
+  it("подсвеченные герои совпадают с тем, за что реально платит эффект", () => {
+    const def = itemDef("pipeOfInsight")!; // additivePerTag teamfight
+    const heroes = heroesWithTag("teamfight", 3);
+    const match = effectMatch(def.effect, { activeHeroes: heroes, cardRarity: {} });
+    const evaluation = evaluateItems([def.id], { activeHeroes: heroes, cardRarity: {} });
+    const per = def.effect.kind === "additivePerTag" ? def.effect.per : 0;
+    expect(evaluation.additive).toBeCloseTo(match.counted * per, 5);
+  });
+
+  it("порог xMultOnTag: пока не набрано — условие не выполнено", () => {
+    const def = itemDef("vladmirsOffering")!; // xMultOnTag teamfight, min 3
+    const few = effectMatch(def.effect, { activeHeroes: heroesWithTag("teamfight", 2), cardRarity: {} });
+    const enough = effectMatch(def.effect, { activeHeroes: heroesWithTag("teamfight", 3), cardRarity: {} });
+    expect(few.min).toBe(3);
+    expect(few.met).toBe(false);
+    expect(enough.met).toBe(true);
+  });
+
+  it("«без тега»: подсвечиваются НАРУШИТЕЛИ, а пустой список = условие выполнено", () => {
+    const def = itemDef("bloodstone")!; // xMultWithoutTag scaling
+    const breakers = heroesWithTag("scaling", 2);
+    const broken = effectMatch(def.effect, { activeHeroes: breakers, cardRarity: {} });
+    expect(broken.kind).toBe("withoutTag");
+    expect(broken.heroIds).toEqual(breakers);
+    expect(broken.met).toBe(false);
+    const clean = effectMatch(def.effect, { activeHeroes: [], cardRarity: {} });
+    expect(clean.heroIds).toEqual([]);
+    expect(clean.met).toBe(true);
+  });
+
+  it("diversity считает разные gameplay-теги, а не героев", () => {
+    const def = itemDef("aghanimsShard")!; // xMultOnDiversity min 7
+    const match = effectMatch(def.effect, { activeHeroes: taggedHeroIds().slice(0, 5), cardRarity: {} });
+    expect(match.kind).toBe("diversity");
+    expect(match.heroIds).toEqual([]);
+    expect(match.distinct).toBeGreaterThan(0);
+    expect(match.min).toBe(7);
+  });
+
+  it("у карточек без условия по героям подсветки нет вовсе", () => {
+    for (const id of ["handOfMidas", "bottle", "magicWand", "blackKingBar", "linkensSphere", "refresherOrb"]) {
+      const match = effectMatch(itemDef(id)!.effect, { activeHeroes: taggedHeroIds().slice(0, 5), cardRarity: {} });
+      expect(match.kind, id).toBe("none");
+      expect(match.heroIds, id).toEqual([]);
     }
   });
 });
