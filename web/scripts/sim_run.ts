@@ -86,9 +86,14 @@ function bossPenalty(
   return protectedBossPenalty(raw, itemsOf(engine, economy));
 }
 
-/** Вклад экипированных предметов при текущем ростере. */
+/** Вклад экипированных предметов при текущем ростере. Тир карточек обязателен: без него симулятор
+ *  мерил бы более слабый билд, чем играет игрок, — ровно тот дефект трёх копий, который R10 уже
+ *  чинил для редкости героев и тактик. */
 function itemsOf(engine: RunEngine, economy: RunEconomy) {
-  return evaluateItems(economy.equippedTactics, { activeHeroes: engine.heroes });
+  return evaluateItems(economy.equippedTactics, {
+    activeHeroes: engine.heroes,
+    cardRarity: economy.cardRarity,
+  });
 }
 
 /** Итоговая сила состава на этапе — то, что уезжает в поле турнира. Через тот же слой, что игра

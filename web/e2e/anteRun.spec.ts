@@ -494,10 +494,21 @@ test("roguelite run: тир предмета в описании и во вкл�
   const rarity = await slot.getAttribute("data-card-rarity");
   test.skip(rarity === "common", "в этом Буткемпе выпал common — масштабировать нечего");
 
-  // Тир виден игроку и числа сходятся: первое число описания = первое число вклада.
-  await expect(slot.locator(".rarity-badge")).toBeVisible();
+  // Тир виден игроку и в награде, и в слоте — один и тот же. Сверяем по классу-модификатору, а не
+  // по тексту: бейдж рендерится через `text-transform`, и `innerText` («UNIQUE») не равен тексту
+  // DOM («Unique»).
+  await expect(slot.locator(`.rarity-badge--${rarity}`)).toBeVisible();
+  await expect(page.locator(`.camp-offer--reward .rarity-badge--${rarity}`)).toBeVisible();
   const firstNumber = (text: string) => text.match(/-?\d+(\.\d+)?/)?.[0];
   const desc = await slot.locator(".camp-slot__desc").first().innerText();
   const chip = await slot.locator(".camp-offer__delta").first().innerText();
-  expect(firstNumber(chip)).toBe(firstNumber(desc));
+
+  // Числа описания и вклада сходятся — но проверять это можно ТОЛЬКО когда условие карточки
+  // сработало: у «+7.5% за героя с тегом» на ростере без таких героев вклад законно равен нулю.
+  // На mock-датасете CI так и происходит, поэтому безусловное сравнение было бы ложным падением.
+  // Сам класс ошибки «вклад посчитан без тира» ловится компилятором: `ItemContext.cardRarity`
+  // обязателен, и забыть его в src нельзя.
+  if (Number(firstNumber(chip) ?? 0) !== 0) {
+    expect(firstNumber(chip)).toBe(firstNumber(desc));
+  }
 });

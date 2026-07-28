@@ -66,7 +66,7 @@ describe("Каталог предметов", () => {
 
 describe("Вклад предметов", () => {
   it("пустой набор ничего не даёт", () => {
-    const evaluation = evaluateItems([], { activeHeroes: [] });
+    const evaluation = evaluateItems([], { activeHeroes: [], cardRarity: {} });
     expect(evaluation.flat).toBe(0);
     expect(evaluation.additive).toBe(0);
     expect(evaluation.xMults).toEqual([]);
@@ -77,15 +77,15 @@ describe("Вклад предметов", () => {
     const item = itemDef("necronomicon")!;
     const per = "per" in item.effect ? item.effect.per : 0;
     const cap = "cap" in item.effect ? item.effect.cap ?? 0 : 0;
-    const few = evaluateItems(["necronomicon"], { activeHeroes: heroesWithTag("summon", 2) });
-    const many = evaluateItems(["necronomicon"], { activeHeroes: heroesWithTag("summon", cap + 3) });
+    const few = evaluateItems(["necronomicon"], { activeHeroes: heroesWithTag("summon", 2), cardRarity: {} });
+    const many = evaluateItems(["necronomicon"], { activeHeroes: heroesWithTag("summon", cap + 3), cardRarity: {} });
     expect(few.flat).toBeCloseTo(2 * per, 6);
     expect(many.flat).toBeCloseTo(cap * per, 6);
   });
 
   it("невыполненное условие показывается, а не молча исчезает", () => {
     // Иначе игрок видит ноль и не понимает, почему карточка не работает.
-    const evaluation = evaluateItems(["aghanimsScepter"], { activeHeroes: [] });
+    const evaluation = evaluateItems(["aghanimsScepter"], { activeHeroes: [], cardRarity: {} });
     expect(evaluation.xMults).toEqual([]);
     expect(evaluation.sources).toHaveLength(1);
     expect(evaluation.sources[0]).toMatchObject({ itemId: "aghanimsScepter", met: false });
@@ -94,8 +94,8 @@ describe("Вклад предметов", () => {
   it("copy повторяет лучший ЧУЖОЙ множитель и не зависит от порядка карточек", () => {
     const withCopy = ["divineRapier", "refresherOrb"];
     const reversed = ["refresherOrb", "divineRapier"];
-    const a = evaluateItems(withCopy, { activeHeroes: [] });
-    const b = evaluateItems(reversed, { activeHeroes: [] });
+    const a = evaluateItems(withCopy, { activeHeroes: [], cardRarity: {} });
+    const b = evaluateItems(reversed, { activeHeroes: [], cardRarity: {} });
     expect([...a.xMults].sort()).toEqual([...b.xMults].sort());
     // 1.35 → копия 1 + 0.35 × 0.7 = 1.245
     expect(a.xMults).toContain(1.35);
@@ -103,19 +103,19 @@ describe("Вклад предметов", () => {
   });
 
   it("copy без чужих множителей не выдумывает эффект", () => {
-    const evaluation = evaluateItems(["refresherOrb"], { activeHeroes: [] });
+    const evaluation = evaluateItems(["refresherOrb"], { activeHeroes: [], cardRarity: {} });
     expect(evaluation.xMults).toEqual([]);
   });
 
   it("trade-off применяется вместе с эффектом, а не вместо него", () => {
-    const evaluation = evaluateItems(["divineRapier"], { activeHeroes: [] });
+    const evaluation = evaluateItems(["divineRapier"], { activeHeroes: [], cardRarity: {} });
     expect(evaluation.xMults).toContain(1.35);
     expect(evaluation.goldPerCamp).toBeLessThan(0);
   });
 
   it("предметы не умножают Team OVR напрямую — они живут в слоях", () => {
     // Инвариант R8.2: сам счёт состава остаётся читаемым.
-    const evaluation = evaluateItems(["divineRapier"], { activeHeroes: [] });
+    const evaluation = evaluateItems(["divineRapier"], { activeHeroes: [], cardRarity: {} });
     const layers = powerLayers(100, {
       flat: evaluation.flat, additive: evaluation.additive, xMults: evaluation.xMults,
     });
@@ -126,19 +126,19 @@ describe("Вклад предметов", () => {
 
 describe("Защита от босса", () => {
   it("смягчает штраф, но не отменяет правило", () => {
-    const bkb = evaluateItems(["blackKingBar"], { activeHeroes: [] });
+    const bkb = evaluateItems(["blackKingBar"], { activeHeroes: [], cardRarity: {} });
     const protectedPenalty = protectedBossPenalty(6, bkb);
     expect(protectedPenalty).toBeGreaterThan(0);
     expect(protectedPenalty).toBeLessThan(6);
   });
 
   it("потолок ограничивает даже большой штраф", () => {
-    const linkens = evaluateItems(["linkensSphere"], { activeHeroes: [] });
+    const linkens = evaluateItems(["linkensSphere"], { activeHeroes: [], cardRarity: {} });
     expect(protectedBossPenalty(99, linkens)).toBe(2);
   });
 
   it("нулевой штраф остаётся нулевым", () => {
-    expect(protectedBossPenalty(0, evaluateItems(["blackKingBar"], { activeHeroes: [] }))).toBe(0);
+    expect(protectedBossPenalty(0, evaluateItems(["blackKingBar"], { activeHeroes: [], cardRarity: {} }))).toBe(0);
   });
 });
 
@@ -147,11 +147,11 @@ describe("Предметы и слоты", () => {
     // PRD §5.10.1 запрещает заводить рядом с Tactics второе хранилище.
     expect(TACTIC_SLOTS).toBe(3);
     const equipped = ITEM_IDS.slice(0, TACTIC_SLOTS);
-    expect(evaluateItems(equipped, { activeHeroes: [] }).sources.length).toBeGreaterThan(0);
+    expect(evaluateItems(equipped, { activeHeroes: [], cardRarity: {} }).sources.length).toBeGreaterThan(0);
   });
 
   it("неизвестный id молча игнорируется (сейв старого набора не роняет забег)", () => {
-    const evaluation = evaluateItems(["nope", "handOfMidas"], { activeHeroes: [] });
+    const evaluation = evaluateItems(["nope", "handOfMidas"], { activeHeroes: [], cardRarity: {} });
     expect(evaluation.goldPerCamp).toBeGreaterThan(0);
     expect(evaluation.sources.every((source) => source.itemId !== "nope")).toBe(true);
   });
@@ -161,7 +161,7 @@ describe("Предметы и слоты", () => {
 // что слои `boss`/`economy` падали в общий fallback силового слоя. Контракт «вид эффекта → слой»
 // закреплён здесь: подпись в UI строится по нему, поэтому разъехаться они больше не могут.
 describe("Слой вклада соответствует виду эффекта", () => {
-  const layerOf = (id: string) => evaluateItems([id], { activeHeroes: [] }).sources[0]?.layer;
+  const layerOf = (id: string) => evaluateItems([id], { activeHeroes: [], cardRarity: {} }).sources[0]?.layer;
 
   it("экономические предметы не выдают себя за силу", () => {
     expect(layerOf("handOfMidas")).toBe("economy");
@@ -173,7 +173,7 @@ describe("Слой вклада соответствует виду эффект
     expect(layerOf("blackKingBar")).toBe("boss");
     expect(layerOf("linkensSphere")).toBe("boss");
     // И значение — потолок штрафа, а не сила: путать их нельзя.
-    const evaluation = evaluateItems(["linkensSphere"], { activeHeroes: [] });
+    const evaluation = evaluateItems(["linkensSphere"], { activeHeroes: [], cardRarity: {} });
     expect(evaluation.flat).toBe(0);
     expect(evaluation.bossPenaltyCap).toBe(2);
   });
@@ -186,7 +186,7 @@ describe("Слой вклада соответствует виду эффект
 
   it("каждый вид эффекта каталога имеет определённый слой", () => {
     for (const item of ITEMS) {
-      const sources = evaluateItems([item.id], { activeHeroes: [] }).sources;
+      const sources = evaluateItems([item.id], { activeHeroes: [], cardRarity: {} }).sources;
       expect(sources.length, `${item.id}: вклад не попал ни в один слой`).toBeGreaterThan(0);
       for (const source of sources) {
         expect(["flat", "additive", "xMult", "economy", "boss"]).toContain(source.layer);
@@ -245,13 +245,29 @@ describe("Качество карточки", () => {
 
   it("evaluateItems читает тир из контекста, отсутствие записи = common", () => {
     const heroes = heroesWithTag("teamfight", 5);
-    const plain = evaluateItems(["radiance"], { activeHeroes: heroes });
+    const plain = evaluateItems(["radiance"], { activeHeroes: heroes, cardRarity: {} });
     const noRecord = evaluateItems(["radiance"], { activeHeroes: heroes, cardRarity: {} });
     const mythic = evaluateItems(["radiance"], { activeHeroes: heroes, cardRarity: { radiance: "mythic" } });
     expect(noRecord.additive).toBe(plain.additive);
     expect(mythic.additive).toBeGreaterThan(plain.additive);
     // Цена (goldPerCamp у radiance) осталась прежней.
     expect(mythic.goldPerCamp).toBe(plain.goldPerCamp);
+  });
+
+  // Тот же дефект, что поймал ручной проход: описание карточки было масштабировано тиром, а
+  // вклад — нет. Здесь связка проверяется в чистом слое и детерминированно (в e2e она зависит от
+  // того, есть ли на ростере герой с нужным тегом).
+  it("число в описании и число во вкладе — одно и то же на любом тире", () => {
+    const heroes = heroesWithTag("teamfight", 2);
+    for (const rarity of RARITIES) {
+      const scaled = itemAt(itemDef("radiance")!, rarity);
+      const label = itemLabel(scaled.effect);
+      const evaluation = evaluateItems(["radiance"], {
+        activeHeroes: heroes,
+        cardRarity: { radiance: rarity },
+      });
+      expect(evaluation.additive).toBeCloseTo(Number(label.params.per) * heroes.length, 5);
+    }
   });
 
   it("босс: высокий тир срезает больше штрафа, но иммунитет не выдаёт", () => {
