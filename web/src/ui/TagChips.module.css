@@ -27,3 +27,14 @@
   border-color: color-mix(in srgb, var(--muted) 35%, var(--line));
   color: var(--text);
 }
+
+/* Кликабельный чип — точка входа «показать всех с этим тегом». Кнопка, а не span: нужна
+   клавиатура и фокус, поэтому гасим только браузерные умолчания, а не доступность. */
+.clickable {
+  font: inherit;
+  cursor: pointer;
+}
+.clickable:hover {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  color: var(--accent);
+}

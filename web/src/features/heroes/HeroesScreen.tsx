@@ -5,7 +5,7 @@ import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import type { PlayerProfile } from "../../types/data.ts";
 import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface, TagChips, TextField } from "../../ui/index.ts";
-import { heroTags } from "../../game/heroTags.ts";
+import { GAMEPLAY_TAGS, HERO_ATTRS, LORE_TAGS, heroTags } from "../../game/heroTags.ts";
 import type { MessageKey } from "../../i18n/core.ts";
 import { heroPopularity, sortHeroes, type HeroSort } from "./heroPopularity.ts";
 import "./heroes.css";
@@ -16,6 +16,8 @@ export function HeroesScreen() {
   const { t } = useI18n();
   const [sort, setSort] = useState<HeroSort>("games");
   const [query, setQuery] = useState("");
+  // Фильтр по тегу (R11.7): «покажи всех illusion». Пустая строка — фильтра нет.
+  const [tag, setTag] = useState("");
   const [player, setPlayer] = useState<PlayerProfile | null>(null);
   const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase), useRun((state) => state.resumable));
   // Забег в хардкоре мог начаться, пока страница открыта, — выбранного игрока сбрасываем.
@@ -42,9 +44,10 @@ export function HeroesScreen() {
   }, [data, shownPlayer]);
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const filtered = needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
-    return sortHeroes(filtered, sort);
-  }, [rows, sort, query]);
+    const byName = needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
+    const byTag = tag ? byName.filter((row) => heroHasTag(row.id, tag)) : byName;
+    return sortHeroes(byTag, sort);
+  }, [rows, sort, query, tag]);
 
   // Шкала бара — от лидера ТЕКУЩЕЙ сортировки, иначе при сортировке по винрейту
   // все бары схлопываются в одинаковые (винрейты жмутся к 50%).
@@ -83,6 +86,15 @@ export function HeroesScreen() {
           noResultsLabel={t("heroes.playerNotFound")}
           accountLabel={t("heroes.playerAccountId")}
         />
+        <div className="heroes__tag">
+          <Select
+            label={t("heroes.tagFilter")}
+            value={tag}
+            options={tagOptions(t)}
+            data-testid="heroes-tag-filter"
+            onChange={setTag}
+          />
+        </div>
         <div className="heroes__sort">
           <Select
             label={t("heroes.sort")}
@@ -107,7 +119,12 @@ export function HeroesScreen() {
               <li key={row.id}>
                 <span className="heroes__rank">{index + 1}</span>
                 <HeroThumb picture={row.picture} name={row.name} />
-                <TagChips chips={heroChips(row.id, t)} testId={`hero-tags-${row.id}`} />
+                <TagChips
+                  chips={heroChips(row.id, t)}
+                  testId={`hero-tags-${row.id}`}
+                  onSelect={setTag}
+                  selectLabel={() => t("heroTag.showAll")}
+                />
                 <span className="heroes__bar" aria-hidden="true">
                   <span style={{ width: `${peak > 0 ? (barValue(row, sort) / peak) * 100 : 0}%` }} />
                 </span>
@@ -141,6 +158,32 @@ function heroChips(
       key: tag,
       label: t(`heroTag.${tag}` as MessageKey),
     })),
+  ];
+}
+
+/** Есть ли у героя тег ИЛИ атрибут — для игрока это один вопрос, разница только в слое данных. */
+function heroHasTag(heroId: number, tag: string): boolean {
+  const tags = heroTags(heroId);
+  if (!tags) return false;
+  if (tags.attr === tag) return true;
+  return (tags.lore as readonly string[]).includes(tag)
+    || (tags.play as readonly string[]).includes(tag);
+}
+
+/** Опции фильтра: атрибуты, затем lore, затем gameplay — тремя группами, как устроены сами теги.
+ *  Группы подписаны префиксом, а не `optgroup`: `Select` — общий примитив с плоским контрактом,
+ *  и раздувать его ради одного экрана нельзя (frontend-architecture: переиспользуем, не форкаем). */
+function tagOptions(t: (key: MessageKey, vars?: Record<string, string | number>) => string) {
+  const group = (key: MessageKey, values: readonly string[], prefix: "heroAttr" | "heroTag") =>
+    values.map((value) => ({
+      value,
+      label: `${t(key)} · ${t(`${prefix}.${value}` as MessageKey)}`,
+    }));
+  return [
+    { value: "", label: t("heroes.tagAll") },
+    ...group("heroes.tagGroupAttr", HERO_ATTRS, "heroAttr"),
+    ...group("heroes.tagGroupLore", LORE_TAGS, "heroTag"),
+    ...group("heroes.tagGroupPlay", GAMEPLAY_TAGS, "heroTag"),
   ];
 }
 

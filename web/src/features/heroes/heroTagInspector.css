@@ -1,0 +1,40 @@
+/* Список героев с выбранным тегом. Сетка, а не колонка: тег носят 8–68 героев, и вертикальный
+   список на 68 строк невозможно окинуть взглядом — а вопрос у игрока именно обзорный. */
+.hero-tag-inspector {
+  display: grid;
+  gap: 14px;
+}
+.hero-tag-inspector__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hero-tag-inspector__grid li {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+/* Свои герои — первыми и с рамкой: список обязан сперва отвечать «а у меня есть?». */
+.hero-tag-inspector__grid li[data-mine="true"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.hero-tag-inspector__mine {
+  margin-left: auto;
+  color: var(--accent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 430px) {
+  .hero-tag-inspector__grid { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); }
+}

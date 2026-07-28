@@ -13,21 +13,46 @@ export interface TagChip {
 
 /** Чипы тегов героя (R11.7). Презентационный примитив: решение «какие теги показывать» принимает
  *  вызывающий, потому что оно зависит от экрана — в справочнике уместен весь набор, а на узкой
- *  карточке Буткемпа только то, что сейчас во что-то играет. */
-export function TagChips({ chips, testId }: { chips: readonly TagChip[]; testId?: string }) {
+ *  карточке Буткемпа только то, что сейчас во что-то играет.
+ *
+ *  `onSelect` делает чип кнопкой. Именно кнопкой, а не span с onClick: чип становится точкой
+ *  входа («покажи всех illusion»), а такая точка обязана быть доступна с клавиатуры и объявляться
+ *  скринридером. */
+export function TagChips({ chips, testId, onSelect, selectLabel }: {
+  chips: readonly TagChip[];
+  testId?: string;
+  onSelect?: (key: string) => void;
+  /** Подсказка для кликабельного чипа, например «Показать всех с этим тегом». */
+  selectLabel?: (chip: TagChip) => string;
+}) {
   if (!chips.length) return null;
   return (
     <span className={styles.chips} data-testid={testId}>
-      {chips.map((chip) => (
-        <span
-          key={chip.key}
-          className={`${styles.chip}${chip.active ? ` ${styles.active}` : ""}${chip.attr ? ` ${styles.attr}` : ""}`}
-          data-tag={chip.key}
-          data-active={chip.active ? "true" : undefined}
-        >
-          {chip.label}
-        </span>
-      ))}
+      {chips.map((chip) => {
+        const className = `${styles.chip}${chip.active ? ` ${styles.active}` : ""}`
+          + `${chip.attr ? ` ${styles.attr}` : ""}${onSelect ? ` ${styles.clickable}` : ""}`;
+        if (!onSelect) {
+          return (
+            <span key={chip.key} className={className} data-tag={chip.key} data-active={chip.active ? "true" : undefined}>
+              {chip.label}
+            </span>
+          );
+        }
+        return (
+          <button
+            key={chip.key}
+            type="button"
+            className={className}
+            data-tag={chip.key}
+            data-active={chip.active ? "true" : undefined}
+            title={selectLabel?.(chip)}
+            aria-label={selectLabel?.(chip)}
+            onClick={() => onSelect(chip.key)}
+          >
+            {chip.label}
+          </button>
+        );
+      })}
     </span>
   );
 }

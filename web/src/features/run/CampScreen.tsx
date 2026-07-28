@@ -56,6 +56,7 @@ import {
 } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { PlayerInspector } from "../draft/PlayerInspector.tsx";
+import { HeroTagInspector } from "../heroes/HeroTagInspector.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { useHero } from "../draft/heroes.ts";
 import "./camp.css";
@@ -280,6 +281,9 @@ export function CampScreen() {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [heroTargets, setHeroTargets] = useState<Record<number, number>>({});
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
+  // Вопрос «а кто вообще бывает illusion?» возникает посреди выбора в Буткемпе, поэтому отвечаем
+  // модалкой, не уводя игрока с экрана с незакрытым выбором (тот же приём, что у карточки игрока).
+  const [inspectedTag, setInspectedTag] = useState<string | null>(null);
   const candidates = useMemo(() => (data?.packs ?? []).flatMap(candidatesOf), [data]);
   const eventNames = useMemo(
     () => new Map((data?.events ?? []).map((event) => [event.id, event.short ?? event.name])),
@@ -989,6 +993,8 @@ export function CampScreen() {
                       <TagChips
                         chips={buildTagChips(offer.heroSwap.incomingHeroId)}
                         testId={`hero-offer-tags-${offer.heroSwap.incomingHeroId}`}
+                        onSelect={setInspectedTag}
+                        selectLabel={() => t("heroTag.showAll")}
                       />
                     )}
                     {(incomingRarity !== "common" || outgoingRarity !== "common") && (
@@ -1056,7 +1062,12 @@ export function CampScreen() {
                       >
                         <div className="camp-rarity-card__hero">
                           <HeroThumb {...thumb} size="md" />
-                          <TagChips chips={buildTagChips(heroId)} testId={`hero-build-tags-${heroId}`} />
+                          <TagChips
+                            chips={buildTagChips(heroId)}
+                            testId={`hero-build-tags-${heroId}`}
+                            onSelect={setInspectedTag}
+                            selectLabel={() => t("heroTag.showAll")}
+                          />
                           <RarityBadge rarity={current} label={t(`rarity.${current}` as MessageKey)} />
                         </div>
                         {up ? (
@@ -1236,6 +1247,14 @@ export function CampScreen() {
           candidate={inspectedPlayer}
           data={data}
           onClose={() => setInspectedPlayer(null)}
+        />
+      )}
+      {inspectedTag && (
+        <HeroTagInspector
+          tag={inspectedTag}
+          data={data}
+          activeHeroes={snapshot.heroes}
+          onClose={() => setInspectedTag(null)}
         />
       )}
     </main>
