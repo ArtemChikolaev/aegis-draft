@@ -14,7 +14,7 @@ import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers 
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
-import { runModifiers, runModifierTotal } from "../game/runStrength.ts";
+import { runModifiers, stageStrength as runStageStrength } from "../game/runStrength.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, careerEntriesForMode, useCareer } from "./careerStore.ts";
@@ -329,10 +329,6 @@ export const useRun = create<RunStore>((set, get) => {
       activeHeroes: engine?.heroes ?? [],
     });
   };
-  const totalModifier = (tactics: TacticEvaluation | null): number => {
-    const m = effectiveModifiers(tactics);
-    return m.base + m.heroSynergy + m.chemistry;
-  };
   // Boss condition этапа `stageIndex` против текущего ростера с уже применёнными modifiers.
   // Штраф вычитается из силы поля; null — этап без правила. Пересчитывается на swap, как tactics.
   const evaluateRunBoss = (stageIndex: number, tactics: TacticEvaluation | null): BossEvaluation | null => {
@@ -352,8 +348,16 @@ export const useRun = create<RunStore>((set, get) => {
     });
   };
   // Итоговая сила поля этапа: сила состава + модификаторы − штраф босса (не ниже нуля вклада).
+  // Через общий слой (game/runStrength.ts): он же проводит счёт через слои Tournament Power,
+  // которые сегодня пусты, а в R8.3 наполнятся предметами.
   const stageStrength = (baseTeamOvr: number, tactics: TacticEvaluation | null, boss: BossEvaluation | null): number => {
-    return baseTeamOvr + totalModifier(tactics) - (boss?.penalty ?? 0);
+    const { economy, engine } = get();
+    return runStageStrength(baseTeamOvr, {
+      economy: economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 },
+      tactics: tactics?.modifiers ?? null,
+      heroRarity: economy?.heroRarity ?? {},
+      activeHeroes: engine?.heroes ?? [],
+    }, { bossPenalty: boss?.penalty });
   };
   // Обновить снимки экономики/Буткемпа для рендера и сохранить (во время camp резалтов нет).
   const syncCamp = () => {
@@ -742,7 +746,7 @@ export const useRun = create<RunStore>((set, get) => {
               })
               : null;
             anteRun.rebuildCurrentStage(
-              score.teamOvr + runModifierTotal(strengthInput) - (boss?.penalty ?? 0),
+              runStageStrength(score.teamOvr, strengthInput, { bossPenalty: boss?.penalty }),
             );
             inCamp = economy.snapshot.inCamp;
             ante = anteRun.state;

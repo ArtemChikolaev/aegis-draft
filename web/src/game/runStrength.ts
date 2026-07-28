@@ -9,6 +9,7 @@
 // Поэтому сумма собирается здесь, а `runStore` и `scripts/sim_run.ts` обязаны звать эту функцию.
 import { addModifiers, type SummandModifiers } from "./anteEconomy.ts";
 import { rarityModifiers, type Rarity } from "./heroRarity.ts";
+import { powerLayers, tournamentPower, type PowerLayers } from "./tournamentPower.ts";
 
 export interface RunStrengthInput {
   /** Модификаторы покупок и временных Camp Actions (`economy.modifiers()`). */
@@ -32,4 +33,22 @@ export function runModifiers(input: RunStrengthInput): SummandModifiers {
 export function runModifierTotal(input: RunStrengthInput): number {
   const m = runModifiers(input);
   return m.base + m.heroSynergy + m.chemistry;
+}
+
+/**
+ * Сила, с которой состав выходит на этап: объективный счёт + модификаторы слагаемых, проведённые
+ * через слои Tournament Power (R8.2), минус штраф босса.
+ *
+ * ШОВ ДЛЯ R8.3. Сегодня `power` пустой, поэтому итог равен прежней сумме до последнего знака —
+ * правка инертна по построению. Место подключения введено заранее осознанно: когда появятся
+ * предметы, им нужно будет только наполнить слои, а не переделывать композицию силы в трёх местах
+ * и заодно шкалу ELO (на этой грабле уже стоял симулятор).
+ */
+export function stageStrength(
+  teamOvr: number,
+  input: RunStrengthInput,
+  opts: { bossPenalty?: number; power?: Partial<Omit<PowerLayers, "teamOvr">> } = {},
+): number {
+  const rosterScore = teamOvr + runModifierTotal(input);
+  return tournamentPower(powerLayers(rosterScore, opts.power)) - (opts.bossPenalty ?? 0);
 }

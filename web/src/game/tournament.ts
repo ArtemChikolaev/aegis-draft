@@ -1,5 +1,6 @@
 import type { Format, GameData } from "../types/data.ts";
 import { Rng } from "./rng.ts";
+import { eloDivisorForScale } from "./tournamentPower.ts";
 
 export type TournamentStage = "field" | "groups" | "playoffs" | "final" | "complete";
 export type PlacementKey = "1" | "2" | "3" | "4" | "5-6" | "7-8" | "9-12" | "13-16" | "17" | "18";
@@ -250,13 +251,14 @@ function projectionForRank(rank: number): ProjectionKey {
  *  из R8.2 (`rosterPower × teamMult × xMult`, пример в брифе даёт 178) — одинаковое
  *  ОТНОСИТЕЛЬНОЕ преимущество начнёт давать разную вероятность, и при разрывах в 40+ очков каждый
  *  матч станет детерминированным: турнир перестанет быть турниром. Тогда делитель обязан
- *  масштабироваться вместе со шкалой (или сравнение — перейти на отношение). Менять его здесь
- *  заранее нельзя: это сдвинуло бы Quick Draft и golden. */
+ *  масштабироваться вместе со шкалой. Это и сделано в R8.2: `eloDivisorForScale` растит делитель
+ *  пропорционально шкале ЭТАПА, поэтому Quick Draft (scale === QUICK_DRAFT_FIELD.mean) получает
+ *  ровно 22 и golden не двигается, а инфляция силы больше не превращает матч в сравнение чисел. */
 const ELO_DIVISOR = 22;
 
-/** Вероятность победы a над b — ELO по основанию 10. */
-function winProbability(a: TournamentTeam, b: TournamentTeam): number {
-  return 1 / (1 + Math.pow(10, -(a.strength - b.strength) / ELO_DIVISOR));
+/** Вероятность победы a над b — ELO по основанию 10 с делителем, масштабированным под шкалу этапа. */
+function winProbability(a: TournamentTeam, b: TournamentTeam, divisor: number): number {
+  return 1 / (1 + Math.pow(10, -(a.strength - b.strength) / divisor));
 }
 
 function playSeries(
@@ -266,13 +268,14 @@ function playSeries(
   teamA: TournamentTeam,
   teamB: TournamentTeam,
   bestOf: 3 | 5,
+  divisor: number,
 ): SeriesResult {
   const needed = Math.floor(bestOf / 2) + 1;
   let scoreA = 0;
   let scoreB = 0;
   const frames: { scoreA: number; scoreB: number }[] = [{ scoreA: 0, scoreB: 0 }];
   while (scoreA < needed && scoreB < needed) {
-    if (rng.float() < winProbability(teamA, teamB)) scoreA += 1;
+    if (rng.float() < winProbability(teamA, teamB, divisor)) scoreA += 1;
     else scoreB += 1;
     frames.push({ scoreA, scoreB });
   }
@@ -288,7 +291,7 @@ function loser(series: SeriesResult): TournamentTeam {
   return series.loserId === series.teamA.id ? series.teamA : series.teamB;
 }
 
-function buildGroup(rng: Rng, id: "A" | "B", teams: TournamentTeam[]): { group: TournamentGroup; matches: GroupMatch[] } {
+function buildGroup(rng: Rng, id: "A" | "B", teams: TournamentTeam[], divisor: number): { group: TournamentGroup; matches: GroupMatch[] } {
   const records = new Map(teams.map((team) => [team.id, { team, wins: 0, losses: 0 }]));
   const matches: GroupMatch[] = [];
   for (let i = 0; i < teams.length; i += 1) {
@@ -297,7 +300,7 @@ function buildGroup(rng: Rng, id: "A" | "B", teams: TournamentTeam[]): { group: 
       let scoreB = 0;
       const frames: { scoreA: number; scoreB: number }[] = [{ scoreA: 0, scoreB: 0 }];
       for (let map = 0; map < 2; map += 1) {
-        if (rng.float() < winProbability(teams[i], teams[j])) scoreA += 1;
+        if (rng.float() < winProbability(teams[i], teams[j], divisor)) scoreA += 1;
         else scoreB += 1;
         frames.push({ scoreA, scoreB });
       }
@@ -322,8 +325,8 @@ function buildGroup(rng: Rng, id: "A" | "B", teams: TournamentTeam[]): { group: 
   };
 }
 
-function round(rng: Rng, id: string, label: string, pairs: [TournamentTeam, TournamentTeam][]): PlayoffRound {
-  return { id, label, series: pairs.map(([a, b], index) => playSeries(rng, `${id}-${index + 1}`, label, a, b, 3)) };
+function round(rng: Rng, id: string, label: string, pairs: [TournamentTeam, TournamentTeam][], divisor: number): PlayoffRound {
+  return { id, label, series: pairs.map(([a, b], index) => playSeries(rng, `${id}-${index + 1}`, label, a, b, 3, divisor)) };
 }
 
 function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldModel: FieldModel = QUICK_DRAFT_FIELD): TournamentResult {
@@ -341,23 +344,26 @@ function buildResult(data: GameData, format: Format, seed: string, userStrength:
     .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
   const projection = projectionForRank(field.findIndex((team) => team.isUser) + 1);
   const [drawA, drawB] = snakeSeed(field);
-  const groupA = buildGroup(simRng, "A", drawA);
-  const groupB = buildGroup(simRng, "B", drawB);
+  // Шкалу состязания задаёт ПОЛЕ этапа: Quick Draft получает ровно 22 (golden байт-в-байт), а
+  // инфляция силы на поздних этапах перестаёт делать каждый матч детерминированным (R8.2).
+  const divisor = eloDivisorForScale(ELO_DIVISOR, fieldModel.mean + (fieldModel.threat ?? 0));
+  const groupA = buildGroup(simRng, "A", drawA, divisor);
+  const groupB = buildGroup(simRng, "B", drawB, divisor);
   const groups = [groupA.group, groupB.group];
   const groupMatches = [...groupA.matches, ...groupB.matches];
   const a = groups[0].standings;
   const b = groups[1].standings;
 
-  const ubQf = round(simRng, "ub-qf", "Upper Bracket R1", [[a[0].team, b[3].team], [b[1].team, a[2].team], [b[0].team, a[3].team], [a[1].team, b[2].team]]);
-  const lbR1 = round(simRng, "lb-r1", "Lower Bracket R1", [[a[4].team, b[7].team], [b[5].team, a[6].team], [b[4].team, a[7].team], [a[5].team, b[6].team]]);
-  const lbR2 = round(simRng, "lb-r2", "Lower Bracket R2", lbR1.series.map((series, index) => [winner(series), loser(ubQf.series[index])]));
-  const ubSf = round(simRng, "ub-sf", "Upper Bracket Semifinal", [[winner(ubQf.series[0]), winner(ubQf.series[1])], [winner(ubQf.series[2]), winner(ubQf.series[3])]]);
-  const lbR3 = round(simRng, "lb-r3", "Lower Bracket R3", [[winner(lbR2.series[0]), winner(lbR2.series[1])], [winner(lbR2.series[2]), winner(lbR2.series[3])]]);
-  const lbR4 = round(simRng, "lb-r4", "Lower Bracket R4", [[winner(lbR3.series[0]), loser(ubSf.series[0])], [winner(lbR3.series[1]), loser(ubSf.series[1])]]);
-  const ubFinal = round(simRng, "ub-final", "Upper Bracket Final", [[winner(ubSf.series[0]), winner(ubSf.series[1])]]);
-  const lbR5 = round(simRng, "lb-r5", "Lower Bracket R5", [[winner(lbR4.series[0]), winner(lbR4.series[1])]]);
-  const lbFinal = round(simRng, "lb-final", "Lower Bracket Final", [[winner(lbR5.series[0]), loser(ubFinal.series[0])]]);
-  const grandFinal = playSeries(simRng, "grand-final", "Grand Final", winner(ubFinal.series[0]), winner(lbFinal.series[0]), 5);
+  const ubQf = round(simRng, "ub-qf", "Upper Bracket R1", [[a[0].team, b[3].team], [b[1].team, a[2].team], [b[0].team, a[3].team], [a[1].team, b[2].team]], divisor);
+  const lbR1 = round(simRng, "lb-r1", "Lower Bracket R1", [[a[4].team, b[7].team], [b[5].team, a[6].team], [b[4].team, a[7].team], [a[5].team, b[6].team]], divisor);
+  const lbR2 = round(simRng, "lb-r2", "Lower Bracket R2", lbR1.series.map((series, index) => [winner(series), loser(ubQf.series[index])]), divisor);
+  const ubSf = round(simRng, "ub-sf", "Upper Bracket Semifinal", [[winner(ubQf.series[0]), winner(ubQf.series[1])], [winner(ubQf.series[2]), winner(ubQf.series[3])]], divisor);
+  const lbR3 = round(simRng, "lb-r3", "Lower Bracket R3", [[winner(lbR2.series[0]), winner(lbR2.series[1])], [winner(lbR2.series[2]), winner(lbR2.series[3])]], divisor);
+  const lbR4 = round(simRng, "lb-r4", "Lower Bracket R4", [[winner(lbR3.series[0]), loser(ubSf.series[0])], [winner(lbR3.series[1]), loser(ubSf.series[1])]], divisor);
+  const ubFinal = round(simRng, "ub-final", "Upper Bracket Final", [[winner(ubSf.series[0]), winner(ubSf.series[1])]], divisor);
+  const lbR5 = round(simRng, "lb-r5", "Lower Bracket R5", [[winner(lbR4.series[0]), winner(lbR4.series[1])]], divisor);
+  const lbFinal = round(simRng, "lb-final", "Lower Bracket Final", [[winner(lbR5.series[0]), loser(ubFinal.series[0])]], divisor);
+  const grandFinal = playSeries(simRng, "grand-final", "Grand Final", winner(ubFinal.series[0]), winner(lbFinal.series[0]), 5, divisor);
   const playoffRounds = [ubQf, lbR1, lbR2, ubSf, lbR3, lbR4, ubFinal, lbR5, lbFinal];
 
   const groupOuts = [a[8], b[8]]

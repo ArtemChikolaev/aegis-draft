@@ -25,7 +25,7 @@ import {
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../src/game/tactics.ts";
 import { rarityModifiers, upgradeCost, type Rarity } from "../src/game/heroRarity.ts";
-import { runModifiers } from "../src/game/runStrength.ts";
+import { runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
 import { BALANCE_CONFIG_VERSION } from "../src/game/balance.ts";
 import { Rng } from "../src/game/rng.ts";
@@ -51,15 +51,19 @@ function tacticsOf(engine: RunEngine, economy: RunEconomy): TacticEvaluation | n
 
 /** Композиция слоёв — общая с игрой (game/runStrength.ts). Складывать их здесь «своей» суммой
  *  нельзя: именно так эта копия однажды разъехалась и симулятор мерил билд без редкости и тактик. */
-function effectiveMods(
-  engine: RunEngine, economy: RunEconomy, tactics: TacticEvaluation | null,
-): SummandModifiers {
-  return runModifiers({
+function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEvaluation | null) {
+  return {
     economy: economy.modifiers(),
     tactics: tactics?.modifiers ?? null,
     heroRarity: economy.heroRarity,
     activeHeroes: engine.heroes,
-  });
+  };
+}
+
+function effectiveMods(
+  engine: RunEngine, economy: RunEconomy, tactics: TacticEvaluation | null,
+): SummandModifiers {
+  return runModifiers(strengthInput(engine, economy, tactics));
 }
 
 function bossPenalty(
@@ -78,15 +82,17 @@ function bossPenalty(
   }).penalty;
 }
 
-/** Итоговая сила состава на этапе — то, что уезжает в поле турнира. */
+/** Итоговая сила состава на этапе — то, что уезжает в поле турнира. Через тот же слой, что игра
+ *  (включая слои Tournament Power, R8.2): второй копии этой формулы здесь быть не должно. */
 function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number): number {
   const score = engine.score();
   if (!score) return 0;
   const tactics = tacticsOf(engine, economy);
   const mods = effectiveMods(engine, economy, tactics);
   const bossId = useBoss ? bossForStage(seed, stageIndex) : null;
-  return score.teamOvr + mods.base + mods.heroSynergy + mods.chemistry
-    - bossPenalty(engine, economy, seed, stageIndex, mods, bossId);
+  return runStageStrength(score.teamOvr, strengthInput(engine, economy, tactics), {
+    bossPenalty: bossPenalty(engine, economy, seed, stageIndex, mods, bossId),
+  });
 }
 
 // ─────────────────────────────────────── агенты ───────────────────────────────────────
@@ -137,9 +143,9 @@ const AGENTS: Agent[] = [
     name: "naive-ovr", weights: { base: 1, hero: 1, chem: 1 }, rewardPref: ["gold"],
     holdGold: 0, maxRerolls: 0, buysQuality: false, bossAware: false,
   },
-  // Жадность по ИТОГОВОЙ силе: та же покупка оценивается с учётом редкости входящего героя и
-  // пересчёта условных тактик. Пока нет Tournament Power (R8.2) — это ближайший честный аналог
-  // «greedy Tournament Power» из плана R10.
+  // Жадность по ИТОГОВОЙ силе: покупка оценивается с учётом редкости входящего героя и пересчёта
+  // условных тактик. Слои Tournament Power (R8.2) уже в контракте, но источников у них нет до R8.3,
+  // поэтому «greedy Tournament Power» из плана R10 пока совпадает с этим агентом.
   {
     name: "greedy-power", weights: { base: 1, hero: 1, chem: 1 }, rewardPref: ["gold"],
     holdGold: 0, maxRerolls: 1, buysQuality: true, bossAware: false, powerAware: true,
@@ -558,6 +564,6 @@ if (compareSeasons) {
 
 console.log(
   "\nsurvival[i] = доля забегов, сыгравших этап i+1. Всё это НИЖНЯЯ граница: агенты жадные,"
-  + "\nосмысленная игра человека выигрывает не хуже. Tournament Power и Stakes в модели ещё нет"
-  + `\n(R8.2 / T6.4), Династия — T5.8. ACT_LENGTH=${ACT_LENGTH}.\n`,
+  + "\nосмысленная игра человека выигрывает не хуже. Слои Tournament Power в контракте есть, но"
+  + `\nисточников у них нет до R8.3; Stakes — T6.4, Династия — T5.8. ACT_LENGTH=${ACT_LENGTH}.\n`,
 );
