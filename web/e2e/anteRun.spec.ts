@@ -394,6 +394,37 @@ test("cheat mode: забег вне статистики", async ({ page }) => {
   await expect(page.locator(".career-panel").getByText(/^Runs$/).locator("..")).toContainText("0");
 });
 
+// R9.4: разведка раскрывает то, чего в Буткемпе ещё НЕ видно, — правило следующего боссового
+// турнира, до которого несколько этапов. Seed подобран оффлайн: `camp-e2e-150` выдаёт карточку
+// Scouting наградой первого Буткемпа (пул карточек детерминирован по seed+campId).
+test("roguelite run: разведка раскрывает будущего босса и знание не теряется", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, "camp-e2e-150");
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  // До разведки будущий босс не показан: правило предстоящего этапа — единственное, что видно.
+  await expect(page.getByTestId("camp-boss-scouted")).toHaveCount(0);
+
+  await chooseReward(page, ["action"]);
+  await page.getByTestId("action-play-scouting").click();
+  const scouted = page.getByTestId("camp-boss-scouted");
+  await expect(scouted).toBeVisible();
+  await expect(scouted).toHaveAttribute("data-boss-id", /.+/);
+  const revealed = await scouted.getAttribute("data-boss-id");
+
+  // Знание держится до самого турнира: в следующем Буткемпе тот же босс, только ближе.
+  await page.getByTestId("camp-next-stage").click();
+  await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await expect(page.getByTestId("camp-boss-scouted")).toHaveAttribute("data-boss-id", revealed!);
+});
+
 // R2.1: Cheat Mode — правило конкретного забега, живёт на экране его конфигурации.
 test("cheat mode: секция Special rules только в Roguelite, включение через подтверждение", async ({ page }) => {
   await gotoFreshApp(page);

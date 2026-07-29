@@ -39,6 +39,7 @@ import {
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
+import type { BossEvaluation } from "../../game/bossConditions.ts";
 import {
   Button,
   CheatBadge,
@@ -84,6 +85,47 @@ function itemLabelParams(
     else out[key] = value;
   }
   return out;
+}
+
+/** Панель boss condition: правило + причина + статус штрафа против ТЕКУЩЕГО ростера.
+ *  Одна на два случая — предстоящий этап и разведанный турнир (R9.4): содержимое у них
+ *  идентичное, разная только подпись и то, что разведанный ещё не наступил. */
+function BossPanel({ boss, eyebrow, hint, testId, scouted = false }: {
+  boss: BossEvaluation;
+  eyebrow: string;
+  hint?: string;
+  testId: string;
+  scouted?: boolean;
+}) {
+  const { t } = useI18n();
+  return (
+    <section
+      className={`camp-boss camp-boss--${boss.met ? "met" : "active"}${scouted ? " camp-boss--scouted" : ""}`}
+      data-testid={testId}
+      data-boss-id={boss.bossId}
+    >
+      <div className="camp-boss__head">
+        <Eyebrow>{eyebrow}</Eyebrow>
+        <strong className="camp-boss__name">{t(`boss.${boss.bossId}` as MessageKey)}</strong>
+      </div>
+      <p className="camp-boss__desc">{t(`boss.desc.${boss.bossId}` as MessageKey)}</p>
+      <div className="camp-boss__status">
+        <span className={`camp-boss__reason camp-boss__reason--${boss.met ? "met" : "warn"}`}>
+          {t(boss.reasonKey as MessageKey, boss.reasonParams)}
+        </span>
+        {boss.met ? (
+          <span className="camp-boss__tag camp-boss__tag--met" data-testid={`${testId}-met`}>
+            ✓ {t("boss.metLabel")}
+          </span>
+        ) : (
+          <span className="camp-boss__tag camp-boss__tag--warn" data-testid={`${testId}-penalty`}>
+            {t("boss.penaltyValue", { n: fmt(boss.penalty) })}
+          </span>
+        )}
+      </div>
+      {hint && <p className="camp-boss__hint">{hint}</p>}
+    </section>
+  );
 }
 
 /** Изменение Team OVR оффера (сумма слагаемых после − до). Для пак-карты — главный сигнал.
@@ -250,6 +292,7 @@ export function CampScreen() {
   const config = useRun((s) => s.config);
   const tactics = useRun((s) => s.tactics);
   const boss = useRun((s) => s.boss);
+  const scoutedBoss = useRun((s) => s.scoutedBoss);
   const chooseReward = useRun((s) => s.chooseReward);
   const previewTactic = useRun((s) => s.previewTactic);
   const buyMarket = useRun((s) => s.buyMarket);
@@ -624,32 +667,18 @@ export function CampScreen() {
         </Surface>
 
         <div className="camp__economy">
-          {boss && (
-            <section
-              className={`camp-boss camp-boss--${boss.met ? "met" : "active"}`}
-              data-testid="camp-boss"
-              data-boss-id={boss.bossId}
-            >
-              <div className="camp-boss__head">
-                <Eyebrow>{t("boss.next")}</Eyebrow>
-                <strong className="camp-boss__name">{t(`boss.${boss.bossId}` as MessageKey)}</strong>
-              </div>
-              <p className="camp-boss__desc">{t(`boss.desc.${boss.bossId}` as MessageKey)}</p>
-              <div className="camp-boss__status">
-                <span className={`camp-boss__reason camp-boss__reason--${boss.met ? "met" : "warn"}`}>
-                  {t(boss.reasonKey as MessageKey, boss.reasonParams)}
-                </span>
-                {boss.met ? (
-                  <span className="camp-boss__tag camp-boss__tag--met" data-testid="camp-boss-met">
-                    ✓ {t("boss.metLabel")}
-                  </span>
-                ) : (
-                  <span className="camp-boss__tag camp-boss__tag--warn" data-testid="camp-boss-penalty">
-                    {t("boss.penaltyValue", { n: fmt(boss.penalty) })}
-                  </span>
-                )}
-              </div>
-            </section>
+          {boss && <BossPanel boss={boss} eyebrow={t("boss.next")} testId="camp-boss" />}
+          {/* Разведанный босс (R9.4): то же правило и тот же `до→после`, но про турнир, до которого
+              ещё несколько этапов. Отдельная панель, а не строчка «разведано»: ценность разведки
+              именно в том, что под правило можно собраться заранее. */}
+          {scoutedBoss && (
+            <BossPanel
+              boss={scoutedBoss}
+              eyebrow={t("boss.scouted", { n: scoutedBoss.stageIndex - ante.index + 1 })}
+              hint={t("boss.scoutedHint")}
+              testId="camp-boss-scouted"
+              scouted
+            />
           )}
           <section className="camp__section" data-testid="camp-reward">
             <h3 className="camp__section-title">

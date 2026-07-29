@@ -9,7 +9,7 @@ import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
-import { AnteRunEngine, SEASON, seasonStage, type AnteRunState } from "../game/anteRun.ts";
+import { AnteRunEngine, nextBossStage, SEASON, seasonStage, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
@@ -75,6 +75,11 @@ export interface ReservePlayerView {
   previews: Array<{ slotIndex: number; score: ScoreBreakdown }>;
 }
 
+/** Разведанный босс: обычная оценка + на каком этапе он стоит (R9.4). */
+export interface ScoutedBoss extends BossEvaluation {
+  stageIndex: number;
+}
+
 export interface ReserveHeroView {
   heroId: number;
   previews: Array<{ outgoingHeroId: number; score: ScoreBreakdown }>;
@@ -123,6 +128,10 @@ interface RunStore {
   /** Boss condition ПРЕДСТОЯЩЕГО этапа против текущего ростера (срез 5): правило + `до→после`.
    *  null — у этапа нет правила. Пересчитывается на каждый swap, как tactics. */
   boss: BossEvaluation | null;
+  /** Разведанный босс СЛЕДУЮЩЕГО боссового турнира (R9.4): то, чего в Буткемпе ещё не видно.
+   *  null — разведка в этом Буткемпе не сыграна. Оценивается против текущего ростера, чтобы к
+   *  правилу можно было готовиться заранее, а не узнавать о нём за этап. */
+  scoutedBoss: ScoutedBoss | null;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -377,6 +386,25 @@ export const useRun = create<RunStore>((set, get) => {
     // Предметы-защита смягчают штраф, но не отменяют правило (R8.3).
     return { ...raw, penalty: protectedBossPenalty(raw.penalty, items) };
   };
+  /** Боссы Буткемпа: правило ПРЕДСТОЯЩЕГО этапа + разведанный босс следующего боссового турнира.
+   *  Разведка (R9.4) обязана раскрывать то, чего ещё не видно, поэтому смотрит строго ДАЛЬШЕ
+   *  предстоящего этапа: его правило и так на экране. */
+  const campBosses = (upcomingIndex: number, tactics: TacticEvaluation | null) => {
+    const economy = get().economy;
+    const scoutStage = nextBossStage(upcomingIndex);
+    // Разведка раскрывает КОНКРЕТНЫЙ боссовый турнир, и знание о нём не исчезает в следующем
+    // Буткемпе: узнал — знаешь до самого турнира. Поэтому сверяем не «разведан ли этот лагерь»,
+    // а «раскрывал ли какой-нибудь сыгранный Scouting именно этот этап». Формат сейва при этом
+    // не меняется: `scoutedCamps` как хранил индексы лагерей, так и хранит.
+    const scouted = economy
+      ? economy.snapshot.scoutedCamps.some((camp) => nextBossStage(camp) === scoutStage)
+      : false;
+    const scoutedEval = scouted && scoutStage >= 0 ? evaluateRunBoss(scoutStage, tactics) : null;
+    return {
+      boss: evaluateRunBoss(upcomingIndex, tactics),
+      scoutedBoss: scoutedEval ? { ...scoutedEval, stageIndex: scoutStage } : null,
+    };
+  };
   // Итоговая сила поля этапа: сила состава + модификаторы − штраф босса (не ниже нуля вклада).
   // Через общий слой (game/runStrength.ts): он же проводит счёт через слои Tournament Power,
   // которые сегодня пусты, а в R8.3 наполнятся предметами.
@@ -434,7 +462,7 @@ export const useRun = create<RunStore>((set, get) => {
       economyView: economy.snapshot,
       camp: economy.campView(),
       tactics,
-      boss: evaluateRunBoss(upcoming, tactics),
+      ...campBosses(upcoming, tactics),
     });
     persist();
   };
@@ -464,14 +492,14 @@ export const useRun = create<RunStore>((set, get) => {
       economy.setUnlimitedGold(config.cheatMode === true);
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
-        tactics: null, boss: null,
+        tactics: null, boss: null, scoutedBoss: null,
         tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot,
         tournamentStep: 0, teamName: resolvedName,
       };
     }
     const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
     return {
-      anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null,
+      anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
       tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName,
     };
   };
@@ -526,7 +554,7 @@ export const useRun = create<RunStore>((set, get) => {
       camp: economy.campView(),
       tactics: campTactics,
       // Босс ПРЕДСТОЯЩЕГО этапа — превью для адаптации в Буткемпе.
-      boss: evaluateRunBoss(nextIndex, campTactics),
+      ...campBosses(nextIndex, campTactics),
     };
   };
 
@@ -556,7 +584,7 @@ export const useRun = create<RunStore>((set, get) => {
     economy: null,
     economyView: null,
     camp: null,
-    tactics: null, boss: null,
+    tactics: null, boss: null, scoutedBoss: null,
 
     async loadData() {
       try {
@@ -605,7 +633,7 @@ export const useRun = create<RunStore>((set, get) => {
           engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null,
           startStep: "config", startConfig: config,
           tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-          anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null,
+          anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
         });
         logRunStart(config, seed, data);
         debugSnap("after start", engine, snapshot, config, seed, data);
@@ -724,7 +752,7 @@ export const useRun = create<RunStore>((set, get) => {
       set({
         phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
         resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-        anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null,
+        anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
       });
     },
 
@@ -877,6 +905,10 @@ export const useRun = create<RunStore>((set, get) => {
           tactics,
           boss,
         });
+        // Разведанный босс (R9.4) — только после того, как стор получил движок: оценка идёт
+        // против ростера, а он живёт в сторе. Босса предстоящего этапа при этом не трогаем:
+        // выше он уже посчитан по восстановленному состоянию.
+        if (inCamp && ante) set({ scoutedBoss: campBosses(ante.index, tactics).scoutedBoss });
       } catch (e) {
         // Сейв не воспроизвёлся — сбрасываем; раньше баннер просто исчезал без объяснения.
         console.warn("[aegis] resume failed", e);
@@ -1002,7 +1034,7 @@ export const useRun = create<RunStore>((set, get) => {
         economyView: economy.snapshot,
         camp: economy.campView(),
         tactics,
-        boss: evaluateRunBoss(get().ante?.index ?? 0, tactics),
+        ...campBosses(get().ante?.index ?? 0, tactics),
       });
     },
 

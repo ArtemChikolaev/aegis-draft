@@ -150,6 +150,21 @@ export function isActFinale(absoluteStageIndex: number): boolean {
   return absoluteStageIndex >= 0 && seasonStage(absoluteStageIndex).kind === "boss";
 }
 
+/** Ближайший боссовый этап СТРОГО ПОСЛЕ `absoluteStageIndex` (R9.4).
+ *
+ *  Нужен разведке: правило предстоящего этапа игрок и так видит в Буткемпе, поэтому «раскрыть»
+ *  можно только то, что дальше по сезону. Считается арифметикой актов, поэтому работает и в
+ *  Династии, где сезон уже кончился. */
+export function nextBossStage(absoluteStageIndex: number, season: SeasonRules = SEASON): number {
+  const from = Math.max(-1, absoluteStageIndex);
+  for (let index = from + 1; index <= from + season.actLength; index += 1) {
+    if (seasonStage(index, season).kind === "boss") return index;
+  }
+  // В шаблоне акта боссовый этап есть всегда (иначе это не акт-модель), но не полагаться на это
+  // молча: пустой ответ честнее выдуманного индекса.
+  return -1;
+}
+
 /** Легальные пороги = worst-rank реальных placement-бакетов (R9.3/R6.4).
  *
  *  Любое другое число даёт ложную подпись. Прежний `target = 10` не пропускал бакет «9-12»

@@ -441,6 +441,13 @@
   background: color-mix(in srgb, var(--danger) 7%, var(--surface-soft));
 }
 .camp-boss--met { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+/* Разведанный босс (R9.4) — тот же блок, но про турнир, который ещё не наступил: приглушаем,
+   чтобы он не спорил с правилом ПРЕДСТОЯЩЕГО этапа, которое действует прямо сейчас. */
+.camp-boss--scouted {
+  border-style: dashed;
+  background: transparent;
+}
+.camp-boss__hint { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .camp-boss__head {
   display: flex;
   align-items: baseline;

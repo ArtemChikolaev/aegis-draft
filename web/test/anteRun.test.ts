@@ -10,6 +10,7 @@ import {
   anteThreat,
   buildSeason,
   isActFinale,
+  nextBossStage,
   isLegalAnteTarget,
   placementWorstRank,
   SEASON,
@@ -97,6 +98,19 @@ describe("Акт-модель сезона (R6.1)", () => {
     expect(championships[0].index).toBe(SEASON.stages.length - 1);
     // Предыдущий финал акта требует топ-2: место выше порога платится премией, а не проходом.
     expect(SEASON.stages[19]).toMatchObject({ act: 4, kind: "boss", target: 2 });
+  });
+
+  // R9.4: разведка обязана раскрывать то, чего ещё не видно, поэтому смотрит СТРОГО дальше
+  // предстоящего этапа — его правило и так на экране Буткемпа.
+  it("nextBossStage находит следующий боссовый этап строго дальше текущего", () => {
+    expect(nextBossStage(0)).toBe(4);
+    // Предстоящий этап сам боссовый → разведка показывает уже СЛЕДУЮЩИЙ акт, а не то же самое.
+    expect(nextBossStage(4)).toBe(9);
+    expect(nextBossStage(5)).toBe(9);
+    expect(nextBossStage(9)).toBe(14);
+    // Работает и в Династии: там сезон кончился, а акты продолжаются.
+    expect(nextBossStage(24)).toBe(29);
+    expect(isActFinale(nextBossStage(7))).toBe(true);
   });
 
   it("правила этапа считаются и ЗА пределами сезона: там продолжается Династия", () => {
