@@ -16,6 +16,12 @@
 }
 .heroes__sort { grid-area: sort; min-width: 0; }
 .heroes__tag { grid-area: tag; min-width: 0; }
+/* Вне Roguelite Run фильтра по тегу нет (см. state/runStore#showsHeroTags). Убираем и колонку:
+   пустая область оставила бы лишний gap между поиском игрока и сортировкой. */
+.heroes__controls--no-tags {
+  grid-template-columns: minmax(200px, 1.1fr) minmax(220px, 1fr) auto;
+  grid-template-areas: "hero-search player-search sort";
+}
 /* Пикер — общий примитив (ui/PlayerPicker); экран задаёт только его место в сетке. */
 .heroes__player-picker { grid-area: player-search; }
 
@@ -32,6 +38,10 @@
 }
 /* Режим игрока: колонка «игроков» скрыта (у одного игрока там всегда 1) — детей пять. */
 .heroes__list--player li { grid-template-columns: 34px minmax(112px, 0.9fr) minmax(0, 2.1fr) minmax(56px, 0.8fr) repeat(2, 66px); }
+/* Без тегов колонка чипов не просто пустеет, а исчезает: её ширину забирает бар, иначе между
+   именем героя и баром зияла бы дыра в треть строки. */
+.heroes__list--no-tags li { grid-template-columns: 34px minmax(112px, 0.9fr) minmax(56px, 2.9fr) repeat(3, 66px); }
+.heroes__list--no-tags.heroes__list--player li { grid-template-columns: 34px minmax(112px, 0.9fr) minmax(56px, 2.9fr) repeat(2, 66px); }
 .heroes__list li:nth-child(odd) { background: var(--surface-soft); }
 /* Капсула HeroThumb — блочный span и растянулась бы на всю колонку светлым прямоугольником. */
 .heroes__list li > :nth-child(2) { justify-self: start; max-width: 100%; }
@@ -99,5 +109,22 @@
       "st1  st1  st2  st2";
   }
   .heroes__list--player li > :nth-child(6) { grid-area: st2; }
+  /* Без тегов строка теряет ряд «tags» и одного ребёнка — раскладка сдвигается на единицу. */
+  .heroes__list--no-tags li {
+    grid-template-areas:
+      "rank hero hero hero"
+      "bar  bar  bar  bar"
+      "st1  st1  st2  st3";
+  }
+  .heroes__list--no-tags li > :nth-child(3) { grid-area: bar; }
+  .heroes__list--no-tags li > :nth-child(4) { grid-area: st1; }
+  .heroes__list--no-tags li > :nth-child(5) { grid-area: st2; }
+  .heroes__list--no-tags li > :nth-child(6) { grid-area: st3; }
+  .heroes__list--no-tags.heroes__list--player li {
+    grid-template-areas:
+      "rank hero hero hero"
+      "bar  bar  bar  bar"
+      "st1  st1  st2  st2";
+  }
   .heroes__stat { align-items: flex-start; text-align: left; }
 }

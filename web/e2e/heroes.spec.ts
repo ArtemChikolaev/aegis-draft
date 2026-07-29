@@ -37,14 +37,18 @@ test.describe("codex: heroes directory", () => {
 });
 
 // R11.7: теги видно — и по ним можно спросить «покажи всех illusion». Фильтр и клик по чипу
-// делают одно и то же, поэтому проверяем оба входа.
+// делают одно и то же, поэтому проверяем оба входа. Контекст обязателен: теги — механика
+// Roguelite Run, вне неё справочник их не показывает (см. тест ниже).
 test.describe("codex: фильтр по тегу", () => {
   test.beforeEach(async ({ page }) => {
     await gotoFreshApp(page);
+    await page.getByTestId("mode-classic").click();
+    await page.getByTestId("variant-run").click();
     await page.getByTestId("open-settings").click();
     await page.getByTestId("open-heroes").dispatchEvent("click");
     await expect(page.getByTestId("heroes-screen")).toBeVisible();
   });
+
 
   test("выбор тега сужает список, сброс возвращает всех", async ({ page }) => {
     const rows = page.locator(".heroes__list li");
@@ -74,5 +78,29 @@ test.describe("codex: фильтр по тегу", () => {
     await expect(page.getByTestId("heroes-tag-filter")).toHaveValue(tag!);
     await expect.poll(() => rows.count()).toBeLessThanOrEqual(total);
     await expect(rows.first().locator(`[data-tag="${tag}"]`)).toHaveCount(1);
+  });
+});
+
+// Теги героев — механика Roguelite Run (предметы и тактики читают их). В остальных режимах тег
+// ничего не решает, и справочник не показывает ни чипы, ни фильтр.
+test.describe("codex: теги только в Roguelite Run", () => {
+  const expectNoTags = async (page: import("@playwright/test").Page) => {
+    await page.getByTestId("open-settings").click();
+    await page.getByTestId("open-heroes").dispatchEvent("click");
+    await expect(page.getByTestId("heroes-screen")).toBeVisible();
+    await expect(page.getByTestId("heroes-tag-filter")).toHaveCount(0);
+    await expect(page.locator(".heroes__list li [data-tag]")).toHaveCount(0);
+  };
+
+  test("без выбранного режима тегов нет", async ({ page }) => {
+    await gotoFreshApp(page);
+    await expectNoTags(page);
+  });
+
+  test("в Quick Draft тегов нет", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-classic").click();
+    await page.getByTestId("variant-quick").click();
+    await expectNoTags(page);
   });
 });

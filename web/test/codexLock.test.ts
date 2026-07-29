@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isCodexLocked } from "../src/state/runStore.ts";
-import type { SavedRun } from "../src/state/runPersist.ts";
+import { isCodexLocked, showsHeroTags } from "../src/state/runStore.ts";
+import type { RunMode, SavedRun } from "../src/state/runPersist.ts";
 import type { RunConfig } from "../src/game/packs.ts";
 
 const config = (hardMode?: boolean): RunConfig => ({
@@ -12,12 +12,12 @@ const config = (hardMode?: boolean): RunConfig => ({
   hardMode,
 });
 
-const saved = (hardMode: boolean): SavedRun => ({
+const saved = (hardMode: boolean, mode: RunMode = "classic"): SavedRun => ({
   v: 1,
   schemaVersion: 1,
   ratingModelVersion: "v1",
   dataHash: "sha256:test",
-  mode: "classic",
+  mode,
   config: config(hardMode),
   seed: "seed",
   actions: [],
@@ -46,5 +46,24 @@ describe("isCodexLocked", () => {
     expect(isCodexLocked(config(true), "start")).toBe(false);
     expect(isCodexLocked(config(true), "loading")).toBe(false);
     expect(isCodexLocked(null, "start")).toBe(false);
+  });
+});
+
+describe("showsHeroTags", () => {
+  it("теги — только в Roguelite Run: в остальных режимах они ничего не решают", () => {
+    expect(showsHeroTags("run")).toBe(true);
+    expect(showsHeroTags("classic")).toBe(false);
+    expect(showsHeroTags("manager")).toBe(false);
+    expect(showsHeroTags("tournament")).toBe(false);
+  });
+
+  it("без выбранного режима смотрит на сейв: после reload забег ещё не возобновлён", () => {
+    expect(showsHeroTags(null, saved(false, "run"))).toBe(true);
+    expect(showsHeroTags(null, saved(false, "classic"))).toBe(false);
+    expect(showsHeroTags(null)).toBe(false);
+  });
+
+  it("выбранный режим важнее сейва: игрок уже вышел из старого забега", () => {
+    expect(showsHeroTags("classic", saved(false, "run"))).toBe(false);
   });
 });

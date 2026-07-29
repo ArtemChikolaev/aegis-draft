@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { isCodexLocked, useRun } from "../../state/runStore.ts";
+import { isCodexLocked, showsHeroTags, useRun } from "../../state/runStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import type { PlayerProfile } from "../../types/data.ts";
@@ -20,6 +20,8 @@ export function HeroesScreen() {
   const [tag, setTag] = useState("");
   const [player, setPlayer] = useState<PlayerProfile | null>(null);
   const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase), useRun((state) => state.resumable));
+  // Теги — механика Roguelite Run (см. showsHeroTags): вне её ни чипов, ни фильтра по тегу.
+  const withTags = showsHeroTags(useRun((state) => state.selectedMode), useRun((state) => state.resumable));
   // Забег в хардкоре мог начаться, пока страница открыта, — выбранного игрока сбрасываем.
   const shownPlayer = locked ? null : player;
 
@@ -42,12 +44,15 @@ export function HeroesScreen() {
     return heroPopularity(data.heroes, { [String(shownPlayer.accountId)]: own })
       .filter((row) => row.games > 0);
   }, [data, shownPlayer]);
+  // Забег мог смениться, пока страница открыта: без тегов фильтр по тегу не должен молча
+  // продолжать сужать список — контрола, чтобы его снять, на экране уже нет.
+  const activeTag = withTags ? tag : "";
   const visible = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const byName = needle ? rows.filter((row) => row.name.toLowerCase().includes(needle)) : rows;
-    const byTag = tag ? byName.filter((row) => heroHasTag(row.id, tag)) : byName;
+    const byTag = activeTag ? byName.filter((row) => heroHasTag(row.id, activeTag)) : byName;
     return sortHeroes(byTag, sort);
-  }, [rows, sort, query, tag]);
+  }, [rows, sort, query, activeTag]);
 
   // Шкала бара — от лидера ТЕКУЩЕЙ сортировки, иначе при сортировке по винрейту
   // все бары схлопываются в одинаковые (винрейты жмутся к 50%).
@@ -63,7 +68,7 @@ export function HeroesScreen() {
         <p>{shownPlayer ? t("heroes.playerSubtitle") : t("heroes.subtitle")}</p>
       </header>
 
-      <Surface className="heroes__controls">
+      <Surface className={`heroes__controls${withTags ? "" : " heroes__controls--no-tags"}`}>
         <TextField
           className="heroes__search"
           type="search"
@@ -86,15 +91,17 @@ export function HeroesScreen() {
           noResultsLabel={t("heroes.playerNotFound")}
           accountLabel={t("heroes.playerAccountId")}
         />
-        <div className="heroes__tag">
-          <Select
-            label={t("heroes.tagFilter")}
-            value={tag}
-            options={tagOptions(t)}
-            data-testid="heroes-tag-filter"
-            onChange={setTag}
-          />
-        </div>
+        {withTags && (
+          <div className="heroes__tag">
+            <Select
+              label={t("heroes.tagFilter")}
+              value={tag}
+              options={tagOptions(t)}
+              data-testid="heroes-tag-filter"
+              onChange={setTag}
+            />
+          </div>
+        )}
         <div className="heroes__sort">
           <Select
             label={t("heroes.sort")}
@@ -112,19 +119,21 @@ export function HeroesScreen() {
       {/* Пометка под полями, а не вместо них: поле видно и понятно, что оно закрыто. */}
       {locked && <Banner tone="locked" title={<>🔒 {t("codex.locked")}</>}>{t("codex.lockedHeroes")}</Banner>}
 
-      <Surface className={`heroes__list${shownPlayer ? " heroes__list--player" : ""}`}>
+      <Surface className={`heroes__list${shownPlayer ? " heroes__list--player" : ""}${withTags ? "" : " heroes__list--no-tags"}`}>
         {visible.length === 0 ? <p className="muted">{t("common.empty")}</p> : (
           <ol>
             {visible.map((row, index) => (
               <li key={row.id}>
                 <span className="heroes__rank">{index + 1}</span>
                 <HeroThumb picture={row.picture} name={row.name} />
-                <TagChips
-                  chips={heroChips(row.id, t)}
-                  testId={`hero-tags-${row.id}`}
-                  onSelect={setTag}
-                  selectLabel={() => t("heroTag.showAll")}
-                />
+                {withTags && (
+                  <TagChips
+                    chips={heroChips(row.id, t)}
+                    testId={`hero-tags-${row.id}`}
+                    onSelect={setTag}
+                    selectLabel={() => t("heroTag.showAll")}
+                  />
+                )}
                 <span className="heroes__bar" aria-hidden="true">
                   <span style={{ width: `${peak > 0 ? (barValue(row, sort) / peak) * 100 : 0}%` }} />
                 </span>

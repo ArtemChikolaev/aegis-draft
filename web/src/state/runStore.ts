@@ -197,6 +197,20 @@ export function isCodexLocked(
   return resumable?.config.hardMode === true;
 }
 
+/** Теги героев (R11.7) — механика ТОЛЬКО Roguelite Run: их читают предметы и тактики
+ *  («+6% mult за героя-illusion»), и вопрос «какие у героя теги» возникает у игрока ровно
+ *  там. В Quick Draft, Manager и Real Tournament тег ничего не решает — в справочнике это
+ *  просто шум поперёк строки, поэтому чипы и фильтр по тегу показываем по режиму.
+ *
+ *  `resumable` учитываем по тому же доводу, что и в `isCodexLocked`: после перезагрузки
+ *  страницы забег ещё не возобновлён (`selectedMode` пуст), но игрок стоит именно в
+ *  рогалике — прятать от него теги было бы враньём о его же режиме.
+ *  Чистая функция — тестируется без стора. */
+export function showsHeroTags(selectedMode: RunMode | null, resumable?: SavedRun | null): boolean {
+  if (selectedMode) return selectedMode === "run";
+  return resumable?.mode === "run";
+}
+
 /** `snap` обязан быть ТОТАЛЬНЫМ: он вызывается уже ПОСЛЕ мутации движка и экономики, а
  *  `buyMarket` оборачивает всё в try/catch. Любое исключение отсюда означает «золото списано,
  *  ростер изменён, а UI не обновился» — то есть молча сломанное состояние.
