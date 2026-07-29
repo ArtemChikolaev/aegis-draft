@@ -184,6 +184,23 @@ describe("Cheat Mode в карьере", () => {
     expect(both.undefeated).toBe(1);
   });
 
+  it("запись Династии не считается вторым забегом (R6.3)", () => {
+    // Победа сезона и продолжение в Династии — один забег, записанный дважды: сама победа и её
+    // глубина. В агрегаты и в счётчик, по которому открывается мета-прогрессия, идёт только первая.
+    const season = entry({ seed: "dyn", seasonWon: true, configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team", mode: "run" } });
+    const dynasty = entry({
+      seed: "dyn",
+      seasonWon: true,
+      configLabel: { ...season.configLabel, dynasty: true },
+      rogueliteStage: { index: 27, count: 25 },
+    });
+    expect(summarizeCareer([season, dynasty])).toEqual(summarizeCareer([season]));
+    expect(careerEntriesForMode([season, dynasty], "run")).toHaveLength(1);
+    // Дедуп их не схлопывает: у записи Династии свой финал, и потерять её нельзя.
+    expect(careerRunId(season)).not.toBe(careerRunId(dynasty));
+    expect(appendCareerEntry([season], dynasty)).toHaveLength(2);
+  });
+
   it("cheat-забег не открывает мета-прогрессию следующему честному", () => {
     // Гейт редкости считает roguelite-записи: читерский забег не должен делать следующий вторым.
     const cheatRun = entry({

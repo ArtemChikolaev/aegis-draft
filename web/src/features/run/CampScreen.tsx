@@ -46,6 +46,7 @@ import {
   HeroThumb,
   Modal,
   playerOvrTier,
+  RarityBadge,
   RoleTag,
   StageKindBadge,
   PowerBreakdown,
@@ -83,22 +84,6 @@ function itemLabelParams(
     else out[key] = value;
   }
   return out;
-}
-
-/** Бейдж тира — один примитив на обе шкалы: редкость героя (`--rarity-*`) и качество пассивной
- *  карточки (`--card-tier-*`, R11.5).
- *
- *  У героя базовый тир не рисуем: common — это норма состава, и бейдж на каждой карточке был бы
- *  шумом. У ПРЕДМЕТА наоборот (`showBase`): отсутствие бейджа читалось как «у этой карточки
- *  качества нет вообще» — именно так игрок и понял standard-предмет. Явный «Обычная» снимает
- *  двусмысленность: качество есть у каждой карточки, вопрос только какое. */
-function RarityBadge({ rarity, label, showBase = false }: {
-  rarity: string;
-  label: string;
-  showBase?: boolean;
-}) {
-  if (!showBase && (rarity === "common" || rarity === "standard")) return null;
-  return <span className={`rarity-badge rarity-badge--${rarity}`}>{label}</span>;
 }
 
 /** Изменение Team OVR оффера (сумма слагаемых после − до). Для пак-карты — главный сигнал.
@@ -555,7 +540,11 @@ export function CampScreen() {
           <Eyebrow>{t("camp.title")}</Eyebrow>
           <h2 className="camp__cleared">{t("camp.cleared", { n: ante.index })}</h2>
           <p className="camp__next" data-testid="camp-next-stage-label">
-            <span data-testid="camp-act-stage">{t("ante.actStage", { act: ante.act, stage: ante.stageInAct })}</span>
+            <span data-testid="camp-act-stage">
+              {ante.dynasty
+                ? t("ante.dynastyStage", { n: ante.index + 1 - ante.count })
+                : t("ante.actStage", { act: ante.act, stage: ante.stageInAct })}
+            </span>
             <StageKindBadge kind={ante.kind} />
             {" · "}{nextLabel}
           </p>

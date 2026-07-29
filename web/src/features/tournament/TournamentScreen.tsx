@@ -39,6 +39,7 @@ import { summandModifiers } from "../../game/anteEconomy.ts";
 import { rarityModifiers } from "../../game/heroRarity.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
+import { SeasonVictory } from "../run/SeasonVictory.tsx";
 import { CareerPanel } from "./CareerPanel.tsx";
 import { ShareRunButton } from "./ShareRunButton.tsx";
 import { BracketConnectors } from "./BracketConnectors.tsx";
@@ -554,6 +555,23 @@ export function TournamentScreen() {
   // Порог топ-1 читается как «выиграть финал», а не «топ-1».
   const anteTargetLabel = ante ? (ante.target <= 1 ? t("ante.targetWin") : t("ante.target", { rank: ante.target })) : "";
   const anteNextLabel = ante ? (ante.target <= 1 ? t("ante.nextTargetWin") : t("ante.nextTargetTop", { rank: ante.target })) : "";
+  // Итог этапа читается по-разному в сезоне и в Династии: там поражение не отменяет победу
+  // сезона, поэтому и подпись другая (R6.3).
+  const dynastyDepth = ante ? ante.index + 1 - ante.count : 0;
+  const anteResultTitle = !ante
+    ? ""
+    : ante.phase === "won"
+      ? t("ante.won")
+      : ante.phase === "lost"
+        ? (ante.dynasty ? t("ante.dynastyLost") : t("ante.eliminated"))
+        : t("ante.passed");
+  const anteResultText = !ante
+    ? ""
+    : ante.phase === "won"
+      ? t("ante.wonText", { count: ante.count })
+      : ante.phase === "lost"
+        ? (ante.dynasty ? t("ante.dynastyLostText", { n: dynastyDepth }) : t("ante.lostText"))
+        : anteNextLabel;
 
   return (
     <main className="run" data-testid="run-screen">
@@ -618,7 +636,11 @@ export function TournamentScreen() {
               {/* Акт · этап, а не сквозной номер: сезон из 25 турниров игрок держит в голове
                   актами (R6.1). Сквозной номер остаётся в карьере, где нужен именно он. */}
               <span className="ante-status__stage" data-testid="ante-act-stage">
-                {t("ante.actStage", { act: ante.act, stage: ante.stageInAct })}
+                {/* В Династии (R6.3) счёт идёт от конца сезона: «Акт 6 · Этап 1» формально верно,
+                    но игроку важнее, что сезон уже позади и это бонусная глубина. */}
+                {ante.dynasty
+                  ? t("ante.dynastyStage", { n: dynastyDepth })
+                  : t("ante.actStage", { act: ante.act, stage: ante.stageInAct })}
               </span>
               {/* Тип этапа виден: у elite нет правила, вся его сложность — в силе поля, и без
                   метки она была бы невидимой механикой. У босса своя панель ниже. */}
@@ -780,9 +802,22 @@ export function TournamentScreen() {
           <div ref={resultRef}>
             {ante && (
               <Surface className={`ante-result ante-result--${ante.phase} enter`} data-testid="ante-result">
-                <strong>{ante.phase === "won" ? t("ante.won") : ante.phase === "lost" ? t("ante.eliminated") : t("ante.passed")}</strong>
-                <span>{ante.phase === "won" ? t("ante.wonText") : ante.phase === "lost" ? t("ante.lostText") : anteNextLabel}</span>
+                <strong>{anteResultTitle}</strong>
+                <span>{anteResultText}</span>
               </Surface>
+            )}
+            {/* Победа сезона (R6.3) — терминальное состояние с собственным разбором: что именно
+                довело до Aegis. Ростер, синергии и Tournament Power уже стоят в панелях выше,
+                поэтому здесь только то, чего там нет: титулы актов, качества героев и билд. */}
+            {ante?.phase === "won" && !ante.dynasty && (
+              <SeasonVictory
+                ante={ante}
+                heroRarity={economyView?.heroRarity ?? {}}
+                cards={economyView?.equippedTactics ?? []}
+                cardRarity={economyView?.cardRarity ?? {}}
+                power={stagePower}
+                cheatMode={config.cheatMode === true}
+              />
             )}
             <Surface className="tournament__champion enter">
               <div>

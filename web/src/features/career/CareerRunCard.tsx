@@ -46,6 +46,16 @@ export function CareerRunCard({ entry }: { entry: CareerEntry }) {
           {entry.configLabel.mode === "run" && entry.rogueliteStage && (
             <> · <em className="career-run__stage">{t("ante.stage", { n: entry.rogueliteStage.index + 1, count: entry.rogueliteStage.count })}</em></>
           )}
+          {/* Победа сезона и глубина Династии — разные факты одного забега (R6.3), поэтому и
+              подписи разные: запись Династии показывает, НАСКОЛЬКО дальше он ушёл. */}
+          {entry.seasonWon && !entry.configLabel.dynasty && (
+            <> · <em className="career-run__season-won">{t("career.seasonWon")}</em></>
+          )}
+          {entry.configLabel.dynasty && entry.rogueliteStage && (
+            <> · <em className="career-run__dynasty">
+              {t("career.dynasty", { n: entry.rogueliteStage.index + 1 - entry.rogueliteStage.count })}
+            </em></>
+          )}
         </span>
         <small>{new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(new Date(entry.finishedAt))}</small>
       </header>

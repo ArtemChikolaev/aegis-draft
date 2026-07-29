@@ -8,7 +8,7 @@ import type { RunConfig, DraftPack, Candidate } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
-import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
+import { TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
 import { AnteRunEngine, SEASON, seasonStage, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
@@ -155,6 +155,9 @@ interface RunStore {
   finishTournament: () => void;
   /** Roguelite Run: открыть Буткемп после пройденного этапа (кнопка «В Буткемп»). */
   enterCamp: () => void;
+  /** Roguelite Run: продолжить выигранный сезон Династией (R6.3) — добровольный выбор игрока
+   *  на экране победы. Победа остаётся засчитанной; забег продолжается тем же ростером. */
+  continueDynasty: () => void;
   /** Буткемп: выбрать одну reward-карту (бесплатно, один раз). */
   chooseReward: (offerId: string) => void;
   /** Что даст ЕЩЁ НЕ ВЗЯТАЯ тактика на текущем ростере. Живёт в сторе, а не в UI: контекст условий
@@ -312,6 +315,7 @@ export const useRun = create<RunStore>((set, get) => {
       tournamentStarted: tournamentEngine != null,
       frozenRoster: frozenRoster ?? undefined,
       anteStageIndex: anteRun ? anteRun.state.index : undefined,
+      anteSeasonWon: anteRun?.state.seasonWon ? true : undefined,
       economy: economy ? economy.snapshot : undefined,
       // Только Roguelite Run зависит от коэффициентов баланса — остальным режимам ключ не нужен.
       balanceConfigVersion: selectedMode === "run" ? BALANCE_CONFIG_VERSION : undefined,
@@ -471,7 +475,11 @@ export const useRun = create<RunStore>((set, get) => {
       tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName,
     };
   };
-  const recordCareer = (tournament: TournamentSnapshot, rogueliteStage?: { index: number; count: number }) => {
+  const recordCareer = (
+    tournament: TournamentSnapshot,
+    rogueliteStage?: { index: number; count: number },
+    opts: { seasonWon?: boolean; dynasty?: boolean } = {},
+  ) => {
     const { data, config, seed, snapshot, selectedMode } = get();
     if (tournament.canAdvance || !data || !config || !snapshot?.score || !snapshot.isComplete) return;
     useCareer.getState().record(buildCareerEntry({
@@ -481,10 +489,45 @@ export const useRun = create<RunStore>((set, get) => {
       config,
       mode: selectedMode ?? undefined,
       rogueliteStage,
+      seasonWon: opts.seasonWon,
+      dynasty: opts.dynasty,
       score: snapshot.score,
       roster: snapshot.roster,
       tournament,
     }));
+  };
+  /** Переход «этап пройден → Буткемп»: призовые за пройденный этап, открытие лагеря и подготовка
+   *  рынка. Общий для обычного прохода порога и для входа в Династию (R6.3) — это одно и то же
+   *  событие, и второй его копии быть не должно. `nextIndex` уже указывает на ПРЕДСТОЯЩИЙ этап. */
+  const openCampAfterStage = (nextIndex: number, placement: PlacementKey | null) => {
+    const { economy, engine, seed } = get();
+    if (!economy) return null;
+    economy.awardStageClear(nextIndex, placement, seasonStage(nextIndex - 1).target);
+    economy.openCamp(nextIndex);
+    if (engine) {
+      const economyState = economy.snapshot;
+      economy.prepareMarketOffers(buildAnteMarketRoulette(
+        engine,
+        seed,
+        economyState.campStageIndex,
+        economyState.marketRerolls,
+        economy.equippedTactics,
+        {
+          rarityDrops: economy.rarityDropsEnabled,
+          stageCount: SEASON.stages.length,
+          heroRarity: economy.heroRarity,
+        },
+      ));
+    }
+    const campTactics = evaluateRunTactics();
+    return {
+      resultsSeen: false,
+      economyView: economy.snapshot,
+      camp: economy.campView(),
+      tactics: campTactics,
+      // Босс ПРЕДСТОЯЩЕГО этапа — превью для адаптации в Буткемпе.
+      boss: evaluateRunBoss(nextIndex, campTactics),
+    };
   };
 
   return {
@@ -736,8 +779,9 @@ export const useRun = create<RunStore>((set, get) => {
             // Ante-забег: пересобираем движок и перематываем на сохранённый этап (детерминизм —
             // пройденные этапы по seed те же), затем доигрываем reveal-шаги текущего этапа.
             anteRun = new AnteRunEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName);
-            const stageIndex = Math.max(0, Math.min(SEASON.stages.length - 1, resumable.anteStageIndex ?? 0));
-            anteRun.jumpToStage(stageIndex);
+            // Верхней границы нет: забег мог уйти в Династию за пределы сезона (R6.3).
+            const stageIndex = Math.max(0, resumable.anteStageIndex ?? 0);
+            anteRun.jumpToStage(stageIndex, { seasonWon: resumable.anteSeasonWon === true });
             // Экономика: восстанавливаем валюту/покупки, применяем их модификаторы к полю этапа.
             economy = new RunEconomy(resumable.seed, resumable.economy);
             if (economy.snapshot.inCamp) {
@@ -912,40 +956,19 @@ export const useRun = create<RunStore>((set, get) => {
         const resolvedAnte = anteRun.state;
         if (phase === "playing" && economy) {
           // resolveStage продвинул индекс на следующий этап; призовые — за только что пройденный.
-          const campId = resolvedAnte.index;
-          const target = seasonStage(campId - 1).target;
-          economy.awardStageClear(campId, resolvedAnte.lastPlacement, target);
-          economy.openCamp(campId);
-          const economyState = economy.snapshot;
-          const engine = get().engine;
-          if (engine) {
-            economy.prepareMarketOffers(buildAnteMarketRoulette(
-              engine,
-              get().seed,
-              economyState.campStageIndex,
-              economyState.marketRerolls,
-              economy.equippedTactics,
-              {
-                rarityDrops: economy.rarityDropsEnabled,
-                stageCount: SEASON.stages.length,
-                heroRarity: economy.heroRarity,
-              },
-            ));
-          }
-          const campTactics = evaluateRunTactics();
-          set({
-            ante: resolvedAnte,
-            resultsSeen: false,
-            economyView: economy.snapshot,
-            camp: economy.campView(),
-            tactics: campTactics,
-            // Босс ПРЕДСТОЯЩЕГО этапа (resolvedAnte.index) — превью для адаптации в Буткемпе.
-            boss: evaluateRunBoss(resolvedAnte.index, campTactics),
-          });
+          const patch = openCampAfterStage(resolvedAnte.index, resolvedAnte.lastPlacement);
+          if (patch) set({ ante: resolvedAnte, ...patch });
           persist();
         } else {
+          // Победа сезона банкуется СРАЗУ (R6.3), не дожидаясь выбора «завершить/Династия»:
+          // сам факт победы от решения не зависит, а вкладку могут закрыть на экране итога.
+          // Забег Династии, если игрок его выберет, пишется отдельной записью и в агрегаты не идёт.
           set({ ante: resolvedAnte, resultsSeen: true });
-          recordCareer(tournament, { index: resolvedAnte.index, count: resolvedAnte.count });
+          recordCareer(
+            tournament,
+            { index: resolvedAnte.index, count: resolvedAnte.count },
+            { seasonWon: resolvedAnte.seasonWon, dynasty: resolvedAnte.dynasty },
+          );
           clearSavedRun();
         }
         return;
@@ -953,6 +976,20 @@ export const useRun = create<RunStore>((set, get) => {
       recordCareer(tournament);
       set({ resultsSeen: true });
       clearSavedRun();
+    },
+
+    continueDynasty() {
+      const { anteRun, ante, economy } = get();
+      if (!anteRun || !ante || ante.phase !== "won" || !economy) return;
+      // Победа уже записана в карьеру и сейв очищен (см. finishTournament). Династия — это
+      // продолжение ТОГО ЖЕ забега: ростер, билд и золото остаются, поэтому дальше идёт обычный
+      // переход «этап пройден → Буткемп», просто за концом сезона.
+      anteRun.continueDynasty();
+      const next = anteRun.state;
+      const patch = openCampAfterStage(next.index, ante.lastPlacement);
+      if (!patch) return;
+      set({ phase: "camp", ante: next, ...patch });
+      persist();
     },
 
     enterCamp() {

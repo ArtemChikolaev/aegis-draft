@@ -43,8 +43,12 @@ export interface SavedRun {
   /** Число открытых турнирных этапов; результат пересобирается из seed. */
   tournamentStep?: number;
   tournamentStarted?: boolean;
-  /** Roguelite Run: индекс текущего ante-этапа (mode "run"). Прочие режимы не пишут. */
+  /** Roguelite Run: индекс текущего ante-этапа (mode "run"). Прочие режимы не пишут.
+   *  В Династии (R6.3) уходит за длину сезона — верхней границы у него нет. */
   anteStageIndex?: number;
+  /** Roguelite Run: сезон уже выигран, забег продолжается Династией (R6.3). Флаг хранится, а не
+   *  выводится из индекса: победа — факт, а не следствие того, докуда дошёл счётчик. */
+  anteSeasonWon?: boolean;
   /** Roguelite Run: экономика забега (валюта/покупки/Буткемп). Опционально — старые сейвы без неё читаются. */
   economy?: RunEconomyState;
   /** Roguelite Run: balanceConfigVersion на момент сохранения (T6.3). Смена коэффициентов орка/

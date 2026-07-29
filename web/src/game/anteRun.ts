@@ -266,6 +266,10 @@ export interface AnteRunState extends AnteStageView {
   phase: AntePhase;
   /** Место игрока на предыдущем разрешённом этапе, иначе null. */
   lastPlacement: PlacementKey | null;
+  /** Сезон уже выигран (R6.3). Липкий флаг: поражение в Династии победу НЕ отменяет. */
+  seasonWon: boolean;
+  /** Забег продолжается за пределами сезона — идёт Династия (T5.8). */
+  dynasty: boolean;
 }
 
 /** Чистая оркестрация ante-забега. Детерминизм: `seed + dataset + версия ⇒ та же
@@ -274,6 +278,8 @@ export class AnteRunEngine {
   private stageIndex = 0;
   private phase: AntePhase = "playing";
   private lastPlacement: PlacementKey | null = null;
+  /** Липкий флаг победы сезона (R6.3): once true — навсегда, даже если дальше Династия проиграна. */
+  private seasonWon = false;
   private currentEngine: TournamentEngine;
 
   constructor(
@@ -311,8 +317,15 @@ export class AnteRunEngine {
     return this.currentEngine;
   }
 
+  /** Правила этапа: внутри сезона авторитетен его список (там могут стоять произвольные пороги,
+   *  например у тестовой лестницы), за его пределами — арифметика актов, по которой идёт
+   *  Династия (R6.3). */
+  private stageAt(index: number): SeasonStage {
+    return this.season.stages[index] ?? seasonStage(index, this.season);
+  }
+
   get state(): AnteRunState {
-    const stage = this.season.stages[this.stageIndex];
+    const stage = this.stageAt(this.stageIndex);
     return {
       index: this.stageIndex,
       count: this.season.stages.length,
@@ -324,6 +337,8 @@ export class AnteRunEngine {
       kind: stage.kind,
       phase: this.phase,
       lastPlacement: this.lastPlacement,
+      seasonWon: this.seasonWon,
+      dynasty: this.stageIndex >= this.season.stages.length,
     };
   }
 
@@ -334,14 +349,30 @@ export class AnteRunEngine {
     if (this.phase !== "playing") return this.phase;
     const placement = this.currentEngine.snapshot.userPlacement;
     this.lastPlacement = placement;
-    if (placementWorstRank(placement) > this.season.stages[this.stageIndex].target) {
+    if (placementWorstRank(placement) > this.stageAt(this.stageIndex).target) {
       this.phase = "lost";
-    } else if (this.stageIndex >= this.season.stages.length - 1) {
+    } else if (this.stageIndex === this.season.stages.length - 1) {
+      // Победа сезона терминальна ровно один раз — на последнем его этапе (R6.3). В Династии
+      // (индекс уже за сезоном) прохода порога достаточно, чтобы играть дальше: второй «победы»
+      // там нет, штатный финал бесконечной фазы — поражение (PRD §5.9.3).
       this.phase = "won";
+      this.seasonWon = true;
     } else {
       this.stageIndex += 1;
       this.currentEngine = this.buildStage(this.stageIndex);
     }
+    return this.phase;
+  }
+
+  /** Продолжить выигранный сезон Династией (R6.3): добровольный выбор игрока после победы.
+   *  Победа остаётся засчитанной (`seasonWon` липкий), поэтому поражение в Династии её не
+   *  отменяет — оно лишь фиксирует глубину. Вне фазы `won` — no-op. */
+  continueDynasty(): AntePhase {
+    if (this.phase !== "won") return this.phase;
+    this.phase = "playing";
+    this.stageIndex += 1;
+    this.lastPlacement = null;
+    this.currentEngine = this.buildStage(this.stageIndex);
     return this.phase;
   }
 
@@ -354,12 +385,16 @@ export class AnteRunEngine {
   }
 
   /** Перемотать до этапа `index` (resume сохранённого ante-забега). Детерминизм: пройденные
-   *  этапы по seed те же, поэтому просто пересобираем поле нужного этапа без ре-симуляции. */
-  jumpToStage(index: number): void {
-    if (index < 0 || index >= this.season.stages.length) throw new Error(`Ante stage out of range: ${index}`);
+   *  этапы по seed те же, поэтому просто пересобираем поле нужного этапа без ре-симуляции.
+   *  Верхней границы нет: сохранённый забег мог уйти в Династию за пределы сезона (R6.3).
+   *  `seasonWon` восстанавливается отдельно — из сейва, а не выводится из индекса: сезон считается
+   *  выигранным по факту победы, а не по тому, докуда дошёл индекс. */
+  jumpToStage(index: number, opts: { seasonWon?: boolean } = {}): void {
+    if (index < 0) throw new Error(`Ante stage out of range: ${index}`);
     this.stageIndex = index;
     this.phase = "playing";
     this.lastPlacement = null;
+    this.seasonWon = opts.seasonWon ?? index >= this.season.stages.length;
     this.currentEngine = this.buildStage(index);
   }
 }

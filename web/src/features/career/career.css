@@ -32,6 +32,9 @@
 .career-run__heading strong { color: var(--accent); font-size: 22px; }
 .career-run__heading span { font-size: 12px; font-weight: 800; }
 .career-run__stage { color: var(--text); font-style: normal; }
+/* Победа сезона и глубина Династии (R6.3): зелёный = «сезон взят», акцент = бонусная глубина. */
+.career-run__season-won { color: var(--brand-green); font-style: normal; font-weight: 800; }
+.career-run__dynasty { color: var(--accent); font-style: normal; font-weight: 800; }
 .career-run__heading small { justify-self: end; color: var(--muted); font-size: 9px; }
 .career-run__config { margin: 3px 0 8px; color: var(--muted); font-size: 9px; }
 .career-run__roster {

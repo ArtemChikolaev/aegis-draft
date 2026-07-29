@@ -1,0 +1,55 @@
+/* Победа сезона (R6.3). Панель терминальная и редкая, поэтому ей позволено быть заметной —
+   но цвет берётся токенами темы, как везде. */
+.season-victory {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 20px 22px;
+  border: 1px solid color-mix(in srgb, var(--brand-green) 40%, var(--line));
+  background: color-mix(in srgb, var(--brand-green) 7%, var(--surface));
+}
+.season-victory__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.season-victory__head h2 { margin: 4px 0 0; font-size: clamp(24px, 4vw, 34px); color: var(--brand-green); }
+.season-victory__head p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.season-victory__stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.season-victory__build { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.season-victory__build h3 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.season-victory__heroes,
+.season-victory__cards {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.season-victory__heroes li,
+.season-victory__cards li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: var(--surface-soft);
+  font-size: 12px;
+}
+.season-victory__cards li strong { overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.season-victory__empty { margin: 0; color: var(--muted); font-size: 12px; }
+.season-victory__actions { display: grid; gap: 8px; }
+.season-victory__hint { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+
+@media (max-width: 680px) {
+  .season-victory__build { grid-template-columns: 1fr; }
+  .season-victory__stats { grid-template-columns: 1fr; }
+}

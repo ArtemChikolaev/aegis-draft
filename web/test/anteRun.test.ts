@@ -197,6 +197,44 @@ describe("AnteRunEngine", () => {
     expect(engine.state.lastPlacement).not.toBeNull();
   });
 
+  // R6.3: победа сезона терминальна, но Династия продолжает ТОТ ЖЕ забег добровольно.
+  it("Династия продолжает забег за концом сезона, победа остаётся засчитанной", () => {
+    const season = seasonFromTargets([18, 18]);
+    const engine = new AnteRunEngine(data, "last_2y", "dynasty-go", 70, "Five", season);
+    engine.resolveStage();
+    expect(engine.resolveStage()).toBe("won");
+    expect(engine.state).toMatchObject({ seasonWon: true, dynasty: false, index: 1 });
+
+    // Продолжение: индекс уходит за сезон, правила этапа считаются арифметикой актов.
+    expect(engine.continueDynasty()).toBe("playing");
+    const inDynasty = engine.state;
+    expect(inDynasty).toMatchObject({ index: 2, dynasty: true, seasonWon: true });
+    expect(inDynasty.target).toBe(seasonStage(2, season).target);
+
+    // Второй «победы» в Династии нет: штатный финал бесконечной фазы — поражение.
+    for (let guard = 0; guard < 40 && engine.state.phase === "playing"; guard += 1) engine.resolveStage();
+    expect(engine.state.phase).toBe("lost");
+    expect(engine.state.seasonWon).toBe(true);
+  });
+
+  it("continueDynasty вне победы — no-op", () => {
+    const engine = new AnteRunEngine(data, "last_2y", "dynasty-noop", 45, "Five", seasonFromTargets([1, 8]));
+    expect(engine.continueDynasty()).toBe("playing");
+    expect(engine.state.index).toBe(0);
+    engine.resolveStage();
+    expect(engine.state.phase).toBe("lost");
+    expect(engine.continueDynasty()).toBe("lost");
+  });
+
+  it("resume Династии восстанавливает победу из сейва, а не выводит её из индекса", () => {
+    const engine = new AnteRunEngine(data, "last_2y", "dynasty-resume", 80, "Five");
+    engine.jumpToStage(27, { seasonWon: true });
+    expect(engine.state).toMatchObject({ index: 27, dynasty: true, seasonWon: true, phase: "playing" });
+    // Внутри сезона флаг не выдумывается: сейв без победы остаётся забегом без победы.
+    engine.jumpToStage(3, { seasonWon: false });
+    expect(engine.state.seasonWon).toBe(false);
+  });
+
   it("после конца забега resolveStage — no-op", () => {
     const engine = new AnteRunEngine(data, "last_2y", "ante-noop", 45, "Five", seasonFromTargets([1]));
     engine.resolveStage();

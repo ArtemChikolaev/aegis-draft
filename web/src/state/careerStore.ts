@@ -23,6 +23,10 @@ export interface CareerConfigLabel {
    *  но исключается из ВСЕХ агрегатов и из счётчика забегов, по которому открывается
    *  мета-прогрессия: иначе читерский забег открыл бы редкость следующему честному. */
   cheatMode?: boolean;
+  /** Запись сделана в Династии — добровольном продолжении ПОСЛЕ победы сезона (R6.3). Победа уже
+   *  засчитана отдельной записью, поэтому эта в агрегаты и в счётчик забегов не идёт: иначе один
+   *  забег считался бы дважды и Династия открывала бы мета-прогрессию сама себе. */
+  dynasty?: boolean;
 }
 
 export interface CareerRosterPlayer {
@@ -58,6 +62,8 @@ export interface CareerEntry {
   configLabel: CareerConfigLabel;
   /** Этап, на котором закончился Roguelite Run. Старые и Quick Draft записи поля не имеют. */
   rogueliteStage?: CareerRogueliteStage;
+  /** Сезон выигран (R6.3). У записи Династии тоже true: поражение в ней победу не отменяет. */
+  seasonWon?: boolean;
   placement: PlacementKey;
   score: Pick<ScoreBreakdown, "base" | "heroSynergy" | "chemistry" | "teamOvr">;
   roster: CareerRosterPlayer[];
@@ -136,6 +142,10 @@ export function buildCareerEntry(input: {
   config: RunConfig;
   mode?: RunMode;
   rogueliteStage?: CareerRogueliteStage;
+  /** Сезон выигран (R6.3): ставится и на записи самой победы, и на записи Династии после неё. */
+  seasonWon?: boolean;
+  /** Запись сделана в Династии — добровольном продолжении после победы (R6.3). */
+  dynasty?: boolean;
   score: ScoreBreakdown;
   roster: RosterSlot[];
   tournament: TournamentSnapshot;
@@ -162,7 +172,9 @@ export function buildCareerEntry(input: {
       hardMode: input.config.hardMode === true ? true : undefined,
       mode: input.mode === "run" ? "run" : undefined,
       cheatMode: input.config.cheatMode === true ? true : undefined,
+      dynasty: input.dynasty === true ? true : undefined,
     },
+    seasonWon: input.seasonWon === true ? true : undefined,
     rogueliteStage: input.mode === "run" && input.rogueliteStage
       ? { index: input.rogueliteStage.index, count: input.rogueliteStage.count }
       : undefined,
@@ -207,7 +219,12 @@ export function careerRunIdFromRun(
   ]));
 }
 
-/** Stable across reloads; intentionally excludes finishedAt, score and roster. */
+/** Stable across reloads; intentionally excludes finishedAt, score and roster.
+ *
+ *  `dynasty` в id входит, а этап результата — нет, и это не противоречие: этап меняется у ОДНОГО
+ *  забега (дедуп обязан считать такие записи одной), а Династия — отдельный отрезок ПОСЛЕ уже
+ *  засчитанной победы сезона, у него свой финал и своя глубина (R6.3). Без этого поля запись
+ *  Династии молча схлопнулась бы с записью победы. */
 export function careerRunId(entry: CareerEntry): string {
   const { seed, datasetSchemaVersion, ratingModelVersion, configLabel } = entry;
   return hash(JSON.stringify([
@@ -219,6 +236,7 @@ export function careerRunId(entry: CareerEntry): string {
     configLabel.scoring,
     configLabel.draftStyle,
     configLabel.mode === "run" ? "run" : "quick",
+    configLabel.dynasty === true ? "dynasty" : "season",
   ]));
 }
 
@@ -226,9 +244,10 @@ export function careerRunId(entry: CareerEntry): string {
  * История на финальном экране разделена на два самостоятельных режима. Старые записи
  * без mode относятся к Quick Draft; полная CareerScreen этот фильтр намеренно не вызывает.
  */
-/** Соревновательные записи: cheat-забеги в статистику и мета-прогрессию не идут (R2.3). */
+/** Соревновательные записи: cheat-забеги (R2.3) и продолжения в Династии (R6.3) в статистику
+ *  и мета-прогрессию не идут — второй считался бы тем же забегом дважды. */
 export function competitiveEntries(entries: CareerEntry[]): CareerEntry[] {
-  return entries.filter((entry) => entry.configLabel.cheatMode !== true);
+  return entries.filter((entry) => entry.configLabel.cheatMode !== true && entry.configLabel.dynasty !== true);
 }
 
 export function careerEntriesForMode(entries: CareerEntry[], mode: RunMode): CareerEntry[] {
