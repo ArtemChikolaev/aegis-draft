@@ -560,10 +560,19 @@ export function CampScreen() {
             {" · "}{nextLabel}
           </p>
           {/* Автоматическая выплата показывается разложенной: иначе «проценты за накопление»
-              невидимы, и решение «потратить сейчас против накопить» не читается. */}
+              невидимы, и решение «потратить сейчас против накопить» не читается. Премия за место
+              (R6.4) — отдельной строкой по той же причине: с чемпионством как наградой вместо
+              условия прохода она обязана быть видна, иначе награды как будто нет. */}
           {camp.lastPayout && (
             <p className="camp__payout" data-testid="camp-payout">
               {t("camp.payout")} <b>+{camp.lastPayout.prize}</b> {t("camp.payoutPrize")}
+              {camp.lastPayout.performance > 0 && (
+                <>
+                  {" · "}
+                  <b data-testid="camp-performance">+{camp.lastPayout.performance}</b>
+                  {" "}{t("camp.payoutPerformance")}
+                </>
+              )}
               {camp.lastPayout.interest > 0 && (
                 <>
                   {" · "}<b data-testid="camp-interest">+{camp.lastPayout.interest}</b> {t("camp.payoutInterest")}

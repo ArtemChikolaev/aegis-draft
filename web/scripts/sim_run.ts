@@ -12,6 +12,7 @@
 // Запуск:
 //   npm run sim -- 500                 прогон на текущей лестнице
 //   npm run sim -- 300 --seasons       сравнение сезонов 20 / 25 / 30 этапов (вход для R6.1/R6.4)
+//   npm run sim -- 200 --finales       сравнение кривых финалов актов (R6.4, PRD §10.I)
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
@@ -530,6 +531,23 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel): Report {
 
 const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 
+/** Условная проходимость финалов актов: доля забегов, которые ДОШЛИ до финала и прошли его.
+ *
+ *  Именно это, а не общий win%, отвечает на открытый вопрос PRD §10.I «цена одной неудачной
+ *  сетки»: забег из 25 турниров, обрывающийся на одном BO5, виден здесь как провал конкретного
+ *  финала, а не как размазанная по сезону смертность. Последний финал считается по win%: за ним
+ *  следующего этапа нет, и «прошёл» = «выиграл сезон». */
+function finalePassRates(report: Report, season: SeasonModel): Array<{ stage: number; pass: number }> {
+  return season.stages
+    .filter((stage) => stage.kind === "boss")
+    .map((stage) => {
+      const reached = report.survival[stage.index];
+      const last = stage.index === season.stages.length - 1;
+      const passed = last ? report.winRate : report.survival[stage.index + 1];
+      return { stage: stage.index + 1, pass: reached > 0 ? passed / reached : 0 };
+    });
+}
+
 function printReports(title: string, reports: Report[], season: SeasonModel): void {
   const targets = season.stages.map((stage) => stage.target);
   console.log(`\n${title}  (этапов: ${targets.length}, пороги: ${targets.join("/")})\n`);
@@ -549,17 +567,43 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
       + `  ${r.rareHeroes.toFixed(1).padStart(4)}  ${r.tactics.toFixed(1)}  ${pct(r.lostUnderBoss).padStart(6)}`,
     );
   }
+  console.log("\nпроходимость финалов актов (из дошедших):");
+  for (const r of reports) {
+    const rates = finalePassRates(r, season)
+      .map(({ stage, pass }) => `S${stage} ${pct(pass)}`)
+      .join("   ");
+    console.log(`${r.agent.padEnd(15)}${rates}`);
+  }
 }
 
 const N = Number(process.argv[2] ?? 500);
 const compareSeasons = process.argv.includes("--seasons");
+const compareFinales = process.argv.includes("--finales");
+
+/** Кандидаты кривой финалов актов (вход для R6.4 и открытого вопроса PRD §10.I). Сравниваются на
+ *  ОДНИХ И ТЕХ ЖЕ сидах и агентах — различие в профиле тогда принадлежит кривой, а не выборке. */
+const FINALE_CURVES: Array<{ name: string; actFinales: number[] }> = [
+  { name: "4/3/2/1/1 (текущая)", actFinales: [4, 3, 2, 1, 1] },
+  { name: "4/3/2/2/1 (одно чемпионство)", actFinales: [4, 3, 2, 2, 1] },
+  { name: "4/3/2/2/2 (без чемпионства)", actFinales: [4, 3, 2, 2, 2] },
+  { name: "6/4/3/2/1 (мягкий вход)", actFinales: [6, 4, 3, 2, 1] },
+];
 
 console.log(
   `\nBalance sim (R10) — balanceConfigVersion=${BALANCE_CONFIG_VERSION}`
   + `  bosses=${useBoss ? "on" : "off"}  seeds=${N}`,
 );
 
-if (compareSeasons) {
+if (compareFinales) {
+  // R6.4: цена одной неудачной сетки в конце сезона. Смотреть надо не на win% (он падает от
+  // любого ужесточения), а на проходимость КОНКРЕТНОГО финала: требование чемпионства режет
+  // забег на одном BO5 независимо от того, насколько хорошо он собран.
+  for (const curve of FINALE_CURVES) {
+    const season = buildSeason({ actFinales: curve.actFinales });
+    const reports = AGENTS.filter((a) => !a.random).map((agent) => runAgent(agent, N, season));
+    printReports(`Финалы ${curve.name}`, reports, season);
+  }
+} else if (compareSeasons) {
   // Вход для R6.1/R6.4: какая длина сезона даёт осмысленный профиль выживаемости.
   // Ту же акт-модель, что играет игра, просто с другим числом актов — своей копии лестницы у
   // симулятора больше нет (R6.1).

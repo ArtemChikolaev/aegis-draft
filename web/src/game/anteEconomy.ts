@@ -140,7 +140,7 @@ export interface RunEconomyState {
   freeRarityUpgrades: number;
   /** Из чего сложилась последняя автоматическая выплата — чтобы Буткемп мог показать
    *  «призовые + проценты» раздельно, а не одно непрозрачное число. */
-  lastPayout?: { prize: number; interest: number };
+  lastPayout?: { prize: number; performance: number; interest: number };
   /** Тир взятых карточек-предметов (id → редкость, R11.2). Отдельная карта, а не поле внутри
    *  `equippedTactics`: слоты хранят строки, и превращать их в объекты значило бы переписывать
    *  формат сейва там, где новая ось прекрасно живёт зеркалом `heroRarity`. Записи нет ⇒ common. */
@@ -285,18 +285,32 @@ function stageGold(base: number, stageStep: number, campStageIndex: number): num
 
 /** Призовые = растущая база этапа + нормализованный бонус за overperformance.
  *  Нормализация важна: первое место даёт одинаковый максимум +3 и при top-10, и при top-3,
- *  поэтому широкий ранний порог не печатает в несколько раз больше золота, чем поздний. */
+ *  поэтому широкий ранний порог не печатает в несколько раз больше золота, чем поздний.
+ *
+ *  Раздельно, а не одним числом: с R6.4 премия за место несёт продуктовую нагрузку — на финале
+ *  4-го акта чемпионство перестало быть условием прохода и стало ровно этой премией. Награда,
+ *  слитая с базой в одно «+7», игроком не читается, то есть её как будто нет. */
+export function prizeBreakdown(
+  placement: PlacementKey | null,
+  target: number,
+  campStageIndex: number,
+): { base: number; performance: number } {
+  const base = stageGold(ECONOMY.prizeBase, ECONOMY.prizeStageStep, campStageIndex);
+  if (placement == null || target <= 1) return { base, performance: 0 };
+  const rank = placementWorstRank(placement);
+  if (rank >= target) return { base, performance: 0 };
+  const progressToFirst = (target - rank) / (target - 1);
+  return { base, performance: Math.round(progressToFirst * ECONOMY.prizePerformanceMax) };
+}
+
+/** Итоговые призовые этапа — сумма разбора. */
 export function prizeForStage(
   placement: PlacementKey | null,
   target: number,
   campStageIndex: number,
 ): number {
-  const base = stageGold(ECONOMY.prizeBase, ECONOMY.prizeStageStep, campStageIndex);
-  if (placement == null || target <= 1) return base;
-  const rank = placementWorstRank(placement);
-  if (rank >= target) return base;
-  const progressToFirst = (target - rank) / (target - 1);
-  return base + Math.round(progressToFirst * ECONOMY.prizePerformanceMax);
+  const { base, performance } = prizeBreakdown(placement, target, campStageIndex);
+  return base + performance;
 }
 
 /** Проценты за удержанное золото. Чистая: UI показывает ровно то, что начислит движок. */
@@ -425,8 +439,8 @@ export interface CampView {
   freePlayerSwaps: number;
   /** Бесплатные улучшения качества героя (награда-токен). */
   freeRarityUpgrades: number;
-  /** Разбор последней автоматической выплаты: призовые и проценты раздельно. */
-  lastPayout?: { prize: number; interest: number };
+  /** Разбор последней автоматической выплаты: база, премия за место и проценты раздельно. */
+  lastPayout?: { prize: number; performance: number; interest: number };
   /** Случайные повышенные качества могут выпадать (мета-гейт пройден). */
   rarityDropsEnabled: boolean;
   /** Доступно ручное улучшение качества в Буткемпе. Бейджи тира при этом показываются всегда:
@@ -535,17 +549,18 @@ export class RunEconomy {
   /** Начислить призовые за пройденный этап. Идемпотентно на camp (защита от двойного эффекта). */
   awardStageClear(campStageIndex: number, placement: PlacementKey | null, target: number): void {
     if (this.state.awardedCamps.includes(campStageIndex)) return;
-    const prize = prizeForStage(placement, target, campStageIndex);
+    const { base, performance } = prizeBreakdown(placement, target, campStageIndex);
     // Проценты считаем с баланса, ДОнесённого до этого Буткемпа: так «накопить» — осознанное
     // решение, а не побочный эффект. В Cheat Mode бессмысленны (золото и так бесконечно).
     const items = this.itemEconomy();
     const interest = this.state.unlimitedGold
       ? 0
       : interestFor(this.state.gold, items.interestCapBonus);
-    // Доход предметов идёт в те же призовые: для игрока это одна автоматическая выплата.
-    const prizeWithItems = Math.max(0, prize + items.goldPerCamp);
-    this.state.gold += prizeWithItems + interest;
-    this.state.lastPayout = { prize: prizeWithItems, interest };
+    // Доход предметов идёт в ту же базу: для игрока это одна автоматическая выплата. Премия за
+    // место остаётся отдельной строкой — её платит его результат, а не владение карточками.
+    const prizeWithItems = Math.max(0, base + items.goldPerCamp);
+    this.state.gold += prizeWithItems + performance + interest;
+    this.state.lastPayout = { prize: prizeWithItems, performance, interest };
     this.state.awardedCamps.push(campStageIndex);
   }
 

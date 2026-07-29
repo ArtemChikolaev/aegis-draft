@@ -10,6 +10,7 @@ import {
   rerollCostFor,
   marketOffers,
   playerOfferAffordable,
+  prizeBreakdown,
   prizeForStage,
   rewardOffers,
 } from "../src/game/anteEconomy.ts";
@@ -476,14 +477,22 @@ describe("Проценты за накопление", () => {
     const eco = new RunEconomy("interest");
     // Первый Буткемп: копить было нечего — только призовые.
     eco.awardStageClear(1, "1", 8);
-    expect(eco.snapshot.lastPayout).toEqual({ prize: prizeForStage("1", 8, 1), interest: 0 });
+    // Премия за место — своя строка выплаты (R6.4): чемпионство на этапе с порогом топ-8 платит
+    // сверх базы, и игрок должен видеть, за что именно ему заплатили.
+    expect(eco.snapshot.lastPayout).toEqual({
+      prize: prizeBreakdown("1", 8, 1).base,
+      performance: prizeBreakdown("1", 8, 1).performance,
+      interest: 0,
+    });
+    expect(eco.snapshot.lastPayout!.prize + eco.snapshot.lastPayout!.performance)
+      .toBe(prizeForStage("1", 8, 1));
 
     // Второй: на руках уже есть баланс → сверху проценты с него.
     const held = eco.gold;
     eco.awardStageClear(2, "1", 6);
     const payout = eco.snapshot.lastPayout!;
     expect(payout.interest).toBe(interestFor(held));
-    expect(eco.gold).toBe(held + payout.prize + payout.interest);
+    expect(eco.gold).toBe(held + payout.prize + payout.performance + payout.interest);
   });
 
   it("накопить приносит проценты, спустить всё в ноль — нет", () => {
