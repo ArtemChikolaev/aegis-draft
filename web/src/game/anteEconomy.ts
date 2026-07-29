@@ -130,8 +130,15 @@ export interface RunEconomyState {
   heldActions: string[];
   /** Разыгранные Camp Actions: временный эффект живёт до следующего Буткемпа. */
   temporary: Array<{ effect: StatEffect; campId: number }>;
-  /** Буткемпы, в которых сыграна разведка (раскрывает следующий этап). */
+  /** Буткемпы, в которых сыграна разведка (раскрывает следующий этап). Карточка Scouting и
+   *  покупка разведки за золото пишут в ОДИН список: для игры это одно и то же знание. */
   scoutedCamps: number[];
+  /** Куплено усиленной подготовки в ТЕКУЩЕМ Буткемпе (T5.9). Цена геометрическая, поэтому счётчик
+   *  и есть цена; сбрасывается на `openCamp` — синк живёт внутри лагеря, а не копится забегом. */
+  prepPurchases: number;
+  /** Сколько раз пере-роллено правило этапа: `stageIndex → число реролов`. Ключ строкой, потому что
+   *  это JSON-сейв. Само правило остаётся чистой функцией от seed+stage+n (bossConditions). */
+  bossRerolls: Record<string, number>;
   /** Титулы Династии, за которые уже выдана награда (T5.8). Список, а не счётчик: он же даёт
    *  идемпотентность — resume и повторный вход в лагерь не выдадут milestone второй раз. */
   dynastyMilestones: number[];
@@ -214,6 +221,22 @@ export const ECONOMY = {
    *  сейчас против накопить». В Cheat Mode не начисляются: бесконечное золото их обессмысливает. */
   interestPerGold: 6,
   interestCap: 3,
+  /** Поздние синки (T5.9). Замер Династии показал не «тонкий рынок», а ПОЛНОЕ насыщение: игрок
+   *  приходит в лагерь с ~900 золота, из 8.9 карт рынка плюс даёт 0.08, качество героев на
+   *  максимуме в 100% лагерей, слоты карточек полны в 99%. Купить нечего ни за какие деньги,
+   *  поэтому Буткемп на глубине — клик «дальше».
+   *
+   *  Общая форма синка: **расходуемый, повторяемый, с ГЕОМЕТРИЧЕСКИ растущей ценой**. Геометрия —
+   *  не украшение, а несущее условие: доход растёт линейно по этапу, угроза акта — квадратично,
+   *  поэтому линейный по цене синк рано или поздно либо не поглощает накопленное, либо превращает
+   *  золото в бесконечный `+OVR` и ломает главную посылку Династии («штатный финал — Loss»).
+   *  При цене `base · growth^n` накопленные деньги покупают лишь `log` от суммы: 900 золота — это
+   *  пять подготовок (`20+40+80+160+320`), а не сорок пять. */
+  prep: { delta: 1, summand: "base" as Summand, costBase: 20, costGrowth: 2 },
+  bossReroll: { costBase: 12, costGrowth: 2 },
+  /** Разведка за золото: то же раскрытие, что даёт карточка Scouting, но без карточки. Одна на
+   *  лагерь (раскрывать уже раскрытое незачем), поэтому цена плоская — геометрии тут негде расти. */
+  scoutPrice: 8,
   /** Milestone Династии (T5.8): что даёт взятый титул за пройденный акт ЗА пределами сезона.
    *  Династия не имеет терминальной победы, поэтому её единственная валюта смысла — растущий
    *  билд: титул платит тем, чего на этом этапе забега уже не купить рынком (готовое улучшение
@@ -232,6 +255,23 @@ const MARKET_SUMMANDS: readonly Summand[] = ["base", "heroSynergy", "chemistry"]
 /** Цена очередного реролла в ТЕКУЩЕМ Буткемпе. Чистая: UI и движок обязаны считать одинаково. */
 export function rerollCostFor(rerollsInCamp: number): number {
   return ECONOMY.rerollCostBase + Math.max(0, Math.floor(rerollsInCamp)) * ECONOMY.rerollCostStep;
+}
+
+/** Цена n-й покупки повторяемого синка. Чистая: UI и движок обязаны считать одинаково — тот же
+ *  контракт, что у `rerollCostFor`. Геометрия обрывает конвертацию накоплений в силу (см. ECONOMY.prep). */
+function sinkCostFor(base: number, growth: number, purchases: number): number {
+  return Math.round(base * growth ** Math.max(0, Math.floor(purchases)));
+}
+
+/** Цена очередной усиленной подготовки в ТЕКУЩЕМ Буткемпе. */
+export function prepCostFor(purchases: number): number {
+  return sinkCostFor(ECONOMY.prep.costBase, ECONOMY.prep.costGrowth, purchases);
+}
+
+/** Цена очередной смены правила этапа. Считается по реролам ЭТОГО этапа: правило одно на этап,
+ *  и его перебор не должен дешеветь от того, что предыдущий босс был перекуплен пять этапов назад. */
+export function bossRerollCostFor(rerolls: number): number {
+  return sinkCostFor(ECONOMY.bossReroll.costBase, ECONOMY.bossReroll.costGrowth, rerolls);
 }
 
 /** Цена игрока в паке-рулетке растёт с его OVR: сильный дороже, слабый доступен рано (Balatro-
@@ -443,6 +483,16 @@ export interface CampView {
   temporary: StatEffect[];
   /** В этом Буткемпе сыграна разведка — следующий этап раскрыт. */
   scouted: boolean;
+  /** Поздние синки (T5.9): цена очередной покупки и хватает ли на неё золота. Считает движок —
+   *  UI не имеет права показать цену, отличную от списываемой (тот же контракт, что у reroll). */
+  prepCost: number;
+  prepBought: number;
+  canBuyPrep: boolean;
+  prepDelta: number;
+  bossRerollCost: number;
+  canRerollBoss: boolean;
+  scoutCost: number;
+  canBuyScouting: boolean;
   freeMarketRerolls: number;
   freePlayerSwaps: number;
   /** Бесплатные улучшения качества героя (награда-токен). */
@@ -484,6 +534,8 @@ function emptyState(): RunEconomyState {
     temporary: [],
     scoutedCamps: [],
     dynastyMilestones: [],
+    prepPurchases: 0,
+    bossRerolls: {},
     freeMarketRerolls: 0,
     freePlayerSwaps: 0,
     freeRarityUpgrades: 0,
@@ -518,6 +570,7 @@ export class RunEconomy {
       temporary: this.state.temporary.map((t) => ({ effect: { ...t.effect }, campId: t.campId })),
       scoutedCamps: [...this.state.scoutedCamps],
       dynastyMilestones: [...this.state.dynastyMilestones],
+      bossRerolls: { ...(this.state.bossRerolls ?? {}) },
       heroRarity: { ...this.state.heroRarity },
       cardRarity: { ...(this.state.cardRarity ?? {}) },
     };
@@ -590,6 +643,65 @@ export class RunEconomy {
     return true;
   }
 
+  /** Сколько раз пере-роллено правило конкретного этапа. Нужна снаружи: сам босс — чистая функция
+   *  от seed+stage+n, и это `n` живёт здесь. */
+  bossRerollsFor(stageIndex: number): number {
+    return this.state.bossRerolls?.[String(stageIndex)] ?? 0;
+  }
+
+  /** Цена очередной подготовки / смены правила / разведки в текущем Буткемпе. */
+  prepCost(): number {
+    return prepCostFor(this.state.prepPurchases ?? 0);
+  }
+
+  bossRerollCost(): number {
+    return bossRerollCostFor(this.bossRerollsFor(this.state.campStageIndex));
+  }
+
+  /** Усиленная подготовка: временный эффект на ОДИН следующий этап, по той же механике, что и
+   *  разыгранные Camp Actions (`temporary` сгорает на следующем openCamp). Расходуемая по замыслу:
+   *  синк обязан конвертировать золото в прохождение этапа, а не в постоянный прирост — иначе
+   *  поздние деньги начали бы обгонять ускоряющуюся угрозу, и Династия перестала бы кончаться. */
+  buyPrep(): boolean {
+    if (!this.state.inCamp) return false;
+    const cost = this.prepCost();
+    if (!this.affordable(cost)) return false;
+    this.spend(cost);
+    this.state.prepPurchases = (this.state.prepPurchases ?? 0) + 1;
+    this.state.temporary.push({
+      effect: { summand: ECONOMY.prep.summand, delta: ECONOMY.prep.delta },
+      campId: this.state.campStageIndex,
+    });
+    return true;
+  }
+
+  /** Сменить правило предстоящего этапа. Экономика хранит только счётчик — какое правило выпадет,
+   *  решает `bossForStage(seed, stage, n)`; знание о боссах сюда не протекает. */
+  rerollBoss(): boolean {
+    if (!this.state.inCamp) return false;
+    const cost = this.bossRerollCost();
+    if (!this.affordable(cost)) return false;
+    this.spend(cost);
+    const key = String(this.state.campStageIndex);
+    this.state.bossRerolls = {
+      ...(this.state.bossRerolls ?? {}),
+      [key]: this.bossRerollsFor(this.state.campStageIndex) + 1,
+    };
+    return true;
+  }
+
+  /** Купить разведку за золото. Тот же список `scoutedCamps`, что и у карточки Scouting, но БЕЗ
+   *  бесплатного реролла: карточка — награда, а это трата, и платить обеим одинаково значило бы
+   *  обесценить карточку. Повторная покупка в том же лагере невозможна — раскрывать нечего. */
+  buyScouting(): boolean {
+    if (!this.state.inCamp) return false;
+    if (this.state.scoutedCamps.includes(this.state.campStageIndex)) return false;
+    if (!this.affordable(ECONOMY.scoutPrice)) return false;
+    this.spend(ECONOMY.scoutPrice);
+    this.state.scoutedCamps.push(this.state.campStageIndex);
+    return true;
+  }
+
   /** Открыть Буткемп для этапа `campStageIndex` (офферы деривуются от него).
    *  Здесь же сгорают временные Camp Actions: они куплены под ОДИН прошедший этап. */
   openCamp(campStageIndex: number): void {
@@ -597,6 +709,8 @@ export class RunEconomy {
     this.state.inCamp = true;
     this.state.chosenRewardId = null;
     this.state.marketRerolls = 0;
+    // Синк живёт внутри лагеря: цена подготовки снова начинается с базовой, как у реролла рынка.
+    this.state.prepPurchases = 0;
     this.state.preparedMarketOffers = undefined;
     this.state.temporary = this.state.temporary.filter((t) => t.campId >= campStageIndex);
     // Фиксируем карточный оффер по составу владения на момент открытия — до любых взятий этого
@@ -861,6 +975,15 @@ export class RunEconomy {
       actionSlots: CAMP_ACTION_SLOTS,
       temporary: this.temporaryEffects().map((effect) => ({ ...effect })),
       scouted: this.state.scoutedCamps.includes(this.state.campStageIndex),
+      prepCost: this.prepCost(),
+      prepBought: this.state.prepPurchases ?? 0,
+      canBuyPrep: this.affordable(this.prepCost()),
+      prepDelta: ECONOMY.prep.delta,
+      bossRerollCost: this.bossRerollCost(),
+      canRerollBoss: this.affordable(this.bossRerollCost()),
+      scoutCost: ECONOMY.scoutPrice,
+      canBuyScouting: !this.state.scoutedCamps.includes(this.state.campStageIndex)
+        && this.affordable(ECONOMY.scoutPrice),
       dynastyMilestone: this.state.dynastyMilestones.includes(this.state.campStageIndex),
       freeMarketRerolls: this.state.freeMarketRerolls,
       freePlayerSwaps: this.state.freePlayerSwaps,

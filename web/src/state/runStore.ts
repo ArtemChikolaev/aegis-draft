@@ -185,6 +185,11 @@ interface RunStore {
   playCampAction: (actionId: string) => void;
   /** Буткемп: улучшить редкость активного героя за золото (срез 3b). */
   upgradeHeroRarity: (heroId: number) => void;
+  /** Буткемп: поздние синки (T5.9) — усиленная подготовка к этапу, смена правила этапа,
+   *  разведка за золото. Все расходуемые и дорожающие: см. ECONOMY.prep. */
+  buyPrep: () => void;
+  rerollBoss: () => void;
+  buyScouting: () => void;
   /** Буткемп: поменять активного игрока на единственного запасного той же роли. */
   swapReservePlayer: (slotIndex: number, benchAccountId: number) => void;
   /** Буткемп: поменять активного героя на героя из малого резервного пула. */
@@ -368,10 +373,13 @@ export const useRun = create<RunStore>((set, get) => {
   // Boss condition этапа `stageIndex` против текущего ростера с уже применёнными modifiers.
   // Штраф вычитается из силы поля; null — этап без правила. Пересчитывается на swap, как tactics.
   const evaluateRunBoss = (stageIndex: number, tactics: TacticEvaluation | null): BossEvaluation | null => {
-    const { engine, seed } = get();
+    const { engine, seed, economy } = get();
     const score = engine?.score();
     if (!engine || !score) return null;
-    const bossId = bossForStage(seed, stageIndex);
+    // Правило могло быть перекуплено в Буткемпе (T5.9) — счётчик живёт в экономике, сам босс
+    // остаётся чистой функцией от seed+stage+n.
+    const rerolls = economy?.bossRerollsFor(stageIndex) ?? 0;
+    const bossId = bossForStage(seed, stageIndex, rerolls);
     if (!bossId) return null;
     const mods = effectiveModifiers(tactics);
     const items = runItems();
@@ -381,7 +389,7 @@ export const useRun = create<RunStore>((set, get) => {
       chemistry: score.chemistry + mods.chemistry,
       playerOvrs: engine.players.map((p) => p.ovr),
       activeHeroes: engine.heroes,
-      bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes),
+      bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, rerolls),
     });
     // Предметы-защита смягчают штраф, но не отменяют правило (R8.3).
     return { ...raw, penalty: protectedBossPenalty(raw.penalty, items) };
@@ -859,7 +867,9 @@ export const useRun = create<RunStore>((set, get) => {
             const mods = runModifiers(strengthInput);
             // Босс восстанавливается из ростера (как tactics), а не из сейва: правило детерминировано
             // по seed+stage, штраф — производная состава. Без него resume дал бы более лёгкое поле.
-            const bossId = bossForStage(resumable.seed, stageIndex);
+            // Из сейва берётся ровно одно число — сколько раз правило перекуплено (T5.9).
+            const bossRerolls = economy.bossRerollsFor(stageIndex);
+            const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls);
             boss = bossId
               ? evaluateBoss(bossId, {
                 base: score.base + mods.base,
@@ -867,7 +877,7 @@ export const useRun = create<RunStore>((set, get) => {
                 chemistry: score.chemistry + mods.chemistry,
                 playerOvrs: engine.players.map((p) => p.ovr),
                 activeHeroes: engine.heroes,
-                bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes),
+                bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes, bossRerolls),
               })
               : null;
             anteRun.rebuildCurrentStage(
@@ -1126,6 +1136,25 @@ export const useRun = create<RunStore>((set, get) => {
       if (!economy || phase !== "camp" || !economy.playCampAction(actionId)) return;
       // Разведка даёт бесплатный реролл — рынок пересобираем, чтобы он был доступен сразу.
       economy.invalidateMarketOffers();
+      syncCamp();
+    },
+
+    buyPrep() {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.buyPrep()) return;
+      // Временный эффект меняет силу состава ⇒ пересчёт босса и превью рынка идут через syncCamp.
+      syncCamp();
+    },
+
+    rerollBoss() {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.rerollBoss()) return;
+      syncCamp();
+    },
+
+    buyScouting() {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.buyScouting()) return;
       syncCamp();
     },
 

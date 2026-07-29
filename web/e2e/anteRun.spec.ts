@@ -425,6 +425,55 @@ test("roguelite run: разведка раскрывает будущего бо
   await expect(page.getByTestId("camp-boss-scouted")).toHaveAttribute("data-boss-id", revealed!);
 });
 
+// T5.9: поздние синки — то, во что превращается золото, когда рынок насыщен. Cheat Mode здесь не
+// про читы, а про детерминизм: синки стоят десятки золота, и обычный первый Буткемп до них просто
+// не дотягивает. Проверяем ровно то, что нельзя проверить юнитом, — что покупка доходит до экрана.
+test("roguelite run: поздние синки — подготовка дорожает, правило этапа меняется", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CHEAT_SEED, { cheatMode: true });
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+
+  // Подготовка: цена растёт с каждой покупкой в этом же Буткемпе.
+  const buyPrep = page.getByTestId("camp-prep-boost-buy");
+  const firstPrice = await buyPrep.innerText();
+  await buyPrep.click();
+  await expect(page.getByTestId("camp-prep-boost-note")).toBeVisible();
+  await expect(buyPrep).not.toHaveText(firstPrice);
+
+  // Разведка за золото раскрывает будущего босса — то же знание, что даёт карточка Scouting.
+  await expect(page.getByTestId("camp-boss-scouted")).toHaveCount(0);
+  await page.getByTestId("camp-prep-scout-buy").click();
+  await expect(page.getByTestId("camp-boss-scouted")).toBeVisible();
+  // Раскрывать больше нечего — карточка покупки уходит с экрана.
+  await expect(page.getByTestId("camp-prep-scout")).toHaveCount(0);
+
+  // Смена правила: она есть только там, где правило есть, — на финале акта.
+  await expect(page.getByTestId("camp-prep-boss")).toHaveCount(0);
+  await boostInCamp(page);
+  for (let stage = 1; stage < SEASON.actLength; stage += 1) {
+    await page.getByTestId("camp-next-stage").click();
+    await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+    await simulateAnteStageToOutcome(page);
+    if (!(await page.getByTestId("ante-to-camp").isVisible().catch(() => false))) break;
+    await page.getByTestId("ante-to-camp").click();
+    await expect(page.getByTestId("camp-screen")).toBeVisible();
+    // Забег обязан дожить до финала акта — иначе проверять смену правила не на чем.
+    await boostInCamp(page);
+    if (await page.getByTestId("camp-boss").count()) {
+      const before = await page.getByTestId("camp-boss").getAttribute("data-boss-id");
+      await page.getByTestId("camp-prep-boss-buy").click();
+      // Заплатил — получил ДРУГОЕ правило, а не тот же бросок ещё раз.
+      await expect(page.getByTestId("camp-boss")).not.toHaveAttribute("data-boss-id", before!);
+      return;
+    }
+  }
+  throw new Error("финал акта не достигнут: смену правила проверить не на чем");
+});
+
 // R2.1: Cheat Mode — правило конкретного забега, живёт на экране его конфигурации.
 test("cheat mode: секция Special rules только в Roguelite, включение через подтверждение", async ({ page }) => {
   await gotoFreshApp(page);

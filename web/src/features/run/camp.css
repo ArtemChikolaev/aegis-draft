@@ -229,6 +229,9 @@
   font-size: 10.5px;
 }
 .camp-offer--card { border-color: color-mix(in srgb, var(--accent) 32%, var(--line)); }
+/* Поздний синк (T5.9): та же карточка, но покупка расходуемая — отделяем золотой рамкой, чтобы
+   её не путали с бесплатным выбором награды прямо под ней. */
+.camp-offer--sink { border-color: color-mix(in srgb, var(--gold) 30%, var(--line)); }
 .camp-offer--reward[data-offer-kind="tactic"] {
   border-color: color-mix(in srgb, var(--card-tactic) 45%, var(--line));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card-tactic) 14%, transparent);

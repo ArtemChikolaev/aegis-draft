@@ -10,6 +10,8 @@ import {
   rerollCostFor,
   marketOffers,
   playerOfferAffordable,
+  prepCostFor,
+  bossRerollCostFor,
   prizeBreakdown,
   prizeForStage,
   rewardOffers,
@@ -603,5 +605,105 @@ describe("Композиция силы забега", () => {
     const economy = { base: 4, heroSynergy: -1, chemistry: 0 };
     expect(runModifiers({ economy, tactics: null, heroRarity: {}, activeHeroes: [1, 2] }))
       .toEqual(economy);
+  });
+});
+
+// T5.9: поздние синки. Существуют ровно потому, что на глубине рынок насыщен (замер: 0.08 карт
+// с плюсом на лагерь при ~905 золота на руках), и золоту больше не во что превращаться.
+describe("Поздние синки Буткемпа", () => {
+  it("цена подготовки геометрическая и обнуляется в следующем Буткемпе", () => {
+    const { costBase: base, costGrowth: growth } = ECONOMY.prep;
+    expect([0, 1, 2, 3].map(prepCostFor))
+      .toEqual([base, base * growth, base * growth ** 2, base * growth ** 3]);
+
+    const eco = new RunEconomy("prep");
+    eco.openCamp(1);
+    eco.setUnlimitedGold(true);
+    expect(eco.campView().prepCost).toBe(prepCostFor(0));
+    expect(eco.buyPrep()).toBe(true);
+    expect(eco.buyPrep()).toBe(true);
+    expect(eco.campView().prepCost).toBe(prepCostFor(2));
+    expect(eco.campView().prepBought).toBe(2);
+
+    // Следующий лагерь — снова базовая цена: синк живёт внутри лагеря, а не копится забегом.
+    eco.openCamp(2);
+    expect(eco.campView().prepCost).toBe(prepCostFor(0));
+    expect(eco.campView().prepBought).toBe(0);
+  });
+
+  it("подготовка расходуемая: эффект сгорает в следующем Буткемпе", () => {
+    const eco = new RunEconomy("prep-temp");
+    eco.openCamp(1);
+    eco.setUnlimitedGold(true);
+    expect(eco.buyPrep()).toBe(true);
+    // Ровно тот же механизм, что у разыгранных Camp Actions: один следующий этап.
+    expect(eco.modifiers()[ECONOMY.prep.summand]).toBe(ECONOMY.prep.delta);
+    eco.openCamp(2);
+    expect(eco.modifiers()[ECONOMY.prep.summand]).toBe(0);
+  });
+
+  it("не хватает золота — покупки нет и баланс не уходит в минус", () => {
+    const eco = new RunEconomy("prep-poor");
+    eco.openCamp(1);
+    expect(eco.gold).toBe(0);
+    expect(eco.campView().canBuyPrep).toBe(false);
+    expect(eco.buyPrep()).toBe(false);
+    expect(eco.gold).toBe(0);
+    expect(eco.campView().canRerollBoss).toBe(false);
+    expect(eco.rerollBoss()).toBe(false);
+    expect(eco.campView().canBuyScouting).toBe(false);
+    expect(eco.buyScouting()).toBe(false);
+  });
+
+  it("смена правила дорожает ПОЭТАПНО, а не по забегу", () => {
+    expect([0, 1, 2].map(bossRerollCostFor)).toEqual([
+      ECONOMY.bossReroll.costBase,
+      ECONOMY.bossReroll.costBase * ECONOMY.bossReroll.costGrowth,
+      ECONOMY.bossReroll.costBase * ECONOMY.bossReroll.costGrowth ** 2,
+    ]);
+
+    const eco = new RunEconomy("boss-reroll");
+    eco.setUnlimitedGold(true);
+    eco.openCamp(4);
+    expect(eco.rerollBoss()).toBe(true);
+    expect(eco.bossRerollsFor(4)).toBe(1);
+    expect(eco.campView().bossRerollCost).toBe(bossRerollCostFor(1));
+
+    // Другой этап — своё правило и своя цена: перебор одного босса не удорожает следующего.
+    eco.openCamp(9);
+    expect(eco.bossRerollsFor(9)).toBe(0);
+    expect(eco.campView().bossRerollCost).toBe(bossRerollCostFor(0));
+    // Счётчик пройденного этапа сохраняется — resume обязан восстановить то же правило.
+    expect(eco.bossRerollsFor(4)).toBe(1);
+    expect(eco.snapshot.bossRerolls["4"]).toBe(1);
+  });
+
+  it("разведка за золото пишет в тот же список, что карточка, и не покупается дважды", () => {
+    const eco = new RunEconomy("scout-buy");
+    eco.openCamp(3);
+    eco.setUnlimitedGold(true);
+    expect(eco.campView().scouted).toBe(false);
+    expect(eco.buyScouting()).toBe(true);
+    expect(eco.campView().scouted).toBe(true);
+    expect(eco.snapshot.scoutedCamps).toContain(3);
+    // Раскрывать уже раскрытое нечего — второй раз денег не берём.
+    expect(eco.campView().canBuyScouting).toBe(false);
+    expect(eco.buyScouting()).toBe(false);
+  });
+
+  it("вне Буткемпа синки недоступны", () => {
+    const eco = new RunEconomy("prep-outside");
+    eco.setUnlimitedGold(true);
+    expect(eco.buyPrep()).toBe(false);
+    expect(eco.rerollBoss()).toBe(false);
+    expect(eco.buyScouting()).toBe(false);
+  });
+
+  it("синк заведомо хуже рынка по курсу — это последнее средство, а не источник силы", () => {
+    // Смысловой инвариант, а не арифметика: если подготовка станет дешевле обычной покупки за
+    // очко силы, лагерь превратится в «купи +N», и калибровка сезона поедет молча.
+    const perPointSink = ECONOMY.prep.costBase / ECONOMY.prep.delta;
+    const perPointMarket = ECONOMY.levers.base.cost / ECONOMY.levers.base.delta;
+    expect(perPointSink).toBeGreaterThan(perPointMarket * 3);
   });
 });

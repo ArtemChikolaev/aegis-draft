@@ -56,11 +56,27 @@ export const BOSSES = {
   heroBan: { perHero: 1.5, max: 6, summand: "heroSynergy" as Summand },
 } as const;
 
+/** Ключ Rng правила: нулевой реролл сохраняет ИСХОДНЫЙ ключ, поэтому смена правила (T5.9) не
+ *  сдвигает ни один уже посчитанный забег, сид или golden. */
+function bossKey(seed: string, absoluteStageIndex: number, rerolls: number): string {
+  const base = `${seed}:boss:stage-${absoluteStageIndex}`;
+  return rerolls > 0 ? `${base}:reroll-${rerolls}` : base;
+}
+
 /** Босс этапа `absoluteStageIndex` (0-based). null — обычный этап без правила. Детерминизм по
- *  seed+stage; в бесконечной Династии (срез 6) индекс не ограничен и типы циклятся. */
-export function bossForStage(seed: string, absoluteStageIndex: number): BossId | null {
+ *  seed+stage; в бесконечной Династии (срез 6) индекс не ограничен и типы циклятся.
+ *
+ *  `rerolls` — сколько раз правило перекуплено в Буткемпе (T5.9). Каждый реролл выбирает из
+ *  правил БЕЗ текущего: платить за «то же самое» игрок не должен, а при пяти правилах случайный
+ *  повтор выпадал бы каждый пятый раз. Поэтому цепочка считается по шагам, а не одним роллом. */
+export function bossForStage(seed: string, absoluteStageIndex: number, rerolls = 0): BossId | null {
   if (!isActFinale(absoluteStageIndex)) return null;
-  return new Rng(`${seed}:boss:stage-${absoluteStageIndex}`).pick(BOSS_IDS);
+  let boss = new Rng(bossKey(seed, absoluteStageIndex, 0)).pick(BOSS_IDS);
+  for (let n = 1; n <= Math.max(0, Math.floor(rerolls)); n += 1) {
+    const others = BOSS_IDS.filter((id) => id !== boss);
+    boss = new Rng(bossKey(seed, absoluteStageIndex, n)).pick(others);
+  }
+  return boss;
 }
 
 /** Забаненные героем этап heroId (детерминированы по seed+stage). Пусто, если этап не heroBan. */
@@ -68,9 +84,10 @@ export function bannedHeroesForStage(
   seed: string,
   absoluteStageIndex: number,
   heroPool: readonly number[],
+  rerolls = 0,
 ): number[] {
-  if (bossForStage(seed, absoluteStageIndex) !== "heroBan") return [];
-  const shuffled = new Rng(`${seed}:boss:stage-${absoluteStageIndex}:ban`).shuffle([...heroPool]);
+  if (bossForStage(seed, absoluteStageIndex, rerolls) !== "heroBan") return [];
+  const shuffled = new Rng(`${bossKey(seed, absoluteStageIndex, rerolls)}:ban`).shuffle([...heroPool]);
   return shuffled.slice(0, Math.min(HERO_BAN_COUNT, shuffled.length)).sort((a, b) => a - b);
 }
 

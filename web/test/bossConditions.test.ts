@@ -32,6 +32,43 @@ describe("bossForStage", () => {
     expect(bossForStage("s", finale)).toBe(bossForStage("s", finale)); // детерминизм
   });
 
+  // T5.9: правило можно перекупить в Буткемпе. Реролл обязан МЕНЯТЬ правило — при пяти типах
+  // случайный повтор выпадал бы каждый пятый раз, и игрок платил бы за «то же самое».
+  it("смена правила даёт другое правило, детерминирована и не трогает нулевой реролл", () => {
+    for (let stage = ACT_LENGTH - 1; stage < 40; stage += ACT_LENGTH) {
+      const original = bossForStage("reroll-seed", stage);
+      expect(original).not.toBeNull();
+      let previous = original;
+      for (let n = 1; n <= 4; n += 1) {
+        const rerolled = bossForStage("reroll-seed", stage, n);
+        expect(rerolled).not.toBe(previous);
+        expect(rerolled).toBe(bossForStage("reroll-seed", stage, n)); // детерминизм
+        previous = rerolled;
+      }
+      // Ключ нулевого реролла сохранён ⇒ ни один уже сыгранный сид не сдвинулся.
+      expect(bossForStage("reroll-seed", stage, 0)).toBe(original);
+    }
+  });
+
+  it("баны героев следуют за перекупленным правилом", () => {
+    const pool = Array.from({ length: 40 }, (_, i) => i + 1);
+    // Ищем этап, где heroBan появляется ИМЕННО после смены правила.
+    let stage = -1;
+    let rerolls = 0;
+    outer: for (let s = ACT_LENGTH - 1; s < 200; s += ACT_LENGTH) {
+      for (let n = 1; n <= 3; n += 1) {
+        if (bossForStage("ban-reroll", s) !== "heroBan" && bossForStage("ban-reroll", s, n) === "heroBan") {
+          stage = s; rerolls = n; break outer;
+        }
+      }
+    }
+    expect(stage).toBeGreaterThanOrEqual(0);
+    expect(bannedHeroesForStage("ban-reroll", stage, pool)).toEqual([]);
+    const banned = bannedHeroesForStage("ban-reroll", stage, pool, rerolls);
+    expect(banned.length).toBeGreaterThan(0);
+    expect(bannedHeroesForStage("ban-reroll", stage, pool, rerolls)).toEqual(banned);
+  });
+
   it("каждый тип встречается на каком-то этапе (полнота каталога)", () => {
     const seen = new Set<string>();
     for (let stage = 0; stage < 1000; stage += 1) {

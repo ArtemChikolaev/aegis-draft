@@ -14,6 +14,7 @@
 //   npm run sim -- 300 --seasons       сравнение сезонов 20 / 25 / 30 этапов (вход для R6.1/R6.4)
 //   npm run sim -- 200 --finales       сравнение кривых финалов актов (R6.4, PRD §10.I)
 //   npm run sim -- 100 --dynasty       забег продолжается в Династию (R6.3): глубина продолжения
+//   npm run sim -- 150 --dynasty --no-sinks   то же без поздних синков (T5.9), для A/B на общих сидах
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
@@ -41,6 +42,9 @@ const config: RunConfig = {
   draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
 };
 const useBoss = !process.env.NOBOSS;
+/** Поздние синки (T5.9). Выключаются флагом, чтобы их эффект мерился НА ТЕХ ЖЕ сидах и агентах:
+ *  разница профиля тогда принадлежит синкам, а не выборке (методика R6.4). */
+const useSinks = !process.argv.includes("--no-sinks");
 /** Насколько глубоко симулятор играет Династию (R6.3). Бесконечная фаза не должна означать
  *  бесконечный прогон, поэтому у измерения есть потолок — он же читается как «дальше не мерили». */
 const DYNASTY_DEPTH_CAP = 25;
@@ -85,7 +89,7 @@ function bossPenalty(
     chemistry: score.chemistry + mods.chemistry,
     playerOvrs: engine.players.map((p) => p.ovr),
     activeHeroes: engine.heroes,
-    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes),
+    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex)),
   }).penalty;
   // Защита предметами — как в игре (R8.3), иначе симулятор мерил бы более тяжёлых боссов.
   return protectedBossPenalty(raw, itemsOf(engine, economy));
@@ -108,7 +112,7 @@ function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, sta
   if (!score) return 0;
   const tactics = tacticsOf(engine, economy);
   const mods = effectiveMods(engine, economy, tactics);
-  const bossId = useBoss ? bossForStage(seed, stageIndex) : null;
+  const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex)) : null;
   const items = itemsOf(engine, economy);
   return runStageStrength(score.teamOvr, strengthInput(engine, economy, tactics), {
     bossPenalty: bossPenalty(engine, economy, seed, stageIndex, mods, bossId),
@@ -216,6 +220,47 @@ function valueOf(agent: Agent, offer: Offer, decision: Decision): number {
 
 // ───────────────────────────────────── прогон забега ─────────────────────────────────────
 
+/** Состояние лагеря НА ВХОДЕ, до покупок (T5.9). Обычные метрики отвечают «сколько купили», а
+ *  нужен был ответ на «почему не купили»: гипотеза «рынок на глубине тонкий» оказалась неверной —
+ *  он НАСЫЩЕН (карты есть, плюса нет, качество и слоты на максимуме). Копится по всем агентам
+ *  прогона: это профиль лагеря, а не агента. */
+interface CampDiagnostic {
+  dynasty: boolean;
+  gold: number;
+  offers: number;
+  /** Карт с положительной ценностью для агента и из них — по карману. */
+  positive: number;
+  affordable: number;
+  /** Лучшая дельта Team OVR на рынке: потолок того, что вообще можно купить. */
+  bestDelta: number;
+  rarityMaxed: boolean;
+  slotsFull: boolean;
+}
+
+const campDiag: CampDiagnostic[] = [];
+
+function recordCampDiagnostic(
+  engine: RunEngine, economy: RunEconomy, agent: Agent, decision: Decision, stageCount: number,
+): void {
+  const view = economy.campView();
+  const cards = view.marketOffers.filter((o) => (o.kind === "player" || o.kind === "hero") && o.preview);
+  const deltas = cards.map((o) => {
+    const d = offerDelta(o);
+    return d.base + d.hero + d.chem;
+  });
+  const positive = cards.filter((o) => valueOf(agent, o, decision) > 0);
+  campDiag.push({
+    dynasty: view.campStageIndex > stageCount,
+    gold: economy.gold,
+    offers: cards.length,
+    positive: positive.length,
+    affordable: positive.filter((o) => o.cost <= economy.gold).length,
+    bestDelta: deltas.length ? Math.max(...deltas) : 0,
+    rarityMaxed: engine.heroes.every((h) => upgradeCost(economy.rarityOf(h)) == null),
+    slotsFull: view.equippedTactics.length >= view.tacticSlots,
+  });
+}
+
 interface CampStat {
   /** Лагерь ЗА пределами сезона (Династия, R6.3) — рынок там упирается в потолок ростера. */
   dynasty: boolean;
@@ -223,6 +268,9 @@ interface CampStat {
   buys: number;
   rerolls: number;
   qualityUpgrades: number;
+  /** Поздние синки (T5.9): куплено сборов и смен правила в этом лагере. */
+  preps: number;
+  bossRerolls: number;
 }
 
 interface RunResult {
@@ -334,6 +382,7 @@ function nextTier(current: Rarity): Rarity {
 function shopCamp(
   engine: RunEngine, economy: RunEconomy, seed: string, agent: Agent, decision: Decision, stageCount: number,
 ): { buys: number; rerolls: number; qualityUpgrades: number } {
+  recordCampDiagnostic(engine, economy, agent, decision, stageCount);
   let buys = 0;
   let rerolls = 0;
   let qualityUpgrades = 0;
@@ -389,6 +438,44 @@ function shopCamp(
   return { buys, rerolls, qualityUpgrades };
 }
 
+/** Излишек золота уходит в поздние синки (T5.9). Ставится ПОСЛЕ рынка намеренно: синк обязан быть
+ *  тем, что делают, когда купить больше нечего, а не заменой билду. Именно в этом состоянии живёт
+ *  весь лагерь Династии — рынок там насыщен (0.08 карт с плюсом на лагерь).
+ *
+ *  Порядок внутри: сначала смена правила (адресная трата — снимает конкретный штраф), потом сборы
+ *  (они сгорают за этап). Реролл правила берётся только если штраф РЕАЛЬНО есть: платить за смену
+ *  выполненного условия незачем, а «может, выпадет полегче» — это не решение, а автоклик. */
+function spendSurplus(
+  engine: RunEngine, economy: RunEconomy, seed: string, agent: Agent,
+): { preps: number; bossRerolls: number } {
+  let preps = 0;
+  let bossRerolls = 0;
+  if (!useSinks || agent.passive || agent.random) return { preps, bossRerolls };
+  const stageIndex = economy.snapshot.campStageIndex;
+
+  const penaltyNow = () => {
+    const tactics = tacticsOf(engine, economy);
+    const mods = effectiveMods(engine, economy, tactics);
+    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex)) : null;
+    return bossPenalty(engine, economy, seed, stageIndex, mods, bossId);
+  };
+
+  if (agent.bossAware) {
+    // Потолок в две смены — не правило игры, а поведение агента: дальше он ушёл бы в бесконечный
+    // перебор, а измерять надо разумную игру, а не эксплуатацию цены.
+    while (bossRerolls < 2 && penaltyNow() > 0) {
+      if (economy.gold - economy.campView().bossRerollCost < agent.holdGold) break;
+      if (!economy.rerollBoss()) break;
+      bossRerolls += 1;
+    }
+  }
+  while (economy.gold - economy.campView().prepCost >= agent.holdGold) {
+    if (!economy.buyPrep()) break;
+    preps += 1;
+  }
+  return { preps, bossRerolls };
+}
+
 /** Разыграть все имеющиеся Camp Actions: они одноразовые и сгорают на следующем Буткемпе,
  *  поэтому держать их в слоте — чистая потеря. */
 function playActions(economy: RunEconomy): void {
@@ -418,7 +505,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
   // конечным: бесконечная фаза не должна означать бесконечный тест.
   while (guard++ < stageCount + DYNASTY_DEPTH_CAP + 5) {
     const stageIndex = anteRun.state.index;
-    const bossId = useBoss ? bossForStage(seed, stageIndex) : null;
+    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex)) : null;
     let phase = anteRun.resolveStage();
     if (phase === "won" && dynasty && anteRun.state.index < stageCount + DYNASTY_DEPTH_CAP - 1) {
       phase = anteRun.continueDynasty();
@@ -452,7 +539,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     economy.openCamp(campId);
 
     const decision: Decision = {
-      boss: useBoss ? bossForStage(seed, campId) : null,
+      boss: useBoss ? bossForStage(seed, campId, economy.bossRerollsFor(campId)) : null,
       gold: economy.gold,
       stagesLeft: stageCount - campId,
       rng,
@@ -461,7 +548,8 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     playActions(economy);
     prepareMarket(engine, economy, seed, stageCount);
     const shopped = shopCamp(engine, economy, seed, agent, decision, stageCount);
-    camps.push({ goldAfter: economy.gold, dynasty: campId > stageCount, ...shopped });
+    const surplus = spendSurplus(engine, economy, seed, agent);
+    camps.push({ goldAfter: economy.gold, dynasty: campId > stageCount, ...shopped, ...surplus });
 
     economy.leaveCamp();
     anteRun.rebuildCurrentStage(stageStrength(engine, economy, seed, anteRun.state.index));
@@ -504,8 +592,13 @@ interface Report {
   tactics: number;
   lostUnderBoss: number;
   podium: number;
+  /** Куплено поздних синков (T5.9) на лагерь: сборы и смены правила. */
+  preps: number;
+  bossRerolls: number;
   /** Династия (R6.3): сколько забегов до неё дошло и насколько глубоко ушли. null — не мерили. */
-  dynasty: { runs: number; depth: [number, number, number]; buys: number; camps: number } | null;
+  dynasty: {
+    runs: number; depth: [number, number, number]; buys: number; camps: number; preps: number;
+  } | null;
 }
 
 function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = false): Report {
@@ -514,8 +607,9 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
   const golds: number[] = [];
   let played = 0; let wins = 0; let bossDeaths = 0; let podium = 0;
   const dynastyDepths: number[] = [];
-  let dynastyBuys = 0; let dynastyCamps = 0;
+  let dynastyBuys = 0; let dynastyCamps = 0; let dynastyPreps = 0;
   let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0;
+  let preps = 0; let bossRerolls = 0;
 
   for (let i = 0; i < seeds; i += 1) {
     const result = playRun(`sim-${i}`, agent, season, dynasty);
@@ -538,9 +632,10 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
     for (const camp of result.camps) {
       golds.push(camp.goldAfter);
       buys += camp.buys; rerolls += camp.rerolls; qualityBought += camp.qualityUpgrades; camps += 1;
+      preps += camp.preps; bossRerolls += camp.bossRerolls;
       // Отдельно по Династии: если рынок там упирается в потолок ростера, это видно как падение
       // покупок на лагерь — гадать об этом не нужно, оно измеряется.
-      if (camp.dynasty) { dynastyBuys += camp.buys; dynastyCamps += 1; }
+      if (camp.dynasty) { dynastyBuys += camp.buys; dynastyCamps += 1; dynastyPreps += camp.preps; }
     }
   }
 
@@ -553,6 +648,8 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
     gold: [percentile(golds, 0.5), percentile(golds, 0.9), percentile(golds, 0.99)],
     buys: camps ? buys / camps : 0,
     rerolls: camps ? rerolls / camps : 0,
+    preps: camps ? preps / camps : 0,
+    bossRerolls: camps ? bossRerolls / camps : 0,
     qualityBought: played ? qualityBought / played : 0,
     rareHeroes: played ? rareHeroes / played : 0,
     tactics: played ? tactics / played : 0,
@@ -563,6 +660,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
         runs: dynastyDepths.length,
         depth: [percentile(dynastyDepths, 0.5), percentile(dynastyDepths, 0.9), Math.max(...dynastyDepths)],
         buys: dynastyCamps ? dynastyBuys / dynastyCamps : 0,
+        preps: dynastyCamps ? dynastyPreps / dynastyCamps : 0,
         camps: dynastyCamps,
       }
       : null,
@@ -593,7 +691,7 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
   console.log(`\n${title}  (этапов: ${targets.length}, пороги: ${targets.join("/")})\n`);
   console.log(
     "agent           win%   survival по этапам".padEnd(38)
-    + "  strength p50/p90/p99   gold p50/p90/p99  buys  rrl  qual  rare  tac  boss-death",
+    + "  strength p50/p90/p99   gold p50/p90/p99  buys  rrl  qual  prep  brr  rare  tac  boss-death",
   );
   for (const r of reports) {
     const survival = r.survival.map((s) => `${Math.round(100 * s)}`.padStart(3)).join(" ");
@@ -604,6 +702,7 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
       + `  ${r.strength.map((s) => s.toFixed(0)).join("/").padStart(11)}`
       + `   ${r.gold.map((g) => g.toFixed(0)).join("/").padStart(11)}`
       + `  ${r.buys.toFixed(2)}  ${r.rerolls.toFixed(2)}  ${r.qualityBought.toFixed(1).padStart(4)}`
+      + `  ${r.preps.toFixed(2)}  ${r.bossRerolls.toFixed(2)}`
       + `  ${r.rareHeroes.toFixed(1).padStart(4)}  ${r.tactics.toFixed(1)}  ${pct(r.lostUnderBoss).padStart(6)}`,
     );
   }
@@ -613,9 +712,30 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
       if (!r.dynasty) continue;
       console.log(
         `${r.agent.padEnd(15)}${String(r.dynasty.runs).padStart(3)} · ${r.dynasty.depth.join("/")}`
-        + ` · ${r.buys.toFixed(2)} → ${r.dynasty.buys.toFixed(2)} (${r.dynasty.camps} лагерей)`,
+        + ` · ${r.buys.toFixed(2)} → ${r.dynasty.buys.toFixed(2)} (${r.dynasty.camps} лагерей)`
+        + ` · сборов ${r.preps.toFixed(2)} → ${r.dynasty.preps.toFixed(2)}`,
       );
     }
+  }
+  // Профиль лагеря (T5.9): отвечает на «почему в лагере ничего не куплено».
+  if (campDiag.length) {
+    const show = (label: string, rows: CampDiagnostic[]) => {
+      if (!rows.length) return;
+      const avg = (f: (r: CampDiagnostic) => number) => rows.reduce((s, r) => s + f(r), 0) / rows.length;
+      console.log(
+        `${label.padEnd(10)} лагерей ${String(rows.length).padStart(5)}`
+        + ` · золото ${avg((r) => r.gold).toFixed(1).padStart(6)}`
+        + ` · карт ${avg((r) => r.offers).toFixed(1)}`
+        + ` · с плюсом ${avg((r) => r.positive).toFixed(2)}`
+        + ` · по карману ${avg((r) => r.affordable).toFixed(2)}`
+        + ` · лучшая дельта ${avg((r) => r.bestDelta).toFixed(2).padStart(6)}`
+        + ` · качество на максимуме ${(100 * avg((r) => (r.rarityMaxed ? 1 : 0))).toFixed(0)}%`
+        + ` · слоты полны ${(100 * avg((r) => (r.slotsFull ? 1 : 0))).toFixed(0)}%`,
+      );
+    };
+    console.log("\nДИАГНОСТИКА лагерей:");
+    show("сезон", campDiag.filter((r) => !r.dynasty));
+    show("Династия", campDiag.filter((r) => r.dynasty));
   }
   console.log("\nпроходимость финалов актов (из дошедших):");
   for (const r of reports) {
