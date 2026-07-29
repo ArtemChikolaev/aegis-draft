@@ -15,7 +15,7 @@
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
-import { ACT_LENGTH, AnteRunEngine, ANTE_TARGETS } from "../src/game/anteRun.ts";
+import { ACT_LENGTH, AnteRunEngine, buildSeason, SEASON, type SeasonModel } from "../src/game/anteRun.ts";
 import {
   RunEconomy,
   type Offer,
@@ -385,13 +385,13 @@ function playActions(economy: RunEconomy): void {
   for (const actionId of economy.campView().heldActions) economy.playCampAction(actionId);
 }
 
-function playRun(seed: string, agent: Agent, targets: readonly number[]): RunResult | null {
+function playRun(seed: string, agent: Agent, season: SeasonModel): RunResult | null {
   const engine = new RunEngine(data, config, seed);
   greedyDraft(engine);
   const score = engine.score();
   if (!score || !engine.isComplete) return null;
 
-  const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "Sim", targets);
+  const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "Sim", season);
   const economy = new RunEconomy(seed);
   // Симулируем НЕ первый забег: иначе мета-гейт держит все дропы на common и профиль редкости
   // измерить нечем. Первый забег — отдельный онбординговый случай.
@@ -402,7 +402,8 @@ function playRun(seed: string, agent: Agent, targets: readonly number[]): RunRes
   const rng = new Rng(`${seed}:agent:${agent.name}`);
   let guard = 0;
 
-  while (guard++ < targets.length + 5) {
+  const stageCount = season.stages.length;
+  while (guard++ < stageCount + 5) {
     const stageIndex = anteRun.state.index;
     const bossId = useBoss ? bossForStage(seed, stageIndex) : null;
     const phase = anteRun.resolveStage();
@@ -427,19 +428,19 @@ function playRun(seed: string, agent: Agent, targets: readonly number[]): RunRes
     }
 
     const campId = anteRun.state.index;
-    economy.awardStageClear(campId, anteRun.state.lastPlacement, targets[campId - 1]);
+    economy.awardStageClear(campId, anteRun.state.lastPlacement, season.stages[campId - 1].target);
     economy.openCamp(campId);
 
     const decision: Decision = {
       boss: useBoss ? bossForStage(seed, campId) : null,
       gold: economy.gold,
-      stagesLeft: targets.length - campId,
+      stagesLeft: stageCount - campId,
       rng,
     };
     takeReward(economy, agent, decision);
     playActions(economy);
-    prepareMarket(engine, economy, seed, targets.length);
-    const shopped = shopCamp(engine, economy, seed, agent, decision, targets.length);
+    prepareMarket(engine, economy, seed, stageCount);
+    const shopped = shopCamp(engine, economy, seed, agent, decision, stageCount);
     camps.push({ goldAfter: economy.gold, ...shopped });
 
     economy.leaveCamp();
@@ -485,15 +486,15 @@ interface Report {
   podium: number;
 }
 
-function runAgent(agent: Agent, seeds: number, targets: readonly number[]): Report {
-  const survivedTo = Array(targets.length).fill(0);
+function runAgent(agent: Agent, seeds: number, season: SeasonModel): Report {
+  const survivedTo = Array(season.stages.length).fill(0);
   const strengths: number[] = [];
   const golds: number[] = [];
   let played = 0; let wins = 0; let bossDeaths = 0; let podium = 0;
   let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0;
 
   for (let i = 0; i < seeds; i += 1) {
-    const result = playRun(`sim-${i}`, agent, targets);
+    const result = playRun(`sim-${i}`, agent, season);
     if (!result) continue;
     played += 1;
     strengths.push(result.finalStrength);
@@ -503,7 +504,7 @@ function runAgent(agent: Agent, seeds: number, targets: readonly number[]): Repo
     if (result.lostUnderBoss) bossDeaths += 1;
     podium += result.placements.filter((p) => p === "1" || p === "2" || p === "3").length;
     // Забег дожил до этапа s, если он его сыграл: индекс окончания = число сыгранных − 1.
-    for (let s = 0; s <= result.stage && s < targets.length; s += 1) survivedTo[s] += 1;
+    for (let s = 0; s <= result.stage && s < season.stages.length; s += 1) survivedTo[s] += 1;
     for (const camp of result.camps) {
       golds.push(camp.goldAfter);
       buys += camp.buys; rerolls += camp.rerolls; qualityBought += camp.qualityUpgrades; camps += 1;
@@ -529,7 +530,8 @@ function runAgent(agent: Agent, seeds: number, targets: readonly number[]): Repo
 
 const pct = (x: number) => `${(100 * x).toFixed(1)}%`;
 
-function printReports(title: string, reports: Report[], targets: readonly number[]): void {
+function printReports(title: string, reports: Report[], season: SeasonModel): void {
+  const targets = season.stages.map((stage) => stage.target);
   console.log(`\n${title}  (этапов: ${targets.length}, пороги: ${targets.join("/")})\n`);
   console.log(
     "agent           win%   survival по этапам".padEnd(38)
@@ -549,16 +551,6 @@ function printReports(title: string, reports: Report[], targets: readonly number
   }
 }
 
-/** Лестница сезона из `acts` актов по шаблону PRD §5.9.3: обычные этапы топ-8, «элитный» топ-6,
- *  playoff check топ-4, финал акта ужесточается до чемпионства. Нужна, чтобы сравнить 20/25/30
- *  этапов ДО того, как акт-модель будет реализована (R6.1). */
-function seasonTargets(acts: number): number[] {
-  const finales = [4, 3, 2, 1, 1];
-  return Array.from({ length: acts }, (_, act) => [
-    8, 8, 6, 4, finales[Math.min(act, finales.length - 1)],
-  ]).flat();
-}
-
 const N = Number(process.argv[2] ?? 500);
 const compareSeasons = process.argv.includes("--seasons");
 
@@ -569,13 +561,15 @@ console.log(
 
 if (compareSeasons) {
   // Вход для R6.1/R6.4: какая длина сезона даёт осмысленный профиль выживаемости.
+  // Ту же акт-модель, что играет игра, просто с другим числом актов — своей копии лестницы у
+  // симулятора больше нет (R6.1).
   for (const acts of [4, 5, 6]) {
-    const targets = seasonTargets(acts);
-    const reports = AGENTS.filter((a) => !a.passive).map((agent) => runAgent(agent, N, targets));
-    printReports(`Сезон ${targets.length} этапов (${acts} акта)`, reports, targets);
+    const season = buildSeason({ acts });
+    const reports = AGENTS.filter((a) => !a.passive).map((agent) => runAgent(agent, N, season));
+    printReports(`Сезон ${season.stages.length} этапов (${acts} акта)`, reports, season);
   }
 } else {
-  printReports("Текущая лестница", AGENTS.map((agent) => runAgent(agent, N, ANTE_TARGETS)), ANTE_TARGETS);
+  printReports("Сезон целиком", AGENTS.map((agent) => runAgent(agent, N, SEASON)), SEASON);
 }
 
 console.log(

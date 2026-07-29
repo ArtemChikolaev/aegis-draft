@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { boostInCamp, chooseReward, completeDraft, gotoFreshApp, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
+// Длина сезона и шаблон акта берутся из самой модели: тест не должен знать «25» отдельно от игры.
+import { SEASON } from "../src/game/anteRun.ts";
 
 // Seed, проходящий этап 1 жадным авто-драфтом (completeDraft) с большим запасом (место 1) —
 // Буткемп достигается детерминированно. Подобран под текущие ante-константы (см. историю).
@@ -20,8 +22,12 @@ test("roguelite run: этапы через Буткемп и завершени�
   await completeDraft(page);
 
   let stagesPlayed = 0;
-  for (let stage = 0; stage < 6; stage += 1) {
+  // Сезон — 25 этапов (R6.1), но ростер тут статичный (в Буткемпе ничего не покупаем), поэтому
+  // забег гибнет в первом-втором акте. Бюджет цикла — с запасом к этому, а не к длине сезона:
+  // прогонять 25 турниров в браузере ради проверки петли незачем.
+  for (let stage = 0; stage < 12; stage += 1) {
     await expect(page.getByTestId("ante-status")).toBeVisible();
+    await expect(page.getByTestId("ante-act-stage")).toContainText(`Stage ${(stage % SEASON.actLength) + 1}`);
     await simulateAnteStageToOutcome(page);
     await expect(page.getByTestId("ante-result")).toBeVisible();
     stagesPlayed += 1;
@@ -37,8 +43,9 @@ test("roguelite run: этапы через Буткемп и завершени�
 
   await expect(page.getByTestId("tournament-complete")).toBeVisible();
   expect(stagesPlayed).toBeGreaterThanOrEqual(1);
-  expect(stagesPlayed).toBeLessThanOrEqual(5);
-  await expect(page.locator(".career-run").first()).toContainText(`Stage ${stagesPlayed}/5`);
+  expect(stagesPlayed).toBeLessThan(SEASON.stages.length);
+  await expect(page.locator(".career-run").first())
+    .toContainText(`Stage ${stagesPlayed}/${SEASON.stages.length}`);
 });
 
 // Экономика Буткемпа: reward (выбор 1 из 3) и покупка на рынке двигают Team OVR, баланс не в минус.
@@ -222,11 +229,11 @@ test("roguelite run: resume восстанавливает ante-этап пос�
   await gotoFreshApp(page);
   await startRogueliteRun(page);
   await completeDraft(page);
-  await expect(page.getByTestId("ante-status")).toContainText("Stage 1/5");
+  await expect(page.getByTestId("ante-status")).toContainText("Act 1 · Stage 1");
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
 
   await reloadAndResume(page);
-  await expect(page.getByTestId("ante-status")).toContainText("Stage 1/5", { timeout: 20_000 });
+  await expect(page.getByTestId("ante-status")).toContainText("Act 1 · Stage 1", { timeout: 20_000 });
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
 });
 
@@ -316,7 +323,7 @@ test("roguelite run: resume восстанавливает Буткемп пос
 // него можно лишь глубоким забегом — Cheat Mode делает это детерминированно, без охоты за
 // «проходным» seed. Тест проверяет ОБЕ половины правила: на этапах 1–4 боссов нет, на 5-м есть.
 // Отдельного узкого теста «обычные этапы без босса» поэтому не держим.
-test("cheat mode: ∞ золото, маркировка, boss на финале акта, забег вне статистики", async ({ page }) => {
+test("cheat mode: ∞ золото, маркировка, boss на финале акта", async ({ page }) => {
   test.slow();
   await gotoFreshApp(page);
   await startRogueliteSeed(page, CHEAT_SEED, { cheatMode: true });
@@ -327,7 +334,10 @@ test("cheat mode: ∞ золото, маркировка, boss на финале
 
   let sawBossPreview = false;
   let sawBossOnStage = false;
-  for (let stage = 0; stage < 5; stage += 1) {
+  // Первый акт целиком: этого достаточно для обеих половин правила о боссах. Терминальный исход
+  // сюда больше не входит — в 25-этапном сезоне (R6.1) прокачанный cheat-забег на пятом этапе
+  // ещё жив, и «вне статистики» проверяется отдельным коротким тестом ниже.
+  for (let stage = 0; stage < SEASON.actLength; stage += 1) {
     await simulateAnteStageToOutcome(page);
     if (!(await page.getByTestId("ante-to-camp").isVisible().catch(() => false))) break;
     await page.getByTestId("ante-to-camp").click();
@@ -340,12 +350,12 @@ test("cheat mode: ∞ золото, маркировка, boss на финале
 
     // Босс — только на финале акта (5-й этап), и в Буткемпе он виден заранее.
     const bossPreview = await page.getByTestId("camp-boss").count();
-    expect(bossPreview > 0).toBe(stage === 3);
+    expect(bossPreview > 0).toBe(stage === SEASON.actLength - 2);
     if (bossPreview) sawBossPreview = true;
 
     await page.getByTestId("camp-next-stage").click();
     await expect(page.getByTestId("tournament-simulate")).toBeVisible();
-    if (stage === 3) {
+    if (stage === SEASON.actLength - 2) {
       const anteBoss = page.getByTestId("ante-boss");
       await expect(anteBoss).toBeVisible();
       await expect(anteBoss).toHaveAttribute("data-boss-id", /.+/);
@@ -357,8 +367,27 @@ test("cheat mode: ∞ золото, маркировка, boss на финале
   }
   expect(sawBossPreview).toBe(true);
   expect(sawBossOnStage).toBe(true);
+});
 
-  // Забег дошёл до конца, запись сохранена с меткой — но в статистику не пошла.
+// R2.3: cheat-забег помечен и не двигает агрегаты. Ростер намеренно НЕ усиливаем — статичный
+// состав гибнет в первых актах, и терминальный исход достигается быстро (∞ золото на смертность
+// само по себе не влияет: тратить его тут не на что, если ничего не покупать).
+test("cheat mode: забег вне статистики", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CHEAT_SEED, { cheatMode: true });
+  await completeDraft(page);
+
+  for (let stage = 0; stage < 12; stage += 1) {
+    await simulateAnteStageToOutcome(page);
+    if (await page.getByTestId("tournament-complete").isVisible().catch(() => false)) break;
+    await page.getByTestId("ante-to-camp").click();
+    await expect(page.getByTestId("camp-screen")).toBeVisible();
+    await page.getByTestId("camp-next-stage").click();
+    await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  }
+
+  await expect(page.getByTestId("tournament-complete")).toBeVisible();
   const stored = await page.evaluate(() => localStorage.getItem("aegis:career:v1"));
   expect(stored).toContain('"cheatMode":true');
   // Счётчик «Забеги» остаётся нулевым: cheat-запись есть в истории, но не в агрегатах.

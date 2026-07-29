@@ -2,24 +2,141 @@
 // TournamentEngine: движок драфта (RunEngine) и сам турнир не трогаем (скилл
 // game-state-architecture: этапы — отдельный слой, не вливать в RunEngine/TournamentEngine).
 //
-// Забег = последовательность этапов с растущим порогом места. На каждом этапе играется один
-// турнир (тот же TournamentEngine), но поле сильнее по индексу этапа (растёт mean). Ростер в
-// срезе 1 персистит без изменений, поэтому teamOvr постоянный, а поле обгоняет его — статичный
-// состав рано или поздно не пробьёт порог. Пробил порог → следующий этап; промах → смерть.
+// Забег = СЕЗОН из актов (R6.1): структура живёт здесь же, потому что «какой это этап» и «по
+// каким правилам он играется» — один вопрос. На каждом этапе играется один турнир (тот же
+// TournamentEngine), но поле сильнее по позиции в акте (растёт mean) и по числу пройденных актов
+// (растёт threat). Пробил порог → следующий этап; промах → смерть.
 // Экономика/рынок/редкость/боссы — поздние срезы (PRD §5.9.2), здесь их намеренно нет.
 import type { Format, GameData } from "../types/data.ts";
 import { PLACEMENT_KEYS, TournamentEngine, type FieldModel, type PlacementKey } from "./tournament.ts";
 
-/** Длина акта: пять этапов, последний — Boss Tournament (PRD §5.9.3). Пока сезон сам состоит из
- *  одного акта, но cadence боссов и разметка UI уже считаются от этого числа, чтобы переход на
- *  `5 актов × 5 этапов` (R6.1) не переписывал оркестратор. */
-export const ACT_LENGTH = 5;
+/** Тип этапа внутри акта (PRD §5.9.3). Не косметика: от типа зависят порог места и сила поля.
+ *  `playoffCheck` — «проверка плей-офф»: порог выше обычного, но чемпионство ещё не требуется. */
+export type StageKind = "regular" | "elite" | "playoffCheck" | "boss";
+
+/** Шаблон акта: этапы 1–2 Regular, 3 Elite, 4 Playoff Check, 5 Boss Tournament (PRD §5.9.3).
+ *  Длина акта выводится ОТСЮДА — второго места, где записано «пять», быть не должно. */
+export const SEASON_TEMPLATE: readonly StageKind[] = ["regular", "regular", "elite", "playoffCheck", "boss"];
+
+/** Длина акта = длина шаблона. Cadence боссов и разметка UI считаются от неё. */
+export const ACT_LENGTH = SEASON_TEMPLATE.length;
+
+/** Число актов в сезоне. `25` — стартовая продуктовая гипотеза (кандидаты 20/25/30), поэтому
+ *  живёт как конфиг билдера, а НЕ как условие победы в коде (PRD §5.9.3, R6.1). */
+export const SEASON_ACTS = 5;
+
+/** Пороги обычных этапов по типу. Обычный этап требует конкурентоспособности, а не чемпионства.
+ *  Все значения обязаны быть worst-rank реального бакета (см. `LEGAL_ANTE_TARGETS`).
+ *
+ *  Заменяет плоскую лестницу `ANTE_TARGETS = [8, 6, 4, 3, 1]` пятиэтапного вступительного круга:
+ *  та была откалибрована под пять этапов и в 25-этапном сезоне требовала бы чемпионства на пятом
+ *  турнире из двадцати пяти. Часть BALANCE_CONFIG_VERSION. */
+export const SEASON_TARGETS: Readonly<Record<Exclude<StageKind, "boss">, number>> = {
+  regular: 8,
+  elite: 6,
+  playoffCheck: 4,
+};
+
+/** Финалы актов ужесточаются: топ-4 → топ-3 → топ-2 → 1-е → 1-е (Showdown). Список короче числа
+ *  актов — последний порог повторяется (нужно для Династии и для сезонов длиннее пяти актов).
+ *  Часть BALANCE_CONFIG_VERSION. */
+export const SEASON_ACT_FINALES: readonly number[] = [4, 3, 2, 1, 1];
+
+/** Один этап сезона: где он стоит и по каким правилам играется. */
+export interface SeasonStage {
+  /** Абсолютный индекс с 0. */
+  index: number;
+  /** Номер акта с 1. */
+  act: number;
+  /** Номер этапа внутри акта с 1. */
+  stageInAct: number;
+  kind: StageKind;
+  /** Порог места (worst-rank бакета). */
+  target: number;
+}
+
+/** Правила сезона без развёрнутого списка этапов: их достаточно, чтобы вычислить ЛЮБОЙ этап,
+ *  в том числе за концом сезона (Династия продолжает те же акты дальше). */
+export interface SeasonRules {
+  acts: number;
+  actLength: number;
+  template: readonly StageKind[];
+  targets: Readonly<Record<Exclude<StageKind, "boss">, number>>;
+  actFinales: readonly number[];
+}
+
+export interface SeasonModel extends SeasonRules {
+  /** Все этапы сезона по порядку. Длина = условие окончания забега. */
+  stages: readonly SeasonStage[];
+}
+
+export interface SeasonConfig {
+  acts?: number;
+  template?: readonly StageKind[];
+  targets?: Readonly<Record<Exclude<StageKind, "boss">, number>>;
+  actFinales?: readonly number[];
+}
+
+/** Правила ОДНОГО этапа по его абсолютному индексу — арифметикой от шаблона, а не поиском в
+ *  массиве. Поэтому функция отвечает и за индексы за пределами сезона: там же живёт Династия
+ *  (T5.8), которая продолжает те же акты дальше. */
+export function seasonStage(index: number, season: SeasonRules = SEASON): SeasonStage {
+  const safeIndex = Math.max(0, index);
+  const template = season.template;
+  const stageInAct = safeIndex % season.actLength;
+  const act = Math.floor(safeIndex / season.actLength) + 1;
+  const kind = template[stageInAct];
+  const finales = season.actFinales;
+  const target = kind === "boss"
+    ? finales[Math.min(act - 1, finales.length - 1)]
+    : season.targets[kind];
+  return { index: safeIndex, act, stageInAct: stageInAct + 1, kind, target };
+}
+
+/** Сезон из конфига. Длина сезона — параметр, чтобы симулятор (R10) сравнивал 20/25/30 этапов
+ *  тем же кодом, каким играет игра, а не своей копией лестницы. */
+export function buildSeason(config: SeasonConfig = {}): SeasonModel {
+  const acts = config.acts ?? SEASON_ACTS;
+  const template = config.template ?? SEASON_TEMPLATE;
+  const rules: SeasonRules = {
+    acts,
+    actLength: template.length,
+    template,
+    targets: config.targets ?? SEASON_TARGETS,
+    actFinales: config.actFinales ?? SEASON_ACT_FINALES,
+  };
+  const stages = Array.from({ length: acts * template.length }, (_, index) => seasonStage(index, rules));
+  return { ...rules, stages };
+}
+
+/** Сезон из готовой лестницы порогов — для тестов и для сравнения произвольных кривых.
+ *  Тип этапа выводится из позиции в акте, чтобы cadence боссов оставалась одна на всю игру. */
+export function seasonFromTargets(targets: readonly number[], actLength = ACT_LENGTH): SeasonModel {
+  const template = Array.from(
+    { length: actLength },
+    (_, i) => (i === actLength - 1 ? "boss" : "regular") as StageKind,
+  );
+  const rules: SeasonRules = {
+    acts: Math.ceil(targets.length / actLength),
+    actLength,
+    template,
+    targets: SEASON_TARGETS,
+    actFinales: SEASON_ACT_FINALES,
+  };
+  // Разметка (акт, позиция, тип) считается той же функцией, что и в обычном сезоне; своё здесь
+  // только явно заданный порог.
+  const stages = targets.map((target, index) => ({ ...seasonStage(index, rules), target }));
+  return { ...rules, stages };
+}
+
+/** Сезон по умолчанию: 5 актов × 5 этапов = 25 турниров (PRD §5.9.3). */
+export const SEASON: SeasonModel = buildSeason();
 
 /** Босс стоит только на финале акта — заранее видимое исключительное событие, а не фон каждого
  *  второго этапа (R6.2). Раньше `BOSS_FIRST_STAGE = 2` давал босса на КАЖДОМ этапе с третьего:
  *  три боссовых этапа из пяти, что прямо противоречило PRD. */
 export function isActFinale(absoluteStageIndex: number): boolean {
-  return absoluteStageIndex >= 0 && (absoluteStageIndex + 1) % ACT_LENGTH === 0;
+  return absoluteStageIndex >= 0 && seasonStage(absoluteStageIndex).kind === "boss";
 }
 
 /** Легальные пороги = worst-rank реальных placement-бакетов (R9.3/R6.4).
@@ -34,15 +151,6 @@ export const LEGAL_ANTE_TARGETS: readonly number[] = [
 export function isLegalAnteTarget(target: number): boolean {
   return LEGAL_ANTE_TARGETS.includes(target);
 }
-
-/** Стартовая лестница порогов (PRD §5.9.2/§5.9.3, §10.E — откалибрована симуляцией 2026-07-23).
- *  Значение = максимальное числовое место, которое ещё считается пройденным: 8 = топ-8.
- *  Плавная рампа (не обрыв топ-2/топ-2): статичный состав живёт до середины, победа требует
- *  докупки силы в Буткемпе.
- *  Первый порог был записан как `10`, хотя вёл себя как `8`; 2026-07-27 подпись приведена к
- *  фактическому поведению — проходимость этапа при этом не изменилась ни на один бакет.
- *  Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts). */
-export const ANTE_TARGETS: readonly number[] = [8, 6, 4, 3, 1];
 
 /** На сколько растёт СРЕДНЯЯ сила поля с каждым этапом. */
 export const ANTE_FIELD_STEP = 3;
@@ -71,30 +179,41 @@ export const ANTE_THREAT = {
   /** Надбавка на финале акта (Boss Tournament). Правило босса остаётся главным — это лишь
    *  «финал акта играется более сильным полем», а не замена условия числом. */
   boss: 1,
+  /** Elite-этап (3-й в акте) по PRD — «усиленное поле, но не босс»: у него нет правила, поэтому
+   *  вся его сложность обязана быть в поле, и надбавка заметно больше боссовой. Число —
+   *  плейсхолдер R6.1, пере-калибровка по замеру за R6.4/R10. */
+  elite: 3,
 } as const;
 
 /** Суммарная угроза этапа. `stake` — сид под Stakes (T6.4): системы ещё нет, поэтому значение
  *  приходит извне и по умолчанию 0, а не выдумывается здесь.
  *
  *  Угроза акта = сумма арифметической прогрессии по ПРОЙДЕННЫМ актам: за первый пройденный акт
- *  `perAct`, за второй `perAct + actAcceleration` и так далее. В нынешнем односезонном забеге
- *  (один акт из пяти этапов) она всегда 0 — наблюдаема только надбавка финала; нагрузку слагаемое
- *  берёт на себя, когда появятся 25 этапов (R6.1) и Династия (T5.8). */
-export function anteThreat(absoluteStageIndex: number, opts: { stake?: number } = {}): number {
-  const completedActs = Math.max(0, Math.floor(absoluteStageIndex / ACT_LENGTH));
+ *  `perAct`, за второй `perAct + actAcceleration` и так далее. Надбавка типа этапа (boss/elite)
+ *  живёт рядом: внутри акта рампу даёт растущий `mean`, а тип этапа — точечный скачок. */
+export function anteThreat(
+  absoluteStageIndex: number,
+  opts: { stake?: number; season?: SeasonRules } = {},
+): number {
+  const season = opts.season ?? SEASON;
+  const completedActs = Math.max(0, Math.floor(absoluteStageIndex / season.actLength));
   const actThreat = completedActs * ANTE_THREAT.perAct
     + (ANTE_THREAT.actAcceleration * completedActs * (completedActs - 1)) / 2;
-  const bossThreat = isActFinale(absoluteStageIndex) ? ANTE_THREAT.boss : 0;
-  return actThreat + bossThreat + (opts.stake ?? 0);
+  const { kind } = seasonStage(absoluteStageIndex, season);
+  const kindThreat = kind === "boss" ? ANTE_THREAT.boss : kind === "elite" ? ANTE_THREAT.elite : 0;
+  return actThreat + kindThreat + (opts.stake ?? 0);
 }
 
 /** Модель поля этапа `stageIndex` (0-based). Верхняя граница относится к КАЧЕСТВУ ростера;
  *  безлимитная угроза акта/босса/Stake приходит отдельным слагаемым `threat` (R7.2). */
-export function anteFieldModel(stageIndex: number, opts: { stake?: number } = {}): FieldModel {
+export function anteFieldModel(
+  stageIndex: number,
+  opts: { stake?: number; season?: SeasonRules } = {},
+): FieldModel {
   // Рампа `mean` — ВНУТРИ акта, а не по абсолютному этапу. Иначе к 25-му этапу mean ушёл бы за
   // 143, все боты уткнулись бы в потолок качества 99, и спайк, ради которого затевался R7.1,
   // вернулся бы с другой стороны. Рост между актами несёт безлимитный `threat`.
-  const stageInAct = Math.max(0, stageIndex) % ACT_LENGTH;
+  const stageInAct = Math.max(0, stageIndex) % (opts.season ?? SEASON).actLength;
   return {
     mean: ANTE_FIELD.meanBase + stageInAct * ANTE_FIELD_STEP,
     sd: ANTE_FIELD.sd,
@@ -123,6 +242,13 @@ export interface AnteStageView {
   target: number;
   /** Средняя сила поля этого этапа — то, что растёт от этапа к этапу. */
   fieldMean: number;
+  /** Номер акта с 1 и позиция внутри акта с 1 — то, что показывает UI («Акт 2 · Этап 3»). */
+  act: number;
+  stageInAct: number;
+  /** Всего актов в сезоне. */
+  actCount: number;
+  /** Тип этапа: от него зависят порог и сила поля, поэтому он виден игроку. */
+  kind: StageKind;
 }
 
 export interface AnteRunState extends AnteStageView {
@@ -145,10 +271,10 @@ export class AnteRunEngine {
     private readonly seed: string,
     private teamOvr: number,
     private readonly teamName: string,
-    private readonly targets: readonly number[] = ANTE_TARGETS,
+    private readonly season: SeasonModel = SEASON,
   ) {
-    if (targets.length === 0) throw new Error("Ante run needs at least one stage");
-    const illegal = targets.filter((target) => !isLegalAnteTarget(target));
+    if (season.stages.length === 0) throw new Error("Ante run needs at least one stage");
+    const illegal = season.stages.map((stage) => stage.target).filter((target) => !isLegalAnteTarget(target));
     if (illegal.length) {
       throw new Error(
         `Порог этапа обязан совпадать с worst-rank реального бакета `
@@ -164,7 +290,8 @@ export class AnteRunEngine {
     // вообще без неё (дефолт QUICK_DRAFT_FIELD) — golden не двигается.
     const stageSeed = `${this.seed}:ante:stage-${index}`;
     return new TournamentEngine(
-      this.data, this.format, stageSeed, this.teamOvr, this.teamName, 0, anteFieldModel(index),
+      this.data, this.format, stageSeed, this.teamOvr, this.teamName, 0,
+      anteFieldModel(index, { season: this.season }),
     );
   }
 
@@ -174,11 +301,16 @@ export class AnteRunEngine {
   }
 
   get state(): AnteRunState {
+    const stage = this.season.stages[this.stageIndex];
     return {
       index: this.stageIndex,
-      count: this.targets.length,
-      target: this.targets[this.stageIndex],
-      fieldMean: anteFieldModel(this.stageIndex).mean,
+      count: this.season.stages.length,
+      target: stage.target,
+      fieldMean: anteFieldModel(this.stageIndex, { season: this.season }).mean,
+      act: stage.act,
+      stageInAct: stage.stageInAct,
+      actCount: this.season.acts,
+      kind: stage.kind,
       phase: this.phase,
       lastPlacement: this.lastPlacement,
     };
@@ -191,9 +323,9 @@ export class AnteRunEngine {
     if (this.phase !== "playing") return this.phase;
     const placement = this.currentEngine.snapshot.userPlacement;
     this.lastPlacement = placement;
-    if (placementWorstRank(placement) > this.targets[this.stageIndex]) {
+    if (placementWorstRank(placement) > this.season.stages[this.stageIndex].target) {
       this.phase = "lost";
-    } else if (this.stageIndex >= this.targets.length - 1) {
+    } else if (this.stageIndex >= this.season.stages.length - 1) {
       this.phase = "won";
     } else {
       this.stageIndex += 1;
@@ -213,7 +345,7 @@ export class AnteRunEngine {
   /** Перемотать до этапа `index` (resume сохранённого ante-забега). Детерминизм: пройденные
    *  этапы по seed те же, поэтому просто пересобираем поле нужного этапа без ре-симуляции. */
   jumpToStage(index: number): void {
-    if (index < 0 || index >= this.targets.length) throw new Error(`Ante stage out of range: ${index}`);
+    if (index < 0 || index >= this.season.stages.length) throw new Error(`Ante stage out of range: ${index}`);
     this.stageIndex = index;
     this.phase = "playing";
     this.lastPlacement = null;

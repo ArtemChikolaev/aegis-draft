@@ -2,16 +2,23 @@ import { describe, expect, it } from "vitest";
 import {
   AnteRunEngine,
   ANTE_FIELD_STEP,
-  ANTE_TARGETS,
   LEGAL_ANTE_TARGETS,
   ANTE_FIELD,
   ANTE_THREAT,
   ACT_LENGTH,
   anteFieldModel,
   anteThreat,
+  buildSeason,
   isActFinale,
   isLegalAnteTarget,
   placementWorstRank,
+  SEASON,
+  SEASON_ACT_FINALES,
+  SEASON_ACTS,
+  SEASON_TARGETS,
+  SEASON_TEMPLATE,
+  seasonFromTargets,
+  seasonStage,
 } from "../src/game/anteRun.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine } from "../src/game/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
@@ -48,6 +55,45 @@ describe("placementWorstRank", () => {
     expect(placementWorstRank("9-12")).toBe(12);
     expect(placementWorstRank("17")).toBe(17);
     expect(placementWorstRank("18")).toBe(18);
+  });
+});
+
+// R6.1: сезон = акт-модель, а не плоский массив порогов.
+describe("Акт-модель сезона (R6.1)", () => {
+  it("сезон по умолчанию — 5 актов × 5 этапов, длина не константа победы", () => {
+    expect(SEASON.acts).toBe(SEASON_ACTS);
+    expect(SEASON.actLength).toBe(SEASON_TEMPLATE.length);
+    expect(SEASON.stages).toHaveLength(SEASON_ACTS * SEASON_TEMPLATE.length);
+    // Ровно то, ради чего модель конфигурируемая: R10 сравнивает 20/25/30 без правки оркестратора.
+    expect(buildSeason({ acts: 4 }).stages).toHaveLength(20);
+    expect(buildSeason({ acts: 6 }).stages).toHaveLength(30);
+  });
+
+  it("шаблон акта повторяется, а нумерация идёт «акт · этап в акте»", () => {
+    expect(SEASON.stages.slice(0, 5).map((s) => s.kind)).toEqual([...SEASON_TEMPLATE]);
+    expect(SEASON.stages.slice(5, 10).map((s) => s.kind)).toEqual([...SEASON_TEMPLATE]);
+    expect(SEASON.stages[7]).toMatchObject({ act: 2, stageInAct: 3, kind: "elite" });
+    expect(SEASON.stages[24]).toMatchObject({ act: 5, stageInAct: 5, kind: "boss" });
+  });
+
+  it("порог берётся из типа этапа, а финалы актов ужесточаются (PRD §5.9.3)", () => {
+    const targets = SEASON.stages.map((s) => s.target);
+    expect(targets.slice(0, 5)).toEqual([8, 8, 6, 4, SEASON_ACT_FINALES[0]]);
+    expect(SEASON.stages.filter((s) => s.kind === "boss").map((s) => s.target))
+      .toEqual([...SEASON_ACT_FINALES]);
+    expect(SEASON.stages.filter((s) => s.kind === "regular").every((s) => s.target === SEASON_TARGETS.regular)).toBe(true);
+    expect(SEASON.stages.filter((s) => s.kind === "elite").every((s) => s.target === SEASON_TARGETS.elite)).toBe(true);
+    // Все пороги обязаны быть worst-rank реального бакета — иначе подпись врёт (R9.3).
+    expect(targets.every(isLegalAnteTarget)).toBe(true);
+  });
+
+  it("правила этапа считаются и ЗА пределами сезона: там продолжается Династия", () => {
+    // T5.8 продолжает те же акты после Stage 25, поэтому арифметика обязана работать дальше
+    // конца массива, а не падать и не возвращать undefined.
+    expect(seasonStage(25)).toMatchObject({ act: 6, stageInAct: 1, kind: "regular" });
+    expect(seasonStage(29)).toMatchObject({ act: 6, stageInAct: 5, kind: "boss" });
+    // Список финалов короче числа актов — последний порог повторяется, а не становится undefined.
+    expect(seasonStage(29).target).toBe(SEASON_ACT_FINALES[SEASON_ACT_FINALES.length - 1]);
   });
 });
 
@@ -105,14 +151,14 @@ describe("AnteRunEngine", () => {
   it("забег всегда завершается за число этапов лестницы", () => {
     const run = runToEnd(new AnteRunEngine(data, "last_2y", "ante-fin", 75, "Five"));
     expect(run.phase).not.toBe("playing");
-    expect(run.placements.length).toBeLessThanOrEqual(ANTE_TARGETS.length);
+    expect(run.placements.length).toBeLessThanOrEqual(SEASON.stages.length);
   });
 
   it("поле каждого следующего этапа сильнее предыдущего", () => {
     // Порог 18 всегда пройден (худшее место ≤ 18) → движок доходит до последних этапов,
     // и можно сравнить силу поля этапа 0 и этапа 2 при одном teamOvr.
     const trivialTargets = [18, 18, 18];
-    const engine = new AnteRunEngine(data, "last_2y", "ante-grow", 82, "Five", trivialTargets);
+    const engine = new AnteRunEngine(data, "last_2y", "ante-grow", 82, "Five", seasonFromTargets(trivialTargets));
     const stage0 = mean(botStrengths(engine.tournament));
     engine.resolveStage();
     engine.resolveStage();
@@ -124,7 +170,7 @@ describe("AnteRunEngine", () => {
 
   it("проходимая лестница доводит до победы", () => {
     // targets=[18,18]: оба этапа гарантированно проходятся → терминальная фаза «won».
-    const run = runToEnd(new AnteRunEngine(data, "last_2y", "ante-win", 70, "Five", [18, 18]));
+    const run = runToEnd(new AnteRunEngine(data, "last_2y", "ante-win", 70, "Five", seasonFromTargets([18, 18])));
     expect(run.phase).toBe("won");
     expect(run.placements).toHaveLength(2);
   });
@@ -133,14 +179,14 @@ describe("AnteRunEngine", () => {
     // Слабый состав против требования чемпионства → гарантированная смерть на этапе 0.
     // Раньше здесь стоял target=0: он «недостижим», но и не является реальным бакетом, а такие
     // числа теперь запрещены (R9.3) — ложные подписи порогов ловятся конструктором.
-    const engine = new AnteRunEngine(data, "last_2y", "ante-death", 45, "Five", [1, 8]);
+    const engine = new AnteRunEngine(data, "last_2y", "ante-death", 45, "Five", seasonFromTargets([1, 8]));
     expect(engine.resolveStage()).toBe("lost");
     expect(engine.state.index).toBe(0);
     expect(engine.state.lastPlacement).not.toBeNull();
   });
 
   it("после конца забега resolveStage — no-op", () => {
-    const engine = new AnteRunEngine(data, "last_2y", "ante-noop", 45, "Five", [1]);
+    const engine = new AnteRunEngine(data, "last_2y", "ante-noop", 45, "Five", seasonFromTargets([1]));
     engine.resolveStage();
     const after = engine.state;
     expect(engine.resolveStage()).toBe("lost");
@@ -150,8 +196,8 @@ describe("AnteRunEngine", () => {
   it("порог обязан быть worst-rank реального бакета (R9.3)", () => {
     // «топ-10» невыразимо: бакет 9-12 кончается на 12, поэтому target=10 вёл себя как топ-8.
     expect(LEGAL_ANTE_TARGETS).toEqual([1, 2, 3, 4, 6, 8, 12, 16, 17, 18]);
-    expect(ANTE_TARGETS.every(isLegalAnteTarget)).toBe(true);
-    expect(() => new AnteRunEngine(data, "last_2y", "illegal", 80, "Five", [10]))
+    expect(SEASON.stages.map((stage) => stage.target).every(isLegalAnteTarget)).toBe(true);
+    expect(() => new AnteRunEngine(data, "last_2y", "illegal", 80, "Five", seasonFromTargets([10])))
       .toThrow(/worst-rank/);
     // Смена подписи 10 → 8 не сдвинула ни один бакет: оба режут ровно «9-12» и ниже.
     expect(placementWorstRank("7-8") <= 8).toBe(true);
@@ -167,7 +213,7 @@ describe("AnteRunEngine", () => {
     // teamOvr сильно ниже даже гандикапнутого поля (N74 на этапе 0) → место у дна → промах.
     const engine = new AnteRunEngine(data, "last_2y", "ante-weak", 45, "Five");
     expect(engine.resolveStage()).toBe("lost");
-    expect(placementWorstRank(engine.state.lastPlacement!)).toBeGreaterThan(ANTE_TARGETS[0]);
+    expect(placementWorstRank(engine.state.lastPlacement!)).toBeGreaterThan(SEASON.stages[0].target);
   });
 });
 
@@ -197,6 +243,14 @@ describe("Угроза этапа (R7.2)", () => {
     const perAct = (n: number) => anteThreat(n * ACT_LENGTH);
     expect(perAct(3) - perAct(2)).toBeGreaterThan(perAct(2) - perAct(1));
     expect(anteThreat(200)).toBeGreaterThan(100);
+  });
+
+  it("elite-этап играется усиленным полем: у него нет правила, вся сложность там (R6.1)", () => {
+    const eliteIndex = SEASON.stages.findIndex((stage) => stage.kind === "elite");
+    expect(anteThreat(eliteIndex) - anteThreat(eliteIndex - 1)).toBe(ANTE_THREAT.elite);
+    // Ровно один тип этапа даёт надбавку: обычные этапы внутри акта поднимает только mean.
+    expect(anteThreat(0)).toBe(0);
+    expect(anteThreat(1)).toBe(0);
   });
 
   it("финал акта играется более сильным полем, но правило босса остаётся главным", () => {

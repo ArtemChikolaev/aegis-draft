@@ -9,7 +9,7 @@ import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type TournamentSnapshot } from "../game/tournament.ts";
-import { AnteRunEngine, ANTE_TARGETS, type AnteRunState } from "../game/anteRun.ts";
+import { AnteRunEngine, SEASON, seasonStage, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
@@ -418,7 +418,7 @@ export const useRun = create<RunStore>((set, get) => {
         economy.equippedTactics,
         {
                 rarityDrops: economy.rarityDropsEnabled,
-                stageCount: ANTE_TARGETS.length,
+                stageCount: SEASON.stages.length,
                 heroRarity: economy.heroRarity,
               },
       ));
@@ -736,7 +736,7 @@ export const useRun = create<RunStore>((set, get) => {
             // Ante-забег: пересобираем движок и перематываем на сохранённый этап (детерминизм —
             // пройденные этапы по seed те же), затем доигрываем reveal-шаги текущего этапа.
             anteRun = new AnteRunEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName);
-            const stageIndex = Math.max(0, Math.min(ANTE_TARGETS.length - 1, resumable.anteStageIndex ?? 0));
+            const stageIndex = Math.max(0, Math.min(SEASON.stages.length - 1, resumable.anteStageIndex ?? 0));
             anteRun.jumpToStage(stageIndex);
             // Экономика: восстанавливаем валюту/покупки, применяем их модификаторы к полю этапа.
             economy = new RunEconomy(resumable.seed, resumable.economy);
@@ -757,7 +757,7 @@ export const useRun = create<RunStore>((set, get) => {
                   economy.equippedTactics,
                   {
                 rarityDrops: economy.rarityDropsEnabled,
-                stageCount: ANTE_TARGETS.length,
+                stageCount: SEASON.stages.length,
                 heroRarity: economy.heroRarity,
               },
                 ));
@@ -913,7 +913,7 @@ export const useRun = create<RunStore>((set, get) => {
         if (phase === "playing" && economy) {
           // resolveStage продвинул индекс на следующий этап; призовые — за только что пройденный.
           const campId = resolvedAnte.index;
-          const target = ANTE_TARGETS[campId - 1];
+          const target = seasonStage(campId - 1).target;
           economy.awardStageClear(campId, resolvedAnte.lastPlacement, target);
           economy.openCamp(campId);
           const economyState = economy.snapshot;
@@ -927,7 +927,7 @@ export const useRun = create<RunStore>((set, get) => {
               economy.equippedTactics,
               {
                 rarityDrops: economy.rarityDropsEnabled,
-                stageCount: ANTE_TARGETS.length,
+                stageCount: SEASON.stages.length,
                 heroRarity: economy.heroRarity,
               },
             ));

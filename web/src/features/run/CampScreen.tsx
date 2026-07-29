@@ -47,6 +47,7 @@ import {
   Modal,
   playerOvrTier,
   RoleTag,
+  StageKindBadge,
   PowerBreakdown,
   TagChips,
   type TagChip,
@@ -553,7 +554,11 @@ export function CampScreen() {
         <div>
           <Eyebrow>{t("camp.title")}</Eyebrow>
           <h2 className="camp__cleared">{t("camp.cleared", { n: ante.index })}</h2>
-          <p className="camp__next">{nextLabel}</p>
+          <p className="camp__next" data-testid="camp-next-stage-label">
+            <span data-testid="camp-act-stage">{t("ante.actStage", { act: ante.act, stage: ante.stageInAct })}</span>
+            <StageKindBadge kind={ante.kind} />
+            {" · "}{nextLabel}
+          </p>
           {/* Автоматическая выплата показывается разложенной: иначе «проценты за накопление»
               невидимы, и решение «потратить сейчас против накопить» не читается. */}
           {camp.lastPayout && (

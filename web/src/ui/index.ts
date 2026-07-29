@@ -15,6 +15,7 @@ export { TagChips, type TagChip } from "./TagChips.tsx";
 export { TeamName } from "./TeamName.tsx";
 export { TeamSigil } from "./TeamSigil.tsx";
 export { SoonBadge } from "./SoonBadge.tsx";
+export { StageKindBadge } from "./StageKindBadge.tsx";
 export { StatTile, type StatKind } from "./StatTile.tsx";
 export { Select, type SelectOption } from "./Select.tsx";
 export { PlayerPicker, findPlayerMatches } from "./PlayerPicker.tsx";

@@ -1,0 +1,18 @@
+/* Пилюля типа этапа. Нейтральный вид по умолчанию; elite берёт --danger, потому что это
+   единственное предупреждение об усиленном поле (правила, как у босса, у него нет). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge[data-stage-kind="elite"] {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}

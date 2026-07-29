@@ -9,7 +9,7 @@
 //
 // Это НЕ ratingModelVersion: формула Team OVR (score.ts) не меняется этими числами, только орка/
 // экономика/условия забега. Тонкая калибровка — через `npm run sim` (web/scripts/sim_run.ts).
-import { ANTE_TARGETS, ANTE_FIELD_STEP, ANTE_FIELD, ANTE_THREAT } from "./anteRun.ts";
+import { SEASON, SEASON_TARGETS, SEASON_ACT_FINALES, ANTE_FIELD_STEP, ANTE_FIELD, ANTE_THREAT } from "./anteRun.ts";
 import { ECONOMY } from "./anteEconomy.ts";
 import { TACTICS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
@@ -96,14 +96,35 @@ import { HERO_FLOOR } from "./anteMarket.ts";
  *  до этапа 4, то есть вводили ту самую «жёсткую привязку тиров к актам», которую R5.1 уже
  *  отверг для форм игроков. Замер (200 карт рынка, этапы 1–5): common 45.5% → 38.5%,
  *  unique 36.5% → 38.5%, mythic 14.5% → 16.5%, immortal 3.5% → 6.5%. На первом Буткемпе
- *  mythic+immortal вместе ≈4.7% вместо строгого нуля — редкое событие, а не запрет. */
-export const BALANCE_CONFIG_VERSION = "b1.14.0";
+ *  mythic+immortal вместе ≈4.7% вместо строгого нуля — редкое событие, а не запрет.
+ *  b1.15.0 (2026-07-29): R6.1 — акт-модель. Забег стал сезоном `5 актов × 5 этапов`; плоская
+ *  лестница `ANTE_TARGETS = [8,6,4,3,1]` удалена, порог выводится из ТИПА этапа (regular 8,
+ *  elite 6, playoff check 4) и из номера акта на финалах (4/3/2/1/1). Плюс `ANTE_THREAT.elite`:
+ *  у elite-этапа нет правила, поэтому вся его сложность обязана быть в поле. Длина сезона —
+ *  конфиг билдера (`buildSeason`), а не константа победы: 25 остаётся гипотезой, которую
+ *  сравнивает симулятор. Замер `npm run sim -- 100`: synergy-build 30.0%, greedy-oracle 2.0%,
+ *  greedy-power/naive/static 0% — целевая полоса PRD «хороший состав с апгрейдами 30–40%», и
+ *  проходит её только билд-агент: жадность по OVR/силе 25 этапов не держит. */
+export const BALANCE_CONFIG_VERSION = "b1.15.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
 export const BALANCE = {
   version: BALANCE_CONFIG_VERSION,
-  ante: { targets: ANTE_TARGETS, fieldStep: ANTE_FIELD_STEP, field: ANTE_FIELD, threat: ANTE_THREAT },
+  ante: {
+    /** Сезон целиком: длина, шаблон акта и пороги по типам этапов (R6.1). */
+    season: {
+      acts: SEASON.acts,
+      actLength: SEASON.actLength,
+      template: SEASON.template,
+      targets: SEASON_TARGETS,
+      actFinales: SEASON_ACT_FINALES,
+      stages: SEASON.stages.length,
+    },
+    fieldStep: ANTE_FIELD_STEP,
+    field: ANTE_FIELD,
+    threat: ANTE_THREAT,
+  },
   economy: ECONOMY,
   tactics: TACTICS,
   campActions: CAMP_ACTIONS,

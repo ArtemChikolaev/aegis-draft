@@ -21,7 +21,7 @@ import { isNarrowViewport } from "../../design/breakpoints.ts";
 import { useRun } from "../../state/runStore.ts";
 import { evaluateItems } from "../../game/items.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
-import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -615,7 +615,14 @@ export function TournamentScreen() {
           </header>
           {ante && (
             <div className="ante-status" data-testid="ante-status">
-              <span className="ante-status__stage">{t("ante.stage", { n: ante.index + 1, count: ante.count })}</span>
+              {/* Акт · этап, а не сквозной номер: сезон из 25 турниров игрок держит в голове
+                  актами (R6.1). Сквозной номер остаётся в карьере, где нужен именно он. */}
+              <span className="ante-status__stage" data-testid="ante-act-stage">
+                {t("ante.actStage", { act: ante.act, stage: ante.stageInAct })}
+              </span>
+              {/* Тип этапа виден: у elite нет правила, вся его сложность — в силе поля, и без
+                  метки она была бы невидимой механикой. У босса своя панель ниже. */}
+              <StageKindBadge kind={ante.kind} />
               <strong className="ante-status__target">{anteTargetLabel}</strong>
               {ante.index > 0 && <em className="ante-status__field">↑ {t("ante.fieldStronger")}</em>}
               {/* Постоянная маркировка несоревновательного забега (R2.3): видна на каждом этапе,
