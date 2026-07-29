@@ -150,6 +150,13 @@ export function isActFinale(absoluteStageIndex: number): boolean {
   return absoluteStageIndex >= 0 && seasonStage(absoluteStageIndex).kind === "boss";
 }
 
+/** Даёт ли ПРОЙДЕННЫЙ этап титул Династии (T5.8): титул за акт, но только за пределами сезона —
+ *  внутри него финал акта уже оплачен растущими призовыми и премией за место (R6.4).
+ *  Правило живёт здесь, потому что его читают двое: стор и симулятор. */
+export function grantsDynastyTitle(clearedIndex: number, season: SeasonModel = SEASON): boolean {
+  return clearedIndex >= season.stages.length && seasonStage(clearedIndex, season).kind === "boss";
+}
+
 /** Ближайший боссовый этап СТРОГО ПОСЛЕ `absoluteStageIndex` (R9.4).
  *
  *  Нужен разведке: правило предстоящего этапа игрок и так видит в Буткемпе, поэтому «раскрыть»
@@ -275,6 +282,10 @@ export interface AnteStageView {
   actCount: number;
   /** Тип этапа: от него зависят порог и сила поля, поэтому он виден игроку. */
   kind: StageKind;
+  /** Взятые титулы (Aegis) — по одному за пройденный финал акта. Выводится из индекса, а не
+   *  хранится счётчиком: попасть на этап N можно только пройдя все предыдущие, поэтому второй
+   *  источник правды здесь был бы лишним местом для рассинхрона. */
+  titles: number;
 }
 
 export interface AnteRunState extends AnteStageView {
@@ -350,6 +361,7 @@ export class AnteRunEngine {
       stageInAct: stage.stageInAct,
       actCount: this.season.acts,
       kind: stage.kind,
+      titles: Math.floor(this.stageIndex / this.season.actLength) + (this.phase === "won" ? 1 : 0),
       phase: this.phase,
       lastPlacement: this.lastPlacement,
       seasonWon: this.seasonWon,

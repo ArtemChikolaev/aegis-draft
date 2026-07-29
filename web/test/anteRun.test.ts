@@ -9,6 +9,7 @@ import {
   anteFieldModel,
   anteThreat,
   buildSeason,
+  grantsDynastyTitle,
   isActFinale,
   nextBossStage,
   isLegalAnteTarget,
@@ -229,6 +230,33 @@ describe("AnteRunEngine", () => {
     for (let guard = 0; guard < 40 && engine.state.phase === "playing"; guard += 1) engine.resolveStage();
     expect(engine.state.phase).toBe("lost");
     expect(engine.state.seasonWon).toBe(true);
+  });
+
+  it("титул Династии даёт только акт ЗА пределами сезона (T5.8)", () => {
+    // Внутри сезона финал акта уже оплачен призовыми и премией за место (R6.4) — второй награды
+    // там быть не должно, иначе Династия перестаёт отличаться от сезона.
+    expect(grantsDynastyTitle(4)).toBe(false);
+    expect(grantsDynastyTitle(19)).toBe(false);
+    // Победа сезона (этап 25, индекс 24) — не титул Династии: это сама победа.
+    expect(grantsDynastyTitle(24)).toBe(false);
+    expect(grantsDynastyTitle(29)).toBe(true);
+    expect(grantsDynastyTitle(34)).toBe(true);
+    // Обычный этап Династии титула не даёт.
+    expect(grantsDynastyTitle(27)).toBe(false);
+  });
+
+  it("титулы считаются от пройденных актов и переживают вход в Династию", () => {
+    const engine = new AnteRunEngine(data, "last_2y", "titles", 80, "Five");
+    expect(engine.state.titles).toBe(0);
+    engine.jumpToStage(5);
+    expect(engine.state.titles).toBe(1);
+    engine.jumpToStage(24);
+    expect(engine.state.titles).toBe(4);
+    // Победа сезона добавляет пятый титул, Династия продолжает счёт.
+    engine.jumpToStage(29, { seasonWon: true });
+    expect(engine.state.titles).toBe(5);
+    engine.jumpToStage(30, { seasonWon: true });
+    expect(engine.state.titles).toBe(6);
   });
 
   it("continueDynasty вне победы — no-op", () => {

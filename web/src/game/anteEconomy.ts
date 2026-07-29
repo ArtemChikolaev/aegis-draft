@@ -132,6 +132,9 @@ export interface RunEconomyState {
   temporary: Array<{ effect: StatEffect; campId: number }>;
   /** Буткемпы, в которых сыграна разведка (раскрывает следующий этап). */
   scoutedCamps: number[];
+  /** Титулы Династии, за которые уже выдана награда (T5.8). Список, а не счётчик: он же даёт
+   *  идемпотентность — resume и повторный вход в лагерь не выдадут milestone второй раз. */
+  dynastyMilestones: number[];
   /** Бесплатные рероллы рынка, накопленные разведкой. */
   freeMarketRerolls: number;
   /** Бесплатные замены игрока, накопленные stand-in. */
@@ -211,6 +214,11 @@ export const ECONOMY = {
    *  сейчас против накопить». В Cheat Mode не начисляются: бесконечное золото их обессмысливает. */
   interestPerGold: 6,
   interestCap: 3,
+  /** Milestone Династии (T5.8): что даёт взятый титул за пройденный акт ЗА пределами сезона.
+   *  Династия не имеет терминальной победы, поэтому её единственная валюта смысла — растущий
+   *  билд: титул платит тем, чего на этом этапе забега уже не купить рынком (готовое улучшение
+   *  качества) плюс деньгами. Плейсхолдер, как остальная ECONOMY. */
+  dynastyMilestone: { gold: 10, rarityUpgrades: 1 },
   /** Рычаги рынка по слагаемым. `step`/`costStep` — разброс качества при reroll. */
   levers: {
     base: { delta: 3, step: 1, cost: 5, costStep: 2, tradeoff: { summand: "chemistry" as Summand, delta: -1 } },
@@ -441,6 +449,9 @@ export interface CampView {
   freeRarityUpgrades: number;
   /** Разбор последней автоматической выплаты: база, премия за место и проценты раздельно. */
   lastPayout?: { prize: number; performance: number; interest: number };
+  /** В ЭТОМ Буткемпе взят титул Династии (T5.8) — лагерь его празднует. Номер титула знает
+   *  ante-состояние (`titles`), поэтому здесь только факт. */
+  dynastyMilestone: boolean;
   /** Случайные повышенные качества могут выпадать (мета-гейт пройден). */
   rarityDropsEnabled: boolean;
   /** Доступно ручное улучшение качества в Буткемпе. Бейджи тира при этом показываются всегда:
@@ -472,6 +483,7 @@ function emptyState(): RunEconomyState {
     heldActions: [],
     temporary: [],
     scoutedCamps: [],
+    dynastyMilestones: [],
     freeMarketRerolls: 0,
     freePlayerSwaps: 0,
     freeRarityUpgrades: 0,
@@ -505,6 +517,7 @@ export class RunEconomy {
       heldActions: [...this.state.heldActions],
       temporary: this.state.temporary.map((t) => ({ effect: { ...t.effect }, campId: t.campId })),
       scoutedCamps: [...this.state.scoutedCamps],
+      dynastyMilestones: [...this.state.dynastyMilestones],
       heroRarity: { ...this.state.heroRarity },
       cardRarity: { ...(this.state.cardRarity ?? {}) },
     };
@@ -562,6 +575,19 @@ export class RunEconomy {
     this.state.gold += prizeWithItems + performance + interest;
     this.state.lastPayout = { prize: prizeWithItems, performance, interest };
     this.state.awardedCamps.push(campStageIndex);
+  }
+
+  /** Титул Династии за пройденный акт (T5.8). Идемпотентно по лагерю: список выданных титулов
+   *  живёт в сейве, поэтому ни resume, ни повторный вход в лагерь награду не удвоят.
+   *
+   *  Платит тем, чего на этом этапе забега уже не купить: готовым улучшением качества (рынок к
+   *  Династии предлагает в основном равное, а не лучшее) плюс деньгами. */
+  awardDynastyTitle(campStageIndex: number): boolean {
+    if (this.state.dynastyMilestones.includes(campStageIndex)) return false;
+    this.state.dynastyMilestones.push(campStageIndex);
+    this.state.gold += ECONOMY.dynastyMilestone.gold;
+    this.state.freeRarityUpgrades += ECONOMY.dynastyMilestone.rarityUpgrades;
+    return true;
   }
 
   /** Открыть Буткемп для этапа `campStageIndex` (офферы деривуются от него).
@@ -835,6 +861,7 @@ export class RunEconomy {
       actionSlots: CAMP_ACTION_SLOTS,
       temporary: this.temporaryEffects().map((effect) => ({ ...effect })),
       scouted: this.state.scoutedCamps.includes(this.state.campStageIndex),
+      dynastyMilestone: this.state.dynastyMilestones.includes(this.state.campStageIndex),
       freeMarketRerolls: this.state.freeMarketRerolls,
       freePlayerSwaps: this.state.freePlayerSwaps,
       freeRarityUpgrades: this.state.freeRarityUpgrades,

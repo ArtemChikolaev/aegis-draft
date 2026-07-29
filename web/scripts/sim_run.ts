@@ -13,10 +13,11 @@
 //   npm run sim -- 500                 прогон на текущей лестнице
 //   npm run sim -- 300 --seasons       сравнение сезонов 20 / 25 / 30 этапов (вход для R6.1/R6.4)
 //   npm run sim -- 200 --finales       сравнение кривых финалов актов (R6.4, PRD §10.I)
+//   npm run sim -- 100 --dynasty       забег продолжается в Династию (R6.3): глубина продолжения
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
-import { ACT_LENGTH, AnteRunEngine, buildSeason, SEASON, type SeasonModel } from "../src/game/anteRun.ts";
+import { ACT_LENGTH, AnteRunEngine, buildSeason, grantsDynastyTitle, SEASON, seasonStage, type SeasonModel } from "../src/game/anteRun.ts";
 import {
   RunEconomy,
   type Offer,
@@ -40,6 +41,9 @@ const config: RunConfig = {
   draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
 };
 const useBoss = !process.env.NOBOSS;
+/** Насколько глубоко симулятор играет Династию (R6.3). Бесконечная фаза не должна означать
+ *  бесконечный прогон, поэтому у измерения есть потолок — он же читается как «дальше не мерили». */
+const DYNASTY_DEPTH_CAP = 25;
 
 // ─────────────────────────────── сила билда (зеркало runStore) ───────────────────────────────
 
@@ -213,6 +217,8 @@ function valueOf(agent: Agent, offer: Offer, decision: Decision): number {
 // ───────────────────────────────────── прогон забега ─────────────────────────────────────
 
 interface CampStat {
+  /** Лагерь ЗА пределами сезона (Династия, R6.3) — рынок там упирается в потолок ростера. */
+  dynasty: boolean;
   goldAfter: number;
   buys: number;
   rerolls: number;
@@ -221,6 +227,9 @@ interface CampStat {
 
 interface RunResult {
   outcome: "won" | "lost";
+  /** Сезон выигран (R6.3). Отдельно от outcome: в Династии забег заканчивается поражением,
+   *  но победа сезона при этом остаётся засчитанной. */
+  seasonWon: boolean;
   /** Этап, на котором забег закончился (0-based). */
   stage: number;
   placements: PlacementKey[];
@@ -386,7 +395,7 @@ function playActions(economy: RunEconomy): void {
   for (const actionId of economy.campView().heldActions) economy.playCampAction(actionId);
 }
 
-function playRun(seed: string, agent: Agent, season: SeasonModel): RunResult | null {
+function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = false): RunResult | null {
   const engine = new RunEngine(data, config, seed);
   greedyDraft(engine);
   const score = engine.score();
@@ -404,10 +413,16 @@ function playRun(seed: string, agent: Agent, season: SeasonModel): RunResult | n
   let guard = 0;
 
   const stageCount = season.stages.length;
-  while (guard++ < stageCount + 5) {
+  // Династия (R6.3) — добровольное продолжение ПОСЛЕ победы. Симулятор её играет, иначе её контент
+  // пришлось бы крутить вслепую (требование R10). Глубина ограничена, чтобы прогон оставался
+  // конечным: бесконечная фаза не должна означать бесконечный тест.
+  while (guard++ < stageCount + DYNASTY_DEPTH_CAP + 5) {
     const stageIndex = anteRun.state.index;
     const bossId = useBoss ? bossForStage(seed, stageIndex) : null;
-    const phase = anteRun.resolveStage();
+    let phase = anteRun.resolveStage();
+    if (phase === "won" && dynasty && anteRun.state.index < stageCount + DYNASTY_DEPTH_CAP - 1) {
+      phase = anteRun.continueDynasty();
+    }
     const placement = anteRun.state.lastPlacement;
     if (placement) placements.push(placement);
 
@@ -416,6 +431,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel): RunResult | n
       const mods = effectiveMods(engine, economy, tactics);
       return {
         outcome: phase,
+        seasonWon: anteRun.state.seasonWon,
         stage: anteRun.state.index,
         placements,
         draftOvr: score.teamOvr,
@@ -429,7 +445,10 @@ function playRun(seed: string, agent: Agent, season: SeasonModel): RunResult | n
     }
 
     const campId = anteRun.state.index;
-    economy.awardStageClear(campId, anteRun.state.lastPlacement, season.stages[campId - 1].target);
+    economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1, season).target);
+    // Титул Династии — по тому же правилу, что и в игре (общая grantsDynastyTitle): иначе
+    // симулятор мерил бы Династию без её единственной награды.
+    if (grantsDynastyTitle(campId - 1, season)) economy.awardDynastyTitle(campId);
     economy.openCamp(campId);
 
     const decision: Decision = {
@@ -442,7 +461,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel): RunResult | n
     playActions(economy);
     prepareMarket(engine, economy, seed, stageCount);
     const shopped = shopCamp(engine, economy, seed, agent, decision, stageCount);
-    camps.push({ goldAfter: economy.gold, ...shopped });
+    camps.push({ goldAfter: economy.gold, dynasty: campId > stageCount, ...shopped });
 
     economy.leaveCamp();
     anteRun.rebuildCurrentStage(stageStrength(engine, economy, seed, anteRun.state.index));
@@ -451,7 +470,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel): RunResult | n
   const tactics = tacticsOf(engine, economy);
   const mods = effectiveMods(engine, economy, tactics);
   return {
-    outcome: "lost", stage: anteRun.state.index, placements, draftOvr: score.teamOvr,
+    outcome: "lost", seasonWon: anteRun.state.seasonWon, stage: anteRun.state.index, placements, draftOvr: score.teamOvr,
     finalStrength: engine.score()!.teamOvr + mods.base + mods.heroSynergy + mods.chemistry,
     lostUnderBoss: false,
     tacticsEquipped: economy.campView().equippedTactics.length,
@@ -485,23 +504,33 @@ interface Report {
   tactics: number;
   lostUnderBoss: number;
   podium: number;
+  /** Династия (R6.3): сколько забегов до неё дошло и насколько глубоко ушли. null — не мерили. */
+  dynasty: { runs: number; depth: [number, number, number]; buys: number; camps: number } | null;
 }
 
-function runAgent(agent: Agent, seeds: number, season: SeasonModel): Report {
+function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = false): Report {
   const survivedTo = Array(season.stages.length).fill(0);
   const strengths: number[] = [];
   const golds: number[] = [];
   let played = 0; let wins = 0; let bossDeaths = 0; let podium = 0;
+  const dynastyDepths: number[] = [];
+  let dynastyBuys = 0; let dynastyCamps = 0;
   let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0;
 
   for (let i = 0; i < seeds; i += 1) {
-    const result = playRun(`sim-${i}`, agent, season);
+    const result = playRun(`sim-${i}`, agent, season, dynasty);
     if (!result) continue;
     played += 1;
     strengths.push(result.finalStrength);
     tactics += result.tacticsEquipped;
     rareHeroes += result.upgradedHeroes;
-    if (result.outcome === "won") wins += 1;
+    // В режиме Династии выигранный сезон продолжается и забег ВСЕГДА кончается поражением —
+    // считать победы по outcome значило бы печатать 0% там, где сезон взят.
+    if (result.outcome === "won" || result.seasonWon) wins += 1;
+    // Глубина Династии считается по забегам, ДОШЕДШИМ до неё: иначе нули не-победителей
+    // размажут медиану и «дошёл и умер сразу» будет неотличимо от «не дошёл вовсе».
+    const depth = result.stage + 1 - season.stages.length;
+    if (depth > 0 || result.seasonWon) dynastyDepths.push(Math.max(0, depth));
     if (result.lostUnderBoss) bossDeaths += 1;
     podium += result.placements.filter((p) => p === "1" || p === "2" || p === "3").length;
     // Забег дожил до этапа s, если он его сыграл: индекс окончания = число сыгранных − 1.
@@ -509,6 +538,9 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel): Report {
     for (const camp of result.camps) {
       golds.push(camp.goldAfter);
       buys += camp.buys; rerolls += camp.rerolls; qualityBought += camp.qualityUpgrades; camps += 1;
+      // Отдельно по Династии: если рынок там упирается в потолок ростера, это видно как падение
+      // покупок на лагерь — гадать об этом не нужно, оно измеряется.
+      if (camp.dynasty) { dynastyBuys += camp.buys; dynastyCamps += 1; }
     }
   }
 
@@ -526,6 +558,14 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel): Report {
     tactics: played ? tactics / played : 0,
     lostUnderBoss: played ? bossDeaths / played : 0,
     podium: played ? podium / played : 0,
+    dynasty: dynastyDepths.length
+      ? {
+        runs: dynastyDepths.length,
+        depth: [percentile(dynastyDepths, 0.5), percentile(dynastyDepths, 0.9), Math.max(...dynastyDepths)],
+        buys: dynastyCamps ? dynastyBuys / dynastyCamps : 0,
+        camps: dynastyCamps,
+      }
+      : null,
   };
 }
 
@@ -567,6 +607,16 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
       + `  ${r.rareHeroes.toFixed(1).padStart(4)}  ${r.tactics.toFixed(1)}  ${pct(r.lostUnderBoss).padStart(6)}`,
     );
   }
+  if (reports.some((r) => r.dynasty)) {
+    console.log("\nДинастия (из выигравших сезон): забегов · глубина p50/p90/max · покупок на лагерь (сезон → Династия)");
+    for (const r of reports) {
+      if (!r.dynasty) continue;
+      console.log(
+        `${r.agent.padEnd(15)}${String(r.dynasty.runs).padStart(3)} · ${r.dynasty.depth.join("/")}`
+        + ` · ${r.buys.toFixed(2)} → ${r.dynasty.buys.toFixed(2)} (${r.dynasty.camps} лагерей)`,
+      );
+    }
+  }
   console.log("\nпроходимость финалов актов (из дошедших):");
   for (const r of reports) {
     const rates = finalePassRates(r, season)
@@ -579,6 +629,7 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
 const N = Number(process.argv[2] ?? 500);
 const compareSeasons = process.argv.includes("--seasons");
 const compareFinales = process.argv.includes("--finales");
+const playDynasty = process.argv.includes("--dynasty");
 
 /** Кандидаты кривой финалов актов (вход для R6.4 и открытого вопроса PRD §10.I). Сравниваются на
  *  ОДНИХ И ТЕХ ЖЕ сидах и агентах — различие в профиле тогда принадлежит кривой, а не выборке. */
@@ -613,7 +664,11 @@ if (compareFinales) {
     printReports(`Сезон ${season.stages.length} этапов (${acts} акта)`, reports, season);
   }
 } else {
-  printReports("Сезон целиком", AGENTS.map((agent) => runAgent(agent, N, SEASON)), SEASON);
+  printReports(
+    playDynasty ? "Сезон + Династия" : "Сезон целиком",
+    AGENTS.map((agent) => runAgent(agent, N, SEASON, playDynasty)),
+    SEASON,
+  );
 }
 
 console.log(

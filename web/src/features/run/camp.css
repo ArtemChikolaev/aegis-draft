@@ -266,6 +266,14 @@
   font-weight: 700;
   color: var(--accent);
 }
+/* Титул Династии (T5.8) — редкое событие бесконечной фазы, поэтому ему позволено быть заметным. */
+.camp__milestone {
+  margin: 6px 0 0;
+  color: var(--brand-green);
+  font-size: 12px;
+  font-weight: 700;
+}
+.camp__milestone b { color: var(--gold); }
 .camp__perk {
   margin: 0;
   font-size: 11px;

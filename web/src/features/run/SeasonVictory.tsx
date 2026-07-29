@@ -47,7 +47,7 @@ export function SeasonVictory({ ante, heroRarity, cards, cardRarity, power, chea
       <div className="season-victory__stats">
         {/* Титулы = финалы актов, а их у выигранного сезона ровно столько, сколько актов:
             до последнего этапа иначе не дойти. */}
-        <StatTile label={t("ante.seasonTitles")} value={String(ante.actCount)} kind="base" />
+        <StatTile label={t("ante.seasonTitles")} value={String(ante.titles)} kind="base" />
         <StatTile label={t("camp.powerTotal")} value={Math.round(power).toString()} kind="synergy" />
         <StatTile label={t("ante.stage", { n: ante.index + 1, count: ante.count })} value="✓" kind="chemistry" />
       </div>

@@ -2,7 +2,7 @@
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
 import { useMemo, useState } from "react";
-import { playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
+import { ECONOMY, playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import {
   RARITY,
   rarityModifiers,
@@ -582,6 +582,15 @@ export function CampScreen() {
         <div>
           <Eyebrow>{t("camp.title")}</Eyebrow>
           <h2 className="camp__cleared">{t("camp.cleared", { n: ante.index })}</h2>
+          {/* Титул Династии (T5.8): единственная причина, по которой у бесконечной фазы есть свои
+              вехи, а не только растущая угроза. Празднуем ровно в том лагере, где он взят. */}
+          {camp.dynastyMilestone && (
+            <p className="camp__milestone" data-testid="camp-dynasty-title">
+              🏆 {t("camp.dynastyTitle", { n: ante.titles })}
+              {" · "}
+              <b>{t("camp.dynastyTitleReward", { gold: ECONOMY.dynastyMilestone.gold, n: ECONOMY.dynastyMilestone.rarityUpgrades })}</b>
+            </p>
+          )}
           <p className="camp__next" data-testid="camp-next-stage-label">
             <span data-testid="camp-act-stage">
               {ante.dynasty
