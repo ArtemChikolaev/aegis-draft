@@ -132,13 +132,17 @@
   letter-spacing: .08em;
   text-transform: uppercase;
 }
-/* `auto-fit` вместо жёстких пяти колонок: между 980px и «широким» экраном пять карт ужимались до
+/* `auto-fill` вместо жёстких пяти колонок: между 980px и «широким» экраном пять карт ужимались до
    76px, и содержимое (роль-тег, портрет, кнопка) честно вылезало за границы — ловилось замером,
    на глаз это единицы пикселей. Теперь сетка переносит карты, а не давит их ниже читаемой ширины;
-   на широком экране по-прежнему пять в ряд. */
+   на широком экране по-прежнему пять в ряд.
+   Именно `auto-fill`, а не `auto-fit`: `auto-fit` схлопывает пустые треки, и после покупки игрока
+   оставшиеся четыре карты растягивались на всю ширину ряда — соседний ряд героев при этом стоял
+   пятёркой, ряды «дышали» по-разному. Пустой трек сохраняем: ширина карточки не зависит от того,
+   сколько предложений осталось. */
 .camp__pack {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 8px;
 }
 .camp-pack-card {
@@ -393,9 +397,11 @@
 .rarity-badge--immortal { --rarity-color: var(--rarity-immortal); }
 .camp-hero-rarity { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
+/* `auto-fill` по той же причине, что и в `.camp__pack`: карта улучшения не должна раздуваться,
+   когда предложений осталось меньше пяти. */
 .camp__rarity-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 8px;
 }
 .camp-rarity-card {
@@ -612,9 +618,12 @@
 }
 
 .camp__reserve { padding: 12px; }
+/* `auto-fill`, как в рядах рынка: карточка скамейки держит свою ширину независимо от того,
+   один там запасной или четыре. `min(100%, 240px)` оставляем — на узком экране трек не должен
+   требовать больше, чем есть ширины. */
 .camp__reserve-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
   gap: 10px;
 }
 .camp-reserve-card {
@@ -691,6 +700,14 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+  }
+  /* primary-кнопка живёт с `width:100%` (ui/Button — она рассчитана на колонку). В строчной
+     раскладке этот процент становится базой флекс-элемента: кнопка забирала всю карточку,
+     тексту оставалось ~60px («Тренировочный блок» ломался по слову в строку), и кнопка налезала
+     на него. В ряд кнопка идёт по своему контенту. */
+  .camp-offer--reward > button {
+    width: auto;
+    flex: 0 0 auto;
   }
   .camp__reserve-grid { grid-template-columns: 1fr; }
 }
