@@ -99,9 +99,10 @@ describe("Вклад предметов", () => {
     const a = evaluateItems(withCopy, { activeHeroes: [], cardRarity: {} });
     const b = evaluateItems(reversed, { activeHeroes: [], cardRarity: {} });
     expect([...a.xMults].sort()).toEqual([...b.xMults].sort());
-    // 1.35 → копия 1 + 0.35 × 0.7 = 1.245
+    // 1.35 → копия 1 + 0.35 × 0.5 = 1.175. Базовая доля 0.5 (было 0.7) — при 0.7 два верхних тира
+    // упирались в потолок «не больше 100% чужого множителя» и давали одно число (R12.3).
     expect(a.xMults).toContain(1.35);
-    expect(a.xMults.some((mult) => Math.abs(mult - 1.245) < 1e-9)).toBe(true);
+    expect(a.xMults.some((mult) => Math.abs(mult - 1.175) < 1e-9)).toBe(true);
   });
 
   it("copy без чужих множителей не выдумывает эффект", () => {

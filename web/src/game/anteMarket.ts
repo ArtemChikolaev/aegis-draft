@@ -262,6 +262,46 @@ export function balancedPackSlots(roles: readonly Role[], packSize: number, rng:
   return [...picked].sort((a, b) => a - b);
 }
 
+/** Рулетка hero-пула (R12.2). Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION. */
+export const HERO_POOL = {
+  /** Базовый вес. Любой герой формата обязан оставаться достижимым, поэтому вес не бывает нулевым:
+   *  собрать состав под тег нельзя, если героя с этим тегом невозможно встретить. */
+  minWeight: 1,
+  /** Во сколько раз чаще встречается герой, на котором у пятёрки максимум career-игр. */
+  familiarBias: 4,
+  /** Career-игры, на которых бонус веса выходит на плато. */
+  gamesWindow: 60,
+  /** Сколько карт рулетка вытягивает и оценивает, прежде чем добрать пак из отсеянных. Множитель к
+   *  размеру пака: одна оценка — это пять полных `scoreTeam` с matching, поэтому перебирать весь
+   *  пул из 117 героев на каждый реролл нельзя. */
+  drawFactor: 4,
+  /** Во сколько раз шире отсеянных рассматривается при доборе пака, чем нужно карт. Добор идёт
+   *  рулеткой по этой верхушке: `1` означал бы детерминированный `sort().slice()` — ровно тот
+   *  дефект, из-за которого реролл не работал (R12.1). */
+  fillerSpread: 2,
+} as const;
+
+/** Вес героя в рулетке рынка: знакомый пятёрке встречается чаще, незнакомый — реже, но никогда не
+ *  «никогда». Чистая функция от career-игр, чтобы вес считался одинаково в рынке и в тестах. */
+export function heroWeight(games: number): number {
+  const familiarity = Math.min(1, Math.max(0, games) / HERO_POOL.gamesWindow);
+  return HERO_POOL.minWeight + HERO_POOL.familiarBias * familiarity;
+}
+
+/** Вытянуть героя по весу и УБРАТЬ его из пула: без возвращения, иначе одна карта пришла бы в пак
+ *  дважды. Мутирует переданный массив — это локальная копия пула на текущий реролл. */
+function drawWeighted(pool: { heroId: number; games: number }[], rng: Rng): number | null {
+  if (!pool.length) return null;
+  const weights = pool.map((entry) => heroWeight(entry.games));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  let roll = rng.float() * total;
+  for (let index = 0; index < pool.length; index += 1) {
+    roll -= weights[index];
+    if (roll < 0) return pool.splice(index, 1)[0].heroId;
+  }
+  return pool.splice(pool.length - 1, 1)[0].heroId;
+}
+
 /** Нижняя граница hero-пака. Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION. */
 export const HERO_FLOOR = {
   /** Насколько карта может УРОНИТЬ Team OVR и всё ещё считаться ловушкой, а не мусором.
@@ -278,16 +318,29 @@ export const HERO_FLOOR = {
  *
  * Проблема, которую чинит порог (тот же дефект, что `stockedForms` уже чинил для игроков). Стартовый
  * драфт назначает героев венгерским алгоритмом, то есть активная пятёрка уже ОПТИМАЛЬНА. Поэтому
- * случайный герой из shortlist почти всегда даёт минус, и на позднем этапе пак вырождался в 4–5
+ * случайный герой из пула почти всегда даёт минус, и на позднем этапе пак вырождался в 4–5
  * карт вида «−2 Team OVR за 12 золота». Это не ловушка (ловушка обязана быть соблазнительной), а
  * шум, который вдобавок съедал дорожающий реролл (R4.2).
  *
  * Порог считается по ПОЛНОЙ дельте, включая редкость: mythic-герой поднимает карту на свой вклад,
  * и отбраковывать его по «голому» score.ts значило бы фильтровать не то число, что видит игрок.
  *
- * Пак никогда не пустеет: если проходных карт меньше размера пака, добираем лучшими из отсеянных —
- * рынок обязан что-то предлагать, даже когда состав уже сильнее всего, что есть в shortlist.
- * Last Dance сужает пак (trade-off тактики) — но не ниже одной карты.
+ * Пак никогда не пустеет: если проходных карт меньше размера пака, добираем лучшими из ОТСЕЯННЫХ
+ * этим рероллом — рынок обязан что-то предлагать, даже когда состав уже сильнее всего, что есть в
+ * пуле. Last Dance сужает пак (trade-off тактики) — но не ниже одной карты.
+ *
+ * ПОЧЕМУ КАНДИДАТЫ ВЫТЯГИВАЮТСЯ РУЛЕТКОЙ, А НЕ `shuffle` ГОТОВОГО СПИСКА (R12.1, R12.2). Раньше
+ * здесь стоял `rng.shuffle(marketHeroCandidatesShortlist)` — перемешивание ДЕТЕРМИНИРОВАННЫХ 20
+ * героев, отобранных по career-играм. Отсюда два дефекта, и второй ломал рынок:
+ *  1) за забег игрок не мог встретить больше 20 героев из 127 (см. `marketHeroCandidatePool`);
+ *  2) когда проходных карт меньше размера пака, пак добирался сортировкой по `ovrDelta` — а
+ *     сортировка от `shuffle` не зависит. Перемешивание меняло только ПОРЯДОК ОЦЕНКИ, поэтому при
+ *     оценке всех 20 кандидатов реролл возвращал тот же самый набор карт. Замер до фикса: 300 из
+ *     300 сравнений «реролл N против N+1» давали идентичный набор, стоило активным героям получить
+ *     редкость (её потеря входит в дельту и роняет любую common-карту ниже порога).
+ * Теперь рулетка вытягивает `drawFactor × packSize` кандидатов из ВСЕГО пула, поэтому и `kept`, и
+ * `rejected` — выборка ЭТОГО реролла: следующий реролл получает другие карты в обеих ветках.
+ * Инвариант «разный `rerollN` ⇒ разный набор» закреплён тестом, в том числе для fallback-ветки.
  */
 function heroOptions(
   engine: RunEngine,
@@ -297,19 +350,21 @@ function heroOptions(
   rarityOf: (heroId: number) => Rarity,
   incomingRarityOf: (heroId: number) => Rarity,
 ): HeroCard[] {
-  const incomingHeroes = rng.shuffle(engine.marketHeroCandidatesShortlist);
-  if (engine.heroes.length !== ROLE_SEQUENCE.length || incomingHeroes.length < ROLE_SEQUENCE.length) {
+  const remaining = engine.marketHeroCandidatePool;
+  if (engine.heroes.length !== ROLE_SEQUENCE.length || remaining.length < ROLE_SEQUENCE.length) {
     throw new Error(
       `Нельзя собрать hero market pack: нужно ${ROLE_SEQUENCE.length} активных и новых героев `
-      + `(активных ${engine.heroes.length}, доступно ${incomingHeroes.length})`,
+      + `(активных ${engine.heroes.length}, доступно ${remaining.length})`,
     );
   }
   const kept: HeroCard[] = [];
   const rejected: HeroCard[] = [];
   // Оцениваем лениво и останавливаемся, набрав пак: каждая оценка — пять полных scoreTeam с
-  // matching, а shortlist вчетверо длиннее пака.
-  for (const incomingHeroId of incomingHeroes) {
-    if (kept.length >= packSize) break;
+  // matching, поэтому весь пул на каждый реролл не перебираем.
+  const drawLimit = Math.min(remaining.length, packSize * HERO_POOL.drawFactor);
+  for (let draw = 0; draw < drawLimit && kept.length < packSize; draw += 1) {
+    const incomingHeroId = drawWeighted(remaining, rng);
+    if (incomingHeroId == null) break;
     const incomingRarity = incomingRarityOf(incomingHeroId);
     const option = bestHeroOption(engine, incomingHeroId, rarityOf);
     const rarityShift = rarityOvrContribution(incomingRarity)
@@ -318,10 +373,17 @@ function heroOptions(
     (card.ovrDelta >= -HERO_FLOOR.maxLossOvr ? kept : rejected).push(card);
   }
   if (kept.length < packSize) {
-    kept.push(...[...rejected]
+    const need = packSize - kept.length;
+    // Добор обязан зависеть от реролла (R12.1). Одной широкой выборки для этого НЕ достаточно: когда
+    // пул меньше `drawLimit`, рулетка вытягивает его целиком, и детерминированный `sort().slice()`
+    // снова вернул бы тот же набор. Поэтому берём верхушку отсеянных с запасом и выбираем из неё
+    // рулеткой: качество добора сохраняется (мёртвые карты со дна не всплывают), а набор у
+    // следующего реролла другой. `rng` здесь уже продвинут вытягиваниями, то есть свой у реролла.
+    const shortlist = [...rejected]
       .sort((a, b) => b.ovrDelta - a.ovrDelta
         || a.option.incomingHeroId - b.option.incomingHeroId)
-      .slice(0, packSize - kept.length));
+      .slice(0, need * HERO_POOL.fillerSpread);
+    kept.push(...rng.shuffle(shortlist).slice(0, need));
   }
   return kept;
 }

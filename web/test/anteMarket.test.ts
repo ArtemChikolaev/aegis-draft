@@ -4,6 +4,7 @@ import {
   HERO_FLOOR,
   balancedPackSlots,
   buildAnteMarketRoulette,
+  heroWeight,
   refreshAnteMarketOffers,
   stockedForms,
 } from "../src/game/anteMarket.ts";
@@ -415,6 +416,64 @@ describe("Нижняя граница hero-пака", () => {
     const heroes = offers.filter((o) => o.kind === "hero");
     expect(heroes).toHaveLength(5);
     for (const offer of heroes) expect(offer.preview).toBeDefined();
+  });
+
+  it("реролл меняет набор hero-карт — в том числе когда пак добирается из отсеянных (R12.1)", () => {
+    // Регрессия на главный баг плейтеста 2026-07-30: пак добирался из отсеянных СОРТИРОВКОЙ по
+    // дельте, а сортировка не зависела от RNG реролла. Пока проходных карт хватало, набор менялся;
+    // стоило активным героям получить редкость (её потеря входит в дельту и роняет любую
+    // common-карту ниже порога) — реролл возвращал тот же самый набор, 300 сравнений из 300.
+    // Поэтому проверяем ИМЕННО это состояние: все активные герои immortal.
+    for (const seed of ["reroll-heroes-a", "reroll-heroes-b", "reroll-heroes-c"]) {
+      const engine = completed(seed);
+      const heroRarity: Record<string, Rarity> = {};
+      for (const heroId of engine.heroes) heroRarity[String(heroId)] = "immortal";
+      const setFor = (rerollN: number) => buildAnteMarketRoulette(
+        engine, seed, 12, rerollN, [], { rarityDrops: false, stageCount: 25, heroRarity },
+      )
+        .filter((offer) => offer.kind === "hero")
+        .map((offer) => offer.heroSwap!.incomingHeroId)
+        .sort((a, b) => a - b)
+        .join(",");
+      // Пак заведомо добирается из отсеянных — иначе тест проверял бы не ту ветку.
+      const deltas = buildAnteMarketRoulette(
+        engine, seed, 12, 0, [], { rarityDrops: false, stageCount: 25, heroRarity },
+      ).filter((offer) => offer.kind === "hero").map((offer) => cardDelta(offer, heroRarity));
+      expect(deltas.some((delta) => delta < -HERO_FLOOR.maxLossOvr)).toBe(true);
+
+      const sets = [0, 1, 2, 3].map(setFor);
+      expect(new Set(sets).size).toBeGreaterThan(1);
+      // И при этом каждый реролл сам по себе детерминирован: тот же ключ ⇒ тот же набор.
+      expect(setFor(1)).toBe(sets[1]);
+    }
+  });
+
+  it("рынок героев достаёт весь пул формата, а не фиксированные 20 карт (R12.2)", () => {
+    // Регрессия на второй дефект: пул был `slice(0, 20)` по career-играм пятёрки, причём без RNG.
+    // За забег игрок физически не мог встретить больше 20 героев из 127, поэтому сборки под теги
+    // (R8.1) были невозможны — узкие теги в такой выборке просто отсутствовали.
+    const seed = "hero-pool-width";
+    const engine = completed(seed);
+    const pool = engine.marketHeroCandidatePool;
+    // Инвариант — «пул НЕ усечён», а не конкретное число: в тестовом датасете format-пул заведомо
+    // меньше 127, и проверять абсолютный размер значило бы проверять датасет, а не правило.
+    expect(pool.map((entry) => entry.heroId).sort((a, b) => a - b))
+      .toEqual([...engine.marketHeroCandidates].sort((a, b) => a - b));
+    // Незнакомый пятёрке герой обязан иметь ненулевой вес: иначе он недостижим в принципе, и
+    // именно это делало сборки под теги невозможными.
+    expect(heroWeight(0)).toBeGreaterThan(0);
+    expect(heroWeight(1000)).toBeGreaterThan(heroWeight(0));
+
+    const met = new Set<number>();
+    for (let rerollN = 0; rerollN < 12; rerollN += 1) {
+      for (const offer of buildAnteMarketRoulette(engine, seed, 4, rerollN, [], { stageCount: 25 })) {
+        if (offer.kind === "hero") met.add(offer.heroSwap!.incomingHeroId);
+      }
+    }
+    // Рероллы на неизменном ростере обязаны показать заметно больше героев, чем размер одного пака:
+    // прежний детерминированный shortlist упирался в одну и ту же верхушку.
+    expect(met.size).toBeGreaterThan(ROLE_SEQUENCE.length * 2);
+    expect(met.size).toBeLessThanOrEqual(pool.length);
   });
 
   it("не предлагает снести immortal ради выигрыша в голом score", () => {

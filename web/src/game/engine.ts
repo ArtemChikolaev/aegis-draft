@@ -16,7 +16,7 @@ import {
   type RunConfig,
 } from "./packs.ts";
 import { hasTeamSuccess, mixedBaseRating } from "./teamSuccess.ts";
-import { scoreTeam, type ScoreBreakdown, heroStatsForAssignment, signatureLookup, chemistryPlayersFromRoster } from "./score.ts";
+import { scoreTeam, type ScoreBreakdown, heroStatsForAssignment, playerHeroGames, signatureLookup, chemistryPlayersFromRoster } from "./score.ts";
 
 /** Сколько героев драфтится (по одному на игрока, как в 322-0). */
 export const HERO_TARGET = ROLE_SEQUENCE.length;
@@ -245,21 +245,32 @@ export class RunEngine {
       .filter((heroId) => !unavailable.has(heroId));
   }
 
-  /** Герои с наибольшим объёмом реальных pro-игр у текущей пятёрки — короткий пул,
-   * из которого точный matching уже выбирает лучший re-pick. */
-  get marketHeroCandidatesShortlist(): number[] {
+  /**
+   * Герои рынка с ВЕСОМ для рулетки: сумма реальных pro-игр текущей пятёрки на этом герое.
+   *
+   * Раньше здесь был `marketHeroCandidatesShortlist` — `slice(0, 20)` по этому же числу игр. Это
+   * был не приоритет, а **eligibility**: за весь забег игрок физически не мог встретить больше 20
+   * героев из 127, причём набор был детерминированным (рулетки в нём не было вовсе). Собрать состав
+   * под теги (`R8.1`) было нельзя — ось отбора «много игр у моих игроков» ортогональна оси, по
+   * которой игрок строит билд. Замер: узкие теги отсутствовали в пуле в 8–9 забегах из 30 при том,
+   * что карточки просят их по `cap 3`.
+   *
+   * Поэтому пул отдаётся ЦЕЛИКОМ, а career-игры влияют на ВЕС карты (`anteMarket.HERO_POOL`). Ровно
+   * это же лечение `R5.1` уже применил к формам игроков: взвешенная рулетка вместо жёсткого фильтра.
+   *
+   * Порядок стабилен по `heroId` — RNG рынка обязан получать один и тот же вход при том же сиде.
+   */
+  get marketHeroCandidatePool(): { heroId: number; games: number }[] {
     const stats = heroStatsForAssignment(this.data);
     return this.marketHeroCandidates
       .map((heroId) => ({
         heroId,
         games: this.players.reduce(
-          (sum, player) => sum + (stats[String(player.accountId)]?.[String(heroId)]?.games ?? 0),
+          (sum, player) => sum + playerHeroGames(stats, player.accountId, heroId),
           0,
         ),
       }))
-      .sort((a, b) => b.games - a.games || a.heroId - b.heroId)
-      .slice(0, 20)
-      .map((row) => row.heroId);
+      .sort((a, b) => a.heroId - b.heroId);
   }
 
   /** Разрешить persisted CandidateRef обратно в объект текущего совместимого датасета. */

@@ -27,7 +27,7 @@ import {
   type HeroTag,
 } from "./heroTags.ts";
 import { POWER_LIMITS } from "./tournamentPower.ts";
-import type { Rarity } from "./rarity.ts";
+import { RARITIES, rarityRank, type Rarity } from "./rarity.ts";
 
 export type ItemCategory =
   | "tagSynergy"
@@ -111,7 +111,9 @@ export const ITEMS: readonly ItemDef[] = [
   { id: "desolator", category: "buildDefining", effect: { kind: "xMultOnTag", tag: "pickoff", min: 3, mult: 1.15 } },
 
   // ── Copy: сильны только в уже собранном билде ──────────────────────────────────────────────
-  { id: "refresherOrb", category: "copy", effect: { kind: "copyBestXMult", rate: 0.7 } },
+  // Базовая доля — 0.5, а не 0.7: `rate` упирается в потолок 1.0 (копировать больше 100% чужого
+  // множителя нельзя), и при 0.7 два верхних тира давали одно и то же число (R12.3).
+  { id: "refresherOrb", category: "copy", effect: { kind: "copyBestXMult", rate: 0.5 } },
 
   // ── Экономика: не дают силы напрямую (PRD §5.9.3) ──────────────────────────────────────────
   { id: "handOfMidas", category: "economy", effect: { kind: "goldPerCamp", gold: 4 } },
@@ -120,7 +122,9 @@ export const ITEMS: readonly ItemDef[] = [
   { id: "observerWard", category: "economy", effect: { kind: "freeRerolls", count: 2 }, drawback: { kind: "goldPerCamp", gold: -2 } },
 
   // ── Защита от босса: контрится подготовкой, а не отменяет правило ──────────────────────────
-  { id: "blackKingBar", category: "bossProtection", effect: { kind: "bossPenaltyFactor", factor: 0.4 } },
+  // Базовый фактор — 0.55, а не 0.4: срезаемая доля упирается в `bossFactorFloor`, и при 0.4 exotic
+  // с arcana сходились в один и тот же пол (R12.3). Ладдер теперь `0.55 / 0.44 / 0.28 / 0.15`.
+  { id: "blackKingBar", category: "bossProtection", effect: { kind: "bossPenaltyFactor", factor: 0.55 } },
   { id: "linkensSphere", category: "bossProtection", effect: { kind: "bossPenaltyCap", cap: 2 } },
 
   // ── Risk/reward: большой множитель за реальную цену ────────────────────────────────────────
@@ -145,10 +149,31 @@ export const ITEM_RARITY = {
 
 const round2 = (n: number): number => Math.round(n * 100) / 100;
 
+/**
+ * Целочисленный эффект под тир (R12.3).
+ *
+ * Умножение с округлением на маленьких значениях даёт двум соседним тирам ОДНО число: `freeRerolls: 1`
+ * при `magnitude {1, 1.25, 1.6, 2}` шёл `1 / 1 / 2 / 2`, то есть refined Bottle был буквально той же
+ * картой, что standard, а exotic — той же, что arcana. То же ломало `magicWand` и `observerWard`
+ * (refined == exotic). Жалоба плейтеста звучала прямо: «качество никак не коррелирует с
+ * характеристиками».
+ *
+ * Поэтому округление подпирается снизу РАНГОМ тира: каждый следующий тир строго полезнее
+ * предыдущего даже там, где умножение этого не даёт. Знак сохраняется — растёт магнитуда, как и при
+ * умножении (у `drawback` числа не масштабируются вовсе, но `scaleEffect` обязана быть корректной
+ * для любого входа, а не только для фактического каталога).
+ */
+function scaleMagnitudeInt(value: number, k: number, rank: number): number {
+  if (value === 0) return 0;
+  const magnitude = Math.max(Math.round(Math.abs(value) * k), Math.abs(value) + rank);
+  return value < 0 ? -magnitude : magnitude;
+}
+
 /** Эффект карточки этого тира. Чистая: описание, оценка и превью читают ОДНУ функцию, поэтому
  *  подпись не может разойтись с числом (тот же инвариант, что у `itemLabel` от `effect`). */
 export function scaleEffect(effect: ItemEffect, rarity: Rarity): ItemEffect {
   const k = ITEM_RARITY.magnitude[rarity];
+  const rank = rarityRank(rarity);
   if (k === 1) return effect;
   switch (effect.kind) {
     case "flatPerTag":
@@ -166,11 +191,11 @@ export function scaleEffect(effect: ItemEffect, rarity: Rarity): ItemEffect {
     case "copyBestXMult":
       return { ...effect, rate: Math.min(1, round2(effect.rate * k)) };
     case "goldPerCamp":
-      return { ...effect, gold: Math.round(effect.gold * k) };
+      return { ...effect, gold: scaleMagnitudeInt(effect.gold, k, rank) };
     case "freeRerolls":
-      return { ...effect, count: Math.round(effect.count * k) };
+      return { ...effect, count: scaleMagnitudeInt(effect.count, k, rank) };
     case "interestCap":
-      return { ...effect, bonus: Math.round(effect.bonus * k) };
+      return { ...effect, bonus: scaleMagnitudeInt(effect.bonus, k, rank) };
     case "bossPenaltyFactor":
       // Сильнее = МЕНЬШЕ фактор: растёт срезаемая доля штрафа.
       return { ...effect, factor: Math.max(ITEM_RARITY.bossFactorFloor, round2(1 - (1 - effect.factor) * k)) };
@@ -506,7 +531,42 @@ export function itemLabel(effect: ItemEffect): ItemLabel {
   }
 }
 
-/** Проверка каталога (зовётся тестом): множители в объявленных границах, у сильных карт есть цена. */
+/** «Полезность» числовой части эффекта — нормализованная так, что БОЛЬШЕ всегда значит лучше для
+ *  игрока. У защиты от босса полезнее меньшее число (меньший множитель штрафа, ниже его потолок),
+ *  поэтому она входит со знаком минус.
+ *
+ *  Зачем нормализация. Инвариант «тир обязан усиливать карту» иначе пришлось бы писать по ветке на
+ *  каждый вид эффекта — ровно так и вышло раньше: проверялись только `xMult` и `bossPenaltyFactor`,
+ *  а целочисленные экономические эффекты ехали мимо проверки. `switch` без `default` делает
+ *  пропущенный вид ошибкой компиляции, а не находкой плейтеста. */
+function usefulness(effect: ItemEffect): number {
+  switch (effect.kind) {
+    case "flatPerTag":
+    case "additivePerTag":
+    case "additivePerAttr":
+      return effect.per;
+    case "xMultOnDiversity":
+    case "xMultOnTag":
+    case "xMultWithoutTag":
+    case "xMultFlat":
+      return effect.mult;
+    case "copyBestXMult":
+      return effect.rate;
+    case "goldPerCamp":
+      return effect.gold;
+    case "freeRerolls":
+      return effect.count;
+    case "interestCap":
+      return effect.bonus;
+    case "bossPenaltyFactor":
+      return -effect.factor;
+    case "bossPenaltyCap":
+      return -effect.cap;
+  }
+}
+
+/** Проверка каталога (зовётся тестом): множители в объявленных границах, у сильных карт есть цена,
+ *  и каждый следующий тир СТРОГО полезнее предыдущего. */
 export function validateItems(): string[] {
   const issues: string[] = [];
   for (const item of ITEMS) {
@@ -521,21 +581,28 @@ export function validateItems(): string[] {
     if (item.effect.kind === "xMultFlat" && !item.drawback) {
       issues.push(`${item.id}: безусловный X Mult без trade-off`);
     }
-    // Даже на верхнем тире карточка не имеет права выйти за абсолютный потолок множителей и не
-    // имеет права стать слабее: масштаб редкости обязан быть монотонным.
+    // Даже на верхнем тире карточка не имеет права выйти за абсолютный потолок множителей.
     if (mult != null) {
       const top = scaleEffect(item.effect, "immortal");
       const topMult = "mult" in top ? top.mult : mult;
       if (topMult > POWER_LIMITS.xMultHard) {
         issues.push(`${item.id}: immortal X Mult ${topMult} выше потолка ${POWER_LIMITS.xMultHard}`);
       }
-      if (topMult < mult) issues.push(`${item.id}: immortal X Mult слабее common`);
     }
-    // Экономическую и антибоссовую пользу редкость тоже обязана только усиливать.
-    const boss = scaleEffect(item.effect, "immortal");
-    if (item.effect.kind === "bossPenaltyFactor" && boss.kind === "bossPenaltyFactor"
-      && boss.factor > item.effect.factor) {
-      issues.push(`${item.id}: immortal срезает штраф босса слабее common`);
+    // Каждый следующий тир обязан быть СТРОГО полезнее предыдущего — по ЛЮБОМУ виду эффекта.
+    // Раньше проверялись только `xMult` и `bossPenaltyFactor`, поэтому пять карт каталога годами
+    // имели пары одинаковых тиров (R12.3). Проверка попарная, а не «immortal против common»: именно
+    // в середине лестницы и слипались тиры.
+    for (let rank = 1; rank < RARITIES.length; rank += 1) {
+      const lower = RARITIES[rank - 1];
+      const upper = RARITIES[rank];
+      const before = usefulness(scaleEffect(item.effect, lower));
+      const after = usefulness(scaleEffect(item.effect, upper));
+      if (after <= before) {
+        issues.push(
+          `${item.id}: ${ITEM_TIERS[upper]} не сильнее ${ITEM_TIERS[lower]} (${before} → ${after})`,
+        );
+      }
     }
   }
   if (new Set(ITEM_IDS).size !== ITEM_IDS.length) issues.push("дублирующиеся id предметов");
