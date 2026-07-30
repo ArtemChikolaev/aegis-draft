@@ -10,7 +10,7 @@
 // адаптируется через Market/резерв/Tactics; скрытого контра нет — правило и `до→после` видны в
 // Буткемпе заранее (DoD).
 import { Rng } from "./rng.ts";
-import { isActFinale } from "./anteRun.ts";
+import { isActFinale, seasonStage } from "./anteRun.ts";
 import type { Summand } from "./anteEconomy.ts";
 
 export type BossId =
@@ -43,18 +43,120 @@ export function isBossId(value: string): value is BossId {
   return (BOSS_IDS as readonly string[]).includes(value);
 }
 
-/** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
- *  Placeholder (как ECONOMY/TACTICS): точная калибровка — balance spec §10.F, инструмент `npm run sim`.
- *  Штрафы соизмеримы с шагом поля (ANTE_FIELD_STEP=3): проигнорировать босса ≈ потерять этап,
- *  адаптация его снимает. Пороги — под текущие диапазоны слагаемых (Base ~78–92, Hero Synergy
- *  ~0–8, Chemistry ~0–13). */
+/**
+ * Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
+ * Placeholder (как ECONOMY/TACTICS): точная калибровка — balance spec §10.F, инструмент `npm run sim`.
+ * Штрафы соизмеримы с шагом поля (ANTE_FIELD_STEP=3): проигнорировать босса ≈ потерять этап,
+ * адаптация его снимает.
+ *
+ * ПОЧЕМУ ПЛАНКИ БОЛЬШЕ НЕ КОНСТАНТЫ (R12.5). Раньше здесь стояли абсолютные пороги под диапазоны
+ * «Base ~78–92, Hero Synergy ~0–8», и это был не промах калибровки, а структурный дефект: все
+ * величины, которые судят боссы, монотонно ползут по ходу забега, поэтому КОНСТАНТНЫЙ порог
+ * пересекается ровно один раз и делит сезон на «штраф всегда» и «штрафа никогда». Решением он не
+ * бывает нигде. Замер на финалах актов (`npm run sim -- 100`, медианы по этапам 4/9/14/19/24):
+ *
+ * | величина     | этап 4 | 9    | 14   | 19   | 24   | старый порог | что получалось     |
+ * |--------------|--------|------|------|------|------|--------------|--------------------|
+ * | Base         | 80.8   | 86.2 | 91.0 | 94.6 | 96.6 | ≥ 86         | max штраф → мимо   |
+ * | Hero Synergy | 8.9    | 18.1 | 19.5 | 19.5 | 19.5 | ≥ 4          | выполнено всегда   |
+ * | разброс OVR  | 14     | 12   | 11   | 9    | 7    | ≤ 8          | штраф → мимо       |
+ *
+ * Отсюда два разных лечения, и разница между ними принципиальна:
+ *  - Base и разброс OVR РАСТУТ/УБЫВАЮТ без потолка в пределах забега ⇒ планка становится рампой по
+ *    актам, посаженной на измеренный квартиль (`p25` для Base, `p75` для разброса — наказывается
+ *    худшая четверть, то есть пренебрежение рычагом, а не неудача). Рампа продолжается в Династии,
+ *    поэтому правило не умрёт снова на 40-м этапе.
+ *  - Hero Synergy УПИРАЕТСЯ В ПОТОЛОК (~19.5 уже к третьему акту, см. таблицу) ⇒ никакая рампа его
+ *    не спасёт: планку по величине все выполняют по определению. Условие переведено на СТРУКТУРУ
+ *    состава — «сколько активных героев вне репертуара своего игрока». Замер: таких героев стабильно
+ *    ~2 из 5 на ЛЮБОМ финале (при баре 40 pro-игр), потому что это свойство формы состава, а не его
+ *    величины. Ровно поэтому `heroBan` — единственный босс, который никогда не ломался: он тоже
+ *    считает штуки, а не очки.
+ */
 export const BOSSES = {
-  baseFloor: { threshold: 86, perPoint: 1.2, max: 6, summand: "base" as Summand },
-  heroSynergyDemand: { threshold: 4, perPoint: 1.6, max: 6, summand: "heroSynergy" as Summand },
-  chemistryBlackout: { factor: 1, max: 8, summand: "chemistry" as Summand },
-  unbalancedRoster: { maxSpread: 8, perPoint: 0.8, max: 6, summand: "base" as Summand },
+  /**
+   * Планка Base = `ceiling − gap · decay^пройденных актов`, то есть ВОГНУТАЯ рампа: она быстро
+   * растёт в начале забега и замедляется к концу.
+   *
+   * Почему не линейная. Base упирается в потолок качества игрока (99), поэтому линейная рампа его
+   * перелетает: замер линейного варианта `79 + 4.5·акт` дал долю выполненных условий
+   * `76/79/79/76/2%` — то есть на финале сезона правило превращалось в гарантированный штраф, ровно
+   * такая же поломка, как исходная константа, только с другого конца. Вогнутая форма повторяет
+   * форму самого Base.
+   *
+   * Числа посажены на замер (1238 финалов, `npm run sim -- 120`): планки выходят `80/87/91/94/96`
+   * по актам, доля выполненных условий `64/45/52/62/64%` — правило живое на КАЖДОМ финале, а не
+   * фазовый переключатель.
+   */
+  baseFloor: {
+    ceiling: 99,
+    gap: 19,
+    decay: 0.65,
+    perPoint: 1.2,
+    max: 6,
+    summand: "base" as Summand,
+  },
+  /**
+   * Структурное условие: герой, на котором назначенный игрок сыграл меньше `minGames` pro-игр,
+   * считается «вне репертуара». Первые `tolerated` таких героев штрафа не дают — штрафуются те, что
+   * сверх допуска, как штуки (по образцу `heroBan`). Величина Hero Synergy в условие не входит
+   * вовсе, поэтому её потолок правилу не мешает.
+   *
+   * Замер (те же 1238 финалов): при баре 40 игр «вне репертуара» оказывается 0/1/2/3/4/5 героев с
+   * частотой `6/19/31/26/12/3%`, и это распределение почти НЕ меняется по актам — потому что это
+   * свойство формы состава, а не его величины. Допуск 2 даёт долю выполненных условий
+   * `46/59/67/63/61%` по актам. Допуск 0 (любой чужой герой штрафует) давал 6% — правило было бы
+   * безусловным штрафом.
+   */
+  heroSynergyDemand: {
+    minGames: 40,
+    tolerated: 2,
+    perHero: 1.5,
+    max: 6,
+    summand: "heroSynergy" as Summand,
+  },
+  /** Chemistry в этот этап не работает. Условие по СВОЕЙ природе безусловное (замер: выполнено в 2%
+   *  случаев) — это не планка, а снятие рычага, и адаптация к нему долгосрочная: не вкладываться в
+   *  Chemistry, зная о боссе заранее. Но `max` обязан быть сопоставим с остальными боссами, иначе
+   *  забег решает не игрок, а то, какое правило выпало: при `max: 8` средний штраф был 5.93 против
+   *  0.25–3.3 у прочих. */
+  chemistryBlackout: { factor: 1, max: 6, summand: "chemistry" as Summand },
+  /** Допустимый разброс OVR СУЖАЕТСЯ по актам: ровный состав к концу забега — норма, а не
+   *  достижение (замер: разброс сам падает 14 → 7). `floorSpread` не даёт рампе уйти в ноль в
+   *  Династии. Числа посажены на замер: доля выполненных условий `59/55/55/57/64%` — заметно
+   *  ровнее, чем у любого фиксированного допуска. */
+  unbalancedRoster: {
+    startSpread: 14,
+    perActTightening: 1.5,
+    floorSpread: 5,
+    perPoint: 0.8,
+    max: 6,
+    summand: "base" as Summand,
+  },
   heroBan: { perHero: 1.5, max: 6, summand: "heroSynergy" as Summand },
 } as const;
+
+/** Сколько актов ПРОЙДЕНО к этапу (0 в первом акте). Рампы боссов считаются отсюда, а не от
+ *  абсолютного этапа: акт — это и есть единица прогресса забега, и в Династии счёт продолжается. */
+function actsPassed(absoluteStageIndex: number): number {
+  return Math.max(0, seasonStage(Math.max(0, absoluteStageIndex)).act - 1);
+}
+
+/** Планка Base для этапа. Экспортируется, потому что её читают трое — оценка, подпись в Буткемпе и
+ *  тест; второй копии этой арифметики быть не должно. */
+export function baseDemandFor(absoluteStageIndex: number): number {
+  const cfg = BOSSES.baseFloor;
+  return cfg.ceiling - cfg.gap * cfg.decay ** actsPassed(absoluteStageIndex);
+}
+
+/** Допустимый разброс OVR для этапа (сужается по актам, не ниже `floorSpread`). */
+export function spreadLimitFor(absoluteStageIndex: number): number {
+  const cfg = BOSSES.unbalancedRoster;
+  return Math.max(
+    cfg.floorSpread,
+    cfg.startSpread - cfg.perActTightening * actsPassed(absoluteStageIndex),
+  );
+}
 
 /** Ключ Rng правила: нулевой реролл сохраняет ИСХОДНЫЙ ключ, поэтому смена правила (T5.9) не
  *  сдвигает ни один уже посчитанный забег, сид или golden. */
@@ -92,6 +194,10 @@ export function bannedHeroesForStage(
 }
 
 export interface BossContext {
+  /** Абсолютный индекс этапа (0-based). Нужен рампам планок: они растут по актам, поэтому условие
+   *  без номера этапа посчитать нельзя — именно отсутствие этого входа и удерживало пороги
+   *  константами (R12.5). В Династии индекс не ограничен, рампа продолжается. */
+  absoluteStageIndex: number;
   /** Текущие эффективные слагаемые (после покупок/тактик) — босс судит финальную силу. */
   base: number;
   heroSynergy: number;
@@ -102,6 +208,10 @@ export interface BossContext {
   activeHeroes: number[];
   /** Забаненные на этом этапе герои (пусто вне heroBan). */
   bannedHeroes: number[];
+  /** Pro-игры каждого активного игрока на НАЗНАЧЕННОМ ему герое — вход структурного
+   *  `heroSynergyDemand`. Тот же смысл, что у `TacticPlayer.assignedHeroGames`: «это его герой или
+   *  случайный?». Ноль для игрока без назначенного героя. */
+  assignedHeroGames: number[];
 }
 
 export interface BossEvaluation {
@@ -121,28 +231,36 @@ function clampPenalty(raw: number, max: number): number {
 }
 
 const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bossId">> = {
-  // Мета звёзд: нужен высокий средний Base, иначе штраф. Адаптация — усилить игроков на рынке.
+  // Мета звёзд: нужен высокий средний Base, иначе штраф. Планка растёт по актам (R12.5), потому что
+  // растёт и сам Base. Адаптация — усилить игроков на рынке / Extra training.
   baseFloor: (ctx) => {
     const cfg = BOSSES.baseFloor;
-    const shortfall = Math.max(0, cfg.threshold - ctx.base);
+    const threshold = baseDemandFor(ctx.absoluteStageIndex);
+    const shortfall = Math.max(0, threshold - ctx.base);
     return {
       met: shortfall <= 0,
       penalty: clampPenalty(shortfall * cfg.perPoint, cfg.max),
       summand: cfg.summand,
       reasonKey: "boss.reason.baseFloor",
-      reasonParams: { threshold: cfg.threshold },
+      reasonParams: { threshold: Math.round(threshold * 10) / 10 },
     };
   },
-  // Мета исполнения на героях: нужен Hero Synergy выше порога. Адаптация — re-pick/heroPractice.
+  // Мета исполнения на героях: каждый активный герой вне репертуара своего игрока штрафует.
+  // Условие СТРУКТУРНОЕ (штуки, не очки) — величина Hero Synergy упирается в потолок уже к третьему
+  // акту, поэтому планка по величине выполнялась всеми и всегда (R12.5).
+  // Адаптация — hero re-pick под своего игрока, резерв или Hero practice.
   heroSynergyDemand: (ctx) => {
     const cfg = BOSSES.heroSynergyDemand;
-    const shortfall = Math.max(0, cfg.threshold - ctx.heroSynergy);
+    const offRepertoire = ctx.assignedHeroGames.filter((games) => games < cfg.minGames).length;
+    // Штрафуются только герои СВЕРХ допуска: пара «чужих» героев в пятёрке — норма любого состава
+    // (замер), и наказывать за неё значило бы штрафовать всех и всегда.
+    const over = Math.max(0, offRepertoire - cfg.tolerated);
     return {
-      met: shortfall <= 0,
-      penalty: clampPenalty(shortfall * cfg.perPoint, cfg.max),
+      met: over === 0,
+      penalty: clampPenalty(over * cfg.perHero, cfg.max),
       summand: cfg.summand,
       reasonKey: "boss.reason.heroSynergyDemand",
-      reasonParams: { threshold: cfg.threshold },
+      reasonParams: { n: offRepertoire, max: cfg.tolerated, games: cfg.minGames },
     };
   },
   // Запрет координации: Chemistry в этот этап не работает и штрафует ровно на свою величину.
@@ -161,17 +279,20 @@ const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bos
   // выровнять состав (перекликается с тактикой No Superstars).
   unbalancedRoster: (ctx) => {
     const cfg = BOSSES.unbalancedRoster;
+    // Допуск сужается по актам (R12.5): разброс сам падает по ходу забега (14 → 7 по замеру),
+    // поэтому фиксированный допуск сначала штрафовал почти всех, а к финалу сезона — никого.
+    const maxSpread = spreadLimitFor(ctx.absoluteStageIndex);
     if (ctx.playerOvrs.length === 0) {
-      return { met: true, penalty: 0, summand: cfg.summand, reasonKey: "boss.reason.unbalancedRoster", reasonParams: { spread: 0, max: cfg.maxSpread } };
+      return { met: true, penalty: 0, summand: cfg.summand, reasonKey: "boss.reason.unbalancedRoster", reasonParams: { spread: 0, max: maxSpread } };
     }
     const spread = Math.max(...ctx.playerOvrs) - Math.min(...ctx.playerOvrs);
-    const over = Math.max(0, spread - cfg.maxSpread);
+    const over = Math.max(0, spread - maxSpread);
     return {
       met: over <= 0,
       penalty: clampPenalty(over * cfg.perPoint, cfg.max),
       summand: cfg.summand,
       reasonKey: "boss.reason.unbalancedRoster",
-      reasonParams: { spread, max: cfg.maxSpread },
+      reasonParams: { spread, max: maxSpread },
     };
   },
   // Урезанный hero pool: набор героев вне меты этап. Активный герой из бана штрафует Hero Synergy.

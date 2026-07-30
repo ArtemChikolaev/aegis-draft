@@ -84,12 +84,17 @@ function bossPenalty(
   const score = engine.score();
   if (!score || !bossId) return 0;
   const raw = evaluateBoss(bossId, {
+    absoluteStageIndex: stageIndex,
     base: score.base + mods.base,
     heroSynergy: score.heroSynergy + mods.heroSynergy,
     chemistry: score.chemistry + mods.chemistry,
     playerOvrs: engine.players.map((p) => p.ovr),
     activeHeroes: engine.heroes,
     bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex)),
+    // Через тот же `buildTacticContext`, что и игра: иначе симулятор мерил бы другое условие.
+    assignedHeroGames: buildTacticContext(
+      engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
+    ).players.map((player) => player.assignedHeroGames),
   }).penalty;
   // Защита предметами — как в игре (R8.3), иначе симулятор мерил бы более тяжёлых боссов.
   return protectedBossPenalty(raw, itemsOf(engine, economy));

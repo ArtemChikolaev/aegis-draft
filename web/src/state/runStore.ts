@@ -384,12 +384,18 @@ export const useRun = create<RunStore>((set, get) => {
     const mods = effectiveModifiers(tactics);
     const items = runItems();
     const raw = evaluateBoss(bossId, {
+      // Индекс именно оцениваемого этапа, а не текущего: разведка (R9.4) считает условие БУДУЩЕГО
+      // боссового турнира, и рампа планки обязана взяться от него же.
+      absoluteStageIndex: stageIndex,
       base: score.base + mods.base,
       heroSynergy: score.heroSynergy + mods.heroSynergy,
       chemistry: score.chemistry + mods.chemistry,
       playerOvrs: engine.players.map((p) => p.ovr),
       activeHeroes: engine.heroes,
       bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, rerolls),
+      // Через тот же `buildTacticContext`, что и боевой расчёт тактик: «pro-игры на назначенном
+      // герое» определены там ровно один раз, и второй копии этой величины быть не должно.
+      assignedHeroGames: tacticContext()?.players.map((player) => player.assignedHeroGames) ?? [],
     });
     // Предметы-защита смягчают штраф, но не отменяют правило (R8.3).
     return { ...raw, penalty: protectedBossPenalty(raw.penalty, items) };
@@ -872,12 +878,15 @@ export const useRun = create<RunStore>((set, get) => {
             const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls);
             boss = bossId
               ? evaluateBoss(bossId, {
+                absoluteStageIndex: stageIndex,
                 base: score.base + mods.base,
                 heroSynergy: score.heroSynergy + mods.heroSynergy,
                 chemistry: score.chemistry + mods.chemistry,
                 playerOvrs: engine.players.map((p) => p.ovr),
                 activeHeroes: engine.heroes,
                 bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes, bossRerolls),
+                // Тот же `tacticCtx`, что уже собран выше для восстановления тактик.
+                assignedHeroGames: tacticCtx.players.map((player) => player.assignedHeroGames),
               })
               : null;
             anteRun.rebuildCurrentStage(

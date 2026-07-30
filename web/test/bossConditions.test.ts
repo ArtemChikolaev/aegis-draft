@@ -3,23 +3,33 @@ import {
   BOSSES,
   BOSS_IDS,
   bannedHeroesForStage,
+  baseDemandFor,
   bossForStage,
   evaluateBoss,
+  spreadLimitFor,
   type BossContext,
 } from "../src/game/bossConditions.ts";
 import { ACT_LENGTH, isActFinale } from "../src/game/anteRun.ts";
 
 function ctx(over: Partial<BossContext> = {}): BossContext {
   return {
+    // Первый акт по умолчанию: планки боссов — рампа по актам (R12.5), поэтому у контекста теста
+    // обязан быть этап, иначе тест проверял бы неизвестно какой порог.
+    absoluteStageIndex: ACT_LENGTH - 1,
     base: 88,
     heroSynergy: 5,
     chemistry: 3,
     playerOvrs: [88, 87, 86, 85, 84],
     activeHeroes: [1, 2, 3, 4, 5],
     bannedHeroes: [],
+    // По умолчанию все герои — «свои»: иначе heroSynergyDemand штрафовал бы в каждом тесте.
+    assignedHeroGames: [80, 80, 80, 80, 80],
     ...over,
   };
 }
+
+/** Финал акта `act` (1-based) — на нём и стоят боссы. */
+const finaleOfAct = (act: number) => act * ACT_LENGTH - 1;
 
 describe("bossForStage", () => {
   // R6.2: босс — только финал акта. Раньше он стоял на КАЖДОМ этапе с третьего (3 из 5).
@@ -81,10 +91,12 @@ describe("bossForStage", () => {
 
 describe("baseFloor — рычаг Base", () => {
   it("слабый Base штрафуется, сильный проходит", () => {
-    const weak = evaluateBoss("baseFloor", ctx({ base: BOSSES.baseFloor.threshold - 4 }));
+    const stage = finaleOfAct(1);
+    const demand = baseDemandFor(stage);
+    const weak = evaluateBoss("baseFloor", ctx({ absoluteStageIndex: stage, base: demand - 4 }));
     expect(weak.met).toBe(false);
     expect(weak.penalty).toBeCloseTo(4 * BOSSES.baseFloor.perPoint, 5);
-    const strong = evaluateBoss("baseFloor", ctx({ base: BOSSES.baseFloor.threshold }));
+    const strong = evaluateBoss("baseFloor", ctx({ absoluteStageIndex: stage, base: demand }));
     expect(strong.met).toBe(true);
     expect(strong.penalty).toBe(0);
   });
@@ -93,12 +105,59 @@ describe("baseFloor — рычаг Base", () => {
     const huge = evaluateBoss("baseFloor", ctx({ base: 0 }));
     expect(huge.penalty).toBe(BOSSES.baseFloor.max);
   });
+
+  // R12.5: планка-константа делила сезон на «штраф всегда» и «штрафа никогда» — решением она не
+  // была нигде. Здесь фиксируется именно это: планка растёт вместе с Base и упирается в потолок.
+  it("планка растёт по актам и не уходит выше потолка качества", () => {
+    const demands = [1, 2, 3, 4, 5].map((act) => baseDemandFor(finaleOfAct(act)));
+    for (let i = 1; i < demands.length; i += 1) {
+      expect(demands[i]).toBeGreaterThan(demands[i - 1]);
+    }
+    // Глубокая Династия: рампа асимптотически подходит к потолку качества, но никогда не требует
+    // больше, чем игрок вообще может иметь.
+    expect(baseDemandFor(finaleOfAct(40))).toBeLessThan(BOSSES.baseFloor.ceiling);
+    expect(baseDemandFor(finaleOfAct(40))).toBeGreaterThan(BOSSES.baseFloor.ceiling - 1);
+  });
+
+  it("один и тот же Base проходит в начале сезона и не проходит в конце", () => {
+    const base = 88;
+    expect(evaluateBoss("baseFloor", ctx({ absoluteStageIndex: finaleOfAct(1), base })).met).toBe(true);
+    expect(evaluateBoss("baseFloor", ctx({ absoluteStageIndex: finaleOfAct(5), base })).met).toBe(false);
+  });
 });
 
 describe("heroSynergyDemand — рычаг Hero Synergy", () => {
-  it("ниже порога штраф, на пороге нет", () => {
-    expect(evaluateBoss("heroSynergyDemand", ctx({ heroSynergy: 0 })).met).toBe(false);
-    expect(evaluateBoss("heroSynergyDemand", ctx({ heroSynergy: BOSSES.heroSynergyDemand.threshold })).met).toBe(true);
+  // Условие структурное (штуки, не очки): величина Hero Synergy упирается в потолок к третьему
+  // акту, и планка по ней выполнялась всеми и всегда.
+  it("штрафуются герои СВЕРХ допуска, в пределах допуска условие выполнено", () => {
+    const cfg = BOSSES.heroSynergyDemand;
+    const off = new Array(cfg.tolerated + 2).fill(cfg.minGames - 1);
+    const over = evaluateBoss("heroSynergyDemand", ctx({
+      assignedHeroGames: [...off, ...Array(3).fill(100)],
+    }));
+    expect(over.met).toBe(false);
+    expect(over.penalty).toBeCloseTo(2 * cfg.perHero, 5);
+    expect(over.reasonParams).toMatchObject({ n: off.length, max: cfg.tolerated, games: cfg.minGames });
+
+    // Ровно допуск — штрафа нет: пара «чужих» героев есть у любого состава (замер).
+    const tolerated = evaluateBoss("heroSynergyDemand", ctx({
+      assignedHeroGames: [...Array(cfg.tolerated).fill(0), ...Array(3).fill(cfg.minGames)],
+    }));
+    expect(tolerated.met).toBe(true);
+    expect(tolerated.penalty).toBe(0);
+  });
+
+  it("не зависит от ВЕЛИЧИНЫ Hero Synergy — только от состава", () => {
+    const games = { assignedHeroGames: [0, 0, 0, 0, 100] };
+    const low = evaluateBoss("heroSynergyDemand", ctx({ ...games, heroSynergy: 0 }));
+    const maxed = evaluateBoss("heroSynergyDemand", ctx({ ...games, heroSynergy: 19.5 }));
+    expect(maxed.penalty).toBe(low.penalty);
+    expect(maxed.met).toBe(low.met);
+  });
+
+  it("штраф упирается в cap", () => {
+    const many = evaluateBoss("heroSynergyDemand", ctx({ assignedHeroGames: Array(20).fill(0) }));
+    expect(many.penalty).toBe(BOSSES.heroSynergyDemand.max);
   });
 });
 
@@ -117,6 +176,22 @@ describe("unbalancedRoster — рычаг формы", () => {
     expect(wide.penalty).toBeGreaterThan(0);
     const even = evaluateBoss("unbalancedRoster", ctx({ playerOvrs: [84, 84, 85, 85, 86] }));
     expect(even.met).toBe(true);
+  });
+
+  // R12.5: разброс сам падает по ходу забега (замер: 14 → 7), поэтому допуск обязан сужаться —
+  // иначе фиксированные 8 сначала штрафуют почти всех, а к финалу сезона никого.
+  it("допуск разброса сужается по актам и не уходит в ноль в Династии", () => {
+    const limits = [1, 2, 3, 4, 5].map((act) => spreadLimitFor(finaleOfAct(act)));
+    for (let i = 1; i < limits.length; i += 1) {
+      expect(limits[i]).toBeLessThan(limits[i - 1]);
+    }
+    expect(spreadLimitFor(finaleOfAct(40))).toBe(BOSSES.unbalancedRoster.floorSpread);
+  });
+
+  it("один и тот же разброс проходит в начале сезона и не проходит в конце", () => {
+    const playerOvrs = [92, 88, 86, 84, 80]; // разброс 12
+    expect(evaluateBoss("unbalancedRoster", ctx({ absoluteStageIndex: finaleOfAct(1), playerOvrs })).met).toBe(true);
+    expect(evaluateBoss("unbalancedRoster", ctx({ absoluteStageIndex: finaleOfAct(5), playerOvrs })).met).toBe(false);
   });
 });
 
