@@ -748,16 +748,33 @@ export function CampScreen() {
               sublabel={mods.chemistry ? signed(mods.chemistry) : undefined}
             />
           </div>
-          <SynergyBreakdown
-            heroRows={heroRows}
-            chemistryRows={chemistryRows}
-            onPlayerClick={config.hardMode ? undefined : (accountId) => {
-              const candidate = snapshot.roster
-                .find((slot) => slot.candidate?.player.accountId === accountId)
-                ?.candidate;
-              if (candidate) setInspectedPlayer(candidate);
-            }}
-          />
+          {/* Полные таблицы Hero Synergy (5 строк) и Squad Chemistry (до 10) — самый крупный
+              текстовый блок экрана, и в Буткемпе он отвечает не на тот вопрос: здесь игрок решает,
+              что КУПИТЬ, а не изучает текущий состав построчно. Поэтому свёрнуто в disclosure с
+              короткой сводкой; в драфте и на этапе разбор остаётся раскрытым — там он и есть
+              содержание экрана. `details/summary` вместо своего состояния: нативно доступно с
+              клавиатуры и не требует ещё одного useState. */}
+          <details className="camp__build-details" data-testid="camp-build-details">
+            <summary>
+              <span>{t("camp.buildDetails")}</span>
+              <small data-testid="camp-build-summary">
+                {t("camp.buildDetailsSummary", {
+                  links: chemistryRows.length,
+                  weak: heroRows.filter((row) => row.games === 0).length,
+                })}
+              </small>
+            </summary>
+            <SynergyBreakdown
+              heroRows={heroRows}
+              chemistryRows={chemistryRows}
+              onPlayerClick={config.hardMode ? undefined : (accountId) => {
+                const candidate = snapshot.roster
+                  .find((slot) => slot.candidate?.player.accountId === accountId)
+                  ?.candidate;
+                if (candidate) setInspectedPlayer(candidate);
+              }}
+            />
+          </details>
         </Surface>
 
         <div className="camp__economy">

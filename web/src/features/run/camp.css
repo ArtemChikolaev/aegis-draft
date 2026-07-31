@@ -839,3 +839,23 @@
   color: var(--muted);
 }
 .camp-offer__card-desc--cost { color: var(--danger); }
+
+/* Свёрнутый разбор состава (R13.3): в Буткемпе таблицы Hero Synergy/Chemistry — справка, а не
+   содержание экрана, поэтому по умолчанию закрыты и не съедают половину левой панели. */
+.camp__build-details > summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 0;
+  cursor: pointer;
+  list-style: none;
+}
+.camp__build-details > summary::-webkit-details-marker { display: none; }
+.camp__build-details > summary::after {
+  content: "▾";
+  color: var(--muted);
+  transition: transform 140ms ease;
+}
+.camp__build-details[open] > summary::after { transform: rotate(180deg); }
+.camp__build-details > summary small { color: var(--muted); }
