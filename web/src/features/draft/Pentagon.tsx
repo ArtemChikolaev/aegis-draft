@@ -2,7 +2,7 @@ import type { ChemistryEdge } from "../../game/score.ts";
 import type { RosterSlot } from "../../game/engine.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { roleMessageKey } from "../../i18n/core.ts";
+import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { HeroThumb, playerOvrTier, useCountUp } from "../../ui/index.ts";
 import { useHero } from "./heroes.ts";
 import "./pentagon.css";
@@ -67,9 +67,19 @@ function chemTier(bonus: number): "strong" | "good" | "mid" | "weak" {
 }
 
 /** Радар-пентагон: SVG-сетка + HTML-карточки на вершинах + связи Chemistry. */
-export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPlayer = {}, onSelectPlayer, swapMode = false, swapSelectedId = null, onSwapTap }: {
+export function Pentagon({ roster, centerValue, centerLabelKey = "common.teamOvr", chemistryEdges = [], assignmentByPlayer = {}, onSelectPlayer, swapMode = false, swapSelectedId = null, onSwapTap }: {
   roster: RosterSlot[];
-  teamOvr: number | null;
+  /**
+   * Число в центре радара. НЕ обязательно Team OVR — в рогалите сюда осознанно приходит сила
+   * этапа (`R8.3`: радар обязан показывать ровно то, с чем команда выходит в поле).
+   *
+   * Раньше проп назывался `teamOvr`, и это прямо породило `R13.2`: два экрана передавали сюда
+   * Tournament Power, а подпись была намертво прибита к «Team OVR». На этапе 22 плейтеста радар
+   * показывал 160 при Team OVR 125.7 — расхождение не замечали, пока множители были мелкими.
+   * Поэтому у значения нейтральное имя, а подпись к нему обязан выбрать вызывающий экран.
+   */
+  centerValue: number | null;
+  centerLabelKey?: MessageKey;
   chemistryEdges?: ChemistryEdge[];
   assignmentByPlayer?: Record<number, number>;
   onSelectPlayer?: (candidate: Candidate) => void;
@@ -82,7 +92,7 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
   const hero = useHero();
   // Team OVR — главный фидбек драфта: набегает, а не прыгает. У 322-0 тут скачок, это
   // улучшение сверх референса. Хук сам гасится при prefers-reduced-motion.
-  const { value: shownOvr, direction: ovrDirection } = useCountUp(teamOvr);
+  const { value: shownOvr, direction: ovrDirection } = useCountUp(centerValue);
   const filled = roster.filter((slot) => slot.candidate).length;
   const layouts = vertexLayouts(roster.length);
   const polygon = layouts.map((l) => l.vertex).map((p) => `${p.x},${p.y}`).join(" ");
@@ -153,15 +163,15 @@ export function Pentagon({ roster, teamOvr, chemistryEdges = [], assignmentByPla
           );
         })}
 
-        {filled > 0 && teamOvr != null && (
+        {filled > 0 && centerValue != null && (
           <>
             <text
               x={C}
               y={C - 12}
               data-testid="pentagon-team-ovr"
               className={ovrDirection ? `pentagon__ovr pentagon__ovr--${ovrDirection}` : "pentagon__ovr"}
-            >{Math.round(shownOvr ?? teamOvr)}</text>
-            <text x={C} y={C + 16} className="pentagon__ovrlabel">{t("common.teamOvr")}</text>
+            >{Math.round(shownOvr ?? centerValue)}</text>
+            <text x={C} y={C + 16} className="pentagon__ovrlabel">{t(centerLabelKey)}</text>
           </>
         )}
       </svg>

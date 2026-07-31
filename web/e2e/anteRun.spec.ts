@@ -121,6 +121,37 @@ test("roguelite run: пассивные карточки занимают сло
   await chooseReward(page, ["item", "tactic"]);
   await expect(tactics.locator(".camp__slot-count")).toHaveText("2/3");
   await expect(tactics.locator("[data-card-id]")).toHaveCount(2);
+
+  // Любая пассивная карточка несёт бейдж СЛОТА, который займёт. Предмет его не получал (R13.1) —
+  // игрок не видел, что предмет и тактика делят одни и те же три слота.
+  const passive = page.getByTestId("camp-reward").locator('[data-offer-kind="item"], [data-offer-kind="tactic"]').first();
+  await expect(passive.locator(".camp-card-tag")).toBeVisible();
+
+  // Этап 3 → Буткемп: забиваем третий слот и проверяем главный симптом R13.1. Раньше при полных
+  // слотах кнопка предмета оставалась активной, а клик молча проваливался внутри экономики.
+  await page.getByTestId("camp-next-stage").click();
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await chooseReward(page, ["item", "tactic"]);
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("3/3");
+
+  // Ищем следующий Буткемп с пассивной наградой: при 3/3 она обязана быть заблокирована С ПРИЧИНОЙ.
+  let blockedSeen = false;
+  for (let camp = 0; camp < 3 && !blockedSeen; camp += 1) {
+    await page.getByTestId("camp-next-stage").click();
+    await simulateAnteStageToOutcome(page);
+    const toCamp = page.getByTestId("ante-to-camp");
+    if (!(await toCamp.isVisible().catch(() => false))) break; // забег закончился раньше
+    await toCamp.click();
+    await expect(page.getByTestId("camp-screen")).toBeVisible();
+    const offered = page.getByTestId("camp-reward").locator('[data-offer-kind="item"], [data-offer-kind="tactic"]').first();
+    if (!(await offered.isVisible().catch(() => false))) continue;
+    await expect(offered.getByRole("button")).toBeDisabled();
+    await expect(offered.locator(".camp-offer__note")).toBeVisible();
+    blockedSeen = true;
+  }
+  expect(blockedSeen).toBe(true);
 });
 
 // Регресс live-бага: Stand-in (бесплатный свап игрока) должен делать покупку игрока доступной,

@@ -2,7 +2,7 @@
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
 import { useMemo, useState } from "react";
-import { ECONOMY, playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
+import { ECONOMY, cardSlotKind, playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import {
   RARITY,
   rarityModifiers,
@@ -678,8 +678,11 @@ export function CampScreen() {
             roster={snapshot.roster}
             /* Ровно та сила, с которой команда выйдет на этап (R8.3): иначе радар показывал бы
                сумму слагаемых, а в поле уходил Tournament Power — два разных числа на одном
-               экране. Разрыв объясняет панель разложения выше. */
-            teamOvr={power.total}
+               экране. Разрыв объясняет панель разложения выше. Подпись обязана называть ИМЕННО
+               это число (R13.2): пока множителей мало, оно близко к Team OVR, но на позднем
+               этапе расходится с ним заметно. */
+            centerValue={power.total}
+            centerLabelKey="camp.power"
             chemistryEdges={chemistryEdges}
             assignmentByPlayer={score.assignment.byPlayer}
             onSelectPlayer={openInspector}
@@ -777,9 +780,13 @@ export function CampScreen() {
             <div className="camp__offers camp__offers--reward">
               {camp.rewardOffers.map((offer) => {
                 const isChosen = camp.chosenRewardId === offer.id;
-                const slotFull = (offer.kind === "tactic" && camp.equippedTactics.length >= camp.tacticSlots)
-                  || (offer.kind === "action" && camp.heldActions.length >= camp.actionSlots);
-                const isCard = offer.kind === "tactic" || offer.kind === "action";
+                // Какой слот займёт карточка — спрашиваем у игровой логики, а не перечисляем виды
+                // здесь заново: своя копия этого правила забыла про `item` и дала R13.1 (предмет
+                // без бейджа слота, активная кнопка при полных слотах и молча проваленный клик).
+                const slot = cardSlotKind(offer.kind);
+                const slotFull = (slot === "tactic" && camp.equippedTactics.length >= camp.tacticSlots)
+                  || (slot === "action" && camp.heldActions.length >= camp.actionSlots);
+                const isCard = slot != null;
                 return (
                   <div
                     key={offer.id}
@@ -791,8 +798,11 @@ export function CampScreen() {
                       <span className="camp-offer__head">
                         <strong className="camp-offer__label">{t(offer.labelKey as MessageKey)}</strong>
                         {isCard && (
-                          <span className={`camp-card-tag camp-card-tag--${offer.kind}`}>
-                            {t(offer.kind === "tactic" ? "camp.tactics" : "camp.campActions")}
+                          // Бейдж отвечает на «какой слот это займёт», а не «какого типа карта»:
+                          // предмет и тактика делят слоты и лежат в одной секции Буткемпа, поэтому
+                          // у предмета честная подпись — та же, что у тактики.
+                          <span className={`camp-card-tag camp-card-tag--${slot}`}>
+                            {t(slot === "tactic" ? "camp.tactics" : "camp.campActions")}
                           </span>
                         )}
                       </span>

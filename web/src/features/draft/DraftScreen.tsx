@@ -96,7 +96,7 @@ export function DraftScreen() {
         <span className="draft__radar-glow" aria-hidden="true" />
         <Pentagon
           roster={roster}
-          teamOvr={score?.teamOvr ?? null}
+          centerValue={score?.teamOvr ?? null}
           chemistryEdges={chemistryEdges}
           assignmentByPlayer={score?.assignment.byPlayer ?? {}}
           onSelectPlayer={inspectPlayer}

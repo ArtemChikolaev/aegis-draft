@@ -4,6 +4,7 @@ import { rarityModifiers } from "../src/game/heroRarity.ts";
 import {
   ECONOMY,
   RunEconomy,
+  cardSlotKind,
   formUpgradeCost,
   interestFor,
   playerCost,
@@ -705,5 +706,36 @@ describe("Поздние синки Буткемпа", () => {
     const perPointSink = ECONOMY.prep.costBase / ECONOMY.prep.delta;
     const perPointMarket = ECONOMY.levers.base.cost / ECONOMY.levers.base.delta;
     expect(perPointSink).toBeGreaterThan(perPointMarket * 3);
+  });
+});
+
+// R13.1: правило «предмет занимает ТОТ ЖЕ пассивный слот, что и тактика» жило в двух копиях —
+// в движке (верной) и в JSX Буткемпа (забывшей про `item`). Копия в UI и дала баг: карточка
+// предмета не получала бейдж слота, а при полных слотах кнопка оставалась активной и клик молча
+// проваливался. Теперь правило одно и проверяется здесь.
+describe("cardSlotKind — какой слот займёт карточка (R13.1)", () => {
+  it("предмет занимает слот тактики, действие — свой, остальные виды слотов не занимают", () => {
+    expect(cardSlotKind("item")).toBe("tactic");
+    expect(cardSlotKind("tactic")).toBe("tactic");
+    expect(cardSlotKind("action")).toBe("action");
+    for (const kind of ["gold", "stat", "player", "hero", "reroll", "quality"] as const) {
+      expect(cardSlotKind(kind)).toBeNull();
+    }
+  });
+
+  it("canTakeCard отказывает предмету по тем же слотам, что и тактике", () => {
+    const eco = new RunEconomy("slot-parity");
+    eco.openCamp(1);
+    const slots = eco.campView().tacticSlots;
+    expect(eco.canTakeCard("item")).toBe(true);
+    // Забиваем пассивные слоты и проверяем, что предмет упирается ровно в тот же потолок.
+    const full = new RunEconomy("slot-parity", {
+      ...eco.snapshot,
+      equippedTactics: Array.from({ length: slots }, (_, i) => `card-${i}`),
+    });
+    expect(full.canTakeCard("tactic")).toBe(false);
+    expect(full.canTakeCard("item")).toBe(false);
+    // Слоты действий при этом свободны — виды карточек не путаются между собой.
+    expect(full.canTakeCard("action")).toBe(true);
   });
 });

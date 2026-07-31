@@ -581,7 +581,10 @@ export function TournamentScreen() {
           <span className="result__radar-glow" aria-hidden="true" />
           <Pentagon
             roster={roster}
-            teamOvr={stagePower}
+            /* Сила ЭТОГО этапа (Tournament Power за вычетом штрафа босса) — не Team OVR,
+               поэтому и подпись своя (R13.2). */
+            centerValue={stagePower}
+            centerLabelKey="camp.power"
             chemistryEdges={chemistryEdges}
             assignmentByPlayer={assignmentByPlayer}
             swapMode={canSwap}

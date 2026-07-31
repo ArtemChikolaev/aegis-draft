@@ -58,6 +58,22 @@ export interface HeroSwapEffect {
  *  золота» и «много золота» — вторая всегда доминировала первую, и выбора не было. */
 export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "item" | "action" | "reroll" | "quality";
 
+/**
+ * Какой слот займёт карточка этого вида; `null` — карточка слотов не занимает (золото, стат-рычаг).
+ *
+ * Единственное место, где живёт правило «предмет занимает ТОТ ЖЕ пассивный слот, что и тактика»
+ * (PRD §5.10.1 запрещает второй инвентарь). Раньше правило существовало в двух копиях: в
+ * `canTakeCard` — верной, и в JSX Буткемпа — забывшей про `item`. Копия в UI и дала `R13.1`: у
+ * предмета не было бейджа слота, а при полных слотах кнопка оставалась активной и клик молча
+ * проваливался. Чистая функция + тест делают этот класс ошибки невозможным: новый вид оффера
+ * обязан быть разобран здесь, а не в каждом экране заново.
+ */
+export function cardSlotKind(kind: OfferKind): "tactic" | "action" | null {
+  if (kind === "tactic" || kind === "item") return "tactic";
+  if (kind === "action") return "action";
+  return null;
+}
+
 /** Оффер награды/рынка. Единый контракт для Reward и Market — задел под карточки T6.1. */
 export interface Offer {
   id: string;
@@ -766,8 +782,9 @@ export class RunEconomy {
 
   /** Есть ли свободный слот под карточку этого типа. UI объясняет отказ до клика. */
   canTakeCard(kind: OfferKind): boolean {
-    if (kind === "tactic" || kind === "item") return this.state.equippedTactics.length < TACTIC_SLOTS;
-    if (kind === "action") return this.state.heldActions.length < CAMP_ACTION_SLOTS;
+    const slot = cardSlotKind(kind);
+    if (slot === "tactic") return this.state.equippedTactics.length < TACTIC_SLOTS;
+    if (slot === "action") return this.state.heldActions.length < CAMP_ACTION_SLOTS;
     return true;
   }
 
