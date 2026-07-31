@@ -145,6 +145,10 @@
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 8px;
 }
+/* Карточки рынка ОДНОГО размера (R13.3). До этого высота задавалась количеством текста: разбор
+   печатался прямо на карточке, и она вырастала в мини-отчёт на шесть строк — сравнивать соседние
+   предложения было нечем, а анимировать прыгающие габариты бессмысленно. Теперь разбор живёт в
+   инспекторе, а карточка держит фиксированную высоту. */
 .camp-pack-card {
   display: flex;
   min-width: 0;
@@ -154,6 +158,10 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface-soft);
+  /* Не `height`: содержимое карточек разных видов различается на пару строк, и жёсткая высота
+     обрезала бы их. `min-height` выравнивает ряд, а редкие «высокие» карточки тянут ряд целиком —
+     сетка всё равно оставляет их одинаковыми. */
+  min-height: 232px;
 }
 .camp-pack-card .camp-player-card { flex: 1; }
 .camp-pack-card--hero .camp-offer__deltas { margin-top: auto; }
@@ -167,6 +175,44 @@
 /* Узкая карточка (5 в ряд на среднем экране) не вмещает «цена + кнопка» одной строкой — кнопка
    уезжала за границу на два десятка пикселей. Переносим её на свою строку вместо переполнения. */
 .camp-pack-card__buy { flex-wrap: wrap; }
+/* Цена и кнопка прижаты к низу, поэтому у карточек одного ряда они на одной линии. */
+.camp-pack-card__buy { margin-top: auto; }
+
+/* Главная цифра карточки — кнопка в разбор: выглядит как чип, ведёт себя как кнопка. */
+.camp-offer__delta--action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid currentColor;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.camp-offer__delta--action:hover,
+.camp-offer__delta--action:focus-visible { filter: brightness(1.15); }
+.camp-offer__delta-more { opacity: 0.65; font-size: 0.85em; }
+
+/* Инспектор: разбор `до → после` по слагаемым. */
+.offer-inspector { display: flex; flex-direction: column; gap: 12px; }
+.offer-inspector__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  font-size: 1.1rem;
+}
+.offer-inspector__total--up strong { color: var(--accent); }
+.offer-inspector__total--down strong { color: var(--danger); }
+.offer-inspector__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.offer-inspector__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.offer-inspector__row dt { color: var(--muted); }
+.offer-inspector__row dd { margin: 0; }
 
 .camp-offer {
   display: flex;

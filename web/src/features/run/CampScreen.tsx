@@ -37,6 +37,8 @@ import {
   squadChemistryRows,
 } from "../../game/score.ts";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
+import { summandDeltas, type SummandDelta } from "./campPresentation.ts";
+import { OfferInspector } from "./OfferInspector.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import type { BossEvaluation } from "../../game/bossConditions.ts";
@@ -163,6 +165,39 @@ function SinkCard({ label, desc, cost, note, disabled, testId, onBuy }: {
         {t("camp.buy")} · {t("camp.cost", { cost })}
       </Button>
     </div>
+  );
+}
+
+/** Что показывает инспектор карточки: identity + готовый разбор. Собирается в момент клика, потому
+ *  что дельты уже посчитаны для самой карточки — второй раз считать их нельзя (разошлись бы). */
+interface InspectedOffer {
+  title: string;
+  subtitle?: string;
+  deltas: SummandDelta[];
+  total: number;
+}
+
+/** Главная цифра карточки — она же кнопка в разбор. Приём тот же, что у чипа тега (R11.7):
+ *  точка входа — ровно то число, которое хочется объяснить, а не отдельная ссылка «подробнее».
+ *  `button`, а не `span` с обработчиком: нужны клавиатура и фокус. */
+function OfferDeltaButton({ delta, testId, onOpen }: {
+  delta: number;
+  testId: string;
+  onOpen: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      className={`camp-offer__delta camp-offer__delta--${delta >= 0 ? "up" : "down"} camp-offer__delta--action`}
+      data-testid={testId}
+      onClick={onOpen}
+      title={t("camp.offerDetails")}
+      aria-label={`${t("common.teamOvr")} ${signed(delta)} · ${t("camp.offerDetails")}`}
+    >
+      {t("common.teamOvr")} {signed(delta)}
+      <span className="camp-offer__delta-more" aria-hidden="true">?</span>
+    </button>
   );
 }
 
@@ -351,6 +386,8 @@ export function CampScreen() {
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [heroTargets, setHeroTargets] = useState<Record<number, number>>({});
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
+  // Разбор карточки рынка (R13.3): на самой карточке одна цифра, полный `до → после` — здесь.
+  const [inspected, setInspected] = useState<InspectedOffer | null>(null);
   // Вопрос «а кто вообще бывает illusion?» возникает посреди выбора в Буткемпе, поэтому отвечаем
   // модалкой, не уводя игрока с экрана с незакрытым выбором (тот же приём, что у карточки игрока).
   const [inspectedTag, setInspectedTag] = useState<string | null>(null);
@@ -410,25 +447,29 @@ export function CampScreen() {
         ? signed(mods.heroSynergy)
         : undefined;
 
+  /** Разбор оффера по слагаемым — чистые данные (`campPresentation`), одна арифметика на экран. */
+  function offerDeltas(
+    before: SummandValues,
+    after: SummandValues,
+    extra: Partial<SummandValues> = {},
+  ): SummandDelta[] {
+    return summandDeltas(before, after, mods, extra);
+  }
+
+  /** Те же дельты строками — там, где разбор и так короткий (резерв, ручной свап). */
   function deltaRows(
     before: SummandValues,
     after: SummandValues,
     extra: Partial<SummandValues> = {},
   ) {
-    return (["base", "heroSynergy", "chemistry"] as const).flatMap((summand) => {
-      const from = before[summand] + mods[summand];
-      const to = after[summand] + mods[summand] + (extra[summand] ?? 0);
-      const delta = to - from;
-      if (Math.abs(delta) < 0.01) return [];
-      return [(
-        <span
-          key={summand}
-          className={`camp-offer__delta camp-offer__delta--${delta >= 0 ? "up" : "down"}`}
-        >
-          {t(`common.${summand}` as MessageKey)} {fmt(from)}→{fmt(to)}
-        </span>
-      )];
-    });
+    return offerDeltas(before, after, extra).map((row) => (
+      <span
+        key={row.summand}
+        className={`camp-offer__delta camp-offer__delta--${row.delta >= 0 ? "up" : "down"}`}
+      >
+        {t(`common.${row.summand}` as MessageKey)} {fmt(row.from)}→{fmt(row.to)}
+      </span>
+    ));
   }
 
   function effectRows(offer: Offer) {
@@ -1067,10 +1108,16 @@ export function CampScreen() {
                       )
                     )}
                     <div className="camp-offer__deltas">
-                      <span className={`camp-offer__delta camp-offer__delta--${ovrDelta >= 0 ? "up" : "down"}`}>
-                        {t("common.teamOvr")} {signed(ovrDelta)}
-                      </span>
-                      {deltaRows(offer.preview!.before, offer.preview!.after)}
+                      <OfferDeltaButton
+                        delta={ovrDelta}
+                        testId={`offer-details-${offer.id}`}
+                        onOpen={() => setInspected({
+                          title: incoming.player.nickname,
+                          subtitle: outgoing ? t("camp.replacesPlayer") + " " + outgoing.player.nickname : undefined,
+                          deltas: offerDeltas(offer.preview!.before, offer.preview!.after),
+                          total: ovrDelta,
+                        })}
+                      />
                     </div>
                     <div className="camp-pack-card__buy">
                       <span className={`camp-offer__cost${freeSwap ? " camp-offer__cost--free" : ""}`}>
@@ -1145,10 +1192,18 @@ export function CampScreen() {
                       </div>
                     )}
                     <div className="camp-offer__deltas">
-                      <span className={`camp-offer__delta camp-offer__delta--${ovrDelta >= 0 ? "up" : "down"}`}>
-                        {t("common.teamOvr")} {signed(ovrDelta)}
-                      </span>
-                      {offer.preview && deltaRows(offer.preview.before, offer.preview.after, rarityDelta)}
+                      <OfferDeltaButton
+                        delta={ovrDelta}
+                        testId={`offer-details-${offer.id}`}
+                        onOpen={() => setInspected({
+                          title: hero(offer.heroSwap!.incomingHeroId).name,
+                          subtitle: t("camp.activeHero") + ": " + hero(offer.heroSwap!.outgoingHeroId).name,
+                          deltas: offer.preview
+                            ? offerDeltas(offer.preview.before, offer.preview.after, rarityDelta)
+                            : [],
+                          total: ovrDelta,
+                        })}
+                      />
                     </div>
                     <div className="camp-pack-card__buy">
                       <span className="camp-offer__cost">{t("camp.cost", { cost: offer.cost })}</span>
@@ -1379,6 +1434,16 @@ export function CampScreen() {
           candidate={inspectedPlayer}
           data={data}
           onClose={() => setInspectedPlayer(null)}
+        />
+      )}
+      {inspected && (
+        <OfferInspector
+          title={inspected.title}
+          subtitle={inspected.subtitle}
+          deltas={inspected.deltas}
+          total={inspected.total}
+          totalLabel={t("common.teamOvr")}
+          onClose={() => setInspected(null)}
         />
       )}
       {inspectedTag && (
