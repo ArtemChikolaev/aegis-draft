@@ -57,6 +57,44 @@ describe("rollRarity — детерминизм и кривая по этапу"
     }
   });
 
+  // R12.4: прежняя кривая упиралась в потолки к ПЯТОМУ этапу, и 20 из 25 этапов сезона имели одно и
+  // то же распределение — лестница качества заканчивалась в первом акте, а refined оставался
+  // модальным тиром до конца забега. Здесь фиксируется, что лестница идёт весь сезон.
+  describe("R12.4 — лестница качества идёт весь сезон, а не первые пять этапов", () => {
+    const dist = (stage: number) => {
+      const counts: Record<Rarity, number> = { common: 0, unique: 0, mythic: 0, immortal: 0 };
+      for (let h = 0; h < 4000; h += 1) counts[rollRarity(`walk-${h}`, "card-x", stage)] += 1;
+      return counts;
+    };
+    const modal = (stage: number): Rarity => RARITIES.reduce(
+      (best, r) => (dist(stage)[r] > dist(stage)[best] ? r : best),
+      "common" as Rarity,
+    );
+
+    it("модальный тир поднимается по лестнице: common → unique → mythic", () => {
+      // Проверяем именно СМЕНУ модального тира: прежняя кривая держала unique модальным с 5-го
+      // этапа до 25-го, и никакая проверка «доля растёт» этого не улавливала.
+      expect(modal(1)).toBe("common");
+      expect(modal(12)).toBe("unique");
+      expect(modal(22)).toBe("mythic");
+    });
+
+    it("распределение продолжает двигаться после пятого этапа", () => {
+      const share = (stage: number, tier: Rarity) => dist(stage)[tier] / 4000;
+      // Именно этого не было: между этапами 6 и 25 доли стояли на месте (±1%).
+      expect(share(20, "mythic")).toBeGreaterThan(share(6, "mythic") + 0.1);
+      expect(share(20, "common")).toBeLessThan(share(6, "common") - 0.1);
+    });
+
+    it("качество — конечная ось: в Династии центр останавливается, arcana не становится модальной", () => {
+      expect(modal(60)).toBe("mythic");
+      const deep = dist(60);
+      expect(deep.immortal).toBeLessThan(deep.mythic);
+      // Но и не исчезает: у каждого тира есть хвост на любом этапе (требование R11.4).
+      expect(deep.common).toBeGreaterThan(0);
+    });
+  });
+
   it("ранние этапы почти всё common, поздние дают редких заметно чаще", () => {
     const dist = (stage: number) => {
       const counts: Record<Rarity, number> = { common: 0, unique: 0, mythic: 0, immortal: 0 };
