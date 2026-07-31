@@ -39,6 +39,7 @@ import {
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { summandDeltas, type SummandDelta } from "./campPresentation.ts";
 import { OfferInspector } from "./OfferInspector.tsx";
+import { PreparationPanel } from "./PreparationPanel.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import type { BossEvaluation } from "../../game/bossConditions.ts";
@@ -127,44 +128,6 @@ function BossPanel({ boss, eyebrow, hint, testId, scouted = false }: {
       </div>
       {hint && <p className="camp-boss__hint">{hint}</p>}
     </section>
-  );
-}
-
-/** Карточка позднего синка (T5.9): расходуемая покупка с растущей ценой. Форма та же, что у
- *  reward/market-оффера (`camp-offer`) — это тоже «карточка с описанием и ценой», и своя вёрстка
- *  здесь означала бы второй набор правил для одного и того же элемента. */
-function SinkCard({ label, desc, cost, note, disabled, testId, onBuy }: {
-  label: string;
-  desc: string;
-  cost: number;
-  note?: string;
-  disabled: boolean;
-  testId: string;
-  onBuy: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <div className="camp-offer camp-offer--reward camp-offer--sink" data-testid={testId}>
-      <div className="camp-offer__body">
-        <span className="camp-offer__head">
-          <strong className="camp-offer__label">{label}</strong>
-        </span>
-        <p className="camp-offer__card-desc">{desc}</p>
-        {note && (
-          <div className="camp-offer__deltas">
-            <span className="camp-offer__delta camp-offer__delta--up" data-testid={`${testId}-note`}>{note}</span>
-          </div>
-        )}
-      </div>
-      <Button
-        variant="primary"
-        disabled={disabled}
-        data-testid={`${testId}-buy`}
-        onClick={onBuy}
-      >
-        {t("camp.buy")} · {t("camp.cost", { cost })}
-      </Button>
-    </div>
   );
 }
 
@@ -795,41 +758,13 @@ export function CampScreen() {
               ответ на него: правило можно сменить или разведать следующее. Показываются всегда, а
               не только в Династии: гейт по фазе был бы вторым набором правил, а цена и без него
               делает их покупкой на излишек. */}
-          <section className="camp__section" data-testid="camp-prep">
-            <h3 className="camp__section-title">{t("camp.prep")}</h3>
-            <p className="camp__section-hint">{t("camp.prepHint")}</p>
-            <div className="camp__offers camp__offers--reward">
-              <SinkCard
-                label={t("camp.prepBoost")}
-                desc={t("camp.prepBoostDesc", { n: camp.prepDelta })}
-                cost={camp.prepCost}
-                note={camp.prepBought > 0 ? t("camp.prepBought", { n: camp.prepBought }) : undefined}
-                disabled={!camp.canBuyPrep}
-                testId="camp-prep-boost"
-                onBuy={buyPrep}
-              />
-              {boss && (
-                <SinkCard
-                  label={t("camp.prepBossReroll")}
-                  desc={t("camp.prepBossRerollDesc")}
-                  cost={camp.bossRerollCost}
-                  disabled={!camp.canRerollBoss}
-                  testId="camp-prep-boss"
-                  onBuy={rerollBoss}
-                />
-              )}
-              {!camp.scouted && (
-                <SinkCard
-                  label={t("camp.prepScout")}
-                  desc={t("camp.prepScoutDesc")}
-                  cost={camp.scoutCost}
-                  disabled={!camp.canBuyScouting}
-                  testId="camp-prep-scout"
-                  onBuy={buyScouting}
-                />
-              )}
-            </div>
-          </section>
+          <PreparationPanel
+            view={camp}
+            hasBoss={!!boss}
+            onBuyPrep={buyPrep}
+            onRerollBoss={rerollBoss}
+            onBuyScouting={buyScouting}
+          />
 
           <section className="camp__section" data-testid="camp-reward">
             <h3 className="camp__section-title">
