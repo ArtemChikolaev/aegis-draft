@@ -1,7 +1,7 @@
 // Буткемп Roguelite Run (T5.2, срезы 2–3): Reward, контекстный Market и резерв.
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { ECONOMY, cardSlotKind, playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import { upgradeCost } from "../../game/heroRarity.ts";
 import { nextRarity, type Rarity } from "../../game/rarity.ts";
@@ -39,7 +39,7 @@ import {
   type CampPowerState,
   type SummandDelta,
 } from "./campPresentation.ts";
-import { OfferInspector } from "./OfferInspector.tsx";
+import { OfferOverlay, type OfferOverlayAction } from "./OfferOverlay.tsx";
 import { PreparationPanel } from "./PreparationPanel.tsx";
 import { CampHint } from "./CampHint.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -138,18 +138,32 @@ function BossPanel({ boss, eyebrow, hint, testId, scouted = false }: {
 interface InspectedOffer {
   title: string;
   subtitle?: string;
+  summary?: ReactNode;
   deltas: SummandDelta[];
   total: number;
   from: number;
   to: number;
+  action?: OfferOverlayAction;
 }
 
 type CampSection = "reward" | "market" | "build" | "preparation";
 
-/** Главная цифра карточки — она же кнопка в разбор. Приём тот же, что у чипа тега (R11.7):
- *  точка входа — ровно то число, которое хочется объяснить, а не отдельная ссылка «подробнее».
- *  `button`, а не `span` с обработчиком: нужны клавиатура и фокус. */
-function OfferDeltaButton({ delta, testId, onOpen }: {
+/** Главная цифра остаётся компактной; точка входа теперь вся карточка, а не этот чип. */
+function OfferDelta({ delta }: {
+  delta: number;
+}) {
+  const { t } = useI18n();
+  return (
+    <span className={`camp-offer__delta camp-offer__delta--${delta >= 0 ? "up" : "down"}`}>
+      {t("camp.power")} {signed(delta)}
+    </span>
+  );
+}
+
+/** Прозрачная доступная кнопка поверх неинтерактивной части карточки. Вложенные действия
+ *  поднимаются выше неё CSS-ом, поэтому Buy/Swap/select не открывают оверлей. */
+function CardInspectTrigger({ label, delta, testId, onOpen }: {
+  label: string;
   delta: number;
   testId: string;
   onOpen: () => void;
@@ -158,15 +172,11 @@ function OfferDeltaButton({ delta, testId, onOpen }: {
   return (
     <button
       type="button"
-      className={`camp-offer__delta camp-offer__delta--${delta >= 0 ? "up" : "down"} camp-offer__delta--action`}
+      className="camp-card-inspect-trigger"
+      aria-label={`${label} · ${t("camp.power")} ${signed(delta)} · ${t("camp.offerDetails")}`}
       data-testid={testId}
       onClick={onOpen}
-      title={t("camp.offerDetails")}
-      aria-label={`${t("camp.power")} ${signed(delta)} · ${t("camp.offerDetails")}`}
-    >
-      {t("camp.power")} {signed(delta)}
-      <span className="camp-offer__delta-more" aria-hidden="true">?</span>
-    </button>
+    />
   );
 }
 
@@ -669,6 +679,74 @@ export function CampScreen() {
     return null;
   }
 
+  function playerOfferSummary(incoming: Candidate, outgoing: Candidate | null | undefined, afterHeroId?: number) {
+    return (
+      <>
+        <CampPlayerCard
+          candidate={incoming}
+          heroId={afterHeroId}
+          label={t(roleMessageKey(incoming.player.role))}
+        />
+        {outgoing && (
+          outgoing.player.accountId === incoming.player.accountId ? (
+            <div className="camp-offer__fit camp-offer__fit--form" data-form-upgrade="true">
+              <small>{t("camp.formUpgrade")}</small>
+              <strong>{eventLabel(outgoing.eventId)}</strong>
+              <span>{outgoing.player.ovr} OVR →</span>
+            </div>
+          ) : (
+            <div className="camp-offer__fit">
+              <small>{t("camp.replacesPlayer")}</small>
+              <strong>{outgoing.player.nickname}</strong>
+              <span>{outgoing.player.ovr} OVR</span>
+            </div>
+          )
+        )}
+      </>
+    );
+  }
+
+  function heroOfferSummary(
+    offer: Offer,
+    incomingRarity: Rarity,
+    outgoingRarity: Rarity,
+    interactiveTags = true,
+  ) {
+    if (!offer.heroSwap) return null;
+    return (
+      <>
+        {offerIdentity(offer)}
+        <TagChips
+          chips={buildTagChips(offer.heroSwap.incomingHeroId)}
+          testId={interactiveTags ? `hero-offer-tags-${offer.heroSwap.incomingHeroId}` : undefined}
+          onSelect={interactiveTags ? setInspectedTag : undefined}
+          selectLabel={interactiveTags ? () => t("heroTag.showAll") : undefined}
+        />
+        {(incomingRarity !== "common" || outgoingRarity !== "common") && (
+          <div className="camp-hero-rarity">
+            <RarityBadge rarity={incomingRarity} label={t(`rarity.${incomingRarity}` as MessageKey)} />
+          </div>
+        )}
+      </>
+    );
+  }
+
+  function rarityOfferSummary(heroId: number, rarity: Rarity, interactiveTags = true) {
+    const thumb = hero(heroId);
+    return (
+      <div className="camp-rarity-card__hero">
+        <HeroThumb {...thumb} size="md" />
+        <TagChips
+          chips={buildTagChips(heroId)}
+          testId={interactiveTags ? `hero-build-tags-${heroId}` : undefined}
+          onSelect={interactiveTags ? setInspectedTag : undefined}
+          selectLabel={interactiveTags ? () => t("heroTag.showAll") : undefined}
+        />
+        <RarityBadge rarity={rarity} label={t(`rarity.${rarity}` as MessageKey)} />
+      </div>
+    );
+  }
+
   const openInspector = config.hardMode
     ? undefined
     : (candidate: Candidate) => setInspectedPlayer(candidate);
@@ -1140,46 +1218,32 @@ export function CampScreen() {
                   : null;
                 const deltas = preview?.deltas ?? [];
                 const powerDelta = preview?.delta ?? 0;
+                const summary = playerOfferSummary(incoming, outgoing, afterHeroId);
                 return (
-                  <div key={offer.id} className="camp-pack-card" data-offer-kind="player">
-                    <CampPlayerCard
-                      candidate={incoming}
-                      heroId={afterHeroId}
-                      label={t(roleMessageKey(incoming.player.role))}
+                  <div key={offer.id} className="camp-pack-card camp-inspectable-card" data-offer-kind="player">
+                    <CardInspectTrigger
+                      label={incoming.player.nickname}
+                      delta={powerDelta}
+                      testId={`offer-details-${offer.id}`}
+                      onOpen={() => setInspected({
+                        title: incoming.player.nickname,
+                        subtitle: outgoing ? t("camp.replacesPlayer") + " " + outgoing.player.nickname : undefined,
+                        summary,
+                        deltas,
+                        total: powerDelta,
+                        from: preview?.before.power.total ?? power.total,
+                        to: preview?.after.power.total ?? power.total,
+                        action: {
+                          label: t("camp.buy"),
+                          meta: freeSwap ? t("camp.free") : t("camp.cost", { cost: offer.cost }),
+                          disabled: !affordable,
+                          onSelect: () => buyMarket(offer.id),
+                        },
+                      })}
                     />
-                    {outgoing && (
-                      // Form Upgrade (R5.2): та же личность в другой турнирной форме. Без явной
-                      // подписи карта читалась бы как «Satanic заменит Satanic» — игрок обязан
-                      // видеть, что меняется не человек, а его форма, и откуда она.
-                      outgoing.player.accountId === incoming.player.accountId ? (
-                        <div className="camp-offer__fit camp-offer__fit--form" data-form-upgrade="true">
-                          <small>{t("camp.formUpgrade")}</small>
-                          {/* Формы различает СОБЫТИЕ, а не команда: у одного человека бывает
-                              несколько снимков внутри одной организации. */}
-                          <strong>{eventLabel(outgoing.eventId)}</strong>
-                          <span>{outgoing.player.ovr} OVR →</span>
-                        </div>
-                      ) : (
-                        <div className="camp-offer__fit">
-                          <small>{t("camp.replacesPlayer")}</small>
-                          <strong>{outgoing.player.nickname}</strong>
-                          <span>{outgoing.player.ovr} OVR</span>
-                        </div>
-                      )
-                    )}
+                    {summary}
                     <div className="camp-offer__deltas">
-                      <OfferDeltaButton
-                        delta={powerDelta}
-                        testId={`offer-details-${offer.id}`}
-                        onOpen={() => setInspected({
-                          title: incoming.player.nickname,
-                          subtitle: outgoing ? t("camp.replacesPlayer") + " " + outgoing.player.nickname : undefined,
-                          deltas,
-                          total: powerDelta,
-                          from: preview?.before.power.total ?? power.total,
-                          to: preview?.after.power.total ?? power.total,
-                        })}
-                      />
+                      <OfferDelta delta={powerDelta} />
                     </div>
                     <div className="camp-pack-card__buy">
                       <span className={`camp-offer__cost${freeSwap ? " camp-offer__cost--free" : ""}`}>
@@ -1230,44 +1294,39 @@ export function CampScreen() {
                   : null;
                 const deltas = preview?.deltas ?? [];
                 const powerDelta = preview?.delta ?? 0;
+                const summary = heroOfferSummary(offer, incomingRarity, outgoingRarity);
                 return (
                   <div
                     key={offer.id}
-                    className="camp-pack-card camp-pack-card--hero"
+                    className="camp-pack-card camp-pack-card--hero camp-inspectable-card"
                     data-offer-kind="hero"
                     data-incoming-rarity={incomingRarity}
                     data-rarity-glow={incomingRarity}
                     data-outgoing-rarity={outgoingRarity}
                   >
-                    {offerIdentity(offer)}
-                    {/* Чем ВХОДЯЩИЙ герой кормит билд: без этого условие «за героя с тегом
-                        illusion» на карточке предмета невозможно связать с покупкой (R11.7). */}
-                    {offer.heroSwap && (
-                      <TagChips
-                        chips={buildTagChips(offer.heroSwap.incomingHeroId)}
-                        testId={`hero-offer-tags-${offer.heroSwap.incomingHeroId}`}
-                        onSelect={setInspectedTag}
-                        selectLabel={() => t("heroTag.showAll")}
-                      />
-                    )}
-                    {(incomingRarity !== "common" || outgoingRarity !== "common") && (
-                      <div className="camp-hero-rarity">
-                        <RarityBadge rarity={incomingRarity} label={t(`rarity.${incomingRarity}` as MessageKey)} />
-                      </div>
-                    )}
+                    <CardInspectTrigger
+                      label={hero(offer.heroSwap!.incomingHeroId).name}
+                      delta={powerDelta}
+                      testId={`offer-details-${offer.id}`}
+                      onOpen={() => setInspected({
+                        title: hero(offer.heroSwap!.incomingHeroId).name,
+                        subtitle: t("camp.activeHero") + ": " + hero(offer.heroSwap!.outgoingHeroId).name,
+                        summary: heroOfferSummary(offer, incomingRarity, outgoingRarity, false),
+                        deltas,
+                        total: powerDelta,
+                        from: preview?.before.power.total ?? power.total,
+                        to: preview?.after.power.total ?? power.total,
+                        action: {
+                          label: t("camp.buy"),
+                          meta: t("camp.cost", { cost: offer.cost }),
+                          disabled: !affordable,
+                          onSelect: () => buyMarket(offer.id),
+                        },
+                      })}
+                    />
+                    {summary}
                     <div className="camp-offer__deltas">
-                      <OfferDeltaButton
-                        delta={powerDelta}
-                        testId={`offer-details-${offer.id}`}
-                        onOpen={() => setInspected({
-                          title: hero(offer.heroSwap!.incomingHeroId).name,
-                          subtitle: t("camp.activeHero") + ": " + hero(offer.heroSwap!.outgoingHeroId).name,
-                          deltas,
-                          total: powerDelta,
-                          from: preview?.before.power.total ?? power.total,
-                          to: preview?.after.power.total ?? power.total,
-                        })}
-                      />
+                      <OfferDelta delta={powerDelta} />
                     </div>
                     <div className="camp-pack-card__buy">
                       <span className="camp-offer__cost">{t("camp.cost", { cost: offer.cost })}</span>
@@ -1318,39 +1377,41 @@ export function CampScreen() {
                     return (
                       <div
                         key={heroId}
-                        className="camp-rarity-card"
+                        className={`camp-rarity-card${up ? " camp-inspectable-card" : ""}`}
                         data-hero-id={heroId}
                         data-rarity={current}
                         data-rarity-glow={current}
                       >
-                        <div className="camp-rarity-card__hero">
-                          <HeroThumb {...thumb} size="md" />
-                          <TagChips
-                            chips={buildTagChips(heroId)}
-                            testId={`hero-build-tags-${heroId}`}
-                            onSelect={setInspectedTag}
-                            selectLabel={() => t("heroTag.showAll")}
+                        {up && (
+                          <CardInspectTrigger
+                            label={thumb.name}
+                            delta={powerDelta}
+                            testId={`rarity-details-${heroId}`}
+                            onOpen={() => setInspected({
+                              title: thumb.name,
+                              subtitle: `${t(`rarity.${current}` as MessageKey)} → ${t(`rarity.${up}` as MessageKey)}`,
+                              summary: rarityOfferSummary(heroId, current, false),
+                              deltas,
+                              total: powerDelta,
+                              from: preview?.before.power.total ?? power.total,
+                              to: preview?.after.power.total ?? power.total,
+                              action: {
+                                label: t("camp.rarityBuy"),
+                                meta: freeUpgrade ? t("camp.free") : t("camp.cost", { cost: cost ?? 0 }),
+                                disabled: !affordable,
+                                onSelect: () => upgradeHeroRarity(heroId),
+                              },
+                            })}
                           />
-                          <RarityBadge rarity={current} label={t(`rarity.${current}` as MessageKey)} />
-                        </div>
+                        )}
+                        {rarityOfferSummary(heroId, current)}
                         {up ? (
                           <>
                             <div className="camp-offer__deltas">
                               <span className="camp-offer__delta camp-offer__delta--up">
                                 → {t(`rarity.${up}` as MessageKey)}
                               </span>
-                              <OfferDeltaButton
-                                delta={powerDelta}
-                                testId={`rarity-details-${heroId}`}
-                                onOpen={() => setInspected({
-                                  title: thumb.name,
-                                  subtitle: `${t(`rarity.${current}` as MessageKey)} → ${t(`rarity.${up}` as MessageKey)}`,
-                                  deltas,
-                                  total: powerDelta,
-                                  from: preview?.before.power.total ?? power.total,
-                                  to: preview?.after.power.total ?? power.total,
-                                })}
-                              />
+                              <OfferDelta delta={powerDelta} />
                             </div>
                             <div className="camp-pack-card__buy">
                               <span className={`camp-offer__cost${freeUpgrade ? " camp-offer__cost--free" : ""}`}>
@@ -1413,9 +1474,40 @@ export function CampScreen() {
                         const powerDelta = preview.delta;
                         return (
                           <div
-                            className="camp-reserve-swap"
+                            className="camp-reserve-swap camp-inspectable-card"
                             key={`${slotIndex}-${outgoing.player.accountId}`}
                           >
+                            <CardInspectTrigger
+                              label={reserve.candidate.player.nickname}
+                              delta={powerDelta}
+                              testId={`reserve-player-details-${slotIndex}`}
+                              onOpen={() => setInspected({
+                                title: reserve.candidate.player.nickname,
+                                subtitle: `${t("camp.replacesPlayer")} ${outgoing.player.nickname}`,
+                                summary: (
+                                  <div className="offer-overlay__reserve-summary">
+                                    <CampPlayerCard
+                                      candidate={reserve.candidate}
+                                      heroId={after.assignment.byPlayer[reserve.candidate.player.accountId]}
+                                      label={t("camp.reservePlayer")}
+                                    />
+                                    <span>
+                                      {outgoing.player.nickname} <b>{outgoing.player.ovr}</b>
+                                      {" → "}
+                                      {reserve.candidate.player.nickname} <b>{reserve.candidate.player.ovr}</b>
+                                    </span>
+                                  </div>
+                                ),
+                                deltas,
+                                total: powerDelta,
+                                from: preview.before.power.total,
+                                to: preview.after.power.total,
+                                action: {
+                                  label: t("camp.swap"),
+                                  onSelect: () => swapReservePlayer(slotIndex, reserve.candidate.player.accountId),
+                                },
+                              })}
+                            />
                             <div className="camp-reserve-swap__summary">
                               <span>
                                 {outgoing.player.nickname} <b>{outgoing.player.ovr}</b>
@@ -1424,18 +1516,7 @@ export function CampScreen() {
                                 <b>{reserve.candidate.player.ovr}</b>
                               </span>
                               <div className="camp-offer__deltas">
-                                <OfferDeltaButton
-                                  delta={powerDelta}
-                                  testId={`reserve-player-details-${slotIndex}`}
-                                  onOpen={() => setInspected({
-                                    title: reserve.candidate.player.nickname,
-                                    subtitle: `${t("camp.replacesPlayer")} ${outgoing.player.nickname}`,
-                                    deltas,
-                                    total: powerDelta,
-                                    from: preview.before.power.total,
-                                    to: preview.after.power.total,
-                                  })}
-                                />
+                                <OfferDelta delta={powerDelta} />
                               </div>
                             </div>
                             <Button
@@ -1469,7 +1550,33 @@ export function CampScreen() {
                   const deltas = preview?.deltas ?? [];
                   const powerDelta = preview?.delta ?? 0;
                   return (
-                    <div key={reserve.heroId} className="camp-reserve-card camp-reserve-card--hero">
+                    <div key={reserve.heroId} className="camp-reserve-card camp-reserve-card--hero camp-inspectable-card">
+                      {after && (
+                        <CardInspectTrigger
+                          label={reserveHero.name}
+                          delta={powerDelta}
+                          testId={`reserve-hero-details-${reserve.heroId}`}
+                          onOpen={() => setInspected({
+                            title: reserveHero.name,
+                            subtitle: `${t("camp.activeHero")}: ${outgoingHero.name}`,
+                            summary: (
+                              <div className="camp-hero-compare">
+                                <HeroThumb {...reserveHero} size="md" />
+                                <span className="camp-hero-compare__arrow" aria-hidden="true">→</span>
+                                <HeroThumb {...outgoingHero} size="md" />
+                              </div>
+                            ),
+                            deltas,
+                            total: powerDelta,
+                            from: preview?.before.power.total ?? power.total,
+                            to: preview?.after.power.total ?? power.total,
+                            action: {
+                              label: t("camp.swap"),
+                              onSelect: () => swapReserveHero(outgoingHeroId, reserve.heroId),
+                            },
+                          })}
+                        />
+                      )}
                       <small>{t("camp.reserveHeroes")}</small>
                       <div className="camp-hero-compare">
                         <HeroThumb {...reserveHero} size="md" />
@@ -1490,18 +1597,7 @@ export function CampScreen() {
                       />
                       {after && (
                         <div className="camp-offer__deltas">
-                          <OfferDeltaButton
-                            delta={powerDelta}
-                            testId={`reserve-hero-details-${reserve.heroId}`}
-                            onOpen={() => setInspected({
-                              title: reserveHero.name,
-                              subtitle: `${t("camp.activeHero")}: ${outgoingHero.name}`,
-                              deltas,
-                              total: powerDelta,
-                              from: preview?.before.power.total ?? power.total,
-                              to: preview?.after.power.total ?? power.total,
-                            })}
-                          />
+                          <OfferDelta delta={powerDelta} />
                         </div>
                       )}
                       <Button
@@ -1554,14 +1650,16 @@ export function CampScreen() {
         />
       )}
       {inspected && (
-        <OfferInspector
+        <OfferOverlay
           title={inspected.title}
           subtitle={inspected.subtitle}
+          summary={inspected.summary}
           deltas={inspected.deltas}
           total={inspected.total}
           totalFrom={inspected.from}
           totalTo={inspected.to}
           totalLabel={t("camp.power")}
+          action={inspected.action}
           onClose={() => setInspected(null)}
         />
       )}

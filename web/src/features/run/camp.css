@@ -268,23 +268,45 @@
 /* Цена и кнопка прижаты к низу, поэтому у карточек одного ряда они на одной линии. */
 .camp-pack-card__buy { margin-top: auto; }
 
-/* Главная цифра карточки — кнопка в разбор: выглядит как чип, ведёт себя как кнопка. */
-.camp-offer__delta--action {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: 1px solid currentColor;
-  background: none;
-  font: inherit;
+/* Вся offer-карточка — точка входа в увеличенный оверлей. Прозрачная кнопка лежит над обычным
+   контентом; настоящие Buy/Swap/select/tag controls поднимаются выше неё и сохраняют своё действие. */
+.camp-inspectable-card { position: relative; isolation: isolate; }
+.camp-card-inspect-trigger {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
   cursor: pointer;
 }
-.camp-offer__delta--action:hover,
-.camp-offer__delta--action:focus-visible { filter: brightness(1.15); }
-.camp-offer__delta-more { opacity: 0.65; font-size: 0.85em; }
+.camp-inspectable-card :is(button:not(.camp-card-inspect-trigger), a, input, select, label, summary) {
+  position: relative;
+  z-index: 2;
+}
+.camp-inspectable-card:hover,
+.camp-inspectable-card:has(.camp-card-inspect-trigger:focus-visible) {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow);
+}
+.camp-card-inspect-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* Инспектор: разбор `до → после` по слагаемым. */
-.offer-inspector { display: flex; flex-direction: column; gap: 12px; }
-.offer-inspector__total {
+/* Увеличенная карточка: тот же summary, затем полный разбор и основное действие. */
+.offer-overlay { display: flex; flex-direction: column; gap: 14px; }
+.offer-overlay__summary {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+}
+.offer-overlay__summary .camp-player-card { min-height: 150px; }
+.offer-overlay__reserve-summary { display: grid; gap: 10px; }
+.offer-overlay__reserve-summary > span { color: var(--muted); }
+.offer-overlay__reserve-summary b { color: var(--accent); }
+.offer-overlay__total {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -292,19 +314,29 @@
   margin: 0;
   font-size: 1.1rem;
 }
-.offer-inspector__total > span { display: flex; flex-direction: column; gap: 2px; }
-.offer-inspector__total small { color: var(--muted); font-size: 0.78em; font-weight: 500; }
-.offer-inspector__total--up strong { color: var(--accent); }
-.offer-inspector__total--down strong { color: var(--danger); }
-.offer-inspector__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
-.offer-inspector__row {
+.offer-overlay__total > span { display: flex; flex-direction: column; gap: 2px; }
+.offer-overlay__total small { color: var(--muted); font-size: 0.78em; font-weight: 500; }
+.offer-overlay__total--up strong { color: var(--accent); }
+.offer-overlay__total--down strong { color: var(--danger); }
+.offer-overlay__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.offer-overlay__row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
 }
-.offer-inspector__row dt { color: var(--muted); }
-.offer-inspector__row dd { margin: 0; }
+.offer-overlay__row dt { color: var(--muted); }
+.offer-overlay__row dd { margin: 0; }
+.offer-overlay__action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.offer-overlay__action > span { color: var(--muted); }
+.offer-overlay__action button { min-width: 160px; }
 
 .camp-offer {
   display: flex;
@@ -898,6 +930,8 @@
   .camp__actions > button { width: 100%; }
   .camp__section-head { align-items: flex-end; }
   .camp__section-summary { align-items: flex-start; flex-wrap: wrap; }
+  .offer-overlay__action { align-items: stretch; flex-direction: column; }
+  .offer-overlay__action button { width: 100%; }
 }
 
 /* Form Upgrade: та же личность в другой форме. Отделяем от обычной замены акцентной рамкой —

@@ -20,6 +20,7 @@
   backdrop-filter: blur(0px);
   pointer-events: none;
 }
+.cardBackdrop { transition-duration: .22s; }
 
 .panel {
   position: relative;
@@ -42,6 +43,22 @@
 /* Панель — программная цель фокуса на открытии (см. Modal.tsx), а не интерактивный
    элемент: обводить её нечего. Tab-обход внутри свою рамку рисует сам. */
 .panel:focus, .panel:focus-visible { outline: none; }
+
+/* R13.3: выбранная offer-карточка поднимается поверх своей сетки как увеличенная версия себя.
+   Это вариант того же доступного Modal, а не второй focus/scroll/Escape-механизм. */
+.cardPanel {
+  width: min(620px, 100%);
+  color: var(--text);
+  border-color: var(--line-strong);
+  background:
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+.cardPanel .description,
+.cardPanel .close { color: var(--muted); }
+.cardPanel .close:hover { color: var(--text); }
+.cardPanel.contentPanel .head { border-color: var(--line); }
 
 /* Липкая зона: title / description / subhead / крестик — не уезжает при скролле. */
 .head {

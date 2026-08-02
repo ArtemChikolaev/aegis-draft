@@ -7,6 +7,8 @@ const DISMISS_PX = 88;
 const DISMISS_VELOCITY = 0.5; // px/ms
 const ENTER_MS = 560;
 const EXIT_MS = 640;
+const CARD_ENTER_MS = 220;
+const CARD_EXIT_MS = 180;
 
 type ModalClose = () => void;
 type ModalChildren = ReactNode | ((api: { close: ModalClose }) => ReactNode);
@@ -24,6 +26,7 @@ export function Modal({
   onClose,
   children,
   layout = "actions",
+  presentation = "default",
   dismissLabel = "Close",
 }: {
   mark?: ReactNode;
@@ -35,6 +38,8 @@ export function Modal({
   onClose: () => void;
   children: ModalChildren;
   layout?: "actions" | "content";
+  /** `card` — компактный центрированный оверлей, визуально продолжающий выбранную карточку. */
+  presentation?: "default" | "card";
   dismissLabel?: string;
 }) {
   const panelRef = useRef<HTMLElement | null>(null);
@@ -47,6 +52,7 @@ export function Modal({
   const [dragging, setDragging] = useState(false);
   const [closing, setClosing] = useState(false);
   const [entered, setEntered] = useState(prefersReducedMotion());
+  const isCard = presentation === "card";
 
   const finishClose = useCallback(() => {
     if (closingRef.current) return;
@@ -69,12 +75,14 @@ export function Modal({
       return;
     }
 
-    const distance = exitDistance();
+    // Обычное закрытие card-overlay — короткий lift/fade. После реального swipe оставляем
+    // направление жеста и уводим панель вниз, иначе она прыгнула бы с dragY обратно к 18px.
+    const distance = isCard && dragYRef.current <= 0 ? 18 : exitDistance();
     setClosing(true);
     setDragY(distance);
     dragYRef.current = distance;
-    exitTimerRef.current = window.setTimeout(finishClose, EXIT_MS);
-  }, [exitDistance, finishClose]);
+    exitTimerRef.current = window.setTimeout(finishClose, isCard ? CARD_EXIT_MS : EXIT_MS);
+  }, [exitDistance, finishClose, isCard]);
 
   // Таймер выхода снимаем на размонтировании: экран под модалкой может смениться
   // раньше (reset забега), и отложенный onClose дёрнул бы состояние мёртвого экрана.
@@ -230,12 +238,15 @@ export function Modal({
 
   const offsetY = closing || dragging || dragY > 0
     ? dragY
-    : entered ? 0 : Math.min(window.innerHeight * 0.42, 340);
+    : entered ? 0 : isCard ? 18 : Math.min(window.innerHeight * 0.42, 340);
 
-  const duration = closing ? EXIT_MS : ENTER_MS;
+  const duration = isCard
+    ? closing ? CARD_EXIT_MS : CARD_ENTER_MS
+    : closing ? EXIT_MS : ENTER_MS;
+  const scale = isCard && (!entered || closing) ? 0.96 : 1;
   const panelStyle: CSSProperties = {
-    transform: `translate3d(0, ${offsetY}px, 0)`,
-    opacity: entered || closing || dragY > 0 ? 1 : 0.88,
+    transform: `translate3d(0, ${offsetY}px, 0) scale(${scale})`,
+    opacity: closing ? 0 : entered || dragY > 0 ? 1 : isCard ? 0.82 : 0.88,
     transition: dragging
       ? "none"
       : `transform ${duration}ms cubic-bezier(.16, .84, .18, 1), opacity ${duration}ms ease-out`,
@@ -246,7 +257,7 @@ export function Modal({
 
   return (
     <div
-      className={`${styles.backdrop} ${entered ? styles.backdropIn : ""} ${closing ? styles.backdropOut : ""}`}
+      className={`${styles.backdrop} ${isCard ? styles.cardBackdrop : ""} ${entered ? styles.backdropIn : ""} ${closing ? styles.backdropOut : ""}`}
       style={dragY > 0 || closing ? { ["--modal-dim" as string]: String(1 - Math.min((closing ? 1 : dragY / 360), 0.55)) } : undefined}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) requestClose();
@@ -254,7 +265,7 @@ export function Modal({
     >
       <section
         ref={panelRef}
-        className={`${styles.panel} ${isContent ? styles.contentPanel : ""}`}
+        className={`${styles.panel} ${isContent ? styles.contentPanel : ""} ${isCard ? styles.cardPanel : ""}`}
         role="dialog"
         aria-modal="true"
         tabIndex={-1}

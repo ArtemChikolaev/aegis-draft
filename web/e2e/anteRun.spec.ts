@@ -311,12 +311,27 @@ test("roguelite run: resume восстанавливает Буткемп пос
     .toHaveCount(0);
   await expect(page.getByTestId("camp-rarity").getByText(/HERO SYNERGY|СИНЕРГИЯ ГЕРОЕВ/i))
     .toHaveCount(0);
+  // R13.3: точка входа — сама карточка, а не чип с цифрой. Сетка остаётся на месте под overlay.
+  const heroGridLayout = () => page.getByTestId("camp-hero-pack").evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return { top: rect.top + window.scrollY, left: rect.left + window.scrollX, width: rect.width, height: rect.height };
+  });
+  const heroGridBox = await heroGridLayout();
+  const heroOverlayTrigger = heroCards.first().locator(".camp-card-inspect-trigger");
+  await heroCards.first().click();
+  await expect(page.getByTestId("offer-overlay")).toBeVisible();
+  await expect(page.getByTestId("offer-overlay-action")).toHaveText(/Buy|Купить/i);
+  expect(await heroGridLayout()).toEqual(heroGridBox);
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("offer-overlay")).toHaveCount(0);
+  await expect(heroOverlayTrigger).toBeFocused();
+
   await page.locator('[data-testid^="rarity-details-"]').first().click();
-  await expect(page.getByTestId("offer-inspector")).toContainText(/HERO SYNERGY|СИНЕРГИЯ ГЕРОЕВ/i);
-  await expect(page.getByTestId("offer-inspector")).toContainText(/RUN POWER|СИЛА ЗАБЕГА/i);
-  await expect(page.getByTestId("offer-inspector")).toContainText(/→/);
+  await expect(page.getByTestId("offer-overlay")).toContainText(/HERO SYNERGY|СИНЕРГИЯ ГЕРОЕВ/i);
+  await expect(page.getByTestId("offer-overlay")).toContainText(/RUN POWER|СИЛА ЗАБЕГА/i);
+  await expect(page.getByTestId("offer-overlay")).toContainText(/→/);
   await page.getByRole("button", { name: /Close|Закрыть/i }).click();
-  await expect(page.getByTestId("offer-inspector")).toHaveCount(0);
+  await expect(page.getByTestId("offer-overlay")).toHaveCount(0);
   // Берём карту с ДРУГОЙ личностью: после R5.2 рынок умеет и Form Upgrade (тот же accountId в
   // лучшей форме), а этот тест про перестановку людей между составом и скамейкой. Апгрейд формы
   // покрыт юнитами `engine.test.ts` — там же, где живёт правило «личность ≠ форма».
@@ -332,6 +347,8 @@ test("roguelite run: resume восстанавливает Буткемп пос
     const buy = card.getByRole("button", { name: /^(Buy|Купить)$/ });
     if (!(await buy.isEnabled())) continue;
     await buy.click();
+    // Buy остаётся самостоятельным контролом поверх whole-card trigger и не открывает overlay.
+    await expect(page.getByTestId("offer-overlay")).toHaveCount(0);
     bought = true;
     break;
   }
