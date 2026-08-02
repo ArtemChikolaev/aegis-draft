@@ -46,9 +46,55 @@
 }
 .camp__economy {
   display: grid;
+  align-content: start;
   gap: 18px;
   min-width: 0;
 }
+
+/* R13.4: Буткемп — четыре рабочих раздела, а не одна вертикальная лента из ~29 карточек. */
+.camp__section-nav {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 4px);
+  background: var(--surface-soft);
+}
+.camp__section-tab {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px 9px;
+  border: 0;
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.camp__section-tab:hover { color: var(--text); }
+.camp__section-tab[aria-selected="true"] {
+  color: var(--on-accent);
+  background: var(--accent);
+  box-shadow: var(--shadow);
+}
+.camp__section-tab strong { font-size: 10px; }
+.camp__section-panel { display: grid; gap: 18px; }
+.camp__section-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+.camp__section-summary > strong { min-width: 0; flex: 1; }
+.camp__section-summary > b { color: var(--accent); }
 
 .camp__team {
   position: sticky;
@@ -110,10 +156,54 @@
   gap: 12px;
 }
 .camp__section-head .camp__section-title { margin-bottom: 3px; }
+.camp__section-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+}
+.camp__section-heading .camp__section-title { margin: 0; }
 .camp__section-hint {
   max-width: 52ch;
   margin: 0;
   color: var(--muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Пояснение по `?`: details остаётся рабочим на touch и с клавиатуры, в отличие от hover-only
+   tooltip. Bubble участвует только в overlay, поэтому не растягивает карточки и секции. */
+.camp-hint { position: relative; flex: none; }
+.camp-hint > summary {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+.camp-hint > summary::-webkit-details-marker { display: none; }
+.camp-hint > summary:hover,
+.camp-hint > summary:focus-visible,
+.camp-hint[open] > summary { color: var(--text); border-color: var(--accent); }
+.camp-hint__bubble {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 7px);
+  left: 0;
+  width: min(320px, 72vw);
+  padding: 10px 12px;
+  border: 1px solid var(--line-invert-strong);
+  border-radius: 12px;
+  color: var(--on-invert);
+  background: var(--surface-invert);
+  box-shadow: var(--shadow);
   font-size: 11px;
   line-height: 1.45;
 }
@@ -202,6 +292,8 @@
   margin: 0;
   font-size: 1.1rem;
 }
+.offer-inspector__total > span { display: flex; flex-direction: column; gap: 2px; }
+.offer-inspector__total small { color: var(--muted); font-size: 0.78em; font-weight: 500; }
 .offer-inspector__total--up strong { color: var(--accent); }
 .offer-inspector__total--down strong { color: var(--danger); }
 .offer-inspector__rows { display: flex; flex-direction: column; gap: 6px; margin: 0; }
@@ -289,6 +381,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
+.camp__build--single { grid-template-columns: minmax(0, 1fr); }
 .camp__build-col {
   display: grid;
   align-content: start;
@@ -681,7 +774,12 @@
   white-space: nowrap;
 }
 
-.camp__reserve { padding: 12px; }
+.camp__reserve {
+  display: grid;
+  gap: 16px;
+  margin-top: 6px;
+  padding: 16px;
+}
 /* `auto-fill`, как в рядах рынка: карточка скамейки держит свою ширину независимо от того,
    один там запасной или четыре. `min(100%, 240px)` оставляем — на узком экране трек не должен
    требовать больше, чем есть ширины. */
@@ -747,6 +845,9 @@
 .camp__actions {
   display: flex;
   gap: 10px;
+  margin-top: 2px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 .camp__actions > :first-child { flex: 1; justify-content: space-between; }
 
@@ -756,6 +857,7 @@
 }
 
 @media (max-width: 680px) {
+  .camp__section-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .camp__pack { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .camp__rarity-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .camp__offers--reward { grid-template-columns: 1fr; }
@@ -792,8 +894,10 @@
     flex-direction: column;
     align-items: stretch;
   }
-  .camp__section-head { align-items: flex-end; }
   .camp__actions { flex-direction: column; }
+  .camp__actions > button { width: 100%; }
+  .camp__section-head { align-items: flex-end; }
+  .camp__section-summary { align-items: flex-start; flex-wrap: wrap; }
 }
 
 /* Form Upgrade: та же личность в другой форме. Отделяем от обычной замены акцентной рамкой —

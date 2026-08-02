@@ -7,10 +7,18 @@
 // слабый билд, чем получает игрок. По его числам при этом калибровались коэффициенты.
 //
 // Поэтому сумма собирается здесь, а `runStore` и `scripts/sim_run.ts` обязаны звать эту функцию.
-import { addModifiers, type SummandModifiers } from "./anteEconomy.ts";
+import { addModifiers, type SummandModifiers, type SummandValues } from "./anteEconomy.ts";
+import { evaluateItems, type ItemEvaluation } from "./items.ts";
 import { rarityModifiers } from "./heroRarity.ts";
 import type { Rarity } from "./rarity.ts";
-import { powerLayers, tournamentPower, type PowerLayers } from "./tournamentPower.ts";
+import { evaluateTactics, type TacticContext, type TacticEvaluation } from "./tactics.ts";
+import {
+  powerBreakdown,
+  powerLayers,
+  tournamentPower,
+  type PowerBreakdown,
+  type PowerLayers,
+} from "./tournamentPower.ts";
 
 export interface RunStrengthInput {
   /** Модификаторы покупок и временных Camp Actions (`economy.modifiers()`). */
@@ -34,6 +42,63 @@ export function runModifiers(input: RunStrengthInput): SummandModifiers {
 export function runModifierTotal(input: RunStrengthInput): number {
   const m = runModifiers(input);
   return m.base + m.heroSynergy + m.chemistry;
+}
+
+/** Полное состояние ростера, от которого зависят условные карточки Run. */
+export interface RunPowerState {
+  score: SummandValues;
+  tacticContext: TacticContext;
+  activeHeroes: readonly number[];
+  heroRarity: Record<string, Rarity>;
+}
+
+/** Постоянная часть билда для сравнения двух вариантов ростера. */
+export interface RunBuildContext {
+  economy: SummandModifiers;
+  equippedCards: readonly string[];
+  cardRarity: Record<string, Rarity>;
+}
+
+export interface RunPowerEvaluation {
+  values: SummandValues;
+  modifiers: SummandModifiers;
+  tactics: TacticEvaluation;
+  items: ItemEvaluation;
+  power: PowerBreakdown;
+}
+
+/**
+ * Каноническая оценка Run Power одного возможного состава.
+ *
+ * Tactics и Items намеренно вычисляются внутри от контекста ЭТОГО состояния. Перенос их эффекта
+ * из старого ростера делает превью лживым: замена может улучшить score, но выключить условие
+ * карточки и ослабить итоговую силу забега.
+ */
+export function evaluateRunPower(
+  state: RunPowerState,
+  build: RunBuildContext,
+): RunPowerEvaluation {
+  const tactics = evaluateTactics(build.equippedCards, state.tacticContext);
+  const modifiers = runModifiers({
+    economy: build.economy,
+    tactics: tactics.modifiers,
+    heroRarity: state.heroRarity,
+    activeHeroes: state.activeHeroes,
+  });
+  const values = {
+    base: state.score.base + modifiers.base,
+    heroSynergy: state.score.heroSynergy + modifiers.heroSynergy,
+    chemistry: state.score.chemistry + modifiers.chemistry,
+  };
+  const items = evaluateItems(build.equippedCards, {
+    activeHeroes: state.activeHeroes,
+    cardRarity: build.cardRarity,
+  });
+  const power = powerBreakdown(powerLayers(
+    values.base + values.heroSynergy + values.chemistry,
+    { flat: items.flat, additive: items.additive, xMults: items.xMults },
+  ));
+  return { values, modifiers, tactics, items, power };
 }
 
 /**

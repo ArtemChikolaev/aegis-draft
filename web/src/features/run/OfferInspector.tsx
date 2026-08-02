@@ -23,12 +23,14 @@ function signed(value: number): string {
   return value > 0 ? `+${fmt(value)}` : fmt(value);
 }
 
-export function OfferInspector({ title, subtitle, deltas, total, totalLabel, onClose, children }: {
+export function OfferInspector({ title, subtitle, deltas, total, totalFrom, totalTo, totalLabel, onClose, children }: {
   title: ReactNode;
   subtitle?: ReactNode;
   /** Разбор по слагаемым. Пустой — значит оффер не двигает состав (экономика, утилита). */
   deltas: readonly SummandDelta[];
   total: number;
+  totalFrom?: number;
+  totalTo?: number;
   totalLabel: string;
   onClose: () => void;
   /** Специфика вида оффера: кого заменяет, лучшее назначение, редкость. */
@@ -39,7 +41,12 @@ export function OfferInspector({ title, subtitle, deltas, total, totalLabel, onC
     <Modal title={title} description={subtitle} onClose={onClose} layout="content" dismissLabel={t("common.close")}>
       <div className="offer-inspector" data-testid="offer-inspector">
         <p className={`offer-inspector__total offer-inspector__total--${total >= 0 ? "up" : "down"}`}>
-          <span>{totalLabel}</span>
+          <span>
+            {totalLabel}
+            {totalFrom != null && totalTo != null && (
+              <small>{fmt(totalFrom)}→{fmt(totalTo)}</small>
+            )}
+          </span>
           <strong data-testid="offer-inspector-total">{signed(total)}</strong>
         </p>
         {deltas.length > 0 && (

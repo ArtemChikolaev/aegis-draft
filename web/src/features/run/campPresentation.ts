@@ -10,6 +10,12 @@
 // инспектор — весь список («почему»). Инвариант PRD §5.10.4 не нарушается: разбор доступен до
 // покупки, просто не печатается весь сразу.
 import type { SummandValues } from "../../game/anteEconomy.ts";
+import {
+  evaluateRunPower,
+  type RunBuildContext,
+  type RunPowerEvaluation,
+  type RunPowerState,
+} from "../../game/runStrength.ts";
 
 export type SummandKey = "base" | "heroSynergy" | "chemistry";
 
@@ -26,6 +32,48 @@ export interface SummandDelta {
   from: number;
   to: number;
   delta: number;
+}
+
+/** Всё состояние, которое может изменить реальную силу забега после перестройки состава. */
+export type CampPowerState = RunPowerState;
+
+/** Постоянная для пары `до → после` часть билда. */
+export type CampBuildContext = RunBuildContext;
+
+export type CampPowerEvaluation = RunPowerEvaluation;
+
+export interface CampPowerPreview {
+  before: CampPowerEvaluation;
+  after: CampPowerEvaluation;
+  deltas: SummandDelta[];
+  /** Главная цифра карточки: изменение именно Run Power, а не сырого Team OVR. */
+  delta: number;
+}
+
+/**
+ * Полная сила одного возможного состояния Буткемпа.
+ *
+ * Важно пересчитывать Tactics и Items от героев/назначения этого состояния. Их условия нельзя
+ * переносить из `before`: именно так карточка могла обещать +2 OVR, а после покупки выключить
+ * тактику и фактически дать −2 Run Power.
+ */
+export const evaluateCampPower = evaluateRunPower;
+
+/** Одна модель превью для рынка, улучшения редкости и обоих видов резерва. */
+export function campPowerPreview(
+  beforeState: CampPowerState,
+  afterState: CampPowerState,
+  build: CampBuildContext,
+): CampPowerPreview {
+  const before = evaluateRunPower(beforeState, build);
+  const after = evaluateRunPower(afterState, build);
+  const zero = { base: 0, heroSynergy: 0, chemistry: 0 };
+  return {
+    before,
+    after,
+    deltas: summandDeltas(before.values, after.values, zero),
+    delta: after.power.total - before.power.total,
+  };
 }
 
 /**

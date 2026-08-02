@@ -9,6 +9,7 @@
 // ростеру или счёту.
 import { Button } from "../../ui/index.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
+import { CampHint } from "./CampHint.tsx";
 
 /** Карточка синка: расходуемая покупка с растущей ценой. Форма та же, что у reward/market-оффера
  *  (`camp-offer`) — это тоже «карточка с описанием и ценой», и своя вёрстка здесь означала бы
@@ -73,8 +74,10 @@ export function PreparationPanel({ view, hasBoss, onBuyPrep, onRerollBoss, onBuy
   const { t } = useI18n();
   return (
     <section className="camp__section" data-testid="camp-prep">
-      <h3 className="camp__section-title">{t("camp.prep")}</h3>
-      <p className="camp__section-hint">{t("camp.prepHint")}</p>
+      <div className="camp__section-heading">
+        <h3 className="camp__section-title">{t("camp.prep")}</h3>
+        <CampHint label={t("camp.showHint")}>{t("camp.prepHint")}</CampHint>
+      </div>
       <div className="camp__offers camp__offers--reward">
         <SinkCard
           label={t("camp.prepBoost")}

@@ -106,8 +106,10 @@ export async function simulateTournamentToEnd(page: Page) {
  *  (например до финала акта с боссом) — в паре с Cheat Mode это делает глубокий забег
  *  детерминированно достижимым, без охоты за «проходным» seed. */
 export async function boostInCamp(page: Page) {
+  await openCampSection(page, "reward");
   const reward = page.locator('[data-testid^="reward-rwd-"]').first();
   if (await reward.count()) await reward.click().catch(() => {});
+  await openCampSection(page, "market");
   // Только апгрейды: в паках рынка есть честные ловушки, покупать их подряд бессмысленно.
   const upgrades = page.locator(
     '.camp-pack-card:has(.camp-offer__deltas > .camp-offer__delta--up:first-child) [data-testid^="market-mkt-"]',
@@ -148,8 +150,21 @@ export async function reloadAndResume(page: Page) {
  *  пользы, и их порядок/состав может меняться при калибровке. Индексы тестов ломались бы на
  *  каждой такой правке, вид — нет. */
 export async function chooseReward(page: Page, kinds: readonly string[]) {
+  await openCampSection(page, "reward");
   const selector = kinds.map((kind) => `[data-offer-kind="${kind}"]`).join(", ");
   const card = page.getByTestId("camp-reward").locator(selector).first();
   await expect(card).toBeVisible();
   await card.getByRole("button").click();
+}
+
+/** R13.4: Буткемп рендерит только один рабочий раздел. Тесты явно называют контекст действия,
+ *  а не полагаются на прежнюю бесконечную ленту, где все карточки всегда были в DOM. */
+export async function openCampSection(
+  page: Page,
+  section: "reward" | "market" | "build" | "preparation",
+) {
+  const tab = page.getByTestId(`camp-section-${section}`);
+  await expect(tab).toBeVisible();
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
 }

@@ -1,14 +1,9 @@
 // Буткемп Roguelite Run (T5.2, срезы 2–3): Reward, контекстный Market и резерв.
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ECONOMY, cardSlotKind, playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
-import {
-  RARITY,
-  rarityModifiers,
-  raritySwapDelta,
-  upgradeCost,
-} from "../../game/heroRarity.ts";
+import { upgradeCost } from "../../game/heroRarity.ts";
 import { nextRarity, type Rarity } from "../../game/rarity.ts";
 import {
   conditionAxes,
@@ -21,9 +16,8 @@ import {
   type EffectMatch,
   type ItemDef,
 } from "../../game/items.ts";
-import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
+import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
-import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
 import {
@@ -37,9 +31,17 @@ import {
   squadChemistryRows,
 } from "../../game/score.ts";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
-import { summandDeltas, type SummandDelta } from "./campPresentation.ts";
+import {
+  campPowerPreview,
+  evaluateCampPower,
+  summandDeltas,
+  type CampPowerPreview,
+  type CampPowerState,
+  type SummandDelta,
+} from "./campPresentation.ts";
 import { OfferInspector } from "./OfferInspector.tsx";
 import { PreparationPanel } from "./PreparationPanel.tsx";
+import { CampHint } from "./CampHint.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import type { BossEvaluation } from "../../game/bossConditions.ts";
@@ -138,7 +140,11 @@ interface InspectedOffer {
   subtitle?: string;
   deltas: SummandDelta[];
   total: number;
+  from: number;
+  to: number;
 }
+
+type CampSection = "reward" | "market" | "build" | "preparation";
 
 /** Главная цифра карточки — она же кнопка в разбор. Приём тот же, что у чипа тега (R11.7):
  *  точка входа — ровно то число, которое хочется объяснить, а не отдельная ссылка «подробнее».
@@ -156,22 +162,12 @@ function OfferDeltaButton({ delta, testId, onOpen }: {
       data-testid={testId}
       onClick={onOpen}
       title={t("camp.offerDetails")}
-      aria-label={`${t("common.teamOvr")} ${signed(delta)} · ${t("camp.offerDetails")}`}
+      aria-label={`${t("camp.power")} ${signed(delta)} · ${t("camp.offerDetails")}`}
     >
-      {t("common.teamOvr")} {signed(delta)}
+      {t("camp.power")} {signed(delta)}
       <span className="camp-offer__delta-more" aria-hidden="true">?</span>
     </button>
   );
-}
-
-/** Изменение Team OVR оффера (сумма слагаемых после − до). Для пак-карты — главный сигнал.
- *  `extra` учитывает эффекты поверх score-превью движка — например, смену редкости героя. */
-function teamOvrDelta(offer: Offer, extra: Partial<SummandValues> = {}): number {
-  if (!offer.preview) return 0;
-  const b = offer.preview.before;
-  const a = offer.preview.after;
-  return (a.base + a.heroSynergy + a.chemistry) - (b.base + b.heroSynergy + b.chemistry)
-    + (extra.base ?? 0) + (extra.heroSynergy ?? 0) + (extra.chemistry ?? 0);
 }
 
 function valuesOf(score: { base: number; heroSynergy: number; chemistry: number }): SummandValues {
@@ -326,7 +322,6 @@ export function CampScreen() {
   const snapshot = useRun((s) => s.snapshot);
   const data = useRun((s) => s.data);
   const config = useRun((s) => s.config);
-  const tactics = useRun((s) => s.tactics);
   const boss = useRun((s) => s.boss);
   const scoutedBoss = useRun((s) => s.scoutedBoss);
   const chooseReward = useRun((s) => s.chooseReward);
@@ -347,6 +342,7 @@ export function CampScreen() {
   const { t } = useI18n();
   const hero = useHero();
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [activeSection, setActiveSection] = useState<CampSection>("reward");
   const [heroTargets, setHeroTargets] = useState<Record<number, number>>({});
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
   // Разбор карточки рынка (R13.3): на самой карточке одна цифра, полный `до → после` — здесь.
@@ -354,6 +350,14 @@ export function CampScreen() {
   // Вопрос «а кто вообще бывает illusion?» возникает посреди выбора в Буткемпе, поэтому отвечаем
   // модалкой, не уводя игрока с экрана с незакрытым выбором (тот же приём, что у карточки игрока).
   const [inspectedTag, setInspectedTag] = useState<string | null>(null);
+
+  // Новый Буткемп начинается с обязательного выбора награды. Resume после уже сделанного выбора
+  // не возвращает игрока в свёрнутую награду — продолжает с рынка. Состояние это только UI:
+  // в сейв и RunEngine разделы не протекают.
+  useEffect(() => {
+    if (!camp) return;
+    setActiveSection(camp.rewardChosen ? "market" : "reward");
+  }, [camp?.campStageIndex]);
   const candidates = useMemo(() => (data?.packs ?? []).flatMap(candidatesOf), [data]);
   const eventNames = useMemo(
     () => new Map((data?.events ?? []).map((event) => [event.id, event.short ?? event.name])),
@@ -363,30 +367,68 @@ export function CampScreen() {
 
   const score = snapshot?.score;
   if (!camp || !ante || !score || !snapshot || !data || !config) return null;
+  // Алиасы сохраняют non-null гарантию внутри локальных функций превью: TypeScript не переносит
+  // narrowing изменяемых store-ссылок через границу замыкания.
+  const activeCamp = camp;
+  const activeSnapshot = snapshot;
+  const activeData = data;
 
-  // Итоговые слагаемые = счёт ростера + модификаторы экономики (покупки/временные действия) +
-  // вклад условных Tactics + редкость активных героев. Ровно та же сумма, что стор кладёт в поле.
-  const tacticMods = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
-  const rarityMods = rarityModifiers(camp.heroRarity, snapshot.heroes);
-  const mods = {
-    base: camp.modifiers.base + tacticMods.base + rarityMods.base,
-    heroSynergy: camp.modifiers.heroSynergy + tacticMods.heroSynergy + rarityMods.heroSynergy,
-    chemistry: camp.modifiers.chemistry + tacticMods.chemistry + rarityMods.chemistry,
-  };
-  const current: SummandValues = {
-    base: score.base + mods.base,
-    heroSynergy: score.heroSynergy + mods.heroSynergy,
-    chemistry: score.chemistry + mods.chemistry,
-  };
-  const effectiveOvr = current.base + current.heroSynergy + current.chemistry;
-  // Вклад предметов при текущем ростере (R8.3) + разложение силы забега для панели.
-  const itemEval = evaluateItems(camp.equippedTactics, {
-    activeHeroes: snapshot.heroes,
+  const build = {
+    economy: camp.modifiers,
+    equippedCards: camp.equippedTactics,
     cardRarity: camp.cardRarity,
-  });
-  const power = powerBreakdown(powerLayers(effectiveOvr, {
-    flat: itemEval.flat, additive: itemEval.additive, xMults: itemEval.xMults,
-  }));
+  };
+
+  /** Собирает состояние превью через те же контексты, которыми реальные Tactics проверяют
+   *  ростер. После замены игрока/героя нельзя переносить старый эффект карточки как константу. */
+  function powerState(
+    nextScore: SummandValues,
+    roster: typeof activeSnapshot.roster,
+    assignment: Record<number, number>,
+    activeHeroes: readonly number[],
+    heroRarity: Record<string, Rarity> = activeCamp.heroRarity,
+  ): CampPowerState {
+    return {
+      score: nextScore,
+      tacticContext: buildTacticContext(roster, assignment, activeData, activeCamp.campStageIndex),
+      activeHeroes,
+      heroRarity,
+    };
+  }
+
+  const currentPowerState = powerState(
+    valuesOf(score), snapshot.roster, score.assignment.byPlayer, snapshot.heroes,
+  );
+  const currentEvaluation = evaluateCampPower(currentPowerState, build);
+  const current = currentEvaluation.values;
+  const mods = currentEvaluation.modifiers;
+  const tactics = currentEvaluation.tactics;
+  const itemEval = currentEvaluation.items;
+  const power = currentEvaluation.power;
+
+  function previewPower(
+    nextScore: SummandValues,
+    roster: typeof activeSnapshot.roster,
+    assignment: Record<number, number>,
+    activeHeroes: readonly number[],
+    heroRarity: Record<string, Rarity> = activeCamp.heroRarity,
+  ): CampPowerPreview {
+    return campPowerPreview(
+      currentPowerState,
+      powerState(nextScore, roster, assignment, activeHeroes, heroRarity),
+      build,
+    );
+  }
+
+  function replaceRosterCandidate(slotIndex: number, candidate: Candidate) {
+    return activeSnapshot.roster.map((slot, index) => (
+      index === slotIndex ? { ...slot, candidate } : slot
+    ));
+  }
+
+  function replaceActiveHero(outgoingHeroId: number, incomingHeroId: number): number[] {
+    return activeSnapshot.heroes.map((heroId) => heroId === outgoingHeroId ? incomingHeroId : heroId);
+  }
   const playerOffers = camp.marketOffers.filter((o) => o.kind === "player");
   const heroOffers = camp.marketOffers.filter((o) => o.kind === "hero");
   const nextLabel = ante.target <= 1
@@ -409,6 +451,16 @@ export function CampScreen() {
       : mods.heroSynergy
         ? signed(mods.heroSynergy)
         : undefined;
+  const buildUsed = camp.equippedTactics.length;
+  const preparationUsed = camp.heldActions.length;
+  const chosenReward = camp.rewardOffers.find((offer) => offer.id === camp.chosenRewardId);
+
+  const sections: Array<{ id: CampSection; label: string; status?: string }> = [
+    { id: "reward", label: t("camp.navReward"), status: camp.rewardChosen ? "✓" : undefined },
+    { id: "market", label: t("camp.market") },
+    { id: "build", label: t("camp.navBuild"), status: `${buildUsed}/${camp.tacticSlots}` },
+    { id: "preparation", label: t("camp.navPreparation"), status: `${preparationUsed}/${camp.actionSlots}` },
+  ];
 
   /** Разбор оффера по слагаемым — чистые данные (`campPresentation`), одна арифметика на экран. */
   function offerDeltas(
@@ -741,35 +793,61 @@ export function CampScreen() {
         </Surface>
 
         <div className="camp__economy">
-          {boss && <BossPanel boss={boss} eyebrow={t("boss.next")} testId="camp-boss" />}
-          {/* Разведанный босс (R9.4): то же правило и тот же `до→после`, но про турнир, до которого
-              ещё несколько этапов. Отдельная панель, а не строчка «разведано»: ценность разведки
-              именно в том, что под правило можно собраться заранее. */}
-          {scoutedBoss && (
-            <BossPanel
-              boss={scoutedBoss}
-              eyebrow={t("boss.scouted", { n: scoutedBoss.stageIndex - ante.index + 1 })}
-              hint={t("boss.scoutedHint")}
-              testId="camp-boss-scouted"
-              scouted
-            />
-          )}
-          {/* Поздние синки (T5.9). Стоят сразу под правилом этапа, потому что два из трёх — прямой
-              ответ на него: правило можно сменить или разведать следующее. Показываются всегда, а
-              не только в Династии: гейт по фазе был бы вторым набором правил, а цена и без него
-              делает их покупкой на излишек. */}
-          <PreparationPanel
-            view={camp}
-            hasBoss={!!boss}
-            onBuyPrep={buyPrep}
-            onRerollBoss={rerollBoss}
-            onBuyScouting={buyScouting}
-          />
+          <nav className="camp__section-nav" aria-label={t("camp.title")} role="tablist" data-testid="camp-section-nav">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                role="tab"
+                aria-selected={activeSection === section.id}
+                aria-controls={`camp-panel-${section.id}`}
+                className="camp__section-tab"
+                data-testid={`camp-section-${section.id}`}
+                onClick={() => setActiveSection(section.id)}
+              >
+                <span>{section.label}</span>
+                {section.status && <strong>{section.status}</strong>}
+              </button>
+            ))}
+          </nav>
 
-          <section className="camp__section" data-testid="camp-reward">
+          {activeSection === "preparation" && (
+            <div id="camp-panel-preparation" role="tabpanel" className="camp__section-panel">
+              {boss && <BossPanel boss={boss} eyebrow={t("boss.next")} testId="camp-boss" />}
+              {/* Разведанный босс (R9.4): то же правило и тот же `до→после`, но про турнир, до
+                  которого ещё несколько этапов. Он живёт рядом со всеми решениями подготовки. */}
+              {scoutedBoss && (
+                <BossPanel
+                  boss={scoutedBoss}
+                  eyebrow={t("boss.scouted", { n: scoutedBoss.stageIndex - ante.index + 1 })}
+                  hint={t("boss.scoutedHint")}
+                  testId="camp-boss-scouted"
+                  scouted
+                />
+              )}
+              {/* Поздние синки (T5.9) — прямой ответ на правило этапа и разведку. */}
+              <PreparationPanel
+                view={camp}
+                hasBoss={!!boss}
+                onBuyPrep={buyPrep}
+                onRerollBoss={rerollBoss}
+                onBuyScouting={buyScouting}
+              />
+            </div>
+          )}
+
+          {activeSection === "reward" && (
+          <section id="camp-panel-reward" role="tabpanel" className="camp__section" data-testid="camp-reward">
             <h3 className="camp__section-title">
               {camp.rewardChosen ? t("camp.rewardChosen") : t("camp.reward")}
             </h3>
+            {camp.rewardChosen && chosenReward ? (
+              <div className="camp__section-summary" data-testid="camp-reward-summary">
+                <strong>{t("camp.navReward")}: {t(chosenReward.labelKey as MessageKey)}</strong>
+                <span className="camp-offer__deltas">{effectRows(chosenReward)}</span>
+                <b aria-label={t("camp.rewardChosen")}>✓</b>
+              </div>
+            ) : (
             <div className="camp__offers camp__offers--reward">
               {camp.rewardOffers.map((offer) => {
                 const isChosen = camp.chosenRewardId === offer.id;
@@ -808,7 +886,10 @@ export function CampScreen() {
                       variant={isChosen ? "secondary" : "primary"}
                       disabled={camp.rewardChosen || (slotFull && !isChosen)}
                       data-testid={`reward-${offer.id}`}
-                      onClick={() => chooseReward(offer.id)}
+                      onClick={() => {
+                        chooseReward(offer.id);
+                        setActiveSection("market");
+                      }}
                     >
                       {isChosen ? "✓" : t("camp.choose")}
                     </Button>
@@ -816,18 +897,29 @@ export function CampScreen() {
                 );
               })}
             </div>
+            )}
           </section>
+          )}
 
-          <section className="camp__section" data-testid="camp-build">
-            <div className="camp__build">
+          {(activeSection === "build" || activeSection === "preparation") && (
+          <section
+            id={activeSection === "build" ? "camp-panel-build" : undefined}
+            role={activeSection === "build" ? "tabpanel" : undefined}
+            className="camp__section"
+            data-testid={activeSection === "build" ? "camp-build" : "camp-actions"}
+          >
+            <div className="camp__build camp__build--single">
+              {activeSection === "build" && (
               <div className="camp__build-col" data-testid="camp-tactics">
                 <div className="camp__build-head">
-                  <h3 className="camp__section-title">{t("camp.tactics")}</h3>
+                  <div className="camp__section-heading">
+                    <h3 className="camp__section-title">{t("camp.tactics")}</h3>
+                    <CampHint label={t("camp.showHint")}>{t("camp.tacticsHint")}</CampHint>
+                  </div>
                   <span className="camp__slot-count">
                     {t("camp.slotsUsed", { used: camp.equippedTactics.length, total: camp.tacticSlots })}
                   </span>
                 </div>
-                <p className="camp__section-hint">{t("camp.tacticsHint")}</p>
                 {/* Разложение силы забега. Показывается ТОЛЬКО когда хоть один слой активен —
                     иначе это была бы строка «×1.00 / +0», не несущая информации (R8.2). */}
                 {!power.trivial && (
@@ -952,15 +1044,19 @@ export function CampScreen() {
                   })}
                 </div>
               </div>
+              )}
 
+              {activeSection === "preparation" && (
               <div className="camp__build-col" data-testid="camp-actions-panel">
                 <div className="camp__build-head">
-                  <h3 className="camp__section-title">{t("camp.campActions")}</h3>
+                  <div className="camp__section-heading">
+                    <h3 className="camp__section-title">{t("camp.campActions")}</h3>
+                    <CampHint label={t("camp.showHint")}>{t("camp.campActionsHint")}</CampHint>
+                  </div>
                   <span className="camp__slot-count">
                     {t("camp.slotsUsed", { used: camp.heldActions.length, total: camp.actionSlots })}
                   </span>
                 </div>
-                <p className="camp__section-hint">{t("camp.campActionsHint")}</p>
                 {camp.scouted && <p className="camp__scouted" data-testid="camp-scouted">{t("camp.scouted")}</p>}
                 {camp.freeMarketRerolls > 0 && (
                   <p className="camp__perk">{t("camp.freeReroll", { n: camp.freeMarketRerolls })}</p>
@@ -1001,14 +1097,17 @@ export function CampScreen() {
                   })}
                 </div>
               </div>
+              )}
             </div>
           </section>
+          )}
 
-          <section className="camp__section" data-testid="camp-market">
+          {activeSection === "market" && (
+          <section id="camp-panel-market" role="tabpanel" className="camp__section" data-testid="camp-market">
             <div className="camp__section-head">
-              <div>
+              <div className="camp__section-heading">
                 <h3 className="camp__section-title">{t("camp.market")}</h3>
-                <p className="camp__section-hint">{t("camp.marketHint")}</p>
+                <CampHint label={t("camp.showHint")}>{t("camp.marketHint")}</CampHint>
               </div>
               <Button
                 variant="secondary"
@@ -1031,7 +1130,16 @@ export function CampScreen() {
                 // иначе дорогая карта остаётся заблокированной, хотя движок списал бы 0 (баг live).
                 const freeSwap = camp.freePlayerSwaps > 0;
                 const affordable = playerOfferAffordable(offer.cost, camp.gold, camp.freePlayerSwaps, camp.unlimitedGold);
-                const ovrDelta = teamOvrDelta(offer);
+                const preview = offer.preview
+                  ? previewPower(
+                      offer.preview.after,
+                      replaceRosterCandidate(offer.playerSwap!.slotIndex, incoming),
+                      offer.preview.afterAssignment ?? score.assignment.byPlayer,
+                      snapshot.heroes,
+                    )
+                  : null;
+                const deltas = preview?.deltas ?? [];
+                const powerDelta = preview?.delta ?? 0;
                 return (
                   <div key={offer.id} className="camp-pack-card" data-offer-kind="player">
                     <CampPlayerCard
@@ -1061,13 +1169,15 @@ export function CampScreen() {
                     )}
                     <div className="camp-offer__deltas">
                       <OfferDeltaButton
-                        delta={ovrDelta}
+                        delta={powerDelta}
                         testId={`offer-details-${offer.id}`}
                         onOpen={() => setInspected({
                           title: incoming.player.nickname,
                           subtitle: outgoing ? t("camp.replacesPlayer") + " " + outgoing.player.nickname : undefined,
-                          deltas: offerDeltas(offer.preview!.before, offer.preview!.after),
-                          total: ovrDelta,
+                          deltas,
+                          total: powerDelta,
+                          from: preview?.before.power.total ?? power.total,
+                          to: preview?.after.power.total ?? power.total,
                         })}
                       />
                     </div>
@@ -1094,20 +1204,32 @@ export function CampScreen() {
               {heroOffers.map((offer) => {
                 const affordable = camp.unlimitedGold || offer.cost <= camp.gold;
                 // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
-                // ролл, что применит покупка. Из неё вычитаем вклад редкости снимаемого героя:
-                // иначе mythic, заменяющий immortal, выглядел как +1.4 при фактическом падении.
+                // ролл, что применит покупка. Полное превью ниже пересобирает и редкость, и
+                // условия Tactics/Items: входящий mythic может усилить сырой score, но выключить
+                // карточку билда и в итоге ослабить Run Power.
                 // Качество входящего берём С ОФФЕРА (R4.1), а не роллим здесь заново: цена карты
                 // считается от него же, и разойтись с покупкой они больше не могут. Ровно это
                 // расхождение и было багом первого забега.
                 const incomingRarity: Rarity = offer.heroSwap?.incomingRarity ?? "common";
-                // Снимаемый герой — из реальной карты забега, без гейта: в первом забеге дропов
-                // нет, но вручную поднятый тир существует, и его потеря при замене должна быть
-                // видна в дельте.
                 const outgoingRarity: Rarity = offer.heroSwap
                   ? camp.heroRarity[String(offer.heroSwap.outgoingHeroId)] ?? "common"
                   : "common";
-                const rarityDelta = raritySwapDelta(outgoingRarity, incomingRarity);
-                const ovrDelta = teamOvrDelta(offer, rarityDelta);
+                const afterHeroes = offer.heroSwap
+                  ? replaceActiveHero(offer.heroSwap.outgoingHeroId, offer.heroSwap.incomingHeroId)
+                  : snapshot.heroes;
+                const afterRarity = { ...camp.heroRarity };
+                if (offer.heroSwap) afterRarity[String(offer.heroSwap.incomingHeroId)] = incomingRarity;
+                const preview = offer.preview
+                  ? previewPower(
+                      offer.preview.after,
+                      snapshot.roster,
+                      offer.preview.afterAssignment ?? score.assignment.byPlayer,
+                      afterHeroes,
+                      afterRarity,
+                    )
+                  : null;
+                const deltas = preview?.deltas ?? [];
+                const powerDelta = preview?.delta ?? 0;
                 return (
                   <div
                     key={offer.id}
@@ -1131,29 +1253,19 @@ export function CampScreen() {
                     {(incomingRarity !== "common" || outgoingRarity !== "common") && (
                       <div className="camp-hero-rarity">
                         <RarityBadge rarity={incomingRarity} label={t(`rarity.${incomingRarity}` as MessageKey)} />
-                        {Math.abs(rarityDelta.heroSynergy) >= 0.01 && (
-                          <span className={`camp-offer__delta camp-offer__delta--${rarityDelta.heroSynergy >= 0 ? "up" : "down"}`}>
-                            {t("common.heroSynergy")} {signed(rarityDelta.heroSynergy)}
-                          </span>
-                        )}
-                        {Math.abs(rarityDelta.base) >= 0.01 && (
-                          <span className={`camp-offer__delta camp-offer__delta--${rarityDelta.base >= 0 ? "up" : "down"}`}>
-                            {t("common.base")} {signed(rarityDelta.base)}
-                          </span>
-                        )}
                       </div>
                     )}
                     <div className="camp-offer__deltas">
                       <OfferDeltaButton
-                        delta={ovrDelta}
+                        delta={powerDelta}
                         testId={`offer-details-${offer.id}`}
                         onOpen={() => setInspected({
                           title: hero(offer.heroSwap!.incomingHeroId).name,
                           subtitle: t("camp.activeHero") + ": " + hero(offer.heroSwap!.outgoingHeroId).name,
-                          deltas: offer.preview
-                            ? offerDeltas(offer.preview.before, offer.preview.after, rarityDelta)
-                            : [],
-                          total: ovrDelta,
+                          deltas,
+                          total: powerDelta,
+                          from: preview?.before.power.total ?? power.total,
+                          to: preview?.after.power.total ?? power.total,
                         })}
                       />
                     </div>
@@ -1176,7 +1288,7 @@ export function CampScreen() {
             {camp.rarityUpgradesEnabled && (
               <>
                 <h4 className="camp__market-group-title">{t("camp.rarityUpgrade")}</h4>
-                <p className="camp__section-hint">{t("camp.rarityHint")}</p>
+                <CampHint label={t("camp.showHint")}>{t("camp.rarityHint")}</CampHint>
                 {/* Улучшение — второе действие рынка героев (реролл его не качает): поднимает тир
                     активного героя, растит его вклад в Hero Synergy (+OVR игроку у immortal). */}
                 <div className="camp__rarity-grid" data-testid="camp-rarity">
@@ -1190,7 +1302,19 @@ export function CampScreen() {
                     // класс бага, что уже ловили на stand-in.
                     const freeUpgrade = camp.freeRarityUpgrades > 0;
                     const affordable = cost != null && (freeUpgrade || camp.unlimitedGold || cost <= camp.gold);
-                    const gain = up ? RARITY.heroSynergyBonus[up] - RARITY.heroSynergyBonus[current] : 0;
+                    const afterRarity = { ...camp.heroRarity };
+                    if (up) afterRarity[String(heroId)] = up;
+                    const preview = up
+                      ? previewPower(
+                          valuesOf(score),
+                          snapshot.roster,
+                          score.assignment.byPlayer,
+                          snapshot.heroes,
+                          afterRarity,
+                        )
+                      : null;
+                    const deltas = preview?.deltas ?? [];
+                    const powerDelta = preview?.delta ?? 0;
                     return (
                       <div
                         key={heroId}
@@ -1215,14 +1339,18 @@ export function CampScreen() {
                               <span className="camp-offer__delta camp-offer__delta--up">
                                 → {t(`rarity.${up}` as MessageKey)}
                               </span>
-                              <span className="camp-offer__delta camp-offer__delta--up">
-                                {t("common.heroSynergy")} {signed(gain)}
-                              </span>
-                              {up === "immortal" && (
-                                <span className="camp-offer__delta camp-offer__delta--up">
-                                  {t("common.base")} {signed(RARITY.immortalBaseBonus)}
-                                </span>
-                              )}
+                              <OfferDeltaButton
+                                delta={powerDelta}
+                                testId={`rarity-details-${heroId}`}
+                                onOpen={() => setInspected({
+                                  title: thumb.name,
+                                  subtitle: `${t(`rarity.${current}` as MessageKey)} → ${t(`rarity.${up}` as MessageKey)}`,
+                                  deltas,
+                                  total: powerDelta,
+                                  from: preview?.before.power.total ?? power.total,
+                                  to: preview?.after.power.total ?? power.total,
+                                })}
+                              />
                             </div>
                             <div className="camp-pack-card__buy">
                               <span className={`camp-offer__cost${freeUpgrade ? " camp-offer__cost--free" : ""}`}>
@@ -1248,13 +1376,14 @@ export function CampScreen() {
               </>
             )}
           </section>
+          )}
 
-          {(snapshot.reservePlayers.length > 0 || snapshot.reserveHeroes.length > 0) && (
+          {activeSection === "build" && (snapshot.reservePlayers.length > 0 || snapshot.reserveHeroes.length > 0) && (
             <Surface className="camp__reserve" data-testid="camp-reserve">
               <div className="camp__section-head">
-                <div>
+                <div className="camp__section-heading">
                   <h3 className="camp__section-title">{t("camp.reserve")}</h3>
-                  <p className="camp__section-hint">{t("camp.reserveHint")}</p>
+                  <CampHint label={t("camp.showHint")}>{t("camp.reserveHint")}</CampHint>
                 </div>
               </div>
               <div className="camp__reserve-grid">
@@ -1274,6 +1403,14 @@ export function CampScreen() {
                       {reserve.previews.map(({ slotIndex, score: after }) => {
                         const outgoing = snapshot.roster[slotIndex]?.candidate;
                         if (!outgoing) return null;
+                        const preview = previewPower(
+                          valuesOf(after),
+                          replaceRosterCandidate(slotIndex, reserve.candidate),
+                          after.assignment.byPlayer,
+                          snapshot.heroes,
+                        );
+                        const deltas = preview.deltas;
+                        const powerDelta = preview.delta;
                         return (
                           <div
                             className="camp-reserve-swap"
@@ -1287,7 +1424,18 @@ export function CampScreen() {
                                 <b>{reserve.candidate.player.ovr}</b>
                               </span>
                               <div className="camp-offer__deltas">
-                                {deltaRows(valuesOf(score), valuesOf(after))}
+                                <OfferDeltaButton
+                                  delta={powerDelta}
+                                  testId={`reserve-player-details-${slotIndex}`}
+                                  onOpen={() => setInspected({
+                                    title: reserve.candidate.player.nickname,
+                                    subtitle: `${t("camp.replacesPlayer")} ${outgoing.player.nickname}`,
+                                    deltas,
+                                    total: powerDelta,
+                                    from: preview.before.power.total,
+                                    to: preview.after.power.total,
+                                  })}
+                                />
                               </div>
                             </div>
                             <Button
@@ -1310,7 +1458,16 @@ export function CampScreen() {
                   const after = reserve.previews
                     .find((preview) => preview.outgoingHeroId === outgoingHeroId)
                     ?.score;
-                  const ovrDelta = after ? after.teamOvr - score.teamOvr : 0;
+                  const preview = after
+                    ? previewPower(
+                        valuesOf(after),
+                        snapshot.roster,
+                        after.assignment.byPlayer,
+                        replaceActiveHero(outgoingHeroId, reserve.heroId),
+                      )
+                    : null;
+                  const deltas = preview?.deltas ?? [];
+                  const powerDelta = preview?.delta ?? 0;
                   return (
                     <div key={reserve.heroId} className="camp-reserve-card camp-reserve-card--hero">
                       <small>{t("camp.reserveHeroes")}</small>
@@ -1333,10 +1490,18 @@ export function CampScreen() {
                       />
                       {after && (
                         <div className="camp-offer__deltas">
-                          <span className={`camp-offer__delta camp-offer__delta--${ovrDelta >= 0 ? "up" : "down"}`}>
-                            {t("common.teamOvr")} {signed(ovrDelta)}
-                          </span>
-                          {deltaRows(valuesOf(score), valuesOf(after))}
+                          <OfferDeltaButton
+                            delta={powerDelta}
+                            testId={`reserve-hero-details-${reserve.heroId}`}
+                            onOpen={() => setInspected({
+                              title: reserveHero.name,
+                              subtitle: `${t("camp.activeHero")}: ${outgoingHero.name}`,
+                              deltas,
+                              total: powerDelta,
+                              from: preview?.before.power.total ?? power.total,
+                              to: preview?.after.power.total ?? power.total,
+                            })}
+                          />
                         </div>
                       )}
                       <Button
@@ -1394,7 +1559,9 @@ export function CampScreen() {
           subtitle={inspected.subtitle}
           deltas={inspected.deltas}
           total={inspected.total}
-          totalLabel={t("common.teamOvr")}
+          totalFrom={inspected.from}
+          totalTo={inspected.to}
+          totalLabel={t("camp.power")}
           onClose={() => setInspected(null)}
         />
       )}

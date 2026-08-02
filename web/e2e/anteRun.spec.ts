@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { boostInCamp, chooseReward, completeDraft, gotoFreshApp, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
+import { boostInCamp, chooseReward, completeDraft, gotoFreshApp, openCampSection, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
 // Длина сезона и шаблон акта берутся из самой модели: тест не должен знать «25» отдельно от игры.
 import { SEASON } from "../src/game/anteRun.ts";
 
@@ -60,10 +60,15 @@ test("roguelite run: Буткемп — reward и покупка меняют к
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
 
+  // R13.4: вместо общей ленты виден один раздел; выбор награды ведёт к следующему решению.
+  await expect(page.getByTestId("camp-section-nav").getByRole("tab")).toHaveCount(4);
+  await expect(page.getByTestId("camp-market")).toHaveCount(0);
+
   // Reward: выбрать первую карту золота, баланс растёт.
   const goldBefore = Number(await page.getByTestId("camp-gold").innerText());
   await page.getByTestId("camp-reward").getByRole("button").first().click();
   await expect(page.getByTestId("camp-gold")).not.toHaveText(String(goldBefore));
+  await expect(page.getByTestId("camp-section-market")).toHaveAttribute("aria-selected", "true");
 
   // Market: если есть доступная покупка — купить, золото списывается и не уходит в минус.
   const buyButtons = page.getByTestId("camp-market").getByRole("button", { name: /^(Buy|Купить)$/ });
@@ -94,6 +99,7 @@ test("roguelite run: пассивные карточки занимают сло
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "build");
 
   // Билд-панель всегда на экране; тактические слоты пусты в начале забега.
   const tactics = page.getByTestId("camp-tactics");
@@ -104,6 +110,7 @@ test("roguelite run: пассивные карточки занимают сло
   // Взять пассивную карточку из reward → занят один слот, карточка появилась с описанием.
   // Конкретный id не фиксируем: пул общий для тактик и предметов (R8.3), и он растёт.
   await chooseReward(page, ["item", "tactic"]);
+  await openCampSection(page, "build");
   await expect(tactics.locator(".camp__slot-count")).toHaveText("1/3");
   await expect(tactics.locator("[data-card-id]").first()).toBeVisible();
   await expect(tactics.locator("[data-card-id]").first().locator(".camp-slot__desc").first()).toBeVisible();
@@ -118,14 +125,15 @@ test("roguelite run: пассивные карточки занимают сло
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
-  await chooseReward(page, ["item", "tactic"]);
-  await expect(tactics.locator(".camp__slot-count")).toHaveText("2/3");
-  await expect(tactics.locator("[data-card-id]")).toHaveCount(2);
-
-  // Любая пассивная карточка несёт бейдж СЛОТА, который займёт. Предмет его не получал (R13.1) —
-  // игрок не видел, что предмет и тактика делят одни и те же три слота.
+  // Любая пассивная награда заранее сообщает, какой слот займёт. После выбора R13.4 сворачивает
+  // карточку в итоговую строку, поэтому проверяем этот affordance до действия, а не после него.
+  await openCampSection(page, "reward");
   const passive = page.getByTestId("camp-reward").locator('[data-offer-kind="item"], [data-offer-kind="tactic"]').first();
   await expect(passive.locator(".camp-card-tag")).toBeVisible();
+  await chooseReward(page, ["item", "tactic"]);
+  await openCampSection(page, "build");
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("2/3");
+  await expect(tactics.locator("[data-card-id]")).toHaveCount(2);
 
   // Этап 3 → Буткемп: забиваем третий слот и проверяем главный симптом R13.1. Раньше при полных
   // слотах кнопка предмета оставалась активной, а клик молча проваливался внутри экономики.
@@ -134,6 +142,7 @@ test("roguelite run: пассивные карточки занимают сло
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
   await chooseReward(page, ["item", "tactic"]);
+  await openCampSection(page, "build");
   await expect(tactics.locator(".camp__slot-count")).toHaveText("3/3");
 
   // Ищем следующий Буткемп с пассивной наградой: при 3/3 она обязана быть заблокирована С ПРИЧИНОЙ.
@@ -145,6 +154,7 @@ test("roguelite run: пассивные карточки занимают сло
     if (!(await toCamp.isVisible().catch(() => false))) break; // забег закончился раньше
     await toCamp.click();
     await expect(page.getByTestId("camp-screen")).toBeVisible();
+    await openCampSection(page, "reward");
     const offered = page.getByTestId("camp-reward").locator('[data-offer-kind="item"], [data-offer-kind="tactic"]').first();
     if (!(await offered.isVisible().catch(() => false))) continue;
     await expect(offered.getByRole("button")).toBeDisabled();
@@ -164,17 +174,20 @@ test("roguelite run: stand-in делает замену игрока беспл�
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "preparation");
 
   // Взять Stand-in и разыграть — слот действий занимается и освобождается, появляется свободный свап.
   const actions = page.getByTestId("camp-actions-panel");
   await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
   await chooseReward(page, ["action"]);
+  await openCampSection(page, "preparation");
   await expect(actions.locator(".camp__slot-count")).toHaveText("1/2");
   await expect(page.getByTestId("action-play-standIn")).toBeVisible();
   await page.getByTestId("action-play-standIn").click();
   await expect(actions.locator(".camp__slot-count")).toHaveText("0/2");
 
   // Все карты игроков теперь бесплатны и покупаемы, независимо от цены/золота.
+  await openCampSection(page, "market");
   const playerCards = page.getByTestId("camp-pack").locator('[data-offer-kind="player"]');
   await expect(playerCards.first()).toBeVisible();
   const freeCosts = playerCards.locator(".camp-offer__cost--free");
@@ -197,6 +210,7 @@ test("roguelite run: первый забег — дропы common, но улу�
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "market");
 
   // Дропы выключены: ни одна карта рынка героев не предлагает качество выше common.
   const heroCards = page.getByTestId("camp-hero-pack").locator("[data-incoming-rarity]");
@@ -218,6 +232,7 @@ test("roguelite run: первый забег — дропы common, но улу�
   // Resume первого забега сохраняет вручную поднятое качество.
   await reloadAndResume(page);
   await expect(page.getByTestId("camp-screen")).toBeVisible({ timeout: 20_000 });
+  await openCampSection(page, "market");
   await expect(page.getByTestId("camp-rarity").locator(".camp-rarity-card").first())
     .toHaveAttribute("data-rarity", "unique");
 });
@@ -234,6 +249,7 @@ test("roguelite run: со второго забега открываются с�
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "market");
 
   const rarity = page.getByTestId("camp-rarity");
   await expect(rarity).toBeVisible();
@@ -287,7 +303,20 @@ test("roguelite run: resume восстанавливает Буткемп пос
   const heroCards = page.getByTestId("camp-hero-pack").locator('[data-offer-kind="hero"]');
   await expect(heroCards).toHaveCount(5);
   await expect(heroCards.first().locator(".camp-hero-compare")).toBeVisible();
-  await expect(heroCards.first().locator(".camp-offer__delta").first()).toContainText(/TEAM OVR/i);
+  await expect(heroCards.first().locator(".camp-offer__delta").first()).toContainText(/RUN POWER|СИЛА ЗАБЕГА/i);
+  // Карточка несёт одну итоговую дельту реальной силы забега — уже после условий Tactics/Items.
+  // Частные Base/Hero Synergy живут только в связанном
+  // инспекторе — иначе карточки снова превращаются в таблицу слагаемых (playtest 2026-08-02).
+  await expect(page.getByTestId("camp-hero-pack").getByText(/HERO SYNERGY|СИНЕРГИЯ ГЕРОЕВ/i))
+    .toHaveCount(0);
+  await expect(page.getByTestId("camp-rarity").getByText(/HERO SYNERGY|СИНЕРГИЯ ГЕРОЕВ/i))
+    .toHaveCount(0);
+  await page.locator('[data-testid^="rarity-details-"]').first().click();
+  await expect(page.getByTestId("offer-inspector")).toContainText(/HERO SYNERGY|СИНЕРГИЯ ГЕРОЕВ/i);
+  await expect(page.getByTestId("offer-inspector")).toContainText(/RUN POWER|СИЛА ЗАБЕГА/i);
+  await expect(page.getByTestId("offer-inspector")).toContainText(/→/);
+  await page.getByRole("button", { name: /Close|Закрыть/i }).click();
+  await expect(page.getByTestId("offer-inspector")).toHaveCount(0);
   // Берём карту с ДРУГОЙ личностью: после R5.2 рынок умеет и Form Upgrade (тот же accountId в
   // лучшей форме), а этот тест про перестановку людей между составом и скамейкой. Апгрейд формы
   // покрыт юнитами `engine.test.ts` — там же, где живёт правило «личность ≠ форма».
@@ -307,6 +336,7 @@ test("roguelite run: resume восстанавливает Буткемп пос
     break;
   }
   expect(bought).toBe(true);
+  await openCampSection(page, "build");
   await expect(page.getByTestId("camp-reserve")).toBeVisible();
 
   // Бесплатно возвращаем запасного: accountId действительно переезжают между радаром и скамейкой.
@@ -333,6 +363,7 @@ test("roguelite run: resume восстанавливает Буткемп пос
   // Перезагрузка во время Буткемпа → та же перестановка, запас и валюта.
   await reloadAndResume(page);
   await expect(page.getByTestId("camp-screen")).toBeVisible({ timeout: 20_000 });
+  await openCampSection(page, "build");
   await expect(page.getByTestId("camp-gold")).toHaveText(gold);
   await expect(page.getByTestId("camp-reserve-player-name")).toHaveText(reservePlayer);
   await expect(page.getByTestId("camp-team-radar").locator(`[data-account-id="${reserveBefore}"]`))
@@ -380,6 +411,7 @@ test("cheat mode: ∞ золото, маркировка, boss на финале
     await expect(page.getByTestId("camp-gold")).toHaveText("∞");
 
     // Босс — только на финале акта (5-й этап), и в Буткемпе он виден заранее.
+    await openCampSection(page, "preparation");
     const bossPreview = await page.getByTestId("camp-boss").count();
     expect(bossPreview > 0).toBe(stage === SEASON.actLength - 2);
     if (bossPreview) sawBossPreview = true;
@@ -436,11 +468,13 @@ test("roguelite run: разведка раскрывает будущего бо
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "preparation");
 
   // До разведки будущий босс не показан: правило предстоящего этапа — единственное, что видно.
   await expect(page.getByTestId("camp-boss-scouted")).toHaveCount(0);
 
   await chooseReward(page, ["action"]);
+  await openCampSection(page, "preparation");
   await page.getByTestId("action-play-scouting").click();
   const scouted = page.getByTestId("camp-boss-scouted");
   await expect(scouted).toBeVisible();
@@ -453,6 +487,7 @@ test("roguelite run: разведка раскрывает будущего бо
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "preparation");
   await expect(page.getByTestId("camp-boss-scouted")).toHaveAttribute("data-boss-id", revealed!);
 });
 
@@ -467,6 +502,7 @@ test("roguelite run: поздние синки — подготовка доро
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "preparation");
 
   // Подготовка: цена растёт с каждой покупкой в этом же Буткемпе.
   const buyPrep = page.getByTestId("camp-prep-boost-buy");
@@ -485,6 +521,7 @@ test("roguelite run: поздние синки — подготовка доро
   // Смена правила: она есть только там, где правило есть, — на финале акта.
   await expect(page.getByTestId("camp-prep-boss")).toHaveCount(0);
   await boostInCamp(page);
+  await openCampSection(page, "preparation");
   for (let stage = 1; stage < SEASON.actLength; stage += 1) {
     await page.getByTestId("camp-next-stage").click();
     await expect(page.getByTestId("tournament-simulate")).toBeVisible();
@@ -494,6 +531,7 @@ test("roguelite run: поздние синки — подготовка доро
     await expect(page.getByTestId("camp-screen")).toBeVisible();
     // Забег обязан дожить до финала акта — иначе проверять смену правила не на чем.
     await boostInCamp(page);
+    await openCampSection(page, "preparation");
     if (await page.getByTestId("camp-boss").count()) {
       const before = await page.getByTestId("camp-boss").getAttribute("data-boss-id");
       await page.getByTestId("camp-prep-boss-buy").click();
@@ -551,6 +589,7 @@ test("roguelite run: награды разных видов, проценты и
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "reward");
 
   // Ровно три награды, и ни один вид не повторяется — «строго лучше» невозможно.
   const cards = page.getByTestId("camp-reward").locator("[data-offer-kind]");
@@ -592,11 +631,13 @@ test("roguelite run: предмет в слоте показывает разл�
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await openCampSection(page, "build");
 
   // До взятия предмета слои пусты, поэтому панели нет — «+0 / ×1.00» рисовать нечего.
   await expect(page.getByTestId("camp-power")).toHaveCount(0);
 
   await chooseReward(page, ["item"]);
+  await openCampSection(page, "build");
   const slot = page.getByTestId("camp-tactics").locator(".camp-slot--item").first();
   await expect(slot).toBeVisible();
   await expect(slot.locator(".camp-slot__desc").first()).not.toBeEmpty();
@@ -628,7 +669,11 @@ test("roguelite run: тир предмета в описании и во вкл�
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
 
+  await openCampSection(page, "reward");
+  const rewardItem = page.getByTestId("camp-reward").locator('[data-offer-kind="item"]').first();
+  const rewardTier = await rewardItem.getAttribute("data-card-tier");
   await chooseReward(page, ["item"]);
+  await openCampSection(page, "build");
   const slot = page.getByTestId("camp-tactics").locator(".camp-slot--item").first();
   await expect(slot).toBeVisible();
   const rarity = await slot.getAttribute("data-card-rarity");
@@ -640,7 +685,7 @@ test("roguelite run: тир предмета в описании и во вкл�
   // по тексту: бейдж рендерится через `text-transform`, и `innerText` («UNIQUE») не равен тексту
   // DOM («Unique»).
   await expect(slot.locator(`.rarity-badge--${tier}`)).toBeVisible();
-  await expect(page.locator(`.camp-offer--reward .rarity-badge--${tier}`)).toBeVisible();
+  expect(rewardTier).toBe(tier);
   // Шкала предмета — НЕ шкала героя: имена тиров не должны совпадать.
   expect(tier).not.toBe(rarity);
   const firstNumber = (text: string) => text.match(/-?\d+(\.\d+)?/)?.[0];
