@@ -4,7 +4,7 @@ import { isCodexLocked, showsHeroTags, useRun } from "../../state/runStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import type { PlayerProfile } from "../../types/data.ts";
-import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface, TagChips, TextField } from "../../ui/index.ts";
+import { Banner, Button, Eyebrow, HeroThumb, PlayerPicker, Select, Surface, TagChips, TextField, type TagChip } from "../../ui/index.ts";
 import { GAMEPLAY_TAGS, HERO_ATTRS, LORE_TAGS, heroTags } from "../../game/heroTags.ts";
 import type { MessageKey } from "../../i18n/core.ts";
 import { heroPopularity, sortHeroes, type HeroSort } from "./heroPopularity.ts";
@@ -158,14 +158,20 @@ export function HeroesScreen() {
 function heroChips(
   heroId: number,
   t: (key: MessageKey, vars?: Record<string, string | number>) => string,
-) {
+): TagChip[] {
   const tags = heroTags(heroId);
   if (!tags) return [];
   return [
-    { key: tags.attr, label: t(`heroAttr.${tags.attr}` as MessageKey), attr: true },
-    ...[...tags.lore, ...tags.play].map((tag) => ({
+    { key: tags.attr, label: t(`heroAttr.${tags.attr}` as MessageKey), tone: "attribute" },
+    ...tags.lore.map((tag) => ({
       key: tag,
       label: t(`heroTag.${tag}` as MessageKey),
+      tone: "lore" as const,
+    })),
+    ...tags.play.map((tag) => ({
+      key: tag,
+      label: t(`heroTag.${tag}` as MessageKey),
+      tone: "gameplay" as const,
     })),
   ];
 }

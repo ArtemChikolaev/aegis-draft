@@ -126,8 +126,8 @@ describe("tacticMarketEffects — trade-off'ы на рынке", () => {
 });
 
 describe("слоты", () => {
-  it("тактик ровно три", () => {
-    expect(TACTIC_SLOTS).toBe(3);
+  it("пассивных слотов ровно пять", () => {
+    expect(TACTIC_SLOTS).toBe(5);
   });
 });
 

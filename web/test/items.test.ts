@@ -146,9 +146,9 @@ describe("Защита от босса", () => {
 });
 
 describe("Предметы и слоты", () => {
-  it("делят те же три пассивных слота, что тактики — второго инвентаря нет", () => {
+  it("делят те же пять пассивных слотов, что тактики — второго инвентаря нет", () => {
     // PRD §5.10.1 запрещает заводить рядом с Tactics второе хранилище.
-    expect(TACTIC_SLOTS).toBe(3);
+    expect(TACTIC_SLOTS).toBe(5);
     const equipped = ITEM_IDS.slice(0, TACTIC_SLOTS);
     expect(evaluateItems(equipped, { activeHeroes: [], cardRarity: {} }).sources.length).toBeGreaterThan(0);
   });

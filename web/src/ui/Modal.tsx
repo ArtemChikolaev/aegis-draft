@@ -48,6 +48,7 @@ export function Modal({
   const dragRef = useRef<{ startY: number; startT: number; fromHead: boolean } | null>(null);
   const dragYRef = useRef(0);
   const closingRef = useRef(false);
+  const restoreFocusVisibleRef = useRef(false);
   const [dragY, setDragY] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [closing, setClosing] = useState(false);
@@ -105,6 +106,19 @@ export function Modal({
     };
   }, []);
 
+  // Запоминаем последнюю модальность ВНУТРИ диалога. После Escape вызывающая карточка должна
+  // получить видимый keyboard-focus; после клика/тапа — тот же фокус без «залипшей» рамки.
+  useEffect(() => {
+    const onPointerDown = () => { restoreFocusVisibleRef.current = false; };
+    const onKeyDown = () => { restoreFocusVisibleRef.current = true; };
+    window.addEventListener("pointerdown", onPointerDown, true);
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown, true);
+      window.removeEventListener("keydown", onKeyDown, true);
+    };
+  }, []);
+
   // aria-modal без фокуса внутри — фикция: Tab продолжает ходить по экрану за диалогом.
   // Забираем фокус на открытии (autoFocus-элемент, иначе сама панель) и возвращаем на закрытии.
   // Именно панель, а не крестик: на крестике браузер зажигает :focus-visible (зелёная рамка
@@ -115,9 +129,25 @@ export function Modal({
     const panel = panelRef.current;
     if (!panel) return;
     const restoreTo = document.activeElement as HTMLElement | null;
+    restoreFocusVisibleRef.current = restoreTo?.matches(":focus-visible") ?? false;
     const target = panel.querySelector<HTMLElement>("[autofocus]") ?? panel;
     target.focus({ preventScroll: true });
-    return () => restoreTo?.focus?.();
+    return () => {
+      if (!restoreTo?.isConnected) return;
+      if (!restoreFocusVisibleRef.current) {
+        restoreTo.dataset.modalFocusRestored = "pointer";
+        const clearPointerRestore = () => {
+          delete restoreTo.dataset.modalFocusRestored;
+          restoreTo.removeEventListener("blur", clearPointerRestore);
+          restoreTo.removeEventListener("keydown", clearPointerRestore);
+        };
+        restoreTo.addEventListener("blur", clearPointerRestore);
+        restoreTo.addEventListener("keydown", clearPointerRestore);
+      } else {
+        delete restoreTo.dataset.modalFocusRestored;
+      }
+      restoreTo.focus({ preventScroll: true });
+    };
   }, []);
 
   useEffect(() => {

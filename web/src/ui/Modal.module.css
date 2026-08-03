@@ -47,7 +47,7 @@
 /* R13.3: выбранная offer-карточка поднимается поверх своей сетки как увеличенная версия себя.
    Это вариант того же доступного Modal, а не второй focus/scroll/Escape-механизм. */
 .cardPanel {
-  width: min(620px, 100%);
+  width: min(480px, 100%);
   color: var(--text);
   border-color: var(--line-strong);
   background:

@@ -4,28 +4,58 @@
   flex-wrap: wrap;
   gap: 4px;
 }
+.center {
+  width: 100%;
+  justify-content: center;
+}
 .chip {
+  --tag-chip-color: var(--muted);
+
   padding: 1px 6px;
-  border: 1px solid var(--line);
+  border: 1px solid color-mix(in srgb, var(--tag-chip-color) 34%, var(--line));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 4%, transparent);
-  color: var(--muted);
+  background: color-mix(in srgb, var(--tag-chip-color) 9%, transparent);
+  color: var(--tag-chip-color);
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: .03em;
   white-space: nowrap;
 }
+/* Семейство остаётся безопасным fallback, но конкретный hero-tag получает свой устойчивый цвет
+   ниже. Иначе mobility + burst (оба gameplay) снова выглядят одной фиолетовой сущностью. */
+.gameplay { --tag-chip-color: var(--brand-green); }
+.lore { --tag-chip-color: var(--card-tactic); }
+.attribute { --tag-chip-color: var(--gold); }
+
+/* Цвет кодирует назначение тега, а не случайный индекс героя. Используем только готовые токены:
+   движение/карта — синие; урон — красные; sustain — зелёные; рост/юниты — золотые. */
+.chip:is([data-tag="mobility"], [data-tag="global"], [data-tag="stealth"]) {
+  --tag-chip-color: var(--blue);
+}
+.chip:is([data-tag="burst"], [data-tag="pickoff"]) {
+  --tag-chip-color: var(--danger);
+}
+.chip:is([data-tag="save"], [data-tag="heal"], [data-tag="nature"], [data-tag="beast"]) {
+  --tag-chip-color: var(--brand-green);
+}
+.chip:is([data-tag="summon"], [data-tag="illusion"], [data-tag="push"], [data-tag="scaling"],
+  [data-tag="light"], [data-tag="celestial"]) {
+  --tag-chip-color: var(--gold);
+}
+.chip:is([data-tag="dragon"], [data-tag="mechanical"]) {
+  --tag-chip-color: var(--ember);
+}
+.chip:is([data-tag="str"], [data-tag="agi"], [data-tag="int"], [data-tag="universal"]) {
+  --tag-chip-color: var(--gold);
+}
+.chip[data-tag="str"] { --tag-chip-color: var(--danger); }
+.chip[data-tag="agi"] { --tag-chip-color: var(--brand-green); }
+.chip[data-tag="int"] { --tag-chip-color: var(--blue); }
 /* «Играет прямо сейчас» — у экипированной карточки есть условие по этому тегу. Остальные теги
    намеренно приглушены: у героя их в среднем четыре, и без разделения строка превращается в шум. */
 .active {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  color: var(--accent);
-}
-/* Объективный слой (атрибут) — не тег, а факт о герое; отделяем его от подбираемых осей. */
-.attr {
-  border-color: color-mix(in srgb, var(--muted) 35%, var(--line));
-  color: var(--text);
+  border-color: color-mix(in srgb, var(--tag-chip-color) 62%, var(--line));
+  background: color-mix(in srgb, var(--tag-chip-color) 19%, transparent);
 }
 
 /* Кликабельный чип — точка входа «показать всех с этим тегом». Кнопка, а не span: нужна
@@ -35,6 +65,6 @@
   cursor: pointer;
 }
 .clickable:hover {
-  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
-  color: var(--accent);
+  border-color: color-mix(in srgb, var(--tag-chip-color) 72%, var(--line));
+  background: color-mix(in srgb, var(--tag-chip-color) 23%, transparent);
 }

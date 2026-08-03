@@ -104,14 +104,14 @@ test("roguelite run: пассивные карточки занимают сло
   // Билд-панель всегда на экране; тактические слоты пусты в начале забега.
   const tactics = page.getByTestId("camp-tactics");
   await expect(tactics).toBeVisible();
-  await expect(tactics.locator(".camp__slot-count")).toHaveText("0/3");
-  await expect(tactics.locator(".camp-slot--empty")).toHaveCount(3);
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("0/5");
+  await expect(tactics.locator(".camp-slot--empty")).toHaveCount(5);
 
   // Взять пассивную карточку из reward → занят один слот, карточка появилась с описанием.
   // Конкретный id не фиксируем: пул общий для тактик и предметов (R8.3), и он растёт.
   await chooseReward(page, ["item", "tactic"]);
   await openCampSection(page, "build");
-  await expect(tactics.locator(".camp__slot-count")).toHaveText("1/3");
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("1/5");
   await expect(tactics.locator("[data-card-id]").first()).toBeVisible();
   await expect(tactics.locator("[data-card-id]").first().locator(".camp-slot__desc").first()).toBeVisible();
 
@@ -132,36 +132,19 @@ test("roguelite run: пассивные карточки занимают сло
   await expect(passive.locator(".camp-card-tag")).toBeVisible();
   await chooseReward(page, ["item", "tactic"]);
   await openCampSection(page, "build");
-  await expect(tactics.locator(".camp__slot-count")).toHaveText("2/3");
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("2/5");
   await expect(tactics.locator("[data-card-id]")).toHaveCount(2);
 
-  // Этап 3 → Буткемп: забиваем третий слот и проверяем главный симптом R13.1. Раньше при полных
-  // слотах кнопка предмета оставалась активной, а клик молча проваливался внутри экономики.
+  // Этап 3 → Буткемп: третья карточка больше не замораживает билд — после расширения остаются
+  // ещё два свободных слота. Полный потолок и отказ карточкам №6 сторожит unit-тест canTakeCard:
+  // он не зависит от того, переживёт ли конкретный e2e-seed ещё три турнира.
   await page.getByTestId("camp-next-stage").click();
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
   await expect(page.getByTestId("camp-screen")).toBeVisible();
   await chooseReward(page, ["item", "tactic"]);
   await openCampSection(page, "build");
-  await expect(tactics.locator(".camp__slot-count")).toHaveText("3/3");
-
-  // Ищем следующий Буткемп с пассивной наградой: при 3/3 она обязана быть заблокирована С ПРИЧИНОЙ.
-  let blockedSeen = false;
-  for (let camp = 0; camp < 3 && !blockedSeen; camp += 1) {
-    await page.getByTestId("camp-next-stage").click();
-    await simulateAnteStageToOutcome(page);
-    const toCamp = page.getByTestId("ante-to-camp");
-    if (!(await toCamp.isVisible().catch(() => false))) break; // забег закончился раньше
-    await toCamp.click();
-    await expect(page.getByTestId("camp-screen")).toBeVisible();
-    await openCampSection(page, "reward");
-    const offered = page.getByTestId("camp-reward").locator('[data-offer-kind="item"], [data-offer-kind="tactic"]').first();
-    if (!(await offered.isVisible().catch(() => false))) continue;
-    await expect(offered.getByRole("button")).toBeDisabled();
-    await expect(offered.locator(".camp-offer__note")).toBeVisible();
-    blockedSeen = true;
-  }
-  expect(blockedSeen).toBe(true);
+  await expect(tactics.locator(".camp__slot-count")).toHaveText("3/5");
 });
 
 // Регресс live-бага: Stand-in (бесплатный свап игрока) должен делать покупку игрока доступной,
@@ -226,6 +209,15 @@ test("roguelite run: первый забег — дропы common, но улу�
   const upgrade = page.locator('[data-testid^="rarity-upgrade-"]').first();
   await expect(upgrade).toBeEnabled();
   const card = rarity.locator(".camp-rarity-card").first();
+  // Целевая редкость — деталь разбора: компактная карточка показывает только итоговую силу,
+  // а полный current → next живёт в связанном оверлее.
+  await expect(card.locator(".camp-offer__deltas")).not.toContainText("→");
+  await card.click();
+  await expect(page.getByRole("dialog")).toContainText(
+    /(?:Common|Обычный)\s*→\s*(?:Unique|Уникальный)/,
+  );
+  await page.getByRole("button", { name: /Close|Закрыть/i }).click();
+  await expect(page.getByTestId("offer-overlay")).toHaveCount(0);
   await upgrade.click();
   await expect(card).toHaveAttribute("data-rarity", "unique");
 
@@ -321,10 +313,25 @@ test("roguelite run: resume восстанавливает Буткемп пос
   await heroCards.first().click();
   await expect(page.getByTestId("offer-overlay")).toBeVisible();
   await expect(page.getByTestId("offer-overlay-action")).toHaveText(/Buy|Купить/i);
+  const offerOverlayBox = await page.getByRole("dialog").boundingBox();
+  expect(offerOverlayBox).not.toBeNull();
+  expect(offerOverlayBox!.width).toBeLessThanOrEqual(500);
   expect(await heroGridLayout()).toEqual(heroGridBox);
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("offer-overlay")).toHaveCount(0);
   await expect(heroOverlayTrigger).toBeFocused();
+
+  // Закрытие мышью тоже возвращает фокус (a11y), но не оставляет на карточке ложное selected-
+  // свечение. Keyboard-close выше сохраняет видимый focus-ring — различаем модальность, а не
+  // выкидываем возврат фокуса целиком.
+  const pointerOverlayTrigger = heroCards.nth(1).locator(".camp-card-inspect-trigger");
+  await heroCards.nth(1).click();
+  await expect(page.getByTestId("offer-overlay")).toBeVisible();
+  await page.getByRole("button", { name: /Close|Закрыть/i }).click();
+  await expect(page.getByTestId("offer-overlay")).toHaveCount(0);
+  await expect(pointerOverlayTrigger).toBeFocused();
+  await expect(pointerOverlayTrigger).toHaveAttribute("data-modal-focus-restored", "pointer");
+  await expect(pointerOverlayTrigger).toHaveCSS("outline-style", "none");
 
   await page.locator('[data-testid^="rarity-details-"]').first().click();
   await expect(page.getByTestId("offer-overlay")).toContainText(/HERO SYNERGY|СИНЕРГИЯ ГЕРОЕВ/i);
@@ -355,6 +362,9 @@ test("roguelite run: resume восстанавливает Буткемп пос
   expect(bought).toBe(true);
   await openCampSection(page, "build");
   await expect(page.getByTestId("camp-reserve")).toBeVisible();
+  const reserveGrid = page.getByTestId("camp-reserve").locator(".camp__reserve-grid");
+  expect(await reserveGrid.evaluate((node) => getComputedStyle(node).overflowY)).toBe("auto");
+  expect(parseFloat(await reserveGrid.evaluate((node) => getComputedStyle(node).maxHeight))).toBeGreaterThan(0);
 
   // Бесплатно возвращаем запасного: accountId действительно переезжают между радаром и скамейкой.
   const reserveCard = page.getByTestId("camp-reserve-player");

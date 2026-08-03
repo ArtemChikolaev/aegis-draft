@@ -22,8 +22,8 @@ export type TacticId =
   | "noSuperstars"
   | "lastDance";
 
-/** Сколько пассивных тактик можно держать одновременно (PRD §5.10.1). */
-export const TACTIC_SLOTS = 3;
+/** Сколько общих пассивных Tactics/Items можно держать одновременно (PRD §5.10.1). */
+export const TACTIC_SLOTS = 5;
 
 export const TACTIC_IDS: readonly TacticId[] = [
   "signatureSpecialists",
@@ -42,7 +42,8 @@ export function isTacticId(value: string): value is TacticId {
 /** Баланс-коэффициенты (часть BALANCE_CONFIG_VERSION — правишь числа, бампай версию в balance.ts).
  *  Placeholder, как и ECONOMY: точные коэффициенты — за balance spec (§10.F), инструмент `npm run sim`.
  *  Ориентир тот же: этап поля стоит ANTE_FIELD_STEP=3 очка, поэтому одна тактика даёт заметно
- *  меньше этапа — билд из трёх должен примерно покрывать один шаг угрозы, а не обгонять её. */
+ *  меньше этапа — полный билд должен давать несколько сочетаемых осей, а не обгонять угрозу
+ *  одной безусловной суммой. */
 export const TACTICS = {
   signatureSpecialists: {
     /** Первые N pro-игр на назначенном герое считаются усиленно (дальше — плато). */

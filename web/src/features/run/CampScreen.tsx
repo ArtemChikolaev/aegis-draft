@@ -616,11 +616,22 @@ export function CampScreen() {
     if (!tags) return [];
     const axes = conditionAxes(camp!.equippedTactics);
     const own = new Set<string>([...tags.lore, ...tags.play]);
+    const lore = new Set<string>(tags.lore);
     const chips: TagChip[] = axes.tags
       .filter((tag) => own.has(tag))
-      .map((tag) => ({ key: tag, label: t(`heroTag.${tag}` as MessageKey), active: true }));
+      .map((tag) => ({
+        key: tag,
+        label: t(`heroTag.${tag}` as MessageKey),
+        tone: lore.has(tag) ? "lore" : "gameplay",
+        active: true,
+      }));
     if (axes.attrs.includes(tags.attr)) {
-      chips.push({ key: tags.attr, label: t(`heroAttr.${tags.attr}` as MessageKey), active: true });
+      chips.push({
+        key: tags.attr,
+        label: t(`heroAttr.${tags.attr}` as MessageKey),
+        tone: "attribute",
+        active: true,
+      });
     }
     return chips;
   }
@@ -736,12 +747,15 @@ export function CampScreen() {
     return (
       <div className="camp-rarity-card__hero">
         <HeroThumb {...thumb} size="md" />
-        <TagChips
-          chips={buildTagChips(heroId)}
-          testId={interactiveTags ? `hero-build-tags-${heroId}` : undefined}
-          onSelect={interactiveTags ? setInspectedTag : undefined}
-          selectLabel={interactiveTags ? () => t("heroTag.showAll") : undefined}
-        />
+        <div className="camp-rarity-card__tags">
+          <TagChips
+            chips={buildTagChips(heroId)}
+            testId={interactiveTags ? `hero-build-tags-${heroId}` : undefined}
+            onSelect={interactiveTags ? setInspectedTag : undefined}
+            selectLabel={interactiveTags ? () => t("heroTag.showAll") : undefined}
+            align="center"
+          />
+        </div>
         <RarityBadge rarity={rarity} label={t(`rarity.${rarity}` as MessageKey)} />
       </div>
     );
@@ -1408,9 +1422,6 @@ export function CampScreen() {
                         {up ? (
                           <>
                             <div className="camp-offer__deltas">
-                              <span className="camp-offer__delta camp-offer__delta--up">
-                                → {t(`rarity.${up}` as MessageKey)}
-                              </span>
                               <OfferDelta delta={powerDelta} />
                             </div>
                             <div className="camp-pack-card__buy">

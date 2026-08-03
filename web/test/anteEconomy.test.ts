@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runModifiers, runModifierTotal } from "../src/game/runStrength.ts";
 import { rarityModifiers } from "../src/game/heroRarity.ts";
+import { TACTIC_SLOTS } from "../src/game/tactics.ts";
 import {
   ECONOMY,
   RunEconomy,
@@ -200,18 +201,18 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(eco.totalModifier()).toBe(0);
   });
 
-  it("нельзя взять больше трёх пассивных карточек; сброс освобождает слот", () => {
+  it("нельзя взять больше пяти пассивных карточек; сброс освобождает слот", () => {
     const eco = new RunEconomy("many");
     let taken = 0;
-    for (let camp = 1; camp <= 40 && taken < 4; camp += 1) {
+    for (let camp = 1; camp <= 80 && taken < TACTIC_SLOTS + 1; camp += 1) {
       eco.openCamp(camp);
       const card = eco.campView().rewardOffers.find((o) => o.kind === "tactic" || o.kind === "item");
       if (card && eco.chooseReward(card.id)) taken += 1;
     }
-    expect(eco.campView().equippedTactics.length).toBe(3);
+    expect(eco.campView().equippedTactics.length).toBe(TACTIC_SLOTS);
     const first = eco.campView().equippedTactics[0];
     expect(eco.discardTactic(first)).toBe(true);
-    expect(eco.campView().equippedTactics.length).toBe(2);
+    expect(eco.campView().equippedTactics.length).toBe(TACTIC_SLOTS - 1);
   });
 
   it("одна и та же карта не выпадает дважды (ownedCards)", () => {

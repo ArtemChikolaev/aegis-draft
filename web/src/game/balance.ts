@@ -11,7 +11,7 @@
 // экономика/условия забега. Тонкая калибровка — через `npm run sim` (web/scripts/sim_run.ts).
 import { SEASON, SEASON_TARGETS, SEASON_ACT_FINALES, ANTE_FIELD_STEP, ANTE_FIELD, ANTE_THREAT } from "./anteRun.ts";
 import { ECONOMY } from "./anteEconomy.ts";
-import { TACTICS } from "./tactics.ts";
+import { TACTICS, TACTIC_SLOTS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
 import { BOSSES } from "./bossConditions.ts";
 import { RARITY } from "./heroRarity.ts";
@@ -169,8 +169,11 @@ import { HERO_FLOOR } from "./anteMarket.ts";
  *  45.7 → 45.5, карт с плюсом 2.06 → 2.00) — кривая перераспределяет качество по этапам, но не
  *  делает забег легче. ⚠️ Первый прогон на `n=120` показывал `35.0% → 37.5%` и выглядел заметным
  *  облегчением: при такой выборке станд. ошибка ≈4pp, то есть шум того же порядка, что и весь
- *  эффект. Для решений о балансе `n=120` недостаточно. */
-export const BALANCE_CONFIG_VERSION = "b1.21.0";
+ *  эффект. Для решений о балансе `n=120` недостаточно.
+ *  b1.22.0 (2026-08-02): по повторному плейтесту общий пассивный инвентарь Tactics/Items
+ *  расширен с 3 до 5 слотов. Это увеличивает пространство сборки и потолок силы, поэтому меняет
+ *  воспроизводимый баланс забега; формула Team OVR при этом не меняется. */
+export const BALANCE_CONFIG_VERSION = "b1.22.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
@@ -192,6 +195,7 @@ export const BALANCE = {
   },
   economy: ECONOMY,
   tactics: TACTICS,
+  tacticSlots: TACTIC_SLOTS,
   campActions: CAMP_ACTIONS,
   bosses: BOSSES,
   rarity: RARITY,

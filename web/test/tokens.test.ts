@@ -119,4 +119,20 @@ describe("design tokens", () => {
     expect(campPosition).toBe("relative");
     expect(tierPositions).toEqual([]);
   });
+
+  it("hero-tags разных назначений не схлопываются в один цвет", () => {
+    const root = postcss.parse(readFileSync(join(SRC, "ui/TagChips.module.css"), "utf8"));
+    const colorFor = (tag: string) => {
+      let color: string | undefined;
+      root.walkRules((rule) => {
+        if (!rule.selector.includes(`[data-tag="${tag}"]`)) return;
+        rule.walkDecls("--tag-chip-color", (decl) => { color = decl.value; });
+      });
+      return color;
+    };
+
+    expect(colorFor("mobility")).toBe("var(--blue)");
+    expect(colorFor("burst")).toBe("var(--danger)");
+    expect(colorFor("mobility")).not.toBe(colorFor("burst"));
+  });
 });
