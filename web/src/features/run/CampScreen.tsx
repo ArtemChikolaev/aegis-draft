@@ -285,7 +285,11 @@ function CampPlayerCard({
 }: {
   candidate: Candidate;
   heroId?: number;
-  label: string;
+  /** Подпись слота. На рынке её НЕ передают: там оффер всегда идёт под роль игрока, и подпись
+   *  дублировала бы `RoleTag` буква в букву («SUPPORT · SUPPORT»), съедая ширину у ника —
+   *  живьём именно она обрезалась в «SUPPO…», а не длинное имя. Резерв подпись оставляет:
+   *  там она говорит про слот, а не про роль. */
+  label?: string;
   testId?: string;
   nameTestId?: string;
 }) {
@@ -302,7 +306,7 @@ function CampPlayerCard({
       data-testid={testId}
     >
       <div className="camp-player-card__top">
-        <span className="camp-player-card__label">{label}</span>
+        {label && <span className="camp-player-card__label">{label}</span>}
         <RoleTag role={player.role}>{t(roleMessageKey(player.role))}</RoleTag>
       </div>
       <div className="camp-player-card__identity">
@@ -666,15 +670,15 @@ export function CampScreen() {
         : 0;
       return (
         <div className="camp-hero-offer">
-          <div className="camp-hero-compare">
-            <span className="camp-hero-compare__hero">
-              <small>{t("camp.newHero")}</small>
-              <HeroThumb {...incoming} layout="card" />
-            </span>
-            <span className="camp-hero-compare__arrow" aria-hidden="true">→</span>
-            <span className="camp-hero-compare__hero">
+          {/* Один крупный портрет вместо двух по ~60px. Два портрета в карточке шириной 148px
+              делили её пополам, и имя героя — то, по чему карточку узнают, — обрезалось у обоих
+              («Keep…», «Night …», «Warlo…»). Заменяемый герой уже в составе, ему хватает строки:
+              он опознаётся по имени, а не по арту. */}
+          <div className="camp-hero-compare camp-hero-compare--offer">
+            <HeroThumb {...incoming} layout="card" />
+            <span className="camp-hero-compare__out">
               <small>{t("camp.activeHero")}</small>
-              <HeroThumb {...outgoing} layout="card" />
+              <HeroThumb {...outgoing} size="sm" />
             </span>
           </div>
           {assignedPlayer && (
@@ -693,11 +697,7 @@ export function CampScreen() {
   function playerOfferSummary(incoming: Candidate, outgoing: Candidate | null | undefined, afterHeroId?: number) {
     return (
       <>
-        <CampPlayerCard
-          candidate={incoming}
-          heroId={afterHeroId}
-          label={t(roleMessageKey(incoming.player.role))}
-        />
+        <CampPlayerCard candidate={incoming} heroId={afterHeroId} />
         {outgoing && (
           outgoing.player.accountId === incoming.player.accountId ? (
             <div className="camp-offer__fit camp-offer__fit--form" data-form-upgrade="true">
@@ -746,7 +746,9 @@ export function CampScreen() {
     const thumb = hero(heroId);
     return (
       <div className="camp-rarity-card__hero">
-        <HeroThumb {...thumb} size="md" />
+        {/* Тот же крупный портрет, что на карточке re-pick: пять предложений улучшения отличались
+            только именем героя в 10px, и ряд читался как пять одинаковых кнопок. */}
+        <HeroThumb {...thumb} layout="card" />
         <div className="camp-rarity-card__tags">
           <TagChips
             chips={buildTagChips(heroId)}
@@ -1360,8 +1362,12 @@ export function CampScreen() {
 
             {camp.rarityUpgradesEnabled && (
               <>
-                <h4 className="camp__market-group-title">{t("camp.rarityUpgrade")}</h4>
-                <CampHint label={t("camp.showHint")}>{t("camp.rarityHint")}</CampHint>
+                {/* Заголовок и «?» одной строкой: раздельными блоками подсказка занимала
+                    собственный ряд сетки — тридцать пустых пикселей над рядом карточек. */}
+                <div className="camp__market-group-head">
+                  <h4 className="camp__market-group-title">{t("camp.rarityUpgrade")}</h4>
+                  <CampHint label={t("camp.showHint")}>{t("camp.rarityHint")}</CampHint>
+                </div>
                 {/* Улучшение — второе действие рынка героев (реролл его не качает): поднимает тир
                     активного героя, растит его вклад в Hero Synergy (+OVR игроку у immortal). */}
                 <div className="camp__rarity-grid" data-testid="camp-rarity">

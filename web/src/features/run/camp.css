@@ -215,6 +215,12 @@
 .camp__offers--reward { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
 /* Две пак-рулетки по 5 карт: игроки и герои. */
+.camp__market-group-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.camp__market-group-head .camp__market-group-title { margin-block: 0; }
 .camp__market-group-title {
   margin: 4px 0 -2px;
   color: var(--muted);
@@ -612,10 +618,12 @@
 }
 .camp-rarity-card__hero {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 6px;
 }
+.camp-rarity-card__hero > .rarity-badge { align-self: center; }
 .camp-rarity-card__tags {
   display: flex;
   width: 100%;
@@ -770,12 +778,28 @@
   align-items: center;
   gap: 5px;
 }
-.camp-hero-compare__hero {
-  display: grid;
-  min-width: 0;
-  gap: 4px;
+.camp-hero-compare__arrow {
+  color: var(--accent);
+  font-weight: 800;
 }
-.camp-hero-compare__hero small {
+/* Карточка рынка героев: портрет входящего во всю ширину, заменяемый — строкой под ним.
+   Базовый трёхколоночный вид `A → B` остаётся у резерва, где обе стороны равнозначны. */
+.camp-hero-compare--offer {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+/* Подпись и капсула ОДНОЙ строкой: отдельная строка-заголовок над пилюлей стоила бы ряду карточек
+   лишние ~16px, а «Заменит» и так короткое. */
+.camp-hero-compare__out {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+.camp-hero-compare__out small {
+  /* Не ужимаем подпись: без этого при длинном имени заменяемого героя («Warlock») усыхали ОБА —
+     и «REPLACES», и имя. Пусть режется имя, у которого рядом есть портрет. */
+  flex: none;
   overflow: hidden;
   color: var(--muted);
   font-size: 8px;
@@ -784,10 +808,6 @@
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
-}
-.camp-hero-compare__arrow {
-  color: var(--accent);
-  font-weight: 800;
 }
 .camp-hero-offer {
   display: grid;
