@@ -51,7 +51,7 @@ const DEFAULT_START_CONFIG: RunConfig = {
   hardMode: false,
 };
 
-interface Snapshot {
+export interface Snapshot {
   currentPack: DraftPack;
   roster: RosterSlot[];
   rerollsLeft: number;

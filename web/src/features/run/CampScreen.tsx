@@ -1,25 +1,21 @@
 // Буткемп Roguelite Run (T5.2, срезы 2–3): Reward, контекстный Market и резерв.
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ECONOMY, cardSlotKind, playerOfferAffordable, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
-import { upgradeCost } from "../../game/heroRarity.ts";
-import { nextRarity, type Rarity } from "../../game/rarity.ts";
+import { useEffect, useMemo, useState } from "react";
+import { ECONOMY, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
+import type { Rarity } from "../../game/rarity.ts";
 import {
   conditionAxes,
   effectMatch,
-  evaluateItems,
   itemAt,
   itemDef,
   itemLabel,
   itemTier,
-  type EffectMatch,
-  type ItemDef,
 } from "../../game/items.ts";
 import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
 import type { Candidate } from "../../game/packs.ts";
-import { candidateMatchesRef, candidatesOf } from "../../game/packs.ts";
+import { candidatesOf } from "../../game/packs.ts";
 import {
   chemistryPairEdges,
   chemistryPlayersFromRoster,
@@ -30,7 +26,7 @@ import {
   playerHeroGames,
   squadChemistryRows,
 } from "../../game/score.ts";
-import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
+import type { MessageKey } from "../../i18n/core.ts";
 import {
   campPowerPreview,
   evaluateCampPower,
@@ -39,21 +35,20 @@ import {
   type CampPowerState,
   type SummandDelta,
 } from "./campPresentation.ts";
-import { OfferOverlay, type OfferOverlayAction } from "./OfferOverlay.tsx";
+import { OfferOverlay } from "./OfferOverlay.tsx";
+import { MarketPanel } from "./MarketPanel.tsx";
+import { RewardPanel } from "./RewardPanel.tsx";
 import { PreparationPanel } from "./PreparationPanel.tsx";
 import { CampHint } from "./CampHint.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
-import type { BossEvaluation } from "../../game/bossConditions.ts";
 import {
   Button,
   CheatBadge,
   Eyebrow,
   HeroThumb,
   Modal,
-  playerOvrTier,
   RarityBadge,
-  RoleTag,
   StageKindBadge,
   PowerBreakdown,
   TagChips,
@@ -67,268 +62,22 @@ import { PlayerInspector } from "../draft/PlayerInspector.tsx";
 import { HeroTagInspector } from "../heroes/HeroTagInspector.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { useHero } from "../draft/heroes.ts";
+import {
+  BossPanel,
+  CampPlayerCard,
+  CardInspectTrigger,
+  ItemMatch,
+  OfferDelta,
+  fmt,
+  itemContribution,
+  itemLabelParams,
+  layerChip,
+  signed,
+  valuesOf,
+  type CampSection,
+  type InspectedOffer,
+} from "./CampCards.tsx";
 import "./camp.css";
-
-function fmt(value: number): string {
-  return Number.isInteger(value) ? value.toString() : (Math.round(value * 10) / 10).toString();
-}
-
-function signed(value: number): string {
-  return value > 0 ? `+${fmt(value)}` : fmt(value);
-}
-
-/** Параметры шаблона описания предмета: теги и атрибуты переводятся, числа остаются числами.
- *  Описание собирается из тех же данных, что и эффект, поэтому текст не может разойтись с числом. */
-function itemLabelParams(
-  params: Record<string, string | number>,
-  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
-): Record<string, string | number> {
-  const out: Record<string, string | number> = {};
-  for (const [key, value] of Object.entries(params)) {
-    if (key === "tag") out[key] = t(`heroTag.${value}` as MessageKey);
-    else if (key === "attr") out[key] = t(`heroAttr.${value}` as MessageKey);
-    else out[key] = value;
-  }
-  return out;
-}
-
-/** Панель boss condition: правило + причина + статус штрафа против ТЕКУЩЕГО ростера.
- *  Одна на два случая — предстоящий этап и разведанный турнир (R9.4): содержимое у них
- *  идентичное, разная только подпись и то, что разведанный ещё не наступил. */
-function BossPanel({ boss, eyebrow, hint, testId, scouted = false }: {
-  boss: BossEvaluation;
-  eyebrow: string;
-  hint?: string;
-  testId: string;
-  scouted?: boolean;
-}) {
-  const { t } = useI18n();
-  return (
-    <section
-      className={`camp-boss camp-boss--${boss.met ? "met" : "active"}${scouted ? " camp-boss--scouted" : ""}`}
-      data-testid={testId}
-      data-boss-id={boss.bossId}
-    >
-      <div className="camp-boss__head">
-        <Eyebrow>{eyebrow}</Eyebrow>
-        <strong className="camp-boss__name">{t(`boss.${boss.bossId}` as MessageKey)}</strong>
-      </div>
-      <p className="camp-boss__desc">{t(`boss.desc.${boss.bossId}` as MessageKey)}</p>
-      <div className="camp-boss__status">
-        <span className={`camp-boss__reason camp-boss__reason--${boss.met ? "met" : "warn"}`}>
-          {t(boss.reasonKey as MessageKey, boss.reasonParams)}
-        </span>
-        {boss.met ? (
-          <span className="camp-boss__tag camp-boss__tag--met" data-testid={`${testId}-met`}>
-            ✓ {t("boss.metLabel")}
-          </span>
-        ) : (
-          <span className="camp-boss__tag camp-boss__tag--warn" data-testid={`${testId}-penalty`}>
-            {t("boss.penaltyValue", { n: fmt(boss.penalty) })}
-          </span>
-        )}
-      </div>
-      {hint && <p className="camp-boss__hint">{hint}</p>}
-    </section>
-  );
-}
-
-/** Что показывает инспектор карточки: identity + готовый разбор. Собирается в момент клика, потому
- *  что дельты уже посчитаны для самой карточки — второй раз считать их нельзя (разошлись бы). */
-interface InspectedOffer {
-  title: string;
-  subtitle?: string;
-  summary?: ReactNode;
-  deltas: SummandDelta[];
-  total: number;
-  from: number;
-  to: number;
-  action?: OfferOverlayAction;
-}
-
-type CampSection = "reward" | "market" | "build" | "preparation";
-
-/** Главная цифра остаётся компактной; точка входа теперь вся карточка, а не этот чип. */
-function OfferDelta({ delta }: {
-  delta: number;
-}) {
-  const { t } = useI18n();
-  return (
-    <span className={`camp-offer__delta camp-offer__delta--${delta >= 0 ? "up" : "down"}`}>
-      {t("camp.power")} {signed(delta)}
-    </span>
-  );
-}
-
-/** Прозрачная доступная кнопка поверх неинтерактивной части карточки. Вложенные действия
- *  поднимаются выше неё CSS-ом, поэтому Buy/Swap/select не открывают оверлей. */
-function CardInspectTrigger({ label, delta, testId, onOpen }: {
-  label: string;
-  delta: number;
-  testId: string;
-  onOpen: () => void;
-}) {
-  const { t } = useI18n();
-  return (
-    <button
-      type="button"
-      className="camp-card-inspect-trigger"
-      aria-label={`${label} · ${t("camp.power")} ${signed(delta)} · ${t("camp.offerDetails")}`}
-      data-testid={testId}
-      onClick={onOpen}
-    />
-  );
-}
-
-function valuesOf(score: { base: number; heroSynergy: number; chemistry: number }): SummandValues {
-  return {
-    base: score.base,
-    heroSynergy: score.heroSynergy,
-    chemistry: score.chemistry,
-  };
-}
-
-/** Подпись вклада предмета. `economy`/`boss` — НЕ силовые слои, поэтому числа здесь не показываем:
- *  их несёт описание карточки. Раньше оба слоя падали в общий fallback и подписывались «Roster»,
- *  из-за чего Linken's Sphere (потолок штрафа босса = 2) читался как «+2 к силе ростера». */
-function layerChip(
-  source: { layer: "flat" | "additive" | "xMult" | "economy" | "boss"; value: number; met: boolean },
-  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
-): string {
-  if (source.layer === "xMult") return `${t("camp.powerX")} ×${source.value.toFixed(2)}`;
-  if (source.layer === "additive") {
-    return `${t("camp.powerAdditive")} ${source.value > 0 ? "+" : ""}${fmt(source.value)}%`;
-  }
-  if (source.layer === "flat") {
-    return `${t("camp.powerRoster")} ${source.value > 0 ? "+" : ""}${fmt(source.value)}`;
-  }
-  const label = t(source.layer === "boss" ? "camp.powerBoss" : "camp.powerEconomy");
-  return source.met ? `${label} · ${t("camp.layerActive")}` : `${label} · ${t("camp.tacticNoEffect")}`;
-}
-
-/** Что предмет даст ПРЯМО СЕЙЧАС на текущем ростере — чтобы награду можно было сравнить с золотом. */
-function itemContribution(
-  def: ItemDef,
-  activeHeroes: readonly number[],
-  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
-  rarity: Rarity = "common",
-): { text: string; positive: boolean } | null {
-  const evaluation = evaluateItems([def.id], { activeHeroes, cardRarity: { [def.id]: rarity } });
-  const parts: string[] = [];
-  if (evaluation.flat !== 0) parts.push(`${t("camp.powerRoster")} ${evaluation.flat > 0 ? "+" : ""}${fmt(evaluation.flat)}`);
-  if (evaluation.additive !== 0) parts.push(`${t("camp.powerAdditive")} ${evaluation.additive > 0 ? "+" : ""}${fmt(evaluation.additive)}%`);
-  for (const mult of evaluation.xMults) parts.push(`${t("camp.powerX")} ×${mult.toFixed(2)}`);
-  if (parts.length) return { text: parts.join(" · "), positive: evaluation.flat >= 0 && evaluation.additive >= 0 };
-  // Пустой силовой вклад ≠ «условие не выполнено». У экономических и антибоссовых предметов
-  // силовых слоёв нет ПО ПОСТРОЕНИЮ, и их эффект уже описан текстом карточки — приписывать им
-  // невыполненное условие значит врать про карту, у которой условия нет вовсе.
-  const hasPowerCondition = evaluation.sources.some(
-    (source) => source.layer === "flat" || source.layer === "additive" || source.layer === "xMult",
-  );
-  if (!hasPowerCondition) return null;
-  return { text: t("camp.conditionUnmet"), positive: false };
-}
-
-/** Подсветка условия предмета: КТО из активных героев его сейчас включает (R11.7).
- *
- *  Показываем не «все теги героя» (их у каждого несколько — это шум), а обратную проекцию:
- *  по конкретной карточке — конкретные герои. Для условия «без тега» подсвечиваем нарушителей:
- *  именно они выключают карточку, и это ровно то, что игроку надо увидеть. */
-function ItemMatch({ match, hero, t }: {
-  match: EffectMatch;
-  hero: (heroId: number) => { picture: string; name: string };
-  t: (key: MessageKey, vars?: Record<string, string | number>) => string;
-}) {
-  if (match.kind === "none") return null;
-  if (match.kind === "diversity") {
-    return (
-      <span className={`camp-offer__delta camp-offer__delta--${match.met ? "up" : "down"}`}>
-        {t("item.match.diversity", { have: match.distinct ?? 0, min: match.min ?? 0 })}
-      </span>
-    );
-  }
-  const blockers = match.kind === "withoutTag";
-  const label = blockers ? t("item.match.blockers") : t(`item.match.${match.kind}` as MessageKey);
-  if (!match.heroIds.length) {
-    // У «без тега» пустой список — это успех (нарушителей нет), у остальных — отсутствие условия.
-    return blockers ? null : (
-      <span className="camp-item-match__empty">{t("item.match.none")}</span>
-    );
-  }
-  const capped = match.cap != null && match.heroIds.length > match.cap;
-  return (
-    <div className="camp-item-match" data-met={match.met} data-blockers={blockers}>
-      <span className="camp-item-match__label">{label}</span>
-      <span className="camp-item-match__heroes">
-        {match.heroIds.map((heroId) => (
-          <HeroThumb key={heroId} {...hero(heroId)} size="sm" showName={false} />
-        ))}
-      </span>
-      {capped && (
-        <span className="camp-item-match__note">
-          {t("item.match.capped", { counted: match.counted, total: match.heroIds.length })}
-        </span>
-      )}
-      {!match.met && match.min != null && !blockers && (
-        <span className="camp-item-match__note">{t("item.match.needMore", { min: match.min })}</span>
-      )}
-    </div>
-  );
-}
-
-function CampPlayerCard({
-  candidate,
-  heroId,
-  label,
-  testId,
-  nameTestId,
-}: {
-  candidate: Candidate;
-  heroId?: number;
-  /** Подпись слота. На рынке её НЕ передают: там оффер всегда идёт под роль игрока, и подпись
-   *  дублировала бы `RoleTag` буква в букву («SUPPORT · SUPPORT»), съедая ширину у ника —
-   *  живьём именно она обрезалась в «SUPPO…», а не длинное имя. Резерв подпись оставляет:
-   *  там она говорит про слот, а не про роль. */
-  label?: string;
-  testId?: string;
-  nameTestId?: string;
-}) {
-  const { t } = useI18n();
-  const hero = useHero();
-  const { player } = candidate;
-  const tier = playerOvrTier(player.ovr);
-  const assignedHero = heroId != null ? hero(heroId) : null;
-
-  return (
-    <div
-      className={`camp-player-card card-tint--${tier}`}
-      data-account-id={player.accountId}
-      data-testid={testId}
-    >
-      <div className="camp-player-card__top">
-        {label && <span className="camp-player-card__label">{label}</span>}
-        <RoleTag role={player.role}>{t(roleMessageKey(player.role))}</RoleTag>
-      </div>
-      <div className="camp-player-card__identity">
-        <span>
-          <strong data-testid={nameTestId}>{player.nickname}</strong>
-          <small>{candidate.teamName}</small>
-        </span>
-        {assignedHero && <HeroThumb {...assignedHero} showName={false} />}
-      </div>
-      <div className="camp-player-card__bottom">
-        <span className="camp-player-card__stats">
-          <span><b>{player.impact}</b> IMP</span>
-          <span><b>{player.economy}</b> ECO</span>
-          <span><b>{player.reliability}</b> REL</span>
-        </span>
-        <span className={`camp-player-card__ovr ovr-tier--${tier}`}>
-          {player.ovr}<small>OVR</small>
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export function CampScreen() {
   const camp = useRun((s) => s.camp);
@@ -931,68 +680,15 @@ export function CampScreen() {
           )}
 
           {activeSection === "reward" && (
-          <section id="camp-panel-reward" role="tabpanel" className="camp__section" data-testid="camp-reward">
-            <h3 className="camp__section-title">
-              {camp.rewardChosen ? t("camp.rewardChosen") : t("camp.reward")}
-            </h3>
-            {camp.rewardChosen && chosenReward ? (
-              <div className="camp__section-summary" data-testid="camp-reward-summary">
-                <strong>{t("camp.navReward")}: {t(chosenReward.labelKey as MessageKey)}</strong>
-                <span className="camp-offer__deltas">{effectRows(chosenReward)}</span>
-                <b aria-label={t("camp.rewardChosen")}>✓</b>
-              </div>
-            ) : (
-            <div className="camp__offers camp__offers--reward">
-              {camp.rewardOffers.map((offer) => {
-                const isChosen = camp.chosenRewardId === offer.id;
-                // Какой слот займёт карточка — спрашиваем у игровой логики, а не перечисляем виды
-                // здесь заново: своя копия этого правила забыла про `item` и дала R13.1 (предмет
-                // без бейджа слота, активная кнопка при полных слотах и молча проваленный клик).
-                const slot = cardSlotKind(offer.kind);
-                const slotFull = (slot === "tactic" && camp.equippedTactics.length >= camp.tacticSlots)
-                  || (slot === "action" && camp.heldActions.length >= camp.actionSlots);
-                const isCard = slot != null;
-                return (
-                  <div
-                    key={offer.id}
-                    className={`camp-offer camp-offer--reward${isChosen ? " is-chosen" : ""}${isCard ? " camp-offer--card" : ""}`}
-                    data-offer-kind={offer.kind}
-                    data-card-tier={itemTier(offer.cardRarity ?? "common")}
-                  >
-                    <div className="camp-offer__body">
-                      <span className="camp-offer__head">
-                        <strong className="camp-offer__label">{t(offer.labelKey as MessageKey)}</strong>
-                        {isCard && (
-                          // Бейдж отвечает на «какой слот это займёт», а не «какого типа карта»:
-                          // предмет и тактика делят слоты и лежат в одной секции Буткемпа, поэтому
-                          // у предмета честная подпись — та же, что у тактики.
-                          <span className={`camp-card-tag camp-card-tag--${slot}`}>
-                            {t(slot === "tactic" ? "camp.tactics" : "camp.campActions")}
-                          </span>
-                        )}
-                      </span>
-                      <div className="camp-offer__deltas">{effectRows(offer)}</div>
-                      {slotFull && !isChosen && (
-                        <span className="camp-offer__note">{t("camp.slotFull")}</span>
-                      )}
-                    </div>
-                    <Button
-                      variant={isChosen ? "secondary" : "primary"}
-                      disabled={camp.rewardChosen || (slotFull && !isChosen)}
-                      data-testid={`reward-${offer.id}`}
-                      onClick={() => {
-                        chooseReward(offer.id);
-                        setActiveSection("market");
-                      }}
-                    >
-                      {isChosen ? "✓" : t("camp.choose")}
-                    </Button>
-                  </div>
-                );
-              })}
-            </div>
-            )}
-          </section>
+            <RewardPanel
+              camp={camp}
+              chosenReward={chosenReward}
+              effectRows={effectRows}
+              onChoose={(offerId) => {
+                chooseReward(offerId);
+                setActiveSection("market");
+              }}
+            />
           )}
 
           {(activeSection === "build" || activeSection === "preparation") && (
@@ -1197,263 +893,25 @@ export function CampScreen() {
           )}
 
           {activeSection === "market" && (
-          <section id="camp-panel-market" role="tabpanel" className="camp__section" data-testid="camp-market">
-            <div className="camp__section-head">
-              <div className="camp__section-heading">
-                <h3 className="camp__section-title">{t("camp.market")}</h3>
-                <CampHint label={t("camp.showHint")}>{t("camp.marketHint")}</CampHint>
-              </div>
-              <Button
-                variant="secondary"
-                disabled={!camp.canReroll}
-                data-testid="camp-reroll"
-                onClick={rerollMarket}
-              >
-                ↻ {t("camp.reroll", { cost: camp.rerollCost })}
-              </Button>
-            </div>
-            <h4 className="camp__market-group-title">{t("camp.marketPlayers")}</h4>
-            {/* Пак-рулетка из 5 игроков: разное качество, ловушки допустимы. */}
-            <div className="camp__pack" data-testid="camp-pack">
-              {playerOffers.map((offer) => {
-                const incoming = candidates.find((c) => candidateMatchesRef(c, offer.playerSwap!.incoming));
-                if (!incoming) return null;
-                const outgoing = snapshot.roster[offer.playerSwap!.slotIndex]?.candidate;
-                const afterHeroId = offer.preview?.afterAssignment?.[incoming.player.accountId];
-                // Stand-in делает ОДНУ замену игрока бесплатной — цена и доступность это учитывают,
-                // иначе дорогая карта остаётся заблокированной, хотя движок списал бы 0 (баг live).
-                const freeSwap = camp.freePlayerSwaps > 0;
-                const affordable = playerOfferAffordable(offer.cost, camp.gold, camp.freePlayerSwaps, camp.unlimitedGold);
-                const preview = offer.preview
-                  ? previewPower(
-                      offer.preview.after,
-                      replaceRosterCandidate(offer.playerSwap!.slotIndex, incoming),
-                      offer.preview.afterAssignment ?? score.assignment.byPlayer,
-                      snapshot.heroes,
-                    )
-                  : null;
-                const deltas = preview?.deltas ?? [];
-                const powerDelta = preview?.delta ?? 0;
-                const summary = playerOfferSummary(incoming, outgoing, afterHeroId);
-                return (
-                  <div key={offer.id} className="camp-pack-card camp-inspectable-card" data-offer-kind="player">
-                    <CardInspectTrigger
-                      label={incoming.player.nickname}
-                      delta={powerDelta}
-                      testId={`offer-details-${offer.id}`}
-                      onOpen={() => setInspected({
-                        title: incoming.player.nickname,
-                        subtitle: outgoing ? t("camp.replacesPlayer") + " " + outgoing.player.nickname : undefined,
-                        summary,
-                        deltas,
-                        total: powerDelta,
-                        from: preview?.before.power.total ?? power.total,
-                        to: preview?.after.power.total ?? power.total,
-                        action: {
-                          label: t("camp.buy"),
-                          meta: freeSwap ? t("camp.free") : t("camp.cost", { cost: offer.cost }),
-                          disabled: !affordable,
-                          onSelect: () => buyMarket(offer.id),
-                        },
-                      })}
-                    />
-                    {summary}
-                    <div className="camp-offer__deltas">
-                      <OfferDelta delta={powerDelta} />
-                    </div>
-                    <div className="camp-pack-card__buy">
-                      <span className={`camp-offer__cost${freeSwap ? " camp-offer__cost--free" : ""}`}>
-                        {freeSwap ? t("camp.free") : t("camp.cost", { cost: offer.cost })}
-                      </span>
-                      <Button
-                        variant="primary"
-                        disabled={!affordable}
-                        data-testid={`market-${offer.id}`}
-                        onClick={() => buyMarket(offer.id)}
-                      >
-                        {t("camp.buy")}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <h4 className="camp__market-group-title">{t("camp.marketHeroes")}</h4>
-            {/* Второй полноценный пак: 5 разных hero re-pick с полным score + rarity preview. */}
-            <div className="camp__pack" data-testid="camp-hero-pack">
-              {heroOffers.map((offer) => {
-                const affordable = camp.unlimitedGold || offer.cost <= camp.gold;
-                // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
-                // ролл, что применит покупка. Полное превью ниже пересобирает и редкость, и
-                // условия Tactics/Items: входящий mythic может усилить сырой score, но выключить
-                // карточку билда и в итоге ослабить Run Power.
-                // Качество входящего берём С ОФФЕРА (R4.1), а не роллим здесь заново: цена карты
-                // считается от него же, и разойтись с покупкой они больше не могут. Ровно это
-                // расхождение и было багом первого забега.
-                const incomingRarity: Rarity = offer.heroSwap?.incomingRarity ?? "common";
-                const outgoingRarity: Rarity = offer.heroSwap
-                  ? camp.heroRarity[String(offer.heroSwap.outgoingHeroId)] ?? "common"
-                  : "common";
-                const afterHeroes = offer.heroSwap
-                  ? replaceActiveHero(offer.heroSwap.outgoingHeroId, offer.heroSwap.incomingHeroId)
-                  : snapshot.heroes;
-                const afterRarity = { ...camp.heroRarity };
-                if (offer.heroSwap) afterRarity[String(offer.heroSwap.incomingHeroId)] = incomingRarity;
-                const preview = offer.preview
-                  ? previewPower(
-                      offer.preview.after,
-                      snapshot.roster,
-                      offer.preview.afterAssignment ?? score.assignment.byPlayer,
-                      afterHeroes,
-                      afterRarity,
-                    )
-                  : null;
-                const deltas = preview?.deltas ?? [];
-                const powerDelta = preview?.delta ?? 0;
-                const summary = heroOfferSummary(offer, incomingRarity, outgoingRarity);
-                return (
-                  <div
-                    key={offer.id}
-                    className="camp-pack-card camp-pack-card--hero camp-inspectable-card"
-                    data-offer-kind="hero"
-                    data-incoming-rarity={incomingRarity}
-                    data-rarity-glow={incomingRarity}
-                    data-outgoing-rarity={outgoingRarity}
-                  >
-                    <CardInspectTrigger
-                      label={hero(offer.heroSwap!.incomingHeroId).name}
-                      delta={powerDelta}
-                      testId={`offer-details-${offer.id}`}
-                      onOpen={() => setInspected({
-                        title: hero(offer.heroSwap!.incomingHeroId).name,
-                        subtitle: t("camp.activeHero") + ": " + hero(offer.heroSwap!.outgoingHeroId).name,
-                        summary: heroOfferSummary(offer, incomingRarity, outgoingRarity, false),
-                        deltas,
-                        total: powerDelta,
-                        from: preview?.before.power.total ?? power.total,
-                        to: preview?.after.power.total ?? power.total,
-                        action: {
-                          label: t("camp.buy"),
-                          meta: t("camp.cost", { cost: offer.cost }),
-                          disabled: !affordable,
-                          onSelect: () => buyMarket(offer.id),
-                        },
-                      })}
-                    />
-                    {summary}
-                    <div className="camp-offer__deltas">
-                      <OfferDelta delta={powerDelta} />
-                    </div>
-                    <div className="camp-pack-card__buy">
-                      <span className="camp-offer__cost">{t("camp.cost", { cost: offer.cost })}</span>
-                      <Button
-                        variant="primary"
-                        disabled={!affordable}
-                        data-testid={`market-${offer.id}`}
-                        onClick={() => buyMarket(offer.id)}
-                      >
-                        {t("camp.buy")}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {camp.rarityUpgradesEnabled && (
-              <>
-                {/* Заголовок и «?» одной строкой: раздельными блоками подсказка занимала
-                    собственный ряд сетки — тридцать пустых пикселей над рядом карточек. */}
-                <div className="camp__market-group-head">
-                  <h4 className="camp__market-group-title">{t("camp.rarityUpgrade")}</h4>
-                  <CampHint label={t("camp.showHint")}>{t("camp.rarityHint")}</CampHint>
-                </div>
-                {/* Улучшение — второе действие рынка героев (реролл его не качает): поднимает тир
-                    активного героя, растит его вклад в Hero Synergy (+OVR игроку у immortal). */}
-                <div className="camp__rarity-grid" data-testid="camp-rarity">
-                  {snapshot.heroes.map((heroId) => {
-                    const current: Rarity = (camp.heroRarity[String(heroId)] as Rarity) ?? "common";
-                    const up = nextRarity(current);
-                    const cost = upgradeCost(current);
-                    const thumb = hero(heroId);
-                    // Токен «бесплатное улучшение» (награда R4.3) должен учитываться и в UI:
-                    // иначе карточка выглядит заблокированной, хотя движок списал бы 0 — тот же
-                    // класс бага, что уже ловили на stand-in.
-                    const freeUpgrade = camp.freeRarityUpgrades > 0;
-                    const affordable = cost != null && (freeUpgrade || camp.unlimitedGold || cost <= camp.gold);
-                    const afterRarity = { ...camp.heroRarity };
-                    if (up) afterRarity[String(heroId)] = up;
-                    const preview = up
-                      ? previewPower(
-                          valuesOf(score),
-                          snapshot.roster,
-                          score.assignment.byPlayer,
-                          snapshot.heroes,
-                          afterRarity,
-                        )
-                      : null;
-                    const deltas = preview?.deltas ?? [];
-                    const powerDelta = preview?.delta ?? 0;
-                    return (
-                      <div
-                        key={heroId}
-                        className={`camp-rarity-card${up ? " camp-inspectable-card" : ""}`}
-                        data-hero-id={heroId}
-                        data-rarity={current}
-                        data-rarity-glow={current}
-                      >
-                        {up && (
-                          <CardInspectTrigger
-                            label={thumb.name}
-                            delta={powerDelta}
-                            testId={`rarity-details-${heroId}`}
-                            onOpen={() => setInspected({
-                              title: thumb.name,
-                              subtitle: `${t(`rarity.${current}` as MessageKey)} → ${t(`rarity.${up}` as MessageKey)}`,
-                              summary: rarityOfferSummary(heroId, current, false),
-                              deltas,
-                              total: powerDelta,
-                              from: preview?.before.power.total ?? power.total,
-                              to: preview?.after.power.total ?? power.total,
-                              action: {
-                                label: t("camp.rarityBuy"),
-                                meta: freeUpgrade ? t("camp.free") : t("camp.cost", { cost: cost ?? 0 }),
-                                disabled: !affordable,
-                                onSelect: () => upgradeHeroRarity(heroId),
-                              },
-                            })}
-                          />
-                        )}
-                        {rarityOfferSummary(heroId, current)}
-                        {up ? (
-                          <>
-                            <div className="camp-offer__deltas">
-                              <OfferDelta delta={powerDelta} />
-                            </div>
-                            <div className="camp-pack-card__buy">
-                              <span className={`camp-offer__cost${freeUpgrade ? " camp-offer__cost--free" : ""}`}>
-                                {freeUpgrade ? t("camp.free") : t("camp.cost", { cost: cost ?? 0 })}
-                              </span>
-                              <Button
-                                variant="primary"
-                                disabled={!affordable}
-                                data-testid={`rarity-upgrade-${heroId}`}
-                                onClick={() => upgradeHeroRarity(heroId)}
-                              >
-                                {t("camp.rarityBuy")}
-                              </Button>
-                            </div>
-                          </>
-                        ) : (
-                          <span className="camp-rarity-card__max">{t("camp.rarityMax")}</span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-          </section>
+            <MarketPanel
+              camp={camp}
+              snapshot={snapshot}
+              score={score}
+              power={power}
+              candidates={candidates}
+              playerOffers={playerOffers}
+              heroOffers={heroOffers}
+              previewPower={previewPower}
+              replaceRosterCandidate={replaceRosterCandidate}
+              replaceActiveHero={replaceActiveHero}
+              playerOfferSummary={playerOfferSummary}
+              heroOfferSummary={heroOfferSummary}
+              rarityOfferSummary={rarityOfferSummary}
+              setInspected={setInspected}
+              buyMarket={buyMarket}
+              rerollMarket={rerollMarket}
+              upgradeHeroRarity={upgradeHeroRarity}
+            />
           )}
 
           {activeSection === "build" && (snapshot.reservePlayers.length > 0 || snapshot.reserveHeroes.length > 0) && (
