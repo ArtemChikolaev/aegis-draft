@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { runModifiers, runModifierTotal } from "../src/game/runStrength.ts";
 import { rarityModifiers } from "../src/game/heroRarity.ts";
+import { rarityRank, type Rarity } from "../src/game/rarity.ts";
 import { TACTIC_SLOTS } from "../src/game/tactics.ts";
 import {
   ECONOMY,
@@ -325,6 +326,74 @@ describe("RunEconomy — карточки билда (срез 4)", () => {
     expect(eco.cardRarity[taken!.id]).toBe(taken!.rarity);
     // Персист восстанавливает карту тиров как есть.
     expect(new RunEconomy("card-rarity", eco.snapshot).cardRarity).toEqual(eco.cardRarity);
+  });
+
+  // R14.3: у предметов есть ось качества, поэтому взятый standard не должен навсегда закрывать
+  // доступ к arcana той же карты. Возвращается только СТРОГО лучший тир и только «на место».
+  it("R14.3: взятый предмет возвращается в пул лучшим тиром и апает себя, не занимая второй слот", () => {
+    const eco = new RunEconomy("card-upgrade");
+    eco.setRarityFlags({ drops: true, upgrades: true });
+    // Берём первый попавшийся предмет ниже потолка качества.
+    let takenId: string | null = null;
+    for (let camp = 1; camp <= 40 && !takenId; camp += 1) {
+      eco.openCamp(camp);
+      const offer = eco.campView().rewardOffers.find((o) => o.kind === "item");
+      if (!offer?.cardId) continue;
+      if ((offer.cardRarity ?? "common") !== "common") continue;
+      expect(eco.chooseReward(offer.id)).toBe(true);
+      takenId = offer.cardId;
+    }
+    expect(takenId).not.toBeNull();
+    const slotsBefore = eco.campView().equippedTactics.length;
+    const ownedBefore = eco.snapshot.ownedCards.length;
+
+    // Ищем Буткемп, где этот же предмет предложен улучшением.
+    let upgraded = false;
+    for (let camp = 2; camp <= 60 && !upgraded; camp += 1) {
+      eco.openCamp(camp);
+      const offer = eco.campView().rewardOffers.find((o) => o.cardUpgrade);
+      if (!offer) continue;
+      expect(offer.kind).toBe("item");
+      expect(offer.cardId).toBe(takenId);
+      const before = eco.cardRarity[offer.cardId!] ?? "common";
+      expect(rarityRank(offer.cardRarity!)).toBeGreaterThan(rarityRank(before as Rarity));
+      expect(eco.chooseReward(offer.id)).toBe(true);
+      expect(eco.cardRarity[offer.cardId!]).toBe(offer.cardRarity);
+      upgraded = true;
+    }
+    expect(upgraded).toBe(true);
+    // Ни второго слота, ни второго экземпляра: улучшение поднимает тир на месте.
+    expect(eco.campView().equippedTactics.length).toBe(slotsBefore);
+    expect(eco.snapshot.ownedCards.length).toBe(ownedBefore);
+    expect(eco.snapshot.ownedCards.filter((id) => id === takenId)).toHaveLength(1);
+  });
+
+  it("R14.3: без дропов качества улучшений не бывает — первый забег не меняется", () => {
+    const eco = new RunEconomy("card-upgrade-gate");
+    // Гейт дропов закрыт (первый-ever забег): все предметы common, строго лучшего тира не бывает.
+    for (let camp = 1; camp <= 40; camp += 1) {
+      eco.openCamp(camp);
+      for (const offer of eco.campView().rewardOffers) expect(offer.cardUpgrade).toBeUndefined();
+    }
+  });
+
+  it("R14.3: тактики и Camp Actions повторно не выпадают — у них нет оси качества", () => {
+    const eco = new RunEconomy("card-upgrade-tactics");
+    eco.setRarityFlags({ drops: true, upgrades: true });
+    const seen = new Set<string>();
+    for (let camp = 1; camp <= 60; camp += 1) {
+      eco.openCamp(camp);
+      const offer = eco.campView().rewardOffers.find((o) => o.kind === "tactic" || o.kind === "action");
+      if (!offer?.cardId) continue;
+      // Повтор возможен, только пока карта не взята: взятая тактика больше не предлагается.
+      if (eco.snapshot.ownedCards.includes(offer.cardId)) {
+        expect(offer.cardUpgrade).toBeUndefined();
+        throw new Error(`взятая карточка ${offer.cardId} предложена повторно`);
+      }
+      seen.add(offer.cardId);
+      eco.chooseReward(offer.id);
+    }
+    expect(seen.size).toBeGreaterThan(0);
   });
 
   it("R3.1: первый забег качает героя руками, но не получает случайных дропов", () => {

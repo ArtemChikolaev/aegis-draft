@@ -36,8 +36,13 @@ export function RewardPanel({ camp, chosenReward, effectRows, onChoose }: {
             // здесь заново: своя копия этого правила забыла про `item` и дала R13.1 (предмет
             // без бейджа слота, активная кнопка при полных слотах и молча проваленный клик).
             const slot = cardSlotKind(offer.kind);
-            const slotFull = (slot === "tactic" && camp.equippedTactics.length >= camp.tacticSlots)
-              || (slot === "action" && camp.heldActions.length >= camp.actionSlots);
+            // Улучшение (R14.3) поднимает тир карточки, которая УЖЕ стоит в слоте, поэтому полные
+            // слоты его не блокируют — иначе поздний билд, где слоты всегда заняты, не увидел бы
+            // единственную доступную ему форму роста.
+            const slotFull = !offer.cardUpgrade && (
+              (slot === "tactic" && camp.equippedTactics.length >= camp.tacticSlots)
+              || (slot === "action" && camp.heldActions.length >= camp.actionSlots)
+            );
             const isCard = slot != null;
             return (
               <div

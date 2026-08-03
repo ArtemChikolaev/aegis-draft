@@ -19,7 +19,7 @@ import { TACTIC_IDS, TACTIC_SLOTS, isTacticId } from "./tactics.ts";
 import { CAMP_ACTION_IDS, CAMP_ACTION_SLOTS, campActionDef, isCampActionId } from "./campActions.ts";
 import { ITEM_IDS, evaluateItems, isItemId } from "./items.ts";
 import { rollHeroRarity, upgradeCost } from "./heroRarity.ts";
-import { nextRarity, rollRarity, type Rarity } from "./rarity.ts";
+import { nextRarity, rarityRank, rollRarity, type Rarity } from "./rarity.ts";
 
 /** Слагаемое Team OVR, на которое действует покупка. */
 export type Summand = "base" | "heroSynergy" | "chemistry";
@@ -97,6 +97,9 @@ export interface Offer {
   /** Тир карточки-предмета (kind "item", R11.2). Едет на оффере по той же причине, что качество
    *  героя: превью, описание и то, что реально ляжет в слот, обязаны читать ОДНО значение. */
   cardRarity?: Rarity;
+  /** Карточка не новая, а поднимает тир УЖЕ экипированного предмета (R14.3). Второго экземпляра и
+   *  второго слота не появляется — это тот же ход, что `upgradeHeroRarity` у героев. */
+  cardUpgrade?: boolean;
   /** Реальный scoreTeam breakdown и auto-assignment до/после структурной покупки. */
   preview?: {
     before: SummandValues;
@@ -232,6 +235,11 @@ export const ECONOMY = {
   rewardReroll: { tokens: 2, gold: 2 },
   /** Награда-«качество»: бесплатные улучшения тира героя. */
   rewardQuality: { tokens: 1 },
+  /** Шанс, что билд-карта Буткемпа окажется улучшением уже стоящего предмета, а не новой картой
+   *  (R14.3) — при условии, что улучшать есть что. Отдельный шаг, а не лишняя запись в общем пуле:
+   *  в пуле 43 карточки, и одна добавленная давала бы ~2% за лагерь, то есть ось роста, которой на
+   *  практике не существует. Плейсхолдер до калибровки `npm run sim`. */
+  cardUpgradeChance: 0.35,
   /** Проценты за накопление (R4.3): +1 золото за каждые `interestPerGold` на руках, но не больше
    *  `interestCap`. Начисляются автоматически вместе с призовыми и создают выбор «потратить
    *  сейчас против накопить». В Cheat Mode не начисляются: бесконечное золото их обессмысливает. */
@@ -383,6 +391,15 @@ export function interestFor(gold: number, capBonus = 0): number {
   return Math.min(ECONOMY.interestCap + capBonus, Math.floor(gold / ECONOMY.interestPerGold));
 }
 
+/** Что уже стоит в слотах билда и с каким качеством — нужно, чтобы понять, может ли предмет
+ *  вернуться в пул наград улучшением себя же. */
+export interface BuildTiers {
+  /** Карточки, которые СЕЙЧАС занимают слоты. Именно экипированные, а не `ownedCards`: поднимать
+   *  тир сброшенной карточки бессмысленно — обратно её уже не поставить. */
+  equipped: readonly string[];
+  cardRarity: Record<string, Rarity>;
+}
+
 /** Ещё не полученная карточка Tactics/Camp Action, детерминированная по seed+campId.
  *  Возвращает null, когда игрок уже собрал весь набор — тогда третьим оффером остаётся
  *  прежний бесплатный stat-рычаг (срез 2), и Буткемп не выдаёт пустую карту. */
@@ -391,7 +408,35 @@ function cardOffer(
   campStageIndex: number,
   owned: readonly string[],
   rarityDrops = false,
+  build: BuildTiers = { equipped: [], cardRarity: {} },
 ): Offer | null {
+  const rollFor = (id: string) => rollRarity(seed, `card-${id}`, campStageIndex);
+  // Предмет, который уже стоит в слоте, возвращается в пул — но ТОЛЬКО строго более высоким тиром
+  // (R14.3). Без этого ранний standard навсегда закрывал доступ к arcana той же карты: `owned`
+  // отсеивал id целиком, хотя у предметов, в отличие от тактик и действий, есть ось качества.
+  // Дубликата не появляется (PRD §5.10.5) — взятие поднимает тир на месте.
+  const upgradable = rarityDrops
+    ? ITEM_IDS.filter((id) => (
+      build.equipped.includes(id)
+        && rarityRank(rollFor(id)) > rarityRank(build.cardRarity[id] ?? "common")
+    ))
+    : [];
+  // «Улучшение или новая карта» решается ОТДЕЛЬНЫМ роллом на своём потоке. Так у шанса есть
+  // настраиваемое число, а поток свежих карт (`:card`) остаётся тем же, что до R14.3 — сид без
+  // улучшаемых предметов выдаёт ровно прежние награды.
+  const upgradeRng = new Rng(`${seed}:camp-${campStageIndex}:card-upgrade`);
+  if (upgradable.length > 0 && upgradeRng.float() < ECONOMY.cardUpgradeChance) {
+    const id = upgradeRng.pick(upgradable);
+    return {
+      id: `rwd-${campStageIndex}-1`,
+      kind: "item",
+      labelKey: `item.${id}`,
+      cost: 0,
+      cardId: id,
+      cardRarity: rollFor(id),
+      cardUpgrade: true,
+    };
+  }
   const pool = [
     ...TACTIC_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "tactic" as const, id })),
     // Предметы (R8.3) — такие же пассивные карточки и занимают ТЕ ЖЕ слоты, что тактики:
@@ -413,7 +458,7 @@ function cardOffer(
     // Тир — только у предметов (R11.2) и под тем же мета-гейтом, что дропы качества у героев:
     // первый забег знакомится с базовой картой, а не с масштабированной.
     ...(card.kind === "item" && rarityDrops
-      ? { cardRarity: rollRarity(seed, `card-${card.id}`, campStageIndex) }
+      ? { cardRarity: rollFor(card.id) }
       : {}),
   };
 }
@@ -428,13 +473,14 @@ export function rewardOffers(
   preparedCard?: Offer | null,
   qualityAvailable = true,
   rarityDrops = false,
+  build?: BuildTiers,
 ): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:reward`);
   const summand = rng.pick(MARKET_SUMMANDS);
   const cfg = ECONOMY.levers[summand];
   const card = preparedCard !== undefined
     ? preparedCard
-    : cardOffer(seed, campStageIndex, owned, rarityDrops);
+    : cardOffer(seed, campStageIndex, owned, rarityDrops, build);
   const gold = stageGold(ECONOMY.rewardGold.base, ECONOMY.rewardGold.stageStep, campStageIndex);
   // Третий слот — утилита: поиск (реролы) либо качество. Выбор детерминирован по seed+camp,
   // чтобы Буткемп не «мутировал» между рендерами, и уважает мета-гейт улучшений.
@@ -733,6 +779,7 @@ export class RunEconomy {
     // Буткемпа, чтобы карта не переезжала на другую после выбора.
     this.state.preparedRewardCard = cardOffer(
       this.seed, campStageIndex, this.state.ownedCards, this.state.rarityDropsEnabled,
+      this.buildTiers(),
     );
     // Бесплатные реролы от предметов — свойство Буткемпа, а не накопление: иначе неиспользованные
     // копились бы забегом и обесценивали дорожающий реролл.
@@ -744,12 +791,17 @@ export class RunEconomy {
     this.state.inCamp = false;
   }
 
+  /** Слепок билда для пула наград: что стоит в слотах и с каким качеством. */
+  private buildTiers(): BuildTiers {
+    return { equipped: this.state.equippedTactics, cardRarity: this.state.cardRarity ?? {} };
+  }
+
   private currentRewardOffers(): Offer[] {
     // preparedRewardCard зафиксирован на openCamp; legacy-сейв без него выводит карту из ownedCards.
     const prepared = "preparedRewardCard" in this.state ? this.state.preparedRewardCard : undefined;
     return rewardOffers(
       this.seed, this.state.campStageIndex, this.state.ownedCards, prepared,
-      this.state.rarityUpgradesEnabled, this.state.rarityDropsEnabled,
+      this.state.rarityUpgradesEnabled, this.state.rarityDropsEnabled, this.buildTiers(),
     );
   }
 
@@ -804,7 +856,19 @@ export class RunEconomy {
     } else if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
     else if (offer.kind === "tactic" || offer.kind === "item" || offer.kind === "action") {
       const cardId = offer.cardId;
-      if (!cardId || !this.canTakeCard(offer.kind)) return false;
+      if (!cardId) return false;
+      // Улучшение уже стоящей карточки (R14.3): слот не занимается второй раз, `ownedCards` не
+      // растёт — поднимается тир на месте. Поэтому и `canTakeCard` здесь не при чём: при полных
+      // слотах эта награда обязана оставаться доступной.
+      if (offer.cardUpgrade) {
+        if (offer.kind !== "item" || !isItemId(cardId)) return false;
+        if (!offer.cardRarity || !this.state.equippedTactics.includes(cardId)) return false;
+        if (rarityRank(offer.cardRarity) <= rarityRank(this.state.cardRarity?.[cardId] ?? "common")) return false;
+        this.state.cardRarity = { ...(this.state.cardRarity ?? {}), [cardId]: offer.cardRarity };
+        this.state.chosenRewardId = offerId;
+        return true;
+      }
+      if (!this.canTakeCard(offer.kind)) return false;
       const valid = offer.kind === "tactic" ? isTacticId(cardId)
         : offer.kind === "item" ? isItemId(cardId)
         : isCampActionId(cardId);

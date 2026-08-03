@@ -276,6 +276,9 @@ export function CampScreen() {
         const main = itemLabel(scaled.effect);
         const cost = scaled.drawback ? itemLabel(scaled.drawback) : null;
         const preview = itemContribution(def, snapshot?.heroes ?? [], t, rarity);
+        // Карточка улучшения (R14.3) обязана назвать себя улучшением: без этого «Guardian Greaves ·
+        // Экзотическая» рядом с уже стоящей «Обычной» читается как второй экземпляр.
+        const upgradeFrom: Rarity = camp?.cardRarity?.[offer.cardId] ?? "common";
         return [
           <RarityBadge
             key="r"
@@ -283,6 +286,14 @@ export function CampScreen() {
             label={t(`cardTier.${itemTier(rarity)}` as MessageKey)}
             showBase
           />,
+          ...(offer.cardUpgrade ? [
+            <span key="u" className="camp-offer__note camp-offer__note--upgrade">
+              {t("camp.cardUpgrade", {
+                from: t(`cardTier.${itemTier(upgradeFrom)}` as MessageKey),
+                to: t(`cardTier.${itemTier(rarity)}` as MessageKey),
+              })}
+            </span>,
+          ] : []),
           <span key="d" className="camp-offer__card-desc">
             {t(main.template as MessageKey, itemLabelParams(main.params, t))}
           </span>,
