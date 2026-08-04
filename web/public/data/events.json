@@ -807,7 +807,6 @@
     "startDate": "2025-07-28",
     "endDate": "2025-08-03",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y"
     ]
