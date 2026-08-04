@@ -577,6 +577,11 @@ export interface CampView {
   cardRarity: Record<string, Rarity>;
   /** Индекс этапа текущего Буткемпа — для превью редкости входящих на re-pick героев. */
   campStageIndex: number;
+  /** Номер раздачи рынка: растёт на каждый реролл, обнуляется на входе в лагерь. Нужен ровно тем
+   *  же, чем `packSerial` в драфте, — внешним ключом раздачи (`ui/Dealt`): CSS-анимация играет
+   *  только при монтировании узла, и без смены ключа перероленные карточки просто подменялись бы
+   *  на месте, визуально неотличимо от «ничего не произошло». */
+  marketSerial: number;
 }
 
 function emptyState(): RunEconomyState {
@@ -1076,6 +1081,7 @@ export class RunEconomy {
       heroRarity: { ...this.state.heroRarity },
       cardRarity: { ...(this.state.cardRarity ?? {}) },
       campStageIndex: this.state.campStageIndex,
+      marketSerial: this.state.marketRerolls,
     };
   }
 }

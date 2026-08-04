@@ -18,7 +18,7 @@ export function RewardPanel({ camp, chosenReward, effectRows, onChoose }: {
 }) {
   const { t } = useI18n();
   return (
-      <section id="camp-panel-reward" role="tabpanel" className="camp__section" data-testid="camp-reward">
+      <section id="camp-panel-reward" role="tabpanel" className="camp__section enter" data-testid="camp-reward">
         <h3 className="camp__section-title">
           {camp.rewardChosen ? t("camp.rewardChosen") : t("camp.reward")}
         </h3>

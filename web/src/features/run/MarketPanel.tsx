@@ -9,7 +9,7 @@ import type { MessageKey } from "../../i18n/core.ts";
 import { CampHint } from "./CampHint.tsx";
 import { CardInspectTrigger, OfferDelta, valuesOf } from "./CampCards.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { Button } from "../../ui/index.ts";
+import { Button, Dealt } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { CampMarketView } from "./campMarketView.ts";
 
@@ -23,9 +23,13 @@ export function MarketPanel(props: CampMarketView) {
     playerOfferSummary, heroOfferSummary, rarityOfferSummary,
     setInspected, buyMarket, rerollMarket, upgradeHeroRarity,
   } = props;
+  // Раздача рынка (R14.4). Ключ обязан меняться на новый лагерь И на каждый реролл: CSS-анимация
+  // играет только при монтировании, поэтому без смены ключа перероленные карточки подменялись бы
+  // молча. Индекс сквозной по всем трём группам — это ОДНА раздача, а не три одновременных.
+  const deal = `${camp.campStageIndex}:${camp.marketSerial}`;
 
   return (
-      <section id="camp-panel-market" role="tabpanel" className="camp__section" data-testid="camp-market">
+      <section id="camp-panel-market" role="tabpanel" className="camp__section enter" data-testid="camp-market">
         <div className="camp__section-head">
           <div className="camp__section-heading">
             <h3 className="camp__section-title">{t("camp.market")}</h3>
@@ -43,7 +47,7 @@ export function MarketPanel(props: CampMarketView) {
         <h4 className="camp__market-group-title">{t("camp.marketPlayers")}</h4>
         {/* Пак-рулетка из 5 игроков: разное качество, ловушки допустимы. */}
         <div className="camp__pack" data-testid="camp-pack">
-          {playerOffers.map((offer) => {
+          {playerOffers.map((offer, dealIndex) => {
             const incoming = candidates.find((c) => candidateMatchesRef(c, offer.playerSwap!.incoming));
             if (!incoming) return null;
             const outgoing = snapshot.roster[offer.playerSwap!.slotIndex]?.candidate;
@@ -64,7 +68,8 @@ export function MarketPanel(props: CampMarketView) {
             const powerDelta = preview?.delta ?? 0;
             const summary = playerOfferSummary(incoming, outgoing, afterHeroId);
             return (
-              <div key={offer.id} className="camp-pack-card camp-inspectable-card" data-offer-kind="player">
+              <Dealt className="camp-dealt" key={`${deal}:${offer.id}`} index={dealIndex}>
+              <div className="camp-pack-card camp-inspectable-card" data-offer-kind="player">
                 <CardInspectTrigger
                   label={incoming.player.nickname}
                   delta={powerDelta}
@@ -103,13 +108,14 @@ export function MarketPanel(props: CampMarketView) {
                   </Button>
                 </div>
               </div>
+              </Dealt>
             );
           })}
         </div>
         <h4 className="camp__market-group-title">{t("camp.marketHeroes")}</h4>
         {/* Второй полноценный пак: 5 разных hero re-pick с полным score + rarity preview. */}
         <div className="camp__pack" data-testid="camp-hero-pack">
-          {heroOffers.map((offer) => {
+          {heroOffers.map((offer, heroIndex) => {
             const affordable = camp.unlimitedGold || offer.cost <= camp.gold;
             // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
             // ролл, что применит покупка. Полное превью ниже пересобирает и редкость, и
@@ -140,8 +146,8 @@ export function MarketPanel(props: CampMarketView) {
             const powerDelta = preview?.delta ?? 0;
             const summary = heroOfferSummary(offer, incomingRarity, outgoingRarity);
             return (
+              <Dealt className="camp-dealt" key={`${deal}:${offer.id}`} index={playerOffers.length + heroIndex}>
               <div
-                key={offer.id}
                 className="camp-pack-card camp-pack-card--hero camp-inspectable-card"
                 data-offer-kind="hero"
                 data-incoming-rarity={incomingRarity}
@@ -184,6 +190,7 @@ export function MarketPanel(props: CampMarketView) {
                   </Button>
                 </div>
               </div>
+              </Dealt>
             );
           })}
         </div>
@@ -199,7 +206,7 @@ export function MarketPanel(props: CampMarketView) {
             {/* Улучшение — второе действие рынка героев (реролл его не качает): поднимает тир
                 активного героя, растит его вклад в Hero Synergy (+OVR игроку у immortal). */}
             <div className="camp__rarity-grid" data-testid="camp-rarity">
-              {snapshot.heroes.map((heroId) => {
+              {snapshot.heroes.map((heroId, rarityIndex) => {
                 const current: Rarity = (camp.heroRarity[String(heroId)] as Rarity) ?? "common";
                 const up = nextRarity(current);
                 const cost = upgradeCost(current);
@@ -223,8 +230,12 @@ export function MarketPanel(props: CampMarketView) {
                 const deltas = preview?.deltas ?? [];
                 const powerDelta = preview?.delta ?? 0;
                 return (
+                  <Dealt
+                    className="camp-dealt"
+                    key={`${deal}:rarity-${heroId}`}
+                    index={playerOffers.length + heroOffers.length + rarityIndex}
+                  >
                   <div
-                    key={heroId}
                     className={`camp-rarity-card${up ? " camp-inspectable-card" : ""}`}
                     data-hero-id={heroId}
                     data-rarity={current}
@@ -276,6 +287,7 @@ export function MarketPanel(props: CampMarketView) {
                       <span className="camp-rarity-card__max">{t("camp.rarityMax")}</span>
                     )}
                   </div>
+                  </Dealt>
                 );
               })}
             </div>

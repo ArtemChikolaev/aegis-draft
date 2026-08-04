@@ -35,7 +35,16 @@
   white-space: nowrap;
 }
 .camp__gold-icon { color: var(--gold); }
-.camp__gold strong { font-size: 20px; color: var(--gold); }
+.camp__gold strong {
+  font-size: 20px;
+  color: var(--gold);
+  transition: color var(--motion-count) var(--ease-out);
+}
+/* Направление изменения — ВСПЫШКА, а не состояние: держится --motion-flash и гаснет обратно в
+   золотой (то же правило, что у Team OVR в пентагоне). Иначе счётчик застревал бы красным после
+   первой же покупки и переставал что-либо сообщать. */
+.camp__gold[data-gold-direction="up"] strong { color: var(--win); }
+.camp__gold[data-gold-direction="down"] strong { color: var(--loss); }
 
 .camp__workbench {
   display: grid;
@@ -241,6 +250,18 @@
   grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 8px;
 }
+/* Раздача рынка (R14.4). Обёртка `ui/Dealt` встаёт МЕЖДУ сеткой и карточкой, поэтому растяжение по
+   высоте ряда надо передать вниз явно — иначе карточки в ряду перестают быть одной высоты, а это
+   ровно то, что чинил R13.3. */
+.camp-dealt {
+  display: flex;
+  min-width: 0;
+}
+.camp-dealt > * { flex: 1; }
+/* Шаг раздачи короче общего: в паке рынка 15 карточек, и на дефолтных 110ms хвост тянулся бы
+   1.65s — правило бюджета из design-language прямо требует укорачивать шаг на плотной раскладке. */
+.camp__pack,
+.camp__rarity-grid { --motion-deal-stagger: 45ms; }
 /* Карточки рынка ОДНОГО размера (R13.3). До этого высота задавалась количеством текста: разбор
    печатался прямо на карточке, и она вырастала в мини-отчёт на шесть строк — сравнивать соседние
    предложения было нечем, а анимировать прыгающие габариты бессмысленно. Теперь разбор живёт в

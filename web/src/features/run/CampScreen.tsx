@@ -49,6 +49,7 @@ import {
   HeroThumb,
   Modal,
   RarityBadge,
+  useCountUp,
   StageKindBadge,
   PowerBreakdown,
   TagChips,
@@ -121,6 +122,18 @@ export function CampScreen() {
     if (!camp) return;
     setActiveSection(camp.rewardChosen ? "market" : "reward");
   }, [camp?.campStageIndex]);
+  // Золото берёт у `useCountUp` только НАПРАВЛЕНИЕ, а не набегающее значение.
+  //
+  // Почему не число: набег живёт на requestAnimationFrame, а в неактивной вкладке rAF тормозится —
+  // поймано замером, счётчик застрял на 6 при настоящих 7. Для Team OVR это косметика, для золота
+  // нет: по нему игрок решает, хватает ли на покупку, и показать не то число нельзя. Вспышка при
+  // этом сохраняется — она и отвечает на «что сейчас изменилось» (design-language §Движение).
+  //
+  // Хук обязан стоять ДО раннего `return null` ниже, поэтому читает `camp` опционально.
+  // В Cheat Mode целимся в null: у «∞» изменений не бывает, сигналить нечего.
+  const { direction: goldDirection } = useCountUp(
+    camp && !camp.unlimitedGold ? camp.gold : null,
+  );
   const candidates = useMemo(() => (data?.packs ?? []).flatMap(candidatesOf), [data]);
   const eventNames = useMemo(
     () => new Map((data?.events ?? []).map((event) => [event.id, event.short ?? event.name])),
@@ -574,7 +587,10 @@ export function CampScreen() {
           )}
         </div>
         {config.cheatMode && <CheatBadge />}
-        <div className="camp__gold" aria-label={t("camp.gold")}>
+        {/* Золото — второй ресурс решения после силы забега, и до R14.4 оно менялось молча, хотя
+            для Run power набег и вспышка уже были. Тот же `useCountUp`, что в центре пентагона:
+            направление держится --motion-flash и гаснет — цвет здесь сигнал, а не состояние. */}
+        <div className="camp__gold" aria-label={t("camp.gold")} data-gold-direction={goldDirection}>
           <span className="camp__gold-icon">◈</span>
           <strong data-testid="camp-gold">{camp.unlimitedGold ? "∞" : camp.gold}</strong>
         </div>
@@ -666,7 +682,7 @@ export function CampScreen() {
           </nav>
 
           {activeSection === "preparation" && (
-            <div id="camp-panel-preparation" role="tabpanel" className="camp__section-panel">
+            <div id="camp-panel-preparation" role="tabpanel" className="camp__section-panel enter">
               {boss && <BossPanel boss={boss} eyebrow={t("boss.next")} testId="camp-boss" />}
               {/* Разведанный босс (R9.4): то же правило и тот же `до→после`, но про турнир, до
                   которого ещё несколько этапов. Он живёт рядом со всеми решениями подготовки. */}
@@ -704,9 +720,10 @@ export function CampScreen() {
 
           {(activeSection === "build" || activeSection === "preparation") && (
           <section
+            key={activeSection}
             id={activeSection === "build" ? "camp-panel-build" : undefined}
             role={activeSection === "build" ? "tabpanel" : undefined}
-            className="camp__section"
+            className="camp__section enter"
             data-testid={activeSection === "build" ? "camp-build" : "camp-actions"}
           >
             <div className="camp__build camp__build--single">

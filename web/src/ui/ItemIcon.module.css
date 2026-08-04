@@ -1,0 +1,11 @@
+/* Иконка предмета Dota: исходник 88×64, поэтому пропорция 4:3 — не квадрат, иначе арт режется. */
+.icon {
+  display: block;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: cover;
+  background: var(--surface-soft);
+}
+.sm { width: 32px; height: 24px; }
+.md { width: 44px; height: 32px; }
