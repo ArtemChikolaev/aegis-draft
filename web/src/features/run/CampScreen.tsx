@@ -710,7 +710,7 @@ export function CampScreen() {
           )}
 
           {activeSection === "preparation" && (
-            <div id="camp-panel-preparation" role="tabpanel" className="camp__section-panel enter">
+            <div id="camp-panel-preparation" role="tabpanel" className="camp__section-panel enter-fade">
               {boss && <BossPanel boss={boss} eyebrow={t("boss.next")} testId="camp-boss" />}
               {/* Разведанный босс (R9.4): то же правило и тот же `до→после`, но про турнир, до
                   которого ещё несколько этапов. Он живёт рядом со всеми решениями подготовки. */}
@@ -751,7 +751,7 @@ export function CampScreen() {
             key={activeSection}
             id={activeSection === "build" ? "camp-panel-build" : undefined}
             role={activeSection === "build" ? "tabpanel" : undefined}
-            className="camp__section enter"
+            className="camp__section enter-fade"
             data-testid={activeSection === "build" ? "camp-build" : "camp-actions"}
           >
             <div className="camp__build camp__build--single">

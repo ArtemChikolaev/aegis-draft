@@ -28,8 +28,13 @@ export function MarketPanel(props: CampMarketView) {
   // молча. Индекс сквозной по всем трём группам — это ОДНА раздача, а не три одновременных.
   const deal = `${camp.campStageIndex}:${camp.marketSerial}`;
 
+  // `enter-fade` (только прозрачность), а НЕ `enter` (fade-rise): подъём на 8px двигает всю
+  // секцию, пока её содержимое уже кликабельно, — это и мис-клик, и гонка для любого замера
+  // позиции. Ровно на этом упал CI: инвариант «сетка не дёргается под оверлеем» видел остаток
+  // translateY в 2.09px (desktop) / 2.8px (mobile). Карточки внутри по-прежнему раздаются
+  // движением — секции оно не нужно.
   return (
-      <section id="camp-panel-market" role="tabpanel" className="camp__section enter" data-testid="camp-market">
+      <section id="camp-panel-market" role="tabpanel" className="camp__section enter-fade" data-testid="camp-market">
         <div className="camp__section-head">
           <div className="camp__section-heading">
             <h3 className="camp__section-title">{t("camp.market")}</h3>
