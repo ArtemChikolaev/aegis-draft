@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   FORM_FLOOR,
   HERO_FLOOR,
+  MARKET_PACK,
   balancedPackSlots,
   buildAnteMarketRoulette,
   heroWeight,
@@ -20,7 +21,7 @@ import { loadGameData } from "./helpers/data.ts";
 import { defaultRunConfig } from "./helpers/packs.ts";
 import { runToEnd } from "./helpers/engine.ts";
 
-describe("Roguelite market roulette (5 игроков + 5 героев)", () => {
+describe("Roguelite market roulette (пак MARKET_PACK.size в каждой из двух рулеток)", () => {
   const data = loadGameData();
 
   function completed(seed: string): RunEngine {
@@ -29,18 +30,18 @@ describe("Roguelite market roulette (5 игроков + 5 героев)", () => 
     return engine;
   }
 
-  it("детерминирован и всегда даёт 5 player-офферов по слотам с реальным breakdown", () => {
+  it("детерминирован и даёт ровно MARKET_PACK.size player-офферов с реальным breakdown", () => {
     const engineA = completed("roulette");
     const offersA = buildAnteMarketRoulette(engineA, "roulette", 1, 0);
     const offersB = buildAnteMarketRoulette(completed("roulette"), "roulette", 1, 0);
     expect(offersA).toEqual(offersB);
     const players = offersA.filter((offer) => offer.kind === "player");
     const heroes = offersA.filter((offer) => offer.kind === "hero");
-    expect(players).toHaveLength(5);
-    expect(heroes).toHaveLength(5);
-    // Пять разных входящих игроков; каждый привязан к лучшему same-role слоту.
+    expect(players).toHaveLength(MARKET_PACK.size);
+    expect(heroes).toHaveLength(MARKET_PACK.size);
+    // Входящие игроки все разные; каждый привязан к лучшему same-role слоту.
     expect(new Set(players.map((offer) =>
-      engineA.candidateByRef(offer.playerSwap!.incoming)!.player.accountId)).size).toBe(5);
+      engineA.candidateByRef(offer.playerSwap!.incoming)!.player.accountId)).size).toBe(MARKET_PACK.size);
     for (const offer of players) {
       const incoming = engineA.candidateByRef(offer.playerSwap!.incoming)!;
       const eligibleSlots = engineA.rosterView.flatMap((slot, slotIndex) =>
@@ -51,8 +52,8 @@ describe("Roguelite market roulette (5 игроков + 5 героев)", () => 
       expect(eligibleSlots).toContain(offer.playerSwap!.slotIndex);
       expect(after.base + after.heroSynergy + after.chemistry).toBeCloseTo(bestTeamOvr, 6);
     }
-    // Пять разных входящих героев; для каждого выбрана лучшая из пяти возможных замен.
-    expect(new Set(heroes.map((o) => o.heroSwap!.incomingHeroId)).size).toBe(5);
+    // Входящие герои все разные; для каждого выбрана лучшая из пяти возможных замен.
+    expect(new Set(heroes.map((o) => o.heroSwap!.incomingHeroId)).size).toBe(MARKET_PACK.size);
     for (const offer of heroes) {
       const bestTeamOvr = Math.max(...engineA.heroes.map((outgoingHeroId) =>
         engineA.previewHeroReplacement(outgoingHeroId, offer.heroSwap!.incomingHeroId).teamOvr));
@@ -107,8 +108,8 @@ describe("Roguelite market roulette (5 игроков + 5 героев)", () => 
     let sawUpgrade = false;
     for (let rerollN = 0; rerollN < 12 && !(sawDowngrade && sawUpgrade); rerollN += 1) {
       const offers = buildAnteMarketRoulette(engine, "roulette-variety", 1, rerollN);
-      expect(offers.filter((offer) => offer.kind === "player")).toHaveLength(5);
-      expect(offers.filter((offer) => offer.kind === "hero")).toHaveLength(5);
+      expect(offers.filter((offer) => offer.kind === "player")).toHaveLength(MARKET_PACK.size);
+      expect(offers.filter((offer) => offer.kind === "hero")).toHaveLength(MARKET_PACK.size);
       for (const offer of offers) {
         if (offer.kind !== "player" || !offer.preview) continue;
         const before = offer.preview.before;
@@ -222,7 +223,7 @@ describe("Last Dance: сбалансированное сужение пака",
     for (let rerollN = 0; rerollN < 8; rerollN += 1) {
       const offers = buildAnteMarketRoulette(engine, "last-dance-market", 1, rerollN, ["lastDance"]);
       const players = offers.filter((offer) => offer.kind === "player");
-      expect(players).toHaveLength(5 - TACTICS.lastDance.marketPackPenalty);
+      expect(players).toHaveLength(MARKET_PACK.size - TACTICS.lastDance.marketPackPenalty);
       const offeredRoles = players.map((offer) =>
         engine.candidateByRef(offer.playerSwap!.incoming)!.player.role);
       // Инвариант на КАЖДОМ реролле: роль не вымирает целиком.
@@ -399,8 +400,8 @@ describe("Нижняя граница hero-пака", () => {
       for (const rerollN of [0, 1, 2]) {
         const offers = buildAnteMarketRoulette(engine, seed, 4, rerollN, [], { rarityDrops: true });
         const heroes = offers.filter((o) => o.kind === "hero");
-        expect(heroes).toHaveLength(5);
-        expect(new Set(heroes.map((o) => o.heroSwap!.incomingHeroId)).size).toBe(5);
+        expect(heroes).toHaveLength(MARKET_PACK.size);
+        expect(new Set(heroes.map((o) => o.heroSwap!.incomingHeroId)).size).toBe(MARKET_PACK.size);
         for (const offer of heroes) {
           expect(cardDelta(offer, {})).toBeGreaterThanOrEqual(-HERO_FLOOR.maxLossOvr - 1e-6);
         }
@@ -414,7 +415,7 @@ describe("Нижняя граница hero-пака", () => {
     const engine = completed("hero-floor-degenerate");
     const offers = buildAnteMarketRoulette(engine, "hero-floor-degenerate", 1, 0);
     const heroes = offers.filter((o) => o.kind === "hero");
-    expect(heroes).toHaveLength(5);
+    expect(heroes).toHaveLength(MARKET_PACK.size);
     for (const offer of heroes) expect(offer.preview).toBeDefined();
   });
 

@@ -293,7 +293,12 @@ test("roguelite run: resume восстанавливает Буткемп пос
   await expect(packCards.first()).toBeVisible();
   await expect(packCards.first().locator(".camp-player-card")).toBeVisible();
   const heroCards = page.getByTestId("camp-hero-pack").locator('[data-offer-kind="hero"]');
-  await expect(heroCards).toHaveCount(5);
+  // Размер пака — балансовая константа (`MARKET_PACK.size`, R14.7), а не свойство экрана, и
+  // тянуть её сюда импортом нельзя: игровой модуль тащит JSON-цепочку, которую загрузчик
+  // Playwright не ест. Инвариант, который тесту действительно важен: обе рулетки одного размера и
+  // не пусты — конкретное число живёт в юнит-тестах рынка.
+  await expect(heroCards).toHaveCount(await packCards.count());
+  expect(await heroCards.count()).toBeGreaterThan(0);
   await expect(heroCards.first().locator(".camp-hero-compare")).toBeVisible();
   await expect(heroCards.first().locator(".camp-offer__delta").first()).toContainText(/RUN POWER|СИЛА ЗАБЕГА/i);
   // Карточка несёт одну итоговую дельту реальной силы забега — уже после условий Tactics/Items.

@@ -302,6 +302,24 @@ function drawWeighted(pool: { heroId: number; games: number }[], rng: Rng): numb
   return pool.splice(pool.length - 1, 1)[0].heroId;
 }
 
+/**
+ * Размер пака рынка (R14.7).
+ *
+ * Было — по одной карте на каждую роль (`ROLE_SEQUENCE.length`, то есть 5) в КАЖДОМ из двух паков.
+ * Вместе с рядом улучшения качества это давало 15 карточек на экране, `scrollHeight` 2210px при
+ * 1440×720 — три экрана. У Balatro магазин это 2 слота + 2 бустера + 1 ваучер в один ряд, и дефицит
+ * там не косметика: он и делает реролл решением, а не кнопкой «обновить».
+ *
+ * Сужение НЕ запрещает роль: `balancedPackSlots` держит минимум один core и минимум один support,
+ * а какие именно карты уходят — решает seed. Тот же механизм уже обслуживает trade-off Last Dance,
+ * поэтому второй способ сужать пак не заводим — просто уменьшилась база, от которой он вычитает.
+ *
+ * Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION.
+ */
+export const MARKET_PACK = {
+  size: 3,
+} as const;
+
 /** Нижняя граница hero-пака. Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION. */
 export const HERO_FLOOR = {
   /** Насколько карта может УРОНИТЬ Team OVR и всё ещё считаться ловушкой, а не мусором.
@@ -416,7 +434,9 @@ export function buildAnteMarketRoulette(
     ? Math.min(1, Math.max(0, (campStageIndex - 1) / (stageCount - 1)))
     : 0;
   const tactics = tacticMarketEffects(equippedTactics);
-  const packSize = Math.max(1, ROLE_SEQUENCE.length - tactics.packSizePenalty);
+  // База — `MARKET_PACK.size` (R14.7), а не «по карте на роль»: дефицит опций и есть то, что
+  // делает реролл решением. Last Dance вычитает из этой базы, как и раньше.
+  const packSize = Math.max(1, MARKET_PACK.size - tactics.packSizePenalty);
   const before = engine.score();
   if (!before) throw new Error("Market pack доступен только после завершения драфта");
 

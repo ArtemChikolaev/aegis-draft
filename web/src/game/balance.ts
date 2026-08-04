@@ -16,7 +16,7 @@ import { CAMP_ACTIONS } from "./campActions.ts";
 import { BOSSES } from "./bossConditions.ts";
 import { RARITY } from "./heroRarity.ts";
 import { RARITY_CURVE } from "./rarity.ts";
-import { FORM_ODDS, FORM_FLOOR, HERO_POOL } from "./anteMarket.ts";
+import { FORM_ODDS, FORM_FLOOR, HERO_POOL, MARKET_PACK } from "./anteMarket.ts";
 import { HERO_TAGS_VERSION } from "./heroTags.ts";
 import { POWER_LIMITS } from "./tournamentPower.ts";
 import { ITEMS, ITEM_RARITY } from "./items.ts";
@@ -178,8 +178,12 @@ import { HERO_FLOOR } from "./anteMarket.ts";
  *  standard навсегда закрывал доступ к arcana той же карты, потому что `ownedCards` отсекал id
  *  целиком, хотя у предметов, в отличие от тактик и действий, есть ось качества. Пул карточных
  *  наград меняется ⇒ офферы на том же сиде другие; тактики и Camp Actions не затронуты (у них
- *  качества нет, и повторная выдача была бы настоящим дубликатом, запрещённым PRD §5.10.5). */
-export const BALANCE_CONFIG_VERSION = "b1.23.0";
+ *  качества нет, и повторная выдача была бы настоящим дубликатом, запрещённым PRD §5.10.5).
+ *  b1.24.0 (2026-08-04): пак рынка сужен с «карта на каждую роль» (5) до `MARKET_PACK.size = 3`
+ *  в обоих паках — R14.7. Меняет и число опций за лагерь, и ценность реролла, поэтому это правка
+ *  баланса, а не вёрстки. Роль при этом не вымирает: сужение идёт тем же `balancedPackSlots`,
+ *  который уже обслуживает Last Dance. */
+export const BALANCE_CONFIG_VERSION = "b1.24.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
@@ -225,4 +229,5 @@ export const BALANCE = {
   /** Веса рулетки hero-пула (R12.2) — зеркало `formOdds` для героев: career-игры влияют на ВЕС
    *  карты, а не на её допуск к рынку. */
   heroPool: HERO_POOL,
+  marketPack: MARKET_PACK,
 } as const;
