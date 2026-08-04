@@ -3,10 +3,11 @@
 // по-прежнему собирает экран (`effectRows`), панель только рисует.
 import { cardSlotKind, type Offer } from "../../game/anteEconomy.ts";
 import { itemTier } from "../../game/items.ts";
+import { itemArtSlug } from "../../game/itemArt.ts";
 import type { MessageKey } from "../../i18n/core.ts";
 import type { CampView } from "../../game/anteEconomy.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { Button } from "../../ui/index.ts";
+import { Button, ItemIcon } from "../../ui/index.ts";
 import type { ReactNode } from "react";
 
 export function RewardPanel({ camp, chosenReward, effectRows, onChoose }: {
@@ -53,6 +54,14 @@ export function RewardPanel({ camp, chosenReward, effectRows, onChoose }: {
               >
                 <div className="camp-offer__body">
                   <span className="camp-offer__head">
+                    {/* Иконка предмета (R14.5): награда — место, где карточка встречается игроку
+                        впервые, и опознаваться она должна артом, а не только строкой названия. */}
+                    {itemArtSlug(offer.cardId) && (
+                      <ItemIcon
+                        slug={itemArtSlug(offer.cardId)!}
+                        name={t(offer.labelKey as MessageKey)}
+                      />
+                    )}
                     <strong className="camp-offer__label">{t(offer.labelKey as MessageKey)}</strong>
                     {isCard && (
                       // Бейдж отвечает на «какой слот это займёт», а не «какого типа карта»:

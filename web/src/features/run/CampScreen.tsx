@@ -14,6 +14,7 @@ import {
 } from "../../game/items.ts";
 import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
+import { itemArtSlug } from "../../game/itemArt.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidatesOf } from "../../game/packs.ts";
 import {
@@ -47,6 +48,7 @@ import {
   CheatBadge,
   Eyebrow,
   HeroThumb,
+  ItemIcon,
   Modal,
   RarityBadge,
   useCountUp,
@@ -777,6 +779,16 @@ export function CampScreen() {
                           data-card-tier={itemTier(cardRarity)}
                         >
                           <div className="camp-slot__head">
+                            {/* Иконка предмета (R14.5): у карточки появляется опознаваемое лицо —
+                                до этого слот билда был чистым текстом, хотя все 34 карточки
+                                каталога это НАСТОЯЩИЕ предметы Dota со своим артом. */}
+                            {itemArtSlug(tacticId) && (
+                              <ItemIcon
+                                slug={itemArtSlug(tacticId)!}
+                                name={t(`item.${tacticId}` as MessageKey)}
+                                size="sm"
+                              />
+                            )}
                             <strong>{t(`item.${tacticId}` as MessageKey)}</strong>
                             <RarityBadge
                               rarity={itemTier(cardRarity)}

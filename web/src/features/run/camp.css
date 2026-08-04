@@ -429,6 +429,9 @@
   justify-content: space-between;
   gap: 8px;
 }
+/* Слева от названия может встать иконка предмета (R14.5), поэтому ширину забирает НАЗВАНИЕ, а не
+   `space-between`: иначе иконка прижималась бы к краю, а название уезжало в середину строки. */
+.camp-offer__head .camp-offer__label { flex: 1; min-width: 0; }
 .camp-offer__card-desc {
   color: var(--muted);
   font-size: 11.5px;

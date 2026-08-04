@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ITEM_ART, itemArtSlug } from "../src/game/itemArt.ts";
 import {
   ITEMS,
   ITEM_IDS,
@@ -377,5 +378,19 @@ describe("Оси условий экипированного билда", () => 
   it("оси не дублируются, даже если условие повторяется в нескольких карточках", () => {
     const axes = conditionAxes(["vladmirsOffering", "pipeOfInsight"]); // обе про teamfight
     expect(axes.tags.filter((tag) => tag === "teamfight")).toHaveLength(1);
+  });
+});
+
+// R14.5: таблица иконок обязана покрывать ВЕСЬ каталог и не содержать лишнего. Иначе новый предмет
+// молча приезжает без картинки, а удалённый оставляет мёртвый слаг — оба случая на глаз незаметны.
+describe("иконки предметов", () => {
+  it("ITEM_ART покрывает каталог один-в-один", () => {
+    expect(Object.keys(ITEM_ART).sort()).toEqual([...ITEM_IDS].sort());
+  });
+
+  it("itemArtSlug отдаёт null для не-предметов", () => {
+    expect(itemArtSlug(undefined)).toBeNull();
+    expect(itemArtSlug("signatureSpecialists")).toBeNull();
+    expect(itemArtSlug("shadowBlade")).toBe("invis_sword");
   });
 });

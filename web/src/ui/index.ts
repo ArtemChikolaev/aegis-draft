@@ -12,6 +12,7 @@ export { playerOvrTier, type OvrTier } from "./ovrTier.ts";
 export { HeroThumb } from "./HeroThumb.tsx";
 export { RoleTag } from "./RoleTag.tsx";
 export { RarityBadge } from "./RarityBadge.tsx";
+export { ItemIcon } from "./ItemIcon.tsx";
 export { TagChips, type TagChip, type TagChipTone } from "./TagChips.tsx";
 export { TeamName } from "./TeamName.tsx";
 export { TeamSigil } from "./TeamSigil.tsx";
