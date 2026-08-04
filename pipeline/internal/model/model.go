@@ -51,12 +51,14 @@ type PackPlayer struct {
 }
 
 type Pack struct {
-	ID              string       `json:"id"`
-	EventID         string       `json:"eventId"`
-	TeamID          int          `json:"teamId"`
-	TeamName        string       `json:"teamName"`
-	Tag             string       `json:"tag,omitempty"`
-	LogoID          string       `json:"logoId,omitempty"`
+	ID       string `json:"id"`
+	EventID  string `json:"eventId"`
+	TeamID   int    `json:"teamId"`
+	TeamName string `json:"teamName"`
+	Tag      string `json:"tag,omitempty"`
+	// LogoURL — логотип команды с CDN Steam. Пусто у части исторических команд: OpenDota знает
+	// не всех, и UI обязан иметь фолбэк. Пришёл на место LogoID, который не заполнялся ни разу.
+	LogoURL         string       `json:"logoUrl,omitempty"`
 	Placement       int          `json:"placement,omitempty"`
 	Players         []PackPlayer `json:"players"`
 	SignatureHeroes []int        `json:"signatureHeroes"`
@@ -83,8 +85,11 @@ type PlayerPeak struct {
 }
 
 type PlayerProfile struct {
-	AccountID   int                 `json:"accountId"`
-	Nickname    string              `json:"nickname"`
+	AccountID int    `json:"accountId"`
+	Nickname  string `json:"nickname"`
+	// AvatarURL — аватар с CDN Steam. Заведомо НЕполный: источник (/proPlayers) перечисляет
+	// действующих про, поэтому по историческим составам покрытие ~35%. См. players.schema.json.
+	AvatarURL   string              `json:"avatarUrl,omitempty"`
 	PrimaryRole Role                `json:"primaryRole"`
 	RolesPlayed []Role              `json:"rolesPlayed,omitempty"`
 	Teams       []PlayerTeam        `json:"teams,omitempty"`

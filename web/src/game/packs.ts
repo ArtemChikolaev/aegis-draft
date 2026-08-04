@@ -35,6 +35,8 @@ export interface Candidate {
   player: PackPlayer;
   teamId: number;
   teamName: string;
+  /** Логотип команды (CDN). Необязателен: у части исторических команд его нет — UI держит фолбэк. */
+  logoUrl?: string;
   eventId: string;
   signatureHeroes: number[];
 }
@@ -81,6 +83,7 @@ export function candidatesOf(pack: Pack): Candidate[] {
     player,
     teamId: pack.teamId,
     teamName: pack.teamName,
+    logoUrl: pack.logoUrl,
     eventId: pack.eventId,
     signatureHeroes: pack.signatureHeroes,
   }));

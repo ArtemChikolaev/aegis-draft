@@ -17,9 +17,12 @@ import (
 
 // Input — всё, что нужно для сборки доменного датасета из OpenDota.
 type Input struct {
-	Snapshot           *normalize.OpenDotaSnapshot
-	Aggregates         *aggregate.OpenDotaResult
-	Teams              []opendota.Team
+	Snapshot   *normalize.OpenDotaSnapshot
+	Aggregates *aggregate.OpenDotaResult
+	Teams      []opendota.Team
+	// ProPlayers — справочник действующих про (только ради аватаров). Может быть пуст: поле
+	// avatarUrl необязательное, и датасет обязан собираться без него.
+	ProPlayers         []opendota.ProPlayer
 	Leagues            []opendota.League
 	Heroes             []opendota.Hero
 	AsOf               time.Time
@@ -121,8 +124,22 @@ func Build(in Input) (*model.Dataset, error) {
 	if err != nil {
 		return nil, err
 	}
+	avatarByAccount := make(map[int]string, len(in.ProPlayers))
+	for _, pro := range in.ProPlayers {
+		if pro.AvatarFull != "" {
+			avatarByAccount[int(pro.AccountID)] = pro.AvatarFull
+		}
+	}
 	packs := BuildPacks(matches, events, eventRatings, nickByAccount, in.Teams)
 	players := BuildPlayers(in.Snapshot, rolesList, in.Teams, matches)
+	// Аватар — обогащение уже собранного справочника, а не вход сборки: он не участвует ни в
+	// одном расчёте, и протаскивать его через BuildPlayers значило бы смешать данные с картинками.
+	for key, profile := range players {
+		if url := avatarByAccount[profile.AccountID]; url != "" {
+			profile.AvatarURL = url
+			players[key] = profile
+		}
+	}
 	teamSuccess := BuildTeamSuccess(matches, in.Leagues, in.AsOf, in.Config)
 	heroes := convertHeroes(in.Heroes)
 	eventHeroStats := buildEventHeroStats(matches, events)

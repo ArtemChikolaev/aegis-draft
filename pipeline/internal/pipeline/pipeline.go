@@ -244,6 +244,13 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 	if err != nil {
 		return domainFetchErr("teams", err)
 	}
+	teams = enrichTeamLogos(ctx, od, teams, snapshot)
+	// Аватары — один запрос и мягкий отказ: поле необязательное, и падать из-за картинок нельзя.
+	proPlayers, err := od.FetchProPlayers(ctx)
+	if err != nil {
+		log.Printf("[domain] proPlayers недоступны (%v) — датасет собирается без аватаров", err)
+		proPlayers = nil
+	}
 	leagues, err := od.FetchLeagues(ctx)
 	if err != nil {
 		return domainFetchErr("leagues", err)
@@ -257,7 +264,8 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 		return fmt.Errorf("emit-domain: %w", werr)
 	}
 	ds, err := domain.Build(domain.Input{
-		Snapshot: snapshot, Aggregates: aggregates, Teams: teams, Leagues: leagues, Heroes: heroes,
+		Snapshot: snapshot, Aggregates: aggregates, Teams: teams, ProPlayers: proPlayers,
+		Leagues: leagues, Heroes: heroes,
 		AsOf: asOf, Config: rcfg, RatingModelVersion: rating.ModelVersion, MinEventMatches: cfg.MinEventMatches,
 		WindowStartUnix: windowStart,
 	})
@@ -353,4 +361,54 @@ func emptyDataset(cfg Config) *model.Dataset {
 			Counts:  map[string]int{"events": 0, "heroes": 0, "packs": 0, "players": 0},
 		},
 	}
+}
+
+// enrichTeamLogos дотягивает логотипы команд, которых нет в топ-списке /teams.
+//
+// /teams отдаёт топ по рейтингу, и наши исторические составы туда не попадают: замер 2026-08-04
+// дал 153 логотипа из 320 команд в паках (48%), а пять страниц пагинации — 62% и потолок.
+// Поштучный /teams/{id} по выборке отдал логотип у 11 из 12 «непокрытых», то есть закрывает хвост.
+//
+// Отказ отдельного запроса НЕ роняет сборку: logoUrl необязателен по схеме, а UI держит фолбэк —
+// падать из-за картинки нельзя. Запрашиваем только те команды, что реально встречаются в
+// снапшоте, и только те, у кого логотипа ещё нет.
+func enrichTeamLogos(ctx context.Context, od *opendota.Client, teams []opendota.Team, snapshot *normalize.OpenDotaSnapshot) []opendota.Team {
+	known := make(map[int64]int, len(teams))
+	for i, team := range teams {
+		known[team.TeamID] = i
+	}
+	needed := make(map[int64]struct{})
+	for _, match := range snapshot.Matches {
+		for _, id := range []int{match.RadiantTeamID, match.DireTeamID} {
+			teamID := int64(id)
+			if teamID <= 0 {
+				continue
+			}
+			if i, ok := known[teamID]; ok && teams[i].LogoURL != "" {
+				continue
+			}
+			needed[teamID] = struct{}{}
+		}
+	}
+	if len(needed) == 0 {
+		return teams
+	}
+	log.Printf("[domain] дотягиваем логотипы: %d команд без logo_url", len(needed))
+	filled, failed := 0, 0
+	for teamID := range needed {
+		team, err := od.FetchTeam(ctx, teamID)
+		if err != nil || team == nil || team.LogoURL == "" {
+			failed++
+			continue
+		}
+		if i, ok := known[teamID]; ok {
+			teams[i].LogoURL = team.LogoURL
+		} else {
+			known[teamID] = len(teams)
+			teams = append(teams, *team)
+		}
+		filled++
+	}
+	log.Printf("[domain] логотипы: +%d, без логотипа %d", filled, failed)
+	return teams
 }

@@ -214,7 +214,7 @@ func buildPack(eventID string, teamID int, lineup *eventLineup, ratings map[int]
 	}
 	return model.Pack{
 		ID: fmt.Sprintf("%s-%d", eventID, teamID), EventID: eventID, TeamID: teamID,
-		TeamName: name, Tag: team.Tag, Players: players,
+		TeamName: name, Tag: team.Tag, LogoURL: team.LogoURL, Players: players,
 		SignatureHeroes: signatureHeroes(lineup, roster),
 	}, true
 }

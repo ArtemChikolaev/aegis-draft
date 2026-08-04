@@ -13,7 +13,11 @@
       "teamId": { "type": "integer" },
       "teamName": { "type": "string" },
       "tag": { "type": "string" },
-      "logoId": { "type": "string" },
+      "logoUrl": {
+        "type": "string",
+        "format": "uri",
+        "description": "Логотип команды (OpenDota logo_url, CDN Steam). Необязательный: у части исторических команд логотипа нет вовсе — UI обязан иметь фолбэк. Пришёл на место мёртвого logoId, который не заполнялся ни разу."
+      },
       "placement": { "type": "integer", "description": "Место на турнире" },
       "players": {
         "type": "array",

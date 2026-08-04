@@ -763,6 +763,9 @@
     color-mix(in srgb, var(--card-tint, transparent) 11%, var(--surface))
   );
 }
+/* Логотип команды прижат вправо: слева роль, справа знак — строка читается как «кто и откуда». */
+.camp-player-card__top > img,
+.camp-player-card__top > span:not(.camp-player-card__label):last-child { margin-left: auto; }
 .camp-player-card__top,
 .camp-player-card__identity,
 .camp-player-card__bottom {
@@ -794,7 +797,10 @@
 }
 .camp-player-card__identity strong { font-size: 14px; }
 .camp-player-card__identity small { color: var(--muted); font-size: 9px; }
-.camp-player-card__identity img { width: 34px; height: 20px; object-fit: cover; }
+/* Только портрет героя (он лежит ВНУТРИ span у `HeroThumb`). Раньше селектор бил по любому img в
+   строке и переопределял по специфичности логотип команды, который приходит прямым потомком, —
+   знак растягивался в 34×20 и терял пропорции. */
+.camp-player-card__identity > span img { width: 34px; height: 20px; object-fit: cover; }
 .camp-player-card__stats {
   display: flex;
   min-width: 0;

@@ -2,7 +2,7 @@ import type { Candidate } from "../../game/packs.ts";
 import type { GameData, Stat } from "../../types/data.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey } from "../../i18n/core.ts";
-import { Button, HeroThumb, Modal } from "../../ui/index.ts";
+import { Button, HeroThumb, Modal, RemoteAvatar } from "../../ui/index.ts";
 
 interface HeroStatRow {
   heroId: number;
@@ -23,6 +23,19 @@ export function PlayerInspector({ candidate, data, onClose }: {
 
   return (
     <Modal
+      /* Аватар — там, где игрок ОДИН. В паке он был бы рваным рядом: покрытие ~35% (источник
+         перечисляет действующих про, а составы у нас исторические), и три карточки из пяти
+         остались бы с монограммой. В профиле сравнивать не с чем, поэтому картинка только
+         помогает. Нет аватара — монограмма из ника, место не пустует. */
+      mark={(
+        <RemoteAvatar
+          src={data.players?.[accountKey]?.avatarUrl}
+          name={candidate.player.nickname}
+          shape="round"
+          size="lg"
+          fallback={candidate.player.nickname.slice(0, 2)}
+        />
+      )}
       title={candidate.player.nickname}
       description={`${candidate.teamName} · ${event?.name ?? candidate.eventId}`}
       subhead={(

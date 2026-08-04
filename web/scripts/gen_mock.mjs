@@ -86,6 +86,29 @@ function signaturePool(team) {
   return out.slice(0, SIGNATURE_POOL).sort((a, b) => a - b);
 }
 
+// Настоящие ссылки OpenDota для тех id, что мок и так использует реальными (2026-08-04).
+// Покрытие намеренно НЕполное — ровно как в проде: аватар есть у 7 игроков из 35 (источник
+// /proPlayers перечисляет действующих про). Мок обязан воспроизводить именно смешанный случай,
+// иначе фолбэк никогда не попадает ни в глаз, ни в тест.
+const TEAM_LOGOS = {
+  8291895: "https://cdn.steamusercontent.com/ugc/2031716132171967904/07B168B8063D9B22CDAD53AB421ECAF3D4B2E07E/",
+  2163: "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/2163.png",
+  8599101: "https://cdn.steamusercontent.com/ugc/1850419664501191993/5DAAB68FB5604D29E1792A0F35E74B3FE3F3A026/",
+  8255888: "https://cdn.steamusercontent.com/ugc/9995426432403529725/51E13136D4CCC8C7D8062861541A1D13B8ED87E0/",
+  8687717: "https://cdn.steamusercontent.com/ugc/1991184321454001998/07A293B6565085107C7A440115D66892AA2006FC/",
+  8261500: "https://cdn.steamusercontent.com/ugc/2402194226059610590/E3CF4B6C4B2CFB974A9B415141E4A37317AD4D80/",
+  9247354: "https://cdn.steamusercontent.com/ugc/2314350571781870059/2B5C9FE9BA0A2DC303A13261444532AA08352843/",
+};
+const PLAYER_AVATARS = {
+  321580662: "https://avatars.steamstatic.com/949f06c7fa744f62cc2129a7680711b2b7d4d6ea_full.jpg",
+  302214028: "https://avatars.steamstatic.com/b23167c590835cf926efdcb09ba5956832a477fe_full.jpg",
+  88271237: "https://avatars.steamstatic.com/5e4ef463bf45682da1dc059a7f972e355e98ac2b_full.jpg",
+  152859296: "https://avatars.steamstatic.com/cd36230c6b3cb36f16477ae4bfc101326a0ae649_full.jpg",
+  152962063: "https://avatars.steamstatic.com/e85a5349a39122098555676811c5a05ff5ff0614_full.jpg",
+  111620041: "https://avatars.steamstatic.com/e452d9c398d20ddbea1faa0c15ff417ff0bf5b02_full.jpg",
+  94296097: "https://avatars.steamstatic.com/7f8bbaf9d2350405803da046b09e54618f8602ce_full.jpg",
+};
+
 const TEAMS = {
   spirit: {
     teamId: 8291895, teamName: "Team Spirit", tag: "TSpirit", sig: [44, 74, 114, 26, 5],
@@ -148,7 +171,7 @@ for (const ev of EVENTS) {
     const team = TEAMS[teamKey];
     packs.push({
       id: `${ev.id}-${team.teamId}`, eventId: ev.id, teamId: team.teamId, teamName: team.teamName,
-      tag: team.tag, logoId: "0", placement,
+      tag: team.tag, logoUrl: TEAM_LOGOS[team.teamId], placement,
       players: team.roster.map((pl) => ({
         accountId: pl.accountId, nickname: pl.nickname, role: pl.role, ovr: pl.ovr,
         impact: stat(pl.ovr, pl.role, "impact"), economy: stat(pl.ovr, pl.role, "economy"),
@@ -207,6 +230,7 @@ for (const [accountId, pl] of seenPlayer) {
   teams.sort((a, b) => a.teamId - b.teamId);
   players[accountId] = {
     accountId, nickname: pl.nickname, primaryRole: pl.role, rolesPlayed: [pl.role], teams,
+    ...(PLAYER_AVATARS[accountId] ? { avatarUrl: PLAYER_AVATARS[accountId] } : {}),
     peak: { [pl.role]: { ovr: Math.min(99, pl.ovr + 2), windowStart: "2025-01-01", windowEnd: "2025-06-30", games: 40 + Math.floor(rand(accountId) * 20) } },
   };
 }
