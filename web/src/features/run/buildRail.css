@@ -16,18 +16,34 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
+  box-shadow: inset 0 0 0 1px color-mix(
+    in srgb,
+    var(--build-rail-card-color, var(--line)) 16%,
+    transparent
+  );
 }
 /* Невыполненное условие гасит карточку, а не красит её в тревожный цвет: «сейчас не играет» —
    это нормальное состояние условной карты, а не ошибка. */
 .build-rail__card[data-active="false"] { opacity: .45; }
 .build-rail__card[data-active="true"] {
   border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(
+      in srgb,
+      var(--build-rail-card-color, var(--accent)) 16%,
+      transparent
+    ),
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
 }
-/* Качество владеет ЦВЕТОМ рамки — та же ось, что у карточек (R13.5), без четвёртой яркой рамки. */
-.build-rail__card[data-card-tier="refined"] { border-color: color-mix(in srgb, var(--card-tier-refined) 55%, var(--line)); }
-.build-rail__card[data-card-tier="exotic"] { border-color: color-mix(in srgb, var(--card-tier-exotic) 60%, var(--line)); }
-.build-rail__card[data-card-tier="arcana"] { border-color: color-mix(in srgb, var(--card-tier-arcana) 65%, var(--line)); }
+/* Качество владеет ЦВЕТОМ рамки — та же ось, что у полноразмерных карточек (R13.5).
+   У мини-карты оставляем только кант без крупного свечения: на плотном ряду оно читалось бы шумом. */
+.build-rail__card[data-card-tier="standard"] { --build-rail-card-color: var(--card-tier-standard); }
+.build-rail__card[data-card-tier="refined"] { --build-rail-card-color: var(--card-tier-refined); }
+.build-rail__card[data-card-tier="exotic"] { --build-rail-card-color: var(--card-tier-exotic); }
+.build-rail__card[data-card-tier="arcana"] { --build-rail-card-color: var(--card-tier-arcana); }
+.build-rail__card[data-card-tier] {
+  border-color: color-mix(in srgb, var(--build-rail-card-color) 60%, var(--line));
+}
 .build-rail__mono {
   color: var(--muted);
   font-size: 11px;
@@ -47,7 +63,10 @@
    светлые пятна. Ремапим их инвертными — по правилу design-language «никаких тема-селекторов в
    feature CSS, только токены». */
 .on-invert-surface .build-rail__card {
-  border-color: var(--line-invert);
   background: color-mix(in srgb, var(--on-invert) 8%, transparent);
+}
+.on-invert-surface .build-rail__card:not([data-card-tier]) { border-color: var(--line-invert); }
+.on-invert-surface .build-rail__card[data-card-tier] {
+  border-color: color-mix(in srgb, var(--build-rail-card-color) 60%, var(--line-invert));
 }
 .on-invert-surface .build-rail__mono { color: var(--muted-invert); }

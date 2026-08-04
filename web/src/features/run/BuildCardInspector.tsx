@@ -1,0 +1,101 @@
+// Разбор карточки билда — один на все места, где карточка показана компактно (плейтест 2026-08-04).
+//
+// Правило то же, что у карточек рынка (R13.3): на самой карточке — что это и работает ли она
+// сейчас; всё остальное открывается по клику. До этого слот билда печатал описание, ограничение,
+// список подходящих героев и разложение вклада прямо в ряду, из-за чего пять слотов занимали
+// экран, а в рейле карточку вообще нельзя было прочитать — только увидеть иконку.
+import { itemAt, itemDef, itemLabel, itemTier, effectMatch } from "../../game/items.ts";
+import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
+import { itemArtSlug } from "../../game/itemArt.ts";
+import type { Rarity } from "../../game/rarity.ts";
+import { useI18n } from "../../i18n/I18nProvider.tsx";
+import type { MessageKey } from "../../i18n/core.ts";
+import { ItemIcon, Modal, RarityBadge } from "../../ui/index.ts";
+import { useHero } from "../draft/heroes.ts";
+import { ItemMatch, itemLabelParams, layerChip, type Translate } from "./CampCards.tsx";
+
+/** Вклад карточки в силу забега — те же `sources`, что рисует разложение. Необязателен: рейл на
+ *  экране этапа знает вклад, а вне забега его может не быть, и карточка обязана читаться без него. */
+export interface BuildCardContribution {
+  layer: "flat" | "additive" | "xMult" | "economy" | "boss";
+  value: number;
+  met: boolean;
+}
+
+export function BuildCardInspector({ cardId, rarity, activeHeroes, cardRarity, contributions, onClose }: {
+  cardId: string;
+  rarity: Rarity;
+  activeHeroes: readonly number[];
+  cardRarity: Record<string, Rarity>;
+  contributions?: readonly BuildCardContribution[];
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const hero = useHero();
+  const item = itemDef(cardId);
+  const kind = item ? "item" : isTacticId(cardId) ? "tactic" : "action";
+  const title = t(`${kind}.${cardId}` as MessageKey);
+  const slug = itemArtSlug(cardId);
+  const scaled = item ? itemAt(item, rarity) : null;
+  const effect = scaled ? itemLabel(scaled.effect) : null;
+  const drawback = scaled?.drawback ? itemLabel(scaled.drawback) : null;
+  // Тактика описывается своим текстом с подставленными числами; предмет собирает описание из
+  // масштабированного эффекта — в обоих случаях текст читает ТУ ЖЕ модель, что и расчёт.
+  const tacticVars = kind === "tactic" && isTacticId(cardId) ? tacticLabelParams(cardId) : undefined;
+
+  return (
+    <Modal title={title} onClose={onClose} layout="content" presentation="card">
+      <div className="build-card-inspector">
+        <div className="build-card-inspector__head">
+          {slug && <ItemIcon slug={slug} name={title} />}
+          {item && (
+            <RarityBadge
+              rarity={itemTier(rarity)}
+              label={t(`cardTier.${itemTier(rarity)}` as MessageKey)}
+              showBase
+            />
+          )}
+        </div>
+        <p className="build-card-inspector__desc">
+          {effect
+            ? t(effect.template as MessageKey, itemLabelParams(effect.params, t as Translate))
+            : t(`${kind}.desc.${cardId}` as MessageKey, tacticVars)}
+        </p>
+        {drawback && (
+          <p className="build-card-inspector__desc build-card-inspector__desc--cost">
+            {t(drawback.template as MessageKey, itemLabelParams(drawback.params, t as Translate))}
+          </p>
+        )}
+        {scaled && (
+          <>
+            <ItemMatch
+              match={effectMatch(scaled.effect, { activeHeroes, cardRarity })}
+              hero={hero}
+              t={t as Translate}
+            />
+            {scaled.drawback && (
+              <ItemMatch
+                match={effectMatch(scaled.drawback, { activeHeroes, cardRarity })}
+                hero={hero}
+                t={t as Translate}
+              />
+            )}
+          </>
+        )}
+        <div className="camp-offer__deltas">
+          {contributions && contributions.length === 0 && (
+            <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>
+          )}
+          {(contributions ?? []).map((source, i) => (
+            <span
+              key={i}
+              className={`camp-offer__delta camp-offer__delta--${source.met ? "up" : "down"}`}
+            >
+              {layerChip(source, t as Translate)}
+            </span>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+}

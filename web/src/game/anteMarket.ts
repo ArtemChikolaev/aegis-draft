@@ -303,21 +303,17 @@ function drawWeighted(pool: { heroId: number; games: number }[], rng: Rng): numb
 }
 
 /**
- * Размер пака рынка (R14.7).
+ * Размер каждого пака рынка: по одной карте на каждый ролевой слот активной пятёрки.
  *
- * Было — по одной карте на каждую роль (`ROLE_SEQUENCE.length`, то есть 5) в КАЖДОМ из двух паков.
- * Вместе с рядом улучшения качества это давало 15 карточек на экране, `scrollHeight` 2210px при
- * 1440×720 — три экрана. У Balatro магазин это 2 слота + 2 бустера + 1 ваучер в один ряд, и дефицит
- * там не косметика: он и делает реролл решением, а не кнопкой «обновить».
- *
- * Сужение НЕ запрещает роль: `balancedPackSlots` держит минимум один core и минимум один support,
- * а какие именно карты уходят — решает seed. Тот же механизм уже обслуживает trade-off Last Dance,
- * поэтому второй способ сужать пак не заводим — просто уменьшилась база, от которой он вычитает.
+ * Плейтест 2026-08-04 отменил сужение R14.7 до трёх карт: компактная сетка уже удерживает экран,
+ * а потеря двух вариантов делала рынок беднее. Связываем число с `ROLE_SEQUENCE`, чтобы UI и
+ * генератор не разошлись при изменении состава. Last Dance по-прежнему сужает эту базу через
+ * `balancedPackSlots`, не запрещая конкретную роль.
  *
  * Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION.
  */
 export const MARKET_PACK = {
-  size: 3,
+  size: ROLE_SEQUENCE.length,
 } as const;
 
 /** Нижняя граница hero-пака. Placeholder под калибровку R10; часть BALANCE_CONFIG_VERSION. */
@@ -434,8 +430,8 @@ export function buildAnteMarketRoulette(
     ? Math.min(1, Math.max(0, (campStageIndex - 1) / (stageCount - 1)))
     : 0;
   const tactics = tacticMarketEffects(equippedTactics);
-  // База — `MARKET_PACK.size` (R14.7), а не «по карте на роль»: дефицит опций и есть то, что
-  // делает реролл решением. Last Dance вычитает из этой базы, как и раньше.
+  // База — `MARKET_PACK.size`, то есть по карте на каждый ролевой слот. Last Dance осознанно
+  // вычитает из неё свои варианты через тот же сбалансированный отбор.
   const packSize = Math.max(1, MARKET_PACK.size - tactics.packSizePenalty);
   const before = engine.score();
   if (!before) throw new Error("Market pack доступен только после завершения драфта");

@@ -247,12 +247,9 @@
    сколько предложений осталось. */
 .camp__pack {
   display: grid;
-  /* Минимум трека поднят со 148px до 240px вместе с сужением пака (R14.7): на 148px сетка держала
-     пять треков, и пак из трёх карт оставлял два пустых — дыра справа вместо карточек. На 240px
-     широкий экран даёт ровно три трека, то есть освободившееся место уходит В КАРТОЧКИ (арт вдвое
-     крупнее), а не в пустоту. `auto-fill` сохраняется по прежней причине: после покупки оставшиеся
-     карты не должны растягиваться, ширина не зависит от числа предложений. */
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  /* Пять карт снова помещаются в один ряд на широком экране. `auto-fill`, а не `auto-fit`:
+     после покупки оставшиеся карты не растягиваются и оба рыночных ряда сохраняют общий ритм. */
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: 8px;
 }
 /* Раздача рынка (R14.4). Обёртка `ui/Dealt` встаёт МЕЖДУ сеткой и карточкой, поэтому растяжение по
@@ -481,9 +478,24 @@
   font-weight: 700;
   color: var(--muted);
 }
+/* Слоты билда — сетка компактных карточек (плейтест 2026-08-04). Раньше это был вертикальный
+   список во всю ширину: пять строк, из них три пустых «Empty slot» по 50px, а занятые печатали
+   описание, ограничение, героев и всё разложение — экран уходил на инвентарь из пяти карточек. */
 .camp__slots {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   gap: 8px;
+  align-items: stretch;
+}
+.camp__slots .camp-slot { position: relative; }
+/* Пустой слот не должен весить как занятый: он сообщает «сюда влезет ещё карта», и всё. */
+.camp__slots .camp-slot--empty { min-height: 64px; padding: 10px; }
+/* Описание — одна-две строки; полный текст открывается разбором по клику. */
+.camp-slot__desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .camp__scouted {
   margin: 0;
@@ -1083,3 +1095,21 @@
 .camp__build-details[open] > summary::after { transform: rotate(180deg); }
 .camp__build-details > summary small { color: var(--muted); }
 
+/* Разбор карточки билда — общий для рейла и слотов. */
+.build-card-inspector {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.build-card-inspector__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.build-card-inspector__desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.build-card-inspector__desc--cost { color: var(--danger); }

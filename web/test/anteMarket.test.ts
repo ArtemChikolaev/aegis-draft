@@ -30,6 +30,12 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     return engine;
   }
 
+  it("даёт по одной карте на каждый ролевой слот", () => {
+    expect(MARKET_PACK.size).toBe(ROLE_SEQUENCE.length);
+    expect(MARKET_PACK.size).toBe(5);
+    expect(TACTICS.lastDance.marketPackPenalty).toBe(2);
+  });
+
   it("детерминирован и даёт ровно MARKET_PACK.size player-офферов с реальным breakdown", () => {
     const engineA = completed("roulette");
     const offersA = buildAnteMarketRoulette(engineA, "roulette", 1, 0);

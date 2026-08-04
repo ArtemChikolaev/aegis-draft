@@ -609,6 +609,9 @@ export function TournamentScreen() {
             )}
             slots={TACTIC_SLOTS}
             testId="stage-build-rail"
+            activeHeroes={snapshot.heroes}
+            cardRarity={economyView?.cardRarity ?? {}}
+            contributionsOf={(cardId) => itemEval.sources.filter((source) => source.itemId === cardId)}
           />
           {!power.trivial && (
             <PowerBreakdown

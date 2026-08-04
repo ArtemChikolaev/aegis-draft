@@ -8,6 +8,7 @@
 // Рейл презентационный: он не считает свою математику, а получает готовый список. Активность
 // карточки берётся из ТОГО ЖЕ источника, что и боевой расчёт (`sources` силы забега), поэтому
 // подсветка не может разойтись с тем, что реально сработало.
+import { useState } from "react";
 import type { Rarity } from "../../game/rarity.ts";
 import { itemDef, itemTier } from "../../game/items.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
@@ -15,6 +16,7 @@ import { isTacticId } from "../../game/tactics.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { ItemIcon } from "../../ui/index.ts";
+import { BuildCardInspector, type BuildCardContribution } from "./BuildCardInspector.tsx";
 import "./buildRail.css";
 
 export interface BuildRailCard {
@@ -44,13 +46,20 @@ export function buildRailCards(
   ];
 }
 
-export function BuildRail({ cards, slots, testId }: {
+export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, contributionsOf }: {
   cards: readonly BuildRailCard[];
   /** Сколько слотов всего — пустые рисуем точками, иначе непонятно, есть ли ещё место. */
   slots: number;
   testId?: string;
+  /** Контекст разбора: рейл сам открывает карточку по клику, поэтому знает, чем её объяснить. */
+  activeHeroes: readonly number[];
+  cardRarity: Record<string, Rarity>;
+  contributionsOf?: (cardId: string) => readonly BuildCardContribution[];
 }) {
   const { t } = useI18n();
+  // Плейтест 2026-08-04: иконку было видно, а прочитать карточку негде — особенно на экране этапа,
+  // где панели Build нет вовсе. Состояние держит сам рейл: так оба экрана получают разбор даром.
+  const [inspected, setInspected] = useState<BuildRailCard | null>(null);
   // Пустой билд не показываем вовсе: ряд из пяти пустых точек — это шум, а не информация.
   if (cards.length === 0) return null;
   const empty = Math.max(0, slots - cards.filter((card) => !card.held).length);
@@ -62,23 +71,36 @@ export function BuildRail({ cards, slots, testId }: {
         const label = t(`${kind}.${card.id}` as MessageKey);
         const slug = itemArtSlug(card.id);
         return (
-          <span
+          <button
+            type="button"
             key={card.id}
             className={`build-rail__card build-rail__card--${kind}`}
             data-card-id={card.id}
             data-card-tier={item ? itemTier(card.rarity) : undefined}
             data-active={card.active}
             title={`${label}${card.active ? "" : ` · ${t("camp.tacticNoEffect")}`}`}
+            aria-label={`${label} · ${t("camp.offerDetails")}`}
+            onClick={() => setInspected(card)}
           >
             {slug
               ? <ItemIcon slug={slug} name={label} size="sm" />
               : <b className="build-rail__mono">{label.slice(0, 2)}</b>}
-          </span>
+          </button>
         );
       })}
       {Array.from({ length: empty }, (_, i) => (
         <span key={`empty-${i}`} className="build-rail__card build-rail__card--empty" aria-hidden="true" />
       ))}
+      {inspected && (
+        <BuildCardInspector
+          cardId={inspected.id}
+          rarity={inspected.rarity}
+          activeHeroes={activeHeroes}
+          cardRarity={cardRarity}
+          contributions={contributionsOf?.(inspected.id)}
+          onClose={() => setInspected(null)}
+        />
+      )}
     </div>
   );
 }

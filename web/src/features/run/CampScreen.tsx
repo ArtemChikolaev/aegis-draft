@@ -37,6 +37,7 @@ import {
   type SummandDelta,
 } from "./campPresentation.ts";
 import { OfferOverlay } from "./OfferOverlay.tsx";
+import { BuildCardInspector } from "./BuildCardInspector.tsx";
 import { BuildRail, buildRailCards } from "./BuildRail.tsx";
 import { MarketPanel } from "./MarketPanel.tsx";
 import { RewardPanel } from "./RewardPanel.tsx";
@@ -117,6 +118,8 @@ export function CampScreen() {
   // Вопрос «а кто вообще бывает illusion?» возникает посреди выбора в Буткемпе, поэтому отвечаем
   // модалкой, не уводя игрока с экрана с незакрытым выбором (тот же приём, что у карточки игрока).
   const [inspectedTag, setInspectedTag] = useState<string | null>(null);
+  // Разбор карточки билда (плейтест 2026-08-04): слот показывает суть, полное описание — по клику.
+  const [inspectedCard, setInspectedCard] = useState<string | null>(null);
 
   // Новый Буткемп начинается с обязательного выбора награды. Resume после уже сделанного выбора
   // не возвращает игрока в свёрнутую награду — продолжает с рынка. Состояние это только UI:
@@ -693,9 +696,18 @@ export function CampScreen() {
             ))}
           </nav>
 
-          {/* Билд виден при ЛЮБОМ активном разделе (R14.6): решение о покупке принимается против
-              собранной сборки, а до этого она пряталась во вкладке Build. */}
-          <BuildRail cards={railCards} slots={camp.tacticSlots} testId="camp-build-rail" />
+          {/* Билд виден при любом разделе, КРОМЕ самого Build (плейтест 2026-08-04): там ровно те же
+              карточки показаны слотами, и рейл над ними был вторым изображением одного и того же. */}
+          {activeSection !== "build" && (
+            <BuildRail
+              cards={railCards}
+              slots={camp.tacticSlots}
+              testId="camp-build-rail"
+              activeHeroes={snapshot.heroes}
+              cardRarity={camp.cardRarity}
+              contributionsOf={(cardId) => itemEval.sources.filter((source) => source.itemId === cardId)}
+            />
+          )}
 
           {activeSection === "preparation" && (
             <div id="camp-panel-preparation" role="tabpanel" className="camp__section-panel enter">
@@ -769,6 +781,11 @@ export function CampScreen() {
                     }}
                   />
                 )}
+                {/* Слоты — компактные карточки, а не высокие строки (плейтест 2026-08-04).
+                    Раньше каждый слот печатал описание, ограничение, список подходящих героев и всё
+                    разложение вклада, поэтому пять слотов занимали экран, а три из них были пустыми
+                    «Empty slot» во всю ширину. Правило то же, что у рынка (R13.3): на карточке —
+                    что это и работает ли сейчас, остальное по клику. */}
                 <div className="camp__slots">
                   {Array.from({ length: camp.tacticSlots }, (_, slot) => {
                     const tacticId = camp.equippedTactics[slot];
@@ -778,82 +795,39 @@ export function CampScreen() {
                     // Предмет и тактика делят слот (R8.3): различаются только тем, куда целится
                     // эффект — в слагаемые Team OVR или в слои силы забега.
                     const item = itemDef(tacticId);
-                    if (item) {
-                      const contributions = itemEval.sources.filter((source) => source.itemId === tacticId);
-                      const cardRarity: Rarity = camp.cardRarity[tacticId] ?? "common";
-                      const scaled = itemAt(item, cardRarity);
-                      const label = itemLabel(scaled.effect);
-                      const cost = scaled.drawback ? itemLabel(scaled.drawback) : null;
-                      return (
-                        <div
-                          key={tacticId}
-                          className="camp-slot camp-slot--item"
-                          data-card-id={tacticId}
-                          data-card-rarity={cardRarity}
-                          data-card-tier={itemTier(cardRarity)}
-                        >
-                          <div className="camp-slot__head">
-                            {/* Иконка предмета (R14.5): у карточки появляется опознаваемое лицо —
-                                до этого слот билда был чистым текстом, хотя все 34 карточки
-                                каталога это НАСТОЯЩИЕ предметы Dota со своим артом. */}
-                            {itemArtSlug(tacticId) && (
-                              <ItemIcon
-                                slug={itemArtSlug(tacticId)!}
-                                name={t(`item.${tacticId}` as MessageKey)}
-                                size="sm"
-                              />
-                            )}
-                            <strong>{t(`item.${tacticId}` as MessageKey)}</strong>
+                    const cardRarity: Rarity = camp.cardRarity[tacticId] ?? "common";
+                    const name = t(`${item ? "item" : "tactic"}.${tacticId}` as MessageKey);
+                    const scaled = item ? itemAt(item, cardRarity) : null;
+                    const label = scaled ? itemLabel(scaled.effect) : null;
+                    const reasons = (tactics?.sources ?? []).filter((source) => source.tacticId === tacticId);
+                    const contributions = itemEval.sources.filter((source) => source.itemId === tacticId);
+                    const idle = item ? contributions.length === 0 : reasons.length === 0;
+                    return (
+                      <div
+                        key={tacticId}
+                        className={`camp-slot camp-inspectable-card ${item ? "camp-slot--item" : "camp-slot--tactic"}`}
+                        data-card-id={tacticId}
+                        data-card-rarity={item ? cardRarity : undefined}
+                        data-card-tier={item ? itemTier(cardRarity) : undefined}
+                      >
+                        <CardInspectTrigger
+                          label={name}
+                          delta={0}
+                          testId={`build-card-${tacticId}`}
+                          onOpen={() => setInspectedCard(tacticId)}
+                        />
+                        <div className="camp-slot__head">
+                          {itemArtSlug(tacticId) && (
+                            <ItemIcon slug={itemArtSlug(tacticId)!} name={name} size="sm" />
+                          )}
+                          <strong>{name}</strong>
+                          {item && (
                             <RarityBadge
                               rarity={itemTier(cardRarity)}
                               label={t(`cardTier.${itemTier(cardRarity)}` as MessageKey)}
                               showBase
                             />
-                            <button
-                              type="button"
-                              className="camp-slot__discard"
-                              aria-label={t("camp.discard")}
-                              data-testid={`tactic-discard-${tacticId}`}
-                              onClick={() => discardTactic(tacticId)}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                          <p className="camp-slot__desc">{t(label.template as MessageKey, itemLabelParams(label.params, t))}</p>
-                          {cost && (
-                            <p className="camp-slot__desc camp-slot__desc--cost">
-                              {t(cost.template as MessageKey, itemLabelParams(cost.params, t))}
-                            </p>
                           )}
-                          <ItemMatch
-                            match={effectMatch(scaled.effect, {
-                              activeHeroes: snapshot.heroes,
-                              cardRarity: camp.cardRarity,
-                            })}
-                            hero={hero}
-                            t={t}
-                          />
-                          <div className="camp-offer__deltas">
-                            {contributions.length === 0 && (
-                              <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>
-                            )}
-                            {contributions.map((source, i) => (
-                              <span
-                                key={i}
-                                className={`camp-offer__delta camp-offer__delta--${source.met ? "up" : "down"}`}
-                              >
-                                {layerChip(source, t)}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    }
-                    const reasons = (tactics?.sources ?? []).filter((source) => source.tacticId === tacticId);
-                    return (
-                      <div key={tacticId} className="camp-slot camp-slot--tactic" data-card-id={tacticId}>
-                        <div className="camp-slot__head">
-                          <strong>{t(`tactic.${tacticId}` as MessageKey)}</strong>
                           <button
                             type="button"
                             className="camp-slot__discard"
@@ -865,21 +839,31 @@ export function CampScreen() {
                           </button>
                         </div>
                         <p className="camp-slot__desc">
-                          {t(
-                            `tactic.desc.${tacticId}` as MessageKey,
-                            isTacticId(tacticId) ? tacticLabelParams(tacticId) : undefined,
-                          )}
+                          {label
+                            ? t(label.template as MessageKey, itemLabelParams(label.params, t))
+                            : t(
+                              `tactic.desc.${tacticId}` as MessageKey,
+                              isTacticId(tacticId) ? tacticLabelParams(tacticId) : undefined,
+                            )}
                         </p>
+                        {/* Одна строка состояния: сработала карточка или нет. Полное разложение,
+                            ограничение и подходящие герои живут в разборе по клику. */}
                         <div className="camp-offer__deltas">
-                          {reasons.length === 0 && (
-                            <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>
-                          )}
-                          {reasons.map((source, i) => (
+                          {idle && <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>}
+                          {item && contributions.slice(0, 1).map((source, i) => (
+                            <span
+                              key={i}
+                              className={`camp-offer__delta camp-offer__delta--${source.met ? "up" : "down"}`}
+                            >
+                              {layerChip(source, t)}
+                            </span>
+                          ))}
+                          {!item && reasons.slice(0, 1).map((source, i) => (
                             <span
                               key={i}
                               className={`camp-offer__delta camp-offer__delta--${source.delta >= 0 ? "up" : "down"}`}
                             >
-                              {t(source.reasonKey as MessageKey, source.reasonParams)} · {t(`common.${source.summand}` as MessageKey)} {signed(source.delta)}
+                              {t(`common.${source.summand}` as MessageKey)} {signed(source.delta)}
                             </span>
                           ))}
                         </div>
@@ -1190,6 +1174,16 @@ export function CampScreen() {
           totalLabel={t("camp.power")}
           action={inspected.action}
           onClose={() => setInspected(null)}
+        />
+      )}
+      {inspectedCard && (
+        <BuildCardInspector
+          cardId={inspectedCard}
+          rarity={camp.cardRarity[inspectedCard] ?? "common"}
+          activeHeroes={snapshot.heroes}
+          cardRarity={camp.cardRarity}
+          contributions={itemEval.sources.filter((source) => source.itemId === inspectedCard)}
+          onClose={() => setInspectedCard(null)}
         />
       )}
       {inspectedTag && (
