@@ -19,6 +19,8 @@ import {
 } from "../../game/tournamentPlayback.ts";
 import { isNarrowViewport } from "../../design/breakpoints.ts";
 import { useRun } from "../../state/runStore.ts";
+import { TACTIC_SLOTS } from "../../game/tactics.ts";
+import { BuildRail, buildRailCards } from "../run/BuildRail.tsx";
 import { evaluateItems } from "../../game/items.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
@@ -591,6 +593,22 @@ export function TournamentScreen() {
             swapSelectedId={swapSelectedId}
             onSwapTap={canSwap ? handleSwapTap : undefined}
             onSelectPlayer={canSwap || hardMode ? undefined : setInspectedPlayer}
+          />
+          {/* Сборка видна ТАМ, где смотрят на её результат (R14.6). Раньше весь билд был сжат в
+              одну строку `Roster · Mult · Total`: экран этапа — момент, когда игрок проверяет, что
+              дала его сборка, и самих карточек при этом на экране не было. */}
+          <BuildRail
+            cards={buildRailCards(
+              economyView?.equippedTactics ?? [],
+              economyView?.heldActions ?? [],
+              economyView?.cardRarity ?? {},
+              new Set<string>([
+                ...itemEval.sources.filter((source) => source.met).map((source) => source.itemId),
+                ...(tactics?.sources ?? []).map((source) => source.tacticId as string),
+              ]),
+            )}
+            slots={TACTIC_SLOTS}
+            testId="stage-build-rail"
           />
           {!power.trivial && (
             <PowerBreakdown

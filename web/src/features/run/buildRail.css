@@ -1,0 +1,53 @@
+/* Ряд карточек билда (R14.6): виден на всех экранах забега, а не только во вкладке Буткемпа.
+   Компактный по построению — это опознание сборки одним взглядом, а не её разбор: числа и условия
+   живут в панели Build и в инспекторе. */
+.build-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.build-rail__card {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+/* Невыполненное условие гасит карточку, а не красит её в тревожный цвет: «сейчас не играет» —
+   это нормальное состояние условной карты, а не ошибка. */
+.build-rail__card[data-active="false"] { opacity: .45; }
+.build-rail__card[data-active="true"] {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+/* Качество владеет ЦВЕТОМ рамки — та же ось, что у карточек (R13.5), без четвёртой яркой рамки. */
+.build-rail__card[data-card-tier="refined"] { border-color: color-mix(in srgb, var(--card-tier-refined) 55%, var(--line)); }
+.build-rail__card[data-card-tier="exotic"] { border-color: color-mix(in srgb, var(--card-tier-exotic) 60%, var(--line)); }
+.build-rail__card[data-card-tier="arcana"] { border-color: color-mix(in srgb, var(--card-tier-arcana) 65%, var(--line)); }
+.build-rail__mono {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.build-rail__card--action .build-rail__mono { color: var(--card-action, var(--muted)); }
+.build-rail__card--empty {
+  min-width: 22px;
+  height: 22px;
+  border-style: dashed;
+  background: transparent;
+}
+
+/* На всегда-тёмной панели радара (`.on-invert-surface`) базовые токены поверхности читаются как
+   светлые пятна. Ремапим их инвертными — по правилу design-language «никаких тема-селекторов в
+   feature CSS, только токены». */
+.on-invert-surface .build-rail__card {
+  border-color: var(--line-invert);
+  background: color-mix(in srgb, var(--on-invert) 8%, transparent);
+}
+.on-invert-surface .build-rail__mono { color: var(--muted-invert); }

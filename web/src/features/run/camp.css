@@ -1077,3 +1077,4 @@
 }
 .camp__build-details[open] > summary::after { transform: rotate(180deg); }
 .camp__build-details > summary small { color: var(--muted); }
+

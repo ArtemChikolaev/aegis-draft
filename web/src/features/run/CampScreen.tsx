@@ -37,6 +37,7 @@ import {
   type SummandDelta,
 } from "./campPresentation.ts";
 import { OfferOverlay } from "./OfferOverlay.tsx";
+import { BuildRail, buildRailCards } from "./BuildRail.tsx";
 import { MarketPanel } from "./MarketPanel.tsx";
 import { RewardPanel } from "./RewardPanel.tsx";
 import { PreparationPanel } from "./PreparationPanel.tsx";
@@ -229,6 +230,15 @@ export function CampScreen() {
       : mods.heroSynergy
         ? signed(mods.heroSynergy)
         : undefined;
+  // Активные карточки берём из тех же `sources`, что рисует разложение силы, — подсветка в рейле
+  // не может разойтись с тем, что реально сработало.
+  const activeCardIds = new Set<string>([
+    ...itemEval.sources.filter((source) => source.met).map((source) => source.itemId),
+    ...tactics.sources.map((source) => source.tacticId as string),
+  ]);
+  const railCards = buildRailCards(
+    camp.equippedTactics, camp.heldActions, camp.cardRarity, activeCardIds,
+  );
   const buildUsed = camp.equippedTactics.length;
   const preparationUsed = camp.heldActions.length;
   const chosenReward = camp.rewardOffers.find((offer) => offer.id === camp.chosenRewardId);
@@ -682,6 +692,10 @@ export function CampScreen() {
               </button>
             ))}
           </nav>
+
+          {/* Билд виден при ЛЮБОМ активном разделе (R14.6): решение о покупке принимается против
+              собранной сборки, а до этого она пряталась во вкладке Build. */}
+          <BuildRail cards={railCards} slots={camp.tacticSlots} testId="camp-build-rail" />
 
           {activeSection === "preparation" && (
             <div id="camp-panel-preparation" role="tabpanel" className="camp__section-panel enter">
