@@ -48,6 +48,11 @@
 .final-roster li > span:last-child { color: var(--accent); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .final-roster li > span:last-child small { color: var(--muted); font-size: 10px; font-weight: 600; }
 .result__swap-hint { margin: 10px 0 0; font-size: 10px; text-align: center; }
+/* Ряд билда стоит в блочном потоке панели — своего gap у неё нет, и он прилипал к строке
+   `Roster · Mult · Total` снизу: предметы читались как часть этой строки, а не как отдельная
+   сборка (плейтест 2026-08-05). Отбивка только СНИЗУ: сверху воздух уже даёт внутренний отступ
+   пентагона, и margin-top увёл бы предметы вниз — ровно против просьбы «сдвинуть повыше». */
+.result__radar .build-rail { margin: 0 0 14px; }
 .result__radar .score-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
 .result__tournament { display: grid; grid-template-columns: minmax(300px, .75fr) minmax(520px, 1.25fr); gap: 34px; margin-top: 22px; padding: 34px; color: var(--on-invert); background: var(--surface-invert); }
 .result__tournament-copy { display: flex; flex-direction: column; align-items: flex-start; }

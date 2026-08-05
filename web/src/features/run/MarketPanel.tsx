@@ -129,15 +129,25 @@ export function MarketPanel(props: CampMarketView) {
             // Качество входящего берём С ОФФЕРА (R4.1), а не роллим здесь заново: цена карты
             // считается от него же, и разойтись с покупкой они больше не могут. Ровно это
             // расхождение и было багом первого забега.
-            const incomingRarity: Rarity = offer.heroSwap?.incomingRarity ?? "common";
-            const outgoingRarity: Rarity = offer.heroSwap
-              ? camp.heroRarity[String(offer.heroSwap.outgoingHeroId)] ?? "common"
-              : "common";
+            // Улучшение своего героя (R14.8) — вторая форма hero-карты: ростер не меняется,
+            // меняется только тир. Поэтому у неё нет `heroSwap` и нет `preview` от рынка:
+            // разложение считается здесь, на текущем составе с поднятым тиром.
+            const upgrade = offer.heroUpgrade;
+            const upgradeHeroId = upgrade?.heroId;
+            const incomingRarity: Rarity = upgrade
+              ? upgrade.targetRarity
+              : offer.heroSwap?.incomingRarity ?? "common";
+            const outgoingRarity: Rarity = upgrade
+              ? camp.heroRarity[String(upgrade.heroId)] ?? "common"
+              : offer.heroSwap
+                ? camp.heroRarity[String(offer.heroSwap.outgoingHeroId)] ?? "common"
+                : "common";
             const afterHeroes = offer.heroSwap
               ? replaceActiveHero(offer.heroSwap.outgoingHeroId, offer.heroSwap.incomingHeroId)
               : snapshot.heroes;
             const afterRarity = { ...camp.heroRarity };
             if (offer.heroSwap) afterRarity[String(offer.heroSwap.incomingHeroId)] = incomingRarity;
+            if (upgrade) afterRarity[String(upgrade.heroId)] = upgrade.targetRarity;
             const preview = offer.preview
               ? previewPower(
                   offer.preview.after,
@@ -146,10 +156,23 @@ export function MarketPanel(props: CampMarketView) {
                   afterHeroes,
                   afterRarity,
                 )
-              : null;
+              : upgrade
+                ? previewPower(
+                    { base: score.base, heroSynergy: score.heroSynergy, chemistry: score.chemistry },
+                    snapshot.roster,
+                    score.assignment.byPlayer,
+                    afterHeroes,
+                    afterRarity,
+                  )
+                : null;
             const deltas = preview?.deltas ?? [];
             const powerDelta = preview?.delta ?? 0;
-            const summary = heroOfferSummary(offer, incomingRarity, outgoingRarity);
+            // У улучшения переиспользуем карточку из Preparation: там уже решено, как показывать
+            // «твой герой + новый тир» (портрет + теги), и второй версии этого вида быть не должно.
+            const summary = upgradeHeroId != null
+              ? rarityOfferSummary(upgradeHeroId, incomingRarity)
+              : heroOfferSummary(offer, incomingRarity, outgoingRarity);
+            const cardHeroId = upgradeHeroId ?? offer.heroSwap!.incomingHeroId;
             return (
               <Dealt className="camp-dealt" key={`${deal}:${offer.id}`} index={playerOffers.length + heroIndex}>
               <div
@@ -160,13 +183,21 @@ export function MarketPanel(props: CampMarketView) {
                 data-outgoing-rarity={outgoingRarity}
               >
                 <CardInspectTrigger
-                  label={hero(offer.heroSwap!.incomingHeroId).name}
+                  label={hero(cardHeroId).name}
                   delta={powerDelta}
                   testId={`offer-details-${offer.id}`}
                   onOpen={() => setInspected({
-                    title: hero(offer.heroSwap!.incomingHeroId).name,
-                    subtitle: t("camp.activeHero") + ": " + hero(offer.heroSwap!.outgoingHeroId).name,
-                    summary: heroOfferSummary(offer, incomingRarity, outgoingRarity, false),
+                    title: hero(cardHeroId).name,
+                    subtitle: upgradeHeroId != null
+                      ? t("market.heroUpgradeHint", {
+                        hero: hero(upgradeHeroId).name,
+                        from: t(`rarity.${outgoingRarity}` as MessageKey),
+                        to: t(`rarity.${incomingRarity}` as MessageKey),
+                      })
+                      : t("camp.activeHero") + ": " + hero(offer.heroSwap!.outgoingHeroId).name,
+                    summary: upgradeHeroId != null
+                      ? rarityOfferSummary(upgradeHeroId, incomingRarity, false)
+                      : heroOfferSummary(offer, incomingRarity, outgoingRarity, false),
                     deltas,
                     total: powerDelta,
                     from: preview?.before.power.total ?? power.total,
@@ -179,6 +210,19 @@ export function MarketPanel(props: CampMarketView) {
                     },
                   })}
                 />
+                {/* Улучшение обязано отличаться от re-pick с первого взгляда: обе карты рисуют
+                    портрет героя, но одна МЕНЯЕТ состав, а другая нет. Подпись с переходом тиров —
+                    единственное, что их различает. */}
+                {upgradeHeroId != null && (
+                  <p className="camp-offer__upgrade-note">
+                    <b>{t("market.heroUpgrade")}</b>
+                    <span>{t("market.heroUpgradeHint", {
+                      hero: hero(upgradeHeroId).name,
+                      from: t(`rarity.${outgoingRarity}` as MessageKey),
+                      to: t(`rarity.${incomingRarity}` as MessageKey),
+                    })}</span>
+                  </p>
+                )}
                 {summary}
                 <div className="camp-offer__deltas">
                   <OfferDelta delta={powerDelta} />

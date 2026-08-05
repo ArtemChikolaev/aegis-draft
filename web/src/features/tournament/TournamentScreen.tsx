@@ -436,6 +436,15 @@ export function TournamentScreen() {
     if (!tournament || stage !== "playoffs") return null;
     return userPlayoffCameraTarget(tournament, playoffFeeders, playoffSimTicks, n, done);
   }, [done, n, playoffFeeders, playoffSimTicks, stage, tournament]);
+  // «Показать результат» — единственный путь, на котором обе камеры ниже молчат: обе выходят по
+  // `done`, а он взводится в тот же момент. Экран при этом подменяется целиком (field → playoffs),
+  // высота контента НАД вьюпортом меняется, и страница дёргается под курсором — плейтест
+  // 2026-08-05 назвал это «неприятным подпрыгиванием». Ведём камеру явно: осознанная прокрутка
+  // к результату вместо непроизвольного скачка.
+  useEffect(() => {
+    if (!instantReveal || stage !== "playoffs") return;
+    scrollTo(playoffsRef.current, "start");
+  }, [instantReveal, scrollTo, stage]);
   // На широком сетка видна целиком — ставим её один раз и больше не дёргаем: слежение
   // за серией там только мешает (экран прыгает, хотя нужный матч и так на виду).
   useEffect(() => {

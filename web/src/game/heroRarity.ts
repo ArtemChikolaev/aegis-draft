@@ -8,7 +8,7 @@
 // Источник — ЛУТ с рынка (решение playtest 2026-07-24): стартовый драфт весь common, hero re-pick
 // на рынке роллит редкость по этапу (поздние этапы — шанс mythic/immortal), «улучшение» поднимает
 // тир текущего героя. Первый забег игрока весь common (мета-гейт по careerStore).
-import { nextRarity, rollRarity, type Rarity } from "./rarity.ts";
+import { nextRarity, RARITIES, rarityRank, rollRarity, type Rarity } from "./rarity.ts";
 import type { SummandModifiers } from "./anteEconomy.ts";
 
 /** Баланс-коэффициенты редкости (часть BALANCE_CONFIG_VERSION — правишь числа, бампай в balance.ts).
@@ -55,6 +55,24 @@ export function heroPrice(rarity: Rarity): number {
 export function upgradeCost(from: Rarity): number | null {
   const target = nextRarity(from);
   return target && target !== "common" ? RARITY.upgradeCost[target] : null;
+}
+
+/** Цена пути `from → to` — сумма шагов лестницы; null, если `to` не выше `from`.
+ *
+ *  Рыночная карта «твой герой, но качеством выше» (R14.8) может прыгать через тир, и брать за неё
+ *  цену ОДНОГО шага было бы дырой в экономике: common→immortal обошёлся бы в 14 вместо 22, то есть
+ *  дешевле готового immortal (20) — при том что этот путь ещё и сохраняет career-связку
+ *  «игрок×герой». Сумма шагов держит уже зафиксированный инвариант: вырастить дороже, чем купить
+ *  готовое, а игрок платит премию за гарантию (см. комментарий к `RARITY.heroPrice`). */
+export function upgradePathCost(from: Rarity, to: Rarity): number | null {
+  if (rarityRank(to) <= rarityRank(from)) return null;
+  let total = 0;
+  for (let rank = rarityRank(from) + 1; rank <= rarityRank(to); rank += 1) {
+    const step = RARITIES[rank];
+    if (step === "common") return null;
+    total += RARITY.upgradeCost[step];
+  }
+  return total;
 }
 
 /** Ролл редкости входящего героя — общая лестница (`rarity.ts`) под ключом героя. */

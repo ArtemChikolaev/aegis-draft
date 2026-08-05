@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { prefersReducedMotion } from "./motion.ts";
 import styles from "./Modal.module.css";
 
@@ -285,7 +286,13 @@ export function Modal({
   const content = typeof children === "function" ? children({ close: requestClose }) : children;
   const isContent = layout === "content";
 
-  return (
+  // Портал в body обязателен, а не «для чистоты». `position: fixed` перестаёт отсчитываться от
+  // вьюпорта, если у предка есть `contain`/`transform`/`filter` — такой предок становится
+  // containing block. Ровно это у `.result__radar` (`contain: paint` + `isolation: isolate` +
+  // `clip-path`), а модалку открывают ИЗНУТРИ него: ряд карточек билда лежит на панели радара.
+  // Без портала карточка предмета выезжала не поверх пентагона, а под ним и обрезанной границей
+  // панели (плейтест 2026-08-05). z-index не спасает: он работает только внутри чужого контекста.
+  return createPortal(
     <div
       className={`${styles.backdrop} ${isCard ? styles.cardBackdrop : ""} ${entered ? styles.backdropIn : ""} ${closing ? styles.backdropOut : ""}`}
       style={dragY > 0 || closing ? { ["--modal-dim" as string]: String(1 - Math.min((closing ? 1 : dragY / 360), 0.55)) } : undefined}
@@ -326,6 +333,7 @@ export function Modal({
           {content}
         </div>
       </section>
-    </div>
+    </div>,
+    document.body,
   );
 }

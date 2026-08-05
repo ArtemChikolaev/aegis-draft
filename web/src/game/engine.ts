@@ -96,7 +96,7 @@ export class RunEngine {
     return [...this.benchPlayers];
   }
 
-  /** Малый резерв hero pool. Снятый при re-pick герой кладётся сюда, максимум три. */
+  /** Резерв hero pool. Снятый при re-pick герой кладётся сюда; лимита нет — см. replaceHero. */
   get reserveHeroes(): number[] {
     return [...this.benchHeroes];
   }
@@ -262,7 +262,13 @@ export class RunEngine {
    */
   get marketHeroCandidatePool(): { heroId: number; games: number }[] {
     const stats = heroStatsForAssignment(this.data);
-    return this.marketHeroCandidates
+    // Свои герои из пула НЕ вычитаются (R14.8): выпавший активный герой становится картой
+    // улучшения, если качество строго выше текущего, и не показывается вовсе, если не выше.
+    // Так пул честно вычерпывается к концу забега — герой уходит из него, только достигнув
+    // потолка качества, а не в момент покупки. Кто из выпавших окажется заменой, а кто
+    // улучшением, решает `anteMarket.heroOptions`: это его правило, не движка.
+    return [...new Set([...this.marketHeroCandidates, ...this.heroes])]
+      .sort((a, b) => a - b)
       .map((heroId) => ({
         heroId,
         games: this.players.reduce(
@@ -341,14 +347,19 @@ export class RunEngine {
     return this.scoreFor(this.roster, heroes, this.manualWithoutHero(outgoingHeroId));
   }
 
-  /** Re-pick: новый герой активен, снятый уходит в малый резерв hero pool. */
+  /** Re-pick: новый герой активен, снятый уходит в резерв hero pool.
+   *
+   *  Резерв НЕ ограничен, как и скамейка игроков. Раньше он резался до трёх, и покупка четвёртого
+   *  героя молча выбрасывала самого старого — оплаченного золотом. Игрок этого не видел и был
+   *  вынужден покупать одних и тех же героев по кругу (плейтест 2026-08-05). Правило теперь одно
+   *  на обе скамейки: всё снятое остаётся доступным для бесплатного swap-back. */
   replaceHero(outgoingHeroId: number, incomingHeroId: number): void {
     this.assertHeroReplacement(outgoingHeroId, incomingHeroId);
     this.heroes = this.heroes.map((heroId) => heroId === outgoingHeroId ? incomingHeroId : heroId);
     this.benchHeroes = [
       outgoingHeroId,
       ...this.benchHeroes.filter((heroId) => heroId !== incomingHeroId && heroId !== outgoingHeroId),
-    ].slice(0, 3);
+    ];
     this.manual = this.manualWithoutHero(outgoingHeroId);
   }
 

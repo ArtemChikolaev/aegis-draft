@@ -11,8 +11,8 @@ import {
 } from "../src/game/anteMarket.ts";
 import { RunEconomy, playerCost, type Offer } from "../src/game/anteEconomy.ts";
 import { RunEngine } from "../src/game/engine.ts";
-import { heroPrice, raritySwapDelta } from "../src/game/heroRarity.ts";
-import type { Rarity } from "../src/game/rarity.ts";
+import { heroPrice, raritySwapDelta, upgradePathCost } from "../src/game/heroRarity.ts";
+import { rarityRank, type Rarity } from "../src/game/rarity.ts";
 import { ROLE_SEQUENCE, candidateRef } from "../src/game/packs.ts";
 import { useRun } from "../src/state/runStore.ts";
 import { Rng } from "../src/game/rng.ts";
@@ -42,7 +42,7 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     const offersB = buildAnteMarketRoulette(completed("roulette"), "roulette", 1, 0);
     expect(offersA).toEqual(offersB);
     const players = offersA.filter((offer) => offer.kind === "player");
-    const heroes = offersA.filter((offer) => offer.kind === "hero");
+    const heroes = offersA.filter((offer) => offer.kind === "hero" && offer.heroSwap);
     expect(players).toHaveLength(MARKET_PACK.size);
     expect(heroes).toHaveLength(MARKET_PACK.size);
     // Входящие игроки все разные; каждый привязан к лучшему same-role слоту.
@@ -77,7 +77,7 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     const engine = completed("hero-price");
     // Дропы открыты: качества разные, и цена каждой карты равна цене её тира.
     const late = buildAnteMarketRoulette(engine, "hero-price", 9, 0, [], { rarityDrops: true });
-    const heroes = late.filter((offer) => offer.kind === "hero");
+    const heroes = late.filter((offer) => offer.kind === "hero" && offer.heroSwap);
     expect(heroes.length).toBeGreaterThan(0);
     for (const offer of heroes) {
       expect(offer.cost).toBe(heroPrice(offer.heroSwap!.incomingRarity ?? "common"));
@@ -85,14 +85,14 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     // Тот же тир стоит столько же на этапе 2 и на этапе 22 — этап в базовую цену не входит.
     for (const stage of [2, 22]) {
       for (const offer of buildAnteMarketRoulette(engine, "hero-price", stage, 0, [], { rarityDrops: true })) {
-        if (offer.kind !== "hero") continue;
-        expect(offer.cost).toBe(heroPrice(offer.heroSwap!.incomingRarity ?? "common"));
+        if (offer.kind !== "hero" || !offer.heroSwap) continue;
+        expect(offer.cost).toBe(heroPrice(offer.heroSwap.incomingRarity ?? "common"));
       }
     }
     // Мета-гейт закрыт → всё common по базовой цене (первый забег не платит за качество).
     for (const offer of buildAnteMarketRoulette(engine, "hero-price", 9, 0, [], { rarityDrops: false })) {
-      if (offer.kind !== "hero") continue;
-      expect(offer.heroSwap!.incomingRarity).toBe("common");
+      if (offer.kind !== "hero" || !offer.heroSwap) continue;
+      expect(offer.heroSwap.incomingRarity).toBe("common");
       expect(offer.cost).toBe(heroPrice("common"));
     }
   });
@@ -101,7 +101,7 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     const engine = completed("hero-price-refresh");
     const offers = buildAnteMarketRoulette(engine, "hero-price-refresh", 9, 0, [], { rarityDrops: true });
     const refreshed = refreshAnteMarketOffers(engine, offers);
-    for (const offer of refreshed.filter((o) => o.kind === "hero")) {
+    for (const offer of refreshed.filter((o) => o.kind === "hero" && o.heroSwap)) {
       const original = offers.find((o) => o.id === offer.id)!;
       expect(offer.heroSwap!.incomingRarity).toBe(original.heroSwap!.incomingRarity);
       expect(offer.cost).toBe(original.cost);
@@ -115,7 +115,7 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     for (let rerollN = 0; rerollN < 12 && !(sawDowngrade && sawUpgrade); rerollN += 1) {
       const offers = buildAnteMarketRoulette(engine, "roulette-variety", 1, rerollN);
       expect(offers.filter((offer) => offer.kind === "player")).toHaveLength(MARKET_PACK.size);
-      expect(offers.filter((offer) => offer.kind === "hero")).toHaveLength(MARKET_PACK.size);
+      expect(offers.filter((offer) => offer.kind === "hero" && offer.heroSwap)).toHaveLength(MARKET_PACK.size);
       for (const offer of offers) {
         if (offer.kind !== "player" || !offer.preview) continue;
         const before = offer.preview.before;
@@ -141,8 +141,8 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     const a = buildAnteMarketRoulette(engine, "roulette-reroll", 1, 0);
     const b = buildAnteMarketRoulette(engine, "roulette-reroll", 1, 1);
     expect(a.map((o) => o.id)).not.toEqual(b.map((o) => o.id));
-    expect(a.filter((o) => o.kind === "hero").map((o) => o.heroSwap!.incomingHeroId))
-      .not.toEqual(b.filter((o) => o.kind === "hero").map((o) => o.heroSwap!.incomingHeroId));
+    expect(a.filter((o) => o.kind === "hero" && o.heroSwap).map((o) => o.heroSwap!.incomingHeroId))
+      .not.toEqual(b.filter((o) => o.kind === "hero" && o.heroSwap).map((o) => o.heroSwap!.incomingHeroId));
   });
 
   it("фиксирует офферы в economy snapshot и восстанавливает при resume", () => {
@@ -170,8 +170,8 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
     expect(refreshed.every((offer) => remaining.some((old) => old.id === offer.id))).toBe(true);
     expect(refreshed.filter((offer) => offer.kind !== "stat").every((offer) =>
       offer.preview?.before.base === engine.score()!.base)).toBe(true);
-    expect(refreshed.filter((offer) => offer.kind === "hero").map((offer) => offer.heroSwap!.incomingHeroId))
-      .toEqual(remaining.filter((offer) => offer.kind === "hero").map((offer) => offer.heroSwap!.incomingHeroId));
+    expect(refreshed.filter((offer) => offer.kind === "hero" && offer.heroSwap).map((offer) => offer.heroSwap!.incomingHeroId))
+      .toEqual(remaining.filter((offer) => offer.kind === "hero" && offer.heroSwap).map((offer) => offer.heroSwap!.incomingHeroId));
     expect(refreshed.filter((offer) => offer.kind === "player").map((offer) =>
       engine.candidateByRef(offer.playerSwap!.incoming)!.player.accountId))
       .toEqual(remaining.filter((offer) => offer.kind === "player").map((offer) =>
@@ -185,7 +185,7 @@ describe("Roguelite market roulette (пак MARKET_PACK.size в каждой и�
       const after = offer.preview!.after;
       expect(after.base + after.heroSynergy + after.chemistry).toBeCloseTo(bestTeamOvr, 6);
     }
-    for (const offer of refreshed.filter((candidate) => candidate.kind === "hero")) {
+    for (const offer of refreshed.filter((candidate) => candidate.kind === "hero" && candidate.heroSwap)) {
       const bestTeamOvr = Math.max(...engine.heroes.map((outgoingHeroId) =>
         engine.previewHeroReplacement(outgoingHeroId, offer.heroSwap!.incomingHeroId).teamOvr));
       const after = offer.preview!.after;
@@ -405,10 +405,14 @@ describe("Нижняя граница hero-пака", () => {
       const engine = completed(seed);
       for (const rerollN of [0, 1, 2]) {
         const offers = buildAnteMarketRoulette(engine, seed, 4, rerollN, [], { rarityDrops: true });
+        // Пак героев считаем ЦЕЛИКОМ: с R14.8 в нём смешаны замены и улучшения своих героев,
+        // и полнота пака — свойство пака, а не одного его вида карт.
         const heroes = offers.filter((o) => o.kind === "hero");
         expect(heroes).toHaveLength(MARKET_PACK.size);
-        expect(new Set(heroes.map((o) => o.heroSwap!.incomingHeroId)).size).toBe(MARKET_PACK.size);
-        for (const offer of heroes) {
+        const swaps = heroes.filter((o) => o.heroSwap);
+        expect(new Set(heroes.map((o) => o.heroSwap?.incomingHeroId ?? o.heroUpgrade!.heroId)).size)
+          .toBe(MARKET_PACK.size);
+        for (const offer of swaps) {
           expect(cardDelta(offer, {})).toBeGreaterThanOrEqual(-HERO_FLOOR.maxLossOvr - 1e-6);
         }
       }
@@ -420,7 +424,7 @@ describe("Нижняя граница hero-пака", () => {
     // по качеству добора, потому что рынок не имеет права ничего не предлагать.
     const engine = completed("hero-floor-degenerate");
     const offers = buildAnteMarketRoulette(engine, "hero-floor-degenerate", 1, 0);
-    const heroes = offers.filter((o) => o.kind === "hero");
+    const heroes = offers.filter((o) => o.kind === "hero" && o.heroSwap);
     expect(heroes).toHaveLength(MARKET_PACK.size);
     for (const offer of heroes) expect(offer.preview).toBeDefined();
   });
@@ -438,14 +442,14 @@ describe("Нижняя граница hero-пака", () => {
       const setFor = (rerollN: number) => buildAnteMarketRoulette(
         engine, seed, 12, rerollN, [], { rarityDrops: false, stageCount: 25, heroRarity },
       )
-        .filter((offer) => offer.kind === "hero")
+        .filter((offer) => offer.kind === "hero" && offer.heroSwap)
         .map((offer) => offer.heroSwap!.incomingHeroId)
         .sort((a, b) => a - b)
         .join(",");
       // Пак заведомо добирается из отсеянных — иначе тест проверял бы не ту ветку.
       const deltas = buildAnteMarketRoulette(
         engine, seed, 12, 0, [], { rarityDrops: false, stageCount: 25, heroRarity },
-      ).filter((offer) => offer.kind === "hero").map((offer) => cardDelta(offer, heroRarity));
+      ).filter((offer) => offer.kind === "hero" && offer.heroSwap).map((offer) => cardDelta(offer, heroRarity));
       expect(deltas.some((delta) => delta < -HERO_FLOOR.maxLossOvr)).toBe(true);
 
       const sets = [0, 1, 2, 3].map(setFor);
@@ -464,8 +468,9 @@ describe("Нижняя граница hero-пака", () => {
     const pool = engine.marketHeroCandidatePool;
     // Инвариант — «пул НЕ усечён», а не конкретное число: в тестовом датасете format-пул заведомо
     // меньше 127, и проверять абсолютный размер значило бы проверять датасет, а не правило.
+    // С R14.8 пул рулетки = новые герои ∪ активные (последние могут выпасть как улучшение).
     expect(pool.map((entry) => entry.heroId).sort((a, b) => a - b))
-      .toEqual([...engine.marketHeroCandidates].sort((a, b) => a - b));
+      .toEqual([...new Set([...engine.marketHeroCandidates, ...engine.heroes])].sort((a, b) => a - b));
     // Незнакомый пятёрке герой обязан иметь ненулевой вес: иначе он недостижим в принципе, и
     // именно это делало сборки под теги невозможными.
     expect(heroWeight(0)).toBeGreaterThan(0);
@@ -474,7 +479,7 @@ describe("Нижняя граница hero-пака", () => {
     const met = new Set<number>();
     for (let rerollN = 0; rerollN < 12; rerollN += 1) {
       for (const offer of buildAnteMarketRoulette(engine, seed, 4, rerollN, [], { stageCount: 25 })) {
-        if (offer.kind === "hero") met.add(offer.heroSwap!.incomingHeroId);
+        if (offer.kind === "hero" && offer.heroSwap) met.add(offer.heroSwap!.incomingHeroId);
       }
     }
     // Рероллы на неизменном ростере обязаны показать заметно больше героев, чем размер одного пака:
@@ -490,9 +495,97 @@ describe("Нижняя граница hero-пака", () => {
     const immortalHero = engine.heroes[0];
     const heroRarity: Record<string, Rarity> = { [String(immortalHero)]: "immortal" };
     const withRarity = buildAnteMarketRoulette(engine, "hero-floor-immortal", 4, 0, [], { heroRarity });
-    for (const offer of withRarity.filter((o) => o.kind === "hero")) {
+    for (const offer of withRarity.filter((o) => o.kind === "hero" && o.heroSwap)) {
       expect(offer.heroSwap!.outgoingHeroId).not.toBe(immortalHero);
       expect(cardDelta(offer, heroRarity)).toBeGreaterThanOrEqual(-HERO_FLOOR.maxLossOvr - 1e-6);
     }
+  });
+});
+
+// R14.8: свой герой выпадает в том же ролле из пяти карт — но только качеством ВЫШЕ текущего,
+// и тогда это карта улучшения, а не замены. Так пул вычерпывается: достигший потолка герой
+// перестаёт проходить условие навсегда.
+describe("hero upgrade cards", () => {
+  const data = loadGameData();
+
+  function completedRun(seed: string): RunEngine {
+    const engine = new RunEngine(data, defaultRunConfig, seed);
+    runToEnd(engine);
+    return engine;
+  }
+
+  /** Все hero-карты забега по этапам и рероллам: одна раздача — событие редкое (5 своих героев
+   *  против ~120 пула), поэтому правило проверяем на выборке, а не на одном ролле. */
+  function heroCards(engine: RunEngine, seed: string, heroRarity: Record<string, Rarity> = {}) {
+    const cards: Offer[] = [];
+    for (let stage = 2; stage <= 24; stage += 1) {
+      for (const rerollN of [0, 1]) {
+        cards.push(...buildAnteMarketRoulette(engine, seed, stage, rerollN, [], {
+          rarityDrops: true, heroRarity,
+        }).filter((offer) => offer.kind === "hero"));
+      }
+    }
+    return cards;
+  }
+
+  it("свой герой выпадает как улучшение и только качеством выше текущего", () => {
+    const engine = completedRun("hero-upgrade");
+    const cards = heroCards(engine, "hero-upgrade");
+    const upgrades = cards.filter((offer) => offer.heroUpgrade);
+    expect(upgrades.length).toBeGreaterThan(0);
+    for (const offer of upgrades) {
+      // Улучшение — не замена: ростер остаётся прежним, поэтому swap-payload быть не должно.
+      expect(offer.heroSwap).toBeUndefined();
+      expect(engine.heroes).toContain(offer.heroUpgrade!.heroId);
+      // Строго выше текущего (в этом забеге все свои common) — иначе карта «то же самое».
+      expect(rarityRank(offer.heroUpgrade!.targetRarity)).toBeGreaterThan(rarityRank("common"));
+    }
+    // Обратная половина правила: свой герой НИКОГДА не приходит картой замены.
+    for (const offer of cards.filter((o) => o.heroSwap)) {
+      expect(engine.heroes).not.toContain(offer.heroSwap!.incomingHeroId);
+    }
+  });
+
+  it("стоит ровно столько же, сколько тот же путь грайндом", () => {
+    const engine = completedRun("hero-upgrade-cost");
+    const upgrades = heroCards(engine, "hero-upgrade-cost").filter((offer) => offer.heroUpgrade);
+    expect(upgrades.length).toBeGreaterThan(0);
+    for (const offer of upgrades) {
+      // Цена обязана совпадать с суммой шагов лестницы из Preparation: иначе рынок станет
+      // дешёвым обходным путём к редкости.
+      expect(offer.cost).toBe(upgradePathCost("common", offer.heroUpgrade!.targetRarity));
+    }
+  });
+
+  it("достигший потолка герой из пула уходит", () => {
+    const engine = completedRun("hero-upgrade-cap");
+    // Все свои — immortal: выше подниматься некуда, значит ни одной карты улучшения быть не может.
+    const maxed = Object.fromEntries(engine.heroes.map((heroId) => [String(heroId), "immortal" as Rarity]));
+    const cards = heroCards(engine, "hero-upgrade-cap", maxed);
+    expect(cards.length).toBeGreaterThan(0);
+    expect(cards.filter((offer) => offer.heroUpgrade)).toHaveLength(0);
+  });
+
+  it("без мета-гейта повышенных качеств карт улучшения нет", () => {
+    const engine = completedRun("hero-upgrade-gate");
+    const offers = buildAnteMarketRoulette(engine, "hero-upgrade-gate", 18, 0, [], { rarityDrops: false });
+    expect(offers.filter((offer) => offer.heroUpgrade)).toHaveLength(0);
+  });
+
+  it("покупка поднимает тир, а состав героев остаётся прежним", () => {
+    const engine = completedRun("hero-upgrade-buy");
+    const economy = new RunEconomy("hero-upgrade-buy");
+    economy.setRarityFlags({ drops: true, upgrades: true });
+    economy.setUnlimitedGold(true);
+    const upgrades = heroCards(engine, "hero-upgrade-buy").filter((offer) => offer.heroUpgrade);
+    expect(upgrades.length).toBeGreaterThan(0);
+    const offer = upgrades[0];
+    economy.openCamp(18);
+    economy.prepareMarketOffers([offer]);
+    const heroesBefore = [...engine.heroes];
+
+    expect(economy.purchaseMarket(offer.id)).not.toBeNull();
+    expect(economy.rarityOf(offer.heroUpgrade!.heroId)).toBe(offer.heroUpgrade!.targetRarity);
+    expect(engine.heroes).toEqual(heroesBefore);
   });
 });

@@ -212,6 +212,23 @@ describe("RunEngine roguelite reserve", () => {
     expect(new Set([...engine.heroes, ...engine.reserveHeroes]).size)
       .toBe(engine.heroes.length + engine.reserveHeroes.length);
   });
+
+  // Плейтест 2026-08-05: резерв резался до трёх, и покупка четвёртого героя молча выбрасывала
+  // самого старого — оплаченного золотом. Игрок был вынужден покупать одних и тех же героев по
+  // кругу. Правило теперь общее со скамейкой игроков: снятое не пропадает.
+  it("резерв героев не теряет ранее снятых при четвёртой замене", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "reserve-hero-cap");
+    runToEnd(engine);
+    const removed: number[] = [];
+    for (const incoming of engine.marketHeroCandidates.slice(0, 4)) {
+      const outgoing = engine.heroes.find((heroId) => !removed.includes(heroId));
+      if (outgoing == null) break;
+      removed.push(outgoing);
+      engine.replaceHero(outgoing, incoming);
+    }
+    expect(removed.length).toBe(4);
+    for (const heroId of removed) expect(engine.reserveHeroes).toContain(heroId);
+  });
 });
 
 // R5.1/R5.2 — баг «нельзя найти того же игрока в лучшей форме». Рынок теперь различает ЛИЧНОСТЬ

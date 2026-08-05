@@ -29,6 +29,15 @@ export function App() {
   // варианта. Вешается на весь app-shell, поэтому Settings/справочник, открытые ИЗ режима, тоже
   // наследуют его гамму (карточку варианта Roguelite тегаем отдельно — она на нейтральном экране).
   const modeAccent = mode === "run" ? "violet" : mode === "manager" ? "orange" : mode === "tournament" ? "blue" : undefined;
+  // Тот же атрибут дублируем на <body>, потому что модалки рендерятся ПОРТАЛОМ в body и вне
+  // `.app-shell` гамму режима уже не наследуют: в Roguelite Run свечение модалки возвращалось к
+  // базовому зелёному (плейтест 2026-08-05). Токены — обычные наследуемые custom properties,
+  // поэтому объявления на body хватает и порталу, и самому шеллу.
+  useEffect(() => {
+    if (modeAccent) document.body.dataset.accent = modeAccent;
+    else delete document.body.dataset.accent;
+    return () => { delete document.body.dataset.accent; };
+  }, [modeAccent]);
   const { t } = useI18n();
   const view = useShell((s) => s.view);
   const setView = useShell((s) => s.setView);

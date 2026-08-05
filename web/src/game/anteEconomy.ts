@@ -92,6 +92,11 @@ export interface Offer {
   /** Конкретная перестройка ростера (slice 3). */
   playerSwap?: PlayerSwapEffect;
   heroSwap?: HeroSwapEffect;
+  /** Карта не меняет героя, а поднимает тир УЖЕ активного (R14.8) — зеркало `cardUpgrade` у
+   *  предметов. Ростер не трогается, career-связка «игрок×герой» сохраняется; цена — сумма шагов
+   *  лестницы улучшения (`upgradePathCost`), то есть ровно столько же, сколько стоил бы грайнд
+   *  того же пути в разделе Preparation. */
+  heroUpgrade?: { heroId: number; targetRarity: Rarity };
   /** id карточки Tactics/Camp Action (kind "tactic"/"action", срез 4). */
   cardId?: string;
   /** Тир карточки-предмета (kind "item", R11.2). Едет на оффере по той же причине, что качество
@@ -940,13 +945,21 @@ export class RunEconomy {
     if (!offer || offer.kind === "gold") return null;
     if (offer.kind === "stat" && !offer.effect) return null;
     if (offer.kind === "player" && !offer.playerSwap) return null;
-    if (offer.kind === "hero" && !offer.heroSwap) return null;
+    if (offer.kind === "hero" && !offer.heroSwap && !offer.heroUpgrade) return null;
+    // Улучшение качества своего героя (R14.8) уважает тот же мета-гейт, что и грайнд в Preparation:
+    // иначе рынок стал бы обходным путём к редкости в первом забеге.
+    if (offer.heroUpgrade && !this.state.rarityUpgradesEnabled) return null;
     const free = offer.kind === "player" && this.state.freePlayerSwaps > 0;
     const price = free ? 0 : offer.cost;
     if (!this.affordable(price)) return null;
     if (free) this.state.freePlayerSwaps -= 1;
     this.spend(price);
     if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
+    // Тир поднимается ЗДЕСЬ, а не в сторе: ростер не меняется, поэтому оркестратору нечего
+    // применять — вся правка состояния экономики принадлежит экономике.
+    if (offer.heroUpgrade) {
+      this.state.heroRarity[String(offer.heroUpgrade.heroId)] = offer.heroUpgrade.targetRarity;
+    }
     this.state.consumed.push(offerId);
     return cloneOffer(offer);
   }
@@ -1094,6 +1107,7 @@ function cloneOffer(offer: Offer): Offer {
       ? { ...offer.playerSwap, incoming: { ...offer.playerSwap.incoming } }
       : undefined,
     heroSwap: offer.heroSwap ? { ...offer.heroSwap } : undefined,
+    heroUpgrade: offer.heroUpgrade ? { ...offer.heroUpgrade } : undefined,
     cardId: offer.cardId,
     preview: offer.preview
       ? {

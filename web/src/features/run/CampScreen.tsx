@@ -820,14 +820,20 @@ export function CampScreen() {
                           {itemArtSlug(tacticId) && (
                             <ItemIcon slug={itemArtSlug(tacticId)!} name={name} size="sm" />
                           )}
-                          <strong>{name}</strong>
-                          {item && (
-                            <RarityBadge
-                              rarity={itemTier(cardRarity)}
-                              label={t(`cardTier.${itemTier(cardRarity)}` as MessageKey)}
-                              showBase
-                            />
-                          )}
+                          {/* Название и бейдж качества — своя колонка с переносом: в одной строке
+                              бейдж отъедал ширину у имени, и «Necronomicon» рвалось на три куска.
+                              Теперь бейдж уходит на следующую строку, а имени достаётся вся
+                              ширина карточки (плейтест 2026-08-05). */}
+                          <span className="camp-slot__title">
+                            <strong>{name}</strong>
+                            {item && (
+                              <RarityBadge
+                                rarity={itemTier(cardRarity)}
+                                label={t(`cardTier.${itemTier(cardRarity)}` as MessageKey)}
+                                showBase
+                              />
+                            )}
+                          </span>
                           <button
                             type="button"
                             className="camp-slot__discard"

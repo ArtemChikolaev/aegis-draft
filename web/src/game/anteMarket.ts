@@ -7,8 +7,8 @@ import { Rng } from "./rng.ts";
 import { candidateRef, ROLE_SEQUENCE, type Candidate } from "./packs.ts";
 import { RunEngine } from "./engine.ts";
 import { formUpgradeCost, playerCost, type Offer, type SummandValues } from "./anteEconomy.ts";
-import { heroPrice, rarityOvrContribution, rollHeroRarity } from "./heroRarity.ts";
-import type { Rarity } from "./rarity.ts";
+import { heroPrice, rarityOvrContribution, rollHeroRarity, upgradePathCost } from "./heroRarity.ts";
+import { rarityRank, type Rarity } from "./rarity.ts";
 import { tacticMarketEffects } from "./tactics.ts";
 
 interface HeroOption {
@@ -20,7 +20,10 @@ interface HeroOption {
 /** Карта hero re-pick до превращения в Offer: вариант замены, качество входящего и ПОЛНАЯ дельта
  *  Team OVR — ровно та, что увидит игрок (счёт состава + сдвиг вклада редкости). */
 interface HeroCard {
-  option: HeroOption;
+  /** Замена: какой герой входит и кого вытесняет. Пусто у карты улучшения — она ростер не трогает. */
+  option?: HeroOption;
+  /** Улучшение своего героя (R14.8): вместо замены поднимается тир уже активного. */
+  upgradeHeroId?: number;
   incomingRarity: Rarity;
   ovrDelta: number;
 }
@@ -326,7 +329,14 @@ export const HERO_FLOOR = {
 } as const;
 
 /**
- * Пять разных hero re-pick. Как и player-pack, это рулетка, а не скрытый фильтр «только апгрейды»:
+ * Пять hero-карт. Карта бывает двух видов: замена (выпал ЧУЖОЙ герой) и улучшение своего (выпал
+ * АКТИВНЫЙ герой, и выпавшее ему качество строго выше текущего). Свой герой качеством не выше в
+ * рулетку не попадает вовсе — раньше все свои вычитались из пула, и единственным способом поднять
+ * качество был грайнд по шагу за Буткемп, из-за чего игрок покупал одних и тех же героев по кругу
+ * (плейтест 2026-08-05, R14.8). Побочный эффект правила — пул честно вычерпывается: герой уходит
+ * из него, достигнув потолка качества.
+ *
+ * Как и player-pack, это рулетка, а не скрытый фильтр «только апгрейды»:
  * входящий герой может быть ловушкой. Но для каждого входящего героя карта показывает его лучший
  * способ войти в текущий активный пул, а не случайную пару.
  *
@@ -364,11 +374,17 @@ function heroOptions(
   rarityOf: (heroId: number) => Rarity,
   incomingRarityOf: (heroId: number) => Rarity,
 ): HeroCard[] {
-  const remaining = engine.marketHeroCandidatePool;
+  const active = new Set(engine.heroes);
+  // Свой герой участвует в рулетке, ТОЛЬКО если выпавшее ему качество строго выше текущего —
+  // иначе он «не может выпасть» вовсе (R14.8). Фильтруем ДО рулетки, а не пропуском внутри цикла:
+  // пропуск съедал бы попытку вытягивания и молча сокращал пак (замер: 4 карты вместо 5).
+  // Качество детерминировано по (seed, heroId, stage), поэтому фильтр устойчив к рероллу.
+  const remaining = engine.marketHeroCandidatePool.filter((entry) => !active.has(entry.heroId)
+    || rarityRank(incomingRarityOf(entry.heroId)) > rarityRank(rarityOf(entry.heroId)));
   if (engine.heroes.length !== ROLE_SEQUENCE.length || remaining.length < ROLE_SEQUENCE.length) {
     throw new Error(
-      `Нельзя собрать hero market pack: нужно ${ROLE_SEQUENCE.length} активных и новых героев `
-      + `(активных ${engine.heroes.length}, доступно ${remaining.length})`,
+      `Нельзя собрать hero market pack: нужно ${ROLE_SEQUENCE.length} активных героев и столько же `
+      + `доступных в рулетке (активных ${engine.heroes.length}, доступно ${remaining.length})`,
     );
   }
   const kept: HeroCard[] = [];
@@ -380,6 +396,20 @@ function heroOptions(
     const incomingHeroId = drawWeighted(remaining, rng);
     if (incomingHeroId == null) break;
     const incomingRarity = incomingRarityOf(incomingHeroId);
+    // Свой герой выпал ⇒ это не замена, а улучшение (R14.8). Ниже или равным качеством он не
+    // показывается вовсе: карта «то же самое, что уже есть» — не выбор, а шум, и именно из-за
+    // неё игроку приходилось раз за разом покупать одних и тех же героев. Так пул вычерпывается:
+    // достигший immortal герой перестаёт проходить это условие навсегда.
+    if (active.has(incomingHeroId)) {
+      const current = rarityOf(incomingHeroId);
+      kept.push({
+        upgradeHeroId: incomingHeroId,
+        incomingRarity,
+        // Ростер не меняется — вся дельта карты это прирост вклада редкости.
+        ovrDelta: rarityOvrContribution(incomingRarity) - rarityOvrContribution(current),
+      });
+      continue;
+    }
     const option = bestHeroOption(engine, incomingHeroId, rarityOf);
     const rarityShift = rarityOvrContribution(incomingRarity)
       - rarityOvrContribution(rarityOf(option.outgoingHeroId));
@@ -395,7 +425,7 @@ function heroOptions(
     // следующего реролла другой. `rng` здесь уже продвинут вытягиваниями, то есть свой у реролла.
     const shortlist = [...rejected]
       .sort((a, b) => b.ovrDelta - a.ovrDelta
-        || a.option.incomingHeroId - b.option.incomingHeroId)
+        || a.option!.incomingHeroId - b.option!.incomingHeroId)
       .slice(0, need * HERO_POOL.fillerSpread);
     kept.push(...rng.shuffle(shortlist).slice(0, need));
   }
@@ -545,9 +575,26 @@ export function buildAnteMarketRoulette(
     // а не после отбора: качество входит в дельту, по которой пак отсеивает мёртвые карты.
     (heroId) => (rarityDrops ? rollHeroRarity(seed, heroId, campStageIndex) : "common"),
   );
-  heroes.forEach(({ option: hero, incomingRarity }, heroIndex) => {
+  heroes.forEach(({ option: hero, upgradeHeroId, incomingRarity }, heroIndex) => {
+    const id = `mkt-${campStageIndex}-${rerollN}-hero-${heroIndex}`;
+    // Улучшение своего героя (R14.8) — вторая форма карты того же ролла, а не отдельная секция:
+    // выпал свой герой качеством выше ⇒ его предлагают улучшить. Ростер не трогается, поэтому
+    // ни swap-payload, ни preview от рынка ей не нужны — вклад считает UI по текущему составу.
+    if (upgradeHeroId != null) {
+      const cost = upgradePathCost(rarityOf(upgradeHeroId), incomingRarity);
+      if (cost == null) return;
+      offers.push({
+        id,
+        kind: "hero",
+        labelKey: "market.heroUpgrade",
+        cost,
+        heroUpgrade: { heroId: upgradeHeroId, targetRarity: incomingRarity },
+      });
+      return;
+    }
+    if (!hero) return;
     offers.push({
-      id: `mkt-${campStageIndex}-${rerollN}-hero-${heroIndex}`,
+      id,
       kind: "hero",
       labelKey: "market.heroSynergy",
       cost: heroPrice(incomingRarity),
@@ -622,6 +669,18 @@ export function refreshAnteMarketOffers(
             afterAssignment: option.preview.assignment.byPlayer,
           },
         });
+      } else if (offer.heroUpgrade) {
+        // Улучшение живёт, только пока его герой активен: соседняя покупка могла снести его с
+        // ростера, и тогда карта обязана исчезнуть, а не поднимать тир герою на скамейке.
+        // Тир мог вырасти и другим путём (грайнд в Preparation) — тогда цель уже достигнута.
+        const current = rarityOf(offer.heroUpgrade.heroId);
+        if (!engine.heroes.includes(offer.heroUpgrade.heroId)) continue;
+        if (rarityRank(current) >= rarityRank(offer.heroUpgrade.targetRarity)) continue;
+        const cost = upgradePathCost(current, offer.heroUpgrade.targetRarity);
+        if (cost == null) continue;
+        // Цена пересчитывается от АКТУАЛЬНОГО тира: иначе после грайнда игрок платил бы за уже
+        // пройденные шаги.
+        refreshed.push({ ...offer, cost });
       }
     } catch {
       // A prior swap may make a card impossible; hiding it is safer than charging for stale payload.
