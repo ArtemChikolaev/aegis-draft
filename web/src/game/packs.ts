@@ -75,10 +75,19 @@ export interface DraftPack {
   signatureHeroes: number[];
 }
 
-/** Паки, чьё событие входит в выбранный формат. */
+/** Доступен ли пак в окне. Источник истины — `pack.formats`: они у́же формата события, потому
+ *  что пайплайн срезает окна, где команда разовая (гейт присутствия, TDATA3). Фолбэк на окна
+ *  события — для датасетов до появления поля; проверка события остаётся в обоих ветках, чтобы
+ *  пак не пережил выпадение своего события из окна. */
+export function packInFormat(pack: Pack, event: EventInfo | undefined, format: Format): boolean {
+  if (!event?.formats?.includes(format)) return false;
+  return pack.formats ? pack.formats.includes(format) : true;
+}
+
+/** Паки, доступные в выбранном формате. */
 export function poolForFormat(packs: Pack[], events: EventInfo[], format: Format): Pack[] {
-  const formatsByEvent = new Map(events.map((e) => [e.id, e.formats]));
-  return packs.filter((p) => formatsByEvent.get(p.eventId)?.includes(format));
+  const eventById = new Map(events.map((e) => [e.id, e]));
+  return packs.filter((p) => packInFormat(p, eventById.get(p.eventId), format));
 }
 
 export function candidatesOf(pack: Pack): Candidate[] {

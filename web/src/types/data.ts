@@ -44,6 +44,11 @@ export interface Pack {
    *  UI обязан иметь фолбэк и не рассчитывать на поле. */
   logoUrl?: string;
   placement?: number;
+  /** Окна, в которых пак доступен: подмножество formats события после гейта присутствия
+   *  команды (пайплайн, domain.minEventsInWindow). У́же, чем у события: одна и та же команда
+   *  бывает постоянной в last_5y и разовой в last_1y, и в узком окне её снапшот — шум.
+   *  Пул строится по ЭТОМУ полю (см. packInFormat), а не по formats события. */
+  formats: Format[];
   players: PackPlayer[];
   signatureHeroes: number[];
 }

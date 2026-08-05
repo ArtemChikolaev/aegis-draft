@@ -58,8 +58,13 @@ type Pack struct {
 	Tag      string `json:"tag,omitempty"`
 	// LogoURL — логотип команды с CDN Steam. Пусто у части исторических команд: OpenDota знает
 	// не всех, и UI обязан иметь фолбэк. Пришёл на место LogoID, который не заполнялся ни разу.
-	LogoURL         string       `json:"logoUrl,omitempty"`
-	Placement       int          `json:"placement,omitempty"`
+	LogoURL   string `json:"logoUrl,omitempty"`
+	Placement int    `json:"placement,omitempty"`
+	// Formats — окна, в которых пак доступен: подмножество formats события после гейта
+	// присутствия команды (domain.minEventsInWindow). У́же, чем у события: одна и та же
+	// команда бывает постоянной в last_5y и разовой в last_1y, и в узком окне её снапшот —
+	// шум. Пул строится по ЭТОМУ полю, а не по formats события.
+	Formats         []Format     `json:"formats"`
 	Players         []PackPlayer `json:"players"`
 	SignatureHeroes []int        `json:"signatureHeroes"`
 }

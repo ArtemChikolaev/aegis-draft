@@ -1,3 +1,4 @@
+import { packInFormat } from "../../game/packs.ts";
 import type { EventInfo, Format, Pack } from "../../types/data.ts";
 
 /** Совместное появление двух игроков в одном ростере на конкретном турнире. */
@@ -45,7 +46,9 @@ export function buildTeammateIndex(packs: Pack[], events: EventInfo[], format: F
 
   for (const pack of packs) {
     const event = eventById.get(pack.eventId);
-    if (!event?.formats?.includes(format)) continue;
+    // Тот же гейт, что и у пула: связи с игроками, которых в этом окне нельзя задрафтовать,
+    // граф только зашумляют.
+    if (!event || !packInFormat(pack, event, format)) continue;
     const shared: SharedEvent = {
       eventId: event.id,
       eventName: event.name,

@@ -13,8 +13,9 @@ import (
 )
 
 // fullSnapshot строит snapshot со ВСЕМИ аккаунтами фикстуры (как делает normalize).
+// Второе событие обязательно: гейт присутствия не пускает в пул команду, отыгравшую одно.
 func fullSnapshot() *normalize.OpenDotaSnapshot {
-	matches := fixtureMatches()
+	matches := alsoAt(fixtureMatches(), 200)
 	teamsByAccount := make(map[int]map[int]struct{})
 	for _, match := range matches {
 		for _, app := range match.Players {
@@ -65,10 +66,10 @@ func TestBuildDatasetPassesInvariants(t *testing.T) {
 	if err := validate.Dataset(ds); err != nil {
 		t.Fatalf("dataset fails invariants: %v", err)
 	}
-	if len(ds.Packs) != 2 {
-		t.Fatalf("packs: %d, want 2", len(ds.Packs))
+	if len(ds.Packs) != 4 {
+		t.Fatalf("packs: %d, want 4 (team10/team20 × 2 события)", len(ds.Packs))
 	}
-	if ds.Manifest.Counts["heroes"] != 2 || ds.Manifest.Counts["packs"] != 2 {
+	if ds.Manifest.Counts["heroes"] != 2 || ds.Manifest.Counts["packs"] != 4 {
 		t.Fatalf("manifest counts: %+v", ds.Manifest.Counts)
 	}
 	// Героев конвертнули (id-сортировка, picture-slug).

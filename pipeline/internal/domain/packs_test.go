@@ -53,6 +53,20 @@ func fixtureMatches() []normalize.NormalizedMatch {
 	}
 }
 
+// alsoAt повторяет матчи на втором событии. Гейт присутствия (minEventsInWindow) требует от
+// команды двух событий окна, поэтому односерийная фикстура выпала бы из пула целиком — а эти
+// тесты про ростер и роли, не про гейт (для него — TestBuildPacksGatesOneOffTeams).
+func alsoAt(matches []normalize.NormalizedMatch, leagueID int64) []normalize.NormalizedMatch {
+	out := append([]normalize.NormalizedMatch(nil), matches...)
+	for _, m := range matches {
+		copied := m
+		copied.MatchID += 10000
+		copied.LeagueID = leagueID
+		out = append(out, copied)
+	}
+	return out
+}
+
 func fixtureSnapshot() *normalize.OpenDotaSnapshot {
 	return &normalize.OpenDotaSnapshot{Players: []normalize.NormalizedPlayer{
 		{AccountID: 1, Name: "Ace", TeamIDs: []int{10}},
@@ -65,7 +79,7 @@ func fixtureSnapshot() *normalize.OpenDotaSnapshot {
 var fixtureTeams = []opendota.Team{{TeamID: 10, Name: "Alpha", Tag: "AL"}, {TeamID: 20, Name: "Bravo", Tag: "BR"}}
 
 func TestBuildPacksRealLineup(t *testing.T) {
-	matches := fixtureMatches()
+	matches := alsoAt(fixtureMatches(), 200)
 	events := BuildEvents(matches, testLeagues, asOf(), 0)
 	eventRatings, err := BuildEventRatings(matches, events, rating.Default())
 	if err != nil {
@@ -77,12 +91,12 @@ func TestBuildPacksRealLineup(t *testing.T) {
 	}
 	packs := BuildPacks(matches, events, eventRatings, nickByAccount, fixtureTeams)
 
-	if len(packs) != 2 {
-		t.Fatalf("expected 2 packs (team10, team20), got %d", len(packs))
+	if len(packs) != 4 {
+		t.Fatalf("expected 4 packs (team10/team20 × 2 события), got %d", len(packs))
 	}
 	var alpha model.Pack
 	for _, p := range packs {
-		if p.TeamID == 10 {
+		if p.TeamID == 10 && p.EventID == "league-100" {
 			alpha = p
 		}
 	}
@@ -132,7 +146,7 @@ func TestBuildEventRatingsPerEvent(t *testing.T) {
 }
 
 func TestPackPlayerIDs(t *testing.T) {
-	matches := fixtureMatches()
+	matches := alsoAt(fixtureMatches(), 200)
 	events := BuildEvents(matches, testLeagues, asOf(), 0)
 	ids := PackPlayerIDs(matches, events)
 
@@ -182,6 +196,13 @@ func TestBuildPacksUsesEventRolesNotGlobalPrimaryRole(t *testing.T) {
 	var matches []normalize.NormalizedMatch
 	for i := 0; i < 3; i++ {
 		matches = append(matches, packMatch(int64(500+i), atEvent, team20, 30, 20))
+	}
+	// Гейт присутствия: без второго события окна пак team30 не эмитится вовсе, и тест
+	// проверял бы не роли, а гейт. На глобальные роли acc32/acc33 это не влияет (проверка ниже).
+	for i := 0; i < 2; i++ {
+		second := packMatch(int64(550+i), atEvent, team20, 30, 20)
+		second.LeagueID = 200
+		matches = append(matches, second)
 	}
 	for i := 0; i < 9; i++ {
 		a := packMatch(int64(600+i), off32, team20, 40, 20)
@@ -233,4 +254,102 @@ func TestBuildPacksUsesEventRolesNotGlobalPrimaryRole(t *testing.T) {
 			t.Errorf("acc32 на league-100 играл мид, в паке роль %s (глобальная — offlane)", pl.Role)
 		}
 	}
+}
+
+// Гейт присутствия (TDATA3): команда попадает в пул окна только с minEventsInWindow событий.
+//
+// Дефект, который он чинит, курируемый список имён (tier1.tier1Series) не видит принципиально:
+// имя классифицирует СЕРИЮ, а качество является свойством розыгрыша. «Games of the Future 2025»
+// — настоящая серия с полем из приглашённых стаков, и каждая её команда живёт ровно в одном
+// событии. Гейт уносит такой розыгрыш целиком, не зная его имени.
+func TestBuildPacksGatesOneOffTeams(t *testing.T) {
+	// team10 играет оба события, team20 — только league-100 (разовый стак).
+	other := []fplayer{{61, 1, 1, 610, false}, {62, 2, 11, 540, false}, {63, 3, 41, 440, false}, {64, 1, 87, 240, false}, {65, 3, 128, 190, true}}
+	var matches []normalize.NormalizedMatch
+	for i := 0; i < 3; i++ {
+		matches = append(matches, packMatch(int64(800+i), team10, team20, 10, 20))
+	}
+	for i := 0; i < 3; i++ {
+		second := packMatch(int64(900+i), team10, other, 10, 60)
+		second.LeagueID = 200
+		matches = append(matches, second)
+	}
+
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
+	eventRatings, err := BuildEventRatings(matches, events, rating.Default())
+	if err != nil {
+		t.Fatalf("BuildEventRatings: %v", err)
+	}
+	packs := BuildPacks(matches, events, eventRatings, map[int]string{}, fixtureTeams)
+
+	byTeam := map[int]int{}
+	for _, p := range packs {
+		byTeam[p.TeamID]++
+	}
+	if byTeam[10] != 2 {
+		t.Errorf("team10 отыграла два события — ожидались 2 пака, получено %d", byTeam[10])
+	}
+	if byTeam[20] != 0 {
+		t.Errorf("team20 существует в одном событии — пак должен быть выброшен, получено %d", byTeam[20])
+	}
+	if byTeam[60] != 0 {
+		t.Errorf("team60 существует в одном событии — пак должен быть выброшен, получено %d", byTeam[60])
+	}
+}
+
+// Порог считается ОТДЕЛЬНО на окно: одна и та же команда бывает постоянной в last_5y и
+// разовой в last_1y, и в узком окне её снапшот — шум. Общий счётчик по датасету пропустил бы
+// её всюду, где она попала хоть куда-то.
+func TestPackFormatsNarrowPerWindow(t *testing.T) {
+	recent := time.Date(2025, 9, 10, 0, 0, 0, 0, time.UTC) // league-100: last_1y/2y/5y
+	old := time.Date(2023, 8, 20, 0, 0, 0, 0, time.UTC)    // league-200: только last_5y
+
+	var matches []normalize.NormalizedMatch
+	for i := 0; i < 3; i++ {
+		m := packMatch(int64(1100+i), team10, team20, 10, 20)
+		m.StartTime = recent.Unix()
+		matches = append(matches, m)
+	}
+	for i := 0; i < 3; i++ {
+		m := packMatch(int64(1200+i), team10, team20, 10, 20)
+		m.LeagueID, m.StartTime = 200, old.Unix()
+		matches = append(matches, m)
+	}
+
+	events := BuildEvents(matches, testLeagues, asOf(), 0)
+	eventRatings, err := BuildEventRatings(matches, events, rating.Default())
+	if err != nil {
+		t.Fatalf("BuildEventRatings: %v", err)
+	}
+	packs := BuildPacks(matches, events, eventRatings, map[int]string{}, fixtureTeams)
+
+	var recentPack model.Pack
+	for _, p := range packs {
+		if p.TeamID == 10 && p.EventID == "league-100" {
+			recentPack = p
+		}
+	}
+	if recentPack.ID == "" {
+		t.Fatal("пак team10 на league-100 выброшен целиком: в last_5y команда прошла гейт")
+	}
+	// В last_5y событий два ⇒ окно остаётся. В last_1y/2y событие ровно одно ⇒ отваливаются,
+	// хотя у САМОГО события эти окна есть.
+	if !hasFormat(recentPack.Formats, model.Last5y) {
+		t.Errorf("last_5y должен остаться: %v", recentPack.Formats)
+	}
+	if hasFormat(recentPack.Formats, model.Last1y) || hasFormat(recentPack.Formats, model.Last2y) {
+		t.Errorf("в last_1y/2y команда разовая — окна должны отпасть: %v", recentPack.Formats)
+	}
+	if !hasFormat(eventFormatsOf(events, "league-100"), model.Last1y) {
+		t.Fatal("фикстура не воспроизводит случай: у события league-100 нет last_1y")
+	}
+}
+
+func eventFormatsOf(events []model.EventInfo, id string) []model.Format {
+	for _, event := range events {
+		if event.ID == id {
+			return event.Formats
+		}
+	}
+	return nil
 }

@@ -40,13 +40,15 @@ func eventRole(byRole map[model.Role]int) model.Role {
 
 // BuildPacks строит Team Packs как реальные составы команд на событии: топ-5 игроков
 // по числу игр в событии, с рейтингами (S3c) и ролями (S2). Placement не выводится из
-// OpenDota (deferred). Пак включается только при полном составе (>=5 игроков).
+// OpenDota (deferred). Пак включается только при полном составе (>=5 игроков) и только
+// в те окна, где команда прошла гейт присутствия (packFormats).
 func BuildPacks(matches []normalize.NormalizedMatch, events []model.EventInfo, eventRatings map[string]map[int]rating.PlayerRating, nickByAccount map[int]string, teams []opendota.Team) []model.Pack {
 	teamInfo := make(map[int]opendota.Team, len(teams))
 	for _, team := range teams {
 		teamInfo[int(team.TeamID)] = team
 	}
 	lineups := buildLineups(matches, events)
+	formatsByPack := packFormats(lineups, events)
 
 	packs := make([]model.Pack, 0)
 	for _, eventID := range sortedKeys(lineups) {
@@ -56,13 +58,84 @@ func BuildPacks(matches []normalize.NormalizedMatch, events []model.EventInfo, e
 		}
 		sort.Ints(teamIDs)
 		for _, teamID := range teamIDs {
+			windows := formatsByPack[eventID][teamID]
+			if len(windows) == 0 {
+				continue // команда не прошла гейт ни в одном окне события
+			}
 			pack, ok := buildPack(eventID, teamID, lineups[eventID][teamID], eventRatings[eventID], nickByAccount, teamInfo)
 			if ok {
+				pack.Formats = windows
 				packs = append(packs, pack)
 			}
 		}
 	}
 	return packs
+}
+
+// minEventsInWindow — сколько событий ОКНА команда обязана отыграть полным составом, чтобы
+// попасть в пул этого окна.
+//
+// Гейт присутствия чинит дефект, который не видит курируемый список имён (tier1.tier1Series):
+// имя классифицирует СЕРИЮ, а качество является свойством конкретного розыгрыша. «Games of the
+// Future 2025 Abu Dhabi» — настоящая серия с полем из приглашённых стаков; каждая её команда
+// существует ровно в одном событии, поэтому гейт уносит розыгрыш целиком, не зная его имени.
+//
+// Порог 2 выбран замером на датасете 8b4815a (не спекуляция). По окнам, средний OVR пака:
+// N=1 — 68.7/68.9/72.8/68.0 (1y/2y/5y/legacy), N=5+ — 75.9/75.3/74.8/75.5. Слабый хвост
+// (пак <65 OVR) в last_1y падает 14.1% → 10.8%, сильный (>82) не двигается: гейт срезает
+// снапшоты команд, о которых окно ничего не знает, а не «слабые команды».
+//
+// Порог считается ОТДЕЛЬНО на окно, а не на весь датасет: одна и та же команда бывает
+// постоянной в last_5y и разовой в last_1y. Опасение, что в valve_legacy (только TI и мажоры)
+// разовое участие законно, замером не подтвердилось — там N=1 самый слабый бакет из всех.
+const minEventsInWindow = 2
+
+// packFormats возвращает (eventID, teamID) -> окна, в которых пак доступен: форматы события
+// минус те, где команда встречается реже minEventsInWindow. Пустой список = пак не эмитим.
+//
+// Считаются только события с ПОЛНЫМ составом: команда, засветившаяся четырьмя игроками, пака
+// не даёт и присутствием считаться не должна.
+func packFormats(lineups map[string]map[int]*eventLineup, events []model.EventInfo) map[string]map[int][]model.Format {
+	windowsByEvent := make(map[string][]model.Format, len(events))
+	for _, event := range events {
+		windowsByEvent[event.ID] = event.Formats
+	}
+
+	seen := make(map[model.Format]map[int]int)
+	for eventID, byTeam := range lineups {
+		for teamID, lineup := range byTeam {
+			if _, _, ok := selectRoster(lineup); !ok {
+				continue
+			}
+			for _, window := range windowsByEvent[eventID] {
+				if seen[window] == nil {
+					seen[window] = make(map[int]int)
+				}
+				seen[window][teamID]++
+			}
+		}
+	}
+
+	out := make(map[string]map[int][]model.Format, len(lineups))
+	for eventID, byTeam := range lineups {
+		for teamID := range byTeam {
+			// Порядок наследуется от event.Formats (formats.Assign) — детерминизм.
+			kept := make([]model.Format, 0, len(windowsByEvent[eventID]))
+			for _, window := range windowsByEvent[eventID] {
+				if seen[window][teamID] >= minEventsInWindow {
+					kept = append(kept, window)
+				}
+			}
+			if len(kept) == 0 {
+				continue
+			}
+			if out[eventID] == nil {
+				out[eventID] = make(map[int][]model.Format)
+			}
+			out[eventID][teamID] = kept
+		}
+	}
+	return out
 }
 
 // buildLineups строит составы (eventID, teamID) -> {игры, герои} по появлениям в матчах
@@ -176,10 +249,18 @@ func permute(items []int, k int, visit func([]int)) {
 // Обогащать career/peers имеет смысл только для них: непаковые игроки (стенд-ины, неполные
 // ростеры) в датасет не входят. Вычисляется из тех же входов, что и BuildPacks, но БЕЗ
 // рейтингов/справочников — то есть доступно ДО дорогого сетевого обогащения.
+//
+// Гейт присутствия применяется здесь тем же packFormats: игроки паков, которые BuildPacks
+// выбросит, в датасет не попадут, и сетевой бюджет на них тратить нельзя.
 func PackPlayerIDs(matches []normalize.NormalizedMatch, events []model.EventInfo) map[int]struct{} {
+	lineups := buildLineups(matches, events)
+	formatsByPack := packFormats(lineups, events)
 	ids := make(map[int]struct{})
-	for _, byTeam := range buildLineups(matches, events) {
-		for _, lineup := range byTeam {
+	for eventID, byTeam := range lineups {
+		for teamID, lineup := range byTeam {
+			if len(formatsByPack[eventID][teamID]) == 0 {
+				continue
+			}
 			roster, _, ok := selectRoster(lineup)
 			if !ok {
 				continue

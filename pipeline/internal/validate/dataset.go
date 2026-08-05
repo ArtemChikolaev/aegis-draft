@@ -18,10 +18,28 @@ func Dataset(ds *model.Dataset) error {
 	if ds.Manifest.SchemaVersion != 1 || ds.Manifest.RatingModelVersion == "" || ds.Manifest.BuiltAt == "" {
 		return fmt.Errorf("manifest versions/builtAt are incomplete")
 	}
+	eventFormats := make(map[string]map[model.Format]struct{}, len(ds.Events))
+	for _, event := range ds.Events {
+		set := make(map[model.Format]struct{}, len(event.Formats))
+		for _, window := range event.Formats {
+			set[window] = struct{}{}
+		}
+		eventFormats[event.ID] = set
+	}
 	seenPacks := make(map[string]struct{}, len(ds.Packs))
 	for _, pack := range ds.Packs {
 		if pack.ID == "" || pack.EventID == "" || pack.TeamID <= 0 || pack.TeamName == "" {
 			return fmt.Errorf("invalid pack identity: %+v", pack)
+		}
+		// Окна пака — подмножество окон события: гейт присутствия умеет только сужать.
+		// Формат, которого нет у события, означал бы пак, недостижимый ни из одного пула.
+		if len(pack.Formats) == 0 {
+			return fmt.Errorf("pack %s has no formats", pack.ID)
+		}
+		for _, window := range pack.Formats {
+			if _, ok := eventFormats[pack.EventID][window]; !ok {
+				return fmt.Errorf("pack %s declares format %q absent from event %s", pack.ID, window, pack.EventID)
+			}
 		}
 		if _, exists := seenPacks[pack.ID]; exists {
 			return fmt.Errorf("duplicate pack id %q", pack.ID)

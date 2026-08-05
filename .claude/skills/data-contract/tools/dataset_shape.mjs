@@ -81,9 +81,17 @@ const packsByEvent = {};
 for (const p of packs) packsByEvent[p.eventId] = (packsByEvent[p.eventId] ?? 0) + 1;
 const formats = {};
 for (const e of events) for (const f of e.formats ?? []) (formats[f] ??= []).push(e);
+// Пул считаем по packs[].formats, а не по events[].formats: гейт присутствия (TDATA3) сужает
+// окна КАЖДОМУ паку отдельно, поэтому «событие в окне» больше не значит «его паки в пуле».
 for (const f of Object.keys(formats).sort()) {
   const years = formats[f].map((e) => e.year).filter(Boolean);
-  console.log(`  ${f.padEnd(13)} событий=${String(formats[f].length).padStart(3)}  годы ${Math.min(...years)}–${Math.max(...years)}`);
+  const eventIds = new Set(formats[f].map((e) => e.id));
+  const pool = packs.filter((p) => (p.formats ? p.formats.includes(f) : eventIds.has(p.eventId)));
+  const teams = new Set(pool.map((p) => p.teamId)).size;
+  const avg = pool.length
+    ? (pool.reduce((s, p) => s + p.players.reduce((a, x) => a + x.ovr, 0) / p.players.length, 0) / pool.length).toFixed(1)
+    : "—";
+  console.log(`  ${f.padEnd(13)} событий=${String(formats[f].length).padStart(3)}  паков=${String(pool.length).padStart(4)}  команд=${String(teams).padStart(3)}  средний OVR пака ${avg}  годы ${Math.min(...years)}–${Math.max(...years)}`);
 }
 
 // valve_legacy — главный подозреваемый на протечку квалов: у них квалы сидят под тем же

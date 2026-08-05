@@ -130,8 +130,11 @@ const TEAMS = {
 
 // --- События (participants: [teamKey, placement, games]). Даты → окна через formatsFor. ---
 const EVENTS = [
+  // Полное поле: гейт присутствия (MIN_EVENTS_IN_WINDOW) требует от команды двух событий
+  // окна, а last_1y — самое узкое из них. Без этого события половина ростеров вылетела бы
+  // из годового пула, и Mixed Draft остался бы без пяти разных команд на слоты.
   { id: "esl-birmingham-2026", name: "ESL One Birmingham 2026", short: "ESLB26", type: "tier1", year: 2026, startDate: "2026-04-20", endDate: "2026-04-26", patch: "7.39", prizePool: 1000000,
-    standings: [["spirit", 1, 14], ["falcons", 2, 12], ["betboom", 3, 10]] },
+    standings: [["spirit", 1, 14], ["falcons", 2, 12], ["betboom", 3, 10], ["liquid", 4, 9], ["tundra", 5, 8], ["xtreme", 6, 8], ["gg", 7, 7]] },
   { id: "ti2025", name: "The International 2025", short: "TI14", type: "ti", year: 2025, startDate: "2025-09-04", endDate: "2025-09-14", patch: "7.38", prizePool: 3000000,
     standings: [["spirit", 1, 18], ["liquid", 2, 17], ["falcons", 3, 15], ["tundra", 4, 14]] },
   { id: "pgl-wallachia-2025", name: "PGL Wallachia Season 4", short: "PGLW4", type: "tier1", year: 2025, startDate: "2025-08-01", endDate: "2025-08-10", patch: "7.37", prizePool: 1000000,
@@ -152,14 +155,34 @@ const events = EVENTS.map((ev) => ({
 }));
 write("events.json", events);
 
+// --- Гейт присутствия: зеркало domain.minEventsInWindow (пайплайн — источник правила).
+// Пак доступен в окне, только если команда отыграла в этом окне >= MIN_EVENTS_IN_WINDOW
+// событий. Порог считается ОТДЕЛЬНО на окно: команда бывает постоянной в last_5y и разовой
+// в last_1y. ---
+const MIN_EVENTS_IN_WINDOW = 2;
+const formatsByEventId = new Map(events.map((ev) => [ev.id, ev.formats]));
+const eventsPerTeamInWindow = new Map(); // `${format}:${teamKey}` -> число событий
+for (const ev of EVENTS) {
+  for (const [teamKey] of ev.standings) {
+    for (const format of formatsByEventId.get(ev.id)) {
+      const key = `${format}:${teamKey}`;
+      eventsPerTeamInWindow.set(key, (eventsPerTeamInWindow.get(key) ?? 0) + 1);
+    }
+  }
+}
+const packFormats = (evId, teamKey) => formatsByEventId.get(evId)
+  .filter((format) => (eventsPerTeamInWindow.get(`${format}:${teamKey}`) ?? 0) >= MIN_EVENTS_IN_WINDOW);
+
 // --- packs.json (пак = ростер команды на событии) ---
 const packs = [];
 for (const ev of EVENTS) {
   for (const [teamKey, placement, games] of ev.standings) {
     const team = TEAMS[teamKey];
+    const windows = packFormats(ev.id, teamKey);
+    if (windows.length === 0) continue; // команда не прошла гейт ни в одном окне события
     packs.push({
       id: `${ev.id}-${team.teamId}`, eventId: ev.id, teamId: team.teamId, teamName: team.teamName,
-      tag: team.tag, logoUrl: TEAM_LOGOS[team.teamId], placement,
+      tag: team.tag, logoUrl: TEAM_LOGOS[team.teamId], placement, formats: windows,
       players: team.roster.map((pl) => ({
         accountId: pl.accountId, nickname: pl.nickname, role: pl.role, ovr: pl.ovr,
         impact: stat(pl.ovr, pl.role, "impact"), economy: stat(pl.ovr, pl.role, "economy"),
