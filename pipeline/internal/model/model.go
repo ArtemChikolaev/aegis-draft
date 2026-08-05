@@ -85,11 +85,8 @@ type PlayerPeak struct {
 }
 
 type PlayerProfile struct {
-	AccountID int    `json:"accountId"`
-	Nickname  string `json:"nickname"`
-	// AvatarURL — аватар с CDN Steam. Заведомо НЕполный: источник (/proPlayers) перечисляет
-	// действующих про, поэтому по историческим составам покрытие ~35%. См. players.schema.json.
-	AvatarURL   string              `json:"avatarUrl,omitempty"`
+	AccountID   int                 `json:"accountId"`
+	Nickname    string              `json:"nickname"`
 	PrimaryRole Role                `json:"primaryRole"`
 	RolesPlayed []Role              `json:"rolesPlayed,omitempty"`
 	Teams       []PlayerTeam        `json:"teams,omitempty"`

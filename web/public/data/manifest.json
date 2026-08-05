@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "ratingModelVersion": "mock-2",
   "builtAt": "2026-07-11T00:00:00Z",
-  "dataHash": "sha256:626377a3c54297628f9402e101573b114f1a788c26b8883917f95520e38535a3",
+  "dataHash": "sha256:53e7bc7dcc416ee5dd980929d4a8592ebf456cbb1b1f62026faec49fe690c076",
   "source": {
     "opendota": "mock dataset — not real OpenDota data",
     "liquipedia": "mock dataset — not real Liquipedia data"

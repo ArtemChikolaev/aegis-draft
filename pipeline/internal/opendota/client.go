@@ -103,17 +103,6 @@ type TeamPlayer struct {
 	IsCurrent   bool   `json:"is_current_team_member"`
 }
 
-// ProPlayer — запись из /proPlayers (все действующие про одним запросом).
-//
-// Нужна ровно ради AvatarFull: поштучный /players/{id} дал бы полное покрытие, но это ~1100
-// запросов ≈ 18 минут пайплайна ради 32-пиксельной картинки. Один запрос даёт ~35% по нашим
-// историческим составам (замер 2026-08-04) — этого хватает, потому что UI держит фолбэк.
-type ProPlayer struct {
-	AccountID  int64  `json:"account_id"`
-	Name       string `json:"name"`
-	AvatarFull string `json:"avatarfull"`
-}
-
 // League — запись из /leagues. tier: premium|professional|amateur|excluded.
 type League struct {
 	LeagueID int64  `json:"leagueid"`
@@ -228,15 +217,6 @@ func (c *Client) FetchTeams(ctx context.Context) ([]Team, error) {
 		return nil, fmt.Errorf("fetch teams: %w", err)
 	}
 	return teams, nil
-}
-
-// FetchProPlayers возвращает /proPlayers — справочник действующих про с аватарами. Один запрос.
-func (c *Client) FetchProPlayers(ctx context.Context) ([]ProPlayer, error) {
-	var players []ProPlayer
-	if err := c.transport.GetJSON(ctx, "proPlayers", c.query(), nil, &players); err != nil {
-		return nil, fmt.Errorf("fetch pro players: %w", err)
-	}
-	return players, nil
 }
 
 // FetchTeam возвращает /teams/{id} — карточку одной команды.

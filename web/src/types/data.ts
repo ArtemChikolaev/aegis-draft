@@ -74,9 +74,6 @@ export type EventHeroStats = Record<string, Record<string, Record<string, Stat>>
 export interface PlayerProfile {
   accountId: number;
   nickname: string;
-  /** Аватар игрока (CDN Steam). Заведомо НЕполный — источник перечисляет действующих про,
-   *  по историческим составам покрытие ~35%. UI обязан иметь фолбэк. */
-  avatarUrl?: string;
   primaryRole: Role;
   rolesPlayed?: Role[];
   teams?: { teamId: number; teamName?: string; games: number; from?: string; to?: string }[];

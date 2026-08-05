@@ -11,7 +11,7 @@ import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import type { SummandDelta } from "./campPresentation.ts";
 import type { OfferOverlayAction } from "./OfferOverlay.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { Eyebrow, HeroThumb, playerOvrTier, RemoteAvatar, RoleTag } from "../../ui/index.ts";
+import { Eyebrow, HeroThumb, playerOvrTier, RoleTag, TeamLogo, teamMonogram } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 
 /** Перевод с уже подставленными переменными — ровно та сигнатура, что отдаёт `useI18n`. */
@@ -224,15 +224,6 @@ export function ItemMatch({ match, hero, t }: {
   );
 }
 
-/** Монограмма команды для фолбэка: первые буквы слов, максимум две — «Team Falcons» → «TF».
- *  Тот же приём, что у `TeamSigil` в турнирном поле: уникальный признак важнее цвета. */
-export function teamMonogram(teamName: string): string {
-  const words = teamName.split(/[\s_-]+/).filter(Boolean);
-  if (words.length === 0) return "?";
-  if (words.length === 1) return words[0].slice(0, 2);
-  return (words[0][0] + words[1][0]);
-}
-
 export function CampPlayerCard({
   candidate,
   heroId,
@@ -269,11 +260,9 @@ export function CampPlayerCard({
             В строке идентичности он отнимал 22px+gap у имени, и ники снова начали резаться
             («Cryst…», «Malr1…») — ровно та регрессия, которую чинил R14.1. Верхняя строка после
             R14.1 держит один чип роли, места там достаточно. */}
-        <RemoteAvatar
+        <TeamLogo
           src={candidate.logoUrl}
           name={candidate.teamName}
-          shape="square"
-          size="sm"
           fallback={teamMonogram(candidate.teamName)}
         />
       </div>

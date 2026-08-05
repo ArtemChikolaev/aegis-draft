@@ -11,11 +11,6 @@
     "properties": {
       "accountId": { "type": "integer" },
       "nickname": { "type": "string" },
-      "avatarUrl": {
-        "type": "string",
-        "format": "uri",
-        "description": "Аватар игрока (OpenDota /proPlayers avatarfull, CDN Steam). Необязательный и заведомо НЕполный: /proPlayers — список ДЕЙСТВУЮЩИХ про, поэтому по историческим составам покрытие ~35% (замер 2026-08-04: 384 из 1096 игроков в паках). Поштучный /players/{id} дал бы ~100%, но это ~1100 запросов ≈ 18 минут пайплайна ради 32-пиксельной картинки — не берём. UI обязан иметь фолбэк и не рассчитывать на поле."
-      },
       "primaryRole": { "type": "string", "enum": ["safelane", "mid", "offlane", "support"] },
       "rolesPlayed": {
         "type": "array",

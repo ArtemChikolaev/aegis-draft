@@ -16,3 +16,13 @@
   color: var(--text);
   font-weight: 800;
 }
+
+/* Подпись слагаемого — ТЕМ ЖЕ цветом, что и его плитка в score-strip (`ui/StatTile`): легенда
+   объясняет ровно те три числа, и связь читается цветом, а не только порядком строк. Токены общие,
+   поэтому цвет не может разойтись с плиткой. */
+/* Специфичность выше, чем у `.scoring-legend strong` (0,1,1): иначе общее правило перебивает цвет
+   слагаемого, и подписи остаются чёрными — поймано замером. */
+.scoring-legend .scoring-legend__term--base { color: var(--stat-base-ink); }
+.scoring-legend .scoring-legend__term--synergy { color: var(--stat-synergy-ink); }
+.scoring-legend--run .scoring-legend__term--synergy { color: var(--stat-synergy-run-ink); }
+.scoring-legend .scoring-legend__term--chemistry { color: var(--stat-chemistry-ink); }

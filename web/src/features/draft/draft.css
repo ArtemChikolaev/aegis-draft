@@ -40,15 +40,48 @@
 .score-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .draft__radar .synergy-breakdown { margin-top: 14px; }
 
-.pack-panel { padding: 26px; }
+/* Панель пака — всегда-тёмная в ОБЕИХ темах (design-language: «black inset sections» у light).
+   Причина цепочкой: логотипы команд почти все белые монохромные и на ivory пропадали → карточки
+   игроков сделали тёмными, чтобы знак всегда лежал на своём фоне → но тёмная карточка на светлой
+   панели читается чёрным кирпичом. Тёмная панель возвращает карточкам то окружение, в котором они
+   и задумывались: мягкие тинты по тиру видны, контраст не рвёт глаз. */
+.pack-panel {
+  padding: 26px;
+  color: var(--on-invert);
+  background: var(--surface-invert);
+}
+/* Ремапим ТОКЕНЫ, а не перечисляем классы: всё внутри панели (карточки героев из `HeroThumb`,
+   подписи, разделители) читает те же переменные и переезжает на тёмную поверхность само. Иначе
+   каждый новый блок внутри пришлось бы чинить отдельно — ровно та ошибка, от которой предостерегает
+   правило «цвет только через токен». */
+/* Ремап навешен на КОНКРЕТНЫЕ блоки игрового поля, а не на всю панель: легенда внизу остаётся
+   светлой вставкой (это справка, а не поле), и сбрасывать ей токены обратно нечем — `initial` у
+   кастомного свойства делает его невалидным, а не возвращает значение темы. Проверено: легенда от
+   такого сброса теряла фон целиком. */
+.pack-panel .pack-heading,
+.pack-panel .candidates,
+.pack-panel .hero-pool {
+  --surface-soft: color-mix(in srgb, var(--on-invert) 8%, var(--surface-invert));
+  --surface: var(--surface-invert);
+  --text: var(--on-invert);
+  --muted: var(--muted-invert);
+  --line: var(--line-invert);
+}
+
 .pack-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .pack-heading .pack-eyebrow { margin-bottom: 3px; }
+.pack-identity { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
 .pack-heading h2 { margin: 0; font-size: 18px; }
 .candidates { display: grid; gap: 9px; }
+/* Карточка кандидата — всегда-тёмная панель, как радар слева, а не поверхность темы. Причина
+   предметная: логотипы команд в подавляющем большинстве белые монохромные и на ivory светлой темы
+   пропадали, а подложки и контуры вокруг знака портили композицию. Тёмная карточка решает это
+   насовсем — знак всегда на своём фоне. Цвета идут инвертными токенами (`.on-invert-surface`
+   ремапит ещё и tier-шкалу), без тема-селекторов. */
 /* Лёгкая тонировка карточки по тиру игрока (--card-tint задаёт .card-tint--*): мягкий
    градиент от нейтрального к чуть окрашенному со стороны OVR — карточки не бесцветные,
    а сила читается ещё и фоном. Очень субтильно (≤11%), на hover перекрывается accent'ом. */
-.candidate { position: relative; display: grid; grid-template-columns: auto minmax(100px, 1fr) auto 56px; align-items: center; gap: 12px; min-height: 82px; padding: 12px 14px; text-align: left; border: 0; border-radius: 20px; background: linear-gradient(100deg, var(--surface-soft) 55%, color-mix(in srgb, var(--card-tint, transparent) 11%, var(--surface-soft))); transition: transform .15s, background .15s, box-shadow .15s; }
+.candidate { position: relative; display: grid; grid-template-columns: auto minmax(100px, 1fr) auto 56px; align-items: center; gap: 12px; min-height: 82px; padding: 12px 14px; text-align: left; border: 0; border-radius: 20px; background: linear-gradient(100deg, var(--surface-invert) 55%, color-mix(in srgb, var(--card-tint, transparent) 14%, var(--surface-invert))); color: var(--on-invert); transition: transform .15s, background .15s, box-shadow .15s; }
 /* Словарь тиров (.card-tint--*, включая краевые эффекты) — в design/base.css:
    его делят пак, радар и карьера. Здесь только раскладка карточки кандидата. */
 /* На hover карточка целиком зеленеет — оба краевых слоя убираем, иначе спорят с accent. */
@@ -62,13 +95,19 @@
 .candidate:disabled { opacity: .38; }
 .candidate__identity { display: grid; min-width: 0; }
 .candidate__identity strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; }
-.candidate__identity small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; }
-.candidate__stats { display: flex; gap: 11px; color: var(--muted); font-size: 9px; }
-.candidate__stats b { color: var(--text); font-size: 11px; }
+.candidate__identity small { display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; color: var(--muted-invert); font-size: 10px; text-overflow: ellipsis; }
+/* Знак не сжимается, название сжимается: у команды знак и есть быстрый признак. Ник при этом не
+   теряет ни пикселя — он лежит на своей строке выше. */
+.candidate__identity small > img,
+.candidate__identity small > span { flex: none; }
+/* Шапка пака: знак слева от названия команды, кнопка реролла остаётся прижатой вправо. */
+
+.candidate__stats { display: flex; gap: 11px; color: var(--muted-invert); font-size: 9px; }
+.candidate__stats b { color: var(--on-invert); font-size: 11px; }
 /* Цвет номера задаёт тир (.ovr-tier--*, base.css). Здесь только раскладка/шрифт. */
 .candidate__ovr { display: grid; justify-items: center; font: 800 24px/1 "Space Grotesk"; }
 /* Подпись OVR не должна попадать под elite-градиент родителя (наследуемый text-fill): красим по color. */
-.candidate__ovr small { color: var(--muted); font: 700 7px Manrope; letter-spacing: .12em; -webkit-text-fill-color: currentColor; }
+.candidate__ovr small { color: var(--muted-invert); font: 700 7px Manrope; letter-spacing: .12em; -webkit-text-fill-color: currentColor; }
 .candidate__action { display: none; color: var(--accent); font-size: 9px; font-weight: 800; }
 
 .hero-pool { display: grid; gap: 12px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }

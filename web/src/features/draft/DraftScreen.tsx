@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
-import { Button, Dealt, Eyebrow, HeroThumb, Modal, playerOvrTier, RoleTag, StatTile, Surface, TeamName } from "../../ui/index.ts";
+import { Button, Dealt, Eyebrow, HeroThumb, Modal, playerOvrTier, RoleTag, StatTile, Surface, TeamLogo, TeamName, teamMonogram } from "../../ui/index.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { PlayerInspector } from "./PlayerInspector.tsx";
 import { SynergyBreakdown } from "./SynergyBreakdown.tsx";
@@ -26,6 +26,10 @@ const fmt = (value: number) => (value >= 0 ? `+${value.toFixed(1)}` : value.toFi
 
 export function DraftScreen() {
   const snapshot = useRun((state) => state.snapshot);
+  // Режим берём из `selectedMode` — это канонический источник в проекте (на нём же построен
+  // `showsHeroTags`). Пробовал выводить из `ante != null` — флаг оказался ложным на экране драфта,
+  // и легенда оставалась зелёной; mode shell знает ответ надёжнее производного состояния.
+  const isRoguelite = useRun((state) => state.selectedMode === "run");
   const pickPlayer = useRun((state) => state.pickPlayer);
   const pickHero = useRun((state) => state.pickHero);
   const reroll = useRun((state) => state.reroll);
@@ -117,18 +121,35 @@ export function DraftScreen() {
           />
         )}
       </Surface>
-      <Surface className="pack-panel enter" style={{ "--enter-i": 1 } as CSSProperties}>
+      <Surface className="pack-panel on-invert-surface enter" style={{ "--enter-i": 1 } as CSSProperties}>
         <div className="pack-heading">
-          <div>
-            <Eyebrow className="pack-eyebrow">{currentPack.kind === "mixed" ? t("draft.freeAgents") : currentPack.label}</Eyebrow>
-            <h2>{currentPack.kind === "mixed" ? t("draft.mixedSubtitle") : packEventLabel}</h2>
+          {/* Знак команды в team-паке лежит ИМЕННО здесь: команда одна на все пять строк. */}
+          <div className="pack-identity">
+            {currentPack.kind === "team" && (
+              <TeamLogo
+                src={currentPack.logoUrl}
+                name={currentPack.label}
+                size="md"
+                fallback={teamMonogram(currentPack.label)}
+              />
+            )}
+            <div>
+              <Eyebrow className="pack-eyebrow">{currentPack.kind === "mixed" ? t("draft.freeAgents") : currentPack.label}</Eyebrow>
+              <h2>{currentPack.kind === "mixed" ? t("draft.mixedSubtitle") : packEventLabel}</h2>
+            </div>
           </div>
           <Button variant="secondary" onClick={reroll} disabled={rerollsLeft <= 0}>↻ {t("draft.reroll")}<small>{t("draft.rerollsLeft", { count: rerollCount })}</small></Button>
         </div>
         <div className="candidates">
           {currentPack.candidates.map((candidate, index) => (
             <Dealt key={`${packSerial}:${candidate.player.accountId}`} index={index}>
-              <CandidateCard candidate={candidate} enabled={canPickPlayer(index)} onPick={() => { tgHaptic(); pickPlayer(index); }} index={index} />
+              <CandidateCard
+                candidate={candidate}
+                enabled={canPickPlayer(index)}
+                onPick={() => { tgHaptic(); pickPlayer(index); }}
+                index={index}
+                showTeamLogo={currentPack.kind === "mixed"}
+              />
             </Dealt>
           ))}
         </div>
@@ -174,7 +195,7 @@ export function DraftScreen() {
             })}
           </div>
         </div>
-        <ScoringLegend draftStyle={config.draftStyle} />
+        <ScoringLegend draftStyle={config.draftStyle} roguelite={isRoguelite} />
       </Surface>
       {confirmLeave && (
         <Modal mark="A" title={t("draft.leaveTitle")} description={t("draft.leaveText")} labelledBy="leave-title" dismissLabel={t("common.close")} onClose={() => setConfirmLeave(false)}>
@@ -203,14 +224,38 @@ export function DraftScreen() {
   );
 }
 
-function CandidateCard({ candidate, enabled, onPick, index }: { candidate: Candidate; enabled: boolean; onPick: () => void; index: number }) {
+function CandidateCard({ candidate, enabled, onPick, index, showTeamLogo }: {
+  candidate: Candidate;
+  enabled: boolean;
+  onPick: () => void;
+  index: number;
+  /** Знак команды в СТРОКЕ нужен только Mixed: там у каждого кандидата своя команда, и она —
+   *  предмет сравнения. В team-паке все пятеро из одной, она уже названа в шапке, и повтор знака
+   *  пять раз был бы чистым шумом. */
+  showTeamLogo: boolean;
+}) {
   const { t } = useI18n();
   const player = candidate.player;
   const tier = playerOvrTier(player.ovr);
   return (
-    <button className={`candidate card-tint--${tier}`} onClick={onPick} disabled={!enabled} data-testid={`candidate-${index}`}>
+    <button className={`candidate on-invert-surface card-tint--${tier}`} onClick={onPick} disabled={!enabled} data-testid={`candidate-${index}`}>
       <RoleTag role={player.role}>{t(roleMessageKey(player.role))}</RoleTag>
-      <span className="candidate__identity"><strong>{player.nickname}</strong><small>{candidate.teamName}</small></span>
+      <span className="candidate__identity">
+        <strong>{player.nickname}</strong>
+        {/* Команда в строке — только в Mixed. В team-паке она одна на все пять строк и уже стоит
+            в шапке: печатать её пятикратно под каждым ником значит повторять одно и то же вместо
+            того, что игрока различает. */}
+        {showTeamLogo && (
+          <small>
+            <TeamLogo
+              src={candidate.logoUrl}
+              name={candidate.teamName}
+              fallback={teamMonogram(candidate.teamName)}
+            />
+            {candidate.teamName}
+          </small>
+        )}
+      </span>
       <span className="candidate__stats"><span><b>{player.impact}</b> IMP</span><span><b>{player.economy}</b> ECO</span><span><b>{player.reliability}</b> REL</span></span>
       <span className={`candidate__ovr ovr-tier--${tier}`}>{player.ovr}<small>OVR</small></span>
       <span className="candidate__action">{t("draft.pick")} →</span>

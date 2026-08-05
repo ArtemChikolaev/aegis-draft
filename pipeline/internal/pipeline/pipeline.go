@@ -245,12 +245,6 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 		return domainFetchErr("teams", err)
 	}
 	teams = enrichTeamLogos(ctx, od, teams, snapshot)
-	// Аватары — один запрос и мягкий отказ: поле необязательное, и падать из-за картинок нельзя.
-	proPlayers, err := od.FetchProPlayers(ctx)
-	if err != nil {
-		log.Printf("[domain] proPlayers недоступны (%v) — датасет собирается без аватаров", err)
-		proPlayers = nil
-	}
 	leagues, err := od.FetchLeagues(ctx)
 	if err != nil {
 		return domainFetchErr("leagues", err)
@@ -264,8 +258,7 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 		return fmt.Errorf("emit-domain: %w", werr)
 	}
 	ds, err := domain.Build(domain.Input{
-		Snapshot: snapshot, Aggregates: aggregates, Teams: teams, ProPlayers: proPlayers,
-		Leagues: leagues, Heroes: heroes,
+		Snapshot: snapshot, Aggregates: aggregates, Teams: teams, Leagues: leagues, Heroes: heroes,
 		AsOf: asOf, Config: rcfg, RatingModelVersion: rating.ModelVersion, MinEventMatches: cfg.MinEventMatches,
 		WindowStartUnix: windowStart,
 	})
