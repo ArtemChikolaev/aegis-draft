@@ -55,6 +55,22 @@ fi
 # Frontend: цвет-литерал в inline-стиле компонента (используй токены/классы дизайн-системы)
 scan "Frontend: цвет-литерал в inline style tsx (используй токены)" --include=*.tsx -E -e 'style=\{\{[^}]*(#[0-9a-fA-F]{3}|rgba?\()'
 
+# Данные: мок вместо боевого датасета в web/public/data.
+#
+# Грабля 2026-08-05, повторилась дважды подряд: `npm run gen:mock` пишет В ТОТ ЖЕ каталог, где
+# лежит боевой датасет, собранный CI. Прогнал мок для проверки UI, добавил каталог в коммит целиком
+# — и в main уехали 22 пака вместо 1415. На глаз в diff это не видно: файлы те же, меняются только
+# числа внутри. Порог 100 берётся с запасом: мок — 22 пака, боевой — больше тысячи.
+if [ -f web/public/data/packs.json ]; then
+  pack_count=$(node -e "const p=require('./web/public/data/packs.json');const a=Array.isArray(p)?p:p.packs;console.log(Array.isArray(a)?a.length:0)" 2>/dev/null || echo "-1")
+  if [ "$pack_count" != "-1" ] && [ "$pack_count" -lt 100 ]; then
+    echo "⚠️  Данные: в web/public/data лежит МОК ($pack_count паков), а не боевой датасет."
+    echo "    Это следы 'npm run gen:mock'. Коммитить их нельзя — датасет собирает только CI."
+    echo "    Вернуть: git checkout origin/main -- web/public/data"
+    hits=$((hits+1))
+  fi
+fi
+
 if [ "$hits" -eq 0 ]; then
   echo "✅ чисто"
 fi
