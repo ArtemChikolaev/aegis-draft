@@ -588,7 +588,6 @@
     "startDate": "2024-07-28",
     "endDate": "2024-08-04",
     "formats": [
-      "last_2y",
       "last_5y"
     ]
   },
@@ -600,7 +599,6 @@
     "startDate": "2024-07-25",
     "endDate": "2024-08-04",
     "formats": [
-      "last_2y",
       "last_5y"
     ]
   },
