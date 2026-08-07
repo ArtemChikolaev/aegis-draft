@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "ratingModelVersion": "v1.13.0",
-  "builtAt": "2026-08-06T08:41:53Z",
+  "builtAt": "2026-08-07T07:21:02Z",
   "dataHash": "sha256:6999816d32e216201c4527262a5c4168b15ad4a23cbf97a2a3d53cf7e367d53d",
   "source": {
     "opendota": "OpenDota API — https://www.opendota.com",
