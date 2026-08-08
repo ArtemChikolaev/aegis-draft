@@ -100,21 +100,6 @@
       }
     ]
   },
-  "1001565498": {
-    "accountId": 1001565498,
-    "nickname": "gomo hay",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8300758,
-        "teamName": "CyberSparta",
-        "games": 1
-      }
-    ]
-  },
   "100317750": {
     "accountId": 100317750,
     "nickname": "Era",
@@ -185,21 +170,6 @@
         "teamId": 8390848,
         "teamName": "ITB.Shuffle",
         "games": 0
-      }
-    ]
-  },
-  "1003355254": {
-    "accountId": 1003355254,
-    "nickname": "KOBAYASHI",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496580,
-        "teamName": "Overrated Gamers",
-        "games": 2
       }
     ]
   },
@@ -295,7 +265,7 @@
       },
       {
         "teamId": 8496595,
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -505,7 +475,7 @@
       {
         "teamId": 8449573,
         "teamName": "GENESIS E-SPORTS",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -543,7 +513,7 @@
       {
         "teamId": 8469910,
         "teamName": "Cycle E-Sports",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 9080826,
@@ -930,7 +900,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 31
+        "games": 29
       },
       {
         "teamId": 8261500,
@@ -955,12 +925,12 @@
       {
         "teamId": 6568822,
         "teamName": "Burning Fire",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8318683,
         "teamName": "IVY",
-        "games": 5
+        "games": 3
       }
     ]
   },
@@ -1328,21 +1298,6 @@
       }
     ]
   },
-  "1033775112": {
-    "accountId": 1033775112,
-    "nickname": "123",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8494848,
-        "teamName": "Winter Bear",
-        "games": 1
-      }
-    ]
-  },
   "10366616": {
     "accountId": 10366616,
     "nickname": "Sneyking",
@@ -1615,7 +1570,7 @@
       {
         "teamId": 8359896,
         "teamName": "B8",
-        "games": 8
+        "games": 4
       }
     ]
   },
@@ -1634,7 +1589,7 @@
       },
       {
         "teamId": 2668269,
-        "games": 6
+        "games": 4
       },
       {
         "teamId": 3333047,
@@ -1677,7 +1632,7 @@
       },
       {
         "teamId": 8412548,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8740926,
@@ -1717,21 +1672,6 @@
       }
     ]
   },
-  "1040805519": {
-    "accountId": 1040805519,
-    "nickname": "fxck god im so blessed",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8495183,
-        "teamName": "Generation of Miracles",
-        "games": 1
-      }
-    ]
-  },
   "104109762": {
     "accountId": 104109762,
     "nickname": "z",
@@ -1766,21 +1706,6 @@
       {
         "teamId": 8421326,
         "teamName": "Ching Splash",
-        "games": 4
-      }
-    ]
-  },
-  "1041773484": {
-    "accountId": 1041773484,
-    "nickname": "لاكوينتـــا",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8381141,
-        "teamName": "BOT GAMING",
         "games": 2
       }
     ]
@@ -1806,7 +1731,7 @@
       {
         "teamId": 7300277,
         "teamName": "KZ TEAM",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -1835,7 +1760,7 @@
       },
       {
         "teamId": 5157593,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 6406681,
@@ -1854,7 +1779,7 @@
       },
       {
         "teamId": 8169489,
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8215803,
@@ -1863,7 +1788,7 @@
       },
       {
         "teamId": 8497614,
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 9373270,
@@ -1910,21 +1835,6 @@
         "teamId": 9824702,
         "teamName": "PVISION",
         "games": 68
-      }
-    ]
-  },
-  "1044161747": {
-    "accountId": 1044161747,
-    "nickname": "肯普斯",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8469910,
-        "teamName": "Cycle E-Sports",
-        "games": 1
       }
     ]
   },
@@ -2001,21 +1911,6 @@
         "teamId": 9530947,
         "teamName": "Palianytsia",
         "games": 14
-      }
-    ]
-  },
-  "104886321": {
-    "accountId": 104886321,
-    "nickname": "Mushra",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8421259,
-        "teamName": "Steel Phoenix",
-        "games": 1
       }
     ]
   },
@@ -2163,7 +2058,7 @@
       {
         "teamId": 8335032,
         "teamName": "Tityan Team",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -2179,7 +2074,7 @@
       {
         "teamId": 8263841,
         "teamName": "Hydra",
-        "games": 2
+        "games": 1
       },
       {
         "teamId": 10019997,
@@ -2198,7 +2093,7 @@
       {
         "teamId": 8463436,
         "teamName": "Level One",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -2256,7 +2151,7 @@
       {
         "teamId": 8335032,
         "teamName": "Tityan Team",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -2312,7 +2207,7 @@
       {
         "teamId": 8375883,
         "teamName": "Pavaga Academy",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -2340,21 +2235,6 @@
         "teamId": 8721219,
         "teamName": "Darkside",
         "games": 40
-      }
-    ]
-  },
-  "1064846874": {
-    "accountId": 1064846874,
-    "nickname": "/",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8495090,
-        "teamName": "Family time",
-        "games": 1
       }
     ]
   },
@@ -2453,7 +2333,7 @@
       {
         "teamId": 8113549,
         "teamName": "Hippomaniacs",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8343095,
@@ -2568,7 +2448,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 31
+        "games": 29
       },
       {
         "teamId": 8574561,
@@ -2646,7 +2526,7 @@
       },
       {
         "teamId": 8430642,
-        "games": 8
+        "games": 4
       }
     ]
   },
@@ -2705,33 +2585,17 @@
       }
     ]
   },
-  "1075309016": {
-    "accountId": 1075309016,
-    "nickname": "Mackenzie_1",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8300758,
-        "teamName": "CyberSparta",
-        "games": 1
-      }
-    ]
-  },
   "107549008": {
     "accountId": 107549008,
     "nickname": "Чемпион",
-    "primaryRole": "offlane",
+    "primaryRole": "support",
     "rolesPlayed": [
-      "offlane",
       "support"
     ],
     "teams": [
       {
         "teamId": 8496590,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -2819,30 +2683,6 @@
       }
     ]
   },
-  "107735086": {
-    "accountId": 107735086,
-    "nickname": "КАКАШЕЧКА",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 5192394,
-        "teamName": "Suicide Team",
-        "games": 0
-      },
-      {
-        "teamId": 8105615,
-        "games": 0
-      },
-      {
-        "teamId": 8125069,
-        "teamName": "qwerty",
-        "games": 3
-      }
-    ]
-  },
   "107746371": {
     "accountId": 107746371,
     "nickname": "attack hero",
@@ -2892,7 +2732,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 247
+        "games": 244
       },
       {
         "teamId": 6209166,
@@ -2972,21 +2812,6 @@
       }
     ]
   },
-  "1080974207": {
-    "accountId": 1080974207,
-    "nickname": "CBS.Amazing",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8300758,
-        "teamName": "CyberSparta",
-        "games": 1
-      }
-    ]
-  },
   "108101769": {
     "accountId": 108101769,
     "nickname": "drank too much of your ambition.",
@@ -3019,7 +2844,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 16
+        "games": 13
       },
       {
         "teamId": 6465093,
@@ -3224,21 +3049,6 @@
       }
     ]
   },
-  "1086879732": {
-    "accountId": 1086879732,
-    "nickname": "ツtv/NightDEssa♡",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8481724,
-        "teamName": "refresh",
-        "games": 1
-      }
-    ]
-  },
   "108717482": {
     "accountId": 108717482,
     "nickname": "100%",
@@ -3288,39 +3098,6 @@
         "teamId": 8244493,
         "teamName": "Team SMG",
         "games": 7
-      }
-    ]
-  },
-  "108810964": {
-    "accountId": 108810964,
-    "nickname": "Nukkis",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 3395076,
-        "games": 0
-      },
-      {
-        "teamId": 7684634,
-        "games": 0
-      },
-      {
-        "teamId": 7873749,
-        "teamName": "Astronauts",
-        "games": 0
-      },
-      {
-        "teamId": 8091161,
-        "teamName": "HAVU Gaming",
-        "games": 0
-      },
-      {
-        "teamId": 8406229,
-        "teamName": "DIVIZON",
-        "games": 2
       }
     ]
   },
@@ -3550,21 +3327,6 @@
         "teamId": 9338413,
         "teamName": "MOUZ",
         "games": 58
-      }
-    ]
-  },
-  "1099509027": {
-    "accountId": 1099509027,
-    "nickname": "reset",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8495090,
-        "teamName": "Family time",
-        "games": 1
       }
     ]
   },
@@ -3822,7 +3584,7 @@
       },
       {
         "teamId": 6143737,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 6546942,
@@ -3841,7 +3603,7 @@
       },
       {
         "teamId": 8496604,
-        "games": 7
+        "games": 4
       }
     ]
   },
@@ -3907,7 +3669,7 @@
       {
         "teamId": 8496575,
         "teamName": "HellRaisers x ESCKG",
-        "games": 6
+        "games": 3
       },
       {
         "teamId": 9017006,
@@ -4011,7 +3773,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 433
+        "games": 430
       },
       {
         "teamId": 726228,
@@ -4087,27 +3849,6 @@
       }
     ]
   },
-  "111211042": {
-    "accountId": 111211042,
-    "nickname": "the cult of the damned",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid",
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 3441550,
-        "teamName": "5 goods win Ti",
-        "games": 1
-      },
-      {
-        "teamId": 8245107,
-        "teamName": "Taken slot",
-        "games": 1
-      }
-    ]
-  },
   "111232304": {
     "accountId": 111232304,
     "nickname": "Ru.bakka",
@@ -4119,12 +3860,12 @@
       {
         "teamId": 1782289,
         "teamName": "Team of city OZ",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8496602,
         "teamName": "BichiGaming",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -4187,21 +3928,6 @@
         "teamId": 7514223,
         "teamName": "Longinus",
         "games": 0
-      }
-    ]
-  },
-  "1114775895": {
-    "accountId": 1114775895,
-    "nickname": "nvrluvdus",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8494848,
-        "teamName": "Winter Bear",
-        "games": 1
       }
     ]
   },
@@ -4460,7 +4186,7 @@
       {
         "teamId": 8406229,
         "teamName": "DIVIZON",
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 10019997,
@@ -4539,65 +4265,6 @@
         "teamId": 8254145,
         "teamName": "Execration",
         "games": 13
-      }
-    ]
-  },
-  "1130185737": {
-    "accountId": 1130185737,
-    "nickname": "ЙОЗЕФ МЕН-ГЕ-ЛЕ",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane",
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 6847820,
-        "teamName": "PePaKi",
-        "games": 1
-      },
-      {
-        "teamId": 8497384,
-        "teamName": "1KMMR GANG",
-        "games": 1
-      }
-    ]
-  },
-  "113112046": {
-    "accountId": 113112046,
-    "nickname": "nattynarwhal_",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 7654723,
-        "teamName": "open doors",
-        "games": 0
-      },
-      {
-        "teamId": 7939534,
-        "games": 0
-      },
-      {
-        "teamId": 8481724,
-        "teamName": "refresh",
-        "games": 1
-      }
-    ]
-  },
-  "1131867312": {
-    "accountId": 1131867312,
-    "nickname": "выблядки",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8494950,
-        "games": 1
       }
     ]
   },
@@ -4812,7 +4479,7 @@
       {
         "teamId": 5014799,
         "teamName": "Nemiga Gaming",
-        "games": 14
+        "games": 8
       },
       {
         "teamId": 6211505,
@@ -5008,21 +4675,6 @@
       }
     ]
   },
-  "114154678": {
-    "accountId": 114154678,
-    "nickname": "The One with all the Hash Browns",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8495308,
-        "teamName": "Grabbed by the Gabagoolies",
-        "games": 1
-      }
-    ]
-  },
   "114239371": {
     "accountId": 114239371,
     "nickname": "田曦薇",
@@ -5077,49 +4729,13 @@
   "114343048": {
     "accountId": 114343048,
     "nickname": "Gummi_bear",
-    "primaryRole": "mid",
+    "primaryRole": "support",
     "rolesPlayed": [
-      "mid",
       "support"
     ],
     "teams": [
       {
         "teamId": 8494950,
-        "games": 2
-      }
-    ]
-  },
-  "114466797": {
-    "accountId": 114466797,
-    "nickname": "Vaneque",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 1782289,
-        "teamName": "Team of city OZ",
-        "games": 1
-      },
-      {
-        "teamId": 8496602,
-        "teamName": "BichiGaming",
-        "games": 1
-      }
-    ]
-  },
-  "1144747827": {
-    "accountId": 1144747827,
-    "nickname": "Eternal pain",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8451900,
-        "teamName": "TEAM.VRZ",
         "games": 1
       }
     ]
@@ -5140,7 +4756,7 @@
       {
         "teamId": 7300277,
         "teamName": "KZ TEAM",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -5154,21 +4770,6 @@
     "teams": [
       {
         "teamId": 8496590,
-        "games": 2
-      }
-    ]
-  },
-  "1145680878": {
-    "accountId": 1145680878,
-    "nickname": "на связі,дякую.приємно",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8451900,
-        "teamName": "TEAM.VRZ",
         "games": 1
       }
     ]
@@ -5203,7 +4804,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 17
+        "games": 11
       }
     ]
   },
@@ -5271,36 +4872,6 @@
         "teamId": 5066616,
         "teamName": "Team Serenity",
         "games": 0
-      }
-    ]
-  },
-  "1149302032": {
-    "accountId": 1149302032,
-    "nickname": "haro",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496580,
-        "teamName": "Overrated Gamers",
-        "games": 2
-      }
-    ]
-  },
-  "114960540": {
-    "accountId": 114960540,
-    "nickname": "DICKTATOR",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8496580,
-        "teamName": "Overrated Gamers",
-        "games": 2
       }
     ]
   },
@@ -5480,35 +5051,19 @@
   "115210438": {
     "accountId": 115210438,
     "nickname": "Androlex",
-    "primaryRole": "safelane",
+    "primaryRole": "offlane",
     "rolesPlayed": [
-      "safelane",
       "offlane"
     ],
     "teams": [
       {
         "teamId": 1782289,
         "teamName": "Team of city OZ",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8496602,
         "teamName": "BichiGaming",
-        "games": 2
-      }
-    ]
-  },
-  "1152437424": {
-    "accountId": 1152437424,
-    "nickname": "повесть военного компьютера",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8495183,
-        "teamName": "Generation of Miracles",
         "games": 1
       }
     ]
@@ -5557,7 +5112,7 @@
       {
         "teamId": 8421850,
         "teamName": "X3",
-        "games": 5
+        "games": 3
       }
     ]
   },
@@ -5567,8 +5122,8 @@
     "primaryRole": "support",
     "rolesPlayed": [
       "support",
-      "offlane",
-      "safelane"
+      "safelane",
+      "offlane"
     ],
     "teams": [
       {
@@ -5596,7 +5151,7 @@
       },
       {
         "teamId": 8471785,
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 9373270,
@@ -5709,7 +5264,7 @@
       {
         "teamId": 6568822,
         "teamName": "Burning Fire",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 7684881,
@@ -5728,7 +5283,7 @@
       {
         "teamId": 8318683,
         "teamName": "IVY",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 8728920,
@@ -5824,51 +5379,12 @@
       {
         "teamId": 8112124,
         "teamName": "Brame",
-        "games": 9
+        "games": 7
       },
       {
         "teamId": 9600141,
         "teamName": "Zero Tenacity",
         "games": 8
-      }
-    ]
-  },
-  "116453423": {
-    "accountId": 116453423,
-    "nickname": "^_^",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 7641141,
-        "teamName": "Jojo Team",
-        "games": 0
-      },
-      {
-        "teamId": 7936691,
-        "games": 0
-      },
-      {
-        "teamId": 8428246,
-        "teamName": "KEKWait",
-        "games": 2
-      }
-    ]
-  },
-  "116493594": {
-    "accountId": 116493594,
-    "nickname": "zoriyaa済度",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8261992,
-        "teamName": "Techieslave-ный proekt",
-        "games": 1
       }
     ]
   },
@@ -6409,7 +5925,7 @@
       },
       {
         "teamId": 6143737,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 6214973,
@@ -6433,7 +5949,7 @@
       },
       {
         "teamId": 8496604,
-        "games": 7
+        "games": 4
       },
       {
         "teamId": 8721219,
@@ -6523,7 +6039,7 @@
       },
       {
         "teamId": 8496607,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 9730797,
@@ -6568,7 +6084,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 17
+        "games": 11
       },
       {
         "teamId": 8291895,
@@ -6619,21 +6135,6 @@
         "teamId": 7407260,
         "teamName": "Team Saiyan",
         "games": 3
-      }
-    ]
-  },
-  "1177702620": {
-    "accountId": 1177702620,
-    "nickname": "XD",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 5897445,
-        "teamName": "MysticTeam",
-        "games": 1
       }
     ]
   },
@@ -6763,7 +6264,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 239
+        "games": 236
       },
       {
         "teamId": 726228,
@@ -6904,47 +6405,12 @@
       {
         "teamId": 8352473,
         "teamName": "Fantastic Five",
-        "games": 3
+        "games": 1
       },
       {
         "teamId": 8428201,
         "teamName": "AWE",
         "games": 0
-      }
-    ]
-  },
-  "118419316": {
-    "accountId": 118419316,
-    "nickname": "MagiskUSH",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 5068967,
-        "teamName": "HunkysFromZavod",
-        "games": 0
-      },
-      {
-        "teamId": 7441121,
-        "teamName": "flowers",
-        "games": 0
-      },
-      {
-        "teamId": 7625574,
-        "teamName": "URSUS Gaming",
-        "games": 0
-      },
-      {
-        "teamId": 8099247,
-        "teamName": "Ancient Killers",
-        "games": 0
-      },
-      {
-        "teamId": 8125069,
-        "teamName": "qwerty",
-        "games": 3
       }
     ]
   },
@@ -7050,21 +6516,6 @@
       }
     ]
   },
-  "1190829050": {
-    "accountId": 1190829050,
-    "nickname": "∩ (◣_◢) ∩",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8451900,
-        "teamName": "TEAM.VRZ",
-        "games": 1
-      }
-    ]
-  },
   "1191229045": {
     "accountId": 1191229045,
     "nickname": "chinazes",
@@ -7097,7 +6548,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 54
+        "games": 51
       },
       {
         "teamId": 6306453,
@@ -7214,21 +6665,6 @@
       }
     ]
   },
-  "119857205": {
-    "accountId": 119857205,
-    "nickname": "fsd",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 7300277,
-        "teamName": "KZ TEAM",
-        "games": 2
-      }
-    ]
-  },
   "119898344": {
     "accountId": 119898344,
     "nickname": "Denzsanity",
@@ -7256,21 +6692,6 @@
         "teamId": 8351014,
         "teamName": "South Built Esports",
         "games": 0
-      }
-    ]
-  },
-  "12021484": {
-    "accountId": 12021484,
-    "nickname": "A Jam before Time",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8495308,
-        "teamName": "Grabbed by the Gabagoolies",
-        "games": 1
       }
     ]
   },
@@ -7320,7 +6741,7 @@
       {
         "teamId": 8444847,
         "teamName": "Looking FOR Techies ",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -7374,7 +6795,7 @@
       {
         "teamId": 8112124,
         "teamName": "Brame",
-        "games": 9
+        "games": 7
       },
       {
         "teamId": 9338413,
@@ -7400,21 +6821,6 @@
         "teamId": 5014799,
         "teamName": "Nemiga Gaming",
         "games": 5
-      }
-    ]
-  },
-  "121030633": {
-    "accountId": 121030633,
-    "nickname": "123",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8496442,
-        "teamName": "EJIekTp0IIpu6opbI",
-        "games": 1
       }
     ]
   },
@@ -7671,7 +7077,7 @@
       {
         "teamId": 8444847,
         "teamName": "Looking FOR Techies ",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -7686,21 +7092,6 @@
       {
         "teamId": 8263841,
         "teamName": "Hydra",
-        "games": 1
-      }
-    ]
-  },
-  "1222043939": {
-    "accountId": 1222043939,
-    "nickname": "theme",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8495183,
-        "teamName": "Generation of Miracles",
         "games": 1
       }
     ]
@@ -7745,50 +7136,6 @@
         "teamId": 5897445,
         "teamName": "MysticTeam",
         "games": 1
-      }
-    ]
-  },
-  "122587115": {
-    "accountId": 122587115,
-    "nickname": "Athos",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 6326141,
-        "games": 1
-      }
-    ]
-  },
-  "122644914": {
-    "accountId": 122644914,
-    "nickname": "Sir",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 7441091,
-        "teamName": "My Mytanty",
-        "games": 0
-      },
-      {
-        "teamId": 7519151,
-        "teamName": "Unique Nova",
-        "games": 0
-      },
-      {
-        "teamId": 8099247,
-        "teamName": "Ancient Killers",
-        "games": 0
-      },
-      {
-        "teamId": 8125069,
-        "teamName": "qwerty",
-        "games": 3
       }
     ]
   },
@@ -7878,11 +7225,11 @@
       },
       {
         "teamId": 5157593,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8169489,
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8360733,
@@ -7891,7 +7238,7 @@
       },
       {
         "teamId": 8497614,
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 8724984,
@@ -7997,7 +7344,7 @@
       {
         "teamId": 8428246,
         "teamName": "KEKWait",
-        "games": 2
+        "games": 0
       }
     ]
   },
@@ -8140,41 +7487,6 @@
       }
     ]
   },
-  "123983367": {
-    "accountId": 123983367,
-    "nickname": "Light",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8421259,
-        "teamName": "Steel Phoenix",
-        "games": 1
-      }
-    ]
-  },
-  "124066939": {
-    "accountId": 124066939,
-    "nickname": "Dot",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 7598716,
-        "teamName": "K.O.",
-        "games": 0
-      },
-      {
-        "teamId": 8494848,
-        "teamName": "Winter Bear",
-        "games": 1
-      }
-    ]
-  },
   "124168390": {
     "accountId": 124168390,
     "nickname": "Mad",
@@ -8282,7 +7594,7 @@
       {
         "teamId": 8444847,
         "teamName": "Looking FOR Techies ",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -8585,21 +7897,6 @@
       }
     ]
   },
-  "126277188": {
-    "accountId": 126277188,
-    "nickname": "Xaden!",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8168819,
-        "teamName": "Bacon Lettuce No Tomato",
-        "games": 1
-      }
-    ]
-  },
   "126417273": {
     "accountId": 126417273,
     "nickname": "AhJit",
@@ -8736,7 +8033,7 @@
       {
         "teamId": 8359896,
         "teamName": "B8",
-        "games": 8
+        "games": 4
       }
     ]
   },
@@ -8784,21 +8081,6 @@
         "teamId": 8222896,
         "teamName": "Ωmega Esports",
         "games": 0
-      }
-    ]
-  },
-  "127306184": {
-    "accountId": 127306184,
-    "nickname": "Кisi Boy",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8496362,
-        "teamName": "dirty dimas3k plus 4",
-        "games": 1
       }
     ]
   },
@@ -8985,7 +8267,7 @@
       },
       {
         "teamId": 8496607,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 9303383,
@@ -9028,41 +8310,6 @@
       }
     ]
   },
-  "129035220": {
-    "accountId": 129035220,
-    "nickname": "Fezor",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 6490995,
-        "teamName": "SMARACIS eSports",
-        "games": 0
-      },
-      {
-        "teamId": 8125069,
-        "teamName": "qwerty",
-        "games": 3
-      }
-    ]
-  },
-  "129536715": {
-    "accountId": 129536715,
-    "nickname": "Desizzan",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8188433,
-        "teamName": "Na'Vi.Prodigy",
-        "games": 1
-      }
-    ]
-  },
   "129585121": {
     "accountId": 129585121,
     "nickname": "Shadow",
@@ -9100,21 +8347,6 @@
       }
     ]
   },
-  "129807919": {
-    "accountId": 129807919,
-    "nickname": "kōngxū",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8494848,
-        "teamName": "Winter Bear",
-        "games": 1
-      }
-    ]
-  },
   "129958758": {
     "accountId": 129958758,
     "nickname": "Xxs",
@@ -9144,7 +8376,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 329
+        "games": 326
       },
       {
         "teamId": 8261500,
@@ -9178,11 +8410,11 @@
       {
         "teamId": 8344559,
         "teamName": "name1111",
-        "games": 2
+        "games": 1
       },
       {
         "teamId": 8376282,
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -9246,7 +8478,7 @@
     "teams": [
       {
         "teamId": 2668269,
-        "games": 6
+        "games": 4
       },
       {
         "teamId": 2790766,
@@ -9303,7 +8535,7 @@
       },
       {
         "teamId": 8412548,
-        "games": 1
+        "games": 0
       }
     ]
   },
@@ -9508,7 +8740,7 @@
       {
         "teamId": 8421326,
         "teamName": "Ching Splash",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -9682,21 +8914,6 @@
       }
     ]
   },
-  "132414449": {
-    "accountId": 132414449,
-    "nickname": "Baby Born",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 6644195,
-        "teamName": "Team Unstoppable Players",
-        "games": 1
-      }
-    ]
-  },
   "132597339": {
     "accountId": 132597339,
     "nickname": "RitaMeph",
@@ -9785,21 +9002,6 @@
       }
     ]
   },
-  "134021509": {
-    "accountId": 134021509,
-    "nickname": "sim",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8428246,
-        "teamName": "KEKWait",
-        "games": 2
-      }
-    ]
-  },
   "134276083": {
     "accountId": 134276083,
     "nickname": "oldeLeVeN",
@@ -9824,7 +9026,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 149
+        "games": 146
       },
       {
         "teamId": 2626685,
@@ -9850,21 +9052,6 @@
         "teamId": 9997040,
         "teamName": "Legends Rebooted",
         "games": 8
-      }
-    ]
-  },
-  "134541241": {
-    "accountId": 134541241,
-    "nickname": "pizda",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8495090,
-        "teamName": "Family time",
-        "games": 1
       }
     ]
   },
@@ -9956,7 +9143,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 16
+        "games": 13
       },
       {
         "teamId": 6615678,
@@ -9991,7 +9178,7 @@
       {
         "teamId": 7300277,
         "teamName": "KZ TEAM",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -10108,12 +9295,12 @@
       {
         "teamId": 7577871,
         "teamName": "MongaGang",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8344536,
         "teamName": "djeremikoks8859",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8495198,
@@ -10134,7 +9321,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 38
+        "games": 35
       },
       {
         "teamId": 6382740,
@@ -10368,7 +9555,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 31
+        "games": 29
       },
       {
         "teamId": 8261500,
@@ -10431,21 +9618,6 @@
         "teamId": 9997041,
         "teamName": "Paper Tigers ",
         "games": 13
-      }
-    ]
-  },
-  "137703530": {
-    "accountId": 137703530,
-    "nickname": "Le charme de vos yeux",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8496362,
-        "teamName": "dirty dimas3k plus 4",
-        "games": 1
       }
     ]
   },
@@ -10544,7 +9716,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 126
+        "games": 123
       },
       {
         "teamId": 3355113,
@@ -10751,21 +9923,6 @@
         "teamId": 7407260,
         "teamName": "Team Saiyan",
         "games": 3
-      }
-    ]
-  },
-  "138934088": {
-    "accountId": 138934088,
-    "nickname": "Poka Tleet Gashish",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8261992,
-        "teamName": "Techieslave-ный proekt",
-        "games": 1
       }
     ]
   },
@@ -11012,7 +10169,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 31
+        "games": 29
       },
       {
         "teamId": 9351740,
@@ -11064,7 +10221,7 @@
       {
         "teamId": 8344922,
         "teamName": "Team Generation",
-        "games": 6
+        "games": 2
       },
       {
         "teamId": 10182299,
@@ -11237,7 +10394,7 @@
       {
         "teamId": 6568822,
         "teamName": "Burning Fire",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 7750343,
@@ -11257,7 +10414,7 @@
       {
         "teamId": 8318683,
         "teamName": "IVY",
-        "games": 5
+        "games": 3
       }
     ]
   },
@@ -11284,21 +10441,6 @@
         "teamId": 10144195,
         "teamName": "ex-HEROIC",
         "games": 14
-      }
-    ]
-  },
-  "141466144": {
-    "accountId": 141466144,
-    "nickname": "데브레쏘 ~",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8168819,
-        "teamName": "Bacon Lettuce No Tomato",
-        "games": 1
       }
     ]
   },
@@ -11471,13 +10613,12 @@
     "nickname": "17_Mad",
     "primaryRole": "offlane",
     "rolesPlayed": [
-      "offlane",
-      "support"
+      "offlane"
     ],
     "teams": [
       {
         "teamId": 8496590,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -11524,7 +10665,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 219
+        "games": 216
       },
       {
         "teamId": 8261500,
@@ -11892,7 +11033,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 304
+        "games": 301
       },
       {
         "teamId": 6209804,
@@ -12024,12 +11165,12 @@
       {
         "teamId": 6568822,
         "teamName": "Burning Fire",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8318683,
         "teamName": "IVY",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 8428107,
@@ -12161,12 +11302,12 @@
       {
         "teamId": 7577871,
         "teamName": "MongaGang",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8344536,
         "teamName": "djeremikoks8859",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8495198,
@@ -12497,7 +11638,7 @@
       {
         "teamId": 8113549,
         "teamName": "Hippomaniacs",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8261234,
@@ -12974,21 +12115,6 @@
       }
     ]
   },
-  "156363209": {
-    "accountId": 156363209,
-    "nickname": "Erika",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8168819,
-        "teamName": "Bacon Lettuce No Tomato",
-        "games": 1
-      }
-    ]
-  },
   "156662698": {
     "accountId": 156662698,
     "nickname": "Ava阿发",
@@ -13041,21 +12167,6 @@
       }
     ]
   },
-  "157214150": {
-    "accountId": 157214150,
-    "nickname": "CBS.Amazing!",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8300758,
-        "teamName": "CyberSparta",
-        "games": 1
-      }
-    ]
-  },
   "157475523": {
     "accountId": 157475523,
     "nickname": "XinQ",
@@ -13075,7 +12186,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 241
+        "games": 238
       },
       {
         "teamId": 20,
@@ -13315,36 +12426,6 @@
       }
     ]
   },
-  "158897083": {
-    "accountId": 158897083,
-    "nickname": "balll",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 6878393,
-        "teamName": "Casual Gamers",
-        "games": 0
-      },
-      {
-        "teamId": 7873749,
-        "teamName": "Astronauts",
-        "games": 0
-      },
-      {
-        "teamId": 8091161,
-        "teamName": "HAVU Gaming",
-        "games": 0
-      },
-      {
-        "teamId": 8406229,
-        "teamName": "DIVIZON",
-        "games": 2
-      }
-    ]
-  },
   "159020918": {
     "accountId": 159020918,
     "nickname": "COCKwerk",
@@ -13534,7 +12615,7 @@
       {
         "teamId": 6794437,
         "teamName": "The Last Signature",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -13549,7 +12630,7 @@
       {
         "teamId": 5014799,
         "teamName": "Nemiga Gaming",
-        "games": 14
+        "games": 8
       },
       {
         "teamId": 7654561,
@@ -13661,7 +12742,7 @@
       {
         "teamId": 8469775,
         "teamName": "Lazy Guys",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -13676,7 +12757,7 @@
       {
         "teamId": 8449573,
         "teamName": "GENESIS E-SPORTS",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -13901,21 +12982,6 @@
       }
     ]
   },
-  "164843439": {
-    "accountId": 164843439,
-    "nickname": "GORILLA GLUE",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8496580,
-        "teamName": "Overrated Gamers",
-        "games": 2
-      }
-    ]
-  },
   "164962869": {
     "accountId": 164962869,
     "nickname": "Shad",
@@ -13943,7 +13009,7 @@
       {
         "teamId": 7234600,
         "teamName": "Betrayed",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 8291895,
@@ -14034,7 +13100,7 @@
       {
         "teamId": 7453020,
         "teamName": "Aster.Aries",
-        "games": 7
+        "games": 5
       }
     ]
   },
@@ -14063,7 +13129,7 @@
       {
         "teamId": 8344223,
         "teamName": "ARCRED",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -14080,7 +13146,7 @@
     "teams": [
       {
         "teamId": 5157593,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 7251006,
@@ -14099,7 +13165,7 @@
       },
       {
         "teamId": 8169489,
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8255888,
@@ -14108,7 +13174,7 @@
       },
       {
         "teamId": 8497614,
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 9131584,
@@ -14173,7 +13239,7 @@
       },
       {
         "teamId": 8430642,
-        "games": 8
+        "games": 4
       }
     ]
   },
@@ -14199,36 +13265,6 @@
         "teamId": 9758040,
         "teamName": "Runa Team",
         "games": 32
-      }
-    ]
-  },
-  "166176425": {
-    "accountId": 166176425,
-    "nickname": "гноми",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 7684556,
-        "teamName": "EVO",
-        "games": 1
-      }
-    ]
-  },
-  "167214618": {
-    "accountId": 167214618,
-    "nickname": "gAmbLe",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8494848,
-        "teamName": "Winter Bear",
-        "games": 1
       }
     ]
   },
@@ -14419,7 +13455,7 @@
       {
         "teamId": 8469775,
         "teamName": "Lazy Guys",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 9255039,
@@ -14445,40 +13481,6 @@
         "teamId": 9498970,
         "teamName": "AVULUS",
         "games": 8
-      }
-    ]
-  },
-  "168291251": {
-    "accountId": 168291251,
-    "nickname": "Rvze",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 6490995,
-        "teamName": "SMARACIS eSports",
-        "games": 0
-      },
-      {
-        "teamId": 6740284,
-        "teamName": "TEAM HEROIC",
-        "games": 0
-      },
-      {
-        "teamId": 7300277,
-        "teamName": "KZ TEAM",
-        "games": 2
-      },
-      {
-        "teamId": 7565652,
-        "teamName": "Майкро-Айс",
-        "games": 0
-      },
-      {
-        "teamId": 8427697,
-        "games": 0
       }
     ]
   },
@@ -14524,7 +13526,7 @@
       {
         "teamId": 6490995,
         "teamName": "SMARACIS eSports",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 7390729,
@@ -14559,7 +13561,7 @@
       {
         "teamId": 5897445,
         "teamName": "MysticTeam",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -14823,7 +13825,7 @@
       {
         "teamId": 8463268,
         "teamName": "Sexy Dragons",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -14885,7 +13887,7 @@
       {
         "teamId": 8359896,
         "teamName": "B8",
-        "games": 8
+        "games": 4
       },
       {
         "teamId": 8599101,
@@ -14901,21 +13903,6 @@
         "teamId": 9823272,
         "teamName": "Team Yandex",
         "games": 197
-      }
-    ]
-  },
-  "171824690": {
-    "accountId": 171824690,
-    "nickname": "LunAkky",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 4868025,
-        "teamName": "Education DOTA",
-        "games": 1
       }
     ]
   },
@@ -14967,7 +13954,7 @@
       {
         "teamId": 5014799,
         "teamName": "Nemiga Gaming",
-        "games": 14
+        "games": 8
       },
       {
         "teamId": 6490995,
@@ -15246,7 +14233,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 338
+        "games": 335
       },
       {
         "teamId": 6306453,
@@ -15321,7 +14308,7 @@
       },
       {
         "teamId": 8430642,
-        "games": 8
+        "games": 4
       },
       {
         "teamId": 9255039,
@@ -15439,7 +14426,7 @@
       {
         "teamId": 7234600,
         "teamName": "Betrayed",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 7930695,
@@ -15571,21 +14558,6 @@
         "teamId": 10150538,
         "teamName": "LGD Gaming",
         "games": 40
-      }
-    ]
-  },
-  "177260367": {
-    "accountId": 177260367,
-    "nickname": "Рома",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8496442,
-        "teamName": "EJIekTp0IIpu6opbI",
-        "games": 1
       }
     ]
   },
@@ -15748,7 +14720,7 @@
       {
         "teamId": 6794437,
         "teamName": "The Last Signature",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -15937,7 +14909,7 @@
       {
         "teamId": 8496581,
         "teamName": "KHAN",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -16022,21 +14994,6 @@
       }
     ]
   },
-  "180141622": {
-    "accountId": 180141622,
-    "nickname": "))",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8469910,
-        "teamName": "Cycle E-Sports",
-        "games": 1
-      }
-    ]
-  },
   "180775030": {
     "accountId": 180775030,
     "nickname": "凛凛``",
@@ -16060,26 +15017,6 @@
         "teamId": 7391077,
         "teamName": "Thunder Awaken",
         "games": 16
-      }
-    ]
-  },
-  "181209861": {
-    "accountId": 181209861,
-    "nickname": "Temporary-",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 3441550,
-        "teamName": "5 goods win Ti",
-        "games": 1
-      },
-      {
-        "teamId": 8245107,
-        "teamName": "Taken slot",
-        "games": 1
       }
     ]
   },
@@ -16126,21 +15063,6 @@
       }
     ]
   },
-  "181416848": {
-    "accountId": 181416848,
-    "nickname": "Как дела щенок?",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 6644195,
-        "teamName": "Team Unstoppable Players",
-        "games": 1
-      }
-    ]
-  },
   "181532808": {
     "accountId": 181532808,
     "nickname": "Yuuichi",
@@ -16152,7 +15074,7 @@
       {
         "teamId": 8469775,
         "teamName": "Lazy Guys",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -16331,21 +15253,6 @@
       }
     ]
   },
-  "182530203": {
-    "accountId": 182530203,
-    "nickname": "Салат, латук",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8261992,
-        "teamName": "Techieslave-ный proekt",
-        "games": 1
-      }
-    ]
-  },
   "182756538": {
     "accountId": 182756538,
     "nickname": "bang1ch",
@@ -16387,7 +15294,7 @@
       },
       {
         "teamId": 2668269,
-        "games": 6
+        "games": 4
       },
       {
         "teamId": 2790766,
@@ -16438,7 +15345,7 @@
       },
       {
         "teamId": 8412548,
-        "games": 1
+        "games": 0
       }
     ]
   },
@@ -16464,7 +15371,7 @@
       {
         "teamId": 7453020,
         "teamName": "Aster.Aries",
-        "games": 7
+        "games": 5
       },
       {
         "teamId": 8574561,
@@ -16511,7 +15418,7 @@
       },
       {
         "teamId": 8496607,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8605863,
@@ -16656,7 +15563,7 @@
       {
         "teamId": 8047718,
         "teamName": "vmolo4ke",
-        "games": 3
+        "games": 1
       },
       {
         "teamId": 8282364,
@@ -16865,7 +15772,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 66
+        "games": 63
       },
       {
         "teamId": 6382740,
@@ -17010,26 +15917,6 @@
       }
     ]
   },
-  "187760354": {
-    "accountId": 187760354,
-    "nickname": "Something",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 3441550,
-        "teamName": "5 goods win Ti",
-        "games": 1
-      },
-      {
-        "teamId": 8245107,
-        "teamName": "Taken slot",
-        "games": 1
-      }
-    ]
-  },
   "187824320": {
     "accountId": 187824320,
     "nickname": "Kitrak",
@@ -17095,7 +15982,7 @@
     "teams": [
       {
         "teamId": 8496276,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -17110,31 +15997,6 @@
       {
         "teamId": 8307472,
         "teamName": "Nyaa Kawaii",
-        "games": 1
-      }
-    ]
-  },
-  "188818613": {
-    "accountId": 188818613,
-    "nickname": "discay",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 7469200,
-        "teamName": "Cyber Fox",
-        "games": 0
-      },
-      {
-        "teamId": 8169890,
-        "teamName": "NoImprove",
-        "games": 0
-      },
-      {
-        "teamId": 8481724,
-        "teamName": "refresh",
         "games": 1
       }
     ]
@@ -17155,12 +16017,12 @@
       {
         "teamId": 7577871,
         "teamName": "MongaGang",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8344536,
         "teamName": "djeremikoks8859",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8495198,
@@ -17219,51 +16081,6 @@
         "teamId": 9338413,
         "teamName": "MOUZ",
         "games": 205
-      }
-    ]
-  },
-  "190996591": {
-    "accountId": 190996591,
-    "nickname": "bongacams.com/0trickster1",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane",
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 5528463,
-        "teamName": "MAGIC HANDS ",
-        "games": 0
-      },
-      {
-        "teamId": 6740284,
-        "teamName": "TEAM HEROIC",
-        "games": 0
-      },
-      {
-        "teamId": 7542148,
-        "teamName": " EXTREMUM",
-        "games": 0
-      },
-      {
-        "teamId": 7682417,
-        "teamName": "UNDERGROUND",
-        "games": 0
-      },
-      {
-        "teamId": 7899609,
-        "teamName": "Team Family",
-        "games": 0
-      },
-      {
-        "teamId": 8047718,
-        "teamName": "vmolo4ke",
-        "games": 2
-      },
-      {
-        "teamId": 8427697,
-        "games": 0
       }
     ]
   },
@@ -17372,7 +16189,7 @@
       {
         "teamId": 5897445,
         "teamName": "MysticTeam",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -17393,36 +16210,6 @@
         "teamId": 9389381,
         "teamName": "Team  KEV",
         "games": 9
-      }
-    ]
-  },
-  "191966966": {
-    "accountId": 191966966,
-    "nickname": "Vavilo[N]",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 4868025,
-        "teamName": "Education DOTA",
-        "games": 1
-      }
-    ]
-  },
-  "192053171": {
-    "accountId": 192053171,
-    "nickname": "Only \u003c3",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 7684556,
-        "teamName": "EVO",
-        "games": 1
       }
     ]
   },
@@ -17504,7 +16291,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 17
+        "games": 11
       }
     ]
   },
@@ -17519,7 +16306,7 @@
       {
         "teamId": 8421326,
         "teamName": "Ching Splash",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -17762,7 +16549,7 @@
       {
         "teamId": 8047718,
         "teamName": "vmolo4ke",
-        "games": 3
+        "games": 1
       },
       {
         "teamId": 8375518,
@@ -17843,7 +16630,7 @@
       {
         "teamId": 8344922,
         "teamName": "Team Generation",
-        "games": 6
+        "games": 2
       },
       {
         "teamId": 8721219,
@@ -17883,7 +16670,7 @@
       {
         "teamId": 8463436,
         "teamName": "Level One",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -17919,7 +16706,7 @@
       {
         "teamId": 7453020,
         "teamName": "Aster.Aries",
-        "games": 7
+        "games": 5
       }
     ]
   },
@@ -17954,7 +16741,7 @@
       {
         "teamId": 5014799,
         "teamName": "Nemiga Gaming",
-        "games": 14
+        "games": 8
       },
       {
         "teamId": 9256405,
@@ -18028,7 +16815,7 @@
       },
       {
         "teamId": 8496607,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8605863,
@@ -18053,7 +16840,7 @@
       {
         "teamId": 8463436,
         "teamName": "Level One",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -18134,21 +16921,6 @@
       }
     ]
   },
-  "197601889": {
-    "accountId": 197601889,
-    "nickname": "blind faith and broken bones",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8421259,
-        "teamName": "Steel Phoenix",
-        "games": 1
-      }
-    ]
-  },
   "197849259": {
     "accountId": 197849259,
     "nickname": "Mercy",
@@ -18199,7 +16971,7 @@
     "teams": [
       {
         "teamId": 5157593,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 5247892,
@@ -18213,7 +16985,7 @@
       },
       {
         "teamId": 8169489,
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8374938,
@@ -18227,7 +16999,7 @@
       },
       {
         "teamId": 8497614,
-        "games": 2
+        "games": 0
       }
     ]
   },
@@ -18241,35 +17013,6 @@
     "teams": [
       {
         "teamId": 8496590,
-        "games": 2
-      }
-    ]
-  },
-  "198851570": {
-    "accountId": 198851570,
-    "nickname": "fam0us",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 7469200,
-        "teamName": "Cyber Fox",
-        "games": 0
-      },
-      {
-        "teamId": 7959555,
-        "games": 0
-      },
-      {
-        "teamId": 8169890,
-        "teamName": "NoImprove",
-        "games": 0
-      },
-      {
-        "teamId": 8481724,
-        "teamName": "refresh",
         "games": 1
       }
     ]
@@ -18284,21 +17027,6 @@
     "teams": [
       {
         "teamId": 8496276,
-        "games": 2
-      }
-    ]
-  },
-  "199185542": {
-    "accountId": 199185542,
-    "nickname": "kahek\u003c3",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 7684556,
-        "teamName": "EVO",
         "games": 1
       }
     ]
@@ -18504,7 +17232,7 @@
       {
         "teamId": 8375883,
         "teamName": "Pavaga Academy",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -18675,7 +17403,7 @@
       {
         "teamId": 8421850,
         "teamName": "X3",
-        "games": 5
+        "games": 3
       }
     ]
   },
@@ -18718,16 +17446,15 @@
   "205199614": {
     "accountId": 205199614,
     "nickname": "феназепам",
-    "primaryRole": "safelane",
+    "primaryRole": "offlane",
     "rolesPlayed": [
-      "safelane",
       "offlane"
     ],
     "teams": [
       {
         "teamId": 8496587,
         "teamName": "astral step",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -18762,22 +17489,7 @@
       {
         "teamId": 8359896,
         "teamName": "B8",
-        "games": 8
-      }
-    ]
-  },
-  "205597252": {
-    "accountId": 205597252,
-    "nickname": "possession",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8451900,
-        "teamName": "TEAM.VRZ",
-        "games": 1
+        "games": 4
       }
     ]
   },
@@ -18979,7 +17691,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 283
+        "games": 280
       },
       {
         "teamId": 9351740,
@@ -19059,7 +17771,7 @@
       {
         "teamId": 8375883,
         "teamName": "Pavaga Academy",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -19150,27 +17862,6 @@
       }
     ]
   },
-  "210167497": {
-    "accountId": 210167497,
-    "nickname": "Orchis newfound heart",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid",
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 3441550,
-        "teamName": "5 goods win Ti",
-        "games": 1
-      },
-      {
-        "teamId": 8245107,
-        "teamName": "Taken slot",
-        "games": 1
-      }
-    ]
-  },
   "210660261": {
     "accountId": 210660261,
     "nickname": "Satanastya",
@@ -19181,7 +17872,7 @@
     "teams": [
       {
         "teamId": 8496590,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -19200,7 +17891,7 @@
       {
         "teamId": 8344223,
         "teamName": "ARCRED",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -19310,21 +18001,6 @@
       }
     ]
   },
-  "214389279": {
-    "accountId": 214389279,
-    "nickname": "謙遜的",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496362,
-        "teamName": "dirty dimas3k plus 4",
-        "games": 1
-      }
-    ]
-  },
   "214735983": {
     "accountId": 214735983,
     "nickname": "Мяу мяу",
@@ -19346,7 +18022,7 @@
       {
         "teamId": 6490995,
         "teamName": "SMARACIS eSports",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 7976730,
@@ -19510,7 +18186,7 @@
       {
         "teamId": 8496575,
         "teamName": "HellRaisers x ESCKG",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -19700,21 +18376,6 @@
       {
         "teamId": 8309219,
         "teamName": "TEIKO",
-        "games": 2
-      }
-    ]
-  },
-  "22256467": {
-    "accountId": 22256467,
-    "nickname": "Smiling Politely",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8495308,
-        "teamName": "Grabbed by the Gabagoolies",
         "games": 1
       }
     ]
@@ -19730,7 +18391,7 @@
       {
         "teamId": 8444847,
         "teamName": "Looking FOR Techies ",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -19764,21 +18425,6 @@
       }
     ]
   },
-  "223595343": {
-    "accountId": 223595343,
-    "nickname": "Slare_J",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 7684556,
-        "teamName": "EVO",
-        "games": 1
-      }
-    ]
-  },
   "224302441": {
     "accountId": 224302441,
     "nickname": "xd",
@@ -19791,21 +18437,6 @@
         "teamId": 8126892,
         "teamName": "Team Cloud",
         "games": 13
-      }
-    ]
-  },
-  "225756691": {
-    "accountId": 225756691,
-    "nickname": "no_aware",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8496442,
-        "teamName": "EJIekTp0IIpu6opbI",
-        "games": 1
       }
     ]
   },
@@ -19825,7 +18456,7 @@
       {
         "teamId": 8463268,
         "teamName": "Sexy Dragons",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -19886,11 +18517,11 @@
       {
         "teamId": 8344559,
         "teamName": "name1111",
-        "games": 2
+        "games": 1
       },
       {
         "teamId": 8376282,
-        "games": 3
+        "games": 2
       },
       {
         "teamId": 9338413,
@@ -19958,28 +18589,12 @@
       }
     ]
   },
-  "231118813": {
-    "accountId": 231118813,
-    "nickname": "Durashka",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496442,
-        "teamName": "EJIekTp0IIpu6opbI",
-        "games": 1
-      }
-    ]
-  },
   "231581709": {
     "accountId": 231581709,
     "nickname": "discipline.",
     "primaryRole": "support",
     "rolesPlayed": [
-      "support",
-      "offlane"
+      "support"
     ],
     "teams": [
       {
@@ -19989,40 +18604,11 @@
       {
         "teamId": 8047718,
         "teamName": "vmolo4ke",
-        "games": 3
+        "games": 1
       },
       {
         "teamId": 8375518,
         "teamName": "Family Team",
-        "games": 1
-      }
-    ]
-  },
-  "231905678": {
-    "accountId": 231905678,
-    "nickname": "ils.サーシャ",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 7684556,
-        "teamName": "EVO",
-        "games": 1
-      }
-    ]
-  },
-  "231993943": {
-    "accountId": 231993943,
-    "nickname": "дед доест",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 6326141,
         "games": 1
       }
     ]
@@ -20145,7 +18731,7 @@
       {
         "teamId": 8496575,
         "teamName": "HellRaisers x ESCKG",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -20199,7 +18785,7 @@
       {
         "teamId": 8344922,
         "teamName": "Team Generation",
-        "games": 6
+        "games": 2
       },
       {
         "teamId": 8721219,
@@ -20322,7 +18908,7 @@
       {
         "teamId": 6490995,
         "teamName": "SMARACIS eSports",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 6928546,
@@ -20358,21 +18944,6 @@
         "teamId": 8421850,
         "teamName": "X3",
         "games": 0
-      }
-    ]
-  },
-  "238020551": {
-    "accountId": 238020551,
-    "nickname": "∙ Лунука",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8495090,
-        "teamName": "Family time",
-        "games": 1
       }
     ]
   },
@@ -20459,35 +19030,6 @@
       }
     ]
   },
-  "240108577": {
-    "accountId": 240108577,
-    "nickname": "asd",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8495090,
-        "teamName": "Family time",
-        "games": 1
-      }
-    ]
-  },
-  "240588185": {
-    "accountId": 240588185,
-    "nickname": "Санюрик",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8494950,
-        "games": 1
-      }
-    ]
-  },
   "240999121": {
     "accountId": 240999121,
     "nickname": "LP Incuber",
@@ -20499,22 +19041,7 @@
       {
         "teamId": 8463436,
         "teamName": "Level One",
-        "games": 3
-      }
-    ]
-  },
-  "241215470": {
-    "accountId": 241215470,
-    "nickname": "УЛЬТРАХС БАРАБАНН",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8496362,
-        "teamName": "dirty dimas3k plus 4",
-        "games": 1
+        "games": 2
       }
     ]
   },
@@ -20556,7 +19083,7 @@
       {
         "teamId": 8496575,
         "teamName": "HellRaisers x ESCKG",
-        "games": 6
+        "games": 3
       },
       {
         "teamId": 9338413,
@@ -20642,7 +19169,7 @@
       {
         "teamId": 8335032,
         "teamName": "Tityan Team",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -20731,21 +19258,6 @@
       }
     ]
   },
-  "245417576": {
-    "accountId": 245417576,
-    "nickname": "hello cucumbers",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8125069,
-        "teamName": "qwerty",
-        "games": 3
-      }
-    ]
-  },
   "248074863": {
     "accountId": 248074863,
     "nickname": "kernor",
@@ -20824,21 +19336,6 @@
         "teamId": 6209166,
         "teamName": "Team Aster",
         "games": 15
-      }
-    ]
-  },
-  "249596305": {
-    "accountId": 249596305,
-    "nickname": "Zeez Brah",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8381141,
-        "teamName": "BOT GAMING",
-        "games": 2
       }
     ]
   },
@@ -20958,7 +19455,7 @@
       {
         "teamId": 7453020,
         "teamName": "Aster.Aries",
-        "games": 7
+        "games": 5
       },
       {
         "teamId": 9885310,
@@ -20977,21 +19474,6 @@
     "teams": [
       {
         "teamId": 7266995,
-        "games": 1
-      }
-    ]
-  },
-  "251592500": {
-    "accountId": 251592500,
-    "nickname": "gg",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496362,
-        "teamName": "dirty dimas3k plus 4",
         "games": 1
       }
     ]
@@ -21170,21 +19652,6 @@
       }
     ]
   },
-  "256368345": {
-    "accountId": 256368345,
-    "nickname": "hezomeister",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496587,
-        "teamName": "astral step",
-        "games": 2
-      }
-    ]
-  },
   "256444993": {
     "accountId": 256444993,
     "nickname": "cutie",
@@ -21200,21 +19667,6 @@
       }
     ]
   },
-  "257321420": {
-    "accountId": 257321420,
-    "nickname": "Shining Diamond",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 4868025,
-        "teamName": "Education DOTA",
-        "games": 1
-      }
-    ]
-  },
   "257698084": {
     "accountId": 257698084,
     "nickname": "DontBACunt",
@@ -21226,7 +19678,7 @@
       {
         "teamId": 7234600,
         "teamName": "Betrayed",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 8500965,
@@ -21248,7 +19700,7 @@
       },
       {
         "teamId": 8496595,
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -21301,21 +19753,6 @@
         "teamId": 9247354,
         "teamName": "Team Falcons",
         "games": 676
-      }
-    ]
-  },
-  "259115815": {
-    "accountId": 259115815,
-    "nickname": "керри с тачпада",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8261992,
-        "teamName": "Techieslave-ный proekt",
-        "games": 1
       }
     ]
   },
@@ -21539,36 +19976,6 @@
       }
     ]
   },
-  "269930820": {
-    "accountId": 269930820,
-    "nickname": "999",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 7251006,
-        "teamName": "TechPromBiz",
-        "games": 0
-      },
-      {
-        "teamId": 7486089,
-        "teamName": "Cyberium",
-        "games": 0
-      },
-      {
-        "teamId": 8062617,
-        "teamName": "tpb.=)",
-        "games": 0
-      },
-      {
-        "teamId": 8496581,
-        "teamName": "KHAN",
-        "games": 3
-      }
-    ]
-  },
   "27178898": {
     "accountId": 27178898,
     "nickname": "Skylark",
@@ -21657,22 +20064,7 @@
       {
         "teamId": 8112124,
         "teamName": "Brame",
-        "games": 9
-      }
-    ]
-  },
-  "273183704": {
-    "accountId": 273183704,
-    "nickname": "underway",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8335032,
-        "teamName": "Tityan Team",
-        "games": 1
+        "games": 7
       }
     ]
   },
@@ -21748,7 +20140,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 114
+        "games": 111
       }
     ]
   },
@@ -21771,7 +20163,7 @@
       },
       {
         "teamId": 8496595,
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -21816,37 +20208,6 @@
       }
     ]
   },
-  "28309060": {
-    "accountId": 28309060,
-    "nickname": "Synnez",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane",
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8381141,
-        "teamName": "BOT GAMING",
-        "games": 2
-      }
-    ]
-  },
-  "283216366": {
-    "accountId": 283216366,
-    "nickname": "Split",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8188433,
-        "teamName": "Na'Vi.Prodigy",
-        "games": 1
-      }
-    ]
-  },
   "283494184": {
     "accountId": 283494184,
     "nickname": "Manem",
@@ -21873,7 +20234,7 @@
       {
         "teamId": 8375883,
         "teamName": "Pavaga Academy",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -21928,7 +20289,7 @@
       {
         "teamId": 6794437,
         "teamName": "The Last Signature",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -22038,33 +20399,6 @@
       }
     ]
   },
-  "293731272": {
-    "accountId": 293731272,
-    "nickname": "7jesu",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 5157593,
-        "games": 1
-      },
-      {
-        "teamId": 8169489,
-        "games": 3
-      },
-      {
-        "teamId": 8215803,
-        "teamName": "Сascade Esports",
-        "games": 0
-      },
-      {
-        "teamId": 8497614,
-        "games": 2
-      }
-    ]
-  },
   "293904640": {
     "accountId": 293904640,
     "nickname": "ponyo",
@@ -22116,7 +20450,7 @@
       {
         "teamId": 8263841,
         "teamName": "Hydra",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8497700,
@@ -22221,7 +20555,7 @@
       {
         "teamId": 5014799,
         "teamName": "Nemiga Gaming",
-        "games": 14
+        "games": 8
       }
     ]
   },
@@ -22238,40 +20572,6 @@
         "teamId": 9530947,
         "teamName": "Palianytsia",
         "games": 14
-      }
-    ]
-  },
-  "297377200": {
-    "accountId": 297377200,
-    "nickname": "Suchka",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 3441550,
-        "teamName": "5 goods win Ti",
-        "games": 1
-      },
-      {
-        "teamId": 8245107,
-        "teamName": "Taken slot",
-        "games": 1
-      }
-    ]
-  },
-  "298787406": {
-    "accountId": 298787406,
-    "nickname": "саша",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8270237,
-        "games": 1
       }
     ]
   },
@@ -22356,7 +20656,7 @@
       },
       {
         "teamId": 8496595,
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -22503,21 +20803,6 @@
       }
     ]
   },
-  "304639516": {
-    "accountId": 304639516,
-    "nickname": "M3RC3N4RY",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8469910,
-        "teamName": "Cycle E-Sports",
-        "games": 1
-      }
-    ]
-  },
   "307173570": {
     "accountId": 307173570,
     "nickname": "like👍",
@@ -22621,7 +20906,7 @@
       {
         "teamId": 8463268,
         "teamName": "Sexy Dragons",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -22687,37 +20972,6 @@
       }
     ]
   },
-  "311968696": {
-    "accountId": 311968696,
-    "nickname": "ANDREI GREKOV",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 4868025,
-        "teamName": "Education DOTA",
-        "games": 1
-      }
-    ]
-  },
-  "312232803": {
-    "accountId": 312232803,
-    "nickname": "Nøytron",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane",
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8381141,
-        "teamName": "BOT GAMING",
-        "games": 2
-      }
-    ]
-  },
   "312436974": {
     "accountId": 312436974,
     "nickname": "CHIRA_JUNIOR",
@@ -22729,7 +20983,7 @@
       {
         "teamId": 8421850,
         "teamName": "X3",
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 8428201,
@@ -22793,7 +21047,7 @@
       {
         "teamId": 8112124,
         "teamName": "Brame",
-        "games": 9
+        "games": 7
       }
     ]
   },
@@ -22924,7 +21178,7 @@
     "teams": [
       {
         "teamId": 8496276,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -23096,7 +21350,7 @@
       },
       {
         "teamId": 2668269,
-        "games": 6
+        "games": 4
       },
       {
         "teamId": 8215803,
@@ -23105,7 +21359,7 @@
       },
       {
         "teamId": 8412548,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8894818,
@@ -23170,19 +21424,18 @@
     "nickname": "Quaint",
     "primaryRole": "offlane",
     "rolesPlayed": [
-      "offlane",
-      "safelane"
+      "offlane"
     ],
     "teams": [
       {
         "teamId": 6847820,
         "teamName": "PePaKi",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8497384,
         "teamName": "1KMMR GANG",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -23223,14 +21476,13 @@
     "nickname": "pts+",
     "primaryRole": "safelane",
     "rolesPlayed": [
-      "safelane",
-      "support"
+      "safelane"
     ],
     "teams": [
       {
         "teamId": 8335032,
         "teamName": "Tityan Team",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -23388,7 +21640,7 @@
       {
         "teamId": 8428246,
         "teamName": "KEKWait",
-        "games": 2
+        "games": 0
       }
     ]
   },
@@ -23443,61 +21695,6 @@
       {
         "teamId": 8444847,
         "teamName": "Looking FOR Techies ",
-        "games": 2
-      }
-    ]
-  },
-  "327786937": {
-    "accountId": 327786937,
-    "nickname": "Sulyq",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 7764015,
-        "teamName": "ou7",
-        "games": 0
-      },
-      {
-        "teamId": 8263841,
-        "teamName": "Hydra",
-        "games": 1
-      }
-    ]
-  },
-  "328380760": {
-    "accountId": 328380760,
-    "nickname": "Arta",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8168819,
-        "teamName": "Bacon Lettuce No Tomato",
-        "games": 1
-      }
-    ]
-  },
-  "328654348": {
-    "accountId": 328654348,
-    "nickname": "MXR-",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 7667753,
-        "teamName": "Floroi\u0026Proud",
-        "games": 0
-      },
-      {
-        "teamId": 8168819,
-        "teamName": "Bacon Lettuce No Tomato",
         "games": 1
       }
     ]
@@ -23540,7 +21737,7 @@
       {
         "teamId": 6794437,
         "teamName": "The Last Signature",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -23588,7 +21785,7 @@
       {
         "teamId": 7577871,
         "teamName": "MongaGang",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8255888,
@@ -23603,7 +21800,7 @@
       {
         "teamId": 8344536,
         "teamName": "djeremikoks8859",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8495198,
@@ -23653,21 +21850,6 @@
       }
     ]
   },
-  "332770447": {
-    "accountId": 332770447,
-    "nickname": "))",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8188433,
-        "teamName": "Na'Vi.Prodigy",
-        "games": 1
-      }
-    ]
-  },
   "333351042": {
     "accountId": 333351042,
     "nickname": "mrls",
@@ -23709,7 +21891,7 @@
       {
         "teamId": 8463268,
         "teamName": "Sexy Dragons",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -23742,12 +21924,12 @@
       {
         "teamId": 6847820,
         "teamName": "PePaKi",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8497384,
         "teamName": "1KMMR GANG",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -23848,7 +22030,7 @@
       {
         "teamId": 8449573,
         "teamName": "GENESIS E-SPORTS",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -23908,21 +22090,6 @@
       }
     ]
   },
-  "339627566": {
-    "accountId": 339627566,
-    "nickname": "zero seven mod",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8188433,
-        "teamName": "Na'Vi.Prodigy",
-        "games": 1
-      }
-    ]
-  },
   "339885077": {
     "accountId": 339885077,
     "nickname": "не по масти ранг давай сливай",
@@ -23949,7 +22116,7 @@
       {
         "teamId": 8309219,
         "teamName": "TEIKO",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -23970,21 +22137,6 @@
         "teamId": 9256405,
         "teamName": "Level UP esports",
         "games": 10
-      }
-    ]
-  },
-  "34165479": {
-    "accountId": 34165479,
-    "nickname": "Nutford",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8495308,
-        "teamName": "Grabbed by the Gabagoolies",
-        "games": 1
       }
     ]
   },
@@ -24071,7 +22223,7 @@
       },
       {
         "teamId": 8430642,
-        "games": 8
+        "games": 4
       }
     ]
   },
@@ -24106,7 +22258,7 @@
       {
         "teamId": 6490995,
         "teamName": "SMARACIS eSports",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 7441226,
@@ -24399,21 +22551,6 @@
       }
     ]
   },
-  "34965775": {
-    "accountId": 34965775,
-    "nickname": "dark reef prisoner",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8481724,
-        "teamName": "refresh",
-        "games": 1
-      }
-    ]
-  },
   "350296466": {
     "accountId": 350296466,
     "nickname": "Baki",
@@ -24425,42 +22562,6 @@
       {
         "teamId": 8309219,
         "teamName": "TEIKO",
-        "games": 2
-      }
-    ]
-  },
-  "351101780": {
-    "accountId": 351101780,
-    "nickname": "Хеллкотик",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane",
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 6847820,
-        "teamName": "PePaKi",
-        "games": 1
-      },
-      {
-        "teamId": 8497384,
-        "teamName": "1KMMR GANG",
-        "games": 1
-      }
-    ]
-  },
-  "35120596": {
-    "accountId": 35120596,
-    "nickname": "Mat",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8495308,
-        "teamName": "Grabbed by the Gabagoolies",
         "games": 1
       }
     ]
@@ -24752,36 +22853,6 @@
       }
     ]
   },
-  "357849987": {
-    "accountId": 357849987,
-    "nickname": "Дядя Коля",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 6644195,
-        "teamName": "Team Unstoppable Players",
-        "games": 1
-      }
-    ]
-  },
-  "358062931": {
-    "accountId": 358062931,
-    "nickname": "🅻🅰",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 6644195,
-        "teamName": "Team Unstoppable Players",
-        "games": 1
-      }
-    ]
-  },
   "359155749": {
     "accountId": 359155749,
     "nickname": "Тебе пизда",
@@ -24910,7 +22981,7 @@
       {
         "teamId": 8344922,
         "teamName": "Team Generation",
-        "games": 6
+        "games": 2
       },
       {
         "teamId": 9080826,
@@ -25006,21 +23077,6 @@
       }
     ]
   },
-  "364770305": {
-    "accountId": 364770305,
-    "nickname": "pos5 nyashka",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8261992,
-        "teamName": "Techieslave-ный proekt",
-        "games": 1
-      }
-    ]
-  },
   "36547811": {
     "accountId": 36547811,
     "nickname": "Jesus",
@@ -25062,9 +23118,7 @@
     "nickname": "m3 diesel",
     "primaryRole": "safelane",
     "rolesPlayed": [
-      "safelane",
-      "support",
-      "offlane"
+      "safelane"
     ],
     "teams": [
       {
@@ -25083,7 +23137,7 @@
       },
       {
         "teamId": 8471785,
-        "games": 3
+        "games": 0
       }
     ]
   },
@@ -25107,21 +23161,6 @@
       }
     ]
   },
-  "368396272": {
-    "accountId": 368396272,
-    "nickname": "Meow",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8495183,
-        "teamName": "Generation of Miracles",
-        "games": 1
-      }
-    ]
-  },
   "368917218": {
     "accountId": 368917218,
     "nickname": "sensen",
@@ -25142,7 +23181,7 @@
       {
         "teamId": 8496581,
         "teamName": "KHAN",
-        "games": 6
+        "games": 3
       },
       {
         "teamId": 9114743,
@@ -25217,7 +23256,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 49
+        "games": 46
       },
       {
         "teamId": 6209804,
@@ -25410,7 +23449,7 @@
       {
         "teamId": 8421326,
         "teamName": "Ching Splash",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -25669,7 +23708,7 @@
       {
         "teamId": 8496575,
         "teamName": "HellRaisers x ESCKG",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -25820,7 +23859,7 @@
       },
       {
         "teamId": 8496595,
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -25835,7 +23874,7 @@
       {
         "teamId": 8421850,
         "teamName": "X3",
-        "games": 5
+        "games": 3
       }
     ]
   },
@@ -26006,21 +24045,6 @@
       }
     ]
   },
-  "394524089": {
-    "accountId": 394524089,
-    "nickname": "Oreon",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8188433,
-        "teamName": "Na'Vi.Prodigy",
-        "games": 1
-      }
-    ]
-  },
   "394879200": {
     "accountId": 394879200,
     "nickname": "艾斯",
@@ -26047,7 +24071,7 @@
       {
         "teamId": 7453020,
         "teamName": "Aster.Aries",
-        "games": 7
+        "games": 5
       }
     ]
   },
@@ -26061,7 +24085,7 @@
     "teams": [
       {
         "teamId": 8496276,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -26092,7 +24116,7 @@
       {
         "teamId": 8496587,
         "teamName": "astral step",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -26107,7 +24131,7 @@
       {
         "teamId": 8309219,
         "teamName": "TEIKO",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -26227,7 +24251,7 @@
       {
         "teamId": 8352473,
         "teamName": "Fantastic Five",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -26315,7 +24339,7 @@
       {
         "teamId": 8469775,
         "teamName": "Lazy Guys",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -26345,19 +24369,18 @@
     "nickname": "Avi",
     "primaryRole": "support",
     "rolesPlayed": [
-      "support",
-      "mid"
+      "support"
     ],
     "teams": [
       {
         "teamId": 6847820,
         "teamName": "PePaKi",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8497384,
         "teamName": "1KMMR GANG",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -26850,21 +24873,6 @@
       }
     ]
   },
-  "420027920": {
-    "accountId": 420027920,
-    "nickname": "ыаыаы=)",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8428246,
-        "teamName": "KEKWait",
-        "games": 2
-      }
-    ]
-  },
   "421515107": {
     "accountId": 421515107,
     "nickname": "Rio estilo",
@@ -26901,7 +24909,7 @@
       {
         "teamId": 8263841,
         "teamName": "Hydra",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -26939,20 +24947,6 @@
         "teamId": 9928403,
         "teamName": "Team Cobra",
         "games": 7
-      }
-    ]
-  },
-  "427531478": {
-    "accountId": 427531478,
-    "nickname": "Good boy",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 6326141,
-        "games": 1
       }
     ]
   },
@@ -27035,20 +25029,6 @@
         "teamId": 7247587,
         "teamName": "Anti-MagE-",
         "games": 0
-      }
-    ]
-  },
-  "428720277": {
-    "accountId": 428720277,
-    "nickname": "Доминантный мопсик",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 6326141,
-        "games": 1
       }
     ]
   },
@@ -27291,7 +25271,7 @@
       },
       {
         "teamId": 8430642,
-        "games": 8
+        "games": 4
       },
       {
         "teamId": 9651814,
@@ -27376,7 +25356,7 @@
       {
         "teamId": 8449573,
         "teamName": "GENESIS E-SPORTS",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -27426,7 +25406,7 @@
       {
         "teamId": 6794437,
         "teamName": "The Last Signature",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -27487,41 +25467,6 @@
         "teamId": 7806386,
         "teamName": "Quincy Crew",
         "games": 0
-      }
-    ]
-  },
-  "47508363": {
-    "accountId": 47508363,
-    "nickname": "[W]",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 5015830,
-        "teamName": "Helsinki REDS",
-        "games": 0
-      },
-      {
-        "teamId": 5090573,
-        "teamName": "Womberers",
-        "games": 0
-      },
-      {
-        "teamId": 7873749,
-        "teamName": "Astronauts",
-        "games": 0
-      },
-      {
-        "teamId": 8091161,
-        "teamName": "HAVU Gaming",
-        "games": 0
-      },
-      {
-        "teamId": 8406229,
-        "teamName": "DIVIZON",
-        "games": 2
       }
     ]
   },
@@ -27592,21 +25537,6 @@
       }
     ]
   },
-  "484321648": {
-    "accountId": 484321648,
-    "nickname": "Басков Прайм",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 5897445,
-        "teamName": "MysticTeam",
-        "games": 1
-      }
-    ]
-  },
   "48823667": {
     "accountId": 48823667,
     "nickname": "Bengan",
@@ -27619,20 +25549,6 @@
         "teamId": 9338413,
         "teamName": "MOUZ",
         "games": 58
-      }
-    ]
-  },
-  "488685031": {
-    "accountId": 488685031,
-    "nickname": "ПРЕКРАТИТЕ",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8270237,
-        "games": 1
       }
     ]
   },
@@ -27675,14 +25591,13 @@
     "nickname": "Гена Букин",
     "primaryRole": "mid",
     "rolesPlayed": [
-      "mid",
-      "support"
+      "mid"
     ],
     "teams": [
       {
         "teamId": 144100,
         "teamName": "#Rakovie Chaiki Gaming",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -27943,7 +25858,7 @@
       {
         "teamId": 8421326,
         "teamName": "Ching Splash",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -27987,7 +25902,7 @@
       {
         "teamId": 7234600,
         "teamName": "Betrayed",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 7802017,
@@ -28161,12 +26076,12 @@
       {
         "teamId": 1782289,
         "teamName": "Team of city OZ",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8496602,
         "teamName": "BichiGaming",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -28430,75 +26345,11 @@
       {
         "teamId": 8344559,
         "teamName": "name1111",
-        "games": 2
+        "games": 1
       },
       {
         "teamId": 8376282,
-        "games": 3
-      }
-    ]
-  },
-  "63161666": {
-    "accountId": 63161666,
-    "nickname": "st ;]",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 144100,
-        "teamName": "#Rakovie Chaiki Gaming",
-        "games": 1
-      }
-    ]
-  },
-  "63703276": {
-    "accountId": 63703276,
-    "nickname": "goddam",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 55,
-        "teamName": "_PowerRangers",
-        "games": 0
-      },
-      {
-        "teamId": 1161668,
-        "teamName": "xGame.kz",
-        "games": 0
-      },
-      {
-        "teamId": 1846548,
-        "teamName": "HellRaisers",
-        "games": 0
-      },
-      {
-        "teamId": 5125078,
-        "teamName": "Team Kazakhstan",
-        "games": 0
-      },
-      {
-        "teamId": 6030756,
-        "games": 0
-      },
-      {
-        "teamId": 7441121,
-        "teamName": "flowers",
-        "games": 0
-      },
-      {
-        "teamId": 7486089,
-        "teamName": "Cyberium",
-        "games": 0
-      },
-      {
-        "teamId": 8496581,
-        "teamName": "KHAN",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -28518,7 +26369,7 @@
       {
         "teamId": 8113549,
         "teamName": "Hippomaniacs",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -28533,26 +26384,11 @@
       {
         "teamId": 8344559,
         "teamName": "name1111",
-        "games": 2
+        "games": 1
       },
       {
         "teamId": 8376282,
-        "games": 3
-      }
-    ]
-  },
-  "66634516": {
-    "accountId": 66634516,
-    "nickname": "HighQuality",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 4868025,
-        "teamName": "Education DOTA",
-        "games": 1
+        "games": 2
       }
     ]
   },
@@ -28614,7 +26450,7 @@
     "teams": [
       {
         "teamId": 8494950,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -28751,7 +26587,7 @@
       {
         "teamId": 8421850,
         "teamName": "X3",
-        "games": 5
+        "games": 3
       }
     ]
   },
@@ -28819,7 +26655,7 @@
       {
         "teamId": 8359896,
         "teamName": "B8",
-        "games": 8
+        "games": 4
       }
     ]
   },
@@ -28839,7 +26675,7 @@
       {
         "teamId": 8344922,
         "teamName": "Team Generation",
-        "games": 6
+        "games": 2
       }
     ]
   },
@@ -28897,7 +26733,7 @@
       {
         "teamId": 8047718,
         "teamName": "vmolo4ke",
-        "games": 3
+        "games": 1
       },
       {
         "teamId": 8375518,
@@ -29049,7 +26885,7 @@
       {
         "teamId": 144100,
         "teamName": "#Rakovie Chaiki Gaming",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -29147,7 +26983,7 @@
       {
         "teamId": 8375883,
         "teamName": "Pavaga Academy",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -29245,16 +27081,15 @@
   "76993013": {
     "accountId": 76993013,
     "nickname": "Inda!",
-    "primaryRole": "mid",
+    "primaryRole": "support",
     "rolesPlayed": [
-      "mid",
       "support"
     ],
     "teams": [
       {
         "teamId": 144100,
         "teamName": "#Rakovie Chaiki Gaming",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -29322,7 +27157,7 @@
       {
         "teamId": 5897445,
         "teamName": "MysticTeam",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -29636,7 +27471,7 @@
       },
       {
         "teamId": 6143737,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 6711721,
@@ -29655,7 +27490,7 @@
       },
       {
         "teamId": 8496604,
-        "games": 7
+        "games": 4
       }
     ]
   },
@@ -29779,22 +27614,7 @@
       {
         "teamId": 8496581,
         "teamName": "KHAN",
-        "games": 6
-      }
-    ]
-  },
-  "83678742": {
-    "accountId": 83678742,
-    "nickname": "trapninjaraven▲",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 6644195,
-        "teamName": "Team Unstoppable Players",
-        "games": 1
+        "games": 3
       }
     ]
   },
@@ -29813,11 +27633,11 @@
       {
         "teamId": 8344559,
         "teamName": "name1111",
-        "games": 2
+        "games": 1
       },
       {
         "teamId": 8376282,
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -29832,21 +27652,6 @@
       {
         "teamId": 7819054,
         "teamName": "Banka Cola",
-        "games": 1
-      }
-    ]
-  },
-  "843546632": {
-    "accountId": 843546632,
-    "nickname": "ÿ ẏ ȳ",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496442,
-        "teamName": "EJIekTp0IIpu6opbI",
         "games": 1
       }
     ]
@@ -29969,7 +27774,7 @@
       {
         "teamId": 8344223,
         "teamName": "ARCRED",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -30293,20 +28098,6 @@
       }
     ]
   },
-  "85783504": {
-    "accountId": 85783504,
-    "nickname": "StalinInDaHouse",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 6326141,
-        "games": 1
-      }
-    ]
-  },
   "85805514": {
     "accountId": 85805514,
     "nickname": "still better than 95% of nadota",
@@ -30555,7 +28346,7 @@
       {
         "teamId": 8352473,
         "teamName": "Fantastic Five",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -30571,31 +28362,6 @@
         "teamId": 8254145,
         "teamName": "Execration",
         "games": 41
-      }
-    ]
-  },
-  "86317757": {
-    "accountId": 86317757,
-    "nickname": "Petru44o",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 6490995,
-        "teamName": "SMARACIS eSports",
-        "games": 0
-      },
-      {
-        "teamId": 8012173,
-        "teamName": "Monkey Business ",
-        "games": 0
-      },
-      {
-        "teamId": 8352473,
-        "teamName": "Fantastic Five",
-        "games": 2
       }
     ]
   },
@@ -31099,21 +28865,6 @@
       }
     ]
   },
-  "86732335": {
-    "accountId": 86732335,
-    "nickname": "fOZiWuZi-",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8469910,
-        "teamName": "Cycle E-Sports",
-        "games": 1
-      }
-    ]
-  },
   "86738694": {
     "accountId": 86738694,
     "nickname": "Saunamaxxing",
@@ -31600,11 +29351,11 @@
       },
       {
         "teamId": 6143737,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8496604,
-        "games": 7
+        "games": 4
       }
     ]
   },
@@ -32015,16 +29766,15 @@
   "869539367": {
     "accountId": 869539367,
     "nickname": "ranked actor",
-    "primaryRole": "offlane",
+    "primaryRole": "support",
     "rolesPlayed": [
-      "offlane",
       "support"
     ],
     "teams": [
       {
         "teamId": 8496587,
         "teamName": "astral step",
-        "games": 3
+        "games": 1
       }
     ]
   },
@@ -32778,58 +30528,6 @@
       }
     ]
   },
-  "874542740": {
-    "accountId": 874542740,
-    "nickname": "The Last Chance",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 7012769,
-        "teamName": "ScaryFaceZ 2.0",
-        "games": 0
-      },
-      {
-        "teamId": 8261882,
-        "teamName": "felt",
-        "games": 0
-      },
-      {
-        "teamId": 8471785,
-        "games": 3
-      }
-    ]
-  },
-  "874703421": {
-    "accountId": 874703421,
-    "nickname": "..",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 571045,
-        "games": 0
-      },
-      {
-        "teamId": 6877609,
-        "teamName": "kvp",
-        "games": 0
-      },
-      {
-        "teamId": 7578716,
-        "teamName": "Team Closer",
-        "games": 0
-      },
-      {
-        "teamId": 8471785,
-        "games": 3
-      }
-    ]
-  },
   "874739348": {
     "accountId": 874739348,
     "nickname": "питух убийца",
@@ -32845,7 +30543,7 @@
       {
         "teamId": 8344223,
         "teamName": "ARCRED",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -32974,20 +30672,6 @@
       }
     ]
   },
-  "876539358": {
-    "accountId": 876539358,
-    "nickname": "Факнул егэ",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8270237,
-        "games": 1
-      }
-    ]
-  },
   "87673729": {
     "accountId": 87673729,
     "nickname": "Dirgesnoopy",
@@ -33000,20 +30684,6 @@
         "teamId": 6,
         "teamName": "Absolute Legends",
         "games": 15
-      }
-    ]
-  },
-  "877172634": {
-    "accountId": 877172634,
-    "nickname": "боюсь собак",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8270237,
-        "games": 1
       }
     ]
   },
@@ -33181,7 +30851,7 @@
       {
         "teamId": 8344223,
         "teamName": "ARCRED",
-        "games": 6
+        "games": 3
       }
     ]
   },
@@ -33382,26 +31052,6 @@
         "teamId": 8375259,
         "teamName": "Infinity",
         "games": 5
-      }
-    ]
-  },
-  "886847610": {
-    "accountId": 886847610,
-    "nickname": "Mute All Chat √",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8344657,
-        "teamName": "Sweet Boys",
-        "games": 0
-      },
-      {
-        "teamId": 8463268,
-        "teamName": "Sexy Dragons",
-        "games": 2
       }
     ]
   },
@@ -33752,7 +31402,7 @@
       {
         "teamId": 8113549,
         "teamName": "Hippomaniacs",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8343095,
@@ -34154,7 +31804,7 @@
     "teams": [
       {
         "teamId": 8496276,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -34268,7 +31918,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 53
+        "games": 50
       },
       {
         "teamId": 6209804,
@@ -34590,7 +32240,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 241
+        "games": 238
       },
       {
         "teamId": 1520578,
@@ -34740,21 +32390,6 @@
       }
     ]
   },
-  "902273582": {
-    "accountId": 902273582,
-    "nickname": "Directore",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8309219,
-        "teamName": "TEIKO",
-        "games": 1
-      }
-    ]
-  },
   "90324740": {
     "accountId": 90324740,
     "nickname": "lasthero-",
@@ -34785,7 +32420,7 @@
       {
         "teamId": 6490995,
         "teamName": "SMARACIS eSports",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 7390729,
@@ -34829,7 +32464,7 @@
     "teams": [
       {
         "teamId": 6143737,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 6406681,
@@ -34848,7 +32483,7 @@
       },
       {
         "teamId": 8496604,
-        "games": 7
+        "games": 4
       }
     ]
   },
@@ -34958,21 +32593,6 @@
       }
     ]
   },
-  "904311068": {
-    "accountId": 904311068,
-    "nickname": "`",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8300758,
-        "teamName": "CyberSparta",
-        "games": 1
-      }
-    ]
-  },
   "904540509": {
     "accountId": 904540509,
     "nickname": "sup",
@@ -34985,21 +32605,6 @@
         "teamId": 8374959,
         "teamName": "Name Tag",
         "games": 1
-      }
-    ]
-  },
-  "905141630": {
-    "accountId": 905141630,
-    "nickname": "six 7",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8496587,
-        "teamName": "astral step",
-        "games": 2
       }
     ]
   },
@@ -35062,7 +32667,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 31
+        "games": 29
       }
     ]
   },
@@ -35247,7 +32852,7 @@
     "teams": [
       {
         "teamId": 8494950,
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -35780,7 +33385,7 @@
       {
         "teamId": 7234600,
         "teamName": "Betrayed",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 8500965,
@@ -35879,21 +33484,6 @@
       }
     ]
   },
-  "92018520": {
-    "accountId": 92018520,
-    "nickname": "Beveren",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8381141,
-        "teamName": "BOT GAMING",
-        "games": 2
-      }
-    ]
-  },
   "92028391": {
     "accountId": 92028391,
     "nickname": "memento mori",
@@ -35943,7 +33533,7 @@
       },
       {
         "teamId": 8471785,
-        "games": 3
+        "games": 0
       }
     ]
   },
@@ -36022,62 +33612,6 @@
         "teamId": 2789717,
         "teamName": "Polarity Dota 2",
         "games": 0
-      }
-    ]
-  },
-  "92477990": {
-    "accountId": 92477990,
-    "nickname": "SMOOTH OPERATOR",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 2668269,
-        "games": 2
-      },
-      {
-        "teamId": 2756149,
-        "games": 0
-      },
-      {
-        "teamId": 4541043,
-        "teamName": "Team Singularity",
-        "games": 0
-      },
-      {
-        "teamId": 6685591,
-        "teamName": "ViKin.gg",
-        "games": 0
-      },
-      {
-        "teamId": 7233180,
-        "games": 0
-      },
-      {
-        "teamId": 7683396,
-        "teamName": "No Bounty Hunter",
-        "games": 0
-      },
-      {
-        "teamId": 7715228,
-        "teamName": "plan-B esports",
-        "games": 0
-      },
-      {
-        "teamId": 7976730,
-        "teamName": "Recast Gaming",
-        "games": 0
-      },
-      {
-        "teamId": 7978409,
-        "teamName": "Topf voll Otter",
-        "games": 0
-      },
-      {
-        "teamId": 8412548,
-        "games": 1
       }
     ]
   },
@@ -36250,7 +33784,7 @@
       {
         "teamId": 8449573,
         "teamName": "GENESIS E-SPORTS",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -36315,7 +33849,7 @@
       {
         "teamId": 8112124,
         "teamName": "Brame",
-        "games": 9
+        "games": 7
       }
     ]
   },
@@ -36330,7 +33864,7 @@
       {
         "teamId": 8463436,
         "teamName": "Level One",
-        "games": 3
+        "games": 2
       }
     ]
   },
@@ -36410,20 +33944,6 @@
       }
     ]
   },
-  "935078227": {
-    "accountId": 935078227,
-    "nickname": "папа на работе",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8270237,
-        "games": 1
-      }
-    ]
-  },
   "93526520": {
     "accountId": 93526520,
     "nickname": "bb3px",
@@ -36466,12 +33986,12 @@
       {
         "teamId": 1782289,
         "teamName": "Team of city OZ",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8496602,
         "teamName": "BichiGaming",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -36702,7 +34222,7 @@
       },
       {
         "teamId": 8496607,
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 10150413,
@@ -36785,7 +34305,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 17
+        "games": 11
       },
       {
         "teamId": 8599101,
@@ -37294,7 +34814,7 @@
       {
         "teamId": 8406229,
         "teamName": "DIVIZON",
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 9080826,
@@ -37527,7 +35047,7 @@
       {
         "teamId": 8469775,
         "teamName": "Lazy Guys",
-        "games": 4
+        "games": 2
       }
     ]
   },
@@ -37667,7 +35187,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 17
+        "games": 11
       },
       {
         "teamId": 8894818,
@@ -37782,7 +35302,7 @@
       {
         "teamId": 8352473,
         "teamName": "Fantastic Five",
-        "games": 3
+        "games": 1
       },
       {
         "teamId": 9997048,
@@ -37934,21 +35454,6 @@
       }
     ]
   },
-  "968695312": {
-    "accountId": 968695312,
-    "nickname": "АКСА УКРАЛИ!!!!",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 8451900,
-        "teamName": "TEAM.VRZ",
-        "games": 1
-      }
-    ]
-  },
   "96873088": {
     "accountId": 96873088,
     "nickname": "asdf:)",
@@ -37976,21 +35481,6 @@
       {
         "teamId": 1746869,
         "teamName": "red_devils",
-        "games": 1
-      }
-    ]
-  },
-  "969938275": {
-    "accountId": 969938275,
-    "nickname": "MosGaz",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 8421259,
-        "teamName": "Steel Phoenix",
         "games": 1
       }
     ]
@@ -38195,21 +35685,6 @@
       }
     ]
   },
-  "978952174": {
-    "accountId": 978952174,
-    "nickname": "\u003e.\u003c",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 8495183,
-        "teamName": "Generation of Miracles",
-        "games": 1
-      }
-    ]
-  },
   "97975407": {
     "accountId": 97975407,
     "nickname": "felices los 5",
@@ -38352,21 +35827,6 @@
       }
     ]
   },
-  "985112423": {
-    "accountId": 985112423,
-    "nickname": "Wunderfulife",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8421259,
-        "teamName": "Steel Phoenix",
-        "games": 1
-      }
-    ]
-  },
   "98837977": {
     "accountId": 98837977,
     "nickname": "米粒",
@@ -38381,21 +35841,6 @@
         "teamId": 15,
         "teamName": "LGD Gaming",
         "games": 24
-      }
-    ]
-  },
-  "98843135": {
-    "accountId": 98843135,
-    "nickname": "Nah I'd Lose",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 8496580,
-        "teamName": "Overrated Gamers",
-        "games": 2
       }
     ]
   },
@@ -38447,7 +35892,7 @@
       {
         "teamId": 6568822,
         "teamName": "Burning Fire",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 7684881,
@@ -38471,7 +35916,7 @@
       {
         "teamId": 8318683,
         "teamName": "IVY",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 9651185,
@@ -38531,16 +35976,15 @@
   "988968103": {
     "accountId": 988968103,
     "nickname": "AbDoLbblLLl",
-    "primaryRole": "safelane",
+    "primaryRole": "support",
     "rolesPlayed": [
-      "safelane",
       "support"
     ],
     "teams": [
       {
         "teamId": 144100,
         "teamName": "#Rakovie Chaiki Gaming",
-        "games": 2
+        "games": 1
       }
     ]
   },
@@ -38603,12 +36047,12 @@
       {
         "teamId": 7577871,
         "teamName": "MongaGang",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8344536,
         "teamName": "djeremikoks8859",
-        "games": 1
+        "games": 0
       },
       {
         "teamId": 8495198,
@@ -38638,7 +36082,7 @@
       {
         "teamId": 8113549,
         "teamName": "Hippomaniacs",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8343095,
@@ -38757,7 +36201,7 @@
       {
         "teamId": 8263841,
         "teamName": "Hydra",
-        "games": 2
+        "games": 1
       }
     ]
   },
