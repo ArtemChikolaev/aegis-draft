@@ -132,6 +132,11 @@ interface RunStore {
    *  null — разведка в этом Буткемпе не сыграна. Оценивается против текущего ростера, чтобы к
    *  правилу можно было готовиться заранее, а не узнавать о нём за этап. */
   scoutedBoss: ScoutedBoss | null;
+  /** Секвенция «этап пройден» (R15.2). Транзиентный флаг: взводится ТОЛЬКО в openCampAfterStage
+   *  (свежий проход порога / вход в Династию), в SavedRun не пишется — resume в лагерь не
+   *  переигрывает праздник и не может продублировать эффекты: все числа читаются из уже
+   *  начисленного lastPayout, движок секвенцией не трогается. */
+  campCelebration: boolean;
 
   loadData: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
@@ -196,6 +201,8 @@ interface RunStore {
   swapReserveHero: (outgoingHeroId: number, reserveHeroId: number) => void;
   /** Roguelite Run: выйти из Буткемпа и играть следующий этап (кнопка «Next stage»). */
   advanceAnteStage: () => void;
+  /** Закрыть секвенцию «этап пройден» (клик/Continue). Идемпотентно. */
+  dismissCampCelebration: () => void;
   restartSameConfig: () => void;
 }
 
@@ -506,7 +513,7 @@ export const useRun = create<RunStore>((set, get) => {
       economy.setUnlimitedGold(config.cheatMode === true);
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
-        tactics: null, boss: null, scoutedBoss: null,
+        tactics: null, boss: null, scoutedBoss: null, campCelebration: false,
         tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot,
         tournamentStep: 0, teamName: resolvedName,
       };
@@ -514,6 +521,7 @@ export const useRun = create<RunStore>((set, get) => {
     const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
     return {
       anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
+      campCelebration: false,
       tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName,
     };
   };
@@ -571,6 +579,9 @@ export const useRun = create<RunStore>((set, get) => {
       economyView: economy.snapshot,
       camp: economy.campView(),
       tactics: campTactics,
+      // Секвенция «этап пройден» (R15.2): взводится только здесь — свежий проход порога.
+      // Resume не проходит через openCampAfterStage, поэтому праздник не переигрывается.
+      campCelebration: true,
       // Босс ПРЕДСТОЯЩЕГО этапа — превью для адаптации в Буткемпе.
       ...campBosses(nextIndex, campTactics),
     };
@@ -603,6 +614,7 @@ export const useRun = create<RunStore>((set, get) => {
     economyView: null,
     camp: null,
     tactics: null, boss: null, scoutedBoss: null,
+    campCelebration: false,
 
     async loadData() {
       try {
@@ -1223,8 +1235,13 @@ export const useRun = create<RunStore>((set, get) => {
         camp: null,
         tactics,
         boss,
+        campCelebration: false,
       });
       persist();
+    },
+
+    dismissCampCelebration() {
+      if (get().campCelebration) set({ campCelebration: false });
     },
 
     restartSameConfig() {

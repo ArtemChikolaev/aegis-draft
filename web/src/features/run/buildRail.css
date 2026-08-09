@@ -44,6 +44,16 @@
 .build-rail__card[data-card-tier] {
   border-color: color-mix(in srgb, var(--build-rail-card-color) 60%, var(--line));
 }
+/* Новая карточка в билде (R15.1): один короткий пульс на появление — слот «принял» покупку.
+   Играет только у карточек, добавленных при живом рейле (см. BuildRail: prev-ids), а не при
+   каждом монтировании экрана. Гасится глобальным prefers-reduced-motion. */
+@keyframes rail-card-in {
+  0% { opacity: 0; transform: scale(.6); }
+  60% { transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.build-rail__card--fresh { animation: rail-card-in 420ms var(--ease-out) both; }
+
 .build-rail__mono {
   color: var(--muted);
   font-size: 11px;

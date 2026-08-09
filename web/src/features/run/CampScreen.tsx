@@ -43,6 +43,7 @@ import { MarketPanel } from "./MarketPanel.tsx";
 import { RewardPanel } from "./RewardPanel.tsx";
 import { PreparationPanel } from "./PreparationPanel.tsx";
 import { CampHint } from "./CampHint.tsx";
+import { CampCelebration } from "./CampCelebration.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import {
@@ -106,6 +107,8 @@ export function CampScreen() {
   const swapReservePlayer = useRun((s) => s.swapReservePlayer);
   const swapReserveHero = useRun((s) => s.swapReserveHero);
   const advanceAnteStage = useRun((s) => s.advanceAnteStage);
+  const campCelebration = useRun((s) => s.campCelebration);
+  const dismissCampCelebration = useRun((s) => s.dismissCampCelebration);
   const reset = useRun((s) => s.reset);
   const { t } = useI18n();
   const hero = useHero();
@@ -557,6 +560,16 @@ export function CampScreen() {
 
   return (
     <main className="camp" data-testid="camp-screen">
+      {/* Секвенция «этап пройден» (R15.2): показывается один раз на свежий проход порога;
+          resume в лагерь её не переигрывает (см. runStore.campCelebration). */}
+      {campCelebration && (
+        <CampCelebration
+          ante={ante}
+          payout={camp.lastPayout}
+          showPayout={!camp.unlimitedGold}
+          onDismiss={dismissCampCelebration}
+        />
+      )}
       <header className="camp__head">
         <div>
           <Eyebrow>{t("camp.title")}</Eyebrow>

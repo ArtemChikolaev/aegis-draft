@@ -297,6 +297,59 @@
 /* Цена и кнопка прижаты к низу, поэтому у карточек одного ряда они на одной линии. */
 .camp-pack-card__buy { margin-top: auto; }
 
+/* Exit покупки (R15.1): ghost-слепок купленной карточки приподнимается и гаснет, движок при этом
+   уже сработал — золото и радар вспыхнули в момент клика. Только transform/opacity: сетка паков
+   не перекладывается. Гасится глобальным prefers-reduced-motion (ghost при нём и не создаётся). */
+@keyframes camp-card-exit {
+  to { opacity: 0; transform: translateY(-10px) scale(.96); }
+}
+.camp-pack-card[data-leaving] {
+  animation: camp-card-exit 200ms var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+/* Секвенция «этап пройден» (R15.2): тёмное перекрытие с построчным объявлением выплат.
+   Темп церемониальный — стаггер строк переопределён с плотных 45ms на 120ms; сами значения
+   приходят готовыми, анимируется появление (никакого набега чисел). Вход/строки гасятся
+   глобальным prefers-reduced-motion вместе со всеми .enter. */
+.camp-celebration {
+  --motion-enter-stagger: 120ms;
+
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--surface-invert) 84%, transparent);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+  animation: fade-soft var(--motion-enter) var(--ease-out) both;
+}
+.camp-celebration__panel { max-width: 420px; text-align: center; }
+.camp-celebration__title {
+  margin: 0;
+  color: var(--on-invert);
+  font-size: clamp(28px, 6vw, 44px);
+  line-height: 1.05;
+}
+.camp-celebration__place { margin: 12px 0 0; color: var(--muted-invert); font-weight: 700; }
+.camp-celebration__payout {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.camp-celebration__payout li {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted-invert);
+}
+.camp-celebration__payout b { color: var(--gold); font-variant-numeric: tabular-nums; }
+.camp-celebration__continue { margin-top: 24px; }
+
 /* Вся offer-карточка — точка входа в увеличенный оверлей. Прозрачная кнопка лежит над обычным
    контентом; настоящие Buy/Swap/select/tag controls поднимаются выше неё и сохраняют своё действие. */
 .camp-inspectable-card {

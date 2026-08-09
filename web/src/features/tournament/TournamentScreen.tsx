@@ -125,6 +125,38 @@ function useReveal(total: number, resetKey: unknown, stepMs: number, startDelayM
   return { n: step, done: total > 0 && step >= total, skip };
 }
 
+// FLIP пересортировки таблиц групп (R15.3): liveStandings меняет порядок строк, и без анимации
+// перестановка — мгновенный скачок, в котором движение своей команды не прочитать. WAAPI-анимация
+// ведёт строку от прошлой позиции к новой; попадает в getAnimations() — проверяемо тем же замером,
+// что и CSS. offsetTop вместо getBoundingClientRect: «камера» скроллит окно между рендерами, и
+// вьюпорт-координаты дали бы ложный сдвиг всем строкам разом.
+function useStandingsFlip(ref: React.RefObject<HTMLElement | null>, active: boolean) {
+  const prev = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!root) {
+      prev.current = new Map();
+      return;
+    }
+    const rows = Array.from(root.querySelectorAll<HTMLElement>("[data-flip-key]"));
+    const next = new Map<string, number>();
+    for (const row of rows) next.set(row.dataset.flipKey!, row.offsetTop);
+    if (active && !prefersReducedMotion()) {
+      for (const row of rows) {
+        const before = prev.current.get(row.dataset.flipKey!);
+        if (before == null) continue;
+        const dy = before - next.get(row.dataset.flipKey!)!;
+        if (Math.abs(dy) < 2) continue;
+        row.animate(
+          [{ transform: `translateY(${dy}px)` }, { transform: "translateY(0)" }],
+          { duration: 240, easing: "cubic-bezier(.2, .8, .2, 1)" },
+        );
+      }
+    }
+    prev.current = next;
+  });
+}
+
 // Частичная таблица: все 9 команд сразу (порядок жеребьёvки), затем пересорт по картам.
 function liveStandings(
   group: TournamentGroup,
@@ -477,6 +509,8 @@ export function TournamentScreen() {
   // opacity-анимация подхватывается при переезде строки → моргание. Снимаем .enter —
   // пересортировка снова мгновенная, без мигания (как было до анимаций).
   const groupFillPhase = stage === "groups" && n === 0;
+  // FLIP только после «наполнения»: входная fade-rise и переезд строк дерутся за transform.
+  useStandingsFlip(groupsRef, stage === "groups" && !groupFillPhase);
   // Лента результатов не скроллится с обрезанной строкой сверху, а показывает столько
   // ПОСЛЕДНИХ матчей, сколько влезает ЦЕЛИКОМ: панель фиксированной высоты, а строка не
   // делится на неё нацело (471/30 ≈ 15.7) — иначе верхняя пара вечно срезана.
@@ -751,6 +785,7 @@ export function TournamentScreen() {
                     return (
                     <div
                       key={row.team.id}
+                      data-flip-key={row.team.id}
                       className={`table-row ${groupFillPhase ? "enter" : ""} ${row.team.isUser ? "is-user" : ""} ${routed ? `is-routed route--${row.route}` : ""}`.replace(/\s+/g, " ").trim()}
                       style={{ ["--enter-i" as string]: row.rank - 1 } as React.CSSProperties}
                     >
@@ -769,8 +804,16 @@ export function TournamentScreen() {
             <Surface className="group-results enter" style={{ ["--enter-i" as string]: 2 } as React.CSSProperties}>
               <h3 className="bracket__side-title">{t("tournament.results")}</h3>
               <div className="group-results__list" ref={groupResultsRef}>
-                {shownGroupResults.map((match) => (
-                  <div key={match.id} className={`group-result enter-fade ${match.teamA.isUser || match.teamB.isUser ? "is-user" : ""}`.trim()}>
+                {shownGroupResults.map((match) => {
+                  // Свой результат — событие (R15.3): в момент появления строка вспыхивает цветом
+                  // исхода. Ничья (1–1) остаётся нейтральной — сигналить нечем.
+                  const userScore = match.teamA.isUser ? match.scoreA : match.teamB.isUser ? match.scoreB : null;
+                  const rivalScore = match.teamA.isUser ? match.scoreB : match.teamB.isUser ? match.scoreA : null;
+                  const userOutcome = userScore == null || rivalScore == null || userScore === rivalScore
+                    ? ""
+                    : userScore > rivalScore ? "group-result--user-win" : "group-result--user-loss";
+                  return (
+                  <div key={match.id} className={`group-result enter-fade ${match.teamA.isUser || match.teamB.isUser ? "is-user" : ""} ${userOutcome}`.replace(/\s+/g, " ").trim()}>
                     <span className="group-result__tag">{match.group}</span>
                     <span className={`group-result__team is-a ${match.teamA.isUser ? "is-user" : ""} ${match.scoreA > match.scoreB ? "is-win" : match.scoreA < match.scoreB ? "is-loss" : ""}`.trim()}>
                       <span className="group-result__name">{match.teamA.name}</span>
@@ -782,7 +825,8 @@ export function TournamentScreen() {
                       <span className="group-result__name">{match.teamB.name}</span>
                     </span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </Surface>
             {/* Подпись фазы распределения: живёт ровно столько, сколько красятся её строки. */}

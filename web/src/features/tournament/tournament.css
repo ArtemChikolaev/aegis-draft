@@ -104,6 +104,27 @@
 .group-result__team.is-user { color: var(--accent); font-weight: 800; }
 .group-result__score { flex: none; color: var(--text); font-weight: 800; }
 .group-result.is-user { background: var(--accent-soft); }
+/* Свой результат — событие (R15.3): вспышка цветом исхода в момент появления строки, затем
+   возврат к нейтрали (--motion-flash: вспышка, а не состояние). Список анимаций включает
+   fade-soft: модификатор перекрывает shorthand из .enter-fade, вход терять нельзя. Селектор
+   из двух классов намеренно: порядок инъекции base.css/tournament.css не гарантирован, и при
+   равной специфичности .enter-fade молча съедал список (поймано getAnimations на живом 5273). */
+@keyframes user-result-flash {
+  from {
+    box-shadow:
+      inset 0 0 0 1px var(--flash-color),
+      0 0 14px -4px color-mix(in srgb, var(--flash-color) 60%, transparent);
+  }
+  to { box-shadow: inset 0 0 0 1px transparent, 0 0 0 0 transparent; }
+}
+.group-result.group-result--user-win,
+.group-result.group-result--user-loss {
+  animation:
+    fade-soft var(--motion-enter) var(--ease-out) both,
+    user-result-flash var(--motion-flash) ease-out both;
+}
+.group-result--user-win { --flash-color: var(--win); }
+.group-result--user-loss { --flash-color: var(--loss); }
 .table-head, .table-row {
   display: grid;
   grid-template-columns: 22px 22px minmax(0, 1fr) 52px 40px;
@@ -424,6 +445,14 @@
 .tournament__champion { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; justify-content: space-between; padding: 20px 24px; }
 .tournament__champion span { color: var(--muted); font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .tournament__champion strong { display: block; margin-top: 4px; font-size: 30px; line-height: 1.05; }
+/* Печать места (R15.3): итог «приземляется» масштабом, а не появляется молча. Чемпион — вторым
+   ударом через небольшой сдвиг. transform-only, раскладка не дёргается. */
+@keyframes stamp-in {
+  from { opacity: 0; transform: scale(1.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+.tournament__champion strong { transform-origin: left bottom; animation: stamp-in 360ms var(--ease-out) both; }
+.tournament__champion-name strong { animation-delay: 140ms; }
 .tournament__champion strong.is-user { color: var(--accent); }
 /* Колонка как у «Your finish»: лейбл сверху, знак+имя снизу — иначе span и strong
    сидят в одной строке без gap и «Champion[MT]» слипаются (узкий и широкий). */
@@ -735,3 +764,16 @@
 .ante-result span { color: var(--muted); font-size: 13px; }
 .ante-result--won { border-left-color: var(--brand-green); }
 .ante-result--lost { border-left-color: var(--danger); }
+/* Вердикт этапа — кульминация (R15.3): баннер входит той же вспышкой исхода, что и свой матч.
+   Список включает fade-rise: модификатор перекрывает shorthand из .enter; два класса — по той же
+   причине каскада, что и у .group-result выше. */
+.ante-result.ante-result--playing,
+.ante-result.ante-result--won,
+.ante-result.ante-result--lost {
+  animation:
+    fade-rise var(--motion-enter) var(--ease-out) both,
+    user-result-flash var(--motion-flash) ease-out both;
+}
+.ante-result--playing,
+.ante-result--won { --flash-color: var(--win); }
+.ante-result--lost { --flash-color: var(--loss); }

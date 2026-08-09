@@ -8,7 +8,7 @@
 // Рейл презентационный: он не считает свою математику, а получает готовый список. Активность
 // карточки берётся из ТОГО ЖЕ источника, что и боевой расчёт (`sources` силы забега), поэтому
 // подсветка не может разойтись с тем, что реально сработало.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Rarity } from "../../game/rarity.ts";
 import { itemDef, itemTier } from "../../game/items.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
@@ -60,6 +60,16 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
   // Плейтест 2026-08-04: иконку было видно, а прочитать карточку негде — особенно на экране этапа,
   // где панели Build нет вовсе. Состояние держит сам рейл: так оба экрана получают разбор даром.
   const [inspected, setInspected] = useState<BuildRailCard | null>(null);
+  // Пульс новой карточки (R15.1): сравниваем id с прошлым рендером ЭТОГО рейла — пульсирует только
+  // добавленное при живом экране (покупка/награда), а не весь ряд при каждом монтировании.
+  const prevIds = useRef<ReadonlySet<string> | null>(null);
+  const fresh = new Set<string>();
+  if (prevIds.current) {
+    for (const card of cards) if (!prevIds.current.has(card.id)) fresh.add(card.id);
+  }
+  useEffect(() => {
+    prevIds.current = new Set(cards.map((card) => card.id));
+  });
   // Пустой билд не показываем вовсе: ряд из пяти пустых точек — это шум, а не информация.
   if (cards.length === 0) return null;
   const empty = Math.max(0, slots - cards.filter((card) => !card.held).length);
@@ -74,7 +84,7 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
           <button
             type="button"
             key={card.id}
-            className={`build-rail__card build-rail__card--${kind}`}
+            className={`build-rail__card build-rail__card--${kind}${fresh.has(card.id) ? " build-rail__card--fresh" : ""}`}
             data-card-id={card.id}
             data-card-tier={item ? itemTier(card.rarity) : undefined}
             data-active={card.active}
