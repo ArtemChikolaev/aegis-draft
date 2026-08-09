@@ -1,10 +1,15 @@
-// Свип CHEAT_SEED под cheat-e2e (anteRun.spec.ts, «boss на финале акта» и «поздние синки»).
-// Любой сдвиг потока Rng может сделать текущий seed непроходным (записанная цена M5R) — тогда
-// перебор запускается заново: npx tsx scripts/find_cheat_seed_deep.ts
-// Модель повторяет путь e2e-хелпера boostInCamp: первая награда, затем до 6 покупок «первая
-// карточка с неотрицательной дельтой» в порядке DOM (игроки → герои), затем до 5 улучшений
-// качества первого немаксимального героя. Слои силы и исполнение покупок — те же функции, что в
-// игре/симуляторе (урок R10). Финальная правда — прогон e2e с CHEAT_SEED=<кандидат>.
+// Свип сидов anteRun-e2e (CAMP_SEED/CHEAT_SEED) по ТЕКУЩЕМУ датасету в web/public/data.
+// Сид обязан проходить на ДВУХ датасетах (локально — реальный слайс, CI — mock), поэтому гонять
+// дважды и брать пересечение:
+//   npm run gen:mock && npx tsx scripts/sweep_seeds_both.ts        # mock (как CI)
+//   git checkout -- public/data && npx tsx scripts/sweep_seeds_both.ts  # реальный
+// Модель отбирает КАНДИДАТОВ; boostInCamp повторяется неточно — финальная правда только живым
+// прогоном cheat-тестов по кандидатам (R15.8: модельные 3/9/13 падали на mock, 15 прошёл).
+// Для каждого сида:
+//   campDeep     — путь теста «пассивные карточки»: 3 этапа, карточная награда в каждом лагере;
+//   staticDeath  — на каком этапе гибнет статичный ростер (бюджет теста «завершение забега» и
+//                  «вне статистики»: терминал должен наступать за ≤6 этапов);
+//   cheatBoost   — модель boostInCamp доживает до финала акта (тесты «boss на финале»/«синки»).
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
 import { AnteRunEngine, SEASON, seasonStage } from "../src/game/anteRun.ts";
@@ -55,10 +60,7 @@ function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEv
 }
 
 function itemsOf(engine: RunEngine, economy: RunEconomy) {
-  return evaluateItems(economy.equippedTactics, {
-    activeHeroes: engine.heroes,
-    cardRarity: economy.cardRarity,
-  });
+  return evaluateItems(economy.equippedTactics, { activeHeroes: engine.heroes, cardRarity: economy.cardRarity });
 }
 
 function bossPenalty(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number, bossId: BossId | null): number {
@@ -93,7 +95,6 @@ function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, sta
   });
 }
 
-/** Сила забега как её видит центр радара (без штрафа босса) — базис дельты карточки рынка. */
 function currentPower(engine: RunEngine, economy: RunEconomy): number {
   const score = engine.score()!;
   return evaluateRunPower({
@@ -108,8 +109,6 @@ function currentPower(engine: RunEngine, economy: RunEconomy): number {
   }).power.total;
 }
 
-/** Дельта карточки рынка — как previewPower на карточке (CampScreen): пересобирает тактики,
- *  редкость и предметные слои для состояния ПОСЛЕ покупки. */
 function offerDelta(engine: RunEngine, economy: RunEconomy, offer: Offer): number | null {
   const score = engine.score();
   if (!score || !offer.preview) return null;
@@ -150,12 +149,10 @@ function prepareMarket(engine: RunEngine, economy: RunEconomy, seed: string): vo
   ));
 }
 
-/** Модель boostInCamp: первая награда → до 6 «первых карточек с дельтой ≥ 0» → до 5 улучшений. */
 function boostInCamp(engine: RunEngine, economy: RunEconomy, seed: string): void {
   const reward = economy.campView().rewardOffers[0];
   if (reward) economy.chooseReward(reward.id);
   prepareMarket(engine, economy, seed);
-
   for (let i = 0; i < 6; i++) {
     const offers = economy.campView().marketOffers;
     const ordered = [...offers.filter((o) => o.kind === "player"), ...offers.filter((o) => o.kind === "hero")];
@@ -176,13 +173,11 @@ function boostInCamp(engine: RunEngine, economy: RunEconomy, seed: string): void
         engine.replaceHero(pick.heroSwap.outgoingHeroId, pick.heroSwap.incomingHeroId);
         economy.rollHeroRarity(pick.heroSwap.incomingHeroId, economy.snapshot.campStageIndex);
       } else if (pick.heroUpgrade) {
-        // Тир применяет сама экономика внутри purchaseMarket — ростер не меняется.
         if (!economy.purchaseMarket(pick.id)) break;
       } else break;
       economy.replacePreparedMarketOffers(refreshAnteMarketOffers(engine, economy.campView().marketOffers));
     } catch { break; }
   }
-
   for (let i = 0; i < 5; i++) {
     const heroId = engine.heroes.find((h) => upgradeCost(economy.rarityOf(h)) != null);
     if (heroId == null) break;
@@ -190,31 +185,90 @@ function boostInCamp(engine: RunEngine, economy: RunEconomy, seed: string): void
   }
 }
 
-const found: string[] = [];
-for (let n = 1; n <= 400 && found.length < 6; n++) {
-  const seed = `cheat-e2e-${n}`;
-  const engine = new RunEngine(data, config, seed);
-  firstAvailableDraft(engine);
-  const score = engine.score();
-  if (!score || !engine.isComplete) continue;
+type Verdict = { campDeep: boolean; staticDeath: number | null; cheatBoost: boolean; cheatStaticDeath: number | null };
 
-  const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "E2E", SEASON);
-  const economy = new RunEconomy(seed);
-  economy.setRarityFlags({ drops: false, upgrades: true });
-  economy.setUnlimitedGold(true);
-
-  let ok = true;
-  for (let stage = 1; stage <= SEASON.actLength; stage++) {
-    if (anteRun.resolveStage() !== "playing") { ok = false; break; }
-    const campId = anteRun.state.index;
-    economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1).target);
-    economy.openCamp(campId);
-    boostInCamp(engine, economy, seed);
-    economy.leaveCamp();
-    anteRun.rebuildCurrentStage(stageStrength(engine, economy, seed, anteRun.state.index));
-  }
-  if (!ok) continue;
-  found.push(seed);
-  console.log(`✅ ${seed}  (акт пройден целиком под boost-моделью)`);
+/** Статичный забег (ничего не покупаем): этап терминального исхода или null, если жив ≥12. */
+function staticDeathOf(seed: string): number | null {
+  try {
+    const engine = new RunEngine(data, config, seed);
+    firstAvailableDraft(engine);
+    const score = engine.score();
+    if (!score || !engine.isComplete) return null;
+    const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "E2E", SEASON);
+    const economy = new RunEconomy(seed);
+    economy.setRarityFlags({ drops: false, upgrades: true });
+    for (let stage = 1; stage <= 12; stage++) {
+      if (anteRun.resolveStage() !== "playing") return stage;
+      const campId = anteRun.state.index;
+      economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1).target);
+      economy.openCamp(campId);
+      economy.leaveCamp();
+      anteRun.rebuildCurrentStage(stageStrength(engine, economy, seed, anteRun.state.index));
+    }
+  } catch { /* сид отбраковывается */ }
+  return null;
 }
-if (!found.length) console.log("❌ подходящий seed не найден в диапазоне 1..400");
+
+function evalSeed(campSeed: string, cheatSeed: string): Verdict {
+  const verdict: Verdict = { campDeep: false, staticDeath: null, cheatBoost: false, cheatStaticDeath: null };
+  verdict.cheatStaticDeath = staticDeathOf(cheatSeed);
+  // campDeep: 3 этапа, карточная награда в каждом лагере (свежая карьера: drops выключены).
+  try {
+    const engine = new RunEngine(data, config, campSeed);
+    firstAvailableDraft(engine);
+    const score = engine.score();
+    if (score && engine.isComplete) {
+      const anteRun = new AnteRunEngine(data, config.format, campSeed, score.teamOvr, "E2E", SEASON);
+      const economy = new RunEconomy(campSeed);
+      economy.setRarityFlags({ drops: false, upgrades: true });
+      let ok = true;
+      for (let stage = 1; stage <= 3; stage++) {
+        if (anteRun.resolveStage() !== "playing") { ok = false; break; }
+        const campId = anteRun.state.index;
+        economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1).target);
+        economy.openCamp(campId);
+        const card = economy.campView().rewardOffers.find((o) => o.kind === "item" || o.kind === "tactic");
+        if (!card || !economy.chooseReward(card.id)) { ok = false; break; }
+        economy.leaveCamp();
+        anteRun.rebuildCurrentStage(stageStrength(engine, economy, campSeed, anteRun.state.index));
+      }
+      verdict.campDeep = ok;
+    }
+  } catch { /* сид отбраковывается */ }
+  // staticDeath: тот же CAMP_SEED, ничего не покупаем — на каком этапе терминал.
+  verdict.staticDeath = staticDeathOf(campSeed);
+  // cheatBoost: CHEAT_SEED, ∞ золото + boost-модель, дожить до финала акта.
+  try {
+    const engine = new RunEngine(data, config, cheatSeed);
+    firstAvailableDraft(engine);
+    const score = engine.score();
+    if (score && engine.isComplete) {
+      const anteRun = new AnteRunEngine(data, config.format, cheatSeed, score.teamOvr, "E2E", SEASON);
+      const economy = new RunEconomy(cheatSeed);
+      economy.setRarityFlags({ drops: false, upgrades: true });
+      economy.setUnlimitedGold(true);
+      let ok = true;
+      for (let stage = 1; stage <= SEASON.actLength; stage++) {
+        if (anteRun.resolveStage() !== "playing") { ok = false; break; }
+        const campId = anteRun.state.index;
+        economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1).target);
+        economy.openCamp(campId);
+        boostInCamp(engine, economy, cheatSeed);
+        economy.leaveCamp();
+        anteRun.rebuildCurrentStage(stageStrength(engine, economy, cheatSeed, anteRun.state.index));
+      }
+      verdict.cheatBoost = ok;
+    }
+  } catch { /* сид отбраковывается */ }
+  return verdict;
+}
+
+const campOk: string[] = [];
+const cheatOk: string[] = [];
+for (let n = 1; n <= 200; n++) {
+  const v = evalSeed(`camp-e2e-${n}`, `cheat-e2e-${n}`);
+  if (v.campDeep && v.staticDeath != null && v.staticDeath <= 6) campOk.push(`camp-e2e-${n}(death@${v.staticDeath})`);
+  if (v.cheatBoost && v.cheatStaticDeath != null && v.cheatStaticDeath <= 6) cheatOk.push(`cheat-e2e-${n}(death@${v.cheatStaticDeath})`);
+}
+console.log("CAMP ok:", campOk.join(" ") || "—");
+console.log("CHEAT ok:", cheatOk.join(" ") || "—");
