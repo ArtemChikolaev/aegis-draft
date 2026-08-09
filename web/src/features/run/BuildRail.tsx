@@ -8,7 +8,7 @@
 // Рейл презентационный: он не считает свою математику, а получает готовый список. Активность
 // карточки берётся из ТОГО ЖЕ источника, что и боевой расчёт (`sources` силы забега), поэтому
 // подсветка не может разойтись с тем, что реально сработало.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { CardEdition } from "../../game/editions.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import { itemDef, itemTier } from "../../game/items.ts";
@@ -16,7 +16,7 @@ import { itemArtSlug } from "../../game/itemArt.ts";
 import { isTacticId } from "../../game/tactics.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
-import { ItemIcon } from "../../ui/index.ts";
+import { ItemIcon, prefersReducedMotion } from "../../ui/index.ts";
 import { BuildCardInspector, type BuildCardContribution } from "./BuildCardInspector.tsx";
 import "./buildRail.css";
 
@@ -55,7 +55,7 @@ export function buildRailCards(
   ];
 }
 
-export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, contributionsOf }: {
+export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, contributionsOf, ignite }: {
   cards: readonly BuildRailCard[];
   /** Сколько слотов всего — пустые рисуем точками, иначе непонятно, есть ли ещё место. */
   slots: number;
@@ -64,6 +64,10 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
   activeHeroes: readonly number[];
   cardRarity: Record<string, Rarity>;
   contributionsOf?: (cardId: string) => readonly BuildCardContribution[];
+  /** Смена значения (null → ключ) один раз вспыхивает АКТИВНЫМИ карточками — «вот что участвует»
+   *  (остаток R14.6). Честная форма: тактика у нас — статический модификатор этапа, а не событие
+   *  по ходу турнира, поэтому вспышка привязана к старту симуляции, а не к «срабатыванию». */
+  ignite?: string | null;
 }) {
   const { t } = useI18n();
   // Плейтест 2026-08-04: иконку было видно, а прочитать карточку негде — особенно на экране этапа,
@@ -79,21 +83,35 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
   useEffect(() => {
     prevIds.current = new Set(cards.map((card) => card.id));
   });
+  // Вспышка «вот что участвует» (остаток R14.6): играет на СМЕНУ ignite-ключа, а не на монтирование —
+  // resume посреди турнира монтируется уже с ключом и вспышку не переигрывает.
+  const [ignitedNow, setIgnitedNow] = useState(false);
+  const prevIgnite = useRef(ignite);
+  useEffect(() => {
+    if (prevIgnite.current === ignite) return;
+    prevIgnite.current = ignite;
+    if (ignite == null || prefersReducedMotion()) return;
+    setIgnitedNow(true);
+    const timer = window.setTimeout(() => setIgnitedNow(false), 1100);
+    return () => window.clearTimeout(timer);
+  }, [ignite]);
   // Пустой билд не показываем вовсе: ряд из пяти пустых точек — это шум, а не информация.
   if (cards.length === 0) return null;
   const empty = Math.max(0, slots - cards.filter((card) => !card.held).length);
   return (
     <div className="build-rail" data-testid={testId} aria-label={t("camp.tactics")}>
-      {cards.map((card) => {
+      {cards.map((card, index) => {
         const item = itemDef(card.id);
         const kind = item ? "item" : isTacticId(card.id) ? "tactic" : "action";
         const label = t(`${kind}.${card.id}` as MessageKey);
         const slug = itemArtSlug(card.id);
+        const igniteThis = ignitedNow && card.active;
         return (
           <button
             type="button"
             key={card.id}
-            className={`build-rail__card build-rail__card--${kind}${fresh.has(card.id) ? " build-rail__card--fresh" : ""}`}
+            style={igniteThis ? ({ ["--ignite-i" as string]: index } as CSSProperties) : undefined}
+            className={`build-rail__card build-rail__card--${kind}${fresh.has(card.id) ? " build-rail__card--fresh" : ""}${igniteThis ? " build-rail__card--ignite" : ""}`}
             data-card-id={card.id}
             data-card-tier={item ? itemTier(card.rarity) : undefined}
             data-active={card.active}

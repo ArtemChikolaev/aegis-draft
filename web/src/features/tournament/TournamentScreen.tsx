@@ -670,6 +670,9 @@ export function TournamentScreen() {
             )}
             slots={TACTIC_SLOTS}
             testId="stage-build-rail"
+            /* Вспышка «вот что участвует» на старте симуляции (остаток R14.6): ключ взводится при
+               уходе со стадии field. Resume посреди турнира монтируется уже с ключом — не мигает. */
+            ignite={stage === "field" ? null : "sim"}
             activeHeroes={snapshot.heroes}
             cardRarity={economyView?.cardRarity ?? {}}
             contributionsOf={(cardId) => itemEval.sources.filter((source) => source.itemId === cardId)}
