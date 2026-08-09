@@ -295,10 +295,12 @@ describe("RunEngine формы игроков", () => {
     // Личность не задвоилась в активном составе.
     const activeIds = engine.rosterView.flatMap((s) => s.candidate ? [s.candidate.player.accountId] : []);
     expect(activeIds.filter((id) => id === active.player.accountId)).toHaveLength(1);
-    // Старая форма ушла на скамейку, и скамейка держит одну форму на человека.
+    // Старая форма ИСЧЕЗАЕТ, а не копится в резерве: рынок выставляет свою форму только сильнее
+    // текущей, поэтому откат к слабой версии того же человека — не выбор, а мусор в инвентаре
+    // (плейтест 2026-08-05). Вернуть её нельзя ни через резерв, ни через рынок.
     const bench = engine.reservePlayers.filter((c) => c.player.accountId === active.player.accountId);
-    expect(bench).toHaveLength(1);
-    expect(bench[0].eventId).toBe(active.eventId);
+    expect(bench).toHaveLength(0);
+    expect(engine.canSwapReservePlayer(slotIndex, active.player.accountId)).toBe(false);
     // Та же форма повторно не продаётся.
     expect(() => engine.replacePlayer(slotIndex, alternate)).toThrow(/форма/i);
   });

@@ -27,6 +27,10 @@ export function MarketPanel(props: CampMarketView) {
   // играет только при монтировании, поэтому без смены ключа перероленные карточки подменялись бы
   // молча. Индекс сквозной по всем трём группам — это ОДНА раздача, а не три одновременных.
   const deal = `${camp.campStageIndex}:${camp.marketSerial}`;
+  // Улучшения качества реролл НЕ трогает: это те же пять активных героев забега. Ключ у них
+  // только по лагерю — с `marketSerial` они перемонтировались на каждый реролл и переигрывали
+  // раздачу, из-за чего неизменные карточки мигали (плейтест 2026-08-05).
+  const campDeal = `${camp.campStageIndex}`;
 
   // `enter-fade` (только прозрачность), а НЕ `enter` (fade-rise): подъём на 8px двигает всю
   // секцию, пока её содержимое уже кликабельно, — это и мис-клик, и гонка для любого замера
@@ -281,7 +285,7 @@ export function MarketPanel(props: CampMarketView) {
                 return (
                   <Dealt
                     className="camp-dealt"
-                    key={`${deal}:rarity-${heroId}`}
+                    key={`${campDeal}:rarity-${heroId}`}
                     index={playerOffers.length + heroOffers.length + rarityIndex}
                   >
                   <div

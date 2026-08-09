@@ -294,18 +294,24 @@ export class RunEngine {
   }
 
   /** Купить/применить замену: снятый игрок уходит на скамейку (в конец списка).
-   *  Апгрейд формы того же человека — та же операция: старая форма тоже уезжает на скамейку, а не
-   *  исчезает (второго правила рядом с существующим резервом не заводим). */
+   *
+   *  Исключение — апгрейд формы ТОГО ЖЕ человека: старая форма не уезжает в резерв, а исчезает
+   *  совсем. Рынок выставляет свою форму, только если она сильнее текущей (`stockedForms`), поэтому
+   *  вернуться к слабой версии того же человека — не выбор, а мусор в инвентаре: у Chemistry и Hero
+   *  Synergy тот же accountId, отличается лишь Base, и слабая форма доказуемо хуже во всём
+   *  (плейтест 2026-08-05). Прежнее правило клало её на скамейку — резерв копил бесполезные карточки
+   *  одних и тех же людей. */
   replacePlayer(slotIndex: number, incoming: Candidate): void {
     this.assertPlayerReplacement(slotIndex, incoming);
     const outgoing = this.roster[slotIndex]!;
+    const formUpgrade = outgoing.player.accountId === incoming.player.accountId;
     this.roster[slotIndex] = incoming;
-    // Скамейка держит не больше ОДНОЙ альтернативной формы на человека: иначе после двух апгрейдов
-    // подряд там оказались бы две формы X, а резерв адресуется по accountId (в т.ч. в логе
-    // действий) — выбор «какую именно» стал бы недетерминированным.
+    // Скамейка держит не больше ОДНОЙ формы на человека: резерв адресуется по accountId (в т.ч. в
+    // логе действий), и выбор «какую именно» иначе стал бы недетерминированным. Апгрейд формы
+    // просто ничего не кладёт обратно.
     this.benchPlayers = this.benchPlayers
       .filter((c) => c.player.accountId !== outgoing.player.accountId)
-      .concat(outgoing);
+      .concat(formUpgrade ? [] : [outgoing]);
     this.usedPlayers.add(incoming.player.accountId);
     this.seenSnapshots.add(snapshotKey(incoming));
     this.manual = this.manualAfterSwap(outgoing, incoming);

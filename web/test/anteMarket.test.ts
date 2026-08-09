@@ -306,11 +306,33 @@ describe("Form Upgrade у роли с двумя слотами", () => {
     // ...и золото списано ровно один раз.
     expect(economy.gold).toBe(goldBefore - 1);
 
-    // Старая форма на скамейке: вернуть её можно в СВОЙ слот и нельзя во второй той же роли.
-    const benchAccountId = engine.reservePlayers.at(-1)!.player.accountId;
-    const other = supportSlots.find((index) => index !== found!.slotIndex)!;
-    expect(engine.canSwapReservePlayer(found.slotIndex, benchAccountId)).toBe(true);
-    expect(engine.canSwapReservePlayer(other, benchAccountId)).toBe(false);
+    // Старая форма исчезает, а не копится в резерве: рынок выставляет свою форму только сильнее
+    // текущей, поэтому вернуться к слабой версии того же человека — не выбор (плейтест 2026-08-05).
+    const upgradedAccountId = found.incoming.player.accountId;
+    expect(engine.reservePlayers.map((c) => c.player.accountId)).not.toContain(upgradedAccountId);
+    expect(engine.canSwapReservePlayer(found.slotIndex, upgradedAccountId)).toBe(false);
+  });
+
+  // Замена на ДРУГОГО человека по-прежнему кладёт снятого в резерв, и вернуть его можно только в
+  // свой слот — иначе один человек занял бы два слота одной роли.
+  it("замена на другого человека кладёт снятого в резерв, и он возвращается только в свой слот", () => {
+    const engine = new RunEngine(data, defaultRunConfig, "reserve-cross-person");
+    runToEnd(engine);
+    const supportSlots = engine.rosterView.flatMap((slot, index) => slot.role === "support" ? [index] : []);
+    expect(supportSlots).toHaveLength(2);
+    const slotIndex = supportSlots[0];
+    const active = engine.rosterView[slotIndex].candidate!;
+    const other = engine.marketPlayerCandidates.find((c) =>
+      c.player.role === "support" && c.player.accountId !== active.player.accountId);
+    expect(other).toBeDefined();
+
+    engine.replacePlayer(slotIndex, other!);
+    const benchAccountId = active.player.accountId;
+    expect(engine.reservePlayers.map((c) => c.player.accountId)).toContain(benchAccountId);
+    expect(engine.canSwapReservePlayer(slotIndex, benchAccountId)).toBe(true);
+    // Роль запасного обязана совпадать со слотом: support не возвращается в мид.
+    const mid = engine.rosterView.findIndex((slot) => slot.role === "mid");
+    expect(engine.canSwapReservePlayer(mid, benchAccountId)).toBe(false);
   });
 
   it("своя форма не сильнее текущей на рынок не попадает", () => {
