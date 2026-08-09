@@ -342,18 +342,11 @@
       "winrate": 0.5
     }
   },
-  "144100": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "15": {
     "last_5y": {
-      "successScore": 50.82,
-      "games": 370,
-      "winrate": 0.6
+      "successScore": 51.14,
+      "games": 368,
+      "winrate": 0.6033
     },
     "valve_legacy": {
       "successScore": 58.06,
@@ -375,13 +368,6 @@
       "winrate": 0.3333
     }
   },
-  "1746869": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "1836806": {
     "valve_legacy": {
       "successScore": 48.31,
@@ -399,13 +385,6 @@
       "successScore": 54.52,
       "games": 305,
       "winrate": 0.5934
-    }
-  },
-  "1840636": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
     }
   },
   "1846548": {
@@ -591,13 +570,6 @@
       "successScore": 31.82,
       "games": 12,
       "winrate": 0.4167
-    }
-  },
-  "2668269": {
-    "last_5y": {
-      "successScore": 40,
-      "games": 4,
-      "winrate": 0.75
     }
   },
   "2672298": {
@@ -813,9 +785,9 @@
       "winrate": 0.4231
     },
     "last_5y": {
-      "successScore": 36.74,
-      "games": 218,
-      "winrate": 0.4587
+      "successScore": 36.93,
+      "games": 215,
+      "winrate": 0.4605
     },
     "valve_legacy": {
       "successScore": 43.83,
@@ -835,9 +807,9 @@
       "winrate": 0.2
     },
     "last_5y": {
-      "successScore": 33.48,
-      "games": 13,
-      "winrate": 0.4615
+      "successScore": 25.79,
+      "games": 9,
+      "winrate": 0.2222
     }
   },
   "5026801": {
@@ -889,13 +861,6 @@
       "winrate": 0.3333
     }
   },
-  "5266473": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "5327206": {
     "valve_legacy": {
       "successScore": 38.89,
@@ -925,20 +890,6 @@
       "successScore": 29.47,
       "games": 28,
       "winrate": 0.3929
-    }
-  },
-  "5897445": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "5945105": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
     }
   },
   "6": {
@@ -976,9 +927,9 @@
   },
   "6209804": {
     "last_5y": {
-      "successScore": 38.15,
-      "games": 103,
-      "winrate": 0.4175
+      "successScore": 37.8,
+      "games": 100,
+      "winrate": 0.41
     },
     "valve_legacy": {
       "successScore": 39.58,
@@ -1021,13 +972,6 @@
       "winrate": 0.375
     }
   },
-  "6490995": {
-    "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
-      "winrate": 0.6667
-    }
-  },
   "6666989": {
     "valve_legacy": {
       "successScore": 37.04,
@@ -1057,32 +1001,11 @@
       "winrate": 0.2439
     }
   },
-  "6794437": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "680683": {
     "valve_legacy": {
       "successScore": 30,
       "games": 4,
       "winrate": 0.25
-    }
-  },
-  "6850910": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "6908669": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
     }
   },
   "7": {
@@ -1164,25 +1087,11 @@
       "winrate": 0.5753
     }
   },
-  "7266995": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "7298091": {
     "valve_legacy": {
       "successScore": 43.75,
       "games": 6,
       "winrate": 0.3333
-    }
-  },
-  "7300277": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
     }
   },
   "7390454": {
@@ -1238,13 +1147,6 @@
       "successScore": 50,
       "games": 86,
       "winrate": 0.5
-    }
-  },
-  "7438040": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
     }
   },
   "7441136": {
@@ -1326,34 +1228,6 @@
       "winrate": 0
     }
   },
-  "7819054": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8047718": {
-    "last_5y": {
-      "successScore": 38.18,
-      "games": 1,
-      "winrate": 1
-    }
-  },
-  "8112124": {
-    "last_5y": {
-      "successScore": 41.18,
-      "games": 7,
-      "winrate": 0.7143
-    }
-  },
-  "8113549": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
   "8126892": {
     "last_5y": {
       "successScore": 36.52,
@@ -1387,9 +1261,9 @@
   },
   "8204512": {
     "last_5y": {
-      "successScore": 42.67,
-      "games": 29,
-      "winrate": 0.4828
+      "successScore": 40.84,
+      "games": 27,
+      "winrate": 0.4444
     },
     "valve_legacy": {
       "successScore": 40.74,
@@ -1416,13 +1290,6 @@
       "winrate": 0.4634
     }
   },
-  "8223327": {
-    "last_5y": {
-      "successScore": 38.18,
-      "games": 1,
-      "winrate": 1
-    }
-  },
   "8244493": {
     "last_5y": {
       "successScore": 32.56,
@@ -1433,13 +1300,6 @@
       "successScore": 30.56,
       "games": 26,
       "winrate": 0.2308
-    }
-  },
-  "8245323": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
     }
   },
   "824543": {
@@ -1548,13 +1408,6 @@
       "winrate": 0.4167
     }
   },
-  "8261397": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
   "8261500": {
     "last_1y": {
       "successScore": 37.19,
@@ -1591,13 +1444,6 @@
       "winrate": 0.5455
     }
   },
-  "8263841": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "8291895": {
     "last_1y": {
       "successScore": 40.9,
@@ -1620,20 +1466,6 @@
       "winrate": 0.5882
     }
   },
-  "8307472": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8309219": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
   "8310936": {
     "valve_legacy": {
       "successScore": 45.45,
@@ -1641,88 +1473,11 @@
       "winrate": 0.4348
     }
   },
-  "8318683": {
-    "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
-      "winrate": 0.6667
-    }
-  },
-  "8335032": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8344223": {
-    "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
-      "winrate": 0.6667
-    }
-  },
-  "8344439": {
-    "last_5y": {
-      "successScore": 38.18,
-      "games": 1,
-      "winrate": 1
-    }
-  },
-  "8344559": {
-    "last_5y": {
-      "successScore": 38.18,
-      "games": 1,
-      "winrate": 1
-    }
-  },
-  "8344922": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8352473": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8359896": {
-    "last_5y": {
-      "successScore": 40,
-      "games": 4,
-      "winrate": 0.75
-    }
-  },
   "8360138": {
     "valve_legacy": {
       "successScore": 45.45,
       "games": 23,
       "winrate": 0.4348
-    }
-  },
-  "8360733": {
-    "last_5y": {
-      "successScore": 38.18,
-      "games": 1,
-      "winrate": 1
-    }
-  },
-  "8360860": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8374959": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
     }
   },
   "8375259": {
@@ -1737,34 +1492,6 @@
       "winrate": 0.375
     }
   },
-  "8375518": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8375883": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8376016": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8376282": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
   "8376696": {
     "last_2y": {
       "successScore": 21.87,
@@ -1775,181 +1502,6 @@
       "successScore": 21.87,
       "games": 22,
       "winrate": 0.2273
-    }
-  },
-  "8421326": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8421850": {
-    "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
-      "winrate": 0.6667
-    }
-  },
-  "8430642": {
-    "last_5y": {
-      "successScore": 40,
-      "games": 4,
-      "winrate": 0.75
-    }
-  },
-  "8444847": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8449573": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8463268": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8463436": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8469775": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8482520": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8488976": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8494950": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8495198": {
-    "last_5y": {
-      "successScore": 38.18,
-      "games": 1,
-      "winrate": 1
-    }
-  },
-  "8496013": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8496276": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8496575": {
-    "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
-      "winrate": 0.6667
-    }
-  },
-  "8496581": {
-    "last_5y": {
-      "successScore": 37.69,
-      "games": 3,
-      "winrate": 0.6667
-    }
-  },
-  "8496587": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8496590": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8496595": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8496602": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8496604": {
-    "last_5y": {
-      "successScore": 40,
-      "games": 4,
-      "winrate": 0.75
-    }
-  },
-  "8496605": {
-    "last_5y": {
-      "successScore": 45.29,
-      "games": 7,
-      "winrate": 0.8571
-    }
-  },
-  "8497384": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
-    }
-  },
-  "8497700": {
-    "last_5y": {
-      "successScore": 35,
-      "games": 2,
-      "winrate": 0.5
-    }
-  },
-  "8500925": {
-    "last_5y": {
-      "successScore": 31.82,
-      "games": 1,
-      "winrate": 0
     }
   },
   "8500965": {

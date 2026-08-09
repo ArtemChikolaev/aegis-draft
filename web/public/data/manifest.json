@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "ratingModelVersion": "v1.13.0",
-  "builtAt": "2026-08-08T06:58:43Z",
-  "dataHash": "sha256:5afc9a9ebd1116c4ac96bc85251538c91c074cccbcafb16d9af8dc9192d63e78",
+  "builtAt": "2026-08-09T07:01:30Z",
+  "dataHash": "sha256:f3c3fa2bf602ae2e8449deec32a45cb2491216f9f6786dbfbe06a705be00fe3c",
   "source": {
     "opendota": "OpenDota API — https://www.opendota.com",
     "liquipedia": "placements/призовые/ростеры — deferred (нет доступа Liquipedia)"
@@ -17,6 +17,6 @@
     "events": 89,
     "heroes": 127,
     "packs": 1208,
-    "players": 989
+    "players": 744
   }
 }
