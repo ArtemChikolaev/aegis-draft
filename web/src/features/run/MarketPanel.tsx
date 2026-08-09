@@ -1,7 +1,7 @@
 // Раздел «Рынок» Буткемпа: пак игроков, пак hero re-pick и улучшение качества героев.
 // Вынесен из `CampScreen` (R14.2) без изменения поведения: вся арифметика по-прежнему считается
 // на экране и приходит сюда готовой — панель только рисует и зовёт переданные действия.
-import { useRef, useState, type ReactElement, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { playerOfferAffordable } from "../../game/anteEconomy.ts";
 import { upgradeCost } from "../../game/heroRarity.ts";
 import { nextRarity, type Rarity } from "../../game/rarity.ts";
@@ -14,20 +14,17 @@ import { Button, Dealt, prefersReducedMotion } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { CampMarketView } from "./campMarketView.ts";
 
-/** Слепок купленной карточки для exit-анимации (R15.1): содержимое заморожено в момент клика,
- *  чтобы уходящая карточка не пересчитывалась по уже изменившемуся состоянию. */
+/** Слепок купленной карточки (R15.1): содержимое заморожено в момент клика, чтобы уходящая
+ *  карточка не пересчитывалась по уже изменившемуся состоянию. Доиграв exit, слепок становится
+ *  дырой (`settled`) и держит место в раздаче — соседние карточки не переезжают. */
 interface MarketGhost {
   id: string;
-  kind: "player" | "hero";
-  /** Позиция в СВОЁМ паке — для вставки на прежнее место сетки. */
-  slotIndex: number;
-  /** Сквозной индекс раздачи: тот же key/index, что был у карточки, чтобы узел не перемонтировался. */
-  dealIndex: number;
   className: string;
   attrs: Record<string, string>;
   summary: ReactNode;
   delta: number;
   costLabel: string;
+  settled?: boolean;
 }
 
 export function MarketPanel(props: CampMarketView) {
@@ -48,57 +45,61 @@ export function MarketPanel(props: CampMarketView) {
   // только по лагерю — с `marketSerial` они перемонтировались на каждый реролл и переигрывали
   // раздачу, из-за чего неизменные карточки мигали (плейтест 2026-08-05).
   const campDeal = `${camp.campStageIndex}`;
-  // Exit покупки (R15.1). Движок зовётся СРАЗУ (золото и радар вспыхивают в момент клика, e2e
-  // читают состояние синхронно), а уход рисует ghost: слепок содержимого карточки, вставленный на
-  // её место до конца короткой анимации. `consumed`-офферы отфильтрованы движком, и протаскивать
-  // их обратно ради косметики нельзя (решение R13.3 про SOLD-заглушку) — поэтому слепок, а не
-  // повторный рендер оффера: пересчёт по уже изменившемуся состоянию менял бы текст на глазах.
+  // Exit покупки (R15.1) + дыра на месте (плейтест 2026-08-09). Движок зовётся СРАЗУ (золото и
+  // радар вспыхивают в момент клика, e2e читают состояние синхронно), уход рисует ghost — слепок
+  // содержимого карточки, замороженный в момент клика: пересчёт по уже изменившемуся состоянию
+  // менял бы текст на глазах. Доиграв exit, ghost НЕ освобождает ячейку, а остаётся дырой до
+  // конца раздачи: пересборка сетки сдвигала соседние карточки, и сравнение позиций ломалось.
+  // Порядок ячеек фиксируется на первом рендере раздачи (dealOrder) — купленное место стабильно.
   const [ghosts, setGhosts] = useState<readonly MarketGhost[]>([]);
-  // Реролл/новый лагерь пересобирают раздачу — недоигранные ghost к ней не относятся.
+  // Реролл/новый лагерь пересобирают раздачу — ghost'ы и дыры к ней не относятся.
   const lastDeal = useRef(deal);
   if (lastDeal.current !== deal) {
     lastDeal.current = deal;
     if (ghosts.length > 0) setGhosts([]);
   }
-  const removeGhost = (id: string) => setGhosts((prev) => prev.filter((g) => g.id !== id));
+  const dealOrder = useRef<{ key: string; players: readonly string[]; heroes: readonly string[] } | null>(null);
+  if (dealOrder.current?.key !== deal) {
+    dealOrder.current = { key: deal, players: playerOffers.map((o) => o.id), heroes: heroOffers.map((o) => o.id) };
+  }
+  const order = dealOrder.current;
+  const settleGhost = (id: string) =>
+    setGhosts((prev) => prev.map((g) => (g.id === id ? { ...g, settled: true } : g)));
   const buyWithGhost = (ghost: MarketGhost) => {
-    // reduced-motion: глобальное правило гасит анимацию, ghost был бы вечным — не заводим.
-    if (!prefersReducedMotion()) {
-      setGhosts((prev) => [...prev, ghost]);
-      // Страховка: в скрытой вкладке CSS-анимации на паузе и animationend не приходит.
-      // Ghost чисто визуальный, повторное удаление — no-op.
-      window.setTimeout(() => removeGhost(ghost.id), 600);
-    }
+    // reduced-motion: анимация погашена глобально — дыра появляется сразу, без exit-слепка.
+    setGhosts((prev) => [...prev, { ...ghost, settled: prefersReducedMotion() }]);
+    // Страховка: в скрытой вкладке CSS-анимации на паузе и animationend не приходит.
+    window.setTimeout(() => settleGhost(ghost.id), 600);
     buyMarket(ghost.id);
   };
-  const ghostCard = (ghost: MarketGhost) => (
-    <Dealt className="camp-dealt" key={`${deal}:${ghost.id}`} index={ghost.dealIndex}>
-      <div
-        className={ghost.className}
-        {...ghost.attrs}
-        data-leaving
-        onAnimationEnd={(e) => {
-          // Фильтр по имени обязателен: с карточки всплывают и card-foil, и ovr-shine.
-          if (e.animationName === "camp-card-exit") removeGhost(ghost.id);
-        }}
-      >
-        {ghost.summary}
-        <div className="camp-offer__deltas">
-          <OfferDelta delta={ghost.delta} />
+  const ghostCard = (ghost: MarketGhost, dealIndex: number) => (
+    <Dealt className="camp-dealt" key={`${deal}:${ghost.id}`} index={dealIndex}>
+      {ghost.settled ? (
+        // Дыра: покупка оставляет пустое место до конца раздачи, соседи не переезжают.
+        <div className="camp-pack-card camp-pack-card--sold" aria-hidden="true">
+          <span>{t("camp.sold")}</span>
         </div>
-        <div className="camp-pack-card__buy">
-          <span className="camp-offer__cost">{ghost.costLabel}</span>
+      ) : (
+        <div
+          className={ghost.className}
+          {...ghost.attrs}
+          data-leaving
+          onAnimationEnd={(e) => {
+            // Фильтр по имени обязателен: с карточки всплывают и card-foil, и ovr-shine.
+            if (e.animationName === "camp-card-exit") settleGhost(ghost.id);
+          }}
+        >
+          {ghost.summary}
+          <div className="camp-offer__deltas">
+            <OfferDelta delta={ghost.delta} />
+          </div>
+          <div className="camp-pack-card__buy">
+            <span className="camp-offer__cost">{ghost.costLabel}</span>
+          </div>
         </div>
-      </div>
+      )}
     </Dealt>
   );
-  /** Вставить ghost-карточки пака на их прежние позиции. */
-  const withGhosts = (cards: ReactElement[], kind: MarketGhost["kind"]) => {
-    for (const ghost of ghosts.filter((g) => g.kind === kind)) {
-      cards.splice(Math.min(ghost.slotIndex, cards.length), 0, ghostCard(ghost));
-    }
-    return cards;
-  };
 
   // `enter-fade` (только прозрачность), а НЕ `enter` (fade-rise): подъём на 8px двигает всю
   // секцию, пока её содержимое уже кликабельно, — это и мис-клик, и гонка для любого замера
@@ -122,9 +123,14 @@ export function MarketPanel(props: CampMarketView) {
           </Button>
         </div>
         <h4 className="camp__market-group-title">{t("camp.marketPlayers")}</h4>
-        {/* Пак-рулетка из 5 игроков: разное качество, ловушки допустимы. */}
+        {/* Пак-рулетка из 5 игроков: разное качество, ловушки допустимы. Ячейки идут в порядке
+            раздачи (dealOrder): купленная превращается в ghost → дыру, а не освобождает место. */}
         <div className="camp__pack" data-testid="camp-pack">
-          {withGhosts(playerOffers.map((offer, dealIndex) => {
+          {order.players.map((offerId, dealIndex) => {
+            const ghost = ghosts.find((g) => g.id === offerId);
+            if (ghost) return ghostCard(ghost, dealIndex);
+            const offer = playerOffers.find((o) => o.id === offerId);
+            if (!offer) return null;
             const incoming = candidates.find((c) => candidateMatchesRef(c, offer.playerSwap!.incoming));
             if (!incoming) return null;
             const outgoing = snapshot.roster[offer.playerSwap!.slotIndex]?.candidate;
@@ -147,9 +153,6 @@ export function MarketPanel(props: CampMarketView) {
             const costLabel = freeSwap ? t("camp.free") : t("camp.cost", { cost: offer.cost });
             const buy = () => buyWithGhost({
               id: offer.id,
-              kind: "player",
-              slotIndex: dealIndex,
-              dealIndex,
               className: "camp-pack-card camp-inspectable-card",
               attrs: { "data-offer-kind": "player" },
               summary,
@@ -199,12 +202,17 @@ export function MarketPanel(props: CampMarketView) {
               </div>
               </Dealt>
             );
-          }).filter((card): card is ReactElement => card != null), "player")}
+          })}
         </div>
         <h4 className="camp__market-group-title">{t("camp.marketHeroes")}</h4>
-        {/* Второй полноценный пак: 5 разных hero re-pick с полным score + rarity preview. */}
+        {/* Второй полноценный пак: 5 разных hero re-pick с полным score + rarity preview.
+            Ячейки — в порядке раздачи, купленная остаётся дырой (см. пак игроков выше). */}
         <div className="camp__pack" data-testid="camp-hero-pack">
-          {withGhosts(heroOffers.map((offer, heroIndex) => {
+          {order.heroes.map((offerId, heroIndex) => {
+            const ghost = ghosts.find((g) => g.id === offerId);
+            if (ghost) return ghostCard(ghost, order.players.length + heroIndex);
+            const offer = heroOffers.find((o) => o.id === offerId);
+            if (!offer) return null;
             const affordable = camp.unlimitedGold || offer.cost <= camp.gold;
             // Срез 3b: редкость входящего героя детерминирована по seed+heroId+stage — тот же
             // ролл, что применит покупка. Полное превью ниже пересобирает и редкость, и
@@ -259,9 +267,6 @@ export function MarketPanel(props: CampMarketView) {
             const cardHeroId = upgradeHeroId ?? offer.heroSwap!.incomingHeroId;
             const buy = () => buyWithGhost({
               id: offer.id,
-              kind: "hero",
-              slotIndex: heroIndex,
-              dealIndex: playerOffers.length + heroIndex,
               className: "camp-pack-card camp-pack-card--hero camp-inspectable-card",
               attrs: {
                 "data-offer-kind": "hero",
@@ -274,7 +279,7 @@ export function MarketPanel(props: CampMarketView) {
               costLabel: t("camp.cost", { cost: offer.cost }),
             });
             return (
-              <Dealt className="camp-dealt" key={`${deal}:${offer.id}`} index={playerOffers.length + heroIndex}>
+              <Dealt className="camp-dealt" key={`${deal}:${offer.id}`} index={order.players.length + heroIndex}>
               <div
                 className="camp-pack-card camp-pack-card--hero camp-inspectable-card"
                 data-offer-kind="hero"
@@ -341,7 +346,7 @@ export function MarketPanel(props: CampMarketView) {
               </div>
               </Dealt>
             );
-          }), "hero")}
+          })}
         </div>
 
         {camp.rarityUpgradesEnabled && (

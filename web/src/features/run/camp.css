@@ -299,7 +299,7 @@
 
 /* Exit покупки (R15.1): ghost-слепок купленной карточки приподнимается и гаснет, движок при этом
    уже сработал — золото и радар вспыхнули в момент клика. Только transform/opacity: сетка паков
-   не перекладывается. Гасится глобальным prefers-reduced-motion (ghost при нём и не создаётся). */
+   не перекладывается. Гасится глобальным prefers-reduced-motion (слепок сразу становится дырой). */
 @keyframes camp-card-exit {
   to { opacity: 0; transform: translateY(-10px) scale(.96); }
 }
@@ -307,11 +307,29 @@
   animation: camp-card-exit 200ms var(--ease-out) forwards;
   pointer-events: none;
 }
+/* Дыра на месте покупки (плейтест 2026-08-09): ячейка остаётся до конца раздачи, соседние
+   карточки не переезжают — позиции сравниваемых офферов стабильны. Высоту держит грид-ряд. */
+.camp-pack-card--sold {
+  display: grid;
+  place-items: center;
+  min-height: 120px;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  opacity: .55;
+  animation: fade-soft var(--motion-enter) var(--ease-out) both;
+}
 
-/* Секвенция «этап пройден» (R15.2): тёмное перекрытие с построчным объявлением выплат.
-   Темп церемониальный — стаггер строк переопределён с плотных 45ms на 120ms; сами значения
-   приходят готовыми, анимируется появление (никакого набега чисел). Вход/строки гасятся
-   глобальным prefers-reduced-motion вместе со всеми .enter. */
+/* Секвенция «этап пройден» (R15.2): НЕПРОЗРАЧНЫЙ интерстициал между турниром и лагерем.
+   Плейтест 2026-08-09: полупрозрачное перекрытие показывало под собой лагерь с тем же
+   заголовком «Stage N cleared» — дубль обесценивал момент. Сплошной фон превращает секвенцию
+   в собственный короткий экран; лагерь появляется после неё. Темп церемониальный — стаггер
+   строк переопределён с плотных 45ms на 120ms; значения приходят готовыми, анимируется
+   появление (никакого набега чисел). Гасится prefers-reduced-motion вместе со всеми .enter. */
 .camp-celebration {
   --motion-enter-stagger: 120ms;
 
@@ -321,19 +339,20 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: color-mix(in srgb, var(--surface-invert) 84%, transparent);
-  backdrop-filter: blur(6px);
+  background:
+    radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--brand-glow) 16%, transparent), transparent 58%),
+    var(--bg);
   cursor: pointer;
   animation: fade-soft var(--motion-enter) var(--ease-out) both;
 }
 .camp-celebration__panel { max-width: 420px; text-align: center; }
 .camp-celebration__title {
   margin: 0;
-  color: var(--on-invert);
+  color: var(--text);
   font-size: clamp(28px, 6vw, 44px);
   line-height: 1.05;
 }
-.camp-celebration__place { margin: 12px 0 0; color: var(--muted-invert); font-weight: 700; }
+.camp-celebration__place { margin: 12px 0 0; color: var(--muted); font-weight: 700; }
 .camp-celebration__payout {
   display: grid;
   gap: 8px;
@@ -345,7 +364,7 @@
   display: flex;
   justify-content: center;
   gap: 8px;
-  color: var(--muted-invert);
+  color: var(--muted);
 }
 .camp-celebration__payout b { color: var(--gold); font-variant-numeric: tabular-nums; }
 .camp-celebration__continue { margin-top: 24px; }

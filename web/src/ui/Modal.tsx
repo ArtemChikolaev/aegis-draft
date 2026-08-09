@@ -8,8 +8,10 @@ const DISMISS_PX = 88;
 const DISMISS_VELOCITY = 0.5; // px/ms
 const ENTER_MS = 560;
 const EXIT_MS = 640;
-const CARD_ENTER_MS = 220;
-const CARD_EXIT_MS = 180;
+// Card-оверлей открывают на каждой карточке — вход обязан быть щелчком, а не выездом
+// (плейтест 2026-08-09: 220ms + двойной rAF читались как «подлагивает»).
+const CARD_ENTER_MS = 140;
+const CARD_EXIT_MS = 160;
 
 type ModalClose = () => void;
 type ModalChildren = ReactNode | ((api: { close: ModalClose }) => ReactNode);
@@ -269,7 +271,7 @@ export function Modal({
 
   const offsetY = closing || dragging || dragY > 0
     ? dragY
-    : entered ? 0 : isCard ? 18 : Math.min(window.innerHeight * 0.42, 340);
+    : entered ? 0 : isCard ? 10 : Math.min(window.innerHeight * 0.42, 340);
 
   const duration = isCard
     ? closing ? CARD_EXIT_MS : CARD_ENTER_MS

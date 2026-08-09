@@ -20,7 +20,10 @@
   backdrop-filter: blur(0px);
   pointer-events: none;
 }
-.cardBackdrop { transition-duration: .22s; }
+/* Card-оверлей: блюр НЕ анимируем — transition у backdrop-filter на весь вьюпорт дорогой
+   (GPU пересчитывает кадр целиком) и смазывал вход панели, читаясь как лаг (плейтест
+   2026-08-09). Финальный блюр стоит с первого кадра, анимируется только затемнение. */
+.cardBackdrop { backdrop-filter: blur(7px); transition: background .16s ease; }
 
 .panel {
   position: relative;
