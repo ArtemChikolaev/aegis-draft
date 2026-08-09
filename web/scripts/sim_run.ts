@@ -16,6 +16,7 @@
 //   npm run sim -- 100 --dynasty       забег продолжается в Династию (R6.3): глубина продолжения
 //   npm run sim -- 150 --dynasty --no-sinks   то же без поздних синков (T5.9), для A/B на общих сидах
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
+//   NOEDITIONS=1 npm run sim -- 400    без зарядов Editions (эквивалент b1.26) — для A/B
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
 import { ACT_LENGTH, AnteRunEngine, buildSeason, grantsDynastyTitle, SEASON, seasonStage, type SeasonModel } from "../src/game/anteRun.ts";
@@ -42,6 +43,10 @@ const config: RunConfig = {
   draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
 };
 const useBoss = !process.env.NOBOSS;
+// A/B-переключатель Editions (R13.5): NOEDITIONS=1 выключает НАЧИСЛЕНИЕ и УЧЁТ зарядов — это
+// поведенческий эквивалент b1.26 на тех же сидах (дроп-ролл идёт отдельным потоком и карточные
+// награды не сдвигает, поэтому выключать сам дроп не нужно).
+const useEditions = !process.env.NOEDITIONS;
 /** Поздние синки (T5.9). Выключаются флагом, чтобы их эффект мерился НА ТЕХ ЖЕ сидах и агентах:
  *  разница профиля тогда принадлежит синкам, а не выборке (методика R6.4). */
 const useSinks = !process.argv.includes("--no-sinks");
@@ -58,7 +63,7 @@ function tacticsOf(engine: RunEngine, economy: RunEconomy): TacticEvaluation | n
     engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
   );
   // Заряды Charged-карт (R13.5) — как в игре, иначе симулятор мерил бы незаряженный билд.
-  return evaluateTactics(economy.equippedTactics, ctx, economy.cardCharges);
+  return evaluateTactics(economy.equippedTactics, ctx, useEditions ? economy.cardCharges : {});
 }
 
 /** Композиция слоёв — общая с игрой (game/runStrength.ts). Складывать их здесь «своей» суммой
@@ -108,7 +113,7 @@ function itemsOf(engine: RunEngine, economy: RunEconomy) {
   return evaluateItems(economy.equippedTactics, {
     activeHeroes: engine.heroes,
     cardRarity: economy.cardRarity,
-    cardCharges: economy.cardCharges,
+    cardCharges: useEditions ? economy.cardCharges : {},
   });
 }
 
@@ -541,7 +546,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     const campId = anteRun.state.index;
     // Заряды Charged-карт за пройденный этап (R13.5) — то же правило и те же sources, что в
     // runStore.openCampAfterStage; без этого симулятор мерил бы Editions как мёртвый дроп.
-    economy.accrueCharges(activeCardIds(tacticsOf(engine, economy), itemsOf(engine, economy)));
+    if (useEditions) economy.accrueCharges(activeCardIds(tacticsOf(engine, economy), itemsOf(engine, economy)));
     economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1, season).target);
     // Титул Династии — по тому же правилу, что и в игре (общая grantsDynastyTitle): иначе
     // симулятор мерил бы Династию без её единственной награды.
@@ -772,7 +777,7 @@ const FINALE_CURVES: Array<{ name: string; actFinales: number[] }> = [
 
 console.log(
   `\nBalance sim (R10) — balanceConfigVersion=${BALANCE_CONFIG_VERSION}`
-  + `  bosses=${useBoss ? "on" : "off"}  seeds=${N}`,
+  + `  bosses=${useBoss ? "on" : "off"}  editions=${useEditions ? "on" : "off"}  seeds=${N}`,
 );
 
 if (compareFinales) {
