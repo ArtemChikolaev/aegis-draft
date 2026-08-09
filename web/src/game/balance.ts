@@ -11,6 +11,7 @@
 // экономика/условия забега. Тонкая калибровка — через `npm run sim` (web/scripts/sim_run.ts).
 import { SEASON, SEASON_TARGETS, SEASON_ACT_FINALES, ANTE_FIELD_STEP, ANTE_FIELD, ANTE_THREAT } from "./anteRun.ts";
 import { ECONOMY } from "./anteEconomy.ts";
+import { EDITION } from "./editions.ts";
 import { TACTICS, TACTIC_SLOTS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
 import { BOSSES } from "./bossConditions.ts";
@@ -185,8 +186,11 @@ import { HERO_FLOOR } from "./anteMarket.ts";
  *  который уже обслуживает Last Dance.
  *  b1.25.0 (2026-08-04): плейтест отменил R14.7 — оба пака снова дают по одной карте на каждый
  *  ролевой слот (5). Компактная сетка решает проблему размера без потери вариантов; Last Dance
- *  остаётся единственным осознанным способом сузить рынок и снова снимает исходные 2 карты. */
-export const BALANCE_CONFIG_VERSION = "b1.26.0";
+ *  остаётся единственным осознанным способом сузить рынок и снова снимает исходные 2 карты.
+ *  b1.27.0 (2026-08-09): Editions (R13.5) — карточная награда актов 3+ может прийти `Charged`
+ *  (+20% к эффекту за заряд, потолок 3; заряд за пройденный этап с выполненным условием,
+ *  поломка сжигает). Отдельный Rng-поток `:edition`, потоки `:card`/`:card-upgrade` не тронуты. */
+export const BALANCE_CONFIG_VERSION = "b1.27.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
@@ -207,6 +211,8 @@ export const BALANCE = {
     threat: ANTE_THREAT,
   },
   economy: ECONOMY,
+  /** Editions карточек (R13.5): Charged — заряды/бонус/дроп. */
+  editions: EDITION,
   tactics: TACTICS,
   tacticSlots: TACTIC_SLOTS,
   campActions: CAMP_ACTIONS,

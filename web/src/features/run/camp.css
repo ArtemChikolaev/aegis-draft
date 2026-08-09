@@ -369,6 +369,33 @@
 .camp-celebration__payout b { color: var(--gold); font-variant-numeric: tabular-nums; }
 .camp-celebration__continue { margin-top: 24px; }
 
+/* Edition (R13.5): бейдж и заряды. Цвет — токен --edition-charged; рамку карточки НЕ красим
+   (цвет рамки принадлежит качеству). */
+.edition-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--edition-charged) 55%, transparent);
+  border-radius: 999px;
+  color: var(--edition-charged);
+  background: color-mix(in srgb, var(--edition-charged) 12%, transparent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.edition-charges { color: var(--edition-charged); font-weight: 800; font-size: 12px; }
+.build-card-inspector__edition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 10px;
+}
+.build-card-inspector__edition small { flex-basis: 100%; color: var(--muted); }
+
 /* Вся offer-карточка — точка входа в увеличенный оверлей. Прозрачная кнопка лежит над обычным
    контентом; настоящие Buy/Swap/select/tag controls поднимаются выше неё и сохраняют своё действие. */
 .camp-inspectable-card {

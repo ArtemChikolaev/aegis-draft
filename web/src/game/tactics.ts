@@ -14,6 +14,7 @@ import type { Candidate } from "./packs.ts";
 import type { RosterSlot } from "./engine.ts";
 import { heroStatsForAssignment, pairChemistryBonus, playerHeroGames } from "./score.ts";
 import type { Summand, SummandModifiers } from "./anteEconomy.ts";
+import { chargeFactor } from "./editions.ts";
 
 export type TacticId =
   | "signatureSpecialists"
@@ -305,9 +306,20 @@ const EVALUATORS: Record<TacticId, (ctx: TacticContext) => TacticSource[]> = {
 /** Вклад экипированных тактик в слагаемые Team OVR. Чистая: те же вход ⇒ тот же выход.
  *  Порядок источников следует TACTIC_IDS, а не порядку экипировки, — иначе одинаковый билд
  *  давал бы разный список в UI в зависимости от того, что игрок взял раньше. */
-export function evaluateTactics(equipped: readonly string[], ctx: TacticContext): TacticEvaluation {
+export function evaluateTactics(
+  equipped: readonly string[],
+  ctx: TacticContext,
+  /** Заряды Charged-карт (R13.5): id → заряды. Третий параметр, а не поле контекста: контекст
+   *  строится из ростера (`buildTacticContext`) и о состоянии экономики знать не должен. */
+  cardCharges: Record<string, number> = {},
+): TacticEvaluation {
   const active = TACTIC_IDS.filter((id) => equipped.includes(id));
-  const sources = active.flatMap((id) => EVALUATORS[id](ctx));
+  const sources = active.flatMap((id) => EVALUATORS[id](ctx).map((source) => ({
+    ...source,
+    // Заряд усиливает вклад карты; числа на карточке и в разборе идут из этих же sources,
+    // поэтому UI масштабируется автоматически.
+    delta: source.delta * chargeFactor(cardCharges[id] ?? 0),
+  })));
   const modifiers = sources.reduce((acc, source) => {
     acc[source.summand] += source.delta;
     return acc;

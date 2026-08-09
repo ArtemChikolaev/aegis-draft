@@ -68,6 +68,25 @@
   border-style: dashed;
   background: transparent;
 }
+/* Заряды Charged-карты (R13.5): счётчик в углу мини-карты. Позиция — поверх, а не в потоке:
+   рейл плотный, и лишняя колонка ломала бы одинаковую ширину карточек. */
+.build-rail__card { position: relative; }
+.build-rail__charges {
+  position: absolute;
+  top: -6px;
+  right: -5px;
+  min-width: 13px;
+  height: 13px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--edition-charged);
+  color: var(--edition-charged-ink);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1;
+}
 
 /* На всегда-тёмной панели радара (`.on-invert-surface`) базовые токены поверхности читаются как
    светлые пятна. Ремапим их инвертными — по правилу design-language «никаких тема-селекторов в

@@ -29,7 +29,7 @@ import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/an
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../src/game/tactics.ts";
 import { rarityModifiers, upgradeCost } from "../src/game/heroRarity.ts";
 import type { Rarity } from "../src/game/rarity.ts";
-import { runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
+import { activeCardIds, runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
 import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
 import { BALANCE_CONFIG_VERSION } from "../src/game/balance.ts";
@@ -57,7 +57,8 @@ function tacticsOf(engine: RunEngine, economy: RunEconomy): TacticEvaluation | n
   const ctx = buildTacticContext(
     engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
   );
-  return evaluateTactics(economy.equippedTactics, ctx);
+  // Заряды Charged-карт (R13.5) — как в игре, иначе симулятор мерил бы незаряженный билд.
+  return evaluateTactics(economy.equippedTactics, ctx, economy.cardCharges);
 }
 
 /** Композиция слоёв — общая с игрой (game/runStrength.ts). Складывать их здесь «своей» суммой
@@ -107,6 +108,7 @@ function itemsOf(engine: RunEngine, economy: RunEconomy) {
   return evaluateItems(economy.equippedTactics, {
     activeHeroes: engine.heroes,
     cardRarity: economy.cardRarity,
+    cardCharges: economy.cardCharges,
   });
 }
 
@@ -537,6 +539,9 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     }
 
     const campId = anteRun.state.index;
+    // Заряды Charged-карт за пройденный этап (R13.5) — то же правило и те же sources, что в
+    // runStore.openCampAfterStage; без этого симулятор мерил бы Editions как мёртвый дроп.
+    economy.accrueCharges(activeCardIds(tacticsOf(engine, economy), itemsOf(engine, economy)));
     economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1, season).target);
     // Титул Династии — по тому же правилу, что и в игре (общая grantsDynastyTitle): иначе
     // симулятор мерил бы Династию без её единственной награды.

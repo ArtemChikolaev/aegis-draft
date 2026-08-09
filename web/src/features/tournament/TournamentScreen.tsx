@@ -575,6 +575,7 @@ export function TournamentScreen() {
   const itemEval = evaluateItems(economyView?.equippedTactics ?? [], {
     activeHeroes: snapshot.heroes,
     cardRarity: economyView?.cardRarity ?? {},
+    cardCharges: economyView?.cardCharges ?? {},
   });
   const power = powerBreakdown(powerLayers(effectiveScore.teamOvr + bossPenalty, {
     flat: itemEval.flat, additive: itemEval.additive, xMults: itemEval.xMults,
@@ -664,6 +665,8 @@ export function TournamentScreen() {
                 ...itemEval.sources.filter((source) => source.met).map((source) => source.itemId),
                 ...(tactics?.sources ?? []).map((source) => source.tacticId as string),
               ]),
+              economyView?.cardEditions ?? {},
+              economyView?.cardCharges ?? {},
             )}
             slots={TACTIC_SLOTS}
             testId="stage-build-rail"

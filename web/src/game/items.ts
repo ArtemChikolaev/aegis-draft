@@ -28,6 +28,7 @@ import {
 } from "./heroTags.ts";
 import { POWER_LIMITS } from "./tournamentPower.ts";
 import { RARITIES, rarityRank, type Rarity } from "./rarity.ts";
+import { chargeFactor } from "./editions.ts";
 
 export type ItemCategory =
   | "tagSynergy"
@@ -251,6 +252,11 @@ export interface ItemContext {
    *  разных числа — «+7.5% mult» в описании против «Mult +6%» во вкладе. Обязательность делает
    *  этот класс ошибки ошибкой компиляции, а не находкой ручного прохода. */
   cardRarity: Record<string, Rarity>;
+  /** Заряды Charged-карт (R13.5): id → число зарядов. Отсутствующая запись — 0. Обязательное по
+   *  той же причине, что cardRarity: опциональный контекст однажды разъехался между описанием и
+   *  вкладом. Усиливаются только СИЛОВЫЕ слои (flat/additive/xMult) — экономика и защита от
+   *  босса зарядом не растут. */
+  cardCharges: Record<string, number>;
 }
 
 /** Вклад предметов: слои силы + экономика + защита от босса. Чистая функция от ростера, как
@@ -293,48 +299,52 @@ function tagCount(effect: { tag: HeroTag; cap?: number }, ctx: ItemContext): num
 
 function applyEffect(
   effect: ItemEffect, itemId: string, ctx: ItemContext, out: ItemEvaluation,
+  // Множитель Charged-зарядов (R13.5). Масштабирует ТОЛЬКО силовые слои: у flat/additive растёт
+  // величина, у X Mult — бонусная часть (1 + (x−1)·f). Экономика и boss-защита не заряжаются.
+  chargeScale = 1,
 ): void {
+  const xm = (mult: number) => 1 + (mult - 1) * chargeScale;
   switch (effect.kind) {
     case "flatPerTag": {
-      const value = tagCount(effect, ctx) * effect.per;
+      const value = tagCount(effect, ctx) * effect.per * chargeScale;
       out.flat += value;
       out.sources.push({ itemId, layer: "flat", value, met: value !== 0 });
       return;
     }
     case "additivePerTag": {
-      const value = tagCount(effect, ctx) * effect.per;
+      const value = tagCount(effect, ctx) * effect.per * chargeScale;
       out.additive += value;
       out.sources.push({ itemId, layer: "additive", value, met: value !== 0 });
       return;
     }
     case "additivePerAttr": {
       const raw = countAttr(ctx.activeHeroes, effect.attr);
-      const value = (effect.cap == null ? raw : Math.min(effect.cap, raw)) * effect.per;
+      const value = (effect.cap == null ? raw : Math.min(effect.cap, raw)) * effect.per * chargeScale;
       out.additive += value;
       out.sources.push({ itemId, layer: "additive", value, met: value !== 0 });
       return;
     }
     case "xMultOnDiversity": {
       const met = distinctGameplayTags(ctx.activeHeroes) >= effect.min;
-      if (met) out.xMults.push(effect.mult);
-      out.sources.push({ itemId, layer: "xMult", value: met ? effect.mult : 1, met });
+      if (met) out.xMults.push(xm(effect.mult));
+      out.sources.push({ itemId, layer: "xMult", value: met ? xm(effect.mult) : 1, met });
       return;
     }
     case "xMultOnTag": {
       const met = countTag(ctx.activeHeroes, effect.tag) >= effect.min;
-      if (met) out.xMults.push(effect.mult);
-      out.sources.push({ itemId, layer: "xMult", value: met ? effect.mult : 1, met });
+      if (met) out.xMults.push(xm(effect.mult));
+      out.sources.push({ itemId, layer: "xMult", value: met ? xm(effect.mult) : 1, met });
       return;
     }
     case "xMultWithoutTag": {
       const met = countTag(ctx.activeHeroes, effect.tag) === 0;
-      if (met) out.xMults.push(effect.mult);
-      out.sources.push({ itemId, layer: "xMult", value: met ? effect.mult : 1, met });
+      if (met) out.xMults.push(xm(effect.mult));
+      out.sources.push({ itemId, layer: "xMult", value: met ? xm(effect.mult) : 1, met });
       return;
     }
     case "xMultFlat": {
-      out.xMults.push(effect.mult);
-      out.sources.push({ itemId, layer: "xMult", value: effect.mult, met: true });
+      out.xMults.push(xm(effect.mult));
+      out.sources.push({ itemId, layer: "xMult", value: xm(effect.mult), met: true });
       return;
     }
     case "copyBestXMult":
@@ -372,6 +382,7 @@ function applyEffect(
 
 export function evaluateItems(equipped: readonly string[], ctx: ItemContext): ItemEvaluation {
   const out = emptyEvaluation();
+  const chargeScaleOf = (id: string) => chargeFactor(ctx.cardCharges?.[id] ?? 0);
   const items = equipped
     .map(itemDef)
     .filter((item): item is ItemDef => item != null)
@@ -380,7 +391,9 @@ export function evaluateItems(equipped: readonly string[], ctx: ItemContext): It
     .map((item) => ({ id: item.id, ...itemAt(item, ctx.cardRarity?.[item.id] ?? "common") }));
 
   for (const item of items) {
-    applyEffect(item.effect, item.id, ctx, out);
+    // Заряды (R13.5) усиливают ЭФФЕКТ карты; drawback — её цена, он зарядом не растёт:
+    // иначе Charged наказывал бы за то самое удержание условия, за которое награждает.
+    applyEffect(item.effect, item.id, ctx, out, chargeScaleOf(item.id));
     if (item.drawback) applyEffect(item.drawback, item.id, ctx, out);
   }
 
@@ -389,12 +402,32 @@ export function evaluateItems(equipped: readonly string[], ctx: ItemContext): It
   for (const item of items) {
     if (item.effect.kind !== "copyBestXMult") continue;
     const best = out.xMults.reduce((top, mult) => Math.max(top, mult), 1);
-    const copied = best > 1 ? 1 + (best - 1) * item.effect.rate : 1;
+    const copied = best > 1 ? 1 + (best - 1) * item.effect.rate * chargeScaleOf(item.id) : 1;
     if (copied > 1) out.xMults.push(copied);
     out.sources.push({ itemId: item.id, layer: "xMult", value: copied, met: copied > 1 });
   }
 
   return out;
+}
+
+/** Есть ли у предмета силовой эффект (flat/additive/xMult) — только такие карты имеет смысл
+ *  выдавать Charged (R13.5): заряды усиливают силовые слои, economy/boss-карта не выросла бы. */
+export function hasPowerEffect(itemId: string): boolean {
+  const def = BY_ID.get(itemId);
+  if (!def) return false;
+  switch (def.effect.kind) {
+    case "flatPerTag":
+    case "additivePerTag":
+    case "additivePerAttr":
+    case "xMultOnDiversity":
+    case "xMultOnTag":
+    case "xMultWithoutTag":
+    case "xMultFlat":
+    case "copyBestXMult":
+      return true;
+    default:
+      return false;
+  }
 }
 
 /** Кто из АКТИВНЫХ героев участвует в условии эффекта (R11.7).

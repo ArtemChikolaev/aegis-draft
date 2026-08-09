@@ -15,7 +15,7 @@ import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMa
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
 import { evaluateItems, protectedBossPenalty } from "../game/items.ts";
-import { runModifiers, stageStrength as runStageStrength } from "../game/runStrength.ts";
+import { activeCardIds, runModifiers, stageStrength as runStageStrength } from "../game/runStrength.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, careerEntriesForMode, useCareer } from "./careerStore.ts";
@@ -359,7 +359,7 @@ export const useRun = create<RunStore>((set, get) => {
   const evaluateRunTactics = (): TacticEvaluation | null => {
     const ctx = tacticContext();
     const economy = get().economy;
-    return ctx && economy ? evaluateTactics(economy.equippedTactics, ctx) : null;
+    return ctx && economy ? evaluateTactics(economy.equippedTactics, ctx, economy.cardCharges) : null;
   };
   // Вклад редкости активных героев (срез 3b): heroSynergy + base у immortal. Пересчитывается от
   // engine.heroes + карты редкости в экономике, поэтому зависит от текущего состава (как tactics).
@@ -436,6 +436,7 @@ export const useRun = create<RunStore>((set, get) => {
     return evaluateItems(economy?.equippedTactics ?? [], {
       activeHeroes: engine?.heroes ?? [],
       cardRarity: economy?.cardRarity ?? {},
+      cardCharges: economy?.cardCharges ?? {},
     });
   };
   const stageStrength = (baseTeamOvr: number, tactics: TacticEvaluation | null, boss: BossEvaluation | null): number => {
@@ -552,6 +553,11 @@ export const useRun = create<RunStore>((set, get) => {
   const openCampAfterStage = (nextIndex: number, placement: PlacementKey | null) => {
     const { economy, engine, seed } = get();
     if (!economy) return null;
+    // Заряды Charged-карт (R13.5): +1 за пройденный этап с выполненным условием, сгорают при
+    // сломанном. Активность — из тех же sources, что боевой расчёт (activeCardIds); состав не
+    // менялся с выхода на этап, поэтому пересчёт честный. Строго ДО пересборки лагеря: превью
+    // и разборы нового Буткемпа обязаны видеть уже обновлённые заряды.
+    economy.accrueCharges(activeCardIds(evaluateRunTactics(), runItems()));
     economy.awardStageClear(nextIndex, placement, seasonStage(nextIndex - 1).target);
     // Титул Династии (T5.8): один за каждый пройденный акт ЗА пределами сезона. Внутри сезона
     // финал акта уже оплачен растущими призовыми и премией за место (R6.4), а Династии нужна
@@ -873,7 +879,7 @@ export const useRun = create<RunStore>((set, get) => {
               data,
               economy.snapshot.campStageIndex,
             );
-            tactics = evaluateTactics(economy.equippedTactics, tacticCtx);
+            tactics = evaluateTactics(economy.equippedTactics, tacticCtx, economy.cardCharges);
             // Та же композиция слоёв, что и в игре (game/runStrength.ts) — здесь она собиралась
             // руками третьей копией, и именно так копии разъезжаются.
             const strengthInput = {

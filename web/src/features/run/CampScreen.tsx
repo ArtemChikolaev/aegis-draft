@@ -12,6 +12,7 @@ import {
   itemLabel,
   itemTier,
 } from "../../game/items.ts";
+import { EDITION } from "../../game/editions.ts";
 import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
@@ -168,6 +169,7 @@ export function CampScreen() {
     economy: camp.modifiers,
     equippedCards: camp.equippedTactics,
     cardRarity: camp.cardRarity,
+    cardCharges: camp.cardCharges,
   };
 
   /** Собирает состояние превью через те же контексты, которыми реальные Tactics проверяют
@@ -250,6 +252,7 @@ export function CampScreen() {
   ]);
   const railCards = buildRailCards(
     camp.equippedTactics, camp.heldActions, camp.cardRarity, activeCardIds,
+    camp.cardEditions, camp.cardCharges,
   );
   const buildUsed = camp.equippedTactics.length;
   const preparationUsed = camp.heldActions.length;
@@ -348,14 +351,14 @@ export function CampScreen() {
           // непроверяемо глазами (R11.7).
           <ItemMatch
             key="m"
-            match={effectMatch(scaled.effect, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {} })}
+            match={effectMatch(scaled.effect, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {}, cardCharges: {} })}
             hero={hero}
             t={t}
           />,
           ...(scaled.drawback ? [
             <ItemMatch
               key="md"
-              match={effectMatch(scaled.drawback, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {} })}
+              match={effectMatch(scaled.drawback, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {}, cardCharges: {} })}
               hero={hero}
               t={t}
             />,
@@ -852,6 +855,12 @@ export function CampScreen() {
                                 showBase
                               />
                             )}
+                            {/* Edition (R13.5): бейдж с зарядами; полное правило — в разборе. */}
+                            {camp.cardEditions[tacticId] === "charged" && (
+                              <span className="edition-badge" data-testid={`build-edition-${tacticId}`}>
+                                ⚡ {t("edition.charged")} {camp.cardCharges[tacticId] ?? 0}/{EDITION.chargeCap}
+                              </span>
+                            )}
                           </span>
                           <button
                             type="button"
@@ -1205,6 +1214,8 @@ export function CampScreen() {
         <BuildCardInspector
           cardId={inspectedCard}
           rarity={camp.cardRarity[inspectedCard] ?? "common"}
+          edition={camp.cardEditions[inspectedCard]}
+          charges={camp.cardCharges[inspectedCard] ?? 0}
           activeHeroes={snapshot.heroes}
           cardRarity={camp.cardRarity}
           contributions={itemEval.sources.filter((source) => source.itemId === inspectedCard)}

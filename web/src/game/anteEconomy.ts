@@ -12,12 +12,13 @@
 // в одном месте (кандидат в balanceConfigVersion, точная калибровка — §10.F, после T6.3).
 // Редкость героев остаётся отдельным срезом 3b.
 import { Rng } from "./rng.ts";
-import { placementWorstRank } from "./anteRun.ts";
+import { ACT_LENGTH, placementWorstRank } from "./anteRun.ts";
+import { EDITION, type CardEdition } from "./editions.ts";
 import type { PlacementKey } from "./tournament.ts";
 import type { CandidateRef } from "./packs.ts";
 import { TACTIC_IDS, TACTIC_SLOTS, isTacticId } from "./tactics.ts";
 import { CAMP_ACTION_IDS, CAMP_ACTION_SLOTS, campActionDef, isCampActionId } from "./campActions.ts";
-import { ITEM_IDS, evaluateItems, isItemId } from "./items.ts";
+import { ITEM_IDS, evaluateItems, hasPowerEffect, isItemId } from "./items.ts";
 import { rollHeroRarity, upgradeCost } from "./heroRarity.ts";
 import { nextRarity, rarityRank, rollRarity, type Rarity } from "./rarity.ts";
 
@@ -105,6 +106,9 @@ export interface Offer {
   /** Карточка не новая, а поднимает тир УЖЕ экипированного предмета (R14.3). Второго экземпляра и
    *  второго слота не появляется — это тот же ход, что `upgradeHeroRarity` у героев. */
   cardUpgrade?: boolean;
+  /** Edition карточки (R13.5): выпадает на поздних актах отдельным роллом. Едет на оффере по той
+   *  же причине, что cardRarity: превью и то, что реально ляжет в слот, читают ОДНО значение. */
+  cardEdition?: CardEdition;
   /** Реальный scoreTeam breakdown и auto-assignment до/после структурной покупки. */
   preview?: {
     before: SummandValues;
@@ -179,6 +183,12 @@ export interface RunEconomyState {
    *  `equippedTactics`: слоты хранят строки, и превращать их в объекты значило бы переписывать
    *  формат сейва там, где новая ось прекрасно живёт зеркалом `heroRarity`. Записи нет ⇒ common. */
   cardRarity: Record<string, Rarity>;
+  /** Edition карточки (R13.5): id → "charged". Вторая ось поверх качества, живёт тем же зеркалом,
+   *  что cardRarity. Записи нет ⇒ обычная карта. */
+  cardEditions: Record<string, CardEdition>;
+  /** Заряды Charged-карт: id → 0..EDITION.chargeCap. Начисляются за пройденный этап с
+   *  ВЫПОЛНЕННЫМ условием карты (accrueCharges), сгорают при поломке условия. */
+  cardCharges: Record<string, number>;
   /** Редкость героев забега (heroId → тир), срез 3b. Стартовый драфт весь common (записей нет);
    *  re-pick роллит редкость, «улучшение» бампит тир. Хранится напрямую → resume без ре-ролла. */
   heroRarity: Record<string, Rarity>;
@@ -465,7 +475,27 @@ function cardOffer(
     ...(card.kind === "item" && rarityDrops
       ? { cardRarity: rollFor(card.id) }
       : {}),
+    ...rollCardEdition(seed, campStageIndex, card.kind, card.id),
   };
+}
+
+/** Ролл Edition карточной награды (R13.5). ОТДЕЛЬНЫЙ Rng-поток: поток `:card` остаётся прежним,
+ *  и сид без Edition-дропа выдаёт ровно те же награды, что до фичи (тот же приём, что у
+ *  `card-upgrade` в R14.3 — иначе поехали бы все seed-coupled тесты и голден-раздачи).
+ *  Гейт: поздние акты (EDITION.minAct), только карты с силовым эффектом — тактики и
+ *  power-предметы; у economy/boss-карт заряду нечего усиливать. Мета-гейта первого забега нет:
+ *  до третьего акта первый забег почти не доживает, а лишний гейт — лишнее правило. */
+function rollCardEdition(
+  seed: string,
+  campStageIndex: number,
+  kind: "tactic" | "item" | "action",
+  cardId: string,
+): { cardEdition?: CardEdition } {
+  if (campStageIndex < ACT_LENGTH * (EDITION.minAct - 1)) return {};
+  const eligible = kind === "tactic" || (kind === "item" && hasPowerEffect(cardId));
+  if (!eligible) return {};
+  const rng = new Rng(`${seed}:camp-${campStageIndex}:edition`);
+  return rng.float() < EDITION.dropChance ? { cardEdition: "charged" } : {};
 }
 
 /** Три reward-оффера Буткемпа (детерминированы по seed+campId): мелкое золото, крупное золото
@@ -580,6 +610,10 @@ export interface CampView {
   heroRarity: Record<string, Rarity>;
   /** id карточки → тир для рендера бейджей и масштабированных описаний (R11.2). */
   cardRarity: Record<string, Rarity>;
+  /** id карточки → Edition (R13.5) — бейдж и правило на карточке. */
+  cardEditions: Record<string, CardEdition>;
+  /** id карточки → заряды Charged — пипсы на карточке и множитель в разборе. */
+  cardCharges: Record<string, number>;
   /** Индекс этапа текущего Буткемпа — для превью редкости входящих на re-pick героев. */
   campStageIndex: number;
   /** Номер раздачи рынка: растёт на каждый реролл, обнуляется на входе в лагерь. Нужен ровно тем
@@ -613,6 +647,8 @@ function emptyState(): RunEconomyState {
     freeRarityUpgrades: 0,
     heroRarity: {},
     cardRarity: {},
+    cardEditions: {},
+    cardCharges: {},
     rarityDropsEnabled: false,
     rarityUpgradesEnabled: true,
     unlimitedGold: false,
@@ -645,6 +681,8 @@ export class RunEconomy {
       bossRerolls: { ...(this.state.bossRerolls ?? {}) },
       heroRarity: { ...this.state.heroRarity },
       cardRarity: { ...(this.state.cardRarity ?? {}) },
+      cardEditions: { ...(this.state.cardEditions ?? {}) },
+      cardCharges: { ...(this.state.cardCharges ?? {}) },
     };
   }
 
@@ -664,6 +702,8 @@ export class RunEconomy {
     return evaluateItems(this.state.equippedTactics, {
       activeHeroes: [],
       cardRarity: this.state.cardRarity ?? {},
+      // Экономические слои зарядом не растут (R13.5), но контекст честный — единый вход.
+      cardCharges: this.state.cardCharges ?? {},
     });
   }
 
@@ -889,6 +929,10 @@ export class RunEconomy {
       if (offer.cardRarity && offer.cardRarity !== "common") {
         this.state.cardRarity = { ...(this.state.cardRarity ?? {}), [cardId]: offer.cardRarity };
       }
+      // Edition — тоже из оффера (R13.5): заряды начинаются с нуля и копятся этапами.
+      if (offer.cardEdition) {
+        this.state.cardEditions = { ...(this.state.cardEditions ?? {}), [cardId]: offer.cardEdition };
+      }
       if (offer.kind === "action") this.state.heldActions.push(cardId);
       else this.state.equippedTactics.push(cardId);
     }
@@ -902,6 +946,13 @@ export class RunEconomy {
     const at = this.state.equippedTactics.indexOf(tacticId);
     if (at === -1) return false;
     this.state.equippedTactics.splice(at, 1);
+    // Карта ушла — её Edition и заряды не должны «ждать» несуществующего возвращения.
+    if (this.state.cardEditions?.[tacticId]) {
+      const { [tacticId]: _edition, ...editions } = this.state.cardEditions;
+      const { [tacticId]: _charges, ...charges } = this.state.cardCharges ?? {};
+      this.state.cardEditions = editions;
+      this.state.cardCharges = charges;
+    }
     return true;
   }
 
@@ -1020,6 +1071,31 @@ export class RunEconomy {
     return { ...(this.state.cardRarity ?? {}) };
   }
 
+  /** Edition взятых карточек (R13.5). Legacy-сейв поля не имеет ⇒ обычные карты. */
+  get cardEditions(): Record<string, CardEdition> {
+    return { ...(this.state.cardEditions ?? {}) };
+  }
+
+  /** Заряды Charged-карт (id → 0..cap). */
+  get cardCharges(): Record<string, number> {
+    return { ...(this.state.cardCharges ?? {}) };
+  }
+
+  /** Начислить заряды за ПРОЙДЕННЫЙ этап (R13.5): Charged-карта с выполненным условием получает
+   *  +1 (до потолка), со сломанным — сгорает в ноль. Кто «активен», решает вызывающий из тех же
+   *  sources, что и боевой расчёт (activeCardIds в runStrength) — экономика ростера не знает.
+   *  Идемпотентность даёт точка вызова: openCampAfterStage/sim зовут её один раз на этап. */
+  accrueCharges(activeCardIds: ReadonlySet<string>): void {
+    const editions = this.state.cardEditions ?? {};
+    const next: Record<string, number> = {};
+    for (const id of this.state.equippedTactics) {
+      if (editions[id] !== "charged") continue;
+      const current = this.state.cardCharges?.[id] ?? 0;
+      next[id] = activeCardIds.has(id) ? Math.min(EDITION.chargeCap, current + 1) : 0;
+    }
+    this.state.cardCharges = next;
+  }
+
   rarityOf(heroId: number): Rarity {
     return this.state.heroRarity[String(heroId)] ?? "common";
   }
@@ -1093,6 +1169,8 @@ export class RunEconomy {
       unlimitedGold: this.state.unlimitedGold,
       heroRarity: { ...this.state.heroRarity },
       cardRarity: { ...(this.state.cardRarity ?? {}) },
+      cardEditions: { ...(this.state.cardEditions ?? {}) },
+      cardCharges: { ...(this.state.cardCharges ?? {}) },
       campStageIndex: this.state.campStageIndex,
       marketSerial: this.state.marketRerolls,
     };

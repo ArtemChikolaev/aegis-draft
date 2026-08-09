@@ -44,6 +44,19 @@ export function runModifierTotal(input: RunStrengthInput): number {
   return m.base + m.heroSynergy + m.chemistry;
 }
 
+/** Карточки, реально сработавшие на этом ростере, — из ТЕХ ЖЕ sources, что боевой расчёт.
+ *  Единственное определение «активности»: BuildRail, начисление зарядов (R13.5) и симулятор
+ *  обязаны читать одно и то же, иначе подсветка/заряды разойдутся с силой. */
+export function activeCardIds(
+  tactics: TacticEvaluation | null,
+  items: ItemEvaluation,
+): Set<string> {
+  return new Set<string>([
+    ...items.sources.filter((source) => source.met).map((source) => source.itemId),
+    ...(tactics?.sources ?? []).map((source) => source.tacticId as string),
+  ]);
+}
+
 /** Полное состояние ростера, от которого зависят условные карточки Run. */
 export interface RunPowerState {
   score: SummandValues;
@@ -57,6 +70,9 @@ export interface RunBuildContext {
   economy: SummandModifiers;
   equippedCards: readonly string[];
   cardRarity: Record<string, Rarity>;
+  /** Заряды Charged-карт (R13.5). Обязательное поле по уроку cardRarity: опциональный контекст
+   *  однажды разъехался между описанием и вкладом. `{}` — валидное «зарядов нет». */
+  cardCharges: Record<string, number>;
 }
 
 export interface RunPowerEvaluation {
@@ -78,7 +94,7 @@ export function evaluateRunPower(
   state: RunPowerState,
   build: RunBuildContext,
 ): RunPowerEvaluation {
-  const tactics = evaluateTactics(build.equippedCards, state.tacticContext);
+  const tactics = evaluateTactics(build.equippedCards, state.tacticContext, build.cardCharges);
   const modifiers = runModifiers({
     economy: build.economy,
     tactics: tactics.modifiers,
@@ -93,6 +109,7 @@ export function evaluateRunPower(
   const items = evaluateItems(build.equippedCards, {
     activeHeroes: state.activeHeroes,
     cardRarity: build.cardRarity,
+    cardCharges: build.cardCharges,
   });
   const power = powerBreakdown(powerLayers(
     values.base + values.heroSynergy + values.chemistry,

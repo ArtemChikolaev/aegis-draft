@@ -9,6 +9,7 @@
 // карточки берётся из ТОГО ЖЕ источника, что и боевой расчёт (`sources` силы забега), поэтому
 // подсветка не может разойтись с тем, что реально сработало.
 import { useEffect, useRef, useState } from "react";
+import type { CardEdition } from "../../game/editions.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import { itemDef, itemTier } from "../../game/items.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
@@ -26,6 +27,10 @@ export interface BuildRailCard {
   active: boolean;
   /** Одноразовое Camp Action в слоте (ещё не разыграно). */
   held?: boolean;
+  /** Edition (R13.5); undefined — обычная карта. */
+  edition?: CardEdition;
+  /** Заряды Charged-карты. */
+  charges?: number;
 }
 
 /** Сборка списка из состояния экономики + источников силы. Чистая, чтобы оба экрана строили рейл
@@ -35,12 +40,16 @@ export function buildRailCards(
   heldActions: readonly string[],
   cardRarity: Record<string, Rarity>,
   activeIds: ReadonlySet<string>,
+  cardEditions: Record<string, CardEdition> = {},
+  cardCharges: Record<string, number> = {},
 ): BuildRailCard[] {
   return [
     ...equipped.map((id) => ({
       id,
       rarity: cardRarity[id] ?? ("common" as Rarity),
       active: activeIds.has(id),
+      edition: cardEditions[id],
+      charges: cardCharges[id] ?? 0,
     })),
     ...heldActions.map((id) => ({ id, rarity: "common" as Rarity, active: false, held: true })),
   ];
@@ -88,6 +97,7 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
             data-card-id={card.id}
             data-card-tier={item ? itemTier(card.rarity) : undefined}
             data-active={card.active}
+            data-edition={card.edition}
             title={`${label}${card.active ? "" : ` · ${t("camp.tacticNoEffect")}`}`}
             aria-label={`${label} · ${t("camp.offerDetails")}`}
             onClick={() => setInspected(card)}
@@ -95,6 +105,10 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
             {slug
               ? <ItemIcon slug={slug} name={label} size="sm" />
               : <b className="build-rail__mono">{label.slice(0, 2)}</b>}
+            {/* Заряды Charged-карты (R13.5): пипсы на мини-карте — рост виден без инспектора. */}
+            {card.edition === "charged" && (
+              <i className="build-rail__charges" aria-hidden="true">{card.charges || "⚡"}</i>
+            )}
           </button>
         );
       })}
@@ -105,6 +119,8 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
         <BuildCardInspector
           cardId={inspected.id}
           rarity={inspected.rarity}
+          edition={inspected.edition}
+          charges={inspected.charges}
           activeHeroes={activeHeroes}
           cardRarity={cardRarity}
           contributions={contributionsOf?.(inspected.id)}

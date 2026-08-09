@@ -160,8 +160,14 @@ export function itemContribution(
   activeHeroes: readonly number[],
   t: Translate,
   rarity: Rarity = "common",
+  /** Заряды карты (R13.5): у новой награды 0, у экипированной — реальные. */
+  charges = 0,
 ): { text: string; positive: boolean } | null {
-  const evaluation = evaluateItems([def.id], { activeHeroes, cardRarity: { [def.id]: rarity } });
+  const evaluation = evaluateItems([def.id], {
+    activeHeroes,
+    cardRarity: { [def.id]: rarity },
+    cardCharges: { [def.id]: charges },
+  });
   const parts: string[] = [];
   if (evaluation.flat !== 0) parts.push(`${t("camp.powerRoster")} ${evaluation.flat > 0 ? "+" : ""}${fmt(evaluation.flat)}`);
   if (evaluation.additive !== 0) parts.push(`${t("camp.powerAdditive")} ${evaluation.additive > 0 ? "+" : ""}${fmt(evaluation.additive)}%`);

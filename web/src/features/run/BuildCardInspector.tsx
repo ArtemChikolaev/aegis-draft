@@ -7,6 +7,7 @@
 import { itemAt, itemDef, itemLabel, itemTier, effectMatch } from "../../game/items.ts";
 import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
+import { chargeFactor, EDITION, type CardEdition } from "../../game/editions.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
@@ -22,9 +23,13 @@ export interface BuildCardContribution {
   met: boolean;
 }
 
-export function BuildCardInspector({ cardId, rarity, activeHeroes, cardRarity, contributions, onClose }: {
+export function BuildCardInspector({ cardId, rarity, edition, charges = 0, activeHeroes, cardRarity, contributions, onClose }: {
   cardId: string;
   rarity: Rarity;
+  /** Edition карточки (R13.5); undefined — обычная. */
+  edition?: CardEdition;
+  /** Заряды Charged-карты (0..EDITION.chargeCap). */
+  charges?: number;
   activeHeroes: readonly number[];
   cardRarity: Record<string, Rarity>;
   contributions?: readonly BuildCardContribution[];
@@ -36,6 +41,7 @@ export function BuildCardInspector({ cardId, rarity, activeHeroes, cardRarity, c
   const kind = item ? "item" : isTacticId(cardId) ? "tactic" : "action";
   const title = t(`${kind}.${cardId}` as MessageKey);
   const slug = itemArtSlug(cardId);
+  const chargeCtx = { [cardId]: charges };
   const scaled = item ? itemAt(item, rarity) : null;
   const effect = scaled ? itemLabel(scaled.effect) : null;
   const drawback = scaled?.drawback ? itemLabel(scaled.drawback) : null;
@@ -56,6 +62,19 @@ export function BuildCardInspector({ cardId, rarity, activeHeroes, cardRarity, c
             />
           )}
         </div>
+        {/* Edition — вторая ось (R13.5): бейдж + заряды + правило. Рамку не красим — цвет рамки
+            принадлежит качеству. */}
+        {edition === "charged" && (
+          <p className="build-card-inspector__edition" data-testid="card-edition">
+            <span className="edition-badge">{t("edition.charged")}</span>
+            <span className="edition-charges">
+              {charges > 0 ? `${"⚡".repeat(charges)} ` : ""}
+              {`${charges}/${EDITION.chargeCap}`}
+              {charges > 0 && ` · ×${chargeFactor(charges).toFixed(1)}`}
+            </span>
+            <small>{t("edition.chargedHint", { bonus: Math.round(EDITION.chargeBonus * 100), cap: EDITION.chargeCap })}</small>
+          </p>
+        )}
         <p className="build-card-inspector__desc">
           {effect
             ? t(effect.template as MessageKey, itemLabelParams(effect.params, t as Translate))
@@ -69,13 +88,13 @@ export function BuildCardInspector({ cardId, rarity, activeHeroes, cardRarity, c
         {scaled && (
           <>
             <ItemMatch
-              match={effectMatch(scaled.effect, { activeHeroes, cardRarity })}
+              match={effectMatch(scaled.effect, { activeHeroes, cardRarity, cardCharges: chargeCtx })}
               hero={hero}
               t={t as Translate}
             />
             {scaled.drawback && (
               <ItemMatch
-                match={effectMatch(scaled.drawback, { activeHeroes, cardRarity })}
+                match={effectMatch(scaled.drawback, { activeHeroes, cardRarity, cardCharges: chargeCtx })}
                 hero={hero}
                 t={t as Translate}
               />

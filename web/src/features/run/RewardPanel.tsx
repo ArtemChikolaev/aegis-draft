@@ -71,6 +71,13 @@ export function RewardPanel({ camp, chosenReward, effectRows, onChoose }: {
                         {t(slot === "tactic" ? "camp.tactics" : "camp.campActions")}
                       </span>
                     )}
+                    {/* Edition (R13.5): редкая находка поздних актов — бейдж, не рамка (цвет
+                        рамки принадлежит качеству). */}
+                    {offer.cardEdition === "charged" && (
+                      <span className="edition-badge" data-testid="reward-edition">
+                        ⚡ {t("edition.charged")}
+                      </span>
+                    )}
                   </span>
                   <div className="camp-offer__deltas">{effectRows(offer)}</div>
                   {slotFull && !isChosen && (
