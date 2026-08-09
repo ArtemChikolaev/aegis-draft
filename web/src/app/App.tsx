@@ -107,14 +107,17 @@ export function App() {
       )}
 
       {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : (
-        <>
+        /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
+           (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
+           так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
+        <div className="enter-fade" key={phase}>
           {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
           {phase === "start" && <ResumeBanner />}
           {phase === "start" && <StartScreen />}
           {phase === "draft" && <DraftScreen />}
           {phase === "tournament" && <TournamentScreen />}
           {phase === "camp" && <CampScreen />}
-        </>
+        </div>
       )}
       {/* Вне переключателя вида: ссылку могли открыть, стоя на любом экране, и предложение
           не должно зависеть от того, где игрок находится. */}

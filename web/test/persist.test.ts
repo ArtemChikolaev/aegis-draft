@@ -5,6 +5,7 @@ import { cloudKey, readCached, readPersisted, removePersisted, writePersisted } 
 const REAL_KEYS = [
   "aegis-draft.theme",
   "aegis-draft.locale",
+  "aegis-draft.screenShake",
   "aegis:run:v1",
   "aegis:teamName:v1",
   "aegis:career:v1",

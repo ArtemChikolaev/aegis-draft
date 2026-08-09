@@ -23,7 +23,7 @@ import { TACTIC_SLOTS } from "../../game/tactics.ts";
 import { BuildRail, buildRailCards } from "../run/BuildRail.tsx";
 import { evaluateItems } from "../../game/items.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
-import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, screenShakeEnabled, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -511,6 +511,14 @@ export function TournamentScreen() {
   const groupFillPhase = stage === "groups" && n === 0;
   // FLIP только после «наполнения»: входная fade-rise и переезд строк дерутся за transform.
   useStandingsFlip(groupsRef, stage === "groups" && !groupFillPhase);
+  // Тряска экрана (R15.4): ровно две кульминации забега — Aegis взят и смерть. Обычный проход
+  // этапа НЕ трясёт (у него секвенция R15.2): частая тряска обнулила бы лестницу эскалации.
+  // Класс не ставится при выключенном тумблере Settings; reduced-motion гасит анимацию глобально.
+  const [shaking, setShaking] = useState(false);
+  const verdictShake = stage === "playoffs" && done && !!ante && (ante.phase === "won" || ante.phase === "lost");
+  useEffect(() => {
+    if (verdictShake && screenShakeEnabled()) setShaking(true);
+  }, [verdictShake]);
   // Лента результатов не скроллится с обрезанной строкой сверху, а показывает столько
   // ПОСЛЕДНИХ матчей, сколько влезает ЦЕЛИКОМ: панель фиксированной высоты, а строка не
   // делится на неё нацело (471/30 ≈ 15.7) — иначе верхняя пара вечно срезана.
@@ -619,7 +627,14 @@ export function TournamentScreen() {
         : anteNextLabel;
 
   return (
-    <main className="run" data-testid="run-screen">
+    <main
+      className={`run${shaking ? " screen-shake" : ""}`}
+      data-testid="run-screen"
+      onAnimationEnd={(e) => {
+        // Фильтр по имени обязателен: сюда всплывают все анимации экрана.
+        if (e.animationName === "screen-shake") setShaking(false);
+      }}
+    >
       {/* Постоянная тим-панель: пентагон + разбор + ростер (как левая колонка 322-0). */}
       <div className="result__grid run__team enter">
         <Surface className="result__radar on-invert-surface">

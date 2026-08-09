@@ -41,6 +41,19 @@ h1, h2, .brand { font-family: "Space Grotesk", Manrope, sans-serif; }
 /* Только прозрачность: для сетки плей-офф, где translate сдвинул бы измеряемую геометрию коннекторов. */
 .enter-fade { animation: fade-soft var(--motion-enter) var(--ease-out) both; animation-delay: calc(var(--enter-i, 0) * var(--motion-enter-stagger)); }
 
+/* Тряска экрана (R15.4): только кульминации забега (Aegis взят / смерть), одноразовая и короткая.
+   Вешать на частые события запрещено — инфляция обнуляет лестницу эскалации (game-feel-juice).
+   transform-only; гасится глобальным prefers-reduced-motion И тумблером в Settings (класс
+   не ставится). Амплитуда ±3px — «удар», а не карусель. */
+@keyframes screen-shake {
+  10%, 90% { transform: translate(-2px, 1px); }
+  20%, 80% { transform: translate(3px, -1px); }
+  30%, 70% { transform: translate(-3px, 2px); }
+  40%, 60% { transform: translate(2px, -2px); }
+  50% { transform: translate(-2px, -1px); }
+}
+.screen-shake { animation: screen-shake 280ms ease-out both; }
+
 /* OVR игрока по тирам (ui/ovrTier.playerOvrTier): цвет по tier-шкале + НАРАСТАЮЩИЙ акцент.
    Глобальные, потому что нужны и драфту, и итогу. mid/low/weak — только цвет; strong светится;
    elite (~4.6%) отражает блик, immortal (~0.13%) сам выглядит источником света.

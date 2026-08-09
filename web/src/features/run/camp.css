@@ -374,6 +374,18 @@
   position: relative;
   z-index: 2;
 }
+/* Hover-tilt (R15.6): лёгкий 3D-наклон за курсором (углы пишет ui/motion.useCardTilt).
+   Только устройства с настоящим hover: у touch наклон застревал бы в последней позе.
+   transform-only, слоты билда не наклоняем — у мини-плиток эффект читается дрожанием. */
+@media (hover: hover) and (pointer: fine) {
+  .camp-pack-card.camp-inspectable-card,
+  .camp-rarity-card.camp-inspectable-card {
+    transform: perspective(700px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg));
+    transition: transform 120ms var(--ease-out);
+    will-change: transform;
+  }
+}
+
 .camp-inspectable-card:hover,
 .camp-inspectable-card:has(.camp-card-inspect-trigger:focus-visible:not([data-modal-focus-restored="pointer"])) {
   border-color: var(--line-strong);

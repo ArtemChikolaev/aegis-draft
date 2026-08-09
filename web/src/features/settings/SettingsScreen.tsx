@@ -4,7 +4,7 @@ import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
-import { Banner, Button, Eyebrow, OptionGroup, Surface } from "../../ui/index.ts";
+import { Banner, Button, Eyebrow, OptionGroup, Surface, useScreenShakeSetting } from "../../ui/index.ts";
 import type { Locale } from "../../i18n/core.ts";
 import type { ThemeMode } from "../../design/theme/core.ts";
 import "./settings.css";
@@ -18,6 +18,8 @@ export function SettingsScreen() {
   const backNative = useTmaChrome((state) => state.backNative);
   const manifest = useRun((state) => state.data?.manifest);
   const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase), useRun((state) => state.resumable));
+  // Тряска экрана (R15.4) — отдельный тумблер, как в Balatro: не хотеть тряску ≠ reduced-motion.
+  const [shakeEnabled, setShakeEnabled] = useScreenShakeSetting();
 
   return (
     <main className="settings" data-testid="settings-screen">
@@ -50,6 +52,16 @@ export function SettingsScreen() {
           ]}
           value={mode}
           onChange={(value) => setMode(value as ThemeMode)}
+        />
+        <OptionGroup
+          title={t("settings.shake")}
+          soonLabel={t("common.soon")}
+          options={[
+            { value: "on", label: t("common.on"), hint: t("settings.shakeHint") },
+            { value: "off", label: t("common.off") },
+          ]}
+          value={shakeEnabled ? "on" : "off"}
+          onChange={(value) => setShakeEnabled(value === "on")}
         />
       </Surface>
 

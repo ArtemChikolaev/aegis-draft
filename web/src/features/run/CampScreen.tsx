@@ -1,7 +1,7 @@
 // Буткемп Roguelite Run (T5.2, срезы 2–3): Reward, контекстный Market и резерв.
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ECONOMY, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import {
@@ -54,6 +54,7 @@ import {
   ItemIcon,
   Modal,
   RarityBadge,
+  useCardTilt,
   useCountUp,
   StageKindBadge,
   PowerBreakdown,
@@ -143,6 +144,11 @@ export function CampScreen() {
   const { direction: goldDirection } = useCountUp(
     camp && !camp.unlimitedGold ? camp.gold : null,
   );
+  // Hover-tilt карточек (R15.6): один делегированный слушатель на корне экрана — карточки
+  // постоянно перемонтируются раздачей, и вешать обработчики на каждую было бы утечкой
+  // логики в списки. Углы пишутся CSS-переменными, стиль — camp.css.
+  const tiltRootRef = useRef<HTMLElement | null>(null);
+  useCardTilt(tiltRootRef);
   const candidates = useMemo(() => (data?.packs ?? []).flatMap(candidatesOf), [data]);
   const eventNames = useMemo(
     () => new Map((data?.events ?? []).map((event) => [event.id, event.short ?? event.name])),
@@ -559,7 +565,7 @@ export function CampScreen() {
     : (candidate: Candidate) => setInspectedPlayer(candidate);
 
   return (
-    <main className="camp" data-testid="camp-screen">
+    <main className="camp" data-testid="camp-screen" ref={tiltRootRef}>
       {/* Секвенция «этап пройден» (R15.2): показывается один раз на свежий проход порога;
           resume в лагерь её не переигрывает (см. runStore.campCelebration). */}
       {campCelebration && (
