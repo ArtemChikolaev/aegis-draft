@@ -8,10 +8,11 @@ const DISMISS_PX = 88;
 const DISMISS_VELOCITY = 0.5; // px/ms
 const ENTER_MS = 560;
 const EXIT_MS = 640;
-// Card-оверлей открывают на каждой карточке — вход обязан быть щелчком, а не выездом
-// (плейтест 2026-08-09: 220ms + двойной rAF читались как «подлагивает»).
-const CARD_ENTER_MS = 140;
-const CARD_EXIT_MS = 160;
+// Card-оверлей открывают на каждой карточке — вход обязан быть щелчком, а не выездом.
+// Плейтест 2026-08-09 (дважды): сперва 220ms+двойной rAF, потом и 140ms читались как
+// «подлагивает» — итог: ~90ms, transform-only, один rAF, у подложки только затемнение.
+const CARD_ENTER_MS = 90;
+const CARD_EXIT_MS = 120;
 
 type ModalClose = () => void;
 type ModalChildren = ReactNode | ((api: { close: ModalClose }) => ReactNode);
@@ -183,11 +184,23 @@ export function Modal({
 
   useEffect(() => {
     if (prefersReducedMotion()) return;
+    // Card-оверлей стартует с ОДНОГО rAF: двойной гарантирует, что браузер успел отрисовать
+    // стартовое состояние (иначе transition может не сыграть), но добавляет кадр задержки.
+    // Для card проскок transition — это желанный «щелчок», а не дефект; полноэкранный лист
+    // без гарантии наоборот появлялся бы скачком с высоты 340px.
+    let inner: number | null = null;
     const id = requestAnimationFrame(() => {
-      requestAnimationFrame(() => setEntered(true));
+      if (isCard) {
+        setEntered(true);
+        return;
+      }
+      inner = requestAnimationFrame(() => setEntered(true));
     });
-    return () => cancelAnimationFrame(id);
-  }, []);
+    return () => {
+      cancelAnimationFrame(id);
+      if (inner != null) cancelAnimationFrame(inner);
+    };
+  }, [isCard]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -271,15 +284,17 @@ export function Modal({
 
   const offsetY = closing || dragging || dragY > 0
     ? dragY
-    : entered ? 0 : isCard ? 10 : Math.min(window.innerHeight * 0.42, 340);
+    : entered ? 0 : isCard ? 6 : Math.min(window.innerHeight * 0.42, 340);
 
   const duration = isCard
     ? closing ? CARD_EXIT_MS : CARD_ENTER_MS
     : closing ? EXIT_MS : ENTER_MS;
-  const scale = isCard && (!entered || closing) ? 0.96 : 1;
+  const scale = isCard && (!entered || closing) ? 0.97 : 1;
   const panelStyle: CSSProperties = {
     transform: `translate3d(0, ${offsetY}px, 0) scale(${scale})`,
-    opacity: closing ? 0 : entered || dragY > 0 ? 1 : isCard ? 0.82 : 0.88,
+    // Card входит transform-only (opacity сразу 1): полупрозрачный старт добавлял ощущение
+    // «проявляется», то есть ждёт, — а нужен щелчок (плейтест 2026-08-09).
+    opacity: closing ? 0 : entered || dragY > 0 || isCard ? 1 : 0.88,
     transition: dragging
       ? "none"
       : `transform ${duration}ms cubic-bezier(.16, .84, .18, 1), opacity ${duration}ms ease-out`,

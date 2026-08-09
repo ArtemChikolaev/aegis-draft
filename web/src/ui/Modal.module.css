@@ -20,10 +20,11 @@
   backdrop-filter: blur(0px);
   pointer-events: none;
 }
-/* Card-оверлей: блюр НЕ анимируем — transition у backdrop-filter на весь вьюпорт дорогой
-   (GPU пересчитывает кадр целиком) и смазывал вход панели, читаясь как лаг (плейтест
-   2026-08-09). Финальный блюр стоит с первого кадра, анимируется только затемнение. */
-.cardBackdrop { backdrop-filter: blur(7px); transition: background .16s ease; }
+/* Card-оверлей: БЕЗ блюра вовсе — backdrop-filter на весь вьюпорт дорог (кадр пересчитывается
+   целиком) и даже статичный читался как «долгий блюр» (плейтест 2026-08-09, дважды). Фокус
+   держит только затемнение; полноэкранные модалки (confirm/cheat) оставляют свой блюр — их
+   открывают редко. */
+.cardBackdrop { backdrop-filter: none; transition: background .12s ease; }
 
 .panel {
   position: relative;
