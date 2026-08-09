@@ -17,6 +17,7 @@
 | [scoring-model](../../.claude/skills/scoring-model/SKILL.md) | Формулы рейтинга/скоринга, паки, Team OVR — зафиксированные решения PRD §5. |
 | [frontend-architecture](../../.claude/skills/frontend-architecture/SKILL.md) | Правка UI во `web/src` — примитивы из `ui/`, цвета токенами (`design/`), экраны в `features/`, строки в `i18n/`. |
 | [game-state-architecture](../../.claude/skills/game-state-architecture/SKILL.md) | Состояние игры — режимы/mode shell, `RunConfig`, `RunEngine`, reset/exit, оркестрация этапов. Границы + confirm на destructive. |
+| [game-feel-juice](../../.claude/skills/game-feel-juice/SKILL.md) | Анимации/переходы/тряска/звук/«сочность» — motion-бюджет, лестница эскалации, запреты (набегающие числа, keyframes в modules, getComputedStyle). |
 | [backend-architecture](../../.claude/skills/backend-architecture/SKILL.md) | Go API `server/` — эндпоинты, слои transport/service/store, БД/миграции, auth, ошибки, ре-симуляция (ADR 0002). |
 | [self-review-checklist](../../.claude/skills/self-review-checklist/SKILL.md) | Перед «готово»/PR, если трогался код/данные — мысленное ревью + скан. |
 | [reference-parity-audit](../../.claude/skills/reference-parity-audit/SKILL.md) | Живое тестирование и сравнение с 322-0/Balatro/макетом; доказательства → PRD/BACKLOG. |
@@ -27,6 +28,7 @@
 | Новый код в пайплайне (Go) | `discovery-before-code` → `plan-first-communication` → (`external-data-etl` если внешние данные, `data-contract` если формат, `scoring-model` если рейтинг) → `self-review-checklist` |
 | Новая игровая логика во фронте (TS: game/state) | `discovery-before-code` → (`data-contract` если типы, `scoring-model` если счёт) → `self-review-checklist` |
 | Новый UI-компонент / экран / стили / тема / строки | `discovery-before-code` → `frontend-architecture` (примитивы `ui/`, токены, i18n, features/) → `self-review-checklist` |
+| Анимация / переход / эффект / звук / «сделай живее» | `discovery-before-code` → `game-feel-juice` (+ `frontend-architecture` если новые элементы/стили) → `self-review-checklist` |
 | Режимы / стор забега / exit-reset / этапы roguelite | `discovery-before-code` → `game-state-architecture` (+ `scoring-model` если счёт) → `self-review-checklist` |
 | Backend `server/` (ручка / БД / auth / лидерборд / дейлик) | `discovery-before-code` → `backend-architecture` (+ `data-contract`/`scoring-model` при пересечении) → `self-review-checklist` |
 | Правка модели данных / схемы | `data-contract` → `self-review-checklist` |
