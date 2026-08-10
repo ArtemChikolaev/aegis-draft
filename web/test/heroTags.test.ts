@@ -12,6 +12,7 @@ import {
   taggedHeroIds,
   validateHeroTags,
 } from "../src/game/heroTags.ts";
+import { ITEMS } from "../src/game/items.ts";
 import { loadGameData } from "./helpers/data.ts";
 
 // Этот файл И ЕСТЬ валидатор тегов из DoD R8.1: он гоняется в CI, поэтому новый герой в датасете
@@ -50,6 +51,20 @@ describe("hero tags — валидатор курируемого файла", (
     for (const tag of [...LORE_TAGS, ...GAMEPLAY_TAGS]) {
       const share = countTag(heroIds, tag) / heroIds.length;
       expect(share, `тег "${tag}" покрывает ${Math.round(100 * share)}% героев`).toBeLessThan(0.6);
+    }
+  });
+
+  it("каждому тегу, который читает предмет, хватает героев добить cap (R12.7)", () => {
+    // Предмет с cap выше числа носителей тега никогда не выйдет на полную силу — это мёртвый
+    // потолок, который выглядит как контент. Требуем запас: героев минимум cap + 1, чтобы даже
+    // один бан/вылет не делал полный cap математически недостижимым.
+    for (const item of ITEMS) {
+      const effect = item.effect as { kind: string; tag?: string; cap?: number; min?: number };
+      if (!effect.tag) continue;
+      const need = (effect.cap ?? effect.min ?? 1) + 1;
+      const carriers = countTag(heroIds, effect.tag as Parameters<typeof countTag>[1]);
+      expect(carriers, `«${item.id}» читает тег "${effect.tag}": носителей ${carriers}, нужно ≥ ${need}`)
+        .toBeGreaterThanOrEqual(need);
     }
   });
 

@@ -37,11 +37,15 @@ export type HeroRange = (typeof HERO_RANGES)[number];
  * - `void` — связан с Тьмой Вне Мира, временем или разрывами реальности;
  * - `nature` — друид, страж леса, растение;
  * - `beast` — зверь или зверолюд, действующий по животной природе;
- * - `mechanical` — конструкт, механизм или носитель машинного тела.
+ * - `mechanical` — конструкт, механизм или носитель машинного тела;
+ * - `mortal` — смертный (человек, эльф и т.п.) без сверхъестественной природы и фракции.
+ *   Закрывает пробел R12.7: 19 героев вроде Lina/Riki/Sven не имели ни одного lore-тега и были
+ *   невидимы для lore-оси целиком. Натягивать на них demon/beast значило бы врать таксономией —
+ *   вместо этого ось стала тотальной: у КАЖДОГО героя ≥1 lore-тег (инвариант валидатора).
  */
 export const LORE_TAGS = [
   "dark", "light", "demon", "undead", "spirit", "dragon",
-  "celestial", "void", "nature", "beast", "mechanical",
+  "celestial", "void", "nature", "beast", "mechanical", "mortal",
 ] as const;
 export type LoreTag = (typeof LORE_TAGS)[number];
 
@@ -186,6 +190,11 @@ export function validateHeroTags(knownHeroIds: readonly number[]): TagValidation
     }
     if (tags.play.length === 0) {
       issues.push({ heroId, problem: "ни одного gameplay-тега" });
+    }
+    // R12.7: lore-ось тотальна — смертные без фракции несут `mortal`, пустой lore означает
+    // героя, невидимого для всей оси (до инварианта так прошли 19 героев).
+    if (tags.lore.length === 0) {
+      issues.push({ heroId, problem: "ни одного lore-тега (смертному положен mortal)" });
     }
   }
 
