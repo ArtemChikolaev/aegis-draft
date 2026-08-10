@@ -1,18 +1,29 @@
 // Editions (R13.5): Charged — заряды за этапы с выполненным условием, +bonus к эффекту карты.
 import { describe, expect, it } from "vitest";
-import { chargeFactor, EDITION } from "../src/game/editions.ts";
+import { chargeCapForRarity, chargeFactor, EDITION, MAX_CHARGE_CAP } from "../src/game/editions.ts";
 import { evaluateItems } from "../src/game/items.ts";
 import { evaluateTactics, TACTICS, type TacticContext, type TacticPlayer } from "../src/game/tactics.ts";
 import { RunEconomy, rewardOffers } from "../src/game/anteEconomy.ts";
 import { ACT_LENGTH } from "../src/game/anteRun.ts";
 
 describe("chargeFactor", () => {
-  it("растёт на bonus за заряд и упирается в потолок", () => {
+  it("растёт на bonus за заряд и упирается в страховочный максимум", () => {
     expect(chargeFactor(0)).toBe(1);
     expect(chargeFactor(1)).toBeCloseTo(1 + EDITION.chargeBonus);
-    expect(chargeFactor(EDITION.chargeCap)).toBeCloseTo(1 + EDITION.chargeBonus * EDITION.chargeCap);
-    expect(chargeFactor(EDITION.chargeCap + 5)).toBeCloseTo(chargeFactor(EDITION.chargeCap));
+    expect(chargeFactor(MAX_CHARGE_CAP)).toBeCloseTo(1 + EDITION.chargeBonus * MAX_CHARGE_CAP);
+    expect(chargeFactor(MAX_CHARGE_CAP + 5)).toBeCloseTo(chargeFactor(MAX_CHARGE_CAP));
     expect(chargeFactor(-2)).toBe(1);
+  });
+});
+
+describe("chargeCapForRarity", () => {
+  it("потолок предмета растёт с тиром, тактика — фикс", () => {
+    expect(chargeCapForRarity("common")).toBe(2);
+    expect(chargeCapForRarity("unique")).toBe(3);
+    expect(chargeCapForRarity("mythic")).toBe(4);
+    expect(chargeCapForRarity("immortal")).toBe(5);
+    expect(chargeCapForRarity(null)).toBe(EDITION.chargeCaps.tactic);
+    expect(MAX_CHARGE_CAP).toBe(5);
   });
 });
 
@@ -62,10 +73,28 @@ describe("RunEconomy: заряды и Edition", () => {
     state.equippedTactics = ["noSuperstars"];
     state.cardEditions = { noSuperstars: "charged" };
     const withCards = new RunEconomy("edition-test", state);
-    for (let i = 0; i < EDITION.chargeCap + 2; i++) withCards.accrueCharges(new Set(["noSuperstars"]));
-    expect(withCards.cardCharges.noSuperstars).toBe(EDITION.chargeCap);
+    const cap = EDITION.chargeCaps.tactic;
+    for (let i = 0; i < cap + 2; i++) withCards.accrueCharges(new Set(["noSuperstars"]));
+    expect(withCards.cardCharges.noSuperstars).toBe(cap);
     withCards.accrueCharges(new Set());
     expect(withCards.cardCharges.noSuperstars).toBe(0);
+  });
+
+  it("потолок предмета зависит от тира; апгрейд тира поднимает потолок, заряды живут", () => {
+    const economy = new RunEconomy("edition-test");
+    const state = economy.snapshot;
+    state.equippedTactics = ["divineRapier"];
+    state.cardEditions = { divineRapier: "charged" };
+    const withItem = new RunEconomy("edition-test", state);
+    // Без записи тира предмет — standard: потолок 2.
+    for (let i = 0; i < 4; i++) withItem.accrueCharges(new Set(["divineRapier"]));
+    expect(withItem.cardCharges.divineRapier).toBe(2);
+    // Тир вырос до arcana (immortal) — та же карта продолжает копить до 5.
+    const upgraded = withItem.snapshot;
+    upgraded.cardRarity = { divineRapier: "immortal" };
+    const arcana = new RunEconomy("edition-test", upgraded);
+    for (let i = 0; i < 4; i++) arcana.accrueCharges(new Set(["divineRapier"]));
+    expect(arcana.cardCharges.divineRapier).toBe(5);
   });
 
   it("обычная карта зарядов не копит", () => {

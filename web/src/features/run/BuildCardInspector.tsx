@@ -7,7 +7,7 @@
 import { itemAt, itemDef, itemLabel, itemTier, effectMatch } from "../../game/items.ts";
 import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
-import { chargeFactor, EDITION, type CardEdition } from "../../game/editions.ts";
+import { chargeCapForRarity, chargeFactor, EDITION, type CardEdition } from "../../game/editions.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
@@ -28,7 +28,7 @@ export function BuildCardInspector({ cardId, rarity, edition, charges = 0, activ
   rarity: Rarity;
   /** Edition карточки (R13.5); undefined — обычная. */
   edition?: CardEdition;
-  /** Заряды Charged-карты (0..EDITION.chargeCap). */
+  /** Заряды Charged-карты (0..потолок по тиру, chargeCapForRarity). */
   charges?: number;
   activeHeroes: readonly number[];
   cardRarity: Record<string, Rarity>;
@@ -69,10 +69,10 @@ export function BuildCardInspector({ cardId, rarity, edition, charges = 0, activ
             <span className="edition-badge">{t("edition.charged")}</span>
             <span className="edition-charges">
               {charges > 0 ? `${"⚡".repeat(charges)} ` : ""}
-              {`${charges}/${EDITION.chargeCap}`}
+              {`${charges}/${chargeCapForRarity(item ? rarity : null)}`}
               {charges > 0 && ` · ×${chargeFactor(charges).toFixed(1)}`}
             </span>
-            <small>{t("edition.chargedHint", { bonus: Math.round(EDITION.chargeBonus * 100), cap: EDITION.chargeCap })}</small>
+            <small>{t("edition.chargedHint", { bonus: Math.round(EDITION.chargeBonus * 100), cap: chargeCapForRarity(item ? rarity : null) })}</small>
           </p>
         )}
         <p className="build-card-inspector__desc">

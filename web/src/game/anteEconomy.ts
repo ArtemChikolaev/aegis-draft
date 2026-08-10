@@ -13,7 +13,7 @@
 // Редкость героев остаётся отдельным срезом 3b.
 import { Rng } from "./rng.ts";
 import { ACT_LENGTH, placementWorstRank } from "./anteRun.ts";
-import { EDITION, type CardEdition } from "./editions.ts";
+import { chargeCapForRarity, EDITION, type CardEdition } from "./editions.ts";
 import type { PlacementKey } from "./tournament.ts";
 import type { CandidateRef } from "./packs.ts";
 import { TACTIC_IDS, TACTIC_SLOTS, isTacticId } from "./tactics.ts";
@@ -189,7 +189,7 @@ export interface RunEconomyState {
   /** Edition карточки (R13.5): id → "charged". Вторая ось поверх качества, живёт тем же зеркалом,
    *  что cardRarity. Записи нет ⇒ обычная карта. */
   cardEditions: Record<string, CardEdition>;
-  /** Заряды Charged-карт: id → 0..EDITION.chargeCap. Начисляются за пройденный этап с
+  /** Заряды Charged-карт: id → 0..chargeCapOf(id) (потолок по тиру карты). Начисляются за пройденный этап с
    *  ВЫПОЛНЕННЫМ условием карты (accrueCharges), сгорают при поломке условия. */
   cardCharges: Record<string, number>;
   /** Редкость героев забега (heroId → тир), срез 3b. Стартовый драфт весь common (записей нет);
@@ -1220,9 +1220,15 @@ export class RunEconomy {
     for (const id of this.state.equippedTactics) {
       if (editions[id] !== "charged") continue;
       const current = this.state.cardCharges?.[id] ?? 0;
-      next[id] = activeCardIds.has(id) ? Math.min(EDITION.chargeCap, current + 1) : 0;
+      next[id] = activeCardIds.has(id) ? Math.min(this.chargeCapOf(id), current + 1) : 0;
     }
     this.state.cardCharges = next;
+  }
+
+  /** Потолок зарядов карты билда: предмет — по текущему тиру (апгрейд тира поднимает потолок
+   *  на месте, заряды сохраняются), тактика — фикс без тира. */
+  chargeCapOf(cardId: string): number {
+    return chargeCapForRarity(isItemId(cardId) ? this.state.cardRarity?.[cardId] ?? "common" : null);
   }
 
   rarityOf(heroId: number): Rarity {

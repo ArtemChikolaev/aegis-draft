@@ -120,7 +120,7 @@ const ru = {
   "cardTier.exotic": "Экзотическая",
   "cardTier.arcana": "Аркана",
   "edition.charged": "Заряженная",
-  "edition.chargedHint": "+{bonus}% к эффекту за заряд (до {cap}). Заряд — за пройденный этап с выполненным условием; сломанное условие сжигает заряды.",
+  "edition.chargedHint": "+{bonus}% к эффекту за заряд (до {cap}; потолок растёт с тиром предмета). Заряд — за пройденный этап с выполненным условием; сломанное условие сжигает заряды.",
   // R11.7: карточка показывает, КТО из активных героев её включает. Абстрактный список тегов
   // героя был бы шумом — вопрос у игрока конкретный: «сработает или нет».
   "item.match.tag": "Подходят",
@@ -782,7 +782,7 @@ const en: Dictionary = {
   "cardTier.exotic": "Exotic",
   "cardTier.arcana": "Arcana",
   "edition.charged": "Charged",
-  "edition.chargedHint": "+{bonus}% card effect per charge (up to {cap}). Gain a charge for each cleared stage with the condition met; breaking it burns all charges.",
+  "edition.chargedHint": "+{bonus}% card effect per charge (up to {cap}; the cap grows with item tier). Gain a charge for each cleared stage with the condition met; breaking it burns all charges.",
   "item.match.tag": "Matching",
   "item.match.attr": "Matching",
   "item.match.blockers": "Breaks it",

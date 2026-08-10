@@ -12,7 +12,7 @@ import {
   itemLabel,
   itemTier,
 } from "../../game/items.ts";
-import { EDITION } from "../../game/editions.ts";
+import { chargeCapForRarity } from "../../game/editions.ts";
 import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
@@ -863,7 +863,7 @@ export function CampScreen() {
                             {/* Edition (R13.5): бейдж с зарядами; полное правило — в разборе. */}
                             {camp.cardEditions[tacticId] === "charged" && (
                               <span className="edition-badge" data-testid={`build-edition-${tacticId}`}>
-                                ⚡ {t("edition.charged")} {camp.cardCharges[tacticId] ?? 0}/{EDITION.chargeCap}
+                                ⚡ {t("edition.charged")} {camp.cardCharges[tacticId] ?? 0}/{chargeCapForRarity(item ? cardRarity : null)}
                               </span>
                             )}
                           </span>
