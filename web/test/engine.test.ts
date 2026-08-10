@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RunEngine, HERO_TARGET } from "../src/game/engine.ts";
-import { ROLE_SEQUENCE } from "../src/game/packs.ts";
+import { ROLE_SEQUENCE, type Candidate } from "../src/game/packs.ts";
 import type { Role } from "../src/types/data.ts";
 import { loadGameData } from "./helpers/data.ts";
 import { defaultRunConfig } from "./helpers/packs.ts";
@@ -303,6 +303,40 @@ describe("RunEngine формы игроков", () => {
     expect(engine.canSwapReservePlayer(slotIndex, active.player.accountId)).toBe(false);
     // Та же форма повторно не продаётся.
     expect(() => engine.replacePlayer(slotIndex, alternate)).toThrow(/форма/i);
+  });
+
+  it("слабая форма в РЕЗЕРВЕ выметается, когда активной становится сильная (плейтест 2026-08-10)", () => {
+    // Путь бага: X-слабый ушёл в резерв заменой на ДРУГОГО человека, потом куплен X-сильный —
+    // резерв предлагал даунгрейд «X сильный → X слабый» как выбор. Ищем сид, где у активного есть
+    // форма НЕ слабее активной (иначе purge по правилу не обязан сработать).
+    let picked: { engine: RunEngine; slotIndex: number; weak: Candidate; strong: Candidate } | null = null;
+    for (let n = 0; n < 30 && !picked; n++) {
+      const engine = new RunEngine(data, defaultRunConfig, `forms-junk-${n}`);
+      runToEnd(engine);
+      for (const [slotIndex, slot] of engine.rosterView.entries()) {
+        const active = slot.candidate;
+        if (!active) continue;
+        const stronger = engine.marketPlayerCandidates.find((c) =>
+          c.player.accountId === active.player.accountId
+          && c.player.role === slot.role
+          && c.player.ovr >= active.player.ovr);
+        if (stronger) { picked = { engine, slotIndex, weak: active, strong: stronger }; break; }
+      }
+    }
+    expect(picked).not.toBeNull();
+    const { engine, slotIndex, weak, strong } = picked!;
+    // Другой человек той же роли — чтобы отправить слабую форму в резерв «по-честному».
+    const other = engine.marketPlayerCandidates.find((c) =>
+      c.player.accountId !== weak.player.accountId && c.player.role === weak.player.role);
+    expect(other).toBeDefined();
+
+    engine.replacePlayer(slotIndex, other!);
+    expect(engine.reservePlayers.some((c) => c.player.accountId === weak.player.accountId)).toBe(true);
+
+    engine.replacePlayer(slotIndex, strong);
+    // Слабой формы теперь активного человека в резерве больше нет; вытесненный «другой» — есть.
+    expect(engine.reservePlayers.filter((c) => c.player.accountId === weak.player.accountId)).toHaveLength(0);
+    expect(engine.reservePlayers.some((c) => c.player.accountId === other!.player.accountId)).toBe(true);
   });
 
   it("Form Upgrade сохраняет назначенного героя, обычная замена — нет", () => {

@@ -309,8 +309,13 @@ export class RunEngine {
     // Скамейка держит не больше ОДНОЙ формы на человека: резерв адресуется по accountId (в т.ч. в
     // логе действий), и выбор «какую именно» иначе стал бы недетерминированным. Апгрейд формы
     // просто ничего не кладёт обратно.
+    // Слабая форма ВХОДЯЩЕГО человека выметается тоже (плейтест 2026-08-10): она могла попасть в
+    // резерв раньше — заменой на другого человека, — и тогда резерв предлагал даунгрейд
+    // «Satanic 95 → Satanic 88» как выбор. По правилу R14.9 слабая форма активного человека —
+    // мусор, а не опция. Более сильная форма на скамейке (теоретический случай) не трогается.
     this.benchPlayers = this.benchPlayers
-      .filter((c) => c.player.accountId !== outgoing.player.accountId)
+      .filter((c) => c.player.accountId !== outgoing.player.accountId
+        && !(c.player.accountId === incoming.player.accountId && c.player.ovr <= incoming.player.ovr))
       .concat(formUpgrade ? [] : [outgoing]);
     this.usedPlayers.add(incoming.player.accountId);
     this.seenSnapshots.add(snapshotKey(incoming));
