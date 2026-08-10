@@ -64,6 +64,13 @@ export function BuildCardInspector({ cardId, rarity, edition, charges = 0, activ
         </div>
         {/* Edition — вторая ось (R13.5): бейдж + заряды + правило. Рамку не красим — цвет рамки
             принадлежит качеству. */}
+        {/* Tempered (LG4): защита от штрафа босса, пока условие карты работает. */}
+        {edition === "tempered" && (
+          <p className="build-card-inspector__edition" data-testid="card-edition">
+            <span className="edition-badge edition-badge--tempered">🛡 {t("edition.tempered")}</span>
+            <small>{t("edition.temperedHint", { pct: Math.round((1 - EDITION.tempered.penaltyFactor) * 100) })}</small>
+          </p>
+        )}
         {edition === "charged" && (
           <p className="build-card-inspector__edition" data-testid="card-edition">
             <span className="edition-badge">{t("edition.charged")}</span>

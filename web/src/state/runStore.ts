@@ -408,8 +408,12 @@ export const useRun = create<RunStore>((set, get) => {
       // герое» определены там ровно один раз, и второй копии этой величины быть не должно.
       assignedHeroGames: tacticContext()?.players.map((player) => player.assignedHeroGames) ?? [],
     });
-    // Предметы-защита смягчают штраф, но не отменяют правило (R8.3).
-    return { ...raw, penalty: protectedBossPenalty(raw.penalty, items) };
+    // Предметы-защита смягчают штраф, но не отменяют правило (R8.3); Tempered-карты (LG4) —
+    // та же роль от Edition: активность judged теми же activeCardIds, что заряды и рейл.
+    const editions = economy?.cardEditions ?? {};
+    const activeTempered = [...activeCardIds(tactics, items)]
+      .filter((id) => editions[id] === "tempered").length;
+    return { ...raw, penalty: protectedBossPenalty(raw.penalty, items, activeTempered) };
   };
   /** Боссы Буткемпа: правило ПРЕДСТОЯЩЕГО этапа + разведанный босс следующего боссового турнира.
    *  Разведка (R9.4) обязана раскрывать то, чего ещё не видно, поэтому смотрит строго ДАЛЬШЕ

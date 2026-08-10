@@ -17,7 +17,7 @@ import { RunEconomy } from "../src/game/anteEconomy.ts";
 import type { Offer } from "../src/game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../src/game/tactics.ts";
-import { runModifiers, stageStrength as runStageStrength, evaluateRunPower } from "../src/game/runStrength.ts";
+import { activeCardIds, runModifiers, stageStrength as runStageStrength, evaluateRunPower } from "../src/game/runStrength.ts";
 import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
 import { upgradeCost } from "../src/game/heroRarity.ts";
@@ -47,7 +47,8 @@ function tacticsOf(engine: RunEngine, economy: RunEconomy): TacticEvaluation | n
   const score = engine.score();
   if (!score || economy.equippedTactics.length === 0) return null;
   const ctx = buildTacticContext(engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex);
-  return evaluateTactics(economy.equippedTactics, ctx);
+  // Заряды Charged (R13.5) — как в игре: без них sweep номинировал бы сиды по заниженной силе.
+  return evaluateTactics(economy.equippedTactics, ctx, economy.cardCharges);
 }
 
 function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEvaluation | null) {
@@ -60,7 +61,9 @@ function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEv
 }
 
 function itemsOf(engine: RunEngine, economy: RunEconomy) {
-  return evaluateItems(economy.equippedTactics, { activeHeroes: engine.heroes, cardRarity: economy.cardRarity });
+  return evaluateItems(economy.equippedTactics, {
+    activeHeroes: engine.heroes, cardRarity: economy.cardRarity, cardCharges: economy.cardCharges,
+  });
 }
 
 function bossPenalty(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number, bossId: BossId | null): number {
@@ -69,6 +72,7 @@ function bossPenalty(engine: RunEngine, economy: RunEconomy, seed: string, stage
   const tactics = tacticsOf(engine, economy);
   const mods = runModifiers(strengthInput(engine, economy, tactics));
   const raw = evaluateBoss(bossId, {
+    seed,
     absoluteStageIndex: stageIndex,
     base: score.base + mods.base,
     heroSynergy: score.heroSynergy + mods.heroSynergy,
@@ -80,7 +84,10 @@ function bossPenalty(engine: RunEngine, economy: RunEconomy, seed: string, stage
       engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
     ).players.map((player) => player.assignedHeroGames),
   }).penalty;
-  return protectedBossPenalty(raw, itemsOf(engine, economy));
+  const items = itemsOf(engine, economy);
+  const editions = economy.cardEditions;
+  const activeTempered = [...activeCardIds(tactics, items)].filter((id) => editions[id] === "tempered").length;
+  return protectedBossPenalty(raw, items, activeTempered);
 }
 
 function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number): number {
@@ -106,6 +113,7 @@ function currentPower(engine: RunEngine, economy: RunEconomy): number {
     economy: economy.modifiers(),
     equippedCards: economy.equippedTactics,
     cardRarity: economy.cardRarity,
+    cardCharges: economy.cardCharges,
   }).power.total;
 }
 
@@ -137,6 +145,7 @@ function offerDelta(engine: RunEngine, economy: RunEconomy, offer: Offer): numbe
     economy: economy.modifiers(),
     equippedCards: economy.equippedTactics,
     cardRarity: economy.cardRarity,
+    cardCharges: economy.cardCharges,
   }).power.total;
   return after - currentPower(engine, economy);
 }

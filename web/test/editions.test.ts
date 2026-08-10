@@ -1,6 +1,7 @@
 // Editions (R13.5): Charged — заряды за этапы с выполненным условием, +bonus к эффекту карты.
 import { describe, expect, it } from "vitest";
-import { chargeCapForRarity, chargeFactor, EDITION, MAX_CHARGE_CAP } from "../src/game/editions.ts";
+import { chargeCapForRarity, chargeFactor, EDITION, MAX_CHARGE_CAP, temperedPenaltyFactor } from "../src/game/editions.ts";
+import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
 import { evaluateItems } from "../src/game/items.ts";
 import { evaluateTactics, TACTICS, type TacticContext, type TacticPlayer } from "../src/game/tactics.ts";
 import { RunEconomy, rewardOffers } from "../src/game/anteEconomy.ts";
@@ -133,6 +134,64 @@ describe("RunEconomy: заряды и Edition", () => {
     const legacyEconomy = new RunEconomy("edition-test", legacy);
     expect(legacyEconomy.cardEditions).toEqual({});
     expect(legacyEconomy.cardCharges).toEqual({});
+  });
+});
+
+describe("Tempered (LG4): защита от штрафа босса", () => {
+  it("temperedPenaltyFactor: множитель за каждую активную карту, 1 при нуле", () => {
+    expect(temperedPenaltyFactor(0)).toBe(1);
+    expect(temperedPenaltyFactor(1)).toBeCloseTo(EDITION.tempered.penaltyFactor);
+    expect(temperedPenaltyFactor(2)).toBeCloseTo(EDITION.tempered.penaltyFactor ** 2);
+    expect(temperedPenaltyFactor(-3)).toBe(1);
+  });
+
+  it("protectedBossPenalty применяет Tempered вместе с предметной защитой", () => {
+    const noItems = evaluateItems([], { activeHeroes: [], cardRarity: {}, cardCharges: {} });
+    expect(protectedBossPenalty(6, noItems, 0)).toBe(6);
+    expect(protectedBossPenalty(6, noItems, 1)).toBeCloseTo(6 * EDITION.tempered.penaltyFactor);
+    expect(protectedBossPenalty(-2, noItems, 1)).toBe(0); // отрицательный штраф клампится до нуля
+  });
+
+  it("дроп Tempered: подпоток не сдвигает charged-исходы и реально встречается", () => {
+    const dropStage = ACT_LENGTH * (EDITION.minAct - 1);
+    let charged = 0;
+    let tempered = 0;
+    for (let stage = dropStage; stage < dropStage + 60; stage += 1) {
+      const card = rewardOffers("edition-seed", stage, []).find((o) => o.cardId != null);
+      if (card?.cardEdition === "charged") charged += 1;
+      if (card?.cardEdition === "tempered") tempered += 1;
+    }
+    // Charged на том же сиде выпадает по-прежнему (его поток не тронут), Tempered — появился.
+    expect(charged).toBeGreaterThan(0);
+    expect(tempered).toBeGreaterThan(0);
+  });
+
+  it("accrueCharges игнорирует Tempered: защитная ось зарядов не копит", () => {
+    const economy = new RunEconomy("tempered-test");
+    const state = economy.snapshot;
+    state.equippedTactics = ["noSuperstars"];
+    state.cardEditions = { noSuperstars: "tempered" };
+    const withCard = new RunEconomy("tempered-test", state);
+    withCard.accrueCharges(new Set(["noSuperstars"]));
+    expect(withCard.cardCharges.noSuperstars).toBeUndefined();
+  });
+
+  it("chooseReward фиксирует Tempered из оффера", () => {
+    const dropStage = ACT_LENGTH * (EDITION.minAct - 1);
+    for (let stage = dropStage; stage < dropStage + 80; stage += 1) {
+      const offers = rewardOffers("edition-seed", stage, []);
+      const card = offers.find((o) => o.cardEdition === "tempered");
+      if (!card || (card.kind !== "tactic" && card.kind !== "item")) continue;
+      const economy = new RunEconomy("edition-seed");
+      const state = economy.snapshot;
+      state.campStageIndex = stage;
+      state.inCamp = true;
+      const inCamp = new RunEconomy("edition-seed", state);
+      expect(inCamp.chooseReward(card.id)).toBe(true);
+      expect(inCamp.cardEditions[card.cardId!]).toBe("tempered");
+      return;
+    }
+    throw new Error("не нашлось Tempered-награды в диапазоне — ослаблен дроп?");
   });
 });
 

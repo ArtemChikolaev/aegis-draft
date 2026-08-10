@@ -131,18 +131,18 @@ describe("Вклад предметов", () => {
 describe("Защита от босса", () => {
   it("смягчает штраф, но не отменяет правило", () => {
     const bkb = evaluateItems(["blackKingBar"], { activeHeroes: [], cardRarity: {} });
-    const protectedPenalty = protectedBossPenalty(6, bkb);
+    const protectedPenalty = protectedBossPenalty(6, bkb, 0);
     expect(protectedPenalty).toBeGreaterThan(0);
     expect(protectedPenalty).toBeLessThan(6);
   });
 
   it("потолок ограничивает даже большой штраф", () => {
     const linkens = evaluateItems(["linkensSphere"], { activeHeroes: [], cardRarity: {} });
-    expect(protectedBossPenalty(99, linkens)).toBe(2);
+    expect(protectedBossPenalty(99, linkens, 0)).toBe(2);
   });
 
   it("нулевой штраф остаётся нулевым", () => {
-    expect(protectedBossPenalty(0, evaluateItems(["blackKingBar"], { activeHeroes: [], cardRarity: {} }))).toBe(0);
+    expect(protectedBossPenalty(0, evaluateItems(["blackKingBar"], { activeHeroes: [], cardRarity: {} }), 0)).toBe(0);
   });
 });
 

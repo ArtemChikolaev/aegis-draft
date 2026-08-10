@@ -106,7 +106,12 @@ function bossPenalty(
     ).players.map((player) => player.assignedHeroGames),
   }).penalty;
   // Защита предметами — как в игре (R8.3), иначе симулятор мерил бы более тяжёлых боссов.
-  return protectedBossPenalty(raw, itemsOf(engine, economy));
+  // Tempered (LG4): активность — те же activeCardIds, что заряды; сим обязан судить как store.
+  const items = itemsOf(engine, economy);
+  const editions = economy.cardEditions;
+  const activeTempered = [...activeCardIds(tacticsOf(engine, economy), items)]
+    .filter((id) => editions[id] === "tempered").length;
+  return protectedBossPenalty(raw, items, activeTempered);
 }
 
 /** Вклад экипированных предметов при текущем ростере. Тир карточек обязателен: без него симулятор
@@ -346,6 +351,8 @@ interface RunResult {
   chargedTaken: number;
   chargesEnd: number;
   chargedActiveStages: number;
+  /** Tempered (LG4): сколько защитных карт стоит в билде к концу забега. */
+  temperedTaken: number;
 }
 
 function greedyDraft(engine: RunEngine): void {
@@ -705,6 +712,7 @@ function editionStats(economy: RunEconomy, chargedActiveStages: number) {
     chargedTaken: equippedCharged.length,
     chargesEnd: equippedCharged.reduce((sum, id) => sum + (charges[id] ?? 0), 0),
     chargedActiveStages,
+    temperedTaken: economy.equippedTactics.filter((id) => editions[id] === "tempered").length,
   };
 }
 
@@ -760,7 +768,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
   let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0;
   let preps = 0; let bossRerolls = 0; let trades = 0;
   let runsWithCharged = 0; let chargedTakenSum = 0; let chargesSum = 0;
-  let chargedActiveSum = 0; let chargedStagesSum = 0;
+  let chargedActiveSum = 0; let chargedStagesSum = 0; let runsWithTempered = 0; let temperedTakenSum = 0;
 
   for (let i = 0; i < seeds; i += 1) {
     const result = playRun(`sim-${i}`, agent, season, dynasty);
@@ -772,6 +780,10 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
       chargesSum += result.chargesEnd;
       chargedActiveSum += result.chargedActiveStages;
       chargedStagesSum += result.stage + 1;
+    }
+    if (result.temperedTaken > 0) {
+      runsWithTempered += 1;
+      temperedTakenSum += result.temperedTaken;
     }
     // Смерть в Династии (глубина > 0): причина — правило босса или само поле (LG5).
     if (result.outcome === "lost" && result.stage + 1 > season.stages.length) {
@@ -819,12 +831,14 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
     tactics: played ? tactics / played : 0,
     lostUnderBoss: played ? bossDeaths / played : 0,
     podium: played ? podium / played : 0,
-    editions: runsWithCharged
+    editions: runsWithCharged || runsWithTempered
       ? {
         runsWithCharged,
-        avgTaken: chargedTakenSum / runsWithCharged,
+        avgTaken: runsWithCharged ? chargedTakenSum / runsWithCharged : 0,
         avgCharges: chargedTakenSum ? chargesSum / chargedTakenSum : 0,
         activeShare: chargedStagesSum ? chargedActiveSum / chargedStagesSum : 0,
+        runsWithTempered,
+        avgTempered: runsWithTempered ? temperedTakenSum / runsWithTempered : 0,
       }
       : null,
     dynasty: dynastyDepths.length
@@ -896,13 +910,14 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
   }
   // Editions (LG5): играет ли Charged вообще — без этого калибровка dropChance/bonus слепа.
   if (reports.some((r) => r.editions)) {
-    console.log("\nEditions (по забегам с хотя бы одной Charged): забегов · Charged в билде · заряды/карту · этапов с активной");
+    console.log("\nEditions: забегов с Charged · Charged в билде · заряды/карту · этапов с активной · забегов с Tempered · Tempered в билде");
     for (const r of reports) {
       if (!r.editions) continue;
       console.log(
         `${r.agent.padEnd(15)}${String(r.editions.runsWithCharged).padStart(3)}`
         + ` · ${r.editions.avgTaken.toFixed(2)} · ${r.editions.avgCharges.toFixed(2)}`
-        + ` · ${pct(r.editions.activeShare)}`,
+        + ` · ${pct(r.editions.activeShare)}`
+        + ` · ${String(r.editions.runsWithTempered).padStart(3)} · ${r.editions.avgTempered.toFixed(2)}`,
       );
     }
   }

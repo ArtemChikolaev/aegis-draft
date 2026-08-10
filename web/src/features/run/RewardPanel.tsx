@@ -73,9 +73,12 @@ export function RewardPanel({ camp, chosenReward, effectRows, onChoose }: {
                     )}
                     {/* Edition (R13.5): редкая находка поздних актов — бейдж, не рамка (цвет
                         рамки принадлежит качеству). */}
-                    {offer.cardEdition === "charged" && (
-                      <span className="edition-badge" data-testid="reward-edition">
-                        ⚡ {t("edition.charged")}
+                    {offer.cardEdition && (
+                      <span
+                        className={`edition-badge${offer.cardEdition === "tempered" ? " edition-badge--tempered" : ""}`}
+                        data-testid="reward-edition"
+                      >
+                        {offer.cardEdition === "charged" ? "⚡" : "🛡"} {t(`edition.${offer.cardEdition}` as MessageKey)}
                       </span>
                     )}
                   </span>

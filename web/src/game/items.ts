@@ -28,7 +28,7 @@ import {
 } from "./heroTags.ts";
 import { POWER_LIMITS } from "./tournamentPower.ts";
 import { RARITIES, rarityRank, type Rarity } from "./rarity.ts";
-import { chargeFactor } from "./editions.ts";
+import { chargeFactor, temperedPenaltyFactor } from "./editions.ts";
 
 export type ItemCategory =
   | "tagSynergy"
@@ -645,7 +645,13 @@ export function validateItems(): string[] {
 /** Штраф босса после защиты предметами: сначала множитель, затем абсолютный потолок.
  *  Предметы СМЯГЧАЮТ правило, но не отменяют его — босс обязан оставаться поводом
  *  перестроить состав, а не строкой, которую можно выключить покупкой (PRD §5.9.3). */
-export function protectedBossPenalty(penalty: number, items: ItemEvaluation): number {
-  const scaled = Math.max(0, penalty) * items.bossPenaltyFactor;
+export function protectedBossPenalty(
+  penalty: number,
+  items: ItemEvaluation,
+  /** Число АКТИВНЫХ Tempered-карт (LG4). Обязателен по уроку cardRarity: опциональный контекст
+   *  однажды разъехался между потребителями — store, sim и sweep обязаны судить одинаково. */
+  activeTempered: number,
+): number {
+  const scaled = Math.max(0, penalty) * items.bossPenaltyFactor * temperedPenaltyFactor(activeTempered);
   return items.bossPenaltyCap == null ? scaled : Math.min(scaled, items.bossPenaltyCap);
 }

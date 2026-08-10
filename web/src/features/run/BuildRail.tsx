@@ -127,6 +127,10 @@ export function BuildRail({ cards, slots, testId, activeHeroes, cardRarity, cont
             {card.edition === "charged" && (
               <i className="build-rail__charges" aria-hidden="true">{card.charges || "⚡"}</i>
             )}
+            {/* Tempered (LG4): щит без счётчика — у защитной оси нет накопления. */}
+            {card.edition === "tempered" && (
+              <i className="build-rail__charges build-rail__charges--tempered" aria-hidden="true">🛡</i>
+            )}
           </button>
         );
       })}

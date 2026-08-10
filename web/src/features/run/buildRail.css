@@ -100,6 +100,11 @@
   font-weight: 800;
   line-height: 1;
 }
+/* Tempered (LG4): щит-пипс защитной Edition — свой токен, без счётчика. */
+.build-rail__charges--tempered {
+  background: var(--edition-tempered);
+  color: var(--edition-tempered-ink);
+}
 
 /* На всегда-тёмной панели радара (`.on-invert-surface`) базовые токены поверхности читаются как
    светлые пятна. Ремапим их инвертными — по правилу design-language «никаких тема-селекторов в

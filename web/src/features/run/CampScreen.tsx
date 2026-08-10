@@ -884,10 +884,15 @@ export function CampScreen() {
                                 showBase
                               />
                             )}
-                            {/* Edition (R13.5): бейдж с зарядами; полное правило — в разборе. */}
+                            {/* Edition (R13.5/LG4): бейдж; полное правило — в разборе. */}
                             {camp.cardEditions[tacticId] === "charged" && (
                               <span className="edition-badge" data-testid={`build-edition-${tacticId}`}>
                                 ⚡ {t("edition.charged")} {camp.cardCharges[tacticId] ?? 0}/{chargeCapForRarity(item ? cardRarity : null)}
+                              </span>
+                            )}
+                            {camp.cardEditions[tacticId] === "tempered" && (
+                              <span className="edition-badge edition-badge--tempered" data-testid={`build-edition-${tacticId}`}>
+                                🛡 {t("edition.tempered")}
                               </span>
                             )}
                           </span>

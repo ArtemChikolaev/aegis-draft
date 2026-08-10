@@ -118,6 +118,9 @@
   --edition-charged: #4fd8ff;
   /* Текст на заливке цвета заряда (пипс счётчика). */
   --edition-charged-ink: #08222e;
+  /* Tempered (LG4) — защитная Edition: стальной, заметно отличим от кибер-циана заряда. */
+  --edition-tempered: #b9c8dd;
+  --edition-tempered-ink: #131c28;
   --route-ub: var(--tier-elite);
   --route-lb: var(--tier-mid);
   --route-out: var(--tier-weak);

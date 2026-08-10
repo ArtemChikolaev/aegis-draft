@@ -563,7 +563,11 @@ function rollCardEdition(
   const eligible = kind === "tactic" || (kind === "item" && hasPowerEffect(cardId));
   if (!eligible) return {};
   const rng = new Rng(`${seed}:camp-${campStageIndex}:edition`);
-  return rng.float() < EDITION.dropChance ? { cardEdition: "charged" } : {};
+  if (rng.float() < EDITION.dropChance) return { cardEdition: "charged" };
+  // Tempered (LG4): ролл ТОЛЬКО при не выпавшем Charged и на СВОЁМ подпотоке — charged-исходы
+  // существующих сидов не сдвигаются ни на один вызов Rng.
+  const temperedRng = new Rng(`${seed}:camp-${campStageIndex}:edition-t`);
+  return temperedRng.float() < EDITION.tempered.dropChance ? { cardEdition: "tempered" } : {};
 }
 
 /** Три reward-оффера Буткемпа (детерминированы по seed+campId): мелкое золото, крупное золото

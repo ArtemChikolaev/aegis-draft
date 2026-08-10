@@ -13,7 +13,7 @@
 // Визуальная ось (R13): редкость владеет ЦВЕТОМ рамки, Edition — бейджем/материалом. Не рамкой.
 import { rarityRank, type Rarity } from "./rarity.ts";
 
-export type CardEdition = "charged";
+export type CardEdition = "charged" | "tempered";
 
 /** Числа Editions (часть BALANCE_CONFIG_VERSION — правишь, бампай версию в balance.ts).
  *  Placeholder до калибровки симулятором (R10). */
@@ -24,8 +24,21 @@ export const EDITION = {
   chargeBonus: 0.2,
   /** Шанс, что карточная награда придёт Charged (отдельный Rng-поток, см. cardOffer). */
   dropChance: 0.3,
-  /** С какого акта Charged появляется в дропе: поздняя ось роста, а не ранняя удача. */
+  /** С какого акта Editions появляются в дропе: поздняя ось роста, а не ранняя удача. */
   minAct: 3,
+  /** Tempered (LG4, решение 2026-08-11) — вторая Edition, ЗАЩИТНАЯ ось: пока карта экипирована и
+   *  её условие РАБОТАЕТ (та же семантика активности, что у зарядов, — activeCardIds), штраф
+   *  босса этапа умножается на penaltyFactor за каждую активную Tempered-карту (мультипликативный
+   *  стак). Отличие от BKB/Linkens: те — предметы и занимают слот, Edition — свойство уже
+   *  стоящей карты. Прямой ответ на «смерть под боссом» и мутатор uncappedBoss (LG3).
+   *  Ролл — ПОДПОТОК `:edition-t`, только если карта не выпала Charged: charged-исходы
+   *  существующих сидов не сдвигаются. */
+  tempered: {
+    /** Шанс Tempered при НЕ выпавшем Charged (условная вероятность второго ролла). */
+    dropChance: 0.25,
+    /** Множитель штрафа босса за одну активную Tempered-карту. */
+    penaltyFactor: 0.7,
+  },
 } as const;
 
 /** Абсолютный максимум зарядов — страховочный кламп множителя. */
@@ -41,4 +54,9 @@ export function chargeCapForRarity(rarity: Rarity | null): number {
  *  начислении (accrueCharges); здесь только страховочный кламп. */
 export function chargeFactor(charges: number): number {
   return 1 + EDITION.chargeBonus * Math.max(0, Math.min(MAX_CHARGE_CAP, charges));
+}
+
+/** Множитель штрафа босса от активных Tempered-карт: penaltyFactor^n, 1 при нуле. */
+export function temperedPenaltyFactor(activeTempered: number): number {
+  return EDITION.tempered.penaltyFactor ** Math.max(0, activeTempered);
 }
