@@ -381,18 +381,25 @@ function heroOptions(
   // Качество детерминировано по (seed, heroId, stage), поэтому фильтр устойчив к рероллу.
   const remaining = engine.marketHeroCandidatePool.filter((entry) => !active.has(entry.heroId)
     || rarityRank(incomingRarityOf(entry.heroId)) > rarityRank(rarityOf(entry.heroId)));
-  if (engine.heroes.length !== ROLE_SEQUENCE.length || remaining.length < ROLE_SEQUENCE.length) {
+  if (engine.heroes.length !== ROLE_SEQUENCE.length) {
     throw new Error(
-      `Нельзя собрать hero market pack: нужно ${ROLE_SEQUENCE.length} активных героев и столько же `
-      + `доступных в рулетке (активных ${engine.heroes.length}, доступно ${remaining.length})`,
+      `Нельзя собрать hero market pack: нужно ${ROLE_SEQUENCE.length} активных героев `
+      + `(активных ${engine.heroes.length})`,
     );
   }
+  // Пул МЕНЬШЕ пака — штатное состояние глубокой Династии, а не сбой: пул вычерпывается по
+  // построению (R14.8 — достигший потолка герой уходит из рулетки навсегда). Прежний throw
+  // ронял открытие лагеря на глубине 25+ этапов (найдено LG5-базлайном сима). Пак честно
+  // сжимается вплоть до пустого: рынок героев закончился — это конец оси, о котором поздняя
+  // игра (R12.6) и говорит.
+  const effectiveSize = Math.min(packSize, remaining.length);
+  if (effectiveSize === 0) return [];
   const kept: HeroCard[] = [];
   const rejected: HeroCard[] = [];
   // Оцениваем лениво и останавливаемся, набрав пак: каждая оценка — пять полных scoreTeam с
   // matching, поэтому весь пул на каждый реролл не перебираем.
   const drawLimit = Math.min(remaining.length, packSize * HERO_POOL.drawFactor);
-  for (let draw = 0; draw < drawLimit && kept.length < packSize; draw += 1) {
+  for (let draw = 0; draw < drawLimit && kept.length < effectiveSize; draw += 1) {
     const incomingHeroId = drawWeighted(remaining, rng);
     if (incomingHeroId == null) break;
     const incomingRarity = incomingRarityOf(incomingHeroId);
@@ -416,8 +423,8 @@ function heroOptions(
     const card = { option, incomingRarity, ovrDelta: option.preview.teamOvr - beforeOvr + rarityShift };
     (card.ovrDelta >= -HERO_FLOOR.maxLossOvr ? kept : rejected).push(card);
   }
-  if (kept.length < packSize) {
-    const need = packSize - kept.length;
+  if (kept.length < effectiveSize) {
+    const need = effectiveSize - kept.length;
     // Добор обязан зависеть от реролла (R12.1). Одной широкой выборки для этого НЕ достаточно: когда
     // пул меньше `drawLimit`, рулетка вытягивает его целиком, и детерминированный `sort().slice()`
     // снова вернул бы тот же набор. Поэтому берём верхушку отсеянных с запасом и выбираем из неё
