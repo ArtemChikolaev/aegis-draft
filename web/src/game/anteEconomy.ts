@@ -12,7 +12,7 @@
 // в одном месте (кандидат в balanceConfigVersion, точная калибровка — §10.F, после T6.3).
 // Редкость героев остаётся отдельным срезом 3b.
 import { Rng } from "./rng.ts";
-import { ACT_LENGTH, placementWorstRank } from "./anteRun.ts";
+import { ACT_LENGTH, marketCostFactor, placementWorstRank } from "./anteRun.ts";
 import { chargeCapForRarity, EDITION, type CardEdition } from "./editions.ts";
 import type { PlacementKey } from "./tournament.ts";
 import type { CandidateRef } from "./packs.ts";
@@ -604,11 +604,14 @@ export function rewardOffers(
  *  осмыслен (гэмбл на лучшие офферы). Детерминизм по seed+campId+rerollN. */
 export function marketOffers(seed: string, campStageIndex: number, rerollN: number): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:market-${rerollN}`);
+  // Мутатор круга expensiveMarket (LG3) применяется на ГЕНЕРАЦИИ: превью, покупка и сим
+  // обязаны читать одну цену. Rng не трогает — набор офферов тот же, дороже только ценник.
+  const costFactor = marketCostFactor(seed, campStageIndex);
   return MARKET_SUMMANDS.map((summand) => {
     const cfg = ECONOMY.levers[summand];
     const bonus = rng.int(3); // 0..2 ступени качества
     const delta = cfg.delta + bonus * cfg.step;
-    const cost = cfg.cost + bonus * cfg.costStep;
+    const cost = Math.round((cfg.cost + bonus * cfg.costStep) * costFactor);
     const effect: StatEffect = cfg.tradeoff
       ? { summand, delta, tradeoffSummand: cfg.tradeoff.summand, tradeoffDelta: cfg.tradeoff.delta }
       : { summand, delta };

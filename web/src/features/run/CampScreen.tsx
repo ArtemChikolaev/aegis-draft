@@ -12,6 +12,8 @@ import {
   itemLabel,
   itemTier,
 } from "../../game/items.ts";
+import { mutatorForStage } from "../../game/anteRun.ts";
+import { mutatorDescParams } from "../../game/dynastyMutators.ts";
 import { chargeCapForRarity } from "../../game/editions.ts";
 import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
@@ -91,6 +93,9 @@ import "./camp.css";
 export function CampScreen() {
   const camp = useRun((s) => s.camp);
   const ante = useRun((s) => s.ante);
+  const seed = useRun((s) => s.seed);
+  // Мутатор круга предстоящего этапа (LG3): внутри сезона null, строка не рендерится.
+  const campMutator = ante ? mutatorForStage(seed, ante.index) : null;
   const snapshot = useRun((s) => s.snapshot);
   const data = useRun((s) => s.data);
   const config = useRun((s) => s.config);
@@ -606,6 +611,16 @@ export function CampScreen() {
             <StageKindBadge kind={ante.kind} />
             {" · "}{nextLabel}
           </p>
+          {/* Мутатор круга Династии (LG3): правило поверх всех этапов круга, та же видимость
+              заранее, что у боссов, — готовиться к нему (trade-in, re-pick, накопления) и есть
+              работа поздних лагерей. Показывается в каждом лагере круга, а не один раз. */}
+          {campMutator && (
+            <p className="camp__mutator" data-testid="camp-mutator">
+              ☄ <b>{t(`mutator.${campMutator}` as MessageKey)}</b>
+              {" — "}
+              {t(`mutator.desc.${campMutator}` as MessageKey, mutatorDescParams(campMutator))}
+            </p>
+          )}
           {/* Автоматическая выплата показывается разложенной: иначе «проценты за накопление»
               невидимы, и решение «потратить сейчас против накопить» не читается. Премия за место
               (R6.4) — отдельной строкой по той же причине: с чемпионством как наградой вместо

@@ -659,6 +659,15 @@
   font-weight: 700;
 }
 .camp__milestone b { color: var(--gold); }
+/* Мутатор круга Династии (LG3) — правило поверх всех этапов круга: строка-предупреждение под
+   заголовком этапа, видна в каждом лагере круга. Опасность, а не праздник — цвет danger. */
+.camp__mutator {
+  margin: 4px 0 0;
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+.camp__mutator b { font-weight: 700; }
 .camp__perk {
   margin: 0;
   font-size: 11px;

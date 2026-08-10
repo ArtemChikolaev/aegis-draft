@@ -19,7 +19,7 @@
 //   NOEDITIONS=1 npm run sim -- 400    без зарядов Editions (эквивалент b1.26) — для A/B
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
-import { ACT_LENGTH, AnteRunEngine, buildSeason, grantsDynastyTitle, SEASON, seasonStage, type SeasonModel } from "../src/game/anteRun.ts";
+import { ACT_LENGTH, AnteRunEngine, buildSeason, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, SEASON, type SeasonModel } from "../src/game/anteRun.ts";
 import {
   ECONOMY,
   RunEconomy,
@@ -92,6 +92,7 @@ function bossPenalty(
   const score = engine.score();
   if (!score || !bossId) return 0;
   const raw = evaluateBoss(bossId, {
+    seed,
     absoluteStageIndex: stageIndex,
     base: score.base + mods.base,
     heroSynergy: score.heroSynergy + mods.heroSynergy,
@@ -540,7 +541,11 @@ function shopCamp(
         economy.rollHeroRarity(offer.heroSwap.incomingHeroId, economy.snapshot.campStageIndex);
       }
       buys += 1;
-      economy.replacePreparedMarketOffers(refreshAnteMarketOffers(engine, economy.campView().marketOffers));
+      economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
+        engine,
+        economy.campView().marketOffers,
+        marketCostFactor(seed, economy.snapshot.campStageIndex, season),
+      ));
     } catch { break; }
   }
   return { buys, rerolls, qualityUpgrades, trades };
@@ -650,7 +655,9 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
       if ([...active].some((id) => editions[id] === "charged")) chargedActiveStages += 1;
       economy.accrueCharges(active);
     }
-    economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1, season).target);
+    // Эффективный порог (мутатор круга LG3) — как в игре: премия за место судит по тому же
+    // порогу, по которому этап был пройден.
+    economy.awardStageClear(campId, anteRun.state.lastPlacement, effectiveStageTarget(seed, campId - 1, season));
     // Титул Династии — по тому же правилу, что и в игре (общая grantsDynastyTitle): иначе
     // симулятор мерил бы Династию без её единственной награды.
     if (grantsDynastyTitle(campId - 1, season)) economy.awardDynastyTitle(campId);

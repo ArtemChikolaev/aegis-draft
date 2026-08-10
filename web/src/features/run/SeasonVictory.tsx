@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { AnteRunState } from "../../game/anteRun.ts";
+import { mutatorForStage, type AnteRunState } from "../../game/anteRun.ts";
+import { mutatorDescParams } from "../../game/dynastyMutators.ts";
 import { isItemId, itemTier } from "../../game/items.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -32,6 +33,10 @@ export function SeasonVictory({ ante, heroRarity, cards, cardRarity, power, chea
   const hero = useHero();
   const heroes = useRun((state) => state.snapshot?.heroes ?? []);
   const continueDynasty = useRun((state) => state.continueDynasty);
+  const seed = useRun((state) => state.seed);
+  // Мутатор ПЕРВОГО круга Династии (LG3) объявляется на входе: выбор «продолжать или нет»
+  // делается с открытым правилом, как у боссов. Первый этап Династии = ante.count.
+  const firstCircleMutator = mutatorForStage(seed, ante.count);
 
   return (
     <Surface className="season-victory enter" data-testid="season-victory">
@@ -105,6 +110,14 @@ export function SeasonVictory({ ante, heroRarity, cards, cardRarity, power, chea
               {t("ante.dynastyFinish")}
             </Button>
             <p className="season-victory__hint">{t("ante.dynastyHint")}</p>
+            {firstCircleMutator && (
+              <p className="season-victory__hint season-victory__mutator" data-testid="dynasty-mutator">
+                ☄ {t("mutator.announce")}{" "}
+                <b>{t(`mutator.${firstCircleMutator}` as MessageKey)}</b>
+                {" — "}
+                {t(`mutator.desc.${firstCircleMutator}` as MessageKey, mutatorDescParams(firstCircleMutator))}
+              </p>
+            )}
           </>
         )}
       </div>

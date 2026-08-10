@@ -15,6 +15,7 @@ import { EDITION } from "./editions.ts";
 import { TACTICS, TACTIC_SLOTS } from "./tactics.ts";
 import { CAMP_ACTIONS } from "./campActions.ts";
 import { BOSSES } from "./bossConditions.ts";
+import { MUTATORS } from "./dynastyMutators.ts";
 import { RARITY } from "./heroRarity.ts";
 import { RARITY_CURVE } from "./rarity.ts";
 import { FORM_ODDS, FORM_FLOOR, HERO_POOL, MARKET_PACK } from "./anteMarket.ts";
@@ -201,8 +202,12 @@ import { HERO_FLOOR } from "./anteMarket.ts";
  *  Кламп — при начислении (accrueCharges), множитель от числа зарядов не изменился.
  *  b1.30.0 (2026-08-10): tradeInCost 4 → 8 по итогам A/B 400 сидов --dynasty. Цена 4 делала
  *  trade-in прямым рычагом силы (synergy-build 46.3% → 78.5%); цена 8 таксует ранний перебор
- *  осей (63.7%), не срезая поздний прирост «осмысленности» лагерей актов 3–5 — цель LG1. */
-export const BALANCE_CONFIG_VERSION = "b1.30.0";
+ *  осей (63.7%), не срезая поздний прирост «осмысленности» лагерей актов 3–5 — цель LG1.
+ *  b1.31.0 (2026-08-10): мутаторы круга Династии (LG3, = Stakes): каждый круг за пределами
+ *  сезона играется под одним из 4 правил (пороги жёстче на шаг / баны ×2 / рынок +25% /
+ *  штраф босса без потолка), выбор детерминирован по seed+кругу (новый поток
+ *  `:dynasty:mutator`, существующие не сдвинуты). Числа — placeholder до A/B. */
+export const BALANCE_CONFIG_VERSION = "b1.31.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */
@@ -229,6 +234,8 @@ export const BALANCE = {
   tacticSlots: TACTIC_SLOTS,
   campActions: CAMP_ACTIONS,
   bosses: BOSSES,
+  /** Мутаторы круга Династии (LG3) — они же будущие Stakes (T6.4). */
+  dynastyMutators: MUTATORS,
   rarity: RARITY,
   /** Шансы тиров формы игрока по прогрессу сезона (R5.1) и нижняя граница рынка. */
   formOdds: FORM_ODDS,

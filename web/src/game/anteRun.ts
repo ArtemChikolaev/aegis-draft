@@ -8,6 +8,7 @@
 // (растёт threat). Пробил порог → следующий этап; промах → смерть.
 // Экономика/рынок/редкость/боссы — поздние срезы (PRD §5.9.2), здесь их намеренно нет.
 import type { Format, GameData } from "../types/data.ts";
+import { MUTATORS, mutatorForCircle, type MutatorId } from "./dynastyMutators.ts";
 import { PLACEMENT_KEYS, TournamentEngine, type FieldModel, type PlacementKey } from "./tournament.ts";
 
 /** Тип этапа внутри акта (PRD §5.9.3). Не косметика: от типа зависят порог места и сила поля.
@@ -155,6 +156,59 @@ export function isActFinale(absoluteStageIndex: number): boolean {
  *  Правило живёт здесь, потому что его читают двое: стор и симулятор. */
 export function grantsDynastyTitle(clearedIndex: number, season: SeasonModel = SEASON): boolean {
   return clearedIndex >= season.stages.length && seasonStage(clearedIndex, season).kind === "boss";
+}
+
+/** Номер круга Династии для этапа: 0 внутри сезона, 1+ за его пределами. Круг — продолжение
+ *  актов за сезоном (LG3), арифметика сезона живёт здесь, рядом с `seasonStage`. */
+export function dynastyCircleOf(absoluteStageIndex: number, season: SeasonRules = SEASON): number {
+  const seasonLength = season.acts * season.actLength;
+  if (absoluteStageIndex < seasonLength) return 0;
+  return Math.floor((absoluteStageIndex - seasonLength) / season.actLength) + 1;
+}
+
+/** Мутатор, под которым играется этап (LG3): правило круга Династии, null внутри сезона.
+ *  Определения и выбор — `dynastyMutators`; здесь только привязка «этап → круг». */
+export function mutatorForStage(
+  seed: string,
+  absoluteStageIndex: number,
+  season: SeasonRules = SEASON,
+): MutatorId | null {
+  return mutatorForCircle(seed, dynastyCircleOf(absoluteStageIndex, season));
+}
+
+/** Порог на `steps` шагов жёстче по легальной лестнице бакетов (мутатор `tighterTargets`).
+ *  Результат остаётся легальным порогом по построению; жёстче чемпионства не бывает. */
+export function tightenedTarget(target: number, steps: number): number {
+  const at = LEGAL_ANTE_TARGETS.indexOf(target);
+  if (at === -1) return target;
+  return LEGAL_ANTE_TARGETS[Math.max(0, at - steps)];
+}
+
+/** Эффективный порог этапа с учётом мутатора круга. Единственная точка этой поправки: её читают
+ *  движок (resolveStage/state), выплата за пройденный этап (awardStageClear в store и симе) и UI —
+ *  вторая копия дала бы этап, который судится по одному порогу, а оплачивается по другому. */
+export function effectiveStageTarget(
+  seed: string,
+  absoluteStageIndex: number,
+  season: SeasonRules = SEASON,
+): number {
+  const target = seasonStage(absoluteStageIndex, season).target;
+  return mutatorForStage(seed, absoluteStageIndex, season) === "tighterTargets"
+    ? tightenedTarget(target, MUTATORS.tighterTargets.steps)
+    : target;
+}
+
+/** Множитель цен рынка этапа (мутатор `expensiveMarket`). Живёт рядом с мутаторами, а не в
+ *  рынке: рынок применяет множитель на ГЕНЕРАЦИИ офферов, чтобы превью, покупка и сим читали
+ *  одну цену. */
+export function marketCostFactor(
+  seed: string,
+  campStageIndex: number,
+  season: SeasonRules = SEASON,
+): number {
+  return mutatorForStage(seed, campStageIndex, season) === "expensiveMarket"
+    ? MUTATORS.expensiveMarket.costFactor
+    : 1;
 }
 
 /** Ближайший боссовый этап СТРОГО ПОСЛЕ `absoluteStageIndex` (R9.4).
@@ -345,9 +399,12 @@ export class AnteRunEngine {
 
   /** Правила этапа: внутри сезона авторитетен его список (там могут стоять произвольные пороги,
    *  например у тестовой лестницы), за его пределами — арифметика актов, по которой идёт
-   *  Династия (R6.3). */
+   *  Династия (R6.3). Мутатор круга (LG3) может ужесточить порог — внутри сезона он null,
+   *  поэтому сезонные лестницы (и легальность порогов из конструктора) не трогаются. */
   private stageAt(index: number): SeasonStage {
-    return this.season.stages[index] ?? seasonStage(index, this.season);
+    const stage = this.season.stages[index] ?? seasonStage(index, this.season);
+    if (mutatorForStage(this.seed, index, this.season) !== "tighterTargets") return stage;
+    return { ...stage, target: tightenedTarget(stage.target, MUTATORS.tighterTargets.steps) };
   }
 
   get state(): AnteRunState {

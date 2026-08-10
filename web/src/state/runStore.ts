@@ -9,7 +9,7 @@ import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
-import { AnteRunEngine, grantsDynastyTitle, nextBossStage, SEASON, seasonStage, type AnteRunState } from "../game/anteRun.ts";
+import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
@@ -394,6 +394,7 @@ export const useRun = create<RunStore>((set, get) => {
     const mods = effectiveModifiers(tactics);
     const items = runItems();
     const raw = evaluateBoss(bossId, {
+      seed,
       // Индекс именно оцениваемого этапа, а не текущего: разведка (R9.4) считает условие БУДУЩЕГО
       // боссового турнира, и рампа планки обязана взяться от него же.
       absoluteStageIndex: stageIndex,
@@ -464,6 +465,7 @@ export const useRun = create<RunStore>((set, get) => {
       economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
         engine,
         economy.campView().marketOffers,
+        marketCostFactor(seed, economyState.campStageIndex),
         economy.heroRarity,
       ));
     } else {
@@ -561,7 +563,9 @@ export const useRun = create<RunStore>((set, get) => {
     // менялся с выхода на этап, поэтому пересчёт честный. Строго ДО пересборки лагеря: превью
     // и разборы нового Буткемпа обязаны видеть уже обновлённые заряды.
     economy.accrueCharges(activeCardIds(evaluateRunTactics(), runItems()));
-    economy.awardStageClear(nextIndex, placement, seasonStage(nextIndex - 1).target);
+    // Порог пройденного этапа — ЭФФЕКТИВНЫЙ (мутатор круга LG3 мог его ужесточить): выплата
+    // премии за место обязана судить по тому же порогу, по которому этап был пройден.
+    economy.awardStageClear(nextIndex, placement, effectiveStageTarget(seed, nextIndex - 1));
     // Титул Династии (T5.8): один за каждый пройденный акт ЗА пределами сезона. Внутри сезона
     // финал акта уже оплачен растущими призовыми и премией за место (R6.4), а Династии нужна
     // своя причина продолжать — иначе бесконечная фаза это только растущая угроза без ответа.
@@ -857,6 +861,7 @@ export const useRun = create<RunStore>((set, get) => {
                 economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
                   engine,
                   economy.campView().marketOffers,
+                  marketCostFactor(resumable.seed, economyState.campStageIndex),
                   economy.heroRarity,
                 ));
               } else {
@@ -899,6 +904,7 @@ export const useRun = create<RunStore>((set, get) => {
             const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls);
             boss = bossId
               ? evaluateBoss(bossId, {
+                seed: resumable.seed,
                 absoluteStageIndex: stageIndex,
                 base: score.base + mods.base,
                 heroSynergy: score.heroSynergy + mods.heroSynergy,
@@ -1130,6 +1136,7 @@ export const useRun = create<RunStore>((set, get) => {
         economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
           engine,
           economy.campView().marketOffers,
+          marketCostFactor(get().seed, economy.snapshot.campStageIndex),
           economy.heroRarity,
         ));
         // Замена меняет состав → условные Tactics пересчитываются (напр. new star гасит No Superstars).

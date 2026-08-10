@@ -10,7 +10,8 @@
 // адаптируется через Market/резерв/Tactics; скрытого контра нет — правило и `до→после` видны в
 // Буткемпе заранее (DoD).
 import { Rng } from "./rng.ts";
-import { isActFinale, seasonStage } from "./anteRun.ts";
+import { isActFinale, mutatorForStage, seasonStage } from "./anteRun.ts";
+import { MUTATORS } from "./dynastyMutators.ts";
 import type { Summand } from "./anteEconomy.ts";
 
 export type BossId =
@@ -190,10 +191,17 @@ export function bannedHeroesForStage(
 ): number[] {
   if (bossForStage(seed, absoluteStageIndex, rerolls) !== "heroBan") return [];
   const shuffled = new Rng(`${bossKey(seed, absoluteStageIndex, rerolls)}:ban`).shuffle([...heroPool]);
-  return shuffled.slice(0, Math.min(HERO_BAN_COUNT, shuffled.length)).sort((a, b) => a - b);
+  // Мутатор круга doubleBans (LG3): тот же shuffle, срез длиннее — бан-лист остаётся
+  // детерминированным НАДмножеством обычного, поток Rng не сдвигается.
+  const factor = mutatorForStage(seed, absoluteStageIndex) === "doubleBans" ? MUTATORS.doubleBans.factor : 1;
+  return shuffled.slice(0, Math.min(HERO_BAN_COUNT * factor, shuffled.length)).sort((a, b) => a - b);
 }
 
 export interface BossContext {
+  /** Seed забега. Обязателен (урок cardRarity: опциональный контекст расходится между копиями):
+   *  от него мутатор круга Династии (LG3) — `uncappedBoss` снимает потолок штрафа, и оба
+   *  потребителя (store и сим) обязаны судить одинаково. */
+  seed: string;
   /** Абсолютный индекс этапа (0-based). Нужен рампам планок: они растут по актам, поэтому условие
    *  без номера этапа посчитать нельзя — именно отсутствие этого входа и удерживало пороги
    *  константами (R12.5). В Династии индекс не ограничен, рампа продолжается. */
@@ -230,6 +238,14 @@ function clampPenalty(raw: number, max: number): number {
   return Math.min(max, Math.max(0, raw));
 }
 
+/** Потолок штрафа этапа: мутатор круга `uncappedBoss` (LG3) его снимает — пренебрежение
+ *  правилом в таком круге стоит столько, сколько насчитало само правило. */
+function penaltyCap(ctx: BossContext, max: number): number {
+  return mutatorForStage(ctx.seed, ctx.absoluteStageIndex) === "uncappedBoss"
+    ? Number.POSITIVE_INFINITY
+    : max;
+}
+
 const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bossId">> = {
   // Мета звёзд: нужен высокий средний Base, иначе штраф. Планка растёт по актам (R12.5), потому что
   // растёт и сам Base. Адаптация — усилить игроков на рынке / Extra training.
@@ -239,7 +255,7 @@ const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bos
     const shortfall = Math.max(0, threshold - ctx.base);
     return {
       met: shortfall <= 0,
-      penalty: clampPenalty(shortfall * cfg.perPoint, cfg.max),
+      penalty: clampPenalty(shortfall * cfg.perPoint, penaltyCap(ctx, cfg.max)),
       summand: cfg.summand,
       reasonKey: "boss.reason.baseFloor",
       reasonParams: { threshold: Math.round(threshold * 10) / 10 },
@@ -257,7 +273,7 @@ const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bos
     const over = Math.max(0, offRepertoire - cfg.tolerated);
     return {
       met: over === 0,
-      penalty: clampPenalty(over * cfg.perHero, cfg.max),
+      penalty: clampPenalty(over * cfg.perHero, penaltyCap(ctx, cfg.max)),
       summand: cfg.summand,
       reasonKey: "boss.reason.heroSynergyDemand",
       reasonParams: { n: offRepertoire, max: cfg.tolerated, games: cfg.minGames },
@@ -267,7 +283,7 @@ const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bos
   // Адаптация — не платить за Chemistry здесь, лить в Base/Hero Synergy.
   chemistryBlackout: (ctx) => {
     const cfg = BOSSES.chemistryBlackout;
-    const penalty = clampPenalty(ctx.chemistry * cfg.factor, cfg.max);
+    const penalty = clampPenalty(ctx.chemistry * cfg.factor, penaltyCap(ctx, cfg.max));
     return {
       met: penalty <= 0,
       penalty,
@@ -289,7 +305,7 @@ const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bos
     const over = Math.max(0, spread - maxSpread);
     return {
       met: over <= 0,
-      penalty: clampPenalty(over * cfg.perPoint, cfg.max),
+      penalty: clampPenalty(over * cfg.perPoint, penaltyCap(ctx, cfg.max)),
       summand: cfg.summand,
       reasonKey: "boss.reason.unbalancedRoster",
       reasonParams: { spread, max: maxSpread },
@@ -303,7 +319,7 @@ const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bos
     const hit = ctx.activeHeroes.filter((heroId) => banned.has(heroId)).length;
     return {
       met: hit === 0,
-      penalty: clampPenalty(hit * cfg.perHero, cfg.max),
+      penalty: clampPenalty(hit * cfg.perHero, penaltyCap(ctx, cfg.max)),
       summand: cfg.summand,
       reasonKey: "boss.reason.heroBan",
       reasonParams: { n: hit },

@@ -48,6 +48,9 @@
 .season-victory__empty { margin: 0; color: var(--muted); font-size: 12px; }
 .season-victory__actions { display: grid; gap: 8px; }
 .season-victory__hint { margin: 0; color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+/* Анонс мутатора первого круга (LG3): решение «продолжать ли» принимается с открытым правилом. */
+.season-victory__mutator { color: var(--danger); font-weight: 600; }
+.season-victory__mutator b { font-weight: 700; }
 
 @media (max-width: 680px) {
   .season-victory__build { grid-template-columns: 1fr; }

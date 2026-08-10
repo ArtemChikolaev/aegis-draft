@@ -13,6 +13,9 @@ import { ACT_LENGTH, isActFinale } from "../src/game/anteRun.ts";
 
 function ctx(over: Partial<BossContext> = {}): BossContext {
   return {
+    // Seed нужен потолку штрафа (мутатор uncappedBoss, LG3); дефолтные этапы — внутри сезона,
+    // где мутаторов нет, поэтому на прежние проверки он не влияет.
+    seed: "boss-test",
     // Первый акт по умолчанию: планки боссов — рампа по актам (R12.5), поэтому у контекста теста
     // обязан быть этап, иначе тест проверял бы неизвестно какой порог.
     absoluteStageIndex: ACT_LENGTH - 1,

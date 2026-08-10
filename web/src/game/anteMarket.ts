@@ -7,6 +7,7 @@ import { Rng } from "./rng.ts";
 import { candidateRef, ROLE_SEQUENCE, type Candidate } from "./packs.ts";
 import { RunEngine } from "./engine.ts";
 import { formUpgradeCost, playerCost, type Offer, type SummandValues } from "./anteEconomy.ts";
+import { marketCostFactor } from "./anteRun.ts";
 import { heroPrice, rarityOvrContribution, rollHeroRarity, upgradePathCost } from "./heroRarity.ts";
 import { rarityRank, type Rarity } from "./rarity.ts";
 import { tacticMarketEffects } from "./tactics.ts";
@@ -618,7 +619,11 @@ export function buildAnteMarketRoulette(
       },
     });
   });
-  return offers;
+  // Мутатор круга expensiveMarket (LG3): множитель применяется к ГОТОВОМУ паку одним местом —
+  // превью, покупка и сим читают одну цену, Rng и состав пака не тронуты.
+  const costFactor = marketCostFactor(seed, campStageIndex);
+  if (costFactor === 1) return offers;
+  return offers.map((offer) => ({ ...offer, cost: Math.round(offer.cost * costFactor) }));
 }
 
 /** Пересчитать breakdown уже показанных карт после другой покупки/ручного swap.
@@ -627,6 +632,10 @@ export function buildAnteMarketRoulette(
 export function refreshAnteMarketOffers(
   engine: RunEngine,
   offers: Offer[],
+  /** Множитель цен мутатора круга (LG3, `marketCostFactor`). Обязателен: цена улучшения героя
+   *  пересчитывается здесь от актуального тира, и refresh без множителя молча вернул бы её к
+   *  базовой — превью разошлось бы с покупкой ровно в Династии. */
+  costFactor: number,
   heroRarity: Record<string, Rarity> = {},
 ): Offer[] {
   const rarityOf = (heroId: number): Rarity => heroRarity[String(heroId)] ?? "common";
@@ -686,8 +695,8 @@ export function refreshAnteMarketOffers(
         const cost = upgradePathCost(current, offer.heroUpgrade.targetRarity);
         if (cost == null) continue;
         // Цена пересчитывается от АКТУАЛЬНОГО тира: иначе после грайнда игрок платил бы за уже
-        // пройденные шаги.
-        refreshed.push({ ...offer, cost });
+        // пройденные шаги. Множитель мутатора — тот же, что при генерации.
+        refreshed.push({ ...offer, cost: Math.round(cost * costFactor) });
       }
     } catch {
       // A prior swap may make a card impossible; hiding it is safer than charging for stale payload.
