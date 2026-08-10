@@ -184,6 +184,9 @@ interface RunStore {
   rerollMarket: () => void;
   /** Буткемп: снять пассивную тактику, освободив слот. */
   discardTactic: (tacticId: string) => void;
+  /** Trade-in (LG1): обменять карту слота на карту из тройки офферов; реролл тройки. */
+  tradeCard: (outgoingId: string, incomingId: string) => void;
+  rerollTrade: () => void;
   /** Буткемп: выбросить неразыгранное одноразовое действие. */
   discardAction: (actionId: string) => void;
   /** Буткемп: разыграть одноразовое Camp Action (эффект живёт один следующий этап). */
@@ -1149,6 +1152,20 @@ export const useRun = create<RunStore>((set, get) => {
       if (!economy || phase !== "camp" || !economy.discardTactic(tacticId)) return;
       // Тактика меняет цены/размер рынка (её trade-off) — пересобираем офферы под новый набор.
       economy.invalidateMarketOffers();
+      syncCamp();
+    },
+
+    tradeCard(outgoingId, incomingId) {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.tradeCard(outgoingId, incomingId)) return;
+      // Смена карты билда меняет и условные тактики, и market trade-off'ы — как discard+взятие.
+      economy.invalidateMarketOffers();
+      syncCamp();
+    },
+
+    rerollTrade() {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.rerollTrade()) return;
       syncCamp();
     },
 

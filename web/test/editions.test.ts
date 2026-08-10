@@ -130,6 +130,34 @@ describe("дроп Charged в карточной награде", () => {
     expect(seen).toBeGreaterThan(0);
   });
 
+  it("оффер улучшения может зарядить взятую карту; arcana получает чистый edition-оффер", () => {
+    // Инъекция через preparedRewardCard: ролл с нужным исходом искать не нужно — проверяем
+    // ПРИМЕНЕНИЕ (валидация и запись), генерация покрыта тестом дропа и потоковой изоляцией.
+    const makeEconomy = (rarity: "immortal" | "unique", edition?: "charged") => {
+      const economy = new RunEconomy("edition-up");
+      const state = economy.snapshot;
+      state.inCamp = true;
+      state.campStageIndex = dropStage;
+      state.equippedTactics = ["divineRapier"];
+      state.ownedCards = ["divineRapier"];
+      state.cardRarity = { divineRapier: rarity };
+      if (edition) state.cardEditions = { divineRapier: edition };
+      state.preparedRewardCard = {
+        id: `rwd-${dropStage}-1`, kind: "item", labelKey: "item.divineRapier", cost: 0,
+        cardId: "divineRapier", cardRarity: rarity, cardUpgrade: true, cardEdition: "charged",
+      };
+      return new RunEconomy("edition-up", state);
+    };
+    // Arcana (immortal-тир): тир не растёт, но карта становится Charged.
+    const arcana = makeEconomy("immortal");
+    expect(arcana.chooseReward(`rwd-${dropStage}-1`)).toBe(true);
+    expect(arcana.cardEditions.divineRapier).toBe("charged");
+    expect(arcana.cardRarity.divineRapier).toBe("immortal");
+    // Уже Charged: оффер без оси роста отклоняется.
+    const already = makeEconomy("immortal", "charged");
+    expect(already.chooseReward(`rwd-${dropStage}-1`)).toBe(false);
+  });
+
   it("chooseReward фиксирует Edition из оффера, заряды стартуют с нуля", () => {
     // Ищем этап, где карточная награда пришла Charged и картой-тактикой/предметом.
     for (let stage = dropStage; stage < dropStage + 40; stage++) {

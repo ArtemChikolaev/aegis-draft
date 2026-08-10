@@ -20,7 +20,7 @@ import { TACTIC_IDS, TACTIC_SLOTS, isTacticId } from "./tactics.ts";
 import { CAMP_ACTION_IDS, CAMP_ACTION_SLOTS, campActionDef, isCampActionId } from "./campActions.ts";
 import { ITEM_IDS, evaluateItems, hasPowerEffect, isItemId } from "./items.ts";
 import { rollHeroRarity, upgradeCost } from "./heroRarity.ts";
-import { nextRarity, rarityRank, rollRarity, type Rarity } from "./rarity.ts";
+import { nextRarity, RARITIES, rarityRank, rollRarity, type Rarity } from "./rarity.ts";
 
 /** Слагаемое Team OVR, на которое действует покупка. */
 export type Summand = "base" | "heroSynergy" | "chemistry";
@@ -183,6 +183,9 @@ export interface RunEconomyState {
    *  `equippedTactics`: слоты хранят строки, и превращать их в объекты значило бы переписывать
    *  формат сейва там, где новая ось прекрасно живёт зеркалом `heroRarity`. Записи нет ⇒ common. */
   cardRarity: Record<string, Rarity>;
+  /** Trade-in (LG1): счётчик рероллов тройки офферов в ТЕКУЩЕМ Буткемпе; сбрасывается на
+   *  openCamp — та же семантика, что у marketRerolls. */
+  tradeRerolls: number;
   /** Edition карточки (R13.5): id → "charged". Вторая ось поверх качества, живёт тем же зеркалом,
    *  что cardRarity. Записи нет ⇒ обычная карта. */
   cardEditions: Record<string, CardEdition>;
@@ -260,6 +263,13 @@ export const ECONOMY = {
    *  сейчас против накопить». В Cheat Mode не начисляются: бесконечное золото их обессмысливает. */
   interestPerGold: 6,
   interestCap: 3,
+  /** Trade-in карты билда (LG1, R12.6): цена обмена «карта слота → новая из невзятого пула с
+   *  переносом тира −1». Порядок цены — шаг качества (upgradeCost.unique=3): смена оси должна
+   *  стоить как рост, а не быть бесплатным перебором. Реролл тройки офферов — та же лестница,
+   *  что у рынка (`rerollCostFor`), со своим счётчиком. Плейсхолдер до калибровки. */
+  tradeInCost: 4,
+  /** Размер тройки trade-in офферов. */
+  tradePackSize: 3,
   /** Поздние синки (T5.9). Замер Династии показал не «тонкий рынок», а ПОЛНОЕ насыщение: игрок
    *  приходит в лагерь с ~900 золота, из 8.9 карт рынка плюс даёт 0.08, качество героев на
    *  максимуме в 100% лагерей, слоты карточек полны в 99%. Купить нечего ни за какие деньги,
@@ -413,6 +423,8 @@ export interface BuildTiers {
    *  тир сброшенной карточки бессмысленно — обратно её уже не поставить. */
   equipped: readonly string[];
   cardRarity: Record<string, Rarity>;
+  /** Edition экипированных карт — уже Charged второй раз не заряжается. */
+  cardEditions?: Record<string, CardEdition>;
 }
 
 /** Ещё не полученная карточка Tactics/Camp Action, детерминированная по seed+campId.
@@ -436,20 +448,38 @@ function cardOffer(
         && rarityRank(rollFor(id)) > rarityRank(build.cardRarity[id] ?? "common")
     ))
     : [];
+  // «Charged для уже взятой карты» (решение 2026-08-10): с акта 3+ оффер улучшения может прийти
+  // заряжающим. Отдельный подпоток `:upgrade-edition` — существующие потоки не сдвигаются; при
+  // проходе ролла в пул улучшений добавляются и МАКСИРОВАННЫЕ power-карты (у arcana это
+  // единственный оставшийся путь роста — чистый edition-оффер «та же карта становится Charged»).
+  const chargeRoll = campStageIndex >= ACT_LENGTH * (EDITION.minAct - 1)
+    && new Rng(`${seed}:camp-${campStageIndex}:upgrade-edition`).float() < EDITION.dropChance;
+  const chargeable = chargeRoll
+    ? ITEM_IDS.filter((id) => (
+      build.equipped.includes(id)
+        && hasPowerEffect(id)
+        && build.cardEditions?.[id] !== "charged"
+    ))
+    : [];
   // «Улучшение или новая карта» решается ОТДЕЛЬНЫМ роллом на своём потоке. Так у шанса есть
   // настраиваемое число, а поток свежих карт (`:card`) остаётся тем же, что до R14.3 — сид без
   // улучшаемых предметов выдаёт ровно прежние награды.
   const upgradeRng = new Rng(`${seed}:camp-${campStageIndex}:card-upgrade`);
-  if (upgradable.length > 0 && upgradeRng.float() < ECONOMY.cardUpgradeChance) {
-    const id = upgradeRng.pick(upgradable);
+  const upgradePool = [...new Set([...upgradable, ...chargeable])];
+  if (upgradePool.length > 0 && upgradeRng.float() < ECONOMY.cardUpgradeChance) {
+    const id = upgradeRng.pick(upgradePool);
+    const tierUp = upgradable.includes(id);
     return {
       id: `rwd-${campStageIndex}-1`,
       kind: "item",
       labelKey: `item.${id}`,
       cost: 0,
       cardId: id,
-      cardRarity: rollFor(id),
+      // Без роста тира оффер несёт ТЕКУЩИЙ тир карты: честный вид (arcana остаётся arcana),
+      // а строгая проверка «выше текущего» в chooseReward его тиром не применит.
+      cardRarity: tierUp ? rollFor(id) : (build.cardRarity[id] ?? "common"),
       cardUpgrade: true,
+      ...(chargeable.includes(id) ? { cardEdition: "charged" as const } : {}),
     };
   }
   const pool = [
@@ -477,6 +507,31 @@ function cardOffer(
       : {}),
     ...rollCardEdition(seed, campStageIndex, card.kind, card.id),
   };
+}
+
+/** Тройка trade-in офферов (LG1): невзятые ПАССИВНЫЕ карты — тактики и предметы, без Camp
+ *  Actions (обмен меняет карту пассивного слота, одноразовые действия в нём не живут).
+ *  Детерминизм по seed+camp+serial; ОТДЕЛЬНЫЙ Rng-поток `:trade` — существующие раздачи
+ *  (`:card`, `:market`, `:edition`) не сдвигаются, seed-coupled тесты целы. */
+export function tradeOffers(
+  seed: string,
+  campStageIndex: number,
+  owned: readonly string[],
+  serial: number,
+): string[] {
+  const pool = [
+    ...TACTIC_IDS.filter((id) => !owned.includes(id)),
+    ...ITEM_IDS.filter((id) => !owned.includes(id)),
+  ];
+  const rng = new Rng(`${seed}:camp-${campStageIndex}:trade-${serial}`);
+  return rng.shuffle(pool).slice(0, ECONOMY.tradePackSize);
+}
+
+/** Тир входящей карты при trade-in: «перенос −1» с полом common. Тактики тира не имеют —
+ *  отдают common (и получают common-эквивалент, если входит предмет): прогресс оси качества
+ *  конвертируется со скидкой, а не бесплатно и не в ноль. */
+export function tradeInRarity(outgoing: Rarity): Rarity {
+  return RARITIES[Math.max(0, rarityRank(outgoing) - 1)];
 }
 
 /** Ролл Edition карточной награды (R13.5). ОТДЕЛЬНЫЙ Rng-поток: поток `:card` остаётся прежним,
@@ -610,6 +665,12 @@ export interface CampView {
   heroRarity: Record<string, Rarity>;
   /** id карточки → тир для рендера бейджей и масштабированных описаний (R11.2). */
   cardRarity: Record<string, Rarity>;
+  /** Trade-in (LG1): тройка офферов, цена обмена и реролла. Цены считает движок — UI не имеет
+   *  права показать цену, отличную от списываемой (тот же контракт, что у reroll/prep). */
+  tradeOffers: string[];
+  tradeCost: number;
+  tradeRerollCost: number;
+  canRerollTrade: boolean;
   /** id карточки → Edition (R13.5) — бейдж и правило на карточке. */
   cardEditions: Record<string, CardEdition>;
   /** id карточки → заряды Charged — пипсы на карточке и множитель в разборе. */
@@ -649,6 +710,7 @@ function emptyState(): RunEconomyState {
     cardRarity: {},
     cardEditions: {},
     cardCharges: {},
+    tradeRerolls: 0,
     rarityDropsEnabled: false,
     rarityUpgradesEnabled: true,
     unlimitedGold: false,
@@ -821,6 +883,7 @@ export class RunEconomy {
     this.state.inCamp = true;
     this.state.chosenRewardId = null;
     this.state.marketRerolls = 0;
+    this.state.tradeRerolls = 0;
     // Синк живёт внутри лагеря: цена подготовки снова начинается с базовой, как у реролла рынка.
     this.state.prepPurchases = 0;
     this.state.preparedMarketOffers = undefined;
@@ -841,9 +904,13 @@ export class RunEconomy {
     this.state.inCamp = false;
   }
 
-  /** Слепок билда для пула наград: что стоит в слотах и с каким качеством. */
+  /** Слепок билда для пула наград: что стоит в слотах, с каким качеством и Edition. */
   private buildTiers(): BuildTiers {
-    return { equipped: this.state.equippedTactics, cardRarity: this.state.cardRarity ?? {} };
+    return {
+      equipped: this.state.equippedTactics,
+      cardRarity: this.state.cardRarity ?? {},
+      cardEditions: this.state.cardEditions ?? {},
+    };
   }
 
   private currentRewardOffers(): Offer[] {
@@ -913,8 +980,18 @@ export class RunEconomy {
       if (offer.cardUpgrade) {
         if (offer.kind !== "item" || !isItemId(cardId)) return false;
         if (!offer.cardRarity || !this.state.equippedTactics.includes(cardId)) return false;
-        if (rarityRank(offer.cardRarity) <= rarityRank(this.state.cardRarity?.[cardId] ?? "common")) return false;
-        this.state.cardRarity = { ...(this.state.cardRarity ?? {}), [cardId]: offer.cardRarity };
+        // Оффер обязан нести хотя бы одну ось роста: тир выше текущего и/или Charged для ещё не
+        // заряженной карты (решение 2026-08-10 — у arcana это чистый edition-оффер).
+        const tierUp = rarityRank(offer.cardRarity) > rarityRank(this.state.cardRarity?.[cardId] ?? "common");
+        const chargeUp = offer.cardEdition != null
+          && (this.state.cardEditions?.[cardId] ?? null) !== offer.cardEdition;
+        if (!tierUp && !chargeUp) return false;
+        if (tierUp) {
+          this.state.cardRarity = { ...(this.state.cardRarity ?? {}), [cardId]: offer.cardRarity };
+        }
+        if (chargeUp && offer.cardEdition) {
+          this.state.cardEditions = { ...(this.state.cardEditions ?? {}), [cardId]: offer.cardEdition };
+        }
         this.state.chosenRewardId = offerId;
         return true;
       }
@@ -1081,6 +1158,58 @@ export class RunEconomy {
     return { ...(this.state.cardCharges ?? {}) };
   }
 
+  /** Текущая тройка trade-in офферов (LG1) — детерминирована по лагерю и счётчику рероллов. */
+  currentTradeOffers(): string[] {
+    return tradeOffers(
+      this.seed, this.state.campStageIndex, this.state.ownedCards, this.state.tradeRerolls ?? 0,
+    );
+  }
+
+  /** Реролл тройки trade-in офферов — та же лестница цены, что у рынка, свой счётчик. */
+  rerollTrade(): boolean {
+    const cost = rerollCostFor(this.state.tradeRerolls ?? 0);
+    if (!this.affordable(cost)) return false;
+    this.spend(cost);
+    this.state.tradeRerolls = (this.state.tradeRerolls ?? 0) + 1;
+    return true;
+  }
+
+  /** Trade-in (LG1): обменять экипированную карту слота на карту из текущей тройки офферов.
+   *  Тир переносится «−1» (пол common), Edition и заряды НЕ переносятся и стираются — Charged
+   *  принадлежит конкретной карте, иначе обмен стал бы фармом зарядов. Старая карта остаётся в
+   *  `ownedCards` навсегда (повторно не выпадет) — сброс оси, а не её дубликат. */
+  tradeCard(outgoingId: string, incomingId: string): boolean {
+    if (!this.state.inCamp) return false;
+    const at = this.state.equippedTactics.indexOf(outgoingId);
+    if (at === -1) return false;
+    if (!this.currentTradeOffers().includes(incomingId)) return false;
+    if (this.state.ownedCards.includes(incomingId)) return false;
+    if (!this.affordable(ECONOMY.tradeInCost)) return false;
+    const incomingIsItem = isItemId(incomingId);
+    if (!incomingIsItem && !isTacticId(incomingId)) return false;
+    this.spend(ECONOMY.tradeInCost);
+    // Тир уходящей: у предмета — его запись, у тактики — common (тира нет).
+    const outgoingRarity: Rarity = isItemId(outgoingId)
+      ? this.state.cardRarity?.[outgoingId] ?? "common"
+      : "common";
+    this.state.equippedTactics[at] = incomingId;
+    this.state.ownedCards.push(incomingId);
+    // Чистим следы уходящей карты: тир, Edition, заряды — карта ушла навсегда.
+    const { [outgoingId]: _rarity, ...restRarity } = this.state.cardRarity ?? {};
+    this.state.cardRarity = restRarity;
+    if (this.state.cardEditions?.[outgoingId]) {
+      const { [outgoingId]: _edition, ...editions } = this.state.cardEditions;
+      const { [outgoingId]: _charges, ...charges } = this.state.cardCharges ?? {};
+      this.state.cardEditions = editions;
+      this.state.cardCharges = charges;
+    }
+    const incomingRarity = tradeInRarity(outgoingRarity);
+    if (incomingIsItem && incomingRarity !== "common") {
+      this.state.cardRarity = { ...this.state.cardRarity, [incomingId]: incomingRarity };
+    }
+    return true;
+  }
+
   /** Начислить заряды за ПРОЙДЕННЫЙ этап (R13.5): Charged-карта с выполненным условием получает
    *  +1 (до потолка), со сломанным — сгорает в ноль. Кто «активен», решает вызывающий из тех же
    *  sources, что и боевой расчёт (activeCardIds в runStrength) — экономика ростера не знает.
@@ -1171,6 +1300,10 @@ export class RunEconomy {
       cardRarity: { ...(this.state.cardRarity ?? {}) },
       cardEditions: { ...(this.state.cardEditions ?? {}) },
       cardCharges: { ...(this.state.cardCharges ?? {}) },
+      tradeOffers: this.currentTradeOffers(),
+      tradeCost: ECONOMY.tradeInCost,
+      tradeRerollCost: rerollCostFor(this.state.tradeRerolls ?? 0),
+      canRerollTrade: this.affordable(rerollCostFor(this.state.tradeRerolls ?? 0)),
       campStageIndex: this.state.campStageIndex,
       marketSerial: this.state.marketRerolls,
     };

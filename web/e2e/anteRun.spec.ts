@@ -162,6 +162,40 @@ test("roguelite run: пассивные карточки занимают сло
   await expect(tactics.locator(".camp__slot-count")).toHaveText("3/5");
 });
 
+// Trade-in (LG1, R12.6): карту слота можно обменять на одну из тройки офферов с переносом
+// тира −1. Cheat-сид: ∞ золото делает обмен и реролл детерминированно доступными.
+test("roguelite run: trade-in меняет карту слота на оффер из тройки", async ({ page }) => {
+  test.slow();
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CHEAT_SEED, { cheatMode: true });
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await chooseReward(page, ["item", "tactic"]);
+  await openCampSection(page, "build");
+
+  const slot = page.locator("#camp-panel-build [data-card-id]").first();
+  const outgoing = await slot.getAttribute("data-card-id");
+  await page.getByTestId(`tactic-trade-${outgoing}`).click();
+  await expect(page.getByTestId("trade-overlay")).toBeVisible();
+
+  // Реролл меняет тройку (детерминированно по счётчику).
+  const firstOffer = page.locator('[data-testid^="trade-option-"]').first();
+  const beforeReroll = await firstOffer.getAttribute("data-testid");
+  await page.getByTestId("trade-reroll").click();
+  await expect(page.locator('[data-testid^="trade-option-"]').first()).not.toHaveAttribute("data-testid", beforeReroll!);
+
+  // Обмен: слот занят ДРУГОЙ картой, счётчик слотов не меняется.
+  const take = page.locator('[data-testid^="trade-take-"]').first();
+  const incoming = (await take.getAttribute("data-testid"))!.replace("trade-take-", "");
+  await take.click();
+  await expect(page.getByTestId("trade-overlay")).toHaveCount(0);
+  await expect(page.locator(`#camp-panel-build [data-card-id="${incoming}"]`)).toBeVisible();
+  await expect(page.locator(`#camp-panel-build [data-card-id="${outgoing}"]`)).toHaveCount(0);
+  await expect(page.getByTestId("camp-tactics").locator(".camp__slot-count")).toHaveText("1/5");
+});
+
 // Регресс live-бага: Stand-in (бесплатный свап игрока) должен делать покупку игрока доступной,
 // даже если цена выше золота. Seed подобран оффлайн под расширенный пул карточек (R8.3):
 // camp-e2e-30 проходит этап 1 и выдаёт Stand-in карточной наградой первого Буткемпа.

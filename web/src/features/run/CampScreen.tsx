@@ -2,7 +2,7 @@
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ECONOMY, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
+import { ECONOMY, tradeInRarity, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import {
   conditionAxes,
@@ -45,6 +45,7 @@ import { RewardPanel } from "./RewardPanel.tsx";
 import { PreparationPanel } from "./PreparationPanel.tsx";
 import { CampHint } from "./CampHint.tsx";
 import { CampCelebration } from "./CampCelebration.tsx";
+import { TradeOverlay, type TradeOption } from "./TradeOverlay.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useRun } from "../../state/runStore.ts";
 import {
@@ -100,6 +101,8 @@ export function CampScreen() {
   const buyMarket = useRun((s) => s.buyMarket);
   const rerollMarket = useRun((s) => s.rerollMarket);
   const discardTactic = useRun((s) => s.discardTactic);
+  const tradeCardAction = useRun((s) => s.tradeCard);
+  const rerollTrade = useRun((s) => s.rerollTrade);
   const discardAction = useRun((s) => s.discardAction);
   const playCampAction = useRun((s) => s.playCampAction);
   const upgradeHeroRarity = useRun((s) => s.upgradeHeroRarity);
@@ -125,6 +128,8 @@ export function CampScreen() {
   const [inspectedTag, setInspectedTag] = useState<string | null>(null);
   // Разбор карточки билда (плейтест 2026-08-04): слот показывает суть, полное описание — по клику.
   const [inspectedCard, setInspectedCard] = useState<string | null>(null);
+  // Trade-in (LG1): какая карта слота меняется. Оверлей поверх Build — обмен точечный.
+  const [tradeFor, setTradeFor] = useState<string | null>(null);
 
   // Новый Буткемп начинается с обязательного выбора награды. Resume после уже сделанного выбора
   // не возвращает игрока в свёрнутую награду — продолжает с рынка. Состояние это только UI:
@@ -862,6 +867,17 @@ export function CampScreen() {
                               </span>
                             )}
                           </span>
+                          {/* Trade-in (LG1): обмен — рядом со сбросом, это два исхода одной
+                              мысли «карта больше не тянет»: сброс теряет всё, обмен — тир −1. */}
+                          <button
+                            type="button"
+                            className="camp-slot__discard camp-slot__trade"
+                            aria-label={t("camp.trade")}
+                            data-testid={`tactic-trade-${tacticId}`}
+                            onClick={() => setTradeFor(tacticId)}
+                          >
+                            ⇄
+                          </button>
                           <button
                             type="button"
                             className="camp-slot__discard"
@@ -1222,6 +1238,41 @@ export function CampScreen() {
           onClose={() => setInspectedCard(null)}
         />
       )}
+      {/* Trade-in (LG1): превью каждой карты — тем же evaluateCampPower, что и текущая сила;
+          дельта на кнопке не может разойтись с тем, что произойдёт после обмена. */}
+      {tradeFor && (() => {
+        const outgoingRarity: Rarity = itemDef(tradeFor) ? camp.cardRarity[tradeFor] ?? "common" : "common";
+        const incomingRarity = tradeInRarity(outgoingRarity);
+        const options: TradeOption[] = camp.tradeOffers.map((id) => {
+          const equippedCards = camp.equippedTactics.map((c) => (c === tradeFor ? id : c));
+          const cardRarity: Record<string, Rarity> = { ...camp.cardRarity };
+          delete cardRarity[tradeFor];
+          if (itemDef(id) && incomingRarity !== "common") cardRarity[id] = incomingRarity;
+          const cardCharges: Record<string, number> = { ...camp.cardCharges };
+          delete cardCharges[tradeFor];
+          const after = evaluateCampPower(currentPowerState, {
+            economy: camp.modifiers, equippedCards, cardRarity, cardCharges,
+          });
+          return { id, delta: after.power.total - power.total };
+        });
+        return (
+          <TradeOverlay
+            outgoingId={tradeFor}
+            outgoingRarity={outgoingRarity}
+            options={options}
+            tradeCost={camp.tradeCost}
+            rerollCost={camp.tradeRerollCost}
+            canReroll={camp.canRerollTrade}
+            affordable={camp.unlimitedGold || camp.gold >= camp.tradeCost}
+            onTrade={(incomingId) => {
+              tradeCardAction(tradeFor, incomingId);
+              setTradeFor(null);
+            }}
+            onReroll={rerollTrade}
+            onClose={() => setTradeFor(null)}
+          />
+        );
+      })()}
       {inspectedTag && (
         <HeroTagInspector
           tag={inspectedTag}

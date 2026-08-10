@@ -324,6 +324,23 @@
   animation: fade-soft var(--motion-enter) var(--ease-out) both;
 }
 
+/* Trade-in (LG1): строки офферов внутри card-модалки. Скромно и списком — обмен сравнивают
+   глазами по трём строкам, сетка карточек тут была бы шумом. */
+.trade-overlay { display: grid; gap: 12px; }
+.trade-overlay__hint { margin: 0; color: var(--muted); font-size: 12px; }
+.trade-overlay__option {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+}
+.trade-overlay__head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.trade-overlay__desc { margin: 0; color: var(--muted); font-size: 12px; }
+.trade-overlay__action { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
+.trade-overlay__footer { display: flex; justify-content: flex-end; }
+
 /* Секвенция «этап пройден» (R15.2): НЕПРОЗРАЧНЫЙ интерстициал между турниром и лагерем.
    Плейтест 2026-08-09: полупрозрачное перекрытие показывало под собой лагерь с тем же
    заголовком «Stage N cleared» — дубль обесценивал момент. Сплошной фон превращает секвенцию
@@ -691,9 +708,14 @@
   top: 9px;
   right: 9px;
 }
-/* Место под угловой крестик. `align-items: start` — иконка держится верхней строки названия, а не
-   уезжает в центр, когда имя переносится. */
-.camp-slot__head { align-items: start; padding-right: 28px; }
+/* Trade-in (LG1) стоит левее крестика: оба угловые-абсолютные, без сдвига они складывались в
+   одну точку и крестик перехватывал клик (поймано e2e). Hover — акцент, не danger: обмен — не
+   потеря. */
+.camp-slot .camp-slot__head .camp-slot__trade { right: 42px; }
+.camp-slot__trade:hover { color: var(--accent); border-color: var(--accent); }
+/* Место под ДВЕ угловые кнопки (обмен + крестик). `align-items: start` — иконка держится верхней
+   строки названия, а не уезжает в центр, когда имя переносится. */
+.camp-slot__head { align-items: start; padding-right: 74px; }
 /* Название и бейдж качества в общей колонке с переносом. Раньше они стояли в одной flex-строке, и
    бейдж отъедал у имени ширину: «Necronomicon» ломалось на три куска, хотя целиком помещалось.
    Бейдж переносится на следующую строку сам, только когда имени не хватает места. */
