@@ -197,7 +197,9 @@ const AGENTS: Agent[] = [
   },
   // Билд: приоритет карточкам и связкам, адаптируется к боссу.
   {
-    name: "synergy-build", weights: { base: 1, hero: 1.3, chem: 1.6 }, rewardPref: ["item", "tactic", "action", "quality", "gold"],
+    // "slot" стоит ПОСЛЕ карточных наград: пока слоты не полны, карты берутся сами; при полных
+    // слотах карточные chooseReward отказывают, и агент падает на оффер шестого слота (LG2).
+    name: "synergy-build", weights: { base: 1, hero: 1.3, chem: 1.6 }, rewardPref: ["item", "tactic", "action", "slot", "quality", "gold"],
     holdGold: 0, maxRerolls: 1, buysQuality: true, bossAware: true, powerAware: true,
   },
   // Верхняя граница ЖАДНОЙ игры (не истинный оптимум): лучшая по замеру политика наград плюс все
@@ -481,6 +483,7 @@ function nextTier(current: Rarity): Rarity {
  *  полезных действий — реролл в рамках лимита агента. */
 function shopCamp(
   engine: RunEngine, economy: RunEconomy, seed: string, agent: Agent, decision: Decision, stageCount: number,
+  season: SeasonModel,
 ): { buys: number; rerolls: number; qualityUpgrades: number; trades: number } {
   recordCampDiagnostic(engine, economy, agent, decision, stageCount);
   let buys = 0;
@@ -546,7 +549,7 @@ function shopCamp(
         economy.campView().marketOffers,
         marketCostFactor(seed, economy.snapshot.campStageIndex, season),
       ));
-    } catch { break; }
+    } catch (error) { if (process.env.SIMDEBUG) console.error("shopCamp break:", error); break; }
   }
   return { buys, rerolls, qualityUpgrades, trades };
 }
@@ -672,7 +675,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     takeReward(economy, agent, decision);
     playActions(economy);
     prepareMarket(engine, economy, seed, stageCount);
-    const shopped = shopCamp(engine, economy, seed, agent, decision, stageCount);
+    const shopped = shopCamp(engine, economy, seed, agent, decision, stageCount, season);
     const surplus = spendSurplus(engine, economy, seed, agent);
     camps.push({ goldAfter: economy.gold, dynasty: campId > stageCount, ...shopped, ...surplus });
 

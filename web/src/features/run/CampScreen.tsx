@@ -301,6 +301,15 @@ export function CampScreen() {
   }
 
   function effectRows(offer: Offer) {
+    // Шестой слот (LG2): карточка обязана показать ОБЕ стороны обмена — слот и перманентный минус.
+    if (offer.kind === "slot") {
+      return [
+        <span key="s" className="camp-offer__card-desc">{t("reward.slotDesc")}</span>,
+        <span key="p" className="camp-offer__delta camp-offer__delta--down">
+          {t("common.base")} {signed(offer.effect?.delta ?? 0)}
+        </span>,
+      ];
+    }
     if (offer.kind === "gold") {
       return [
         <span key="g" className="camp-offer__delta camp-offer__delta--gold">

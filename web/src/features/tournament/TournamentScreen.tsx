@@ -668,7 +668,7 @@ export function TournamentScreen() {
               economyView?.cardEditions ?? {},
               economyView?.cardCharges ?? {},
             )}
-            slots={TACTIC_SLOTS}
+            slots={economyView?.tacticSlots ?? TACTIC_SLOTS}
             testId="stage-build-rail"
             /* Вспышка «вот что участвует» на старте симуляции (остаток R14.6): ключ взводится при
                уходе со стадии field. Resume посреди турнира монтируется уже с ключом — не мигает. */

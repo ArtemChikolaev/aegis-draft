@@ -12,7 +12,7 @@
 // в одном месте (кандидат в balanceConfigVersion, точная калибровка — §10.F, после T6.3).
 // Редкость героев остаётся отдельным срезом 3b.
 import { Rng } from "./rng.ts";
-import { ACT_LENGTH, marketCostFactor, placementWorstRank } from "./anteRun.ts";
+import { ACT_LENGTH, SEASON_ACTS, marketCostFactor, placementWorstRank } from "./anteRun.ts";
 import { chargeCapForRarity, EDITION, type CardEdition } from "./editions.ts";
 import type { PlacementKey } from "./tournament.ts";
 import type { CandidateRef } from "./packs.ts";
@@ -57,7 +57,7 @@ export interface HeroSwapEffect {
 /** `reroll`/`quality` — награды-«токены» (R4.3): дают не силу и не деньги, а возможность искать
  *  и улучшать. Нужны, чтобы выбор награды был между РАЗНЫМИ видами пользы, а не между «мало
  *  золота» и «много золота» — вторая всегда доминировала первую, и выбора не было. */
-export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "item" | "action" | "reroll" | "quality";
+export type OfferKind = "stat" | "gold" | "player" | "hero" | "tactic" | "item" | "action" | "reroll" | "quality" | "slot";
 
 /**
  * Какой слот займёт карточка этого вида; `null` — карточка слотов не занимает (золото, стат-рычаг).
@@ -154,6 +154,10 @@ export interface RunEconomyState {
   /** Экипированные пассивные Tactics (срез 4). Хранятся строками: карточка, выпавшая из
    *  набора между версиями, при resume молча отбрасывается, а не роняет забег. */
   equippedTactics: string[];
+  /** Число слотов тактик (LG2, R12.6). Константа TACTIC_SLOTS — дефолт; шестой слот покупается
+   *  одноразовым reward-оффером за перманентный минус к Base. Хранится числом, а не флагом:
+   *  состояние — «сколько слотов», а «взят ли оффер» из него выводится (> TACTIC_SLOTS). */
+  tacticSlots: number;
   /** Одноразовые Camp Actions в слотах, ещё не разыгранные. */
   heldActions: string[];
   /** Разыгранные Camp Actions: временный эффект живёт до следующего Буткемпа. */
@@ -217,12 +221,16 @@ export interface RunEconomyState {
  *  требуется: `BALANCE_CONFIG_VERSION` всё равно инвалидирует несовместимый roguelite-resume,
  *  это лишь мягкий фолбэк на случай совместимой версии. */
 function normalizeEconomyState(initial: RunEconomyState): RunEconomyState {
-  const legacy = (initial as RunEconomyState & { rarityEnabled?: boolean }).rarityEnabled;
-  if (legacy == null) return initial;
+  // Сейв до LG2 не знает про поле tacticSlots — читаем дефолтом, забег продолжается с пятью.
+  const withSlots = initial.tacticSlots == null
+    ? { ...initial, tacticSlots: TACTIC_SLOTS }
+    : initial;
+  const legacy = (withSlots as RunEconomyState & { rarityEnabled?: boolean }).rarityEnabled;
+  if (legacy == null) return withSlots;
   return {
-    ...initial,
-    rarityDropsEnabled: initial.rarityDropsEnabled ?? legacy,
-    rarityUpgradesEnabled: initial.rarityUpgradesEnabled ?? legacy,
+    ...withSlots,
+    rarityDropsEnabled: withSlots.rarityDropsEnabled ?? legacy,
+    rarityUpgradesEnabled: withSlots.rarityUpgradesEnabled ?? legacy,
   };
 }
 
@@ -251,6 +259,9 @@ export const ECONOMY = {
   /** Награда-«поиск»: бесплатные реролы рынка + небольшая доплата золотом. Ценность выросла
    *  вместе с дорожающим реролом (R4.2) — теперь это реальная альтернатива деньгам. */
   rewardReroll: { tokens: 2, gold: 2 },
+  /** Шестой слот тактик (LG2, R12.6): одноразовый reward-оффер позднего лагеря — +slots слот в
+   *  обмен на перманентный минус к Base до конца забега. Не рост, а обмен: слот стоит силы. */
+  slotOffer: { slots: 1, basePenalty: 3 },
   /** Награда-«качество»: бесплатные улучшения тира героя. */
   rewardQuality: { tokens: 1 },
   /** Шанс, что билд-карта Буткемпа окажется улучшением уже стоящего предмета, а не новой картой
@@ -566,6 +577,7 @@ export function rewardOffers(
   qualityAvailable = true,
   rarityDrops = false,
   build?: BuildTiers,
+  slotOffer = false,
 ): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:reward`);
   const summand = rng.pick(MARKET_SUMMANDS);
@@ -592,12 +604,24 @@ export function rewardOffers(
       tokens: ECONOMY.rewardReroll.tokens,
       goldGain: ECONOMY.rewardReroll.gold,
     };
-  return [
+  const offers: Offer[] = [
     { id: `rwd-${campStageIndex}-0`, kind: "gold", labelKey: "reward.gold", cost: 0, goldGain: gold },
     card
       ?? { id: `rwd-${campStageIndex}-1`, kind: "stat", labelKey: `reward.stat.${summand}`, cost: 0, effect: { summand, delta: cfg.delta } },
     utility,
   ];
+  // Шестой слот (LG2): ЧЕТВЁРТАЯ карточка, а не подмена утилиты — обмен «слот за силу»
+  // не должен отнимать обычный выбор награды. Детерминизм тривиален: без Rng.
+  if (slotOffer) {
+    offers.push({
+      id: `rwd-${campStageIndex}-slot`,
+      kind: "slot",
+      labelKey: "reward.slot",
+      cost: 0,
+      effect: { summand: "base", delta: -ECONOMY.slotOffer.basePenalty },
+    });
+  }
+  return offers;
 }
 
 /** Три market-оффера (по одному на слагаемое), качество/цена варьируются по rerollN — reroll
@@ -702,6 +726,7 @@ function emptyState(): RunEconomyState {
     preparedMarketOffers: undefined,
     ownedCards: [],
     equippedTactics: [],
+    tacticSlots: TACTIC_SLOTS,
     heldActions: [],
     temporary: [],
     scoutedCamps: [],
@@ -924,7 +949,23 @@ export class RunEconomy {
     return rewardOffers(
       this.seed, this.state.campStageIndex, this.state.ownedCards, prepared,
       this.state.rarityUpgradesEnabled, this.state.rarityDropsEnabled, this.buildTiers(),
+      this.slotOfferAvailable(),
     );
+  }
+
+  /** Доступен ли оффер шестого слота (LG2): первый лагерь ПРЕДПОСЛЕДНЕГО акта (акт 4 при пяти),
+   *  а в Династии — каждый лагерь, пока не взят. Слот один: взятый оффер (tacticSlots выше
+   *  константы) больше не приходит. */
+  private slotOfferAvailable(): boolean {
+    if (this.campTacticSlots() > TACTIC_SLOTS) return false;
+    const stage = this.state.campStageIndex;
+    const penultimateActStart = ACT_LENGTH * (SEASON_ACTS - 2);
+    return stage === penultimateActStart || stage >= ACT_LENGTH * SEASON_ACTS;
+  }
+
+  /** Число слотов тактик забега: поле состояния (LG2), константа — дефолт legacy-сейва. */
+  private campTacticSlots(): number {
+    return this.state.tacticSlots ?? TACTIC_SLOTS;
   }
 
   private currentMarketOffers(): Offer[] {
@@ -957,7 +998,7 @@ export class RunEconomy {
   /** Есть ли свободный слот под карточку этого типа. UI объясняет отказ до клика. */
   canTakeCard(kind: OfferKind): boolean {
     const slot = cardSlotKind(kind);
-    if (slot === "tactic") return this.state.equippedTactics.length < TACTIC_SLOTS;
+    if (slot === "tactic") return this.state.equippedTactics.length < this.campTacticSlots();
     if (slot === "action") return this.state.heldActions.length < CAMP_ACTION_SLOTS;
     return true;
   }
@@ -975,6 +1016,13 @@ export class RunEconomy {
       this.state.gold += offer.goldGain ?? 0;
     } else if (offer.kind === "quality") {
       this.state.freeRarityUpgrades += offer.tokens ?? 0;
+    } else if (offer.kind === "slot") {
+      // Шестой слот (LG2): не рост, а обмен — слот приходит вместе с перманентным минусом к
+      // Base (applied-эффект, виден в разложении как любая покупка). Второго оффера не будет:
+      // slotOfferAvailable гасит его по выросшему tacticSlots.
+      if (this.campTacticSlots() > TACTIC_SLOTS) return false;
+      if (offer.effect) this.apply(offer.effect);
+      this.state.tacticSlots = TACTIC_SLOTS + ECONOMY.slotOffer.slots;
     } else if (offer.kind === "stat" && offer.effect) this.apply(offer.effect);
     else if (offer.kind === "tactic" || offer.kind === "item" || offer.kind === "action") {
       const cardId = offer.cardId;
@@ -1286,7 +1334,7 @@ export class RunEconomy {
       canReroll: this.state.freeMarketRerolls > 0 || this.affordable(rerollCostFor(this.state.marketRerolls)),
       equippedTactics: [...this.state.equippedTactics],
       heldActions: [...this.state.heldActions],
-      tacticSlots: TACTIC_SLOTS,
+      tacticSlots: this.campTacticSlots(),
       actionSlots: CAMP_ACTION_SLOTS,
       temporary: this.temporaryEffects().map((effect) => ({ ...effect })),
       scouted: this.state.scoutedCamps.includes(this.state.campStageIndex),
