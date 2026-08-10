@@ -253,9 +253,21 @@ html[data-theme="light"] [data-accent="blue"] {
   --accent-soft: rgba(49, 95, 174, .12);
   --on-accent: #fff;
 }
+html[data-theme="light"] [data-accent="red"] {
+  --accent: #b6392b;
+  --accent-strong: #93291e;
+  --accent-soft: rgba(182, 57, 43, .12);
+  --on-accent: #fff;
+}
 [data-accent="orange"] {
   --accent: #ffc18c; --accent-strong: #e0864f; --accent-soft: rgba(216, 119, 87, .16); --on-accent: #2a1509;
   --brand-green: #ffc18c; --brand-glow: #d97757; --brand-art-hot: #ffc18c; --brand-art-mid: #d97757; --brand-art-deep: #532619;
+}
+/* Arena (M10): красный режима — тот же пастельный тон-в-гамму, что violet/orange/blue, а не
+   сигнальный --danger: сигналы ошибок и шкала OVR не перекрашиваются. */
+[data-accent="red"] {
+  --accent: #ffa9a0; --accent-strong: #e0685c; --accent-soft: rgba(216, 80, 64, .16); --on-accent: #2a0d09;
+  --brand-green: #ffa9a0; --brand-glow: #d95749; --brand-art-hot: #ffa9a0; --brand-art-mid: #c94436; --brand-art-deep: #4a1511;
 }
 [data-accent="blue"] {
   --accent: #a9c6ff; --accent-strong: #6f9be0; --accent-soft: rgba(68, 109, 180, .18); --on-accent: #0b1524;

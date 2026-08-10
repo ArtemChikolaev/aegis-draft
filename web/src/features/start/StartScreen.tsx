@@ -26,6 +26,9 @@ const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: Mess
   { value: "classic", label: "start.modeClassic", hint: "start.modeClassicHint", detail: "start.modeClassicLong", available: true },
   { value: "manager", label: "start.modeManager", hint: "start.modeManagerHint", detail: "start.modeManagerLong", available: false },
   { value: "tournament", label: "start.modeTournament", hint: "start.modeTournamentHint", detail: "start.modeTournamentLong", available: false },
+  // Arena (M10, PRD §5.12): онлайн-турнир на 18 команд. Карточка и красный акцент режима живут
+  // уже сейчас; сам режим ждёт живого ws-сервера (MP0) — до него превью «Скоро», как у соседей.
+  { value: "arena", label: "start.modeArena", hint: "start.modeArenaHint", detail: "start.modeArenaLong", available: false },
 ];
 
 /** Режимы, использующие Classic-конфиг драфта (Quick Draft и Roguelite Run поверх него).

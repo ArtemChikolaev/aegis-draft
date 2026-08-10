@@ -6,7 +6,9 @@
 .mode-select__heading .ms-eyebrow { grid-column: 1 / -1; margin: 0; }
 .mode-select__heading h1 { max-width: 900px; margin: 0; font-size: clamp(48px, 6vw, 88px); font-weight: 500; line-height: .96; letter-spacing: -.06em; }
 .mode-select__heading > p:last-child { max-width: 480px; margin: 0 0 8px; color: var(--muted); font-size: 17px; }
-.mode-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+/* Четыре режима (M10): auto-fit держит ряд на десктопе, 2×2 на планшете, столбик на мобиле —
+   компоновка не зашита в число карточек. */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
 .mode-card { position: relative; display: grid; align-content: space-between; min-height: 430px; padding: 26px; overflow: hidden; text-align: left; color: var(--on-invert); border: 1px solid var(--line); border-radius: 18px; background: var(--surface-invert); transition: transform .2s, border-color .2s; }
 .mode-card:hover { transform: translateY(-5px); border-color: rgba(255, 255, 255, .42); }
 .mode-card::before { content: ""; position: absolute; inset: 0; opacity: .72; transition: transform .5s; }
@@ -14,6 +16,7 @@
 .mode-card--classic::before { background: radial-gradient(circle at 72% 28%, var(--brand-art-hot), transparent 18%), radial-gradient(ellipse at 45% 46%, var(--brand-art-mid), var(--brand-art-deep) 40%, transparent 72%); }
 .mode-card--manager::before { background: radial-gradient(circle at 76% 22%, #ffc18c, transparent 18%), radial-gradient(ellipse at 45% 45%, #d97757, #532619 42%, transparent 72%); }
 .mode-card--tournament::before { background: radial-gradient(circle at 76% 22%, #a9c6ff, transparent 18%), radial-gradient(ellipse at 45% 45%, #446db4, #17233b 42%, transparent 72%); }
+.mode-card--arena::before { background: radial-gradient(circle at 76% 22%, #ffa9a0, transparent 18%), radial-gradient(ellipse at 45% 45%, #c94436, #4a1511 42%, transparent 72%); }
 /* Выбор варианта внутри Classic. Всего две карточки, поэтому центрируем весь блок (без третьей
    карточки грид режимов смотрелся бы прижатым влево). Палитра у вариантов одна — фирменная:
    Quick читается одним коротким импульсом, Roguelite — растущей цепочкой этапов. */

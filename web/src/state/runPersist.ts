@@ -10,7 +10,7 @@ import type { RunEconomyState } from "../game/anteEconomy.ts";
 import type { Role } from "../types/data.ts";
 import { readCached, readPersisted, removePersisted, writePersisted } from "./persist.ts";
 
-export type RunMode = "classic" | "run" | "manager" | "tournament";
+export type RunMode = "classic" | "run" | "manager" | "tournament" | "arena";
 
 /** Действие игрока в забеге. Replay на движке восстанавливает точное состояние. */
 export type RunAction =
