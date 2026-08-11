@@ -494,14 +494,13 @@
     "primaryRole": "support",
     "rolesPlayed": [
       "support",
-      "offlane",
-      "mid"
+      "offlane"
     ],
     "teams": [
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 81
+        "games": 77
       },
       {
         "teamId": 2803901,
@@ -1469,7 +1468,7 @@
       {
         "teamId": 8204562,
         "teamName": "Spider Pigzs",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 8384158,
@@ -2346,7 +2345,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 242
+        "games": 239
       },
       {
         "teamId": 6209166,
@@ -2443,7 +2442,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 10
+        "games": 8
       },
       {
         "teamId": 6465093,
@@ -5331,7 +5330,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 18
+        "games": 13
       },
       {
         "teamId": 8496605,
@@ -5435,7 +5434,7 @@
       {
         "teamId": 7407260,
         "teamName": "Team Saiyan",
-        "games": 2
+        "games": 0
       }
     ]
   },
@@ -5759,7 +5758,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 48
+        "games": 46
       },
       {
         "teamId": 6306453,
@@ -6691,7 +6690,7 @@
       {
         "teamId": 7407260,
         "teamName": "Team Saiyan",
-        "games": 2
+        "games": 0
       }
     ]
   },
@@ -7270,7 +7269,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 18
+        "games": 13
       },
       {
         "teamId": 8291895,
@@ -7374,7 +7373,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 326
+        "games": 322
       },
       {
         "teamId": 8261500,
@@ -7946,7 +7945,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 144
+        "games": 141
       },
       {
         "teamId": 2626685,
@@ -8063,7 +8062,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 10
+        "games": 8
       },
       {
         "teamId": 6615678,
@@ -8196,7 +8195,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 32
+        "games": 30
       },
       {
         "teamId": 6382740,
@@ -8591,7 +8590,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 121
+        "games": 118
       },
       {
         "teamId": 3355113,
@@ -8628,7 +8627,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 230
+        "games": 226
       },
       {
         "teamId": 543897,
@@ -8783,7 +8782,7 @@
       {
         "teamId": 7407260,
         "teamName": "Team Saiyan",
-        "games": 2
+        "games": 0
       }
     ]
   },
@@ -8963,7 +8962,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 86
+        "games": 82
       },
       {
         "teamId": 484909,
@@ -9189,7 +9188,7 @@
       {
         "teamId": 8204562,
         "teamName": "Spider Pigzs",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 8894818,
@@ -9477,7 +9476,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 214
+        "games": 211
       },
       {
         "teamId": 8261500,
@@ -9790,7 +9789,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 301
+        "games": 297
       },
       {
         "teamId": 6209804,
@@ -10035,7 +10034,7 @@
       {
         "teamId": 8204562,
         "teamName": "Spider Pigzs",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 8894818,
@@ -10955,21 +10954,6 @@
       }
     ]
   },
-  "158607193": {
-    "accountId": 158607193,
-    "nickname": "武痴",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 7407260,
-        "teamName": "Team Saiyan",
-        "games": 1
-      }
-    ]
-  },
   "158847773": {
     "accountId": 158847773,
     "nickname": "天命",
@@ -11497,7 +11481,7 @@
       },
       {
         "teamId": 8500965,
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8894818,
@@ -11540,22 +11524,6 @@
         "teamId": 8599101,
         "teamName": "Gaimin Gladiators",
         "games": 626
-      }
-    ]
-  },
-  "165178538": {
-    "accountId": 165178538,
-    "nickname": "ss",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane",
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 7453020,
-        "teamName": "Aster.Aries",
-        "games": 3
       }
     ]
   },
@@ -11774,7 +11742,7 @@
       {
         "teamId": 8255888,
         "teamName": "BoomBoys",
-        "games": 3
+        "games": 0
       }
     ]
   },
@@ -11791,7 +11759,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 92
+        "games": 88
       },
       {
         "teamId": 2208748,
@@ -12601,45 +12569,6 @@
         "teamId": 9997059,
         "teamName": "E7",
         "games": 4
-      }
-    ]
-  },
-  "176961039": {
-    "accountId": 176961039,
-    "nickname": "Ntakii",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 6930513,
-        "teamName": "SexyAsFuck",
-        "games": 0
-      },
-      {
-        "teamId": 7220047,
-        "teamName": "Ad Finem",
-        "games": 0
-      },
-      {
-        "teamId": 7234600,
-        "teamName": "Betrayed",
-        "games": 0
-      },
-      {
-        "teamId": 7930695,
-        "teamName": "FAMILY TEAM",
-        "games": 0
-      },
-      {
-        "teamId": 8261397,
-        "teamName": "No Bounty Hunter",
-        "games": 0
-      },
-      {
-        "teamId": 8500965,
-        "games": 3
       }
     ]
   },
@@ -13471,7 +13400,7 @@
       {
         "teamId": 7453020,
         "teamName": "Aster.Aries",
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8574561,
@@ -13504,7 +13433,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 18
+        "games": 13
       },
       {
         "teamId": 8390848,
@@ -13857,7 +13786,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 60
+        "games": 58
       },
       {
         "teamId": 6382740,
@@ -14577,27 +14506,6 @@
       }
     ]
   },
-  "196389151": {
-    "accountId": 196389151,
-    "nickname": "xzm",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid",
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 6209166,
-        "teamName": "Team Aster",
-        "games": 0
-      },
-      {
-        "teamId": 7453020,
-        "teamName": "Aster.Aries",
-        "games": 3
-      }
-    ]
-  },
   "196400041": {
     "accountId": 196400041,
     "nickname": "Se",
@@ -14694,7 +14602,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 8
+        "games": 3
       },
       {
         "teamId": 8496605,
@@ -14908,14 +14816,13 @@
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid",
-      "safelane",
-      "offlane"
+      "safelane"
     ],
     "teams": [
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 124
+        "games": 120
       },
       {
         "teamId": 15,
@@ -15335,7 +15242,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 280
+        "games": 276
       },
       {
         "teamId": 9351740,
@@ -16731,7 +16638,7 @@
       {
         "teamId": 7453020,
         "teamName": "Aster.Aries",
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 9885310,
@@ -16774,46 +16681,6 @@
         "teamId": 10182309,
         "teamName": "PTime",
         "games": 10
-      }
-    ]
-  },
-  "254710104": {
-    "accountId": 254710104,
-    "nickname": "xiaoM",
-    "primaryRole": "safelane",
-    "rolesPlayed": [
-      "safelane"
-    ],
-    "teams": [
-      {
-        "teamId": 2626685,
-        "teamName": "KEEN GAMING",
-        "games": 0
-      },
-      {
-        "teamId": 2634810,
-        "teamName": "KG.Luminous",
-        "games": 0
-      },
-      {
-        "teamId": 5194336,
-        "teamName": "DeathBringer Gaming",
-        "games": 0
-      },
-      {
-        "teamId": 7407260,
-        "teamName": "Team Saiyan",
-        "games": 2
-      },
-      {
-        "teamId": 7667517,
-        "teamName": "LGD.international",
-        "games": 0
-      },
-      {
-        "teamId": 8124688,
-        "teamName": "Kylin Esports Club",
-        "games": 0
       }
     ]
   },
@@ -16911,25 +16778,6 @@
         "teamId": 9872558,
         "teamName": "VP.Prodigy",
         "games": 5
-      }
-    ]
-  },
-  "257698084": {
-    "accountId": 257698084,
-    "nickname": "DontBACunt",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 7234600,
-        "teamName": "Betrayed",
-        "games": 0
-      },
-      {
-        "teamId": 8500965,
-        "games": 3
       }
     ]
   },
@@ -17304,7 +17152,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 109
+        "games": 106
       }
     ]
   },
@@ -19374,7 +19222,7 @@
       {
         "teamId": 8204562,
         "teamName": "Spider Pigzs",
-        "games": 5
+        "games": 0
       }
     ]
   },
@@ -19542,46 +19390,6 @@
       }
     ]
   },
-  "363871826": {
-    "accountId": 363871826,
-    "nickname": "Petushq",
-    "primaryRole": "offlane",
-    "rolesPlayed": [
-      "offlane"
-    ],
-    "teams": [
-      {
-        "teamId": 46,
-        "teamName": "Team Empire",
-        "games": 0
-      },
-      {
-        "teamId": 5194770,
-        "teamName": "Komanda",
-        "games": 0
-      },
-      {
-        "teamId": 6462854,
-        "teamName": "Pavaga Junior",
-        "games": 0
-      },
-      {
-        "teamId": 7439348,
-        "teamName": "Team Unique",
-        "games": 0
-      },
-      {
-        "teamId": 7441226,
-        "teamName": "jfshfh178",
-        "games": 0
-      },
-      {
-        "teamId": 8255888,
-        "teamName": "BoomBoys",
-        "games": 3
-      }
-    ]
-  },
   "36547811": {
     "accountId": 36547811,
     "nickname": "Jesus",
@@ -19600,26 +19408,6 @@
         "teamId": 1883502,
         "teamName": "Virtus.pro",
         "games": 2
-      }
-    ]
-  },
-  "366499343": {
-    "accountId": 366499343,
-    "nickname": "白马",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 2640025,
-        "teamName": "iG.Vitality",
-        "games": 0
-      },
-      {
-        "teamId": 7407260,
-        "teamName": "Team Saiyan",
-        "games": 1
       }
     ]
   },
@@ -19671,14 +19459,13 @@
     "nickname": "night",
     "primaryRole": "mid",
     "rolesPlayed": [
-      "mid",
-      "safelane"
+      "mid"
     ],
     "teams": [
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 46
+        "games": 42
       },
       {
         "teamId": 6209804,
@@ -20325,36 +20112,6 @@
         "teamId": 7225724,
         "teamName": "Team Jinesbrus",
         "games": 0
-      }
-    ]
-  },
-  "394879200": {
-    "accountId": 394879200,
-    "nickname": "艾斯",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 5216146,
-        "teamName": "Team Ever",
-        "games": 0
-      },
-      {
-        "teamId": 5805234,
-        "teamName": "You Know Who",
-        "games": 0
-      },
-      {
-        "teamId": 6465093,
-        "teamName": "ForTheDream",
-        "games": 0
-      },
-      {
-        "teamId": 7453020,
-        "teamName": "Aster.Aries",
-        "games": 3
       }
     ]
   },
@@ -21776,65 +21533,7 @@
       {
         "teamId": 8255888,
         "teamName": "BoomBoys",
-        "games": 3
-      }
-    ]
-  },
-  "54151884": {
-    "accountId": 54151884,
-    "nickname": "Dungeon♂Master♂Deep♂Dark♂Fantasy",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 571287,
         "games": 0
-      },
-      {
-        "teamId": 3333047,
-        "teamName": "Team DK ",
-        "games": 0
-      },
-      {
-        "teamId": 4370100,
-        "teamName": "Lost the gem Boys",
-        "games": 0
-      },
-      {
-        "teamId": 6214973,
-        "teamName": "Ninjas in Pyjamas",
-        "games": 0
-      },
-      {
-        "teamId": 6685591,
-        "teamName": "ViKin.gg",
-        "games": 0
-      },
-      {
-        "teamId": 7101094,
-        "teamName": "Wind and Rain",
-        "games": 0
-      },
-      {
-        "teamId": 7234600,
-        "teamName": "Betrayed",
-        "games": 0
-      },
-      {
-        "teamId": 7802017,
-        "teamName": "Meta4Pro",
-        "games": 0
-      },
-      {
-        "teamId": 8384158,
-        "teamName": "Into The Breach",
-        "games": 0
-      },
-      {
-        "teamId": 8500965,
-        "games": 3
       }
     ]
   },
@@ -24123,7 +23822,7 @@
       {
         "teamId": 8204562,
         "teamName": "Spider Pigzs",
-        "games": 5
+        "games": 0
       },
       {
         "teamId": 8261797,
@@ -27214,7 +26913,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 50
+        "games": 46
       },
       {
         "teamId": 6209804,
@@ -27773,7 +27472,7 @@
       {
         "teamId": 8255888,
         "teamName": "BoomBoys",
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 9381678,
@@ -28296,7 +27995,7 @@
       {
         "teamId": 8255888,
         "teamName": "BoomBoys",
-        "games": 3
+        "games": 0
       }
     ]
   },
@@ -28544,7 +28243,7 @@
       },
       {
         "teamId": 8500965,
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8599101,
@@ -29260,7 +28959,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 18
+        "games": 13
       },
       {
         "teamId": 8291895,
