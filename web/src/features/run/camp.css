@@ -360,7 +360,9 @@
     radial-gradient(circle at 50% 32%, color-mix(in srgb, var(--brand-glow) 16%, transparent), transparent 58%),
     var(--bg);
   cursor: pointer;
-  animation: fade-soft var(--motion-enter) var(--ease-out) both;
+  /* Без fade-in контейнера: перекрытие обязано быть непрозрачным с ПЕРВОГО кадра — сквозь
+     полупрозрачный фон просвечивал уже отрисованный Буткемп с наградами (инфо-лик до
+     секвенции, в hardcore — чужая информация). Входят строки (.enter), не фон. */
 }
 .camp-celebration__panel { max-width: 420px; text-align: center; }
 .camp-celebration__title {
@@ -533,7 +535,10 @@
   flex-direction: column;
   gap: 7px;
 }
-.camp-offer__label { font-size: 15px; }
+/* `overflow-wrap: anywhere`: длинное RU-слово («Наблюдательный») не сливаемо переносом по
+   пробелам и вылезало из flex-бокса под соседний бейдж слота (замерено: до 40px наложения).
+   `anywhere` ломает слово по границе бокса и уменьшает min-content, чтобы flex мог ужаться. */
+.camp-offer__label { font-size: 15px; overflow-wrap: anywhere; }
 .camp-offer__deltas {
   display: flex;
   flex-wrap: wrap;

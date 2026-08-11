@@ -81,12 +81,43 @@ function groupBonus(group: SquadGroup): number {
   return pairChemistryBonus(group.games);
 }
 
+/** Ключ пары независимо от порядка id. */
+export function pairKey(a: number, b: number): string {
+  return a < b ? `${a}:${b}` : `${b}:${a}`;
+}
+
+/** Индекс парных групп squadSynergy по ключу пары. Датасет иммутабелен после загрузки, а
+ * rosterPairs/allPairs дёргаются на каждый пересчёт дельт рынка (~10 офферов × каждый клик
+ * покупки/свапа в Буткемпе): линейный скан всех ~70k групп на каждый вызов давал 100–400ms
+ * long tasks. Индекс строится один раз на массив; WeakMap не держит датасет в памяти. */
+const pairIndexCache = new WeakMap<SquadSynergy, Map<string, SquadGroup>>();
+export function pairGroupIndex(squad: SquadSynergy): Map<string, SquadGroup> {
+  const cached = pairIndexCache.get(squad);
+  if (cached) return cached;
+  const index = new Map<string, SquadGroup>();
+  for (const g of squad) {
+    if (g.ids.length !== 2) continue;
+    const key = pairKey(g.ids[0], g.ids[1]);
+    if (!index.has(key)) index.set(key, g);
+  }
+  pairIndexCache.set(squad, index);
+  return index;
+}
+
 /** Уникальные пары squadSynergy, целиком лежащие внутри ростера. В полном составе их до 10.
  * Датасет может содержать исторические группы 3–5 игроков, но они не добавляются поверх
  * собственных пар: иначе одна и та же сыгранность учитывается несколько раз. */
 function rosterPairs(roster: ChemistryPlayer[], squad: SquadSynergy): SquadGroup[] {
-  const inRoster = new Set(roster.map((p) => p.accountId));
-  return squad.filter((g) => g.ids.length === 2 && g.ids.every((id) => inRoster.has(id)));
+  const index = pairGroupIndex(squad);
+  const ids = roster.map((p) => p.accountId);
+  const out: SquadGroup[] = [];
+  for (let i = 0; i < ids.length; i += 1) {
+    for (let j = i + 1; j < ids.length; j += 1) {
+      const group = index.get(pairKey(ids[i], ids[j]));
+      if (group) out.push(group);
+    }
+  }
+  return out;
 }
 
 /** Chemistry = Σ по уникальным сыгравшимся парам ростера, с потолком.

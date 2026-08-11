@@ -30,7 +30,7 @@ import {
   playerHeroGames,
   squadChemistryRows,
 } from "../../game/score.ts";
-import type { MessageKey } from "../../i18n/core.ts";
+import { campBuildLinksMessageKey, campHeroGamesMessageKey, type MessageKey } from "../../i18n/core.ts";
 import {
   campPowerPreview,
   evaluateCampPower,
@@ -120,7 +120,7 @@ export function CampScreen() {
   const campCelebration = useRun((s) => s.campCelebration);
   const dismissCampCelebration = useRun((s) => s.dismissCampCelebration);
   const reset = useRun((s) => s.reset);
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const hero = useHero();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [activeSection, setActiveSection] = useState<CampSection>("reward");
@@ -504,7 +504,7 @@ export function CampScreen() {
             <div className="camp-offer__fit">
               <small>{t("camp.heroBestFit")}</small>
               <strong>{assignedPlayer.player.nickname}</strong>
-              <span>{t("camp.heroGames", { n: games })}</span>
+              <span>{t(campHeroGamesMessageKey(locale, games), { n: games })}</span>
             </div>
           )}
         </div>
@@ -710,7 +710,7 @@ export function CampScreen() {
               <span>{t("camp.buildDetails")}</span>
               <small data-testid="camp-build-summary">
                 {t("camp.buildDetailsSummary", {
-                  links: chemistryRows.length,
+                  links: t(campBuildLinksMessageKey(locale, chemistryRows.length), { count: chemistryRows.length }),
                   weak: heroRows.filter((row) => row.games === 0).length,
                 })}
               </small>

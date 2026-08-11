@@ -233,7 +233,10 @@ const ru = {
   "camp.power": "Сила забега",
   "camp.offerDetails": "Показать разбор",
   "camp.buildDetails": "Разбор состава",
-  "camp.buildDetailsSummary": "{links} связей · слабых героев: {weak}",
+  "camp.buildDetailsSummary": "{links} · слабых героев: {weak}",
+  "camp.buildLinksOne": "{count} связь",
+  "camp.buildLinksFew": "{count} связи",
+  "camp.buildLinks": "{count} связей",
   "camp.powerRoster": "Ростер",
   "camp.powerAdditive": "Множитель",
   "camp.powerX": "×-множитель",
@@ -246,6 +249,8 @@ const ru = {
   "camp.replacesPlayer": "Заменит игрока",
   "camp.activeHero": "Заменит",
   "camp.heroBestFit": "Лучшее назначение",
+  "camp.heroGamesOne": "{n} игра на герое",
+  "camp.heroGamesFew": "{n} игры на герое",
   "camp.heroGames": "{n} игр на герое",
   "camp.marketHint": "Карточки показывают реальную замену и полный пересчёт команды до покупки.",
   "camp.reserveHint": "Запас остаётся с командой. Перестановка бесплатна и сразу меняет активный состав.",
@@ -492,6 +497,7 @@ const ru = {
   "tournament.complete": "Итог",
   "tournament.fieldTitle": "Восемнадцать команд. Один Aegis.",
   "tournament.fieldText": "Поле — 18 команд твоей эпохи; сила состава задаёт прогноз, но исход каждого матча решает сид забега. Дальше — две группы и double-elimination плей-офф.",
+  "tournament.groupTitle": "Группа {id}",
   "tournament.groupsTitle": "Групповая стадия",
   "tournament.groupsText": "Две группы по девять команд, круговой BO2. Топ-4 идут в верхнюю сетку, 5–8 — в нижнюю, девятое место вылетает.",
   "tournament.playoffsTitle": "Double elimination",
@@ -910,7 +916,10 @@ const en: Dictionary = {
   "camp.power": "Run power",
   "camp.offerDetails": "Show breakdown",
   "camp.buildDetails": "Build details",
-  "camp.buildDetailsSummary": "{links} connections · weak heroes: {weak}",
+  "camp.buildDetailsSummary": "{links} · weak heroes: {weak}",
+  "camp.buildLinksOne": "{count} connection",
+  "camp.buildLinksFew": "{count} connections",
+  "camp.buildLinks": "{count} connections",
   "camp.powerRoster": "Roster",
   "camp.powerAdditive": "Mult",
   "camp.powerX": "×-mult",
@@ -923,6 +932,8 @@ const en: Dictionary = {
   "camp.replacesPlayer": "Replaces player",
   "camp.activeHero": "Replaces",
   "camp.heroBestFit": "Best assignment",
+  "camp.heroGamesOne": "{n} game on hero",
+  "camp.heroGamesFew": "{n} games on hero",
   "camp.heroGames": "{n} games on hero",
   "camp.marketHint": "Each card shows the actual replacement and the full team recalculation before purchase.",
   "camp.reserveHint": "The bench stays with your team. Swapping is free and updates the active roster immediately.",
@@ -1167,6 +1178,7 @@ const en: Dictionary = {
   "tournament.complete": "Result",
   "tournament.fieldTitle": "Eighteen teams. One Aegis.",
   "tournament.fieldText": "Eighteen teams from your era; roster strength sets the projection, but the run seed resolves every match. Next: two groups, then a double-elimination playoff.",
+  "tournament.groupTitle": "Group {id}",
   "tournament.groupsTitle": "Group stage",
   "tournament.groupsText": "Two groups of nine play a BO2 round robin. Top four reach the upper bracket, 5–8 enter lower, ninth is eliminated.",
   "tournament.playoffsTitle": "Double elimination",
@@ -1356,13 +1368,50 @@ const en: Dictionary = {
 
 export const dictionaries: Record<Locale, Dictionary> = { ru, en };
 
-export function heroGamesMessageKey(locale: Locale, count: number): MessageKey {
-  if (locale === "en") return count === 1 ? "draft.heroGamesOne" : "draft.heroGames";
+/** Категория множественного числа: en — one/many; ru — one/few/many (1 игра / 2 игры / 5 игр,
+ * с исключениями 11–14). Ключи-формы объявляются рядом со строками, выбор — только здесь:
+ * новые счётные строки не должны переизобретать правило (см. heroGamesMessageKey ниже). */
+function pluralCategory(locale: Locale, count: number): "one" | "few" | "many" {
+  if (locale === "en") return count === 1 ? "one" : "many";
   const mod10 = count % 10;
   const mod100 = count % 100;
-  if (mod10 === 1 && mod100 !== 11) return "draft.heroGamesOne";
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "draft.heroGamesFew";
-  return "draft.heroGames";
+  if (mod10 === 1 && mod100 !== 11) return "one";
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return "few";
+  return "many";
+}
+
+function pluralMessageKey(
+  locale: Locale,
+  count: number,
+  forms: { one: MessageKey; few: MessageKey; many: MessageKey },
+): MessageKey {
+  return forms[pluralCategory(locale, count)];
+}
+
+export function heroGamesMessageKey(locale: Locale, count: number): MessageKey {
+  return pluralMessageKey(locale, count, {
+    one: "draft.heroGamesOne",
+    few: "draft.heroGamesFew",
+    many: "draft.heroGames",
+  });
+}
+
+/** «{n} игра/игры/игр на герое» — подпись назначения в карточках Буткемпа. */
+export function campHeroGamesMessageKey(locale: Locale, count: number): MessageKey {
+  return pluralMessageKey(locale, count, {
+    one: "camp.heroGamesOne",
+    few: "camp.heroGamesFew",
+    many: "camp.heroGames",
+  });
+}
+
+/** «{count} связь/связи/связей» — сводка «Разбора состава» в Буткемпе. */
+export function campBuildLinksMessageKey(locale: Locale, count: number): MessageKey {
+  return pluralMessageKey(locale, count, {
+    one: "camp.buildLinksOne",
+    few: "camp.buildLinksFew",
+    many: "camp.buildLinks",
+  });
 }
 
 export function translate(locale: Locale, key: MessageKey, vars: Record<string, string | number> = {}): string {

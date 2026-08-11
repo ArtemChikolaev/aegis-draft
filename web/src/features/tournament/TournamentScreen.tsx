@@ -798,7 +798,7 @@ export function TournamentScreen() {
                 style={{ ["--enter-i" as string]: gi } as React.CSSProperties}
                 {...(group.standings.some((row) => row.team.isUser) ? { "data-user-group": group.id } : {})}
               >
-                <h2>Group {group.id}</h2>
+                <h2>{t("tournament.groupTitle", { id: group.id })}</h2>
                 <div className="table-head"><span>#</span><span aria-hidden="true" /><span>{t("tournament.team")}</span><span>{t("tournament.record")}</span><span>{t("tournament.route")}</span></div>
                 <div className="table-body">
                   {liveStandings(group, tournament.groupMatches, revealedGroupMatches, groupsDone).map((row) => {

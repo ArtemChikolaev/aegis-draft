@@ -12,7 +12,7 @@
 import type { GameData, SquadSynergy } from "../types/data.ts";
 import type { Candidate } from "./packs.ts";
 import type { RosterSlot } from "./engine.ts";
-import { heroStatsForAssignment, pairChemistryBonus, playerHeroGames } from "./score.ts";
+import { heroStatsForAssignment, pairChemistryBonus, pairGroupIndex, pairKey, playerHeroGames } from "./score.ts";
 import type { Summand, SummandModifiers } from "./anteEconomy.ts";
 import { chargeFactor } from "./editions.ts";
 
@@ -143,28 +143,30 @@ function zero(): SummandModifiers {
   return { base: 0, heroSynergy: 0, chemistry: 0 };
 }
 
-/** Ключ пары независимо от порядка id. */
-function pairKey(a: number, b: number): string {
-  return a < b ? `${a}:${b}` : `${b}:${a}`;
-}
-
 /** Совместные pro-игры для КАЖДОЙ пары пятёрки, включая нули. score.chemistryPairEdges для этого
  *  не подходит: он отбрасывает пары со слабым вкладом, а Fresh Project целится именно в них. */
 function allPairs(accountIds: number[], squad: SquadSynergy): TacticPair[] {
-  const games = new Map<string, number>();
-  for (const group of squad) {
-    if (group.ids.length !== 2) continue;
-    games.set(pairKey(group.ids[0], group.ids[1]), group.games);
-  }
+  const games = pairGroupIndex(squad);
   const pairs: TacticPair[] = [];
   for (let i = 0; i < accountIds.length; i += 1) {
     for (let j = i + 1; j < accountIds.length; j += 1) {
       const a = accountIds[i];
       const b = accountIds[j];
-      pairs.push({ a, b, games: games.get(pairKey(a, b)) ?? 0 });
+      pairs.push({ a, b, games: games.get(pairKey(a, b))?.games ?? 0 });
     }
   }
   return pairs;
+}
+
+/** Год по событию: контекст пересобирается на каждый оффер рынка, а events за время забега не
+ *  меняются — карту держим по ссылке на массив, как pairGroupIndex в score.ts. */
+const yearByEventCache = new WeakMap<GameData["events"], Map<string, number | null>>();
+function yearByEventIndex(events: GameData["events"]): Map<string, number | null> {
+  const cached = yearByEventCache.get(events);
+  if (cached) return cached;
+  const index = new Map(events.map((event) => [event.id, event.year ?? null]));
+  yearByEventCache.set(events, index);
+  return index;
 }
 
 /** Собрать контекст из реального состояния забега. Живёт здесь, а не в сторе: стор не должен
@@ -176,7 +178,7 @@ export function buildTacticContext(
   stagesCleared: number,
 ): TacticContext {
   const phs = heroStatsForAssignment(data);
-  const yearByEvent = new Map(data.events.map((event) => [event.id, event.year ?? null]));
+  const yearByEvent = yearByEventIndex(data.events);
   const active = roster.flatMap((slot): Candidate[] => (slot.candidate ? [slot.candidate] : []));
   const players = active.map((candidate) => {
     const { accountId } = candidate.player;
