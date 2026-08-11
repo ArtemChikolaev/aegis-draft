@@ -44,6 +44,7 @@ import type { Candidate } from "../../game/packs.ts";
 import { SeasonVictory } from "../run/SeasonVictory.tsx";
 import { CareerPanel } from "./CareerPanel.tsx";
 import { ShareRunButton } from "./ShareRunButton.tsx";
+import { ShareImageButton } from "./ShareImageButton.tsx";
 import { BracketConnectors } from "./BracketConnectors.tsx";
 import { LOWER_BRACKET_EDGES, UPPER_BRACKET_EDGES } from "./bracketConnectors.ts";
 import "../result/result.css";
@@ -1022,6 +1023,7 @@ export function TournamentScreen() {
                 <Button variant="primary" data-testid="tournament-restart" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
                 <Button variant="secondary" onClick={reset}>{t("tournament.restartChange")}</Button>
                 <ShareRunButton />
+                <ShareImageButton />
               </div>
             )
           ) : null}

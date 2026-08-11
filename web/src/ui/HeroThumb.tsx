@@ -2,6 +2,8 @@ import { useState } from "react";
 import styles from "./HeroThumb.module.css";
 
 // Портреты героев Dota 2 с публичного Steam CDN по slug (picture из heroes.json).
+// В canvas шеринг-картинки этот CDN не годится: ACAO у него жёстко `https://www.dota2.com`,
+// поэтому карточка забега рисуется текстом (см. features/tournament/shareImage.ts).
 const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes";
 
 /** Аватар героя: портрет по slug + имя. Если картинка не загрузилась — остаётся имя. */
