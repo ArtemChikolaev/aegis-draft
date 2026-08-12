@@ -41,6 +41,7 @@ export function ResumeBanner() {
  *  через confirm-модалку: долгий сейв не удаляется одним кликом (в отличие от короткого
  *  сейва забега выше). */
 export function ManagerResumeBanner() {
+  const engine = useManager((s) => s.engine);
   const resumable = useManager((s) => s.resumable);
   const hydrate = useManager((s) => s.hydrate);
   const resumeCareer = useManager((s) => s.resumeCareer);
@@ -55,12 +56,17 @@ export function ManagerResumeBanner() {
     if (data) void hydrate();
   }, [data, hydrate]);
 
-  if (!resumable) return null;
+  // Карьера может жить в памяти (вышли из режима кнопкой «назад») ИЛИ в сейве (после
+  // перезагрузки). Баннер обязан видеть обе — иначе после «назад» он молчит (плейтест).
+  const info = engine
+    ? { orgName: engine.state.config.orgName, season: engine.state.season }
+    : resumable;
+  if (!info) return null;
   return (
     <aside className="resume-banner" data-testid="manager-resume-banner">
       <div className="resume-banner__copy">
         <strong>{t("manager.resumeTitle")}</strong>
-        <small>{t("manager.resumeSummary", { org: resumable.orgName, n: resumable.season })}</small>
+        <small>{t("manager.resumeSummary", { org: info.orgName, n: info.season })}</small>
       </div>
       <div className="resume-banner__actions">
         <Button variant="secondaryInvert" data-testid="manager-resume-discard" onClick={() => setConfirmAbandon(true)}>
@@ -69,7 +75,7 @@ export function ManagerResumeBanner() {
         <Button
           variant="primaryInvert"
           data-testid="manager-resume-continue"
-          onClick={() => { setSelectedMode("manager"); void resumeCareer(); }}
+          onClick={() => { setSelectedMode("manager"); if (!engine) void resumeCareer(); }}
         >
           {t("manager.resume")}<span>→</span>
         </Button>
