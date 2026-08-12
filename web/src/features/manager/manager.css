@@ -74,6 +74,17 @@
 .manager__standings li.is-user { background: var(--accent-soft); font-weight: 700; }
 .manager__roster { display: grid; gap: 6px; }
 .manager__roster-row { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+/* Срез 2: + назначенный герой, слава и настроение. */
+.manager__roster-row--wide { grid-template-columns: auto minmax(0, 1fr) auto auto auto; }
+.manager__roster-id { display: grid; gap: 1px; min-width: 0; }
+.manager__roster-id small { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.manager__roster-mood { display: flex; gap: 8px; align-items: baseline; }
+.manager__fame { color: var(--accent-strong); font-style: normal; font-size: 12px; font-weight: 700; }
+.manager__mood { color: var(--muted); font-style: normal; font-size: 12px; font-variant-numeric: tabular-nums; }
+.manager__mood.is-unhappy { color: var(--danger); font-weight: 700; }
+.manager__rival-tag { margin-left: 6px; padding: 1px 6px; color: var(--danger); border: 1px solid var(--danger); border-radius: 999px; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+.manager__departing { color: var(--danger); font-style: normal; font-size: 12px; font-weight: 700; }
+.manager__re-effect { display: flex; gap: 12px; margin: 0; font-size: 16px; }
 .manager__roster-row b { font-variant-numeric: tabular-nums; }
 .manager__roster-row span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .manager__score { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }

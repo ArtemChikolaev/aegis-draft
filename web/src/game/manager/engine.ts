@@ -22,18 +22,25 @@ import {
   ELO_BOT_MIN,
   ELO_K,
   ELO_START,
+  FAME,
   FIELD_OFFSET,
   FIELD_SIZE,
   FINALE_QUAL_ADVANCE,
+  HAPPINESS,
+  LIFECYCLE,
   MANAGER_INCOME,
   PRIZES,
   QUALIFIER_ADVANCE,
+  RANDOM_EVENTS,
+  RANDOM_EVENT_CHANCE,
+  RIVAL_BONUS_K,
   offseasonDrift,
   renegotiatedSalary,
   salaryBand,
   salaryFor,
   type ManagerDifficulty,
   type ManagerEventKind,
+  type ManagerRandomEventKind,
   type ManagerRegion,
 } from "./economy.ts";
 
@@ -44,6 +51,12 @@ export interface OrgCandidate {
   salary: number; // $k/мес
   band: 1 | 2 | 3 | 4;
   filler: boolean;
+  /** Настроение 0..100 (срез 2): двигается результатами и событиями, решает уходы. */
+  happiness: number;
+  /** Слава в звёздах 0..10 (срез 2): растёт от титулов, дорожает контракт. */
+  fame: number;
+  /** Полных сезонов в организации (срез 2): 3+ — ветеран, выше шанс ретайра. */
+  seasonsOnTeam: number;
 }
 
 export interface CalendarSlot {
@@ -72,7 +85,16 @@ export interface EventResult {
   prizeK: number;
   eloDelta: number;
   advanced: boolean | null; // для гейтящих: прошли ли дальше; null — не гейтящее
-  standings: Array<{ name: string; placement: number; isUser: boolean }>;
+  /** Rival играл это событие и мы встали выше — бонус спонсора (срез 2). */
+  rivalBonusK: number;
+  standings: Array<{ name: string; placement: number; isUser: boolean; isRival?: boolean }>;
+}
+
+/** Случайное событие между турнирами (срез 2): эффект уже применён, поле — что показать. */
+export interface RandomEventResult {
+  kind: ManagerRandomEventKind;
+  cashK: number;
+  happiness: number;
 }
 
 export interface FeedItem {
@@ -115,10 +137,16 @@ export interface ManagerState {
   lastResult: EventResult | null;
   seasonGames: number;
   seasonWins: number;
+  /** Rival сезона — имя орга из world (срез 2). */
+  rival: string;
+  /** Случайное событие, ожидающее показа (эффект уже применён). */
+  pendingRandomEvent: RandomEventResult | null;
   // Оффсезон
   offseasonDrifts: Record<number, number>; // accountId → ΔOVR
   offseasonSalaries: Record<number, number>; // accountId → новая зарплата
   released: number[];
+  /** Уходящие сами (ретайр/несчастье) — release принудительный, не тогглится. */
+  departures: number[];
 }
 
 export const TRYOUT_PICKS = 8;
@@ -239,14 +267,26 @@ export class ManagerEngine {
       lastResult: null,
       seasonGames: 0,
       seasonWins: 0,
+      rival: "",
+      pendingRandomEvent: null,
       offseasonDrifts: {},
       offseasonSalaries: {},
       released: [],
+      departures: [],
     };
     const engine = new ManagerEngine(data, state);
+    engine.state.rival = engine.pickRival();
     engine.rollTryoutOffer();
     engine.rollHeroOffer();
     return engine;
+  }
+
+  /** Rival сезона — ближайший к нам по ELO орг: обгонять его и осмысленно, и реально. */
+  private pickRival(): string {
+    const s = this.state;
+    return [...s.world].sort(
+      (a, b) => Math.abs(a.elo - s.elo) - Math.abs(b.elo - s.elo) || a.name.localeCompare(b.name),
+    )[0]?.name ?? "";
   }
 
   // ── Трайауты ────────────────────────────────────────────────────────────────
@@ -255,7 +295,28 @@ export class ManagerEngine {
     const salary = filler
       ? Math.max(4, Math.min(12, salaryFor(candidate.player.ovr, rng)))
       : salaryFor(candidate.player.ovr, rng);
-    return { candidate, salary, band: salaryBand(salary), filler };
+    return {
+      candidate,
+      salary,
+      band: salaryBand(salary),
+      filler,
+      happiness: HAPPINESS.start,
+      fame: 0,
+      seasonsOnTeam: 0,
+    };
+  }
+
+  /** Сдвиг настроения всему ростеру с клампом (события, результаты, оффсезон). */
+  private bumpHappiness(delta: number): void {
+    for (const player of this.state.roster) {
+      player.happiness = Math.max(HAPPINESS.min, Math.min(HAPPINESS.max, player.happiness + delta));
+    }
+  }
+
+  private bumpFame(delta: number): void {
+    for (const player of this.state.roster) {
+      player.fame = Math.max(0, Math.min(FAME.max, Math.round((player.fame + delta) * 4) / 4));
+    }
   }
 
   private rollTryoutOffer(): void {
@@ -430,7 +491,10 @@ export class ManagerEngine {
     const size = FIELD_SIZE[slot.kind];
     const offset = FIELD_OFFSET[slot.kind];
     // Поле: сила ботов вокруг силы игрока со сдвигом тира (гейт — в самом сдвиге).
-    const world = rng.shuffle(this.state.world).slice(0, size - 1);
+    // Rival всегда в поле: гонка с ним — постоянная сюжетная линия сезона (322-0-парити).
+    const rivalOrg = this.state.world.find((org) => org.name === s.rival);
+    const others = rng.shuffle(this.state.world.filter((org) => org.name !== s.rival)).slice(0, size - 1 - (rivalOrg ? 1 : 0));
+    const world = rivalOrg ? [rivalOrg, ...others] : others;
     const bots = world.map((org) => ({
       name: org.name,
       strength: Math.round(Math.min(105, Math.max(60, rng.normal(strength + offset.mean, offset.sd)))),
@@ -440,6 +504,8 @@ export class ManagerEngine {
 
     const placements = simKnockout(field, rng);
     const user = placements.find((p) => p.isUser)!;
+    const rival = placements.find((p) => p.name === s.rival);
+    const rivalBonusK = rival && user.placement < rival.placement ? RIVAL_BONUS_K : 0;
     const prizes = PRIZES[slot.kind];
     const prizeK = prizes[Math.min(user.placement, prizes.length) - 1] ?? 0;
 
@@ -447,9 +513,27 @@ export class ManagerEngine {
     const expected = (size + 1) / 2;
     const eloDelta = Math.round((ELO_K * (expected - user.placement)) / (size / 2));
     s.elo += eloDelta;
-    s.bankK += prizeK;
+    s.bankK += prizeK + rivalBonusK;
     s.seasonGames += Math.ceil(Math.log2(size));
     s.seasonWins += Math.max(0, Math.ceil(Math.log2(size)) - Math.ceil(Math.log2(Math.max(2, user.placement))));
+
+    // Настроение и слава по результату (константы 322-0): титул поднимает обе,
+    // топ-3 греет, дно LAN бьёт. Прочие места нейтральны.
+    if (user.placement === 1) {
+      this.bumpHappiness(HAPPINESS.title);
+      const fameByKind: Partial<Record<ManagerEventKind, number>> = {
+        finale: FAME.finaleTitle,
+        lan: FAME.lanTitle,
+        online: FAME.onlineTitle,
+        tier2: FAME.tier2Title,
+      };
+      this.bumpFame(fameByKind[slot.kind] ?? 0);
+    } else if (user.placement <= 3) {
+      this.bumpHappiness(HAPPINESS.eventTop3);
+      if (slot.kind === "finale" && user.placement <= 4) this.bumpFame(FAME.finaleTop4);
+    } else if (slot.kind === "lan" && user.placement >= size - 3) {
+      this.bumpHappiness(HAPPINESS.lanBottom);
+    }
 
     const advance = slot.kind === "qualifier" ? QUALIFIER_ADVANCE : slot.kind === "finaleQual" ? FINALE_QUAL_ADVANCE : null;
     slot.result = { placement: user.placement, prizeK, eloDelta };
@@ -462,7 +546,8 @@ export class ManagerEngine {
       prizeK,
       eloDelta,
       advanced: advance === null ? null : user.placement <= advance,
-      standings: placements.map((p) => ({ name: p.name, placement: p.placement, isUser: p.isUser })),
+      rivalBonusK,
+      standings: placements.map((p) => ({ name: p.name, placement: p.placement, isUser: p.isUser, ...(p.name === s.rival ? { isRival: true } : {}) })),
     };
     s.lastResult = result;
     s.feed.unshift({ slotId: slot.id, name: slot.name, placement: user.placement, prizeK });
@@ -471,11 +556,34 @@ export class ManagerEngine {
     return result;
   }
 
-  /** Закрыть панель результата; сезон кончился — оффсезон. */
+  /** Закрыть панель результата; сезон кончился — оффсезон, иначе шанс случайного события. */
   continueSeason(): void {
     const s = this.state;
+    const closedSlotId = s.lastResult?.slotId ?? null;
     s.lastResult = null;
-    if (s.phase === "season" && this.seasonFinished()) this.beginOffseason();
+    if (s.phase === "season" && this.seasonFinished()) {
+      this.beginOffseason();
+      return;
+    }
+    // Случайное событие — по сиду от закрытого слота: эффект применяется сразу,
+    // pendingRandomEvent держит данные для модалки (dismiss просто чистит).
+    if (closedSlotId && s.phase === "season") {
+      const rng = new Rng(`${s.seed}:re:${closedSlotId}`);
+      if (rng.float() < RANDOM_EVENT_CHANCE) {
+        const kinds = Object.keys(RANDOM_EVENTS) as ManagerRandomEventKind[];
+        const kind = kinds[rng.int(kinds.length)];
+        const effect = RANDOM_EVENTS[kind];
+        const cashK = effect.cashK ?? 0;
+        const happiness = effect.happiness ?? 0;
+        s.bankK += cashK;
+        if (happiness !== 0) this.bumpHappiness(happiness);
+        s.pendingRandomEvent = { kind, cashK, happiness };
+      }
+    }
+  }
+
+  dismissRandomEvent(): void {
+    this.state.pendingRandomEvent = null;
   }
 
   seasonFinished(): boolean {
@@ -492,15 +600,31 @@ export class ManagerEngine {
   private beginOffseason(): void {
     const s = this.state;
     s.phase = "offseason";
+    s.pendingRandomEvent = null;
     const rng = new Rng(`${s.seed}:offseason:${s.season}`);
+    // Мимо финала сезона — удар по настроению всем (322-0: missTi −6) — ДО дрифта,
+    // чтобы несчастье уже смещало форму и решало уходы.
+    const finale = s.calendar.find((slot) => slot.kind === "finale");
+    if (!finale?.result) this.bumpHappiness(HAPPINESS.missFinale);
+    this.bumpFame(FAME.seasonDecay);
+
     s.offseasonDrifts = {};
     s.offseasonSalaries = {};
     s.released = [];
+    s.departures = [];
     for (const player of s.roster) {
       const id = player.candidate.player.accountId;
-      s.offseasonDrifts[id] = offseasonDrift(rng);
+      s.offseasonDrifts[id] = offseasonDrift(rng, player.happiness);
       const newOvr = player.candidate.player.ovr + s.offseasonDrifts[id];
-      s.offseasonSalaries[id] = renegotiatedSalary(player.salary, newOvr, rng);
+      s.offseasonSalaries[id] = renegotiatedSalary(player.salary, newOvr, rng, player.fame);
+      // Жизненный цикл: ретайр (база + ветеран + несчастье), несчастный может уйти сам.
+      const unhappy = player.happiness < HAPPINESS.unhappyThreshold;
+      const retireChance =
+        LIFECYCLE.retireBase +
+        (player.seasonsOnTeam >= LIFECYCLE.veteranSeasons ? LIFECYCLE.retireVeteranBonus : 0) +
+        (unhappy ? LIFECYCLE.retireUnhappyBonus : 0);
+      const leaves = rng.float() < retireChance || (unhappy && rng.float() < LIFECYCLE.leaveChance);
+      if (leaves) s.departures.push(id);
     }
   }
 
@@ -510,15 +634,17 @@ export class ManagerEngine {
     s.released = s.released.includes(accountId) ? s.released.filter((id) => id !== accountId) : [...s.released, accountId];
   }
 
-  /** Подтвердить контракты: применить дрифт и новые зарплаты, заменить отпущенных филлерами. */
+  /** Подтвердить контракты: применить дрифт и новые зарплаты, заменить ушедших филлерами.
+   *  Уходящие сами (departures) равносильны released — но их не вернуть тогглом. */
   confirmOffseason(): boolean {
     const s = this.state;
     if (s.phase !== "offseason") return false;
     const rng = new Rng(`${s.seed}:offseason-fill:${s.season}`);
+    const leaving = new Set([...s.released, ...s.departures]);
     const kept = new Set(s.roster.map((p) => p.candidate.player.accountId));
     s.roster = s.roster.map((player) => {
       const id = player.candidate.player.accountId;
-      if (s.released.includes(id)) {
+      if (leaving.has(id)) {
         kept.delete(id);
         return player; // заменится ниже
       }
@@ -526,22 +652,23 @@ export class ManagerEngine {
       return {
         ...player,
         salary: s.offseasonSalaries[id] ?? player.salary,
+        seasonsOnTeam: player.seasonsOnTeam + 1,
         candidate: {
           ...player.candidate,
           player: { ...player.candidate.player, ovr: Math.min(99, Math.max(55, player.candidate.player.ovr + drift)) },
         },
       };
     });
-    // Отпущенные → дешёвый филлер той же роли из пула (не из уже занятых).
+    // Ушедшие → дешёвый филлер той же роли из пула (не из уже занятых).
     for (let i = 0; i < s.roster.length; i += 1) {
       const player = s.roster[i];
       const id = player.candidate.player.accountId;
-      if (!s.released.includes(id)) continue;
+      if (!leaving.has(id)) continue;
       const role = player.candidate.player.role;
-      // Отпущенный исключается явно: дешёвейший кандидат роли может оказаться им же.
+      // Ушедший исключается явно: дешёвейший кандидат роли может оказаться им же.
       const replacement = [...this.pool]
         .sort((a, b) => a.player.ovr - b.player.ovr)
-        .find((c) => c.player.role === role && !kept.has(c.player.accountId) && !s.released.includes(c.player.accountId));
+        .find((c) => c.player.role === role && !kept.has(c.player.accountId) && !leaving.has(c.player.accountId));
       if (!replacement) return false; // теоретический случай: некем заменить — не подтверждаем
       kept.add(replacement.player.accountId);
       s.roster[i] = this.orgCandidate(replacement, rng, true);
@@ -558,11 +685,20 @@ export class ManagerEngine {
     s.calendar = buildCalendar(s.seed, s.season);
     s.feed = [];
     s.lastResult = null;
+    s.pendingRandomEvent = null;
     s.seasonGames = 0;
     s.seasonWins = 0;
     s.offseasonDrifts = {};
     s.offseasonSalaries = {};
     s.released = [];
+    s.departures = [];
+    // Rival переназначается: за сезон ELO разъехались, гонка снова с равным.
+    s.rival = this.pickRival();
+  }
+
+  /** Назначение героев текущего счёта: accountId → heroId (для показа в ростере). */
+  assignmentByPlayer(): Record<number, number> {
+    return this.score()?.assignment.byPlayer ?? {};
   }
 }
 

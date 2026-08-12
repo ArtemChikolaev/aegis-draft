@@ -10,6 +10,7 @@ import { useTmaChrome } from "../../state/tmaChrome.ts";
 import {
   MANAGER_INCOME,
   MANAGER_REGIONS,
+  RIVAL_BONUS_K,
   type ManagerDifficulty,
   type ManagerRegion,
 } from "../../game/manager/economy.ts";
@@ -22,7 +23,7 @@ import {
   type ManagerEngine,
 } from "../../game/manager/engine.ts";
 import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, StatTile, Surface, TextField } from "../../ui/index.ts";
-import { useHero } from "../draft/heroes.ts";
+import { useHero, useHeroName } from "../draft/heroes.ts";
 import "./manager.css";
 
 const KIND_LABEL: Record<CalendarSlot["kind"], MessageKey> = {
@@ -379,7 +380,9 @@ function Season({ engine }: { engine: ManagerEngine }) {
   const act = useManager((s) => s.act);
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const abandonCareer = useManager((s) => s.abandonCareer);
+  const heroName = useHeroName();
   const s = engine.state;
+  const assignment = engine.assignmentByPlayer();
   // Без useMemo: движок мутирует state по ссылке (стор тикает версией), а scoreTeam на
   // пятёрке с пулом из 12 героев дёшев — стабильных зависимостей для мемо тут просто нет.
   const score = engine.score();
@@ -408,6 +411,11 @@ function Season({ engine }: { engine: ManagerEngine }) {
             {result.prizeK > 0 && <span> · +${result.prizeK}k</span>}
             <span> · ELO {result.eloDelta >= 0 ? "+" : ""}{result.eloDelta}</span>
           </p>
+          {result.rivalBonusK > 0 && (
+            <p className="manager__gate is-advanced">
+              <strong>{t("manager.rivalBeaten")}</strong> {t("manager.rivalBeatenText", { n: result.rivalBonusK })}
+            </p>
+          )}
           {result.advanced !== null && (
             <p className={`manager__gate ${result.advanced ? "is-advanced" : "is-eliminated"}`}>
               <strong>{t(result.advanced ? "manager.advanced" : "manager.eliminated")}</strong>{" "}
@@ -418,6 +426,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
             {result.standings.map((row) => (
               <li key={row.name} className={row.isUser ? "is-user" : ""}>
                 <span>{row.placement}</span> {row.name}
+                {row.isRival && <em className="manager__rival-tag">{t("manager.rivalTag")}</em>}
               </li>
             ))}
           </ol>
@@ -444,14 +453,25 @@ function Season({ engine }: { engine: ManagerEngine }) {
         <Surface className="manager__panel">
           <h2 className="manager__section">{t("manager.rosterTitle")} · ${wages}k / ${engine.incomeK}k</h2>
           <div className="manager__roster">
-            {s.roster.map((p) => (
-              <div key={p.candidate.player.accountId} className="manager__roster-row">
-                <RoleTag role={p.candidate.player.role}>{t(roleMessageKey(p.candidate.player.role))}</RoleTag>
-                <strong>{p.candidate.player.nickname}</strong>
-                <b>{p.candidate.player.ovr}</b>
-                <span>${p.salary}k{t("manager.perMonth")}</span>
-              </div>
-            ))}
+            {s.roster.map((p) => {
+              const heroId = assignment[p.candidate.player.accountId];
+              const unhappy = p.happiness < 30;
+              return (
+                <div key={p.candidate.player.accountId} className="manager__roster-row manager__roster-row--wide">
+                  <RoleTag role={p.candidate.player.role}>{t(roleMessageKey(p.candidate.player.role))}</RoleTag>
+                  <span className="manager__roster-id">
+                    <strong>{p.candidate.player.nickname}</strong>
+                    <small>{heroId !== undefined ? heroName(heroId) : "—"}</small>
+                  </span>
+                  <span className="manager__roster-mood" title={t("manager.moodTitle", { n: p.happiness })}>
+                    {p.fame > 0 && <em className="manager__fame">{p.fame}★</em>}
+                    <em className={`manager__mood${unhappy ? " is-unhappy" : ""}`}>{unhappy ? "☹" : p.happiness >= 70 ? "♥" : "♡"} {p.happiness}</em>
+                  </span>
+                  <b>{p.candidate.player.ovr}</b>
+                  <span>${p.salary}k{t("manager.perMonth")}</span>
+                </div>
+              );
+            })}
           </div>
           {score && (
             <div className="manager__score">
@@ -467,10 +487,15 @@ function Season({ engine }: { engine: ManagerEngine }) {
           <h2 className="manager__section">{t("manager.worldTitle")}</h2>
           <ol className="manager__world">
             {worldTop.map((org, index) => (
-              <li key={org.name}><span>{index + 1}</span> {org.name} <b>{org.elo}</b></li>
+              <li key={org.name}>
+                <span>{index + 1}</span> {org.name}
+                {org.name === s.rival && <em className="manager__rival-tag">{t("manager.rivalTag")}</em>}
+                <b>{org.elo}</b>
+              </li>
             ))}
             <li className="is-user"><span>{engine.worldRank()}</span> {s.config.orgName} <b>{s.elo}</b></li>
           </ol>
+          <p className="manager__hint">{t("manager.rivalHint", { org: s.rival, n: RIVAL_BONUS_K })}</p>
         </Surface>
       </div>
 
@@ -510,6 +535,31 @@ function Season({ engine }: { engine: ManagerEngine }) {
         <Button variant="leave" onClick={() => setConfirmAbandon(true)}>{t("manager.abandon")}</Button>
       </div>
       {confirmAbandon && <ManagerAbandonModal onConfirm={abandonCareer} onClose={() => setConfirmAbandon(false)} />}
+      {s.pendingRandomEvent && (
+        <Modal
+          mark="A"
+          title={t(`manager.re.${s.pendingRandomEvent.kind}` as MessageKey)}
+          description={t(`manager.re.${s.pendingRandomEvent.kind}Text` as MessageKey)}
+          subhead={t("manager.reEyebrow")}
+          labelledBy="manager-random-event"
+          dismissLabel={t("common.close")}
+          onClose={() => act((e) => e.dismissRandomEvent())}
+        >
+          {({ close }) => (
+            <>
+              <p className="manager__re-effect" data-testid="manager-re-effect">
+                {s.pendingRandomEvent!.cashK !== 0 && <b>+${s.pendingRandomEvent!.cashK}k</b>}
+                {s.pendingRandomEvent!.happiness !== 0 && (
+                  <b>{s.pendingRandomEvent!.happiness > 0 ? "+" : ""}{s.pendingRandomEvent!.happiness} {t("manager.reMood")}</b>
+                )}
+              </p>
+              <Button variant="primaryInvert" data-testid="manager-re-dismiss" onClick={() => { act((e) => e.dismissRandomEvent()); close(); }}>
+                {t("manager.reOk")}
+              </Button>
+            </>
+          )}
+        </Modal>
+      )}
     </>
   );
 }
@@ -531,20 +581,28 @@ function Offseason({ engine }: { engine: ManagerEngine }) {
             const drift = s.offseasonDrifts[id] ?? 0;
             const newSalary = s.offseasonSalaries[id] ?? p.salary;
             const released = s.released.includes(id);
+            const departing = s.departures.includes(id);
             return (
-              <div key={id} className={`manager__contract manager__contract--offseason${released ? " is-released" : ""}`}>
+              <div key={id} className={`manager__contract manager__contract--offseason${released || departing ? " is-released" : ""}`}>
                 <RoleTag role={p.candidate.player.role}>{t(roleMessageKey(p.candidate.player.role))}</RoleTag>
                 <span className="manager__contract-name">
                   <strong>{p.candidate.player.nickname}</strong>
                   <small>
                     {p.candidate.player.ovr} → {Math.min(99, Math.max(55, p.candidate.player.ovr + drift))} OVR
                     {drift !== 0 && <em className={drift > 0 ? "is-up" : "is-down"}> ({drift > 0 ? "+" : ""}{drift})</em>}
+                    {" · "}{p.happiness < 30 ? "☹" : "♥"} {p.happiness}
+                    {p.fame > 0 && <> · {p.fame}★</>}
                   </small>
                 </span>
                 <span className="manager__contract-salary">${p.salary}k → ${newSalary}k</span>
-                <Button variant={released ? "primaryInvert" : "danger"} data-testid="manager-release" onClick={() => act((e) => e.toggleRelease(id))}>
-                  {released ? t("manager.keep") : t("manager.release")}
-                </Button>
+                {departing ? (
+                  // Уходит сам (ретайр/несчастье) — это не выбор менеджера, тоггла нет.
+                  <em className="manager__departing" data-testid="manager-departing">{t("manager.departing")}</em>
+                ) : (
+                  <Button variant={released ? "primaryInvert" : "danger"} data-testid="manager-release" onClick={() => act((e) => e.toggleRelease(id))}>
+                    {released ? t("manager.keep") : t("manager.release")}
+                  </Button>
+                )}
               </div>
             );
           })}

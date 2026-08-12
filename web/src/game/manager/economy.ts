@@ -4,7 +4,7 @@
 // она лежит в сейве и честно инвалидирует несовместимую карьеру (как balanceConfigVersion).
 import { Rng } from "../rng.ts";
 
-export const MANAGER_ECONOMY_VERSION = "m1.0.0";
+export const MANAGER_ECONOMY_VERSION = "m1.1.0"; // m1.1.0: rival-бонус, fame/happiness, random events
 
 /** Сложность = месячный доход организации, $k (322-0-парити: 120/100/80). */
 export const MANAGER_INCOME: Record<ManagerDifficulty, number> = {
@@ -73,14 +73,70 @@ export const ELO_BOT_MIN = 1240;
 export const ELO_BOT_MAX = 1320;
 export const ELO_K = 16;
 
-/** Дрифт формы в оффсезоне: целое в [−3, +3] (322-0: driftMin/Max). */
-export function offseasonDrift(rng: Rng): number {
-  return rng.int(7) - 3;
+/** Дрифт формы в оффсезоне: целое в [−3, +3] (322-0: driftMin/Max). Настроение смещает
+ *  дрифт (322-0: driftHappyBias +1 / driftSadBias −1), кламп остаётся [−3, +3]. */
+export function offseasonDrift(rng: Rng, happiness: number): number {
+  const bias = happiness >= HAPPINESS.happyBiasFrom ? 1 : happiness < HAPPINESS.unhappyThreshold ? -1 : 0;
+  return Math.max(-3, Math.min(3, rng.int(7) - 3 + bias));
 }
 
+/** Happiness (322-0-парити, замер 2026-07-16): старт 70, титул +8, топ-3 +3,
+ *  дно LAN −4, мимо финала сезона −6; несчастен ниже 30. */
+export const HAPPINESS = {
+  start: 70,
+  min: 0,
+  max: 100,
+  title: 8,
+  eventTop3: 3,
+  lanBottom: -4,
+  missFinale: -6,
+  unhappyThreshold: 30,
+  happyBiasFrom: 70,
+} as const;
+
+/** Fame в звёздах 0..10 (322-0-парити): титулы по тиру события, топ-4 финала,
+ *  сезонное затухание. starDivisor у них конвертирует fame в надбавку зарплаты. */
+export const FAME = {
+  max: 10,
+  finaleTitle: 2,
+  lanTitle: 1,
+  onlineTitle: 0.5,
+  tier2Title: 0.25,
+  finaleTop4: 0.5,
+  seasonDecay: -0.5,
+  /** +4% к пересмотру зарплаты за звезду (322-0: fameBumpPerStar 0.04). */
+  salaryBumpPerStar: 0.04,
+} as const;
+
+/** Жизненный цикл игрока в оффсезоне (322-0-парити): базовый шанс ретайра, надбавки
+ *  ветерану (3+ сезонов) и несчастному; несчастный дополнительно уходит сам с шансом 35%. */
+export const LIFECYCLE = {
+  retireBase: 0.02,
+  retireVeteranBonus: 0.03,
+  veteranSeasons: 3,
+  retireUnhappyBonus: 0.05,
+  leaveChance: 0.35,
+} as const;
+
+/** Бонус за место выше соперника-rival в общем событии. У 322-0 замерено +$25k;
+ *  берём скромнее до калибровки симом — их экономика щедрее нашей. */
+export const RIVAL_BONUS_K = 10;
+
+/** Случайные события между турнирами: шанс на «Продолжить», эффекты плоские и
+ *  детерминированные по сиду. Тексты свои, механика — по мотивам живого прохода 322-0. */
+export const RANDOM_EVENT_CHANCE = 0.25;
+export type ManagerRandomEventKind = "sponsorWindfall" | "fanMeetup" | "gearSponsor" | "burnout";
+export const RANDOM_EVENTS: Record<ManagerRandomEventKind, { cashK?: number; happiness?: number }> = {
+  sponsorWindfall: { cashK: 15 },
+  gearSponsor: { cashK: 6 },
+  fanMeetup: { happiness: 5 },
+  burnout: { happiness: -4 },
+};
+
 /** Новая зарплата в оффсезоне: пересчёт от нового OVR, сглаженный к текущему контракту —
- *  договор пересматривают, а не подписывают с нуля. */
-export function renegotiatedSalary(currentSalary: number, newOvr: number, rng: Rng): number {
+ *  договор пересматривают, а не подписывают с нуля. Слава дорожает: +4%/звезду. */
+export function renegotiatedSalary(currentSalary: number, newOvr: number, rng: Rng, fameStars = 0): number {
   const fresh = salaryFor(newOvr, rng);
-  return Math.max(4, Math.round((currentSalary + fresh) / 2));
+  const base = (currentSalary + fresh) / 2;
+  return Math.max(4, Math.round(base * (1 + fameStars * FAME.salaryBumpPerStar)));
 }
