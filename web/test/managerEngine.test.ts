@@ -68,7 +68,9 @@ describe("ManagerEngine — драфт орга", () => {
     const pool = managerCandidatePool(data, "last_2y");
     const ids = pool.map((c) => c.player.accountId);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(pool.length).toBeGreaterThan(50);
+    // Граница функциональная, не «размер датасета»: пула должно хватать на драфт орга
+    // (8 пиков + 5 филлеров) с запасом на роллы. CI гоняет mock (~35), локально real (300+).
+    expect(pool.length).toBeGreaterThanOrEqual(TRYOUT_PICKS + 5 + 5);
   });
 
   it("реролл меняет предложение, пики уходят из пула, после 8 пиков — герои", () => {
