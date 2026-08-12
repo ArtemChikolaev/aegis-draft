@@ -45,7 +45,9 @@
   border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft);
   transition: border-color .15s;
 }
-.manager__contract:hover { border-color: var(--accent); }
+.manager__contract:hover:not(:disabled) { border-color: var(--accent); }
+/* Квота роли заполнена: кандидат виден, но недоступен — правило показывается, а не сообщается. */
+.manager__contract:disabled { opacity: .4; cursor: not-allowed; }
 .manager__contract.is-selected { border-color: var(--accent-strong); background: var(--accent-soft); }
 .manager__contract-name { display: grid; gap: 1px; min-width: 0; }
 .manager__contract-name strong { font-size: 14px; }

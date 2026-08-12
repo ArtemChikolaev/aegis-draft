@@ -417,7 +417,12 @@ export class ManagerEngine {
       s.feed.unshift({ slotId: slot.id, name: slot.name, placement: 0, prizeK: 0, dnq: true });
       slot = this.nextSlot;
     }
-    if (!slot) return null;
+    if (!slot) {
+      // Тупик плейтеста 2026-08-12: последний слот сезона сгорел как DNQ прямо здесь —
+      // панели результата не будет, и continueSeason никто не позовёт. Переходим сами.
+      if (this.seasonFinished()) this.beginOffseason();
+      return null;
+    }
 
     const score = this.score();
     const strength = score ? score.teamOvr : 70;

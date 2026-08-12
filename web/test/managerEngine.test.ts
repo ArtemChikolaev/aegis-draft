@@ -182,6 +182,25 @@ describe("ManagerEngine — контракты и сезон", () => {
   });
 });
 
+describe("ManagerEngine — тупик DNQ-финала (плейтест 2026-08-12)", () => {
+  it("клик «Сыграть» по сгорающему финалу сам переводит в оффсезон", () => {
+    const engine = ManagerEngine.create(data, "deadend", config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    // Доигрываем всё, кроме финала: результаты проставляем руками, отбор — мимо (топ-1 нужен).
+    for (const slot of engine.state.calendar) {
+      if (slot.kind === "finale") continue;
+      if (slot.gated) slot.dnq = true;
+      else slot.result = { placement: slot.kind === "finaleQual" ? 5 : 3, prizeK: 0, eloDelta: 0 };
+    }
+    expect(engine.seasonFinished()).toBe(false); // финал ещё висит
+    // Раньше: null, финал dnq, phase оставалась "season" — кнопки некст-сезона не существовало.
+    expect(engine.playNextEvent()).toBeNull();
+    expect(engine.state.calendar.find((s) => s.kind === "finale")?.dnq).toBe(true);
+    expect(engine.state.phase).toBe("offseason");
+  });
+});
+
 describe("ManagerEngine — персист", () => {
   it("JSON round-trip восстанавливает движок: тот же счёт и следующее событие", () => {
     const engine = ManagerEngine.create(data, "persist", config);

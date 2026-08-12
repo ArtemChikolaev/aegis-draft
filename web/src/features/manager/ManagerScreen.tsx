@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
+import type { Role } from "../../types/data.ts";
 import { roleMessageKey } from "../../i18n/core.ts";
 import { useManager } from "../../state/managerStore.ts";
 import { useRun } from "../../state/runStore.ts";
@@ -289,6 +290,18 @@ function Contracts({ engine }: { engine: ManagerEngine }) {
     [s.candidates],
   );
 
+  // Гейт ролей как в 322-0: заполненная квота (1C/1M/1O/2S) гасит остальных кандидатов
+  // этой роли — перебрать роль нельзя по построению, а не по сообщению об ошибке.
+  const ROLE_QUOTA: Record<Role, number> = { safelane: 1, mid: 1, offlane: 1, support: 2 };
+  const pickedByRole = new Map<Role, number>();
+  for (const c of s.candidates) {
+    if (picked.includes(c.candidate.player.accountId)) {
+      const role = c.candidate.player.role;
+      pickedByRole.set(role, (pickedByRole.get(role) ?? 0) + 1);
+    }
+  }
+  const roleFull = (role: Role) => (pickedByRole.get(role) ?? 0) >= ROLE_QUOTA[role];
+
   return (
     <>
       <ManagerHeading engine={engine} sub={t("manager.contractsSub", { n: income })} />
@@ -298,12 +311,14 @@ function Contracts({ engine }: { engine: ManagerEngine }) {
           {sorted.map((c) => {
             const id = c.candidate.player.accountId;
             const isPicked = picked.includes(id);
+            const blocked = !isPicked && roleFull(c.candidate.player.role);
             return (
               <button
                 key={id}
                 type="button"
                 className={`manager__contract${isPicked ? " is-selected" : ""}`}
                 data-testid="manager-contract-row"
+                disabled={blocked}
                 onClick={() => toggle(id)}
               >
                 <RoleTag role={c.candidate.player.role}>{t(roleMessageKey(c.candidate.player.role))}</RoleTag>
