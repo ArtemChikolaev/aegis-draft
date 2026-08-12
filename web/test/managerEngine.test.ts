@@ -231,9 +231,11 @@ describe("ManagerEngine — срез 2: rival, события, настроен�
     // пока не случится топ-1 ЛИБО проверяем кламп на «горячем» ростере иначе.
     let guard = 0;
     let sawTitle = false;
+    const fameKinds = ["tier2", "online", "lan", "finale"];
     while (!engine.seasonFinished() && guard < 60) {
       const res = engine.playNextEvent();
-      if (res?.placement === 1) {
+      if (res?.placement === 1 && fameKinds.includes(res.kind)) {
+        // Квалификации славы не дают (322-0-парити) — слава только за титулы событий.
         sawTitle = true;
         for (const p of s.roster) {
           expect(p.happiness).toBeLessThanOrEqual(100);
