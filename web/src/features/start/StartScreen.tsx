@@ -24,7 +24,9 @@ interface Opt<T> {
 
 const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: MessageKey; available: boolean }[] = [
   { value: "classic", label: "start.modeClassic", hint: "start.modeClassicHint", detail: "start.modeClassicLong", available: true },
-  { value: "manager", label: "start.modeManager", hint: "start.modeManagerHint", detail: "start.modeManagerLong", available: false },
+  // Manager доступен (T5.5, срез 1): карточка ведёт в собственный флоу ManagerScreen —
+  // App перехватывает selectedMode === "manager" до фазовых экранов classic-забега.
+  { value: "manager", label: "start.modeManager", hint: "start.modeManagerHint", detail: "start.modeManagerLong", available: true },
   { value: "tournament", label: "start.modeTournament", hint: "start.modeTournamentHint", detail: "start.modeTournamentLong", available: false },
   // Arena (M10, PRD §5.12): онлайн-турнир на 18 команд. Карточка и красный акцент режима живут
   // уже сейчас; сам режим ждёт живого ws-сервера (MP0) — до него превью «Скоро», как у соседей.

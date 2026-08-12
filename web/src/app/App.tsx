@@ -14,6 +14,7 @@ import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
 import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
 import { CareerScreen } from "../features/career/CareerScreen.tsx";
 import { RulesScreen } from "../features/rules/RulesScreen.tsx";
+import { ManagerScreen } from "../features/manager/ManagerScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
@@ -111,13 +112,20 @@ export function App() {
         /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
            (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
            так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
-        <div className="enter-fade" key={phase}>
-          {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
-          {phase === "start" && <ResumeBanner />}
-          {phase === "start" && <StartScreen />}
-          {phase === "draft" && <DraftScreen />}
-          {phase === "tournament" && <TournamentScreen />}
-          {phase === "camp" && <CampScreen />}
+        <div className="enter-fade" key={mode === "manager" ? "manager" : phase}>
+          {/* Manager — свой мир со своим long-save: фазы classic-забега его не касаются. */}
+          {mode === "manager" && phase === "start" ? (
+            <ManagerScreen />
+          ) : (
+            <>
+              {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
+              {phase === "start" && <ResumeBanner />}
+              {phase === "start" && <StartScreen />}
+              {phase === "draft" && <DraftScreen />}
+              {phase === "tournament" && <TournamentScreen />}
+              {phase === "camp" && <CampScreen />}
+            </>
+          )}
         </div>
       )}
       {/* Вне переключателя вида: ссылку могли открыть, стоя на любом экране, и предложение
