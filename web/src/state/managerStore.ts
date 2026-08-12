@@ -34,12 +34,18 @@ function isSavedManagerCompatible(saved: SavedManager, data: GameData): boolean 
   );
 }
 
+/** Сводка совместимого сейва для баннеров resume (стартовый экран + онбординг режима). */
+export interface ManagerResumeInfo {
+  orgName: string;
+  season: number;
+}
+
 interface ManagerStore {
   /** null — карьеры нет (онбординг). Движок держит state по ссылке — после каждого действия
    *  зовём touch() для нового снапшота в сторе. */
   engine: ManagerEngine | null;
   /** Совместимый сейв найден, но карьера ещё не возобновлена (баннер Resume). */
-  resumable: boolean;
+  resumable: ManagerResumeInfo | null;
   version: number;
 
   hydrate: () => Promise<void>;
@@ -79,14 +85,14 @@ function persist(state: ManagerState, data: GameData): void {
 
 export const useManager = create<ManagerStore>((set, get) => ({
   engine: null,
-  resumable: false,
+  resumable: null,
   version: 0,
 
   async hydrate() {
     const data = dataOrNull();
     if (!data || get().engine) return;
     const saved = await readSaved(data);
-    set({ resumable: saved !== null });
+    set({ resumable: saved ? { orgName: saved.config.orgName, season: saved.season } : null });
   },
 
   startCareer(orgName, region, difficulty) {
@@ -95,7 +101,7 @@ export const useManager = create<ManagerStore>((set, get) => ({
     const config: ManagerConfig = { orgName: orgName.trim(), region, difficulty, format: "last_2y" };
     const engine = ManagerEngine.create(data, createRunSeed(), config);
     persist(engine.state, data);
-    set({ engine, resumable: false, version: get().version + 1 });
+    set({ engine, resumable: null, version: get().version + 1 });
   },
 
   async resumeCareer() {
@@ -103,15 +109,15 @@ export const useManager = create<ManagerStore>((set, get) => ({
     if (!data) return;
     const saved = await readSaved(data);
     if (!saved) {
-      set({ resumable: false });
+      set({ resumable: null });
       return;
     }
-    set({ engine: new ManagerEngine(data, saved), resumable: false, version: get().version + 1 });
+    set({ engine: new ManagerEngine(data, saved), resumable: null, version: get().version + 1 });
   },
 
   abandonCareer() {
     void removePersisted(KEY);
-    set({ engine: null, resumable: false, version: get().version + 1 });
+    set({ engine: null, resumable: null, version: get().version + 1 });
   },
 
   act(fn) {

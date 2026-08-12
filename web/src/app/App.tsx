@@ -4,7 +4,7 @@ import { useShell } from "../state/shellStore.ts";
 import { useTmaChrome } from "../state/tmaChrome.ts";
 import { useCareer } from "../state/careerStore.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
-import { ResumeBanner } from "../features/start/ResumeBanner.tsx";
+import { ManagerResumeBanner, ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { RunLinkPrompt } from "../features/start/RunLinkPrompt.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
@@ -120,6 +120,7 @@ export function App() {
             <>
               {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
               {phase === "start" && <ResumeBanner />}
+              {phase === "start" && <ManagerResumeBanner />}
               {phase === "start" && <StartScreen />}
               {phase === "draft" && <DraftScreen />}
               {phase === "tournament" && <TournamentScreen />}
