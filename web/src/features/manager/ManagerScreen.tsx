@@ -4,6 +4,8 @@ import type { MessageKey } from "../../i18n/core.ts";
 import { roleMessageKey } from "../../i18n/core.ts";
 import { useManager } from "../../state/managerStore.ts";
 import { useRun } from "../../state/runStore.ts";
+import { navigateBack } from "../../state/navigation.ts";
+import { useTmaChrome } from "../../state/tmaChrome.ts";
 import {
   MANAGER_INCOME,
   MANAGER_REGIONS,
@@ -35,10 +37,12 @@ const KIND_LABEL: Record<CalendarSlot["kind"], MessageKey> = {
  *  пул героев → контракты → сезон → оффсезон → итоги. Выход в меню безопасен: карьера —
  *  long-save и пишется после каждого действия. */
 export function ManagerScreen() {
+  const { t } = useI18n();
   const engine = useManager((s) => s.engine);
   const version = useManager((s) => s.version);
   const hydrate = useManager((s) => s.hydrate);
   const data = useRun((s) => s.data);
+  const backNative = useTmaChrome((state) => state.backNative);
 
   useEffect(() => {
     void hydrate();
@@ -49,6 +53,11 @@ export function ManagerScreen() {
 
   return (
     <main className="manager" data-testid="manager-screen">
+      {/* Назад к выбору режимов — как у остальных экранов. Выход безопасен: карьера
+          пишется после каждого действия, вернёшься — предложит продолжить. */}
+      {!backNative && (
+        <Button variant="back" data-testid="manager-back" onClick={navigateBack}>← {t("start.backToModes")}</Button>
+      )}
       {engine === null ? (
         <Onboarding />
       ) : engine.state.phase === "tryouts" ? (
