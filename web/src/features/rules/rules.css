@@ -1,0 +1,25 @@
+/* Правила режимов. Та же центрированная колонка, что настройки: длинный текст правил
+   шире ~760px не читается. */
+.rules { display: grid; justify-items: start; gap: 14px; width: 100%; max-width: 760px; margin-inline: auto; }
+.rules > .rules__panel, .rules > header { justify-self: stretch; width: 100%; }
+.rules__panel { display: grid; gap: 16px; padding: 24px; }
+.rules__intro { margin: 10px 0 0; max-width: 640px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.rules__section { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15px; font-weight: 800; letter-spacing: .01em; }
+.rules__lead { margin: 0; font-size: 14px; line-height: 1.6; }
+
+/* Диаграмма: на узком экране не сжимаем текст в нечитаемое — даём горизонтальный скролл. */
+.rules__diagram { overflow-x: auto; padding-bottom: 4px; }
+.rules__diagram svg { display: block; width: 100%; min-width: 560px; }
+
+.rules__terms { display: grid; gap: 8px; margin: 0; }
+.rules__terms > div { font-size: 13px; line-height: 1.55; }
+.rules__terms dt { display: inline; font-weight: 700; }
+.rules__terms dd { display: inline; margin: 0 0 0 4px; color: var(--muted); }
+
+.rules__moral { margin: 0; padding: 12px 14px; border-left: 3px solid var(--accent-strong); background: var(--accent-soft); border-radius: 0 10px 10px 0; font-size: 13px; line-height: 1.55; font-weight: 600; }
+
+.rules__how { display: grid; gap: 8px; margin: 0; padding-left: 18px; font-size: 13.5px; line-height: 1.6; }
+.rules__how li::marker { color: var(--accent-strong); }
+
+.rules__panel--soon { opacity: .82; }
+.rules__soon-note { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }

@@ -69,6 +69,15 @@ export function SettingsScreen() {
       <Surface className="settings__panel">
         <h2 className="settings__section">{t("codex.eyebrow")}</h2>
         <nav className="settings__links">
+          {/* Правила режимов замком НЕ закрываются: они объясняют механику и не раскрывают
+              ничего про конкретных игроков — хардкор прячет данные, а не правила игры. */}
+          <button type="button" className="settings__link" data-testid="open-rules" onClick={() => setView("rules")}>
+            <span>
+              <strong>{t("rules.tile")}</strong>
+              <small>{t("rules.tileHint")}</small>
+            </span>
+            <em>→</em>
+          </button>
           <button type="button" className="settings__link" data-testid="open-heroes" disabled={locked} onClick={() => setView("heroes")}>
             <span>
               <strong>{t("codex.heroes")}{locked && <span className="settings__lock" aria-hidden="true"> 🔒</span>}</strong>

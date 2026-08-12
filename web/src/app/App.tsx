@@ -13,6 +13,7 @@ import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
 import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
 import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
 import { CareerScreen } from "../features/career/CareerScreen.tsx";
+import { RulesScreen } from "../features/rules/RulesScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
@@ -106,7 +107,7 @@ export function App() {
         </Banner>
       )}
 
-      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : (
+      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : view === "rules" ? <RulesScreen /> : (
         /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
            (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
            так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
