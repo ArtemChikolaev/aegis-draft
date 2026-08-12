@@ -46,6 +46,8 @@ interface ManagerStore {
   engine: ManagerEngine | null;
   /** Совместимый сейв найден, но карьера ещё не возобновлена (баннер Resume). */
   resumable: ManagerResumeInfo | null;
+  /** hydrate уже отработал: до этого не понять, показывать онбординг или продолжать сейв. */
+  hydrated: boolean;
   version: number;
 
   hydrate: () => Promise<void>;
@@ -86,13 +88,14 @@ function persist(state: ManagerState, data: GameData): void {
 export const useManager = create<ManagerStore>((set, get) => ({
   engine: null,
   resumable: null,
+  hydrated: false,
   version: 0,
 
   async hydrate() {
     const data = dataOrNull();
     if (!data || get().engine) return;
     const saved = await readSaved(data);
-    set({ resumable: saved ? { orgName: saved.config.orgName, season: saved.season } : null });
+    set({ resumable: saved ? { orgName: saved.config.orgName, season: saved.season } : null, hydrated: true });
   },
 
   startCareer(orgName, region, difficulty) {

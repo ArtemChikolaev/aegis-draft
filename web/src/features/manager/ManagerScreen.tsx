@@ -42,6 +42,9 @@ export function ManagerScreen() {
   const engine = useManager((s) => s.engine);
   const version = useManager((s) => s.version);
   const hydrate = useManager((s) => s.hydrate);
+  const hydrated = useManager((s) => s.hydrated);
+  const resumable = useManager((s) => s.resumable);
+  const resumeCareer = useManager((s) => s.resumeCareer);
   const data = useRun((s) => s.data);
   const backNative = useTmaChrome((state) => state.backNative);
 
@@ -49,7 +52,15 @@ export function ManagerScreen() {
     void hydrate();
   }, [hydrate]);
 
+  // Вход в режим с сейвом = продолжение карьеры, без промежуточного экрана:
+  // карьера и есть состояние режима. Отдельный resume живёт баннером на старте.
+  useEffect(() => {
+    if (hydrated && !engine && resumable) void resumeCareer();
+  }, [hydrated, engine, resumable, resumeCareer]);
+
   if (!data) return null;
+  // До гидрации не ясно, онбординг это или продолжение — не мигаем онбордингом.
+  if (!hydrated && !engine) return null;
   void version; // подписка: движок мутирует state, стор тикает версией
 
   return (
@@ -94,13 +105,9 @@ function ManagerHeading({ engine, sub }: { engine: ManagerEngine | null; sub: st
 function Onboarding() {
   const { t } = useI18n();
   const startCareer = useManager((s) => s.startCareer);
-  const resumable = useManager((s) => s.resumable);
-  const resumeCareer = useManager((s) => s.resumeCareer);
-  const abandonCareer = useManager((s) => s.abandonCareer);
   const [orgName, setOrgName] = useState("");
   const [region, setRegion] = useState<ManagerRegion>("weu");
   const [difficulty, setDifficulty] = useState<ManagerDifficulty>("normal");
-  const [confirmAbandon, setConfirmAbandon] = useState(false);
 
   const regionOptions = MANAGER_REGIONS.map((value) => ({
     value,
@@ -111,18 +118,6 @@ function Onboarding() {
   return (
     <>
       <ManagerHeading engine={null} sub={t("manager.onboardingSub")} />
-      {resumable && (
-        <Surface className="manager__panel manager__resume" data-testid="manager-resumable">
-          <div>
-            <strong>{t("manager.resumeTitle")}</strong>
-            <p className="manager__hint">{t("manager.resumeText")}</p>
-          </div>
-          <span className="manager__resume-actions">
-            <Button variant="primary" data-testid="manager-resume" onClick={() => void resumeCareer()}>{t("manager.resume")}</Button>
-            <Button variant="danger" onClick={() => setConfirmAbandon(true)}>{t("manager.abandon")}</Button>
-          </span>
-        </Surface>
-      )}
       <Surface className="manager__panel">
         <label className="manager__field">
           <span className="manager__section">{t("manager.orgName")}</span>
@@ -157,12 +152,13 @@ function Onboarding() {
           </Button>
         </div>
       </Surface>
-      {confirmAbandon && <AbandonModal onConfirm={abandonCareer} onClose={() => setConfirmAbandon(false)} />}
     </>
   );
 }
 
-function AbandonModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
+/** Confirm-модалка роспуска организации: долгий сейв не удаляется одним кликом.
+ *  Экспортируется для баннера resume на стартовом экране. */
+export function ManagerAbandonModal({ onConfirm, onClose }: { onConfirm: () => void; onClose: () => void }) {
   const { t } = useI18n();
   return (
     <Modal mark="A" title={t("manager.abandonTitle")} description={t("manager.abandonText")} labelledBy="manager-abandon-title" dismissLabel={t("common.close")} onClose={onClose}>
@@ -485,7 +481,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
       <div className="manager__footer-actions">
         <Button variant="leave" onClick={() => setConfirmAbandon(true)}>{t("manager.abandon")}</Button>
       </div>
-      {confirmAbandon && <AbandonModal onConfirm={abandonCareer} onClose={() => setConfirmAbandon(false)} />}
+      {confirmAbandon && <ManagerAbandonModal onConfirm={abandonCareer} onClose={() => setConfirmAbandon(false)} />}
     </>
   );
 }

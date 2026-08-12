@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useManager } from "../../state/managerStore.ts";
+import { ManagerAbandonModal } from "../manager/ManagerScreen.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { Button } from "../../ui/index.ts";
 import type { MessageKey } from "../../i18n/core.ts";
@@ -36,15 +37,18 @@ export function ResumeBanner() {
   );
 }
 
-/** Менеджерская карьера — тем же баннером. Кнопка «распустить» намеренно НЕ здесь:
- *  долгий сейв не удаляют с баннера — только изнутри режима, за confirm-модалкой. */
+/** Менеджерская карьера — тем же баннером: продолжить и распустить. Роспуск — только
+ *  через confirm-модалку: долгий сейв не удаляется одним кликом (в отличие от короткого
+ *  сейва забега выше). */
 export function ManagerResumeBanner() {
   const resumable = useManager((s) => s.resumable);
   const hydrate = useManager((s) => s.hydrate);
   const resumeCareer = useManager((s) => s.resumeCareer);
+  const abandonCareer = useManager((s) => s.abandonCareer);
   const setSelectedMode = useRun((s) => s.setSelectedMode);
   const data = useRun((s) => s.data);
   const { t } = useI18n();
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
 
   // Гидрация после загрузки данных: без данных сейв нечем проверить на совместимость.
   useEffect(() => {
@@ -59,6 +63,9 @@ export function ManagerResumeBanner() {
         <small>{t("manager.resumeSummary", { org: resumable.orgName, n: resumable.season })}</small>
       </div>
       <div className="resume-banner__actions">
+        <Button variant="secondaryInvert" data-testid="manager-resume-discard" onClick={() => setConfirmAbandon(true)}>
+          {t("manager.abandon")}
+        </Button>
         <Button
           variant="primaryInvert"
           data-testid="manager-resume-continue"
@@ -67,6 +74,7 @@ export function ManagerResumeBanner() {
           {t("manager.resume")}<span>→</span>
         </Button>
       </div>
+      {confirmAbandon && <ManagerAbandonModal onConfirm={abandonCareer} onClose={() => setConfirmAbandon(false)} />}
     </aside>
   );
 }
