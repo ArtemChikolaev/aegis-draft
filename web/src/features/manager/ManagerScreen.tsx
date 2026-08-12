@@ -42,9 +42,8 @@ export function ManagerScreen() {
   const engine = useManager((s) => s.engine);
   const version = useManager((s) => s.version);
   const hydrate = useManager((s) => s.hydrate);
-  const hydrated = useManager((s) => s.hydrated);
-  const resumable = useManager((s) => s.resumable);
-  const resumeCareer = useManager((s) => s.resumeCareer);
+  const careerOpen = useManager((s) => s.careerOpen);
+  const setCareerOpen = useManager((s) => s.setCareerOpen);
   const data = useRun((s) => s.data);
   const backNative = useTmaChrome((state) => state.backNative);
 
@@ -52,25 +51,28 @@ export function ManagerScreen() {
     void hydrate();
   }, [hydrate]);
 
-  // Вход в режим с сейвом = продолжение карьеры, без промежуточного экрана:
-  // карьера и есть состояние режима. Отдельный resume живёт баннером на старте.
-  useEffect(() => {
-    if (hydrated && !engine && resumable) void resumeCareer();
-  }, [hydrated, engine, resumable, resumeCareer]);
-
   if (!data) return null;
-  // До гидрации не ясно, онбординг это или продолжение — не мигаем онбордингом.
-  if (!hydrated && !engine) return null;
   void version; // подписка: движок мутирует state, стор тикает версией
+
+  // Как в classic: вход в режим — всегда настройка НОВОЙ карьеры; в открытую ведёт
+  // только плашка resume (setCareerOpen). Выход из карьеры закрывает её (сейв цел).
+  const inCareer = careerOpen && engine !== null;
 
   return (
     <main className="manager" data-testid="manager-screen">
-      {/* Назад к выбору режимов — как у остальных экранов. Выход безопасен: карьера
-          пишется после каждого действия, вернёшься — предложит продолжить. */}
       {!backNative && (
-        <Button variant="back" data-testid="manager-back" onClick={navigateBack}>← {t("start.backToModes")}</Button>
+        <Button
+          variant="back"
+          data-testid="manager-back"
+          onClick={() => {
+            if (inCareer) setCareerOpen(false);
+            navigateBack();
+          }}
+        >
+          ← {t("start.backToModes")}
+        </Button>
       )}
-      {engine === null ? (
+      {!inCareer ? (
         <Onboarding />
       ) : engine.state.phase === "tryouts" ? (
         <Tryouts engine={engine} />
@@ -105,9 +107,16 @@ function ManagerHeading({ engine, sub }: { engine: ManagerEngine | null; sub: st
 function Onboarding() {
   const { t } = useI18n();
   const startCareer = useManager((s) => s.startCareer);
+  const engine = useManager((s) => s.engine);
+  const resumable = useManager((s) => s.resumable);
   const [orgName, setOrgName] = useState("");
   const [region, setRegion] = useState<ManagerRegion>("weu");
   const [difficulty, setDifficulty] = useState<ManagerDifficulty>("normal");
+  const [confirmNew, setConfirmNew] = useState(false);
+
+  // Новая карьера поверх существующей стирает долгий сейв — только через confirm.
+  const existing = engine ? engine.state.config.orgName : resumable?.orgName ?? null;
+  const found = () => startCareer(orgName, region, difficulty);
 
   const regionOptions = MANAGER_REGIONS.map((value) => ({
     value,
@@ -146,12 +155,31 @@ function Onboarding() {
             variant="primary"
             data-testid="manager-found"
             disabled={orgName.trim().length < 2}
-            onClick={() => startCareer(orgName, region, difficulty)}
+            onClick={() => (existing ? setConfirmNew(true) : found())}
           >
             {t("manager.found")} →
           </Button>
         </div>
       </Surface>
+      {confirmNew && existing && (
+        <Modal
+          mark="A"
+          title={t("manager.newOverTitle")}
+          description={t("manager.newOverText", { org: existing })}
+          labelledBy="manager-new-over-title"
+          dismissLabel={t("common.close")}
+          onClose={() => setConfirmNew(false)}
+        >
+          {({ close }) => (
+            <>
+              <Button variant="primaryInvert" onClick={close}>{t("tournament.leaveCancel")}</Button>
+              <Button variant="danger" data-testid="manager-new-over-confirm" onClick={() => { found(); close(); }}>
+                {t("manager.found")}
+              </Button>
+            </>
+          )}
+        </Modal>
+      )}
     </>
   );
 }

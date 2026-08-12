@@ -113,9 +113,14 @@ export function App() {
            (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
            так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
         <div className="enter-fade" key={mode === "manager" ? "manager" : phase}>
-          {/* Manager — свой мир со своим long-save: фазы classic-забега его не касаются. */}
+          {/* Manager — свой мир со своим long-save: фазы classic-забега его не касаются.
+              Плашки resume висят и над его онбордингом — как на остальных start-экранах. */}
           {mode === "manager" && phase === "start" ? (
-            <ManagerScreen />
+            <>
+              <ResumeBanner />
+              <ManagerResumeBanner />
+              <ManagerScreen />
+            </>
           ) : (
             <>
               {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}

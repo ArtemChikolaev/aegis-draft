@@ -48,7 +48,11 @@ interface ManagerStore {
   resumable: ManagerResumeInfo | null;
   /** hydrate уже отработал: до этого не понять, показывать онбординг или продолжать сейв. */
   hydrated: boolean;
+  /** Карьера «открыта» на экране (как classic-забег в своей фазе). Вход в режим всегда
+   *  показывает онбординг новой карьеры; в открытую карьеру ведёт только плашка resume. */
+  careerOpen: boolean;
   version: number;
+  setCareerOpen: (open: boolean) => void;
 
   hydrate: () => Promise<void>;
   startCareer: (orgName: string, region: ManagerRegion, difficulty: ManagerDifficulty) => void;
@@ -89,7 +93,12 @@ export const useManager = create<ManagerStore>((set, get) => ({
   engine: null,
   resumable: null,
   hydrated: false,
+  careerOpen: false,
   version: 0,
+
+  setCareerOpen(open) {
+    set({ careerOpen: open });
+  },
 
   async hydrate() {
     const data = dataOrNull();
@@ -104,7 +113,7 @@ export const useManager = create<ManagerStore>((set, get) => ({
     const config: ManagerConfig = { orgName: orgName.trim(), region, difficulty, format: "last_2y" };
     const engine = ManagerEngine.create(data, createRunSeed(), config);
     persist(engine.state, data);
-    set({ engine, resumable: null, version: get().version + 1 });
+    set({ engine, resumable: null, careerOpen: true, version: get().version + 1 });
   },
 
   async resumeCareer() {
@@ -120,7 +129,7 @@ export const useManager = create<ManagerStore>((set, get) => ({
 
   abandonCareer() {
     void removePersisted(KEY);
-    set({ engine: null, resumable: null, version: get().version + 1 });
+    set({ engine: null, resumable: null, careerOpen: false, version: get().version + 1 });
   },
 
   act(fn) {

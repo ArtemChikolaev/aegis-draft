@@ -43,6 +43,8 @@ export function ResumeBanner() {
 export function ManagerResumeBanner() {
   const engine = useManager((s) => s.engine);
   const resumable = useManager((s) => s.resumable);
+  const careerOpen = useManager((s) => s.careerOpen);
+  const setCareerOpen = useManager((s) => s.setCareerOpen);
   const hydrate = useManager((s) => s.hydrate);
   const resumeCareer = useManager((s) => s.resumeCareer);
   const abandonCareer = useManager((s) => s.abandonCareer);
@@ -56,6 +58,8 @@ export function ManagerResumeBanner() {
     if (data) void hydrate();
   }, [data, hydrate]);
 
+  // Внутри открытой карьеры плашка — шум: игрок уже в ней.
+  if (careerOpen) return null;
   // Карьера может жить в памяти (вышли из режима кнопкой «назад») ИЛИ в сейве (после
   // перезагрузки). Баннер обязан видеть обе — иначе после «назад» он молчит (плейтест).
   const info = engine
@@ -75,7 +79,11 @@ export function ManagerResumeBanner() {
         <Button
           variant="primaryInvert"
           data-testid="manager-resume-continue"
-          onClick={() => { setSelectedMode("manager"); if (!engine) void resumeCareer(); }}
+          onClick={() => {
+            setSelectedMode("manager");
+            setCareerOpen(true);
+            if (!engine) void resumeCareer();
+          }}
         >
           {t("manager.resume")}<span>→</span>
         </Button>
