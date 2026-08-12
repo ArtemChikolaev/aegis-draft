@@ -500,7 +500,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 77
+        "games": 75
       },
       {
         "teamId": 2803901,
@@ -2345,7 +2345,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 239
+        "games": 237
       },
       {
         "teamId": 6209166,
@@ -2442,7 +2442,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 8
+        "games": 5
       },
       {
         "teamId": 6465093,
@@ -3313,7 +3313,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 426
+        "games": 424
       },
       {
         "teamId": 726228,
@@ -4143,40 +4143,6 @@
       }
     ]
   },
-  "114596500": {
-    "accountId": 114596500,
-    "nickname": "ArrOw",
-    "primaryRole": "support",
-    "rolesPlayed": [
-      "support"
-    ],
-    "teams": [
-      {
-        "teamId": 2736464,
-        "teamName": "Team Invincible",
-        "games": 0
-      },
-      {
-        "teamId": 6658434,
-        "teamName": "CyberDogs",
-        "games": 0
-      },
-      {
-        "teamId": 7453744,
-        "teamName": "KHAN",
-        "games": 0
-      },
-      {
-        "teamId": 8127895,
-        "games": 0
-      },
-      {
-        "teamId": 8261774,
-        "teamName": "V-Gaming",
-        "games": 6
-      }
-    ]
-  },
   "114619230": {
     "accountId": 114619230,
     "nickname": "Crystallize",
@@ -4502,7 +4468,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 30
+        "games": 27
       },
       {
         "teamId": 2621843,
@@ -4900,7 +4866,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 7118032,
@@ -5330,7 +5296,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 13
+        "games": 10
       },
       {
         "teamId": 8496605,
@@ -5384,7 +5350,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 6
+        "games": 0
       },
       {
         "teamId": 8291895,
@@ -5549,7 +5515,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 232
+        "games": 230
       },
       {
         "teamId": 726228,
@@ -5758,7 +5724,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 46
+        "games": 43
       },
       {
         "teamId": 6306453,
@@ -6450,8 +6416,8 @@
     "primaryRole": "offlane",
     "rolesPlayed": [
       "offlane",
-      "support",
-      "safelane"
+      "safelane",
+      "support"
     ],
     "teams": [
       {
@@ -6462,7 +6428,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 15
+        "games": 12
       },
       {
         "teamId": 55,
@@ -7269,7 +7235,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 13
+        "games": 10
       },
       {
         "teamId": 8291895,
@@ -7373,7 +7339,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 322
+        "games": 319
       },
       {
         "teamId": 8261500,
@@ -7945,7 +7911,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 141
+        "games": 139
       },
       {
         "teamId": 2626685,
@@ -8062,7 +8028,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 8
+        "games": 5
       },
       {
         "teamId": 6615678,
@@ -8195,7 +8161,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 30
+        "games": 27
       },
       {
         "teamId": 6382740,
@@ -8590,7 +8556,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 118
+        "games": 116
       },
       {
         "teamId": 3355113,
@@ -8627,7 +8593,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 226
+        "games": 224
       },
       {
         "teamId": 543897,
@@ -8962,7 +8928,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 82
+        "games": 80
       },
       {
         "teamId": 484909,
@@ -9476,7 +9442,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 211
+        "games": 209
       },
       {
         "teamId": 8261500,
@@ -9502,7 +9468,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 20
+        "games": 17
       },
       {
         "teamId": 2576071,
@@ -9789,7 +9755,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 297
+        "games": 294
       },
       {
         "teamId": 6209804,
@@ -10794,7 +10760,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 234
+        "games": 232
       },
       {
         "teamId": 20,
@@ -11759,7 +11725,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 88
+        "games": 86
       },
       {
         "teamId": 2208748,
@@ -12464,7 +12430,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 331
+        "games": 329
       },
       {
         "teamId": 6306453,
@@ -13433,7 +13399,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 13
+        "games": 10
       },
       {
         "teamId": 8390848,
@@ -13786,7 +13752,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 58
+        "games": 55
       },
       {
         "teamId": 6382740,
@@ -14196,45 +14162,6 @@
       }
     ]
   },
-  "192981126": {
-    "accountId": 192981126,
-    "nickname": "hAze._.",
-    "primaryRole": "mid",
-    "rolesPlayed": [
-      "mid"
-    ],
-    "teams": [
-      {
-        "teamId": 2736464,
-        "teamName": "Team Invincible",
-        "games": 0
-      },
-      {
-        "teamId": 5219970,
-        "teamName": "Burning Fire",
-        "games": 0
-      },
-      {
-        "teamId": 7453744,
-        "teamName": "KHAN",
-        "games": 0
-      },
-      {
-        "teamId": 7899609,
-        "teamName": "Team Family",
-        "games": 0
-      },
-      {
-        "teamId": 8127895,
-        "games": 0
-      },
-      {
-        "teamId": 8261774,
-        "teamName": "V-Gaming",
-        "games": 6
-      }
-    ]
-  },
   "193815691": {
     "accountId": 193815691,
     "nickname": "Q",
@@ -14602,7 +14529,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 8496605,
@@ -14822,7 +14749,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 120
+        "games": 118
       },
       {
         "teamId": 15,
@@ -15242,7 +15169,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 276
+        "games": 273
       },
       {
         "teamId": 9351740,
@@ -17152,7 +17079,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 106
+        "games": 104
       }
     ]
   },
@@ -19465,7 +19392,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 42
+        "games": 39
       },
       {
         "teamId": 6209804,
@@ -23378,7 +23305,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 15
+        "games": 12
       },
       {
         "teamId": 7422789,
@@ -26913,7 +26840,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 46
+        "games": 43
       },
       {
         "teamId": 6209804,
@@ -27235,7 +27162,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 234
+        "games": 232
       },
       {
         "teamId": 1520578,
@@ -28959,7 +28886,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 13
+        "games": 10
       },
       {
         "teamId": 8291895,
@@ -29055,7 +28982,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 6
+        "games": 0
       },
       {
         "teamId": 8599101,
@@ -29917,7 +29844,7 @@
       {
         "teamId": 8261774,
         "teamName": "V-Gaming",
-        "games": 6
+        "games": 0
       },
       {
         "teamId": 8894818,

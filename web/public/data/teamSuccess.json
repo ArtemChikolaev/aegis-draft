@@ -344,9 +344,9 @@
   },
   "15": {
     "last_5y": {
-      "successScore": 51.01,
-      "games": 366,
-      "winrate": 0.6011
+      "successScore": 51.33,
+      "games": 364,
+      "winrate": 0.6044
     },
     "valve_legacy": {
       "successScore": 58.06,
@@ -754,9 +754,9 @@
   },
   "46": {
     "last_5y": {
-      "successScore": 30.8,
-      "games": 15,
-      "winrate": 0.4
+      "successScore": 28.64,
+      "games": 12,
+      "winrate": 0.3333
     },
     "valve_legacy": {
       "successScore": 28.96,
@@ -785,9 +785,9 @@
       "winrate": 0.4231
     },
     "last_5y": {
-      "successScore": 36.43,
-      "games": 210,
-      "winrate": 0.4524
+      "successScore": 36.07,
+      "games": 208,
+      "winrate": 0.4471
     },
     "valve_legacy": {
       "successScore": 43.83,
@@ -915,9 +915,9 @@
   },
   "6209166": {
     "last_5y": {
-      "successScore": 44.25,
-      "games": 276,
-      "winrate": 0.5072
+      "successScore": 44.82,
+      "games": 273,
+      "winrate": 0.5128
     },
     "valve_legacy": {
       "successScore": 47,
@@ -927,9 +927,9 @@
   },
   "6209804": {
     "last_5y": {
-      "successScore": 37,
-      "games": 98,
-      "winrate": 0.398
+      "successScore": 36.59,
+      "games": 95,
+      "winrate": 0.3895
     },
     "valve_legacy": {
       "successScore": 39.58,
@@ -1077,9 +1077,9 @@
       "winrate": 0.4459
     },
     "last_5y": {
-      "successScore": 35.76,
-      "games": 113,
-      "winrate": 0.4602
+      "successScore": 35.14,
+      "games": 111,
+      "winrate": 0.4505
     },
     "valve_legacy": {
       "successScore": 53.75,
@@ -1382,9 +1382,9 @@
   },
   "8261234": {
     "last_5y": {
-      "successScore": 24.35,
-      "games": 13,
-      "winrate": 0.2308
+      "successScore": 21,
+      "games": 10,
+      "winrate": 0.1
     }
   },
   "8261500": {
@@ -1414,13 +1414,6 @@
       "successScore": 35.71,
       "games": 4,
       "winrate": 0
-    }
-  },
-  "8261774": {
-    "last_5y": {
-      "successScore": 30.63,
-      "games": 6,
-      "winrate": 0.3333
     }
   },
   "8291895": {
