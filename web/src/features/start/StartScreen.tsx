@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRun, type RunMode } from "../../state/runStore.ts";
+import { useConnectivity } from "../../state/connectivity.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
@@ -22,7 +23,9 @@ interface Opt<T> {
   disabled?: boolean;
 }
 
-const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: MessageKey; available: boolean }[] = [
+/** `needsNetwork` — режим неиграбелен без интернета ПО СМЫСЛУ (живые соперники), а не потому,
+ *  что данные лежат на CDN: одиночные режимы играются офлайн и этим флагом не помечаются. */
+const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: MessageKey; available: boolean; needsNetwork?: boolean }[] = [
   { value: "classic", label: "start.modeClassic", hint: "start.modeClassicHint", detail: "start.modeClassicLong", available: true },
   // Manager доступен (T5.5, срез 1): карточка ведёт в собственный флоу ManagerScreen —
   // App перехватывает selectedMode === "manager" до фазовых экранов classic-забега.
@@ -30,7 +33,7 @@ const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: Mess
   { value: "tournament", label: "start.modeTournament", hint: "start.modeTournamentHint", detail: "start.modeTournamentLong", available: false },
   // Arena (M10, PRD §5.12): онлайн-турнир на 18 команд. Карточка и красный акцент режима живут
   // уже сейчас; сам режим ждёт живого ws-сервера (MP0) — до него превью «Скоро», как у соседей.
-  { value: "arena", label: "start.modeArena", hint: "start.modeArenaHint", detail: "start.modeArenaLong", available: false },
+  { value: "arena", label: "start.modeArena", hint: "start.modeArenaHint", detail: "start.modeArenaLong", available: false, needsNetwork: true },
 ];
 
 /** Режимы, использующие Classic-конфиг драфта (Quick Draft и Roguelite Run поверх него).
@@ -90,6 +93,18 @@ export function StartScreen() {
   const setSeedInput = useRun((state) => state.setStartSeedInput);
   // В TMA «назад» в выбор режимов даёт телеграмная кнопка — свою прячем (нативный хром).
   const backNative = useTmaChrome((state) => state.backNative);
+  // Связность (T11.3): гейтим только режимы с `needsNetwork`. `unknown` («проверить нечем»)
+  // намеренно НЕ считается офлайном — иначе гейт срабатывал бы на пустом VITE_API_BASE.
+  const connectivity = useConnectivity((state) => state.status);
+  const checkingConnectivity = useConnectivity((state) => state.checking);
+  const connectivityChecked = useConnectivity((state) => state.checkedAt > 0);
+  const checkConnectivity = useConnectivity((state) => state.check);
+  const offline = connectivity === "offline";
+  const modeNeedsNetwork = MODES.find((item) => item.value === mode)?.needsNetwork === true;
+  // Свежая проверка ровно там, где вердикт что-то решает: на входе в такой режим.
+  useEffect(() => {
+    if (modeNeedsNetwork) void checkConnectivity();
+  }, [modeNeedsNetwork, checkConnectivity]);
   // Хардкор включается только осознанно: сперва правила, затем чекбокс, затем кнопка.
   // Закрыть модалку (крестик/Esc/свайп) можно всегда — режим тогда просто не включится.
   const [hardGate, setHardGate] = useState(false);
@@ -195,6 +210,9 @@ export function StartScreen() {
               key={item.value}
               className={`mode-card mode-card--${item.value}`}
               data-testid={`mode-${item.value}`}
+              // Карточка остаётся кликабельной и в офлайне: она ведёт на экран, который объясняет
+              // причину и даёт повторить проверку. Мёртвый клик — это молчание, а не переход.
+              data-offline={item.needsNetwork && offline ? "true" : undefined}
               onClick={() => {
                 if (item.value === "classic") setStartStep("variants");
                 else setMode(item.value);
@@ -202,7 +220,9 @@ export function StartScreen() {
             >
               <span className="mode-card__index">0{index + 1}</span>
               <span className="mode-card__body"><strong>{t(item.label)}</strong><small>{t(item.hint)}</small><span>{t(item.detail)}</span></span>
-              {!item.available && <em>{t("common.soon")}</em>}
+              {item.needsNetwork && offline
+                ? <em data-offline="true">{t("common.offline")}</em>
+                : !item.available && <em>{t("common.soon")}</em>}
               <span className="mode-card__action">{t("start.selectMode")} →</span>
             </button>
           ))}
@@ -213,13 +233,41 @@ export function StartScreen() {
 
   if (!DRAFT_CONFIG_MODES.includes(mode)) {
     const selectedMode = MODES.find((item) => item.value === mode)!;
+    // Состояние сети занимает панель, а не заголовок: пока режим сам «в разработке», сеть — не
+    // главная причина недоступности, и подменять ею заголовок было бы полуправдой.
+    //
+    // `checking` — отдельное состояние, а не «пока считаем, что всё хорошо»: молчащий сервер
+    // держит вердикт до 3с, и без него экран сначала показывал бы обещание режима, а потом
+    // прыгал на «нет сети» (поймано живьём на недоступном API 2026-08-14).
+    const netState = selectedMode.needsNetwork !== true
+      ? "ok"
+      : offline ? "offline" : (checkingConnectivity && !connectivityChecked ? "checking" : "ok");
     return (
       <main className={`mode-preview mode-preview--${mode}`}>
         {!backNative && <Button variant="back" onClick={() => { setMode(null); setStartStep("modes"); }}>← {t("start.backToModes")}</Button>}
         <Eyebrow className="mp-eyebrow">{t(selectedMode.label)}</Eyebrow>
         <h1>{t("start.comingSoon")}</h1>
         <p className="mp-text">{t(selectedMode.detail)}</p>
-        <div className="mode-preview__art"><strong>{t(selectedMode.label)}</strong><span>{t("start.comingSoonText")}</span></div>
+        {netState === "ok" ? (
+          <div className="mode-preview__art"><strong>{t(selectedMode.label)}</strong><span>{t("start.comingSoonText")}</span></div>
+        ) : (
+          <div className="mode-preview__art mode-preview__art--network" data-state={netState} data-testid="mode-network">
+            <strong>{t(netState === "checking" ? "start.offlineChecking" : "common.offline")}</strong>
+            <div className="mode-preview__retry">
+              <span>{t("start.offlineText")}</span>
+              {netState === "offline" && (
+                <Button
+                  variant="primaryInvert"
+                  data-testid="offline-retry"
+                  disabled={checkingConnectivity}
+                  onClick={() => { void checkConnectivity({ force: true }); }}
+                >
+                  {t(checkingConnectivity ? "start.offlineChecking" : "start.offlineRetry")}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </main>
     );
   }

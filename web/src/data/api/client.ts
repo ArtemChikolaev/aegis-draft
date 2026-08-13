@@ -30,6 +30,8 @@ interface RequestOptions {
   body?: unknown;
   token?: string | null; // Bearer, если задан
   signal?: AbortSignal;
+  /** Политика HTTP-кэша. Нужна пробнику связности: ответ из кэша «доказал» бы сеть, которой нет. */
+  cache?: RequestCache;
 }
 
 /** Сырой запрос к API. Бросает ApiError только на сетевом сбое/отсутствии базы —
@@ -48,6 +50,7 @@ export async function apiFetch(path: string, opts: RequestOptions = {}): Promise
       headers,
       body: opts.body === undefined ? undefined : JSON.stringify(opts.body),
       signal: opts.signal,
+      cache: opts.cache,
     });
   } catch (e) {
     throw new ApiError(0, "network", e instanceof Error ? e.message : "network error");

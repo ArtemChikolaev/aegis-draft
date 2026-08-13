@@ -36,6 +36,19 @@ export type PutResult =
   | { status: "ok"; save: CloudSave }
   | { status: "conflict"; current: CloudSave };
 
+/** Пробник живости API (`GET /healthz`, liveness — см. server/internal/transport/router.go).
+ *  Отвечает на вопрос «дошёл ли запрос», а не «что там в теле», поэтому любой сбой — сетевой,
+ *  таймаут по signal, незаданная база — это `false`, а не исключение: вызывающему нужен вердикт.
+ *  `no-store` обязателен: ответ из HTTP-кэша «доказал» бы связь, которой нет. */
+export async function pingHealth(signal?: AbortSignal): Promise<boolean> {
+  try {
+    const res = await apiFetch("/healthz", { signal, cache: "no-store" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 /** Обмен Telegram initData на сессионный токен (проверка подписи — на сервере). */
 export async function authenticateTelegram(initData: string): Promise<AuthResult> {
   const res = await apiFetch("/api/auth/telegram", { method: "POST", body: { initData } });

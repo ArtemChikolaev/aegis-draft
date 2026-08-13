@@ -47,6 +47,10 @@
 .mode-card__body > span { max-width: 360px; color: rgba(255, 255, 255, .76); font-size: 12px; }
 .mode-card em { position: absolute; top: 24px; right: 24px; padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .5); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .08em; }
 .mode-card__action { display: flex; justify-content: space-between; margin-top: 24px; padding-top: 14px; border-top: 1px solid rgba(255, 255, 255, .38); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+/* Офлайн-гейт (T11.3): карточка приглушена, но кликабельна — она ведёт на экран с причиной. */
+.mode-card[data-offline] { opacity: .74; }
+.mode-card[data-offline]:hover { transform: none; }
+.mode-card em[data-offline] { border-color: var(--danger-invert); color: var(--danger-invert); }
 
 /* Превью недоступного режима */
 .mode-preview { min-height: 72vh; padding: 24px 0 50px; }
@@ -58,6 +62,13 @@
 .mode-preview--tournament .mode-preview__art { background: radial-gradient(circle at 82% 20%, #8bbcff, transparent 22%), var(--surface-invert); }
 .mode-preview__art strong { font: 500 clamp(32px, 5vw, 70px)/1 "Space Grotesk"; letter-spacing: -.05em; }
 .mode-preview__art span { color: var(--muted-invert); }
+/* Состояние сети: та же панель, но без «арт-обещания» — статус и действие. */
+.mode-preview__art--network strong { color: var(--muted-invert); }
+.mode-preview__art--network[data-state="offline"] strong { color: var(--danger-invert); }
+/* Колонка ограничена по ширине: Button растягивается на контейнер по своей природе, и на
+   десктопе кнопка во всю панель читалась бы как поле ввода, а не как действие. */
+.mode-preview__retry { display: grid; gap: 16px; align-content: end; max-width: 420px; }
+.mode-preview__retry span { color: var(--muted-invert); }
 
 /* Classic: hero-баннер — explicit areas (wide: copy|art; narrow: copy → art). */
 .hero-copy {
