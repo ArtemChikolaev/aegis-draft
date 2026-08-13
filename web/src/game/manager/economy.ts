@@ -4,7 +4,7 @@
 // она лежит в сейве и честно инвалидирует несовместимую карьеру (как balanceConfigVersion).
 import { Rng } from "../rng.ts";
 
-export const MANAGER_ECONOMY_VERSION = "m1.1.0"; // m1.1.0: rival-бонус, fame/happiness, random events
+export const MANAGER_ECONOMY_VERSION = "m1.2.0"; // m1.2.0: событие-выбор (буткемп) меняет роллы :re:
 
 /** Сложность = месячный доход организации, $k (322-0-парити: 120/100/80). */
 export const MANAGER_INCOME: Record<ManagerDifficulty, number> = {
@@ -122,15 +122,23 @@ export const LIFECYCLE = {
  *  берём скромнее до калибровки симом — их экономика щедрее нашей. */
 export const RIVAL_BONUS_K = 10;
 
-/** Случайные события между турнирами: шанс на «Продолжить», эффекты плоские и
- *  детерминированные по сиду. Тексты свои, механика — по мотивам живого прохода 322-0. */
+/** Случайные события между турнирами: шанс на «Продолжить», эффекты детерминированы
+ *  по сиду. Тексты свои, механика — по мотивам живого прохода 322-0. `choice` — событие-
+ *  решение (Bootcamp Opportunity): плоский эффект не применяется, игрок платит либо нет. */
 export const RANDOM_EVENT_CHANCE = 0.25;
-export type ManagerRandomEventKind = "sponsorWindfall" | "fanMeetup" | "gearSponsor" | "burnout";
-export const RANDOM_EVENTS: Record<ManagerRandomEventKind, { cashK?: number; happiness?: number }> = {
+export type ManagerRandomEventKind = "sponsorWindfall" | "fanMeetup" | "gearSponsor" | "burnout" | "bootcampOffer";
+export interface RandomEventDef {
+  cashK?: number;
+  happiness?: number;
+  /** Событие-выбор: принять = заплатить costK и получить happiness всему ростеру. */
+  choice?: { costK: number; happiness: number };
+}
+export const RANDOM_EVENTS: Record<ManagerRandomEventKind, RandomEventDef> = {
   sponsorWindfall: { cashK: 15 },
   gearSponsor: { cashK: 6 },
   fanMeetup: { happiness: 5 },
   burnout: { happiness: -4 },
+  bootcampOffer: { choice: { costK: 20, happiness: 6 } },
 };
 
 /** Новая зарплата в оффсезоне: пересчёт от нового OVR, сглаженный к текущему контракту —

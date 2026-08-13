@@ -88,14 +88,21 @@ export interface EventResult {
   /** Rival играл это событие и мы встали выше — бонус спонсора (срез 2). */
   rivalBonusK: number;
   standings: Array<{ name: string; placement: number; isUser: boolean; isRival?: boolean }>;
+  /** Раунды KO-сетки: [четвертьфиналы, полуфиналы, финал] (срез 3). */
+  bracket: BracketRound[];
 }
 
-/** Случайное событие между турнирами (срез 2): эффект уже применён, поле — что показать. */
+/** Случайное событие между турнирами (срез 2): плоский эффект уже применён, поле — что
+ *  показать. Событие-выбор (срез 3) несёт `choice` и ждёт resolveRandomEvent(accept). */
 export interface RandomEventResult {
   kind: ManagerRandomEventKind;
   cashK: number;
   happiness: number;
+  choice?: { costK: number; happiness: number };
 }
+
+/** Сетка KO-этапа для панели результата (срез 3): пары по раундам, победитель отмечен. */
+export type BracketRound = Array<{ a: string; b: string; winner: string }>;
 
 export interface FeedItem {
   slotId: string;
@@ -147,6 +154,8 @@ export interface ManagerState {
   released: number[];
   /** Уходящие сами (ретайр/несчастье) — release принудительный, не тогглится. */
   departures: number[];
+  /** Ручные назначения героев accountId → heroId (срез 3): pins поверх авто-matching. */
+  manualAssignment: Record<number, number>;
 }
 
 export const TRYOUT_PICKS = 8;
@@ -273,6 +282,7 @@ export class ManagerEngine {
       offseasonSalaries: {},
       released: [],
       departures: [],
+      manualAssignment: {},
     };
     const engine = new ManagerEngine(data, state);
     engine.state.rival = engine.pickRival();
@@ -451,7 +461,30 @@ export class ManagerEngine {
       this.data.squadSynergy,
       this.data.teammates,
       chemistryPlayersFromRoster(rosterSlots),
+      {},
+      s.manualAssignment,
     );
+  }
+
+  /** Закрепить героя за игроком (Manual, срез 3). null — снять pin (авто). Герой принадлежит
+   *  одному игроку: pin отбирает его у прежнего владельца-pin'а, авто-matching дораздаёт рест. */
+  setHeroAssignment(accountId: number, heroId: number | null): boolean {
+    const s = this.state;
+    if (!s.roster.some((p) => p.candidate.player.accountId === accountId)) return false;
+    if (heroId === null) {
+      delete s.manualAssignment[accountId];
+      return true;
+    }
+    if (!s.heroPool.includes(heroId)) return false;
+    for (const [acc, hero] of Object.entries(s.manualAssignment)) {
+      if (hero === heroId) delete s.manualAssignment[Number(acc)];
+    }
+    s.manualAssignment[accountId] = heroId;
+    return true;
+  }
+
+  resetAssignment(): void {
+    this.state.manualAssignment = {};
   }
 
   // ── Сезон: события ──────────────────────────────────────────────────────────
@@ -502,7 +535,7 @@ export class ManagerEngine {
     }));
     const field = [...bots, { name: s.config.orgName, strength, isUser: true }];
 
-    const placements = simKnockout(field, rng);
+    const { placements, bracket } = simKnockout(field, rng);
     const user = placements.find((p) => p.isUser)!;
     const rival = placements.find((p) => p.name === s.rival);
     const rivalBonusK = rival && user.placement < rival.placement ? RIVAL_BONUS_K : 0;
@@ -548,6 +581,7 @@ export class ManagerEngine {
       advanced: advance === null ? null : user.placement <= advance,
       rivalBonusK,
       standings: placements.map((p) => ({ name: p.name, placement: p.placement, isUser: p.isUser, ...(p.name === s.rival ? { isRival: true } : {}) })),
+      bracket,
     };
     s.lastResult = result;
     s.feed.unshift({ slotId: slot.id, name: slot.name, placement: user.placement, prizeK });
@@ -573,17 +607,37 @@ export class ManagerEngine {
         const kinds = Object.keys(RANDOM_EVENTS) as ManagerRandomEventKind[];
         const kind = kinds[rng.int(kinds.length)];
         const effect = RANDOM_EVENTS[kind];
-        const cashK = effect.cashK ?? 0;
-        const happiness = effect.happiness ?? 0;
-        s.bankK += cashK;
-        if (happiness !== 0) this.bumpHappiness(happiness);
-        s.pendingRandomEvent = { kind, cashK, happiness };
+        if (effect.choice) {
+          // Событие-выбор: ничего не применяем, ждём resolveRandomEvent.
+          s.pendingRandomEvent = { kind, cashK: 0, happiness: 0, choice: effect.choice };
+        } else {
+          const cashK = effect.cashK ?? 0;
+          const happiness = effect.happiness ?? 0;
+          s.bankK += cashK;
+          if (happiness !== 0) this.bumpHappiness(happiness);
+          s.pendingRandomEvent = { kind, cashK, happiness };
+        }
       }
     }
   }
 
   dismissRandomEvent(): void {
-    this.state.pendingRandomEvent = null;
+    this.resolveRandomEvent(false);
+  }
+
+  /** Закрыть событие; для события-выбора accept=true платит и применяет эффект.
+   *  Не хватает денег — принять нельзя (возвращает false, событие остаётся открытым). */
+  resolveRandomEvent(accept: boolean): boolean {
+    const s = this.state;
+    const pending = s.pendingRandomEvent;
+    if (!pending) return false;
+    if (accept && pending.choice) {
+      if (s.bankK < pending.choice.costK) return false;
+      s.bankK -= pending.choice.costK;
+      this.bumpHappiness(pending.choice.happiness);
+    }
+    s.pendingRandomEvent = null;
+    return true;
   }
 
   seasonFinished(): boolean {
@@ -703,11 +757,15 @@ export class ManagerEngine {
 }
 
 /** Мгновенный сеточный розыгрыш: сильные сеются врозь, серия — одна «карта» по ELO-формуле
- *  322-0 (`1/(1+10^(−Δ/22))`). Поле >8 режется play-in'ом до восьми (позиции 9+ без сетки). */
+ *  322-0 (`1/(1+10^(−Δ/22))`). Поле >8 режется play-in'ом до восьми (позиции 9+ без сетки).
+ *  Возвращает и раунды сетки — панель результата рисует их вместо плоского списка. */
 function simKnockout(
   field: Array<{ name: string; strength: number; isUser: boolean }>,
   rng: Rng,
-): Array<{ name: string; strength: number; isUser: boolean; placement: number }> {
+): {
+  placements: Array<{ name: string; strength: number; isUser: boolean; placement: number }>;
+  bracket: BracketRound[];
+} {
   const winProb = (a: number, b: number) => 1 / (1 + Math.pow(10, -(a - b) / 22));
   const rated = field.map((team) => ({ ...team, seedScore: team.strength + rng.normal(0, 3) }));
   rated.sort((a, b) => b.seedScore - a.seedScore);
@@ -721,23 +779,27 @@ function simKnockout(
     [bracket[2], bracket[5]],
   ];
   const results: Array<{ name: string; strength: number; isUser: boolean; placement: number }> = [];
-  const playMatch = (a: (typeof rated)[number], b: (typeof rated)[number]) =>
-    rng.float() < winProb(a.strength, b.strength) ? { winner: a, loser: b } : { winner: b, loser: a };
+  const rounds: BracketRound[] = [[], [], []];
+  const playMatch = (a: (typeof rated)[number], b: (typeof rated)[number], round: number) => {
+    const outcome = rng.float() < winProb(a.strength, b.strength) ? { winner: a, loser: b } : { winner: b, loser: a };
+    rounds[round].push({ a: a.name, b: b.name, winner: outcome.winner.name });
+    return outcome;
+  };
   const semis: (typeof rated)[number][] = [];
   for (const [a, b] of pairs) {
-    const { winner, loser } = playMatch(a, b);
+    const { winner, loser } = playMatch(a, b, 0);
     semis.push(winner);
     results.push({ ...loser, placement: 5 });
   }
   const finalists: (typeof rated)[number][] = [];
   for (const [a, b] of [[semis[0], semis[1]], [semis[2], semis[3]]]) {
-    const { winner, loser } = playMatch(a, b);
+    const { winner, loser } = playMatch(a, b, 1);
     finalists.push(winner);
     results.push({ ...loser, placement: 3 });
   }
-  const { winner, loser } = playMatch(finalists[0], finalists[1]);
+  const { winner, loser } = playMatch(finalists[0], finalists[1], 2);
   results.push({ ...loser, placement: 2 });
   results.push({ ...winner, placement: 1 });
   cut.forEach((team, index) => results.push({ ...team, placement: 9 + index }));
-  return results.sort((a, b) => a.placement - b.placement);
+  return { placements: results.sort((a, b) => a.placement - b.placement), bracket: rounds };
 }

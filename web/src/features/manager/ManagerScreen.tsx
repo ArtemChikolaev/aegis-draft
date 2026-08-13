@@ -24,6 +24,7 @@ import {
 } from "../../game/manager/engine.ts";
 import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, StatTile, Surface, TextField } from "../../ui/index.ts";
 import { useHero, useHeroName } from "../draft/heroes.ts";
+import { heroStatsForDisplay } from "../../game/score.ts";
 import "./manager.css";
 
 const KIND_LABEL: Record<CalendarSlot["kind"], MessageKey> = {
@@ -381,8 +382,11 @@ function Season({ engine }: { engine: ManagerEngine }) {
   const [confirmAbandon, setConfirmAbandon] = useState(false);
   const abandonCareer = useManager((s) => s.abandonCareer);
   const heroName = useHeroName();
+  const data = useRun((st) => st.data);
   const s = engine.state;
   const assignment = engine.assignmentByPlayer();
+  // Manual-своп (срез 3): клик по строке ростера открывает пикер героя из пула орга.
+  const [assignFor, setAssignFor] = useState<number | null>(null);
   // Без useMemo: движок мутирует state по ссылке (стор тикает версией), а scoreTeam на
   // пятёрке с пулом из 12 героев дёшев — стабильных зависимостей для мемо тут просто нет.
   const score = engine.score();
@@ -422,6 +426,21 @@ function Season({ engine }: { engine: ManagerEngine }) {
               {t(result.advanced ? "manager.advancedText" : "manager.eliminatedText")}
             </p>
           )}
+          {result.bracket.length === 3 && (
+            <div className="manager__bracket" data-testid="manager-bracket">
+              {result.bracket.map((round, index) => (
+                <div key={index} className="manager__bracket-round">
+                  <em>{t(index === 0 ? "manager.bracketQF" : index === 1 ? "manager.bracketSF" : "manager.bracketF")}</em>
+                  {round.map((match) => (
+                    <div key={`${match.a}·${match.b}`} className="manager__bracket-match">
+                      <span className={`${match.winner === match.a ? "is-winner" : ""}${match.a === s.config.orgName ? " is-user" : ""}`}>{match.a}</span>
+                      <span className={`${match.winner === match.b ? "is-winner" : ""}${match.b === s.config.orgName ? " is-user" : ""}`}>{match.b}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
           <ol className="manager__standings">
             {result.standings.map((row) => (
               <li key={row.name} className={row.isUser ? "is-user" : ""}>
@@ -454,14 +473,23 @@ function Season({ engine }: { engine: ManagerEngine }) {
           <h2 className="manager__section">{t("manager.rosterTitle")} · ${wages}k / ${engine.incomeK}k</h2>
           <div className="manager__roster">
             {s.roster.map((p) => {
-              const heroId = assignment[p.candidate.player.accountId];
+              const id = p.candidate.player.accountId;
+              const heroId = assignment[id];
+              const pinned = s.manualAssignment[id] !== undefined;
               const unhappy = p.happiness < 30;
               return (
-                <div key={p.candidate.player.accountId} className="manager__roster-row manager__roster-row--wide">
+                <button
+                  key={id}
+                  type="button"
+                  className="manager__roster-row manager__roster-row--wide"
+                  data-testid="manager-roster-row"
+                  title={t("manager.assignHint")}
+                  onClick={() => setAssignFor(id)}
+                >
                   <RoleTag role={p.candidate.player.role}>{t(roleMessageKey(p.candidate.player.role))}</RoleTag>
                   <span className="manager__roster-id">
                     <strong>{p.candidate.player.nickname}</strong>
-                    <small>{heroId !== undefined ? heroName(heroId) : "—"}</small>
+                    <small>{heroId !== undefined ? heroName(heroId) : "—"}{pinned && <em className="manager__pin"> ✎</em>}</small>
                   </span>
                   <span className="manager__roster-mood" title={t("manager.moodTitle", { n: p.happiness })}>
                     {p.fame > 0 && <em className="manager__fame">{p.fame}★</em>}
@@ -469,7 +497,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
                   </span>
                   <b>{p.candidate.player.ovr}</b>
                   <span>${p.salary}k{t("manager.perMonth")}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -535,6 +563,15 @@ function Season({ engine }: { engine: ManagerEngine }) {
         <Button variant="leave" onClick={() => setConfirmAbandon(true)}>{t("manager.abandon")}</Button>
       </div>
       {confirmAbandon && <ManagerAbandonModal onConfirm={abandonCareer} onClose={() => setConfirmAbandon(false)} />}
+      {assignFor !== null && data && (
+        <HeroAssignModal
+          engine={engine}
+          accountId={assignFor}
+          data={data}
+          onPick={(heroId) => { act((e) => e.setHeroAssignment(assignFor, heroId)); setAssignFor(null); }}
+          onClose={() => setAssignFor(null)}
+        />
+      )}
       {s.pendingRandomEvent && (
         <Modal
           mark="A"
@@ -545,22 +582,107 @@ function Season({ engine }: { engine: ManagerEngine }) {
           dismissLabel={t("common.close")}
           onClose={() => act((e) => e.dismissRandomEvent())}
         >
-          {({ close }) => (
-            <>
-              <p className="manager__re-effect" data-testid="manager-re-effect">
-                {s.pendingRandomEvent!.cashK !== 0 && <b>+${s.pendingRandomEvent!.cashK}k</b>}
-                {s.pendingRandomEvent!.happiness !== 0 && (
-                  <b>{s.pendingRandomEvent!.happiness > 0 ? "+" : ""}{s.pendingRandomEvent!.happiness} {t("manager.reMood")}</b>
+          {({ close }) => {
+            const pending = s.pendingRandomEvent!;
+            return (
+              <>
+                <p className="manager__re-effect" data-testid="manager-re-effect">
+                  {pending.cashK !== 0 && <b>+${pending.cashK}k</b>}
+                  {pending.happiness !== 0 && (
+                    <b>{pending.happiness > 0 ? "+" : ""}{pending.happiness} {t("manager.reMood")}</b>
+                  )}
+                  {pending.choice && (
+                    <b>−${pending.choice.costK}k → +{pending.choice.happiness} {t("manager.reMood")}</b>
+                  )}
+                </p>
+                {pending.choice ? (
+                  <>
+                    <Button variant="secondaryInvert" data-testid="manager-re-decline" onClick={() => { act((e) => e.resolveRandomEvent(false)); close(); }}>
+                      {t("manager.reDecline")}
+                    </Button>
+                    <Button
+                      variant="primaryInvert"
+                      data-testid="manager-re-accept"
+                      disabled={s.bankK < pending.choice.costK}
+                      onClick={() => { act((e) => e.resolveRandomEvent(true)); close(); }}
+                    >
+                      {t("manager.reAccept", { n: pending.choice.costK })}
+                    </Button>
+                  </>
+                ) : (
+                  <Button variant="primaryInvert" data-testid="manager-re-dismiss" onClick={() => { act((e) => e.dismissRandomEvent()); close(); }}>
+                    {t("manager.reOk")}
+                  </Button>
                 )}
-              </p>
-              <Button variant="primaryInvert" data-testid="manager-re-dismiss" onClick={() => { act((e) => e.dismissRandomEvent()); close(); }}>
-                {t("manager.reOk")}
-              </Button>
-            </>
-          )}
+              </>
+            );
+          }}
         </Modal>
       )}
     </>
+  );
+}
+
+/** Пикер героя для игрока (Manual, срез 3): пул орга с career-играми игрока на каждом герое.
+ *  Герой у другого игрока — забирается (авто-matching дораздаёт остальным). */
+function HeroAssignModal({ engine, accountId, data, onPick, onClose }: {
+  engine: ManagerEngine;
+  accountId: number;
+  data: NonNullable<ReturnType<typeof useRun.getState>["data"]>;
+  onPick: (heroId: number | null) => void;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const heroName = useHeroName();
+  const s = engine.state;
+  const player = s.roster.find((p) => p.candidate.player.accountId === accountId);
+  const assignment = engine.assignmentByPlayer();
+  const phs = heroStatsForDisplay(data);
+  if (!player) return null;
+  const nickOf = (id: number | undefined) =>
+    s.roster.find((p) => p.candidate.player.accountId === id)?.candidate.player.nickname;
+
+  return (
+    <Modal
+      mark="A"
+      title={t("manager.assignTitle", { nick: player.candidate.player.nickname })}
+      description={t("manager.assignText")}
+      labelledBy="manager-assign-title"
+      dismissLabel={t("common.close")}
+      onClose={onClose}
+      layout="content"
+    >
+      {() => (
+        <div className="manager__assign-list">
+          <button type="button" className="manager__assign-row" data-testid="manager-assign-auto" onClick={() => onPick(null)}>
+            <strong>{t("manager.assignAuto")}</strong>
+            <small>{t("manager.assignAutoHint")}</small>
+          </button>
+          {s.heroPool.map((heroId) => {
+            const games = phs[String(accountId)]?.[String(heroId)]?.games ?? 0;
+            const holder = Object.entries(assignment).find(([, hero]) => hero === heroId)?.[0];
+            const holderNick = holder !== undefined ? nickOf(Number(holder)) : undefined;
+            const mine = assignment[accountId] === heroId;
+            return (
+              <button
+                key={heroId}
+                type="button"
+                className={`manager__assign-row${mine ? " is-selected" : ""}`}
+                data-testid="manager-assign-hero"
+                onClick={() => onPick(heroId)}
+              >
+                <strong>{heroName(heroId)}</strong>
+                <small>
+                  {t("manager.assignGames", { n: games })}
+                  {holderNick && !mine && <> · {t("manager.assignHeldBy", { nick: holderNick })}</>}
+                  {mine && <> · {t("manager.assignCurrent")}</>}
+                </small>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </Modal>
   );
 }
 

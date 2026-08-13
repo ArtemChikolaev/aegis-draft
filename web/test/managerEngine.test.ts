@@ -301,6 +301,70 @@ describe("ManagerEngine — срез 2: rival, события, настроен�
   });
 });
 
+describe("ManagerEngine — срез 3: manual-назначение, событие-выбор, сетка", () => {
+  function inSeason(seed: string): ManagerEngine {
+    const engine = ManagerEngine.create(data, seed, config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    return engine;
+  }
+
+  it("pin героя попадает в назначение; чужой герой забирается; авто снимает pin", () => {
+    const engine = inSeason("assign");
+    const auto = engine.assignmentByPlayer();
+    const [a, b] = engine.state.roster.map((p) => p.candidate.player.accountId);
+    const heroOfB = auto[b];
+    // Отдаём игроку A героя, которым авто наградило B.
+    expect(engine.setHeroAssignment(a, heroOfB)).toBe(true);
+    const pinned = engine.assignmentByPlayer();
+    expect(pinned[a]).toBe(heroOfB);
+    expect(pinned[b]).not.toBe(heroOfB); // герой один — у B теперь другой
+    // Герой вне пула не назначается.
+    expect(engine.setHeroAssignment(a, 999_999)).toBe(false);
+    // Снятие pin возвращает авто-раздачу.
+    expect(engine.setHeroAssignment(a, null)).toBe(true);
+    expect(engine.assignmentByPlayer()).toEqual(auto);
+  });
+
+  it("pin переживает персист и учитывается счётом", () => {
+    const engine = inSeason("assign-persist");
+    const [a, b] = engine.state.roster.map((p) => p.candidate.player.accountId);
+    engine.setHeroAssignment(a, engine.assignmentByPlayer()[b]);
+    const restored = new ManagerEngine(data, JSON.parse(JSON.stringify(engine.state)) as ManagerState);
+    expect(restored.assignmentByPlayer()).toEqual(engine.assignmentByPlayer());
+    expect(restored.score()?.teamOvr).toBe(engine.score()?.teamOvr);
+  });
+
+  it("событие-выбор: accept платит и бустит настроение, decline — нет; без денег accept не проходит", () => {
+    const engine = inSeason("choice");
+    engine.state.pendingRandomEvent = { kind: "bootcampOffer", cashK: 0, happiness: 0, choice: { costK: 20, happiness: 6 } };
+    engine.state.bankK = 5;
+    expect(engine.resolveRandomEvent(true)).toBe(false); // не хватает — событие открыто
+    expect(engine.state.pendingRandomEvent).not.toBeNull();
+    engine.state.bankK = 50;
+    const before = engine.state.roster[0].happiness;
+    expect(engine.resolveRandomEvent(true)).toBe(true);
+    expect(engine.state.bankK).toBe(30);
+    expect(engine.state.roster[0].happiness).toBe(Math.min(100, before + 6));
+    // Decline ничего не меняет.
+    engine.state.pendingRandomEvent = { kind: "bootcampOffer", cashK: 0, happiness: 0, choice: { costK: 20, happiness: 6 } };
+    const bank = engine.state.bankK;
+    expect(engine.resolveRandomEvent(false)).toBe(true);
+    expect(engine.state.bankK).toBe(bank);
+  });
+
+  it("сетка результата согласована с местами: победитель финала = 1-е место", () => {
+    const engine = inSeason("bracket");
+    const result = engine.playNextEvent()!;
+    expect(result.bracket).toHaveLength(3);
+    expect(result.bracket[0]).toHaveLength(4);
+    expect(result.bracket[1]).toHaveLength(2);
+    expect(result.bracket[2]).toHaveLength(1);
+    const champion = result.standings.find((row) => row.placement === 1)!;
+    expect(result.bracket[2][0].winner).toBe(champion.name);
+  });
+});
+
 describe("ManagerEngine — персист", () => {
   it("JSON round-trip восстанавливает движок: тот же счёт и следующее событие", () => {
     const engine = ManagerEngine.create(data, "persist", config);

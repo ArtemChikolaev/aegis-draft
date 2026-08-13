@@ -85,6 +85,35 @@
 .manager__rival-tag { margin-left: 6px; padding: 1px 6px; color: var(--danger); border: 1px solid var(--danger); border-radius: 999px; font-style: normal; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .manager__departing { color: var(--danger); font-style: normal; font-size: 12px; font-weight: 700; }
 .manager__re-effect { display: flex; gap: 12px; margin: 0; font-size: 16px; }
+.manager__pin { color: var(--accent-strong); font-style: normal; }
+
+/* Ростер-строка стала кнопкой (пикер героя): наследуем вид, добавляем ховер. */
+button.manager__roster-row { width: 100%; text-align: left; color: inherit; background: none; transition: border-color .15s; }
+button.manager__roster-row:hover { border-color: var(--accent); }
+
+/* Пикер героя (Manual) */
+.manager__assign-list { display: grid; gap: 6px; }
+.manager__assign-row {
+  display: grid; gap: 1px; padding: 10px 12px; text-align: left; color: inherit;
+  border: 1px solid var(--line-invert); border-radius: 10px; background: var(--surface-invert-soft);
+  transition: border-color .15s;
+}
+.manager__assign-row:hover { border-color: var(--accent); }
+.manager__assign-row.is-selected { border-color: var(--accent-strong); }
+.manager__assign-row strong { font-size: 14px; }
+.manager__assign-row small { color: var(--muted-invert); font-size: 11px; }
+
+/* Мини-сетка результата: QF → SF → F */
+.manager__bracket { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.manager__bracket-round { display: grid; gap: 8px; align-content: start; }
+.manager__bracket-round > em { color: var(--muted); font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.manager__bracket-match { display: grid; gap: 2px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; }
+.manager__bracket-match span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+.manager__bracket-match span.is-winner { color: var(--text); font-weight: 700; }
+.manager__bracket-match span.is-user { color: var(--accent-strong); font-weight: 700; }
+@media (max-width: 680px) {
+  .manager__bracket { grid-template-columns: 1fr; }
+}
 .manager__roster-row b { font-variant-numeric: tabular-nums; }
 .manager__roster-row span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .manager__score { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
