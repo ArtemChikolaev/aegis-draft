@@ -785,9 +785,9 @@
       "winrate": 0.4231
     },
     "last_5y": {
-      "successScore": 36.07,
-      "games": 208,
-      "winrate": 0.4471
+      "successScore": 35.71,
+      "games": 206,
+      "winrate": 0.4417
     },
     "valve_legacy": {
       "successScore": 43.83,
@@ -927,9 +927,9 @@
   },
   "6209804": {
     "last_5y": {
-      "successScore": 36.59,
-      "games": 95,
-      "winrate": 0.3895
+      "successScore": 37.49,
+      "games": 93,
+      "winrate": 0.3978
     },
     "valve_legacy": {
       "successScore": 39.58,
@@ -1077,9 +1077,9 @@
       "winrate": 0.4459
     },
     "last_5y": {
-      "successScore": 35.14,
-      "games": 111,
-      "winrate": 0.4505
+      "successScore": 35.79,
+      "games": 109,
+      "winrate": 0.4587
     },
     "valve_legacy": {
       "successScore": 53.75,
@@ -1247,9 +1247,9 @@
   },
   "8204512": {
     "last_5y": {
-      "successScore": 38.74,
-      "games": 25,
-      "winrate": 0.4
+      "successScore": 36.31,
+      "games": 23,
+      "winrate": 0.3478
     },
     "valve_legacy": {
       "successScore": 40.74,

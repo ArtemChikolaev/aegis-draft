@@ -500,7 +500,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 75
+        "games": 73
       },
       {
         "teamId": 2803901,
@@ -826,7 +826,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 25
+        "games": 23
       },
       {
         "teamId": 8261500,
@@ -2148,7 +2148,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 25
+        "games": 23
       },
       {
         "teamId": 8574561,
@@ -2345,7 +2345,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 237
+        "games": 235
       },
       {
         "teamId": 6209166,
@@ -2442,7 +2442,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 6465093,
@@ -5724,7 +5724,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 43
+        "games": 41
       },
       {
         "teamId": 6306453,
@@ -7911,7 +7911,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 139
+        "games": 137
       },
       {
         "teamId": 2626685,
@@ -8028,7 +8028,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 5
+        "games": 3
       },
       {
         "teamId": 6615678,
@@ -8154,14 +8154,13 @@
     "nickname": "200岁的元婴修士",
     "primaryRole": "safelane",
     "rolesPlayed": [
-      "safelane",
-      "offlane"
+      "safelane"
     ],
     "teams": [
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 27
+        "games": 25
       },
       {
         "teamId": 6382740,
@@ -8395,7 +8394,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 25
+        "games": 23
       },
       {
         "teamId": 8261500,
@@ -8556,7 +8555,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 116
+        "games": 114
       },
       {
         "teamId": 3355113,
@@ -8593,7 +8592,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 224
+        "games": 222
       },
       {
         "teamId": 543897,
@@ -8928,7 +8927,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 80
+        "games": 78
       },
       {
         "teamId": 484909,
@@ -8995,7 +8994,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 25
+        "games": 23
       },
       {
         "teamId": 9351740,
@@ -9442,7 +9441,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 209
+        "games": 207
       },
       {
         "teamId": 8261500,
@@ -11725,7 +11724,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 86
+        "games": 84
       },
       {
         "teamId": 2208748,
@@ -13752,7 +13751,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 55
+        "games": 53
       },
       {
         "teamId": 6382740,
@@ -14749,7 +14748,7 @@
       {
         "teamId": 5,
         "teamName": "Invictus Gaming",
-        "games": 118
+        "games": 116
       },
       {
         "teamId": 15,
@@ -17079,7 +17078,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 104
+        "games": 102
       }
     ]
   },
@@ -27477,7 +27476,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 25
+        "games": 23
       }
     ]
   },
