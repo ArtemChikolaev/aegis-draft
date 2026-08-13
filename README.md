@@ -72,7 +72,7 @@ docker compose -f infra/docker-compose.yml up --build
 
 ## Документы
 - 📄 **[docs/PRD.md](docs/PRD.md)** — концепция, механики, режимы, роадмап.
-- 🏛 **[ADR 0001](docs/adr/0001-tech-stack.md)** (стек, static-first) · **[ADR 0002](docs/adr/0002-backend-now.md)** (backend сейчас).
+- 🏛 **[ADR 0001](docs/adr/0001-tech-stack.md)** (стек, static-first) · **[ADR 0002](docs/adr/0002-backend-now.md)** (backend сейчас) · **[ADR 0003](docs/adr/0003-offline-first-pwa.md)** (офлайн: PWA, зеркало арта).
 - 🎨 **[docs/design-language.md](docs/design-language.md)** — визуальная айдентика.
 - 📐 **[schema/README.md](schema/README.md)** — контракт данных.
 - 🤖 **[CLAUDE.md](CLAUDE.md)** — контракт для AI-агентов.
