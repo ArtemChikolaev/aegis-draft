@@ -15,6 +15,14 @@
       "runtimeArgs": ["run", "preview", "--", "--port", "5273", "--strictPort"],
       "port": 5273,
       "cwd": "web"
+    },
+    {
+      "//": "Прод-сборка ПОД САБПУТЁМ GitHub Pages (/aegis-draft/). Нужна для багов, которые видны только там: scope service worker'а, относительные пути в манифесте PWA, base у ассетов. Приложение открывается на http://localhost:5273/aegis-draft/.",
+      "name": "web-preview-pages",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview:pages", "--", "--port", "5273", "--strictPort"],
+      "port": 5273,
+      "cwd": "web"
     }
   ]
 }
