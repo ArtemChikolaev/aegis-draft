@@ -31,10 +31,26 @@ export function SettingsScreen() {
   const [offlineBusy, setOfflineBusy] = useState(false);
   const [clearGate, setClearGate] = useState(false);
   const refreshStatus = useCallback(() => { void readOfflineStatus().then(setOffline); }, []);
-  useEffect(refreshStatus, [refreshStatus]);
+  // Пока копия не собрана, статус ПЕРЕЧИТЫВАЕМ: игрок часто открывает настройки сразу после
+  // первого захода, а копия в этот момент ещё качается — без опроса он видел бы «копии нет»
+  // до самого ухода с экрана (поймано офлайн-спекой T11.5). Готовая копия сама не меняется:
+  // дальше её трогают только кнопки на этом же экране, поэтому опрос останавливается.
+  useEffect(() => {
+    refreshStatus();
+    if (offline?.state === "ready" || offline?.state === "unsupported") return;
+    const timer = setInterval(refreshStatus, 2000);
+    return () => clearInterval(timer);
+  }, [refreshStatus, offline?.state]);
   // Незавершённый забег держит старый датасет (смена dataHash обнуляет сейв), поэтому кнопка
   // «обновить» честно предупреждает, а не молча ничего не делает.
-  const runUnfinished = useRun((state) => state.phase) !== "start" || useRun((state) => state.resumable) !== null;
+  //
+  // Хуки вызываются ОТДЕЛЬНО, а не внутри `||`: короткое замыкание пропускало второй `useRun`,
+  // число хуков между рендерами менялось, и React рушил экран (ошибка #310). Ловится только
+  // когда первый операнд истинен — то есть при заходе в настройки НЕ со старт-экрана; ручная
+  // проверка со старта этого не видела, поймала офлайн-спека T11.5.
+  const phase = useRun((state) => state.phase);
+  const resumable = useRun((state) => state.resumable);
+  const runUnfinished = phase !== "start" || resumable !== null;
   const installApp = useInstallApp();
 
   const onOfflineRefresh = async () => {
