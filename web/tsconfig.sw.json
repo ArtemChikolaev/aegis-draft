@@ -1,0 +1,11 @@
+// Отдельный проект под service worker: ему нужны типы WebWorker (ServiceWorkerGlobalScope,
+// FetchEvent), а приложению — DOM. Держать оба lib в одном проекте нельзя: `self` получил бы
+// два несовместимых типа. Поэтому sw.ts исключён из основного tsconfig и проверяется здесь;
+// `npm run typecheck` гоняет оба проекта.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "WebWorker"]
+  },
+  "include": ["src/sw.ts", "src/sw/**/*.ts", "src/data/dataFiles.ts", "src/types/**/*.ts"]
+}

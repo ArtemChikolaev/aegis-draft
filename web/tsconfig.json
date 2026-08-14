@@ -16,5 +16,8 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src"]
+  // sw.ts живёт в мире WebWorker (свой `self`, свои события) — он проверяется отдельным
+  // проектом tsconfig.sw.json, который тоже входит в `npm run typecheck`.
+  "include": ["src"],
+  "exclude": ["src/sw.ts"]
 }

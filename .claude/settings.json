@@ -4,7 +4,11 @@
       "Bash(gofmt -l *)",
       "Bash(go vet *)",
       "Bash(npm run typecheck)",
-      "Bash(npm run validate:data)"
+      "Bash(npm run validate:data)",
+      "mcp__Claude_Browser__preview_start",
+      "mcp__Claude_Browser__preview_stop",
+      "mcp__Claude_Browser__preview_logs",
+      "mcp__Claude_Browser__preview_list"
     ]
   },
   "hooks": {

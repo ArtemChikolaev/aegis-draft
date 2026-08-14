@@ -37,9 +37,14 @@ web/src/
 │                #   "system" тема берётся у Telegram, а не у ОС (палитра остаётся наша)
 ├─ game/         # логика: score/assign/packs/engine/tournament/rng (не зависит от UI)
 ├─ data/         # DataSource (статика: загрузка JSON) + api/ (динамика: Go API — auth/сейвы)
+│                #   + dataFiles.ts — состав датасета ОДНИМ списком (его же кэширует sw.ts)
 ├─ state/        # Zustand-сторы: runStore (забег), shellStore (вид), careerStore (история),
 │                #   runPersist (сейв через replay лога), runLink (кодек ссылки/сида),
-│                #   persist (КУДА пишем: CloudStorage в Telegram, localStorage в вебе)
+│                #   persist (КУДА пишем: CloudStorage в Telegram, localStorage в вебе),
+│                #   connectivity (есть ли реальная сеть), serviceWorker (офлайн + апдейт)
+├─ sw.ts         # SERVICE WORKER (офлайн, ADR 0003): precache оболочки + атомарное ведро
+│  sw/policy.ts  #   датасета по dataHash. Чистые решения — в policy.ts (юнит-тест),
+│                #   sw.ts только Cache API. Живёт вне tsconfig приложения (WebWorker-типы).
 └─ types/        # типы из schema/
 public/data/     # ← сюда пайплайн кладёт JSON
 ```

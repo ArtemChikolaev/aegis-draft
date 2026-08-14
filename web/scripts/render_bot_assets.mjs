@@ -13,6 +13,9 @@
 //   bot-cover.png   640×360   обложка Direct Link и welcome-картинка в пустом чате
 //   bot-splash.svg  512×512   Launch Screen у Mini App (один <path>, как требует BotFather)
 //   bot-splash.webp 512×512   тот же splash растром — на случай, если SVG не принимается
+//   icon-192.png    192×192   иконка PWA (manifest в vite.config.ts, T11.1)
+//   icon-512.png    512×512   иконка PWA
+//   icon-512-maskable.png     она же под maskable-маску: знак в безопасной зоне на фоне
 
 import { chromium } from "playwright";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -27,6 +30,10 @@ const OUT_DIR = resolve(root, "public");
 const BG = "#000000";
 const GREEN = "#8ff0b5";
 const MUTED = "#8a8a85";
+// Фон установленного приложения: обязан совпадать с <meta name="theme-color"> в index.html и с
+// background_color/theme_color манифеста PWA в vite.config.ts, иначе splash мигает чужим цветом
+// до первого кадра (та же грабля, что со splash в Telegram, T9.5).
+const PWA_BG = "#080b12";
 
 const FONTS = "https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Space+Grotesk:wght@600;700&display=swap";
 
@@ -37,6 +44,25 @@ const FONTS = "https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800
  */
 function avatarHtml(mark) {
   return page(`<div style="width:512px;height:512px">${scaled(mark, 512)}</div>`, "transparent");
+}
+
+/** Иконка PWA: тот же знак во всю площадь, фон даёт сам SVG (у него своё скругление). */
+function iconHtml(mark, size) {
+  return page(`<div style="width:${size}px;height:${size}px">${scaled(mark, size)}</div>`, "transparent");
+}
+
+/**
+ * Maskable-иконка: система вырезает из неё круг/сквиркл под свою форму, поэтому знак нельзя
+ * класть во всю площадь — углы срежет. Кладём его в безопасную зону (60% холста) на сплошной
+ * фон приложения; так иконка одинаково цела и в круге Android, и в квадрате.
+ */
+function maskableHtml(mark, size) {
+  const inner = Math.round(size * 0.6);
+  return page(
+    `<div style="width:${size}px;height:${size}px;background:${PWA_BG};display:flex;align-items:center;justify-content:center">`
+    + `<div style="width:${inner}px;height:${inner}px">${scaled(mark, inner)}</div></div>`,
+    PWA_BG,
+  );
 }
 
 /**
@@ -183,6 +209,9 @@ try {
   await shoot(browser, avatarHtml(mark), { width: 512, height: 512, file: resolve(OUT_DIR, "bot-avatar.png"), transparent: true });
   await shoot(browser, coverHtml(mark), { width: 640, height: 360, file: resolve(OUT_DIR, "bot-cover.png") });
   await shootWebp(browser, splash, { size: 512, file: resolve(OUT_DIR, "bot-splash.webp") });
+  await shoot(browser, iconHtml(mark, 192), { width: 192, height: 192, file: resolve(OUT_DIR, "icon-192.png"), transparent: true });
+  await shoot(browser, iconHtml(mark, 512), { width: 512, height: 512, file: resolve(OUT_DIR, "icon-512.png"), transparent: true });
+  await shoot(browser, maskableHtml(mark, 512), { width: 512, height: 512, file: resolve(OUT_DIR, "icon-512-maskable.png") });
 } finally {
   await browser.close();
 }

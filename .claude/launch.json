@@ -7,6 +7,14 @@
       "runtimeArgs": ["run", "dev", "--", "--port", "5273", "--strictPort"],
       "port": 5273,
       "cwd": "web"
+    },
+    {
+      "//": "Прод-сборка для проверки офлайна: service worker живёт только здесь (в dev он выключен, ADR 0003). Требует npm run build. Порт тот же 5273 — оба сервера сразу не поднять, это альтернативы.",
+      "name": "web-preview",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "preview", "--", "--port", "5273", "--strictPort"],
+      "port": 5273,
+      "cwd": "web"
     }
   ]
 }

@@ -3,6 +3,8 @@ import { useRun } from "../state/runStore.ts";
 import { useShell } from "../state/shellStore.ts";
 import { useTmaChrome } from "../state/tmaChrome.ts";
 import { useCareer } from "../state/careerStore.ts";
+import { useManager } from "../state/managerStore.ts";
+import { ensureOfflineData, useServiceWorker } from "../state/serviceWorker.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ManagerResumeBanner, ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { RunLinkPrompt } from "../features/start/RunLinkPrompt.tsx";
@@ -55,6 +57,25 @@ export function App() {
     void loadData();
   }, [loadData]);
 
+  // Офлайн-копия датасета (T11.1). Незавершённый забег держит СТАРЫЙ набор: смена dataHash
+  // инвалидирует сейв (runPersist, BUG-2026-07-23; у Manager своя такая же сверка), поэтому
+  // «можно менять» = ни активной фазы, ни сейва, который игрок ещё может продолжить.
+  // Обновится сразу, как забег закончится: эффект пересчитается на смене этих же признаков.
+  const data = useRun((s) => s.data);
+  const resumable = useRun((s) => s.resumable);
+  const managerResumable = useManager((s) => s.resumable);
+  const managerEngine = useManager((s) => s.engine);
+  const runUnfinished = phase === "draft" || phase === "tournament" || phase === "camp"
+    || resumable !== null || managerResumable !== null || managerEngine !== null;
+  useEffect(() => {
+    if (data) void ensureOfflineData(!runUnfinished);
+  }, [data, runUnfinished]);
+
+  // Обновление приложения применяет игрок и только на старт-экране: подменять код посреди
+  // драфта нельзя (перезагрузка обрывает то, что игрок сейчас делает).
+  const updateReady = useServiceWorker((s) => s.updateReady);
+  const applyUpdate = useServiceWorker((s) => s.applyUpdate);
+
   // Карьера рисуется из синхронного кэша, а в Telegram он между запусками пустеет (T9.6) —
   // догружаем из CloudStorage. Вне Telegram читает тот же кэш и ничего не меняет.
   useEffect(() => {
@@ -105,6 +126,13 @@ export function App() {
       {error && (
         <Banner title={t(error === "resume.failed" ? "resume.failed" : "app.error")}>
           {error === "resume.failed" ? null : error}
+        </Banner>
+      )}
+
+      {updateReady && phase === "start" && (
+        <Banner tone="locked" title={t("update.title")} data-testid="update-banner">
+          {t("update.text")}{" "}
+          <Button variant="secondary" data-testid="update-apply" onClick={applyUpdate}>{t("update.apply")}</Button>
         </Banner>
       )}
 
