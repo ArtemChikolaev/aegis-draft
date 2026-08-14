@@ -2345,7 +2345,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 235
+        "games": 232
       },
       {
         "teamId": 6209166,
@@ -2442,7 +2442,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 6465093,
@@ -3313,7 +3313,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 424
+        "games": 421
       },
       {
         "teamId": 726228,
@@ -5515,7 +5515,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 230
+        "games": 227
       },
       {
         "teamId": 726228,
@@ -5724,7 +5724,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 41
+        "games": 38
       },
       {
         "teamId": 6306453,
@@ -7339,7 +7339,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 319
+        "games": 316
       },
       {
         "teamId": 8261500,
@@ -7911,7 +7911,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 137
+        "games": 134
       },
       {
         "teamId": 2626685,
@@ -8028,7 +8028,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 3
+        "games": 0
       },
       {
         "teamId": 6615678,
@@ -8160,7 +8160,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 25
+        "games": 22
       },
       {
         "teamId": 6382740,
@@ -8555,7 +8555,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 114
+        "games": 111
       },
       {
         "teamId": 3355113,
@@ -9434,14 +9434,13 @@
     "primaryRole": "support",
     "rolesPlayed": [
       "support",
-      "offlane",
-      "safelane"
+      "offlane"
     ],
     "teams": [
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 207
+        "games": 204
       },
       {
         "teamId": 8261500,
@@ -9754,7 +9753,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 294
+        "games": 291
       },
       {
         "teamId": 6209804,
@@ -10759,7 +10758,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 232
+        "games": 229
       },
       {
         "teamId": 20,
@@ -12429,7 +12428,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 329
+        "games": 326
       },
       {
         "teamId": 6306453,
@@ -13751,7 +13750,7 @@
       {
         "teamId": 6209804,
         "teamName": "Antarctic Penguins",
-        "games": 53
+        "games": 50
       },
       {
         "teamId": 6382740,
@@ -15168,7 +15167,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 273
+        "games": 270
       },
       {
         "teamId": 9351740,
@@ -17078,7 +17077,7 @@
       {
         "teamId": 726228,
         "teamName": "Vici Gaming",
-        "games": 102
+        "games": 99
       }
     ]
   },
@@ -19391,7 +19390,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 39
+        "games": 36
       },
       {
         "teamId": 6209804,
@@ -26839,7 +26838,7 @@
       {
         "teamId": 6209166,
         "teamName": "Team Aster",
-        "games": 43
+        "games": 40
       },
       {
         "teamId": 6209804,
@@ -27154,14 +27153,13 @@
     "primaryRole": "safelane",
     "rolesPlayed": [
       "safelane",
-      "offlane",
-      "support"
+      "offlane"
     ],
     "teams": [
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 232
+        "games": 229
       },
       {
         "teamId": 1520578,
