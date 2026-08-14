@@ -28,3 +28,8 @@ api_keys.txt
 /web/test-results/
 /web/playwright-report/
 /web/blob-report/
+
+# Playwright: артефакты прогонов (в т.ч. из корня, если тест запущен не из web/)
+test-results/
+web/test-results/
+web/playwright-report/
