@@ -82,6 +82,14 @@ jobs:
       - name: Распределение OVR против референса (калибровка)
         continue-on-error: true
         run: node .claude/skills/scoring-model/tools/calibrate_ovr.mjs
+      # Зеркало арта (T11.2) пополняется отдельным прогоном `npm run gen:art` — он поднимает
+      # Chromium, и тащить браузер в ежедневный крон ради пары новых команд незачем. Но
+      # расхождение должно быть ВИДНО: новая команда без локального знака просто не покажется
+      # офлайн (в онлайне отработает фолбэк на CDN). Проверка ходит только по файловой системе.
+      - name: Полнота зеркала арта (новые команды)
+        continue-on-error: true
+        working-directory: web
+        run: node scripts/mirror_art.mjs --check
       - name: Commit & push refreshed data
         if: ${{ github.event.inputs.dryRun != 'true' }}
         run: |

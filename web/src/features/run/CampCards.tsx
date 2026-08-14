@@ -268,6 +268,7 @@ export function CampPlayerCard({
             R14.1 держит один чип роли, места там достаточно. */}
         <TeamLogo
           src={candidate.logoUrl}
+          teamId={candidate.teamId}
           name={candidate.teamName}
           fallback={teamMonogram(candidate.teamName)}
         />

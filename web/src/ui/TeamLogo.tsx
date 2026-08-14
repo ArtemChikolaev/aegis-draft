@@ -1,7 +1,8 @@
-import { useState } from "react";
 import styles from "./TeamLogo.module.css";
+import { teamArtSources, useArtSource } from "./artSource.ts";
 
-// Логотип команды с CDN Steam.
+// Логотип команды: своё зеркало `public/art/teams/<teamId>.webp` (T11.2), затем `logoUrl` с CDN
+// Steam — схема данных ради зеркала не менялась, поэтому ссылка из датасета остаётся запасной.
 //
 // Почему только команда, без аватаров игроков: `avatarfull` у OpenDota — это аватар ПРОФИЛЯ Steam,
 // то есть что игрок поставил себе на аккаунт. Проверка на десяти про (2026-08-04) дала настоящее
@@ -22,29 +23,31 @@ export function teamMonogram(teamName: string): string {
   return words[0][0] + words[1][0];
 }
 
-export function TeamLogo({ src, name, size = "sm", fallback }: {
-  /** Ссылка с CDN. Пусто/undefined — сразу фолбэк, запроса не будет. */
+export function TeamLogo({ src, teamId, name, size = "sm", fallback }: {
+  /** Ссылка с CDN (`logoUrl` из датасета). Запасной источник после зеркала. */
   src?: string;
+  /** Команда в датасете — по нему собирается путь к зеркалу. Нет id и нет ссылки — сразу фолбэк. */
+  teamId?: number;
   name: string;
   size?: "sm" | "md" | "lg";
   /** Что показать вместо картинки. Обычно монограмма — она уникальна и читается на 16px. */
   fallback?: React.ReactNode;
 }) {
-  const [broken, setBroken] = useState(false);
+  const { src: current, onError } = useArtSource(teamArtSources(teamId, src));
   const cls = `${styles.logo} ${styles[size]}`;
-  if (!src || broken) {
+  if (!current) {
     return fallback ? <span className={`${cls} ${styles.fallback}`} aria-hidden="true">{fallback}</span> : null;
   }
   return (
     <img
       className={cls}
-      src={src}
+      src={current}
       alt={name}
       loading="lazy"
       // `decoding=async` и фиксированный размер в CSS: картинка не должна двигать раскладку,
       // когда доедет, — иначе получаем ту же гонку позиции, что уронила CI на анимации секций.
       decoding="async"
-      onError={() => setBroken(true)}
+      onError={onError}
     />
   );
 }

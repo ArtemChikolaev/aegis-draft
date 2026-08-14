@@ -17,6 +17,7 @@
     "sim": "npx tsx scripts/sim_run.ts",
     "gen:mock": "node scripts/gen_mock.mjs",
     "gen:bot-assets": "node scripts/render_bot_assets.mjs",
+    "gen:art": "node scripts/mirror_art.mjs",
     "validate:data": "node ../.claude/skills/data-contract/tools/validate_data.mjs public/data"
   },
   "dependencies": {

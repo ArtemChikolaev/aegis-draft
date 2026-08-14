@@ -1,10 +1,8 @@
-import { useState } from "react";
 import styles from "./HeroThumb.module.css";
+import { heroArtSources, useArtSource } from "./artSource.ts";
 
-// Портреты героев Dota 2 с публичного Steam CDN по slug (picture из heroes.json).
-// В canvas шеринг-картинки этот CDN не годится: ACAO у него жёстко `https://www.dota2.com`,
-// поэтому карточка забега рисуется текстом (см. features/tournament/shareImage.ts).
-const CDN = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes";
+// Портреты героев Dota 2 по slug (`picture` из heroes.json). Источник — своё зеркало
+// `public/art/heroes` (T11.2), Steam CDN остаётся запасным: подробности и порядок — в artSource.ts.
 
 /** Аватар героя: портрет по slug + имя. Если картинка не загрузилась — остаётся имя. */
 export function HeroThumb({ picture, name, size = "sm", showName = true, layout = "pill" }: {
@@ -15,14 +13,11 @@ export function HeroThumb({ picture, name, size = "sm", showName = true, layout 
   /** pill — горизонтальная капсула; card — портрет сверху, имя снизу (пак героев). */
   layout?: "pill" | "card";
 }) {
-  const [broken, setBroken] = useState(false);
-  const hasImage = picture !== "" && !broken;
+  const { src, onError } = useArtSource(heroArtSources(picture));
   const layoutClass = layout === "card" ? styles.card : styles[size];
   return (
     <span className={`${styles.thumb} ${layoutClass}`}>
-      {hasImage && (
-        <img src={`${CDN}/${picture}.png`} alt={name} loading="lazy" onError={() => setBroken(true)} />
-      )}
+      {src && <img src={src} alt={name} loading="lazy" onError={onError} />}
       {showName && <span className={styles.name}>{name}</span>}
     </span>
   );

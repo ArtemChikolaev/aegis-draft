@@ -30,7 +30,10 @@ export default defineConfig({
         // data/** намеренно НЕ в precache: датасет версионируется своим dataHash и живёт в
         // отдельном ведре (см. src/sw.ts). Ассеты бота (обложка/сплэш) нужны Telegram, а не
         // игре — в офлайн-пакет их не тянем.
-        globPatterns: ["**/*.{js,css,html,svg,webmanifest}", "icon-*.png"],
+        //
+        // art/** — наоборот, В precache (T11.2): офлайн-готовность не должна зависеть от того,
+        // какие экраны игрок успел открыть до самолёта. Это ~1.3 МБ на 268 файлов.
+        globPatterns: ["**/*.{js,css,html,svg,webmanifest}", "icon-*.png", "art/**/*.webp"],
         globIgnores: ["data/**", "bot-*.*"],
       },
       manifest: {

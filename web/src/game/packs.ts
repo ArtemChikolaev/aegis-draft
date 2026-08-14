@@ -70,6 +70,9 @@ export interface DraftPack {
   /** Логотип команды — только у team-пака: в Mixed команда у каждого кандидата своя, и общего
    *  знака у пака не существует. Необязателен, как и везде: покрытие неполное. */
   logoUrl?: string;
+  /** Команда пака — по ней UI находит знак в локальном зеркале арта (T11.2). У Mixed её нет
+   *  по той же причине, что и общего логотипа. */
+  teamId?: number;
   /** Team: 5 игроков команды. Mixed: 5 кандидатов, индекс = слот ROLE_SEQUENCE. */
   candidates: Candidate[];
   signatureHeroes: number[];
@@ -108,6 +111,7 @@ export function teamPack(pack: Pack): DraftPack {
     label: pack.teamName,
     sublabel: pack.eventId,
     logoUrl: pack.logoUrl,
+    teamId: pack.teamId,
     candidates: candidatesOf(pack),
     signatureHeroes: pack.signatureHeroes,
   };

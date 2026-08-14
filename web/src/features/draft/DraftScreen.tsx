@@ -128,6 +128,7 @@ export function DraftScreen() {
             {currentPack.kind === "team" && (
               <TeamLogo
                 src={currentPack.logoUrl}
+                teamId={currentPack.teamId}
                 name={currentPack.label}
                 size="md"
                 fallback={teamMonogram(currentPack.label)}
@@ -249,6 +250,7 @@ function CandidateCard({ candidate, enabled, onPick, index, showTeamLogo }: {
           <small>
             <TeamLogo
               src={candidate.logoUrl}
+              teamId={candidate.teamId}
               name={candidate.teamName}
               fallback={teamMonogram(candidate.teamName)}
             />

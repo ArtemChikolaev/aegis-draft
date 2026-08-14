@@ -47,6 +47,8 @@ web/src/
 │                #   sw.ts только Cache API. Живёт вне tsconfig приложения (WebWorker-типы).
 └─ types/        # типы из schema/
 public/data/     # ← сюда пайплайн кладёт JSON
+public/art/      # зеркало арта Dota (герои/команды/предметы, webp) — `npm run gen:art`.
+                 # Своё, а не Steam CDN: чужой origin не кэшируется офлайн и «пачкает» canvas.
 ```
 
 **Правила архитектуры (важно):**
