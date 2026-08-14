@@ -1,11 +1,15 @@
+import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { useTheme } from "../../design/theme/ThemeProvider.tsx";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
-import { Banner, Button, Eyebrow, OptionGroup, Surface, useScreenShakeSetting } from "../../ui/index.ts";
-import type { Locale } from "../../i18n/core.ts";
+import { Banner, Button, Eyebrow, Modal, OptionGroup, Surface, useScreenShakeSetting } from "../../ui/index.ts";
+import { useInstallApp } from "../../state/installApp.ts";
+import { clearOfflineCache, formatBytes, readOfflineStatus, shortHash, type OfflineStatus } from "../../state/offlineStatus.ts";
+import { ensureOfflinePack } from "../../state/serviceWorker.ts";
+import type { Locale, MessageKey } from "../../i18n/core.ts";
 import type { ThemeMode } from "../../design/theme/core.ts";
 import "./settings.css";
 
@@ -20,6 +24,43 @@ export function SettingsScreen() {
   const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase), useRun((state) => state.resumable));
   // Тряска экрана (R15.4) — отдельный тумблер, как в Balatro: не хотеть тряску ≠ reduced-motion.
   const [shakeEnabled, setShakeEnabled] = useScreenShakeSetting();
+
+  // Офлайн-копия (T11.4). Статус читается из настоящих кэшей, а не хранится где-то рядом:
+  // иначе он расходится с реальностью ровно в тот момент, когда важен.
+  const [offline, setOffline] = useState<OfflineStatus | null>(null);
+  const [offlineBusy, setOfflineBusy] = useState(false);
+  const [clearGate, setClearGate] = useState(false);
+  const refreshStatus = useCallback(() => { void readOfflineStatus().then(setOffline); }, []);
+  useEffect(refreshStatus, [refreshStatus]);
+  // Незавершённый забег держит старый датасет (смена dataHash обнуляет сейв), поэтому кнопка
+  // «обновить» честно предупреждает, а не молча ничего не делает.
+  const runUnfinished = useRun((state) => state.phase) !== "start" || useRun((state) => state.resumable) !== null;
+  const installApp = useInstallApp();
+
+  const onOfflineRefresh = async () => {
+    setOfflineBusy(true);
+    // allowSwap=true: это явное решение игрока, ради него кнопка и существует.
+    await ensureOfflinePack(true);
+    // Загрузка идёт в воркере — статус подтягиваем с небольшой задержкой, иначе прочитаем «до».
+    setTimeout(() => { refreshStatus(); setOfflineBusy(false); }, 2500);
+  };
+
+  const onOfflineClear = async () => {
+    setClearGate(false);
+    setOfflineBusy(true);
+    await clearOfflineCache();
+    refreshStatus();
+    setOfflineBusy(false);
+  };
+
+  // `offline === null` — статус ещё не прочитан. Это НЕ «недоступно»: показывать отказ до
+  // первого чтения значит врать про самое интересное состояние (замер 2026-08-14).
+  const offlineStateLabel: MessageKey = offline === null ? "offline.stateChecking"
+    : offline.state === "ready" ? "offline.stateReady"
+    : offline.state === "partial" ? "offline.statePartial"
+    : offline.state === "none" ? "offline.stateNone"
+    : "offline.stateUnsupported";
+  const offlineActionsBusy = offlineBusy || offline === null;
 
   return (
     <main className="settings" data-testid="settings-screen">
@@ -136,6 +177,83 @@ export function SettingsScreen() {
         ) : <p className="muted">{t("common.empty")}</p>}
         <p className="settings__source">{t("settings.source")}</p>
       </Surface>
+
+      {/* Офлайн-копия (T11.4). Рядом с паспортом данных намеренно: это тот же датасет, только
+          вопрос не «какой он», а «доедет ли он со мной в самолёт». */}
+      <Surface className="settings__panel">
+        <h2 className="settings__section">{t("offline.section")}</h2>
+        <dl className="settings__facts" data-testid="offline-facts">
+          <div>
+            <dt>{t("offline.status")}</dt>
+            <dd data-testid="offline-state" data-state={offline?.state ?? "checking"}>{t(offlineStateLabel)}</dd>
+          </div>
+          {offline?.datasetBuiltAt && (
+            <div>
+              <dt>{t("offline.cachedDataset")}</dt>
+              <dd>{new Date(offline.datasetBuiltAt).toLocaleDateString(locale)} · {shortHash(offline.datasetHash)}</dd>
+            </div>
+          )}
+          {formatBytes(offline?.usageBytes ?? null) && (
+            <div><dt>{t("offline.usage")}</dt><dd>{formatBytes(offline?.usageBytes ?? null)}</dd></div>
+          )}
+        </dl>
+
+        {offline?.state !== "unsupported" && offline !== null && (
+          <div className="settings__actions">
+            {/* Во время незавершённого забега кнопка НЕДОСТУПНА, а не «нажимается вхолостую»:
+                смена dataHash обнулила бы сейв, и тихо подменять данные под игроком нельзя. */}
+            <Button variant="secondary" data-testid="offline-refresh" disabled={offlineActionsBusy || runUnfinished} onClick={() => void onOfflineRefresh()}>
+              {t(offlineBusy ? "offline.working" : "offline.refresh")}
+            </Button>
+            <Button variant="secondary" data-testid="offline-clear" disabled={offlineActionsBusy || offline?.state === "none"} onClick={() => setClearGate(true)}>
+              {t("offline.clear")}
+            </Button>
+          </div>
+        )}
+
+        {runUnfinished && offline?.state !== "unsupported" && (
+          <Banner tone="locked" title={t("offline.runLockedTitle")} data-testid="offline-run-locked">
+            {t("offline.runLocked")}
+          </Banner>
+        )}
+
+        {/* Установка на устройство: на Android системный промпт, на iOS его нет в природе —
+            там только инструкция. Уже установленному ничего не показываем. */}
+        {installApp.canPrompt && (
+          <div className="settings__actions">
+            <Button data-testid="offline-install" onClick={() => void installApp.promptInstall()}>{t("offline.install")}</Button>
+          </div>
+        )}
+        {!installApp.canPrompt && installApp.manualIos && (
+          <Banner tone="locked" title={t("offline.installIosTitle")} data-testid="offline-install-ios">
+            {t("offline.installIos")}
+          </Banner>
+        )}
+
+        <p className="settings__source">
+          {t(offline?.state === "unsupported" ? "offline.unsupportedHint" : "offline.hint")}
+        </p>
+      </Surface>
+
+      {/* Подтверждение: удалить копию — не потеря сейвов (они в localStorage), но потеря
+          готовности к офлайну и трафик на повторную закачку. Молча такое не делают. */}
+      {clearGate && (
+        <Modal
+          mark="✕"
+          title={t("offline.clearTitle")}
+          description={t("offline.clearText")}
+          labelledBy="offline-clear-title"
+          dismissLabel={t("common.close")}
+          layout="content"
+          onClose={() => setClearGate(false)}
+        >
+          {() => (
+            <Button variant="danger" data-testid="offline-clear-confirm" onClick={() => void onOfflineClear()}>
+              {t("offline.clear")}
+            </Button>
+          )}
+        </Modal>
+      )}
     </main>
   );
 }

@@ -50,6 +50,18 @@ export const SHELL_CACHE = "aegis-shell";
 /** Служебный кэш: указатель на активный набор данных. */
 export const META_CACHE = "aegis-meta";
 
+/** Служебные ключи в кэшах. Cache API умеет только URL-ключи, поэтому «указатель» и «маркер» —
+ *  это адреса внутри базы приложения. Собираются здесь, а не по месту: их читают двое — сам
+ *  воркер и экран настроек (панель «Офлайн»), и разъехаться они не имеют права.
+ *  `origin` — абсолютный адрес чего-нибудь внутри приложения (у SW это его собственный URL). */
+export function activeDataKey(origin: string): string {
+  return new URL("__aegis_active_data", origin).href;
+}
+
+export function completeMarkerKey(origin: string, hash: string): string {
+  return new URL(`__aegis_data_complete?h=${encodeURIComponent(hash)}`, origin).href;
+}
+
 /** Имя файла датасета из пути запроса; `null` — запрос не к датасету.
  *  `base` — база приложения со слэшем на конце (`/` в корне, `/aegis-draft/` на Pages). */
 export function dataFileFromPath(pathname: string, base: string): string | null {

@@ -86,10 +86,10 @@ function trackWaiting(registration: ServiceWorkerRegistration): void {
   useServiceWorker.setState({ updateReady: true });
 }
 
-/** Попросить воркер сверить версию датасета. `allowSwap` — можно ли менять набор прямо сейчас
- *  (нет незавершённого забега). Без SW — no-op: игра и так грузит данные из сети. */
-export async function ensureOfflineData(allowSwap: boolean): Promise<void> {
+/** Попросить воркер сверить офлайн-копию (оболочка + датасет). `allowSwap` — можно ли менять
+ *  набор данных прямо сейчас (нет незавершённого забега). Без SW — no-op: игра и так из сети. */
+export async function ensureOfflinePack(allowSwap: boolean): Promise<void> {
   if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
   const registration = await navigator.serviceWorker.ready;
-  registration.active?.postMessage({ type: "ensure-data", allowSwap });
+  registration.active?.postMessage({ type: "ensure-offline", allowSwap });
 }

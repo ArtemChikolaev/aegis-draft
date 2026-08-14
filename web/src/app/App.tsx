@@ -4,7 +4,7 @@ import { useShell } from "../state/shellStore.ts";
 import { useTmaChrome } from "../state/tmaChrome.ts";
 import { useCareer } from "../state/careerStore.ts";
 import { useManager } from "../state/managerStore.ts";
-import { ensureOfflineData, useServiceWorker } from "../state/serviceWorker.ts";
+import { ensureOfflinePack, useServiceWorker } from "../state/serviceWorker.ts";
 import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ManagerResumeBanner, ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { RunLinkPrompt } from "../features/start/RunLinkPrompt.tsx";
@@ -68,7 +68,7 @@ export function App() {
   const runUnfinished = phase === "draft" || phase === "tournament" || phase === "camp"
     || resumable !== null || managerResumable !== null || managerEngine !== null;
   useEffect(() => {
-    if (data) void ensureOfflineData(!runUnfinished);
+    if (data) void ensureOfflinePack(!runUnfinished);
   }, [data, runUnfinished]);
 
   // Обновление приложения применяет игрок и только на старт-экране: подменять код посреди

@@ -91,8 +91,30 @@ self.addEventListener("message", (event) => {
   if (!data) return;
   // Обновление применяет игрок, а не мы: страница показывает плашку и присылает эту команду.
   if (data.type === "skip-waiting") void self.skipWaiting();
-  if (data.type === "ensure-data") event.waitUntil(ensureData(data.allowSwap === true));
+  if (data.type === "ensure-offline") event.waitUntil(ensureOfflinePack(data.allowSwap === true));
 });
+
+/** Полная сверка офлайн-копии: оболочка + датасет. Вызывается страницей — только она знает,
+ *  идёт ли забег (см. allowSwap). */
+async function ensureOfflinePack(allowSwap: boolean): Promise<void> {
+  await ensureShell();
+  await ensureData(allowSwap);
+}
+
+/** Дозаполнение оболочки. Обычно её кладёт install, но игрок может удалить копию из настроек
+ *  (T11.4) — а install у уже установленного воркера больше не повторится, и без этой дозаливки
+ *  офлайн остался бы сломанным до следующей версии приложения. */
+async function ensureShell(): Promise<void> {
+  const cache = await caches.open(SHELL_CACHE);
+  const cached = new Set((await cache.keys()).map((request) => request.url));
+  const missing = shellUrls().filter((url) => !cached.has(url));
+  if (missing.length === 0) return;
+  try {
+    await cache.addAll(missing);
+  } catch {
+    /* офлайн или сбой сети: копия останется неполной, статус в настройках это честно покажет */
+  }
+}
 
 /** Навигация: сначала сеть (свежий index), офлайн — из кэша. Наоборот нельзя: cache-first на
  *  документе оставил бы игрока на старой сборке до ручного сброса. */
