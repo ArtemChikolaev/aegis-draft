@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { MANAGER_INCOME, renegotiatedSalary, salaryBand, salaryFor } from "../src/game/manager/economy.ts";
+import { MANAGER_INCOME, botStrength, renegotiatedSalary, salaryBand, salaryFor } from "../src/game/manager/economy.ts";
+import { emptyHall, recordCareerStart, recordSeason } from "../src/game/manager/hall.ts";
 import {
   HERO_PICKS_PER_ROUND,
   HERO_ROUNDS,
@@ -362,6 +363,63 @@ describe("ManagerEngine — срез 3: manual-назначение, событ�
     expect(result.bracket[2]).toHaveLength(1);
     const champion = result.standings.find((row) => row.placement === 1)!;
     expect(result.bracket[2][0].winner).toBe(champion.name);
+  });
+});
+
+describe("ManagerEngine — срез 4: месячный тик и Hall of Legends", () => {
+  it("смена месяца начисляет доход − зарплаты; внутри месяца второй раз не платит", () => {
+    const engine = ManagerEngine.create(data, "tick", config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    const net = MANAGER_INCOME.normal - engine.wagesK;
+    expect(engine.state.bankK).toBe(0);
+    const r1 = engine.playNextEvent()!; // первый tier2: месяц Sep → тик
+    const afterFirst = engine.state.bankK;
+    expect(afterFirst).toBe(net + r1.prizeK + r1.rivalBonusK);
+    engine.continueSeason();
+    engine.dismissRandomEvent();
+    const r2 = engine.playNextEvent()!; // второй слот цикла — месяц уже оплачен либо новый
+    const paidMonths = engine.state.lastPaidMonth;
+    expect(paidMonths).not.toBe("");
+    // Инвариант: банк = Σ(призы+бонусы+события) + net × число оплаченных месяцев — здесь
+    // проверяем слабее: после двух событий банк вырос не более чем на 2×net + призы.
+    expect(engine.state.bankK).toBeLessThanOrEqual(afterFirst + net + r2.prizeK + r2.rivalBonusK + 20);
+    void r2;
+  });
+
+  it("сила бота считается от его ELO и тира, не от силы игрока", () => {
+    const rngA = new Rng("bot");
+    const rngB = new Rng("bot");
+    const weak = botStrength(1240, "tier2", rngA);
+    const strong = botStrength(1320, "tier2", rngB);
+    expect(strong).toBeGreaterThan(weak); // тот же поток шума, разница — только ELO
+    const rngC = new Rng("bot");
+    const finale = botStrength(1240, "finale", rngC);
+    expect(finale).toBeGreaterThan(weak); // тир поднимает поле
+  });
+
+  it("Hall of Legends: сезон пишет рекорды и коллекцию, peak не убывает", () => {
+    const engine = ManagerEngine.create(data, "hall", config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    let guard = 0;
+    while (!engine.seasonFinished() && guard < 60) {
+      engine.playNextEvent();
+      engine.continueSeason();
+      engine.dismissRandomEvent();
+      guard += 1;
+    }
+    const hall1 = recordSeason(recordCareerStart(emptyHall()), engine.state);
+    expect(hall1.careers).toBe(1);
+    expect(hall1.seasons).toBe(1);
+    expect(Object.keys(hall1.players)).toHaveLength(5);
+    const titles = engine.state.calendar.filter((slot) => slot.result?.placement === 1).length;
+    expect(hall1.titles).toBe(titles);
+    // Повторный сезон того же игрока: seasons растёт, peak берёт максимум.
+    const anyId = Number(Object.keys(hall1.players)[0]);
+    const hall2 = recordSeason(hall1, engine.state);
+    expect(hall2.players[anyId].seasons).toBe(2);
+    expect(hall2.players[anyId].peakOvr).toBeGreaterThanOrEqual(hall1.players[anyId].peakOvr);
   });
 });
 

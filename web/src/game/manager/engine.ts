@@ -23,8 +23,8 @@ import {
   ELO_K,
   ELO_START,
   FAME,
-  FIELD_OFFSET,
   FIELD_SIZE,
+  botStrength,
   FINALE_QUAL_ADVANCE,
   HAPPINESS,
   LIFECYCLE,
@@ -156,6 +156,9 @@ export interface ManagerState {
   departures: number[];
   /** Ручные назначения героев accountId → heroId (срез 3): pins поверх авто-matching. */
   manualAssignment: Record<number, number>;
+  /** Последний месяц, за который начислен net (срез 4): доход − зарплаты платятся при
+   *  смене месяца календаря. Оффсезонный пересмотр может увести net в минус — банк тоже. */
+  lastPaidMonth: string;
 }
 
 export const TRYOUT_PICKS = 8;
@@ -283,6 +286,7 @@ export class ManagerEngine {
       released: [],
       departures: [],
       manualAssignment: {},
+      lastPaidMonth: "",
     };
     const engine = new ManagerEngine(data, state);
     engine.state.rival = engine.pickRival();
@@ -518,19 +522,27 @@ export class ManagerEngine {
       return null;
     }
 
+    // Месячный тик (срез 4): смена месяца календаря начисляет доход − зарплаты.
+    // Именно здесь difficulty становится механикой, а дорогая пятёрка — риском.
+    const month = slotMonth(slot);
+    if (month !== s.lastPaidMonth) {
+      s.bankK += this.incomeK - this.wagesK;
+      s.lastPaidMonth = month;
+    }
+
     const score = this.score();
     const strength = score ? score.teamOvr : 70;
     const rng = new Rng(`${s.seed}:event:${slot.id}`);
     const size = FIELD_SIZE[slot.kind];
-    const offset = FIELD_OFFSET[slot.kind];
-    // Поле: сила ботов вокруг силы игрока со сдвигом тира (гейт — в самом сдвиге).
+    // Поле фиксированного мира: сила бота — от ЕГО ELO + тир события (m1.3.0), а не от
+    // силы игрока. Усиление ростера теперь реально обгоняет мир, слабый — застревает.
     // Rival всегда в поле: гонка с ним — постоянная сюжетная линия сезона (322-0-парити).
     const rivalOrg = this.state.world.find((org) => org.name === s.rival);
     const others = rng.shuffle(this.state.world.filter((org) => org.name !== s.rival)).slice(0, size - 1 - (rivalOrg ? 1 : 0));
     const world = rivalOrg ? [rivalOrg, ...others] : others;
     const bots = world.map((org) => ({
       name: org.name,
-      strength: Math.round(Math.min(105, Math.max(60, rng.normal(strength + offset.mean, offset.sd)))),
+      strength: botStrength(org.elo, slot.kind, rng),
       isUser: false,
     }));
     const field = [...bots, { name: s.config.orgName, strength, isUser: true }];
@@ -746,6 +758,7 @@ export class ManagerEngine {
     s.offseasonSalaries = {};
     s.released = [];
     s.departures = [];
+    s.lastPaidMonth = "";
     // Rival переназначается: за сезон ELO разъехались, гонка снова с равным.
     s.rival = this.pickRival();
   }

@@ -4,7 +4,7 @@
 // она лежит в сейве и честно инвалидирует несовместимую карьеру (как balanceConfigVersion).
 import { Rng } from "../rng.ts";
 
-export const MANAGER_ECONOMY_VERSION = "m1.2.0"; // m1.2.0: событие-выбор (буткемп) меняет роллы :re:
+export const MANAGER_ECONOMY_VERSION = "m1.3.0"; // m1.3.0: месячный тик (доход − зарплаты) реально начисляется
 
 /** Сложность = месячный доход организации, $k (322-0-парити: 120/100/80). */
 export const MANAGER_INCOME: Record<ManagerDifficulty, number> = {
@@ -18,12 +18,14 @@ export type ManagerDifficulty = "easy" | "normal" | "hard";
 export const MANAGER_REGIONS = ["weu", "eeu", "na", "sa", "sea", "cn"] as const;
 export type ManagerRegion = (typeof MANAGER_REGIONS)[number];
 
-/** Зарплата в $k/мес из OVR + шум ±15%. Калибровка по наблюдениям 322-0 (2026-08-11):
- *  87→~41, 83→~30, 76→~22, 66→~10, 63→~8. Кривая степенная: звезда дороже суперлинейно. */
+/** Зарплата в $k/мес из OVR + шум ±15%. Кривая степенная: звезда дороже суперлинейно.
+ *  Калибровка m1.3.0 по sim_manager: прежняя кривая (6 + 0.25·(ovr−60)^1.5) давала
+ *  cheap-пятёрку за $29k при доходе $100k — профицит $70k/мес обесценивал экономику.
+ *  Теперь: 60→~11, 75→~33, 87→~59 (322-0-масштаб: их подписи впритык к доходу). */
 export function salaryFor(ovr: number, rng: Rng): number {
-  const base = 6 + 0.25 * Math.pow(Math.max(0, ovr - 60), 1.5);
+  const base = 8 + 0.28 * Math.pow(Math.max(0, ovr - 55), 1.5);
   const noisy = base * (0.85 + rng.float() * 0.3);
-  return Math.max(4, Math.round(noisy));
+  return Math.max(5, Math.round(noisy));
 }
 
 /** Бенд для скрытой зарплаты на трайаутах: платёжеспособность видна, точная цифра — нет. */
@@ -42,16 +44,33 @@ export const PRIZES: Record<ManagerEventKind, readonly number[]> = {
 };
 export type ManagerEventKind = "tier2" | "qualifier" | "online" | "lan" | "finaleQual" | "finale";
 
-/** Сдвиг среднего поля относительно силы состава игрока: выше тир — жёстче поле.
- *  Это и есть гейт квалификаций: в tier2 играешь на равных, финал сезона заметно сильнее. */
-export const FIELD_OFFSET: Record<ManagerEventKind, { mean: number; sd: number }> = {
-  tier2: { mean: -1, sd: 4 },
-  qualifier: { mean: 1, sd: 4 },
-  online: { mean: 4, sd: 4 },
-  lan: { mean: 7, sd: 5 },
-  finaleQual: { mean: 3, sd: 4 },
-  finale: { mean: 9, sd: 5 },
+/** Сила бота НЕ зависит от силы игрока (фикс m1.3.0 по sim_manager: поле «вокруг игрока»
+ *  обнуляло смысл усиления — дешёвая и дорогая пятёрки проходили квалы одинаково).
+ *  Мир фиксированный: сила = ELO орга (1240–1320 на старте, дальше дрейф) + тир события. */
+export const BOT_STRENGTH = {
+  /** 1240 ELO → 60 OVR-эквивалента, 1320 → 72; дрейф ELO двигает силу орга между сезонами. */
+  base: 60,
+  eloAnchor: 1240,
+  perElo: 0.15,
+  sd: 3,
+  min: 55,
+  max: 100,
+} as const;
+
+/** Сдвиг тира: tier2 — разминка, финал сезона — сильнейшее поле года. */
+export const TIER_ADJUST: Record<ManagerEventKind, number> = {
+  tier2: -6,
+  qualifier: -2,
+  online: 2,
+  lan: 5,
+  finaleQual: 1,
+  finale: 8,
 };
+
+export function botStrength(elo: number, kind: ManagerEventKind, rng: Rng): number {
+  const raw = BOT_STRENGTH.base + (elo - BOT_STRENGTH.eloAnchor) * BOT_STRENGTH.perElo + TIER_ADJUST[kind] + rng.normal(0, BOT_STRENGTH.sd);
+  return Math.round(Math.min(BOT_STRENGTH.max, Math.max(BOT_STRENGTH.min, raw)));
+}
 
 /** Размер поля по типу события (включая игрока). */
 export const FIELD_SIZE: Record<ManagerEventKind, number> = {

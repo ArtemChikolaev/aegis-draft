@@ -111,10 +111,12 @@ function Onboarding() {
   const startCareer = useManager((s) => s.startCareer);
   const engine = useManager((s) => s.engine);
   const resumable = useManager((s) => s.resumable);
+  const hall = useManager((s) => s.hall);
   const [orgName, setOrgName] = useState("");
   const [region, setRegion] = useState<ManagerRegion>("weu");
   const [difficulty, setDifficulty] = useState<ManagerDifficulty>("normal");
   const [confirmNew, setConfirmNew] = useState(false);
+  const [showHall, setShowHall] = useState(false);
 
   // Новая карьера поверх существующей стирает долгий сейв — только через confirm.
   const existing = engine ? engine.state.config.orgName : resumable?.orgName ?? null;
@@ -163,6 +165,15 @@ function Onboarding() {
           </Button>
         </div>
       </Surface>
+      {/* Зал открыт и до первой карьеры: пустой зал объясняет, что тут будет копиться. */}
+      {hall.careers > 0 && (
+        <div>
+          <Button variant="secondary" data-testid="manager-hall-open" onClick={() => setShowHall(true)}>
+            {t("manager.hallTitle")}
+          </Button>
+        </div>
+      )}
+      {showHall && <HallModal onClose={() => setShowHall(false)} />}
       {confirmNew && existing && (
         <Modal
           mark="A"
@@ -183,6 +194,52 @@ function Onboarding() {
         </Modal>
       )}
     </>
+  );
+}
+
+/** Hall of Legends (срез 4): межкарьерные рекорды орга и коллекция игроков. Без шардов и
+ *  перков — трофейная комната, сила меты решается отдельно (T6.4). */
+function HallModal({ onClose }: { onClose: () => void }) {
+  const { t } = useI18n();
+  const hall = useManager((s) => s.hall);
+  const players = Object.values(hall.players).sort((a, b) => b.peakOvr - a.peakOvr);
+  return (
+    <Modal
+      mark="A"
+      title={t("manager.hallTitle")}
+      description={t("manager.hallText")}
+      labelledBy="manager-hall-title"
+      dismissLabel={t("common.close")}
+      onClose={onClose}
+      layout="content"
+    >
+      {() => (
+        <div className="manager__hall">
+          <dl className="manager__hall-records">
+            <div><dt>{t("manager.hallCareers")}</dt><dd>{hall.careers}</dd></div>
+            <div><dt>{t("manager.hallSeasons")}</dt><dd>{hall.seasons}</dd></div>
+            <div><dt>{t("manager.hallTitles")}</dt><dd>{hall.titles}</dd></div>
+            <div><dt>{t("manager.hallFinaleTitles")}</dt><dd>{hall.finaleTitles}</dd></div>
+            <div><dt>{t("manager.hallFinaleApps")}</dt><dd>{hall.finaleAppearances}</dd></div>
+            <div><dt>{t("manager.hallBestElo")}</dt><dd>{hall.bestElo || "—"}</dd></div>
+          </dl>
+          {players.length === 0 ? (
+            <p className="manager__hint">{t("manager.hallEmpty")}</p>
+          ) : (
+            <div className="manager__hall-list" data-testid="manager-hall-list">
+              {players.map((p) => (
+                <div key={`${p.nickname}:${p.role}`} className="manager__hall-row">
+                  <RoleTag role={p.role}>{t(roleMessageKey(p.role))}</RoleTag>
+                  <strong>{p.nickname}</strong>
+                  <small>{t("manager.hallPlayerLine", { seasons: p.seasons, titles: p.titles })}</small>
+                  <b>{p.peakOvr}</b>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -387,6 +444,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
   const assignment = engine.assignmentByPlayer();
   // Manual-своп (срез 3): клик по строке ростера открывает пикер героя из пула орга.
   const [assignFor, setAssignFor] = useState<number | null>(null);
+  const [showHall, setShowHall] = useState(false);
   // Без useMemo: движок мутирует state по ссылке (стор тикает версией), а scoreTeam на
   // пятёрке с пулом из 12 героев дёшев — стабильных зависимостей для мемо тут просто нет.
   const score = engine.score();
@@ -560,8 +618,10 @@ function Season({ engine }: { engine: ManagerEngine }) {
       )}
 
       <div className="manager__footer-actions">
+        <Button variant="secondary" data-testid="manager-hall-open" onClick={() => setShowHall(true)}>{t("manager.hallTitle")}</Button>
         <Button variant="leave" onClick={() => setConfirmAbandon(true)}>{t("manager.abandon")}</Button>
       </div>
+      {showHall && <HallModal onClose={() => setShowHall(false)} />}
       {confirmAbandon && <ManagerAbandonModal onConfirm={abandonCareer} onClose={() => setConfirmAbandon(false)} />}
       {assignFor !== null && data && (
         <HeroAssignModal
