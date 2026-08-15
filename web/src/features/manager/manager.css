@@ -115,6 +115,29 @@ button.manager__roster-row:hover { border-color: var(--accent); }
   .manager__bracket { grid-template-columns: 1fr; }
 }
 
+/* Live-reveal финала (срез 6): группы → маршруты → раунды → чемпион */
+.manager__finale { display: grid; gap: 14px; }
+.manager__finale-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.manager__finale-group { display: grid; gap: 4px; align-content: start; }
+.manager__finale-group > em { color: var(--muted); font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.manager__finale-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 4px 8px; border-radius: 8px; font-size: 12.5px; }
+.manager__finale-row span { color: var(--muted); font-variant-numeric: tabular-nums; }
+.manager__finale-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.manager__finale-row b { font-variant-numeric: tabular-nums; }
+.manager__finale-row.is-user strong { color: var(--accent-strong); font-weight: 800; }
+.manager__finale-row.is-upper { background: var(--accent-soft); }
+.manager__finale-row.is-lower { background: var(--surface-soft); }
+.manager__finale-row.is-out { opacity: .5; }
+.manager__finale-route { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: .02em; }
+.manager__finale-rounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.manager__finale-round { display: grid; gap: 6px; align-content: start; }
+.manager__finale-round > em { color: var(--muted); font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.manager__finale-champion { margin: 0; font-size: 17px; font-weight: 800; }
+.manager__finale-champion strong { color: var(--accent-strong); }
+@media (max-width: 680px) {
+  .manager__finale-groups { grid-template-columns: 1fr; }
+}
+
 /* Hall of Legends: рекорды плитками + коллекция игроков (модалка на инверт-поверхности) */
 .manager__hall { display: grid; gap: 16px; }
 .manager__hall-records { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0; }

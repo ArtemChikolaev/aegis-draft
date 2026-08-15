@@ -26,6 +26,7 @@ import {
 import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, StatTile, Surface, TextField } from "../../ui/index.ts";
 import { useHero, useHeroName } from "../draft/heroes.ts";
 import { heroStatsForDisplay } from "../../game/score.ts";
+import { FinaleReveal } from "./FinaleReveal.tsx";
 import "./manager.css";
 
 const KIND_LABEL: Record<CalendarSlot["kind"], MessageKey> = {
@@ -446,6 +447,10 @@ function Season({ engine }: { engine: ManagerEngine }) {
   // Manual-своп (срез 3): клик по строке ростера открывает пикер героя из пула орга.
   const [assignFor, setAssignFor] = useState<number | null>(null);
   const [showHall, setShowHall] = useState(false);
+  // Live-reveal финала (срез 6): пока идёт раскадровка, итоговые строки и Continue скрыты.
+  const [finaleRevealed, setFinaleRevealed] = useState(false);
+  const resultSlotId = s.lastResult?.slotId ?? null;
+  useEffect(() => setFinaleRevealed(false), [resultSlotId]);
   // Без useMemo: движок мутирует state по ссылке (стор тикает версией), а scoreTeam на
   // пятёрке с пулом из 12 героев дёшев — стабильных зависимостей для мемо тут просто нет.
   const score = engine.score();
@@ -469,6 +474,16 @@ function Season({ engine }: { engine: ManagerEngine }) {
       {result ? (
         <Surface className="manager__panel manager__result" data-testid="manager-result">
           <h2 className="manager__section">{result.name}</h2>
+          {result.finale && (
+            <FinaleReveal
+              finale={result.finale}
+              orgName={s.config.orgName}
+              done={finaleRevealed}
+              onDone={() => setFinaleRevealed(true)}
+            />
+          )}
+          {(!result.finale || finaleRevealed) && (
+          <>
           <p className="manager__result-line">
             <b className="manager__result-place">{t("manager.placeOf", { p: result.placement, n: result.fieldSize })}</b>
             {result.prizeK > 0 && <span> · +${result.prizeK}k</span>}
@@ -513,6 +528,8 @@ function Season({ engine }: { engine: ManagerEngine }) {
               {t("manager.continue")} →
             </Button>
           </div>
+          </>
+          )}
         </Surface>
       ) : next ? (
         <Surface className="manager__panel manager__next" data-testid="manager-next">

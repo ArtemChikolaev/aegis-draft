@@ -173,7 +173,7 @@ const BOT_NOUN = [
 /** Монограмма — ровно две буквы: инициалы первых двух слов, а для односложного имени
  *  («Roshan») его первые две буквы. Имя команды правит игрок, поэтому нельзя рассчитывать
  *  ни на два слова, ни на латиницу. */
-function monogramOf(name: string): string {
+export function monogramOf(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
   const letters = words.length >= 2 ? words[0][0] + words[1][0] : (words[0] ?? "").slice(0, 2);
   return letters.toUpperCase();
@@ -329,7 +329,7 @@ function round(rng: Rng, id: string, label: string, pairs: [TournamentTeam, Tour
   return { id, label, series: pairs.map(([a, b], index) => playSeries(rng, `${id}-${index + 1}`, label, a, b, 3, divisor)) };
 }
 
-function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldModel: FieldModel = QUICK_DRAFT_FIELD): TournamentResult {
+function buildResult(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldModel: FieldModel = QUICK_DRAFT_FIELD, opponents?: TournamentTeam[]): TournamentResult {
   void data;
   void format;
   const fieldRng = new Rng(`${seed}:tournament:field-${fieldReroll}`);
@@ -338,8 +338,8 @@ function buildResult(data: GameData, format: Format, seed: string, userStrength:
   const user: TournamentTeam = { id: USER_ID, name, eventLabel: "Fantasy roster", strength: userStrength, isUser: true, sigil: { monogram: monogramOf(name), color: "user" } };
   // Roguelite Run (PRD §5.9.3): поле задаётся моделью этапа, а не пост-сдвигом уже
   // ограниченной выборки. Quick Draft передаёт QUICK_DRAFT_FIELD ⇒ те же роллы в том же
-  // порядке ⇒ golden Classic байт-в-байт.
-  const bots = opponentPool(fieldRng, fieldModel);
+  // порядке ⇒ golden Classic байт-в-байт. Явные opponents (Manager) обходят генерацию.
+  const bots = opponents && opponents.length === 17 ? opponents : opponentPool(fieldRng, fieldModel);
   const field = [...bots, user]
     .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
   const projection = projectionForRank(field.findIndex((team) => team.isUser) + 1);
@@ -393,8 +393,11 @@ export class TournamentEngine {
   private stageIndex = 0;
   private readonly result: TournamentResult;
 
-  constructor(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldModel: FieldModel = QUICK_DRAFT_FIELD) {
-    this.result = buildResult(data, format, seed, userStrength, userName, fieldReroll, fieldModel);
+  /** `opponents` (T5.5 срез 6): явное поле из 17 команд вместо генерации ботов — финал
+   *  Esports Manager играет НАСТОЯЩИЕ орги мира. Без параметра поведение прежнее байт-в-байт
+   *  (Quick Draft/Roguelite golden не трогаются). */
+  constructor(data: GameData, format: Format, seed: string, userStrength: number, userName: string, fieldReroll = 0, fieldModel: FieldModel = QUICK_DRAFT_FIELD, opponents?: TournamentTeam[]) {
+    this.result = buildResult(data, format, seed, userStrength, userName, fieldReroll, fieldModel, opponents);
   }
 
   get snapshot(): TournamentSnapshot {

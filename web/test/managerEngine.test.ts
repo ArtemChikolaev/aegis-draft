@@ -509,6 +509,50 @@ describe("ManagerEngine — срез 5: трансферное окно и шт�
   });
 });
 
+describe("ManagerEngine — срез 6: финал через TournamentEngine", () => {
+  function toFinale(seed: string): { engine: ManagerEngine; result: ReturnType<ManagerEngine["playNextEvent"]> } {
+    const engine = ManagerEngine.create(data, seed, config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    // Форсим гейты: отбор финала пройден руками, всё прочее закрыто — играем только финал.
+    for (const slot of engine.state.calendar) {
+      if (slot.kind === "finale") continue;
+      if (slot.kind === "finaleQual") slot.result = { placement: 1, prizeK: 0, eloDelta: 0 };
+      else if (slot.gated) slot.dnq = true;
+      else slot.result = { placement: 5, prizeK: 0, eloDelta: 0 };
+    }
+    return { engine, result: engine.playNextEvent() };
+  }
+
+  it("финал — полный 18-командный турнир: группы, раунды, GF, наши орги и rival в поле", () => {
+    const { engine, result } = toFinale("finale");
+    expect(result).not.toBeNull();
+    const finale = result!.finale!;
+    expect(finale.field).toHaveLength(18);
+    expect(finale.groups[0].standings).toHaveLength(9);
+    expect(finale.playoffRounds).toHaveLength(9);
+    // Поле — реальные орги мира + мы; rival присутствует.
+    const names = new Set(finale.field.map((team) => team.name));
+    expect(names.has(engine.state.config.orgName)).toBe(true);
+    expect(names.has(engine.state.rival)).toBe(true);
+    for (const org of engine.state.world) expect(names.has(org.name)).toBe(true);
+    // Standings согласованы: чемпион = место 1, наш placement совпадает со standings.
+    expect(result!.standings.find((row) => row.placement === 1)?.name).toBe(finale.champion.name);
+    const user = result!.standings.find((row) => row.isUser)!;
+    expect(user.placement).toBe(result!.placement);
+    expect(result!.fieldSize).toBe(18);
+    // Приз соответствует месту в 18-местной таблице.
+    expect(result!.prizeK).toBe([850, 420, 250, 155, 90, 90, 55, 55, 28, 28, 28, 28, 14, 14, 14, 14, 0, 0][result!.placement - 1]);
+  });
+
+  it("финал детерминирован: тот же сид — тот же чемпион и место", () => {
+    const a = toFinale("finale-det").result!;
+    const b = toFinale("finale-det").result!;
+    expect(a.placement).toBe(b.placement);
+    expect(a.finale!.champion.name).toBe(b.finale!.champion.name);
+  });
+});
+
 describe("ManagerEngine — персист", () => {
   it("JSON round-trip восстанавливает движок: тот же счёт и следующее событие", () => {
     const engine = ManagerEngine.create(data, "persist", config);

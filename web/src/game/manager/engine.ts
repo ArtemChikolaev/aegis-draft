@@ -12,6 +12,15 @@ import type { Format, GameData, Role } from "../../types/data.ts";
 import { ROLE_SEQUENCE, type Candidate } from "../packs.ts";
 import { Rng } from "../rng.ts";
 import {
+  QUICK_DRAFT_FIELD,
+  SIGIL_COLORS,
+  TournamentEngine,
+  monogramOf,
+  type PlacementKey,
+  type TournamentResult,
+  type TournamentTeam,
+} from "../tournament.ts";
+import {
   chemistryPlayersFromRoster,
   heroStatsForAssignment,
   scoreTeam,
@@ -92,8 +101,12 @@ export interface EventResult {
   /** Rival играл это событие и мы встали выше — бонус спонсора (срез 2). */
   rivalBonusK: number;
   standings: Array<{ name: string; placement: number; isUser: boolean; isRival?: boolean }>;
-  /** Раунды KO-сетки: [четвертьфиналы, полуфиналы, финал] (срез 3). */
+  /** Раунды KO-сетки: [четвертьфиналы, полуфиналы, финал] (срез 3). Для финала сезона пусто —
+   *  вместо него полный турнир ниже. */
   bracket: BracketRound[];
+  /** Финал сезона (срез 6): полный 18-командный турнир TournamentEngine — группы,
+   *  double-elim, Гранд-финал. Панель результата играет live-reveal по этой структуре. */
+  finale?: TournamentResult;
 }
 
 /** Случайное событие между турнирами (срез 2): плоский эффект уже применён, поле — что
@@ -553,6 +566,9 @@ export class ManagerEngine {
 
     const score = this.score();
     const strength = score ? score.teamOvr : 70;
+    // Финал сезона — полноценный 18-командный турнир (группы + double-elim) через
+    // TournamentEngine с НАСТОЯЩИМИ оргами мира; остальные события — мгновенный KO ниже.
+    if (slot.kind === "finale") return this.playFinale(slot, strength);
     const rng = new Rng(`${s.seed}:event:${slot.id}`);
     const size = FIELD_SIZE[slot.kind];
     // Поле фиксированного мира: сила бота — от ЕГО ELO + тир события (m1.3.0), а не от
@@ -595,8 +611,8 @@ export class ManagerEngine {
       };
       this.bumpFame(fameByKind[slot.kind] ?? 0);
     } else if (user.placement <= 3) {
+      // finale-ветка (top-4 слава) живёт в playFinale — сюда финал не доходит.
       this.bumpHappiness(HAPPINESS.eventTop3);
-      if (slot.kind === "finale" && user.placement <= 4) this.bumpFame(FAME.finaleTop4);
     } else if (slot.kind === "lan" && user.placement >= size - 3) {
       this.bumpHappiness(HAPPINESS.lanBottom);
     }
@@ -620,6 +636,75 @@ export class ManagerEngine {
     s.feed.unshift({ slotId: slot.id, name: slot.name, placement: user.placement, prizeK });
     // Мировой рейтинг дышит: детерминированный шум ботам после каждого события.
     for (const org of s.world) org.elo += rng.int(13) - 6;
+    return result;
+  }
+
+  /** Финал сезона через TournamentEngine: user + все 17 оргов мира, силы — от их ELO.
+   *  Структура и placement-ключи — ровно классические (группы, double-elim, GF). */
+  private playFinale(slot: CalendarSlot, strength: number): EventResult {
+    const s = this.state;
+    const fieldRng = new Rng(`${s.seed}:finale-field:${s.season}`);
+    const opponents: TournamentTeam[] = this.state.world.map((org, index) => ({
+      id: `org-${index}`,
+      name: org.name,
+      eventLabel: `ELO ${org.elo}`,
+      strength: botStrength(org.elo, "finale", fieldRng),
+      isUser: false,
+      sigil: { monogram: monogramOf(org.name), color: index % SIGIL_COLORS },
+    }));
+    const engine = new TournamentEngine(
+      this.data,
+      s.config.format,
+      `${s.seed}:finale:${s.season}`,
+      strength,
+      s.config.orgName,
+      0,
+      QUICK_DRAFT_FIELD, // не используется: явные opponents обходят генерацию поля
+      opponents,
+    );
+    const tournament = engine.snapshot;
+    const numeric: Record<PlacementKey, number> = { "1": 1, "2": 2, "3": 3, "4": 4, "5-6": 5, "7-8": 7, "9-12": 9, "13-16": 13, "17": 17, "18": 18 };
+    const placement = numeric[tournament.userPlacement];
+    const prizes = PRIZES.finale;
+    const prizeK = prizes[placement - 1] ?? 0;
+    const standings = tournament.standings.map((row) => ({
+      name: row.team.name,
+      placement: numeric[row.placement],
+      isUser: row.team.isUser,
+      ...(row.team.name === s.rival ? { isRival: true } : {}),
+    }));
+    const rival = standings.find((row) => row.isRival);
+    const rivalBonusK = rival && placement < rival.placement ? RIVAL_BONUS_K : 0;
+    const expected = (18 + 1) / 2;
+    const eloDelta = Math.round((ELO_K * (expected - placement)) / 9);
+    s.elo += eloDelta;
+    s.bankK += prizeK + rivalBonusK;
+    if (placement === 1) {
+      this.bumpHappiness(HAPPINESS.title);
+      this.bumpFame(FAME.finaleTitle);
+    } else if (placement <= 4) {
+      this.bumpHappiness(HAPPINESS.eventTop3);
+      this.bumpFame(FAME.finaleTop4);
+    }
+    slot.result = { placement, prizeK, eloDelta };
+    const result: EventResult = {
+      slotId: slot.id,
+      kind: "finale",
+      name: slot.name,
+      placement,
+      fieldSize: 18,
+      prizeK,
+      eloDelta,
+      advanced: null,
+      rivalBonusK,
+      standings,
+      bracket: [],
+      finale: tournament,
+    };
+    s.lastResult = result;
+    s.feed.unshift({ slotId: slot.id, name: slot.name, placement, prizeK });
+    const noiseRng = new Rng(`${s.seed}:elo-drift:${slot.id}`);
+    for (const org of s.world) org.elo += noiseRng.int(13) - 6;
     return result;
   }
 
