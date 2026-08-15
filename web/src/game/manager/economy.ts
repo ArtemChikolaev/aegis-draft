@@ -4,7 +4,7 @@
 // она лежит в сейве и честно инвалидирует несовместимую карьеру (как balanceConfigVersion).
 import { Rng } from "../rng.ts";
 
-export const MANAGER_ECONOMY_VERSION = "m1.3.0"; // m1.3.0: месячный тик (доход − зарплаты) реально начисляется
+export const MANAGER_ECONOMY_VERSION = "m1.4.0"; // m1.4.0: трансферное окно оффсезона (спендинг банка)
 
 /** Сложность = месячный доход организации, $k (322-0-парити: 120/100/80). */
 export const MANAGER_INCOME: Record<ManagerDifficulty, number> = {
@@ -140,6 +140,20 @@ export const LIFECYCLE = {
 /** Бонус за место выше соперника-rival в общем событии. У 322-0 замерено +$25k;
  *  берём скромнее до калибровки симом — их экономика щедрее нашей. */
 export const RIVAL_BONUS_K = 10;
+
+/** Трансферное окно оффсезона (срез 5): единственный спендинг банка — покупка силы.
+ *  Взнос платится из банка сверх зарплаты; кривая круче зарплатной, чтобы звезда была
+ *  событием сезона, а не привычкой: 65→~90k, 75→~215k, 85→~400k. */
+export const TRANSFER_LIMIT = 2; // сделок за окно: решения, а не шопинг
+
+/** Штраф за минусовый банк в месячном тике (322-0 Sd: happinessPenalty −6, famePenalty −0.25):
+ *  жизнь в долг раскручивает спираль несчастья → уходы звёзд. Естественный тормоз жадности. */
+export const NEGATIVE_BANK_PENALTY = { happiness: -6, fame: -0.25 } as const;
+export const TRANSFER_MARKET_SIZE = 6;
+export function transferFeeK(ovr: number, rng: Rng): number {
+  const base = 20 + 0.9 * Math.pow(Math.max(0, ovr - 55), 1.8);
+  return Math.max(25, Math.round(base * (0.9 + rng.float() * 0.2)));
+}
 
 /** Случайные события между турнирами: шанс на «Продолжить», эффекты детерминированы
  *  по сиду. Тексты свои, механика — по мотивам живого прохода 322-0. `choice` — событие-

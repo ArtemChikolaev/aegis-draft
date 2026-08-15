@@ -11,6 +11,7 @@ import {
   MANAGER_INCOME,
   MANAGER_REGIONS,
   RIVAL_BONUS_K,
+  TRANSFER_LIMIT,
   type ManagerDifficulty,
   type ManagerRegion,
 } from "../../game/manager/economy.ts";
@@ -807,6 +808,10 @@ function Review({ engine }: { engine: ManagerEngine }) {
   const act = useManager((s) => s.act);
   const s = engine.state;
   const finale = s.calendar.find((slot) => slot.kind === "finale");
+  // Трансферное окно (срез 5): покупка оферa требует выбрать заменяемого той же роли.
+  const [buying, setBuying] = useState<number | null>(null);
+  const buyingOffer = buying !== null ? s.transferMarket.find((o) => o.player.candidate.player.accountId === buying) : undefined;
+  const limitReached = s.transfersDone >= TRANSFER_LIMIT;
   return (
     <>
       <ManagerHeading engine={engine} sub={t("manager.reviewSub", { season: s.season })} />
@@ -831,12 +836,78 @@ function Review({ engine }: { engine: ManagerEngine }) {
             </div>
           ))}
         </div>
+        {s.transferMarket.length > 0 && (
+          <>
+            <h2 className="manager__section">
+              {t("manager.transferTitle")} · {t("manager.transferLimit", { done: s.transfersDone, limit: TRANSFER_LIMIT })} · ${Math.round(s.bankK)}k
+            </h2>
+            <div className="manager__contract-list" data-testid="manager-transfer-market">
+              {s.transferMarket.map((offer) => {
+                const p = offer.player.candidate.player;
+                const affordable = s.bankK >= offer.feeK && !limitReached;
+                return (
+                  <button
+                    key={p.accountId}
+                    type="button"
+                    className="manager__contract"
+                    data-testid="manager-transfer-offer"
+                    disabled={!affordable}
+                    onClick={() => setBuying(p.accountId)}
+                  >
+                    <RoleTag role={p.role}>{t(roleMessageKey(p.role))}</RoleTag>
+                    <span className="manager__contract-name">
+                      <strong>{p.nickname}</strong>
+                      <small>{offer.player.candidate.teamName} · ${offer.player.salary}k{t("manager.perMonth")}</small>
+                    </span>
+                    <b className="manager__contract-ovr">{p.ovr}</b>
+                    <span className="manager__contract-salary">{t("manager.transferFee", { n: offer.feeK })}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="manager__hint">{t("manager.transferHint")}</p>
+          </>
+        )}
         <div>
           <Button variant="primary" data-testid="manager-next-season" onClick={() => act((e) => e.startNextSeason())}>
             {t("manager.startSeason", { season: s.season + 1 })} →
           </Button>
         </div>
       </Surface>
+      {buyingOffer && (
+        <Modal
+          mark="A"
+          title={t("manager.transferWho", { nick: buyingOffer.player.candidate.player.nickname })}
+          description={t("manager.transferWhoText", { n: buyingOffer.feeK })}
+          labelledBy="manager-transfer-title"
+          dismissLabel={t("common.close")}
+          onClose={() => setBuying(null)}
+          layout="content"
+        >
+          {({ close }) => (
+            <div className="manager__assign-list">
+              {s.roster
+                .filter((p) => p.candidate.player.role === buyingOffer.player.candidate.player.role)
+                .map((p) => (
+                  <button
+                    key={p.candidate.player.accountId}
+                    type="button"
+                    className="manager__assign-row"
+                    data-testid="manager-transfer-replace"
+                    onClick={() => {
+                      act((e) => e.buyTransfer(buyingOffer.player.candidate.player.accountId, p.candidate.player.accountId));
+                      setBuying(null);
+                      close();
+                    }}
+                  >
+                    <strong>{p.candidate.player.nickname}</strong>
+                    <small>{p.candidate.player.ovr} OVR · ${p.salary}k{t("manager.perMonth")} · {t("manager.transferLeaves")}</small>
+                  </button>
+                ))}
+            </div>
+          )}
+        </Modal>
+      )}
     </>
   );
 }

@@ -29,11 +29,15 @@ import {
   HAPPINESS,
   LIFECYCLE,
   MANAGER_INCOME,
+  NEGATIVE_BANK_PENALTY,
   PRIZES,
   QUALIFIER_ADVANCE,
   RANDOM_EVENTS,
   RANDOM_EVENT_CHANCE,
   RIVAL_BONUS_K,
+  TRANSFER_LIMIT,
+  TRANSFER_MARKET_SIZE,
+  transferFeeK,
   offseasonDrift,
   renegotiatedSalary,
   salaryBand,
@@ -159,6 +163,15 @@ export interface ManagerState {
   /** Последний месяц, за который начислен net (срез 4): доход − зарплаты платятся при
    *  смене месяца календаря. Оффсезонный пересмотр может увести net в минус — банк тоже. */
   lastPaidMonth: string;
+  /** Трансферное окно (срез 5): рынок свободных агентов на экране итогов сезона. */
+  transferMarket: TransferOffer[];
+  transfersDone: number;
+}
+
+export interface TransferOffer {
+  player: OrgCandidate;
+  /** Разовый взнос из банка (сверх зарплаты в кап). */
+  feeK: number;
 }
 
 export const TRYOUT_PICKS = 8;
@@ -287,6 +300,8 @@ export class ManagerEngine {
       departures: [],
       manualAssignment: {},
       lastPaidMonth: "",
+      transferMarket: [],
+      transfersDone: 0,
     };
     const engine = new ManagerEngine(data, state);
     engine.state.rival = engine.pickRival();
@@ -528,6 +543,12 @@ export class ManagerEngine {
     if (month !== s.lastPaidMonth) {
       s.bankK += this.incomeK - this.wagesK;
       s.lastPaidMonth = month;
+      // Жизнь в долг наказуема (322-0 Sd): минус после начисления бьёт по настроению
+      // и славе всего ростера — спираль «долг → несчастье → уходы» тормозит жадность.
+      if (s.bankK < 0) {
+        this.bumpHappiness(NEGATIVE_BANK_PENALTY.happiness);
+        this.bumpFame(NEGATIVE_BANK_PENALTY.fame);
+      }
     }
 
     const score = this.score();
@@ -740,6 +761,57 @@ export class ManagerEngine {
       s.roster[i] = this.orgCandidate(replacement, rng, true);
     }
     s.phase = "review";
+    this.rollTransferMarket();
+    return true;
+  }
+
+  /** Рынок трансферного окна: стратифицирован по качеству (2 звезды / 2 крепких / 2 бюджетных
+   *  из верхней половины пула), без игроков текущего ростера. Детерминирован сидом сезона. */
+  private rollTransferMarket(): void {
+    const s = this.state;
+    const rng = new Rng(`${s.seed}:transfers:${s.season}`);
+    const inRoster = new Set(s.roster.map((p) => p.candidate.player.accountId));
+    const byOvr = [...this.pool]
+      .filter((c) => !inRoster.has(c.player.accountId))
+      .sort((a, b) => b.player.ovr - a.player.ovr);
+    const strata: Array<[number, number, number]> = [
+      // [от, до, сколько] в долях отсортированного пула
+      [0, 0.1, 2],
+      [0.1, 0.25, 2],
+      [0.25, 0.5, 2],
+    ];
+    const market: TransferOffer[] = [];
+    const taken = new Set<number>();
+    for (const [from, to, count] of strata) {
+      const slice = byOvr.slice(Math.floor(byOvr.length * from), Math.max(1, Math.floor(byOvr.length * to)));
+      const picks = rng.shuffle(slice).filter((c) => !taken.has(c.player.accountId)).slice(0, count);
+      for (const pick of picks) {
+        taken.add(pick.player.accountId);
+        const player = this.orgCandidate(pick, rng, false);
+        market.push({ player, feeK: transferFeeK(pick.player.ovr, rng) });
+      }
+    }
+    s.transferMarket = market.slice(0, TRANSFER_MARKET_SIZE);
+    s.transfersDone = 0;
+  }
+
+  /** Купить трансфер: взнос из банка, роль обязана совпасть с заменяемым; старый игрок
+   *  уходит из орга. Лимит сделок за окно — TRANSFER_LIMIT. */
+  buyTransfer(offerAccountId: number, replaceAccountId: number): boolean {
+    const s = this.state;
+    if (s.phase !== "review" || s.transfersDone >= TRANSFER_LIMIT) return false;
+    const offerIndex = s.transferMarket.findIndex((o) => o.player.candidate.player.accountId === offerAccountId);
+    const rosterIndex = s.roster.findIndex((p) => p.candidate.player.accountId === replaceAccountId);
+    if (offerIndex === -1 || rosterIndex === -1) return false;
+    const offer = s.transferMarket[offerIndex];
+    if (offer.player.candidate.player.role !== s.roster[rosterIndex].candidate.player.role) return false;
+    if (s.bankK < offer.feeK) return false;
+    s.bankK -= offer.feeK;
+    s.roster[rosterIndex] = offer.player;
+    s.transferMarket.splice(offerIndex, 1);
+    s.transfersDone += 1;
+    // Уходящий игрок мог быть под manual-pin — снятие, герой возвращается авто-подбору.
+    delete s.manualAssignment[replaceAccountId];
     return true;
   }
 
@@ -759,6 +831,8 @@ export class ManagerEngine {
     s.released = [];
     s.departures = [];
     s.lastPaidMonth = "";
+    s.transferMarket = [];
+    s.transfersDone = 0;
     // Rival переназначается: за сезон ELO разъехались, гонка снова с равным.
     s.rival = this.pickRival();
   }

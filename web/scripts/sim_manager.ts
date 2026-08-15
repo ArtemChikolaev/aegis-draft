@@ -112,6 +112,28 @@ function playCareer(seed: string, strategy: Strategy, perSeason: SeasonStats[]):
     stats.teamOvr.push(Math.round(engine.score()?.teamOvr ?? 0));
     if (engine.state.phase === "offseason") {
       engine.confirmOffseason();
+      // Трансферное окно (срез 5): greedy тратит банк на лучший апгрейд, пока взнос ≤ 60%
+      // банка и офер сильнее заменяемого; cheap копит (контроль «банк без применения»).
+      if (strategy === "greedy") {
+        let guard2 = 0;
+        while (guard2 < 4) {
+          const s2 = engine.state;
+          const candidates = s2.transferMarket
+            .filter((offer) => offer.feeK <= s2.bankK * 0.6)
+            .map((offer) => {
+              const replace = s2.roster
+                .filter((p) => p.candidate.player.role === offer.player.candidate.player.role)
+                .sort((a, b) => a.candidate.player.ovr - b.candidate.player.ovr)[0];
+              return { offer, replace, gain: offer.player.candidate.player.ovr - (replace?.candidate.player.ovr ?? 99) };
+            })
+            .filter((x) => x.replace && x.gain > 0)
+            .sort((a, b) => b.gain - a.gain);
+          if (!candidates.length) break;
+          const best = candidates[0];
+          if (!engine.buyTransfer(best.offer.player.candidate.player.accountId, best.replace.candidate.player.accountId)) break;
+          guard2 += 1;
+        }
+      }
       engine.startNextSeason();
     }
   }

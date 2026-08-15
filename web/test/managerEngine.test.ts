@@ -423,6 +423,92 @@ describe("ManagerEngine — срез 4: месячный тик и Hall of Legen
   });
 });
 
+describe("ManagerEngine — срез 5: трансферное окно и штраф за долг", () => {
+  function atReview(seed: string): ManagerEngine {
+    const engine = ManagerEngine.create(data, seed, config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    let guard = 0;
+    while (!engine.seasonFinished() && guard < 60) {
+      engine.playNextEvent();
+      engine.continueSeason();
+      engine.dismissRandomEvent();
+      guard += 1;
+    }
+    engine.confirmOffseason();
+    return engine;
+  }
+
+  it("рынок детерминирован, без игроков ростера, взнос растёт с OVR", () => {
+    const a = atReview("market");
+    const b = atReview("market");
+    expect(a.state.transferMarket.map((o) => o.player.candidate.player.accountId))
+      .toEqual(b.state.transferMarket.map((o) => o.player.candidate.player.accountId));
+    expect(a.state.transferMarket.length).toBeGreaterThan(0);
+    const rosterIds = new Set(a.state.roster.map((p) => p.candidate.player.accountId));
+    for (const offer of a.state.transferMarket) {
+      expect(rosterIds.has(offer.player.candidate.player.accountId)).toBe(false);
+      expect(offer.feeK).toBeGreaterThan(0);
+    }
+    const sorted = [...a.state.transferMarket].sort((x, y) => y.player.candidate.player.ovr - x.player.candidate.player.ovr);
+    // Взнос лучшей звезды рынка не ниже взноса худшего оффера (кривая монотонна с точностью до шума ±10%).
+    expect(sorted[0].feeK).toBeGreaterThanOrEqual(sorted[sorted.length - 1].feeK * 0.8);
+  });
+
+  it("покупка: своп той же роли, взнос из банка, лимит сделок, отказ при нехватке/чужой роли", () => {
+    const engine = atReview("buy");
+    const s = engine.state;
+    s.bankK = 10_000; // чтобы лимит проверялся, а не деньги
+    const offer = s.transferMarket[0];
+    const role = offer.player.candidate.player.role;
+    const replace = s.roster.find((p) => p.candidate.player.role === role)!;
+    const wrongRole = s.roster.find((p) => p.candidate.player.role !== role)!;
+    expect(engine.buyTransfer(offer.player.candidate.player.accountId, wrongRole.candidate.player.accountId)).toBe(false);
+    const bank = s.bankK;
+    expect(engine.buyTransfer(offer.player.candidate.player.accountId, replace.candidate.player.accountId)).toBe(true);
+    expect(s.bankK).toBe(bank - offer.feeK);
+    expect(s.roster.some((p) => p.candidate.player.accountId === offer.player.candidate.player.accountId)).toBe(true);
+    expect(s.roster.some((p) => p.candidate.player.accountId === replace.candidate.player.accountId)).toBe(false);
+    expect(s.transfersDone).toBe(1);
+    // Нехватка денег.
+    s.bankK = 1;
+    if (s.transferMarket.length > 0) {
+      const next = s.transferMarket[0];
+      const rep = s.roster.find((p) => p.candidate.player.role === next.player.candidate.player.role)!;
+      expect(engine.buyTransfer(next.player.candidate.player.accountId, rep.candidate.player.accountId)).toBe(false);
+    }
+    // Лимит: добираем до TRANSFER_LIMIT и следующий отказ.
+    s.bankK = 10_000;
+    let bought = 1;
+    for (const o of [...s.transferMarket]) {
+      const rep = s.roster.find((p) => p.candidate.player.role === o.player.candidate.player.role);
+      if (rep && engine.buyTransfer(o.player.candidate.player.accountId, rep.candidate.player.accountId)) bought += 1;
+      if (bought >= 3) break;
+    }
+    expect(s.transfersDone).toBeLessThanOrEqual(2);
+    // startNextSeason чистит окно.
+    engine.startNextSeason();
+    expect(s.transferMarket).toEqual([]);
+    expect(s.transfersDone).toBe(0);
+  });
+
+  it("минусовый банк в месячном тике бьёт по настроению и славе", () => {
+    const engine = ManagerEngine.create(data, "debt", config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    engine.state.bankK = -5000; // глубокий долг: тик не выведет в плюс
+    const start = 50;
+    for (const p of engine.state.roster) p.happiness = start;
+    const result = engine.playNextEvent()!; // первый месяц → тик → штраф → результат
+    // Ожидание точное: штраф −6 + известная дельта результата (датасето-независимо).
+    let expected = -6;
+    if (result.placement === 1) expected += 8;
+    else if (result.placement <= 3) expected += 3;
+    else if (result.kind === "lan" && result.placement >= result.fieldSize - 3) expected += -4;
+    expect(engine.state.roster[0].happiness).toBe(Math.max(0, Math.min(100, start + expected)));
+  });
+});
+
 describe("ManagerEngine — персист", () => {
   it("JSON round-trip восстанавливает движок: тот же счёт и следующее событие", () => {
     const engine = ManagerEngine.create(data, "persist", config);
