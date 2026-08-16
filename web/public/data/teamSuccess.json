@@ -344,9 +344,9 @@
   },
   "15": {
     "last_5y": {
-      "successScore": 51.23,
-      "games": 359,
-      "winrate": 0.6017
+      "successScore": 51.1,
+      "games": 357,
+      "winrate": 0.5994
     },
     "valve_legacy": {
       "successScore": 58.06,
@@ -785,9 +785,9 @@
       "winrate": 0.4231
     },
     "last_5y": {
-      "successScore": 35.9,
-      "games": 203,
-      "winrate": 0.4433
+      "successScore": 36.29,
+      "games": 201,
+      "winrate": 0.4478
     },
     "valve_legacy": {
       "successScore": 43.83,
