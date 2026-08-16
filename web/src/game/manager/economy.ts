@@ -4,7 +4,7 @@
 // она лежит в сейве и честно инвалидирует несовместимую карьеру (как balanceConfigVersion).
 import { Rng } from "../rng.ts";
 
-export const MANAGER_ECONOMY_VERSION = "m1.4.0"; // m1.4.0: трансферное окно оффсезона (спендинг банка)
+export const MANAGER_ECONOMY_VERSION = "m1.5.0"; // m1.5.0: спонсорский доход от ELO (успех кормит зарплаты)
 
 /** Сложность = месячный доход организации, $k (322-0-парити: 120/100/80). */
 export const MANAGER_INCOME: Record<ManagerDifficulty, number> = {
@@ -149,6 +149,14 @@ export const TRANSFER_LIMIT = 2; // сделок за окно: решения, 
 /** Штраф за минусовый банк в месячном тике (322-0 Sd: happinessPenalty −6, famePenalty −0.25):
  *  жизнь в долг раскручивает спираль несчастья → уходы звёзд. Естественный тормоз жадности. */
 export const NEGATIVE_BANK_PENALTY = { happiness: -6, fame: -0.25 } as const;
+
+/** Спонсорский доход от ELO (m1.5.0, плейтест 2026-08-15: чемпион мира жил на стартовых
+ *  $100k и тонул в −$82k/мес при зарплатах звёзд — успех наказывался). Мировой топ живёт
+ *  на спонсорах: +$0.12k за очко ELO над стартом, потолок +$80k. 1300 → +24k, 1642 → +65k. */
+export const SPONSOR_BONUS = { perElo: 0.12, maxK: 80 } as const;
+export function sponsorBonusK(elo: number): number {
+  return Math.max(0, Math.min(SPONSOR_BONUS.maxK, Math.round((elo - ELO_START) * SPONSOR_BONUS.perElo)));
+}
 export const TRANSFER_MARKET_SIZE = 6;
 export function transferFeeK(ovr: number, rng: Rng): number {
   const base = 20 + 0.9 * Math.pow(Math.max(0, ovr - 55), 1.8);

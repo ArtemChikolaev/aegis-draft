@@ -23,7 +23,7 @@ import {
   type CalendarSlot,
   type ManagerEngine,
 } from "../../game/manager/engine.ts";
-import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, StatTile, Surface, TextField } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, StatTile, Surface, TextField, playerOvrTier } from "../../ui/index.ts";
 import { useHero, useHeroName } from "../draft/heroes.ts";
 import { heroStatsForDisplay } from "../../game/score.ts";
 import { FinaleReveal } from "./FinaleReveal.tsx";
@@ -234,7 +234,7 @@ function HallModal({ onClose }: { onClose: () => void }) {
                   <RoleTag role={p.role}>{t(roleMessageKey(p.role))}</RoleTag>
                   <strong>{p.nickname}</strong>
                   <small>{t("manager.hallPlayerLine", { seasons: p.seasons, titles: p.titles })}</small>
-                  <b>{p.peakOvr}</b>
+                  <b className={`ovr-tier--${playerOvrTier(p.peakOvr)}`}>{p.peakOvr}</b>
                 </div>
               ))}
             </div>
@@ -292,7 +292,7 @@ function Tryouts({ engine }: { engine: ManagerEngine }) {
               </span>
               <strong>{offer.candidate.player.nickname}</strong>
               <small>{offer.candidate.teamName}</small>
-              <span className="manager__ovr">{offer.candidate.player.ovr}<em>OVR</em></span>
+              <span className={`manager__ovr ovr-tier--${playerOvrTier(offer.candidate.player.ovr)}`}>{offer.candidate.player.ovr}<em>OVR</em></span>
             </button>
           ))}
         </div>
@@ -411,7 +411,7 @@ function Contracts({ engine }: { engine: ManagerEngine }) {
                   <strong>{c.candidate.player.nickname}</strong>
                   <small>{c.filler ? t("manager.filler") : c.candidate.teamName}</small>
                 </span>
-                <b className="manager__contract-ovr">{c.candidate.player.ovr}</b>
+                <b className={`manager__contract-ovr ovr-tier--${playerOvrTier(c.candidate.player.ovr)}`}>{c.candidate.player.ovr}</b>
                 <span className="manager__contract-salary">${c.salary}k{t("manager.perMonth")}</span>
               </button>
             );
@@ -458,7 +458,14 @@ function Season({ engine }: { engine: ManagerEngine }) {
   const wages = engine.wagesK;
   const net = engine.incomeK - wages;
   const result = s.lastResult;
-  const worldTop = [...s.world].sort((a, b) => b.elo - a.elo).slice(0, 8);
+  // Рейтинг единым списком (баг плейтеста 2026-08-15: юзер с рангом #1 висел ПОД топ-8).
+  // Юзер в топ-8 встаёт на своё место; ниже — топ-8 ботов + его строка с настоящим рангом.
+  const ranked = [...s.world.map((org) => ({ name: org.name, elo: org.elo, isUser: false })), { name: s.config.orgName, elo: s.elo, isUser: true }]
+    .sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
+  const userRankIndex = ranked.findIndex((row) => row.isUser);
+  const worldRows = userRankIndex < 8
+    ? ranked.slice(0, 8).map((row, index) => ({ ...row, rank: index + 1 }))
+    : [...ranked.slice(0, 8).map((row, index) => ({ ...row, rank: index + 1 })), { ...ranked[userRankIndex], rank: userRankIndex + 1 }];
 
   return (
     <>
@@ -523,10 +530,25 @@ function Season({ engine }: { engine: ManagerEngine }) {
               </li>
             ))}
           </ol>
-          <div>
-            <Button variant="primary" data-testid="manager-continue" onClick={() => act((e) => e.continueSeason())}>
+          {/* Пара кнопок в фиксированном месте (плейтест: одиночная «Дальше» сменялась
+              «Play» на другой высоте — быстрые клики промахивались). «Сыграть следующее»
+              не запускает событие, если выпала модалка random event. */}
+          <div className="manager__result-actions">
+            <Button variant="secondary" data-testid="manager-continue" onClick={() => act((e) => e.continueSeason())}>
               {t("manager.continue")} →
             </Button>
+            {s.calendar.some((slot) => !slot.result && !slot.dnq && slot.id !== result.slotId) && (
+              <Button
+                variant="primary"
+                data-testid="manager-play-next"
+                onClick={() => act((e) => {
+                  e.continueSeason();
+                  if (!e.state.pendingRandomEvent && e.state.phase === "season") e.playNextEvent();
+                })}
+              >
+                {t("manager.playNext")} →
+              </Button>
+            )}
           </div>
           </>
           )}
@@ -547,6 +569,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
       <div className="manager__grid">
         <Surface className="manager__panel">
           <h2 className="manager__section">{t("manager.rosterTitle")} · ${wages}k / ${engine.incomeK}k</h2>
+          {engine.sponsorK > 0 && <p className="manager__hint">{t("manager.sponsorLine", { n: engine.sponsorK })}</p>}
           <div className="manager__roster">
             {s.roster.map((p) => {
               const id = p.candidate.player.accountId;
@@ -571,7 +594,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
                     {p.fame > 0 && <em className="manager__fame">{p.fame}★</em>}
                     <em className={`manager__mood${unhappy ? " is-unhappy" : ""}`}>{unhappy ? "☹" : p.happiness >= 70 ? "♥" : "♡"} {p.happiness}</em>
                   </span>
-                  <b>{p.candidate.player.ovr}</b>
+                  <b className={`ovr-tier--${playerOvrTier(p.candidate.player.ovr)}`}>{p.candidate.player.ovr}</b>
                   <span>${p.salary}k{t("manager.perMonth")}</span>
                 </button>
               );
@@ -580,8 +603,8 @@ function Season({ engine }: { engine: ManagerEngine }) {
           {score && (
             <div className="manager__score">
               <StatTile label={t("common.base")} value={`${Math.round(score.base)}`} kind="base" />
-              <StatTile label={t("common.heroSynergy")} value={`+${(Math.round(score.heroSynergy * 10) / 10)}`} kind="base" />
-              <StatTile label={t("common.chemistry")} value={`+${(Math.round(score.chemistry * 10) / 10)}`} kind="base" />
+              <StatTile label={t("common.heroSynergy")} value={`+${(Math.round(score.heroSynergy * 10) / 10)}`} kind="synergy" />
+              <StatTile label={t("common.chemistry")} value={`+${(Math.round(score.chemistry * 10) / 10)}`} kind="chemistry" />
               <StatTile label={t("common.teamOvr")} value={`${Math.round(score.teamOvr)}`} kind="base" />
             </div>
           )}
@@ -590,14 +613,13 @@ function Season({ engine }: { engine: ManagerEngine }) {
         <Surface className="manager__panel">
           <h2 className="manager__section">{t("manager.worldTitle")}</h2>
           <ol className="manager__world">
-            {worldTop.map((org, index) => (
-              <li key={org.name}>
-                <span>{index + 1}</span> {org.name}
-                {org.name === s.rival && <em className="manager__rival-tag">{t("manager.rivalTag")}</em>}
-                <b>{org.elo}</b>
+            {worldRows.map((row) => (
+              <li key={row.name} className={row.isUser ? "is-user" : ""}>
+                <span>{row.rank}</span> {row.name}
+                {!row.isUser && row.name === s.rival && <em className="manager__rival-tag">{t("manager.rivalTag")}</em>}
+                <b>{row.elo}</b>
               </li>
             ))}
-            <li className="is-user"><span>{engine.worldRank()}</span> {s.config.orgName} <b>{s.elo}</b></li>
           </ol>
           <p className="manager__hint">{t("manager.rivalHint", { org: s.rival, n: RIVAL_BONUS_K })}</p>
         </Surface>
@@ -876,7 +898,7 @@ function Review({ engine }: { engine: ManagerEngine }) {
                       <strong>{p.nickname}</strong>
                       <small>{offer.player.candidate.teamName} · ${offer.player.salary}k{t("manager.perMonth")}</small>
                     </span>
-                    <b className="manager__contract-ovr">{p.ovr}</b>
+                    <b className={`manager__contract-ovr ovr-tier--${playerOvrTier(p.ovr)}`}>{p.ovr}</b>
                     <span className="manager__contract-salary">{t("manager.transferFee", { n: offer.feeK })}</span>
                   </button>
                 );

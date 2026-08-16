@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MANAGER_INCOME, botStrength, renegotiatedSalary, salaryBand, salaryFor } from "../src/game/manager/economy.ts";
+import { MANAGER_INCOME, botStrength, renegotiatedSalary, salaryBand, salaryFor, sponsorBonusK } from "../src/game/manager/economy.ts";
 import { emptyHall, recordCareerStart, recordSeason } from "../src/game/manager/hall.ts";
 import {
   HERO_PICKS_PER_ROUND,
@@ -506,6 +506,21 @@ describe("ManagerEngine — срез 5: трансферное окно и шт�
     else if (result.placement <= 3) expected += 3;
     else if (result.kind === "lan" && result.placement >= result.fieldSize - 3) expected += -4;
     expect(engine.state.roster[0].happiness).toBe(Math.max(0, Math.min(100, start + expected)));
+  });
+});
+
+describe("ManagerEngine — плейтест-фиксы 2026-08-15", () => {
+  it("спонсорский доход растёт с ELO и капится; на старте равен базе", () => {
+    expect(sponsorBonusK(1100)).toBe(0);
+    expect(sponsorBonusK(1300)).toBe(24);
+    expect(sponsorBonusK(1642)).toBe(65);
+    expect(sponsorBonusK(2500)).toBe(80); // потолок
+    const engine = ManagerEngine.create(data, "sponsor", config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    expect(engine.incomeK).toBe(MANAGER_INCOME.normal); // ELO 1100 → бонуса нет
+    engine.state.elo = 1400;
+    expect(engine.incomeK).toBe(MANAGER_INCOME.normal + sponsorBonusK(1400));
   });
 });
 

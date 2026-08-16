@@ -185,3 +185,6 @@ button.manager__roster-row:hover { border-color: var(--accent); }
   .manager__contract { grid-template-columns: auto 1fr auto; }
   .manager__contract-ovr { display: none; }
 }
+
+/* Пара кнопок результата в фиксированном месте (плейтест 2026-08-15) */
+.manager__result-actions { display: flex; gap: 10px; flex-wrap: wrap; }

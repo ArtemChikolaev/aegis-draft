@@ -51,6 +51,7 @@ import {
   renegotiatedSalary,
   salaryBand,
   salaryFor,
+  sponsorBonusK,
   type ManagerDifficulty,
   type ManagerEventKind,
   type ManagerRandomEventKind,
@@ -438,8 +439,15 @@ export class ManagerEngine {
 
   // ── Контракты и отбор пятёрки ───────────────────────────────────────────────
 
+  /** Спонсорский бонус от текущего ELO (m1.5.0): успех кормит зарплаты звёзд. */
+  get sponsorK(): number {
+    return sponsorBonusK(this.state.elo);
+  }
+
+  /** Эффективный месячный доход: база сложности + спонсоры. На старте (ELO 1100) равен базе,
+   *  поэтому кап подписи контрактов не меняется. */
   get incomeK(): number {
-    return MANAGER_INCOME[this.state.config.difficulty];
+    return MANAGER_INCOME[this.state.config.difficulty] + this.sponsorK;
   }
 
   get wagesK(): number {
