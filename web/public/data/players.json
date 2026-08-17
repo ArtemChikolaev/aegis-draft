@@ -826,7 +826,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 20
+        "games": 17
       },
       {
         "teamId": 8261500,
@@ -2148,7 +2148,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 20
+        "games": 17
       },
       {
         "teamId": 8574561,
@@ -3313,7 +3313,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 417
+        "games": 414
       },
       {
         "teamId": 726228,
@@ -5515,7 +5515,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 223
+        "games": 220
       },
       {
         "teamId": 726228,
@@ -8394,7 +8394,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 20
+        "games": 17
       },
       {
         "teamId": 8261500,
@@ -8994,7 +8994,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 20
+        "games": 17
       },
       {
         "teamId": 9351740,
@@ -10758,7 +10758,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 225
+        "games": 222
       },
       {
         "teamId": 20,
@@ -12428,7 +12428,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 324
+        "games": 321
       },
       {
         "teamId": 6306453,
@@ -27159,7 +27159,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 225
+        "games": 222
       },
       {
         "teamId": 1520578,
@@ -27437,8 +27437,8 @@
     "rolesPlayed": [
       "mid",
       "safelane",
-      "support",
-      "offlane"
+      "offlane",
+      "support"
     ],
     "teams": [
       {
@@ -27474,7 +27474,7 @@
       {
         "teamId": 8204512,
         "teamName": "Neptune Gaming",
-        "games": 20
+        "games": 17
       }
     ]
   },
