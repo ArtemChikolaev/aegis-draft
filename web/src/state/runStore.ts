@@ -33,7 +33,8 @@ import {
   type SavedRun,
 } from "./runPersist.ts";
 import { logDataLoaded, logDraftSnap, logRunStart, logScreen, logTournament } from "../debug/logDraft.ts";
-import { clearRunLinkHash, runLinkFromHash, runLinkIssue, type RunLink, type RunLinkIssue } from "./runLink.ts";
+import { clearRunLinkHash, decodeRunLink, runLinkFromHash, runLinkIssue, type RunLink, type RunLinkIssue } from "./runLink.ts";
+import { telegramStartParam } from "../tma/telegram.ts";
 
 // Бесшовный Classic-флоу (TREF-TOUR2): после драфта нет отдельного экрана-итога —
 // сразу непрерывный `tournament`-вид (разбор счёта + поле + одна CTA «Симулировать»).
@@ -308,6 +309,13 @@ function replay(engine: RunEngine, actions: RunAction[]): void {
     else if (action.t === "replaceHero") engine.replaceHero(action.outgoingHeroId, action.incomingHeroId);
     else if (action.t === "swapReserveHero") engine.swapReserveHero(action.outgoingHeroId, action.reserveHeroId);
   }
+}
+
+/** T9.9: сид-код из `startapp`-параметра Mini App. Payload тот же, что в `#/run=` (T3.12) —
+ *  единственная новая часть здесь — откуда берётся строка; кодек и проверка версий общие. */
+function runLinkFromStartParam(): RunLink | null {
+  const param = telegramStartParam();
+  return param ? decodeRunLink(param) : null;
 }
 
 export const useRun = create<RunStore>((set, get) => {
@@ -655,7 +663,12 @@ export const useRun = create<RunStore>((set, get) => {
         // Ссылку разбираем ЗДЕСЬ, а не в UI: без манифеста нечем проверить совместимость.
         // Забег из неё не стартуем — сперва спросим (у игрока может идти свой, а CLAUDE.md
         // требует confirm на любую потерю прогресса).
-        const link = typeof window === "undefined" ? null : runLinkFromHash(window.location.hash);
+        // T9.9: в Telegram тот же payload приезжает параметром запуска Mini App
+        // (`?startapp=<код>` → `tgWebAppStartParam`); внутри TMA hash занят параметрами
+        // Telegram, поэтому источника два, а кодек один — decodeRunLink.
+        const link = typeof window === "undefined"
+          ? null
+          : runLinkFromHash(window.location.hash) ?? runLinkFromStartParam();
         set({
           data,
           phase: "start",

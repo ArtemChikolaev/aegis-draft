@@ -122,6 +122,45 @@ export function isTelegramLaunch(): boolean {
   }
 }
 
+/**
+ * Параметр запуска Mini App (`t.me/<bot>/<app>?startapp=<код>`, T9.9). Telegram доставляет его
+ * во фрагменте URL как `tgWebAppStartParam` (мобильные клиенты/tdesktop), а Telegram Web
+ * дублирует параметры запуска в sessionStorage `__telegram__initParams`. Мы кладём туда
+ * сид-код забега (T3.14): его алфавит — base64url (`A-Za-z0-9_-`), ровно тот, что Telegram
+ * разрешает в `startapp`. Здесь ТОЛЬКО извлечение строки — разбирает её существующий кодек
+ * `state/runLink.decodeRunLink`, второго механизма разбора не появляется.
+ */
+export function telegramStartParam(): string | null {
+  if (typeof window === "undefined") return null;
+  const fromHash = startParamFromHash(window.location.hash);
+  if (fromHash) return fromHash;
+  try {
+    return startParamFromInitParams(window.sessionStorage.getItem("__telegram__initParams"));
+  } catch {
+    return null; // приватный режим может запрещать sessionStorage — играем без параметра
+  }
+}
+
+/** Чистая часть: `#tgWebAppData=…&tgWebAppStartParam=…` → значение параметра.
+ *  Наш собственный hash-роутинг (`#/run=…`, `#/settings`) сюда не попадает — гейт по `tgWebApp`. */
+export function startParamFromHash(hash: string): string | null {
+  if (!hash.includes("tgWebApp")) return null;
+  const value = new URLSearchParams(hash.replace(/^#/, "")).get("tgWebAppStartParam");
+  return value && value.trim() ? value : null;
+}
+
+/** Чистая часть: JSON из sessionStorage (Telegram Web). Кривой JSON — не ошибка, а «нет параметра». */
+export function startParamFromInitParams(json: string | null): string | null {
+  if (!json) return null;
+  try {
+    const raw = JSON.parse(json) as Record<string, unknown> | null;
+    const value = raw?.tgWebAppStartParam;
+    return typeof value === "string" && value.trim() ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 let pending: Promise<TelegramWebApp | null> | null = null;
 
 /** Грузит SDK один раз за сессию. Вне Telegram и при недоступной сети — `null`, без ошибок. */

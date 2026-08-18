@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { isTelegramLaunch, tgHaptic, tgSafe, telegramInsetVars, toHexColor, watchTelegramColorScheme, type TelegramWebApp } from "../src/tma/telegram.ts";
+import { isTelegramLaunch, startParamFromHash, startParamFromInitParams, telegramStartParam, tgHaptic, tgSafe, telegramInsetVars, toHexColor, watchTelegramColorScheme, type TelegramWebApp } from "../src/tma/telegram.ts";
 
 /** Тесты идут в Node без DOM: window подставляем ровно на время кейса. */
 function withWindow(value: Record<string, unknown>): void {
@@ -87,6 +87,55 @@ describe("isTelegramLaunch", () => {
       sessionStorage: { getItem: () => { throw new Error("denied"); } },
     });
     expect(isTelegramLaunch()).toBe(false);
+  });
+});
+
+describe("telegramStartParam (T9.9)", () => {
+  // Токен в стиле сид-кода T3.12: base64url — ровно алфавит, который Telegram разрешает в startapp.
+  const startCode = "eyJ2IjoxfQ";
+
+  it("достаёт tgWebAppStartParam из фрагмента URL (мобильные клиенты/tdesktop)", () => {
+    expect(startParamFromHash(`#tgWebAppData=abc&tgWebAppStartParam=${startCode}&tgWebAppPlatform=ios`)).toBe(startCode);
+  });
+
+  it("наш собственный hash-роутинг не принимает за параметры Telegram", () => {
+    expect(startParamFromHash("#/run=abc")).toBeNull();
+    expect(startParamFromHash("#/settings")).toBeNull();
+    expect(startParamFromHash("")).toBeNull();
+  });
+
+  it("параметры Telegram без startapp — это не параметр, а его отсутствие", () => {
+    expect(startParamFromHash("#tgWebAppData=abc&tgWebAppPlatform=ios")).toBeNull();
+    expect(startParamFromHash("#tgWebAppData=abc&tgWebAppStartParam=")).toBeNull();
+  });
+
+  it("Telegram Web: параметр читается из sessionStorage-дубля", () => {
+    expect(startParamFromInitParams(JSON.stringify({ tgWebAppStartParam: startCode }))).toBe(startCode);
+  });
+
+  it("кривой JSON и нестроковые значения — «нет параметра», не исключение", () => {
+    expect(startParamFromInitParams("{not json")).toBeNull();
+    expect(startParamFromInitParams(JSON.stringify({ tgWebAppStartParam: 42 }))).toBeNull();
+    expect(startParamFromInitParams(null)).toBeNull();
+  });
+
+  it("фрагмент URL приоритетнее sessionStorage; вне Telegram — null", () => {
+    withWindow({
+      location: { hash: `#tgWebAppData=abc&tgWebAppStartParam=${startCode}` },
+      sessionStorage: { getItem: () => JSON.stringify({ tgWebAppStartParam: "other" }) },
+    });
+    expect(telegramStartParam()).toBe(startCode);
+
+    withWindow({ location: { hash: "#/heroes" }, sessionStorage: { getItem: () => null } });
+    expect(telegramStartParam()).toBeNull();
+  });
+
+  it("запрещённый sessionStorage (приватный режим) не роняет запуск", () => {
+    withWindow({
+      location: { hash: "" },
+      sessionStorage: { getItem: () => { throw new Error("denied"); } },
+    });
+    expect(telegramStartParam()).toBeNull();
   });
 });
 
