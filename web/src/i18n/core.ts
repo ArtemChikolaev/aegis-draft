@@ -40,6 +40,7 @@ const ru = {
   "role.support": "САППОРТ",
   "app.loading": "Загружаем данные драфта…",
   "app.error": "Не удалось запустить драфт",
+  "app.retry": "Попробовать снова",
   // Обновление приложения (T11.1): плашка ждёт старт-экрана, применяет игрок.
   "update.title": "Доступна новая версия",
   "update.text": "Обновление скачано и применится после перезагрузки.",
@@ -948,6 +949,7 @@ const en: Dictionary = {
   "role.support": "SUPPORT",
   "app.loading": "Loading draft data…",
   "app.error": "Draft could not be started",
+  "app.retry": "Try again",
   "update.title": "A new version is ready",
   "update.text": "The update is downloaded and applies after a reload.",
   "update.apply": "Update",

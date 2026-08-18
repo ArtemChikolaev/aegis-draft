@@ -151,7 +151,17 @@ export function App() {
             </>
           ) : (
             <>
-              {phase === "loading" && <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>}
+              {/* T7.3: упавшая загрузка данных — не вечная орбита, а retry. Баннер с причиной
+                  уже висит выше; здесь — действие, иначе первый визит без сети упирался в тупик. */}
+              {phase === "loading" && (error
+                ? (
+                  <div className="loading">
+                    <Button variant="primary" data-testid="retry-load" onClick={() => void loadData()}>
+                      ↻ {t("app.retry")}
+                    </Button>
+                  </div>
+                )
+                : <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>)}
               {phase === "start" && <ResumeBanner />}
               {phase === "start" && <ManagerResumeBanner />}
               {phase === "start" && <StartScreen />}

@@ -642,6 +642,8 @@ export const useRun = create<RunStore>((set, get) => {
     campCelebration: false,
 
     async loadData() {
+      // Retry после упавшей загрузки (T7.3): прошлую ошибку убираем, пока идёт новая попытка.
+      set({ error: null });
       try {
         // Сейв и имя команды читаем ПАРАЛЛЕЛЬНО с данными: в Telegram это поход в CloudStorage,
         // и последовательные ожидания сложились бы в заметную паузу перед стартовым экраном.

@@ -40,6 +40,21 @@ test.describe("smoke: classic run", () => {
   });
 });
 
+test.describe("data load failure (T7.3)", () => {
+  // Упавшая загрузка данных — не вечная орбита: баннер с причиной + retry, который
+  // после восстановления сети доводит до старт-экрана.
+  test("ошибка загрузки показывает retry, retry доводит до старта", async ({ page }) => {
+    await page.route("**/data/manifest.json", (route) => route.abort());
+    await page.goto("/");
+    await expect(page.getByTestId("retry-load")).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".loading__orb")).toHaveCount(0);
+
+    await page.unroute("**/data/manifest.json");
+    await page.getByTestId("retry-load").click();
+    await expect(page.getByTestId("mode-classic")).toBeVisible({ timeout: 15_000 });
+  });
+});
+
 test.describe("responsive: no horizontal overflow", () => {
   test.beforeEach(async ({ page }) => {
     await gotoFreshApp(page);
