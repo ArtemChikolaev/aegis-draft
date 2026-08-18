@@ -338,7 +338,7 @@ describe("ManagerEngine — срез 3: manual-назначение, событ�
 
   it("событие-выбор: accept платит и бустит настроение, decline — нет; без денег accept не проходит", () => {
     const engine = inSeason("choice");
-    engine.state.pendingRandomEvent = { kind: "bootcampOffer", cashK: 0, happiness: 0, choice: { costK: 20, happiness: 6 } };
+    engine.state.pendingRandomEvent = { kind: "bootcampOffer", cashK: 0, happiness: 0, choice: { costK: 20, cashK: 0, happiness: 6 } };
     engine.state.bankK = 5;
     expect(engine.resolveRandomEvent(true)).toBe(false); // не хватает — событие открыто
     expect(engine.state.pendingRandomEvent).not.toBeNull();
@@ -348,7 +348,7 @@ describe("ManagerEngine — срез 3: manual-назначение, событ�
     expect(engine.state.bankK).toBe(30);
     expect(engine.state.roster[0].happiness).toBe(Math.min(100, before + 6));
     // Decline ничего не меняет.
-    engine.state.pendingRandomEvent = { kind: "bootcampOffer", cashK: 0, happiness: 0, choice: { costK: 20, happiness: 6 } };
+    engine.state.pendingRandomEvent = { kind: "bootcampOffer", cashK: 0, happiness: 0, choice: { costK: 20, cashK: 0, happiness: 6 } };
     const bank = engine.state.bankK;
     expect(engine.resolveRandomEvent(false)).toBe(true);
     expect(engine.state.bankK).toBe(bank);
@@ -363,6 +363,82 @@ describe("ManagerEngine — срез 3: manual-назначение, событ�
     expect(result.bracket[2]).toHaveLength(1);
     const champion = result.standings.find((row) => row.placement === 1)!;
     expect(result.bracket[2][0].winner).toBe(champion.name);
+  });
+});
+
+describe("ManagerEngine — срез 7: события-выборы streamDeal и heroClinic", () => {
+  function inSeason(seed: string): ManagerEngine {
+    const engine = ManagerEngine.create(data, seed, config);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    return engine;
+  }
+
+  it("streamDeal: accept даёт деньги ценой настроения, decline не трогает ничего", () => {
+    const engine = inSeason("s7-stream");
+    engine.state.pendingRandomEvent = { kind: "streamDeal", cashK: 0, happiness: 0, choice: { costK: 0, cashK: 25, happiness: -3 } };
+    const bank = engine.state.bankK;
+    const mood = engine.state.roster[0].happiness;
+    expect(engine.resolveRandomEvent(true)).toBe(true);
+    expect(engine.state.bankK).toBe(bank + 25);
+    expect(engine.state.roster[0].happiness).toBe(Math.max(0, mood - 3));
+
+    engine.state.pendingRandomEvent = { kind: "streamDeal", cashK: 0, happiness: 0, choice: { costK: 0, cashK: 25, happiness: -3 } };
+    const bank2 = engine.state.bankK;
+    const mood2 = engine.state.roster[0].happiness;
+    expect(engine.resolveRandomEvent(false)).toBe(true);
+    expect(engine.state.bankK).toBe(bank2);
+    expect(engine.state.roster[0].happiness).toBe(mood2);
+  });
+
+  it("heroClinic: превью несёт героя вне пула, accept платит и кладёт его в пул", () => {
+    // Ищем сид, где heroClinic реально выпадает за сезон: рулетка честная, а превью
+    // обязано совпасть с эффектом — поэтому проверяем именно роллнутое событие.
+    let clinic: { engine: ManagerEngine; heroId: number } | null = null;
+    for (let i = 0; i < 20 && !clinic; i++) {
+      const engine = inSeason(`s7-clinic-${i}`);
+      let guard = 0;
+      while (!engine.seasonFinished() && guard < 60) {
+        engine.playNextEvent();
+        engine.continueSeason();
+        const pending = engine.state.pendingRandomEvent;
+        if (pending?.kind === "heroClinic") {
+          clinic = { engine, heroId: pending.choice!.heroId! };
+          break;
+        }
+        if (pending) engine.dismissRandomEvent();
+        guard += 1;
+      }
+    }
+    expect(clinic).not.toBeNull();
+    const { engine, heroId } = clinic!;
+    expect(heroId).toBeGreaterThan(0);
+    expect(engine.state.heroPool).not.toContain(heroId);
+    const poolBefore = engine.state.heroPool.length;
+    engine.state.bankK = 3;
+    expect(engine.resolveRandomEvent(true)).toBe(false); // денег нет — событие открыто
+    expect(engine.state.pendingRandomEvent).not.toBeNull();
+    engine.state.bankK = 40;
+    expect(engine.resolveRandomEvent(true)).toBe(true);
+    expect(engine.state.bankK).toBe(25);
+    expect(engine.state.heroPool).toContain(heroId);
+    expect(engine.state.heroPool).toHaveLength(poolBefore + 1);
+  });
+
+  it("вычерпанный справочник героев исключает heroClinic из рулетки", () => {
+    const engine = inSeason("s7-exhausted");
+    engine.state.heroPool = data.heroes.map((h) => h.id);
+    let guard = 0;
+    while (!engine.seasonFinished() && guard < 60) {
+      engine.playNextEvent();
+      engine.continueSeason();
+      const pending = engine.state.pendingRandomEvent;
+      if (pending) {
+        expect(pending.kind).not.toBe("heroClinic");
+        engine.dismissRandomEvent();
+      }
+      guard += 1;
+    }
   });
 });
 

@@ -111,12 +111,13 @@ export interface EventResult {
 }
 
 /** Случайное событие между турнирами (срез 2): плоский эффект уже применён, поле — что
- *  показать. Событие-выбор (срез 3) несёт `choice` и ждёт resolveRandomEvent(accept). */
+ *  показать. Событие-выбор (срез 3/7) несёт `choice` с уже РАЗРЕШЁННЫМИ числами (и героем,
+ *  если ось геройская) и ждёт resolveRandomEvent(accept) — превью обязано совпасть с эффектом. */
 export interface RandomEventResult {
   kind: ManagerRandomEventKind;
   cashK: number;
   happiness: number;
-  choice?: { costK: number; happiness: number };
+  choice?: { costK: number; cashK: number; happiness: number; heroId?: number };
 }
 
 /** Сетка KO-этапа для панели результата (срез 3): пары по раундам, победитель отмечен. */
@@ -730,12 +731,27 @@ export class ManagerEngine {
     if (closedSlotId && s.phase === "season") {
       const rng = new Rng(`${s.seed}:re:${closedSlotId}`);
       if (rng.float() < RANDOM_EVENT_CHANCE) {
-        const kinds = Object.keys(RANDOM_EVENTS) as ManagerRandomEventKind[];
+        // heroClinic требует героя вне пула орга; на вычерпанном пуле событие исключается
+        // из рулетки ДО ролла (состояние детерминировано ⇒ выбор тоже).
+        const kinds = (Object.keys(RANDOM_EVENTS) as ManagerRandomEventKind[])
+          .filter((k) => !RANDOM_EVENTS[k].choice?.hero || this.clinicHeroCandidates().length > 0);
         const kind = kinds[rng.int(kinds.length)];
         const effect = RANDOM_EVENTS[kind];
         if (effect.choice) {
-          // Событие-выбор: ничего не применяем, ждём resolveRandomEvent.
-          s.pendingRandomEvent = { kind, cashK: 0, happiness: 0, choice: effect.choice };
+          // Событие-выбор: ничего не применяем, ждём resolveRandomEvent. Числа и герой
+          // разрешаются СЕЙЧАС — превью в модалке обязано совпасть с эффектом accept.
+          const clinic = effect.choice.hero ? this.clinicHeroCandidates() : [];
+          s.pendingRandomEvent = {
+            kind,
+            cashK: 0,
+            happiness: 0,
+            choice: {
+              costK: effect.choice.costK ?? 0,
+              cashK: effect.choice.cashK ?? 0,
+              happiness: effect.choice.happiness ?? 0,
+              ...(effect.choice.hero ? { heroId: clinic[rng.int(clinic.length)] } : {}),
+            },
+          };
         } else {
           const cashK = effect.cashK ?? 0;
           const happiness = effect.happiness ?? 0;
@@ -747,20 +763,30 @@ export class ManagerEngine {
     }
   }
 
+  /** Герои, доступные heroClinic: весь справочник минус пул орга (тот же скоуп, что
+   *  rollHeroOffer онбординга — второй источник правды о «доступном герое» не заводим). */
+  private clinicHeroCandidates(): number[] {
+    const taken = new Set(this.state.heroPool);
+    return this.data.heroes.map((h) => h.id).filter((id) => !taken.has(id));
+  }
+
   dismissRandomEvent(): void {
     this.resolveRandomEvent(false);
   }
 
-  /** Закрыть событие; для события-выбора accept=true платит и применяет эффект.
-   *  Не хватает денег — принять нельзя (возвращает false, событие остаётся открытым). */
+  /** Закрыть событие; для события-выбора accept=true применяет разрешённый эффект целиком
+   *  (платёж/приход/настроение/герой). Не хватает денег на costK — принять нельзя
+   *  (возвращает false, событие остаётся открытым). */
   resolveRandomEvent(accept: boolean): boolean {
     const s = this.state;
     const pending = s.pendingRandomEvent;
     if (!pending) return false;
     if (accept && pending.choice) {
-      if (s.bankK < pending.choice.costK) return false;
-      s.bankK -= pending.choice.costK;
-      this.bumpHappiness(pending.choice.happiness);
+      const { costK, cashK, happiness, heroId } = pending.choice;
+      if (s.bankK < costK) return false;
+      s.bankK += cashK - costK;
+      if (happiness !== 0) this.bumpHappiness(happiness);
+      if (heroId !== undefined && !s.heroPool.includes(heroId)) s.heroPool.push(heroId);
     }
     s.pendingRandomEvent = null;
     return true;

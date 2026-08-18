@@ -4,7 +4,7 @@
 // она лежит в сейве и честно инвалидирует несовместимую карьеру (как balanceConfigVersion).
 import { Rng } from "../rng.ts";
 
-export const MANAGER_ECONOMY_VERSION = "m1.5.0"; // m1.5.0: спонсорский доход от ELO (успех кормит зарплаты)
+export const MANAGER_ECONOMY_VERSION = "m1.6.0"; // m1.6.0: события-выборы streamDeal/heroClinic (срез 7; роллы :re: сдвинулись)
 
 /** Сложность = месячный доход организации, $k (322-0-парити: 120/100/80). */
 export const MANAGER_INCOME: Record<ManagerDifficulty, number> = {
@@ -165,14 +165,23 @@ export function transferFeeK(ovr: number, rng: Rng): number {
 
 /** Случайные события между турнирами: шанс на «Продолжить», эффекты детерминированы
  *  по сиду. Тексты свои, механика — по мотивам живого прохода 322-0. `choice` — событие-
- *  решение (Bootcamp Opportunity): плоский эффект не применяется, игрок платит либо нет. */
+ *  решение (Bootcamp Opportunity): плоский эффект не применяется, игрок принимает либо нет.
+ *
+ *  Срез 7: выборы различаются ОСЬЮ, а не числами. bootcampOffer платит деньгами за
+ *  настроение; streamDeal — зеркальный (деньги ЗА счёт настроения); heroClinic покупает
+ *  героя в пул орга (глубина matching), и конкретный герой виден до решения. Ось славы
+ *  сознательно не используется: fame в этой экономике только удорожает пересмотр зарплаты,
+ *  и «награда славой» была бы ловушкой, а не выбором. */
 export const RANDOM_EVENT_CHANCE = 0.25;
-export type ManagerRandomEventKind = "sponsorWindfall" | "fanMeetup" | "gearSponsor" | "burnout" | "bootcampOffer";
+export type ManagerRandomEventKind =
+  | "sponsorWindfall" | "fanMeetup" | "gearSponsor" | "burnout"
+  | "bootcampOffer" | "streamDeal" | "heroClinic";
 export interface RandomEventDef {
   cashK?: number;
   happiness?: number;
-  /** Событие-выбор: принять = заплатить costK и получить happiness всему ростеру. */
-  choice?: { costK: number; happiness: number };
+  /** Событие-выбор: принять = заплатить costK / получить cashK, сдвинуть настроение
+   *  всему ростеру; hero добавляет заранее показанного героя в пул орга. */
+  choice?: { costK?: number; cashK?: number; happiness?: number; hero?: boolean };
 }
 export const RANDOM_EVENTS: Record<ManagerRandomEventKind, RandomEventDef> = {
   sponsorWindfall: { cashK: 15 },
@@ -180,6 +189,8 @@ export const RANDOM_EVENTS: Record<ManagerRandomEventKind, RandomEventDef> = {
   fanMeetup: { happiness: 5 },
   burnout: { happiness: -4 },
   bootcampOffer: { choice: { costK: 20, happiness: 6 } },
+  streamDeal: { choice: { cashK: 25, happiness: -3 } },
+  heroClinic: { choice: { costK: 15, hero: true } },
 };
 
 /** Новая зарплата в оффсезоне: пересчёт от нового OVR, сглаженный к текущему контракту —

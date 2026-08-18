@@ -691,8 +691,21 @@ function Season({ engine }: { engine: ManagerEngine }) {
                   {pending.happiness !== 0 && (
                     <b>{pending.happiness > 0 ? "+" : ""}{pending.happiness} {t("manager.reMood")}</b>
                   )}
+                  {/* Срез 7: превью выбора собирается из разрешённых чисел — оно обязано
+                      совпасть с эффектом accept, включая конкретного героя heroClinic. */}
                   {pending.choice && (
-                    <b>−${pending.choice.costK}k → +{pending.choice.happiness} {t("manager.reMood")}</b>
+                    <b>
+                      {[
+                        pending.choice.costK > 0 ? `−$${pending.choice.costK}k` : null,
+                        pending.choice.cashK > 0 ? `+$${pending.choice.cashK}k` : null,
+                        pending.choice.happiness !== 0
+                          ? `${pending.choice.happiness > 0 ? "+" : ""}${pending.choice.happiness} ${t("manager.reMood")}`
+                          : null,
+                        pending.choice.heroId !== undefined
+                          ? `+${data?.heroes.find((h) => h.id === pending.choice!.heroId)?.name ?? "?"} ${t("manager.reHeroPool")}`
+                          : null,
+                      ].filter(Boolean).join(" · ")}
+                    </b>
                   )}
                 </p>
                 {pending.choice ? (
@@ -706,7 +719,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
                       disabled={s.bankK < pending.choice.costK}
                       onClick={() => { act((e) => e.resolveRandomEvent(true)); close(); }}
                     >
-                      {t("manager.reAccept", { n: pending.choice.costK })}
+                      {pending.choice.costK > 0 ? t("manager.reAccept", { n: pending.choice.costK }) : t("manager.reAcceptDeal")}
                     </Button>
                   </>
                 ) : (
