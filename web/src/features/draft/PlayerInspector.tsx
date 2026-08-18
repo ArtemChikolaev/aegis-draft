@@ -42,6 +42,17 @@ export function PlayerInspector({ candidate, data, onClose }: {
     >
       {({ close }) => (
         <div className="player-inspector">
+          {/* T7.3: карточка кандидата показывает IMP/ECO/REL голыми аббревиатурами, а hover-title
+              не существует на тапе — расшифровка живёт здесь видимым текстом. */}
+          <section className="player-inspector__section">
+            <h3>{t("draft.statsTitle")}</h3>
+            <ul className="player-inspector__stat-list">
+              <li><b>{candidate.player.impact}</b><span>{t("draft.statImpHint")}</span></li>
+              <li><b>{candidate.player.economy}</b><span>{t("draft.statEcoHint")}</span></li>
+              <li><b>{candidate.player.reliability}</b><span>{t("draft.statRelHint")}</span></li>
+            </ul>
+            <p className="player-inspector__stat-note">{t("draft.statsLegend")}</p>
+          </section>
           <HeroStats title={t("draft.eventHeroStats", { event: event?.short ?? event?.name ?? candidate.eventId })} rows={eventRows} heroes={heroes} />
           <HeroStats title={t("draft.careerHeroStats")} rows={careerRows} heroes={heroes} />
           <Button variant="primaryInvert" onClick={close}>{t("draft.closePlayerStats")}</Button>

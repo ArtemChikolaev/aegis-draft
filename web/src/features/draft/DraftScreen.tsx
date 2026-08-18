@@ -258,7 +258,13 @@ function CandidateCard({ candidate, enabled, onPick, index, showTeamLogo }: {
           </small>
         )}
       </span>
-      <span className="candidate__stats"><span><b>{player.impact}</b> IMP</span><span><b>{player.economy}</b> ECO</span><span><b>{player.reliability}</b> REL</span></span>
+      {/* title — hover-подсказка десктопа (T7.3); на тапе те же расшифровки видимым текстом
+          даёт PlayerInspector, поэтому мобильный игрок без объяснения не остаётся. */}
+      <span className="candidate__stats">
+        <span title={t("draft.statImpHint")}><b>{player.impact}</b> IMP</span>
+        <span title={t("draft.statEcoHint")}><b>{player.economy}</b> ECO</span>
+        <span title={t("draft.statRelHint")}><b>{player.reliability}</b> REL</span>
+      </span>
       <span className={`candidate__ovr ovr-tier--${tier}`}>{player.ovr}<small>OVR</small></span>
       <span className="candidate__action">{t("draft.pick")} →</span>
     </button>
