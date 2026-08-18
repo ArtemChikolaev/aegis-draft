@@ -122,6 +122,12 @@ func Build(in Input) (*model.Dataset, error) {
 		return nil, err
 	}
 	packs := BuildPacks(matches, events, eventRatings, nickByAccount, in.Teams)
+	// Событие, у которого гейт присутствия (packFormats) унёс все паки, — мёртвые метаданные
+	// (TDATA3, «GOTF 2025»): его не перечисляет ни один пул, а его eventHeroStats недостижимы —
+	// кандидаты приходят только из паков. Рейтинги выше считаются до фильтра, им это не мешает:
+	// они нужны только пакам. manifestFormats/eventHeroStats ниже читают уже отфильтрованный
+	// список.
+	events = eventsWithPacks(events, packs)
 	players := BuildPlayers(in.Snapshot, rolesList, in.Teams, matches)
 	teamSuccess := BuildTeamSuccess(matches, in.Leagues, in.AsOf, in.Config)
 	heroes := convertHeroes(in.Heroes)

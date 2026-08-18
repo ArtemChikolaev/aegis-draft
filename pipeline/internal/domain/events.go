@@ -97,3 +97,21 @@ func BuildEvents(matches []normalize.NormalizedMatch, leagues []opendota.League,
 func utcDateString(unix int64) string {
 	return time.Unix(unix, 0).UTC().Format("2006-01-02")
 }
+
+// eventsWithPacks оставляет события, дожившие хотя бы до одного пака. Гейт присутствия
+// (packFormats) может унести все составы розыгрыша целиком — так GOTF 2025 остался в
+// events.json событием без единого пака (TDATA3). Такое событие — мёртвый вес: пулы строятся
+// по packs[].formats, PlayerInspector и справочник ходят в события только от кандидатов пака.
+func eventsWithPacks(events []model.EventInfo, packs []model.Pack) []model.EventInfo {
+	alive := make(map[string]struct{}, len(events))
+	for _, pack := range packs {
+		alive[pack.EventID] = struct{}{}
+	}
+	out := make([]model.EventInfo, 0, len(events))
+	for _, event := range events {
+		if _, ok := alive[event.ID]; ok {
+			out = append(out, event)
+		}
+	}
+	return out
+}

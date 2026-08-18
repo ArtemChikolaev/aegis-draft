@@ -64,6 +64,18 @@ func Dataset(ds *model.Dataset) error {
 			return fmt.Errorf("pack %s lacks required role coverage: %v", pack.ID, roles)
 		}
 	}
+	// Событие обязано иметь хотя бы один пак (TDATA3): гейт присутствия умеет уносить все
+	// составы розыгрыша, и событие без паков — мёртвые метаданные, которые не перечисляет
+	// ни один пул. domain.Build фильтрует такие сам; инвариант ловит регрессию фильтра.
+	packedEvents := make(map[string]struct{}, len(ds.Events))
+	for _, pack := range ds.Packs {
+		packedEvents[pack.EventID] = struct{}{}
+	}
+	for _, event := range ds.Events {
+		if _, ok := packedEvents[event.ID]; !ok {
+			return fmt.Errorf("event %s has no packs — dead metadata must not be emitted", event.ID)
+		}
+	}
 	for key, player := range ds.Players {
 		if strconv.Itoa(player.AccountID) != key {
 			return fmt.Errorf("players key %q does not match accountId %d", key, player.AccountID)

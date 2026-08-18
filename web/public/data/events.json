@@ -863,19 +863,6 @@
     ]
   },
   {
-    "id": "league-18937",
-    "name": "Games of the Future 2025 Abu Dhabi",
-    "type": "tier1",
-    "year": 2025,
-    "startDate": "2025-12-14",
-    "endDate": "2025-12-19",
-    "formats": [
-      "last_1y",
-      "last_2y",
-      "last_5y"
-    ]
-  },
-  {
     "id": "league-18988",
     "name": "DreamLeague Season 27",
     "type": "tier1",

@@ -23,6 +23,8 @@ var testLeagues = []opendota.League{
 	{LeagueID: 100, Name: "Premium Cup", Tier: "premium"},
 	{LeagueID: 200, Name: "DreamLeague Season 20", Tier: "professional"},
 	{LeagueID: 300, Name: "Amateur Ladder", Tier: "amateur"},
+	// Для TestBuildDropsEventsWithoutPacks: tier-1 лига, чьё поле — разовые стаки.
+	{LeagueID: 400, Name: "Invited Stacks Showmatch", Tier: "premium"},
 }
 
 func TestBuildEvents(t *testing.T) {
