@@ -491,9 +491,9 @@
       "winrate": 0.25
     },
     "last_2y": {
-      "successScore": 19.44,
-      "games": 26,
-      "winrate": 0.1923
+      "successScore": 20.59,
+      "games": 24,
+      "winrate": 0.2083
     },
     "last_5y": {
       "successScore": 22.86,
@@ -780,9 +780,9 @@
   },
   "5": {
     "last_2y": {
-      "successScore": 38.29,
-      "games": 26,
-      "winrate": 0.4231
+      "successScore": 34.84,
+      "games": 21,
+      "winrate": 0.3333
     },
     "last_5y": {
       "successScore": 36.29,
@@ -1587,9 +1587,9 @@
   },
   "8728920": {
     "last_2y": {
-      "successScore": 33.96,
-      "games": 66,
-      "winrate": 0.4394
+      "successScore": 34.44,
+      "games": 63,
+      "winrate": 0.4444
     },
     "last_5y": {
       "successScore": 31.96,
@@ -1612,7 +1612,7 @@
   "8894818": {
     "last_2y": {
       "successScore": 35,
-      "games": 10,
+      "games": 6,
       "winrate": 0.5
     },
     "last_5y": {
@@ -1722,9 +1722,9 @@
   },
   "9248240": {
     "last_2y": {
-      "successScore": 32.94,
-      "games": 7,
-      "winrate": 0.4286
+      "successScore": 32.31,
+      "games": 3,
+      "winrate": 0.3333
     },
     "last_5y": {
       "successScore": 32.94,
@@ -1739,9 +1739,9 @@
       "winrate": 0.4571
     },
     "last_2y": {
-      "successScore": 35.3,
-      "games": 104,
-      "winrate": 0.4808
+      "successScore": 33.98,
+      "games": 100,
+      "winrate": 0.46
     },
     "last_5y": {
       "successScore": 37.39,
@@ -1831,9 +1831,9 @@
       "winrate": 0.5
     },
     "last_2y": {
-      "successScore": 32.94,
-      "games": 228,
-      "winrate": 0.4693
+      "successScore": 33.5,
+      "games": 224,
+      "winrate": 0.4777
     },
     "last_5y": {
       "successScore": 31.41,
@@ -1934,9 +1934,9 @@
       "winrate": 0.592
     },
     "last_2y": {
-      "successScore": 39.91,
-      "games": 411,
-      "winrate": 0.5547
+      "successScore": 39.96,
+      "games": 407,
+      "winrate": 0.5553
     },
     "last_5y": {
       "successScore": 39.62,
