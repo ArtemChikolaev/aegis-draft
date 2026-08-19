@@ -80,9 +80,15 @@ function bossPenalty(engine: RunEngine, economy: RunEconomy, seed: string, stage
     playerOvrs: engine.players.map((p) => p.ovr),
     activeHeroes: engine.heroes,
     bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex)),
-    assignedHeroGames: buildTacticContext(
-      engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
-    ).players.map((player) => player.assignedHeroGames),
+    ...(() => {
+      const ctx = buildTacticContext(
+        engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
+      );
+      return {
+        assignedHeroGames: ctx.players.map((player) => player.assignedHeroGames),
+        pairCoGames: ctx.pairs.map((pair) => pair.games),
+      };
+    })(),
   }).penalty;
   const items = itemsOf(engine, economy);
   const editions = economy.cardEditions;

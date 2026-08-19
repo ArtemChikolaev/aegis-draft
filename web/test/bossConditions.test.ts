@@ -27,6 +27,8 @@ function ctx(over: Partial<BossContext> = {}): BossContext {
     bannedHeroes: [],
     // По умолчанию все герои — «свои»: иначе heroSynergyDemand штрафовал бы в каждом тесте.
     assignedHeroGames: [80, 80, 80, 80, 80],
+    // По умолчанию связок нет: иначе chemistryBlackout штрафовал бы в каждом тесте.
+    pairCoGames: Array(10).fill(0),
     ...over,
   };
 }
@@ -164,11 +166,33 @@ describe("heroSynergyDemand — рычаг Hero Synergy", () => {
   });
 });
 
-describe("chemistryBlackout — рычаг Chemistry", () => {
-  it("штраф равен текущей Chemistry (с cap), ноль Chemistry = met", () => {
-    const c = evaluateBoss("chemistryBlackout", ctx({ chemistry: 5 }));
-    expect(c.penalty).toBeCloseTo(Math.min(5, BOSSES.chemistryBlackout.max), 5);
-    expect(evaluateBoss("chemistryBlackout", ctx({ chemistry: 0 })).met).toBe(true);
+describe("chemistryBlackout — рычаг Chemistry (структурное с 2026-08-18)", () => {
+  const cfg = BOSSES.chemistryBlackout;
+  /** N сыгранных связок + остальные пустые (всего 10 пар пятёрки). */
+  const pairs = (known: number) =>
+    [...Array(known).fill(cfg.minPairGames), ...Array(10 - known).fill(0)];
+
+  it("связки в пределах допуска — met, сверх — штраф за штуки, cap держит", () => {
+    expect(evaluateBoss("chemistryBlackout", ctx({ pairCoGames: pairs(cfg.tolerated) })).met).toBe(true);
+    const over2 = evaluateBoss("chemistryBlackout", ctx({ pairCoGames: pairs(cfg.tolerated + 2) }));
+    expect(over2.met).toBe(false);
+    expect(over2.penalty).toBeCloseTo(2 * cfg.perPair, 5);
+    const all = evaluateBoss("chemistryBlackout", ctx({ pairCoGames: pairs(10) }));
+    expect(all.penalty).toBe(cfg.max);
+  });
+
+  it("величина Chemistry в условие не входит: прокачанный рычаг сам по себе не штрафуется", () => {
+    // Высокая Chemistry при слабых связках (много пар чуть НИЖЕ бара) — met. Именно это
+    // отличает условие от прежнего «налога на величину» (выполнялся в 2% случаев).
+    const weakPairs = Array(10).fill(cfg.minPairGames - 1);
+    const rich = evaluateBoss("chemistryBlackout", ctx({ chemistry: 12, pairCoGames: weakPairs }));
+    expect(rich.met).toBe(true);
+    expect(rich.penalty).toBe(0);
+  });
+
+  it("превью честное: reasonParams несут число связок, допуск и бар", () => {
+    const evaluated = evaluateBoss("chemistryBlackout", ctx({ pairCoGames: pairs(7) }));
+    expect(evaluated.reasonParams).toEqual({ n: 7, max: cfg.tolerated, games: cfg.minPairGames });
   });
 });
 

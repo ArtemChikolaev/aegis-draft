@@ -413,8 +413,9 @@ export const useRun = create<RunStore>((set, get) => {
       activeHeroes: engine.heroes,
       bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, rerolls),
       // Через тот же `buildTacticContext`, что и боевой расчёт тактик: «pro-игры на назначенном
-      // герое» определены там ровно один раз, и второй копии этой величины быть не должно.
+      // герое» и co-games пар определены там ровно один раз, второй копии быть не должно.
       assignedHeroGames: tacticContext()?.players.map((player) => player.assignedHeroGames) ?? [],
+      pairCoGames: tacticContext()?.pairs.map((pair) => pair.games) ?? [],
     });
     // Предметы-защита смягчают штраф, но не отменяют правило (R8.3); Tempered-карты (LG4) —
     // та же роль от Edition: активность judged теми же activeCardIds, что заряды и рейл.
@@ -933,6 +934,7 @@ export const useRun = create<RunStore>((set, get) => {
                 bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes, bossRerolls),
                 // Тот же `tacticCtx`, что уже собран выше для восстановления тактик.
                 assignedHeroGames: tacticCtx.players.map((player) => player.assignedHeroGames),
+                pairCoGames: tacticCtx.pairs.map((pair) => pair.games),
               })
               : null;
             anteRun.rebuildCurrentStage(

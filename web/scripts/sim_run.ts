@@ -101,9 +101,15 @@ function bossPenalty(
     activeHeroes: engine.heroes,
     bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex)),
     // Через тот же `buildTacticContext`, что и игра: иначе симулятор мерил бы другое условие.
-    assignedHeroGames: buildTacticContext(
-      engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
-    ).players.map((player) => player.assignedHeroGames),
+    ...(() => {
+      const ctx = buildTacticContext(
+        engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
+      );
+      return {
+        assignedHeroGames: ctx.players.map((player) => player.assignedHeroGames),
+        pairCoGames: ctx.pairs.map((pair) => pair.games),
+      };
+    })(),
   }).penalty;
   // Защита предметами — как в игре (R8.3), иначе симулятор мерил бы более тяжёлых боссов.
   // Tempered (LG4): активность — те же activeCardIds, что заряды; сим обязан судить как store.

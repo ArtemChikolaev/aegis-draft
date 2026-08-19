@@ -116,12 +116,28 @@ export const BOSSES = {
     max: 6,
     summand: "heroSynergy" as Summand,
   },
-  /** Chemistry в этот этап не работает. Условие по СВОЕЙ природе безусловное (замер: выполнено в 2%
-   *  случаев) — это не планка, а снятие рычага, и адаптация к нему долгосрочная: не вкладываться в
-   *  Chemistry, зная о боссе заранее. Но `max` обязан быть сопоставим с остальными боссами, иначе
-   *  забег решает не игрок, а то, какое правило выпало: при `max: 8` средний штраф был 5.93 против
-   *  0.25–3.3 у прочих. */
-  chemistryBlackout: { factor: 1, max: 6, summand: "chemistry" as Summand },
+  /**
+   * СТРУКТУРНОЕ условие с 2026-08-18 (закрыт хвост R12.5, продуктовое решение пользователя).
+   * Прежняя форма «Chemistry не работает, штраф = её величина» была безусловной (выполнено в 2%
+   * случаев) — не правило, а налог на прокачанный рычаг, к которому нельзя адаптироваться в
+   * рамках лагеря. Теперь judged форма состава, а не очки — тот же рецепт, что вылечил
+   * heroSynergyDemand: пара активной пятёрки с ≥ `minPairGames` совместных pro-игр — «сыгранная
+   * связка», первые `tolerated` штук — норма, каждая сверх допуска штрафует `perPair`.
+   * Адаптация на лагере существует: разбить плотнейшие связки заменой игрока (формы других
+   * людей) — Chemistry просядет, но штраф уйдёт; или осознанно принять кламп `max`.
+   *
+   * Числа посажены на замер (1073 финала актов, CHEMDIAG-прогон `npm run sim -- 120`):
+   * распределение связок при баре 100 игр — `0..10` штук с частотами `4/9/8/14/16/6/33/6/2/1/2%`.
+   * Допуск 5 ⇒ условие выполнено в ~57%, средний штраф ~0.95 — полоса остальных боссов после
+   * R12.5 (0.55–0.97).
+   */
+  chemistryBlackout: {
+    minPairGames: 100,
+    tolerated: 5,
+    perPair: 1.5,
+    max: 6,
+    summand: "chemistry" as Summand,
+  },
   /** Допустимый разброс OVR СУЖАЕТСЯ по актам: ровный состав к концу забега — норма, а не
    *  достижение (замер: разброс сам падает 14 → 7). `floorSpread` не даёт рампе уйти в ноль в
    *  Династии. Числа посажены на замер: доля выполненных условий `59/55/55/57/64%` — заметно
@@ -220,6 +236,10 @@ export interface BossContext {
    *  `heroSynergyDemand`. Тот же смысл, что у `TacticPlayer.assignedHeroGames`: «это его герой или
    *  случайный?». Ноль для игрока без назначенного героя. */
   assignedHeroGames: number[];
+  /** Совместные pro-игры каждой пары активной пятёрки (до 10 значений, нули включены) — вход
+   *  структурного `chemistryBlackout`. Источник — `buildTacticContext().pairs`, как у
+   *  assignedHeroGames: величина определена один раз, второй копии быть не должно. */
+  pairCoGames: number[];
 }
 
 export interface BossEvaluation {
@@ -279,16 +299,19 @@ const EVALUATORS: Record<BossId, (ctx: BossContext) => Omit<BossEvaluation, "bos
       reasonParams: { n: offRepertoire, max: cfg.tolerated, games: cfg.minGames },
     };
   },
-  // Запрет координации: Chemistry в этот этап не работает и штрафует ровно на свою величину.
-  // Адаптация — не платить за Chemistry здесь, лить в Base/Hero Synergy.
+  // Запрет координации: сыгранные связки под прицелом. Условие СТРУКТУРНОЕ (штуки, не очки, —
+  // как heroSynergyDemand): пара с ≥ minPairGames совместных pro-игр сверх допуска штрафует.
+  // Адаптация — разбить плотные связки заменой игрока (формы других людей) или принять кламп.
   chemistryBlackout: (ctx) => {
     const cfg = BOSSES.chemistryBlackout;
-    const penalty = clampPenalty(ctx.chemistry * cfg.factor, penaltyCap(ctx, cfg.max));
+    const knownPairs = ctx.pairCoGames.filter((games) => games >= cfg.minPairGames).length;
+    const over = Math.max(0, knownPairs - cfg.tolerated);
     return {
-      met: penalty <= 0,
-      penalty,
+      met: over === 0,
+      penalty: clampPenalty(over * cfg.perPair, penaltyCap(ctx, cfg.max)),
       summand: cfg.summand,
       reasonKey: "boss.reason.chemistryBlackout",
+      reasonParams: { n: knownPairs, max: cfg.tolerated, games: cfg.minPairGames },
     };
   },
   // Штраф несбалансированному ростеру: слишком большой разброс OVR (звезда + слабые). Адаптация —

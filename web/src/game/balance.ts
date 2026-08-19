@@ -220,7 +220,8 @@ import { HERO_FLOOR } from "./anteMarket.ts";
  *  (мультипликативный стак, та же точка композиции protectedBossPenalty, что BKB/Linkens).
  *  Дроп — подпоток `:edition-t` ТОЛЬКО при не выпавшем Charged: charged-исходы сидов не
  *  сдвинуты. Числа — placeholder до A/B. */
-export const BALANCE_CONFIG_VERSION = "b1.34.0";
+// b1.35.0: chemistryBlackout → структурное условие (сыгранные связки сверх допуска), хвост R12.5.
+export const BALANCE_CONFIG_VERSION = "b1.35.0";
 
 /** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
  *  своим модулям; здесь только сборка и версия. */

@@ -104,20 +104,25 @@ describe("uncappedBoss: штраф без потолка", () => {
       absoluteStageIndex: CIRCLE_FINALE,
       base: 88,
       heroSynergy: 5,
-      chemistry: 20, // заведомо больше потолка chemistryBlackout.max
+      chemistry: 20,
       playerOvrs: [88, 87, 86, 85, 84],
       activeHeroes: [1, 2, 3, 4, 5],
       bannedHeroes: [],
       assignedHeroGames: [80, 80, 80, 80, 80],
+      // Все 10 пар — сыгранные связки: сырой штраф (10 − tolerated)·perPair заведомо выше max.
+      pairCoGames: Array(10).fill(BOSSES.chemistryBlackout.minPairGames),
       ...over,
     };
   }
 
   it("под мутатором штраф равен полной величине, без него — клампится", () => {
+    const cfg = BOSSES.chemistryBlackout;
+    const rawPenalty = (10 - cfg.tolerated) * cfg.perPair;
+    expect(rawPenalty).toBeGreaterThan(cfg.max); // фикстура воспроизводит случай
     const uncapped = evaluateBoss("chemistryBlackout", bossCtx(seedFor("uncappedBoss")));
-    expect(uncapped.penalty).toBe(20);
+    expect(uncapped.penalty).toBe(rawPenalty);
     const capped = evaluateBoss("chemistryBlackout", bossCtx(seedFor("doubleBans")));
-    expect(capped.penalty).toBe(BOSSES.chemistryBlackout.max);
+    expect(capped.penalty).toBe(cfg.max);
   });
 });
 
