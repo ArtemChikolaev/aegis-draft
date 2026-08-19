@@ -5,7 +5,7 @@ import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
-import { Banner, Button, Eyebrow, Modal, OptionGroup, Surface, useScreenShakeSetting } from "../../ui/index.ts";
+import { Banner, Button, Eyebrow, Modal, OptionGroup, Surface, useScreenShakeSetting, useSoundSetting } from "../../ui/index.ts";
 import { useInstallApp } from "../../state/installApp.ts";
 import { clearOfflineCache, formatBytes, readOfflineStatus, shortHash, type OfflineStatus } from "../../state/offlineStatus.ts";
 import { ensureOfflinePack } from "../../state/serviceWorker.ts";
@@ -24,6 +24,7 @@ export function SettingsScreen() {
   const locked = isCodexLocked(useRun((state) => state.config), useRun((state) => state.phase), useRun((state) => state.resumable));
   // Тряска экрана (R15.4) — отдельный тумблер, как в Balatro: не хотеть тряску ≠ reduced-motion.
   const [shakeEnabled, setShakeEnabled] = useScreenShakeSetting();
+  const [soundOn, setSoundOn] = useSoundSetting();
 
   // Офлайн-копия (T11.4). Статус читается из настоящих кэшей, а не хранится где-то рядом:
   // иначе он расходится с реальностью ровно в тот момент, когда важен.
@@ -109,6 +110,16 @@ export function SettingsScreen() {
           ]}
           value={mode}
           onChange={(value) => setMode(value as ThemeMode)}
+        />
+        <OptionGroup
+          title={t("settings.sound")}
+          soonLabel={t("common.soon")}
+          options={[
+            { value: "on", label: t("common.on"), hint: t("settings.soundHint") },
+            { value: "off", label: t("common.off") },
+          ]}
+          value={soundOn ? "on" : "off"}
+          onChange={(value) => setSoundOn(value === "on")}
         />
         <OptionGroup
           title={t("settings.shake")}

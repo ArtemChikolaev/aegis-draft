@@ -5,6 +5,7 @@ import { AppProviders } from "./app/providers.tsx";
 import { startConnectivityWatch } from "./state/connectivity.ts";
 import { registerServiceWorker } from "./state/serviceWorker.ts";
 import { startInstallWatch } from "./state/installApp.ts";
+import { initSoundUnlock } from "./ui/sound.ts";
 import "./debug/gameLog.ts";
 import "./design/tokens.css";
 import "./design/breakpoints.css";
@@ -19,6 +20,8 @@ registerServiceWorker();
 // `beforeinstallprompt` прилетает рано и ровно один раз — слушателя ставим до первого рендера,
 // иначе предложение установить приложение просто теряется (T11.4).
 startInstallWatch();
+// Звук (R15.5): AudioContext разлочивается первым жестом — до него тишина и ноль autoplay-ошибок.
+initSoundUnlock();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

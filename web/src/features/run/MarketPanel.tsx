@@ -9,6 +9,7 @@ import { candidateMatchesRef } from "../../game/packs.ts";
 import type { MessageKey } from "../../i18n/core.ts";
 import { CampHint } from "./CampHint.tsx";
 import { CardInspectTrigger, OfferDelta, valuesOf } from "./CampCards.tsx";
+import { sfxBuy, sfxReroll } from "../../ui/sound.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { Button, Dealt, prefersReducedMotion } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -70,6 +71,7 @@ export function MarketPanel(props: CampMarketView) {
     setGhosts((prev) => [...prev, { ...ghost, settled: prefersReducedMotion() }]);
     // Страховка: в скрытой вкладке CSS-анимации на паузе и animationend не приходит.
     window.setTimeout(() => settleGhost(ghost.id), 600);
+    sfxBuy(); // звук на клике намеренно: неудачная покупка = disabled-кнопка, клик ≈ успех
     buyMarket(ghost.id);
   };
   const ghostCard = (ghost: MarketGhost, dealIndex: number) => (
@@ -117,7 +119,7 @@ export function MarketPanel(props: CampMarketView) {
             variant="secondary"
             disabled={!camp.canReroll}
             data-testid="camp-reroll"
-            onClick={rerollMarket}
+            onClick={() => { sfxReroll(); rerollMarket(); }}
           >
             ↻ {t("camp.reroll", { cost: camp.rerollCost })}
           </Button>
@@ -412,7 +414,7 @@ export function MarketPanel(props: CampMarketView) {
                             label: t("camp.rarityBuy"),
                             meta: freeUpgrade ? t("camp.free") : t("camp.cost", { cost: cost ?? 0 }),
                             disabled: !affordable,
-                            onSelect: () => upgradeHeroRarity(heroId),
+                            onSelect: () => { sfxBuy(); upgradeHeroRarity(heroId); },
                           },
                         })}
                       />
@@ -431,7 +433,7 @@ export function MarketPanel(props: CampMarketView) {
                             variant="primary"
                             disabled={!affordable}
                             data-testid={`rarity-upgrade-${heroId}`}
-                            onClick={() => upgradeHeroRarity(heroId)}
+                            onClick={() => { sfxBuy(); upgradeHeroRarity(heroId); }}
                           >
                             {t("camp.rarityBuy")}
                           </Button>

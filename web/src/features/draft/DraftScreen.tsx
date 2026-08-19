@@ -4,6 +4,7 @@ import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
 import { Button, Dealt, Eyebrow, HeroThumb, Modal, playerOvrTier, RoleTag, StatTile, Surface, TeamLogo, TeamName, teamMonogram } from "../../ui/index.ts";
+import { sfxReroll } from "../../ui/sound.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { PlayerInspector } from "./PlayerInspector.tsx";
 import { SynergyBreakdown } from "./SynergyBreakdown.tsx";
@@ -139,7 +140,7 @@ export function DraftScreen() {
               <h2>{currentPack.kind === "mixed" ? t("draft.mixedSubtitle") : packEventLabel}</h2>
             </div>
           </div>
-          <Button variant="secondary" onClick={reroll} disabled={rerollsLeft <= 0}>↻ {t("draft.reroll")}<small>{t("draft.rerollsLeft", { count: rerollCount })}</small></Button>
+          <Button variant="secondary" onClick={() => { sfxReroll(); reroll(); }} disabled={rerollsLeft <= 0}>↻ {t("draft.reroll")}<small>{t("draft.rerollsLeft", { count: rerollCount })}</small></Button>
         </div>
         <div className="candidates">
           {currentPack.candidates.map((candidate, index) => (

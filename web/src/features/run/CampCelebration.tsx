@@ -7,7 +7,8 @@ import { useEffect, type CSSProperties } from "react";
 import type { AnteRunState } from "../../game/anteRun.ts";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { Button } from "../../ui/index.ts";
+import { Button, motionMs, prefersReducedMotion } from "../../ui/index.ts";
+import { sfxCashTick } from "../../ui/sound.ts";
 
 const enterAt = (i: number) => ({ ["--enter-i" as string]: i } as CSSProperties);
 
@@ -41,6 +42,16 @@ export function CampCelebration({ ante, payout, showPayout, onDismiss }: {
         ...(payout.performance > 0 ? [{ key: "camp.payoutPerformance" as MessageKey, value: payout.performance }] : []),
         ...(payout.interest > 0 ? [{ key: "camp.payoutInterest" as MessageKey, value: payout.interest }] : []),
       ];
+
+  // Тики выплат (R15.5): пип на строку в такт её появлению (те же enter-индексы 2+i, тот же
+  // стаггер-токен). Под reduced-motion строки видны сразу — и тикать нечему.
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    const stagger = motionMs("--motion-enter-stagger", 60);
+    lines.forEach((_, i) => sfxCashTick(i, (2 + i) * stagger));
+    // Секвенция играет один раз на монтирование — как и её анимация.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div

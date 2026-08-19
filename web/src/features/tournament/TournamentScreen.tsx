@@ -24,6 +24,7 @@ import { BuildRail, buildRailCards } from "../run/BuildRail.tsx";
 import { evaluateItems } from "../../game/items.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
 import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, screenShakeEnabled, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { sfxSting, sfxVerdict } from "../../ui/sound.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
 import { HeroAllocation } from "../draft/HeroAllocation.tsx";
@@ -505,6 +506,32 @@ export function TournamentScreen() {
 
   const revealedGroupMatches = stage === "groups" ? orderedGroupMatches.slice(0, n) : orderedGroupMatches;
   const groupsDone = stage === "playoffs" || (stage === "groups" && done);
+  // Стинги reveal своей команды (R15.5): звук на КАЖДЫЙ новый открывшийся матч юзера — ровно там
+  // же, где строка вспыхивает цветом (R15.3). Реф вместо state: звук — не повод для рендера;
+  // «Показать результат» открывает всё разом — озвучиваем только последний матч, не очередь.
+  const sungMatches = useRef(0);
+  useEffect(() => {
+    if (stage !== "groups") return;
+    const fresh = orderedGroupMatches
+      .slice(sungMatches.current, n)
+      .filter((match) => match.teamA.isUser || match.teamB.isUser);
+    sungMatches.current = n;
+    const last = fresh[fresh.length - 1];
+    if (!last) return;
+    const userScore = last.teamA.isUser ? last.scoreA : last.scoreB;
+    const rivalScore = last.teamA.isUser ? last.scoreB : last.scoreA;
+    if (userScore !== rivalScore) sfxSting(userScore > rivalScore ? "win" : "loss");
+  }, [n, orderedGroupMatches, stage]);
+  // Синг босса (R15.5, лестница: редкое событие) — один раз на входе в поле боссового этапа;
+  // реф держит индекс, чтобы пере-рендеры поля (реролл соперников) не повторяли синг.
+  const bossSung = useRef<number | null>(null);
+  useEffect(() => {
+    if (stage !== "field" || !boss) return;
+    const stageIndex = ante?.index ?? -1;
+    if (bossSung.current === stageIndex) return;
+    bossSung.current = stageIndex;
+    sfxSting("boss");
+  }, [ante?.index, boss, stage]);
   // Входной каскад строк — ТОЛЬКО пока группа наполняется (матчи ещё не пошли, n === 0).
   // Как только начинаются игры, строки пересортировываются, и оставленная на них
   // opacity-анимация подхватывается при переезде строки → моргание. Снимаем .enter —
@@ -519,6 +546,10 @@ export function TournamentScreen() {
   const verdictShake = stage === "playoffs" && done && !!ante && (ante.phase === "won" || ante.phase === "lost");
   useEffect(() => {
     if (verdictShake && screenShakeEnabled()) setShaking(true);
+    // Кульминация озвучивается вместе с shake (та же пара событий R15.4/R15.5); тумблеры
+    // независимы — звук играет и при выключенной тряске.
+    if (verdictShake && ante) sfxVerdict(ante.phase === "won" ? "won" : "lost");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [verdictShake]);
   // Лента результатов не скроллится с обрезанной строкой сверху, а показывает столько
   // ПОСЛЕДНИХ матчей, сколько влезает ЦЕЛИКОМ: панель фиксированной высоты, а строка не
