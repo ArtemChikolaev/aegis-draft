@@ -277,6 +277,9 @@ export function TournamentScreen() {
   const tournament = useRun((state) => state.tournament);
   const ante = useRun((state) => state.ante);
   const boss = useRun((state) => state.boss);
+  // Real Tournament (T5.6): поле реальное — реролла поля нет, подпись честно говорит «симуляция».
+  const isRealTournament = useRun((state) => state.selectedMode === "tournament");
+  const realField = useRun((state) => state.realField);
   const selectedMode = useRun((state) => state.selectedMode);
   const enterCamp = useRun((state) => state.enterCamp);
   const advance = useRun((state) => state.advanceTournament);
@@ -785,6 +788,12 @@ export function TournamentScreen() {
               </span>
             </div>
           )}
+          {isRealTournament && realField && (
+            <div className="tournament__projection enter" data-testid="real-field-note" style={{ ["--enter-i" as string]: 2 } as React.CSSProperties}>
+              <span>{t("real.fieldLabel")}</span>
+              <strong>{realField.eventName}</strong>
+            </div>
+          )}
           <div className="tournament__projection enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>
             <span>{t("tournament.yourProjection")}</span>
             <strong>{t(projectionKey(tournament.projection))}</strong>
@@ -811,7 +820,7 @@ export function TournamentScreen() {
                   целиком хочется не всегда, а решение это ситуативное — прятать его в Settings
                   значит заставлять выходить из забега ради одного клика. */}
               <Button variant="secondary" data-testid="tournament-show-result" onClick={showResult}>{t("tournament.showResult")}<small>{t("tournament.showResultHint")}</small></Button>
-              {!hardMode && !ante && (
+              {!hardMode && !ante && !isRealTournament && (
                 <Button variant="secondary" data-testid="tournament-field-reroll" onClick={rerollField}>↻ {t("tournament.rerollField")}<small>{t("tournament.rerollFieldHint")}</small></Button>
               )}
             </div>

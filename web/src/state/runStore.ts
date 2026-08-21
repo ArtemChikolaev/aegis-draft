@@ -8,7 +8,8 @@ import type { RunConfig, DraftPack, Candidate } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
-import { TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
+import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
+import { buildRealField, type RealField } from "../game/realTournament.ts";
 import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
@@ -95,6 +96,12 @@ interface RunStore {
   seed: string;
   snapshot: Snapshot | null;
   selectedMode: RunMode | null;
+  /** Real Tournament (T5.6): выбранное событие. Часть mode-shell-состояния — переживает reset
+   *  забега, как selectedMode (правило CLAUDE.md: reset не сбрасывает режим). */
+  realEventId: string | null;
+  /** Поле выбранного события: 17 реальных составов + roster lock. Производная data+realEventId,
+   *  собирается на старте/resume и не персистится. */
+  realField: RealField | null;
   /** Позиция внутри стартового флоу. Живёт в store, чтобы Settings/справочник не сбрасывали её. */
   startStep: StartStep;
   /** Ещё не запущенная конфигурация; сохраняется при служебной навигации вне game-view. */
@@ -151,6 +158,7 @@ interface RunStore {
   rerollField: () => void;
   reset: () => void;
   setSelectedMode: (mode: RunMode | null) => void;
+  setRealEventId: (eventId: string | null) => void;
   setStartStep: (step: StartStep) => void;
   setStartConfig: (config: RunConfig | ((current: RunConfig) => RunConfig)) => void;
   setStartSeedInput: (value: string) => void;
@@ -351,6 +359,8 @@ export const useRun = create<RunStore>((set, get) => {
       economy: economy ? economy.snapshot : undefined,
       // Только Roguelite Run зависит от коэффициентов баланса — остальным режимам ключ не нужен.
       balanceConfigVersion: selectedMode === "run" ? BALANCE_CONFIG_VERSION : undefined,
+      // Real Tournament: без события resume не пересоберёт поле и lock (T5.6).
+      realEventId: selectedMode === "tournament" ? get().realEventId ?? undefined : undefined,
     });
   };
   // Пересчитать вклад экипированных Tactics от ТЕКУЩЕГО ростера. Вызывать после любого swap:
@@ -537,7 +547,15 @@ export const useRun = create<RunStore>((set, get) => {
         tournamentStep: 0, teamName: resolvedName,
       };
     }
-    const tournamentEngine = new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
+    // Real Tournament (T5.6): поле — реальные составы события, реролла поля нет (реальность не
+    // рероллится), сила поля не зависит от сида — он решает только исход матчей.
+    const realField = selectedMode === "tournament" ? get().realField : null;
+    const tournamentEngine = realField
+      ? new TournamentEngine(
+        data, config.format, seed, snapshot.score.teamOvr, resolvedName,
+        0, QUICK_DRAFT_FIELD, realField.opponents,
+      )
+      : new TournamentEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, rerolls);
     return {
       anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
       campCelebration: false,
@@ -622,6 +640,8 @@ export const useRun = create<RunStore>((set, get) => {
     seed: "",
     snapshot: null,
     selectedMode: null,
+    realEventId: null,
+    realField: null,
     startStep: "modes",
     startConfig: DEFAULT_START_CONFIG,
     startSeedInput: "",
@@ -687,14 +707,25 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     start(config, seed) {
-      const { data } = get();
+      const { data, selectedMode, realEventId } = get();
       if (!data) return;
       try {
-        const engine = new RunEngine(data, config, seed);
+        // Real Tournament (T5.6): поле и roster lock детерминированно выводятся из события —
+        // движок получает lock ДО первого пака, чтобы залоченный не появился нигде.
+        const realField = selectedMode === "tournament" && realEventId
+          ? buildRealField(data, realEventId)
+          : null;
+        if (selectedMode === "tournament" && !realField) {
+          throw new Error("Real Tournament: событие не выбрано");
+        }
+        const engine = new RunEngine(
+          data, config, seed,
+          realField ? { lockedAccounts: realField.lockedAccounts } : undefined,
+        );
         const snapshot = snap(engine);
         set({
           engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null,
-          startStep: "config", startConfig: config,
+          startStep: "config", startConfig: config, realField,
           tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
           anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
         });
@@ -790,9 +821,11 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     rerollField() {
-      const { tournament, snapshot, config, data, teamName, anteRun } = get();
+      const { tournament, snapshot, config, data, teamName, anteRun, selectedMode } = get();
       // Ante: поле этапа фиксировано по seed — перевыбора соперников нет (кнопка скрыта в UI).
       if (anteRun) return;
+      // Real Tournament: поле — реальные составы события, перевыбор невозможен по смыслу.
+      if (selectedMode === "tournament") return;
       if (!tournament || tournament.stage !== "field" || !snapshot?.score || !config || !data) return;
       record({ t: "fieldReroll" });
       const rebuilt = buildTournamentFields(snapshot, fieldRerollCount(get().actions));
@@ -823,6 +856,10 @@ export const useRun = create<RunStore>((set, get) => {
       set({ selectedMode });
     },
 
+    setRealEventId(realEventId) {
+      set({ realEventId });
+    },
+
     setStartStep(startStep) {
       set({ startStep });
     },
@@ -844,7 +881,16 @@ export const useRun = create<RunStore>((set, get) => {
       const { data, resumable } = get();
       if (!data || !resumable) return;
       try {
-        const engine = new RunEngine(data, resumable.config, resumable.seed);
+        // Real Tournament: поле и lock пересобираются из события детерминированно (сила поля не
+        // зависит от сида). Событие могло выпасть из датасета после refresh — buildRealField
+        // упадёт, и resume честно откажет через общий catch, а не молча ослабит lock.
+        const resumedField = resumable.mode === "tournament" && resumable.realEventId
+          ? buildRealField(data, resumable.realEventId)
+          : null;
+        const engine = new RunEngine(
+          data, resumable.config, resumable.seed,
+          resumedField ? { lockedAccounts: resumedField.lockedAccounts } : undefined,
+        );
         replay(engine, resumable.actions);
         if (resumable.frozenRoster) {
           const score = engine.score();
@@ -943,6 +989,11 @@ export const useRun = create<RunStore>((set, get) => {
             inCamp = economy.snapshot.inCamp;
             ante = anteRun.state;
             tournamentEngine = anteRun.tournament;
+          } else if (resumedField) {
+            tournamentEngine = new TournamentEngine(
+              data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName,
+              0, QUICK_DRAFT_FIELD, resumedField.opponents,
+            );
           } else {
             const rerolls = fieldRerollCount(resumable.actions);
             tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, rerolls);
@@ -957,6 +1008,8 @@ export const useRun = create<RunStore>((set, get) => {
           config: resumable.config,
           seed: resumable.seed,
           selectedMode: resumable.mode,
+          realEventId: resumable.realEventId ?? get().realEventId,
+          realField: resumedField,
           startStep: "config",
           startConfig: resumable.config,
           actions: resumable.actions,
@@ -999,7 +1052,11 @@ export const useRun = create<RunStore>((set, get) => {
       // «тот же забег» окажется неправдой. UI объясняет причину, а не молча стартует.
       if (!pendingLink || pendingLinkIssue) return;
       clearSavedRun();
-      set({ pendingLink: null, pendingLinkIssue: null, resumable: null, selectedMode: pendingLink.mode });
+      set({
+        pendingLink: null, pendingLinkIssue: null, resumable: null, selectedMode: pendingLink.mode,
+        // Ссылка Real Tournament несёт событие (кодек без него её не разбирает) — оно и есть поле.
+        ...(pendingLink.mode === "tournament" ? { realEventId: pendingLink.eventId ?? null } : {}),
+      });
       get().start(pendingLink.config, pendingLink.seed);
       clearRunLinkHash();
     },

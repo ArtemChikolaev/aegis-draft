@@ -286,3 +286,7 @@
   padding-top: 18px;
   border-top: 1px dashed var(--line);
 }
+
+/* Real Tournament (T5.6): выбор события — главная ось режима, стоит первой в панели. */
+.config-panel__event { display: grid; gap: 8px; }
+.config-panel__event .notice { margin: 0; }

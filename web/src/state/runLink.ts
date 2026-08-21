@@ -25,6 +25,9 @@ export interface RunLink {
   mode: RunMode;
   config: RunConfig;
   seed: string;
+  /** Real Tournament (T5.6): событие, чьё поле играется. Обязателен для mode "tournament" —
+   *  без него ссылка не воспроизводит забег (поле и roster lock выводятся из события). */
+  eventId?: string;
 }
 
 /** Почему ссылка не воспроизводима. Разные причины — разные объяснения игроку. */
@@ -93,6 +96,7 @@ export function encodeRunLink(link: RunLink): string {
     // Хардкор пишем только когда включён — короче ссылка, и старые ссылки читаются как false.
     ...(link.config.hardMode ? { h: 1 } : {}),
     ...(link.config.cheatMode ? { x: 1 } : {}),
+    ...(link.eventId ? { e: link.eventId } : {}),
     seed: link.seed,
   };
   return toBase64Url(JSON.stringify(payload));
@@ -121,11 +125,15 @@ export function decodeRunLink(encoded: string): RunLink | null {
   if (raw.h !== undefined && raw.h !== 1) return null;
   if (raw.x !== undefined && raw.x !== 1) return null;
   if (raw.b !== undefined && (typeof raw.b !== "string" || !raw.b)) return null;
+  if (raw.e !== undefined && (typeof raw.e !== "string" || !raw.e)) return null;
+  // Real Tournament без события не воспроизводим — такая ссылка битая, а не «почти рабочая».
+  if (raw.m === "tournament" && typeof raw.e !== "string") return null;
   return {
     v: 1,
     s: raw.s,
     r: raw.r,
     ...(typeof raw.b === "string" && raw.b ? { b: raw.b } : {}),
+    ...(typeof raw.e === "string" && raw.e ? { eventId: raw.e } : {}),
     mode: raw.m,
     seed,
     config: {
@@ -239,6 +247,9 @@ export function validateRunLinkInput(
   schemaVersion: number,
   ratingModelVersion: string,
   balanceConfigVersion?: string,
+  /** Real Tournament: событие — такая же ось условий, как config; код под другое событие
+   *  играл бы другое поле, поэтому несовпадение — честный "config"-mismatch. */
+  expectedEventId?: string,
 ): RunLinkInputValidation {
   if (!input.trim()) return { link: null, issue: null };
   const link = runLinkFromInput(input);
@@ -247,5 +258,8 @@ export function validateRunLinkInput(
   if (versionIssue) return { link, issue: versionIssue };
   if (link.mode !== mode) return { link, issue: "mode" };
   if (!runConfigsMatch(link.config, config)) return { link, issue: "config" };
+  if (mode === "tournament" && expectedEventId && link.eventId !== expectedEventId) {
+    return { link, issue: "config" };
+  }
   return { link, issue: null };
 }

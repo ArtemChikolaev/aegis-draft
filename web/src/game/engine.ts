@@ -58,14 +58,32 @@ export class RunEngine {
   private benchPlayers: Candidate[] = [];
   private benchHeroes: number[] = [];
 
-  constructor(data: GameData, config: RunConfig, seed: string) {
+  /** Roster lock Real Tournament (T5.6): аккаунты поля исключены из драфта и рынка. Сажается в
+   *  существующий usedPlayers — ровно тот механизм, которым mixed-пак и рынок уже исключают
+   *  задрафтованных, поэтому «locked не появляется нигде» держится одним правилом, а не тремя.
+   *  Дополнительно переключает счёт на event-base (RT-B: форма своей эпохи, не team-success). */
+  private readonly lockedAccounts: ReadonlySet<number>;
+
+  constructor(
+    data: GameData,
+    config: RunConfig,
+    seed: string,
+    realField?: { lockedAccounts: ReadonlySet<number> },
+  ) {
     this.data = data;
     this.config = config;
     this.rng = new Rng(seed);
     this.rerollsLeft = config.rerolls;
+    this.lockedAccounts = realField?.lockedAccounts ?? new Set();
+    for (const accountId of this.lockedAccounts) this.usedPlayers.add(accountId);
     this.pool = poolForFormat(data.packs, data.events, config.format);
     if (this.pool.length === 0) throw new Error(`Пустой пул паков для формата ${config.format}`);
     this.currentPack = this.draw();
+  }
+
+  /** Real Tournament активен: лочит счёт на event-base и снимает team-success-гейт Mixed. */
+  private get isRealTournament(): boolean {
+    return this.lockedAccounts.size > 0;
   }
 
   /** Первый незаполненный слот ростера. */
@@ -411,7 +429,9 @@ export class RunEngine {
     );
     // Mixed: base = успех команд за окно вместо формы на событии (PRD §5.4.3).
     // teamId берём из того же chemistryRoster — он уже несёт привязку игрок→команда.
-    const mixedBase = this.config.draftStyle === "mixed"
+    // Real Tournament (RT-B) — исключение: challenger-пак mixed по МЕХАНИКЕ, но оценивается
+    // event-снапшотами («форма своей эпохи»), поэтому override не применяется.
+    const mixedBase = this.config.draftStyle === "mixed" && !this.isRealTournament
       ? mixedBaseRating(
         players,
         new Map(chemistryRoster.map((p) => [p.accountId, p.teamId])),
@@ -497,7 +517,10 @@ export class RunEngine {
     const pack = generatePack(this.pool, this.config, this.rng, {
       excludeTeamIds: avoid,
       excludePlayerIds: this.usedPlayers,
-      teamAllowed: (teamId) => hasTeamSuccess(this.data.teamSuccess, teamId, this.config.format),
+      // Team-success-гейт принадлежит Mixed-СКОРИНГУ; в Real Tournament base — event-снапшот
+      // (RT-B), и гейт лишь сузил бы пул легенд без причины.
+      teamAllowed: (teamId) =>
+        this.isRealTournament || hasTeamSuccess(this.data.teamSuccess, teamId, this.config.format),
     });
     return this.withFullHeroOffer(pack);
   }

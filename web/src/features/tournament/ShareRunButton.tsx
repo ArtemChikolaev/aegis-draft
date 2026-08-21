@@ -12,6 +12,7 @@ export function ShareRunButton() {
   const config = useRun((s) => s.config);
   const seed = useRun((s) => s.seed);
   const mode = useRun((s) => s.selectedMode);
+  const realEventId = useRun((s) => s.realEventId);
   const manifest = useRun((s) => s.data?.manifest);
   const [copied, setCopied] = useState(false);
 
@@ -25,6 +26,8 @@ export function ShareRunButton() {
       r: manifest.ratingModelVersion,
       // Версию баланса несёт только Roguelite Run — остальным она не нужна и не проверяется.
       ...(resolvedMode === "run" ? { b: BALANCE_CONFIG_VERSION } : {}),
+      // Real Tournament: без события ссылка не воспроизводит поле (T5.6).
+      ...(resolvedMode === "tournament" && realEventId ? { eventId: realEventId } : {}),
       mode: resolvedMode,
       config,
       seed,

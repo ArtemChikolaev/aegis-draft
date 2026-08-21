@@ -105,12 +105,29 @@ export function RulesScreen() {
         </ul>
       </Surface>
 
-      {/* Нереализованные режимы: питч + чем отличается, без обещаний интерфейса. */}
-      <Surface className="rules__panel rules__panel--soon">
-        <h2 className="rules__section">{t("rules.tournamentTitle")} <SoonBadge>{t("common.soon")}</SoonBadge></h2>
+      <Surface className="rules__panel">
+        <h2 className="rules__section">{t("rules.tournamentTitle")}</h2>
         <p className="rules__lead">{t("start.modeTournamentLong")}</p>
-        <p className="rules__soon-note">{t("rules.tournamentSoon")}</p>
+        <div className="rules__diagram">
+          <ClassicFlowDiagram
+            steps={[
+              t("rules.tournamentStepEvent"),
+              t("rules.tournamentStepLock"),
+              t("rules.tournamentStepDraft"),
+              t("rules.tournamentStepSim"),
+              t("rules.tournamentStepPlace"),
+            ]}
+          />
+        </div>
+        <ul className="rules__how">
+          <li>{t("rules.tournamentHow1")}</li>
+          <li>{t("rules.tournamentHow2")}</li>
+          <li>{t("rules.tournamentHow3")}</li>
+          <li>{t("rules.tournamentHow4")}</li>
+        </ul>
       </Surface>
+
+      {/* Нереализованные режимы: питч + чем отличается, без обещаний интерфейса. */}
 
       <Surface className="rules__panel rules__panel--soon">
         <h2 className="rules__section">{t("rules.arenaTitle")} <SoonBadge>{t("common.soon")}</SoonBadge></h2>

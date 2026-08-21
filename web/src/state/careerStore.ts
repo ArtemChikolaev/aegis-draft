@@ -170,7 +170,8 @@ export function buildCareerEntry(input: {
       scoring: input.config.scoring,
       draftStyle: input.config.draftStyle,
       hardMode: input.config.hardMode === true ? true : undefined,
-      mode: input.mode === "run" ? "run" : undefined,
+      // Real Tournament (T5.6) пишет свой режим: у него отдельная история и бейдж.
+      mode: input.mode === "run" ? "run" : input.mode === "tournament" ? "tournament" : undefined,
       cheatMode: input.config.cheatMode === true ? true : undefined,
       dynasty: input.dynasty === true ? true : undefined,
     },
@@ -215,7 +216,7 @@ export function careerRunIdFromRun(
     difficultyLabel(config.rerolls),
     config.scoring,
     config.draftStyle,
-    mode === "run" ? "run" : "quick",
+    mode === "run" ? "run" : mode === "tournament" ? "tournament" : "quick",
   ]));
 }
 
@@ -235,7 +236,7 @@ export function careerRunId(entry: CareerEntry): string {
     configLabel.difficulty,
     configLabel.scoring,
     configLabel.draftStyle,
-    configLabel.mode === "run" ? "run" : "quick",
+    configLabel.mode === "run" ? "run" : configLabel.mode === "tournament" ? "tournament" : "quick",
     configLabel.dynasty === true ? "dynasty" : "season",
   ]));
 }
@@ -251,8 +252,10 @@ export function competitiveEntries(entries: CareerEntry[]): CareerEntry[] {
 }
 
 export function careerEntriesForMode(entries: CareerEntry[], mode: RunMode): CareerEntry[] {
-  const roguelite = mode === "run";
-  return competitiveEntries(entries).filter((entry) => (entry.configLabel.mode === "run") === roguelite);
+  // Бакеты истории точные: Real Tournament (T5.6) не подмешивается в Quick Draft и наоборот.
+  const bucket = (value?: RunMode) =>
+    value === "run" ? "run" : value === "tournament" ? "tournament" : "quick";
+  return competitiveEntries(entries).filter((entry) => bucket(entry.configLabel.mode) === bucket(mode));
 }
 
 export function appendCareerEntry(entries: CareerEntry[], entry: CareerEntry): CareerEntry[] {

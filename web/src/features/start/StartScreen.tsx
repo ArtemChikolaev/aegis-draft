@@ -6,9 +6,10 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/packs.ts";
 import type { Format } from "../../types/data.ts";
-import { Button, Eyebrow, Modal, OptionGroup, type Option, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, Modal, OptionGroup, type Option, Select, Surface } from "../../ui/index.ts";
 import { createRunSeed } from "../../game/rng.ts";
 import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
+import { realTournamentEvents } from "../../game/realTournament.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
 import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
 import { SeedField } from "./SeedField.tsx";
@@ -30,7 +31,8 @@ const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: Mess
   // Manager доступен (T5.5, срез 1): карточка ведёт в собственный флоу ManagerScreen —
   // App перехватывает selectedMode === "manager" до фазовых экранов classic-забега.
   { value: "manager", label: "start.modeManager", hint: "start.modeManagerHint", detail: "start.modeManagerLong", available: true },
-  { value: "tournament", label: "start.modeTournament", hint: "start.modeTournamentHint", detail: "start.modeTournamentLong", available: false },
+  // Real Tournament доступен (T5.6): поле = реальные составы выбранного события, roster lock.
+  { value: "tournament", label: "start.modeTournament", hint: "start.modeTournamentHint", detail: "start.modeTournamentLong", available: true },
   // Arena (M10, PRD §5.12): онлайн-турнир на 18 команд. Карточка и красный акцент режима живут
   // уже сейчас; сам режим ждёт живого ws-сервера (MP0) — до него превью «Скоро», как у соседей.
   { value: "arena", label: "start.modeArena", hint: "start.modeArenaHint", detail: "start.modeArenaLong", available: false, needsNetwork: true },
@@ -38,7 +40,7 @@ const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: Mess
 
 /** Режимы, использующие Classic-конфиг драфта (Quick Draft и Roguelite Run поверх него).
  *  Обе ветки открываются из одной карточки Classic через шаг выбора варианта. */
-const DRAFT_CONFIG_MODES: RunMode[] = ["classic", "run"];
+const DRAFT_CONFIG_MODES: RunMode[] = ["classic", "run", "tournament"];
 /** Roguelite Run фиксирует рероллы (стартовых всегда максимум 2) — сложность не выбирается. */
 const ROGUELITE_REROLLS = 2;
 
@@ -91,6 +93,19 @@ export function StartScreen() {
   const setConfig = useRun((state) => state.setStartConfig);
   const seedInput = useRun((state) => state.startSeedInput);
   const setSeedInput = useRun((state) => state.setStartSeedInput);
+  // Real Tournament (T5.6): выбранное событие — часть mode-shell-состояния (переживает reset).
+  const realEventId = useRun((state) => state.realEventId);
+  const setRealEventId = useRun((state) => state.setRealEventId);
+  const rtEvents = mode === "tournament" && data ? realTournamentEvents(data) : [];
+  // Дефолт — свежайшее событие; выбор, выпавший из каталога после data-refresh, честно сбрасываем.
+  useEffect(() => {
+    if (mode !== "tournament" || rtEvents.length === 0) return;
+    if (!realEventId || !rtEvents.some((option) => option.eventId === realEventId)) {
+      setRealEventId(rtEvents[0].eventId);
+    }
+    // Каталог — производная данных; ключи ниже покрывают смену данных и режима.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, realEventId, rtEvents.length]);
   // В TMA «назад» в выбор режимов даёт телеграмная кнопка — свою прячем (нативный хром).
   const backNative = useTmaChrome((state) => state.backNative);
   // Связность (T11.3): гейтим только режимы с `needsNetwork`. `unknown` («проверить нечем»)
@@ -143,6 +158,7 @@ export function StartScreen() {
       data.manifest.schemaVersion,
       data.manifest.ratingModelVersion,
       BALANCE_CONFIG_VERSION,
+      mode === "tournament" ? realEventId ?? undefined : undefined,
     )
     : { link: null, issue: seedInput.trim() ? "invalid" : null };
   const seedConfig = seedValidation.link?.config;
@@ -215,7 +231,13 @@ export function StartScreen() {
               data-offline={item.needsNetwork && offline ? "true" : undefined}
               onClick={() => {
                 if (item.value === "classic") setStartStep("variants");
-                else setMode(item.value);
+                else if (item.value === "tournament") {
+                  // Challenger-драфт mixed по МЕХАНИКЕ, но с event-скорингом (RT-B) — оси
+                  // draftStyle/scoring в RT скрыты, поэтому фиксируем их на входе.
+                  setConfig((current) => ({ ...current, draftStyle: "mixed", scoring: "event", hardMode: false, cheatMode: false }));
+                  setMode("tournament");
+                  setStartStep("config");
+                } else setMode(item.value);
               }}
             >
               <span className="mode-card__index">0{index + 1}</span>
@@ -272,7 +294,13 @@ export function StartScreen() {
     );
   }
 
-  const heroRows: { label: MessageKey; hint: MessageKey }[] = mode === "run"
+  const heroRows: { label: MessageKey; hint: MessageKey }[] = mode === "tournament"
+    ? [
+        { label: "real.ruleField", hint: "real.ruleFieldHint" },
+        { label: "real.ruleLock", hint: "real.ruleLockHint" },
+        { label: "real.ruleSim", hint: "real.ruleSimHint" },
+      ]
+    : mode === "run"
     ? [
         { label: "start.runRuleDraft", hint: "start.runRuleDraftHint" },
         { label: "start.runRuleTargets", hint: "start.runRuleTargetsHint" },
@@ -286,14 +314,16 @@ export function StartScreen() {
 
   return (
     <main className="start">
-      {!backNative && <Button variant="back" onClick={() => { setMode(null); setStartStep("variants"); }}>← {t("start.backChoice")}</Button>}
+      {!backNative && (mode === "tournament"
+        ? <Button variant="back" onClick={() => { setMode(null); setStartStep("modes"); }}>← {t("start.backToModes")}</Button>
+        : <Button variant="back" onClick={() => { setMode(null); setStartStep("variants"); }}>← {t("start.backChoice")}</Button>)}
       <section className="hero-copy">
         <div className="hero-copy__lead">
-          <Eyebrow className="hero-eyebrow">{t(mode === "run" ? "start.runEyebrow" : "start.eyebrow")}</Eyebrow>
-          <h1>{t(mode === "run" ? "start.runTitle" : "start.title")}</h1>
+          <Eyebrow className="hero-eyebrow">{t(mode === "run" ? "start.runEyebrow" : mode === "tournament" ? "start.modeTournament" : "start.eyebrow")}</Eyebrow>
+          <h1>{t(mode === "run" ? "start.runTitle" : mode === "tournament" ? "real.launchTitle" : "start.title")}</h1>
         </div>
-        <div className={`hero-art hero-art--${mode === "run" ? "run" : "quick"}`}>
-          <div className="classic-art__copy"><strong>{t(mode === "run" ? "start.runArtTitle" : "start.classicArtTitle")}</strong><p>{t(mode === "run" ? "start.runArtText" : "start.classicArtText")}</p></div>
+        <div className={`hero-art hero-art--${mode === "run" ? "run" : mode === "tournament" ? "tournament" : "quick"}`}>
+          <div className="classic-art__copy"><strong>{t(mode === "run" ? "start.runArtTitle" : mode === "tournament" ? "real.artTitle" : "start.classicArtTitle")}</strong><p>{t(mode === "run" ? "start.runArtText" : mode === "tournament" ? "real.artText" : "start.classicArtText")}</p></div>
           {heroRows.map((row) => (
             <span key={row.label}><strong>{t(row.label)}</strong><small>{t(row.hint)}</small></span>
           ))}
@@ -301,8 +331,30 @@ export function StartScreen() {
       </section>
       <div className="start__layout">
         <Surface className="config-panel">
-          <OptionGroup title={t("start.draftStyle")} soonLabel={t("common.soon")} options={toOptions(DRAFT)} value={config.draftStyle} onChange={(value) => set("draftStyle", value)} />
-          <OptionGroup title={t("start.format")} soonLabel={t("common.soon")} options={toOptions(FORMAT.map((option) => ({ ...option, soon: !formatAvailable(option.value) })))} value={config.format} onChange={(value) => set("format", value)} />
+          {/* Real Tournament: главная ось — событие; draftStyle/scoring зафиксированы на входе
+              (mixed-механика + event-скоринг, RT-B) и не показываются. */}
+          {mode === "tournament" && (
+            <div className="config-panel__event">
+              <Select
+                label={t("real.eventLabel")}
+                data-testid="real-event-select"
+                value={realEventId ?? ""}
+                options={rtEvents.map((option) => ({
+                  value: option.eventId,
+                  // Год — только если его нет в самом имени («TI 2023» не превращаем в «TI 2023 · 2023»).
+                  label: option.year && !option.name.includes(String(option.year))
+                    ? `${option.name} · ${option.year}`
+                    : option.name,
+                }))}
+                onChange={(value) => setRealEventId(value)}
+              />
+              <p className="notice">{t("real.eventHint")}</p>
+            </div>
+          )}
+          {mode !== "tournament" && (
+            <OptionGroup title={t("start.draftStyle")} soonLabel={t("common.soon")} options={toOptions(DRAFT)} value={config.draftStyle} onChange={(value) => set("draftStyle", value)} />
+          )}
+          <OptionGroup title={t(mode === "tournament" ? "real.poolFormat" : "start.format")} soonLabel={t("common.soon")} options={toOptions(FORMAT.map((option) => ({ ...option, soon: !formatAvailable(option.value) })))} value={config.format} onChange={(value) => set("format", value)} />
           {/* Roguelite Run фиксирует рероллы (всегда максимум 2) → выбор сложности убран. */}
           {mode !== "run" && (
             <OptionGroup title={t("start.difficulty")} soonLabel={t("common.soon")} options={toOptions(DIFFICULTY.map((option) => ({
@@ -312,8 +364,11 @@ export function StartScreen() {
               disabled: (config.hardMode ?? false) && option.value !== HARDCORE_REROLLS,
             })))} value={config.rerolls} onChange={(value) => set("rerolls", value)} />
           )}
-          <OptionGroup title={t("start.scoring")} soonLabel={t("common.soon")} options={toOptions(SCORING)} value={config.scoring} onChange={(value) => set("scoring", value)} />
+          {mode !== "tournament" && (
+            <OptionGroup title={t("start.scoring")} soonLabel={t("common.soon")} options={toOptions(SCORING)} value={config.scoring} onChange={(value) => set("scoring", value)} />
+          )}
           <OptionGroup title={t("start.allocation")} soonLabel={t("common.soon")} options={toOptions(ALLOCATION)} value={config.allocation} onChange={(value) => set("allocation", value)} />
+          {mode !== "tournament" && (
           <OptionGroup
             title={t("hard.title")}
             soonLabel={t("common.soon")}
@@ -339,6 +394,7 @@ export function StartScreen() {
               }
             }}
           />
+          )}
           {/* Special rules — отдельная визуально отделённая секция и только для Roguelite Run:
               Cheat Mode это правило КОНКРЕТНОГО забега (привязано к seed и сейву), поэтому в
               глобальные Settings оно не переносится. */}
@@ -363,14 +419,19 @@ export function StartScreen() {
         <Surface as="aside" className="launch-panel">
           <span className="launch-panel__glow" aria-hidden="true" />
           <span className="launch-panel__icon" aria-hidden="true">A</span>
-          <h2>{t(mode === "run" ? "start.runLaunchTitle" : "start.launchTitle")}</h2>
-          <p>{t(mode === "run" ? "start.runLaunchText" : "start.launchText")}</p>
-          <ul>{selectedLabels.map((label) => <li key={label}>{t(label)}</li>)}</ul>
+          <h2>{t(mode === "run" ? "start.runLaunchTitle" : mode === "tournament" ? "real.launchTitle" : "start.launchTitle")}</h2>
+          <p>{t(mode === "run" ? "start.runLaunchText" : mode === "tournament" ? "real.launchText" : "start.launchText")}</p>
+          <ul>
+            {mode === "tournament" && realEventId && (
+              <li key="event">{rtEvents.find((option) => option.eventId === realEventId)?.name ?? realEventId}</li>
+            )}
+            {selectedLabels.map((label) => <li key={label}>{t(label)}</li>)}
+          </ul>
           <Button
             variant="primaryInvert"
             data-testid="start-run"
             onClick={onStart}
-            disabled={!formatAvailable(config.format) || seedValidation.issue !== null}
+            disabled={!formatAvailable(config.format) || seedValidation.issue !== null || (mode === "tournament" && (rtEvents.length === 0 || !realEventId))}
           >
             {t("start.launch")}<span>→</span>
           </Button>

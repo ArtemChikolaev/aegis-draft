@@ -57,6 +57,9 @@ export interface SavedRun {
   balanceConfigVersion?: string;
   /** Ростер на момент persist; replay должен совпасть побайтно. */
   frozenRoster?: FrozenRosterSlot[];
+  /** Real Tournament (T5.6): событие, чьё поле играется. Обязателен для mode "tournament" —
+   *  из него на resume детерминированно пересобираются поле и roster lock. */
+  realEventId?: string;
 }
 
 const RUN_KEY = "aegis:run:v1";
@@ -142,7 +145,9 @@ export function isSavedRunResumable(
     run
     && isRunCompatible(run, schemaVersion, ratingModelVersion, dataHash, dataBuiltAt, balanceConfigVersion)
     && run.seed
-    && run.config,
+    && run.config
+    // Real Tournament без события не восстановить: поле и lock выводятся из realEventId.
+    && (run.mode !== "tournament" || run.realEventId),
   );
 }
 

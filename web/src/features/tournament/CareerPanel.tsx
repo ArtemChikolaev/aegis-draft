@@ -38,8 +38,8 @@ export function CareerPanel({ mode }: { mode: RunMode }) {
     <section className="career-panel">
       <header className="career-panel__heading">
         <Eyebrow>{t("career.eyebrow")}</Eyebrow>
-        <h2>{t(mode === "run" ? "career.runTitle" : "career.quickTitle")}</h2>
-        <p>{t(mode === "run" ? "career.runSubtitle" : "career.quickSubtitle")}</p>
+        <h2>{t(mode === "run" ? "career.runTitle" : mode === "tournament" ? "career.tournamentTitle" : "career.quickTitle")}</h2>
+        <p>{t(mode === "run" ? "career.runSubtitle" : mode === "tournament" ? "career.tournamentSubtitle" : "career.quickSubtitle")}</p>
       </header>
       <Surface className="career-stats">
         <h3 className="bracket__side-title">{t("career.stats")}</h3>
