@@ -2304,14 +2304,39 @@ M5R: правки презентационные, `Rng`-поток и golden н�
   (#ffa9a0 dark / #b6392b light), НЕ сигнальный --danger — ошибки и шкала OVR не перекрашены;
   арт карточки — красные радиальные градиенты по образцу соседей. Замер живьём: shell/body
   несут accent=red, обе темы резолвятся, мобила в один столбик.
-- **MP0 — ws-транспорт + комната по коду ⬜.** `GET /api/ws/rooms/{code}` (upgrade;
-  `nhooyr.io/websocket` или `gorilla` — решить в задаче), комнаты в памяти одного инстанса
-  (Fly v1 — один инстанс, шардинг не нужен), протокол `{v, type, payload}` с версией с первого
-  сообщения. Presence: join/leave/ping, переподключение по токену комнаты. Комната пинит версии
-  `manifest` + `BALANCE_CONFIG_VERSION` при джойне — клиент с другим датасетом получает «обнови»,
-  иначе пулы рассинхронизируются. DoD: два клиента видят друг друга через живой сервер, из
-  TMA-webview тоже; reconnect не плодит призраков; тесты комнатной state-machine без сети.
-  **Deps: T9.0 (живой деплой Go-сервера)** — до него ws некуда подключать.
+- **MP0 — ws-транспорт + комната по коду 🟨 (код готов 2026-08-21; живой прогон на проде ждёт T9.0).**
+  - ✅ **Сервер.** Библиотека — `github.com/coder/websocket` (бывш. nhooyr; поддерживается,
+    context-first, ws-клиент для тестов; gorilla отклонена — поддержка-заморозка). Слои по
+    ADR 0002: state-machine комнат — [`service/room.go`](../server/internal/service/room.go)
+    (CreateRoom/JoinRoom/Disconnect/Leave/Prune; вместимость 18; версии `manifest` +
+    `BALANCE_CONFIG_VERSION` пинятся ПЕРВЫМ джойном, mismatch → отказ «обнови»; reconnect по
+    токену ЗАМЕНЯЕТ участника — призраков нет; janitor чистит брошенные лобби >1ч);
+    transport — [`rooms.go`](../server/internal/transport/rooms.go): `POST /api/rooms` +
+    `GET /api/ws/rooms/{code}`, протокол v1 `{v,type,payload}` (hello→welcome, presence-рассылка
+    joined/reconnected/disconnected/left, ping/pong; hub с per-соединение писателем — медленный
+    клиент не тормозит комнату). **ws вынесен из-под `middleware.Timeout`** (30с убивал бы
+    долгоживущее соединение); свои дедлайны: hello 10с, чтение 75с.
+  - 🐛 **Две находки в процессе:** (1) `conn.Close()` делает closing-handshake и ждёт эхо пира
+    до 5с — teardown-рассылки стояли в нём (пойман транспортным тестом; лечение `CloseNow`);
+    (2) у сервера ВООБЩЕ не было CORS — браузер с Pages/localhost не мог позвать API
+    кросс-ориджином (всплыло пробником связности T11.3; чинит `corsMiddleware`, wildcard
+    безопасен — куки не используются, auth = Bearer). Это чинит и будущие вызовы auth/saves
+    с Pages, не только комнаты.
+  - ✅ **Фронт.** [`data/api/arena.ts`](../web/src/data/api/arena.ts) (кодек протокола v1 +
+    REST-создание), [`state/arenaStore.ts`](../web/src/state/arenaStore.ts) (оркестрация;
+    reconnection-токен в sessionStorage per-код — reload возвращает того же участника),
+    [`ArenaLobby`](../web/src/features/start/ArenaLobby.tsx) за карточкой Arena — ТОЛЬКО при
+    сконфигуренном `VITE_API_BASE` (на проде без сервера карточка остаётся «Скоро», поведение
+    прода не изменилось). i18n RU+EN, ошибки version_mismatch/room_not_found/room_full — свои
+    тексты.
+  - ✅ **Проверки.** Go: 4 unit state-machine (пин версий/mismatch по каждой оси, reconnect без
+    призраков, вместимость+leave, prune) + 3 транспортных с реальным ws-клиентом (два клиента
+    видят друг друга, reconnect держит identity и место, mismatch/not_found отказы). Живой
+    прогон: локальный `go run ./cmd/api` + два playwright-контекста против 5273 — комната
+    HC5ZF, оба видят обоих, обрыв держит место (offline-точка), явный выход чистый, неизвестный
+    код — честная ошибка.
+  - ⬜ **Осталось (за T9.0 — Fly-карта на стороне пользователя):** прогон на живом HTTPS-сервере
+    и из TMA-webview; выставить `VITE_API_BASE` в деплой-сборку. Код к этому готов.
 - **MP1 — турнир комнаты на общем сиде, драфт из личных паков ⬜.** Комната → ready → общий сид →
   каждый драфтит СВОИ паки существующим `DraftScreen` (тайно, параллельно, таймаут = авто-пик
   `completeDraft`), боты добирают до 18 → лок → турнир 18 команд → общий reveal (симуляция

@@ -49,3 +49,20 @@ func userIDFrom(ctx context.Context) (uuid.UUID, bool) {
 	id, ok := ctx.Value(userIDKey).(uuid.UUID)
 	return id, ok
 }
+
+// corsMiddleware — кросс-ориджин для браузерных клиентов: фронт живёт на GitHub Pages/TMA,
+// API — на Fly, это разные origin по построению (ADR 0002). Куки не используются (auth —
+// Bearer в заголовке), поэтому wildcard-origin безопасен: политика «любой сайт может позвать
+// публичный API» и так выполняется для не-браузерных клиентов.
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}

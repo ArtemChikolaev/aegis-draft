@@ -32,6 +32,8 @@ type Deps struct {
 	Auth     Authenticator
 	Sessions Verifier // проверка Bearer на защищённых маршрутах
 	Saves    Saves
+	// Rooms — комнаты Arena (MP0). Память одного инстанса, БД не требует.
+	Rooms *service.RoomManager
 }
 
 // Server держит зависимости хендлеров.
@@ -41,11 +43,16 @@ type Server struct {
 	auth     Authenticator
 	sessions Verifier
 	saves    Saves
+	rooms    *service.RoomManager
+	roomHub  *roomHub
 }
 
 // NewServer собирает сервер из зависимостей. nil-поля Deps выключают свои маршруты.
 func NewServer(cfg config.Config, deps Deps) *Server {
-	return &Server{env: cfg.Env, db: deps.DB, auth: deps.Auth, sessions: deps.Sessions, saves: deps.Saves}
+	return &Server{
+		env: cfg.Env, db: deps.DB, auth: deps.Auth, sessions: deps.Sessions, saves: deps.Saves,
+		rooms: deps.Rooms, roomHub: newRoomHub(),
+	}
 }
 
 // Handler строит корневой http.Handler со стандартным middleware-стеком.
@@ -55,25 +62,41 @@ func (s *Server) Handler() http.Handler {
 		middleware.RequestID,
 		middleware.RealIP,
 		middleware.Recoverer,
-		middleware.Timeout(30*time.Second),
+		corsMiddleware, // фронт на Pages/TMA ↔ API на Fly: разные origin по построению
 	)
 
-	r.Get("/healthz", s.health) // liveness: процесс жив (Fly бьёт сюда)
-	r.Get("/readyz", s.ready)   // readiness: БД доступна
+	// ws-комнаты Arena (MP0) живут ВНЕ HTTP-таймаута: соединение долгоживущее, а
+	// middleware.Timeout отменил бы его контекст через 30 секунд. Свои дедлайны у
+	// сессии есть (hello 10с, чтение 75с) — вечно висеть сокет не может.
+	if s.rooms != nil {
+		r.Get("/api/ws/rooms/{code}", s.roomSocket)
+	}
 
-	// Динамика под /api. Игровые данные НЕ проксируем: static-first через CDN (ADR 0002).
-	if s.auth != nil {
-		r.Route("/api/auth", func(r chi.Router) {
-			r.Post("/telegram", s.authTelegram)
-		})
-	}
-	// Облачные сейвы — под Bearer (первый защищённый маршрут). Требуют и сессии, и стор.
-	if s.saves != nil && s.sessions != nil {
-		r.Route("/api/saves", func(r chi.Router) {
-			r.Use(s.requireAuth)
-			r.Get("/{kind}", s.getSave)
-			r.Put("/{kind}", s.putSave)
-		})
-	}
+	// Обычные HTTP-маршруты — под общим таймаутом, как раньше.
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.Timeout(30 * time.Second))
+
+		r.Get("/healthz", s.health) // liveness: процесс жив (Fly бьёт сюда)
+		r.Get("/readyz", s.ready)   // readiness: БД доступна
+
+		// Динамика под /api. Игровые данные НЕ проксируем: static-first через CDN (ADR 0002).
+		if s.auth != nil {
+			r.Route("/api/auth", func(r chi.Router) {
+				r.Post("/telegram", s.authTelegram)
+			})
+		}
+		// Комнаты Arena (MP0): создание — обычный HTTP. Память инстанса — работает и без БД.
+		if s.rooms != nil {
+			r.Post("/api/rooms", s.createRoom)
+		}
+		// Облачные сейвы — под Bearer (первый защищённый маршрут). Требуют и сессии, и стор.
+		if s.saves != nil && s.sessions != nil {
+			r.Route("/api/saves", func(r chi.Router) {
+				r.Use(s.requireAuth)
+				r.Get("/{kind}", s.getSave)
+				r.Put("/{kind}", s.putSave)
+			})
+		}
+	})
 	return r
 }

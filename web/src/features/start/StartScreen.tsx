@@ -13,6 +13,8 @@ import { realTournamentEvents } from "../../game/realTournament.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
 import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
 import { SeedField } from "./SeedField.tsx";
+import { ArenaLobby } from "./ArenaLobby.tsx";
+import { isApiConfigured } from "../../data/api/index.ts";
 import "./start.css";
 
 interface Opt<T> {
@@ -271,7 +273,11 @@ export function StartScreen() {
         <h1>{t("start.comingSoon")}</h1>
         <p className="mp-text">{t(selectedMode.detail)}</p>
         {netState === "ok" ? (
-          <div className="mode-preview__art"><strong>{t(selectedMode.label)}</strong><span>{t("start.comingSoonText")}</span></div>
+          mode === "arena" && isApiConfigured() ? (
+            <ArenaLobby />
+          ) : (
+            <div className="mode-preview__art"><strong>{t(selectedMode.label)}</strong><span>{t("start.comingSoonText")}</span></div>
+          )
         ) : (
           <div className="mode-preview__art mode-preview__art--network" data-state={netState} data-testid="mode-network">
             <strong>{t(netState === "checking" ? "start.offlineChecking" : "common.offline")}</strong>

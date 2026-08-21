@@ -290,3 +290,20 @@
 /* Real Tournament (T5.6): выбор события — главная ось режима, стоит первой в панели. */
 .config-panel__event { display: grid; gap: 8px; }
 .config-panel__event .notice { margin: 0; }
+
+/* Лобби Arena (MP0): комната по коду + живое присутствие. */
+.arena-lobby { display: grid; gap: 14px; padding: 22px; }
+.arena-lobby__code { display: flex; align-items: baseline; gap: 12px; }
+.arena-lobby__code span { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; }
+.arena-lobby__code strong { font-size: 30px; letter-spacing: .18em; }
+.arena-lobby__members { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.arena-lobby__members li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--surface-soft, rgba(127,127,127,.08)); }
+.arena-lobby__members li em { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-green); }
+.arena-lobby__members li[data-connected="false"] em { background: var(--muted); }
+.arena-lobby__members li small { color: var(--muted); }
+.arena-lobby__members li.is-self span { font-weight: 700; }
+.arena-lobby__note { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.arena-lobby__error { margin: 0; color: var(--danger); font-size: 12px; }
+.arena-lobby__actions { display: grid; gap: 10px; }
+.arena-lobby__join { display: flex; gap: 8px; align-items: center; }
+.arena-lobby__join > :first-child { flex: 1; }

@@ -69,6 +69,20 @@ func main() {
 		log.Printf("[server] auth выключен (нужны DATABASE_URL + SESSION_SECRET + BOT_TOKEN)")
 	}
 
+	// Комнаты Arena (MP0): память инстанса, БД не нужна — включены всегда. Janitor чистит
+	// брошенные лобби (все офлайн > 1 часа), чтобы память одного инстанса не текла.
+	rooms := service.NewRoomManager(nil)
+	deps.Rooms = rooms
+	go func() {
+		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			if removed := rooms.PruneRooms(time.Hour); removed > 0 {
+				log.Printf("[rooms] pruned %d abandoned room(s)", removed)
+			}
+		}
+	}()
+
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
 		Handler:      transport.NewServer(cfg, deps).Handler(),
