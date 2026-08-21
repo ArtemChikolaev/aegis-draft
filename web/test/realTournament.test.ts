@@ -5,6 +5,7 @@ import {
   buildRealField,
   REAL_FIELD_OPPONENTS,
   realTournamentEvents,
+  underdogVerdict,
 } from "../src/game/realTournament.ts";
 import { RunEngine } from "../src/game/engine.ts";
 import { TournamentEngine } from "../src/game/tournament.ts";
@@ -142,5 +143,23 @@ describe("realTournament — ссылка и карьера", () => {
     expect(careerEntriesForMode([entry], "tournament")).toHaveLength(1);
     expect(careerEntriesForMode([entry], "classic")).toHaveLength(0);
     expect(careerEntriesForMode([entry], "run")).toHaveLength(0);
+  });
+});
+
+describe("underdogVerdict — прогноз против финиша (интервалы бакетов)", () => {
+  it("финиш целиком выше прогноза — beat; пересечение — met; ниже — missed", () => {
+    expect(underdogVerdict("17-18", "5-6")).toBe("beat");
+    expect(underdogVerdict("9-12", "1")).toBe("beat");
+    expect(underdogVerdict("5-8", "5-6")).toBe("met");
+    expect(underdogVerdict("2-4", "3")).toBe("met");
+    expect(underdogVerdict("1", "1")).toBe("met");
+    expect(underdogVerdict("5-8", "9-12")).toBe("missed");
+    expect(underdogVerdict("1", "18")).toBe("missed");
+  });
+
+  it("граница интервалов честная: касание = met, строгий разрыв = вердикт", () => {
+    // Прогноз 5-8, финиш 7-8: пересекаются → met; финиш 4 — строго выше → beat.
+    expect(underdogVerdict("5-8", "7-8")).toBe("met");
+    expect(underdogVerdict("5-8", "4")).toBe("beat");
   });
 });

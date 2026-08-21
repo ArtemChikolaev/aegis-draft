@@ -39,6 +39,7 @@ import {
   squadChemistryRows,
 } from "../../game/score.ts";
 import { summandModifiers } from "../../game/anteEconomy.ts";
+import { underdogVerdict } from "../../game/realTournament.ts";
 import { rarityModifiers } from "../../game/heroRarity.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
@@ -794,6 +795,11 @@ export function TournamentScreen() {
               <strong>{realField.eventName}</strong>
             </div>
           )}
+          {isRealTournament && stage === "field" && (
+            <p className="real-challenge enter" data-testid="real-challenge" style={{ ["--enter-i" as string]: 4 } as React.CSSProperties}>
+              {t("real.challenge", { place: t(projectionKey(tournament.projection)) })}
+            </p>
+          )}
           <div className="tournament__projection enter" style={{ ["--enter-i" as string]: 3 } as React.CSSProperties}>
             <span>{t("tournament.yourProjection")}</span>
             <strong>{t(projectionKey(tournament.projection))}</strong>
@@ -963,6 +969,15 @@ export function TournamentScreen() {
                 <span>{t("tournament.yourFinish")}</span>
                 <strong className={tournament.champion.isUser ? "is-user" : ""}>{t(placementKey(tournament.userPlacement))}</strong>
               </div>
+              {/* Underdog (T5.6 срез 2): прогноз был вызовом — на терминале он судится. */}
+              {isRealTournament && (
+                <div className="tournament__champion-name" data-testid="real-underdog" data-verdict={underdogVerdict(tournament.projection, tournament.userPlacement)}>
+                  <span>{t("real.projectionWas", { place: t(projectionKey(tournament.projection)) })}</span>
+                  <strong className={`real-verdict real-verdict--${underdogVerdict(tournament.projection, tournament.userPlacement)}`}>
+                    {t(`real.verdict.${underdogVerdict(tournament.projection, tournament.userPlacement)}` as MessageKey)}
+                  </strong>
+                </div>
+              )}
               <div className="tournament__champion-name">
                 <span>{t("tournament.champion")}</span>
                 <strong>

@@ -134,3 +134,26 @@ export function buildRealField(data: GameData, eventId: string): RealField {
   }
   return { eventId, eventName: event.name, opponents, lockedAccounts };
 }
+
+/* ─── Underdog-подача (T5.6 срез 2, modes-scenarios §2.5.1) ───
+ * Прогноз места (projection) считается от силы состава — в Real Tournament он и есть «сид
+ * посева» челленджера среди реального поля. Сравнение с фактом на терминале превращает прогноз
+ * в явный вызов: «ты 17-18-й — пробей выше». Чистая арифметика диапазонов, никакого Rng. */
+
+export type UnderdogVerdict = "beat" | "met" | "missed";
+
+/** Диапазон мест бакета: и projection, и placement — интервалы, сравниваем интервалами.
+ *  Ключи бакетов приходят строками вида "1" | "2-4" | "5-8" | ... — парсинг общий. */
+function bucketRange(key: string): [number, number] {
+  const [lo, hi] = key.split("-").map(Number);
+  return [lo, hi ?? lo];
+}
+
+/** Вердикт: финиш целиком выше прогноза — «пробил», пересекается — «в прогноз», ниже — «мимо». */
+export function underdogVerdict(projection: string, placement: string): UnderdogVerdict {
+  const [projLo, projHi] = bucketRange(projection);
+  const [placeLo, placeHi] = bucketRange(placement);
+  if (placeHi < projLo) return "beat";
+  if (placeLo > projHi) return "missed";
+  return "met";
+}

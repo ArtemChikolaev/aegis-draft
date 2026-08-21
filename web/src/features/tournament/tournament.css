@@ -777,3 +777,8 @@
 .ante-result--playing,
 .ante-result--won { --flash-color: var(--win); }
 .ante-result--lost { --flash-color: var(--loss); }
+
+/* Underdog-подача Real Tournament (T5.6 срез 2): вызов на поле и вердикт на терминале. */
+.real-challenge { margin: 0; color: var(--muted-invert); font-size: 12px; line-height: 1.5; }
+.real-verdict--beat { color: var(--brand-green); }
+.real-verdict--missed { color: var(--danger-invert, var(--danger)); }

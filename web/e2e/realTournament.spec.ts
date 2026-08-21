@@ -39,12 +39,16 @@ test.describe("Real Tournament (T5.6, реальный датасет)", () => {
 
     // Поле — реальные составы события: подпись симуляции есть, реролла поля нет.
     await expect(page.getByTestId("real-field-note")).toContainText("The International 2023");
+    // Underdog-вызов (срез 2): прогноз подан как цель ещё до старта симуляции.
+    await expect(page.getByTestId("real-challenge")).toBeVisible();
     await expect(page.getByTestId("tournament-field-reroll")).toHaveCount(0);
     await expect(page.getByTestId("tournament-stage-field")).toContainText("Team Spirit");
 
     // Терминал одним кликом (R1.1) + карьера в бакете RT.
     await page.getByTestId("tournament-show-result").click();
     await expect(page.getByTestId("tournament-complete")).toBeVisible({ timeout: 10_000 });
+    // Вердикт прогноза на терминале: прогноз был вызовом — теперь он судится.
+    await expect(page.getByTestId("real-underdog")).toHaveAttribute("data-verdict", /beat|met|missed/);
     await expect(page.locator(".career-panel")).toContainText(/Real Tournament/);
     await expect(page.locator(".career-run")).toHaveCount(1);
   });
