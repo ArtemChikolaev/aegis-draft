@@ -134,6 +134,9 @@ export interface FieldModel {
   max: number;
   /** Надбавка к итоговой силе сверх качества ростера. Без верхней границы. */
   threat?: number;
+  /** Множитель итоговой силы — Tournament Power поля (R7.2, мультипликативная часть угрозы):
+   *  растёт по актам, как у игрока растут X Mult предметов. 1 по умолчанию; Quick Draft не задаёт. */
+  mult?: number;
 }
 
 /** Поле Quick Draft — `round(clamp(76, 99, Normal(86, 5)))`, параметры сняты из бандла 322-0
@@ -148,7 +151,10 @@ function sampleBotStrength(rng: Rng, field: FieldModel): number {
   // Клампится КАЧЕСТВО ростера — у оценки живых игроков есть естественный потолок. Угроза
   // (`threat`) прибавляется уже после и потолка не имеет.
   const quality = Math.round(Math.min(field.max, Math.max(field.min, raw)));
-  return quality + (field.threat ?? 0);
+  // Множитель поля применяется к итоговой силе (качество + угроза), как у игрока X Mult
+  // применяется к ростеру с прибавками; без множителя — прежняя арифметика (golden Quick Draft).
+  const mult = field.mult ?? 1;
+  return mult === 1 ? quality + (field.threat ?? 0) : Math.round((quality + (field.threat ?? 0)) * mult);
 }
 
 function rollBotStrengths(rng: Rng, count: number, field: FieldModel): number[] {
@@ -346,7 +352,7 @@ function buildResult(data: GameData, format: Format, seed: string, userStrength:
   const [drawA, drawB] = snakeSeed(field);
   // Шкалу состязания задаёт ПОЛЕ этапа: Quick Draft получает ровно 22 (golden байт-в-байт), а
   // инфляция силы на поздних этапах перестаёт делать каждый матч детерминированным (R8.2).
-  const divisor = eloDivisorForScale(ELO_DIVISOR, fieldModel.mean + (fieldModel.threat ?? 0));
+  const divisor = eloDivisorForScale(ELO_DIVISOR, (fieldModel.mean + (fieldModel.threat ?? 0)) * (fieldModel.mult ?? 1));
   const groupA = buildGroup(simRng, "A", drawA, divisor);
   const groupB = buildGroup(simRng, "B", drawB, divisor);
   const groups = [groupA.group, groupB.group];

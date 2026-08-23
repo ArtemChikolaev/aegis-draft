@@ -5,6 +5,7 @@ import {
   LEGAL_ANTE_TARGETS,
   ANTE_FIELD,
   ANTE_THREAT,
+  anteFieldMult,
   ACT_LENGTH,
   anteFieldModel,
   anteThreat,
@@ -356,6 +357,25 @@ describe("Угроза этапа (R7.2)", () => {
     expect(anteThreat(0)).toBe(0);
     expect(anteThreat(0, { stake: 7 })).toBe(7);
     expect(anteFieldModel(0, { stake: 7 }).threat).toBe(7);
+  });
+
+  it("множитель поля растёт геометрически по ПРОЙДЕННЫМ актам и внутри акта не меняется (R7.2)", () => {
+    expect(anteFieldMult(0)).toBe(1);
+    expect(anteFieldMult(ACT_LENGTH - 1)).toBe(1);
+    expect(anteFieldMult(ACT_LENGTH)).toBeCloseTo(1 + ANTE_THREAT.multPerAct, 6);
+    expect(anteFieldMult(2 * ACT_LENGTH)).toBeCloseTo((1 + ANTE_THREAT.multPerAct) ** 2, 6);
+    // Мультипликативная часть идёт отдельным слоем от аддитивной угрозы: оба видны в модели этапа.
+    expect(anteFieldModel(ACT_LENGTH).mult).toBeCloseTo(1 + ANTE_THREAT.multPerAct, 6);
+    expect(anteFieldModel(0).mult).toBe(1);
+    // Сила ботов на этапе с множителем выше той же модели без него — множитель применяется
+    // к итоговой силе (качество + угроза), поэтому порядок величин этапа растёт, а не только хвост.
+    const withMult = new TournamentEngine(data, "last_2y", "mult-act2", 95, "Five", 0, anteFieldModel(2 * ACT_LENGTH));
+    const noMult = new TournamentEngine(data, "last_2y", "mult-act2", 95, "Five", 0, { ...anteFieldModel(2 * ACT_LENGTH), mult: 1 });
+    const botMean = (engine: TournamentEngine) => {
+      const bots = engine.snapshot.field.filter((team) => !team.isUser);
+      return bots.reduce((sum, team) => sum + team.strength, 0) / bots.length;
+    };
+    expect(botMean(withMult) / botMean(noMult)).toBeCloseTo((1 + ANTE_THREAT.multPerAct) ** 2, 1);
   });
 
   it("угроза выводит силу соперника выше потолка качества, а турнир остаётся валидным", () => {

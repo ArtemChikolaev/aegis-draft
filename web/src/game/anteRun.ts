@@ -270,7 +270,21 @@ export const ANTE_THREAT = {
    *  вся его сложность обязана быть в поле, и надбавка заметно больше боссовой. Число —
    *  плейсхолдер R6.1, пере-калибровка по замеру за R6.4/R10. */
   elite: 3,
+  /** Множитель поля за каждый ПРОЙДЕННЫЙ акт — геометрический (`(1+multPerAct)^acts`): это
+   *  мультипликативная часть угрозы из R7.2 (`opponentTeamMult · opponentXMult`), отложенная
+   *  до появления Tournament Power у игрока (R8.2). Без неё поле росло только аддитивно
+   *  (+36 к 5-му акту), а билд игрока — множителями (×2.65 p50 на 25-м этапе, замер b1.35.0),
+   *  и после 6-го этапа билд-агент не умирал вовсе (survival 64% плоско до финала). Число —
+   *  из офлайн-свипа по дампу 400 сидов + A/B на тех же сидах: 0.20 → 42.5%, 0.22 → 35.8%,
+   *  0.25 → 23.8% у synergy-build при полосе PRD 30–40% (см. balance.ts b1.36.0). */
+  multPerAct: 0.22,
 } as const;
+
+/** Множитель поля по пройденным актам (R7.2, мультипликативная часть). Внутри акта — 1. */
+export function anteFieldMult(absoluteStageIndex: number, season: SeasonRules = SEASON): number {
+  const completedActs = Math.max(0, Math.floor(absoluteStageIndex / season.actLength));
+  return (1 + ANTE_THREAT.multPerAct) ** completedActs;
+}
 
 /** Суммарная угроза этапа. `stake` — сид под Stakes (T6.4): системы ещё нет, поэтому значение
  *  приходит извне и по умолчанию 0, а не выдумывается здесь.
@@ -307,6 +321,7 @@ export function anteFieldModel(
     min: ANTE_FIELD.min,
     max: ANTE_FIELD.max,
     threat: anteThreat(stageIndex, opts),
+    mult: anteFieldMult(stageIndex, opts.season),
   };
 }
 
