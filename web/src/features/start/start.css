@@ -58,8 +58,9 @@
 .mode-preview h1 { max-width: 900px; margin: 24px 0; font-size: clamp(54px, 7vw, 104px); font-weight: 500; line-height: .93; letter-spacing: -.065em; }
 .mode-preview .mp-text { max-width: 620px; color: var(--muted); font-size: 18px; }
 .mode-preview__art { display: grid; grid-template-columns: 1fr 1fr; align-items: end; gap: 30px; min-height: 290px; margin-top: 60px; padding: 34px; color: var(--on-invert); border-radius: 18px; background: var(--surface-invert); }
-.mode-preview--manager .mode-preview__art { background: radial-gradient(circle at 82% 20%, #ffb37e, transparent 22%), var(--surface-invert); }
-.mode-preview--tournament .mode-preview__art { background: radial-gradient(circle at 82% 20%, #8bbcff, transparent 22%), var(--surface-invert); }
+/* Превью остался только у Arena (Manager и Real Tournament ведут в свои экраны) — свечение в
+   тон её карточке, чтобы «режим в разработке» не выглядел плоской заглушкой. */
+.mode-preview--arena .mode-preview__art { background: radial-gradient(circle at 82% 20%, #ffa9a0, transparent 22%), var(--surface-invert); }
 .mode-preview__art strong { font: 500 clamp(32px, 5vw, 70px)/1 "Space Grotesk"; letter-spacing: -.05em; }
 .mode-preview__art span { color: var(--muted-invert); }
 /* Состояние сети: та же панель, но без «арт-обещания» — статус и действие. */
@@ -216,7 +217,7 @@
 }
 .launch-panel > *:not(.launch-panel__glow) { position: relative; z-index: 1; }
 .launch-panel__icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 58px; color: var(--surface-invert); background: var(--on-invert); font: 800 18px "Space Grotesk"; }
-.launch-panel h2 { margin-bottom: 10px; font-size: 25px; letter-spacing: -.035em; }
+.launch-panel h2 { margin-bottom: 10px; font-size: 25px; line-height: 1.15; letter-spacing: -.035em; }
 .launch-panel p { color: var(--muted-invert); font-size: 13px; }
 .launch-panel ul { display: grid; gap: 0; padding: 0; margin: 24px 0; list-style: none; }
 .launch-panel li { padding: 10px 0; border-bottom: 1px solid var(--line-invert); font-size: 12px; font-weight: 700; }
@@ -287,9 +288,11 @@
   border-top: 1px dashed var(--line);
 }
 
-/* Real Tournament (T5.6): выбор события — главная ось режима, стоит первой в панели. */
-.config-panel__event { display: grid; gap: 8px; }
-.config-panel__event .notice { margin: 0; }
+/* Real Tournament (T5.6): выбор события — главная ось режима, стоит первой в панели.
+   Нижний отступ = padding-bottom группы OptionGroup (26px), чтобы ритм панели не ломался.
+   Подсказка — информационная, цвет muted: `.notice` (danger) читался бы как ошибка. */
+.config-panel__event { display: grid; gap: 10px; margin-bottom: 26px; }
+.config-panel__hint { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
 
 /* Лобби Arena (MP0): комната по коду + живое присутствие. */
 .arena-lobby { display: grid; gap: 14px; padding: 22px; }

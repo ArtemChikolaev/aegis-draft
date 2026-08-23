@@ -46,6 +46,25 @@ function isAdjacent(ia: number, ib: number, n: number) {
   return d === 1 || d === n - 1;
 }
 
+/** Подпись ребра — на внешней нормали к ребру (от центра), а не «на 5px выше середины»:
+ *  у наклонных рёбер сдвиг по Y оставлял линию поверх текста. Для рёбер и хорд правильного
+ *  пятиугольника направление «середина → от центра» и есть перпендикуляр к ребру. */
+const EDGE_LABEL_OFFSET = 11;
+/** Хорда: середина лежит во внутреннем пятиугольнике, под числом Team OVR, а на 38%/62% длины
+ *  хорду пересекают соседние хорды, поэтому подпись ставим на внешнем отрезке (25% от вершины). */
+const CHORD_LABEL_T = 0.25;
+const CHORD_LABEL_OFFSET = 9;
+function edgeLabelPos(a: { x: number; y: number }, b: { x: number; y: number }, chord = false) {
+  const mx = (a.x + b.x) / 2;
+  const my = (a.y + b.y) / 2;
+  const dx = mx - C;
+  const dy = my - C;
+  const d = Math.hypot(dx, dy) || 1;
+  const t = chord ? CHORD_LABEL_T : 0.5;
+  const offset = chord ? CHORD_LABEL_OFFSET : EDGE_LABEL_OFFSET;
+  return { x: a.x + (b.x - a.x) * t + (dx / d) * offset, y: a.y + (b.y - a.y) * t + (dy / d) * offset };
+}
+
 function ringTone(bonus: number | undefined): "thin" | "chem" {
   if (bonus == null || bonus < EDGE_MIN) return "thin";
   return "chem";
@@ -123,13 +142,12 @@ export function Pentagon({ roster, centerValue, centerLabelKey = "common.teamOvr
           const ib = slotByAccount.get(edge.b)!;
           const a = layouts[ia].vertex;
           const b = layouts[ib].vertex;
-          const mx = (a.x + b.x) / 2;
-          const my = (a.y + b.y) / 2;
+          const label = edgeLabelPos(a, b, true);
           const tone = chemTier(edge.bonus);
           return (
             <g key={`${edge.a}:${edge.b}`} className={`pentagon__edge pentagon__edge--${tone}`}>
               <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="pentagon__edge-line" strokeWidth={CHORD_STROKE} />
-              <text x={mx} y={my - 4} className="pentagon__edge-label">{fmtEdge(edge.bonus)}</text>
+              <text x={label.x} y={label.y} className="pentagon__edge-label">{fmtEdge(edge.bonus)}</text>
             </g>
           );
         })}
@@ -140,8 +158,7 @@ export function Pentagon({ roster, centerValue, centerLabelKey = "common.teamOvr
           const idB = roster[(i + 1) % roster.length].candidate?.player.accountId;
           const bonus = idA != null && idB != null ? bonusByPair.get(pairKey(idA, idB)) : undefined;
           const tone = ringTone(bonus);
-          const mx = (l.vertex.x + next.vertex.x) / 2;
-          const my = (l.vertex.y + next.vertex.y) / 2;
+          const label = edgeLabelPos(l.vertex, next.vertex);
           return (
             <g
               key={`ring-${i}`}
@@ -157,7 +174,7 @@ export function Pentagon({ roster, centerValue, centerLabelKey = "common.teamOvr
                 strokeWidth={tone === "chem" ? RING_STROKE_CHEM : RING_STROKE_THIN}
               />
               {bonus != null && Math.abs(bonus) >= EDGE_MIN && (
-                <text x={mx} y={my - 5} className="pentagon__edge-label">{fmtEdge(bonus)}</text>
+                <text x={label.x} y={label.y} className="pentagon__edge-label">{fmtEdge(bonus)}</text>
               )}
             </g>
           );

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRun, type RunMode } from "../../state/runStore.ts";
 import { useConnectivity } from "../../state/connectivity.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
@@ -98,16 +98,16 @@ export function StartScreen() {
   // Real Tournament (T5.6): выбранное событие — часть mode-shell-состояния (переживает reset).
   const realEventId = useRun((state) => state.realEventId);
   const setRealEventId = useRun((state) => state.setRealEventId);
-  const rtEvents = mode === "tournament" && data ? realTournamentEvents(data) : [];
+  // Каталог — группировка всех паков по событию; StartScreen перерисовывается на каждый клик по
+  // опции и символ сида, поэтому считаем его один раз на датасет, а не на рендер.
+  const rtEvents = useMemo(() => (mode === "tournament" && data ? realTournamentEvents(data) : []), [mode, data]);
   // Дефолт — свежайшее событие; выбор, выпавший из каталога после data-refresh, честно сбрасываем.
   useEffect(() => {
-    if (mode !== "tournament" || rtEvents.length === 0) return;
+    if (rtEvents.length === 0) return;
     if (!realEventId || !rtEvents.some((option) => option.eventId === realEventId)) {
       setRealEventId(rtEvents[0].eventId);
     }
-    // Каталог — производная данных; ключи ниже покрывают смену данных и режима.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, realEventId, rtEvents.length]);
+  }, [realEventId, rtEvents, setRealEventId]);
   // В TMA «назад» в выбор режимов даёт телеграмная кнопка — свою прячем (нативный хром).
   const backNative = useTmaChrome((state) => state.backNative);
   // Связность (T11.3): гейтим только режимы с `needsNetwork`. `unknown` («проверить нечем»)
@@ -343,6 +343,7 @@ export function StartScreen() {
             <div className="config-panel__event">
               <Select
                 label={t("real.eventLabel")}
+                keepLabel
                 data-testid="real-event-select"
                 value={realEventId ?? ""}
                 options={rtEvents.map((option) => ({
@@ -354,7 +355,7 @@ export function StartScreen() {
                 }))}
                 onChange={(value) => setRealEventId(value)}
               />
-              <p className="notice">{t("real.eventHint")}</p>
+              <p className="config-panel__hint">{t("real.eventHint")}</p>
             </div>
           )}
           {mode !== "tournament" && (
@@ -425,7 +426,7 @@ export function StartScreen() {
         <Surface as="aside" className="launch-panel">
           <span className="launch-panel__glow" aria-hidden="true" />
           <span className="launch-panel__icon" aria-hidden="true">A</span>
-          <h2>{t(mode === "run" ? "start.runLaunchTitle" : mode === "tournament" ? "real.launchTitle" : "start.launchTitle")}</h2>
+          <h2>{t(mode === "run" ? "start.runLaunchTitle" : mode === "tournament" ? "real.launchPanelTitle" : "start.launchTitle")}</h2>
           <p>{t(mode === "run" ? "start.runLaunchText" : mode === "tournament" ? "real.launchText" : "start.launchText")}</p>
           <ul>
             {mode === "tournament" && realEventId && (

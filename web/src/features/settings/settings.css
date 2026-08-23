@@ -5,6 +5,9 @@
 /* Surface приходит с хешированным классом CSS-модуля — цепляемся за свой .settings__panel. */
 .settings > .settings__panel, .settings > header { justify-self: stretch; width: 100%; }
 .settings__panel { display: grid; gap: 22px; padding: 24px; }
+/* OptionGroup несёт свой нижний отступ (26px) для панелей без gap; здесь ритм задаёт gap панели,
+   иначе между группами копилось 48px (как было в Manager-онбординге). */
+.settings__panel > fieldset { padding-bottom: 0; }
 .settings__section { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 /* Кнопки офлайн-панели (T11.4): в ряд на широком, в столбец на узком — иначе «Проверить снова»
    и «Очистить» сжимаются до нечитаемых огрызков. */

@@ -144,7 +144,7 @@ function Onboarding() {
             data-testid="manager-org-name"
           />
         </label>
-        <OptionGroup title={t("manager.region")} soonLabel={t("common.soon")} options={regionOptions} value={region} onChange={(v) => setRegion(v as ManagerRegion)} />
+        <OptionGroup title={t("manager.region")} soonLabel={t("common.soon")} options={regionOptions} value={region} onChange={(v) => setRegion(v as ManagerRegion)} columns={3} />
         <OptionGroup
           title={t("manager.difficulty")}
           soonLabel={t("common.soon")}

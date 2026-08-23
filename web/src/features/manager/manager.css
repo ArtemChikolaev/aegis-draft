@@ -13,6 +13,12 @@
 .manager__resume { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .manager__resume-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .manager__field { display: grid; gap: 8px; }
+/* Подпись поля — того же кегля, что legend у OptionGroup рядом (11px/.12em), иначе «название
+   организации» выглядит заголовком другого уровня, чем «регион» строкой ниже. */
+.manager__field > .manager__section { font-size: 11px; letter-spacing: .12em; }
+/* OptionGroup несёт свой нижний отступ (26px) для панелей без gap; в панели с gap:16px он
+   удваивал воздух между группами (16 → 42px). Ритм панели задаёт её gap. */
+.manager__panel > fieldset { padding-bottom: 0; }
 
 /* Вердикт гейта на панели результата */
 .manager__gate { margin: 0; padding: 10px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; }

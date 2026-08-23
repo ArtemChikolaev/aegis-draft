@@ -3,7 +3,7 @@
 .field select { min-width: 84px; border: 0; border-radius: 999px; padding: 7px 26px 7px 9px; background: var(--surface-soft); font-size: var(--control-font-sm); font-weight: 700; }
 
 @media (max-width: 680px) {
-  .field > span { display: none; }
-  .field { padding: 4px; }
+  .field:not(.keepLabel) > span { display: none; }
+  .field:not(.keepLabel) { padding: 4px; }
   .field select { min-width: 65px; }
 }

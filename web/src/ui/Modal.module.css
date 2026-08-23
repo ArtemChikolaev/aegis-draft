@@ -75,6 +75,9 @@
   margin: 0 0 12px;
   padding-right: 36px;
   font-size: 34px;
+  /* Заголовок в 34px с телесным line-height 1.55 на мобиле разваливался на две строки с
+     «воздухом» в пол-экрана — у дисплейного кегля своя, плотная интерлиньяжность. */
+  line-height: 1.1;
   letter-spacing: -.04em;
 }
 .description {
