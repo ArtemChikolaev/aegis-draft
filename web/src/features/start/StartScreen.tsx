@@ -356,6 +356,14 @@ export function StartScreen() {
                 onChange={(value) => setRealEventId(value)}
               />
               <p className="config-panel__hint">{t("real.eventHint")}</p>
+              {/* Сила поля выбранного события — это и есть выбор сложности режима (RT-D): без
+                  подписи игрок не отличил бы EWC от региональной лиги до самого посева. */}
+              {(() => {
+                const selected = rtEvents.find((option) => option.eventId === realEventId);
+                return selected
+                  ? <p className="config-panel__hint config-panel__hint--strong" data-testid="real-field-strength">{t("real.fieldStrength", { median: Math.round(selected.fieldMedian), top: Math.round(selected.fieldTop) })}</p>
+                  : null;
+              })()}
             </div>
           )}
           {mode !== "tournament" && (

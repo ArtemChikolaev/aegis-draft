@@ -34,6 +34,9 @@ export interface RealEventOption {
   type: string;
   /** Сколько реальных составов есть у события (может быть больше поля — слабейшие отсекаются). */
   packCount: number;
+  /** Сила поля: медиана и лидер среди топ-17 — подпись сложности в селекте события. */
+  fieldMedian: number;
+  fieldTop: number;
 }
 
 export interface RealField {
@@ -60,20 +63,37 @@ function packsByEvent(data: GameData): Map<string, Pack[]> {
 export function realTournamentEvents(data: GameData): RealEventOption[] {
   const byEvent = packsByEvent(data);
   return data.events
-    .map((event) => ({
-      eventId: event.id,
-      name: event.name,
-      year: event.year ?? null,
-      type: event.type,
-      packCount: byEvent.get(event.id)?.length ?? 0,
-    }))
-    .filter((option) => option.packCount >= REAL_FIELD_OPPONENTS)
+    .filter((event) => (byEvent.get(event.id)?.length ?? 0) >= REAL_FIELD_OPPONENTS)
+    .map((event) => {
+      const packs = byEvent.get(event.id)!;
+      // Та же сортировка и срез, что у buildRealField: подпись в селекте обязана совпадать с полем.
+      const strengths = packs.map((pack) => realPackStrength(data, pack)).sort((a, b) => b - a).slice(0, REAL_FIELD_OPPONENTS);
+      return {
+        eventId: event.id,
+        name: event.name,
+        year: event.year ?? null,
+        type: event.type,
+        packCount: packs.length,
+        fieldMedian: strengths[Math.floor(strengths.length / 2)],
+        fieldTop: strengths[0],
+      };
+    })
     .sort((a, b) => (b.year ?? 0) - (a.year ?? 0) || a.name.localeCompare(b.name));
 }
 
 /** Честная сила реального состава: тот же scoreTeam, что считает пятёрку игрока, — Base их
- *  event-OVR + Hero Synergy по их сигнатуркам + Chemistry их реальных пар. Никакой botStrength:
- *  «сила соперников честная, а не рандом» (modes-scenarios §2.3). */
+ *  event-OVR + Hero Synergy по их сигнатуркам. Никакой botStrength: «сила соперников честная,
+ *  а не рандом» (modes-scenarios §2.3).
+ *
+ *  Chemistry полю НЕ начисляется (RT-D, 2026-08-23). Два довода, оба из замера на 300 сидах:
+ *  (1) event-OVR реального состава уже содержит результат игры с этими тиммейтами — Chemistry
+ *  в нашей формуле это драфт-механика «собери сыгравшихся», и начислять её поверх event-снапшота
+ *  значит считать сыгранность дважды; (2) челленджеру она структурно недоступна: сыгранность
+ *  (≥230 общих игр на пару) есть только у долгих топ-кор, и ровно они залочены событием — даже
+ *  безлимитные рероллы и «стак из одного исторического ростера» давали chem ≤ 2.6 против +7.4
+ *  (медиана поля) / +13 (топ). С Chemistry поле EWC 2026 давало 0% побед, 3.7% топ-8 и 33%
+ *  последних мест при жадном драфте; без неё — 2% / 36% / 9%: андердог остаётся андердогом, но
+ *  у выбора события появляется смысл сложности. Подробности — BACKLOG T5.6, PRD §5.9.1. */
 export function realPackStrength(data: GameData, pack: Pack): number {
   const roster = candidatesOf(pack).map((candidate) => ({ candidate }));
   const signatures = Object.fromEntries(
@@ -88,7 +108,7 @@ export function realPackStrength(data: GameData, pack: Pack): number {
     chemistryPlayersFromRoster(roster),
     signatures,
   );
-  return Math.round(score.teamOvr * 10) / 10;
+  return Math.round((score.base + score.heroSynergy) * 10) / 10;
 }
 
 /**

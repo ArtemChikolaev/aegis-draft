@@ -293,6 +293,7 @@
    Подсказка — информационная, цвет muted: `.notice` (danger) читался бы как ошибка. */
 .config-panel__event { display: grid; gap: 10px; margin-bottom: 26px; }
 .config-panel__hint { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.config-panel__hint--strong { color: var(--text); font-weight: 700; }
 
 /* Лобби Arena (MP0): комната по коду + живое присутствие. */
 .arena-lobby { display: grid; gap: 14px; padding: 22px; }
