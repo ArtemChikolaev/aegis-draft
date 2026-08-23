@@ -9,6 +9,7 @@ import { StartScreen } from "../features/start/StartScreen.tsx";
 import { ManagerResumeBanner, ResumeBanner } from "../features/start/ResumeBanner.tsx";
 import { RunLinkPrompt } from "../features/start/RunLinkPrompt.tsx";
 import { DraftScreen } from "../features/draft/DraftScreen.tsx";
+import { PrepScreen } from "../features/prep/PrepScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { CampScreen } from "../features/run/CampScreen.tsx";
 import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
@@ -65,7 +66,7 @@ export function App() {
   const resumable = useRun((s) => s.resumable);
   const managerResumable = useManager((s) => s.resumable);
   const managerEngine = useManager((s) => s.engine);
-  const runUnfinished = phase === "draft" || phase === "tournament" || phase === "camp"
+  const runUnfinished = phase === "draft" || phase === "prep" || phase === "tournament" || phase === "camp"
     || resumable !== null || managerResumable !== null || managerEngine !== null;
   useEffect(() => {
     if (data) void ensureOfflinePack(!runUnfinished);
@@ -166,6 +167,7 @@ export function App() {
               {phase === "start" && <ManagerResumeBanner />}
               {phase === "start" && <StartScreen />}
               {phase === "draft" && <DraftScreen />}
+              {phase === "prep" && <PrepScreen />}
               {phase === "tournament" && <TournamentScreen />}
               {phase === "camp" && <CampScreen />}
             </>

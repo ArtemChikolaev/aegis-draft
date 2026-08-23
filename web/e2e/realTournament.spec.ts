@@ -37,6 +37,29 @@ test.describe("Real Tournament (T5.6, реальный датасет)", () => {
       break;
     }
 
+    // Подготовка к событию (RT-E): между драфтом и посевом — фаза сборов с бюджетом недель.
+    // Неделя сыгровки поднимает Team OVR; откат возвращает бюджет; закрытие ведёт к посеву.
+    await expect(page.getByTestId("prep-screen")).toBeVisible();
+    await expect(page.getByTestId("prep-budget")).toContainText(/5 of 5/);
+    // SVG <text> — не HTMLElement: читаем textContent.
+    const powerBefore = await page.getByTestId("pentagon-team-ovr").textContent();
+    await page.getByTestId("prep-scrim").first().click();
+    await expect(page.getByTestId("prep-budget")).toContainText(/4 of 5/);
+    await page.getByTestId("prep-undo").click();
+    await expect(page.getByTestId("prep-budget")).toContainText(/5 of 5/);
+    await page.getByTestId("prep-scrim").first().click();
+    await page.getByTestId("prep-scrim").first().click();
+    await expect(page.getByTestId("prep-budget")).toContainText(/3 of 5/);
+    // Сила выросла: сыгровка — те же виртуальные co-games, что видит боевой счёт.
+    await expect(page.getByTestId("pentagon-team-ovr")).not.toHaveText(powerBefore);
+    // Resume посреди сборов возвращает в ту же фазу с тем же бюджетом (план — в логе действий).
+    await page.reload();
+    await expect(page.getByTestId("resume-banner")).toBeVisible();
+    await page.getByTestId("resume-continue").click();
+    await expect(page.getByTestId("prep-screen")).toBeVisible();
+    await expect(page.getByTestId("prep-budget")).toContainText(/3 of 5/);
+    await page.getByTestId("prep-confirm").click();
+
     // Поле — реальные составы события: подпись симуляции есть, реролла поля нет.
     await expect(page.getByTestId("real-field-note")).toContainText("The International 2023");
     // Underdog-вызов (срез 2): прогноз подан как цель ещё до старта симуляции.

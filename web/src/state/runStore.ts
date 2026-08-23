@@ -4,6 +4,7 @@
 // восстанавливается детерминированным replay; имя команды — отдельная durable-настройка.
 import { create } from "zustand";
 import { RunEngine, type RosterSlot } from "../game/engine.ts";
+import { PREP, type PrepAction, type PrepPlan, type ScoreOverlay } from "../game/prep.ts";
 import type { RunConfig, DraftPack, Candidate } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
@@ -40,7 +41,7 @@ import { telegramStartParam } from "../tma/telegram.ts";
 // Бесшовный Classic-флоу (TREF-TOUR2): после драфта нет отдельного экрана-итога —
 // сразу непрерывный `tournament`-вид (разбор счёта + поле + одна CTA «Симулировать»).
 // Roguelite Run добавляет фазу "camp" (Буткемп между этапами: reward + market), см. T5.2.
-type Phase = "loading" | "start" | "draft" | "tournament" | "camp";
+type Phase = "loading" | "start" | "draft" | "prep" | "tournament" | "camp";
 export type StartStep = "modes" | "variants" | "config";
 export type { RunMode } from "./runPersist.ts";
 
@@ -70,11 +71,37 @@ export interface Snapshot {
   reservePlayers: ReservePlayerView[];
   /** Резерв героев с точным preview для каждого активного героя, которого можно убрать. */
   reserveHeroes: ReserveHeroView[];
+  /** Наложение подготовки к событию (RT-E): рёбра химии и строки разбора обязаны видеть те же
+   *  виртуальные игры, что и счёт, иначе радар и плитки разъедутся. Пустое вне Real Tournament. */
+  prepOverlay: ScoreOverlay;
 }
 
 export interface ReservePlayerView {
   candidate: Candidate;
   previews: Array<{ slotIndex: number; score: ScoreBreakdown }>;
+}
+
+/** Одна возможная неделя сборов: действие + счёт «если потратить её сюда» (RT-E). */
+export interface PrepOptionView {
+  action: PrepAction;
+  score: ScoreBreakdown;
+  /** Прирост Team OVR против текущего плана. */
+  delta: number;
+  /** Сколько недель уже вложено в эту же пару / этого же игрока×героя. */
+  spent: number;
+}
+
+/** Фаза подготовки Real Tournament: план, остаток бюджета и превью каждой опции. Считается в
+ *  сторе на каждое действие (как previewTactic) — UI не держит второй копии формулы. */
+export interface PrepView {
+  plan: PrepPlan;
+  pointsLeft: number;
+  budget: number;
+  /** Счёт без подготовки — «было» для разложения до → после. */
+  baseline: ScoreBreakdown;
+  scrims: PrepOptionView[];
+  practices: PrepOptionView[];
+  overlay: ScoreOverlay;
 }
 
 /** Разведанный босс: обычная оценка + на каком этапе он стоит (R9.4). */
@@ -130,6 +157,8 @@ interface RunStore {
   economyView: RunEconomyState | null;
   /** Снимок Буткемпа для рендера (offers/gold/breakdown), иначе null. */
   camp: CampView | null;
+  /** Real Tournament: фаза подготовки к событию (RT-E), иначе null. */
+  prep: PrepView | null;
   /** Вклад экипированных Tactics при текущем ростере + причины срабатывания (срез 4).
    *  Отдельно от `camp`, потому что условия зависят от состава и пересчитываются на каждый swap. */
   tactics: TacticEvaluation | null;
@@ -154,6 +183,10 @@ interface RunStore {
   canPickHero: (heroId: number) => boolean;
   assign: (accountId: number, heroId: number) => void;
   swapHeroes: (accountIdA: number, accountIdB: number) => void;
+  /** Real Tournament: потратить неделю сборов / откатить последнюю / закрыть подготовку и идти к посеву. */
+  addPrep: (action: PrepAction) => void;
+  undoPrep: () => void;
+  confirmPrep: () => void;
   reroll: () => void;
   rerollField: () => void;
   reset: () => void;
@@ -227,7 +260,7 @@ export function isCodexLocked(
   phase: Phase,
   resumable?: SavedRun | null,
 ): boolean {
-  if (config?.hardMode === true && (phase === "draft" || phase === "tournament")) return true;
+  if (config?.hardMode === true && (phase === "draft" || phase === "prep" || phase === "tournament")) return true;
   // Незавершённый хардкорный забег в сейве тоже запирает справочник: иначе достаточно
   // перезагрузить страницу (забег ещё не возобновлён), подсмотреть и продолжить.
   return resumable?.config.hardMode === true;
@@ -278,6 +311,7 @@ function snap(engine: RunEngine): Snapshot {
     packHeroes: engine.packHeroes,
     packSerial: engine.packSerial,
     score: engine.score(),
+    prepOverlay: engine.scoreOverlay,
     reservePlayers,
     reserveHeroes: engine.reserveHeroes.map((heroId) => ({
       heroId,
@@ -316,7 +350,54 @@ function replay(engine: RunEngine, actions: RunAction[]): void {
     } else if (action.t === "swapReservePlayer") engine.swapReservePlayer(action.slotIndex, action.benchAccountId);
     else if (action.t === "replaceHero") engine.replaceHero(action.outgoingHeroId, action.incomingHeroId);
     else if (action.t === "swapReserveHero") engine.swapReserveHero(action.outgoingHeroId, action.reserveHeroId);
+    else if (action.t === "prep") engine.addPrep(action.action);
+    else if (action.t === "prepUndo") engine.undoPrep();
+    // prepDone — маркер фазы, движок не трогает (см. prepDoneIn).
   }
+}
+
+/** Подготовка закрыта — в логе есть `prepDone` (resume различает фазы prep/tournament по нему). */
+function prepDoneIn(actions: RunAction[]): boolean {
+  return actions.some((action) => action.t === "prepDone");
+}
+
+/** Вью подготовки: превью каждой недели сборов тем же scoreFor, что боевой счёт. */
+function buildPrepView(engine: RunEngine): PrepView | null {
+  const current = engine.score();
+  if (!engine.isComplete || !current) return null;
+  const plan = engine.prepPlan;
+  const spentFor = (action: PrepAction) => plan.actions.filter((spent) => (
+    spent.kind === "scrim" && action.kind === "scrim"
+      ? (spent.a === action.a && spent.b === action.b) || (spent.a === action.b && spent.b === action.a)
+      : spent.kind === "practice" && action.kind === "practice" && spent.accountId === action.accountId && spent.heroId === action.heroId
+  )).length;
+  const option = (action: PrepAction): PrepOptionView | null => {
+    const score = engine.previewPrep(action);
+    return score ? { action, score, delta: score.teamOvr - current.teamOvr, spent: spentFor(action) } : null;
+  };
+  const players = engine.players;
+  const scrims: PrepOptionView[] = [];
+  for (let i = 0; i < players.length; i += 1) {
+    for (let j = i + 1; j < players.length; j += 1) {
+      const view = option({ kind: "scrim", a: players[i].accountId, b: players[j].accountId });
+      if (view) scrims.push(view);
+    }
+  }
+  const practices: PrepOptionView[] = [];
+  for (const player of players) {
+    for (const heroId of engine.heroes) {
+      const view = option({ kind: "practice", accountId: player.accountId, heroId });
+      if (view) practices.push(view);
+    }
+  }
+  // Счёт без подготовки — «было» для разложения: считаем пустым наложением.
+  const baseline = engine.previewWithoutPrep();
+  return {
+    plan, pointsLeft: engine.prepPointsLeft, budget: PREP.budget, baseline: baseline ?? current,
+    scrims: scrims.sort((x, y) => y.delta - x.delta),
+    practices: practices.sort((x, y) => y.delta - x.delta),
+    overlay: engine.scoreOverlay,
+  };
 }
 
 /** T9.9: сид-код из `startapp`-параметра Mini App. Payload тот же, что в `#/run=` (T3.12) —
@@ -562,6 +643,18 @@ export const useRun = create<RunStore>((set, get) => {
       tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: resolvedName,
     };
   };
+  /** Шаг драфта сделан: драфт не окончен → остаёмся; окончен → Quick Draft/Roguelite сразу
+   *  строят поле, Real Tournament сперва идёт в подготовку к событию (RT-E). */
+  const afterDraftStep = (snapshot: Snapshot): Partial<RunStore> => {
+    const { engine, selectedMode } = get();
+    if (!engine?.isComplete) return { snapshot, phase: "draft" };
+    if (selectedMode === "tournament") {
+      logScreen("Prep", "Roster and heroes complete → preparation for the event");
+      return { snapshot, phase: "prep", prep: buildPrepView(engine) };
+    }
+    const entered = buildTournamentFields(snapshot);
+    return entered ? { snapshot, phase: "tournament", ...entered } : { snapshot, phase: "draft" };
+  };
   const recordCareer = (
     tournament: TournamentSnapshot,
     rogueliteStage?: { index: number; count: number },
@@ -659,6 +752,7 @@ export const useRun = create<RunStore>((set, get) => {
     economy: null,
     economyView: null,
     camp: null,
+    prep: null,
     tactics: null, boss: null, scoutedBoss: null,
     campCelebration: false,
 
@@ -727,7 +821,7 @@ export const useRun = create<RunStore>((set, get) => {
           engine, config, seed, phase: "draft", snapshot, actions: [], resumable: null, error: null,
           startStep: "config", startConfig: config, realField,
           tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-          anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
+          anteRun: null, ante: null, economy: null, economyView: null, camp: null, prep: null, tactics: null, boss: null, scoutedBoss: null,
         });
         logRunStart(config, seed, data);
         debugSnap("after start", engine, snapshot, config, seed, data);
@@ -743,8 +837,7 @@ export const useRun = create<RunStore>((set, get) => {
       const candidate = engine.currentPack.candidates[idx];
       engine.pickPlayer(idx);
       const snapshot = snap(engine);
-      const entered = engine.isComplete ? buildTournamentFields(snapshot) : null;
-      set(entered ? { snapshot, phase: "tournament", ...entered } : { snapshot, phase: "draft" });
+      set(afterDraftStep(snapshot));
       debugSnap("pickPlayer", engine, snapshot, config, seed, data, {
         index: idx,
         nickname: candidate?.player.nickname,
@@ -759,8 +852,7 @@ export const useRun = create<RunStore>((set, get) => {
       if (!engine || !config || !data || !engine.canPickHero(heroId)) return;
       engine.pickHero(heroId);
       const snapshot = snap(engine);
-      const entered = engine.isComplete ? buildTournamentFields(snapshot) : null;
-      set(entered ? { snapshot, phase: "tournament", ...entered } : { snapshot, phase: "draft" });
+      set(afterDraftStep(snapshot));
       debugSnap("pickHero", engine, snapshot, config, seed, data, { heroId });
       if (engine.isComplete) logScreen("Tournament", "Roster and heroes complete → field");
       record({ t: "pickHero", heroId });
@@ -808,6 +900,31 @@ export const useRun = create<RunStore>((set, get) => {
       }
     },
 
+    addPrep(action) {
+      const { engine, phase } = get();
+      if (!engine || phase !== "prep" || !engine.addPrep(action)) return;
+      set({ snapshot: snap(engine), prep: buildPrepView(engine) });
+      record({ t: "prep", action });
+    },
+
+    undoPrep() {
+      const { engine, phase } = get();
+      if (!engine || phase !== "prep" || !engine.undoPrep()) return;
+      set({ snapshot: snap(engine), prep: buildPrepView(engine) });
+      record({ t: "prepUndo" });
+    },
+
+    confirmPrep() {
+      const { engine, phase } = get();
+      if (!engine || phase !== "prep" || !engine.isComplete) return;
+      const snapshot = snap(engine);
+      const entered = buildTournamentFields(snapshot);
+      if (!entered) return;
+      set({ snapshot, phase: "tournament", prep: null, ...entered });
+      logScreen("Tournament", "Preparation done → field");
+      record({ t: "prepDone" });
+    },
+
     reroll() {
       const { engine, config, seed, data } = get();
       if (!engine || !config || !data) return;
@@ -848,7 +965,7 @@ export const useRun = create<RunStore>((set, get) => {
       set({
         phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
         resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
-        anteRun: null, ante: null, economy: null, economyView: null, camp: null, tactics: null, boss: null, scoutedBoss: null,
+        anteRun: null, ante: null, economy: null, economyView: null, camp: null, prep: null, tactics: null, boss: null, scoutedBoss: null,
       });
     },
 
@@ -990,19 +1107,25 @@ export const useRun = create<RunStore>((set, get) => {
             ante = anteRun.state;
             tournamentEngine = anteRun.tournament;
           } else if (resumedField) {
-            tournamentEngine = new TournamentEngine(
-              data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName,
-              0, QUICK_DRAFT_FIELD, resumedField.opponents,
-            );
+            // Подготовка к событию ещё не закрыта (RT-E) — поле не строим, возвращаемся в фазу prep.
+            tournamentEngine = prepDoneIn(resumable.actions)
+              ? new TournamentEngine(
+                data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName,
+                0, QUICK_DRAFT_FIELD, resumedField.opponents,
+              )
+              : null;
           } else {
             const rerolls = fieldRerollCount(resumable.actions);
             tournamentEngine = new TournamentEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, rerolls);
           }
           // В Буткемпе следующий этап ещё не доигрывался — reveal не мотаем, поле свежее (step 0).
           const revealSteps = inCamp ? 0 : savedStep;
-          for (let step = 0; step < revealSteps; step += 1) tournamentEngine.advance();
-          tournament = tournamentEngine.snapshot;
+          if (tournamentEngine) {
+            for (let step = 0; step < revealSteps; step += 1) tournamentEngine.advance();
+            tournament = tournamentEngine.snapshot;
+          }
         }
+        const inPrep = engine.isComplete && resumable.mode === "tournament" && !prepDoneIn(resumable.actions);
         set({
           engine,
           config: resumable.config,
@@ -1014,7 +1137,7 @@ export const useRun = create<RunStore>((set, get) => {
           startConfig: resumable.config,
           actions: resumable.actions,
           snapshot: snap(engine),
-          phase: inCamp ? "camp" : engine.isComplete ? "tournament" : "draft",
+          phase: inCamp ? "camp" : inPrep ? "prep" : engine.isComplete ? "tournament" : "draft",
           resumable: null,
           error: null,
           tournamentEngine,
@@ -1026,6 +1149,7 @@ export const useRun = create<RunStore>((set, get) => {
           economy,
           economyView: economy ? economy.snapshot : null,
           camp: inCamp && economy ? economy.campView() : null,
+          prep: inPrep ? buildPrepView(engine) : null,
           tactics,
           boss,
         });

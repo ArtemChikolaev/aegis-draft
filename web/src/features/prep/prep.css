@@ -1,0 +1,54 @@
+/* Подготовка к событию (Real Tournament, RT-E). Раскладка и радар — из draft.css (тот же
+   двухколоночный экран, что драфт: слева радар, справа панель решений); здесь — только панель
+   сборов. Цвета — токены; панель тёмная, как pack-panel. */
+.prep__panel { display: grid; gap: 18px; align-content: start; }
+.prep__head { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.prep__lead { margin: 6px 0 0; max-width: 520px; color: var(--muted-invert); font-size: 13px; line-height: 1.45; }
+.prep__budget { display: grid; grid-auto-flow: column; align-items: center; gap: 5px; flex: none; padding-top: 4px; }
+.prep__budget strong { margin-left: 8px; font-size: 12px; letter-spacing: .02em; white-space: nowrap; }
+.prep__week { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line-invert); }
+.prep__week--spent { background: var(--brand-green); border-color: var(--brand-green); box-shadow: 0 0 8px color-mix(in srgb, var(--brand-green) 60%, transparent); }
+
+.prep__section h3 { margin: 0 0 2px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-invert); }
+.prep__hint { margin: 0 0 10px; color: var(--muted-invert); font-size: 12px; line-height: 1.4; }
+.prep__list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.prep__option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  border: 0;
+  border-radius: 14px;
+  color: var(--on-invert);
+  background: var(--surface-invert-soft);
+  transition: transform .15s, background .15s;
+}
+.prep__option:hover:not(:disabled) { transform: translateY(-1px); background: color-mix(in srgb, var(--brand-green) 10%, var(--surface-invert-soft)); }
+.prep__option:disabled { opacity: .45; cursor: not-allowed; }
+.prep__empty { padding: 10px 12px; color: var(--muted-invert); font-size: 12px; }
+.prep__who { display: grid; gap: 2px; min-width: 0; }
+.prep__who strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prep__who small { color: var(--muted-invert); font-size: 11px; }
+.prep__who--hero { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; }
+.prep__who--hero > span { display: grid; gap: 2px; min-width: 0; }
+.prep__delta { font: 800 14px "Space Grotesk", Manrope, sans-serif; font-style: normal; color: var(--muted-invert); letter-spacing: -.02em; }
+.prep__delta--up { color: var(--brand-green); }
+
+.prep__field { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 0; }
+.prep__field > div { display: grid; gap: 2px; padding: 8px 10px; border-radius: 12px; background: var(--surface-invert-soft); }
+.prep__field dt { color: var(--muted-invert); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+.prep__field dd { margin: 0; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prep__field b { font-size: 15px; }
+.prep__gain { color: var(--brand-green); font-weight: 700; }
+
+.prep__actions { display: flex; justify-content: space-between; gap: 10px; padding-top: 6px; border-top: 1px solid var(--line-invert); }
+
+@media (max-width: 680px) {
+  .prep__head { flex-direction: column; }
+  .prep__field { grid-template-columns: 1fr; }
+  .prep__actions { flex-direction: column-reverse; }
+  .prep__actions > * { width: 100%; }
+}

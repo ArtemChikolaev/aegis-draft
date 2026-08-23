@@ -141,7 +141,7 @@ export function useTelegramShell(): void {
   // подтверждение станет ложной тревогой и его нужно будет снять.
   useEffect(() => {
     if (!app) return;
-    const inRun = phase === "draft" || phase === "tournament";
+    const inRun = phase === "draft" || phase === "prep" || phase === "tournament";
     tgSafe(() => (inRun ? app.enableClosingConfirmation() : app.disableClosingConfirmation()));
   }, [app, phase]);
 }

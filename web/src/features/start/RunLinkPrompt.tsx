@@ -20,7 +20,7 @@ export function RunLinkPrompt() {
   if (!link) return null;
 
   // Прогресс, который будет потерян: активный забег или предложенный к продолжению сейв.
-  const losesProgress = phase === "draft" || phase === "tournament" || resumable != null;
+  const losesProgress = phase === "draft" || phase === "prep" || phase === "tournament" || resumable != null;
   const configLine = [
     t(link.config.draftStyle === "mixed" ? "start.mixedDraft" : "start.teamPacks"),
     t(`start.${link.config.format === "valve_legacy" ? "valveLegacy" : link.config.format === "last_1y" ? "last1y" : link.config.format === "last_5y" ? "last5y" : "last2y"}` as MessageKey),

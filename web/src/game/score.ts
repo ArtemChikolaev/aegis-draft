@@ -4,6 +4,7 @@
 import type { PackPlayer, PlayerHeroStats, SquadGroup, SquadSynergy, Teammates, GameData } from "../types/data.ts";
 import type { Candidate } from "./packs.ts";
 import { assignWithFixed, bestAssignment, synergyTotalForAssignment, type Assignment, type SignatureLookup } from "./assign.ts";
+import type { ScoreOverlay } from "./prep.ts";
 
 /** Масштабы бонусов (версионируются вместе с ratingModelVersion). Тюнинг — PRD §10-C.
  * v1.4.0 (2026-07-13): подняты масштабы — +0.1-бонусы были несерьёзными. Полная величина
@@ -107,14 +108,19 @@ export function pairGroupIndex(squad: SquadSynergy): Map<string, SquadGroup> {
 /** Уникальные пары squadSynergy, целиком лежащие внутри ростера. В полном составе их до 10.
  * Датасет может содержать исторические группы 3–5 игроков, но они не добавляются поверх
  * собственных пар: иначе одна и та же сыгранность учитывается несколько раз. */
-function rosterPairs(roster: ChemistryPlayer[], squad: SquadSynergy): SquadGroup[] {
+function rosterPairs(roster: ChemistryPlayer[], squad: SquadSynergy, extraPairGames?: Map<string, number>): SquadGroup[] {
   const index = pairGroupIndex(squad);
   const ids = roster.map((p) => p.accountId);
   const out: SquadGroup[] = [];
   for (let i = 0; i < ids.length; i += 1) {
     for (let j = i + 1; j < ids.length; j += 1) {
-      const group = index.get(pairKey(ids[i], ids[j]));
-      if (group) out.push(group);
+      const key = pairKey(ids[i], ids[j]);
+      const group = index.get(key);
+      // Виртуальные co-games подготовки (game/prep.ts) складываются с реальными: пара без
+      // общей истории становится «сыгранной» ровно на столько, сколько ей натренировали.
+      const extra = extraPairGames?.get(key) ?? 0;
+      if (extra > 0) out.push({ ids: [ids[i], ids[j]], games: (group?.games ?? 0) + extra, winrate: group?.winrate ?? 0.5 });
+      else if (group) out.push(group);
     }
   }
   return out;
@@ -129,9 +135,10 @@ export function chemistryBonus(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
+  extraPairGames?: Map<string, number>,
 ): number {
   void teammates; // сыгранность выводится из squadSynergy; teammates — справочник для UI
-  const sum = rosterPairs(roster, squad).reduce((acc, g) => acc + groupBonus(g), 0);
+  const sum = rosterPairs(roster, squad, extraPairGames).reduce((acc, g) => acc + groupBonus(g), 0);
   return Math.min(sum, SCORING.chemTotalMax);
 }
 
@@ -140,9 +147,10 @@ export function chemistryPairEdges(
   roster: ChemistryPlayer[],
   squad: SquadSynergy,
   teammates: Teammates,
+  extraPairGames?: Map<string, number>,
 ): ChemistryEdge[] {
   void teammates;
-  return rosterPairs(roster, squad)
+  return rosterPairs(roster, squad, extraPairGames)
     .map((g) => ({ a: g.ids[0], b: g.ids[1], games: g.games, bonus: groupBonus(g) }))
     .filter((edge) => edge.bonus >= 0.05);
 }
@@ -219,6 +227,7 @@ export function squadChemistryRows(
   roster: Array<{ candidate: Candidate | null }>,
   squad: SquadSynergy,
   teammates: Teammates,
+  extraPairGames?: Map<string, number>,
 ): SquadChemistryRow[] {
   const chem = chemistryPlayersFromRoster(roster);
   const nick = new Map<number, string>();
@@ -227,7 +236,7 @@ export function squadChemistryRows(
   }
   void teammates;
   // Пары одновременно являются строками UI и единственными слагаемыми Chemistry.
-  const rows: SquadChemistryRow[] = rosterPairs(chem, squad)
+  const rows: SquadChemistryRow[] = rosterPairs(chem, squad, extraPairGames)
     .map((g) => ({
       accountIdA: g.ids[0],
       accountIdB: g.ids[1],
@@ -274,6 +283,24 @@ export function chemistryPlayersFromRoster(
     : []);
 }
 
+/** Player×hero статистика с виртуальными играми подготовки поверх реальных (game/prep.ts).
+ *  Новая запись получает нейтральный winrate: тренировка доказывает знакомство с героем
+ *  (games-driven кривая), а не результативность. Без наложения возвращается тот же объект —
+ *  ни копий, ни пересборки справочника на каждый рендер. */
+export function withHeroGamesOverlay(phs: PlayerHeroStats, heroGames?: Map<string, number>): PlayerHeroStats {
+  if (!heroGames || heroGames.size === 0) return phs;
+  const out: PlayerHeroStats = { ...phs };
+  for (const [key, extra] of heroGames) {
+    const [accountId, heroId] = key.split(":");
+    const current = out[accountId]?.[heroId];
+    out[accountId] = {
+      ...(out[accountId] ?? {}),
+      [heroId]: { games: (current?.games ?? 0) + extra, winrate: current?.winrate ?? 0.5 },
+    };
+  }
+  return out;
+}
+
 /** Полный подсчёт для выбранной пятёрки + драфтованных героев. */
 export function scoreTeam(
   players: PackPlayer[],
@@ -287,13 +314,16 @@ export function scoreTeam(
   /** Mixed Draft: base приходит извне (успех команды за окно, см. game/teamSuccess.ts).
    *  Team Packs его не передаёт и продолжает считаться по event OVR — без изменений. */
   baseOverride?: number,
+  /** Подготовка к событию (Real Tournament): виртуальные игры пар и игрок×герой. */
+  overlay?: ScoreOverlay,
 ): ScoreBreakdown {
+  const effectivePhs = withHeroGamesOverlay(phs, overlay?.heroGames);
   const assignment = fixed && Object.keys(fixed).length > 0
-    ? assignWithFixed(players, heroPool, phs, fixed, signatures)
-    : bestAssignment(players, heroPool, phs, signatures);
-  const synergyTotal = synergyTotalForAssignment(assignment.byPlayer, phs, signatures);
+    ? assignWithFixed(players, heroPool, effectivePhs, fixed, signatures)
+    : bestAssignment(players, heroPool, effectivePhs, signatures);
+  const synergyTotal = synergyTotalForAssignment(assignment.byPlayer, effectivePhs, signatures);
   const base = baseOverride ?? baseRating(players);
   const heroSynergy = heroSynergyBonus({ ...assignment, total: synergyTotal });
-  const chemistry = chemistryBonus(chemistryRoster, squad, teammates);
+  const chemistry = chemistryBonus(chemistryRoster, squad, teammates, overlay?.pairGames);
   return { base, heroSynergy, chemistry, teamOvr: base + heroSynergy + chemistry, assignment };
 }

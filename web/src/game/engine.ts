@@ -17,6 +17,7 @@ import {
 } from "./packs.ts";
 import { hasTeamSuccess, mixedBaseRating } from "./teamSuccess.ts";
 import { scoreTeam, type ScoreBreakdown, heroStatsForAssignment, playerHeroGames, signatureLookup, chemistryPlayersFromRoster } from "./score.ts";
+import { EMPTY_PREP, prepOverlay, prepPointsLeft, type PrepAction, type PrepPlan, type ScoreOverlay } from "./prep.ts";
 
 /** Сколько героев драфтится (по одному на игрока, как в 322-0). */
 export const HERO_TARGET = ROLE_SEQUENCE.length;
@@ -63,6 +64,12 @@ export class RunEngine {
    *  задрафтованных, поэтому «locked не появляется нигде» держится одним правилом, а не тремя.
    *  Дополнительно переключает счёт на event-base (RT-B: форма своей эпохи, не team-success). */
   private readonly lockedAccounts: ReadonlySet<number>;
+
+  /** Подготовка к событию (RT-E, game/prep.ts): недели сборов, потраченные на пары/героев.
+   *  Живёт в движке, как ручная аллокация: score() включает её сам, replay действий
+   *  восстанавливает, превью «до → после» считается тем же scoreFor. */
+  private prep: PrepPlan = EMPTY_PREP;
+  private prepOverlayCache: ScoreOverlay = prepOverlay(EMPTY_PREP);
 
   constructor(
     data: GameData,
@@ -414,10 +421,66 @@ export class RunEngine {
     return this.scoreFor(this.roster, this.heroes, this.manual);
   }
 
+  // ─── Подготовка к событию (RT-E) ───
+
+  get prepPlan(): PrepPlan {
+    return this.prep;
+  }
+
+  get prepPointsLeft(): number {
+    return prepPointsLeft(this.prep);
+  }
+
+  /** Действие легально: драфт завершён, бюджет не исчерпан, участники — из активного состава
+   *  (пара — два РАЗНЫХ игрока; герой тренировки — из активного пула героев). */
+  canPrep(action: PrepAction): boolean {
+    if (!this.isComplete || this.prepPointsLeft <= 0) return false;
+    const ids = new Set(this.players.map((player) => player.accountId));
+    if (action.kind === "scrim") return action.a !== action.b && ids.has(action.a) && ids.has(action.b);
+    return ids.has(action.accountId) && this.heroes.includes(action.heroId);
+  }
+
+  addPrep(action: PrepAction): boolean {
+    if (!this.canPrep(action)) return false;
+    this.setPrep({ actions: [...this.prep.actions, action] });
+    return true;
+  }
+
+  /** Откатить последнюю неделю сборов (только порядок записи — решения игрок отменяет стеком). */
+  undoPrep(): PrepAction | null {
+    const last = this.prep.actions.at(-1) ?? null;
+    if (!last) return null;
+    this.setPrep({ actions: this.prep.actions.slice(0, -1) });
+    return last;
+  }
+
+  /** Счёт «если потратить неделю на это» — тот же scoreFor, что и боевой счёт. */
+  previewPrep(action: PrepAction): ScoreBreakdown | null {
+    if (!this.canPrep(action)) return null;
+    return this.scoreFor(this.roster, this.heroes, this.manual, prepOverlay({ actions: [...this.prep.actions, action] }));
+  }
+
+  /** Счёт без подготовки — «было» для разложения до → после на экране сборов. */
+  previewWithoutPrep(): ScoreBreakdown | null {
+    if (this.players.length === 0) return null;
+    return this.scoreFor(this.roster, this.heroes, this.manual, prepOverlay(EMPTY_PREP));
+  }
+
+  private setPrep(plan: PrepPlan): void {
+    this.prep = plan;
+    this.prepOverlayCache = prepOverlay(plan);
+  }
+
+  /** Наложение подготовки для UI (рёбра химии на радаре, строки пар) — то же, что в счёте. */
+  get scoreOverlay(): ScoreOverlay {
+    return this.prepOverlayCache;
+  }
+
   private scoreFor(
     roster: (Candidate | null)[],
     heroes: number[],
     manual: Record<number, number>,
+    overlay: ScoreOverlay = this.prepOverlayCache,
   ): ScoreBreakdown {
     const players = roster.filter((candidate): candidate is Candidate => candidate !== null)
       .map((candidate) => candidate.player);
@@ -449,6 +512,7 @@ export class RunEngine {
       signatures,
       fixed,
       mixedBase,
+      overlay,
     );
   }
 

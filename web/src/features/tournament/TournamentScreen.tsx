@@ -37,6 +37,7 @@ import {
   heroSynergyRows,
   heroSynergyTier,
   squadChemistryRows,
+  withHeroGamesOverlay,
 } from "../../game/score.ts";
 import { summandModifiers } from "../../game/anteEconomy.ts";
 import { underdogVerdict } from "../../game/realTournament.ts";
@@ -619,11 +620,13 @@ export function TournamentScreen() {
   const stagePower = power.total - bossPenalty;
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";
-  const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates);
+  // Подготовка к событию (RT-E): виртуальные игры пар/героев входят в рёбра и строки разбора.
+  const overlay = snapshot.prepOverlay;
+  const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates, overlay.pairGames);
   const phs = heroStatsForAssignment(data);
-  const displayPhs = heroStatsForDisplay(data);
+  const displayPhs = withHeroGamesOverlay(heroStatsForDisplay(data), overlay.heroGames);
   const heroRows = heroSynergyRows(roster, score.assignment, phs, displayPhs);
-  const chemistryRows = squadChemistryRows(roster, data.squadSynergy, data.teammates);
+  const chemistryRows = squadChemistryRows(roster, data.squadSynergy, data.teammates, overlay.pairGames);
   const assignmentByPlayer = score.assignment.byPlayer;
   const synergyTier = heroSynergyTier(effectiveScore.heroSynergy);
   const synergySublabel = synergyTier === "insane" ? t("draft.synergyInsane") : synergyTier === "great" ? t("draft.synergyGreat") : undefined;
