@@ -359,13 +359,35 @@ describe("Угроза этапа (R7.2)", () => {
     expect(anteFieldModel(0, { stake: 7 }).threat).toBe(7);
   });
 
-  it("множитель поля растёт геометрически по ПРОЙДЕННЫМ актам и внутри акта не меняется (R7.2)", () => {
-    expect(anteFieldMult(0)).toBe(1);
-    expect(anteFieldMult(ACT_LENGTH - 1)).toBe(1);
-    expect(anteFieldMult(ACT_LENGTH)).toBeCloseTo(1 + ANTE_THREAT.multPerAct, 6);
-    expect(anteFieldMult(2 * ACT_LENGTH)).toBeCloseTo((1 + ANTE_THREAT.multPerAct) ** 2, 6);
+  it("множитель поля растёт по актам сглаженной рампой: акт 1 ровно 1, жёстче плоского — только финал (b1.39.0)", () => {
+    // Акт 1 не тронут ни на одном этапе — сезонное начало и e2e-сиды не двигаются.
+    for (let stage = 0; stage < ACT_LENGTH; stage += 1) expect(anteFieldMult(stage)).toBe(1);
+    // Смысл рампы: вход в акт мягче плоского уровня, выше плоского — только финал акта.
+    const q = 1 + ANTE_THREAT.multPerAct;
+    for (let s = 0; s < ACT_LENGTH; s += 1) {
+      const value = anteFieldMult(ACT_LENGTH + s);
+      if (s < ACT_LENGTH - 1) expect(value).toBeLessThanOrEqual(q + 1e-12);
+      else expect(value).toBeGreaterThan(q);
+    }
+    // Геосреднее акта = плоское значение × q^(центр − середина): смещение центра к хвосту —
+    // калибровка полосы (см. ANTE_THREAT.multRampCenter), проверяем как контракт.
+    const geoShift = q ** ((ACT_LENGTH - 1) / 2 / ACT_LENGTH - ANTE_THREAT.multRampCenter);
+    const geoMean = (act: number) => {
+      let product = 1;
+      for (let s = 0; s < ACT_LENGTH; s += 1) product *= anteFieldMult((act - 1) * ACT_LENGTH + s);
+      return product ** (1 / ACT_LENGTH);
+    };
+    expect(geoMean(2)).toBeCloseTo(q * geoShift, 6);
+    expect(geoMean(3)).toBeCloseTo(q ** 2 * geoShift, 6);
+    // Кривая строго неубывающая на всём горизонте, включая стык сезон → Династия.
+    let previous = 0;
+    for (let stage = 0; stage < 12 * ACT_LENGTH; stage += 1) {
+      const value = anteFieldMult(stage);
+      expect(value).toBeGreaterThanOrEqual(previous - 1e-12);
+      previous = value;
+    }
     // Мультипликативная часть идёт отдельным слоем от аддитивной угрозы: оба видны в модели этапа.
-    expect(anteFieldModel(ACT_LENGTH).mult).toBeCloseTo(1 + ANTE_THREAT.multPerAct, 6);
+    expect(anteFieldModel(ACT_LENGTH).mult).toBeCloseTo(anteFieldMult(ACT_LENGTH), 6);
     expect(anteFieldModel(0).mult).toBe(1);
     // Сила ботов на этапе с множителем выше той же модели без него — множитель применяется
     // к итоговой силе (качество + угроза), поэтому порядок величин этапа растёт, а не только хвост.
@@ -375,24 +397,31 @@ describe("Угроза этапа (R7.2)", () => {
       const bots = engine.snapshot.field.filter((team) => !team.isUser);
       return bots.reduce((sum, team) => sum + team.strength, 0) / bots.length;
     };
-    expect(botMean(withMult) / botMean(noMult)).toBeCloseTo((1 + ANTE_THREAT.multPerAct) ** 2, 1);
+    expect(botMean(withMult) / botMean(noMult)).toBeCloseTo(anteFieldMult(2 * ACT_LENGTH), 1);
   });
 
-  it("Династия идёт своим, более пологим шагом множителя; на границе сезона кривая непрерывна (b1.37.0)", () => {
+  it("Династия идёт своим, более пологим шагом; геосреднее её актов и безграничность роста держатся (b1.37.0/b1.39.0)", () => {
     const seasonEnd = SEASON.acts * ACT_LENGTH;
     const atSeasonEnd = (1 + ANTE_THREAT.multPerAct) ** SEASON.acts;
-    // Последний акт сезона и первый акт Династии стыкуются без скачка: шаг меняется, уровень нет.
-    expect(anteFieldMult(seasonEnd - 1)).toBeCloseTo((1 + ANTE_THREAT.multPerAct) ** (SEASON.acts - 1), 6);
-    expect(anteFieldMult(seasonEnd)).toBeCloseTo(atSeasonEnd, 6);
-    expect(anteFieldMult(seasonEnd + ACT_LENGTH)).toBeCloseTo(atSeasonEnd * (1 + ANTE_THREAT.dynastyMultPerAct), 6);
-    expect(anteFieldMult(seasonEnd + 3 * ACT_LENGTH)).toBeCloseTo(atSeasonEnd * (1 + ANTE_THREAT.dynastyMultPerAct) ** 3, 6);
+    const geoMean = (firstStage: number) => {
+      let product = 1;
+      for (let s = 0; s < ACT_LENGTH; s += 1) product *= anteFieldMult(firstStage + s);
+      return product ** (1 / ACT_LENGTH);
+    };
+    // Геосреднее первого акта Династии = уровень конца сезона (со сдвигом центра рампы уже
+    // династийным шагом); дальше — тот же династийный шаг на акт.
+    const qd = 1 + ANTE_THREAT.dynastyMultPerAct;
+    const dynastyShift = qd ** ((ACT_LENGTH - 1) / 2 / ACT_LENGTH - ANTE_THREAT.multRampCenter);
+    expect(geoMean(seasonEnd)).toBeCloseTo(atSeasonEnd * dynastyShift, 6);
+    expect(geoMean(seasonEnd + ACT_LENGTH)).toBeCloseTo(atSeasonEnd * qd * dynastyShift, 6);
+    expect(geoMean(seasonEnd + 3 * ACT_LENGTH)).toBeCloseTo(atSeasonEnd * qd ** 3 * dynastyShift, 6);
     // Шаг Династии мягче сезонного — но роста не отменяет: угроза по-прежнему безгранична (R6.3).
     expect(ANTE_THREAT.dynastyMultPerAct).toBeLessThan(ANTE_THREAT.multPerAct);
     expect(ANTE_THREAT.dynastyMultPerAct).toBeGreaterThan(0);
     expect(anteFieldMult(seasonEnd + 40 * ACT_LENGTH)).toBeGreaterThan(anteFieldMult(seasonEnd + 20 * ACT_LENGTH));
-    // Сезонные этапы не тронуты: регрессия против чисел b1.36.0.
-    expect(anteFieldMult(0)).toBe(1);
-    expect(anteFieldMult(2 * ACT_LENGTH)).toBeCloseTo(1.4884, 4);
+    // Сезонный якорь: геосреднее акта 3 = плоское b1.36.0 × сдвиг центра рампы.
+    const qs = 1 + ANTE_THREAT.multPerAct;
+    expect(geoMean(2 * ACT_LENGTH)).toBeCloseTo(1.4884 * qs ** ((ACT_LENGTH - 1) / 2 / ACT_LENGTH - ANTE_THREAT.multRampCenter), 4);
   });
 
   it("угроза выводит силу соперника выше потолка качества, а турнир остаётся валидным", () => {
