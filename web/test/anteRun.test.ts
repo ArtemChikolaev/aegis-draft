@@ -378,6 +378,23 @@ describe("Угроза этапа (R7.2)", () => {
     expect(botMean(withMult) / botMean(noMult)).toBeCloseTo((1 + ANTE_THREAT.multPerAct) ** 2, 1);
   });
 
+  it("Династия идёт своим, более пологим шагом множителя; на границе сезона кривая непрерывна (b1.37.0)", () => {
+    const seasonEnd = SEASON.acts * ACT_LENGTH;
+    const atSeasonEnd = (1 + ANTE_THREAT.multPerAct) ** SEASON.acts;
+    // Последний акт сезона и первый акт Династии стыкуются без скачка: шаг меняется, уровень нет.
+    expect(anteFieldMult(seasonEnd - 1)).toBeCloseTo((1 + ANTE_THREAT.multPerAct) ** (SEASON.acts - 1), 6);
+    expect(anteFieldMult(seasonEnd)).toBeCloseTo(atSeasonEnd, 6);
+    expect(anteFieldMult(seasonEnd + ACT_LENGTH)).toBeCloseTo(atSeasonEnd * (1 + ANTE_THREAT.dynastyMultPerAct), 6);
+    expect(anteFieldMult(seasonEnd + 3 * ACT_LENGTH)).toBeCloseTo(atSeasonEnd * (1 + ANTE_THREAT.dynastyMultPerAct) ** 3, 6);
+    // Шаг Династии мягче сезонного — но роста не отменяет: угроза по-прежнему безгранична (R6.3).
+    expect(ANTE_THREAT.dynastyMultPerAct).toBeLessThan(ANTE_THREAT.multPerAct);
+    expect(ANTE_THREAT.dynastyMultPerAct).toBeGreaterThan(0);
+    expect(anteFieldMult(seasonEnd + 40 * ACT_LENGTH)).toBeGreaterThan(anteFieldMult(seasonEnd + 20 * ACT_LENGTH));
+    // Сезонные этапы не тронуты: регрессия против чисел b1.36.0.
+    expect(anteFieldMult(0)).toBe(1);
+    expect(anteFieldMult(2 * ACT_LENGTH)).toBeCloseTo(1.4884, 4);
+  });
+
   it("угроза выводит силу соперника выше потолка качества, а турнир остаётся валидным", () => {
     // Главный риск снятия cap 99 — не число само по себе, а то, что таблица перестанет сходиться.
     const engine = new TournamentEngine(
