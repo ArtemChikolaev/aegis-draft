@@ -27,6 +27,19 @@ function draftOrg(engine: ManagerEngine): void {
   }
 }
 
+/** Оффсезонный кап (m1.7.0) честно отказывает на дорогих составах; тесты, проверяющие НЕ кап,
+ *  приводят бюджет к платёжеспособному явно — функциональная граница вместо чисел датасета
+ *  (на mock-пуле зарплаты выше дохода, на реальном ниже; тесты обязаны проходить на обоих). */
+function makeBudgetOk(engine: ManagerEngine): void {
+  const s = engine.state;
+  const perPlayer = Math.floor(engine.incomeK / (s.roster.length + 1));
+  for (const player of s.roster) {
+    const id = player.candidate.player.accountId;
+    s.offseasonSalaries[id] = Math.min(s.offseasonSalaries[id] ?? player.salary, perPlayer);
+  }
+  expect(engine.offseasonBudget().ok).toBe(true);
+}
+
 /** Дешёвая валидная пятёрка: филлеры покрывают все роли по построению. */
 function cheapestFive(engine: ManagerEngine): number[] {
   const byRole = new Map<string, number[]>();
@@ -171,6 +184,7 @@ describe("ManagerEngine — контракты и сезон", () => {
     const releasedId = engine.state.roster[0].candidate.player.accountId;
     const releasedRole = engine.state.roster[0].candidate.player.role;
     engine.toggleRelease(releasedId);
+    makeBudgetOk(engine);
     expect(engine.confirmOffseason()).toBe(true);
     expect(engine.state.phase).toBe("review");
     expect(engine.state.roster[0].candidate.player.accountId).not.toBe(releasedId);
@@ -511,7 +525,8 @@ describe("ManagerEngine — срез 5: трансферное окно и шт�
       engine.dismissRandomEvent();
       guard += 1;
     }
-    engine.confirmOffseason();
+    makeBudgetOk(engine);
+    expect(engine.confirmOffseason()).toBe(true);
     return engine;
   }
 
@@ -663,7 +678,10 @@ describe("ManagerEngine — оффсезонный кап и тренирово�
   it("кап оффсезона: состав дороже дохода не подтверждается, release возвращает платёжеспособность", () => {
     const engine = toOffseason("cap-season");
     const s = engine.state;
-    // Искусственно раздуваем один пересмотр выше дохода — как fame-бамп у звезды.
+    // Функциональная граница, не числа датасета: сперва платёжеспособная база (на mock зарплаты
+    // пула сами по себе выше дохода), затем один пересмотр раздувается выше дохода — как
+    // fame-бамп у звезды.
+    makeBudgetOk(engine);
     const firstId = s.roster[0].candidate.player.accountId;
     s.offseasonSalaries[firstId] = engine.incomeK + 50;
     expect(engine.offseasonBudget().ok).toBe(false);
