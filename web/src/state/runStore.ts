@@ -13,6 +13,7 @@ import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKe
 import { buildRealField, rescoreRealField, scoutOptions, type RealField, type ScoutOption } from "../game/realTournament.ts";
 import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
+import type { CardEdition } from "../game/editions.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
@@ -231,6 +232,8 @@ interface RunStore {
   discardTactic: (tacticId: string) => void;
   /** Trade-in (LG1): обменять карту слота на карту из тройки офферов; реролл тройки. */
   tradeCard: (outgoingId: string, incomingId: string) => void;
+  /** Зачаровать карту токеном титула Династии (LG6): выбранная Edition на карту без Edition. */
+  enchantCard: (cardId: string, edition: CardEdition) => void;
   rerollTrade: () => void;
   /** Буткемп: выбросить неразыгранное одноразовое действие. */
   discardAction: (actionId: string) => void;
@@ -1372,6 +1375,15 @@ export const useRun = create<RunStore>((set, get) => {
       const { economy, phase } = get();
       if (!economy || phase !== "camp" || !economy.discardTactic(tacticId)) return;
       // Тактика меняет цены/размер рынка (её trade-off) — пересобираем офферы под новый набор.
+      economy.invalidateMarketOffers();
+      syncCamp();
+    },
+
+    enchantCard(cardId, edition) {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.enchantCard(cardId, edition)) return;
+      // Зачарование меняет пул edition-офферов рулетки (карта уже Charged — «зарядить» её
+      // больше нечего) — пересобираем рынок, как это делает discard/trade.
       economy.invalidateMarketOffers();
       syncCamp();
     },

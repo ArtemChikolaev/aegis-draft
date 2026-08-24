@@ -1317,3 +1317,23 @@
   line-height: 1.5;
 }
 .build-card-inspector__desc--cost { color: var(--danger); }
+
+/* Зачарование (LG6): выбор Edition на карте без Edition — две мини-кнопки в ряд с бейджами.
+   Цвета осей — те же токены, что у edition-бейджей; отдельного состояния нет: после клика кнопки
+   исчезают (карта получает Edition), это и есть подтверждение. */
+.camp__enchant-note { margin-top: 0; }
+.camp-slot__enchant { display: inline-flex; gap: 6px; }
+.camp-slot__enchant button {
+  padding: 3px 8px;
+  border: 1px dashed var(--edition-charged, var(--accent));
+  border-radius: 999px;
+  background: transparent;
+  color: var(--edition-charged, var(--accent));
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  transition: background .15s, transform .15s;
+}
+.camp-slot__enchant button:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--edition-charged, var(--accent)) 14%, transparent); }
+.camp-slot__enchant button + button { border-color: var(--edition-tempered, var(--muted)); color: var(--edition-tempered, var(--muted)); }
+.camp-slot__enchant button + button:hover { background: color-mix(in srgb, var(--edition-tempered, var(--muted)) 14%, transparent); }

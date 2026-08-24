@@ -4,7 +4,7 @@ import { chargeCapForRarity, chargeFactor, EDITION, MAX_CHARGE_CAP, temperedPena
 import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
 import { evaluateItems } from "../src/game/items.ts";
 import { evaluateTactics, TACTICS, type TacticContext, type TacticPlayer } from "../src/game/tactics.ts";
-import { RunEconomy, rewardOffers } from "../src/game/anteEconomy.ts";
+import { ECONOMY, RunEconomy, rewardOffers } from "../src/game/anteEconomy.ts";
 import { ACT_LENGTH } from "../src/game/anteRun.ts";
 
 describe("chargeFactor", () => {
@@ -263,5 +263,51 @@ describe("дроп Charged в карточной награде", () => {
       return;
     }
     throw new Error("не нашлось Charged-награды в диапазоне — ослаблен дроп?");
+  });
+});
+
+describe("RunEconomy: токены зачарования (LG6)", () => {
+  it("титул платит токеном; enchant валидирует токен/экипировку/повтор; заряды стартуют с нуля", () => {
+    const economy = new RunEconomy("enchant-test");
+    const state = economy.snapshot;
+    state.equippedTactics = ["noSuperstars", "divineRapier"];
+    state.cardEditions = { divineRapier: "tempered" };
+    const run = new RunEconomy("enchant-test", state);
+    // Без токена зачаровать нельзя.
+    expect(run.enchantCard("noSuperstars", "charged")).toBe(false);
+    expect(run.awardDynastyTitle(30)).toBe(true);
+    expect(run.editionTokens).toBe(ECONOMY.dynastyMilestone.editionTokens);
+    // Идемпотентность титула: повторный лагерь токен не удваивает.
+    expect(run.awardDynastyTitle(30)).toBe(false);
+    expect(run.editionTokens).toBe(1);
+    // Кандидаты — только экипированные без Edition.
+    expect(run.enchantableCards()).toEqual(["noSuperstars"]);
+    expect(run.enchantCard("divineRapier", "charged")).toBe(false); // уже Tempered
+    expect(run.enchantCard("ghost-card", "charged")).toBe(false);   // не экипирована
+    expect(run.enchantCard("noSuperstars", "charged")).toBe(true);
+    expect(run.editionTokens).toBe(0);
+    expect(run.cardEditions.noSuperstars).toBe("charged");
+    expect(run.cardCharges.noSuperstars).toBe(0);
+    // Токен потрачен — вторую карту зачаровать нечем.
+    expect(run.enchantCard("noSuperstars", "tempered")).toBe(false);
+    // Зачарованная Charged копит заряды как выпавшая.
+    run.accrueCharges(new Set(["noSuperstars"]));
+    expect(run.cardCharges.noSuperstars).toBe(1);
+  });
+
+  it("токены переживают persist round-trip; legacy-сейв без поля читается нулём", () => {
+    const economy = new RunEconomy("enchant-persist");
+    const base = economy.snapshot;
+    base.equippedTactics = ["noSuperstars"];
+    const run = new RunEconomy("enchant-persist", base);
+    run.awardDynastyTitle(30);
+    run.awardDynastyTitle(35);
+    const restored = new RunEconomy("enchant-persist", run.snapshot);
+    expect(restored.editionTokens).toBe(2);
+    // Legacy: поле отсутствует в сейве.
+    const legacy = { ...run.snapshot } as Record<string, unknown>;
+    delete legacy.editionTokens;
+    const fromLegacy = new RunEconomy("enchant-persist", legacy as never);
+    expect(fromLegacy.editionTokens).toBe(0);
   });
 });

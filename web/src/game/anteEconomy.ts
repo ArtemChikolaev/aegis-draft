@@ -180,6 +180,9 @@ export interface RunEconomyState {
   freePlayerSwaps: number;
   /** Бесплатные улучшения качества героя (награда-токен, R4.3). */
   freeRarityUpgrades: number;
+  /** Токены зачарования (LG6): титул Династии → игрок сам вешает Edition на карту без Edition.
+   *  Отсутствует в legacy-сейвах ⇒ normalizeEconomyState читает 0. */
+  editionTokens?: number;
   /** Из чего сложилась последняя автоматическая выплата — чтобы Буткемп мог показать
    *  «призовые + проценты» раздельно, а не одно непрозрачное число. */
   lastPayout?: { prize: number; performance: number; interest: number };
@@ -303,7 +306,12 @@ export const ECONOMY = {
    *  Династия не имеет терминальной победы, поэтому её единственная валюта смысла — растущий
    *  билд: титул платит тем, чего на этом этапе забега уже не купить рынком (готовое улучшение
    *  качества) плюс деньгами. Плейсхолдер, как остальная ECONOMY. */
-  dynastyMilestone: { gold: 10, rarityUpgrades: 1 },
+  /** Титул Династии (T5.8 → LG6): золото + токен зачарования. Улучшение качества заменено
+   *  токеном по замеру b1.37.0: к Династии качество на максимуме у 97% забегов и награда была
+   *  мёртвой, а Edition — единственная ось билда, которую в Династии ещё есть куда растить
+   *  (потолок естественный: 5 слотов × 1 Edition; после trade-in новая карта приходит чистой,
+   *  и отложенный токен снова находит цель). */
+  dynastyMilestone: { gold: 10, editionTokens: 1 },
   /** Рычаги рынка по слагаемым. `step`/`costStep` — разброс качества при reroll. */
   levers: {
     base: { delta: 3, step: 1, cost: 5, costStep: 2, tradeoff: { summand: "chemistry" as Summand, delta: -1 } },
@@ -687,6 +695,9 @@ export interface CampView {
   /** В ЭТОМ Буткемпе взят титул Династии (T5.8) — лагерь его празднует. Номер титула знает
    *  ante-состояние (`titles`), поэтому здесь только факт. */
   dynastyMilestone: boolean;
+  /** Токены зачарования (LG6) и карты, на которые их можно потратить. */
+  editionTokens: number;
+  enchantableCards: string[];
   /** Случайные повышенные качества могут выпадать (мета-гейт пройден). */
   rarityDropsEnabled: boolean;
   /** Доступно ручное улучшение качества в Буткемпе. Бейджи тира при этом показываются всегда:
@@ -847,7 +858,30 @@ export class RunEconomy {
     if (this.state.dynastyMilestones.includes(campStageIndex)) return false;
     this.state.dynastyMilestones.push(campStageIndex);
     this.state.gold += ECONOMY.dynastyMilestone.gold;
-    this.state.freeRarityUpgrades += ECONOMY.dynastyMilestone.rarityUpgrades;
+    this.state.editionTokens = this.editionTokens + ECONOMY.dynastyMilestone.editionTokens;
+    return true;
+  }
+
+  get editionTokens(): number {
+    return this.state.editionTokens ?? 0;
+  }
+
+  /** Карты, на которые можно потратить токен зачарования: экипированные пассивные без Edition. */
+  enchantableCards(): string[] {
+    return this.state.equippedTactics.filter((id) => this.state.cardEditions?.[id] == null);
+  }
+
+  /** Зачаровать карту токеном титула (LG6): выбранная Edition вешается на экипированную карту
+   *  без Edition. Charged начинает с нуля зарядов (копит их дальше как обычная Charged);
+   *  Tempered работает сразу. Снять или заменить Edition нельзя — как и у выпавшей. */
+  enchantCard(cardId: string, edition: CardEdition): boolean {
+    if (this.editionTokens <= 0) return false;
+    if (!this.enchantableCards().includes(cardId)) return false;
+    this.state.editionTokens = this.editionTokens - 1;
+    this.state.cardEditions = { ...(this.state.cardEditions ?? {}), [cardId]: edition };
+    if (edition === "charged" && this.state.cardCharges?.[cardId] == null) {
+      this.state.cardCharges = { ...(this.state.cardCharges ?? {}), [cardId]: 0 };
+    }
     return true;
   }
 
@@ -1352,6 +1386,8 @@ export class RunEconomy {
       canBuyScouting: !this.state.scoutedCamps.includes(this.state.campStageIndex)
         && this.affordable(ECONOMY.scoutPrice),
       dynastyMilestone: this.state.dynastyMilestones.includes(this.state.campStageIndex),
+      editionTokens: this.editionTokens,
+      enchantableCards: this.enchantableCards(),
       freeMarketRerolls: this.state.freeMarketRerolls,
       freePlayerSwaps: this.state.freePlayerSwaps,
       freeRarityUpgrades: this.state.freeRarityUpgrades,

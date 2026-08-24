@@ -677,6 +677,14 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     // Титул Династии — по тому же правилу, что и в игре (общая grantsDynastyTitle): иначе
     // симулятор мерил бы Династию без её единственной награды.
     if (grantsDynastyTitle(campId - 1, season)) economy.awardDynastyTitle(campId);
+    // Токены зачарования (LG6) тратятся тут же — как в игре: неиспользованный токен = несыгранная
+    // ось, и симулятор мерил бы Династию без её единственной награды. Эвристика минимальная и
+    // общая для всех агентов: Charged первой карте без Edition (рост), random — случайную ось.
+    while (economy.editionTokens > 0) {
+      const eligible = economy.enchantableCards();
+      if (eligible.length === 0) break;
+      economy.enchantCard(eligible[0], agent.random && rng.float() < 0.5 ? "tempered" : "charged");
+    }
     economy.openCamp(campId);
 
     const decision: Decision = {

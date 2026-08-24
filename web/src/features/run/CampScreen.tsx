@@ -68,6 +68,7 @@ import {
   StatTile,
   Surface,
 } from "../../ui/index.ts";
+import { sfxBuy } from "../../ui/sound.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { PlayerInspector } from "../draft/PlayerInspector.tsx";
 import { HeroTagInspector } from "../heroes/HeroTagInspector.tsx";
@@ -107,6 +108,7 @@ export function CampScreen() {
   const rerollMarket = useRun((s) => s.rerollMarket);
   const discardTactic = useRun((s) => s.discardTactic);
   const tradeCardAction = useRun((s) => s.tradeCard);
+  const enchantCard = useRun((s) => s.enchantCard);
   const rerollTrade = useRun((s) => s.rerollTrade);
   const discardAction = useRun((s) => s.discardAction);
   const playCampAction = useRun((s) => s.playCampAction);
@@ -608,7 +610,7 @@ export function CampScreen() {
             <p className="camp__milestone" data-testid="camp-dynasty-title">
               🏆 {t("camp.dynastyTitle", { n: ante.titles })}
               {" · "}
-              <b>{t("camp.dynastyTitleReward", { gold: ECONOMY.dynastyMilestone.gold, n: ECONOMY.dynastyMilestone.rarityUpgrades })}</b>
+              <b>{t("camp.dynastyTitleReward", { gold: ECONOMY.dynastyMilestone.gold, n: ECONOMY.dynastyMilestone.editionTokens })}</b>
             </p>
           )}
           <p className="camp__next" data-testid="camp-next-stage-label">
@@ -817,6 +819,13 @@ export function CampScreen() {
                     {t("camp.slotsUsed", { used: camp.equippedTactics.length, total: camp.tacticSlots })}
                   </span>
                 </div>
+                {/* Токены зачарования (LG6): титул Династии конвертируется здесь — выбором
+                    Edition для карты без Edition. Баннер виден, только пока есть что тратить. */}
+                {camp.editionTokens > 0 && (
+                  <p className="camp__milestone camp__enchant-note" data-testid="camp-enchant-tokens">
+                    ✨ {t("camp.enchantTokens", { n: camp.editionTokens })}
+                  </p>
+                )}
                 {/* Разложение силы забега. Показывается ТОЛЬКО когда хоть один слой активен —
                     иначе это была бы строка «×1.00 / +0», не несущая информации (R8.2). */}
                 {!power.trivial && (
@@ -893,6 +902,25 @@ export function CampScreen() {
                             {camp.cardEditions[tacticId] === "tempered" && (
                               <span className="edition-badge edition-badge--tempered" data-testid={`build-edition-${tacticId}`}>
                                 🛡 {t("edition.tempered")}
+                              </span>
+                            )}
+                            {/* Зачарование (LG6): у карты без Edition и при наличии токена — выбор
+                                оси на месте. Снять Edition нельзя, как и у выпавшей, поэтому кнопки
+                                не показываются зря. */}
+                            {camp.editionTokens > 0 && camp.cardEditions[tacticId] == null && (
+                              <span className="camp-slot__enchant">
+                                <button
+                                  type="button"
+                                  data-testid={`enchant-charged-${tacticId}`}
+                                  title={t("camp.enchantChargedHint")}
+                                  onClick={() => { sfxBuy(); enchantCard(tacticId, "charged"); }}
+                                >⚡ {t("edition.charged")}</button>
+                                <button
+                                  type="button"
+                                  data-testid={`enchant-tempered-${tacticId}`}
+                                  title={t("camp.enchantTemperedHint")}
+                                  onClick={() => { sfxBuy(); enchantCard(tacticId, "tempered"); }}
+                                >🛡 {t("edition.tempered")}</button>
                               </span>
                             )}
                           </span>
