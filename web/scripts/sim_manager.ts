@@ -18,7 +18,7 @@ import {
   type ManagerConfig,
   type OrgCandidate,
 } from "../src/game/manager/engine.ts";
-import { MANAGER_ECONOMY_VERSION, MANAGER_INCOME } from "../src/game/manager/economy.ts";
+import { OFFSEASON_BOOTCAMP, MANAGER_ECONOMY_VERSION, MANAGER_INCOME } from "../src/game/manager/economy.ts";
 import { ROLE_SEQUENCE } from "../src/game/packs.ts";
 
 const data = loadGameData();
@@ -111,6 +111,22 @@ function playCareer(seed: string, strategy: Strategy, perSeason: SeasonStats[]):
     stats.wages.push(engine.wagesK);
     stats.teamOvr.push(Math.round(engine.score()?.teamOvr ?? 0));
     if (engine.state.phase === "offseason") {
+      // m1.7.0: сбор — превращение банка в форму (обе стратегии, при запасе ≥ 2 цен: cheap
+      // проверяет смысл копилки, greedy — что сбор не мешает трансферам). Затем кап оффсезона:
+      // пока прогнозные зарплаты выше дохода, отпускается самый дорогой остающийся.
+      if (engine.state.bankK >= OFFSEASON_BOOTCAMP.costK * 2) engine.buyOffseasonBootcamp();
+      let guardRelease = 0;
+      while (!engine.offseasonBudget().ok && guardRelease++ < 6) {
+        const s3 = engine.state;
+        const leaving = new Set([...s3.released, ...s3.departures]);
+        const kept = s3.roster.filter((p) => !leaving.has(p.candidate.player.accountId));
+        if (kept.length === 0) break;
+        const priciest = kept.reduce((top, p) => {
+          const wage = (id: number) => s3.offseasonSalaries[id] ?? 0;
+          return wage(p.candidate.player.accountId) > wage(top.candidate.player.accountId) ? p : top;
+        });
+        engine.toggleRelease(priciest.candidate.player.accountId);
+      }
       engine.confirmOffseason();
       // Трансферное окно (срез 5): greedy тратит банк на лучший апгрейд, пока взнос ≤ 60%
       // банка и офер сильнее заменяемого; cheap копит (контроль «банк без применения»).

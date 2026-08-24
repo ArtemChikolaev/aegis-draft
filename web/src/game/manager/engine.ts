@@ -38,7 +38,9 @@ import {
   HAPPINESS,
   LIFECYCLE,
   MANAGER_INCOME,
+  FILLER_WAGE_ESTIMATE_K,
   NEGATIVE_BANK_PENALTY,
+  OFFSEASON_BOOTCAMP,
   PRIZES,
   QUALIFIER_ADVANCE,
   RANDOM_EVENTS,
@@ -170,6 +172,8 @@ export interface ManagerState {
   // Оффсезон
   offseasonDrifts: Record<number, number>; // accountId → ΔOVR
   offseasonSalaries: Record<number, number>; // accountId → новая зарплата
+  /** Тренировочный сбор куплен в ЭТОМ оффсезоне (m1.7.0). Одноразовый на сезон. */
+  offseasonBootcamp?: boolean;
   released: number[];
   /** Уходящие сами (ретайр/несчастье) — release принудительный, не тогглится. */
   departures: number[];
@@ -311,6 +315,7 @@ export class ManagerEngine {
       pendingRandomEvent: null,
       offseasonDrifts: {},
       offseasonSalaries: {},
+      offseasonBootcamp: false,
       released: [],
       departures: [],
       manualAssignment: {},
@@ -816,6 +821,7 @@ export class ManagerEngine {
 
     s.offseasonDrifts = {};
     s.offseasonSalaries = {};
+    s.offseasonBootcamp = false;
     s.released = [];
     s.departures = [];
     for (const player of s.roster) {
@@ -834,6 +840,36 @@ export class ManagerEngine {
     }
   }
 
+  /** Бюджет нового сезона: пересмотренные зарплаты остающихся + оценка филлеров вместо ушедших.
+   *  Тот же кап, что при первой подписи (`validateRoster`): состав дороже месячного дохода
+   *  подтвердить нельзя — «пять звёзд недоступны по построению» действует и в оффсезоне, а не
+   *  только на трайаутах (m1.7.0; раньше fame-бампы пересмотров уводили орг в вечный долг:
+   *  замер sim_manager — greedy жил при банке −$2M с 90% отрицательных месяцев). */
+  offseasonBudget(): { wagesK: number; incomeK: number; ok: boolean } {
+    const s = this.state;
+    const leaving = new Set([...s.released, ...s.departures]);
+    let wagesK = 0;
+    for (const player of s.roster) {
+      const id = player.candidate.player.accountId;
+      wagesK += leaving.has(id) ? FILLER_WAGE_ESTIMATE_K : (s.offseasonSalaries[id] ?? player.salary);
+    }
+    return { wagesK, incomeK: this.incomeK, ok: wagesK <= this.incomeK };
+  }
+
+  /** Тренировочный сбор (m1.7.0): раз в оффсезон, за деньги — дрифт формы каждого игрока
+   *  смещается вверх (кламп ±3 как у обычного дрифта). В долг сбор не продаётся. */
+  buyOffseasonBootcamp(): boolean {
+    const s = this.state;
+    if (s.phase !== "offseason" || s.offseasonBootcamp === true) return false;
+    if (s.bankK < OFFSEASON_BOOTCAMP.costK) return false;
+    s.bankK -= OFFSEASON_BOOTCAMP.costK;
+    s.offseasonBootcamp = true;
+    for (const id of Object.keys(s.offseasonDrifts)) {
+      s.offseasonDrifts[Number(id)] = Math.min(3, Math.max(-3, s.offseasonDrifts[Number(id)] + OFFSEASON_BOOTCAMP.driftBonus));
+    }
+    return true;
+  }
+
   toggleRelease(accountId: number): void {
     const s = this.state;
     if (s.phase !== "offseason") return;
@@ -845,6 +881,8 @@ export class ManagerEngine {
   confirmOffseason(): boolean {
     const s = this.state;
     if (s.phase !== "offseason") return false;
+    // Кап оффсезона (m1.7.0): состав нового сезона обязан быть платёжеспособным.
+    if (!this.offseasonBudget().ok) return false;
     const rng = new Rng(`${s.seed}:offseason-fill:${s.season}`);
     const leaving = new Set([...s.released, ...s.departures]);
     const kept = new Set(s.roster.map((p) => p.candidate.player.accountId));

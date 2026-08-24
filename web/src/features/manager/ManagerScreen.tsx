@@ -14,6 +14,7 @@ import {
   TRANSFER_LIMIT,
   type ManagerDifficulty,
   type ManagerRegion,
+  OFFSEASON_BOOTCAMP,
 } from "../../game/manager/economy.ts";
 import {
   HERO_PICKS_PER_ROUND,
@@ -24,6 +25,7 @@ import {
   type ManagerEngine,
 } from "../../game/manager/engine.ts";
 import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, StatTile, Surface, TextField, playerOvrTier } from "../../ui/index.ts";
+import { sfxBuy } from "../../ui/sound.ts";
 import { useHero, useHeroName } from "../draft/heroes.ts";
 import { heroStatsForDisplay } from "../../game/score.ts";
 import { FinaleReveal } from "./FinaleReveal.tsx";
@@ -843,11 +845,46 @@ function Offseason({ engine }: { engine: ManagerEngine }) {
           })}
         </div>
         <p className="manager__hint">{t("manager.releaseHint")}</p>
-        <div>
-          <Button variant="primary" data-testid="manager-offseason-confirm" onClick={() => act((e) => e.confirmOffseason())}>
-            {t("manager.confirmContracts")} →
-          </Button>
+        {/* Тренировочный сбор (m1.7.0): единственный способ конвертировать банк в форму.
+            Одноразовый на оффсезон; в долг не продаётся; после покупки строка остаётся
+            подтверждением («куплен»), чтобы дрифты в списке выше читались с контекстом. */}
+        <div className="manager__signbar manager__bootcamp" data-testid="manager-bootcamp-bar">
+          <span>
+            {engine.state.offseasonBootcamp === true
+              ? <b className="is-up">{t("manager.bootcampBought", { n: OFFSEASON_BOOTCAMP.driftBonus })}</b>
+              : t("manager.bootcampOfferText", { cost: OFFSEASON_BOOTCAMP.costK, n: OFFSEASON_BOOTCAMP.driftBonus })}
+          </span>
+          {engine.state.offseasonBootcamp !== true && (
+            <Button
+              variant="secondary"
+              data-testid="manager-bootcamp-buy"
+              disabled={engine.state.bankK < OFFSEASON_BOOTCAMP.costK}
+              onClick={() => { sfxBuy(); act((e) => e.buyOffseasonBootcamp()); }}
+            >
+              {t("manager.bootcampBuy", { cost: OFFSEASON_BOOTCAMP.costK })}
+            </Button>
+          )}
         </div>
+        {/* Бюджет нового сезона (m1.7.0): тот же кап, что на подписи, — виден до подтверждения. */}
+        {(() => {
+          const budget = engine.offseasonBudget();
+          return (
+            <div className="manager__signbar" data-testid="manager-offseason-budget" data-ok={budget.ok}>
+              <span>
+                {t("manager.offseasonBudget", { wages: budget.wagesK, income: budget.incomeK })}
+                {!budget.ok && <b className="manager__over"> · {t("manager.offseasonOverBudget")}</b>}
+              </span>
+              <Button
+                variant="primary"
+                data-testid="manager-offseason-confirm"
+                disabled={!budget.ok}
+                onClick={() => act((e) => e.confirmOffseason())}
+              >
+                {t("manager.confirmContracts")} →
+              </Button>
+            </div>
+          );
+        })()}
       </Surface>
     </>
   );

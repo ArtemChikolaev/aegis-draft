@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MANAGER_INCOME, botStrength, renegotiatedSalary, salaryBand, salaryFor, sponsorBonusK } from "../src/game/manager/economy.ts";
+import { OFFSEASON_BOOTCAMP, MANAGER_INCOME, botStrength, renegotiatedSalary, salaryBand, salaryFor, sponsorBonusK } from "../src/game/manager/economy.ts";
 import { emptyHall, recordCareerStart, recordSeason } from "../src/game/manager/hall.ts";
 import {
   HERO_PICKS_PER_ROUND,
@@ -641,6 +641,58 @@ describe("ManagerEngine — срез 6: финал через TournamentEngine",
     const b = toFinale("finale-det").result!;
     expect(a.placement).toBe(b.placement);
     expect(a.finale!.champion.name).toBe(b.finale!.champion.name);
+  });
+});
+
+describe("ManagerEngine — оффсезонный кап и тренировочный сбор (m1.7.0)", () => {
+  const capConfig: ManagerConfig = { orgName: "Budget Org", region: "weu", difficulty: "normal", format: "last_2y" };
+
+  function toOffseason(seed: string): ManagerEngine {
+    const engine = ManagerEngine.create(data, seed, capConfig);
+    draftOrg(engine);
+    engine.signRoster(cheapestFive(engine));
+    let guard = 0;
+    while (!engine.seasonFinished() && guard++ < 60) {
+      engine.playNextEvent();
+      engine.continueSeason();
+    }
+    expect(engine.state.phase).toBe("offseason");
+    return engine;
+  }
+
+  it("кап оффсезона: состав дороже дохода не подтверждается, release возвращает платёжеспособность", () => {
+    const engine = toOffseason("cap-season");
+    const s = engine.state;
+    // Искусственно раздуваем один пересмотр выше дохода — как fame-бамп у звезды.
+    const firstId = s.roster[0].candidate.player.accountId;
+    s.offseasonSalaries[firstId] = engine.incomeK + 50;
+    expect(engine.offseasonBudget().ok).toBe(false);
+    expect(engine.confirmOffseason()).toBe(false);
+    expect(s.phase).toBe("offseason");
+    // Release дорогого: филлер считается по оценке — бюджет сходится, подтверждение проходит.
+    engine.toggleRelease(firstId);
+    expect(engine.offseasonBudget().ok).toBe(true);
+    expect(engine.confirmOffseason()).toBe(true);
+    expect(engine.state.phase).toBe("review");
+  });
+
+  it("сбор: одноразовый, в долг не продаётся, дрифты сдвигаются вверх с клампом ±3", () => {
+    const engine = toOffseason("bootcamp-season");
+    const s = engine.state;
+    const before = { ...s.offseasonDrifts };
+    // В долг не продаётся.
+    const savedBank = s.bankK;
+    s.bankK = OFFSEASON_BOOTCAMP.costK - 1;
+    expect(engine.buyOffseasonBootcamp()).toBe(false);
+    s.bankK = savedBank + OFFSEASON_BOOTCAMP.costK * 2;
+    const bankBefore = s.bankK;
+    expect(engine.buyOffseasonBootcamp()).toBe(true);
+    expect(s.bankK).toBe(bankBefore - OFFSEASON_BOOTCAMP.costK);
+    for (const id of Object.keys(before)) {
+      expect(s.offseasonDrifts[Number(id)]).toBe(Math.min(3, Math.max(-3, before[Number(id)] + OFFSEASON_BOOTCAMP.driftBonus)));
+    }
+    // Одноразовый на оффсезон.
+    expect(engine.buyOffseasonBootcamp()).toBe(false);
   });
 });
 

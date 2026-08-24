@@ -194,3 +194,8 @@ button.manager__roster-row:hover { border-color: var(--accent); }
 
 /* Пара кнопок результата в фиксированном месте (плейтест 2026-08-15) */
 .manager__result-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* Оффсезон m1.7.0: сбор и бюджет — те же signbar-полосы, что у подписи контрактов. */
+.manager__bootcamp { padding: 10px 12px; border: 1px dashed var(--line); border-radius: 12px; }
+.manager__over { color: var(--danger); }
+.manager__signbar[data-ok="false"] { color: var(--danger); }
