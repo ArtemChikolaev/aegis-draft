@@ -7,12 +7,22 @@
 .prep__budget { display: grid; grid-auto-flow: column; align-items: center; gap: 5px; flex: none; padding-top: 4px; }
 .prep__budget strong { margin-left: 8px; font-size: 12px; letter-spacing: .02em; white-space: nowrap; }
 .prep__week { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--line-invert); }
-.prep__week--spent { background: var(--brand-green); border-color: var(--brand-green); box-shadow: 0 0 8px color-mix(in srgb, var(--brand-green) 60%, transparent); }
+/* Появление класса --spent = только что потраченная неделя: короткий «поп» (transform-only,
+   глушится глобальным reduced-motion). Уже потраченные точки класс не меняют — не переигрывают. */
+.prep__week--spent { background: var(--brand-green); border-color: var(--brand-green); box-shadow: 0 0 8px color-mix(in srgb, var(--brand-green) 60%, transparent); animation: prep-week-pop .35s var(--ease-out); }
+@keyframes prep-week-pop { 40% { transform: scale(1.45); } }
+
+/* Вспышка строки после траты: overlay ремоунтится по serial (повторный клик переигрывает),
+   сама строка не перемонтируется — раскладка и hover не дёргаются. Вспышка, не состояние. */
+.prep__spent-flash { position: absolute; inset: 0; pointer-events: none; background: color-mix(in srgb, var(--brand-green) 22%, transparent); opacity: 0; animation: prep-spent-flash var(--motion-flash, .6s) var(--ease-out); }
+@keyframes prep-spent-flash { 0% { opacity: 1; } 100% { opacity: 0; } }
 
 .prep__section h3 { margin: 0 0 2px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-invert); }
 .prep__hint { margin: 0 0 10px; color: var(--muted-invert); font-size: 12px; line-height: 1.4; }
 .prep__list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .prep__option {
+  position: relative;
+  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;

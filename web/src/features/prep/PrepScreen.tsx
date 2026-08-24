@@ -3,6 +3,7 @@ import { useRun, type PrepOptionView } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey } from "../../i18n/core.ts";
 import { Button, Eyebrow, HeroThumb, Modal, StatTile, Surface, TeamName } from "../../ui/index.ts";
+import { sfxBuy } from "../../ui/sound.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { useHero } from "../draft/heroes.ts";
 import { chemistryPairEdges, chemistryPlayersFromRoster, heroSynergyTier, pairKey } from "../../game/score.ts";
@@ -28,6 +29,9 @@ export function PrepScreen() {
   const confirmPrep = useRun((state) => state.confirmPrep);
   const reset = useRun((state) => state.reset);
   const [confirmLeave, setConfirmLeave] = useState(false);
+  /** Вспышка потраченной недели: ключ строки + серийник траты, чтобы повторный клик по той же
+   *  строке переигрывал анимацию (overlay ремоунтится по key), а сама строка не перемонтировалась. */
+  const [spentFlash, setSpentFlash] = useState<{ row: string; serial: number } | null>(null);
   const hero = useHero();
   const { t } = useI18n();
   if (!snapshot || !prep || !data) return null;
@@ -47,7 +51,15 @@ export function PrepScreen() {
   const fieldTop = effective[0];
   const fieldMedian = effective[Math.floor(effective.length / 2)];
 
-  const spend = (action: PrepAction) => addPrep(action);
+  // Звук на клике намеренно: неудачная трата = disabled-кнопка, клик ≈ успех (как в рынке Кампа).
+  const spend = (action: PrepAction, row: string) => {
+    sfxBuy();
+    setSpentFlash({ row, serial: (spentFlash?.serial ?? 0) + 1 });
+    addPrep(action);
+  };
+  const flashOverlay = (row: string) => (spentFlash?.row === row
+    ? <span key={spentFlash.serial} className="prep__spent-flash" aria-hidden="true" />
+    : null);
   const scrimLabel = (view: PrepOptionView) => {
     if (view.action.kind !== "scrim") return "";
     return `${nick.get(view.action.a)?.nickname ?? view.action.a} + ${nick.get(view.action.b)?.nickname ?? view.action.b}`;
@@ -117,8 +129,9 @@ export function PrepScreen() {
                     className="prep__option"
                     data-testid="prep-scrim"
                     disabled={disabled}
-                    onClick={() => spend(view.action)}
+                    onClick={() => spend(view.action, `s:${a}:${b}`)}
                   >
+                    {flashOverlay(`s:${a}:${b}`)}
                     <span className="prep__who">
                       <strong>{scrimLabel(view)}</strong>
                       <small>{t("prep.pairGames", { n: Math.round(pairGames(a, b)) })}{view.spent > 0 ? ` · ${t("prep.weeksSpent", { n: view.spent })}` : ""}</small>
@@ -150,8 +163,9 @@ export function PrepScreen() {
                     className="prep__option"
                     data-testid="prep-practice"
                     disabled={disabled}
-                    onClick={() => spend(view.action)}
+                    onClick={() => spend(view.action, `p:${accountId}:${heroId}`)}
                   >
+                    {flashOverlay(`p:${accountId}:${heroId}`)}
                     <span className="prep__who prep__who--hero">
                       <HeroThumb name={h.name} picture={h.picture} showName={false} />
                       <span>
@@ -184,8 +198,9 @@ export function PrepScreen() {
                     data-testid="prep-scout"
                     data-scouted={option.scouted ? "true" : undefined}
                     disabled={disabled}
-                    onClick={() => spend({ kind: "scout", teamId: option.teamId })}
+                    onClick={() => spend({ kind: "scout", teamId: option.teamId }, `t:${option.teamId}`)}
                   >
+                    {flashOverlay(`t:${option.teamId}`)}
                     <span className="prep__who">
                       <strong>{option.name}</strong>
                       <small>{option.scouted
