@@ -91,7 +91,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 277
+        "games": 275
       },
       {
         "teamId": 9247354,
@@ -1266,7 +1266,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 273
+        "games": 271
       },
       {
         "teamId": 9247354,
@@ -1757,7 +1757,6 @@
     "primaryRole": "support",
     "rolesPlayed": [
       "support",
-      "mid",
       "offlane"
     ],
     "teams": [
@@ -1823,7 +1822,7 @@
       {
         "teamId": 8255756,
         "teamName": "Evil Geniuses",
-        "games": 29
+        "games": 25
       },
       {
         "teamId": 9303484,
@@ -3313,7 +3312,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 410
+        "games": 406
       },
       {
         "teamId": 726228,
@@ -3740,8 +3739,8 @@
     "primaryRole": "support",
     "rolesPlayed": [
       "support",
-      "safelane",
-      "offlane"
+      "offlane",
+      "safelane"
     ],
     "teams": [
       {
@@ -3766,7 +3765,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 749
+        "games": 747
       },
       {
         "teamId": 7422789,
@@ -4468,7 +4467,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 23
+        "games": 19
       },
       {
         "teamId": 2621843,
@@ -5296,7 +5295,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8496605,
@@ -5492,7 +5491,7 @@
       {
         "teamId": 8255756,
         "teamName": "Evil Geniuses",
-        "games": 29
+        "games": 25
       }
     ]
   },
@@ -5515,7 +5514,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 216
+        "games": 212
       },
       {
         "teamId": 726228,
@@ -5822,7 +5821,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 239
+        "games": 235
       }
     ]
   },
@@ -6221,7 +6220,7 @@
       {
         "teamId": 111474,
         "teamName": "Alliance",
-        "games": 63
+        "games": 59
       },
       {
         "teamId": 2085365,
@@ -6428,7 +6427,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 8
+        "games": 4
       },
       {
         "teamId": 55,
@@ -6601,7 +6600,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 48
+        "games": 46
       },
       {
         "teamId": 7819701,
@@ -7172,7 +7171,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8376696,
@@ -7235,7 +7234,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8291895,
@@ -9466,7 +9465,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 13
+        "games": 9
       },
       {
         "teamId": 2576071,
@@ -10209,7 +10208,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1043
+        "games": 1039
       },
       {
         "teamId": 111474,
@@ -10281,7 +10280,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 115
+        "games": 111
       },
       {
         "teamId": 8255756,
@@ -10411,7 +10410,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 8
+        "games": 4
       },
       {
         "teamId": 67,
@@ -10758,7 +10757,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 218
+        "games": 214
       },
       {
         "teamId": 20,
@@ -10879,7 +10878,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 241
+        "games": 237
       },
       {
         "teamId": 9303484,
@@ -11380,7 +11379,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 182
+        "games": 178
       },
       {
         "teamId": 8728920,
@@ -13171,7 +13170,7 @@
       {
         "teamId": 111474,
         "teamName": "Alliance",
-        "games": 68
+        "games": 64
       },
       {
         "teamId": 2085365,
@@ -13397,7 +13396,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8390848,
@@ -13891,7 +13890,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 48
+        "games": 46
       }
     ]
   },
@@ -16652,7 +16651,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 508
+        "games": 506
       },
       {
         "teamId": 9467224,
@@ -17216,7 +17215,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 137
+        "games": 133
       },
       {
         "teamId": 8255756,
@@ -17531,7 +17530,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 883
+        "games": 881
       },
       {
         "teamId": 8145157,
@@ -17867,7 +17866,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 48
+        "games": 46
       },
       {
         "teamId": 6739667,
@@ -18109,7 +18108,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 900
+        "games": 898
       },
       {
         "teamId": 7654561,
@@ -20154,7 +20153,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 62
+        "games": 58
       },
       {
         "teamId": 111474,
@@ -20432,7 +20431,7 @@
       {
         "teamId": 111474,
         "teamName": "Alliance",
-        "games": 129
+        "games": 125
       },
       {
         "teamId": 824543,
@@ -20464,7 +20463,7 @@
       {
         "teamId": 111474,
         "teamName": "Alliance",
-        "games": 79
+        "games": 75
       },
       {
         "teamId": 543897,
@@ -20797,7 +20796,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 185
+        "games": 183
       },
       {
         "teamId": 7750343,
@@ -21199,7 +21198,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 56
+        "games": 54
       },
       {
         "teamId": 2006913,
@@ -21506,7 +21505,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 811
+        "games": 807
       },
       {
         "teamId": 111474,
@@ -21543,7 +21542,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 56
+        "games": 54
       },
       {
         "teamId": 2006913,
@@ -22385,7 +22384,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1033
+        "games": 1029
       },
       {
         "teamId": 111474,
@@ -22477,7 +22476,7 @@
       {
         "teamId": 8255756,
         "teamName": "Evil Geniuses",
-        "games": 29
+        "games": 25
       },
       {
         "teamId": 9303484,
@@ -23303,7 +23302,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 8
+        "games": 4
       },
       {
         "teamId": 7422789,
@@ -23394,7 +23393,7 @@
       {
         "teamId": 8255756,
         "teamName": "Evil Geniuses",
-        "games": 29
+        "games": 25
       }
     ]
   },
@@ -23509,7 +23508,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 731
+        "games": 729
       },
       {
         "teamId": 10150413,
@@ -23965,7 +23964,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 83
+        "games": 79
       },
       {
         "teamId": 111474,
@@ -24371,7 +24370,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 42
+        "games": 40
       }
     ]
   },
@@ -24673,7 +24672,7 @@
       {
         "teamId": 8255756,
         "teamName": "Evil Geniuses",
-        "games": 29
+        "games": 25
       },
       {
         "teamId": 8375259,
@@ -27159,7 +27158,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 218
+        "games": 214
       },
       {
         "teamId": 1520578,
@@ -28883,7 +28882,7 @@
       {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
-        "games": 4
+        "games": 2
       },
       {
         "teamId": 8291895,
@@ -29166,7 +29165,7 @@
       {
         "teamId": 111474,
         "teamName": "Alliance",
-        "games": 47
+        "games": 43
       },
       {
         "teamId": 1883502,
@@ -29599,7 +29598,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 261
+        "games": 259
       },
       {
         "teamId": 9247354,
@@ -30560,7 +30559,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 136
+        "games": 132
       },
       {
         "teamId": 1375614,
