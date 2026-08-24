@@ -21,7 +21,9 @@ import {
   chemistryPlayersFromRoster,
   heroStatsForAssignment,
   scoreTeam,
+  type ScoreBreakdown,
 } from "./score.ts";
+import { PREP } from "./prep.ts";
 import { candidatesOf } from "./packs.ts";
 
 /** Поле сетки — константа движка: 2 группы × 9, юзер + 17 соперников. */
@@ -95,11 +97,18 @@ export function realTournamentEvents(data: GameData): RealEventOption[] {
  *  последних мест при жадном драфте; без неё — 2% / 36% / 9%: андердог остаётся андердогом, но
  *  у выбора события появляется смысл сложности. Подробности — BACKLOG T5.6, PRD §5.9.1. */
 export function realPackStrength(data: GameData, pack: Pack): number {
+  const score = realPackScore(data, pack);
+  return Math.round((score.base + score.heroSynergy) * 10) / 10;
+}
+
+/** Слагаемые честной силы состава — разбору соперника (RT-E срез 2) нужна отдельно его
+ *  Hero Synergy: именно её режет прочитанная сигнатурная мета. */
+export function realPackScore(data: GameData, pack: Pack): ScoreBreakdown {
   const roster = candidatesOf(pack).map((candidate) => ({ candidate }));
   const signatures = Object.fromEntries(
     pack.players.map((player) => [player.accountId, pack.signatureHeroes]),
   );
-  const score = scoreTeam(
+  return scoreTeam(
     pack.players,
     pack.signatureHeroes,
     heroStatsForAssignment(data),
@@ -108,7 +117,6 @@ export function realPackStrength(data: GameData, pack: Pack): number {
     chemistryPlayersFromRoster(roster),
     signatures,
   );
-  return Math.round((score.base + score.heroSynergy) * 10) / 10;
 }
 
 /**
@@ -153,6 +161,53 @@ export function buildRealField(data: GameData, eventId: string): RealField {
     for (const player of pack.players) lockedAccounts.add(player.accountId);
   }
   return { eventId, eventName: event.name, opponents, lockedAccounts };
+}
+
+/** Сила состава поля под разбором соперника (RT-E срез 2): сигнатурные герои прочитаны —
+ *  Hero Synergy режется на PREP.scoutSynergyCut; Base нетронут (класс игроков разбором не отнять). */
+export function scoutedPackStrength(data: GameData, pack: Pack): number {
+  const score = realPackScore(data, pack);
+  return Math.round((score.base + score.heroSynergy * (1 - PREP.scoutSynergyCut)) * 10) / 10;
+}
+
+/** Поле под разборами челленджера: те же 17 составов (поле известно заранее и не меняется),
+ *  разобранные пересчитаны с урезанной Hero Synergy; порядок по силе обновляется. Без разборов —
+ *  тот же объект. */
+export function rescoreRealField(data: GameData, field: RealField, scouted: ReadonlySet<string>): RealField {
+  if (scouted.size === 0) return field;
+  const packs = new Map(data.packs.filter((pack) => pack.eventId === field.eventId).map((pack) => [pack.id, pack]));
+  const opponents = field.opponents
+    .map((opponent) => {
+      const pack = scouted.has(opponent.id) ? packs.get(opponent.id) : undefined;
+      return pack ? { ...opponent, strength: scoutedPackStrength(data, pack) } : opponent;
+    })
+    .sort((a, b) => b.strength - a.strength || a.id.localeCompare(b.id));
+  return { ...field, opponents };
+}
+
+/** Что даст разбор каждого состава поля: его сила сейчас, после разбора и потеря — подпись
+ *  строки на экране подготовки. Уже разобранные помечены, чтобы UI не предлагал их повторно. */
+export interface ScoutOption {
+  teamId: string;
+  name: string;
+  strength: number;
+  scoutedStrength: number;
+  loss: number;
+  scouted: boolean;
+}
+
+export function scoutOptions(data: GameData, field: RealField, scouted: ReadonlySet<string>): ScoutOption[] {
+  const packs = new Map(data.packs.filter((pack) => pack.eventId === field.eventId).map((pack) => [pack.id, pack]));
+  return field.opponents.flatMap((opponent) => {
+    const pack = packs.get(opponent.id);
+    if (!pack) return [];
+    const strength = realPackStrength(data, pack);
+    const scoutedStrength = scoutedPackStrength(data, pack);
+    return [{
+      teamId: opponent.id, name: opponent.name, strength, scoutedStrength,
+      loss: Math.round((strength - scoutedStrength) * 10) / 10, scouted: scouted.has(opponent.id),
+    }];
+  });
 }
 
 /* ─── Underdog-подача (T5.6 срез 2, modes-scenarios §2.5.1) ───

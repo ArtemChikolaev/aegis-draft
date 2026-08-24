@@ -58,6 +58,10 @@ test.describe("Real Tournament (T5.6, реальный датасет)", () => {
     await page.getByTestId("resume-continue").click();
     await expect(page.getByTestId("prep-screen")).toBeVisible();
     await expect(page.getByTestId("prep-budget")).toContainText(/3 of 5/);
+    // Разбор соперника (срез 2): неделя на состав поля — его сила в посеве падает.
+    await page.getByTestId("prep-scout").first().click();
+    await expect(page.getByTestId("prep-budget")).toContainText(/2 of 5/);
+    await expect(page.locator('[data-testid="prep-scout"][data-scouted]')).toHaveCount(1);
     await page.getByTestId("prep-confirm").click();
 
     // Поле — реальные составы события: подпись симуляции есть, реролла поля нет.

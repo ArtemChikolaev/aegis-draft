@@ -17,7 +17,7 @@ import {
 } from "./packs.ts";
 import { hasTeamSuccess, mixedBaseRating } from "./teamSuccess.ts";
 import { scoreTeam, type ScoreBreakdown, heroStatsForAssignment, playerHeroGames, signatureLookup, chemistryPlayersFromRoster } from "./score.ts";
-import { EMPTY_PREP, prepOverlay, prepPointsLeft, type PrepAction, type PrepPlan, type ScoreOverlay } from "./prep.ts";
+import { EMPTY_PREP, PREP, prepOverlay, prepPointsLeft, type PrepAction, type PrepPlan, type ScoreOverlay } from "./prep.ts";
 
 /** Сколько героев драфтится (по одному на игрока, как в 322-0). */
 export const HERO_TARGET = ROLE_SEQUENCE.length;
@@ -437,6 +437,14 @@ export class RunEngine {
     if (!this.isComplete || this.prepPointsLeft <= 0) return false;
     const ids = new Set(this.players.map((player) => player.accountId));
     if (action.kind === "scrim") return action.a !== action.b && ids.has(action.a) && ids.has(action.b);
+    if (action.kind === "scout") {
+      // Один состав — один раз, не больше PREP.scoutMax за подготовку. Принадлежность id полю
+      // проверяет стор (движок поля не знает; пустой id — точно не состав).
+      const scouted = this.prep.actions.filter((spent) => spent.kind === "scout");
+      return action.teamId.length > 0
+        && !scouted.some((spent) => spent.kind === "scout" && spent.teamId === action.teamId)
+        && scouted.length < PREP.scoutMax;
+    }
     return ids.has(action.accountId) && this.heroes.includes(action.heroId);
   }
 

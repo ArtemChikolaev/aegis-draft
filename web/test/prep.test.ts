@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { loadGameData } from "./helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
-import { EMPTY_PREP, PREP, prepOverlay, prepPointsLeft, heroGamesKey } from "../src/game/prep.ts";
+import { EMPTY_PREP, PREP, prepOverlay, prepPointsLeft, heroGamesKey, scoutedTeams } from "../src/game/prep.ts";
+import { buildRealField, realTournamentEvents, realPackScore, rescoreRealField, scoutOptions, scoutedPackStrength } from "../src/game/realTournament.ts";
+import { isMockBaseline } from "./helpers/dataset.ts";
 import {
   SCORING,
   chemistryBonus,
@@ -140,5 +142,58 @@ describe("prep — RunEngine: план, бюджет, превью, откат",
     ];
     for (const action of plan) { a.addPrep(action); b.addPrep(action); }
     expect(b.score()).toEqual(a.score());
+  });
+});
+
+describe("prep — разбор соперника (RT-E срез 2)", () => {
+  const onMock = isMockBaseline(data.manifest);
+
+  it("scout: движок держит лимит и уникальность, overlay своего счёта не трогает", () => {
+    const engine = draftComplete("prep-scout-gate");
+    expect(engine.canPrep({ kind: "scout", teamId: "" })).toBe(false);
+    expect(engine.addPrep({ kind: "scout", teamId: "team-a" })).toBe(true);
+    // Свой счёт разбором не меняется: наложение пусто.
+    expect(engine.scoreOverlay.pairGames.size).toBe(0);
+    expect(engine.scoreOverlay.heroGames.size).toBe(0);
+    expect(engine.score()!.teamOvr).toBeCloseTo(engine.previewWithoutPrep()!.teamOvr, 9);
+    // Один состав — один раз; не больше PREP.scoutMax.
+    expect(engine.canPrep({ kind: "scout", teamId: "team-a" })).toBe(false);
+    expect(engine.addPrep({ kind: "scout", teamId: "team-b" })).toBe(true);
+    expect(engine.canPrep({ kind: "scout", teamId: "team-c" })).toBe(false);
+    expect(scoutedTeams(engine.prepPlan)).toEqual(new Set(["team-a", "team-b"]));
+    // Недели общие с остальными рычагами: два разбора съели два очка бюджета.
+    expect(engine.prepPointsLeft).toBe(PREP.budget - 2);
+  });
+
+  it.skipIf(onMock)("rescoreRealField: разобранный состав теряет ровно долю Hero Synergy, состав поля не меняется", () => {
+    const eventId = realTournamentEvents(data)[0].eventId;
+    const field = buildRealField(data, eventId);
+    const leader = field.opponents[0];
+    const pack = data.packs.find((item) => item.id === leader.id)!;
+    const score = realPackScore(data, pack);
+    expect(scoutedPackStrength(data, pack)).toBeCloseTo(
+      Math.round((score.base + score.heroSynergy * (1 - PREP.scoutSynergyCut)) * 10) / 10, 6,
+    );
+    const rescored = rescoreRealField(data, field, new Set([leader.id]));
+    // Те же 17 id (поле известно заранее), но разобранный ослаб и порядок мог смениться.
+    expect(new Set(rescored.opponents.map((o) => o.id))).toEqual(new Set(field.opponents.map((o) => o.id)));
+    const after = rescored.opponents.find((o) => o.id === leader.id)!;
+    expect(after.strength).toBeLessThan(leader.strength);
+    // Без разборов — тот же объект (ни копий, ни пересборки).
+    expect(rescoreRealField(data, field, new Set())).toBe(field);
+  });
+
+  it.skipIf(onMock)("scoutOptions: потеря = сила − сила после разбора, разобранные помечены", () => {
+    const eventId = realTournamentEvents(data)[0].eventId;
+    const field = buildRealField(data, eventId);
+    const first = scoutOptions(data, field, new Set());
+    expect(first).toHaveLength(field.opponents.length);
+    for (const option of first) {
+      expect(option.loss).toBeCloseTo(Math.round((option.strength - option.scoutedStrength) * 10) / 10, 6);
+      expect(option.loss).toBeGreaterThanOrEqual(0);
+      expect(option.scouted).toBe(false);
+    }
+    const marked = scoutOptions(data, field, new Set([field.opponents[0].id]));
+    expect(marked.find((o) => o.teamId === field.opponents[0].id)!.scouted).toBe(true);
   });
 });

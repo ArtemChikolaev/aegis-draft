@@ -4,13 +4,13 @@
 // восстанавливается детерминированным replay; имя команды — отдельная durable-настройка.
 import { create } from "zustand";
 import { RunEngine, type RosterSlot } from "../game/engine.ts";
-import { PREP, type PrepAction, type PrepPlan, type ScoreOverlay } from "../game/prep.ts";
+import { PREP, scoutedTeams, type PrepAction, type PrepPlan, type ScoreOverlay } from "../game/prep.ts";
 import type { RunConfig, DraftPack, Candidate } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
-import { buildRealField, type RealField } from "../game/realTournament.ts";
+import { buildRealField, rescoreRealField, scoutOptions, type RealField, type ScoutOption } from "../game/realTournament.ts";
 import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
@@ -101,6 +101,9 @@ export interface PrepView {
   baseline: ScoreBreakdown;
   scrims: PrepOptionView[];
   practices: PrepOptionView[];
+  /** Разбор соперника (срез 2): составы поля с потерей от разбора; уже разобранные помечены. */
+  scouts: ScoutOption[];
+  scoutsLeft: number;
   overlay: ScoreOverlay;
 }
 
@@ -362,7 +365,7 @@ function prepDoneIn(actions: RunAction[]): boolean {
 }
 
 /** Вью подготовки: превью каждой недели сборов тем же scoreFor, что боевой счёт. */
-function buildPrepView(engine: RunEngine): PrepView | null {
+function buildPrepView(engine: RunEngine, data: GameData, realField: RealField | null): PrepView | null {
   const current = engine.score();
   if (!engine.isComplete || !current) return null;
   const plan = engine.prepPlan;
@@ -392,10 +395,13 @@ function buildPrepView(engine: RunEngine): PrepView | null {
   }
   // Счёт без подготовки — «было» для разложения: считаем пустым наложением.
   const baseline = engine.previewWithoutPrep();
+  const scouted = scoutedTeams(plan);
   return {
     plan, pointsLeft: engine.prepPointsLeft, budget: PREP.budget, baseline: baseline ?? current,
     scrims: scrims.sort((x, y) => y.delta - x.delta),
     practices: practices.sort((x, y) => y.delta - x.delta),
+    scouts: realField ? scoutOptions(data, realField, scouted) : [],
+    scoutsLeft: Math.max(0, PREP.scoutMax - scouted.size),
     overlay: engine.scoreOverlay,
   };
 }
@@ -630,7 +636,9 @@ export const useRun = create<RunStore>((set, get) => {
     }
     // Real Tournament (T5.6): поле — реальные составы события, реролла поля нет (реальность не
     // рероллится), сила поля не зависит от сида — он решает только исход матчей.
-    const realField = selectedMode === "tournament" ? get().realField : null;
+    // Разборы соперников (RT-E срез 2) режут силу разобранных составов — поле строится уже по ним.
+    const baseField = selectedMode === "tournament" ? get().realField : null;
+    const realField = baseField && get().engine ? rescoreRealField(data, baseField, scoutedTeams(get().engine!.prepPlan)) : baseField;
     const tournamentEngine = realField
       ? new TournamentEngine(
         data, config.format, seed, snapshot.score.teamOvr, resolvedName,
@@ -650,7 +658,8 @@ export const useRun = create<RunStore>((set, get) => {
     if (!engine?.isComplete) return { snapshot, phase: "draft" };
     if (selectedMode === "tournament") {
       logScreen("Prep", "Roster and heroes complete → preparation for the event");
-      return { snapshot, phase: "prep", prep: buildPrepView(engine) };
+      const { data, realField } = get();
+      return { snapshot, phase: "prep", prep: data ? buildPrepView(engine, data, realField) : null };
     }
     const entered = buildTournamentFields(snapshot);
     return entered ? { snapshot, phase: "tournament", ...entered } : { snapshot, phase: "draft" };
@@ -901,16 +910,19 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     addPrep(action) {
-      const { engine, phase } = get();
-      if (!engine || phase !== "prep" || !engine.addPrep(action)) return;
-      set({ snapshot: snap(engine), prep: buildPrepView(engine) });
+      const { engine, phase, data, realField } = get();
+      if (!engine || !data || phase !== "prep") return;
+      // Разбор — только состава ЭТОГО поля: движок поля не знает, проверяет стор.
+      if (action.kind === "scout" && !realField?.opponents.some((opponent) => opponent.id === action.teamId)) return;
+      if (!engine.addPrep(action)) return;
+      set({ snapshot: snap(engine), prep: buildPrepView(engine, data, realField) });
       record({ t: "prep", action });
     },
 
     undoPrep() {
-      const { engine, phase } = get();
-      if (!engine || phase !== "prep" || !engine.undoPrep()) return;
-      set({ snapshot: snap(engine), prep: buildPrepView(engine) });
+      const { engine, phase, data, realField } = get();
+      if (!engine || !data || phase !== "prep" || !engine.undoPrep()) return;
+      set({ snapshot: snap(engine), prep: buildPrepView(engine, data, realField) });
       record({ t: "prepUndo" });
     },
 
@@ -1111,7 +1123,7 @@ export const useRun = create<RunStore>((set, get) => {
             tournamentEngine = prepDoneIn(resumable.actions)
               ? new TournamentEngine(
                 data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName,
-                0, QUICK_DRAFT_FIELD, resumedField.opponents,
+                0, QUICK_DRAFT_FIELD, rescoreRealField(data, resumedField, scoutedTeams(engine.prepPlan)).opponents,
               )
               : null;
           } else {
@@ -1149,7 +1161,7 @@ export const useRun = create<RunStore>((set, get) => {
           economy,
           economyView: economy ? economy.snapshot : null,
           camp: inCamp && economy ? economy.campView() : null,
-          prep: inPrep ? buildPrepView(engine) : null,
+          prep: inPrep ? buildPrepView(engine, data, resumedField) : null,
           tactics,
           boss,
         });

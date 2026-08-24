@@ -39,8 +39,13 @@ export function PrepScreen() {
   const spentWeeks = prep.budget - prep.pointsLeft;
   const synergyTier = score ? heroSynergyTier(score.heroSynergy) : null;
   const synergySublabel = synergyTier === "insane" ? t("draft.synergyInsane") : synergyTier === "great" ? t("draft.synergyGreat") : undefined;
-  const fieldTop = realField?.opponents[0];
-  const fieldMedian = realField?.opponents[Math.floor(realField.opponents.length / 2)];
+  // Плитки поля считаем от ЭФФЕКТИВНЫХ сил (разобранные составы уже ослаблены) — то же, что
+  // увидит посев; сортировка заново, потому что разбор мог сместить лидера.
+  const effective = [...prep.scouts]
+    .map((option) => ({ name: option.name, strength: option.scouted ? option.scoutedStrength : option.strength }))
+    .sort((a, b) => b.strength - a.strength);
+  const fieldTop = effective[0];
+  const fieldMedian = effective[Math.floor(effective.length / 2)];
 
   const spend = (action: PrepAction) => addPrep(action);
   const scrimLabel = (view: PrepOptionView) => {
@@ -162,6 +167,38 @@ export function PrepScreen() {
             {prep.practices.every((view) => view.delta <= 0.001) && (
               <li className="prep__empty">{t("prep.practiceCapped")}</li>
             )}
+          </ul>
+        </section>
+
+        <section className="prep__section">
+          <h3>{t("prep.scout")}{prep.scoutsLeft < PREP.scoutMax ? ` · ${t("prep.scoutLeft", { n: prep.scoutsLeft })}` : ""}</h3>
+          <p className="prep__hint">{t("prep.scoutHint", { total: PREP.scoutMax })}</p>
+          <ul className="prep__list prep__list--scout">
+            {prep.scouts.map((option) => {
+              const disabled = option.scouted || prep.scoutsLeft <= 0 || prep.pointsLeft <= 0 || option.loss < 0.05;
+              return (
+                <li key={option.teamId}>
+                  <button
+                    type="button"
+                    className="prep__option"
+                    data-testid="prep-scout"
+                    data-scouted={option.scouted ? "true" : undefined}
+                    disabled={disabled}
+                    onClick={() => spend({ kind: "scout", teamId: option.teamId })}
+                  >
+                    <span className="prep__who">
+                      <strong>{option.name}</strong>
+                      <small>{option.scouted
+                        ? t("prep.scouted", { n: Math.round(option.scoutedStrength) })
+                        : `${Math.round(option.strength)} → ${Math.round(option.scoutedStrength)}`}</small>
+                    </span>
+                    <em className={`prep__delta${!option.scouted && option.loss >= 0.05 ? " prep__delta--down" : ""}`}>
+                      {option.scouted ? "✓" : `−${option.loss.toFixed(1)}`}
+                    </em>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </section>
 

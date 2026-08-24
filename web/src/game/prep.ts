@@ -11,6 +11,14 @@ import { pairKey } from "./score.ts";
 export const PREP = {
   /** Недель сборов на одну подготовку. */
   budget: 5,
+  /** Разборов соперника (срез 2): неделя на демки ОДНОГО состава поля — его сигнатурные герои
+   *  прочитаны, Hero Synergy состава режется на scoutSynergyCut (у топов это −3…−3.7). Не больше
+   *  двух: иначе подготовка превращалась бы в вычёркивание поля, а не в выбор «усилиться против
+   *  всех (+0.76) или ослабить конкретного (лидера — ради титула, соседа — ради топ-8)».
+   *  Альтернатива «вырезать героя из сигнатурных пулов всего поля» отвергнута замером: при 10
+   *  сигнатурках на состав назначение переезжает почти бесплатно (лучший герой −0.14 к среднему). */
+  scoutMax: 2,
+  scoutSynergyCut: 0.5,
   /** Виртуальных co-games паре за неделю сыгровки: 175/230 ≈ +0.76 Chemistry (до потолка пары 4). */
   scrimGames: 175,
   /** Виртуальных игр игрок×герой за неделю тренировки: 18/25 ≈ +1.1 Hero Synergy на герое с нуля
@@ -22,7 +30,9 @@ export const PREP = {
 
 export type PrepAction =
   | { kind: "scrim"; a: number; b: number }
-  | { kind: "practice"; accountId: number; heroId: number };
+  | { kind: "practice"; accountId: number; heroId: number }
+  /** Разбор соперника: состав поля (id пака) теряет долю Hero Synergy (свой счёт не меняет). */
+  | { kind: "scout"; teamId: string };
 
 export interface PrepPlan {
   /** Потраченные недели по порядку: одна запись = одно очко. Повторы допустимы (стак на пару/героя). */
@@ -50,10 +60,11 @@ export function prepOverlay(plan: PrepPlan): ScoreOverlay {
     if (action.kind === "scrim") {
       const key = pairKey(action.a, action.b);
       pairGames.set(key, (pairGames.get(key) ?? 0) + PREP.scrimGames);
-    } else {
+    } else if (action.kind === "practice") {
       const key = heroGamesKey(action.accountId, action.heroId);
       heroGames.set(key, (heroGames.get(key) ?? 0) + PREP.practiceGames);
     }
+    // scout — работает на поле, не на своём счёте (см. scoutedTeams).
   }
   return { pairGames, heroGames };
 }
@@ -65,5 +76,11 @@ export function prepPointsLeft(plan: PrepPlan): number {
 export function samePrepAction(x: PrepAction, y: PrepAction): boolean {
   if (x.kind === "scrim" && y.kind === "scrim") return pairKey(x.a, x.b) === pairKey(y.a, y.b);
   if (x.kind === "practice" && y.kind === "practice") return x.accountId === y.accountId && x.heroId === y.heroId;
+  if (x.kind === "scout" && y.kind === "scout") return x.teamId === y.teamId;
   return false;
+}
+
+/** Разобранные составы поля — то, что режет их Hero Synergy (game/realTournament.ts). */
+export function scoutedTeams(plan: PrepPlan): ReadonlySet<string> {
+  return new Set(plan.actions.flatMap((action) => (action.kind === "scout" ? [action.teamId] : [])));
 }
