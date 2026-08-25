@@ -172,8 +172,8 @@ export interface ManagerState {
   // Оффсезон
   offseasonDrifts: Record<number, number>; // accountId → ΔOVR
   offseasonSalaries: Record<number, number>; // accountId → новая зарплата
-  /** Тренировочный сбор куплен в ЭТОМ оффсезоне (m1.7.0). Одноразовый на сезон. */
-  offseasonBootcamp?: boolean;
+  /** Уровней тренировочного сбора куплено в ЭТОМ оффсезоне (m1.8.0: лестница, было boolean). */
+  offseasonBootcamp?: number;
   released: number[];
   /** Уходящие сами (ретайр/несчастье) — release принудительный, не тогглится. */
   departures: number[];
@@ -315,7 +315,7 @@ export class ManagerEngine {
       pendingRandomEvent: null,
       offseasonDrifts: {},
       offseasonSalaries: {},
-      offseasonBootcamp: false,
+      offseasonBootcamp: 0,
       released: [],
       departures: [],
       manualAssignment: {},
@@ -821,7 +821,7 @@ export class ManagerEngine {
 
     s.offseasonDrifts = {};
     s.offseasonSalaries = {};
-    s.offseasonBootcamp = false;
+    s.offseasonBootcamp = 0;
     s.released = [];
     s.departures = [];
     for (const player of s.roster) {
@@ -856,14 +856,25 @@ export class ManagerEngine {
     return { wagesK, incomeK: this.incomeK, ok: wagesK <= this.incomeK };
   }
 
-  /** Тренировочный сбор (m1.7.0): раз в оффсезон, за деньги — дрифт формы каждого игрока
-   *  смещается вверх (кламп ±3 как у обычного дрифта). В долг сбор не продаётся. */
+  /** Куплено уровней сбора в текущем оффсезоне (legacy-boolean сейвов версия отсекает). */
+  get bootcampLevel(): number {
+    return typeof this.state.offseasonBootcamp === "number" ? this.state.offseasonBootcamp : 0;
+  }
+
+  /** Цена следующего уровня сбора; null — лестница исчерпана. */
+  get bootcampNextCostK(): number | null {
+    return OFFSEASON_BOOTCAMP.costsK[this.bootcampLevel] ?? null;
+  }
+
+  /** Тренировочный сбор (m1.7.0, лестница m1.8.0): каждый уровень — за деньги, дрифт формы
+   *  каждого игрока смещается вверх (кламп ±3 как у обычного дрифта). В долг не продаётся. */
   buyOffseasonBootcamp(): boolean {
     const s = this.state;
-    if (s.phase !== "offseason" || s.offseasonBootcamp === true) return false;
-    if (s.bankK < OFFSEASON_BOOTCAMP.costK) return false;
-    s.bankK -= OFFSEASON_BOOTCAMP.costK;
-    s.offseasonBootcamp = true;
+    const costK = this.bootcampNextCostK;
+    if (s.phase !== "offseason" || costK == null) return false;
+    if (s.bankK < costK) return false;
+    s.bankK -= costK;
+    s.offseasonBootcamp = this.bootcampLevel + 1;
     for (const id of Object.keys(s.offseasonDrifts)) {
       s.offseasonDrifts[Number(id)] = Math.min(3, Math.max(-3, s.offseasonDrifts[Number(id)] + OFFSEASON_BOOTCAMP.driftBonus));
     }

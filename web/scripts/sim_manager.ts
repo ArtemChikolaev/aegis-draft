@@ -114,7 +114,10 @@ function playCareer(seed: string, strategy: Strategy, perSeason: SeasonStats[]):
       // m1.7.0: сбор — превращение банка в форму (обе стратегии, при запасе ≥ 2 цен: cheap
       // проверяет смысл копилки, greedy — что сбор не мешает трансферам). Затем кап оффсезона:
       // пока прогнозные зарплаты выше дохода, отпускается самый дорогой остающийся.
-      if (engine.state.bankK >= OFFSEASON_BOOTCAMP.costK * 2) engine.buyOffseasonBootcamp();
+      // Лестница m1.8.0: уровни берутся, пока запас ≥ 2 цен следующего — та же логика буфера.
+      while (engine.bootcampNextCostK != null && engine.state.bankK >= engine.bootcampNextCostK * 2) {
+        if (!engine.buyOffseasonBootcamp()) break;
+      }
       let guardRelease = 0;
       while (!engine.offseasonBudget().ok && guardRelease++ < 6) {
         const s3 = engine.state;

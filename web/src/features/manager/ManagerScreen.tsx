@@ -850,18 +850,21 @@ function Offseason({ engine }: { engine: ManagerEngine }) {
             подтверждением («куплен»), чтобы дрифты в списке выше читались с контекстом. */}
         <div className="manager__signbar manager__bootcamp" data-testid="manager-bootcamp-bar">
           <span>
-            {engine.state.offseasonBootcamp === true
-              ? <b className="is-up">{t("manager.bootcampBought", { n: OFFSEASON_BOOTCAMP.driftBonus })}</b>
-              : t("manager.bootcampOfferText", { cost: OFFSEASON_BOOTCAMP.costK, n: OFFSEASON_BOOTCAMP.driftBonus })}
+            {engine.bootcampLevel > 0 && (
+              <b className="is-up">{t("manager.bootcampBought", { n: engine.bootcampLevel * OFFSEASON_BOOTCAMP.driftBonus })}{" · "}</b>
+            )}
+            {engine.bootcampNextCostK != null
+              ? t(engine.bootcampLevel === 0 ? "manager.bootcampOfferText" : "manager.bootcampNextLevel", { cost: engine.bootcampNextCostK, n: OFFSEASON_BOOTCAMP.driftBonus })
+              : engine.bootcampLevel > 0 ? t("manager.bootcampMaxed") : null}
           </span>
-          {engine.state.offseasonBootcamp !== true && (
+          {engine.bootcampNextCostK != null && (
             <Button
               variant="secondary"
               data-testid="manager-bootcamp-buy"
-              disabled={engine.state.bankK < OFFSEASON_BOOTCAMP.costK}
+              disabled={engine.state.bankK < engine.bootcampNextCostK}
               onClick={() => { sfxBuy(); act((e) => e.buyOffseasonBootcamp()); }}
             >
-              {t("manager.bootcampBuy", { cost: OFFSEASON_BOOTCAMP.costK })}
+              {t("manager.bootcampBuy", { cost: engine.bootcampNextCostK })}
             </Button>
           )}
         </div>

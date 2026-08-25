@@ -694,22 +694,30 @@ describe("ManagerEngine — оффсезонный кап и тренирово�
     expect(engine.state.phase).toBe("review");
   });
 
-  it("сбор: одноразовый, в долг не продаётся, дрифты сдвигаются вверх с клампом ±3", () => {
+  it("сбор-лестница: цены растут, в долг не продаётся, дрифты сдвигаются с клампом ±3, лестница конечна", () => {
     const engine = toOffseason("bootcamp-season");
     const s = engine.state;
     const before = { ...s.offseasonDrifts };
+    const [first, second, third] = OFFSEASON_BOOTCAMP.costsK;
     // В долг не продаётся.
-    const savedBank = s.bankK;
-    s.bankK = OFFSEASON_BOOTCAMP.costK - 1;
+    s.bankK = first - 1;
     expect(engine.buyOffseasonBootcamp()).toBe(false);
-    s.bankK = savedBank + OFFSEASON_BOOTCAMP.costK * 2;
-    const bankBefore = s.bankK;
+    // Полная лестница: каждый уровень списывает СВОЮ цену и сдвигает дрифты ещё на +1.
+    s.bankK = first + second + third;
     expect(engine.buyOffseasonBootcamp()).toBe(true);
-    expect(s.bankK).toBe(bankBefore - OFFSEASON_BOOTCAMP.costK);
+    expect(engine.bootcampLevel).toBe(1);
+    expect(engine.bootcampNextCostK).toBe(second);
+    expect(engine.buyOffseasonBootcamp()).toBe(true);
+    expect(engine.buyOffseasonBootcamp()).toBe(true);
+    expect(s.bankK).toBe(0);
+    expect(engine.bootcampNextCostK).toBeNull();
     for (const id of Object.keys(before)) {
-      expect(s.offseasonDrifts[Number(id)]).toBe(Math.min(3, Math.max(-3, before[Number(id)] + OFFSEASON_BOOTCAMP.driftBonus)));
+      expect(s.offseasonDrifts[Number(id)]).toBe(
+        Math.min(3, Math.max(-3, before[Number(id)] + 3 * OFFSEASON_BOOTCAMP.driftBonus)),
+      );
     }
-    // Одноразовый на оффсезон.
+    // Лестница конечна: сверх последнего уровня не продаётся даже с деньгами.
+    s.bankK = 10_000;
     expect(engine.buyOffseasonBootcamp()).toBe(false);
   });
 });
