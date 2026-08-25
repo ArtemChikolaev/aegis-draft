@@ -144,6 +144,11 @@ const ru = {
   "mutator.desc.expensiveMarket": "Все цены рынка в этом круге выше на {pct}%.",
   "mutator.uncappedBoss": "Босс без пощады",
   "mutator.desc.uncappedBoss": "Штраф босса этого круга не ограничен потолком.",
+  "stake.title": "Stake",
+  "stake.none": "Без Stake",
+  "stake.noneHint": "Обычный сезон",
+  "stake.locked": "Откроется после первой победы сезона",
+  "stake.blockedByCheat": "Несовместимо с Cheat Mode",
   "edition.chargedHint": "+{bonus}% к эффекту за заряд (до {cap}; потолок растёт с тиром предмета). Заряд — за пройденный этап с выполненным условием; сломанное условие сжигает заряды.",
   // R11.7: карточка показывает, КТО из активных героев её включает. Абстрактный список тегов
   // героя был бы шумом — вопрос у игрока конкретный: «сработает или нет».
@@ -1131,6 +1136,11 @@ const en: Dictionary = {
   "mutator.desc.expensiveMarket": "All market prices in this circle are {pct}% higher.",
   "mutator.uncappedBoss": "Merciless boss",
   "mutator.desc.uncappedBoss": "This circle's boss penalty has no cap.",
+  "stake.title": "Stake",
+  "stake.none": "No stake",
+  "stake.noneHint": "Regular season",
+  "stake.locked": "Unlocks after your first season win",
+  "stake.blockedByCheat": "Incompatible with Cheat Mode",
   "edition.chargedHint": "+{bonus}% card effect per charge (up to {cap}; the cap grows with item tier). Gain a charge for each cleared stage with the condition met; breaking it burns all charges.",
   "item.match.tag": "Matching",
   "item.match.attr": "Matching",

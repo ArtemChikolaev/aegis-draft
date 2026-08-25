@@ -95,11 +95,12 @@ export function CampScreen() {
   const camp = useRun((s) => s.camp);
   const ante = useRun((s) => s.ante);
   const seed = useRun((s) => s.seed);
-  // Мутатор круга предстоящего этапа (LG3): внутри сезона null, строка не рендерится.
-  const campMutator = ante ? mutatorForStage(seed, ante.index) : null;
   const snapshot = useRun((s) => s.snapshot);
   const data = useRun((s) => s.data);
   const config = useRun((s) => s.config);
+  // Правило предстоящего этапа (LG3/T6.4): мутатор круга Династии или стартовый Stake сезона;
+  // без правила null — строка не рендерится.
+  const campMutator = ante ? mutatorForStage(seed, ante.index, undefined, config?.stake ?? null) : null;
   const boss = useRun((s) => s.boss);
   const scoutedBoss = useRun((s) => s.scoutedBoss);
   const chooseReward = useRun((s) => s.chooseReward);

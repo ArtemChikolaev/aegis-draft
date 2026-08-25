@@ -22,6 +22,9 @@ import {
   SEASON_TEMPLATE,
   seasonFromTargets,
   seasonStage,
+  mutatorForStage,
+  effectiveStageTarget,
+  marketCostFactor,
 } from "../src/game/anteRun.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine } from "../src/game/tournament.ts";
 import { loadGameData } from "./helpers/data.ts";
@@ -398,6 +401,26 @@ describe("Угроза этапа (R7.2)", () => {
       return bots.reduce((sum, team) => sum + team.strength, 0) / bots.length;
     };
     expect(botMean(withMult) / botMean(noMult)).toBeCloseTo(anteFieldMult(2 * ACT_LENGTH), 1);
+  });
+
+  it("Stake (T6.4): правило действует на сезон теми же рычагами, Династия сохраняет мутатор круга", () => {
+    const seed = "stake-spec";
+    // Сезон: без Stake правил нет; со Stake — правило на каждом сезонном этапе.
+    expect(mutatorForStage(seed, 3)).toBeNull();
+    expect(mutatorForStage(seed, 3, undefined, "tighterTargets")).toBe("tighterTargets");
+    // Династия: мутатор круга, Stake НЕ стекается и не перекрывает.
+    const circleMutator = mutatorForStage(seed, SEASON.acts * ACT_LENGTH);
+    expect(mutatorForStage(seed, SEASON.acts * ACT_LENGTH, undefined, "expensiveMarket")).toBe(circleMutator);
+    // Рычаги: порог жёстче на шаг лестницы, рынок дороже — теми же функциями, что у кругов.
+    const base = effectiveStageTarget(seed, 0);
+    expect(effectiveStageTarget(seed, 0, undefined, "tighterTargets")).toBeLessThanOrEqual(base);
+    expect(effectiveStageTarget(seed, 0, undefined, "expensiveMarket")).toBe(base);
+    expect(marketCostFactor(seed, 1, undefined, "expensiveMarket")).toBeGreaterThan(1);
+    expect(marketCostFactor(seed, 1)).toBe(1);
+    // Движок судит этап по Stake-порогу: state.target первого этапа жёстче обычного.
+    const plain = new AnteRunEngine(data, "last_2y", seed, 80, "Five");
+    const staked = new AnteRunEngine(data, "last_2y", seed, 80, "Five", undefined, "tighterTargets");
+    expect(staked.state.target).toBeLessThan(plain.state.target);
   });
 
   it("Династия идёт своим, более пологим шагом; геосреднее её актов и безграничность роста держатся (b1.37.0/b1.39.0)", () => {

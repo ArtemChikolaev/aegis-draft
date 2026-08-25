@@ -1,3 +1,4 @@
+import type { MutatorId } from "../game/dynastyMutators.ts";
 import { create } from "zustand";
 import { readCached, readPersisted, writePersisted } from "./persist.ts";
 import type { RosterSlot } from "../game/engine.ts";
@@ -23,6 +24,8 @@ export interface CareerConfigLabel {
    *  но исключается из ВСЕХ агрегатов и из счётчика забегов, по которому открывается
    *  мета-прогрессия: иначе читерский забег открыл бы редкость следующему честному. */
   cheatMode?: boolean;
+  /** Stake (T6.4): правило сезона, под которым сыгран забег. Записи без метки — без Stake. */
+  stake?: MutatorId;
   /** Запись сделана в Династии — добровольном продолжении ПОСЛЕ победы сезона (R6.3). Победа уже
    *  засчитана отдельной записью, поэтому эта в агрегаты и в счётчик забегов не идёт: иначе один
    *  забег считался бы дважды и Династия открывала бы мета-прогрессию сама себе. */
@@ -174,6 +177,7 @@ export function buildCareerEntry(input: {
       mode: input.mode === "run" ? "run" : input.mode === "tournament" ? "tournament" : undefined,
       cheatMode: input.config.cheatMode === true ? true : undefined,
       dynasty: input.dynasty === true ? true : undefined,
+      stake: input.config.stake ?? undefined,
     },
     seasonWon: input.seasonWon === true ? true : undefined,
     rogueliteStage: input.mode === "run" && input.rogueliteStage
@@ -249,6 +253,13 @@ export function careerRunId(entry: CareerEntry): string {
  *  и мета-прогрессию не идут — второй считался бы тем же забегом дважды. */
 export function competitiveEntries(entries: CareerEntry[]): CareerEntry[] {
   return entries.filter((entry) => entry.configLabel.cheatMode !== true && entry.configLabel.dynasty !== true);
+}
+
+/** Stakes открыты (T6.4): хотя бы один ЧЕСТНО выигранный сезон Roguelite Run. Cheat-забеги
+ *  исключены `competitiveEntries` внутри `careerEntriesForMode` — читерская победа мету не
+ *  открывает (DoD R2.3). */
+export function stakesUnlocked(entries: CareerEntry[]): boolean {
+  return careerEntriesForMode(entries, "run").some((entry) => entry.seasonWon === true);
 }
 
 export function careerEntriesForMode(entries: CareerEntry[], mode: RunMode): CareerEntry[] {

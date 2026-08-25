@@ -8,6 +8,7 @@
 //
 // Формат данных сознательно тот же, что у сейва (state/runPersist.SavedRun): и там, и там
 // вопрос один — «воспроизводим ли забег на этом датасете». Проверку версий не дублируем.
+import { isMutatorId } from "../game/dynastyMutators.ts";
 import type { RunConfig } from "../game/packs.ts";
 import type { RunMode } from "./runPersist.ts";
 
@@ -96,6 +97,7 @@ export function encodeRunLink(link: RunLink): string {
     // Хардкор пишем только когда включён — короче ссылка, и старые ссылки читаются как false.
     ...(link.config.hardMode ? { h: 1 } : {}),
     ...(link.config.cheatMode ? { x: 1 } : {}),
+    ...(link.config.stake ? { k: link.config.stake } : {}),
     ...(link.eventId ? { e: link.eventId } : {}),
     seed: link.seed,
   };
@@ -148,6 +150,7 @@ export function decodeRunLink(encoded: string): RunLink | null {
       // Cheat-забег шерится только с явной меткой: получатель обязан видеть, что результат
       // несоревновательный, ещё до старта.
       ...(raw.x === 1 ? { cheatMode: true } : {}),
+      ...(typeof raw.k === "string" && isMutatorId(raw.k) ? { stake: raw.k } : {}),
     },
   };
 }
@@ -232,7 +235,8 @@ export function runConfigsMatch(left: RunConfig, right: RunConfig): boolean {
     && left.scoring === right.scoring
     && left.allocation === right.allocation
     && (left.hardMode ?? false) === (right.hardMode ?? false)
-    && (left.cheatMode ?? false) === (right.cheatMode ?? false);
+    && (left.cheatMode ?? false) === (right.cheatMode ?? false)
+    && (left.stake ?? null) === (right.stake ?? null);
 }
 
 /**

@@ -12,6 +12,8 @@ import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
 import { realTournamentEvents } from "../../game/realTournament.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
 import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
+import { MUTATOR_IDS, mutatorDescParams, type MutatorId } from "../../game/dynastyMutators.ts";
+import { stakesUnlocked, useCareer } from "../../state/careerStore.ts";
 import { SeedField } from "./SeedField.tsx";
 import { ArenaLobby } from "./ArenaLobby.tsx";
 import { isApiConfigured } from "../../data/api/index.ts";
@@ -127,6 +129,8 @@ export function StartScreen() {
   const [hardGate, setHardGate] = useState(false);
   const [hardAck, setHardAck] = useState(false);
   const [cheatGate, setCheatGate] = useState(false);
+  // Stakes (T6.4): открываются первой честной победой сезона — до неё выбор показан, но заперт.
+  const stakesOpen = useCareer((state) => stakesUnlocked(state.entries));
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
   // Mixed оценивает игроков по успеху команды за окно, поэтому окно без team-success
   // в нём неиграбельно — гасим так же, как форматы, которых нет в датасете.
@@ -151,6 +155,8 @@ export function StartScreen() {
     ...(mode === "run" ? [] : [DIFFICULTY.find((option) => option.value === config.rerolls)?.label ?? "start.normal"] as MessageKey[]),
     ALLOCATION.find((option) => option.value === config.allocation)?.label ?? "start.automatic",
   ];
+  // Stake — часть сводки запуска: правило сезона видно до старта, как остальные оси.
+  const stakeSummary = mode === "run" && config.stake ? t(`mutator.${config.stake}` as MessageKey) : null;
 
   const seedValidation: RunLinkInputValidation = data && mode
     ? validateRunLinkInput(
@@ -428,6 +434,29 @@ export function StartScreen() {
                   else set("cheatMode", false);
                 }}
               />
+              {/* Stakes (T6.4): те же правила, что мутаторы кругов Династии, но добровольно и на
+                  весь сезон. Заперты до первой честной победы сезона; с Cheat Mode не совместимы
+                  (несоревновательный забег не носит соревновательную метку). */}
+              <OptionGroup
+                title={t("stake.title")}
+                soonLabel={t("common.soon")}
+                options={[
+                  { value: null as MutatorId | null, label: t("stake.none"), hint: t("stake.noneHint") },
+                  ...MUTATOR_IDS.map((id) => ({
+                    value: id as MutatorId | null,
+                    label: t(`mutator.${id}` as MessageKey),
+                    hint: t(
+                      stakesOpen && !(config.cheatMode ?? false)
+                        ? (`mutator.desc.${id}` as MessageKey)
+                        : !stakesOpen ? "stake.locked" : "stake.blockedByCheat",
+                      mutatorDescParams(id),
+                    ),
+                    disabled: !stakesOpen || (config.cheatMode ?? false),
+                  })),
+                ]}
+                value={(config.stake ?? null) as MutatorId | null}
+                onChange={(value) => set("stake", value ?? undefined)}
+              />
             </div>
           )}
         </Surface>
@@ -441,6 +470,7 @@ export function StartScreen() {
               <li key="event">{rtEvents.find((option) => option.eventId === realEventId)?.name ?? realEventId}</li>
             )}
             {selectedLabels.map((label) => <li key={label}>{t(label)}</li>)}
+            {stakeSummary && <li key="stake">☄ {stakeSummary}</li>}
           </ul>
           <Button
             variant="primaryInvert"
@@ -530,7 +560,7 @@ export function StartScreen() {
                 data-testid="cheat-gate-confirm"
                 // Включение Cheat Mode само гасит хардкор — иначе забег обещал бы одновременно
                 // «вслепую и соревновательно» и «бесконечное золото».
-                onClick={() => { setConfig((current) => ({ ...current, cheatMode: true, hardMode: false })); close(); }}
+                onClick={() => { setConfig((current) => ({ ...current, cheatMode: true, hardMode: false, stake: undefined })); close(); }}
               >
                 {t("cheat.gateConfirm")}
               </Button>

@@ -11,6 +11,7 @@
 // Детерминизм: `seed + campId + rerollN ⇒ те же офферы`. Числа — placeholder-конфиг ECONOMY
 // в одном месте (кандидат в balanceConfigVersion, точная калибровка — §10.F, после T6.3).
 // Редкость героев остаётся отдельным срезом 3b.
+import type { MutatorId } from "./dynastyMutators.ts";
 import { Rng } from "./rng.ts";
 import { ACT_LENGTH, SEASON_ACTS, marketCostFactor, placementWorstRank } from "./anteRun.ts";
 import { chargeCapForRarity, EDITION, type CardEdition } from "./editions.ts";
@@ -638,11 +639,11 @@ export function rewardOffers(
 
 /** Три market-оффера (по одному на слагаемое), качество/цена варьируются по rerollN — reroll
  *  осмыслен (гэмбл на лучшие офферы). Детерминизм по seed+campId+rerollN. */
-export function marketOffers(seed: string, campStageIndex: number, rerollN: number): Offer[] {
+export function marketOffers(seed: string, campStageIndex: number, rerollN: number, stake: MutatorId | null = null): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:market-${rerollN}`);
-  // Мутатор круга expensiveMarket (LG3) применяется на ГЕНЕРАЦИИ: превью, покупка и сим
-  // обязаны читать одну цену. Rng не трогает — набор офферов тот же, дороже только ценник.
-  const costFactor = marketCostFactor(seed, campStageIndex);
+  // Мутатор круга expensiveMarket (LG3) / стартовый Stake (T6.4) применяется на ГЕНЕРАЦИИ:
+  // превью, покупка и сим обязаны читать одну цену. Rng не трогает — набор тот же, дороже ценник.
+  const costFactor = marketCostFactor(seed, campStageIndex, undefined, stake);
   return MARKET_SUMMANDS.map((summand) => {
     const cfg = ECONOMY.levers[summand];
     const bonus = rng.int(3); // 0..2 ступени качества
@@ -1008,7 +1009,7 @@ export class RunEconomy {
 
   private currentMarketOffers(): Offer[] {
     return (this.state.preparedMarketOffers
-      ?? marketOffers(this.seed, this.state.campStageIndex, this.state.marketRerolls))
+      ?? marketOffers(this.seed, this.state.campStageIndex, this.state.marketRerolls, this.stake))
       .filter((o) => !this.state.consumed.includes(o.id));
   }
 
@@ -1203,6 +1204,15 @@ export class RunEconomy {
   }
 
   /** Включить бесконечное золото на этот забег (ставится на старте из RunConfig.cheatMode). */
+  /** Стартовый Stake забега (T6.4): транзиент, как unlimitedGold-источник — приходит из конфига
+   *  на старте/resume, в сейв экономики не пишется (конфиг уже в SavedRun). Нужен стат-рынку:
+   *  expensiveMarket в сезоне обязан дорожить и три stat-карты, не только рулетку. */
+  private stake: MutatorId | null = null;
+
+  setStake(stake: MutatorId | null): void {
+    this.stake = stake;
+  }
+
   setUnlimitedGold(enabled: boolean): void {
     this.state.unlimitedGold = enabled;
   }

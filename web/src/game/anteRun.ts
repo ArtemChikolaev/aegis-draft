@@ -166,14 +166,20 @@ export function dynastyCircleOf(absoluteStageIndex: number, season: SeasonRules 
   return Math.floor((absoluteStageIndex - seasonLength) / season.actLength) + 1;
 }
 
-/** Мутатор, под которым играется этап (LG3): правило круга Династии, null внутри сезона.
- *  Определения и выбор — `dynastyMutators`; здесь только привязка «этап → круг». */
+/** Мутатор, под которым играется этап (LG3 / T6.4): внутри сезона — добровольный стартовый
+ *  Stake (то же множество правил, решение 2026-08-09 «мутаторы = Stakes»), за пределами сезона —
+ *  правило круга Династии. Стек не заводим: в Династии действует ТОЛЬКО мутатор круга — Stake
+ *  считается сыгранным вместе с сезоном, а два правила разом читались бы как каша.
+ *  Определения и выбор — `dynastyMutators`; здесь только привязка «этап → правило». */
 export function mutatorForStage(
   seed: string,
   absoluteStageIndex: number,
   season: SeasonRules = SEASON,
+  stake: MutatorId | null = null,
 ): MutatorId | null {
-  return mutatorForCircle(seed, dynastyCircleOf(absoluteStageIndex, season));
+  const circle = dynastyCircleOf(absoluteStageIndex, season);
+  if (circle === 0) return stake;
+  return mutatorForCircle(seed, circle);
 }
 
 /** Порог на `steps` шагов жёстче по легальной лестнице бакетов (мутатор `tighterTargets`).
@@ -191,9 +197,10 @@ export function effectiveStageTarget(
   seed: string,
   absoluteStageIndex: number,
   season: SeasonRules = SEASON,
+  stake: MutatorId | null = null,
 ): number {
   const target = seasonStage(absoluteStageIndex, season).target;
-  return mutatorForStage(seed, absoluteStageIndex, season) === "tighterTargets"
+  return mutatorForStage(seed, absoluteStageIndex, season, stake) === "tighterTargets"
     ? tightenedTarget(target, MUTATORS.tighterTargets.steps)
     : target;
 }
@@ -205,8 +212,9 @@ export function marketCostFactor(
   seed: string,
   campStageIndex: number,
   season: SeasonRules = SEASON,
+  stake: MutatorId | null = null,
 ): number {
-  return mutatorForStage(seed, campStageIndex, season) === "expensiveMarket"
+  return mutatorForStage(seed, campStageIndex, season, stake) === "expensiveMarket"
     ? MUTATORS.expensiveMarket.costFactor
     : 1;
 }
@@ -429,6 +437,8 @@ export class AnteRunEngine {
     private teamOvr: number,
     private readonly teamName: string,
     private readonly season: SeasonModel = SEASON,
+    /** Стартовый Stake (T6.4): правило, под которым играется весь сезон. Часть RunConfig. */
+    private readonly stake: MutatorId | null = null,
   ) {
     if (season.stages.length === 0) throw new Error("Ante run needs at least one stage");
     const illegal = season.stages.map((stage) => stage.target).filter((target) => !isLegalAnteTarget(target));
@@ -463,7 +473,7 @@ export class AnteRunEngine {
    *  поэтому сезонные лестницы (и легальность порогов из конструктора) не трогаются. */
   private stageAt(index: number): SeasonStage {
     const stage = this.season.stages[index] ?? seasonStage(index, this.season);
-    if (mutatorForStage(this.seed, index, this.season) !== "tighterTargets") return stage;
+    if (mutatorForStage(this.seed, index, this.season, this.stake) !== "tighterTargets") return stage;
     return { ...stage, target: tightenedTarget(stage.target, MUTATORS.tighterTargets.steps) };
   }
 

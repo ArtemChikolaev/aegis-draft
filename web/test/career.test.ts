@@ -9,6 +9,7 @@ import {
   tournamentCareerResults,
   useCareer,
   type CareerEntry,
+  stakesUnlocked,
 } from "../src/state/careerStore.ts";
 import type { Role } from "../src/types/data.ts";
 import { loadGameData } from "./helpers/data.ts";
@@ -213,5 +214,30 @@ describe("Cheat Mode в карьере", () => {
       configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team", mode: "run" },
     });
     expect(careerEntriesForMode([cheatRun, honestRun], "run")).toHaveLength(1);
+  });
+});
+
+describe("careerStore — анлок Stakes (T6.4)", () => {
+  const entry = (over: Partial<CareerEntry> = {}): CareerEntry => ({
+    v: 1,
+    finishedAt: "2026-08-24T00:00:00.000Z",
+    seed: "s",
+    datasetSchemaVersion: 1,
+    ratingModelVersion: "v1",
+    configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team", mode: "run" },
+    placement: "1",
+    score: { base: 80, heroSynergy: 4, chemistry: 3, teamOvr: 87 },
+    roster: [],
+    results: { gamesWon: 10, gamesLost: 0, groupClean: true, undefeated: true },
+    seasonWon: true,
+    ...over,
+  });
+
+  it("открывается честной победой сезона run; cheat-победа, поражение и quick-запись не открывают", () => {
+    expect(stakesUnlocked([])).toBe(false);
+    expect(stakesUnlocked([entry({ seasonWon: undefined })])).toBe(false);
+    expect(stakesUnlocked([entry({ configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team", mode: "run", cheatMode: true } })])).toBe(false);
+    expect(stakesUnlocked([entry({ configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team" } })])).toBe(false);
+    expect(stakesUnlocked([entry()])).toBe(true);
   });
 });

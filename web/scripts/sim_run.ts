@@ -17,6 +17,7 @@
 //   npm run sim -- 150 --dynasty --no-sinks   то же без поздних синков (T5.9), для A/B на общих сидах
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
 //   NOEDITIONS=1 npm run sim -- 400    без зарядов Editions (эквивалент b1.26) — для A/B
+import { isMutatorId } from "../src/game/dynastyMutators.ts";
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
 import { ACT_LENGTH, AnteRunEngine, buildSeason, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, SEASON, type SeasonModel } from "../src/game/anteRun.ts";
@@ -41,8 +42,11 @@ import type { RunConfig } from "../src/game/packs.ts";
 import type { PlacementKey } from "../src/game/tournament.ts";
 
 const data = loadGameData();
+/** Stake (T6.4) для замера: STAKE=tighterTargets npm run sim -- 400. Пустой env — без Stake. */
+const simStake = process.env.STAKE && isMutatorId(process.env.STAKE) ? process.env.STAKE : null;
 const config: RunConfig = {
   draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
+  ...(simStake ? { stake: simStake } : {}),
 };
 const useBoss = !process.env.NOBOSS;
 // A/B-переключатель Editions (R13.5): NOEDITIONS=1 выключает НАЧИСЛЕНИЕ и УЧЁТ зарядов — это
@@ -99,7 +103,8 @@ function bossPenalty(
     chemistry: score.chemistry + mods.chemistry,
     playerOvrs: engine.players.map((p) => p.ovr),
     activeHeroes: engine.heroes,
-    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex)),
+    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex), simStake),
+    stake: simStake,
     // Через тот же `buildTacticContext`, что и игра: иначе симулятор мерил бы другое условие.
     ...(() => {
       const ctx = buildTacticContext(
@@ -384,7 +389,7 @@ function prepareMarket(engine: RunEngine, economy: RunEconomy, seed: string, sta
   const st = economy.snapshot;
   economy.prepareMarketOffers(buildAnteMarketRoulette(
     engine, seed, st.campStageIndex, st.marketRerolls, economy.equippedTactics,
-    { rarityDrops: economy.rarityDropsEnabled, stageCount, heroRarity: economy.heroRarity },
+    { rarityDrops: economy.rarityDropsEnabled, stageCount, heroRarity: economy.heroRarity, stake: simStake },
   ));
 }
 
@@ -560,7 +565,7 @@ function shopCamp(
       economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
         engine,
         economy.campView().marketOffers,
-        marketCostFactor(seed, economy.snapshot.campStageIndex, season),
+        marketCostFactor(seed, economy.snapshot.campStageIndex, season, simStake),
       ));
     } catch (error) { if (process.env.SIMDEBUG) console.error("shopCamp break:", error); break; }
   }
@@ -618,11 +623,12 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
   const score = engine.score();
   if (!score || !engine.isComplete) return null;
 
-  const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "Sim", season);
+  const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "Sim", season, simStake);
   const economy = new RunEconomy(seed);
   // Симулируем НЕ первый забег: иначе мета-гейт держит все дропы на common и профиль редкости
   // измерить нечем. Первый забег — отдельный онбординговый случай.
   economy.setRarityFlags({ drops: true, upgrades: true });
+  economy.setStake(simStake);
 
   const camps: CampStat[] = [];
   const placements: PlacementKey[] = [];
@@ -673,7 +679,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     }
     // Эффективный порог (мутатор круга LG3) — как в игре: премия за место судит по тому же
     // порогу, по которому этап был пройден.
-    economy.awardStageClear(campId, anteRun.state.lastPlacement, effectiveStageTarget(seed, campId - 1, season));
+    economy.awardStageClear(campId, anteRun.state.lastPlacement, effectiveStageTarget(seed, campId - 1, season, simStake));
     // Титул Династии — по тому же правилу, что и в игре (общая grantsDynastyTitle): иначе
     // симулятор мерил бы Династию без её единственной награды.
     if (grantsDynastyTitle(campId - 1, season)) economy.awardDynastyTitle(campId);

@@ -63,6 +63,7 @@ export function CareerRunCard({ entry }: { entry: CareerEntry }) {
         {entry.configLabel.mode === "run" && <><em className="career-run__mode">{t("career.roguelite")}</em> · </>}
         {configKeys(entry.configLabel).map((key) => t(key)).join(" · ")}
         {entry.configLabel.hardMode && <> · <em className="career-run__hard">{t("hard.badge")}</em></>}
+        {entry.configLabel.stake && <> · <em className="career-run__hard">☄ {t(`mutator.${entry.configLabel.stake}` as MessageKey)}</em></>}
       </p>
       <ul className="career-run__roster">
         {entry.roster.map((player) => {

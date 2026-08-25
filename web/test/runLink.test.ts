@@ -188,3 +188,19 @@ describe("runLink: ссылка на забег", () => {
 function toGarbage(): string {
   return String.fromCharCode(0, 1, 2);
 }
+
+describe("runLink — Stake (T6.4)", () => {
+  it("stake переживает round-trip кодека; ссылка без поля и мусорное значение читаются без Stake", () => {
+    const staked: RunLink = { ...base, mode: "run", config: { ...defaultRunConfig, stake: "tighterTargets" } };
+    const decoded = decodeRunLink(encodeRunLink(staked));
+    expect(decoded?.config.stake).toBe("tighterTargets");
+    const plain = decodeRunLink(encodeRunLink({ ...base, mode: "run" }));
+    expect(plain?.config.stake).toBeUndefined();
+    // Мусорное значение k молча отбрасывается — ссылка остаётся валидной без Stake.
+    const raw = JSON.parse(atob(encodeRunLink(staked).replace(/-/g, "+").replace(/_/g, "/"))) as Record<string, unknown>;
+    raw.k = "notAMutator";
+    const tampered = decodeRunLink(btoa(JSON.stringify(raw)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
+    expect(tampered?.config.stake).toBeUndefined();
+    expect(tampered).not.toBeNull();
+  });
+});

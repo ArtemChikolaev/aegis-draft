@@ -11,6 +11,7 @@
 // Буткемпе заранее (DoD).
 import { Rng } from "./rng.ts";
 import { isActFinale, mutatorForStage, seasonStage } from "./anteRun.ts";
+import type { MutatorId } from "./dynastyMutators.ts";
 import { MUTATORS } from "./dynastyMutators.ts";
 import type { Summand } from "./anteEconomy.ts";
 
@@ -204,12 +205,13 @@ export function bannedHeroesForStage(
   absoluteStageIndex: number,
   heroPool: readonly number[],
   rerolls = 0,
+  stake: MutatorId | null = null,
 ): number[] {
   if (bossForStage(seed, absoluteStageIndex, rerolls) !== "heroBan") return [];
   const shuffled = new Rng(`${bossKey(seed, absoluteStageIndex, rerolls)}:ban`).shuffle([...heroPool]);
-  // Мутатор круга doubleBans (LG3): тот же shuffle, срез длиннее — бан-лист остаётся
-  // детерминированным НАДмножеством обычного, поток Rng не сдвигается.
-  const factor = mutatorForStage(seed, absoluteStageIndex) === "doubleBans" ? MUTATORS.doubleBans.factor : 1;
+  // Мутатор круга doubleBans (LG3) / стартовый Stake (T6.4): тот же shuffle, срез длиннее —
+  // бан-лист остаётся детерминированным НАДмножеством обычного, поток Rng не сдвигается.
+  const factor = mutatorForStage(seed, absoluteStageIndex, undefined, stake) === "doubleBans" ? MUTATORS.doubleBans.factor : 1;
   return shuffled.slice(0, Math.min(HERO_BAN_COUNT * factor, shuffled.length)).sort((a, b) => a - b);
 }
 
@@ -232,6 +234,8 @@ export interface BossContext {
   activeHeroes: number[];
   /** Забаненные на этом этапе герои (пусто вне heroBan). */
   bannedHeroes: number[];
+  /** Стартовый Stake забега (T6.4): в сезоне uncappedBoss может прийти отсюда, не из круга. */
+  stake?: MutatorId | null;
   /** Pro-игры каждого активного игрока на НАЗНАЧЕННОМ ему герое — вход структурного
    *  `heroSynergyDemand`. Тот же смысл, что у `TacticPlayer.assignedHeroGames`: «это его герой или
    *  случайный?». Ноль для игрока без назначенного героя. */
@@ -261,7 +265,7 @@ function clampPenalty(raw: number, max: number): number {
 /** Потолок штрафа этапа: мутатор круга `uncappedBoss` (LG3) его снимает — пренебрежение
  *  правилом в таком круге стоит столько, сколько насчитало само правило. */
 function penaltyCap(ctx: BossContext, max: number): number {
-  return mutatorForStage(ctx.seed, ctx.absoluteStageIndex) === "uncappedBoss"
+  return mutatorForStage(ctx.seed, ctx.absoluteStageIndex, undefined, ctx.stake ?? null) === "uncappedBoss"
     ? Number.POSITIVE_INFINITY
     : max;
 }
