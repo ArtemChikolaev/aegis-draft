@@ -12,7 +12,7 @@ import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
 import { realTournamentEvents } from "../../game/realTournament.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
 import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
-import { MUTATOR_IDS, mutatorDescParams, type MutatorId } from "../../game/dynastyMutators.ts";
+import { mutatorDescParams, type MutatorId } from "../../game/dynastyMutators.ts";
 import { stakesUnlocked, useCareer } from "../../state/careerStore.ts";
 import { SeedField } from "./SeedField.tsx";
 import { ArenaLobby } from "./ArenaLobby.tsx";
@@ -78,6 +78,16 @@ const CHEAT_MODE: Opt<boolean>[] = [
   { value: false, label: "cheat.off", hint: "cheat.offHint" },
   { value: true, label: "cheat.on", hint: "cheat.onHint" },
 ];
+/** Стартовые Stakes (T6.4) — лестница по ЗАМЕРЕННОЙ тяжести (b1.40.0, 300 сидов, база 31.3%):
+ *  expensiveMarket 25.0% (средний), tighterTargets 23.3% (жёсткий). doubleBans и uncappedBoss
+ *  стартовыми НЕ выпущены: на сезоне они неотличимы от отсутствия правила (32.0/31.0%) — пустое
+ *  правило с меткой было бы бесплатным престижем; в кругах Династии оба остаются, пересмотр
+ *  семантики — BACKLOG T6.4. */
+const STAKE_CHOICES: { id: MutatorId; severity: MessageKey }[] = [
+  { id: "expensiveMarket", severity: "stake.sevMedium" },
+  { id: "tighterTargets", severity: "stake.sevHard" },
+];
+
 const ALLOCATION: Opt<Allocation>[] = [
   { value: "auto", label: "start.automatic", hint: "start.automaticHint" },
   { value: "manual", label: "start.manual", hint: "start.manualHint" },
@@ -442,15 +452,12 @@ export function StartScreen() {
                 soonLabel={t("common.soon")}
                 options={[
                   { value: null as MutatorId | null, label: t("stake.none"), hint: t("stake.noneHint") },
-                  ...MUTATOR_IDS.map((id) => ({
+                  ...STAKE_CHOICES.map(({ id, severity }) => ({
                     value: id as MutatorId | null,
                     label: t(`mutator.${id}` as MessageKey),
-                    hint: t(
-                      stakesOpen && !(config.cheatMode ?? false)
-                        ? (`mutator.desc.${id}` as MessageKey)
-                        : !stakesOpen ? "stake.locked" : "stake.blockedByCheat",
-                      mutatorDescParams(id),
-                    ),
+                    hint: stakesOpen && !(config.cheatMode ?? false)
+                      ? `${t(severity)} · ${t(`mutator.desc.${id}` as MessageKey, mutatorDescParams(id))}`
+                      : t(!stakesOpen ? "stake.locked" : "stake.blockedByCheat"),
                     disabled: !stakesOpen || (config.cheatMode ?? false),
                   })),
                 ]}

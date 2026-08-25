@@ -148,6 +148,8 @@ const ru = {
   "stake.none": "Без Stake",
   "stake.noneHint": "Обычный сезон",
   "stake.locked": "Откроется после первой победы сезона",
+  "stake.sevMedium": "Средняя жёсткость",
+  "stake.sevHard": "Высокая жёсткость",
   "stake.blockedByCheat": "Несовместимо с Cheat Mode",
   "edition.chargedHint": "+{bonus}% к эффекту за заряд (до {cap}; потолок растёт с тиром предмета). Заряд — за пройденный этап с выполненным условием; сломанное условие сжигает заряды.",
   // R11.7: карточка показывает, КТО из активных героев её включает. Абстрактный список тегов
@@ -1140,6 +1142,8 @@ const en: Dictionary = {
   "stake.none": "No stake",
   "stake.noneHint": "Regular season",
   "stake.locked": "Unlocks after your first season win",
+  "stake.sevMedium": "Medium severity",
+  "stake.sevHard": "High severity",
   "stake.blockedByCheat": "Incompatible with Cheat Mode",
   "edition.chargedHint": "+{bonus}% card effect per charge (up to {cap}; the cap grows with item tier). Gain a charge for each cleared stage with the condition met; breaking it burns all charges.",
   "item.match.tag": "Matching",
