@@ -78,12 +78,13 @@ const CHEAT_MODE: Opt<boolean>[] = [
   { value: false, label: "cheat.off", hint: "cheat.offHint" },
   { value: true, label: "cheat.on", hint: "cheat.onHint" },
 ];
-/** Стартовые Stakes (T6.4) — лестница по ЗАМЕРЕННОЙ тяжести (b1.40.0, 300 сидов, база 31.3%):
- *  expensiveMarket 25.0% (средний), tighterTargets 23.3% (жёсткий). doubleBans и uncappedBoss
- *  стартовыми НЕ выпущены: на сезоне они неотличимы от отсутствия правила (32.0/31.0%) — пустое
- *  правило с меткой было бы бесплатным престижем; в кругах Династии оба остаются, пересмотр
- *  семантики — BACKLOG T6.4. */
+/** Стартовые Stakes (T6.4) — лестница по ЗАМЕРЕННОЙ тяжести (300 сидов, база 31.3%):
+ *  uncappedBoss 27.7% и doubleBans 27.7% (умеренные, b1.41.0 — семантика пересмотрена до
+ *  рабочей в сезоне), expensiveMarket 25.0% (средний), tighterTargets 23.3% (жёсткий).
+ *  Замеры — BACKLOG T6.4. */
 const STAKE_CHOICES: { id: MutatorId; severity: MessageKey }[] = [
+  { id: "uncappedBoss", severity: "stake.sevLight" },
+  { id: "doubleBans", severity: "stake.sevLight" },
   { id: "expensiveMarket", severity: "stake.sevMedium" },
   { id: "tighterTargets", severity: "stake.sevHard" },
 ];

@@ -11,8 +11,7 @@
 // Буткемпе заранее (DoD).
 import { Rng } from "./rng.ts";
 import { isActFinale, mutatorForStage, seasonStage } from "./anteRun.ts";
-import type { MutatorId } from "./dynastyMutators.ts";
-import { MUTATORS } from "./dynastyMutators.ts";
+import { MUTATORS, type MutatorId } from "./dynastyMutators.ts";
 import type { Summand } from "./anteEconomy.ts";
 
 export type BossId =
@@ -188,9 +187,29 @@ function bossKey(seed: string, absoluteStageIndex: number, rerolls: number): str
  *
  *  `rerolls` — сколько раз правило перекуплено в Буткемпе (T5.9). Каждый реролл выбирает из
  *  правил БЕЗ текущего: платить за «то же самое» игрок не должен, а при пяти правилах случайный
- *  повтор выпадал бы каждый пятый раз. Поэтому цепочка считается по шагам, а не одним роллом. */
-export function bossForStage(seed: string, absoluteStageIndex: number, rerolls = 0): BossId | null {
-  if (!isActFinale(absoluteStageIndex)) return null;
+ *  повтор выпадал бы каждый пятый раз. Поэтому цепочка считается по шагам, а не одним роллом.
+ *
+ *  `stake` — стартовый Stake забега (T6.4), b1.41.0 расширил им cadence двух правил.
+ *  `uncappedBoss`: правило судит ВСЕ турниры выше обычных — elite и playoffCheck, не только
+ *  финал акта (один элитный этап давал 29.7% при базе 31.3% — в пределах шума, мало для честной
+ *  метки Stake). `doubleBans`: вне финалов КАЖДЫЙ турнир судится правилом heroBan — амбиентное
+ *  правило, а не ролл: реролл его не меняет (он пересматривает сам бан-лист — ключ shuffle в
+ *  `bannedHeroesForStage` включает rerolls), финал акта роллит босса как обычно. Cadence-
+ *  исключения живут здесь, у единственного владельца «есть ли на этапе правило»: все потребители
+ *  (стор, сим, bannedHeroesForStage) обязаны судить одинаково. Ключи Rng — по этапу, потоки
+ *  финалов не сдвигаются; без стейка/мутатора поведение прежнее бит-в-бит. */
+export function bossForStage(
+  seed: string,
+  absoluteStageIndex: number,
+  rerolls = 0,
+  stake: MutatorId | null = null,
+): BossId | null {
+  if (!isActFinale(absoluteStageIndex)) {
+    const mutator = mutatorForStage(seed, absoluteStageIndex, undefined, stake);
+    if (mutator === "doubleBans") return "heroBan";
+    const kind = seasonStage(Math.max(0, absoluteStageIndex)).kind;
+    if (!((kind === "elite" || kind === "playoffCheck") && mutator === "uncappedBoss")) return null;
+  }
   let boss = new Rng(bossKey(seed, absoluteStageIndex, 0)).pick(BOSS_IDS);
   for (let n = 1; n <= Math.max(0, Math.floor(rerolls)); n += 1) {
     const others = BOSS_IDS.filter((id) => id !== boss);
@@ -207,12 +226,16 @@ export function bannedHeroesForStage(
   rerolls = 0,
   stake: MutatorId | null = null,
 ): number[] {
-  if (bossForStage(seed, absoluteStageIndex, rerolls) !== "heroBan") return [];
+  // `stake` нужен и здесь: b1.41.0 добавил стейкам cadence-исключения (амбиентный heroBan под
+  // doubleBans, elite/playoffCheck под uncappedBoss). Под doubleBans бан-лист длиной banCount
+  // ВЕЗДЕ, включая финал с роллнутым heroBan: правило читается как «баны жёстче весь забег»,
+  // а не «жёстче только вне финалов». Реролл (T5.9) меняет ключ shuffle — список пересмотрен.
+  if (bossForStage(seed, absoluteStageIndex, rerolls, stake) !== "heroBan") return [];
+  const count = mutatorForStage(seed, absoluteStageIndex, undefined, stake) === "doubleBans"
+    ? MUTATORS.doubleBans.banCount
+    : HERO_BAN_COUNT;
   const shuffled = new Rng(`${bossKey(seed, absoluteStageIndex, rerolls)}:ban`).shuffle([...heroPool]);
-  // Мутатор круга doubleBans (LG3) / стартовый Stake (T6.4): тот же shuffle, срез длиннее —
-  // бан-лист остаётся детерминированным НАДмножеством обычного, поток Rng не сдвигается.
-  const factor = mutatorForStage(seed, absoluteStageIndex, undefined, stake) === "doubleBans" ? MUTATORS.doubleBans.factor : 1;
-  return shuffled.slice(0, Math.min(HERO_BAN_COUNT * factor, shuffled.length)).sort((a, b) => a - b);
+  return shuffled.slice(0, Math.min(count, shuffled.length)).sort((a, b) => a - b);
 }
 
 export interface BossContext {

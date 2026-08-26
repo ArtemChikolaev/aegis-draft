@@ -12,7 +12,7 @@ import type { ScoreBreakdown } from "../game/score.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
 import { buildRealField, rescoreRealField, scoutOptions, type RealField, type ScoutOption } from "../game/realTournament.ts";
 import type { MutatorId } from "../game/dynastyMutators.ts";
-import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
+import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, isActFinale, marketCostFactor, mutatorForStage, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import type { CardEdition } from "../game/editions.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
@@ -498,7 +498,8 @@ export const useRun = create<RunStore>((set, get) => {
     // Правило могло быть перекуплено в Буткемпе (T5.9) — счётчик живёт в экономике, сам босс
     // остаётся чистой функцией от seed+stage+n.
     const rerolls = economy?.bossRerollsFor(stageIndex) ?? 0;
-    const bossId = bossForStage(seed, stageIndex, rerolls);
+    // Stake обязателен и здесь: под uncappedBoss (b1.41.0) правило стоит и на элитных этапах.
+    const bossId = bossForStage(seed, stageIndex, rerolls, stakeOf(get().config));
     if (!bossId) return null;
     const mods = effectiveModifiers(tactics);
     const items = runItems();
@@ -531,13 +532,27 @@ export const useRun = create<RunStore>((set, get) => {
    *  предстоящего этапа: его правило и так на экране. */
   const campBosses = (upcomingIndex: number, tactics: TacticEvaluation | null) => {
     const economy = get().economy;
-    const scoutStage = nextBossStage(upcomingIndex);
+    // Ближайший этап с НЕИЗВЕСТНЫМ правилом, а не ближайший финал: под стейком uncappedBoss
+    // (b1.41.0) роллящееся правило стоит и на elite/playoffCheck — разведка обязана раскрывать
+    // ближайшее из них; источник истины «есть ли на этапе правило» один, bossForStage. Амбиентный
+    // heroBan стейка doubleBans разведывать нечего (правило известно с запуска, а его бан-лист
+    // виден только с Буткемпа этапа) — этап без ролла разведка пропускает, как обычный.
+    const nextRuledStage = (from: number): number => {
+      const { seed } = get();
+      const stake = stakeOf(get().config);
+      for (let index = from + 1; index <= from + SEASON.actLength; index += 1) {
+        if (!isActFinale(index) && mutatorForStage(seed, index, SEASON, stake) === "doubleBans") continue;
+        if (bossForStage(seed, index, economy?.bossRerollsFor(index) ?? 0, stake) != null) return index;
+      }
+      return nextBossStage(from);
+    };
+    const scoutStage = nextRuledStage(upcomingIndex);
     // Разведка раскрывает КОНКРЕТНЫЙ боссовый турнир, и знание о нём не исчезает в следующем
     // Буткемпе: узнал — знаешь до самого турнира. Поэтому сверяем не «разведан ли этот лагерь»,
     // а «раскрывал ли какой-нибудь сыгранный Scouting именно этот этап». Формат сейва при этом
     // не меняется: `scoutedCamps` как хранил индексы лагерей, так и хранит.
     const scouted = economy
-      ? economy.snapshot.scoutedCamps.some((camp) => nextBossStage(camp) === scoutStage)
+      ? economy.snapshot.scoutedCamps.some((camp) => nextRuledStage(camp) === scoutStage)
       : false;
     const scoutedEval = scouted && scoutStage >= 0 ? evaluateRunBoss(scoutStage, tactics) : null;
     return {
@@ -1108,7 +1123,7 @@ export const useRun = create<RunStore>((set, get) => {
             // по seed+stage, штраф — производная состава. Без него resume дал бы более лёгкое поле.
             // Из сейва берётся ровно одно число — сколько раз правило перекуплено (T5.9).
             const bossRerolls = economy.bossRerollsFor(stageIndex);
-            const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls);
+            const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls, stakeOf(resumable.config));
             boss = bossId
               ? evaluateBoss(bossId, {
                 seed: resumable.seed,

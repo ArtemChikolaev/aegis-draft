@@ -77,10 +77,37 @@ describe("tighterTargets: пороги жёстче на шаг", () => {
   });
 });
 
-describe("doubleBans: бан-лист heroBan умножен", () => {
-  it("под мутатором список длиннее в factor раз и детерминирован", () => {
-    const pool = Array.from({ length: 60 }, (_, i) => i + 1);
-    // Нужен сид, где круг под doubleBans И финал круга роллит heroBan.
+describe("doubleBans: «баны повсюду» — heroBan судит все этапы вне финалов (b1.41.0)", () => {
+  const pool = Array.from({ length: 120 }, (_, i) => i + 1);
+
+  it("вне финалов правило амбиентное, финал роллит босса как обычно", () => {
+    // Стартовый Stake: каждый нефинальный этап сезона — heroBan, без стейка — null.
+    for (const stage of [0, 1, 2, 3]) {
+      expect(bossForStage("ambient-seed", stage, 0, "doubleBans")).toBe("heroBan");
+      expect(bossForStage("ambient-seed", stage)).toBeNull();
+    }
+    // Финал акта — обычный ролл, стейк его не переиначивает.
+    const finale = SEASON.actLength - 1;
+    expect(bossForStage("ambient-seed", finale, 0, "doubleBans")).toBe(bossForStage("ambient-seed", finale));
+    // Мутатор круга: те же амбиентные баны в круге под doubleBans, и нет — под другим правилом.
+    expect(bossForStage(seedFor("doubleBans"), SEASON_LEN, 0)).toBe("heroBan");
+    expect(bossForStage(seedFor("expensiveMarket"), SEASON_LEN, 0)).toBeNull();
+  });
+
+  it("бан-лист длиной banCount, ротация по этапам, реролл пересматривает список, не правило", () => {
+    const listAt = (stage: number, rerolls = 0) =>
+      bannedHeroesForStage("ambient-seed", stage, pool, rerolls, "doubleBans");
+    expect(listAt(0).length).toBe(MUTATORS.doubleBans.banCount);
+    expect(listAt(0)).toEqual(listAt(0)); // детерминизм
+    expect(listAt(1)).not.toEqual(listAt(0)); // ротация: у каждого этапа свой список
+    // Реролл: правило остаётся heroBan, но список пересмотрен.
+    expect(bossForStage("ambient-seed", 0, 3, "doubleBans")).toBe("heroBan");
+    expect(listAt(0, 1)).not.toEqual(listAt(0));
+    // Без стейка нефинальный этап списка не имеет.
+    expect(bannedHeroesForStage("ambient-seed", 0, pool).length).toBe(0);
+  });
+
+  it("на финале с роллнутым heroBan список под правилом тоже banCount, без правила — 12", () => {
     let found: string | null = null;
     for (let i = 0; i < 2000 && !found; i += 1) {
       const seed = `bans-${i}`;
@@ -89,11 +116,17 @@ describe("doubleBans: бан-лист heroBan умножен", () => {
       }
     }
     expect(found).not.toBeNull();
-    const bans = bannedHeroesForStage(found!, CIRCLE_FINALE, pool);
-    expect(bans.length).toBe(12 * MUTATORS.doubleBans.factor);
-    expect(bannedHeroesForStage(found!, CIRCLE_FINALE, pool)).toEqual(bans);
-    // Пул меньше удвоенного списка — честное сжатие, не падение.
-    expect(bannedHeroesForStage(found!, CIRCLE_FINALE, pool.slice(0, 15)).length).toBe(15);
+    expect(bannedHeroesForStage(found!, CIRCLE_FINALE, pool).length).toBe(MUTATORS.doubleBans.banCount);
+    // Тот же ролл на финале БЕЗ правила (внутри сезона стейка нет) — обычные 12.
+    for (let i = 0; i < 2000; i += 1) {
+      const seed = `plain-${i}`;
+      const finale = SEASON.actLength - 1;
+      if (bossForStage(seed, finale) === "heroBan") {
+        expect(bannedHeroesForStage(seed, finale, pool).length).toBe(12);
+        return;
+      }
+    }
+    throw new Error("не нашлось сида с heroBan на финале сезона");
   });
 });
 
@@ -123,6 +156,36 @@ describe("uncappedBoss: штраф без потолка", () => {
     expect(uncapped.penalty).toBe(rawPenalty);
     const capped = evaluateBoss("chemistryBlackout", bossCtx(seedFor("doubleBans")));
     expect(capped.penalty).toBe(cfg.max);
+  });
+
+  it("правило судит все турниры выше обычных — elite и playoffCheck (b1.41.0)", () => {
+    const SEASON_ELITE = 2; // акт 1: regular, regular, ELITE, PLAYOFF CHECK, boss
+    const SEASON_PLAYOFF = 3;
+    const CIRCLE_ELITE = SEASON_LEN + 2;
+    // Стартовый Stake: elite и playoffCheck получают правило, обычные этапы и «без стейка» — нет.
+    expect(bossForStage("elite-seed", SEASON_ELITE, 0, "uncappedBoss")).not.toBeNull();
+    expect(bossForStage("elite-seed", SEASON_PLAYOFF, 0, "uncappedBoss")).not.toBeNull();
+    expect(bossForStage("elite-seed", 0, 0, "uncappedBoss")).toBeNull();
+    expect(bossForStage("elite-seed", SEASON_ELITE)).toBeNull();
+    expect(bossForStage("elite-seed", SEASON_ELITE, 0, "expensiveMarket")).toBeNull();
+    // Финалы актов стейк не переиначивает: то же правило, что и без него.
+    const finale = SEASON.actLength - 1;
+    expect(bossForStage("elite-seed", finale, 0, "uncappedBoss")).toBe(bossForStage("elite-seed", finale));
+    // Круг Династии: элитные этапы роллят правило только под мутатором uncappedBoss
+    // (амбиентный heroBan круга doubleBans — отдельное правило, tighterTargets — контроль).
+    expect(bossForStage(seedFor("uncappedBoss"), CIRCLE_ELITE)).not.toBeNull();
+    expect(bossForStage(seedFor("tighterTargets"), CIRCLE_ELITE)).toBeNull();
+    // heroBan на элитном этапе отдаёт бан-лист (bannedHeroesForStage обязан знать про stake).
+    const pool = Array.from({ length: 60 }, (_, i) => i + 1);
+    for (let i = 0; i < 400; i += 1) {
+      const seed = `elite-ban-${i}`;
+      if (bossForStage(seed, SEASON_ELITE, 0, "uncappedBoss") === "heroBan") {
+        expect(bannedHeroesForStage(seed, SEASON_ELITE, pool, 0, "uncappedBoss").length).toBe(12);
+        expect(bannedHeroesForStage(seed, SEASON_ELITE, pool).length).toBe(0);
+        return;
+      }
+    }
+    throw new Error("не нашлось сида с heroBan на элитном этапе");
   });
 });
 

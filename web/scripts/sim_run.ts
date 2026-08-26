@@ -143,7 +143,7 @@ function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, sta
   if (!score) return 0;
   const tactics = tacticsOf(engine, economy);
   const mods = effectiveMods(engine, economy, tactics);
-  const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex)) : null;
+  const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStake) : null;
   const items = itemsOf(engine, economy);
   return runStageStrength(score.teamOvr, strengthInput(engine, economy, tactics), {
     bossPenalty: bossPenalty(engine, economy, seed, stageIndex, mods, bossId),
@@ -590,7 +590,7 @@ function spendSurplus(
   const penaltyNow = () => {
     const tactics = tacticsOf(engine, economy);
     const mods = effectiveMods(engine, economy, tactics);
-    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex)) : null;
+    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStake) : null;
     return bossPenalty(engine, economy, seed, stageIndex, mods, bossId);
   };
 
@@ -641,7 +641,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
   // конечным: бесконечная фаза не должна означать бесконечный тест.
   while (guard++ < stageCount + DYNASTY_DEPTH_CAP + 5) {
     const stageIndex = anteRun.state.index;
-    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex)) : null;
+    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStake) : null;
     let phase = anteRun.resolveStage();
     if (phase === "won" && dynasty && anteRun.state.index < stageCount + DYNASTY_DEPTH_CAP - 1) {
       phase = anteRun.continueDynasty();
@@ -694,7 +694,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     economy.openCamp(campId);
 
     const decision: Decision = {
-      boss: useBoss ? bossForStage(seed, campId, economy.bossRerollsFor(campId)) : null,
+      boss: useBoss ? bossForStage(seed, campId, economy.bossRerollsFor(campId), simStake) : null,
       gold: economy.gold,
       stagesLeft: stageCount - campId,
       rng,
