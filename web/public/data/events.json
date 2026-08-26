@@ -554,7 +554,6 @@
     "startDate": "2024-08-18",
     "endDate": "2024-08-25",
     "formats": [
-      "last_2y",
       "last_5y"
     ]
   },
