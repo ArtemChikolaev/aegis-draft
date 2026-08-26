@@ -5,19 +5,18 @@
 import { create } from "zustand";
 import { RunEngine, type RosterSlot } from "../game/engine.ts";
 import { PREP, scoutedTeams, type PrepAction, type PrepPlan, type ScoreOverlay } from "../game/prep.ts";
-import type { RunConfig, DraftPack, Candidate } from "../game/packs.ts";
+import { stakesOf, type RunConfig, type DraftPack, type Candidate } from "../game/packs.ts";
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
 import { buildRealField, rescoreRealField, scoutOptions, type RealField, type ScoutOption } from "../game/realTournament.ts";
-import type { MutatorId } from "../game/dynastyMutators.ts";
-import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, isActFinale, marketCostFactor, mutatorForStage, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
+import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import type { CardEdition } from "../game/editions.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
-import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
+import { bannedHeroesForStage, bossForStage, bossIsRolled, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
 import { evaluateItems, protectedBossPenalty } from "../game/items.ts";
 import { activeCardIds, runModifiers, stageStrength as runStageStrength } from "../game/runStrength.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
@@ -499,7 +498,7 @@ export const useRun = create<RunStore>((set, get) => {
     // остаётся чистой функцией от seed+stage+n.
     const rerolls = economy?.bossRerollsFor(stageIndex) ?? 0;
     // Stake обязателен и здесь: под uncappedBoss (b1.41.0) правило стоит и на элитных этапах.
-    const bossId = bossForStage(seed, stageIndex, rerolls, stakeOf(get().config));
+    const bossId = bossForStage(seed, stageIndex, rerolls, stakesOf(get().config));
     if (!bossId) return null;
     const mods = effectiveModifiers(tactics);
     const items = runItems();
@@ -513,8 +512,8 @@ export const useRun = create<RunStore>((set, get) => {
       chemistry: score.chemistry + mods.chemistry,
       playerOvrs: engine.players.map((p) => p.ovr),
       activeHeroes: engine.heroes,
-      bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, rerolls, stakeOf(get().config)),
-      stake: stakeOf(get().config),
+      bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, rerolls, stakesOf(get().config)),
+      stakes: stakesOf(get().config),
       // Через тот же `buildTacticContext`, что и боевой расчёт тактик: «pro-игры на назначенном
       // герое» и co-games пар определены там ровно один раз, второй копии быть не должно.
       assignedHeroGames: tacticContext()?.players.map((player) => player.assignedHeroGames) ?? [],
@@ -539,10 +538,9 @@ export const useRun = create<RunStore>((set, get) => {
     // виден только с Буткемпа этапа) — этап без ролла разведка пропускает, как обычный.
     const nextRuledStage = (from: number): number => {
       const { seed } = get();
-      const stake = stakeOf(get().config);
+      const stakes = stakesOf(get().config);
       for (let index = from + 1; index <= from + SEASON.actLength; index += 1) {
-        if (!isActFinale(index) && mutatorForStage(seed, index, SEASON, stake) === "doubleBans") continue;
-        if (bossForStage(seed, index, economy?.bossRerollsFor(index) ?? 0, stake) != null) return index;
+        if (bossIsRolled(seed, index, stakes)) return index;
       }
       return nextBossStage(from);
     };
@@ -595,7 +593,7 @@ export const useRun = create<RunStore>((set, get) => {
       economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
         engine,
         economy.campView().marketOffers,
-        marketCostFactor(seed, economyState.campStageIndex, undefined, stakeOf(get().config)),
+        marketCostFactor(seed, economyState.campStageIndex, undefined, stakesOf(get().config)),
         economy.heroRarity,
       ));
     } else {
@@ -607,7 +605,7 @@ export const useRun = create<RunStore>((set, get) => {
         economy.equippedTactics,
         {
                 rarityDrops: economy.rarityDropsEnabled,
-                stake: stakeOf(get().config),
+                stakes: stakesOf(get().config),
                 stageCount: SEASON.stages.length,
                 heroRarity: economy.heroRarity,
               },
@@ -626,7 +624,7 @@ export const useRun = create<RunStore>((set, get) => {
   };
   // Записать действие в лог и сохранить.
   /** Stake текущего забега (T6.4): правило сезона из конфига; null вне Roguelite Run. */
-  const stakeOf = (config: RunConfig | null | undefined): MutatorId | null => config?.stake ?? null;
+
   const record = (action: RunAction) => {
     set((state) => ({ actions: [...state.actions, action] }));
     persist();
@@ -641,7 +639,7 @@ export const useRun = create<RunStore>((set, get) => {
     // Roguelite Run: этапы гонит AnteRunEngine (поле растёт по этапу), но UI-рендер тот же —
     // ante.tournament подставляется в тот же tournamentEngine/tournament, что и Quick Draft.
     if (selectedMode === "run") {
-      const anteRun = new AnteRunEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, undefined, stakeOf(config));
+      const anteRun = new AnteRunEngine(data, config.format, seed, snapshot.score.teamOvr, resolvedName, undefined, stakesOf(config));
       const economy = new RunEconomy(seed);
       // Мета-гейт редкости (срез 3b, R3.1): в первом-ever roguelite-забеге не выпадают СЛУЧАЙНЫЕ
       // повышенные качества — но ручное улучшение в Буткемпе доступно сразу, иначе первый забег
@@ -650,7 +648,7 @@ export const useRun = create<RunStore>((set, get) => {
       const rogueliteRuns = careerEntriesForMode(useCareer.getState().entries, "run").length;
       economy.setRarityFlags({ drops: rogueliteRuns >= 1, upgrades: true });
       economy.setUnlimitedGold(config.cheatMode === true);
-      economy.setStake(stakeOf(config));
+      economy.setStakes(stakesOf(config));
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
         tactics: null, boss: null, scoutedBoss: null, campCelebration: false,
@@ -722,7 +720,7 @@ export const useRun = create<RunStore>((set, get) => {
     economy.accrueCharges(activeCardIds(evaluateRunTactics(), runItems()));
     // Порог пройденного этапа — ЭФФЕКТИВНЫЙ (мутатор круга LG3 мог его ужесточить): выплата
     // премии за место обязана судить по тому же порогу, по которому этап был пройден.
-    economy.awardStageClear(nextIndex, placement, effectiveStageTarget(seed, nextIndex - 1, undefined, stakeOf(get().config)));
+    economy.awardStageClear(nextIndex, placement, effectiveStageTarget(seed, nextIndex - 1, undefined, stakesOf(get().config)));
     // Титул Династии (T5.8): один за каждый пройденный акт ЗА пределами сезона. Внутри сезона
     // финал акта уже оплачен растущими призовыми и премией за место (R6.4), а Династии нужна
     // своя причина продолжать — иначе бесконечная фаза это только растущая угроза без ответа.
@@ -738,7 +736,7 @@ export const useRun = create<RunStore>((set, get) => {
         economy.equippedTactics,
         {
           rarityDrops: economy.rarityDropsEnabled,
-          stake: stakeOf(get().config),
+          stakes: stakesOf(get().config),
           stageCount: SEASON.stages.length,
           heroRarity: economy.heroRarity,
         },
@@ -1069,20 +1067,20 @@ export const useRun = create<RunStore>((set, get) => {
           if (resumable.mode === "run") {
             // Ante-забег: пересобираем движок и перематываем на сохранённый этап (детерминизм —
             // пройденные этапы по seed те же), затем доигрываем reveal-шаги текущего этапа.
-            anteRun = new AnteRunEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, undefined, stakeOf(resumable.config));
+            anteRun = new AnteRunEngine(data, resumable.config.format, resumable.seed, score.teamOvr, resolvedName, undefined, stakesOf(resumable.config));
             // Верхней границы нет: забег мог уйти в Династию за пределы сезона (R6.3).
             const stageIndex = Math.max(0, resumable.anteStageIndex ?? 0);
             anteRun.jumpToStage(stageIndex, { seasonWon: resumable.anteSeasonWon === true });
             // Экономика: восстанавливаем валюту/покупки, применяем их модификаторы к полю этапа.
             economy = new RunEconomy(resumable.seed, resumable.economy);
-            economy.setStake(stakeOf(resumable.config));
+            economy.setStakes(stakesOf(resumable.config));
             if (economy.snapshot.inCamp) {
               const economyState = economy.snapshot;
               if (economyState.preparedMarketOffers) {
                 economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
                   engine,
                   economy.campView().marketOffers,
-                  marketCostFactor(resumable.seed, economyState.campStageIndex, undefined, stakeOf(resumable.config)),
+                  marketCostFactor(resumable.seed, economyState.campStageIndex, undefined, stakesOf(resumable.config)),
                   economy.heroRarity,
                 ));
               } else {
@@ -1094,7 +1092,7 @@ export const useRun = create<RunStore>((set, get) => {
                   economy.equippedTactics,
                   {
                 rarityDrops: economy.rarityDropsEnabled,
-                stake: stakeOf(resumable.config),
+                stakes: stakesOf(resumable.config),
                 stageCount: SEASON.stages.length,
                 heroRarity: economy.heroRarity,
               },
@@ -1123,7 +1121,7 @@ export const useRun = create<RunStore>((set, get) => {
             // по seed+stage, штраф — производная состава. Без него resume дал бы более лёгкое поле.
             // Из сейва берётся ровно одно число — сколько раз правило перекуплено (T5.9).
             const bossRerolls = economy.bossRerollsFor(stageIndex);
-            const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls, stakeOf(resumable.config));
+            const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls, stakesOf(resumable.config));
             boss = bossId
               ? evaluateBoss(bossId, {
                 seed: resumable.seed,
@@ -1133,8 +1131,8 @@ export const useRun = create<RunStore>((set, get) => {
                 chemistry: score.chemistry + mods.chemistry,
                 playerOvrs: engine.players.map((p) => p.ovr),
                 activeHeroes: engine.heroes,
-                bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes, bossRerolls, stakeOf(resumable.config)),
-                stake: stakeOf(resumable.config),
+                bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes, bossRerolls, stakesOf(resumable.config)),
+                stakes: stakesOf(resumable.config),
                 // Тот же `tacticCtx`, что уже собран выше для восстановления тактик.
                 assignedHeroGames: tacticCtx.players.map((player) => player.assignedHeroGames),
                 pairCoGames: tacticCtx.pairs.map((pair) => pair.games),
@@ -1378,7 +1376,7 @@ export const useRun = create<RunStore>((set, get) => {
         economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
           engine,
           economy.campView().marketOffers,
-          marketCostFactor(get().seed, economy.snapshot.campStageIndex, undefined, stakeOf(get().config)),
+          marketCostFactor(get().seed, economy.snapshot.campStageIndex, undefined, stakesOf(get().config)),
           economy.heroRarity,
         ));
         // Замена меняет состав → условные Tactics пересчитываются (напр. new star гасит No Superstars).

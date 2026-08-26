@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { mutatorForStage, type AnteRunState } from "../../game/anteRun.ts";
+import { stageMutators, type AnteRunState } from "../../game/anteRun.ts";
 import { mutatorDescParams } from "../../game/dynastyMutators.ts";
 import { isItemId, itemTier } from "../../game/items.ts";
 import type { Rarity } from "../../game/rarity.ts";
@@ -36,7 +36,9 @@ export function SeasonVictory({ ante, heroRarity, cards, cardRarity, power, chea
   const seed = useRun((state) => state.seed);
   // Мутатор ПЕРВОГО круга Династии (LG3) объявляется на входе: выбор «продолжать или нет»
   // делается с открытым правилом, как у боссов. Первый этап Династии = ante.count.
-  const firstCircleMutator = mutatorForStage(seed, ante.count);
+  // Анонс первого круга: за пределами сезона правило круга ровно одно (stageMutators же
+  // отвечает и за сезонные Stakes, но здесь этап уже в Династии).
+  const firstCircleMutator = stageMutators(seed, ante.count)[0] ?? null;
 
   return (
     <Surface className="season-victory enter" data-testid="season-victory">

@@ -17,7 +17,7 @@
 //   npm run sim -- 150 --dynasty --no-sinks   то же без поздних синков (T5.9), для A/B на общих сидах
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
 //   NOEDITIONS=1 npm run sim -- 400    без зарядов Editions (эквивалент b1.26) — для A/B
-import { isMutatorId } from "../src/game/dynastyMutators.ts";
+import { isMutatorId, type MutatorId } from "../src/game/dynastyMutators.ts";
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
 import { ACT_LENGTH, AnteRunEngine, buildSeason, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, SEASON, type SeasonModel } from "../src/game/anteRun.ts";
@@ -42,11 +42,16 @@ import type { RunConfig } from "../src/game/packs.ts";
 import type { PlacementKey } from "../src/game/tournament.ts";
 
 const data = loadGameData();
-/** Stake (T6.4) для замера: STAKE=tighterTargets npm run sim -- 400. Пустой env — без Stake. */
-const simStake = process.env.STAKE && isMutatorId(process.env.STAKE) ? process.env.STAKE : null;
+/** Stakes (T6.4/T6.4-2) для замера: STAKE=tighterTargets или STAKE=uncappedBoss,doubleBans
+ *  npm run sim -- 400. Пустой env — без Stakes; неизвестный id — ошибка, а не молчаливый базовый
+ *  прогон под видом замера. */
+const simStakes: MutatorId[] = (process.env.STAKE ?? "").split(/[.,]/).filter(Boolean).map((raw) => {
+  if (!isMutatorId(raw)) throw new Error(`Неизвестный Stake: ${raw}`);
+  return raw;
+});
 const config: RunConfig = {
   draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
-  ...(simStake ? { stake: simStake } : {}),
+  ...(simStakes.length ? { stakes: simStakes } : {}),
 };
 const useBoss = !process.env.NOBOSS;
 // A/B-переключатель Editions (R13.5): NOEDITIONS=1 выключает НАЧИСЛЕНИЕ и УЧЁТ зарядов — это
@@ -103,8 +108,8 @@ function bossPenalty(
     chemistry: score.chemistry + mods.chemistry,
     playerOvrs: engine.players.map((p) => p.ovr),
     activeHeroes: engine.heroes,
-    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex), simStake),
-    stake: simStake,
+    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex), simStakes),
+    stakes: simStakes,
     // Через тот же `buildTacticContext`, что и игра: иначе симулятор мерил бы другое условие.
     ...(() => {
       const ctx = buildTacticContext(
@@ -143,7 +148,7 @@ function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, sta
   if (!score) return 0;
   const tactics = tacticsOf(engine, economy);
   const mods = effectiveMods(engine, economy, tactics);
-  const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStake) : null;
+  const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStakes) : null;
   const items = itemsOf(engine, economy);
   return runStageStrength(score.teamOvr, strengthInput(engine, economy, tactics), {
     bossPenalty: bossPenalty(engine, economy, seed, stageIndex, mods, bossId),
@@ -389,7 +394,7 @@ function prepareMarket(engine: RunEngine, economy: RunEconomy, seed: string, sta
   const st = economy.snapshot;
   economy.prepareMarketOffers(buildAnteMarketRoulette(
     engine, seed, st.campStageIndex, st.marketRerolls, economy.equippedTactics,
-    { rarityDrops: economy.rarityDropsEnabled, stageCount, heroRarity: economy.heroRarity, stake: simStake },
+    { rarityDrops: economy.rarityDropsEnabled, stageCount, heroRarity: economy.heroRarity, stakes: simStakes },
   ));
 }
 
@@ -565,7 +570,7 @@ function shopCamp(
       economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
         engine,
         economy.campView().marketOffers,
-        marketCostFactor(seed, economy.snapshot.campStageIndex, season, simStake),
+        marketCostFactor(seed, economy.snapshot.campStageIndex, season, simStakes),
       ));
     } catch (error) { if (process.env.SIMDEBUG) console.error("shopCamp break:", error); break; }
   }
@@ -590,7 +595,7 @@ function spendSurplus(
   const penaltyNow = () => {
     const tactics = tacticsOf(engine, economy);
     const mods = effectiveMods(engine, economy, tactics);
-    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStake) : null;
+    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStakes) : null;
     return bossPenalty(engine, economy, seed, stageIndex, mods, bossId);
   };
 
@@ -623,12 +628,12 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
   const score = engine.score();
   if (!score || !engine.isComplete) return null;
 
-  const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "Sim", season, simStake);
+  const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "Sim", season, simStakes);
   const economy = new RunEconomy(seed);
   // Симулируем НЕ первый забег: иначе мета-гейт держит все дропы на common и профиль редкости
   // измерить нечем. Первый забег — отдельный онбординговый случай.
   economy.setRarityFlags({ drops: true, upgrades: true });
-  economy.setStake(simStake);
+  economy.setStakes(simStakes);
 
   const camps: CampStat[] = [];
   const placements: PlacementKey[] = [];
@@ -641,7 +646,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
   // конечным: бесконечная фаза не должна означать бесконечный тест.
   while (guard++ < stageCount + DYNASTY_DEPTH_CAP + 5) {
     const stageIndex = anteRun.state.index;
-    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStake) : null;
+    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStakes) : null;
     let phase = anteRun.resolveStage();
     if (phase === "won" && dynasty && anteRun.state.index < stageCount + DYNASTY_DEPTH_CAP - 1) {
       phase = anteRun.continueDynasty();
@@ -679,7 +684,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     }
     // Эффективный порог (мутатор круга LG3) — как в игре: премия за место судит по тому же
     // порогу, по которому этап был пройден.
-    economy.awardStageClear(campId, anteRun.state.lastPlacement, effectiveStageTarget(seed, campId - 1, season, simStake));
+    economy.awardStageClear(campId, anteRun.state.lastPlacement, effectiveStageTarget(seed, campId - 1, season, simStakes));
     // Титул Династии — по тому же правилу, что и в игре (общая grantsDynastyTitle): иначе
     // симулятор мерил бы Династию без её единственной награды.
     if (grantsDynastyTitle(campId - 1, season)) economy.awardDynastyTitle(campId);
@@ -694,7 +699,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     economy.openCamp(campId);
 
     const decision: Decision = {
-      boss: useBoss ? bossForStage(seed, campId, economy.bossRerollsFor(campId), simStake) : null,
+      boss: useBoss ? bossForStage(seed, campId, economy.bossRerollsFor(campId), simStakes) : null,
       gold: economy.gold,
       stagesLeft: stageCount - campId,
       rng,

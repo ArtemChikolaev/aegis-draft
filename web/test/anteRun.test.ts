@@ -22,7 +22,7 @@ import {
   SEASON_TEMPLATE,
   seasonFromTargets,
   seasonStage,
-  mutatorForStage,
+  stageMutators,
   effectiveStageTarget,
   marketCostFactor,
 } from "../src/game/anteRun.ts";
@@ -403,23 +403,31 @@ describe("Угроза этапа (R7.2)", () => {
     expect(botMean(withMult) / botMean(noMult)).toBeCloseTo(anteFieldMult(2 * ACT_LENGTH), 1);
   });
 
-  it("Stake (T6.4): правило действует на сезон теми же рычагами, Династия сохраняет мутатор круга", () => {
+  it("Stakes (T6.4/T6.4-2): правила действуют на сезон теми же рычагами, Династия сохраняет мутатор круга", () => {
     const seed = "stake-spec";
-    // Сезон: без Stake правил нет; со Stake — правило на каждом сезонном этапе.
-    expect(mutatorForStage(seed, 3)).toBeNull();
-    expect(mutatorForStage(seed, 3, undefined, "tighterTargets")).toBe("tighterTargets");
-    // Династия: мутатор круга, Stake НЕ стекается и не перекрывает.
-    const circleMutator = mutatorForStage(seed, SEASON.acts * ACT_LENGTH);
-    expect(mutatorForStage(seed, SEASON.acts * ACT_LENGTH, undefined, "expensiveMarket")).toBe(circleMutator);
+    // Сезон: без Stakes правил нет; со Stakes — ровно они на каждом сезонном этапе.
+    expect(stageMutators(seed, 3)).toEqual([]);
+    expect(stageMutators(seed, 3, undefined, ["tighterTargets"])).toEqual(["tighterTargets"]);
+    // Несколько разом (T6.4-2): активны все выбранные.
+    expect(stageMutators(seed, 3, undefined, ["tighterTargets", "expensiveMarket"]))
+      .toEqual(["tighterTargets", "expensiveMarket"]);
+    // Династия: мутатор круга, Stakes НЕ стекаются и не перекрывают.
+    const circleMutators = stageMutators(seed, SEASON.acts * ACT_LENGTH);
+    expect(circleMutators.length).toBe(1);
+    expect(stageMutators(seed, SEASON.acts * ACT_LENGTH, undefined, ["expensiveMarket"])).toEqual(circleMutators);
     // Рычаги: порог жёстче на шаг лестницы, рынок дороже — теми же функциями, что у кругов.
     const base = effectiveStageTarget(seed, 0);
-    expect(effectiveStageTarget(seed, 0, undefined, "tighterTargets")).toBeLessThanOrEqual(base);
-    expect(effectiveStageTarget(seed, 0, undefined, "expensiveMarket")).toBe(base);
-    expect(marketCostFactor(seed, 1, undefined, "expensiveMarket")).toBeGreaterThan(1);
+    expect(effectiveStageTarget(seed, 0, undefined, ["tighterTargets"])).toBeLessThanOrEqual(base);
+    expect(effectiveStageTarget(seed, 0, undefined, ["expensiveMarket"])).toBe(base);
+    expect(marketCostFactor(seed, 1, undefined, ["expensiveMarket"])).toBeGreaterThan(1);
     expect(marketCostFactor(seed, 1)).toBe(1);
+    // Комбинация: оба рычага действуют одновременно.
+    const both: ("tighterTargets" | "expensiveMarket")[] = ["tighterTargets", "expensiveMarket"];
+    expect(effectiveStageTarget(seed, 0, undefined, both)).toBeLessThanOrEqual(base);
+    expect(marketCostFactor(seed, 1, undefined, both)).toBeGreaterThan(1);
     // Движок судит этап по Stake-порогу: state.target первого этапа жёстче обычного.
     const plain = new AnteRunEngine(data, "last_2y", seed, 80, "Five");
-    const staked = new AnteRunEngine(data, "last_2y", seed, 80, "Five", undefined, "tighterTargets");
+    const staked = new AnteRunEngine(data, "last_2y", seed, 80, "Five", undefined, ["tighterTargets"]);
     expect(staked.state.target).toBeLessThan(plain.state.target);
   });
 

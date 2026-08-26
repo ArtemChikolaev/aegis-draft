@@ -639,11 +639,11 @@ export function rewardOffers(
 
 /** Три market-оффера (по одному на слагаемое), качество/цена варьируются по rerollN — reroll
  *  осмыслен (гэмбл на лучшие офферы). Детерминизм по seed+campId+rerollN. */
-export function marketOffers(seed: string, campStageIndex: number, rerollN: number, stake: MutatorId | null = null): Offer[] {
+export function marketOffers(seed: string, campStageIndex: number, rerollN: number, stakes: readonly MutatorId[] = []): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:market-${rerollN}`);
   // Мутатор круга expensiveMarket (LG3) / стартовый Stake (T6.4) применяется на ГЕНЕРАЦИИ:
   // превью, покупка и сим обязаны читать одну цену. Rng не трогает — набор тот же, дороже ценник.
-  const costFactor = marketCostFactor(seed, campStageIndex, undefined, stake);
+  const costFactor = marketCostFactor(seed, campStageIndex, undefined, stakes);
   return MARKET_SUMMANDS.map((summand) => {
     const cfg = ECONOMY.levers[summand];
     const bonus = rng.int(3); // 0..2 ступени качества
@@ -1009,7 +1009,7 @@ export class RunEconomy {
 
   private currentMarketOffers(): Offer[] {
     return (this.state.preparedMarketOffers
-      ?? marketOffers(this.seed, this.state.campStageIndex, this.state.marketRerolls, this.stake))
+      ?? marketOffers(this.seed, this.state.campStageIndex, this.state.marketRerolls, this.stakes))
       .filter((o) => !this.state.consumed.includes(o.id));
   }
 
@@ -1204,13 +1204,13 @@ export class RunEconomy {
   }
 
   /** Включить бесконечное золото на этот забег (ставится на старте из RunConfig.cheatMode). */
-  /** Стартовый Stake забега (T6.4): транзиент, как unlimitedGold-источник — приходит из конфига
-   *  на старте/resume, в сейв экономики не пишется (конфиг уже в SavedRun). Нужен стат-рынку:
-   *  expensiveMarket в сезоне обязан дорожить и три stat-карты, не только рулетку. */
-  private stake: MutatorId | null = null;
+  /** Стартовые Stakes забега (T6.4/T6.4-2): транзиент, как unlimitedGold-источник — приходит
+   *  из конфига на старте/resume, в сейв экономики не пишется (конфиг уже в SavedRun). Нужен
+   *  стат-рынку: expensiveMarket в сезоне обязан дорожить и три stat-карты, не только рулетку. */
+  private stakes: readonly MutatorId[] = [];
 
-  setStake(stake: MutatorId | null): void {
-    this.stake = stake;
+  setStakes(stakes: readonly MutatorId[]): void {
+    this.stakes = stakes;
   }
 
   setUnlimitedGold(enabled: boolean): void {

@@ -10,6 +10,8 @@ import {
   useCareer,
   type CareerEntry,
   stakesUnlocked,
+  stakeWinsByRule,
+  multiStakesUnlocked,
 } from "../src/state/careerStore.ts";
 import type { Role } from "../src/types/data.ts";
 import { loadGameData } from "./helpers/data.ts";
@@ -239,5 +241,22 @@ describe("careerStore — анлок Stakes (T6.4)", () => {
     expect(stakesUnlocked([entry({ configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team", mode: "run", cheatMode: true } })])).toBe(false);
     expect(stakesUnlocked([entry({ configLabel: { format: "last_2y", difficulty: "normal", scoring: "event", draftStyle: "team" } })])).toBe(false);
     expect(stakesUnlocked([entry()])).toBe(true);
+  });
+
+  it("победы со ставкой считаются по правилам (T6.4-2), включая legacy-одиночную метку", () => {
+    const label = entry().configLabel;
+    // Без ставок — пусто, комбинации закрыты.
+    expect(stakeWinsByRule([entry()])).toEqual({});
+    expect(multiStakesUnlocked([entry()])).toBe(false);
+    // Новый список: победа с двумя правилами засчитывает оба.
+    const multiWin = entry({ configLabel: { ...label, stakes: ["uncappedBoss", "doubleBans"] } });
+    expect(stakeWinsByRule([multiWin])).toEqual({ uncappedBoss: 1, doubleBans: 1 });
+    expect(multiStakesUnlocked([multiWin])).toBe(true);
+    // Legacy-запись эпохи b1.41.0 (одиночный stake) читается через entryStakes.
+    const legacyWin = entry({ configLabel: { ...label, stake: "tighterTargets" } });
+    expect(stakeWinsByRule([legacyWin])).toEqual({ tighterTargets: 1 });
+    // Cheat и поражение не считаются.
+    expect(stakeWinsByRule([entry({ seasonWon: undefined, configLabel: { ...label, stakes: ["tighterTargets"] } })])).toEqual({});
+    expect(stakeWinsByRule([entry({ configLabel: { ...label, cheatMode: true, stakes: ["tighterTargets"] } })])).toEqual({});
   });
 });

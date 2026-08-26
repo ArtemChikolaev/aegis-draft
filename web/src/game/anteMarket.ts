@@ -460,8 +460,8 @@ export function buildAnteMarketRoulette(
     /** Редкость АКТИВНЫХ героев забега. Нужна, чтобы карта не предлагала снести immortal и чтобы
      *  нижняя граница пака считалась по той же дельте, что показывает карточка. */
     heroRarity?: Record<string, Rarity>;
-    /** Стартовый Stake (T6.4): expensiveMarket может действовать и в сезоне, не только в круге. */
-    stake?: MutatorId | null;
+    /** Стартовые Stakes (T6.4/T6.4-2): expensiveMarket может действовать и в сезоне, не только в круге. */
+    stakes?: readonly MutatorId[];
   } = {},
 ): Offer[] {
   const { rarityDrops = false, stageCount = 0, heroRarity = {} } = opts;
@@ -624,7 +624,7 @@ export function buildAnteMarketRoulette(
   });
   // Мутатор круга expensiveMarket (LG3): множитель применяется к ГОТОВОМУ паку одним местом —
   // превью, покупка и сим читают одну цену, Rng и состав пака не тронуты.
-  const costFactor = marketCostFactor(seed, campStageIndex, undefined, opts.stake ?? null);
+  const costFactor = marketCostFactor(seed, campStageIndex, undefined, opts.stakes ?? []);
   if (costFactor === 1) return offers;
   return offers.map((offer) => ({ ...offer, cost: Math.round(offer.cost * costFactor) }));
 }

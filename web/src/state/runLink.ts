@@ -8,8 +8,8 @@
 //
 // Формат данных сознательно тот же, что у сейва (state/runPersist.SavedRun): и там, и там
 // вопрос один — «воспроизводим ли забег на этом датасете». Проверку версий не дублируем.
-import { isMutatorId } from "../game/dynastyMutators.ts";
-import type { RunConfig } from "../game/packs.ts";
+import { isMutatorId, type MutatorId } from "../game/dynastyMutators.ts";
+import { stakesOf, type RunConfig } from "../game/packs.ts";
 import type { RunMode } from "./runPersist.ts";
 
 /** Полезная нагрузка ссылки. Ключи короткие: попадают в URL. */
@@ -97,7 +97,9 @@ export function encodeRunLink(link: RunLink): string {
     // Хардкор пишем только когда включён — короче ссылка, и старые ссылки читаются как false.
     ...(link.config.hardMode ? { h: 1 } : {}),
     ...(link.config.cheatMode ? { x: 1 } : {}),
-    ...(link.config.stake ? { k: link.config.stake } : {}),
+    // Stakes (T6.4-2): несколько правил пишутся через точку — старый одиночный `k` читается
+    // тем же декодером (split даёт массив из одного).
+    ...(stakesOf(link.config).length ? { k: stakesOf(link.config).join(".") } : {}),
     ...(link.eventId ? { e: link.eventId } : {}),
     seed: link.seed,
   };
@@ -150,7 +152,9 @@ export function decodeRunLink(encoded: string): RunLink | null {
       // Cheat-забег шерится только с явной меткой: получатель обязан видеть, что результат
       // несоревновательный, ещё до старта.
       ...(raw.x === 1 ? { cheatMode: true } : {}),
-      ...(typeof raw.k === "string" && isMutatorId(raw.k) ? { stake: raw.k } : {}),
+      ...(typeof raw.k === "string" && raw.k.split(".").every(isMutatorId) && raw.k.length > 0
+        ? { stakes: raw.k.split(".") as MutatorId[] }
+        : {}),
     },
   };
 }
@@ -236,7 +240,7 @@ export function runConfigsMatch(left: RunConfig, right: RunConfig): boolean {
     && left.allocation === right.allocation
     && (left.hardMode ?? false) === (right.hardMode ?? false)
     && (left.cheatMode ?? false) === (right.cheatMode ?? false)
-    && (left.stake ?? null) === (right.stake ?? null);
+    && [...stakesOf(left)].sort().join(".") === [...stakesOf(right)].sort().join(".");
 }
 
 /**

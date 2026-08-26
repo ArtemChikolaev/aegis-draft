@@ -166,20 +166,22 @@ export function dynastyCircleOf(absoluteStageIndex: number, season: SeasonRules 
   return Math.floor((absoluteStageIndex - seasonLength) / season.actLength) + 1;
 }
 
-/** Мутатор, под которым играется этап (LG3 / T6.4): внутри сезона — добровольный стартовый
- *  Stake (то же множество правил, решение 2026-08-09 «мутаторы = Stakes»), за пределами сезона —
- *  правило круга Династии. Стек не заводим: в Династии действует ТОЛЬКО мутатор круга — Stake
- *  считается сыгранным вместе с сезоном, а два правила разом читались бы как каша.
- *  Определения и выбор — `dynastyMutators`; здесь только привязка «этап → правило». */
-export function mutatorForStage(
+/** Правила, под которыми играется этап (LG3 / T6.4): внутри сезона — добровольные стартовые
+ *  Stakes (то же множество правил, решение 2026-08-09 «мутаторы = Stakes»; с T6.4-2 их может
+ *  быть НЕСКОЛЬКО — комбинация открывается первой победой со ставкой), за пределами сезона —
+ *  ровно один мутатор круга Династии: Stakes считаются сыгранными вместе с сезоном, а «ставки
+ *  плюс правило круга» разом читались бы как каша. Определения и выбор — `dynastyMutators`;
+ *  здесь только привязка «этап → правила». Пустой массив = обычный этап. */
+export function stageMutators(
   seed: string,
   absoluteStageIndex: number,
   season: SeasonRules = SEASON,
-  stake: MutatorId | null = null,
-): MutatorId | null {
+  stakes: readonly MutatorId[] = [],
+): readonly MutatorId[] {
   const circle = dynastyCircleOf(absoluteStageIndex, season);
-  if (circle === 0) return stake;
-  return mutatorForCircle(seed, circle);
+  if (circle === 0) return stakes;
+  const rule = mutatorForCircle(seed, circle);
+  return rule ? [rule] : [];
 }
 
 /** Порог на `steps` шагов жёстче по легальной лестнице бакетов (мутатор `tighterTargets`).
@@ -197,10 +199,10 @@ export function effectiveStageTarget(
   seed: string,
   absoluteStageIndex: number,
   season: SeasonRules = SEASON,
-  stake: MutatorId | null = null,
+  stakes: readonly MutatorId[] = [],
 ): number {
   const target = seasonStage(absoluteStageIndex, season).target;
-  return mutatorForStage(seed, absoluteStageIndex, season, stake) === "tighterTargets"
+  return stageMutators(seed, absoluteStageIndex, season, stakes).includes("tighterTargets")
     ? tightenedTarget(target, MUTATORS.tighterTargets.steps)
     : target;
 }
@@ -212,9 +214,9 @@ export function marketCostFactor(
   seed: string,
   campStageIndex: number,
   season: SeasonRules = SEASON,
-  stake: MutatorId | null = null,
+  stakes: readonly MutatorId[] = [],
 ): number {
-  return mutatorForStage(seed, campStageIndex, season, stake) === "expensiveMarket"
+  return stageMutators(seed, campStageIndex, season, stakes).includes("expensiveMarket")
     ? MUTATORS.expensiveMarket.costFactor
     : 1;
 }
@@ -437,8 +439,8 @@ export class AnteRunEngine {
     private teamOvr: number,
     private readonly teamName: string,
     private readonly season: SeasonModel = SEASON,
-    /** Стартовый Stake (T6.4): правило, под которым играется весь сезон. Часть RunConfig. */
-    private readonly stake: MutatorId | null = null,
+    /** Стартовые Stakes (T6.4/T6.4-2): правила, под которыми играется весь сезон. Часть RunConfig. */
+    private readonly stakes: readonly MutatorId[] = [],
   ) {
     if (season.stages.length === 0) throw new Error("Ante run needs at least one stage");
     const illegal = season.stages.map((stage) => stage.target).filter((target) => !isLegalAnteTarget(target));
@@ -473,7 +475,7 @@ export class AnteRunEngine {
    *  поэтому сезонные лестницы (и легальность порогов из конструктора) не трогаются. */
   private stageAt(index: number): SeasonStage {
     const stage = this.season.stages[index] ?? seasonStage(index, this.season);
-    if (mutatorForStage(this.seed, index, this.season, this.stake) !== "tighterTargets") return stage;
+    if (!stageMutators(this.seed, index, this.season, this.stakes).includes("tighterTargets")) return stage;
     return { ...stage, target: tightenedTarget(stage.target, MUTATORS.tighterTargets.steps) };
   }
 

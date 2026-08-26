@@ -13,7 +13,7 @@ import { realTournamentEvents } from "../../game/realTournament.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
 import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
 import { mutatorDescParams, type MutatorId } from "../../game/dynastyMutators.ts";
-import { stakesUnlocked, useCareer } from "../../state/careerStore.ts";
+import { multiStakesUnlocked, stakeWinsByRule, stakesUnlocked, useCareer } from "../../state/careerStore.ts";
 import { SeedField } from "./SeedField.tsx";
 import { ArenaLobby } from "./ArenaLobby.tsx";
 import { isApiConfigured } from "../../data/api/index.ts";
@@ -142,6 +142,9 @@ export function StartScreen() {
   const [cheatGate, setCheatGate] = useState(false);
   // Stakes (T6.4): открываются первой честной победой сезона — до неё выбор показан, но заперт.
   const stakesOpen = useCareer((state) => stakesUnlocked(state.entries));
+  const multiStakesOpen = useCareer((state) => multiStakesUnlocked(state.entries));
+  const stakeWins = useCareer((state) => stakeWinsByRule(state.entries));
+  const selectedStakes: readonly MutatorId[] = config.stakes ?? [];
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
   // Mixed оценивает игроков по успеху команды за окно, поэтому окно без team-success
   // в нём неиграбельно — гасим так же, как форматы, которых нет в датасете.
@@ -166,8 +169,10 @@ export function StartScreen() {
     ...(mode === "run" ? [] : [DIFFICULTY.find((option) => option.value === config.rerolls)?.label ?? "start.normal"] as MessageKey[]),
     ALLOCATION.find((option) => option.value === config.allocation)?.label ?? "start.automatic",
   ];
-  // Stake — часть сводки запуска: правило сезона видно до старта, как остальные оси.
-  const stakeSummary = mode === "run" && config.stake ? t(`mutator.${config.stake}` as MessageKey) : null;
+  // Stakes — часть сводки запуска: правила сезона видны до старта, как остальные оси.
+  const stakeSummary = mode === "run" && (config.stakes?.length ?? 0) > 0
+    ? config.stakes!.map((id) => t(`mutator.${id}` as MessageKey)).join(" + ")
+    : null;
 
   const seedValidation: RunLinkInputValidation = data && mode
     ? validateRunLinkInput(
@@ -447,23 +452,42 @@ export function StartScreen() {
               />
               {/* Stakes (T6.4): те же правила, что мутаторы кругов Династии, но добровольно и на
                   весь сезон. Заперты до первой честной победы сезона; с Cheat Mode не совместимы
-                  (несоревновательный забег не носит соревновательную метку). */}
+                  (несоревновательный забег не носит соревновательную метку). Лестница прогрессии
+                  T6.4-2: победа со ставкой открывает КОМБИНАЦИИ (клик добавляет правило), до
+                  того клик заменяет выбранное — прежняя одиночная семантика. ✓ ×N в hint —
+                  награда сверх карьерной метки: производная карьеры, не хранилище. */}
               <OptionGroup
                 title={t("stake.title")}
                 soonLabel={t("common.soon")}
                 options={[
                   { value: null as MutatorId | null, label: t("stake.none"), hint: t("stake.noneHint") },
-                  ...STAKE_CHOICES.map(({ id, severity }) => ({
-                    value: id as MutatorId | null,
-                    label: t(`mutator.${id}` as MessageKey),
-                    hint: stakesOpen && !(config.cheatMode ?? false)
-                      ? `${t(severity)} · ${t(`mutator.desc.${id}` as MessageKey, mutatorDescParams(id))}`
-                      : t(!stakesOpen ? "stake.locked" : "stake.blockedByCheat"),
-                    disabled: !stakesOpen || (config.cheatMode ?? false),
-                  })),
+                  ...STAKE_CHOICES.map(({ id, severity }) => {
+                    const wins = stakeWins[id] ?? 0;
+                    const parts = [
+                      ...(wins > 0 ? [t("stake.won", { n: wins })] : []),
+                      t(severity),
+                      t(`mutator.desc.${id}` as MessageKey, mutatorDescParams(id)),
+                      t(multiStakesOpen ? "stake.canCombine" : "stake.combineLocked"),
+                    ];
+                    return {
+                      value: id as MutatorId | null,
+                      label: t(`mutator.${id}` as MessageKey),
+                      hint: stakesOpen && !(config.cheatMode ?? false)
+                        ? parts.join(" · ")
+                        : t(!stakesOpen ? "stake.locked" : "stake.blockedByCheat"),
+                      disabled: !stakesOpen || (config.cheatMode ?? false),
+                    };
+                  }),
                 ]}
-                value={(config.stake ?? null) as MutatorId | null}
-                onChange={(value) => set("stake", value ?? undefined)}
+                value={null as MutatorId | null}
+                activeValues={selectedStakes.length ? selectedStakes : [null as MutatorId | null]}
+                onChange={(value) => {
+                  if (value === null) { set("stakes", undefined); return; }
+                  const next = selectedStakes.includes(value)
+                    ? selectedStakes.filter((id) => id !== value)
+                    : multiStakesOpen ? [...selectedStakes, value] : [value];
+                  set("stakes", next.length ? next : undefined);
+                }}
               />
             </div>
           )}
@@ -568,7 +592,7 @@ export function StartScreen() {
                 data-testid="cheat-gate-confirm"
                 // Включение Cheat Mode само гасит хардкор — иначе забег обещал бы одновременно
                 // «вслепую и соревновательно» и «бесконечное золото».
-                onClick={() => { setConfig((current) => ({ ...current, cheatMode: true, hardMode: false, stake: undefined })); close(); }}
+                onClick={() => { setConfig((current) => ({ ...current, cheatMode: true, hardMode: false, stakes: undefined })); close(); }}
               >
                 {t("cheat.gateConfirm")}
               </Button>

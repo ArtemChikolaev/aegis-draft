@@ -2,7 +2,7 @@ import type { MutatorId } from "../game/dynastyMutators.ts";
 import { create } from "zustand";
 import { readCached, readPersisted, writePersisted } from "./persist.ts";
 import type { RosterSlot } from "../game/engine.ts";
-import type { DraftStyle, RunConfig, Scoring } from "../game/packs.ts";
+import { stakesOf, type DraftStyle, type RunConfig, type Scoring } from "../game/packs.ts";
 import type { RunMode } from "./runPersist.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
 import type { PlacementKey, TournamentSnapshot } from "../game/tournament.ts";
@@ -24,8 +24,10 @@ export interface CareerConfigLabel {
    *  но исключается из ВСЕХ агрегатов и из счётчика забегов, по которому открывается
    *  мета-прогрессия: иначе читерский забег открыл бы редкость следующему честному. */
   cheatMode?: boolean;
-  /** Stake (T6.4): правило сезона, под которым сыгран забег. Записи без метки — без Stake. */
+  /** Stake (T6.4, legacy b1.41.0): одиночное правило сезона. Новые записи пишут `stakes`. */
   stake?: MutatorId;
+  /** Stakes (T6.4-2): правила сезона, под которыми сыгран забег. Записи без метки — без Stakes. */
+  stakes?: MutatorId[];
   /** Запись сделана в Династии — добровольном продолжении ПОСЛЕ победы сезона (R6.3). Победа уже
    *  засчитана отдельной записью, поэтому эта в агрегаты и в счётчик забегов не идёт: иначе один
    *  забег считался бы дважды и Династия открывала бы мета-прогрессию сама себе. */
@@ -177,7 +179,7 @@ export function buildCareerEntry(input: {
       mode: input.mode === "run" ? "run" : input.mode === "tournament" ? "tournament" : undefined,
       cheatMode: input.config.cheatMode === true ? true : undefined,
       dynasty: input.dynasty === true ? true : undefined,
-      stake: input.config.stake ?? undefined,
+      stakes: stakesOf(input.config).length ? [...stakesOf(input.config)] : undefined,
     },
     seasonWon: input.seasonWon === true ? true : undefined,
     rogueliteStage: input.mode === "run" && input.rogueliteStage
@@ -260,6 +262,32 @@ export function competitiveEntries(entries: CareerEntry[]): CareerEntry[] {
  *  открывает (DoD R2.3). */
 export function stakesUnlocked(entries: CareerEntry[]): boolean {
   return careerEntriesForMode(entries, "run").some((entry) => entry.seasonWon === true);
+}
+
+/** Stakes записи: новые `stakes` либо legacy-одиночный `stake` (b1.41.0). */
+export function entryStakes(label: CareerConfigLabel): readonly MutatorId[] {
+  if (label.stakes && label.stakes.length > 0) return label.stakes;
+  return label.stake ? [label.stake] : [];
+}
+
+/** Честные победы сезона под каждым правилом (T6.4-2): производная карьеры, отдельного
+ *  хранилища нет — ✓-метка на ставке в StartScreen и право на комбинации выводятся отсюда.
+ *  Победа с несколькими правилами засчитывает каждое из них. */
+export function stakeWinsByRule(entries: CareerEntry[]): Partial<Record<MutatorId, number>> {
+  const wins: Partial<Record<MutatorId, number>> = {};
+  for (const entry of careerEntriesForMode(entries, "run")) {
+    if (entry.seasonWon !== true) continue;
+    for (const rule of entryStakes(entry.configLabel)) {
+      wins[rule] = (wins[rule] ?? 0) + 1;
+    }
+  }
+  return wins;
+}
+
+/** Комбинации Stakes открыты (T6.4-2): хотя бы одна честная победа сезона С ЛЮБОЙ ставкой.
+ *  Лестница прогрессии: победа сезона → Stakes; победа со ставкой → их комбинации. */
+export function multiStakesUnlocked(entries: CareerEntry[]): boolean {
+  return Object.keys(stakeWinsByRule(entries)).length > 0;
 }
 
 export function careerEntriesForMode(entries: CareerEntry[], mode: RunMode): CareerEntry[] {

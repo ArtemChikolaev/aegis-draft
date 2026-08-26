@@ -190,17 +190,23 @@ function toGarbage(): string {
 }
 
 describe("runLink — Stake (T6.4)", () => {
-  it("stake переживает round-trip кодека; ссылка без поля и мусорное значение читаются без Stake", () => {
-    const staked: RunLink = { ...base, mode: "run", config: { ...defaultRunConfig, stake: "tighterTargets" } };
+  it("stakes переживают round-trip кодека; legacy-одиночный k и мусор читаются корректно", () => {
+    const staked: RunLink = { ...base, mode: "run", config: { ...defaultRunConfig, stakes: ["tighterTargets"] } };
     const decoded = decodeRunLink(encodeRunLink(staked));
-    expect(decoded?.config.stake).toBe("tighterTargets");
+    expect(decoded?.config.stakes).toEqual(["tighterTargets"]);
+    // Несколько правил (T6.4-2) едут через точку и возвращаются списком.
+    const multi: RunLink = { ...base, mode: "run", config: { ...defaultRunConfig, stakes: ["uncappedBoss", "expensiveMarket"] } };
+    expect(decodeRunLink(encodeRunLink(multi))?.config.stakes).toEqual(["uncappedBoss", "expensiveMarket"]);
+    // Legacy-конфиг эпохи b1.41.0 (одиночный `stake`) кодируется тем же `k` и читается как список.
+    const legacy: RunLink = { ...base, mode: "run", config: { ...defaultRunConfig, stake: "tighterTargets" } };
+    expect(decodeRunLink(encodeRunLink(legacy))?.config.stakes).toEqual(["tighterTargets"]);
     const plain = decodeRunLink(encodeRunLink({ ...base, mode: "run" }));
-    expect(plain?.config.stake).toBeUndefined();
-    // Мусорное значение k молча отбрасывается — ссылка остаётся валидной без Stake.
+    expect(plain?.config.stakes).toBeUndefined();
+    // Мусорное значение k молча отбрасывается — ссылка остаётся валидной без Stakes.
     const raw = JSON.parse(atob(encodeRunLink(staked).replace(/-/g, "+").replace(/_/g, "/"))) as Record<string, unknown>;
-    raw.k = "notAMutator";
+    raw.k = "tighterTargets.notAMutator";
     const tampered = decodeRunLink(btoa(JSON.stringify(raw)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""));
-    expect(tampered?.config.stake).toBeUndefined();
+    expect(tampered?.config.stakes).toBeUndefined();
     expect(tampered).not.toBeNull();
   });
 });

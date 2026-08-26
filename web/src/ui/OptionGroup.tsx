@@ -14,14 +14,19 @@ export interface Option<T> {
 /** Группа выбора одной опции (draft style, формат, сложность …). Презентационная.
  *  `columns` — фиксированное число колонок на широком экране (вместо auto-fit), когда набор
  *  известен и auto-fit даёт рваный хвост (6 регионов → 4+2); узкие брейкпоинты остаются свои. */
-export function OptionGroup<T>({ title, options, value, onChange, soonLabel, columns }: {
+export function OptionGroup<T>({ title, options, value, onChange, soonLabel, columns, activeValues }: {
   title: string;
   options: Option<T>[];
   value: T;
   onChange: (value: T) => void;
   soonLabel: string;
   columns?: number;
+  /** Мультивыбор (Stakes, T6.4-2): активность = членство в списке вместо равенства `value`.
+   *  onChange по-прежнему шлёт значение нажатой опции — семантику toggle решает владелец. */
+  activeValues?: readonly T[];
 }) {
+  const isActive = (option: T): boolean =>
+    activeValues ? activeValues.includes(option) : option === value;
   return (
     <fieldset className={styles.group} style={columns ? { "--og-cols": `repeat(${columns}, minmax(0, 1fr))` } as React.CSSProperties : undefined}>
       <legend>{title}</legend>
@@ -30,9 +35,9 @@ export function OptionGroup<T>({ title, options, value, onChange, soonLabel, col
           <button
             type="button"
             key={String(option.value)}
-            className={`${styles.option} ${option.value === value ? styles.active : ""}`}
+            className={`${styles.option} ${isActive(option.value) ? styles.active : ""}`}
             disabled={option.soon || option.disabled}
-            aria-pressed={option.value === value}
+            aria-pressed={isActive(option.value)}
             onClick={() => onChange(option.value)}
           >
             <span className={styles.label}>{option.label}{option.soon && <SoonBadge>{soonLabel}</SoonBadge>}</span>

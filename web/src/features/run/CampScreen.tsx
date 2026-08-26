@@ -12,14 +12,14 @@ import {
   itemLabel,
   itemTier,
 } from "../../game/items.ts";
-import { mutatorForStage } from "../../game/anteRun.ts";
+import { stageMutators } from "../../game/anteRun.ts";
 import { mutatorDescParams } from "../../game/dynastyMutators.ts";
 import { chargeCapForRarity } from "../../game/editions.ts";
 import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
 import type { Candidate } from "../../game/packs.ts";
-import { candidatesOf } from "../../game/packs.ts";
+import { candidatesOf, stakesOf } from "../../game/packs.ts";
 import {
   chemistryPairEdges,
   chemistryPlayersFromRoster,
@@ -98,9 +98,9 @@ export function CampScreen() {
   const snapshot = useRun((s) => s.snapshot);
   const data = useRun((s) => s.data);
   const config = useRun((s) => s.config);
-  // Правило предстоящего этапа (LG3/T6.4): мутатор круга Династии или стартовый Stake сезона;
-  // без правила null — строка не рендерится.
-  const campMutator = ante ? mutatorForStage(seed, ante.index, undefined, config?.stake ?? null) : null;
+  // Правила предстоящего этапа (LG3/T6.4): мутатор круга Династии или стартовые Stakes сезона
+  // (T6.4-2: их может быть несколько); пусто — строки не рендерятся.
+  const campMutators = ante ? stageMutators(seed, ante.index, undefined, stakesOf(config)) : [];
   const boss = useRun((s) => s.boss);
   const scoutedBoss = useRun((s) => s.scoutedBoss);
   const chooseReward = useRun((s) => s.chooseReward);
@@ -626,13 +626,13 @@ export function CampScreen() {
           {/* Мутатор круга Династии (LG3): правило поверх всех этапов круга, та же видимость
               заранее, что у боссов, — готовиться к нему (trade-in, re-pick, накопления) и есть
               работа поздних лагерей. Показывается в каждом лагере круга, а не один раз. */}
-          {campMutator && (
-            <p className="camp__mutator" data-testid="camp-mutator">
+          {campMutators.map((campMutator) => (
+            <p key={campMutator} className="camp__mutator" data-testid="camp-mutator">
               ☄ <b>{t(`mutator.${campMutator}` as MessageKey)}</b>
               {" — "}
               {t(`mutator.desc.${campMutator}` as MessageKey, mutatorDescParams(campMutator))}
             </p>
-          )}
+          ))}
           {/* Автоматическая выплата показывается разложенной: иначе «проценты за накопление»
               невидимы, и решение «потратить сейчас против накопить» не читается. Премия за место
               (R6.4) — отдельной строкой по той же причине: с чемпионством как наградой вместо
