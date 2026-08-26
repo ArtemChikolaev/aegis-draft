@@ -262,9 +262,15 @@ function projectionForRank(rank: number): ProjectionKey {
  *  ровно 22 и golden не двигается, а инфляция силы больше не превращает матч в сравнение чисел. */
 const ELO_DIVISOR = 22;
 
-/** Вероятность победы a над b — ELO по основанию 10 с делителем, масштабированным под шкалу этапа. */
+/** Вероятность победы силы `a` над силой `b` — ELO по основанию 10 с делителем, масштабированным
+ *  под шкалу этапа. Экспортируется: Дуэль (M-DUEL) судит игры серии ТОЙ ЖЕ кривой, что и все
+ *  турниры, — второй формулы матча в проекте быть не должно. */
+export function eloWinProbability(strengthA: number, strengthB: number, divisor: number): number {
+  return 1 / (1 + Math.pow(10, -(strengthA - strengthB) / divisor));
+}
+
 function winProbability(a: TournamentTeam, b: TournamentTeam, divisor: number): number {
-  return 1 / (1 + Math.pow(10, -(a.strength - b.strength) / divisor));
+  return eloWinProbability(a.strength, b.strength, divisor);
 }
 
 function playSeries(

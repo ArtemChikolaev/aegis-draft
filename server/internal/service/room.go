@@ -12,6 +12,7 @@ package service
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"math/big"
 	"sync"
@@ -77,6 +78,18 @@ type Room struct {
 	CreatedAt time.Time
 	versions  *RoomVersions // nil до первого джойна — он и пинит
 	members   []*RoomMember // порядок входа стабилен (посадка/змейка MP2 обопрётся на него)
+	relay     []RelayEntry  // упорядоченный лог relay-сообщений (Дуэль M-DUEL; Arena MP2 — тот же слой)
+}
+
+// RelayEntry — одно упорядоченное сообщение комнаты. Сервер режима НЕ понимает: он источник
+// ПОРЯДКА и ОТПРАВИТЕЛЯ, полезная нагрузка непрозрачна (протокол режима — на клиентах,
+// детерминированная логика обеих сторон применяет один и тот же лог). Лог в памяти комнаты:
+// reconnect получает его целиком и реплеит с нуля; рестарт сервера честно теряет партию —
+// та же принятая цена, что у лобби MP0.
+type RelayEntry struct {
+	Seq     int             `json:"seq"`
+	From    string          `json:"from"`
+	Payload json.RawMessage `json:"payload"`
 }
 
 // RoomJoin — результат JoinRoom: всё, что нужно transport для welcome + presence.
@@ -224,6 +237,41 @@ func (m *RoomManager) LeaveRoom(code, token string) ([]RoomMemberView, *RoomMemb
 		}
 	}
 	return nil, nil, ErrMemberNotFound
+}
+
+// AppendRelay добавляет relay-сообщение в лог комнаты от участника с данным токеном и
+// возвращает проштампованную запись (seq и подтверждённый серверм ID отправителя — клиенту
+// поле from доверять нельзя). Неизвестный токен — ErrMemberNotFound: писать в лог можно
+// только из живого слота.
+func (m *RoomManager) AppendRelay(code, token string, payload json.RawMessage) (RelayEntry, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	room, ok := m.rooms[code]
+	if !ok {
+		return RelayEntry{}, ErrRoomNotFound
+	}
+	for _, member := range room.members {
+		if member.token == token {
+			entry := RelayEntry{Seq: len(room.relay) + 1, From: member.ID, Payload: payload}
+			room.relay = append(room.relay, entry)
+			member.LastSeen = m.now()
+			return entry, nil
+		}
+	}
+	return RelayEntry{}, ErrMemberNotFound
+}
+
+// RelayLog — копия лога комнаты (для реплея при входе/reconnect).
+func (m *RoomManager) RelayLog(code string) ([]RelayEntry, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	room, ok := m.rooms[code]
+	if !ok {
+		return nil, ErrRoomNotFound
+	}
+	out := make([]RelayEntry, len(room.relay))
+	copy(out, room.relay)
+	return out, nil
 }
 
 // RoomView — снапшот участников (для отладочных/REST нужд transport).

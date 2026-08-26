@@ -36,6 +36,15 @@ export interface ArenaError {
   message: string;
 }
 
+/** Relay-сообщение комнаты (Дуэль M-DUEL; Arena MP2 — тот же слой): сервер — источник порядка
+ *  (`seq` монотонен) и отправителя (`from` проштампован по токену слота, подделать нельзя);
+ *  payload непрозрачен — протокол режима живёт на клиентах. */
+export interface RoomRelayEntry {
+  seq: number;
+  from: string;
+  payload: unknown;
+}
+
 interface Envelope {
   v: number;
   type: string;
@@ -57,12 +66,18 @@ export interface ArenaSocketHandlers {
   onError: (error: ArenaError) => void;
   /** Сокет закрыт (после error, обрыва сети или leave). */
   onClose: () => void;
+  /** Живое relay-сообщение (после welcome/relay_log). Опционален: лобби Arena релей не читает. */
+  onRelay?: (entry: RoomRelayEntry) => void;
+  /** Реплей лога при входе/reconnect — приходит лично, ДО живых relay. */
+  onRelayLog?: (entries: RoomRelayEntry[]) => void;
 }
 
 export interface ArenaSocket {
   /** Явный выход: сервер освобождает слот (обрыв без leave держит место под reconnect). */
   leave: () => void;
   close: () => void;
+  /** Отправить relay-сообщение комнаты (вернётся всем через сервер с seq/from). */
+  sendRelay: (payload: unknown) => void;
 }
 
 const PING_INTERVAL_MS = 25_000; // сервер ждёт до 75с — три пропущенных пинга = обрыв
@@ -120,6 +135,12 @@ export function connectArenaRoom(
       case "error":
         handlers.onError(msg.payload as ArenaError);
         break;
+      case "relay":
+        handlers.onRelay?.(msg.payload as RoomRelayEntry);
+        break;
+      case "relay_log":
+        handlers.onRelayLog?.((msg.payload as { entries: RoomRelayEntry[] }).entries ?? []);
+        break;
       default:
         break; // pong и будущие типы
     }
@@ -140,5 +161,6 @@ export function connectArenaRoom(
       window.setTimeout(() => socket.close(), 200); // сервер закроет сам; страховка
     },
     close: () => socket.close(),
+    sendRelay: (payload) => send("relay", payload),
   };
 }

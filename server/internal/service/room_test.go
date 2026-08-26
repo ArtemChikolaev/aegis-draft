@@ -127,3 +127,48 @@ func TestRoomPrune(t *testing.T) {
 		t.Fatalf("expected not found, got %v", err)
 	}
 }
+
+func TestRoomRelayLogOrderAndStamping(t *testing.T) {
+	m := NewRoomManager(nil)
+	room := m.CreateRoom()
+	alice, err := m.JoinRoom(room.Code, "Alice", "", testVersions())
+	if err != nil {
+		t.Fatalf("join alice: %v", err)
+	}
+	bob, err := m.JoinRoom(room.Code, "Bob", "", testVersions())
+	if err != nil {
+		t.Fatalf("join bob: %v", err)
+	}
+
+	// Сервер штампует порядок и подтверждённого отправителя; payload непрозрачен.
+	first, err := m.AppendRelay(room.Code, alice.Token, []byte(`{"kind":"start"}`))
+	if err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	second, err := m.AppendRelay(room.Code, bob.Token, []byte(`{"kind":"pick"}`))
+	if err != nil {
+		t.Fatalf("append: %v", err)
+	}
+	if first.Seq != 1 || second.Seq != 2 {
+		t.Fatalf("seq: %d, %d", first.Seq, second.Seq)
+	}
+	if first.From != alice.Member.ID || second.From != bob.Member.ID {
+		t.Fatalf("from: %q, %q", first.From, second.From)
+	}
+
+	// Чужой токен писать в лог не может (from подделать нельзя).
+	if _, err := m.AppendRelay(room.Code, "not-a-token", []byte(`{}`)); !errors.Is(err, ErrMemberNotFound) {
+		t.Fatalf("stranger append: %v", err)
+	}
+
+	// Лог возвращается целиком и копией — реконнект реплеит с нуля.
+	log, err := m.RelayLog(room.Code)
+	if err != nil || len(log) != 2 {
+		t.Fatalf("log: %v, %d", err, len(log))
+	}
+	log[0].Seq = 99
+	fresh, _ := m.RelayLog(room.Code)
+	if fresh[0].Seq != 1 {
+		t.Fatalf("log must be a copy, got seq %d", fresh[0].Seq)
+	}
+}

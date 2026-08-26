@@ -40,6 +40,9 @@ const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: Mess
   // Arena (M10, PRD §5.12): онлайн-турнир на 18 команд. Карточка и красный акцент режима живут
   // уже сейчас; сам режим ждёт живого ws-сервера (MP0) — до него превью «Скоро», как у соседей.
   { value: "arena", label: "start.modeArena", hint: "start.modeArenaHint", detail: "start.modeArenaLong", available: false, needsNetwork: true },
+  // Дуэль (M-DUEL): онлайн 1×1 по коду комнаты (relay-инфраструктура MP0). App перехватывает
+  // selectedMode === "duel" до фазовых экранов, как у Manager.
+  { value: "duel", label: "start.modeDuel", hint: "start.modeDuelHint", detail: "start.modeDuelLong", available: true, needsNetwork: true },
 ];
 
 /** Режимы, использующие Classic-конфиг драфта (Quick Draft и Roguelite Run поверх него).

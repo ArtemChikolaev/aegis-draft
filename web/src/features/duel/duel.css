@@ -1,0 +1,71 @@
+/* Дуэль (M-DUEL, срез 1). Цвета — токены; раскладка: две колонки ростеров по бокам, рабочая
+   панель (пак / хиро-пул / результат) в центре. Узкий экран — колонки в столбец. */
+.duel { display: grid; gap: 20px; }
+.duel__head { display: grid; gap: 6px; justify-items: start; }
+.duel__lead { margin: 0; max-width: 560px; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.duel__turn { margin: 0; font: 700 15px "Space Grotesk", Manrope, sans-serif; color: var(--accent-strong); }
+.duel__turn--ban { color: var(--danger); }
+
+.duel__setup { display: grid; gap: 18px; padding: 20px; max-width: 620px; }
+.duel__names { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.duel__field { display: grid; gap: 4px; font-size: 12px; color: var(--muted); }
+.duel__field:last-child { grid-column: 1 / -1; }
+
+.duel__board { display: grid; grid-template-columns: 220px minmax(0, 1fr) 220px; gap: 14px; align-items: start; }
+.duel__roster { padding: 14px; display: grid; gap: 10px; border: 1.5px solid transparent; }
+.duel__roster--active { border-color: var(--accent-strong); box-shadow: 0 0 12px var(--accent-soft); }
+.duel__roster h3 { margin: 0; font-size: 14px; }
+.duel__roster ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.duel__roster li { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+.duel__roster li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel__ovr { margin-left: auto; font: 800 13px "Space Grotesk", Manrope, sans-serif; }
+.duel__empty { color: var(--muted); }
+.duel__picked-heroes { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+.duel__pack { padding: 16px; display: grid; gap: 10px; }
+.duel__pack h3 { margin: 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.duel__candidates { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.duel__candidate {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px;
+  width: 100%; padding: 10px 12px; text-align: left; border: 0; border-radius: 12px;
+  background: var(--surface-soft); color: inherit; transition: transform .15s, background .15s;
+}
+.duel__candidate small { grid-column: 2 / -1; color: var(--muted); }
+.duel__candidate:hover:not(:disabled) { transform: translateY(-1px); background: var(--accent-soft); }
+.duel__candidate:disabled { opacity: .4; cursor: not-allowed; }
+
+.duel__heroes { padding: 16px; }
+.duel__hero-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.duel__hero {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px;
+  width: 100%; padding: 8px; border: 0; border-radius: 12px; background: var(--surface-soft);
+  color: inherit; text-align: left; transition: transform .15s, background .15s;
+}
+.duel__hero-name { font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.duel__hero small { grid-column: 2; color: var(--muted); font-size: 11px; }
+.duel__hero:hover:not(:disabled) { transform: translateY(-1px); background: var(--accent-soft); }
+.duel__hero--banned { opacity: .35; text-decoration: line-through; }
+.duel__hero--picked0 { outline: 2px solid var(--accent-strong); opacity: .75; }
+.duel__hero--picked1 { outline: 2px solid var(--danger); opacity: .75; }
+.duel__hero:disabled { cursor: not-allowed; }
+
+.duel__result { padding: 20px; display: grid; gap: 14px; max-width: 560px; }
+.duel__games { border-collapse: collapse; width: 100%; }
+.duel__games th, .duel__games td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line); font-size: 14px; }
+.duel__won { color: var(--accent-strong); font-weight: 800; }
+.duel__series-row td { font-weight: 800; }
+.duel__prob { margin: 0; color: var(--muted); font-size: 13px; }
+.duel__actions { display: flex; gap: 10px; }
+
+@media (max-width: 900px) {
+  .duel__board { grid-template-columns: 1fr; }
+  .duel__names { grid-template-columns: 1fr; }
+}
+
+/* Онлайн-лобби: код комнаты крупно (диктуется голосом), участники, вход по коду. */
+.duel__entry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.duel__or { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.duel__code-label { margin: 0; color: var(--muted); font-size: 13px; }
+.duel__code { margin: 0; font: 800 34px "Space Grotesk", Manrope, sans-serif; letter-spacing: .18em; }
+.duel__members { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
+.duel__member--offline { color: var(--muted); }

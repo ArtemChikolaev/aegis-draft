@@ -18,6 +18,7 @@ import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
 import { CareerScreen } from "../features/career/CareerScreen.tsx";
 import { RulesScreen } from "../features/rules/RulesScreen.tsx";
 import { ManagerScreen } from "../features/manager/ManagerScreen.tsx";
+import { DuelScreen } from "../features/duel/DuelScreen.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
@@ -141,7 +142,7 @@ export function App() {
         /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
            (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
            так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
-        <div className="enter-fade" key={mode === "manager" ? "manager" : phase}>
+        <div className="enter-fade" key={mode === "manager" ? "manager" : mode === "duel" ? "duel" : phase}>
           {/* Manager — свой мир со своим long-save: фазы classic-забега его не касаются.
               Плашки resume висят и над его онбордингом — как на остальных start-экранах. */}
           {mode === "manager" && phase === "start" ? (
@@ -150,6 +151,10 @@ export function App() {
               <ManagerResumeBanner />
               <ManagerScreen />
             </>
+          ) : mode === "duel" && phase === "start" ? (
+            /* Дуэль (M-DUEL) — как Manager: свой мир, фазы classic-забега его не касаются.
+               Персиста у hotseat-серии нет, поэтому и resume-плашек над ней нет. */
+            <DuelScreen />
           ) : (
             <>
               {/* T7.3: упавшая загрузка данных — не вечная орбита, а retry. Баннер с причиной

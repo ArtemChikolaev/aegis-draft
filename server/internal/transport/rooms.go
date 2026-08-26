@@ -69,6 +69,10 @@ type presenceEvent struct {
 	Name string `json:"name"`
 }
 
+type relayLogPayload struct {
+	Entries []service.RelayEntry `json:"entries"`
+}
+
 type errorPayload struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
@@ -187,6 +191,14 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		s.roomHub.detach(code, token, outbox)
 		return
 	}
+	// Реплей relay-лога — лично и ДО presence: вошедший (и переподключившийся) клиент обязан
+	// восстановить состояние режима раньше, чем начнёт получать живые relay-сообщения через hub.
+	if log, err := s.rooms.RelayLog(code); err == nil && len(log) > 0 {
+		if err := wsjson.Write(ctx, conn, envelope("relay_log", relayLogPayload{Entries: log})); err != nil {
+			s.roomHub.detach(code, token, outbox)
+			return
+		}
+	}
 	kind := "joined"
 	if joined.Reconnected {
 		kind = "reconnected"
@@ -234,6 +246,13 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 			select {
 			case outbox <- envelope("pong", struct{}{}):
 			default: // забитый собственный outbox — пусть решает writer/hub
+			}
+		case "relay":
+			// Универсальный релей комнаты (Дуэль M-DUEL; Arena MP2 — тот же слой): сервер
+			// штампует порядок и отправителя, полезную нагрузку не понимает. Ошибка записи
+			// (умерший слот) молча игнорируется — protocol-error тут не за что выдавать.
+			if entry, err := s.rooms.AppendRelay(code, token, msg.Payload); err == nil {
+				s.roomHub.broadcast(code, envelope("relay", entry))
 			}
 		case "leave":
 			explicitLeave = true
