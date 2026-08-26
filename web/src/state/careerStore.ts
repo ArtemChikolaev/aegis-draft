@@ -175,8 +175,8 @@ export function buildCareerEntry(input: {
       scoring: input.config.scoring,
       draftStyle: input.config.draftStyle,
       hardMode: input.config.hardMode === true ? true : undefined,
-      // Real Tournament (T5.6) пишет свой режим: у него отдельная история и бейдж.
-      mode: input.mode === "run" ? "run" : input.mode === "tournament" ? "tournament" : undefined,
+      // Real Tournament (T5.6) и Arena (MP1) пишут свой режим: отдельные истории и бейджи.
+      mode: input.mode === "run" || input.mode === "tournament" || input.mode === "arena" ? input.mode : undefined,
       cheatMode: input.config.cheatMode === true ? true : undefined,
       dynasty: input.dynasty === true ? true : undefined,
       stakes: stakesOf(input.config).length ? [...stakesOf(input.config)] : undefined,
@@ -291,9 +291,9 @@ export function multiStakesUnlocked(entries: CareerEntry[]): boolean {
 }
 
 export function careerEntriesForMode(entries: CareerEntry[], mode: RunMode): CareerEntry[] {
-  // Бакеты истории точные: Real Tournament (T5.6) не подмешивается в Quick Draft и наоборот.
+  // Бакеты истории точные: Real Tournament (T5.6) и Arena (MP1) не подмешиваются в Quick Draft.
   const bucket = (value?: RunMode) =>
-    value === "run" ? "run" : value === "tournament" ? "tournament" : "quick";
+    value === "run" || value === "tournament" || value === "arena" ? value : "quick";
   return competitiveEntries(entries).filter((entry) => bucket(entry.configLabel.mode) === bucket(mode));
 }
 

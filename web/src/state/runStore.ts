@@ -9,7 +9,7 @@ import { stakesOf, type RunConfig, type DraftPack, type Candidate } from "../gam
 import { StaticDataSource } from "../data/DataSource.ts";
 import type { GameData } from "../types/data.ts";
 import type { ScoreBreakdown } from "../game/score.ts";
-import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot } from "../game/tournament.ts";
+import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot, type TournamentTeam } from "../game/tournament.ts";
 import { buildRealField, rescoreRealField, scoutOptions, type RealField, type ScoutOption } from "../game/realTournament.ts";
 import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
@@ -42,7 +42,8 @@ import { telegramStartParam } from "../tma/telegram.ts";
 // Бесшовный Classic-флоу (TREF-TOUR2): после драфта нет отдельного экрана-итога —
 // сразу непрерывный `tournament`-вид (разбор счёта + поле + одна CTA «Симулировать»).
 // Roguelite Run добавляет фазу "camp" (Буткемп между этапами: reward + market), см. T5.2.
-type Phase = "loading" | "start" | "draft" | "prep" | "tournament" | "camp";
+/** `arenaWait` — Arena MP1: свой драфт сдан/сдаётся, ждём лока комнаты (features/start/ArenaWait). */
+type Phase = "loading" | "start" | "draft" | "prep" | "tournament" | "camp" | "arenaWait";
 export type StartStep = "modes" | "variants" | "config";
 export type { RunMode } from "./runPersist.ts";
 
@@ -191,6 +192,8 @@ interface RunStore {
   addPrep: (action: PrepAction) => void;
   undoPrep: () => void;
   confirmPrep: () => void;
+  /** Arena MP1: после лока комнаты построить общий турнир 18 команд (поле передаёт arenaStore). */
+  startArenaTournament: (user: { name: string; strength: number }, opponents: TournamentTeam[], simSeed: string) => void;
   reroll: () => void;
   rerollField: () => void;
   reset: () => void;
@@ -423,6 +426,8 @@ export const useRun = create<RunStore>((set, get) => {
   const persist = () => {
     const { data, config, seed, selectedMode, actions, tournamentStep, tournamentEngine, engine, resultsSeen, anteRun, economy } = get();
     if (!data || !config || !selectedMode) return;
+    // Arena (MP1): забег живёт в комнате, resume вне её бессмыслен — long-save не пишем.
+    if (selectedMode === "arena") return;
     if (resultsSeen) {
       clearSavedRun();
       return;
@@ -678,6 +683,9 @@ export const useRun = create<RunStore>((set, get) => {
   const afterDraftStep = (snapshot: Snapshot): Partial<RunStore> => {
     const { engine, selectedMode } = get();
     if (!engine?.isComplete) return { snapshot, phase: "draft" };
+    // Arena MP1: свой драфт готов — состав уезжает в комнату (сдаёт экран ожидания), турнир
+    // построит startArenaTournament после лока: поле — 18 реальных составов, не генерация.
+    if (selectedMode === "arena") return { snapshot, phase: "arenaWait" };
     if (selectedMode === "tournament") {
       logScreen("Prep", "Roster and heroes complete → preparation for the event");
       const { data, realField } = get();
@@ -970,6 +978,21 @@ export const useRun = create<RunStore>((set, get) => {
         debugSnap("reroll", engine, snapshot, config, seed, data, { rerollsLeft: snapshot.rerollsLeft });
         record({ t: "reroll" });
       }
+    },
+
+    startArenaTournament(user, opponents, simSeed) {
+      const { data, config, snapshot, phase } = get();
+      if (!data || !config || !snapshot?.score || phase !== "arenaWait") return;
+      if (opponents.length !== 17) return; // сетка классики — ровно 18 команд
+      // Тот же путь, что Real Tournament: явное поле вместо генерации. Сид симуляции ОБЩИЙ на
+      // комнату, сила своей команды — из канонического поля (с эпсилоном), не из локального
+      // счёта: все клиенты обязаны прогнать бит-в-бит один турнир (canonical-рассадка
+      // buildResult сортирует по силе, id в неё не входит).
+      const tournamentEngine = new TournamentEngine(
+        data, config.format, simSeed, user.strength, user.name, 0, QUICK_DRAFT_FIELD, opponents,
+      );
+      logScreen("Tournament", "Arena: room locked → shared 18-team field");
+      set({ phase: "tournament", tournamentEngine, tournament: tournamentEngine.snapshot, tournamentStep: 0, teamName: user.name });
     },
 
     rerollField() {

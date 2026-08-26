@@ -271,7 +271,7 @@ export function StartScreen() {
               <span className="mode-card__body"><strong>{t(item.label)}</strong><small>{t(item.hint)}</small><span>{t(item.detail)}</span></span>
               {item.needsNetwork && offline
                 ? <em data-offline="true">{t("common.offline")}</em>
-                : !item.available && <em>{t("common.soon")}</em>}
+                : !(item.value === "arena" ? isApiConfigured() : item.available) && <em>{t("common.soon")}</em>}
               <span className="mode-card__action">{t("start.selectMode")} →</span>
             </button>
           ))}
@@ -295,7 +295,8 @@ export function StartScreen() {
       <main className={`mode-preview mode-preview--${mode}`}>
         {!backNative && <Button variant="back" onClick={() => { setMode(null); setStartStep("modes"); }}>← {t("start.backToModes")}</Button>}
         <Eyebrow className="mp-eyebrow">{t(selectedMode.label)}</Eyebrow>
-        <h1>{t("start.comingSoon")}</h1>
+        {/* Arena при сконфигуренном API — играбельный режим (MP1), а не превью «в разработке». */}
+        <h1>{t(mode === "arena" && isApiConfigured() ? "start.modeArena" : "start.comingSoon")}</h1>
         <p className="mp-text">{t(selectedMode.detail)}</p>
         {netState === "ok" ? (
           mode === "arena" && isApiConfigured() ? (

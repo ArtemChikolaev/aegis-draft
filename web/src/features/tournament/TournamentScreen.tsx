@@ -281,6 +281,9 @@ export function TournamentScreen() {
   const boss = useRun((state) => state.boss);
   // Real Tournament (T5.6): поле реальное — реролла поля нет, подпись честно говорит «симуляция».
   const isRealTournament = useRun((state) => state.selectedMode === "tournament");
+  // Arena (MP1): поле комнаты общее и фиксированное — локальный реролл разъехался бы с
+  // остальными клиентами, поэтому его просто нет.
+  const isArena = useRun((state) => state.selectedMode === "arena");
   const realField = useRun((state) => state.realField);
   const selectedMode = useRun((state) => state.selectedMode);
   const enterCamp = useRun((state) => state.enterCamp);
@@ -829,7 +832,7 @@ export function TournamentScreen() {
                   целиком хочется не всегда, а решение это ситуативное — прятать его в Settings
                   значит заставлять выходить из забега ради одного клика. */}
               <Button variant="secondary" data-testid="tournament-show-result" onClick={showResult}>{t("tournament.showResult")}<small>{t("tournament.showResultHint")}</small></Button>
-              {!hardMode && !ante && !isRealTournament && (
+              {!hardMode && !ante && !isRealTournament && !isArena && (
                 <Button variant="secondary" data-testid="tournament-field-reroll" onClick={rerollField}>↻ {t("tournament.rerollField")}<small>{t("tournament.rerollFieldHint")}</small></Button>
               )}
             </div>

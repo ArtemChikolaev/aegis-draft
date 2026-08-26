@@ -19,6 +19,7 @@ import { CareerScreen } from "../features/career/CareerScreen.tsx";
 import { RulesScreen } from "../features/rules/RulesScreen.tsx";
 import { ManagerScreen } from "../features/manager/ManagerScreen.tsx";
 import { DuelScreen } from "../features/duel/DuelScreen.tsx";
+import { ArenaWait } from "../features/start/ArenaWait.tsx";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
@@ -172,6 +173,7 @@ export function App() {
               {phase === "start" && <ManagerResumeBanner />}
               {phase === "start" && <StartScreen />}
               {phase === "draft" && <DraftScreen />}
+              {phase === "arenaWait" && <ArenaWait />}
               {phase === "prep" && <PrepScreen />}
               {phase === "tournament" && <TournamentScreen />}
               {phase === "camp" && <CampScreen />}
