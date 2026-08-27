@@ -3312,7 +3312,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 404
+        "games": 402
       },
       {
         "teamId": 726228,
@@ -3765,7 +3765,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 745
+        "games": 743
       },
       {
         "teamId": 7422789,
@@ -4467,7 +4467,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 17
+        "games": 15
       },
       {
         "teamId": 2621843,
@@ -5514,7 +5514,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 210
+        "games": 208
       },
       {
         "teamId": 726228,
@@ -6427,7 +6427,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 55,
@@ -6600,7 +6600,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 44
+        "games": 42
       },
       {
         "teamId": 7819701,
@@ -9465,7 +9465,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 7
+        "games": 5
       },
       {
         "teamId": 2576071,
@@ -10410,7 +10410,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 67,
@@ -10757,7 +10757,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 212
+        "games": 210
       },
       {
         "teamId": 20,
@@ -13890,7 +13890,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 44
+        "games": 42
       }
     ]
   },
@@ -16651,7 +16651,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 504
+        "games": 502
       },
       {
         "teamId": 9467224,
@@ -17530,7 +17530,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 879
+        "games": 877
       },
       {
         "teamId": 8145157,
@@ -17866,7 +17866,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 44
+        "games": 42
       },
       {
         "teamId": 6739667,
@@ -18108,7 +18108,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 896
+        "games": 894
       },
       {
         "teamId": 7654561,
@@ -20796,7 +20796,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 181
+        "games": 179
       },
       {
         "teamId": 7750343,
@@ -21198,7 +21198,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 52
+        "games": 50
       },
       {
         "teamId": 2006913,
@@ -21542,7 +21542,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 52
+        "games": 50
       },
       {
         "teamId": 2006913,
@@ -23302,7 +23302,7 @@
       {
         "teamId": 46,
         "teamName": "Team Empire",
-        "games": 2
+        "games": 0
       },
       {
         "teamId": 7422789,
@@ -27158,7 +27158,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 212
+        "games": 210
       },
       {
         "teamId": 1520578,
@@ -30546,8 +30546,8 @@
     "primaryRole": "offlane",
     "rolesPlayed": [
       "offlane",
-      "mid",
       "support",
+      "mid",
       "safelane"
     ],
     "teams": [
@@ -30559,7 +30559,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 130
+        "games": 128
       },
       {
         "teamId": 1375614,
