@@ -1,0 +1,69 @@
+/* Общий драфт Arena (MP2). Цвета — токены (гамма арены приходит через data-accent="red" на
+   body/шелле). Раскладка: посадка раунда слева, пул по центру, своя команда и лента справа;
+   узкий экран складывает колонки в столбец. */
+.arena-draft { display: grid; gap: 20px; }
+.arena-draft__head { display: grid; gap: 6px; justify-items: start; }
+.arena-draft__meta { margin: 0; display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.arena-draft__timer { font: 700 13px "Space Grotesk", Manrope, sans-serif; color: var(--accent-strong); }
+
+.arena-draft__board { display: grid; grid-template-columns: 230px minmax(0, 1fr) 250px; gap: 14px; align-items: start; }
+.arena-draft__panel { padding: 20px; }
+
+.arena-draft__timeline { padding: 14px; display: grid; gap: 10px; }
+.arena-draft__timeline h3 { margin: 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.arena-draft__timeline ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; max-height: 60vh; overflow-y: auto; }
+.arena-draft__timeline li { display: flex; align-items: baseline; gap: 6px; font-size: 12px; min-width: 0; }
+.arena-draft__timeline li.is-self { color: var(--accent-strong); font-weight: 700; }
+.arena-draft__timeline small { color: var(--muted); }
+.arena-draft__count { margin-left: auto; font: 700 11px "Space Grotesk", Manrope, sans-serif; color: var(--muted); }
+
+.arena-draft__pool { padding: 16px; display: grid; gap: 12px; }
+.arena-draft__hint, .arena-draft__submitted { margin: 0; font-size: 13px; color: var(--muted); }
+.arena-draft__submitted { color: var(--accent-strong); font-weight: 700; }
+.arena-draft__roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.arena-draft__roles section { display: grid; gap: 8px; align-content: start; }
+.arena-draft__roles ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; max-height: 52vh; overflow-y: auto; }
+.arena-draft__candidate {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px;
+  width: 100%; padding: 8px 10px; text-align: left; border: 1.5px solid transparent; border-radius: 12px;
+  background: var(--surface-soft); color: inherit; transition: transform .15s, background .15s;
+}
+.arena-draft__candidate b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.arena-draft__candidate small { grid-column: 1 / -1; color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arena-draft__candidate:hover:not(:disabled) { transform: translateY(-1px); background: var(--accent-soft); }
+.arena-draft__candidate:disabled { opacity: .4; cursor: not-allowed; }
+.arena-draft__candidate[data-selected="true"], .arena-draft__hero[data-selected="true"] { border-color: var(--accent-strong); box-shadow: 0 0 10px var(--accent-soft); }
+.arena-draft__ovr { font: 800 13px "Space Grotesk", Manrope, sans-serif; }
+.arena-draft__tag { font: 700 10px Manrope, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-strong); font-style: normal; }
+.arena-draft__tag--backup { color: var(--muted); }
+
+.arena-draft__hero-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; max-height: 56vh; overflow-y: auto; }
+.arena-draft__hero {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px;
+  width: 100%; padding: 8px; border: 1.5px solid transparent; border-radius: 12px; background: var(--surface-soft);
+  color: inherit; text-align: left; transition: transform .15s, background .15s;
+}
+.arena-draft__hero span { font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arena-draft__hero:hover:not(:disabled) { transform: translateY(-1px); background: var(--accent-soft); }
+.arena-draft__hero:disabled { cursor: not-allowed; opacity: .5; }
+.arena-draft__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.arena-draft__side { display: grid; gap: 14px; }
+.arena-draft__team, .arena-draft__log { padding: 14px; display: grid; gap: 10px; }
+.arena-draft__team h3, .arena-draft__log h3 { margin: 0; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.arena-draft__team ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.arena-draft__team li { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
+.arena-draft__team li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arena-draft__team .arena-draft__ovr { margin-left: auto; }
+.arena-draft__empty { color: var(--muted); }
+.arena-draft__my-heroes { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.arena-draft__log ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; max-height: 32vh; overflow-y: auto; }
+.arena-draft__log li { font-size: 12px; color: var(--muted); }
+.arena-draft__log li[data-source="main"] { color: inherit; }
+.arena-draft__log li[data-source="backup"] { color: var(--accent-strong); }
+
+@media (max-width: 1020px) {
+  .arena-draft__board { grid-template-columns: minmax(0, 1fr); }
+  .arena-draft__roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arena-draft__timeline ol { max-height: 30vh; }
+}

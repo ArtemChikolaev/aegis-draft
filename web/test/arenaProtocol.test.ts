@@ -1,105 +1,128 @@
-// Протокол Arena MP1: применялка relay-лога + каноническое поле 18 команд. Ключевое свойство —
-// два клиента с РАЗНЫМИ «я» (свой id всегда USER_ID, чужие — memberId) обязаны построить
-// бит-в-бит один турнир: рассадка buildResult сортирует по силе, а эпсилон по каноническому
-// индексу исключает точные ничьи, на которых tie-break по id разошёлся бы между клиентами.
+// Протокол Arena MP2: применялка relay-лога общего драфта. Ключевые свойства: (1) резолв
+// раунда происходит в одной и той же точке лога у всех клиентов (последняя человеческая заявка
+// либо close хоста); (2) два клиента с РАЗНЫМИ «я» из одного лога строят бит-в-бит один турнир.
+// Полная сетка 18 требует реального датасета — на mock эти тесты честно скипаются, а mock
+// покрывает обратное свойство: тонкий пул молча игнорирует start (комната остаётся в лобби).
 import { describe, expect, it } from "vitest";
-import {
-  applyArenaEntry,
-  ARENA_FIELD_SIZE,
-  buildArenaField,
-  type ArenaMatchState,
-} from "../src/game/arenaProtocol.ts";
+import { applyArenaEntry, arenaSimSeed, type ArenaMatchState } from "../src/game/arenaProtocol.ts";
+import { ARENA_DRAFT } from "../src/game/arenaDraft.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine, monogramOf, SIGIL_COLORS, type TournamentTeam } from "../src/game/tournament.ts";
-import type { RunConfig } from "../src/game/packs.ts";
 import { loadGameData } from "./helpers/data.ts";
+import { isMockBaseline } from "./helpers/dataset.ts";
 
 const data = loadGameData();
+const onMock = isMockBaseline(data.manifest);
 const HOST = "member-a";
 const GUEST = "member-b";
-const config: RunConfig = { draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto" };
-
-function roster(name: string, teamOvr: number) {
-  return {
-    kind: "roster",
-    name,
-    refs: Array.from({ length: 5 }, (_, i) => ({ accountId: i + 1, teamId: 1, eventId: "e" })),
-    heroes: [1, 2, 3, 4, 5],
-    teamOvr,
-  };
-}
+const MEMBERS = [
+  { id: HOST, name: "Alice" },
+  { id: GUEST, name: "Bob" },
+];
+const START = { kind: "start", seed: "arena-seed", format: "last_2y", members: MEMBERS };
 
 function startedState(): ArenaMatchState {
-  const state = applyArenaEntry(null, { from: HOST, payload: { kind: "start", seed: "arena-seed", config } });
+  const state = applyArenaEntry(null, { from: HOST, payload: START }, data);
   expect(state).not.toBeNull();
   return state!;
 }
 
-describe("applyArenaEntry", () => {
-  it("start собирает состояние; мусор и не-start до старта игнорируются", () => {
-    expect(applyArenaEntry(null, { from: HOST, payload: "junk" })).toBeNull();
-    expect(applyArenaEntry(null, { from: HOST, payload: { kind: "roster" } })).toBeNull();
-    expect(applyArenaEntry(null, { from: HOST, payload: { kind: "start", seed: "", config } })).toBeNull();
+describe("applyArenaEntry (MP2)", () => {
+  it.skipIf(onMock)("start: мусор и зритель игнорируются, валидный собирает посадку 18", () => {
+    expect(applyArenaEntry(null, { from: HOST, payload: "junk" }, data)).toBeNull();
+    expect(applyArenaEntry(null, { from: HOST, payload: { kind: "start", seed: "", format: "last_2y", members: MEMBERS } }, data)).toBeNull();
+    expect(applyArenaEntry(null, { from: HOST, payload: { ...START, format: "nope" } }, data)).toBeNull();
+    // Стартовать может только будущий участник — зритель не решает за комнату.
+    expect(applyArenaEntry(null, { from: "spectator", payload: START }, data)).toBeNull();
     const state = startedState();
     expect(state.hostId).toBe(HOST);
-    expect(state.locked).toBe(false);
+    expect(state.engine.seats.length).toBe(ARENA_DRAFT.fieldSize);
+    expect(state.engine.seats.filter((seat) => !seat.isBot).map((seat) => seat.id)).toEqual([HOST, GUEST]);
   });
 
-  it("roster — один на участника и только до лока; lock — только host и один раз", () => {
-    let state = startedState();
-    state = applyArenaEntry(state, { from: GUEST, payload: roster("Bob", 80) })!;
-    expect(Object.keys(state.rosters)).toEqual([GUEST]);
-    // Пере-сдача и битая форма игнорируются.
-    expect(applyArenaEntry(state, { from: GUEST, payload: roster("Bob2", 90) })).toBe(state);
-    expect(applyArenaEntry(state, { from: HOST, payload: { kind: "roster", name: "X" } })).toBe(state);
-    // Lock от не-хоста — игнор; от хоста — закрывает; после лока roster не принимается.
-    expect(applyArenaEntry(state, { from: GUEST, payload: { kind: "lock" } })).toBe(state);
-    const locked = applyArenaEntry(state, { from: HOST, payload: { kind: "lock" } })!;
-    expect(locked.locked).toBe(true);
-    expect(applyArenaEntry(locked, { from: HOST, payload: roster("Late", 70) })).toBe(locked);
-    expect(applyArenaEntry(locked, { from: HOST, payload: { kind: "lock" } })).toBe(locked);
-  });
-});
-
-describe("buildArenaField", () => {
-  it("поле всегда из 18, силы попарно различны, боты детерминированы", () => {
-    let state = startedState();
-    state = applyArenaEntry(state, { from: GUEST, payload: roster("Bob", 80) })!;
-    state = applyArenaEntry(state, { from: HOST, payload: roster("Alice", 78) })!;
-    const field = buildArenaField(state, data);
-    expect(field.length).toBe(ARENA_FIELD_SIZE);
-    expect(new Set(field.map((team) => team.strength)).size).toBe(ARENA_FIELD_SIZE);
-    // Люди впереди в порядке memberId, дальше — боты.
-    expect(field[0].id).toBe(HOST);
-    expect(field[1].id).toBe(GUEST);
-    expect(field.slice(2).every((team) => team.id.startsWith("bot-"))).toBe(true);
-    expect(buildArenaField(state, data)).toEqual(field);
+  it.skipIf(!onMock)("тонкий пул (mock): start молча игнорируется — комната остаётся в лобби", () => {
+    expect(applyArenaEntry(null, { from: HOST, payload: START }, data)).toBeNull();
   });
 
-  it("два клиента с разными «я» строят бит-в-бит один турнир", () => {
-    let state = startedState();
-    state = applyArenaEntry(state, { from: HOST, payload: roster("Alice", 84) })!;
-    state = applyArenaEntry(state, { from: GUEST, payload: roster("Bob", 84) })!; // намеренная ничья до эпсилона
-    const field = buildArenaField(state, data);
+  it.skipIf(onMock)("pick: резолв в момент последней человеческой заявки; дубли и зрители — игнор", () => {
+    const state = startedState();
+    const engine = state.engine;
+    const target = engine.openPlayers()[0].player.accountId;
+    expect(applyArenaEntry(state, { from: "spectator", payload: { kind: "pick", round: 0, main: target } }, data)).toBe(state);
+    applyArenaEntry(state, { from: HOST, payload: { kind: "pick", round: 0, main: target } }, data);
+    expect(engine.round).toBe(0); // GUEST ещё не сдал — раунд открыт
+    applyArenaEntry(state, { from: HOST, payload: { kind: "pick", round: 0, main: target } }, data); // дубль — игнор
+    expect(engine.round).toBe(0);
+    applyArenaEntry(state, { from: GUEST, payload: { kind: "pick", round: 0, main: target } }, data);
+    expect(engine.round).toBe(1); // последняя заявка резолвит раунд у всех в одной точке лога
+    expect(engine.history[0].filter((pick) => !engine.seats[pick.seatIndex].isBot).length).toBe(2);
+  });
 
-    const simFor = (selfId: string) => {
-      const mine = field.find((team) => team.id === selfId)!;
-      const opponents: TournamentTeam[] = field
+  it.skipIf(onMock)("close: только host и только текущий раунд; молчавших доигрывает бот-политика", () => {
+    const state = startedState();
+    const engine = state.engine;
+    expect(applyArenaEntry(state, { from: GUEST, payload: { kind: "close", round: 0 } }, data)).toBe(state);
+    expect(engine.round).toBe(0);
+    applyArenaEntry(state, { from: HOST, payload: { kind: "close", round: 1 } }, data); // не тот раунд
+    expect(engine.round).toBe(0);
+    applyArenaEntry(state, { from: HOST, payload: { kind: "close", round: 0 } }, data);
+    expect(engine.round).toBe(1);
+    expect(engine.history[0].every((pick) => pick.source === "auto")).toBe(true);
+  });
+
+  it.skipIf(onMock)("два клиента с разными «я» строят бит-в-бит один турнир из одного лога", () => {
+    // Общий лог: host и guest сдают по заявке в каждом раунде, где успевают; остальное — close.
+    const log: { from: string; payload: unknown }[] = [{ from: HOST, payload: START }];
+    const probe = startedState();
+    for (let round = 0; round < probe.engine.totalRounds; round += 1) {
+      const open = probe.engine.phase === "players"
+        ? probe.engine.openPlayers().map((candidate) => candidate.player.accountId)
+        : probe.engine.openHeroes();
+      const hostPick = { from: HOST, payload: { kind: "pick", round, main: open[0], backup: open[1] } };
+      const guestPick = { from: GUEST, payload: { kind: "pick", round, main: open[0], backup: open[2] } };
+      log.push(hostPick, guestPick);
+      applyArenaEntry(probe, hostPick, data);
+      applyArenaEntry(probe, guestPick, data);
+    }
+    expect(probe.engine.phase).toBe("done");
+
+    const replay = (): ArenaMatchState => {
+      let state: ArenaMatchState | null = null;
+      for (const entry of log) state = applyArenaEntry(state, entry, data);
+      return state!;
+    };
+    const a = replay();
+    const b = replay();
+    expect(b.engine.results()).toEqual(a.engine.results());
+
+    const simFor = (state: ArenaMatchState, selfId: string) => {
+      const results = state.engine.results();
+      const mine = results.find((team) => team.id === selfId)!;
+      const opponents: TournamentTeam[] = results
         .filter((team) => team.id !== selfId)
         .map((team, index) => ({
           id: team.id, name: team.name, eventLabel: "Arena", strength: team.strength,
           isUser: false, sigil: { monogram: monogramOf(team.name), color: index % SIGIL_COLORS },
         }));
       const engine = new TournamentEngine(
-        data, config.format, "arena-seed:arena:sim", mine.strength, mine.name, 0, QUICK_DRAFT_FIELD, opponents,
+        data, "last_2y", arenaSimSeed("arena-seed"), mine.strength, mine.name, 0, QUICK_DRAFT_FIELD, opponents,
       );
       while (engine.snapshot.canAdvance) engine.advance();
       return engine.snapshot;
     };
-
-    const forHost = simFor(HOST);
-    const forGuest = simFor(GUEST);
+    const forHost = simFor(a, HOST);
+    const forGuest = simFor(b, GUEST);
     expect(forHost.standings.map((row) => `${row.team.name}:${row.placement}`))
       .toEqual(forGuest.standings.map((row) => `${row.team.name}:${row.placement}`));
     expect(forHost.champion.name).toBe(forGuest.champion.name);
+  });
+
+  it.skipIf(onMock)("сетевой мусор после старта не роняет применялку и не двигает состояние", () => {
+    const state = startedState();
+    const round = state.engine.round;
+    for (const payload of [null, 42, "x", { kind: "pick" }, { kind: "pick", round: 0, main: "abc" }, { kind: "wat" }]) {
+      expect(applyArenaEntry(state, { from: HOST, payload }, data)).toBe(state);
+    }
+    expect(state.engine.round).toBe(round);
+    expect(state.engine.pending.size).toBe(0);
   });
 });

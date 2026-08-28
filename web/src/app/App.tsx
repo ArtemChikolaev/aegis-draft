@@ -19,7 +19,8 @@ import { CareerScreen } from "../features/career/CareerScreen.tsx";
 import { RulesScreen } from "../features/rules/RulesScreen.tsx";
 import { ManagerScreen } from "../features/manager/ManagerScreen.tsx";
 import { DuelScreen } from "../features/duel/DuelScreen.tsx";
-import { ArenaWait } from "../features/start/ArenaWait.tsx";
+import { ArenaDraftScreen } from "../features/arena/ArenaDraftScreen.tsx";
+import { useArena } from "../state/arenaStore.ts";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
@@ -46,6 +47,13 @@ export function App() {
     return () => { delete document.body.dataset.accent; };
   }, [modeAccent]);
   const { t } = useI18n();
+  // Arena MP2: пока идёт общий драфт комнаты, место старт-экрана занимает экран драфта —
+  // но только у СИДЯЩИХ (зритель остаётся в лобби). Serial — подписка на мутации движка.
+  const arenaMatch = useArena((s) => s.match);
+  const arenaSelfId = useArena((s) => s.selfId);
+  useArena((s) => s.serial);
+  const arenaDrafting = mode === "arena" && phase === "start" && arenaMatch !== null
+    && arenaSelfId !== null && arenaMatch.engine.seatOf(arenaSelfId) !== null;
   const view = useShell((s) => s.view);
   const setView = useShell((s) => s.setView);
   // В TMA настройки уезжают в системное «…»-меню (SettingsButton) — нашу кнопку прячем.
@@ -169,11 +177,10 @@ export function App() {
                   </div>
                 )
                 : <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>)}
-              {phase === "start" && <ResumeBanner />}
-              {phase === "start" && <ManagerResumeBanner />}
-              {phase === "start" && <StartScreen />}
+              {phase === "start" && !arenaDrafting && <ResumeBanner />}
+              {phase === "start" && !arenaDrafting && <ManagerResumeBanner />}
+              {phase === "start" && (arenaDrafting ? <ArenaDraftScreen /> : <StartScreen />)}
               {phase === "draft" && <DraftScreen />}
-              {phase === "arenaWait" && <ArenaWait />}
               {phase === "prep" && <PrepScreen />}
               {phase === "tournament" && <TournamentScreen />}
               {phase === "camp" && <CampScreen />}
