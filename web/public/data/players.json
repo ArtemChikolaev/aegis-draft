@@ -91,7 +91,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 271
+        "games": 269
       },
       {
         "teamId": 9247354,
@@ -1266,7 +1266,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 267
+        "games": 265
       },
       {
         "teamId": 9247354,
@@ -3312,7 +3312,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 399
+        "games": 396
       },
       {
         "teamId": 726228,
@@ -5514,7 +5514,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 205
+        "games": 202
       },
       {
         "teamId": 726228,
@@ -5821,7 +5821,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 231
+        "games": 229
       }
     ]
   },
@@ -6082,7 +6082,7 @@
       {
         "teamId": 8214850,
         "teamName": "BLEED",
-        "games": 90
+        "games": 85
       },
       {
         "teamId": 8597976,
@@ -6600,7 +6600,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 42
+        "games": 40
       },
       {
         "teamId": 7819701,
@@ -8294,7 +8294,7 @@
       {
         "teamId": 8214850,
         "teamName": "BLEED",
-        "games": 90
+        "games": 85
       },
       {
         "teamId": 8260983,
@@ -10280,7 +10280,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 107
+        "games": 105
       },
       {
         "teamId": 8255756,
@@ -10757,7 +10757,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 207
+        "games": 204
       },
       {
         "teamId": 20,
@@ -10878,7 +10878,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 233
+        "games": 231
       },
       {
         "teamId": 9303484,
@@ -11379,7 +11379,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 174
+        "games": 172
       },
       {
         "teamId": 8728920,
@@ -13520,7 +13520,7 @@
       {
         "teamId": 8214850,
         "teamName": "BLEED",
-        "games": 79
+        "games": 74
       },
       {
         "teamId": 8597976,
@@ -13890,7 +13890,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 42
+        "games": 40
       }
     ]
   },
@@ -17215,7 +17215,7 @@
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
-        "games": 129
+        "games": 127
       },
       {
         "teamId": 8255756,
@@ -17866,7 +17866,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 42
+        "games": 40
       },
       {
         "teamId": 6739667,
@@ -19475,7 +19475,7 @@
       {
         "teamId": 8214850,
         "teamName": "BLEED",
-        "games": 62
+        "games": 57
       },
       {
         "teamId": 8261148,
@@ -21198,7 +21198,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 50
+        "games": 48
       },
       {
         "teamId": 2006913,
@@ -21542,7 +21542,7 @@
       {
         "teamId": 1883502,
         "teamName": "Virtus.pro",
-        "games": 50
+        "games": 48
       },
       {
         "teamId": 2006913,
@@ -23508,7 +23508,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 725
+        "games": 723
       },
       {
         "teamId": 10150413,
@@ -24370,7 +24370,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 36
+        "games": 34
       }
     ]
   },
@@ -27158,7 +27158,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 207
+        "games": 204
       },
       {
         "teamId": 1520578,
@@ -29323,7 +29323,7 @@
       {
         "teamId": 8214850,
         "teamName": "BLEED",
-        "games": 89
+        "games": 84
       },
       {
         "teamId": 8668460,
@@ -29598,7 +29598,7 @@
       {
         "teamId": 8291895,
         "teamName": "Tundra Esports",
-        "games": 255
+        "games": 253
       },
       {
         "teamId": 9247354,
@@ -30547,8 +30547,8 @@
     "rolesPlayed": [
       "offlane",
       "support",
-      "mid",
-      "safelane"
+      "safelane",
+      "mid"
     ],
     "teams": [
       {
@@ -30559,7 +30559,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 125
+        "games": 122
       },
       {
         "teamId": 1375614,
