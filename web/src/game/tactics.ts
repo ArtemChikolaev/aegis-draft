@@ -7,21 +7,23 @@
 // вклад обязан пере-вычисляться после каждой замены игрока/героя. Поэтому здесь нет состояния,
 // только каталог + чистая функция от текущего ростера.
 //
-// Набор среза 4 — пять карточек PRD §5.10.3. Wide Pool отложен: его trade-off («вклад редкости
-// героев слабее») опирается на редкость из среза 3b, которой ещё нет.
+// Набор — шесть карточек PRD §5.10.3: Wide Pool доехал последним (2026-08-30) — его trade-off
+// («вклад редкости героев слабее») опирается на редкость среза 3b.
 import type { GameData, SquadSynergy } from "../types/data.ts";
 import type { Candidate } from "./packs.ts";
 import type { RosterSlot } from "./engine.ts";
 import { heroStatsForAssignment, pairChemistryBonus, pairGroupIndex, pairKey, playerHeroGames } from "./score.ts";
 import type { Summand, SummandModifiers } from "./anteEconomy.ts";
 import { chargeFactor } from "./editions.ts";
+import { distinctGameplayTags } from "./heroTags.ts";
 
 export type TacticId =
   | "signatureSpecialists"
   | "oldTeammates"
   | "freshProject"
   | "noSuperstars"
-  | "lastDance";
+  | "lastDance"
+  | "widePool";
 
 /** Сколько общих пассивных Tactics/Items можно держать одновременно (PRD §5.10.1). */
 export const TACTIC_SLOTS = 5;
@@ -32,6 +34,7 @@ export const TACTIC_IDS: readonly TacticId[] = [
   "freshProject",
   "noSuperstars",
   "lastDance",
+  "widePool",
 ];
 
 /** Сейв мог быть записан набором, которого больше нет: неизвестный id молча отбрасываем,
@@ -80,6 +83,18 @@ export const TACTICS = {
      *  варианта, а `balancedPackSlots` сохраняет среди них хотя бы один core и один support. */
     marketPackPenalty: 2,
   },
+  widePool: {
+    /** Порог разных gameplay-архетипов среди НАЗНАЧЕННЫХ героев. Калибровка по замеру: случайная
+     *  пятёрка покрывает 8–9 тегов (медиана), 10+ — лишь ~23% случайных наборов, то есть порог
+     *  требует намеренного драфта «разные архетипы», а не выдаёт бонус любой пятёрке. */
+    minTags: 10,
+    perTag: 0.8,
+    max: 2.4,
+    /** Trade-off: широкий пул размывает узкую заточку — вклад редкости героев слабее.
+     *  Ранний билд (все common) не платит ничего, поздний immortal-билд платит дорого:
+     *  карта — ранний рычаг, из которого билд честно вырастает (сайдгрейд, не догма). */
+    rarityFactor: 0.5,
+  },
 } as const;
 
 /** Слагаемое, которое усиливает карточка — для группировки в UI и подсказки при выборе. */
@@ -89,6 +104,7 @@ export const TACTIC_SUMMAND: Record<TacticId, Summand> = {
   freshProject: "chemistry",
   noSuperstars: "chemistry",
   lastDance: "base",
+  widePool: "heroSynergy",
 };
 
 export interface TacticPlayer {
@@ -113,6 +129,8 @@ export interface TacticContext {
   pairs: TacticPair[];
   /** Сколько этапов забега уже пройдено (Fresh Project копит virtual co-games). */
   stagesCleared: number;
+  /** НАЗНАЧЕННЫЕ герои пятёрки — Wide Pool считает по ним разные gameplay-архетипы. */
+  assignedHeroes: number[];
 }
 
 /** Одна причина изменения счёта. PRD §5.10.3 требует показывать источник каждого изменения,
@@ -194,6 +212,10 @@ export function buildTacticContext(
     players,
     pairs: allPairs(players.map((player) => player.accountId), data.squadSynergy),
     stagesCleared,
+    assignedHeroes: active.flatMap((candidate) => {
+      const heroId = assignment[candidate.player.accountId];
+      return heroId != null ? [heroId] : [];
+    }),
   };
 }
 
@@ -297,12 +319,30 @@ function lastDance(ctx: TacticContext): TacticSource[] {
   }];
 }
 
+/** Wide Pool: пятёрка, закрывающая много РАЗНЫХ gameplay-архетипов, усиливает Hero Synergy
+ *  (trade-off — ослабленный вклад редкости, см. tacticRarityFactor). Порог требует намеренного
+ *  «широкого» драфта: случайная пятёрка покрывает 8–9 тегов, бонус начинается с minTags. */
+function widePool(ctx: TacticContext): TacticSource[] {
+  const cfg = TACTICS.widePool;
+  if (ctx.assignedHeroes.length === 0) return [];
+  const distinct = distinctGameplayTags(ctx.assignedHeroes);
+  if (distinct < cfg.minTags) return [];
+  return [{
+    tacticId: "widePool",
+    summand: "heroSynergy",
+    delta: Math.min(cfg.max, (distinct - cfg.minTags + 1) * cfg.perTag),
+    reasonKey: "tactic.reason.widePool",
+    reasonParams: { n: distinct },
+  }];
+}
+
 const EVALUATORS: Record<TacticId, (ctx: TacticContext) => TacticSource[]> = {
   signatureSpecialists,
   oldTeammates,
   freshProject,
   noSuperstars,
   lastDance,
+  widePool,
 };
 
 /** Вклад экипированных тактик в слагаемые Team OVR. Чистая: те же вход ⇒ тот же выход.
@@ -348,6 +388,8 @@ export function tacticLabelParams(id: TacticId): Record<string, number> {
       return { n: TACTICS.noSuperstars.starOvr, bonus: TACTICS.noSuperstars.bonus };
     case "lastDance":
       return { n: TACTICS.lastDance.minGroup, cards: TACTICS.lastDance.marketPackPenalty };
+    case "widePool":
+      return { n: TACTICS.widePool.minTags, pct: Math.round((1 - TACTICS.widePool.rarityFactor) * 100) };
   }
 }
 
@@ -359,4 +401,11 @@ export function tacticMarketEffects(equipped: readonly string[]): TacticMarketEf
       : 0,
     packSizePenalty: equipped.includes("lastDance") ? TACTICS.lastDance.marketPackPenalty : 0,
   };
+}
+
+/** Trade-off Wide Pool: множитель вклада редкости героев, пока карта экипирована. Безусловный,
+ *  как сужение рынка у Last Dance: цена платится за сам выбор карты, а не за сработавшее условие.
+ *  Единственная точка чтения фактора — все места сборки силы и превью обязаны звать её. */
+export function tacticRarityFactor(equipped: readonly string[]): number {
+  return equipped.includes("widePool") ? TACTICS.widePool.rarityFactor : 1;
 }

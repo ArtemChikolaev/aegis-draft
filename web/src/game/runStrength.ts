@@ -11,7 +11,7 @@ import { addModifiers, type SummandModifiers, type SummandValues } from "./anteE
 import { evaluateItems, type ItemEvaluation } from "./items.ts";
 import { rarityModifiers } from "./heroRarity.ts";
 import type { Rarity } from "./rarity.ts";
-import { evaluateTactics, type TacticContext, type TacticEvaluation } from "./tactics.ts";
+import { evaluateTactics, tacticRarityFactor, type TacticContext, type TacticEvaluation } from "./tactics.ts";
 import {
   powerBreakdown,
   powerLayers,
@@ -28,6 +28,10 @@ export interface RunStrengthInput {
   /** Карта редкости забега и активные герои — вклад считается от них. */
   heroRarity: Record<string, Rarity>;
   activeHeroes: readonly number[];
+  /** Множитель вклада редкости — trade-off Wide Pool (`tacticRarityFactor(equipped)`).
+   *  Каждый сборщик input'а обязан передать его: молчаливая единица у одного потребителя
+   *  разъехалась бы с полем этапа ровно как старые копии композиции. */
+  rarityFactor?: number;
 }
 
 /** Суммарные модификаторы слагаемых поверх счёта ростера. */
@@ -35,7 +39,7 @@ export function runModifiers(input: RunStrengthInput): SummandModifiers {
   const withTactics = input.tactics
     ? addModifiers(input.economy, input.tactics)
     : input.economy;
-  return addModifiers(withTactics, rarityModifiers(input.heroRarity, input.activeHeroes));
+  return addModifiers(withTactics, rarityModifiers(input.heroRarity, input.activeHeroes, input.rarityFactor ?? 1));
 }
 
 /** Итоговая прибавка к Team OVR (сумма всех слагаемых модификаторов). */
@@ -100,6 +104,7 @@ export function evaluateRunPower(
     tactics: tactics.modifiers,
     heroRarity: state.heroRarity,
     activeHeroes: state.activeHeroes,
+    rarityFactor: tacticRarityFactor(build.equippedCards),
   });
   const values = {
     base: state.score.base + modifiers.base,

@@ -11,7 +11,7 @@ import { formUpgradeCost, playerCost, type Offer, type SummandValues } from "./a
 import { marketCostFactor } from "./anteRun.ts";
 import { heroPrice, rarityOvrContribution, rollHeroRarity, upgradePathCost } from "./heroRarity.ts";
 import { rarityRank, type Rarity } from "./rarity.ts";
-import { tacticMarketEffects } from "./tactics.ts";
+import { tacticMarketEffects, tacticRarityFactor } from "./tactics.ts";
 
 interface HeroOption {
   outgoingHeroId: number;
@@ -209,6 +209,9 @@ function bestHeroOption(
   engine: RunEngine,
   incomingHeroId: number,
   rarityOf: (heroId: number) => Rarity,
+  /** Множитель вклада редкости (trade-off Wide Pool): выбор снимаемого героя обязан считать
+   *  редкость той же силой, что и боевой расчёт, иначе рынок ранжирует по несуществующей цене. */
+  rarityFactor = 1,
 ): HeroOption {
   if (engine.heroes.length !== ROLE_SEQUENCE.length) {
     throw new Error(
@@ -224,7 +227,7 @@ function bestHeroOption(
         incomingHeroId,
         preview,
         // Вклад входящего одинаков во всех вариантах и на выбор не влияет — вычитаем только потерю.
-        adjusted: preview.teamOvr - rarityOvrContribution(rarityOf(outgoingHeroId)),
+        adjusted: preview.teamOvr - rarityOvrContribution(rarityOf(outgoingHeroId)) * rarityFactor,
       };
     })
     .reduce((best, option) => {
@@ -375,6 +378,7 @@ function heroOptions(
   beforeOvr: number,
   rarityOf: (heroId: number) => Rarity,
   incomingRarityOf: (heroId: number) => Rarity,
+  rarityFactor = 1,
 ): HeroCard[] {
   const active = new Set(engine.heroes);
   // Свой герой участвует в рулетке, ТОЛЬКО если выпавшее ему качество строго выше текущего —
@@ -415,13 +419,13 @@ function heroOptions(
         upgradeHeroId: incomingHeroId,
         incomingRarity,
         // Ростер не меняется — вся дельта карты это прирост вклада редкости.
-        ovrDelta: rarityOvrContribution(incomingRarity) - rarityOvrContribution(current),
+        ovrDelta: (rarityOvrContribution(incomingRarity) - rarityOvrContribution(current)) * rarityFactor,
       });
       continue;
     }
-    const option = bestHeroOption(engine, incomingHeroId, rarityOf);
-    const rarityShift = rarityOvrContribution(incomingRarity)
-      - rarityOvrContribution(rarityOf(option.outgoingHeroId));
+    const option = bestHeroOption(engine, incomingHeroId, rarityOf, rarityFactor);
+    const rarityShift = (rarityOvrContribution(incomingRarity)
+      - rarityOvrContribution(rarityOf(option.outgoingHeroId))) * rarityFactor;
     const card = { option, incomingRarity, ovrDelta: option.preview.teamOvr - beforeOvr + rarityShift };
     (card.ovrDelta >= -HERO_FLOOR.maxLossOvr ? kept : rejected).push(card);
   }
@@ -471,6 +475,7 @@ export function buildAnteMarketRoulette(
     ? Math.min(1, Math.max(0, (campStageIndex - 1) / (stageCount - 1)))
     : 0;
   const tactics = tacticMarketEffects(equippedTactics);
+  const rarityFactor = tacticRarityFactor(equippedTactics);
   // База — `MARKET_PACK.size`, то есть по карте на каждый ролевой слот. Last Dance осознанно
   // вычитает из неё свои варианты через тот же сбалансированный отбор.
   const packSize = Math.max(1, MARKET_PACK.size - tactics.packSizePenalty);
@@ -585,6 +590,7 @@ export function buildAnteMarketRoulette(
     // цену generic-рычага Hero Synergy, поэтому common и immortal стоили одинаково. Роллим ЗДЕСЬ,
     // а не после отбора: качество входит в дельту, по которой пак отсеивает мёртвые карты.
     (heroId) => (rarityDrops ? rollHeroRarity(seed, heroId, campStageIndex) : "common"),
+    rarityFactor,
   );
   heroes.forEach(({ option: hero, upgradeHeroId, incomingRarity }, heroIndex) => {
     const id = `mkt-${campStageIndex}-${rerollN}-hero-${heroIndex}`;
@@ -640,8 +646,11 @@ export function refreshAnteMarketOffers(
    *  базовой — превью разошлось бы с покупкой ровно в Династии. */
   costFactor: number,
   heroRarity: Record<string, Rarity> = {},
+  /** Экипированные карты — для trade-off'ов, влияющих на пересчёт (rarityFactor Wide Pool). */
+  equippedTactics: readonly string[] = [],
 ): Offer[] {
   const rarityOf = (heroId: number): Rarity => heroRarity[String(heroId)] ?? "common";
+  const rarityFactor = tacticRarityFactor(equippedTactics);
   const before = engine.score();
   if (!before) return offers.filter((offer) => offer.kind === "stat");
   const refreshed: Offer[] = [];
@@ -671,7 +680,7 @@ export function refreshAnteMarketOffers(
           },
         });
       } else if (offer.kind === "hero" && offer.heroSwap) {
-        const option = bestHeroOption(engine, offer.heroSwap.incomingHeroId, rarityOf);
+        const option = bestHeroOption(engine, offer.heroSwap.incomingHeroId, rarityOf, rarityFactor);
         refreshed.push({
           ...offer,
           heroSwap: {

@@ -94,4 +94,13 @@ describe("rarityModifiers", () => {
   it("весь common ⇒ нулевой вклад", () => {
     expect(rarityModifiers({}, [1, 2, 3, 4, 5])).toEqual({ base: 0, heroSynergy: 0, chemistry: 0 });
   });
+
+  it("фактор Wide Pool масштабирует обе части вклада (heroSynergy и immortal-Base)", () => {
+    const map = { "1": "immortal" as const, "2": "mythic" as const };
+    const full = rarityModifiers(map, [1, 2]);
+    const damped = rarityModifiers(map, [1, 2], 0.5);
+    expect(damped.heroSynergy).toBeCloseTo(full.heroSynergy * 0.5, 6);
+    expect(damped.base).toBeCloseTo(full.base * 0.5, 6);
+    expect(rarityModifiers(map, [1, 2], 1)).toEqual(full);
+  });
 });

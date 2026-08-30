@@ -105,16 +105,18 @@ export function raritySwapDelta(outgoing: Rarity, incoming: Rarity): { heroSyner
 }
 
 /** Вклад редкости АКТИВНЫХ героев в слагаемые Team OVR. Чистая: те же вход ⇒ тот же выход.
- *  Пересчитывается при каждой замене героя (как tactics), поэтому без состояния. */
+ *  Пересчитывается при каждой замене героя (как tactics), поэтому без состояния.
+ *  `factor` — множитель вклада (trade-off Wide Pool, `tacticRarityFactor`); 1 = без ослабления. */
 export function rarityModifiers(
   rarityByHero: Record<string, Rarity>,
   activeHeroes: readonly number[],
+  factor = 1,
 ): SummandModifiers {
   const mod: SummandModifiers = { base: 0, heroSynergy: 0, chemistry: 0 };
   for (const heroId of activeHeroes) {
     const rarity = rarityByHero[String(heroId)] ?? "common";
-    mod.heroSynergy += RARITY.heroSynergyBonus[rarity];
-    if (rarity === "immortal") mod.base += RARITY.immortalBaseBonus;
+    mod.heroSynergy += RARITY.heroSynergyBonus[rarity] * factor;
+    if (rarity === "immortal") mod.base += RARITY.immortalBaseBonus * factor;
   }
   return mod;
 }

@@ -21,6 +21,7 @@ import {
   countAttr,
   countTag,
   distinctGameplayTags,
+  GAMEPLAY_TAGS,
   hasTag,
   heroTags,
   type HeroAttr,
@@ -523,6 +524,9 @@ export function conditionAxes(equipped: readonly string[]): { tags: HeroTag[]; a
     scan(def.effect);
     if (def.drawback) scan(def.drawback);
   }
+  // Wide Pool (тактика) считает РАЗНЫЕ gameplay-архетипы — чтобы условие было читаемо, карточки
+  // героев показывают всю gameplay-ось (то же правило R11.7: видно ровно то, что судит билд).
+  if (equipped.includes("widePool")) for (const tag of GAMEPLAY_TAGS) tags.add(tag);
   return { tags: [...tags], attrs: [...attrs] };
 }
 

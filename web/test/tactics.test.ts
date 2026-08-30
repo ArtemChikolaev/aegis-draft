@@ -6,9 +6,11 @@ import {
   evaluateTactics,
   tacticLabelParams,
   tacticMarketEffects,
+  tacticRarityFactor,
   type TacticContext,
   type TacticPlayer,
 } from "../src/game/tactics.ts";
+import { distinctGameplayTags, heroTags, taggedHeroIds } from "../src/game/heroTags.ts";
 import { translate, type MessageKey } from "../src/i18n/core.ts";
 
 function player(over: Partial<TacticPlayer> & { accountId: number }): TacticPlayer {
@@ -20,7 +22,7 @@ function baseContext(): TacticContext {
   const players = [1, 2, 3, 4, 5].map((accountId) => player({ accountId }));
   const pairs = players.flatMap((a, i) =>
     players.slice(i + 1).map((b) => ({ a: a.accountId, b: b.accountId, games: 0 })));
-  return { players, pairs, stagesCleared: 0 };
+  return { players, pairs, stagesCleared: 0, assignedHeroes: [] };
 }
 
 describe("evaluateTactics — детерминизм и порядок", () => {
@@ -122,6 +124,51 @@ describe("tacticMarketEffects — trade-off'ы на рынке", () => {
     expect(tacticMarketEffects(["lastDance"]).packSizePenalty)
       .toBe(TACTICS.lastDance.marketPackPenalty);
     expect(tacticMarketEffects([])).toEqual({ playerCostSurcharge: 0, packSizePenalty: 0 });
+  });
+});
+
+describe("Wide Pool", () => {
+  /** Пятёрка с ≥minTags разных gameplay-архетипов — жадный отбор из курируемого словаря тегов
+   *  (он живёт в коде, не в датасете, поэтому тест одинаков на real и mock). */
+  function wideHeroes(): number[] {
+    const chosen: number[] = [];
+    const covered = new Set<string>();
+    while (chosen.length < 5) {
+      let best: number | null = null;
+      let bestNew = -1;
+      for (const heroId of taggedHeroIds()) {
+        if (chosen.includes(heroId)) continue;
+        const fresh = (heroTags(heroId)?.play ?? []).filter((tag) => !covered.has(tag)).length;
+        if (fresh > bestNew) { best = heroId; bestNew = fresh; }
+      }
+      chosen.push(best!);
+      (heroTags(best!)?.play ?? []).forEach((tag) => covered.add(tag));
+    }
+    return chosen;
+  }
+
+  it("широкая пятёрка даёт Hero Synergy лестницей с потолком; узкая — ничего", () => {
+    const cfg = TACTICS.widePool;
+    const wide = wideHeroes();
+    expect(distinctGameplayTags(wide)).toBeGreaterThanOrEqual(cfg.minTags);
+    const ctx = { ...baseContext(), assignedHeroes: wide };
+    const result = evaluateTactics(["widePool"], ctx);
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources[0].summand).toBe("heroSynergy");
+    const distinct = distinctGameplayTags(wide);
+    expect(result.modifiers.heroSynergy)
+      .toBeCloseTo(Math.min(cfg.max, (distinct - cfg.minTags + 1) * cfg.perTag), 6);
+    // Узкая пятёрка: пять копий одного набора тегов условие не закрывают.
+    const narrow = { ...baseContext(), assignedHeroes: [wide[0], wide[0], wide[0], wide[0], wide[0]] };
+    expect(evaluateTactics(["widePool"], narrow).sources).toEqual([]);
+    // Пустое назначение (драфт не окончен) — тоже ничего, а не исключение.
+    expect(evaluateTactics(["widePool"], baseContext()).sources).toEqual([]);
+  });
+
+  it("trade-off: фактор редкости 0.5 только при экипированной карте, и его видит рынок", () => {
+    expect(tacticRarityFactor(["widePool"])).toBe(TACTICS.widePool.rarityFactor);
+    expect(tacticRarityFactor(["lastDance"])).toBe(1);
+    expect(tacticRarityFactor([])).toBe(1);
   });
 });
 

@@ -15,7 +15,7 @@ import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFact
 import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
 import type { CardEdition } from "../game/editions.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
-import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
+import { buildTacticContext, evaluateTactics, tacticRarityFactor, type TacticEvaluation } from "../game/tactics.ts";
 import { bannedHeroesForStage, bossForStage, bossIsRolled, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
 import { evaluateItems, protectedBossPenalty } from "../game/items.ts";
 import { activeCardIds, runModifiers, stageStrength as runStageStrength } from "../game/runStrength.ts";
@@ -498,6 +498,7 @@ export const useRun = create<RunStore>((set, get) => {
       tactics: tactics?.modifiers ?? null,
       heroRarity: economy?.heroRarity ?? {},
       activeHeroes: engine?.heroes ?? [],
+      rarityFactor: tacticRarityFactor(economy?.equippedTactics ?? []),
     });
   };
   // Boss condition этапа `stageIndex` против текущего ростера с уже применёнными modifiers.
@@ -607,6 +608,7 @@ export const useRun = create<RunStore>((set, get) => {
         economy.campView().marketOffers,
         marketCostFactor(seed, economyState.campStageIndex, undefined, stakesOf(get().config)),
         economy.heroRarity,
+        economy.equippedTactics,
       ));
     } else {
       economy.prepareMarketOffers(buildAnteMarketRoulette(
@@ -1113,6 +1115,7 @@ export const useRun = create<RunStore>((set, get) => {
                   economy.campView().marketOffers,
                   marketCostFactor(resumable.seed, economyState.campStageIndex, undefined, stakesOf(resumable.config)),
                   economy.heroRarity,
+                  economy.equippedTactics,
                 ));
               } else {
                 economy.prepareMarketOffers(buildAnteMarketRoulette(
@@ -1146,6 +1149,7 @@ export const useRun = create<RunStore>((set, get) => {
               tactics: tactics.modifiers,
               heroRarity: economy.heroRarity,
               activeHeroes: engine.heroes,
+              rarityFactor: tacticRarityFactor(economy.equippedTactics),
             };
             const mods = runModifiers(strengthInput);
             // Босс восстанавливается из ростера (как tactics), а не из сейва: правило детерминировано
@@ -1409,6 +1413,7 @@ export const useRun = create<RunStore>((set, get) => {
           economy.campView().marketOffers,
           marketCostFactor(get().seed, economy.snapshot.campStageIndex, undefined, stakesOf(get().config)),
           economy.heroRarity,
+          economy.equippedTactics,
         ));
         // Замена меняет состав → условные Tactics пересчитываются (напр. new star гасит No Superstars).
         set({ snapshot, economyView: economy.snapshot, camp: economy.campView(), tactics: evaluateRunTactics() });

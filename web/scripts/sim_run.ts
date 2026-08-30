@@ -30,7 +30,7 @@ import {
   type SummandModifiers,
 } from "../src/game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
-import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../src/game/tactics.ts";
+import { buildTacticContext, evaluateTactics, tacticRarityFactor, type TacticEvaluation } from "../src/game/tactics.ts";
 import { rarityModifiers, upgradeCost } from "../src/game/heroRarity.ts";
 import type { Rarity } from "../src/game/rarity.ts";
 import { activeCardIds, evaluateRunPower, runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
@@ -85,6 +85,7 @@ function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEv
     tactics: tactics?.modifiers ?? null,
     heroRarity: economy.heroRarity,
     activeHeroes: engine.heroes,
+    rarityFactor: tacticRarityFactor(economy.equippedTactics),
   };
 }
 
@@ -571,6 +572,10 @@ function shopCamp(
         engine,
         economy.campView().marketOffers,
         marketCostFactor(seed, economy.snapshot.campStageIndex, season, simStakes),
+        // heroRarity здесь исторически не передавался; оставляем {} ради сопоставимости A/B —
+        // повышение точности refresh-модели агентов — отдельное решение, не эта калибровка.
+        {},
+        economy.equippedTactics,
       ));
     } catch (error) { if (process.env.SIMDEBUG) console.error("shopCamp break:", error); break; }
   }

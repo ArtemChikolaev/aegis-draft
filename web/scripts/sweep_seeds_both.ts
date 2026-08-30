@@ -16,7 +16,7 @@ import { AnteRunEngine, SEASON, seasonStage } from "../src/game/anteRun.ts";
 import { RunEconomy } from "../src/game/anteEconomy.ts";
 import type { Offer } from "../src/game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
-import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../src/game/tactics.ts";
+import { buildTacticContext, evaluateTactics, tacticRarityFactor, type TacticEvaluation } from "../src/game/tactics.ts";
 import { activeCardIds, runModifiers, stageStrength as runStageStrength, evaluateRunPower } from "../src/game/runStrength.ts";
 import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
 import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
@@ -57,6 +57,7 @@ function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEv
     tactics: tactics?.modifiers ?? null,
     heroRarity: economy.heroRarity,
     activeHeroes: engine.heroes,
+    rarityFactor: tacticRarityFactor(economy.equippedTactics),
   };
 }
 
@@ -190,7 +191,9 @@ function boostInCamp(engine: RunEngine, economy: RunEconomy, seed: string): void
       } else if (pick.heroUpgrade) {
         if (!economy.purchaseMarket(pick.id)) break;
       } else break;
-      economy.replacePreparedMarketOffers(refreshAnteMarketOffers(engine, economy.campView().marketOffers));
+      economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
+        engine, economy.campView().marketOffers, 1, economy.heroRarity, economy.equippedTactics,
+      ));
     } catch { break; }
   }
   for (let i = 0; i < 5; i++) {

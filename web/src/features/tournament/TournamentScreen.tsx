@@ -19,7 +19,7 @@ import {
 } from "../../game/tournamentPlayback.ts";
 import { isNarrowViewport } from "../../design/breakpoints.ts";
 import { useRun } from "../../state/runStore.ts";
-import { TACTIC_SLOTS } from "../../game/tactics.ts";
+import { TACTIC_SLOTS, tacticRarityFactor } from "../../game/tactics.ts";
 import { BuildRail, buildRailCards } from "../run/BuildRail.tsx";
 import { evaluateItems } from "../../game/items.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
@@ -595,8 +595,13 @@ export function TournamentScreen() {
     ...(economyView?.temporary ?? []).map((t) => t.effect),
   ]);
   const tacticModifiers = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
-  // Редкость активных героев (срез 3b) — тот же слой модификаторов, что в поле этапа.
-  const rarityMods = rarityModifiers(economyView?.heroRarity ?? {}, snapshot.heroes);
+  // Редкость активных героев (срез 3b) — тот же слой модификаторов, что в поле этапа
+  // (включая ослабление Wide Pool — иначе радар разошёлся бы с силой в таблице).
+  const rarityMods = rarityModifiers(
+    economyView?.heroRarity ?? {},
+    snapshot.heroes,
+    tacticRarityFactor(economyView?.equippedTactics ?? []),
+  );
   // Штраф босса — плоский к силе состава (не привязан к слагаемому): вычитаем только из итогового
   // Team OVR, чтобы центр радара совпадал с силой в таблице поля; плитки base/synergy/chem не трогаем.
   const bossPenalty = boss?.penalty ?? 0;
