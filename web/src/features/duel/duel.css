@@ -5,6 +5,8 @@
 .duel__lead { margin: 0; max-width: 560px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 .duel__turn { margin: 0; font: 700 15px "Space Grotesk", Manrope, sans-serif; color: var(--accent-strong); }
 .duel__turn--ban { color: var(--danger); }
+.duel__timer { margin-left: 8px; font: 700 13px "Space Grotesk", Manrope, sans-serif; color: var(--muted); }
+.duel__timer[data-low="true"] { color: var(--danger); }
 
 .duel__setup { display: grid; gap: 18px; padding: 20px; max-width: 620px; }
 .duel__names { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }

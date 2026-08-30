@@ -99,3 +99,44 @@ describe("duelProtocol — ходы", () => {
     expect(replay!.engine.games.map((game) => game.pSideA)).toEqual(match.engine.games.map((game) => game.pSideA));
   });
 });
+
+describe("duelProtocol — реванш той же комнатой", () => {
+  /** Доиграть партию валидными ходами (тот же цикл, что тест полного лога). */
+  function playToDone(match: DuelMatch): DuelMatch {
+    let guard = 0;
+    while (match.engine.phase !== "done" && guard++ < 80) {
+      const engine = match.engine;
+      if (engine.phase === "players") {
+        const index = engine.currentPack.candidates.findIndex((_, i) => engine.canPickPlayer(i));
+        match = applyDuelEntry(match, { from: actors(match).actor, payload: { kind: "pickPlayer", index } }, data)!;
+      } else if (engine.phase === "heroes") {
+        const open = engine.heroPool().find((cell) => cell.state === "open")!;
+        match = applyDuelEntry(match, { from: actors(match).actor, payload: { kind: "actHero", heroId: open.heroId } }, data)!;
+      } else {
+        match = applyDuelEntry(match, { from: A, payload: { kind: "next" } }, data)!;
+      }
+    }
+    expect(match.engine.phase).toBe("done");
+    return match;
+  }
+
+  it("start после done от капитана начинает новую партию; зритель и активная партия — игнор", () => {
+    const done = playToDone(startedMatch());
+    // Зритель не может запустить реванш даже после done.
+    const strangerStart = { ...startAction(), sides: { stranger: 0 as const, [B]: 1 as const } };
+    expect(applyDuelEntry(done, { from: "stranger", payload: strangerStart }, data)).toBe(done);
+    // Капитан закончившейся партии — может; стороны/сид берутся из нового start.
+    const swapped: DuelStartAction = {
+      ...startAction(),
+      seed: "proto-seed-2",
+      sides: { [A]: 1, [B]: 0 },
+      names: ["Bob", "Alice"],
+    };
+    const next = applyDuelEntry(done, { from: B, payload: swapped }, data)!;
+    expect(next).not.toBe(done);
+    expect(next.engine.phase).toBe("players");
+    expect(next.engine.games.length).toBe(0);
+    expect(next.sides[A]).toBe(1);
+    expect(next.engine.names).toEqual(["Bob", "Alice"]);
+  });
+});

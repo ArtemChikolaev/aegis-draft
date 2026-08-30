@@ -50,6 +50,9 @@ export const DUEL = {
   repertoireSize: 8,
   /** Порог pro-игр, ниже которого герой не считается частью репертуара. */
   repertoireMinGames: 10,
+  /** Длина хода: отсчёт видят оба, авто-ход по истечении шлёт клиент САМОГО актора
+   *  (чужой ход сервер/применялка не примут — from штампуется по токену слота). */
+  turnSeconds: 45,
 } as const;
 
 /** Змейка пиков игроков: первый пик уравновешен двойным пиком второго. */
@@ -312,4 +315,27 @@ export class DuelEngine {
     if (this.seriesWinner !== null) this.phase = "done";
     else this.startHeroDraft();
   }
+}
+
+/** Авто-ход по таймауту (шлёт клиент актора): лучший OVR из пикабельных кандидатов либо
+ *  верхняя открытая клетка хиро-пула (он отсортирован по суммарным играм — «самый интересный»
+ *  ход и для бана, и для пика). Резолв/финал таймером не гонятся — там нет чужого ожидания
+ *  хода, только кнопка «дальше». */
+export function duelFallbackAction(engine: DuelEngine):
+  | { kind: "pickPlayer"; index: number }
+  | { kind: "actHero"; heroId: number }
+  | null {
+  if (engine.phase === "players") {
+    let best = -1;
+    engine.currentPack.candidates.forEach((candidate, index) => {
+      if (!engine.canPickPlayer(index)) return;
+      if (best === -1 || candidate.player.ovr > engine.currentPack.candidates[best].player.ovr) best = index;
+    });
+    return best === -1 ? null : { kind: "pickPlayer", index: best };
+  }
+  if (engine.phase === "heroes") {
+    const open = engine.heroPool().find((cell) => cell.state === "open");
+    return open ? { kind: "actHero", heroId: open.heroId } : null;
+  }
+  return null;
 }

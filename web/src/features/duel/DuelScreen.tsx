@@ -2,7 +2,7 @@
 // змейкой из общего пула → на каждую игру серии капитанский драфт героев → серия bo1/bo3/bo5.
 // Оба клиента применяют серверно-упорядоченный лог (duelProtocol) — свои кнопки активны только
 // в свой ход, действия едут через sendAction и применяются с возвратом от сервера.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { selfSide, useDuel } from "../../state/duelStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -43,6 +43,8 @@ export function DuelScreen() {
   const joinRoom = useDuel((s) => s.joinRoom);
   const startMatch = useDuel((s) => s.startMatch);
   const sendAction = useDuel((s) => s.sendAction);
+  const rematch = useDuel((s) => s.rematch);
+  const turnDeadline = useDuel((s) => s.turnDeadline);
   const leaveRoom = useDuel((s) => s.leaveRoom);
   const dismissError = useDuel((s) => s.dismissError);
   const heroName = useHeroName();
@@ -53,6 +55,13 @@ export function DuelScreen() {
   const [playerName, setPlayerName] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [exitGate, setExitGate] = useState(false);
+  // Отсчёт хода — чисто индикативный тик; авто-ход по истечении шлёт стор актора.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (turnDeadline === null) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [turnDeadline]);
 
   if (!data) return null;
 
@@ -185,6 +194,13 @@ export function DuelScreen() {
   const turnLabel = (actor: DuelSide, key: MessageKey): string =>
     mySide === actor ? `${t(key, { name: sideName(actor) })} — ${t("duel.yourMove")}` : t(key, { name: sideName(actor) });
 
+  const secondsLeft = turnDeadline === null ? null : Math.max(0, Math.ceil((turnDeadline - now) / 1000));
+  const turnCountdown = secondsLeft !== null && (
+    <span className="duel__timer" data-testid="duel-timer" data-low={secondsLeft <= 10}>
+      {t("duel.turnTimer", { s: secondsLeft })}
+    </span>
+  );
+
   // Фаза 1: драфт игроков.
   if (engine.phase === "players") {
     const picker = engine.currentPicker;
@@ -195,7 +211,7 @@ export function DuelScreen() {
           {exitButton}
           <Eyebrow>{t("start.modeDuel")} · {code}</Eyebrow>
           <h1>{t("duel.playerDraftTitle")}</h1>
-          <p className="duel__turn" data-testid="duel-turn">{turnLabel(picker, "duel.turnPick")}</p>
+          <p className="duel__turn" data-testid="duel-turn">{turnLabel(picker, "duel.turnPick")} {turnCountdown}</p>
         </header>
         <div className="duel__board">
           {rosterPanel(0)}
@@ -246,7 +262,7 @@ export function DuelScreen() {
           <Eyebrow>{t("duel.game", { n: engine.games.length + 1 })} · {engine.seriesScore.join(" : ")}</Eyebrow>
           <h1>{t("duel.heroDraftTitle")}</h1>
           <p className={`duel__turn ${step.kind === "ban" ? "duel__turn--ban" : ""}`} data-testid="duel-hero-turn">
-            {turnLabel(step.side, step.kind === "ban" ? "duel.turnBan" : "duel.turnHeroPick")}
+            {turnLabel(step.side, step.kind === "ban" ? "duel.turnBan" : "duel.turnHeroPick")} {turnCountdown}
           </p>
         </header>
         <div className="duel__board">
@@ -314,14 +330,22 @@ export function DuelScreen() {
         </table>
         <p className="duel__prob">{t("duel.probability", { pct: Math.round(lastGame.pSideA * 100), name: sideName(0) })}</p>
         <div className="duel__actions">
-          {done
-            ? <Button variant="primary" data-testid="duel-new" onClick={leaveRoom}>{t("duel.newDuel")}</Button>
-            : mySide !== null && (
-              <Button variant="primary" data-testid="duel-next" onClick={() => sendAction({ kind: "next" })}>
-                {engine.seriesWinner !== null ? t("duel.finishSeries") : t("duel.nextGame")}
-              </Button>
-            )}
+          {done ? (
+            <>
+              {mySide !== null && (
+                <Button variant="primary" data-testid="duel-rematch" onClick={rematch}>
+                  {t("duel.rematch")}
+                </Button>
+              )}
+              <Button variant="secondary" data-testid="duel-new" onClick={leaveRoom}>{t("duel.newDuel")}</Button>
+            </>
+          ) : mySide !== null && (
+            <Button variant="primary" data-testid="duel-next" onClick={() => sendAction({ kind: "next" })}>
+              {engine.seriesWinner !== null ? t("duel.finishSeries") : t("duel.nextGame")}
+            </Button>
+          )}
         </div>
+        {done && mySide !== null && <p className="duel__prob">{t("duel.rematchHint")}</p>}
       </Surface>
       {exitModal}
     </main>

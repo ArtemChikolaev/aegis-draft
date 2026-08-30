@@ -18,7 +18,7 @@ import { ApiError } from "../data/api/index.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { applyDuelEntry, type DuelMatch, type DuelPlayAction, type DuelStartAction } from "../game/duelProtocol.ts";
-import type { DuelConfig } from "../game/duel.ts";
+import { DUEL, duelFallbackAction, type DuelConfig, type DuelSide } from "../game/duel.ts";
 import { useRun } from "./runStore.ts";
 
 export type DuelStatus = "idle" | "connecting" | "lobby" | "error";
@@ -32,6 +32,8 @@ interface DuelStore {
   /** Активная партия (после start в relay-логе) + счётчик мутаций движка для подписок. */
   match: DuelMatch | null;
   serial: number;
+  /** Дедлайн текущего хода (epoch ms) — отсчёт видят оба; авто-ход шлёт клиент актора. */
+  turnDeadline: number | null;
 
   createRoom: (name: string) => Promise<void>;
   joinRoom: (code: string, name: string) => void;
@@ -39,6 +41,9 @@ interface DuelStore {
   startMatch: (config: DuelConfig) => void;
   /** Свой ход: уезжает на сервер, применится с возвратом (порядок — серверный). */
   sendAction: (action: DuelPlayAction) => void;
+  /** Реванш той же комнатой (после done, только капитан): новый сид, те же правила,
+   *  СТОРОНЫ МЕНЯЮТСЯ — первый пик уходит проигравшему приоритету прошлой партии. */
+  rematch: () => void;
   leaveRoom: () => void;
   dismissError: () => void;
 }
@@ -80,8 +85,53 @@ function clientVersions(): ArenaVersions | null {
 let socket: ArenaSocket | null = null;
 /** Последний применённый seq: страж от дублей (live-сообщение после реплея лога). */
 let lastSeq = 0;
+/** Таймер авто-хода (жив только у актора) + подпись шага, на который он взведён. */
+let turnTimer: ReturnType<typeof setTimeout> | null = null;
+/** Подпись шага, на который взведён отсчёт: игнорируемый мусор в логе не сбрасывает таймер. */
+let armedStep: string | null = null;
+
+function clearTurnTimer(): void {
+  if (turnTimer !== null) clearTimeout(turnTimer);
+  turnTimer = null;
+  armedStep = null;
+}
+
+/** Подпись текущего шага партии: меняется на каждый применённый ход — по ней и отсчёт,
+ *  и проверка «таймер стрельнул ещё по тому же шагу» (реплей после reconnect не дублирует ход). */
+function stepSignature(match: DuelMatch | null): string {
+  if (!match) return "";
+  const engine = match.engine;
+  return [
+    engine.games.length, engine.phase, engine.pickIndex, engine.rerollsLeft.join(","),
+    engine.bannedHeroes.length, engine.heroPicks[0].length, engine.heroPicks[1].length,
+  ].join("|");
+}
 
 export const useDuel = create<DuelStore>((set, get) => {
+  /** Ход применился (или партия началась): перезапустить отсчёт; актор взводит авто-ход. */
+  const armTurn = () => {
+    const { match, selfId } = get();
+    const signature = stepSignature(match);
+    if (signature === armedStep) return; // шаг не сменился (мусор в логе) — отсчёт не трогаем
+    clearTurnTimer();
+    armedStep = signature;
+    const engine = match?.engine ?? null;
+    if (!engine || (engine.phase !== "players" && engine.phase !== "heroes")) {
+      set({ turnDeadline: null });
+      return;
+    }
+    set({ turnDeadline: Date.now() + DUEL.turnSeconds * 1000 });
+    const actor = engine.phase === "players" ? engine.currentPicker : engine.currentStep?.side ?? null;
+    if (actor === null || !selfId || match!.sides[selfId] !== actor) return;
+    turnTimer = setTimeout(() => {
+      const state = get();
+      // Стреляем только по ТОМУ ЖЕ шагу: ход мог уже уехать руками или прийти реплеем.
+      if (!state.match || stepSignature(state.match) !== signature) return;
+      const action = duelFallbackAction(state.match.engine);
+      if (action) socket?.sendRelay(action);
+    }, DUEL.turnSeconds * 1000);
+  };
+
   const applyEntry = (entry: RoomRelayEntry) => {
     if (entry.seq <= lastSeq) return;
     const data = useRun.getState().data;
@@ -91,6 +141,7 @@ export const useDuel = create<DuelStore>((set, get) => {
     // Движок мутирует внутри match — serial бампается на каждую запись, даже проигнорированную:
     // это дёшево и не даёт подписчикам пропустить границу применения лога.
     set({ match: next, serial: get().serial + 1 });
+    armTurn();
   };
 
   const connect = (code: string, name: string) => {
@@ -101,7 +152,8 @@ export const useDuel = create<DuelStore>((set, get) => {
     }
     socket?.close();
     lastSeq = 0;
-    set({ status: "connecting", code, errorCode: null, match: null });
+    clearTurnTimer();
+    set({ status: "connecting", code, errorCode: null, match: null, turnDeadline: null });
     socket = connectArenaRoom(code, name, readToken(code), versions, {
       onWelcome: (welcome) => {
         writeToken(code, welcome.token);
@@ -110,14 +162,16 @@ export const useDuel = create<DuelStore>((set, get) => {
       onRelayLog: (entries) => {
         // Реплей с нуля: reconnect мог прийти в середине партии.
         lastSeq = 0;
-        set({ match: null });
+        clearTurnTimer();
+        set({ match: null, turnDeadline: null });
         for (const entry of entries) applyEntry(entry);
       },
       onRelay: applyEntry,
       onPresence: (presence) => set({ members: presence.members }),
       onError: (error) => set({ status: "error", errorCode: error.code }),
       onClose: () => {
-        if (get().status !== "error") set({ status: "idle" });
+        clearTurnTimer();
+        if (get().status !== "error") set({ status: "idle", turnDeadline: null });
       },
     });
   };
@@ -130,6 +184,7 @@ export const useDuel = create<DuelStore>((set, get) => {
     errorCode: null,
     match: null,
     serial: 0,
+    turnDeadline: null,
 
     createRoom: async (name) => {
       set({ status: "connecting", errorCode: null });
@@ -162,11 +217,32 @@ export const useDuel = create<DuelStore>((set, get) => {
 
     sendAction: (action) => socket?.sendRelay(action),
 
+    rematch: () => {
+      const { match, selfId } = get();
+      // Только после доигранной серии и только капитан (применялка проверит то же самое).
+      if (!match || match.engine.phase !== "done" || !selfId || match.sides[selfId] === undefined) return;
+      const memberBySide = new Map<DuelSide, string>();
+      for (const [memberId, side] of Object.entries(match.sides)) memberBySide.set(side, memberId);
+      const config = match.engine.config;
+      // Стороны меняются: сторона 0 (первый пик игры 1) уходит бывшей стороне 1 — реванш
+      // честен по приоритету, а не повтор той же раздачи преимуществ.
+      const start: DuelStartAction = {
+        kind: "start",
+        seed: createRunSeed(),
+        format: config.format,
+        bestOf: config.bestOf,
+        sides: { [memberBySide.get(1)!]: 0, [memberBySide.get(0)!]: 1 },
+        names: [match.engine.names[1], match.engine.names[0]],
+      };
+      socket?.sendRelay(start);
+    },
+
     leaveRoom: () => {
       socket?.leave();
       socket = null;
       lastSeq = 0;
-      set({ status: "idle", code: null, selfId: null, members: [], match: null, errorCode: null });
+      clearTurnTimer();
+      set({ status: "idle", code: null, selfId: null, members: [], match: null, errorCode: null, turnDeadline: null });
     },
 
     dismissError: () => set({ status: "idle", errorCode: null, code: null, members: [], match: null }),

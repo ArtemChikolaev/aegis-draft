@@ -1,7 +1,7 @@
 // Дуэль (M-DUEL, срез 1): оркестрация двух сторон — змейка, общий пул, сетка хиро-драфта,
 // детерминизм серии. Скоринг и матч-модель здесь не переизмеряются: они чужие (score/tournament).
 import { describe, expect, it } from "vitest";
-import { DUEL, DuelEngine, heroDraftScript, type DuelSide } from "../src/game/duel.ts";
+import { DUEL, DuelEngine, duelFallbackAction, heroDraftScript, type DuelSide } from "../src/game/duel.ts";
 import { ROLE_SEQUENCE } from "../src/game/packs.ts";
 import { loadGameData } from "./helpers/data.ts";
 
@@ -129,5 +129,30 @@ describe("DuelEngine — хиро-драфт и серия", () => {
       engine.next();
       expect(engine.currentStep?.side).toBe(1); // game 2 — сторона 1
     }
+  });
+});
+
+describe("duelFallbackAction — авто-ход по таймауту", () => {
+  it("в драфте игроков берёт лучшего по OVR из пикабельных; в хиро-драфте — верхнюю открытую клетку", () => {
+    const engine = new DuelEngine(data, { format: "last_2y", bestOf: 1 }, "duel-fallback", ["A", "B"]);
+    const fallback = duelFallbackAction(engine);
+    expect(fallback?.kind).toBe("pickPlayer");
+    const index = (fallback as { kind: "pickPlayer"; index: number }).index;
+    expect(engine.canPickPlayer(index)).toBe(true);
+    const best = Math.max(...engine.currentPack.candidates
+      .filter((_, i) => engine.canPickPlayer(i))
+      .map((candidate) => candidate.player.ovr));
+    expect(engine.currentPack.candidates[index].player.ovr).toBe(best);
+
+    draftPlayers(engine);
+    const heroFallback = duelFallbackAction(engine);
+    expect(heroFallback?.kind).toBe("actHero");
+    const topOpen = engine.heroPool().find((cell) => cell.state === "open")!;
+    expect((heroFallback as { kind: "actHero"; heroId: number }).heroId).toBe(topOpen.heroId);
+    expect(engine.canActHero(topOpen.heroId)).toBe(true);
+
+    draftHeroes(engine);
+    // После резолва игры таймер не гонит «дальше» — авто-хода нет.
+    expect(duelFallbackAction(engine)).toBeNull();
   });
 });

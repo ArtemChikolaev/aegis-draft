@@ -77,11 +77,14 @@ export function applyDuelEntry(
   entry: { from: string; payload: unknown },
   data: GameData,
 ): DuelMatch | null {
-  if (!match) {
+  // Start принимается в лобби (match ещё нет) и как РЕВАНШ той же комнатой — только после
+  // доигранной серии (активную партию перезапустить нельзя) и только от капитана ЗАКОНЧЕННОЙ
+  // партии (зритель не решает за капитанов ни на входе, ни на реванше).
+  if (!match || match.engine.phase === "done") {
     const start = parseStart(entry.payload);
     if (!start) return match;
-    // Стартовать партию может только будущий её участник — зритель не решает за капитанов.
     if (start.sides[entry.from] === undefined) return match;
+    if (match && match.sides[entry.from] === undefined) return match;
     try {
       return {
         engine: new DuelEngine(data, { format: start.format, bestOf: start.bestOf }, start.seed, start.names),
