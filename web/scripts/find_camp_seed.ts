@@ -59,6 +59,8 @@ for (let n = 1; n <= 400 && found.length < 5; n++) {
       economy: camp.modifiers,
       equippedCards: camp.equippedTactics,
       cardRarity: camp.cardRarity,
+      // Обязательное поле с R13.5 — скрипт tsx-вне-tsc и молча падал без него (дрейф).
+      cardCharges: camp.cardCharges ?? {},
     });
 
     if (!evaluation.power.trivial) {

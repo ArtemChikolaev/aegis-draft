@@ -539,12 +539,13 @@ test("cheat mode: забег вне статистики", async ({ page }) => {
 });
 
 // R9.4: разведка раскрывает то, чего в Буткемпе ещё НЕ видно, — правило следующего боссового
-// турнира, до которого несколько этапов. Seed подобран оффлайн: `camp-e2e-150` выдаёт карточку
-// Scouting наградой первого Буткемпа (пул карточек детерминирован по seed+campId).
+// турнира, до которого несколько этапов. Seed подобран оффлайн: `camp-e2e-161` выдаёт карточку
+// Scouting наградой первого Буткемпа (пул карточек детерминирован по seed+campId) на ОБОИХ
+// датасетах (пере-номинация после Wide Pool b1.42.0: шестая тактика сдвинула поток `:card`).
 test("roguelite run: разведка раскрывает будущего босса и знание не теряется", async ({ page }) => {
   test.slow();
   await gotoFreshApp(page);
-  await startRogueliteSeed(page, "camp-e2e-150");
+  await startRogueliteSeed(page, "camp-e2e-161");
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
@@ -712,7 +713,7 @@ test("roguelite run: награды разных видов, проценты и
 // (повторяет ровно этот путь оффлайн и печатает годные сиды).
 test("roguelite run: предмет в слоте показывает разложение силы", async ({ page }) => {
   await gotoFreshApp(page);
-  await startRogueliteSeed(page, "camp-e2e-13");
+  await startRogueliteSeed(page, "camp-e2e-5");
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
