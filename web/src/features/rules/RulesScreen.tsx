@@ -1,13 +1,14 @@
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
-import { Button, Eyebrow, SoonBadge, Surface } from "../../ui/index.ts";
+import { Button, Eyebrow, Surface } from "../../ui/index.ts";
 import { ClassicFlowDiagram, RunLadderDiagram, ScoreDiagram } from "./diagrams.tsx";
 import "./rules.css";
 
 /** Правила режимов: что это за режим, как выглядит петля и что в нём «правильная игра».
- *  Для нереализованных режимов — краткий питч с бейджем «Скоро» (решение 2026-08-12).
- *  Страница не закрывается хардкором: она объясняет механику, а не данные игроков. */
+ *  Все пять режимов реализованы (ревизия 2026-08-30) — у онлайновых вместо «Скоро» честная
+ *  приписка про интернет и сервер комнат. Страница не закрывается хардкором: она объясняет
+ *  механику, а не данные игроков. */
 export function RulesScreen() {
   const { t } = useI18n();
   const backNative = useTmaChrome((state) => state.backNative);
@@ -127,12 +128,50 @@ export function RulesScreen() {
         </ul>
       </Surface>
 
-      {/* Нереализованные режимы: питч + чем отличается, без обещаний интерфейса. */}
-
-      <Surface className="rules__panel rules__panel--soon">
-        <h2 className="rules__section">{t("rules.arenaTitle")} <SoonBadge>{t("common.soon")}</SoonBadge></h2>
+      <Surface className="rules__panel">
+        <h2 className="rules__section">{t("rules.arenaTitle")}</h2>
         <p className="rules__lead">{t("start.modeArenaLong")}</p>
-        <p className="rules__soon-note">{t("rules.arenaSoon")}</p>
+        <div className="rules__diagram">
+          <ClassicFlowDiagram
+            steps={[
+              t("rules.arenaStepRoom"),
+              t("rules.arenaStepPlayers"),
+              t("rules.arenaStepHeroes"),
+              t("rules.arenaStepSim"),
+              t("rules.arenaStepPlace"),
+            ]}
+          />
+        </div>
+        <ul className="rules__how">
+          <li>{t("rules.arenaHow1")}</li>
+          <li>{t("rules.arenaHow2")}</li>
+          <li>{t("rules.arenaHow3")}</li>
+          <li>{t("rules.arenaHow4")}</li>
+        </ul>
+        <p className="rules__soon-note">{t("rules.onlineNote")}</p>
+      </Surface>
+
+      <Surface className="rules__panel">
+        <h2 className="rules__section">{t("rules.duelTitle")}</h2>
+        <p className="rules__lead">{t("start.modeDuelLong")}</p>
+        <div className="rules__diagram">
+          <ClassicFlowDiagram
+            steps={[
+              t("rules.duelStepRoom"),
+              t("rules.duelStepPlayers"),
+              t("rules.duelStepHeroes"),
+              t("rules.duelStepGame"),
+              t("rules.duelStepSeries"),
+            ]}
+          />
+        </div>
+        <ul className="rules__how">
+          <li>{t("rules.duelHow1")}</li>
+          <li>{t("rules.duelHow2")}</li>
+          <li>{t("rules.duelHow3")}</li>
+          <li>{t("rules.duelHow4")}</li>
+        </ul>
+        <p className="rules__soon-note">{t("rules.onlineNote")}</p>
       </Surface>
     </main>
   );
