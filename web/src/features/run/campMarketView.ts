@@ -11,6 +11,40 @@ import type { InspectedOffer } from "./CampCards.tsx";
 import type { Snapshot } from "../../state/runStore.ts";
 import type { ReactNode } from "react";
 
+/** Раздел «Билд»: слоты тактик/предметов. Экшены приходят снаружи — панель только рисует. */
+export interface CampBuildView {
+  camp: CampView;
+  tactics: CampPowerEvaluation["tactics"];
+  itemEval: CampPowerEvaluation["items"];
+  power: CampPowerEvaluation["power"];
+  onInspectCard: (cardId: string) => void;
+  onTrade: (cardId: string) => void;
+  onDiscard: (cardId: string) => void;
+  onEnchant: (cardId: string, edition: "charged" | "tempered") => void;
+}
+
+/** Раздел «Подготовка»: слоты одноразовых Camp Actions. */
+export interface CampActionsView {
+  camp: CampView;
+  onDiscard: (actionId: string) => void;
+  onPlay: (actionId: string) => void;
+}
+
+/** Резерв (скамейка игроков + reserve pool героев) под разделом «Билд». */
+export interface CampReserveView {
+  snapshot: Snapshot;
+  score: NonNullable<Snapshot["score"]>;
+  power: CampPowerEvaluation["power"];
+  heroTargets: Record<number, number>;
+  onHeroTarget: (reserveHeroId: number, outgoingHeroId: number) => void;
+  previewPower: CampMarketView["previewPower"];
+  replaceRosterCandidate: CampMarketView["replaceRosterCandidate"];
+  replaceActiveHero: CampMarketView["replaceActiveHero"];
+  setInspected: (offer: InspectedOffer) => void;
+  swapReservePlayer: (slotIndex: number, accountId: number) => void;
+  swapReserveHero: (outgoingHeroId: number, incomingHeroId: number) => void;
+}
+
 export interface CampMarketView {
   camp: CampView;
   snapshot: Snapshot;
