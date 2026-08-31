@@ -17,6 +17,7 @@
 .mode-card--manager::before { background: radial-gradient(circle at 76% 22%, #ffc18c, transparent 18%), radial-gradient(ellipse at 45% 45%, #d97757, #532619 42%, transparent 72%); }
 .mode-card--tournament::before { background: radial-gradient(circle at 76% 22%, #a9c6ff, transparent 18%), radial-gradient(ellipse at 45% 45%, #446db4, #17233b 42%, transparent 72%); }
 .mode-card--arena::before { background: radial-gradient(circle at 76% 22%, #ffa9a0, transparent 18%), radial-gradient(ellipse at 45% 45%, #c94436, #4a1511 42%, transparent 72%); }
+.mode-card--duel::before { background: radial-gradient(circle at 76% 22%, #8fe3d9, transparent 18%), radial-gradient(ellipse at 45% 45%, #2e9184, #0d2f2a 42%, transparent 72%); }
 /* Выбор варианта внутри Classic. Всего две карточки, поэтому центрируем весь блок (без третьей
    карточки грид режимов смотрелся бы прижатым влево). Палитра у вариантов одна — фирменная:
    Quick читается одним коротким импульсом, Roguelite — растущей цепочкой этапов. */
@@ -41,8 +42,12 @@
 }
 .mode-card > * { position: relative; z-index: 1; }
 .mode-card__index { font: 600 12px "Space Grotesk"; letter-spacing: .1em; }
-.mode-card__body { display: grid; gap: 10px; margin-top: auto; padding-top: 90px; }
-.mode-card__body strong { font: 500 clamp(28px, 2.8vw, 44px)/.98 "Space Grotesk"; letter-spacing: -.05em; }
+/* min-width: 0 обязателен: grid-ребёнок с дефолтным min-width:auto растягивается под
+   неразрывное слово и утаскивает заголовок под overflow:hidden карточки вместо переноса. */
+.mode-card__body { display: grid; gap: 10px; margin-top: auto; padding-top: 90px; min-width: 0; }
+/* Перенос с дефисом обязателен: «Tournament» на 44px не влезает в карточку в полосе ширин
+   ~1500–1800px и резался overflow:hidden (баг-репорт 2026-08-31). */
+.mode-card__body strong { min-width: 0; font: 500 clamp(28px, 2.8vw, 44px)/.98 "Space Grotesk"; letter-spacing: -.05em; overflow-wrap: break-word; hyphens: auto; }
 .mode-card__body small { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .mode-card__body > span { max-width: 360px; color: rgba(255, 255, 255, .76); font-size: 12px; }
 .mode-card em { position: absolute; top: 24px; right: 24px; padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .5); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .08em; }

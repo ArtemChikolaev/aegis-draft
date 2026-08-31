@@ -36,7 +36,7 @@ export function App() {
   // override). Нейтрально, пока режим не выбран (mode === null): это mode-select и экран выбора
   // варианта. Вешается на весь app-shell, поэтому Settings/справочник, открытые ИЗ режима, тоже
   // наследуют его гамму (карточку варианта Roguelite тегаем отдельно — она на нейтральном экране).
-  const modeAccent = mode === "run" ? "violet" : mode === "manager" ? "orange" : mode === "tournament" ? "blue" : mode === "arena" ? "red" : undefined;
+  const modeAccent = mode === "run" ? "violet" : mode === "manager" ? "orange" : mode === "tournament" ? "blue" : mode === "arena" ? "red" : mode === "duel" ? "teal" : undefined;
   // Тот же атрибут дублируем на <body>, потому что модалки рендерятся ПОРТАЛОМ в body и вне
   // `.app-shell` гамму режима уже не наследуют: в Roguelite Run свечение модалки возвращалось к
   // базовому зелёному (плейтест 2026-08-05). Токены — обычные наследуемые custom properties,

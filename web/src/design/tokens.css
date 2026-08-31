@@ -260,6 +260,12 @@ html[data-theme="light"] [data-accent="red"] {
   --accent-soft: rgba(182, 57, 43, .12);
   --on-accent: #fff;
 }
+html[data-theme="light"] [data-accent="teal"] {
+  --accent: #1f7f72;
+  --accent-strong: #16605a;
+  --accent-soft: rgba(31, 127, 114, .12);
+  --on-accent: #fff;
+}
 [data-accent="orange"] {
   --accent: #ffc18c; --accent-strong: #e0864f; --accent-soft: rgba(216, 119, 87, .16); --on-accent: #2a1509;
   --brand-green: #ffc18c; --brand-glow: #d97757; --brand-art-hot: #ffc18c; --brand-art-mid: #d97757; --brand-art-deep: #532619;
@@ -273,6 +279,12 @@ html[data-theme="light"] [data-accent="red"] {
 [data-accent="blue"] {
   --accent: #a9c6ff; --accent-strong: #6f9be0; --accent-soft: rgba(68, 109, 180, .18); --on-accent: #0b1524;
   --brand-green: #a9c6ff; --brand-glow: #5b86c8; --brand-art-hot: #a9c6ff; --brand-art-mid: #446db4; --brand-art-deep: #17233b;
+}
+/* Дуэль (M-DUEL): бирюза — последняя свободная пастель рядом с green/violet/orange/blue/red;
+   тот же принцип тон-в-гамму, сигнальные цвета и шкала OVR не перекрашиваются. */
+[data-accent="teal"] {
+  --accent: #8fe3d9; --accent-strong: #4db8aa; --accent-soft: rgba(77, 184, 170, .16); --on-accent: #06211d;
+  --brand-green: #8fe3d9; --brand-glow: #3aa393; --brand-art-hot: #8fe3d9; --brand-art-mid: #2e9184; --brand-art-deep: #0d2f2a;
 }
 
 /* Тач-устройства: любой контрол ввода — минимум 16px, иначе iOS Safari зумит вьюпорт
