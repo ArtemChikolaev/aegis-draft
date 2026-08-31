@@ -14,7 +14,7 @@ import {
 } from "../../game/items.ts";
 import { stageMutators } from "../../game/anteRun.ts";
 import { mutatorDescParams } from "../../game/dynastyMutators.ts";
-import { buildTacticContext, isTacticId, tacticLabelParams } from "../../game/tactics.ts";
+import { buildTacticContext, isTacticId, tacticLabelParams, widePoolProgress } from "../../game/tactics.ts";
 import { heroTags } from "../../game/heroTags.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidatesOf, stakesOf } from "../../game/packs.ts";
@@ -462,6 +462,13 @@ export function CampScreen() {
     if (!evaluation) return null;
     const mods = evaluation.modifiers;
     const total = mods.base + mods.heroSynergy + mods.chemistry;
+    // Wide Pool — пороговая build-around карта: до срабатывания вместо немого «не выполнено»
+    // показываем прогресс «N из 10» (плейтест 2026-08-31 — без счётчика непонятно, двигают ли
+    // пики к цели). Остальные карты дают частичный вклад и в счётчике не нуждаются.
+    if (Math.abs(total) < 0.05 && tacticId === "widePool") {
+      const progress = widePoolProgress(currentPowerState.tacticContext);
+      return { text: t("camp.widePoolProgress", { n: progress.distinct, need: progress.need }), positive: false };
+    }
     if (Math.abs(total) < 0.05) return { text: t("camp.conditionUnmet"), positive: false };
     const parts = ([["base", mods.base], ["heroSynergy", mods.heroSynergy], ["chemistry", mods.chemistry]] as const)
       .filter(([, value]) => Math.abs(value) >= 0.05)
@@ -808,6 +815,7 @@ export function CampScreen() {
                   tactics={tactics}
                   itemEval={itemEval}
                   power={power}
+                  widePoolProgress={widePoolProgress(currentPowerState.tacticContext)}
                   onInspectCard={setInspectedCard}
                   onTrade={setTradeFor}
                   onDiscard={discardTactic}

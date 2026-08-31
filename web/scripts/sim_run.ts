@@ -32,6 +32,8 @@ import {
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
 import { buildTacticContext, evaluateTactics, tacticRarityFactor, type TacticEvaluation } from "../src/game/tactics.ts";
 import { rarityModifiers, upgradeCost } from "../src/game/heroRarity.ts";
+import { pairScore } from "../src/game/assign.ts";
+import { heroStatsForAssignment, signatureLookup } from "../src/game/score.ts";
 import type { Rarity } from "../src/game/rarity.ts";
 import { activeCardIds, evaluateRunPower, runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
 import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
@@ -187,6 +189,8 @@ interface Agent {
   random?: boolean;
   /** Контроль: не покупает ничего. */
   passive?: boolean;
+  /** Оптимизирующий драфт героев (T6.4-остаток): pairScore-маргинал вместо packHeroes[0]. */
+  optDraft?: boolean;
 }
 
 const AGENTS: Agent[] = [
@@ -223,6 +227,13 @@ const AGENTS: Agent[] = [
     // слотах карточные chooseReward отказывают, и агент падает на оффер шестого слота (LG2).
     name: "synergy-build", weights: { base: 1, hero: 1.3, chem: 1.6 }, rewardPref: ["item", "tactic", "action", "slot", "quality", "gold"],
     holdGold: 0, maxRerolls: 1, buysQuality: true, bossAware: true, powerAware: true,
+  },
+  // Тот же билд-агент, но с оптимизирующим драфтом героев (T6.4-остаток): появился ради правил,
+  // которые жадный packHeroes[0] не отыгрывает (Wide Pool, supply-оси). Разница с synergy-build —
+  // ровно одна ось, сравнение этих двух строк и есть цена осознанного хиро-драфта.
+  {
+    name: "synergy-opt", weights: { base: 1, hero: 1.3, chem: 1.6 }, rewardPref: ["item", "tactic", "action", "slot", "quality", "gold"],
+    holdGold: 0, maxRerolls: 1, buysQuality: true, bossAware: true, powerAware: true, optDraft: true,
   },
   // Верхняя граница ЖАДНОЙ игры (не истинный оптимум): лучшая по замеру политика наград плюс все
   // рычаги — качество, рероллы, адаптация к боссу. Политика наград здесь ВЫБРАНА ИЗМЕРЕНИЕМ:
@@ -388,6 +399,51 @@ function greedyDraft(engine: RunEngine): void {
     const hero = engine.packHeroes[0];
     if (hero != null) { engine.pickHero(hero); continue; }
     break;
+  }
+}
+
+/** Оптимизирующий драфт героев (T6.4-остаток). Игроки — как у жадного (лучший OVR в открытую
+ *  роль), но герой берётся не первым из пака, а по лучшему МАРГИНАЛЬНОМУ вкладу той же кривой
+ *  `pairScore`, что боевой Hungarian: кандидат оценивается лучшим улучшением поверх уже покрытых
+ *  взятыми героями игроков. Жадный `packHeroes[0]` не отыгрывает никакое условие на героев —
+ *  из-за этого supply-правила и Wide Pool сим-агентом не измерялись (структурный вывод T6.4). */
+function optimizingDraft(engine: RunEngine): void {
+  const phs = heroStatsForAssignment(data);
+  let guard = 0;
+  while (!engine.isComplete && guard++ < 40) {
+    if (engine.rosterFilled < 5) {
+      let bestIdx = -1;
+      let bestOvr = -1;
+      engine.currentPack.candidates.forEach((c, i) => {
+        if (engine.canPickPlayer(i) && c.player.ovr > bestOvr) { bestOvr = c.player.ovr; bestIdx = i; }
+      });
+      if (bestIdx >= 0) { engine.pickPlayer(bestIdx); continue; }
+      if (engine.rerollsLeft > 0) { engine.reroll(); continue; }
+      break;
+    }
+    const roster = engine.rosterView.flatMap((slot) => (slot.candidate ? [slot.candidate] : []));
+    const signatures = signatureLookup(engine.rosterView.map((slot) => slot.candidate ?? null));
+    // Лучшее покрытие каждого игрока уже взятыми героями: новый герой ценен тем, насколько он
+    // поднимает ЧЬЁ-ТО покрытие, а не суммой игр (второй герой того же игрока почти бесполезен).
+    const covered = new Map<number, number>();
+    for (const candidate of roster) {
+      const accountId = candidate.player.accountId;
+      covered.set(accountId, Math.max(0, ...engine.heroes.map(
+        (heroId) => pairScore(accountId, heroId, phs, signatures),
+      )));
+    }
+    let best: number | null = null;
+    let bestGain = -Infinity;
+    for (const heroId of engine.packHeroes) {
+      let gain = 0;
+      for (const candidate of roster) {
+        const accountId = candidate.player.accountId;
+        gain = Math.max(gain, pairScore(accountId, heroId, phs, signatures) - (covered.get(accountId) ?? 0));
+      }
+      if (gain > bestGain) { bestGain = gain; best = heroId; }
+    }
+    if (best == null) break;
+    engine.pickHero(best);
   }
 }
 
@@ -629,7 +685,8 @@ function playActions(economy: RunEconomy): void {
 function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = false): RunResult | null {
   let chargedActiveStages = 0;
   const engine = new RunEngine(data, config, seed);
-  greedyDraft(engine);
+  if (agent.optDraft) optimizingDraft(engine);
+  else greedyDraft(engine);
   const score = engine.score();
   if (!score || !engine.isComplete) return null;
 

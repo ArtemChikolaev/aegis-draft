@@ -7,6 +7,7 @@ import {
   tacticLabelParams,
   tacticMarketEffects,
   tacticRarityFactor,
+  widePoolProgress,
   type TacticContext,
   type TacticPlayer,
 } from "../src/game/tactics.ts";
@@ -169,6 +170,16 @@ describe("Wide Pool", () => {
     expect(tacticRarityFactor(["widePool"])).toBe(TACTICS.widePool.rarityFactor);
     expect(tacticRarityFactor(["lastDance"])).toBe(1);
     expect(tacticRarityFactor([])).toBe(1);
+  });
+
+  it("прогресс порога для UI: счётчик N из need считает назначенных героев (плейтест 2026-08-31)", () => {
+    const wide = wideHeroes();
+    const ctx = { ...baseContext(), assignedHeroes: wide };
+    expect(widePoolProgress(ctx)).toEqual({
+      distinct: distinctGameplayTags(wide),
+      need: TACTICS.widePool.minTags,
+    });
+    expect(widePoolProgress(baseContext())).toEqual({ distinct: 0, need: TACTICS.widePool.minTags });
   });
 });
 

@@ -17,7 +17,7 @@ import type { CampBuildView } from "./campMarketView.ts";
 
 export function BuildPanel(props: CampBuildView) {
   const { t } = useI18n();
-  const { camp, tactics, itemEval, power, onInspectCard, onTrade, onDiscard, onEnchant } = props;
+  const { camp, tactics, itemEval, power, widePoolProgress, onInspectCard, onTrade, onDiscard, onEnchant } = props;
   return (
     <div className="camp__build-col" data-testid="camp-tactics">
       <div className="camp__build-head">
@@ -166,7 +166,14 @@ export function BuildPanel(props: CampBuildView) {
               {/* Одна строка состояния: сработала карточка или нет. Полное разложение,
                   ограничение и подходящие герои живут в разборе по клику. */}
               <div className="camp-offer__deltas">
-                {idle && <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>}
+                {/* Wide Pool — пороговая карта: в idle показываем прогресс «N из 10», немое
+                    «не выполнено» не даёт понять, двигают ли пики к цели (плейтест 2026-08-31). */}
+                {idle && tacticId === "widePool" && (
+                  <span className="camp-slot__idle" data-testid="widepool-progress">
+                    {t("camp.widePoolProgress", { n: widePoolProgress.distinct, need: widePoolProgress.need })}
+                  </span>
+                )}
+                {idle && tacticId !== "widePool" && <span className="camp-slot__idle">{t("camp.tacticNoEffect")}</span>}
                 {item && contributions.slice(0, 1).map((source, i) => (
                   <span
                     key={i}

@@ -17,6 +17,8 @@ export interface CampBuildView {
   tactics: CampPowerEvaluation["tactics"];
   itemEval: CampPowerEvaluation["items"];
   power: CampPowerEvaluation["power"];
+  /** Прогресс порога Wide Pool — счётчик «N из 10» в idle-состоянии слота (плейтест 2026-08-31). */
+  widePoolProgress: { distinct: number; need: number };
   onInspectCard: (cardId: string) => void;
   onTrade: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
