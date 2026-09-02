@@ -320,6 +320,12 @@ const ru = {
   "camp.trade": "Обменять",
   "camp.tradeTitle": "Обмен: {card}",
   "camp.tradeHint": "Новая карта приходит тиром на один ниже отдаваемой. Edition и заряды сгорают; отданная карта больше не выпадет.",
+  "tactic.signatureSpecialists": "Signature Specialists",
+  "tactic.oldTeammates": "Old Teammates",
+  "tactic.freshProject": "Fresh Project",
+  "tactic.noSuperstars": "No Superstars",
+  "tactic.lastDance": "Last Dance",
+  "tactic.widePool": "Wide Pool",
   "tactic.desc.signatureSpecialists": "+Hero Synergy за каждого игрока, у которого на его герое есть pro-игры (до {n}). Игрок с OVR {star}+ вместо этого штрафует.",
   "tactic.desc.oldTeammates": "+Chemistry за каждую пару, сыгравшую вместе от {n} матчей. Цена: замена игрока на рынке дороже на {gold} золота.",
   "tactic.desc.freshProject": "+Chemistry самой слабой паре: каждый пройденный этап засчитывает ей {n} виртуальных co-games.",
@@ -1379,6 +1385,12 @@ const en: Dictionary = {
   "camp.trade": "Trade",
   "camp.tradeTitle": "Trade: {card}",
   "camp.tradeHint": "The new card arrives one tier below the one you give up. Edition and charges burn; the traded card never drops again.",
+  "tactic.signatureSpecialists": "Signature Specialists",
+  "tactic.oldTeammates": "Old Teammates",
+  "tactic.freshProject": "Fresh Project",
+  "tactic.noSuperstars": "No Superstars",
+  "tactic.lastDance": "Last Dance",
+  "tactic.widePool": "Wide Pool",
   "tactic.desc.signatureSpecialists": "+Hero Synergy per player with pro games on their hero (up to {n}). A player at {star}+ OVR penalises it instead.",
   "tactic.desc.oldTeammates": "+Chemistry per pair with {n}+ games together. Cost: replacing a player on the market costs {gold} more gold.",
   "tactic.desc.freshProject": "+Chemistry for the weakest pair: every stage cleared credits it {n} virtual co-games.",
@@ -2164,7 +2176,15 @@ export function campBuildLinksMessageKey(locale: Locale, count: number): Message
 }
 
 export function translate(locale: Locale, key: MessageKey, vars: Record<string, string | number> = {}): string {
-  return dictionaries[locale][key].replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));
+  const template: string | undefined = dictionaries[locale][key];
+  if (template === undefined) {
+    // Ключи часто собираются шаблоном (`${kind}.${id}`), и tsc их не проверяет. Отсутствующая
+    // строка — дефект локализации, а не повод ронять весь экран исключением (2026-09-02: удалённые
+    // как «мёртвые» `tactic.*` валили Буткемп целиком). Показываем ключ и шумим в dev.
+    if (import.meta.env.DEV) console.warn(`[i18n] missing key "${key}" for locale "${locale}"`);
+    return key;
+  }
+  return template.replace(/\{(\w+)\}/g, (_, name: string) => String(vars[name] ?? `{${name}}`));
 }
 
 export function detectLocale(stored: string | null, browserLanguage: string): Locale {
