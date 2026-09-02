@@ -274,17 +274,6 @@ func (m *RoomManager) RelayLog(code string) ([]RelayEntry, error) {
 	return out, nil
 }
 
-// RoomView — снапшот участников (для отладочных/REST нужд transport).
-func (m *RoomManager) RoomView(code string) ([]RoomMemberView, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	room, ok := m.rooms[code]
-	if !ok {
-		return nil, ErrRoomNotFound
-	}
-	return room.memberViews(), nil
-}
-
 // PruneRooms удаляет комнаты, где никого нет онлайн дольше ttl (и пустые старше ttl):
 // память одного инстанса не должна течь от брошенных лобби. Возвращает число удалённых.
 func (m *RoomManager) PruneRooms(ttl time.Duration) int {

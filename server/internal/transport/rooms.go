@@ -93,33 +93,45 @@ func envelope(msgType string, payload any) wsMessage {
 // медленным клиентом (переполнение канала = принудительный обрыв, reconnect его починит).
 type roomHub struct {
 	mu    sync.Mutex
-	rooms map[string]map[string]chan wsMessage // code → memberToken → outbox
+	rooms map[string]map[string]*wsPeer // code → memberToken → живое соединение
 }
 
+// wsPeer — одно живое соединение участника. Outbox закрывает ТОЛЬКО владелец (читатель сессии),
+// hub лишь сигналит `dropped`: читатель шлёт в outbox pong, а send в закрытый другим канал —
+// паника, от которой select/default не защищает.
+type wsPeer struct {
+	outbox  chan wsMessage
+	dropped chan struct{}
+	once    sync.Once
+}
+
+// drop просит писателя завершиться (идемпотентно: hub и reconnect могут сойтись на одном сокете).
+func (p *wsPeer) drop() { p.once.Do(func() { close(p.dropped) }) }
+
 func newRoomHub() *roomHub {
-	return &roomHub{rooms: make(map[string]map[string]chan wsMessage)}
+	return &roomHub{rooms: make(map[string]map[string]*wsPeer)}
 }
 
 // attach регистрирует сокет участника. Прежний сокет того же токена закрывается: reconnect
 // не плодит призраков и на транспортном уровне тоже (DoD MP0).
-func (h *roomHub) attach(code, token string) (outbox chan wsMessage, replaced chan wsMessage) {
+func (h *roomHub) attach(code, token string) (peer *wsPeer, replaced *wsPeer) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	if h.rooms[code] == nil {
-		h.rooms[code] = make(map[string]chan wsMessage)
+		h.rooms[code] = make(map[string]*wsPeer)
 	}
 	replaced = h.rooms[code][token]
-	outbox = make(chan wsMessage, 32)
-	h.rooms[code][token] = outbox
-	return outbox, replaced
+	peer = &wsPeer{outbox: make(chan wsMessage, 32), dropped: make(chan struct{})}
+	h.rooms[code][token] = peer
+	return peer, replaced
 }
 
 // detach снимает сокет, если он всё ещё текущий (reconnect мог уже заменить его новым).
-func (h *roomHub) detach(code, token string, outbox chan wsMessage) bool {
+func (h *roomHub) detach(code, token string, peer *wsPeer) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	current, ok := h.rooms[code][token]
-	if !ok || current != outbox {
+	if !ok || current != peer {
 		return false
 	}
 	delete(h.rooms[code], token)
@@ -129,17 +141,17 @@ func (h *roomHub) detach(code, token string, outbox chan wsMessage) bool {
 	return true
 }
 
-// broadcast шлёт сообщение всем живым сокетам комнаты. Забитый outbox закрывается:
-// висящий клиент не должен тормозить остальных.
+// broadcast шлёт сообщение всем живым сокетам комнаты. Забитый outbox выбрасывается из hub и
+// получает сигнал drop: висящий клиент не должен тормозить остальных, а его канал закроет владелец.
 func (h *roomHub) broadcast(code string, msg wsMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	for token, outbox := range h.rooms[code] {
+	for token, peer := range h.rooms[code] {
 		select {
-		case outbox <- msg:
+		case peer.outbox <- msg:
 		default:
 			delete(h.rooms[code], token)
-			close(outbox)
+			peer.drop()
 		}
 	}
 }
@@ -177,9 +189,10 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	token := joined.Token
 
-	outbox, replaced := s.roomHub.attach(code, token)
+	peer, replaced := s.roomHub.attach(code, token)
+	outbox := peer.outbox
 	if replaced != nil {
-		close(replaced) // старый писатель завершится и закроет прежний сокет
+		replaced.drop() // старый писатель завершится и закроет прежний сокет
 	}
 
 	// welcome — лично; presence — всем (включая нового: единый источник списка).
@@ -188,14 +201,14 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		Versions: joined.Versions, Members: joined.Members,
 	})
 	if err := wsjson.Write(ctx, conn, welcome); err != nil {
-		s.roomHub.detach(code, token, outbox)
+		s.roomHub.detach(code, token, peer)
 		return
 	}
 	// Реплей relay-лога — лично и ДО presence: вошедший (и переподключившийся) клиент обязан
 	// восстановить состояние режима раньше, чем начнёт получать живые relay-сообщения через hub.
 	if log, err := s.rooms.RelayLog(code); err == nil && len(log) > 0 {
 		if err := wsjson.Write(ctx, conn, envelope("relay_log", relayLogPayload{Entries: log})); err != nil {
-			s.roomHub.detach(code, token, outbox)
+			s.roomHub.detach(code, token, peer)
 			return
 		}
 	}
@@ -208,11 +221,27 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		Members: joined.Members,
 	}))
 
-	// Писатель: единственная горутина, пишущая в сокет после welcome.
+	// Писатель: единственная горутина, пишущая в сокет после welcome. На выходе CloseNow, не Close:
+	// closing handshake ждёт эха пира до 5с, а пир может не читать — это стойло задерживало бы
+	// teardown-рассылки (поймано транспортным тестом).
 	writerDone := make(chan struct{})
 	go func() {
 		defer close(writerDone)
-		for msg := range outbox {
+		for {
+			var msg wsMessage
+			select {
+			case <-peer.dropped:
+				// Сессию заменил reconnect или hub выкинул медленный сокет.
+				_ = conn.CloseNow()
+				return
+			case m, ok := <-outbox:
+				if !ok {
+					// Владелец закрыл канал: сессия завершилась штатно.
+					_ = conn.CloseNow()
+					return
+				}
+				msg = m
+			}
 			writeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			err := wsjson.Write(writeCtx, conn, msg)
 			cancel()
@@ -220,10 +249,6 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		// Канал закрыт: либо сессию заменил reconnect, либо hub выкинул медленный сокет.
-		// CloseNow, не Close: closing handshake ждёт эха пира до 5с, а пир может не читать —
-		// это стойло задерживало бы teardown-рассылки (поймано транспортным тестом).
-		_ = conn.CloseNow()
 	}()
 
 	// Читатель: ping/presence-жизнь. Любое валидное сообщение продлевает дедлайн.
@@ -266,7 +291,7 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 
 	// Сессия закончилась. Если сокет уже заменён reconnect'ом — участника не трогаем:
 	// его новая сессия живёт, а этот обрыв — просто смерть старого соединения.
-	if !s.roomHub.detach(code, token, outbox) {
+	if !s.roomHub.detach(code, token, peer) {
 		return
 	}
 	close(outbox)

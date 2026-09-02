@@ -20,7 +20,7 @@ import {
   decideDataAction,
   staleDataCaches,
 } from "./sw/policy.ts";
-import { OPTIONAL_DATA_FILES, REQUIRED_DATA_FILES, dataFilePath } from "./data/dataFiles.ts";
+import { DEFERRED_DATA_FILES, OPTIONAL_DATA_FILES, REQUIRED_DATA_FILES, dataFilePath } from "./data/dataFiles.ts";
 
 declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: { url: string; revision: string | null }[];
@@ -206,7 +206,7 @@ async function downloadBucket(hash: string, manifest: Response): Promise<void> {
   const manifestUrl = new URL(dataFilePath("manifest"), self.location.href).href;
   await cache.put(manifestUrl, manifest.clone());
 
-  for (const name of REQUIRED_DATA_FILES) {
+  for (const name of [...REQUIRED_DATA_FILES, ...DEFERRED_DATA_FILES]) {
     if (name === "manifest") continue;
     const url = new URL(dataFilePath(name), self.location.href).href;
     if (await cache.match(url, MATCH)) continue;

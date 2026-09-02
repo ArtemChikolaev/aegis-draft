@@ -10,17 +10,16 @@ import {
   createArenaRoom,
   type ArenaMember,
   type ArenaSocket,
-  type ArenaVersions,
   type RoomRelayEntry,
 } from "../data/api/arena.ts";
 import { ApiError } from "../data/api/index.ts";
-import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { ROLE_SEQUENCE, type RunConfig } from "../game/packs.ts";
 import { ARENA_DRAFT } from "../game/arenaDraft.ts";
 import { monogramOf, SIGIL_COLORS, type TournamentTeam } from "../game/tournament.ts";
 import { applyArenaEntry, arenaSimSeed, type ArenaMatchState } from "../game/arenaProtocol.ts";
 import { useRun, type Snapshot } from "./runStore.ts";
+import { clientVersions, roomTokenStore } from "./relayRoom.ts";
 import type { Format } from "../types/data.ts";
 
 export type ArenaStatus = "idle" | "connecting" | "lobby" | "error";
@@ -54,40 +53,7 @@ interface ArenaStore {
   dismissError: () => void;
 }
 
-/** Reconnection-токены per-код в sessionStorage: reload возвращает ТОГО ЖЕ участника
- *  (сервер по токену заменяет сессию — призрак не появляется). Session, не local:
- *  токен — секрет слота, переживать смену вкладки/устройства он не должен. */
-function tokenKey(code: string): string {
-  return `aegis:arena:token:${code}`;
-}
-
-function readToken(code: string): string {
-  try {
-    return sessionStorage.getItem(tokenKey(code)) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function writeToken(code: string, token: string): void {
-  try {
-    sessionStorage.setItem(tokenKey(code), token);
-  } catch {
-    /* приватный режим — reconnect просто станет новым входом */
-  }
-}
-
-/** Версии клиента для пина комнаты — те же оси, что у сейва/ссылки (runPersist/runLink). */
-function clientVersions(): ArenaVersions | null {
-  const manifest = useRun.getState().data?.manifest;
-  if (!manifest) return null;
-  return {
-    schemaVersion: manifest.schemaVersion,
-    ratingModelVersion: manifest.ratingModelVersion,
-    dataHash: manifest.dataHash,
-    balanceConfigVersion: BALANCE_CONFIG_VERSION,
-  };
-}
+const tokens = roomTokenStore("arena");
 
 let socket: ArenaSocket | null = null;
 /** Последний применённый seq relay-лога — страж от дублей (live после реплея). */
@@ -212,9 +178,9 @@ export const useArena = create<ArenaStore>((set, get) => {
     lastSeq = 0;
     clearRoundTimer();
     set({ status: "connecting", code, errorCode: null, match: null, serial: 0, roundDeadline: null });
-    socket = connectArenaRoom(code, name, readToken(code), versions, {
+    socket = connectArenaRoom(code, name, tokens.read(code), versions, {
       onWelcome: (welcome) => {
-        writeToken(code, welcome.token);
+        tokens.write(code, welcome.token);
         set({ status: "lobby", code: welcome.code, selfId: welcome.selfId, members: welcome.members });
       },
       onRelayLog: (entries) => {

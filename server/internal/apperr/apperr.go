@@ -10,9 +10,21 @@ type Error struct {
 	Status  int    `json:"-"`
 	Code    string `json:"code"`
 	Message string `json:"message"`
+	// Err — внутренняя причина (драйвер БД, подписант токена). В ответ клиенту не попадает,
+	// transport пишет её в лог для 5xx: без этого сбой хранилища был невидим в проде.
+	Err error `json:"-"`
 }
 
 func (e *Error) Error() string { return e.Message }
+
+// Unwrap — чтобы errors.Is/As видели причину сквозь доменную ошибку.
+func (e *Error) Unwrap() error { return e.Err }
+
+// Wrap прикладывает причину и возвращает ту же ошибку (для цепочки apperr.Internal("…").Wrap(err)).
+func (e *Error) Wrap(err error) *Error {
+	e.Err = err
+	return e
+}
 
 // New конструирует доменную ошибку.
 func New(status int, code, message string) *Error {

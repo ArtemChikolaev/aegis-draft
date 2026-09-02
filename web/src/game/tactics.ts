@@ -103,16 +103,6 @@ export const TACTICS = {
   },
 } as const;
 
-/** Слагаемое, которое усиливает карточка — для группировки в UI и подсказки при выборе. */
-export const TACTIC_SUMMAND: Record<TacticId, Summand> = {
-  signatureSpecialists: "heroSynergy",
-  oldTeammates: "chemistry",
-  freshProject: "chemistry",
-  noSuperstars: "chemistry",
-  lastDance: "base",
-  widePool: "heroSynergy",
-};
-
 export interface TacticPlayer {
   accountId: number;
   ovr: number;

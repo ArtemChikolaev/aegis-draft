@@ -11,15 +11,14 @@ import {
   createArenaRoom,
   type ArenaMember,
   type ArenaSocket,
-  type ArenaVersions,
   type RoomRelayEntry,
 } from "../data/api/arena.ts";
 import { ApiError } from "../data/api/index.ts";
-import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { applyDuelEntry, type DuelMatch, type DuelPlayAction, type DuelStartAction } from "../game/duelProtocol.ts";
 import { DUEL, duelFallbackAction, type DuelConfig, type DuelSide } from "../game/duel.ts";
 import { useRun } from "./runStore.ts";
+import { clientVersions, roomTokenStore } from "./relayRoom.ts";
 
 export type DuelStatus = "idle" | "connecting" | "lobby" | "error";
 
@@ -48,39 +47,7 @@ interface DuelStore {
   dismissError: () => void;
 }
 
-/** Reconnection-токены — как у Arena (sessionStorage, секрет слота), свой неймспейс. */
-function tokenKey(code: string): string {
-  return `aegis:duel:token:${code}`;
-}
-
-function readToken(code: string): string {
-  try {
-    return sessionStorage.getItem(tokenKey(code)) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-function writeToken(code: string, token: string): void {
-  try {
-    sessionStorage.setItem(tokenKey(code), token);
-  } catch {
-    /* приватный режим — reconnect просто станет новым входом */
-  }
-}
-
-/** Версии клиента для пина комнаты — оба капитана обязаны сойтись датасетом и балансом,
- *  иначе паки и счёт разъедутся (тот же контракт, что у Arena/сейва/ссылки). */
-function clientVersions(): ArenaVersions | null {
-  const manifest = useRun.getState().data?.manifest;
-  if (!manifest) return null;
-  return {
-    schemaVersion: manifest.schemaVersion,
-    ratingModelVersion: manifest.ratingModelVersion,
-    dataHash: manifest.dataHash,
-    balanceConfigVersion: BALANCE_CONFIG_VERSION,
-  };
-}
+const tokens = roomTokenStore("duel");
 
 let socket: ArenaSocket | null = null;
 /** Последний применённый seq: страж от дублей (live-сообщение после реплея лога). */
@@ -154,9 +121,9 @@ export const useDuel = create<DuelStore>((set, get) => {
     lastSeq = 0;
     clearTurnTimer();
     set({ status: "connecting", code, errorCode: null, match: null, turnDeadline: null });
-    socket = connectArenaRoom(code, name, readToken(code), versions, {
+    socket = connectArenaRoom(code, name, tokens.read(code), versions, {
       onWelcome: (welcome) => {
-        writeToken(code, welcome.token);
+        tokens.write(code, welcome.token);
         set({ status: "lobby", code: welcome.code, selfId: welcome.selfId, members: welcome.members });
       },
       onRelayLog: (entries) => {

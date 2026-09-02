@@ -106,12 +106,12 @@ export function BuildPanel(props: CampBuildView) {
                   {/* Edition (R13.5/LG4): бейдж; полное правило — в разборе. */}
                   {camp.cardEditions[tacticId] === "charged" && (
                     <span className="edition-badge" data-testid={`build-edition-${tacticId}`}>
-                      ⚡ {t("edition.charged")} {camp.cardCharges[tacticId] ?? 0}/{chargeCapForRarity(item ? cardRarity : null)}
+                      <span aria-hidden="true">⚡</span> {t("edition.charged")} {camp.cardCharges[tacticId] ?? 0}/{chargeCapForRarity(item ? cardRarity : null)}
                     </span>
                   )}
                   {camp.cardEditions[tacticId] === "tempered" && (
                     <span className="edition-badge edition-badge--tempered" data-testid={`build-edition-${tacticId}`}>
-                      🛡 {t("edition.tempered")}
+                      <span aria-hidden="true">🛡</span> {t("edition.tempered")}
                     </span>
                   )}
                   {/* Зачарование (LG6): у карты без Edition и при наличии токена — выбор
@@ -124,13 +124,13 @@ export function BuildPanel(props: CampBuildView) {
                         data-testid={`enchant-charged-${tacticId}`}
                         title={t("camp.enchantChargedHint")}
                         onClick={() => { sfxBuy(); onEnchant(tacticId, "charged"); }}
-                      >⚡ {t("edition.charged")}</button>
+                      ><span aria-hidden="true">⚡</span> {t("edition.charged")}</button>
                       <button
                         type="button"
                         data-testid={`enchant-tempered-${tacticId}`}
                         title={t("camp.enchantTemperedHint")}
                         onClick={() => { sfxBuy(); onEnchant(tacticId, "tempered"); }}
-                      >🛡 {t("edition.tempered")}</button>
+                      ><span aria-hidden="true">🛡</span> {t("edition.tempered")}</button>
                     </span>
                   )}
                 </span>

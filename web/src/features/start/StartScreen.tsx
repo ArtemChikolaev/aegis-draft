@@ -8,6 +8,7 @@ import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/pack
 import type { Format } from "../../types/data.ts";
 import { Button, Eyebrow, Modal, OptionGroup, type Option, Select, Surface } from "../../ui/index.ts";
 import { createRunSeed } from "../../game/rng.ts";
+import { DAILY_CONFIG, dailyDateKey, dailySeed, formatDailyDate } from "../../game/daily.ts";
 import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
 import { realTournamentEvents } from "../../game/realTournament.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
@@ -102,7 +103,7 @@ export function StartScreen() {
   const data = useRun((state) => state.data);
   const formats = data?.manifest.formats ?? [];
   const teamSuccess = data?.teamSuccess;
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const mode = useRun((state) => state.selectedMode);
   const setMode = useRun((state) => state.setSelectedMode);
   const startStep = useRun((state) => state.startStep);
@@ -205,6 +206,15 @@ export function StartScreen() {
     start(config, seedValidation.link?.seed ?? createRunSeed());
   };
 
+  // Дейлик (PRD §5.14): фиксированный конфиг Quick Draft + сид дня. Запись сегодняшнего
+  // результата ищем в карьере по сиду — это и есть вся «серверная» часть дейлика.
+  const todaySeed = dailySeed();
+  const todayEntry = useCareer((state) => state.entries.find((entry) => entry.seed === todaySeed) ?? null);
+  const onDaily = () => {
+    setMode("classic");
+    start(DAILY_CONFIG, todaySeed);
+  };
+
   if (startStep === "variants") {
     return (
       <main className="mode-select variant-select">
@@ -235,6 +245,20 @@ export function StartScreen() {
             <span className="mode-card__action">{t("start.variantAction")} →</span>
           </button>
         </div>
+        <Surface className="daily-card" data-testid="daily-card">
+          <div className="daily-card__copy">
+            <Eyebrow>{t("daily.title")}</Eyebrow>
+            <p>{t("daily.text")}</p>
+            {todayEntry && (
+              <p className="daily-card__status" data-testid="daily-status">
+                {t("daily.playedToday", { place: t(`tournament.place.${todayEntry.placement}` as MessageKey) })}
+              </p>
+            )}
+          </div>
+          <Button variant="primary" data-testid="daily-play" disabled={!data} onClick={onDaily}>
+            {t("daily.play", { date: formatDailyDate(dailyDateKey(), locale) })}
+          </Button>
+        </Surface>
       </main>
     );
   }

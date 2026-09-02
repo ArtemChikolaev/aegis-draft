@@ -15,10 +15,10 @@
 .secondaryInvert:hover:not(:disabled) { border-color: var(--brand-green); }
 .secondaryInvert:disabled { opacity: .4; }
 
-.danger { padding: 10px 14px; color: #fff; border-radius: 999px; background: #b84435; }
-.danger:hover:not(:disabled) { background: #ce503f; }
+.danger { padding: 10px 14px; color: var(--on-danger); border-radius: 999px; background: var(--danger-fill); }
+.danger:hover:not(:disabled) { background: var(--danger-fill-hover); }
 
-.leave { min-width: 210px; margin-bottom: 6px; padding: 12px 20px; color: #17120f; border-radius: 999px; background: var(--ember); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.leave { min-width: 210px; margin-bottom: 6px; padding: 12px 20px; color: var(--on-ember); border-radius: 999px; background: var(--ember); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
 .leave:hover:not(:disabled) { filter: brightness(1.08); }
 
 .back { margin: 4px 0 0; padding: 6px 0; color: var(--muted); border-radius: 0; background: transparent; font-size: 12px; font-weight: 700; }

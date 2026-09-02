@@ -16,15 +16,18 @@ export const REQUIRED_DATA_FILES = [
   "playerHeroStats",
   "teammates",
   "squadSynergy",
-  "eventHeroStats",
   "teamSuccess",
 ] as const;
+
+/** Файлы, нужные не на старте, а по первому обращению (инспектор игрока). Для офлайн-кэша они
+ *  обязательны как и REQUIRED — набор атомарен; отложена только загрузка в игру. */
+export const DEFERRED_DATA_FILES = ["eventHeroStats"] as const;
 
 /** Файлы, которых может не быть в датасете (эмитятся отдельной стадией пайплайна).
  *  Их отсутствие — не ошибка ни для загрузки игры, ни для полноты офлайн-кэша. */
 export const OPTIONAL_DATA_FILES = ["careerPlayerHeroStats"] as const;
 
-export type DataFile = (typeof REQUIRED_DATA_FILES)[number] | (typeof OPTIONAL_DATA_FILES)[number];
+export type DataFile = (typeof REQUIRED_DATA_FILES)[number] | (typeof DEFERRED_DATA_FILES)[number] | (typeof OPTIONAL_DATA_FILES)[number];
 
 // Компайл-тайм замок: имя файла = ключ GameData, и списки покрывают модель ровно. Добавили поле в
 // GameData, не добавив файл (или наоборот) — падает `tsc`, а не офлайн-запуск у игрока.

@@ -20,11 +20,11 @@ import {
 export type SummandKey = "base" | "heroSynergy" | "chemistry";
 
 /** Порядок разбора совпадает с формулой `Team OVR = Base + Hero Synergy + Chemistry`. */
-export const SUMMAND_KEYS: readonly SummandKey[] = ["base", "heroSynergy", "chemistry"];
+const SUMMAND_KEYS: readonly SummandKey[] = ["base", "heroSynergy", "chemistry"];
 
 /** Незначимая дельта. Ниже порога строка не несёт информации и на экран не попадает —
  *  `TEAM OVR 0` в плейтесте был чистым шумом. */
-export const DELTA_EPSILON = 0.01;
+const DELTA_EPSILON = 0.01;
 
 export interface SummandDelta {
   summand: SummandKey;
@@ -96,18 +96,3 @@ export function summandDeltas(
   });
 }
 
-/**
- * Главная цифра карточки — суммарный сдвиг силы состава.
- *
- * Считается ИЗ ТЕХ ЖЕ дельт, что покажет инспектор, а не отдельной арифметикой: иначе число на
- * карточке и разбор под ней могли бы разойтись — ровно тот класс расхождения, который уже чинили
- * у превью рынка и у описаний предметов.
- */
-export function totalDelta(deltas: readonly SummandDelta[]): number {
-  return deltas.reduce((sum, row) => sum + row.delta, 0);
-}
-
-/** Показывать ли дельту вообще. */
-export function isSignificant(delta: number): boolean {
-  return Math.abs(delta) >= DELTA_EPSILON;
-}

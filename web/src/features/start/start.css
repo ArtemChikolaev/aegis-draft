@@ -27,6 +27,15 @@
 .variant-select .mode-select__heading > p:last-child { max-width: 520px; margin: 0; }
 .variant-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .variant-grid .mode-card::before { opacity: .9; }
+/* Дейлик под карточками вариантов: не третья карточка (у него нет своего «мира»), а строка-приглашение
+   с одним действием. Кнопка справа на широком экране, под текстом — на узком. */
+.daily-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 18px; padding: 18px 22px; }
+.daily-card__copy { display: grid; gap: 6px; }
+.daily-card__copy p { max-width: 560px; margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.daily-card__status { color: var(--text); font-weight: 700; }
+@media (max-width: 680px) { /* bp.md */
+  .daily-card { flex-direction: column; align-items: stretch; }
+}
 .mode-card--quick::before {
   background:
     radial-gradient(circle at 72% 28%, var(--brand-art-hot) 0 2%, color-mix(in srgb, var(--brand-art-hot) 55%, transparent) 8%, transparent 17%),

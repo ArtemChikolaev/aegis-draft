@@ -18,7 +18,7 @@ export function screenShakeEnabled(): boolean {
   return readCached(SHAKE_KEY) !== "off";
 }
 
-export function setScreenShakeEnabled(enabled: boolean): void {
+function setScreenShakeEnabled(enabled: boolean): void {
   void writePersisted(SHAKE_KEY, enabled ? "on" : "off");
   for (const listener of shakeListeners) listener();
 }

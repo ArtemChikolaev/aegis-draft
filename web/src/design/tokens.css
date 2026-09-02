@@ -22,6 +22,10 @@
   --blue: #8bbcff;
   --gold: #ffc66b;
   --danger: #ff806d;
+  --danger-fill: #b84435; /* заливка кнопки danger: сигнальный --danger как фон слишком светлый */
+  --danger-fill-hover: #ce503f;
+  --on-danger: #fff;
+  --on-ember: #17120f; /* текст на кнопке цвета --ember */
   --shadow: none;
   --radius: 18px;
 
@@ -189,6 +193,10 @@ html[data-theme="light"] {
   --blue: #315fae;
   --gold: #996311;
   --danger: #c63e2b;
+  --danger-fill: #c63e2b;
+  --danger-fill-hover: #d94a36;
+  --on-danger: #fff;
+  --on-ember: #fff;
   --shadow: none;
 
   --role-safelane: #337f18;

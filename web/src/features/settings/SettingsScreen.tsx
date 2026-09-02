@@ -220,8 +220,8 @@ export function SettingsScreen() {
               <dd>{new Date(offline.datasetBuiltAt).toLocaleDateString(locale)} · {shortHash(offline.datasetHash)}</dd>
             </div>
           )}
-          {formatBytes(offline?.usageBytes ?? null) && (
-            <div><dt>{t("offline.usage")}</dt><dd>{formatBytes(offline?.usageBytes ?? null)}</dd></div>
+          {formatBytes(offline?.usageBytes ?? null, t("units.mb")) && (
+            <div><dt>{t("offline.usage")}</dt><dd>{formatBytes(offline?.usageBytes ?? null, t("units.mb"))}</dd></div>
           )}
         </dl>
 

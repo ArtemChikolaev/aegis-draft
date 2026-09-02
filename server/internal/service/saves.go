@@ -32,7 +32,7 @@ func (s *SaveService) Get(ctx context.Context, userID uuid.UUID, kind string) (*
 		return nil, apperr.NotFound("no_save", "save not found")
 	}
 	if err != nil {
-		return nil, apperr.Internal("save read failed")
+		return nil, apperr.Internal("save read failed").Wrap(err)
 	}
 	return &sv, nil
 }
@@ -51,7 +51,7 @@ func (s *SaveService) Put(ctx context.Context, w model.SaveWrite) (*model.Save, 
 		return &sv, apperr.Conflict("rev_conflict", "save revision conflict")
 	}
 	if err != nil {
-		return nil, apperr.Internal("save write failed")
+		return nil, apperr.Internal("save write failed").Wrap(err)
 	}
 	return &sv, nil
 }

@@ -213,15 +213,6 @@ export function heroSynergyTier(value: number): "great" | "insane" | null {
   return tierOf(value, TIERS.heroSynergy);
 }
 
-/** Пороговые подписи Base и Chemistry — в 322-0 они тоже с подписями (у них «90 BASE / GREAT»). */
-export function baseTier(value: number): "great" | "insane" | null {
-  return tierOf(value, TIERS.base);
-}
-
-export function chemistryTier(value: number): "great" | "insane" | null {
-  return tierOf(value, TIERS.chemistry);
-}
-
 /** Строки Squad Chemistry для UI, по убыванию бонуса. */
 export function squadChemistryRows(
   roster: Array<{ candidate: Candidate | null }>,

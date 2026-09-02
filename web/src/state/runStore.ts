@@ -46,6 +46,9 @@ type Phase = "loading" | "start" | "draft" | "prep" | "tournament" | "camp";
 export type StartStep = "modes" | "variants" | "config";
 export type { RunMode } from "./runPersist.ts";
 
+/** Один источник на приложение: отложенные файлы (eventHeroStats) кэшируются внутри него. */
+const dataSource = new StaticDataSource();
+
 const DEFAULT_START_CONFIG: RunConfig = {
   draftStyle: "team",
   format: "last_2y",
@@ -180,6 +183,10 @@ interface RunStore {
   campCelebration: boolean;
 
   loadData: () => Promise<void>;
+  /** Дотянуть отложенный eventHeroStats (инспектор игрока). Кладётся в тот же объект `data`
+   *  без замены ссылки: это заполнение кэша, а не новое состояние — эффекты и мемо на `data`
+   *  перезапускать незачем. Повторный вызов после загрузки — no-op. */
+  loadEventHeroStats: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
   pickPlayer: (idx: number) => void;
   pickHero: (heroId: number) => void;
@@ -426,6 +433,44 @@ function runLinkFromStartParam(): RunLink | null {
   return param ? decodeRunLink(param) : null;
 }
 
+
+/** Пересчитать цены уже подготовленных предложений рынка от актуального состава/тира
+ *  (после покупки, при синке Буткемпа). Множитель цен мутатора круга — обязателен, иначе refresh
+ *  молча вернул бы цену улучшения к базовой (см. refreshAnteMarketOffers). */
+function refreshMarketOffers(economy: RunEconomy, engine: RunEngine, seed: string, config: RunConfig | null): void {
+  economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
+    engine,
+    economy.campView().marketOffers,
+    marketCostFactor(seed, economy.snapshot.campStageIndex, undefined, stakesOf(config)),
+    economy.heroRarity,
+    economy.equippedTactics,
+  ));
+}
+
+/** Привести рынок Буткемпа к состоянию экономики: подготовленные предложения — освежить цены,
+ *  иначе (свежий лагерь, старый сейв без рулетки) — собрать рулетку заново. Единая точка для
+ *  синка, открытия лагеря и resume: раньше эти четыре копии дрейфовали по опциям рулетки. */
+function syncMarketOffers(economy: RunEconomy, engine: RunEngine, seed: string, config: RunConfig | null): void {
+  const economyState = economy.snapshot;
+  if (economyState.preparedMarketOffers) {
+    refreshMarketOffers(economy, engine, seed, config);
+    return;
+  }
+  economy.prepareMarketOffers(buildAnteMarketRoulette(
+    engine,
+    seed,
+    economyState.campStageIndex,
+    economyState.marketRerolls,
+    economy.equippedTactics,
+    {
+      rarityDrops: economy.rarityDropsEnabled,
+      stakes: stakesOf(config),
+      stageCount: SEASON.stages.length,
+      heroRarity: economy.heroRarity,
+    },
+  ));
+}
+
 export const useRun = create<RunStore>((set, get) => {
   // Сохранить текущий забег (config+seed+лог) под версию активного датасета.
   // Плей-офф с canAdvance=false — ещё НЕ финал для игрока: идёт reveal-анимация.
@@ -601,30 +646,7 @@ export const useRun = create<RunStore>((set, get) => {
   const syncCamp = () => {
     const { economy, engine, seed } = get();
     if (!economy || !engine) return;
-    const economyState = economy.snapshot;
-    if (economyState.preparedMarketOffers) {
-      economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
-        engine,
-        economy.campView().marketOffers,
-        marketCostFactor(seed, economyState.campStageIndex, undefined, stakesOf(get().config)),
-        economy.heroRarity,
-        economy.equippedTactics,
-      ));
-    } else {
-      economy.prepareMarketOffers(buildAnteMarketRoulette(
-        engine,
-        seed,
-        economyState.campStageIndex,
-        economyState.marketRerolls,
-        economy.equippedTactics,
-        {
-                rarityDrops: economy.rarityDropsEnabled,
-                stakes: stakesOf(get().config),
-                stageCount: SEASON.stages.length,
-                heroRarity: economy.heroRarity,
-              },
-      ));
-    }
+    syncMarketOffers(economy, engine, seed, get().config);
     const tactics = evaluateRunTactics();
     // Босс ПРЕДСТОЯЩЕГО этапа: в Буткемпе ante.index уже указывает на следующий этап.
     const upcoming = get().ante?.index ?? 0;
@@ -740,22 +762,8 @@ export const useRun = create<RunStore>((set, get) => {
     // своя причина продолжать — иначе бесконечная фаза это только растущая угроза без ответа.
     if (grantsDynastyTitle(nextIndex - 1)) economy.awardDynastyTitle(nextIndex);
     economy.openCamp(nextIndex);
-    if (engine) {
-      const economyState = economy.snapshot;
-      economy.prepareMarketOffers(buildAnteMarketRoulette(
-        engine,
-        seed,
-        economyState.campStageIndex,
-        economyState.marketRerolls,
-        economy.equippedTactics,
-        {
-          rarityDrops: economy.rarityDropsEnabled,
-          stakes: stakesOf(get().config),
-          stageCount: SEASON.stages.length,
-          heroRarity: economy.heroRarity,
-        },
-      ));
-    }
+    // openCamp только что сбросил preparedMarketOffers — здесь это всегда свежая рулетка.
+    if (engine) syncMarketOffers(economy, engine, seed, get().config);
     const campTactics = evaluateRunTactics();
     return {
       resultsSeen: false,
@@ -809,7 +817,7 @@ export const useRun = create<RunStore>((set, get) => {
         // Сейв и имя команды читаем ПАРАЛЛЕЛЬНО с данными: в Telegram это поход в CloudStorage,
         // и последовательные ожидания сложились бы в заметную паузу перед стартовым экраном.
         const [data, rawSaved, savedTeamName] = await Promise.all([
-          new StaticDataSource().load(),
+          dataSource.load(),
           loadSavedRunAsync(),
           loadTeamNameAsync(),
         ]);
@@ -844,6 +852,14 @@ export const useRun = create<RunStore>((set, get) => {
       } catch (e) {
         set({ error: e instanceof Error ? e.message : String(e) });
       }
+    },
+
+    async loadEventHeroStats() {
+      const data = get().data;
+      if (!data || data.eventHeroStats) return;
+      const stats = await dataSource.loadEventHeroStats();
+      const current = get().data;
+      if (current && !current.eventHeroStats) current.eventHeroStats = stats;
     },
 
     start(config, seed) {
@@ -1107,32 +1123,7 @@ export const useRun = create<RunStore>((set, get) => {
             // Экономика: восстанавливаем валюту/покупки, применяем их модификаторы к полю этапа.
             economy = new RunEconomy(resumable.seed, resumable.economy);
             economy.setStakes(stakesOf(resumable.config));
-            if (economy.snapshot.inCamp) {
-              const economyState = economy.snapshot;
-              if (economyState.preparedMarketOffers) {
-                economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
-                  engine,
-                  economy.campView().marketOffers,
-                  marketCostFactor(resumable.seed, economyState.campStageIndex, undefined, stakesOf(resumable.config)),
-                  economy.heroRarity,
-                  economy.equippedTactics,
-                ));
-              } else {
-                economy.prepareMarketOffers(buildAnteMarketRoulette(
-                  engine,
-                  resumable.seed,
-                  economyState.campStageIndex,
-                  economyState.marketRerolls,
-                  economy.equippedTactics,
-                  {
-                rarityDrops: economy.rarityDropsEnabled,
-                stakes: stakesOf(resumable.config),
-                stageCount: SEASON.stages.length,
-                heroRarity: economy.heroRarity,
-              },
-                ));
-              }
-            }
+            if (economy.snapshot.inCamp) syncMarketOffers(economy, engine, resumable.seed, resumable.config);
             // Условные Tactics восстанавливаются из ростера, а не из сейва (их вклад — производная
             // состава); складываем с экономикой в поле этапа, чтобы resume совпал с исходным полем.
             const tacticCtx = buildTacticContext(
@@ -1408,13 +1399,7 @@ export const useRun = create<RunStore>((set, get) => {
           economy.rollHeroRarity(offer.heroSwap.incomingHeroId, economy.snapshot.campStageIndex);
         }
         const snapshot = snap(engine);
-        economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
-          engine,
-          economy.campView().marketOffers,
-          marketCostFactor(get().seed, economy.snapshot.campStageIndex, undefined, stakesOf(get().config)),
-          economy.heroRarity,
-          economy.equippedTactics,
-        ));
+        refreshMarketOffers(economy, engine, get().seed, get().config);
         // Замена меняет состав → условные Tactics пересчитываются (напр. new star гасит No Superstars).
         set({ snapshot, economyView: economy.snapshot, camp: economy.campView(), tactics: evaluateRunTactics() });
         if (action) record(action);

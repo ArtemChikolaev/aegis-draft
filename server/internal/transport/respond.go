@@ -24,6 +24,9 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 // Не-доменная ошибка → 500 internal (детали не утекают клиенту).
 func writeError(w http.ResponseWriter, err error) {
 	if appErr, ok := err.(*apperr.Error); ok {
+		if appErr.Status >= http.StatusInternalServerError && appErr.Err != nil {
+			log.Printf("[transport] %s: %v", appErr.Code, appErr.Err)
+		}
 		writeJSON(w, appErr.Status, appErr)
 		return
 	}

@@ -210,3 +210,32 @@ func TestRoomSocketRejectsVersionMismatchAndUnknownRoom(t *testing.T) {
 		t.Fatalf("expected room_not_found, got %s %s", msg.Type, string(msg.Payload))
 	}
 }
+
+// Медленный сокет: hub выкидывает его из комнаты сигналом drop, а не закрытием канала —
+// иначе pong читателя в уже закрытый outbox паниковал бы (select/default от этого не спасает).
+func TestRoomHubDropsSlowPeerWithoutClosingOutbox(t *testing.T) {
+	hub := newRoomHub()
+	peer, replaced := hub.attach("ROOM", "token")
+	if replaced != nil {
+		t.Fatal("fresh attach must not replace anything")
+	}
+	for i := 0; i < cap(peer.outbox); i++ {
+		hub.broadcast("ROOM", envelope("relay", i))
+	}
+	hub.broadcast("ROOM", envelope("relay", "overflow"))
+	select {
+	case <-peer.dropped:
+	default:
+		t.Fatal("overflowing peer must be dropped")
+	}
+	if hub.detach("ROOM", "token", peer) {
+		t.Fatal("dropped peer must already be gone from the hub")
+	}
+	// Владелец всё ещё может писать в свой outbox (как читатель делает с pong) и закрыть его сам.
+	select {
+	case peer.outbox <- envelope("pong", struct{}{}):
+	default:
+	}
+	peer.drop() // повторный drop — no-op, не паника
+	close(peer.outbox)
+}

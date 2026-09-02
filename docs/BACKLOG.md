@@ -2832,6 +2832,39 @@ M5R: правки презентационные, `Rng`-поток и golden н�
 
 **Что НЕ делаем в M11:** офлайн-Arena с локальными ботами под видом онлайна (подмена сути режима); офлайн-очередь серверных записей (сейвы/лидерборд/дейлик — это M8, принцип «локальная игра работает всегда, записи синкаются при реконнекте» зафиксирован в ADR 0003); свой слой хранения данных в IndexedDB вместо Cache API.
 
+## M12 — Ревизия кода и продукта 2026-09-02 (аудит трёх слоёв: game/state · UI · Go/infra)
+Метод: три параллельных read-only аудита с доказательствами `file:line`, затем внедрение только подтверждённого. Базовая линия до/после: `tsc` чистый, 663→667 unit-тестов, Go оба модуля зелёные.
+
+### T12.1 — Дейлик без сервера ✅ (2026-09-02, PRD §5.14)
+`game/daily.ts` (сид дня по UTC + фиксированный конфиг), карточка под вариантами Classic, бейдж в карьере, статус «сегодня сыграно» по записи карьеры. Тесты `test/daily.test.ts` (детерминизм первого пака на общем сиде). Лидерборд — по-прежнему M8.
+
+### T12.2 — Отложенная загрузка `eventHeroStats` ✅ (2026-09-02)
+Файл 3.7 МБ читал только `PlayerInspector`; теперь `DEFERRED_DATA_FILES` + `useRun().loadEventHeroStats()` по первому открытию (в SW-ведро офлайна входит как раньше). Проверено сетью: на старте запроса нет, после открытия инспектора — есть. Следующий кандидат — `squadSynergy` (8.5 МБ, нужен только с первого пика): требует ожидания перед `start()`, отложено. ⬜
+
+### T12.3 — Дедуп и мёртвый код (web) ✅ (2026-09-02)
+Пересборка рынка Буткемпа в `runStore` — 4 копии → `syncMarketOffers`/`refreshMarketOffers`; общая обвязка relay-комнат Arena/Duel → `state/relayRoom.ts`; удалены агрегатор `BALANCE` (ни одного потребителя, тянул 10 импортов) и 9 мёртвых экспортов; 44 неиспользуемых i18n-ключа ×2 локали; 21 мёртвый CSS-класс; две русские строки в EN-локали (`packs.ts` sublabel, `formatBytes` «МБ») → i18n; `Button .danger/.leave` — на токены (`--danger-fill`, `--on-danger`, `--on-ember`, раньше кнопка была слепа к теме); эмодзи в кнопках Edition скрыты от скринридера.
+
+### T12.4 — Go: баги и мёртвый код ✅ (2026-09-02)
+- **WebSocket-hub:** `broadcast` закрывал outbox медленного клиента, а читатель той же сессии слал в него pong — send в закрытый канал = паника (select/default не защищает). Теперь hub сигналит `dropped`, канал закрывает только владелец; тест `TestRoomHubDropsSlowPeerWithoutClosingOutbox`.
+- **Ключ raw-кэша** считался от URL с `api_key`: включение/ротация ключа делала весь кэш невидимым и сжигала бюджет. Хеш — от URL без auth-параметров, старые файлы мигрируют переименованием; тест.
+- **`enrichTeamLogos`:** итерация по map (порядок случайный под бюджетом) → сортировка id, остановка по `ctx.Err()`/`ErrBudgetExhausted`.
+- **Сервисный слой** терял причину `Internal`-ошибок (сбой БД был невидим в логах): `apperr.Error.Err` + `Wrap`, transport логирует причину 5xx.
+- **nginx:** `add_header` в `location` отменяет наследование — ни один ответ не получал security-заголовки; вынесены в `security-headers.conf` и включены в каждый location.
+- **data-refresh:** `builtAt` меняется каждым прогоном, guard «данные не изменились» был недостижим → сравнение без `manifest.json` (dataHash покрывает только файлы данных).
+- Удалены: мёртвый пакет `internal/teamsuccess` (~470 строк, дубли `clamp100/round2/utcDate/finite`), `RoomView`, недостижимая ветка `Retry-After` в `backoffFor`.
+- CI: кэш go-build для пайплайна (setup-go без go.sum ключ не строит), кэш Chromium Playwright; vendor-чанк React/Zustand со стабильным хешем (541+144 КБ вместо одного 689).
+
+### T12.5 — Кандидаты, не взятые в этот проход ⬜
+- **Разрезы файлов:** `anteEconomy.ts` (1445: types+ECONOMY / чистые cost-функции / генерация офферов / класс), `manager/engine.ts` (генерация мира отделима), `ManagerScreen.tsx` (10 подкомпонентов — файл на компонент), `StartScreen.tsx` (ModeSelect / VariantSelect / RunConfigPanel). Механика чистая, но churn большой — делать по одному вместе с ближайшей задачей в том файле.
+- **`CampScreen` без мемоизации:** `evaluateCampPower` и `previewPower` пересчитываются на каждый рендер (8 `useState` в экране) и вызываются внутри `.map()` рынка. Вынести guard в обёртку + `useMemo`/`useCallback`; аудит замыканий обязателен.
+- **`OvrBadge`-примитив:** 9 ручных копий `playerOvrTier` + разметки OVR (`DraftScreen`, `Pentagon`, `TournamentScreen`, `ManagerScreen`×5, `CampCards`).
+- **Три проверки совместимости сейва** (`runPersist.isRunCompatible`, `managerStore.isSavedManagerCompatible`, `runLink.runLinkIssue`) с разной обработкой `dataBuiltAt` — свести в `state/dataVersions.ts`, сперва тест на managerStore (его нет).
+- **Тестовые дыры:** `arenaStore`/`duelStore` (reconnect, таймеры, модульное состояние), `managerStore`, `data/api/arena.ts`, `server/internal/model`.
+- **Сим-скрипты:** `sweep_seeds_both.ts` и `sim_run.ts` держат по 7 одинаковых хелперов и уже расходятся (stakes, useBoss) — общий `scripts/lib/sim_shared.ts`. Пока оба лишь подключены в `package.json` (`sim:sweep`, `sim:find-seed`).
+- **Сервер:** нет капа длины relay-лога и числа комнат, `POST /api/rooms` без rate-limit; graceful shutdown не дренит ws-сессии; `log.Fatalf` в горутине слушателя обходит `defer db.Close()`.
+- **Пайплайн:** `collectDetails` под `--match-detail-limit` берёт первые N матчей и оставляет `DetailsComplete=false` навсегда — семантика лимита («первые N» vs «N за прогон») не задокументирована; transient-ошибка источника маскируется под `ErrBudgetExhausted` (вечный «добор в след. прогоне» на одном битом матче).
+- **Данные:** `squadSynergy.json` 8.5 МБ — половина датасета; при первом заходе это главная цена, а не JS. Варианты: отложить до выбора режима с ожиданием перед `start()`, либо резать формат (data-contract).
+
 ## Открытые вопросы (из PRD §10, решить по ходу)
 - **A. Решено.** Mixed Draft — свободный порядок незаполненных ролей; support ×2 взаимозаменяемы.
 - **B.** Калибровка Peak `v1.1.0`: стартовые 120 дней / `N_min=15` проверить на полном датасете; изменение требует новой `ratingModelVersion`.

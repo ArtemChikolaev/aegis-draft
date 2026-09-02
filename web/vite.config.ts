@@ -59,6 +59,15 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // React/Zustand — отдельный чанк со стабильным хешем: меняется код игры, а не библиотеки,
+        // и precache SW перекачивает только наш чанк, а не 140 КБ вендора при каждом деплое.
+        manualChunks: { vendor: ["react", "react-dom", "zustand"] },
+      },
+    },
+  },
   // strictPort: иначе Vite уйдёт на 5174+ и localStorage (resume) окажется «пустым».
   server: { port: 5173, strictPort: true },
 });

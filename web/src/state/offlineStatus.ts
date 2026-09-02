@@ -47,10 +47,10 @@ export function summarizeOfflineState(facts: OfflineFacts): OfflineState {
 }
 
 /** Человеческий размер. Держим рядом с состоянием: это часть одного ответа «что у меня занято». */
-export function formatBytes(bytes: number | null): string | null {
+export function formatBytes(bytes: number | null, unit: string): string | null {
   if (bytes === null || !Number.isFinite(bytes)) return null;
   const mb = bytes / 1024 / 1024;
-  return mb >= 100 ? `${Math.round(mb)} МБ` : `${mb.toFixed(1)} МБ`;
+  return `${mb >= 100 ? Math.round(mb) : mb.toFixed(1)} ${unit}`;
 }
 
 /** Короткая форма `sha256:4f5e032c…` — полный хеш в интерфейсе не нужен, а первые символы

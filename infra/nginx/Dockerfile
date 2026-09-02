@@ -12,6 +12,7 @@ RUN npm run build
 FROM nginx:1.27-alpine
 RUN apk add --no-cache wget
 COPY infra/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY infra/nginx/security-headers.conf /etc/nginx/security-headers.conf
 COPY --from=web-build /web/dist /usr/share/nginx/html
 # Game JSON монтируется compose-ом в /usr/share/nginx/data
 RUN mkdir -p /usr/share/nginx/data

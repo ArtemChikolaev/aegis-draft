@@ -96,7 +96,12 @@ jobs:
           git config user.name "aegis-data-bot"
           git config user.email "actions@users.noreply.github.com"
           git add web/public/data
-          if git diff --cached --quiet; then
+          # manifest.builtAt меняется каждым прогоном, а dataHash покрывает только файлы данных —
+          # поэтому «данные не изменились» = ничего, кроме manifest.json, не поменялось. Иначе
+          # каждый день уходил бы пустой коммит с полным CI и деплоем Pages.
+          if git diff --cached --quiet -- . ':!web/public/data/manifest.json'; then
+            git reset -q
+            git checkout -- web/public/data
             echo "Данные не изменились — коммит не нужен"
             exit 0
           fi

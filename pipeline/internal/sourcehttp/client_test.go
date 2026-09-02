@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -178,5 +179,32 @@ func response(status int, body string) *http.Response {
 		StatusCode: status,
 		Header:     make(http.Header),
 		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+}
+
+func TestCachePathIgnoresAuthParamsAndMigratesLegacyFiles(t *testing.T) {
+	client, err := New(Config{BaseURL: "https://example.invalid/api/", CacheDir: t.TempDir(), UserAgent: "AegisDraft/test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	plain := "https://example.invalid/api/proMatches?less_than_match_id=5"
+	keyed := "https://example.invalid/api/proMatches?api_key=secret&less_than_match_id=5"
+	if client.cachePath(plain) != client.cachePath(keyed) {
+		t.Fatalf("api_key must not change the cache key: %s vs %s", client.cachePath(plain), client.cachePath(keyed))
+	}
+	if client.cachePath(plain) == client.cachePath(plain+"&x=1") {
+		t.Fatal("other query params must still separate cache entries")
+	}
+	// Файл, записанный старой схемой (хеш URL вместе с ключом), подхватывается и переезжает.
+	legacy := client.cacheFile(keyed)
+	if err := os.WriteFile(legacy, []byte(`{"legacy":true}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	migrated := client.cachePath(keyed)
+	if _, err := os.Stat(migrated); err != nil {
+		t.Fatalf("legacy cache file was not migrated: %v", err)
+	}
+	if _, err := os.Stat(legacy); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("legacy cache file should be renamed, stat err=%v", err)
 	}
 }

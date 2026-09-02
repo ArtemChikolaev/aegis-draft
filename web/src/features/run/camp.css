@@ -172,13 +172,6 @@
   gap: 7px;
 }
 .camp__section-heading .camp__section-title { margin: 0; }
-.camp__section-hint {
-  max-width: 52ch;
-  margin: 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.45;
-}
 
 /* Пояснение по `?`: details остаётся рабочим на touch и с клавиатуры, в отличие от hover-only
    tooltip. Bubble участвует только в overlay, поэтому не растягивает карточки и секции. */
@@ -932,18 +925,6 @@
 .camp-boss__tag--met { background: var(--accent-soft); color: var(--accent); }
 .camp-boss__tag--warn { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
 
-.camp-player-compare {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: stretch;
-  gap: 8px;
-}
-.camp-player-compare__arrow {
-  align-self: center;
-  color: var(--accent);
-  font-size: 20px;
-  font-weight: 800;
-}
 .camp-player-card {
   /* Свой контекст позиционирования: immortal/elite-фойл рисуется через ::before/::after с
      position:absolute; inset:0. Без relative он раздувается до ближайшего позиционированного
@@ -1216,13 +1197,6 @@
   /* Карточки вершин выходят за SVG примерно на половину своей ширины. На телефоне
      оставляем им явные поля, иначе contain:paint честно обрезает крайних игроков. */
   .camp__team .pentagon-wrap { width: calc(100% - 68px); }
-  .camp-player-compare {
-    grid-template-columns: 1fr;
-  }
-  .camp-player-compare__arrow {
-    justify-self: center;
-    transform: rotate(90deg);
-  }
   .camp-offer--reward {
     flex-direction: column;
     align-items: stretch;

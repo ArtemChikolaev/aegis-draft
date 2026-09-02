@@ -387,9 +387,21 @@ func enrichTeamLogos(ctx context.Context, od *opendota.Client, teams []opendota.
 		return teams
 	}
 	log.Printf("[domain] дотягиваем логотипы: %d команд без logo_url", len(needed))
-	filled, failed := 0, 0
+	// Порядок запросов фиксирован (map даёт случайный): под ограниченным бюджетом набор
+	// команд, успевших получить логотип, обязан быть одним и тем же от прогона к прогону.
+	ids := make([]int64, 0, len(needed))
 	for teamID := range needed {
+		ids = append(ids, teamID)
+	}
+	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
+	filled, failed := 0, 0
+	for _, teamID := range ids {
 		team, err := od.FetchTeam(ctx, teamID)
+		if err != nil && (ctx.Err() != nil || errors.Is(err, sourcehttp.ErrBudgetExhausted)) {
+			// Отмена или конец бюджета: дальше крутить цикл бессмысленно, остаток доберёт следующий прогон.
+			log.Printf("[domain] логотипы: остановлено (%v), не запрошено %d команд", err, len(ids)-filled-failed)
+			break
+		}
 		if err != nil || team == nil || team.LogoURL == "" {
 			failed++
 			continue

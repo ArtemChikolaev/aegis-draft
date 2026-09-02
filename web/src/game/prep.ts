@@ -73,13 +73,6 @@ export function prepPointsLeft(plan: PrepPlan): number {
   return Math.max(0, PREP.budget - plan.actions.length);
 }
 
-export function samePrepAction(x: PrepAction, y: PrepAction): boolean {
-  if (x.kind === "scrim" && y.kind === "scrim") return pairKey(x.a, x.b) === pairKey(y.a, y.b);
-  if (x.kind === "practice" && y.kind === "practice") return x.accountId === y.accountId && x.heroId === y.heroId;
-  if (x.kind === "scout" && y.kind === "scout") return x.teamId === y.teamId;
-  return false;
-}
-
 /** Разобранные составы поля — то, что режет их Hero Synergy (game/realTournament.ts). */
 export function scoutedTeams(plan: PrepPlan): ReadonlySet<string> {
   return new Set(plan.actions.flatMap((action) => (action.kind === "scout" ? [action.teamId] : [])));

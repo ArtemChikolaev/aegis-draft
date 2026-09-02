@@ -21,7 +21,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: pipeline/go.mod
-          cache: false # пайплайн на чистой stdlib, go.sum нет — кэшировать нечего
+          cache: false # go.sum нет (чистая stdlib) — setup-go нечем построить ключ
+      # Кэш компилятора всё равно есть что хранить: vet/build/test пересобирают stdlib и пакеты.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: go-build-pipeline-${{ runner.os }}-${{ hashFiles('pipeline/go.mod', 'pipeline/**/*.go') }}
+          restore-keys: go-build-pipeline-${{ runner.os }}-
       - name: gofmt (нет неотформатированных файлов)
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
@@ -84,8 +90,18 @@ jobs:
         run: npm run validate:data
       - name: Unit tests (Vitest)
         run: npm run test
+      # Бинарь Chromium (~150 МБ) не меняется между прогонами, пока не бампнут @playwright/test.
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
       - name: Install Playwright (Chromium)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps chromium
+      - name: Playwright system deps (из кэша браузер, зависимости ОС ставим всегда)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
       - name: Browser smoke (Playwright)
         run: npm run test:e2e
       - run: npm run typecheck

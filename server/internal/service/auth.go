@@ -60,12 +60,12 @@ func (s *AuthService) AuthenticateTelegram(ctx context.Context, initData string)
 	uid := strconv.FormatInt(data.User.ID, 10)
 	user, created, err := s.users.FindOrCreateByIdentity(ctx, model.ProviderTelegram, uid, data.User.Username)
 	if err != nil {
-		return nil, apperr.Internal("account lookup failed")
+		return nil, apperr.Internal("account lookup failed").Wrap(err)
 	}
 
 	token, err := s.issuer.Issue(user.ID)
 	if err != nil {
-		return nil, apperr.Internal("token issue failed")
+		return nil, apperr.Internal("token issue failed").Wrap(err)
 	}
 	return &Session{Token: token, User: user, Created: created}, nil
 }

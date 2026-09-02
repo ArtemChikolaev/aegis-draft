@@ -187,10 +187,6 @@ export function saveTeamName(name: string): void {
   void writePersisted(TEAM_KEY, name);
 }
 
-export function loadTeamName(): string {
-  return readCached(TEAM_KEY) ?? "";
-}
-
 /** Имя команды с учётом облака — читается там же, где сейв забега. */
 export async function loadTeamNameAsync(): Promise<string> {
   return (await readPersisted(TEAM_KEY)) ?? "";

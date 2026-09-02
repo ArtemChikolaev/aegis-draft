@@ -17,6 +17,8 @@
     "test:e2e:ui": "playwright test --ui",
     "sim": "npx tsx scripts/sim_run.ts",
     "sim:manager": "npx tsx scripts/sim_manager.ts",
+    "sim:sweep": "npx tsx scripts/sweep_seeds_both.ts",
+    "sim:find-seed": "npx tsx scripts/find_camp_seed.ts",
     "gen:mock": "node scripts/gen_mock.mjs",
     "gen:bot-assets": "node scripts/render_bot_assets.mjs",
     "gen:art": "node scripts/mirror_art.mjs",

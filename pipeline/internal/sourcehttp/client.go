@@ -156,7 +156,7 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 			if serverAttempts >= c.maxAttempts {
 				break
 			}
-			if err := sleepContext(ctx, c.backoffFor(serverAttempts-1, "")); err != nil {
+			if err := sleepContext(ctx, c.backoffFor(serverAttempts-1)); err != nil {
 				return err
 			}
 			continue
@@ -203,7 +203,7 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 		if serverAttempts >= c.maxAttempts {
 			break
 		}
-		if err := sleepContext(ctx, c.backoffFor(serverAttempts-1, "")); err != nil {
+		if err := sleepContext(ctx, c.backoffFor(serverAttempts-1)); err != nil {
 			return err
 		}
 	}
@@ -252,9 +252,41 @@ func (c *Client) resolve(path string, query url.Values) (string, error) {
 	return resolved.String(), nil
 }
 
+// authQueryKeys — параметры запроса с секретами: их нет ни в логах, ни в ключе кэша.
+var authQueryKeys = []string{"api_key", "apikey", "token", "access_token"}
+
+// cachePath — файл raw-кэша для URL. Ключ считается от URL БЕЗ auth-параметров: иначе включение
+// или ротация api_key меняла бы sha256 всех ключей, весь накопленный кэш становился невидим и
+// прогон заново тратил бы полный бюджет запросов. Старые файлы (хеш с ключом) переносятся на
+// новое имя при первом обращении — накопленное сырьё не теряется.
 func (c *Client) cachePath(requestURL string) string {
-	digest := sha256.Sum256([]byte(requestURL))
+	path := c.cacheFile(stripAuthParams(requestURL))
+	if legacy := c.cacheFile(requestURL); legacy != path {
+		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+			if _, err := os.Stat(legacy); err == nil {
+				_ = os.Rename(legacy, path)
+			}
+		}
+	}
+	return path
+}
+
+func (c *Client) cacheFile(key string) string {
+	digest := sha256.Sum256([]byte(key))
 	return filepath.Join(c.cacheDir, hex.EncodeToString(digest[:])+".json")
+}
+
+func stripAuthParams(raw string) string {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+	query := parsed.Query()
+	for _, key := range authQueryKeys {
+		query.Del(key)
+	}
+	parsed.RawQuery = query.Encode()
+	return parsed.String()
 }
 
 func (c *Client) wait(ctx context.Context) error {
@@ -271,17 +303,9 @@ func (c *Client) wait(ctx context.Context) error {
 	return sleepContext(ctx, wait)
 }
 
-func (c *Client) backoffFor(attempt int, retryAfter string) time.Duration {
-	retryAfter = strings.TrimSpace(retryAfter)
-	if seconds, err := strconv.Atoi(retryAfter); err == nil && seconds >= 0 {
-		return time.Duration(seconds) * time.Second
-	}
-	if deadline, err := http.ParseTime(retryAfter); err == nil {
-		if wait := time.Until(deadline); wait > 0 {
-			return wait
-		}
-		return 0
-	}
+// backoffFor — экспоненциальная пауза между попытками. Retry-After сервера не читаем: 429 у
+// OpenDota обрабатывается отдельной ветвью ожидания (maxRateLimitWaits), а 5xx его не присылают.
+func (c *Client) backoffFor(attempt int) time.Duration {
 	return c.backoff * time.Duration(1<<attempt)
 }
 
@@ -332,7 +356,7 @@ func redactURL(raw string) string {
 		return "<invalid-url>"
 	}
 	query := parsed.Query()
-	for _, key := range []string{"api_key", "apikey", "token", "access_token"} {
+	for _, key := range authQueryKeys {
 		if query.Has(key) {
 			query.Set(key, "REDACTED")
 		}

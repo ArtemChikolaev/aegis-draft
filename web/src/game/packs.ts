@@ -166,7 +166,9 @@ export function mixedPack(
   }
 
   const signatureHeroes = [...new Set(candidates.flatMap((c) => c.signatureHeroes))];
-  return { kind: "mixed", label: "Free Agents", sublabel: "5 из разных команд", candidates, signatureHeroes };
+  // Подзаголовок Mixed-пака — строка интерфейса (`draft.mixedSubtitle`), не данные: у Team-пака
+  // здесь лежит eventId, а у Mixed турнира нет.
+  return { kind: "mixed", label: "Free Agents", candidates, signatureHeroes };
 }
 
 function findMixedLineup(

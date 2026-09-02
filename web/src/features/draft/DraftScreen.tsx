@@ -73,8 +73,9 @@ export function DraftScreen() {
       ? t("draft.synergyGreat")
       : undefined;
   // Заголовок пака показывает название турнира, а не сырой eventId (league-19785).
-  const packEventLabel = data?.events.find((e) => e.id === currentPack.sublabel)?.name
-    ?? currentPack.sublabel;
+  const packEventLabel = currentPack.kind === "mixed"
+    ? t("draft.mixedSubtitle")
+    : data?.events.find((e) => e.id === currentPack.sublabel)?.name ?? currentPack.sublabel;
 
   const heroOwner: Record<number, { accountId: number; nickname: string }> = {};
   if (score) {

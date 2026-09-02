@@ -1,4 +1,5 @@
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
+import { dailySeedDate, formatDailyDate } from "../../game/daily.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { entryStakes, type CareerConfigLabel, type CareerEntry, type CareerPlacementBucket } from "../../state/careerStore.ts";
 import { HeroThumb, playerOvrTier, RoleTag } from "../../ui/index.ts";
@@ -63,6 +64,7 @@ export function CareerRunCard({ entry }: { entry: CareerEntry }) {
         {entry.configLabel.mode === "run" && <><em className="career-run__mode">{t("career.roguelite")}</em> · </>}
         {configKeys(entry.configLabel).map((key) => t(key)).join(" · ")}
         {entry.configLabel.hardMode && <> · <em className="career-run__hard">{t("hard.badge")}</em></>}
+        {dailySeedDate(entry.seed) && <> · <em className="career-run__daily">{t("daily.badge", { date: formatDailyDate(dailySeedDate(entry.seed)!, locale) })}</em></>}
         {entryStakes(entry.configLabel).length > 0 && <> · <em className="career-run__hard">☄ {entryStakes(entry.configLabel).map((id) => t(`mutator.${id}` as MessageKey)).join(" + ")}</em></>}
       </p>
       <ul className="career-run__roster">

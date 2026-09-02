@@ -1,6 +1,7 @@
-// Единая версия и поверхность баланса Roguelite Run (T6.3). Плейсхолдер-коэффициенты живут в
-// своих game-модулях (они когезивны с логикой), а ЗДЕСЬ — единственная версия `BALANCE_CONFIG_VERSION`
-// и агрегатор `BALANCE`, через который симулятор и документация видят всю поверхность настройки.
+// Единая версия баланса Roguelite Run (T6.3). Коэффициенты живут в своих game-модулях (они
+// когезивны с логикой), а ЗДЕСЬ — единственная версия `BALANCE_CONFIG_VERSION` и её журнал.
+// Агрегатор всей поверхности настройки здесь не держим: он ни разу не понадобился ни симулятору,
+// ни отчётам, а тянул импорты из каждого модуля баланса.
 //
 // Контракт версии: меняешь ЛЮБОЙ игровой коэффициент (ANTE_*, ECONOMY, TACTICS, CAMP_ACTIONS,
 // BOSSES) — бампни `BALANCE_CONFIG_VERSION`. Она входит в воспроизводимое состояние seeded-забега
@@ -9,20 +10,6 @@
 //
 // Это НЕ ratingModelVersion: формула Team OVR (score.ts) не меняется этими числами, только орка/
 // экономика/условия забега. Тонкая калибровка — через `npm run sim` (web/scripts/sim_run.ts).
-import { SEASON, SEASON_TARGETS, SEASON_ACT_FINALES, ANTE_FIELD_STEP, ANTE_FIELD, ANTE_THREAT } from "./anteRun.ts";
-import { ECONOMY } from "./anteEconomy.ts";
-import { EDITION } from "./editions.ts";
-import { TACTICS, TACTIC_SLOTS } from "./tactics.ts";
-import { CAMP_ACTIONS } from "./campActions.ts";
-import { BOSSES } from "./bossConditions.ts";
-import { MUTATORS } from "./dynastyMutators.ts";
-import { RARITY } from "./heroRarity.ts";
-import { RARITY_CURVE } from "./rarity.ts";
-import { FORM_ODDS, FORM_FLOOR, HERO_POOL, MARKET_PACK } from "./anteMarket.ts";
-import { HERO_TAGS_VERSION } from "./heroTags.ts";
-import { POWER_LIMITS } from "./tournamentPower.ts";
-import { ITEMS, ITEM_RARITY } from "./items.ts";
-import { HERO_FLOOR } from "./anteMarket.ts";
 
 /** Версия набора игровых коэффициентов Roguelite Run. Бампать при любой правке чисел баланса.
  *  b1.1.0 (2026-07-24): ANTE_FIELD_HANDICAP 12→16 по прогону симулятора — наивный win-rate
@@ -278,53 +265,3 @@ import { HERO_FLOOR } from "./anteMarket.ts";
 //   Сим-агенты условие не отыгрывают (A/B ≈0) — искажения PvE-баланса нет.
 export const BALANCE_CONFIG_VERSION = "b1.43.0";
 
-/** Вся поверхность настройки в одном месте — для симулятора, отчётов и обзора. Числа принадлежат
- *  своим модулям; здесь только сборка и версия. */
-export const BALANCE = {
-  version: BALANCE_CONFIG_VERSION,
-  ante: {
-    /** Сезон целиком: длина, шаблон акта и пороги по типам этапов (R6.1). */
-    season: {
-      acts: SEASON.acts,
-      actLength: SEASON.actLength,
-      template: SEASON.template,
-      targets: SEASON_TARGETS,
-      actFinales: SEASON_ACT_FINALES,
-      stages: SEASON.stages.length,
-    },
-    fieldStep: ANTE_FIELD_STEP,
-    field: ANTE_FIELD,
-    threat: ANTE_THREAT,
-  },
-  economy: ECONOMY,
-  /** Editions карточек (R13.5): Charged — заряды/бонус/дроп. */
-  editions: EDITION,
-  tactics: TACTICS,
-  tacticSlots: TACTIC_SLOTS,
-  campActions: CAMP_ACTIONS,
-  bosses: BOSSES,
-  /** Мутаторы круга Династии (LG3) — они же будущие Stakes (T6.4). */
-  dynastyMutators: MUTATORS,
-  rarity: RARITY,
-  /** Шансы тиров формы игрока по прогрессу сезона (R5.1) и нижняя граница рынка. */
-  formOdds: FORM_ODDS,
-  formFloor: FORM_FLOOR,
-  /** Версия курируемых тегов героев (R8.1). Отдельного `heroTagsVersion` в контракте нет —
-   *  определения тегов входят в BALANCE_CONFIG_VERSION, чтобы не заводить вторую точку
-   *  рассинхрона; это поле нужно только для обзора. */
-  heroTagsVersion: HERO_TAGS_VERSION,
-  /** Границы множителей Tournament Power (R8.2). */
-  powerLimits: POWER_LIMITS,
-  /** Каталог предметов (R8.3) — первый источник слоёв Tournament Power. */
-  items: ITEMS,
-  /** Масштаб эффекта карточки по её тиру (R11.2). */
-  itemRarity: ITEM_RARITY,
-  /** Кривая выпадения качества по этапам (R12.4): один центр, который едет по лестнице. */
-  rarityCurve: RARITY_CURVE,
-  /** Нижняя граница hero-пака (R11.1) — зеркало `formFloor` для героев. */
-  heroFloor: HERO_FLOOR,
-  /** Веса рулетки hero-пула (R12.2) — зеркало `formOdds` для героев: career-игры влияют на ВЕС
-   *  карты, а не на её допуск к рынку. */
-  heroPool: HERO_POOL,
-  marketPack: MARKET_PACK,
-} as const;

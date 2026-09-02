@@ -119,6 +119,9 @@ export interface GameData {
   careerPlayerHeroStats: PlayerHeroStats;
   teammates: Teammates;
   squadSynergy: SquadSynergy;
-  eventHeroStats: EventHeroStats;
+  /** Герои игроков на конкретном турнире — самый тяжёлый файл после squadSynergy (~3.7 МБ), а
+   *  читает его только инспектор игрока. Поэтому на старте НЕ грузится: поле пустое, пока
+   *  `useRun().loadEventHeroStats()` не дотянет файл по первому открытию инспектора. */
+  eventHeroStats?: EventHeroStats;
   teamSuccess: TeamSuccess;
 }

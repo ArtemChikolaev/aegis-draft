@@ -129,17 +129,3 @@ export interface RarityRow {
   baseBonus: number;
 }
 
-export function rarityRows(
-  rarityByHero: Record<string, Rarity>,
-  activeHeroes: readonly number[],
-): RarityRow[] {
-  return activeHeroes.map((heroId) => {
-    const rarity = rarityByHero[String(heroId)] ?? "common";
-    return {
-      heroId,
-      rarity,
-      heroSynergyBonus: RARITY.heroSynergyBonus[rarity],
-      baseBonus: rarity === "immortal" ? RARITY.immortalBaseBonus : 0,
-    };
-  });
-}
