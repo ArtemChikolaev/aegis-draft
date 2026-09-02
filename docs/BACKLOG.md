@@ -2854,6 +2854,9 @@ M5R: правки презентационные, `Rng`-поток и golden н�
 - Удалены: мёртвый пакет `internal/teamsuccess` (~470 строк, дубли `clamp100/round2/utcDate/finite`), `RoomView`, недостижимая ветка `Retry-After` в `backoffFor`.
 - CI: кэш go-build для пайплайна (setup-go без go.sum ключ не строит), кэш Chromium Playwright; vendor-чанк React/Zustand со стабильным хешем (541+144 КБ вместо одного 689).
 
+### T12.6 — Сиды anteRun.spec разъехались с реальным датасетом ⬜ (обнаружено 2026-09-02)
+После data-refresh 2026-08-31/09-01 на РЕАЛЬНОМ датасете падают 10 из 18 сценариев `e2e/anteRun.spec.ts` (Буткемп/trade-in/cheat/resume — «camp-screen не появился»), на mock — зелёно; воспроизведено на коммите 483b943 с текущими данными, то есть к ревизии M12 не относится. CI видит только mock, поэтому дрейф незаметен. Сделать: `npm run sim:sweep` по обоим датасетам, обновить сиды в спеке по правилу «проходит real И mock» (см. память roguelite-camp-seed-coupling); подумать о шаге CI с реальным датасетом хотя бы для anteRun.
+
 ### T12.5 — Кандидаты, не взятые в этот проход ⬜
 - **Разрезы файлов:** `anteEconomy.ts` (1445: types+ECONOMY / чистые cost-функции / генерация офферов / класс), `manager/engine.ts` (генерация мира отделима), `ManagerScreen.tsx` (10 подкомпонентов — файл на компонент), `StartScreen.tsx` (ModeSelect / VariantSelect / RunConfigPanel). Механика чистая, но churn большой — делать по одному вместе с ближайшей задачей в том файле.
 - **`CampScreen` без мемоизации:** `evaluateCampPower` и `previewPower` пересчитываются на каждый рендер (8 `useState` в экране) и вызываются внутри `.map()` рынка. Вынести guard в обёртку + `useMemo`/`useCallback`; аудит замыканий обязателен.
