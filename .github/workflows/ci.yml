@@ -107,6 +107,42 @@ jobs:
       - run: npm run typecheck
       - run: npm run build
 
+  # T12.6 (2026-09-02): сиды anteRun.spec обязаны проходить на ОБОИХ датасетах, а джоб `web`
+  # видит только mock — дрейф после data-refresh замечали лишь локально. Здесь тот же спек идёт
+  # по закоммиченному реальному датасету (без gen:mock), только chromium: mobile-проект отличается
+  # вьюпортом, а не пулом. В `needs` деплоя джоб НЕ входит намеренно: красный здесь означает
+  # «переподбери сиды» (`npm run sim:sweep`, память roguelite-camp-seed-coupling), а не дефект
+  # продукта, и блокировать им выкладку свежих данных было бы наказанием за сам refresh.
+  web-e2e-real:
+    name: Web e2e (реальный датасет, anteRun)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Валидация реального датасета (JSON Schema)
+        run: npm run validate:data
+      - uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+      - name: Install Playwright (Chromium)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - name: Playwright system deps (из кэша браузер, зависимости ОС ставим всегда)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: anteRun.spec на реальном датасете
+        run: npx playwright test e2e/anteRun.spec.ts --project=chromium
+
   antipatterns:
     name: Antipattern scan
     runs-on: ubuntu-latest
