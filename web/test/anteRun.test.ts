@@ -450,9 +450,10 @@ describe("Угроза этапа (R7.2)", () => {
     expect(ANTE_THREAT.dynastyMultPerAct).toBeLessThan(ANTE_THREAT.multPerAct);
     expect(ANTE_THREAT.dynastyMultPerAct).toBeGreaterThan(0);
     expect(anteFieldMult(seasonEnd + 40 * ACT_LENGTH)).toBeGreaterThan(anteFieldMult(seasonEnd + 20 * ACT_LENGTH));
-    // Сезонный якорь: геосреднее акта 3 = плоское b1.36.0 × сдвиг центра рампы.
+    // Сезонный якорь: геосреднее акта 3 = два пройденных акта множителя (плоское b1.36.0 при
+    // 0.22 было 1.4884 = 1.22²; b1.44.0 читает его от константы) × сдвиг центра рампы.
     const qs = 1 + ANTE_THREAT.multPerAct;
-    expect(geoMean(2 * ACT_LENGTH)).toBeCloseTo(1.4884 * qs ** ((ACT_LENGTH - 1) / 2 / ACT_LENGTH - ANTE_THREAT.multRampCenter), 4);
+    expect(geoMean(2 * ACT_LENGTH)).toBeCloseTo(qs ** 2 * qs ** ((ACT_LENGTH - 1) / 2 / ACT_LENGTH - ANTE_THREAT.multRampCenter), 4);
   });
 
   it("угроза выводит силу соперника выше потолка качества, а турнир остаётся валидным", () => {
