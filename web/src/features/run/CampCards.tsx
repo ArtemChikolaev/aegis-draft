@@ -1,10 +1,11 @@
 // Презентационные части Буткемпа: формат чисел, бейджи, карточки. Всё здесь — чистые функции и
 // компоненты без доступа к стору: они получают уже посчитанные значения и только рисуют их.
 // Вынесены из `CampScreen`, который держал их вперемешку с экономикой экрана (R14.2).
+import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import type { ReactNode } from "react";
 import type { SummandValues } from "../../game/anteEconomy.ts";
 import type { Rarity } from "../../game/rarity.ts";
-import { evaluateItems, type EffectMatch, type ItemDef } from "../../game/items.ts";
+import { evaluateItems, type EffectMatch, type ItemDef, itemDef, itemAt, itemLabel } from "../../game/items.ts";
 import type { Candidate } from "../../game/packs.ts";
 import type { BossEvaluation } from "../../game/bossConditions.ts";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
@@ -27,6 +28,24 @@ export function signed(value: number): string {
 
 /** Параметры шаблона описания предмета: теги и атрибуты переводятся, числа остаются числами.
  *  Описание собирается из тех же данных, что и эффект, поэтому текст не может разойтись с числом. */
+/** Текст карты по базовому тиру — эффект и (у предметов) цена. Один источник для инспектора и
+ *  плитки Штаба: условие обязано читаться ДО того, как карта попала в Playbook (A/B 2026-09-02:
+ *  набор из условных карт без драфта под них — ловушка, и её надо видеть на плитке). */
+export function cardTexts(cardId: string, t: Translate, rarity: Rarity = "common"): { effect: string; cost?: string } {
+  const item = itemDef(cardId);
+  if (item) {
+    const scaled = itemAt(item, rarity);
+    const effect = itemLabel(scaled.effect);
+    const drawback = scaled.drawback ? itemLabel(scaled.drawback) : null;
+    return {
+      effect: t(effect.template as MessageKey, itemLabelParams(effect.params, t)),
+      ...(drawback ? { cost: t(drawback.template as MessageKey, itemLabelParams(drawback.params, t)) } : {}),
+    };
+  }
+  const kind = isTacticId(cardId) ? "tactic" : "action";
+  return { effect: t(`${kind}.desc.${cardId}` as MessageKey, kind === "tactic" && isTacticId(cardId) ? tacticLabelParams(cardId) : undefined) };
+}
+
 export function itemLabelParams(
   params: Record<string, string | number>,
   t: Translate,

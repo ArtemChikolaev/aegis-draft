@@ -17,6 +17,7 @@ import { usePlaybook } from "../../state/playbookStore.ts";
 import { PLAYBOOK_MAX, PLAYBOOK_MIN, PLAYBOOK_RECOMMENDED, isPlaybookCard, normalizePlaybook } from "../../game/playbook.ts";
 import { Banner, Button, Eyebrow, ItemIcon, StatTile, Surface } from "../../ui/index.ts";
 import { BuildCardInspector } from "../run/BuildCardInspector.tsx";
+import { cardTexts, type Translate } from "../run/CampCards.tsx";
 import "./hq.css";
 
 type CardKind = "tactic" | "item" | "action";
@@ -134,6 +135,9 @@ function CardTile({ id, kind, stat, inPlaybook, playbookFull, onOpen, onToggle }
   const label = t(`${kind}.${id}` as MessageKey);
   const slug = itemArtSlug(id);
   const discovered = Boolean(stat);
+  // Условие и цена карты — на плитке (базовый тир): набор из условных карт без драфта под них —
+  // ловушка (A/B 2026-09-02), поэтому переключатель Playbook стоит рядом с текстом условия.
+  const texts = cardTexts(id, t as Translate);
   return (
     <div className="hq-card" data-kind={kind} data-card-id={id} data-discovered={discovered} data-in-playbook={inPlaybook}>
       <button type="button" className="hq-card__main" aria-label={`${label} · ${t("camp.offerDetails")}`} onClick={onOpen}>
@@ -148,6 +152,10 @@ function CardTile({ id, kind, stat, inPlaybook, playbookFull, onOpen, onToggle }
             : t("hq.undiscovered")}
         </small>
       </button>
+      <small className="hq-card__cond" data-testid={`card-cond-${id}`}>
+        {texts.effect}
+        {texts.cost && <span className="hq-card__cost"> · {texts.cost}</span>}
+      </small>
       {inPlaybook !== undefined && (
         <button
           type="button"
