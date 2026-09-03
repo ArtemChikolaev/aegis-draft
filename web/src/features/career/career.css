@@ -38,6 +38,8 @@
 .career-run__dynasty { color: var(--accent); font-style: normal; font-weight: 800; }
 .career-run__heading small { justify-self: end; color: var(--muted); font-size: 9px; }
 .career-run__config { margin: 3px 0 8px; color: var(--muted); font-size: 9px; }
+.career-run__build { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 8px; }
+.career-run__card { padding: 2px 7px; border: 1px solid var(--line); border-radius: 999px; font-size: 9px; font-weight: 700; letter-spacing: .04em; color: var(--text); }
 .career-run__roster {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

@@ -1,4 +1,7 @@
-import type { MutatorId } from "../game/dynastyMutators.ts";
+import { MUTATOR_IDS, type MutatorId } from "../game/dynastyMutators.ts";
+import type { CardEdition } from "../game/editions.ts";
+import type { Rarity } from "../game/rarity.ts";
+import { isDailySeed } from "../game/daily.ts";
 import { create } from "zustand";
 import { readCached, readPersisted, writePersisted } from "./persist.ts";
 import type { RosterSlot } from "../game/engine.ts";
@@ -58,6 +61,15 @@ export interface CareerRogueliteStage {
   count: number;
 }
 
+/** Билд Roguelite Run на момент записи (T6.4 Штаб): какие карты стояли в слотах. Только id и
+ *  тиры — коллекция Штаба хранит ОПРЕДЕЛЕНИЯ, а не усиленные экземпляры (PRD §5.10.2). */
+export interface CareerBuild {
+  cards: string[];
+  actions?: string[];
+  cardRarity?: Record<string, Rarity>;
+  editions?: Record<string, CardEdition>;
+}
+
 export interface CareerEntry {
   v: 1;
   finishedAt: string;
@@ -73,6 +85,8 @@ export interface CareerEntry {
   score: Pick<ScoreBreakdown, "base" | "heroSynergy" | "chemistry" | "teamOvr">;
   roster: CareerRosterPlayer[];
   results: CareerResults;
+  /** Roguelite Run: билд в конце забега. Старые записи и Quick Draft поля не имеют. */
+  build?: CareerBuild;
 }
 
 export interface CareerSummary {
@@ -154,6 +168,7 @@ export function buildCareerEntry(input: {
   score: ScoreBreakdown;
   roster: RosterSlot[];
   tournament: TournamentSnapshot;
+  build?: CareerBuild;
 }): CareerEntry {
   const roster = input.roster.map((slot) => {
     if (!slot.candidate) throw new Error("Career entry requires a complete roster");
@@ -194,6 +209,9 @@ export function buildCareerEntry(input: {
     },
     roster,
     results: tournamentCareerResults(input.tournament),
+    build: input.mode === "run" && input.build && (input.build.cards.length > 0 || (input.build.actions?.length ?? 0) > 0)
+      ? input.build
+      : undefined,
   };
 }
 
@@ -359,3 +377,80 @@ export const useCareer = create<CareerStore>((set, get) => ({
     if (merged.length !== get().entries.length) set({ entries: merged });
   },
 }));
+
+// ── Штаб (T6.4, срез 1): коллекция и трофеи — производные карьеры, отдельного хранилища нет ──
+
+export interface CardCollectionStat {
+  /** Сколько честных roguelite-забегов закончились с картой в слоте. */
+  taken: number;
+  /** Сколько из них — с выигранным сезоном. */
+  won: number;
+  /** Лучший этап (1-based), до которого доходил забег с этой картой. */
+  bestStage: number | null;
+}
+
+/** Статистика по каждой карте из честных Roguelite-записей с билдом. Карты вне записей —
+ *  «ещё не встречалась»: Штаб показывает весь каталог, скрывать определения незачем — пул наград
+ *  от коллекции не зависит (Playbook — следующий срез). */
+export function collectionStats(entries: CareerEntry[]): Record<string, CardCollectionStat> {
+  const stats: Record<string, CardCollectionStat> = {};
+  for (const entry of careerEntriesForMode(entries, "run")) {
+    if (!entry.build) continue;
+    const stage = entry.rogueliteStage ? entry.rogueliteStage.index + 1 : null;
+    for (const cardId of new Set([...entry.build.cards, ...(entry.build.actions ?? [])])) {
+      const stat = stats[cardId] ?? (stats[cardId] = { taken: 0, won: 0, bestStage: null });
+      stat.taken += 1;
+      if (entry.seasonWon) stat.won += 1;
+      if (stage != null && (stat.bestStage == null || stage > stat.bestStage)) stat.bestStage = stage;
+    }
+  }
+  return stats;
+}
+
+export interface HqTrophies {
+  rogueliteRuns: number;
+  seasonsWon: number;
+  /** Лучший достигнутый этап сезона (1-based) среди честных забегов. */
+  bestStage: number | null;
+  /** Лучшая глубина Династии (этапов сверх сезона). */
+  dynastyBest: number | null;
+  dailyPlayed: number;
+  /** Победы под каждым правилом Stakes (те же данные, что hint ставки). */
+  stakeWins: Partial<Record<MutatorId, number>>;
+  stakesUnlocked: boolean;
+  multiStakesUnlocked: boolean;
+}
+
+export function hqTrophies(entries: CareerEntry[]): HqTrophies {
+  const runs = careerEntriesForMode(entries, "run");
+  let bestStage: number | null = null;
+  let dynastyBest: number | null = null;
+  let seasonsWon = 0;
+  for (const entry of runs) {
+    if (entry.seasonWon) seasonsWon += 1;
+    if (!entry.rogueliteStage) continue;
+    const stage = Math.min(entry.rogueliteStage.index + 1, entry.rogueliteStage.count);
+    if (bestStage == null || stage > bestStage) bestStage = stage;
+  }
+  // Записи Династии исключены из соревновательных агрегатов (competitiveEntries), но глубина —
+  // это их собственный трофей: читаем их отдельно, чит по-прежнему не в счёт.
+  for (const entry of entries) {
+    if (entry.configLabel.cheatMode === true || entry.configLabel.mode !== "run" || entry.configLabel.dynasty !== true || !entry.rogueliteStage) continue;
+    if (bestStage == null || entry.rogueliteStage.count > bestStage) bestStage = entry.rogueliteStage.count;
+    const depth = entry.rogueliteStage.index + 1 - entry.rogueliteStage.count;
+    if (depth > 0 && (dynastyBest == null || depth > dynastyBest)) dynastyBest = depth;
+  }
+  return {
+    rogueliteRuns: runs.length,
+    seasonsWon,
+    bestStage,
+    dynastyBest,
+    dailyPlayed: competitiveEntries(entries).filter((entry) => isDailySeed(entry.seed)).length,
+    stakeWins: stakeWinsByRule(entries),
+    stakesUnlocked: stakesUnlocked(entries),
+    multiStakesUnlocked: multiStakesUnlocked(entries),
+  };
+}
+
+/** Порядок правил Stakes для Штаба — тот же, что в каталоге мутаторов. */
+export const HQ_STAKE_ORDER: readonly MutatorId[] = MUTATOR_IDS;

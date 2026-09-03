@@ -731,9 +731,20 @@ export const useRun = create<RunStore>((set, get) => {
     rogueliteStage?: { index: number; count: number },
     opts: { seasonWon?: boolean; dynasty?: boolean } = {},
   ) => {
-    const { data, config, seed, snapshot, selectedMode } = get();
+    const { data, config, seed, snapshot, selectedMode, economy } = get();
     if (tournament.canAdvance || !data || !config || !snapshot?.score || !snapshot.isComplete) return;
+    // Штаб (T6.4): билд в конце roguelite-забега — только id и тиры карт в слотах.
+    const economyState = selectedMode === "run" ? economy?.snapshot : undefined;
+    const build = economyState
+      ? {
+        cards: [...economyState.equippedTactics],
+        actions: economyState.heldActions.length ? [...economyState.heldActions] : undefined,
+        cardRarity: Object.fromEntries(economyState.equippedTactics.filter((id) => economyState.cardRarity[id]).map((id) => [id, economyState.cardRarity[id]])),
+        editions: Object.fromEntries(economyState.equippedTactics.filter((id) => economyState.cardEditions[id]).map((id) => [id, economyState.cardEditions[id]])),
+      }
+      : undefined;
     useCareer.getState().record(buildCareerEntry({
+      build,
       seed,
       datasetSchemaVersion: data.manifest.schemaVersion,
       ratingModelVersion: data.manifest.ratingModelVersion,

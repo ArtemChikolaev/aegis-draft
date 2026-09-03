@@ -104,6 +104,17 @@ test.describe("navigation integrity", () => {
     await expect(mixed).toHaveAttribute("aria-pressed", "true");
   });
 
+  test("Штаб открывается из настроек и показывает весь каталог карт", async ({ page }) => {
+    await page.getByTestId("open-settings").click();
+    await page.getByTestId("open-hq").click();
+    await expect(page.getByTestId("hq-screen")).toBeVisible();
+    // Каталог показан целиком даже без единого забега: скрывать определения незачем.
+    await expect(page.locator(".hq-card")).toHaveCount(45);
+    await expect(page.getByTestId("hq-collection-hint")).toContainText("0 of 45");
+    await page.locator('.hq-card[data-card-id="widePool"]').click();
+    await expect(page.getByRole("dialog")).toContainText("Wide Pool");
+  });
+
   test("Browser Back идёт heroes → settings → исходный game-view", async ({ page }) => {
     await page.getByTestId("mode-classic").click();
     await page.getByTestId("variant-run").click();

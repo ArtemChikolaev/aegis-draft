@@ -16,6 +16,7 @@ import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
 import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
 import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
 import { CareerScreen } from "../features/career/CareerScreen.tsx";
+import { HqScreen } from "../features/hq/HqScreen.tsx";
 import { RulesScreen } from "../features/rules/RulesScreen.tsx";
 import { ManagerScreen } from "../features/manager/ManagerScreen.tsx";
 import { DuelScreen } from "../features/duel/DuelScreen.tsx";
@@ -147,7 +148,7 @@ export function App() {
         </Banner>
       )}
 
-      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : view === "rules" ? <RulesScreen /> : (
+      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : view === "hq" ? <HqScreen /> : view === "rules" ? <RulesScreen /> : (
         /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
            (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
            так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */

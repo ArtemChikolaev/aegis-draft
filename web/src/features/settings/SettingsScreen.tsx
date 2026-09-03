@@ -183,6 +183,14 @@ export function SettingsScreen() {
             </span>
             <em>→</em>
           </button>
+          {/* Штаб (T6.4): коллекция карт и трофеи. Замком не закрывается — про игроков там ничего нет. */}
+          <button type="button" className="settings__link" data-testid="open-hq" onClick={() => setView("hq")}>
+            <span>
+              <strong>{t("codex.hq")}</strong>
+              <small>{t("codex.hqHint")}</small>
+            </span>
+            <em>→</em>
+          </button>
         </nav>
         {locked && (
           <Banner tone="locked" title={<>🔒 {t("codex.locked")}</>}>

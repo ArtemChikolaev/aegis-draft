@@ -1,3 +1,5 @@
+import { isItemId } from "../../game/items.ts";
+import { isTacticId } from "../../game/tactics.ts";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { dailySeedDate, formatDailyDate } from "../../game/daily.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -67,6 +69,13 @@ export function CareerRunCard({ entry }: { entry: CareerEntry }) {
         {dailySeedDate(entry.seed) && <> · <em className="career-run__daily">{t("daily.badge", { date: formatDailyDate(dailySeedDate(entry.seed)!, locale) })}</em></>}
         {entryStakes(entry.configLabel).length > 0 && <> · <em className="career-run__hard">☄ {entryStakes(entry.configLabel).map((id) => t(`mutator.${id}` as MessageKey)).join(" + ")}</em></>}
       </p>
+      {entry.build && entry.build.cards.length > 0 && (
+        <p className="career-run__build" data-testid="career-run-build">
+          {entry.build.cards.map((cardId) => (
+            <span key={cardId} className="career-run__card">{t(`${cardKind(cardId)}.${cardId}` as MessageKey)}</span>
+          ))}
+        </p>
+      )}
       <ul className="career-run__roster">
         {entry.roster.map((player) => {
           const info = hero(player.heroId);
@@ -84,4 +93,9 @@ export function CareerRunCard({ entry }: { entry: CareerEntry }) {
       </ul>
     </article>
   );
+}
+
+/** Тип карты по id — тем же правилом, что рейл билда: предмет → тактика → действие сбора. */
+function cardKind(cardId: string): "item" | "tactic" | "action" {
+  return isItemId(cardId) ? "item" : isTacticId(cardId) ? "tactic" : "action";
 }

@@ -1,0 +1,26 @@
+/* Штаб (T6.4): панели как у справочника/карьеры, плитки карт — сетка с дисциплиной цвета:
+   рамка/фон — токены поверхности, «не встречалась» — приглушение, тип карты — бейджем, не цветом. */
+.hq { display: grid; gap: 18px; }
+.hq__panel { padding: 22px; }
+.hq__section { margin: 0 0 14px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+.hq__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.hq__hint { margin: -6px 0 14px; color: var(--muted); font-size: 12px; }
+.hq__stakes { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.hq__stakes li { display: grid; grid-template-columns: minmax(150px, .8fr) 1.6fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 12px; }
+.hq__stakes li span { color: var(--muted); }
+.hq__stakes li em { font-style: normal; font-weight: 800; color: var(--muted); letter-spacing: .04em; }
+.hq__stakes li[data-cleared="true"] em { color: var(--brand-green); }
+.hq__group { margin-top: 14px; }
+.hq__group h3 { margin: 0 0 8px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.hq__cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.hq-card { display: grid; grid-template-columns: 36px 1fr; grid-template-rows: auto auto; column-gap: 10px; align-items: center; padding: 10px 12px; text-align: left; color: var(--text); border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); cursor: pointer; transition: border-color .2s, transform .2s; }
+.hq-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.hq-card[data-discovered="false"] { opacity: .55; }
+.hq-card__art { grid-row: 1 / 3; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--surface); }
+.hq-card__art b { font: 800 12px var(--font-display); letter-spacing: .04em; color: var(--muted); }
+.hq-card__name { font-size: 12px; line-height: 1.2; }
+.hq-card__meta { color: var(--muted); font-size: 10px; }
+@media (max-width: 680px) { /* bp.md */
+  .hq__stakes li { grid-template-columns: 1fr; gap: 4px; }
+  .hq__cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
