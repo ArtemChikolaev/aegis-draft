@@ -12,6 +12,7 @@
 //    пиков ⇒ одно и то же состояние у всех клиентов (свойство, на котором стоит протокол).
 // Новое здесь — только оркестрация одновременных раундов и бот-политика на общем пуле
 // (порт «жадного» агента симулятора: лучший OVR в открытую роль; герой — comfort по pro-играм).
+import { squadSynergyOf } from "../data/dataFiles.ts";
 import type { Format, GameData, PlayerHeroStats, Role } from "../types/data.ts";
 import { Rng } from "./rng.ts";
 import {
@@ -279,7 +280,7 @@ export class ArenaDraftEngine {
         players,
         this.heroPicks[seatIndex],
         this.phs,
-        this.data.squadSynergy,
+        squadSynergyOf(this.data),
         this.data.teammates,
         chemistryPlayersFromRoster(roster.map((candidate) => ({ candidate }))),
         signatureLookup(roster),

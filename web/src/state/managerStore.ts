@@ -56,7 +56,7 @@ interface ManagerStore {
   setCareerOpen: (open: boolean) => void;
 
   hydrate: () => Promise<void>;
-  startCareer: (orgName: string, region: ManagerRegion, difficulty: ManagerDifficulty) => void;
+  startCareer: (orgName: string, region: ManagerRegion, difficulty: ManagerDifficulty) => Promise<void>;
   resumeCareer: () => Promise<void>;
   abandonCareer: () => void;
   /** Применить действие движка и зафиксировать снапшот (persist + перерисовка). */
@@ -123,9 +123,11 @@ export const useManager = create<ManagerStore>((set, get) => ({
     set({ resumable: saved ? { orgName: saved.config.orgName, season: saved.season } : null, hydrated: true, hall });
   },
 
-  startCareer(orgName, region, difficulty) {
+  async startCareer(orgName, region, difficulty) {
     const data = dataOrNull();
     if (!data) return;
+    // Менеджер считает сыгранность тем же squadSynergy — барьер отложенного файла (см. runStore).
+    await useRun.getState().ensureSquadSynergy();
     const config: ManagerConfig = { orgName: orgName.trim(), region, difficulty, format: "last_2y" };
     const engine = ManagerEngine.create(data, createRunSeed(), config);
     persist(engine.state, data);
@@ -137,6 +139,7 @@ export const useManager = create<ManagerStore>((set, get) => ({
   async resumeCareer() {
     const data = dataOrNull();
     if (!data) return;
+    await useRun.getState().ensureSquadSynergy();
     const saved = await readSaved(data);
     if (!saved) {
       set({ resumable: null });

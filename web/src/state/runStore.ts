@@ -187,6 +187,10 @@ interface RunStore {
    *  без замены ссылки: это заполнение кэша, а не новое состояние — эффекты и мемо на `data`
    *  перезапускать незачем. Повторный вызов после загрузки — no-op. */
   loadEventHeroStats: () => Promise<void>;
+  /** Барьер отложенного squadSynergy (8.5 МБ): стартовый экран его не ждёт, файл едет фоном сразу
+   *  после ядра; любой вход в забег/карьеру/комнату зовёт этот метод перед созданием движка.
+   *  Кладётся в тот же объект `data` мутацией (как eventHeroStats). Повторный вызов — no-op. */
+  ensureSquadSynergy: () => Promise<void>;
   start: (config: RunConfig, seed: string) => void;
   pickPlayer: (idx: number) => void;
   pickHero: (heroId: number) => void;
@@ -849,6 +853,10 @@ export const useRun = create<RunStore>((set, get) => {
           pendingLinkIssue: link ? runLinkIssue(link, schemaVersion, ratingModelVersion, BALANCE_CONFIG_VERSION) : null,
         });
         logDataLoaded(data);
+        // Префетч отложенного squadSynergy: стартовый экран уже интерактивен, а к первому клику
+        // «Играть» файл почти всегда успевает (иначе start/resume дождутся его через барьер).
+        // Ошибку здесь глотаем: барьер повторит запрос и покажет причину сам.
+        void get().ensureSquadSynergy().catch(() => undefined);
       } catch (e) {
         set({ error: e instanceof Error ? e.message : String(e) });
       }
@@ -857,14 +865,31 @@ export const useRun = create<RunStore>((set, get) => {
     async loadEventHeroStats() {
       const data = get().data;
       if (!data || data.eventHeroStats) return;
-      const stats = await dataSource.loadEventHeroStats();
+      const stats = await dataSource.loadDeferred("eventHeroStats");
       const current = get().data;
       if (current && !current.eventHeroStats) current.eventHeroStats = stats;
+    },
+
+    async ensureSquadSynergy() {
+      const data = get().data;
+      if (!data || data.squadSynergy) return;
+      const groups = await dataSource.loadDeferred("squadSynergy");
+      const current = get().data;
+      if (current && !current.squadSynergy) current.squadSynergy = groups;
     },
 
     start(config, seed) {
       const { data, selectedMode, realEventId } = get();
       if (!data) return;
+      if (!data.squadSynergy) {
+        // Барьер отложенного файла: игрок нажал старт раньше, чем доехал squadSynergy. Показываем
+        // загрузку и повторяем старт по готовности; ошибка сети возвращает на стартовый экран.
+        set({ phase: "loading", error: null });
+        get().ensureSquadSynergy()
+          .then(() => get().start(config, seed))
+          .catch((e) => set({ phase: "start", error: e instanceof Error ? e.message : String(e) }));
+        return;
+      }
       try {
         // Real Tournament (T5.6): поле и roster lock детерминированно выводятся из события —
         // движок получает lock ДО первого пака, чтобы залоченный не появился нигде.
@@ -1081,6 +1106,14 @@ export const useRun = create<RunStore>((set, get) => {
     resumeRun() {
       const { data, resumable } = get();
       if (!data || !resumable) return;
+      if (!data.squadSynergy) {
+        // Тот же барьер, что у start: resume создаёт движок и считает сыгранность.
+        set({ phase: "loading", error: null });
+        get().ensureSquadSynergy()
+          .then(() => get().resumeRun())
+          .catch((e) => set({ phase: "start", error: e instanceof Error ? e.message : String(e) }));
+        return;
+      }
       try {
         // Real Tournament: поле и lock пересобираются из события детерминированно (сила поля не
         // зависит от сида). Событие могло выпасть из датасета после refresh — buildRealField

@@ -1,3 +1,4 @@
+import { squadSynergyOf } from "../../data/dataFiles.ts";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -630,11 +631,11 @@ export function TournamentScreen() {
   const canSwap = isManual && stage === "field";
   // Подготовка к событию (RT-E): виртуальные игры пар/героев входят в рёбра и строки разбора.
   const overlay = snapshot.prepOverlay;
-  const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates, overlay.pairGames);
+  const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), squadSynergyOf(data), data.teammates, overlay.pairGames);
   const phs = heroStatsForAssignment(data);
   const displayPhs = withHeroGamesOverlay(heroStatsForDisplay(data), overlay.heroGames);
   const heroRows = heroSynergyRows(roster, score.assignment, phs, displayPhs);
-  const chemistryRows = squadChemistryRows(roster, data.squadSynergy, data.teammates, overlay.pairGames);
+  const chemistryRows = squadChemistryRows(roster, squadSynergyOf(data), data.teammates, overlay.pairGames);
   const assignmentByPlayer = score.assignment.byPlayer;
   const synergyTier = heroSynergyTier(effectiveScore.heroSynergy);
   const synergySublabel = synergyTier === "insane" ? t("draft.synergyInsane") : synergyTier === "great" ? t("draft.synergyGreat") : undefined;

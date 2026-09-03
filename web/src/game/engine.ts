@@ -2,6 +2,7 @@
 // Драфт в стиле 322-0: пак = ростер команды (5 игроков) + сигнатурные герои.
 // Забег = 5 пиков игроков (по ролям) + 5 пиков героев (крепятся к игрокам). Всего 10.
 // Герой привязывается авто-оптимально (matching) или вручную (allocation="manual").
+import { squadSynergyOf } from "../data/dataFiles.ts";
 import type { GameData, PackPlayer, Role } from "../types/data.ts";
 import { Rng } from "./rng.ts";
 import {
@@ -514,7 +515,7 @@ export class RunEngine {
       players,
       heroes,
       phs,
-      this.data.squadSynergy,
+      squadSynergyOf(this.data),
       this.data.teammates,
       chemistryRoster,
       signatures,

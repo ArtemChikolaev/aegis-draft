@@ -1,3 +1,4 @@
+import { squadSynergyOf } from "../data/dataFiles.ts";
 import type { RunConfig } from "../game/packs.ts";
 import type { RosterSlot } from "../game/engine.ts";
 import type { DraftPack } from "../game/packs.ts";
@@ -71,7 +72,7 @@ function formatScore(
     lines.push(`  ${pad(r.nickname, 14)} → ${hero}${games}`);
   }
 
-  const chemistryRows = squadChemistryRows(roster, data.squadSynergy, data.teammates)
+  const chemistryRows = squadChemistryRows(roster, squadSynergyOf(data), data.teammates)
     .filter((r) => r.bonus > 0)
     .slice(0, 10);
   for (const r of chemistryRows) {

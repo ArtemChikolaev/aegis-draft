@@ -8,6 +8,7 @@
 // Референс поведения — живой проход 322-0 (docs/audits/2026-08-11-322-0-em-live-walkthrough.md):
 // tryouts со скрытыми зарплатами → пул героев → контракты → отбор под доход → сезон из
 // 5 циклов с гейтом квалификаций → финал → оффсезон (дрифт + пересмотр контрактов).
+import { squadSynergyOf } from "../../data/dataFiles.ts";
 import type { Format, GameData, Role } from "../../types/data.ts";
 import { ROLE_SEQUENCE, type Candidate } from "../packs.ts";
 import { Rng } from "../rng.ts";
@@ -430,7 +431,7 @@ export class ManagerEngine {
       s.roster.map((p) => p.candidate.player),
       s.heroPool,
       heroStatsForAssignment(this.data),
-      this.data.squadSynergy,
+      squadSynergyOf(this.data),
       this.data.teammates,
       chemistryPlayersFromRoster(rosterSlots),
       {},

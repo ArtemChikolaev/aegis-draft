@@ -9,6 +9,7 @@
 //
 // Набор — шесть карточек PRD §5.10.3: Wide Pool доехал последним (2026-08-30) — его trade-off
 // («вклад редкости героев слабее») опирается на редкость среза 3b.
+import { squadSynergyOf } from "../data/dataFiles.ts";
 import type { GameData, SquadSynergy } from "../types/data.ts";
 import type { Candidate } from "./packs.ts";
 import type { RosterSlot } from "./engine.ts";
@@ -206,7 +207,7 @@ export function buildTacticContext(
   });
   return {
     players,
-    pairs: allPairs(players.map((player) => player.accountId), data.squadSynergy),
+    pairs: allPairs(players.map((player) => player.accountId), squadSynergyOf(data)),
     stagesCleared,
     assignedHeroes: active.flatMap((candidate) => {
       const heroId = assignment[candidate.player.accountId];

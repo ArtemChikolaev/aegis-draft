@@ -12,6 +12,7 @@
 // Детерминизм: seed решает паки и исходы игр; последовательность человеческих решений — вход.
 // Поток паков (`:duel:draft`) продвигается только генерацией пака, исход игры N — свой ключ
 // (`:duel:game-N`), поэтому длина хиро-драфта не сдвигает результаты.
+import { squadSynergyOf } from "../data/dataFiles.ts";
 import type { Format, GameData, PackPlayer, PlayerHeroStats } from "../types/data.ts";
 import { Rng } from "./rng.ts";
 import {
@@ -268,7 +269,7 @@ export class DuelEngine {
       this.sidePlayers(side),
       this.heroPicks[side],
       this.phs,
-      this.data.squadSynergy,
+      squadSynergyOf(this.data),
       this.data.teammates,
       chemistryPlayersFromRoster(roster),
       signatureLookup(this.rosters[side]),

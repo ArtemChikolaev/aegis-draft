@@ -14,6 +14,7 @@
 //    топ-17 поля, — «в этом турнире нет» из питча.
 //  - Реальный исход НЕ реплеим: placements deferred до Liquipedia — поле воспроизводится по
 //    силе, турнир симулируется по сиду (UI обязан говорить «симуляция», см. i18n).
+import { squadSynergyOf } from "../data/dataFiles.ts";
 import type { GameData, Pack } from "../types/data.ts";
 import type { TournamentTeam } from "./tournament.ts";
 import { monogramOf, SIGIL_COLORS } from "./tournament.ts";
@@ -112,7 +113,7 @@ export function realPackScore(data: GameData, pack: Pack): ScoreBreakdown {
     pack.players,
     pack.signatureHeroes,
     heroStatsForAssignment(data),
-    data.squadSynergy,
+    squadSynergyOf(data),
     data.teammates,
     chemistryPlayersFromRoster(roster),
     signatures,

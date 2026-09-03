@@ -111,10 +111,18 @@ export const useDuel = create<DuelStore>((set, get) => {
     armTurn();
   };
 
-  const connect = (code: string, name: string) => {
+  const connect = async (code: string, name: string) => {
     const versions = clientVersions();
     if (!versions) {
       set({ status: "error", errorCode: "no_data" });
+      return;
+    }
+    // Барьер отложенного squadSynergy: движок комнаты считает сыгранность, а relay-лог может
+    // прийти сразу после welcome — файл должен лежать в data ДО открытия сокета.
+    try {
+      await useRun.getState().ensureSquadSynergy();
+    } catch {
+      set({ status: "error", errorCode: "network" });
       return;
     }
     socket?.close();

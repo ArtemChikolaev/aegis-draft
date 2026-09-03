@@ -1,6 +1,7 @@
 // Буткемп Roguelite Run (T5.2, срезы 2–3): Reward, контекстный Market и резерв.
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
+import { squadSynergyOf } from "../../data/dataFiles.ts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ECONOMY, tradeInRarity, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import type { Rarity } from "../../game/rarity.ts";
@@ -252,10 +253,10 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
     const phs = heroStatsForAssignment(data);
     const displayPhs = heroStatsForDisplay(data);
     return {
-      chemistryEdges: chemistryPairEdges(chemistryPlayersFromRoster(snapshot.roster), data.squadSynergy, data.teammates),
+      chemistryEdges: chemistryPairEdges(chemistryPlayersFromRoster(snapshot.roster), squadSynergyOf(data), data.teammates),
       displayPhs,
       heroRows: heroSynergyRows(snapshot.roster, score.assignment, phs, displayPhs),
-      chemistryRows: squadChemistryRows(snapshot.roster, data.squadSynergy, data.teammates),
+      chemistryRows: squadChemistryRows(snapshot.roster, squadSynergyOf(data), data.teammates),
     };
   }, [snapshot.roster, score.assignment, data]);
   const synergyTier = heroSynergyTier(current.heroSynergy);

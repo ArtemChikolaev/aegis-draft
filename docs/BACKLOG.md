@@ -2860,6 +2860,9 @@ M5R: правки презентационные, `Rng`-поток и golden н�
 ### T12.7 — Второй проход по T12.5 ✅ (2026-09-02)
 Взято из списка ниже, каждый пункт — отдельный коммит с tsc/unit/e2e: **OvrBadge** (9 копий → `ui/OvrBadge`), **единый штамп датасета** (`state/dataVersions`: runPersist/managerStore/relayRoom, тест на managerStore), **CampScreen** (guard в обёртке + `useMemo/useCallback`, MarketPanel кэширует превью на раздачу; anteRun e2e на mock 34/34), **разрезы**: `anteEconomy` → 4 модуля с реэкспортом, `ManagerScreen` → файл на компонент, `StartScreen` → `startOptions` + `ModeSelect`/`VariantSelect`/`ModePreview`, `manager/engine` → генерация мира в `manager/world.ts`.
 
+### T12.8 — Отложенная загрузка `squadSynergy` ✅ (2026-09-02)
+`DEFERRED_DATA_FILES = [squadSynergy, eventHeroStats]`, общий `DataSource.loadDeferred`. Стартовый экран открывается по ядру (~8 МБ вместо 20), файл едет фоном сразу после; барьер `useRun().ensureSquadSynergy()` стоит в `start`/`resumeRun` (фаза `loading` до готовности), `managerStore.startCareer/resumeCareer`, `connect` Arena/Duel. Потребители читают через `squadSynergyOf(data)` — падает понятной ошибкой, если движок создан до барьера. Проверено headless: порядок запросов и старт при искусственной задержке файла на 2.5с. SW-ведро офлайна включает файл как раньше.
+
 ### T12.5 — Кандидаты, не взятые в этот проход ⬜
 - ~~Разрезы файлов~~ — сделано в T12.7.
 - ~~`CampScreen` без мемоизации~~ — сделано в T12.7.
@@ -2869,7 +2872,7 @@ M5R: правки презентационные, `Rng`-поток и golden н�
 - **Сим-скрипты:** `sweep_seeds_both.ts` и `sim_run.ts` держат по 7 одинаковых хелперов и уже расходятся (stakes, useBoss) — общий `scripts/lib/sim_shared.ts`. Пока оба лишь подключены в `package.json` (`sim:sweep`, `sim:find-seed`).
 - **Сервер:** нет капа длины relay-лога и числа комнат, `POST /api/rooms` без rate-limit; graceful shutdown не дренит ws-сессии; `log.Fatalf` в горутине слушателя обходит `defer db.Close()`.
 - **Пайплайн:** `collectDetails` под `--match-detail-limit` берёт первые N матчей и оставляет `DetailsComplete=false` навсегда — семантика лимита («первые N» vs «N за прогон») не задокументирована; transient-ошибка источника маскируется под `ErrBudgetExhausted` (вечный «добор в след. прогоне» на одном битом матче).
-- **Данные:** `squadSynergy.json` 8.5 МБ — половина датасета; при первом заходе это главная цена, а не JS. Варианты: отложить до выбора режима с ожиданием перед `start()`, либо резать формат (data-contract).
+- ~~Данные: `squadSynergy.json` 8.5 МБ~~ — сделано в T12.8 (отложен с барьером перед стартом; резать формат не понадобилось).
 
 ## Открытые вопросы (из PRD §10, решить по ходу)
 - **A. Решено.** Mixed Draft — свободный порядок незаполненных ролей; support ×2 взаимозаменяемы.

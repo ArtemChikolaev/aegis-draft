@@ -118,7 +118,11 @@ export interface GameData {
   playerHeroStats: PlayerHeroStats;
   careerPlayerHeroStats: PlayerHeroStats;
   teammates: Teammates;
-  squadSynergy: SquadSynergy;
+  /** Парные co-games — самый тяжёлый файл датасета (8.5 МБ, половина объёма). Отложен
+   *  (DEFERRED_DATA_FILES): стартовый экран открывается без него, файл едет фоном сразу после
+   *  ядра, а любой вход в забег ждёт его через `useRun().ensureSquadSynergy()`. Читать только
+   *  через `squadSynergyOf(data)` — он падает понятной ошибкой, если движок создан до барьера. */
+  squadSynergy?: SquadSynergy;
   /** Герои игроков на конкретном турнире — самый тяжёлый файл после squadSynergy (~3.7 МБ), а
    *  читает его только инспектор игрока. Поэтому на старте НЕ грузится: поле пустое, пока
    *  `useRun().loadEventHeroStats()` не дотянет файл по первому открытию инспектора. */

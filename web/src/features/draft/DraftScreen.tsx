@@ -1,3 +1,4 @@
+import { squadSynergyOf } from "../../data/dataFiles.ts";
 import type { CSSProperties } from "react";
 import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
@@ -58,14 +59,14 @@ export function DraftScreen() {
   const chemistryEdges = data
     ? chemistryPairEdges(
       chemistryPlayersFromRoster(roster),
-      data.squadSynergy,
+      squadSynergyOf(data),
       data.teammates,
     )
     : [];
   const phs = data ? heroStatsForAssignment(data) : null;
   const displayPhs = data ? heroStatsForDisplay(data) : null;
   const heroRows = score && phs ? heroSynergyRows(roster, score.assignment, phs, displayPhs ?? undefined) : [];
-  const chemistryRows = data ? squadChemistryRows(roster, data.squadSynergy, data.teammates) : [];
+  const chemistryRows = data ? squadChemistryRows(roster, squadSynergyOf(data), data.teammates) : [];
   const synergyTier = score ? heroSynergyTier(score.heroSynergy) : null;
   const synergySublabel = synergyTier === "insane"
     ? t("draft.synergyInsane")

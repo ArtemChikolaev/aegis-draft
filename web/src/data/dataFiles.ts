@@ -4,7 +4,7 @@
 //
 // Набор атомарен: файлы ссылаются друг на друга по общему `accountId`, а `manifest.dataHash`
 // считается по байтам всех игровых JSON сразу (ADR 0003). Поэтому и кэшируется он целиком.
-import type { GameData } from "../types/data.ts";
+import type { GameData, SquadSynergy } from "../types/data.ts";
 
 /** Файлы, без которых игра не стартует. Порядок не важен, важен состав. */
 export const REQUIRED_DATA_FILES = [
@@ -15,13 +15,12 @@ export const REQUIRED_DATA_FILES = [
   "players",
   "playerHeroStats",
   "teammates",
-  "squadSynergy",
   "teamSuccess",
 ] as const;
 
 /** Файлы, нужные не на старте, а по первому обращению (инспектор игрока). Для офлайн-кэша они
  *  обязательны как и REQUIRED — набор атомарен; отложена только загрузка в игру. */
-export const DEFERRED_DATA_FILES = ["eventHeroStats"] as const;
+export const DEFERRED_DATA_FILES = ["squadSynergy", "eventHeroStats"] as const;
 
 /** Файлы, которых может не быть в датасете (эмитятся отдельной стадией пайплайна).
  *  Их отсутствие — не ошибка ни для загрузки игры, ни для полноты офлайн-кэша. */
@@ -39,4 +38,14 @@ void _filesCoverModel;
 /** Путь файла датасета относительно базы приложения (BASE_URL). */
 export function dataFilePath(name: string): string {
   return `data/${name}.json`;
+}
+
+/** squadSynergy с гарантией: движки и экраны забега создаются только за барьером
+ *  `ensureSquadSynergy`, поэтому отсутствие файла здесь — ошибка порядка вызовов, а не данных.
+ *  Падаем громко, а не считаем сыгранность по пустому массиву молча. */
+export function squadSynergyOf(data: Pick<GameData, "squadSynergy">): SquadSynergy {
+  if (!data.squadSynergy) {
+    throw new Error("squadSynergy ещё не загружен: движок создан до барьера ensureSquadSynergy");
+  }
+  return data.squadSynergy;
 }

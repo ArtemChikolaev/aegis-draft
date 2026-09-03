@@ -1,3 +1,4 @@
+import { squadSynergyOf } from "../../data/dataFiles.ts";
 import { useState, type CSSProperties } from "react";
 import { useRun, type PrepOptionView } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -37,7 +38,7 @@ export function PrepScreen() {
   if (!snapshot || !prep || !data) return null;
 
   const { roster, score } = snapshot;
-  const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), data.squadSynergy, data.teammates, prep.overlay.pairGames);
+  const chemistryEdges = chemistryPairEdges(chemistryPlayersFromRoster(roster), squadSynergyOf(data), data.teammates, prep.overlay.pairGames);
   const nick = new Map(roster.flatMap((slot) => (slot.candidate ? [[slot.candidate.player.accountId, slot.candidate.player] as const] : [])));
   const gained = score ? score.teamOvr - prep.baseline.teamOvr : 0;
   const spentWeeks = prep.budget - prep.pointsLeft;
