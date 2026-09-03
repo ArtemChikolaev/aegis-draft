@@ -1,4 +1,5 @@
-// Одноразовый подбор seed для e2e «предмет в слоте показывает разложение силы».
+// Подбор seed для e2e anteRun: по умолчанию — «предмет в слоте показывает разложение силы»,
+// с `--scouting` — «разведка раскрывает будущего босса» (см. комментарии в спеке).
 // Повторяет ровно путь теста: тот же run-link конфиг, драфт «первым доступным» (как
 // helpers.completeDraft — НЕ жадный, в отличие от sim_run), первый этап, Буткемп, карточная
 // награда вида item. Годный seed — тот, где после взятия награды разложение силы не тривиально.
@@ -31,9 +32,28 @@ function firstAvailableDraft(engine: RunEngine): void {
   }
 }
 
+// `--scouting` — второй путь спеки («разведка раскрывает будущего босса»): наградой первого
+// Буткемпа должна лежать карточка Camp Action `scouting`. Раньше такой сид подбирали руками.
+const wantScouting = process.argv.includes("--scouting");
+const maxFound = Number(process.env.MAX_FOUND ?? (wantScouting ? 12 : 5));
 const found: string[] = [];
-for (let n = 1; n <= 400 && found.length < 5; n++) {
+for (let n = 1; n <= 400 && found.length < maxFound; n++) {
   const seed = `camp-e2e-${n}`;
+  if (wantScouting) {
+    const engine = new RunEngine(data, config, seed);
+    firstAvailableDraft(engine);
+    const score = engine.score();
+    if (!score || !engine.isComplete) continue;
+    const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "E2E", SEASON);
+    if (anteRun.resolveStage() !== "playing") continue;
+    const economy = new RunEconomy(seed);
+    economy.openCamp(anteRun.state.index);
+    if (economy.campView().rewardOffers.some((o) => o.kind === "action" && o.cardId === "scouting")) {
+      found.push(seed);
+      console.log(`✅ ${seed}  scouting наградой первого Буткемпа`);
+    }
+    continue;
+  }
   {
     const engine = new RunEngine(data, config, seed);
     firstAvailableDraft(engine);
