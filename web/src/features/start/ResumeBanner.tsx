@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useManager } from "../../state/managerStore.ts";
-import { ManagerAbandonModal } from "../manager/ManagerScreen.tsx";
+import { ManagerAbandonModal } from "../manager/ManagerAbandonModal.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { Button } from "../../ui/index.ts";
 import type { MessageKey } from "../../i18n/core.ts";
