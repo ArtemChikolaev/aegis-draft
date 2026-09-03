@@ -111,8 +111,16 @@ test.describe("navigation integrity", () => {
     // Каталог показан целиком даже без единого забега: скрывать определения незачем.
     await expect(page.locator(".hq-card")).toHaveCount(45);
     await expect(page.getByTestId("hq-collection-hint")).toContainText("0 of 45");
-    await page.locator('.hq-card[data-card-id="widePool"]').click();
+    await page.locator('.hq-card[data-card-id="widePool"] .hq-card__main').click();
     await expect(page.getByRole("dialog")).toContainText("Wide Pool");
+    await page.keyboard.press("Escape");
+    // Playbook (T6.4-2): шесть карт делают набор готовым, действия сбора переключателя не имеют.
+    for (const id of ["widePool", "oldTeammates", "blackKingBar", "bottle", "dagon", "radiance"]) {
+      await page.getByTestId(`playbook-toggle-${id}`).click();
+    }
+    await expect(page.getByTestId("hq-playbook")).toHaveAttribute("data-ready", "true");
+    await expect(page.getByTestId("hq-playbook-count")).toContainText("6 of 10");
+    await expect(page.getByTestId("playbook-toggle-scouting")).toHaveCount(0);
   });
 
   test("Browser Back идёт heroes → settings → исходный game-view", async ({ page }) => {

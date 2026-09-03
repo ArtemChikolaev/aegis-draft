@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
+import { useShell } from "../../state/shellStore.ts";
+import { usePlaybook } from "../../state/playbookStore.ts";
+import { PLAYBOOK_MAX, PLAYBOOK_MIN, normalizePlaybook } from "../../game/playbook.ts";
 import { useConnectivity } from "../../state/connectivity.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -72,6 +75,10 @@ export function StartScreen() {
   const multiStakesOpen = useCareer((state) => multiStakesUnlocked(state.entries));
   const stakeWins = useCareer((state) => stakeWinsByRule(state.entries));
   const selectedStakes: readonly MutatorId[] = config.stakes ?? [];
+  // Playbook (T6.4-2): черновик собирается в Штабе; сюда попадает канонической копией в конфиг.
+  const setView = useShell((state) => state.setView);
+  const draftPlaybook = usePlaybook((state) => state.cards);
+  const normalizedPlaybook = normalizePlaybook(draftPlaybook);
   const set = <K extends keyof RunConfig>(key: K, value: RunConfig[K]) => setConfig((current) => ({ ...current, [key]: value }));
   // Mixed оценивает игроков по успеху команды за окно, поэтому окно без team-success
   // в нём неиграбельно — гасим так же, как форматы, которых нет в датасете.
@@ -100,6 +107,7 @@ export function StartScreen() {
   const stakeSummary = mode === "run" && (config.stakes?.length ?? 0) > 0
     ? config.stakes!.map((id) => t(`mutator.${id}` as MessageKey)).join(" + ")
     : null;
+  const playbookSummary = mode === "run" && config.playbook?.length ? t("start.playbookOn", { n: config.playbook.length }) : null;
 
   const seedValidation: RunLinkInputValidation = data && mode
     ? validateRunLinkInput(
@@ -302,6 +310,26 @@ export function StartScreen() {
                   set("stakes", next.length ? next : undefined);
                 }}
               />
+              {/* Playbook (T6.4-2) — как Stakes: добровольно, на весь забег, в сид и сейв. Сам набор
+                  собирается в Штабе; здесь только включение. Дейлик Playbook не носит. */}
+              <OptionGroup
+                title={t("playbook.title")}
+                soonLabel={t("common.soon")}
+                options={[
+                  { value: false, label: t("start.playbookOff"), hint: t("start.playbookOffHint") },
+                  {
+                    value: true,
+                    label: normalizedPlaybook ? t("start.playbookOn", { n: normalizedPlaybook.length }) : t("playbook.title"),
+                    hint: normalizedPlaybook
+                      ? t("start.playbookOnHint")
+                      : t("start.playbookInvalid", { min: PLAYBOOK_MIN, max: PLAYBOOK_MAX, n: draftPlaybook.length }),
+                    disabled: !normalizedPlaybook,
+                  },
+                ]}
+                value={Boolean(config.playbook)}
+                onChange={(value) => set("playbook", value && normalizedPlaybook ? normalizedPlaybook : undefined)}
+              />
+              <Button variant="back" data-testid="open-hq-from-start" onClick={() => setView("hq")}>{t("start.playbookEdit")} →</Button>
             </div>
           )}
         </Surface>
@@ -316,6 +344,7 @@ export function StartScreen() {
             )}
             {selectedLabels.map((label) => <li key={label}>{t(label)}</li>)}
             {stakeSummary && <li key="stake">☄ {stakeSummary}</li>}
+            {playbookSummary && <li key="playbook">📖 {playbookSummary}</li>}
           </ul>
           <Button
             variant="primaryInvert"

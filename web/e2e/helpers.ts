@@ -52,17 +52,19 @@ export async function startRogueliteRun(page: Page) {
 /** Детерминированный roguelite-старт по фиксированному seed через run-link (формат — как кодек
  *  state/runLink.ts, версии берём из манифеста → устойчиво к обновлению датасета). Нужен, когда
  *  тесту важен исход этапа: `camp-e2e-22` проходит этап 1 жадным драфтом (см. подбор в истории). */
-export async function startRogueliteSeed(page: Page, seed: string, opts: { cheatMode?: boolean } = {}) {
-  const encoded = await page.evaluate(async ({ seed, cheatMode }) => {
+export async function startRogueliteSeed(page: Page, seed: string, opts: { cheatMode?: boolean; playbook?: readonly string[] } = {}) {
+  const encoded = await page.evaluate(async ({ seed, cheatMode, playbook }) => {
     const m = await fetch("data/manifest.json").then((r) => r.json());
     const payload = {
       v: 1, s: m.schemaVersion, r: m.ratingModelVersion, m: "run", d: "team", f: "last_2y",
       n: 2, c: "event", a: "auto", seed,
       // `x` = cheatMode в кодеке runLink (R2.1).
       ...(cheatMode ? { x: 1 } : {}),
+      // `p` = Playbook (T6.4-2): карты через точку.
+      ...(playbook ? { p: playbook.join(".") } : {}),
     };
     return btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  }, { seed, cheatMode: opts.cheatMode ?? false });
+  }, { seed, cheatMode: opts.cheatMode ?? false, playbook: opts.playbook ?? null });
   await page.goto(`#/run=${encoded}`);
   await page.getByTestId("run-link-accept").click();
   await expect(page.getByTestId("draft-screen")).toBeVisible();

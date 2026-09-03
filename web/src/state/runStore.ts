@@ -689,6 +689,7 @@ export const useRun = create<RunStore>((set, get) => {
       economy.setRarityFlags({ drops: rogueliteRuns >= 1, upgrades: true });
       economy.setUnlimitedGold(config.cheatMode === true);
       economy.setStakes(stakesOf(config));
+      economy.setPlaybook(config.playbook);
       return {
         anteRun, ante: anteRun.state, economy, economyView: economy.snapshot, camp: null,
         tactics: null, boss: null, scoutedBoss: null, campCelebration: false,
@@ -1167,6 +1168,7 @@ export const useRun = create<RunStore>((set, get) => {
             // Экономика: восстанавливаем валюту/покупки, применяем их модификаторы к полю этапа.
             economy = new RunEconomy(resumable.seed, resumable.economy);
             economy.setStakes(stakesOf(resumable.config));
+            economy.setPlaybook(resumable.config.playbook);
             if (economy.snapshot.inCamp) syncMarketOffers(economy, engine, resumable.seed, resumable.config);
             // Условные Tactics восстанавливаются из ростера, а не из сейва (их вклад — производная
             // состава); складываем с экономикой в поле этапа, чтобы resume совпал с исходным полем.

@@ -66,6 +66,7 @@ export function CareerRunCard({ entry }: { entry: CareerEntry }) {
         {entry.configLabel.mode === "run" && <><em className="career-run__mode">{t("career.roguelite")}</em> · </>}
         {configKeys(entry.configLabel).map((key) => t(key)).join(" · ")}
         {entry.configLabel.hardMode && <> · <em className="career-run__hard">{t("hard.badge")}</em></>}
+        {entry.configLabel.playbook && <> · <em className="career-run__hard">📖 {t("career.playbook", { n: entry.configLabel.playbook.length })}</em></>}
         {dailySeedDate(entry.seed) && <> · <em className="career-run__daily">{t("daily.badge", { date: formatDailyDate(dailySeedDate(entry.seed)!, locale) })}</em></>}
         {entryStakes(entry.configLabel).length > 0 && <> · <em className="career-run__hard">☄ {entryStakes(entry.configLabel).map((id) => t(`mutator.${id}` as MessageKey)).join(" + ")}</em></>}
       </p>

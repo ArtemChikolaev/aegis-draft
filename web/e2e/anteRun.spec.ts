@@ -708,6 +708,24 @@ test("roguelite run: награды разных видов, проценты и
   }
 });
 
+// Playbook (T6.4-2): ссылка несёт набор карт, и весь первый Буткемп обязан его уважать — карточная
+// награда и тройка trade-in берутся только из набора; шапка лагеря говорит об этом явно. Сид тот
+// же проходной CAMP_SEED: исход первого этапа от наград не зависит, поэтому лагерь достигается.
+test("roguelite run: Playbook ограничивает награды и trade-in первого Буткемпа", async ({ page }) => {
+  const playbook = ["widePool", "oldTeammates", "blackKingBar", "bottle", "dagon", "radiance"];
+  await gotoFreshApp(page);
+  await startRogueliteSeed(page, CAMP_SEED, { playbook });
+  await completeDraft(page);
+  await simulateAnteStageToOutcome(page);
+  await page.getByTestId("ante-to-camp").click();
+  await expect(page.getByTestId("camp-screen")).toBeVisible();
+  await expect(page.getByTestId("camp-playbook")).toContainText("6");
+  const rewardCards = await page.getByTestId("camp-reward").locator("[data-card-id]").evaluateAll((els) => els.map((el) => el.getAttribute("data-card-id")));
+  // Действия сбора в Playbook не входят и остаются в пуле — проверяем только тактики/предметы.
+  const actions = ["scrim", "bootcamp", "heroPractice", "scouting", "standIn"];
+  for (const id of rewardCards) if (id && !actions.includes(id)) expect(playbook).toContain(id);
+});
+
 // R8.3: предмет в пассивном слоте зажигает разложение силы забега. Seed подобран оффлайн так,
 // чтобы карточная награда первого Буткемпа была предметом, чьё условие на текущем ростере
 // выполняется (иначе панель законно не показывается — пустых слоёв она не рисует).

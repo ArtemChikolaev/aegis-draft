@@ -31,6 +31,8 @@ export interface CareerConfigLabel {
   stake?: MutatorId;
   /** Stakes (T6.4-2): правила сезона, под которыми сыгран забег. Записи без метки — без Stakes. */
   stakes?: MutatorId[];
+  /** Playbook (T6.4-2): карты, из которых брались награды забега. Без метки — полный пул. */
+  playbook?: string[];
   /** Запись сделана в Династии — добровольном продолжении ПОСЛЕ победы сезона (R6.3). Победа уже
    *  засчитана отдельной записью, поэтому эта в агрегаты и в счётчик забегов не идёт: иначе один
    *  забег считался бы дважды и Династия открывала бы мета-прогрессию сама себе. */
@@ -195,6 +197,7 @@ export function buildCareerEntry(input: {
       cheatMode: input.config.cheatMode === true ? true : undefined,
       dynasty: input.dynasty === true ? true : undefined,
       stakes: stakesOf(input.config).length ? [...stakesOf(input.config)] : undefined,
+      playbook: input.mode === "run" && input.config.playbook?.length ? [...input.config.playbook] : undefined,
     },
     seasonWon: input.seasonWon === true ? true : undefined,
     rogueliteStage: input.mode === "run" && input.rogueliteStage

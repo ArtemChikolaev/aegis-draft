@@ -12,6 +12,7 @@ import { RARITIES, rarityRank, rollRarity, type Rarity } from "./rarity.ts";
 /** Слагаемое Team OVR, на которое действует покупка. */
 import { ECONOMY, type Offer, type Summand, type StatEffect } from "./anteEconomyTypes.ts";
 import { stageGold } from "./anteCosts.ts";
+import { playbookAllows } from "./playbook.ts";
 
 const MARKET_SUMMANDS: readonly Summand[] = ["base", "heroSynergy", "chemistry"];
 
@@ -35,6 +36,7 @@ export function cardOffer(
   owned: readonly string[],
   rarityDrops = false,
   build: BuildTiers = { equipped: [], cardRarity: {} },
+  playbook?: readonly string[],
 ): Offer | null {
   const rollFor = (id: string) => rollRarity(seed, `card-${id}`, campStageIndex);
   // Предмет, который уже стоит в слоте, возвращается в пул — но ТОЛЬКО строго более высоким тиром
@@ -81,11 +83,13 @@ export function cardOffer(
       ...(chargeable.includes(id) ? { cardEdition: "charged" as const } : {}),
     };
   }
+  // Playbook (T6.4-2) режет пул тактик/предметов ДО ролла: без него список тот же, что раньше,
+  // и поток `:card` не сдвигается — сиды без Playbook воспроизводятся байт-в-байт.
   const pool = [
-    ...TACTIC_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "tactic" as const, id })),
+    ...TACTIC_IDS.filter((id) => !owned.includes(id) && playbookAllows(playbook, id)).map((id) => ({ kind: "tactic" as const, id })),
     // Предметы (R8.3) — такие же пассивные карточки и занимают ТЕ ЖЕ слоты, что тактики:
     // второй инвентарь рядом с Tactics PRD §5.10.1 запрещает.
-    ...ITEM_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "item" as const, id })),
+    ...ITEM_IDS.filter((id) => !owned.includes(id) && playbookAllows(playbook, id)).map((id) => ({ kind: "item" as const, id })),
     ...CAMP_ACTION_IDS.filter((id) => !owned.includes(id)).map((id) => ({ kind: "action" as const, id })),
   ];
   if (pool.length === 0) return null;
@@ -117,10 +121,11 @@ export function tradeOffers(
   campStageIndex: number,
   owned: readonly string[],
   serial: number,
+  playbook?: readonly string[],
 ): string[] {
   const pool = [
-    ...TACTIC_IDS.filter((id) => !owned.includes(id)),
-    ...ITEM_IDS.filter((id) => !owned.includes(id)),
+    ...TACTIC_IDS.filter((id) => !owned.includes(id) && playbookAllows(playbook, id)),
+    ...ITEM_IDS.filter((id) => !owned.includes(id) && playbookAllows(playbook, id)),
   ];
   const rng = new Rng(`${seed}:camp-${campStageIndex}:trade-${serial}`);
   return rng.shuffle(pool).slice(0, ECONOMY.tradePackSize);
@@ -168,13 +173,14 @@ export function rewardOffers(
   rarityDrops = false,
   build?: BuildTiers,
   slotOffer = false,
+  playbook?: readonly string[],
 ): Offer[] {
   const rng = new Rng(`${seed}:camp-${campStageIndex}:reward`);
   const summand = rng.pick(MARKET_SUMMANDS);
   const cfg = ECONOMY.levers[summand];
   const card = preparedCard !== undefined
     ? preparedCard
-    : cardOffer(seed, campStageIndex, owned, rarityDrops, build);
+    : cardOffer(seed, campStageIndex, owned, rarityDrops, build, playbook);
   const gold = stageGold(ECONOMY.rewardGold.base, ECONOMY.rewardGold.stageStep, campStageIndex);
   // Третий слот — утилита: поиск (реролы) либо качество. Выбор детерминирован по seed+camp,
   // чтобы Буткемп не «мутировал» между рендерами, и уважает мета-гейт улучшений.

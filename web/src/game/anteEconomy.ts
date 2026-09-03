@@ -377,7 +377,7 @@ export class RunEconomy {
     // Буткемпа, чтобы карта не переезжала на другую после выбора.
     this.state.preparedRewardCard = cardOffer(
       this.seed, campStageIndex, this.state.ownedCards, this.state.rarityDropsEnabled,
-      this.buildTiers(),
+      this.buildTiers(), this.playbook,
     );
     // Бесплатные реролы от предметов — свойство Буткемпа, а не накопление: иначе неиспользованные
     // копились бы забегом и обесценивали дорожающий реролл.
@@ -404,7 +404,7 @@ export class RunEconomy {
     return rewardOffers(
       this.seed, this.state.campStageIndex, this.state.ownedCards, prepared,
       this.state.rarityUpgradesEnabled, this.state.rarityDropsEnabled, this.buildTiers(),
-      this.slotOfferAvailable(),
+      this.slotOfferAvailable(), this.playbook,
     );
   }
 
@@ -629,6 +629,14 @@ export class RunEconomy {
     this.stakes = stakes;
   }
 
+  /** Playbook забега (T6.4-2) — тот же транзиент, что Stakes: приходит из RunConfig на старте и
+   *  resume, в сейв экономики не пишется. Режет пул карточных наград и trade-in. */
+  private playbook: readonly string[] | undefined = undefined;
+
+  setPlaybook(playbook: readonly string[] | undefined): void {
+    this.playbook = playbook;
+  }
+
   setUnlimitedGold(enabled: boolean): void {
     this.state.unlimitedGold = enabled;
   }
@@ -678,7 +686,7 @@ export class RunEconomy {
   /** Текущая тройка trade-in офферов (LG1) — детерминирована по лагерю и счётчику рероллов. */
   currentTradeOffers(): string[] {
     return tradeOffers(
-      this.seed, this.state.campStageIndex, this.state.ownedCards, this.state.tradeRerolls ?? 0,
+      this.seed, this.state.campStageIndex, this.state.ownedCards, this.state.tradeRerolls ?? 0, this.playbook,
     );
   }
 

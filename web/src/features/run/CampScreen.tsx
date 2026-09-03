@@ -643,6 +643,13 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
           {/* Мутатор круга Династии (LG3): правило поверх всех этапов круга, та же видимость
               заранее, что у боссов, — готовиться к нему (trade-in, re-pick, накопления) и есть
               работа поздних лагерей. Показывается в каждом лагере круга, а не один раз. */}
+          {/* Playbook (T6.4-2): пул наград и trade-in этого забега ограничен — игрок обязан видеть
+              это в каждом лагере, иначе «почему не выпадает X» читается как баг. */}
+          {config.playbook && (
+            <p className="camp__mutator" data-testid="camp-playbook">
+              📖 <b>{t("playbook.title")}</b>{" — "}{t("camp.playbook", { n: config.playbook.length })}
+            </p>
+          )}
           {campMutators.map((campMutator) => (
             <p key={campMutator} className="camp__mutator" data-testid="camp-mutator">
               ☄ <b>{t(`mutator.${campMutator}` as MessageKey)}</b>

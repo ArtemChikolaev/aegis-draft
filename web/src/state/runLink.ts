@@ -10,6 +10,7 @@
 // вопрос один — «воспроизводим ли забег на этом датасете». Проверку версий не дублируем.
 import { isMutatorId, type MutatorId } from "../game/dynastyMutators.ts";
 import { stakesOf, type RunConfig } from "../game/packs.ts";
+import { normalizePlaybook, samePlaybook } from "../game/playbook.ts";
 import type { RunMode } from "./runPersist.ts";
 
 /** Полезная нагрузка ссылки. Ключи короткие: попадают в URL. */
@@ -100,6 +101,8 @@ export function encodeRunLink(link: RunLink): string {
     // Stakes (T6.4-2): несколько правил пишутся через точку — старый одиночный `k` читается
     // тем же декодером (split даёт массив из одного).
     ...(stakesOf(link.config).length ? { k: stakesOf(link.config).join(".") } : {}),
+    // Playbook (T6.4-2): список карт через точку — ссылка обязана воспроизводить пул наград.
+    ...(link.config.playbook?.length ? { p: link.config.playbook.join(".") } : {}),
     ...(link.eventId ? { e: link.eventId } : {}),
     seed: link.seed,
   };
@@ -130,6 +133,9 @@ export function decodeRunLink(encoded: string): RunLink | null {
   if (raw.x !== undefined && raw.x !== 1) return null;
   if (raw.b !== undefined && (typeof raw.b !== "string" || !raw.b)) return null;
   if (raw.e !== undefined && (typeof raw.e !== "string" || !raw.e)) return null;
+  // Playbook с чужими id или неверного размера — битая ссылка: пул наград не воспроизвести.
+  const playbook = typeof raw.p === "string" && raw.p.length > 0 ? normalizePlaybook(raw.p.split(".")) : undefined;
+  if (raw.p !== undefined && !playbook) return null;
   // Real Tournament без события не воспроизводим — такая ссылка битая, а не «почти рабочая».
   if (raw.m === "tournament" && typeof raw.e !== "string") return null;
   return {
@@ -155,6 +161,7 @@ export function decodeRunLink(encoded: string): RunLink | null {
       ...(typeof raw.k === "string" && raw.k.split(".").every(isMutatorId) && raw.k.length > 0
         ? { stakes: raw.k.split(".") as MutatorId[] }
         : {}),
+      ...(playbook ? { playbook } : {}),
     },
   };
 }
@@ -240,7 +247,8 @@ export function runConfigsMatch(left: RunConfig, right: RunConfig): boolean {
     && left.allocation === right.allocation
     && (left.hardMode ?? false) === (right.hardMode ?? false)
     && (left.cheatMode ?? false) === (right.cheatMode ?? false)
-    && [...stakesOf(left)].sort().join(".") === [...stakesOf(right)].sort().join(".");
+    && [...stakesOf(left)].sort().join(".") === [...stakesOf(right)].sort().join(".")
+    && samePlaybook(left.playbook, right.playbook);
 }
 
 /**

@@ -13,6 +13,8 @@ import type { MessageKey } from "../../i18n/core.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { HQ_STAKE_ORDER, collectionStats, hqTrophies, useCareer, type CardCollectionStat } from "../../state/careerStore.ts";
+import { usePlaybook } from "../../state/playbookStore.ts";
+import { PLAYBOOK_MAX, PLAYBOOK_MIN, PLAYBOOK_RECOMMENDED, isPlaybookCard, normalizePlaybook } from "../../game/playbook.ts";
 import { Banner, Button, Eyebrow, ItemIcon, StatTile, Surface } from "../../ui/index.ts";
 import { BuildCardInspector } from "../run/BuildCardInspector.tsx";
 import "./hq.css";
@@ -30,6 +32,10 @@ export function HqScreen() {
   const backNative = useTmaChrome((state) => state.backNative);
   const entries = useCareer((state) => state.entries);
   const [inspected, setInspected] = useState<string | null>(null);
+  const playbook = usePlaybook((state) => state.cards);
+  const togglePlaybook = usePlaybook((state) => state.toggle);
+  const clearPlaybook = usePlaybook((state) => state.clear);
+  const playbookReady = normalizePlaybook(playbook) !== null;
   const stats = collectionStats(entries);
   const trophies = hqTrophies(entries);
   const total = GROUPS.reduce((sum, group) => sum + group.ids.length, 0);
@@ -74,6 +80,16 @@ export function HqScreen() {
       </Surface>
 
       <Surface className="hq__panel">
+        <h2 className="hq__section">{t("playbook.title")}</h2>
+        <p className="hq__hint">{t("playbook.hint", { min: PLAYBOOK_MIN, max: PLAYBOOK_MAX, rec: PLAYBOOK_RECOMMENDED })}</p>
+        <div className="hq__playbook" data-testid="hq-playbook" data-ready={playbookReady}>
+          <strong data-testid="hq-playbook-count">{t("playbook.count", { n: playbook.length, max: PLAYBOOK_MAX })}</strong>
+          <span>{playbookReady ? `✓ ${t("playbook.ready")}` : playbook.length < PLAYBOOK_MIN ? t("playbook.needMore", { n: PLAYBOOK_MIN - playbook.length }) : t("playbook.full")}</span>
+          {playbook.length > 0 && <Button variant="secondary" data-testid="hq-playbook-clear" onClick={clearPlaybook}>{t("playbook.clear")}</Button>}
+        </div>
+      </Surface>
+
+      <Surface className="hq__panel">
         <h2 className="hq__section">{t("hq.collection")}</h2>
         <p className="hq__hint" data-testid="hq-collection-hint">{t("hq.collectionHint", { n: discovered, total })}</p>
         {GROUPS.map((group) => (
@@ -81,7 +97,16 @@ export function HqScreen() {
             <h3>{t(group.title)}</h3>
             <div className="hq__cards">
               {group.ids.map((id) => (
-                <CardTile key={id} id={id} kind={group.kind} stat={stats[id]} onOpen={() => setInspected(id)} />
+                <CardTile
+                  key={id}
+                  id={id}
+                  kind={group.kind}
+                  stat={stats[id]}
+                  inPlaybook={isPlaybookCard(id) ? playbook.includes(id) : undefined}
+                  playbookFull={playbook.length >= PLAYBOOK_MAX}
+                  onOpen={() => setInspected(id)}
+                  onToggle={() => togglePlaybook(id)}
+                />
               ))}
             </div>
           </section>
@@ -95,31 +120,47 @@ export function HqScreen() {
   );
 }
 
-function CardTile({ id, kind, stat, onOpen }: { id: string; kind: CardKind; stat?: CardCollectionStat; onOpen: () => void }) {
+function CardTile({ id, kind, stat, inPlaybook, playbookFull, onOpen, onToggle }: {
+  id: string;
+  kind: CardKind;
+  stat?: CardCollectionStat;
+  /** undefined — карта не участвует в Playbook (действия сбора). */
+  inPlaybook?: boolean;
+  playbookFull: boolean;
+  onOpen: () => void;
+  onToggle: () => void;
+}) {
   const { t } = useI18n();
   const label = t(`${kind}.${id}` as MessageKey);
   const slug = itemArtSlug(id);
   const discovered = Boolean(stat);
   return (
-    <button
-      type="button"
-      className="hq-card"
-      data-kind={kind}
-      data-card-id={id}
-      data-discovered={discovered}
-      aria-label={`${label} · ${t("camp.offerDetails")}`}
-      onClick={onOpen}
-    >
-      <span className="hq-card__art" aria-hidden="true">
-        {slug ? <ItemIcon slug={slug} name={label} size="sm" /> : <b>{label.slice(0, 2)}</b>}
-      </span>
-      <strong className="hq-card__name">{label}</strong>
-      <small className="hq-card__meta">
-        {stat
-          ? [t("hq.taken", { n: stat.taken }), stat.won > 0 ? t("hq.wonWith", { n: stat.won }) : null, stat.bestStage != null ? t("hq.bestWith", { n: stat.bestStage }) : null]
-            .filter(Boolean).join(" · ")
-          : t("hq.undiscovered")}
-      </small>
-    </button>
+    <div className="hq-card" data-kind={kind} data-card-id={id} data-discovered={discovered} data-in-playbook={inPlaybook}>
+      <button type="button" className="hq-card__main" aria-label={`${label} · ${t("camp.offerDetails")}`} onClick={onOpen}>
+        <span className="hq-card__art" aria-hidden="true">
+          {slug ? <ItemIcon slug={slug} name={label} size="sm" /> : <b>{label.slice(0, 2)}</b>}
+        </span>
+        <strong className="hq-card__name">{label}</strong>
+        <small className="hq-card__meta">
+          {stat
+            ? [t("hq.taken", { n: stat.taken }), stat.won > 0 ? t("hq.wonWith", { n: stat.won }) : null, stat.bestStage != null ? t("hq.bestWith", { n: stat.bestStage }) : null]
+              .filter(Boolean).join(" · ")
+            : t("hq.undiscovered")}
+        </small>
+      </button>
+      {inPlaybook !== undefined && (
+        <button
+          type="button"
+          className="hq-card__toggle"
+          data-testid={`playbook-toggle-${id}`}
+          aria-pressed={inPlaybook}
+          disabled={!inPlaybook && playbookFull}
+          title={!inPlaybook && playbookFull ? t("playbook.full") : undefined}
+          onClick={onToggle}
+        >
+          {inPlaybook ? `✓ ${t("playbook.remove")}` : t("playbook.add")}
+        </button>
+      )}
+    </div>
   );
 }

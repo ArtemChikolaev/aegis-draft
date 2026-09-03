@@ -18,6 +18,7 @@
 //   NOBOSS=1 npm run sim -- 500        без боссов, для сравнения
 //   NOEDITIONS=1 npm run sim -- 400    без зарядов Editions (эквивалент b1.26) — для A/B
 import { isMutatorId, type MutatorId } from "../src/game/dynastyMutators.ts";
+import { normalizePlaybook } from "../src/game/playbook.ts";
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
 import { ACT_LENGTH, AnteRunEngine, buildSeason, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, SEASON, type SeasonModel } from "../src/game/anteRun.ts";
@@ -51,9 +52,16 @@ const simStakes: MutatorId[] = (process.env.STAKE ?? "").split(/[.,]/).filter(Bo
   if (!isMutatorId(raw)) throw new Error(`Неизвестный Stake: ${raw}`);
   return raw;
 });
+/** Playbook (T6.4-2) для A/B: PLAYBOOK=widePool.blackKingBar.… (6–10 карт). Неверный набор —
+ *  ошибка, а не молчаливый прогон с полным пулом. */
+const simPlaybook = process.env.PLAYBOOK
+  ? normalizePlaybook(process.env.PLAYBOOK.split(/[.,]/).filter(Boolean))
+  : undefined;
+if (process.env.PLAYBOOK && !simPlaybook) throw new Error(`Неверный Playbook: ${process.env.PLAYBOOK}`);
 const config: RunConfig = {
   draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
   ...(simStakes.length ? { stakes: simStakes } : {}),
+  ...(simPlaybook ? { playbook: simPlaybook } : {}),
 };
 const useBoss = !process.env.NOBOSS;
 // A/B-переключатель Editions (R13.5): NOEDITIONS=1 выключает НАЧИСЛЕНИЕ и УЧЁТ зарядов — это
@@ -696,6 +704,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
   // измерить нечем. Первый забег — отдельный онбординговый случай.
   economy.setRarityFlags({ drops: true, upgrades: true });
   economy.setStakes(simStakes);
+  economy.setPlaybook(config.playbook);
 
   const camps: CampStat[] = [];
   const placements: PlacementKey[] = [];
