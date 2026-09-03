@@ -1,7 +1,7 @@
 // Буткемп Roguelite Run (T5.2, срезы 2–3): Reward, контекстный Market и резерв.
 // Постоянная левая панель переиспользует тот же Pentagon/SynergyBreakdown, что драфт и турнир:
 // игрок всегда видит активный ростер, hero assignment и связи до принятия решения.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ECONOMY, tradeInRarity, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
 import type { Rarity } from "../../game/rarity.ts";
 import {
@@ -84,16 +84,36 @@ import {
 } from "./CampCards.tsx";
 import "./camp.css";
 
+type RunSlice = ReturnType<typeof useRun.getState>;
+
+interface CampScreenProps {
+  camp: NonNullable<RunSlice["camp"]>;
+  ante: NonNullable<RunSlice["ante"]>;
+  snapshot: NonNullable<RunSlice["snapshot"]>;
+  score: NonNullable<NonNullable<RunSlice["snapshot"]>["score"]>;
+  data: NonNullable<RunSlice["data"]>;
+  config: NonNullable<RunSlice["config"]>;
+}
+
+/** Обёртка — только guard. Тело с хуками живёт в CampScreenBody: там useMemo/useCallback стоят
+ *  ПОСЛЕ проверки на null (правило хуков), и превью силы не пересчитываются на каждый клик по
+ *  инспектору (T12.5, аудит 2026-09-02: 8 useState на экране × evaluateCampPower на оффер). */
 export function CampScreen() {
   const camp = useRun((s) => s.camp);
   const ante = useRun((s) => s.ante);
-  const seed = useRun((s) => s.seed);
   const snapshot = useRun((s) => s.snapshot);
   const data = useRun((s) => s.data);
   const config = useRun((s) => s.config);
+  const score = snapshot?.score;
+  if (!camp || !ante || !score || !snapshot || !data || !config) return null;
+  return <CampScreenBody camp={camp} ante={ante} snapshot={snapshot} score={score} data={data} config={config} />;
+}
+
+function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScreenProps) {
+  const seed = useRun((s) => s.seed);
   // Правила предстоящего этапа (LG3/T6.4): мутатор круга Династии или стартовые Stakes сезона
   // (T6.4-2: их может быть несколько); пусто — строки не рендерятся.
-  const campMutators = ante ? stageMutators(seed, ante.index, undefined, stakesOf(config)) : [];
+  const campMutators = stageMutators(seed, ante.index, undefined, stakesOf(config));
   const boss = useRun((s) => s.boss);
   const scoutedBoss = useRun((s) => s.scoutedBoss);
   const chooseReward = useRun((s) => s.chooseReward);
@@ -136,9 +156,8 @@ export function CampScreen() {
   // не возвращает игрока в свёрнутую награду — продолжает с рынка. Состояние это только UI:
   // в сейв и RunEngine разделы не протекают.
   useEffect(() => {
-    if (!camp) return;
     setActiveSection(camp.rewardChosen ? "market" : "reward");
-  }, [camp?.campStageIndex]);
+  }, [camp.campStageIndex]);
   // Золото берёт у `useCountUp` только НАПРАВЛЕНИЕ, а не набегающее значение.
   //
   // Почему не число: набег живёт на requestAnimationFrame, а в неактивной вкладке rAF тормозится —
@@ -146,37 +165,32 @@ export function CampScreen() {
   // нет: по нему игрок решает, хватает ли на покупку, и показать не то число нельзя. Вспышка при
   // этом сохраняется — она и отвечает на «что сейчас изменилось» (design-language §Движение).
   //
-  // Хук обязан стоять ДО раннего `return null` ниже, поэтому читает `camp` опционально.
   // В Cheat Mode целимся в null: у «∞» изменений не бывает, сигналить нечего.
-  const { direction: goldDirection } = useCountUp(
-    camp && !camp.unlimitedGold ? camp.gold : null,
-  );
+  const { direction: goldDirection } = useCountUp(camp.unlimitedGold ? null : camp.gold);
   // Hover-tilt карточек (R15.6): один делегированный слушатель на корне экрана — карточки
   // постоянно перемонтируются раздачей, и вешать обработчики на каждую было бы утечкой
   // логики в списки. Углы пишутся CSS-переменными, стиль — camp.css.
   const tiltRootRef = useRef<HTMLElement | null>(null);
   useCardTilt(tiltRootRef);
-  const candidates = useMemo(() => (data?.packs ?? []).flatMap(candidatesOf), [data]);
+  const candidates = useMemo(() => data.packs.flatMap(candidatesOf), [data]);
   const eventNames = useMemo(
-    () => new Map((data?.events ?? []).map((event) => [event.id, event.short ?? event.name])),
-    [data?.events],
+    () => new Map(data.events.map((event) => [event.id, event.short ?? event.name])),
+    [data.events],
   );
   const eventLabel = (eventId: string) => eventNames.get(eventId) ?? eventId;
 
-  const score = snapshot?.score;
-  if (!camp || !ante || !score || !snapshot || !data || !config) return null;
-  // Алиасы сохраняют non-null гарантию внутри локальных функций превью: TypeScript не переносит
-  // narrowing изменяемых store-ссылок через границу замыкания.
+  // Алиасы остались от эпохи, когда guard стоял здесь же (пропсы теперь non-null): локальные
+  // функции превью ссылаются на них, менять их тело ради переименования незачем.
   const activeCamp = camp;
   const activeSnapshot = snapshot;
   const activeData = data;
 
-  const build = {
+  const build = useMemo(() => ({
     economy: camp.modifiers,
     equippedCards: camp.equippedTactics,
     cardRarity: camp.cardRarity,
     cardCharges: camp.cardCharges,
-  };
+  }), [camp.modifiers, camp.equippedTactics, camp.cardRarity, camp.cardCharges]);
 
   /** Собирает состояние превью через те же контексты, которыми реальные Tactics проверяют
    *  ростер. После замены игрока/героя нельзя переносить старый эффект карточки как константу. */
@@ -195,29 +209,30 @@ export function CampScreen() {
     };
   }
 
-  const currentPowerState = powerState(
-    valuesOf(score), snapshot.roster, score.assignment.byPlayer, snapshot.heroes,
+  // powerState читает activeData / activeCamp.heroRarity / campStageIndex — они в deps явно.
+  const currentPowerState = useMemo(
+    () => powerState(valuesOf(score), snapshot.roster, score.assignment.byPlayer, snapshot.heroes),
+    [score, snapshot.roster, snapshot.heroes, data, camp.heroRarity, camp.campStageIndex],
   );
-  const currentEvaluation = evaluateCampPower(currentPowerState, build);
+  const currentEvaluation = useMemo(() => evaluateCampPower(currentPowerState, build), [currentPowerState, build]);
   const current = currentEvaluation.values;
   const mods = currentEvaluation.modifiers;
   const tactics = currentEvaluation.tactics;
   const itemEval = currentEvaluation.items;
   const power = currentEvaluation.power;
 
-  function previewPower(
+  // Стабильная ссылка: MarketPanel кэширует превью офферов на раздачу, ключ кэша — эта функция.
+  const previewPower = useCallback((
     nextScore: SummandValues,
     roster: typeof activeSnapshot.roster,
     assignment: Record<number, number>,
     activeHeroes: readonly number[],
     heroRarity: Record<string, Rarity> = activeCamp.heroRarity,
-  ): CampPowerPreview {
-    return campPowerPreview(
-      currentPowerState,
-      powerState(nextScore, roster, assignment, activeHeroes, heroRarity),
-      build,
-    );
-  }
+  ): CampPowerPreview => campPowerPreview(
+    currentPowerState,
+    powerState(nextScore, roster, assignment, activeHeroes, heroRarity),
+    build,
+  ), [currentPowerState, build, data, camp.heroRarity, camp.campStageIndex]);
 
   function replaceRosterCandidate(slotIndex: number, candidate: Candidate) {
     return activeSnapshot.roster.map((slot, index) => (
@@ -233,15 +248,16 @@ export function CampScreen() {
   const nextLabel = ante.target <= 1
     ? t("ante.nextTargetWin")
     : t("ante.nextTargetTop", { rank: ante.target });
-  const chemistryEdges = chemistryPairEdges(
-    chemistryPlayersFromRoster(snapshot.roster),
-    data.squadSynergy,
-    data.teammates,
-  );
-  const phs = heroStatsForAssignment(data);
-  const displayPhs = heroStatsForDisplay(data);
-  const heroRows = heroSynergyRows(snapshot.roster, score.assignment, phs, displayPhs);
-  const chemistryRows = squadChemistryRows(snapshot.roster, data.squadSynergy, data.teammates);
+  const { chemistryEdges, displayPhs, heroRows, chemistryRows } = useMemo(() => {
+    const phs = heroStatsForAssignment(data);
+    const displayPhs = heroStatsForDisplay(data);
+    return {
+      chemistryEdges: chemistryPairEdges(chemistryPlayersFromRoster(snapshot.roster), data.squadSynergy, data.teammates),
+      displayPhs,
+      heroRows: heroSynergyRows(snapshot.roster, score.assignment, phs, displayPhs),
+      chemistryRows: squadChemistryRows(snapshot.roster, data.squadSynergy, data.teammates),
+    };
+  }, [snapshot.roster, score.assignment, data]);
   const synergyTier = heroSynergyTier(current.heroSynergy);
   const synergySublabel = synergyTier === "insane"
     ? t("draft.synergyInsane")
@@ -330,10 +346,10 @@ export function CampScreen() {
         const scaled = itemAt(def, rarity);
         const main = itemLabel(scaled.effect);
         const cost = scaled.drawback ? itemLabel(scaled.drawback) : null;
-        const preview = itemContribution(def, snapshot?.heroes ?? [], t, rarity);
+        const preview = itemContribution(def, snapshot.heroes, t, rarity);
         // Карточка улучшения (R14.3) обязана назвать себя улучшением: без этого «Guardian Greaves ·
         // Экзотическая» рядом с уже стоящей «Обычной» читается как второй экземпляр.
-        const upgradeFrom: Rarity = camp?.cardRarity?.[offer.cardId] ?? "common";
+        const upgradeFrom: Rarity = camp.cardRarity[offer.cardId] ?? "common";
         return [
           <RarityBadge
             key="r"
@@ -366,14 +382,14 @@ export function CampScreen() {
           // непроверяемо глазами (R11.7).
           <ItemMatch
             key="m"
-            match={effectMatch(scaled.effect, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {}, cardCharges: {} })}
+            match={effectMatch(scaled.effect, { activeHeroes: snapshot.heroes, cardRarity: {}, cardCharges: {} })}
             hero={hero}
             t={t}
           />,
           ...(scaled.drawback ? [
             <ItemMatch
               key="md"
-              match={effectMatch(scaled.drawback, { activeHeroes: snapshot?.heroes ?? [], cardRarity: {}, cardCharges: {} })}
+              match={effectMatch(scaled.drawback, { activeHeroes: snapshot.heroes, cardRarity: {}, cardCharges: {} })}
               hero={hero}
               t={t}
             />,
@@ -433,7 +449,7 @@ export function CampScreen() {
   function buildTagChips(heroId: number) {
     const tags = heroTags(heroId);
     if (!tags) return [];
-    const axes = conditionAxes(camp!.equippedTactics);
+    const axes = conditionAxes(camp.equippedTactics);
     const own = new Set<string>([...tags.lore, ...tags.play]);
     const lore = new Set<string>(tags.lore);
     const chips: TagChip[] = axes.tags

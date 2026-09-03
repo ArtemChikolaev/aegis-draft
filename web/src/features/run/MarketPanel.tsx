@@ -1,7 +1,7 @@
 // Раздел «Рынок» Буткемпа: пак игроков, пак hero re-pick и улучшение качества героев.
 // Вынесен из `CampScreen` (R14.2) без изменения поведения: вся арифметика по-прежнему считается
 // на экране и приходит сюда готовой — панель только рисует и зовёт переданные действия.
-import { useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { playerOfferAffordable } from "../../game/anteEconomy.ts";
 import { upgradeCost } from "../../game/heroRarity.ts";
 import { nextRarity, type Rarity } from "../../game/rarity.ts";
@@ -14,6 +14,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { Button, Dealt, prefersReducedMotion } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { CampMarketView } from "./campMarketView.ts";
+import type { CampPowerPreview } from "./campPresentation.ts";
 
 /** Слепок купленной карточки (R15.1): содержимое заморожено в момент клика, чтобы уходящая
  *  карточка не пересчитывалась по уже изменившемуся состоянию. Доиграв exit, слепок становится
@@ -46,6 +47,17 @@ export function MarketPanel(props: CampMarketView) {
   // только по лагерю — с `marketSerial` они перемонтировались на каждый реролл и переигрывали
   // раздачу, из-за чего неизменные карточки мигали (плейтест 2026-08-05).
   const campDeal = `${camp.campStageIndex}`;
+  // Кэш превью на раздачу (T12.5): evaluateCampPower на каждый оффер дорог, а панель
+  // перерисовывается на любой локальный клик экрана (инспекторы, вкладки). Deps — ровно то, от
+  // чего зависит превью; previewPower стабилен через useCallback в CampScreen, иначе кэш
+  // сбрасывался бы каждый рендер. Золото/бесплатные свапы в превью не входят — и в deps их нет.
+  const previewFor = useMemo(() => {
+    const cache = new Map<string, CampPowerPreview | null>();
+    return (key: string, compute: () => CampPowerPreview | null): CampPowerPreview | null => {
+      if (!cache.has(key)) cache.set(key, compute());
+      return cache.get(key) ?? null;
+    };
+  }, [previewPower, playerOffers, heroOffers, snapshot, score, camp.heroRarity, candidates]);
   // Exit покупки (R15.1) + дыра на месте (плейтест 2026-08-09). Движок зовётся СРАЗУ (золото и
   // радар вспыхивают в момент клика, e2e читают состояние синхронно), уход рисует ghost — слепок
   // содержимого карточки, замороженный в момент клика: пересчёт по уже изменившемуся состоянию
@@ -141,14 +153,14 @@ export function MarketPanel(props: CampMarketView) {
             // иначе дорогая карта остаётся заблокированной, хотя движок списал бы 0 (баг live).
             const freeSwap = camp.freePlayerSwaps > 0;
             const affordable = playerOfferAffordable(offer.cost, camp.gold, camp.freePlayerSwaps, camp.unlimitedGold);
-            const preview = offer.preview
+            const preview = previewFor(offer.id, () => offer.preview
               ? previewPower(
                   offer.preview.after,
                   replaceRosterCandidate(offer.playerSwap!.slotIndex, incoming),
                   offer.preview.afterAssignment ?? score.assignment.byPlayer,
                   snapshot.heroes,
                 )
-              : null;
+              : null);
             const deltas = preview?.deltas ?? [];
             const powerDelta = preview?.delta ?? 0;
             const summary = playerOfferSummary(incoming, outgoing, afterHeroId);
@@ -242,7 +254,7 @@ export function MarketPanel(props: CampMarketView) {
             const afterRarity = { ...camp.heroRarity };
             if (offer.heroSwap) afterRarity[String(offer.heroSwap.incomingHeroId)] = incomingRarity;
             if (upgrade) afterRarity[String(upgrade.heroId)] = upgrade.targetRarity;
-            const preview = offer.preview
+            const preview = previewFor(offer.id, () => offer.preview
               ? previewPower(
                   offer.preview.after,
                   snapshot.roster,
@@ -258,7 +270,7 @@ export function MarketPanel(props: CampMarketView) {
                     afterHeroes,
                     afterRarity,
                   )
-                : null;
+                : null);
             const deltas = preview?.deltas ?? [];
             const powerDelta = preview?.delta ?? 0;
             // У улучшения переиспользуем карточку из Preparation: там уже решено, как показывать
@@ -374,7 +386,7 @@ export function MarketPanel(props: CampMarketView) {
                 const affordable = cost != null && (freeUpgrade || camp.unlimitedGold || cost <= camp.gold);
                 const afterRarity = { ...camp.heroRarity };
                 if (up) afterRarity[String(heroId)] = up;
-                const preview = up
+                const preview = previewFor(`rarity:${heroId}`, () => up
                   ? previewPower(
                       valuesOf(score),
                       snapshot.roster,
@@ -382,7 +394,7 @@ export function MarketPanel(props: CampMarketView) {
                       snapshot.heroes,
                       afterRarity,
                     )
-                  : null;
+                  : null);
                 const deltas = preview?.deltas ?? [];
                 const powerDelta = preview?.delta ?? 0;
                 return (
