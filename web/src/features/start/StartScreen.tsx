@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { useRun, type RunMode } from "../../state/runStore.ts";
+import { useRun } from "../../state/runStore.ts";
 import { useConnectivity } from "../../state/connectivity.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
-import type { RunConfig, DraftStyle, Scoring, Allocation } from "../../game/packs.ts";
+import type { RunConfig } from "../../game/packs.ts";
 import type { Format } from "../../types/data.ts";
 import { Button, Eyebrow, Modal, OptionGroup, type Option, Select, Surface } from "../../ui/index.ts";
 import { createRunSeed } from "../../game/rng.ts";
-import { DAILY_CONFIG, dailyDateKey, dailySeed, formatDailyDate } from "../../game/daily.ts";
 import { mixedSupportsFormat } from "../../game/teamSuccess.ts";
 import { realTournamentEvents } from "../../game/realTournament.ts";
 import { validateRunLinkInput, type RunLinkInputValidation } from "../../state/runLink.ts";
@@ -16,94 +15,22 @@ import { BALANCE_CONFIG_VERSION } from "../../game/balance.ts";
 import { mutatorDescParams, type MutatorId } from "../../game/dynastyMutators.ts";
 import { multiStakesUnlocked, stakeWinsByRule, stakesUnlocked, useCareer } from "../../state/careerStore.ts";
 import { SeedField } from "./SeedField.tsx";
-import { ArenaLobby } from "./ArenaLobby.tsx";
-import { isApiConfigured } from "../../data/api/index.ts";
+import { VariantSelect } from "./VariantSelect.tsx";
+import { ModeSelect } from "./ModeSelect.tsx";
+import { ModePreview } from "./ModePreview.tsx";
+import {
+  ALLOCATION, CHEAT_MODE, DIFFICULTY, DRAFT, DRAFT_CONFIG_MODES, FORMAT, HARD_MODE, HARDCORE_REROLLS,
+  MODES, ROGUELITE_REROLLS, SCORING, STAKE_CHOICES, type Opt,
+} from "./startOptions.ts";
 import "./start.css";
 
-interface Opt<T> {
-  value: T;
-  label: MessageKey;
-  hint?: MessageKey;
-  soon?: boolean;
-  /** Опция есть, но недоступна при текущих настройках (в отличие от `soon` — «будет позже»). */
-  disabled?: boolean;
-}
-
-/** `needsNetwork` — режим неиграбелен без интернета ПО СМЫСЛУ (живые соперники), а не потому,
- *  что данные лежат на CDN: одиночные режимы играются офлайн и этим флагом не помечаются. */
-const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detail: MessageKey; available: boolean; needsNetwork?: boolean }[] = [
-  { value: "classic", label: "start.modeClassic", hint: "start.modeClassicHint", detail: "start.modeClassicLong", available: true },
-  // Manager доступен (T5.5, срез 1): карточка ведёт в собственный флоу ManagerScreen —
-  // App перехватывает selectedMode === "manager" до фазовых экранов classic-забега.
-  { value: "manager", label: "start.modeManager", hint: "start.modeManagerHint", detail: "start.modeManagerLong", available: true },
-  // Real Tournament доступен (T5.6): поле = реальные составы выбранного события, roster lock.
-  { value: "tournament", label: "start.modeTournament", hint: "start.modeTournamentHint", detail: "start.modeTournamentLong", available: true },
-  // Arena (M10, PRD §5.12): онлайн-турнир на 18 команд. Карточка и красный акцент режима живут
-  // уже сейчас; сам режим ждёт живого ws-сервера (MP0) — до него превью «Скоро», как у соседей.
-  { value: "arena", label: "start.modeArena", hint: "start.modeArenaHint", detail: "start.modeArenaLong", available: false, needsNetwork: true },
-  // Дуэль (M-DUEL): онлайн 1×1 по коду комнаты (relay-инфраструктура MP0). App перехватывает
-  // selectedMode === "duel" до фазовых экранов, как у Manager.
-  { value: "duel", label: "start.modeDuel", hint: "start.modeDuelHint", detail: "start.modeDuelLong", available: true, needsNetwork: true },
-];
-
-/** Режимы, использующие Classic-конфиг драфта (Quick Draft и Roguelite Run поверх него).
- *  Обе ветки открываются из одной карточки Classic через шаг выбора варианта. */
-const DRAFT_CONFIG_MODES: RunMode[] = ["classic", "run", "tournament"];
-/** Roguelite Run фиксирует рероллы (стартовых всегда максимум 2) — сложность не выбирается. */
-const ROGUELITE_REROLLS = 2;
-
-const DRAFT: Opt<DraftStyle>[] = [
-  { value: "team", label: "start.teamPacks", hint: "start.teamPacksHint" },
-  { value: "mixed", label: "start.mixedDraft", hint: "start.mixedDraftHint" },
-];
-const FORMAT: Opt<Format>[] = [
-  { value: "last_1y", label: "start.last1y" },
-  { value: "last_2y", label: "start.last2y", hint: "start.standard" },
-  { value: "last_5y", label: "start.last5y" },
-  { value: "valve_legacy", label: "start.valveLegacy", hint: "start.legacyHint" },
-];
-/** Сложность = число рероллов пака. Хардкор равен нулю рероллов, отсюда и связка ниже. */
-const HARDCORE_REROLLS = 0;
-const DIFFICULTY: Opt<number>[] = [
-  { value: HARDCORE_REROLLS, label: "start.hard", hint: "start.rerolls0" },
-  { value: 1, label: "start.normal", hint: "start.rerolls1" },
-  { value: 2, label: "start.smurfing", hint: "start.rerolls2" },
-  { value: Infinity, label: "start.easy", hint: "start.rerollsInfinite" },
-];
-const SCORING: Opt<Scoring>[] = [
-  { value: "event", label: "start.eventRating", hint: "start.eventRatingHint" },
-  { value: "peak", label: "start.peakRating", hint: "start.peakRatingHint", soon: true },
-];
-const HARD_MODE: Opt<boolean>[] = [
-  { value: false, label: "hard.off", hint: "hard.offHint" },
-  { value: true, label: "hard.on", hint: "hard.onHint" },
-];
-const CHEAT_MODE: Opt<boolean>[] = [
-  { value: false, label: "cheat.off", hint: "cheat.offHint" },
-  { value: true, label: "cheat.on", hint: "cheat.onHint" },
-];
-/** Стартовые Stakes (T6.4) — лестница по ЗАМЕРЕННОЙ тяжести (300 сидов, база 31.3%):
- *  uncappedBoss 27.7% и doubleBans 27.7% (умеренные, b1.41.0 — семантика пересмотрена до
- *  рабочей в сезоне), expensiveMarket 25.0% (средний), tighterTargets 23.3% (жёсткий).
- *  Замеры — BACKLOG T6.4. */
-const STAKE_CHOICES: { id: MutatorId; severity: MessageKey }[] = [
-  { id: "uncappedBoss", severity: "stake.sevLight" },
-  { id: "doubleBans", severity: "stake.sevLight" },
-  { id: "expensiveMarket", severity: "stake.sevMedium" },
-  { id: "tighterTargets", severity: "stake.sevHard" },
-];
-
-const ALLOCATION: Opt<Allocation>[] = [
-  { value: "auto", label: "start.automatic", hint: "start.automaticHint" },
-  { value: "manual", label: "start.manual", hint: "start.manualHint" },
-];
 
 export function StartScreen() {
   const start = useRun((state) => state.start);
   const data = useRun((state) => state.data);
   const formats = data?.manifest.formats ?? [];
   const teamSuccess = data?.teamSuccess;
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const mode = useRun((state) => state.selectedMode);
   const setMode = useRun((state) => state.setSelectedMode);
   const startStep = useRun((state) => state.startStep);
@@ -129,11 +56,7 @@ export function StartScreen() {
   const backNative = useTmaChrome((state) => state.backNative);
   // Связность (T11.3): гейтим только режимы с `needsNetwork`. `unknown` («проверить нечем»)
   // намеренно НЕ считается офлайном — иначе гейт срабатывал бы на пустом VITE_API_BASE.
-  const connectivity = useConnectivity((state) => state.status);
-  const checkingConnectivity = useConnectivity((state) => state.checking);
-  const connectivityChecked = useConnectivity((state) => state.checkedAt > 0);
   const checkConnectivity = useConnectivity((state) => state.check);
-  const offline = connectivity === "offline";
   const modeNeedsNetwork = MODES.find((item) => item.value === mode)?.needsNetwork === true;
   // Свежая проверка ровно там, где вердикт что-то решает: на входе в такой режим.
   useEffect(() => {
@@ -206,149 +129,11 @@ export function StartScreen() {
     start(config, seedValidation.link?.seed ?? createRunSeed());
   };
 
-  // Дейлик (PRD §5.14): фиксированный конфиг Quick Draft + сид дня. Запись сегодняшнего
-  // результата ищем в карьере по сиду — это и есть вся «серверная» часть дейлика.
-  const todaySeed = dailySeed();
-  const todayEntry = useCareer((state) => state.entries.find((entry) => entry.seed === todaySeed) ?? null);
-  const onDaily = () => {
-    setMode("classic");
-    start(DAILY_CONFIG, todaySeed);
-  };
 
-  if (startStep === "variants") {
-    return (
-      <main className="mode-select variant-select">
-        {!backNative && <Button variant="back" onClick={() => setStartStep("modes")}>← {t("start.backToModes")}</Button>}
-        <header className="mode-select__heading">
-          <Eyebrow className="ms-eyebrow">{t("start.modeClassic")}</Eyebrow>
-          <h1>{t("start.variantTitle")}</h1>
-          <p>{t("start.variantText")}</p>
-        </header>
-        <div className="mode-grid variant-grid">
-          <button
-            className="mode-card mode-card--quick"
-            data-testid="variant-quick"
-            onClick={() => { setMode("classic"); setStartStep("config"); }}
-          >
-            <span className="mode-card__index">A</span>
-            <span className="mode-card__body"><strong>{t("start.variantQuick")}</strong><small>{t("start.variantQuickHint")}</small><span>{t("start.variantQuickLong")}</span></span>
-            <span className="mode-card__action">{t("start.variantAction")} →</span>
-          </button>
-          <button
-            className="mode-card mode-card--run"
-            data-testid="variant-run"
-            data-accent="violet"
-            onClick={() => { setConfig((current) => ({ ...current, rerolls: ROGUELITE_REROLLS, hardMode: false })); setMode("run"); setStartStep("config"); }}
-          >
-            <span className="mode-card__index">B</span>
-            <span className="mode-card__body"><strong>{t("start.modeRun")}</strong><small>{t("start.modeRunHint")}</small><span>{t("start.modeRunLong")}</span></span>
-            <span className="mode-card__action">{t("start.variantAction")} →</span>
-          </button>
-        </div>
-        <Surface className="daily-card" data-testid="daily-card">
-          <div className="daily-card__copy">
-            <Eyebrow>{t("daily.title")}</Eyebrow>
-            <p>{t("daily.text")}</p>
-            {todayEntry && (
-              <p className="daily-card__status" data-testid="daily-status">
-                {t("daily.playedToday", { place: t(`tournament.place.${todayEntry.placement}` as MessageKey) })}
-              </p>
-            )}
-          </div>
-          <Button variant="primary" data-testid="daily-play" disabled={!data} onClick={onDaily}>
-            {t("daily.play", { date: formatDailyDate(dailyDateKey(), locale) })}
-          </Button>
-        </Surface>
-      </main>
-    );
-  }
 
-  if (mode === null) {
-    return (
-      <main className="mode-select">
-        <header className="mode-select__heading">
-          <Eyebrow className="ms-eyebrow">{t("start.chooseModeEyebrow")}</Eyebrow>
-          <h1>{t("start.chooseModeTitle")}</h1>
-          <p>{t("start.chooseModeText")}</p>
-        </header>
-        <div className="mode-grid">
-          {MODES.map((item, index) => (
-            <button
-              key={item.value}
-              className={`mode-card mode-card--${item.value}`}
-              data-testid={`mode-${item.value}`}
-              // Карточка остаётся кликабельной и в офлайне: она ведёт на экран, который объясняет
-              // причину и даёт повторить проверку. Мёртвый клик — это молчание, а не переход.
-              data-offline={item.needsNetwork && offline ? "true" : undefined}
-              onClick={() => {
-                if (item.value === "classic") setStartStep("variants");
-                else if (item.value === "tournament") {
-                  // Challenger-драфт mixed по МЕХАНИКЕ, но с event-скорингом (RT-B) — оси
-                  // draftStyle/scoring в RT скрыты, поэтому фиксируем их на входе.
-                  setConfig((current) => ({ ...current, draftStyle: "mixed", scoring: "event", hardMode: false, cheatMode: false }));
-                  setMode("tournament");
-                  setStartStep("config");
-                } else setMode(item.value);
-              }}
-            >
-              <span className="mode-card__index">0{index + 1}</span>
-              <span className="mode-card__body"><strong>{t(item.label)}</strong><small>{t(item.hint)}</small><span>{t(item.detail)}</span></span>
-              {item.needsNetwork && offline
-                ? <em data-offline="true">{t("common.offline")}</em>
-                : !(item.value === "arena" ? isApiConfigured() : item.available) && <em>{t("common.soon")}</em>}
-              <span className="mode-card__action">{t("start.selectMode")} →</span>
-            </button>
-          ))}
-        </div>
-      </main>
-    );
-  }
-
-  if (!DRAFT_CONFIG_MODES.includes(mode)) {
-    const selectedMode = MODES.find((item) => item.value === mode)!;
-    // Состояние сети занимает панель, а не заголовок: пока режим сам «в разработке», сеть — не
-    // главная причина недоступности, и подменять ею заголовок было бы полуправдой.
-    //
-    // `checking` — отдельное состояние, а не «пока считаем, что всё хорошо»: молчащий сервер
-    // держит вердикт до 3с, и без него экран сначала показывал бы обещание режима, а потом
-    // прыгал на «нет сети» (поймано живьём на недоступном API 2026-08-14).
-    const netState = selectedMode.needsNetwork !== true
-      ? "ok"
-      : offline ? "offline" : (checkingConnectivity && !connectivityChecked ? "checking" : "ok");
-    return (
-      <main className={`mode-preview mode-preview--${mode}`}>
-        {!backNative && <Button variant="back" onClick={() => { setMode(null); setStartStep("modes"); }}>← {t("start.backToModes")}</Button>}
-        <Eyebrow className="mp-eyebrow">{t(selectedMode.label)}</Eyebrow>
-        {/* Arena при сконфигуренном API — играбельный режим (MP1), а не превью «в разработке». */}
-        <h1>{t(mode === "arena" && isApiConfigured() ? "start.modeArena" : "start.comingSoon")}</h1>
-        <p className="mp-text">{t(selectedMode.detail)}</p>
-        {netState === "ok" ? (
-          mode === "arena" && isApiConfigured() ? (
-            <ArenaLobby />
-          ) : (
-            <div className="mode-preview__art"><strong>{t(selectedMode.label)}</strong><span>{t("start.comingSoonText")}</span></div>
-          )
-        ) : (
-          <div className="mode-preview__art mode-preview__art--network" data-state={netState} data-testid="mode-network">
-            <strong>{t(netState === "checking" ? "start.offlineChecking" : "common.offline")}</strong>
-            <div className="mode-preview__retry">
-              <span>{t("start.offlineText")}</span>
-              {netState === "offline" && (
-                <Button
-                  variant="primaryInvert"
-                  data-testid="offline-retry"
-                  disabled={checkingConnectivity}
-                  onClick={() => { void checkConnectivity({ force: true }); }}
-                >
-                  {t(checkingConnectivity ? "start.offlineChecking" : "start.offlineRetry")}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-      </main>
-    );
-  }
+  if (startStep === "variants") return <VariantSelect />;
+  if (mode === null) return <ModeSelect />;
+  if (!DRAFT_CONFIG_MODES.includes(mode)) return <ModePreview mode={mode} />;
 
   const heroRows: { label: MessageKey; hint: MessageKey }[] = mode === "tournament"
     ? [
@@ -631,3 +416,4 @@ export function StartScreen() {
     </main>
   );
 }
+

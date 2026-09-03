@@ -2857,11 +2857,14 @@ M5R: правки презентационные, `Rng`-поток и golden н�
 ### T12.6 — Сиды anteRun.spec разъехались с реальным датасетом ⬜ (обнаружено 2026-09-02)
 После data-refresh 2026-08-31/09-01 на РЕАЛЬНОМ датасете падают 10 из 18 сценариев `e2e/anteRun.spec.ts` (Буткемп/trade-in/cheat/resume — «camp-screen не появился»), на mock — зелёно; воспроизведено на коммите 483b943 с текущими данными, то есть к ревизии M12 не относится. CI видит только mock, поэтому дрейф незаметен. Сделать: `npm run sim:sweep` по обоим датасетам, обновить сиды в спеке по правилу «проходит real И mock» (см. память roguelite-camp-seed-coupling); подумать о шаге CI с реальным датасетом хотя бы для anteRun.
 
+### T12.7 — Второй проход по T12.5 ✅ (2026-09-02)
+Взято из списка ниже, каждый пункт — отдельный коммит с tsc/unit/e2e: **OvrBadge** (9 копий → `ui/OvrBadge`), **единый штамп датасета** (`state/dataVersions`: runPersist/managerStore/relayRoom, тест на managerStore), **CampScreen** (guard в обёртке + `useMemo/useCallback`, MarketPanel кэширует превью на раздачу; anteRun e2e на mock 34/34), **разрезы**: `anteEconomy` → 4 модуля с реэкспортом, `ManagerScreen` → файл на компонент, `StartScreen` → `startOptions` + `ModeSelect`/`VariantSelect`/`ModePreview`, `manager/engine` → генерация мира в `manager/world.ts`.
+
 ### T12.5 — Кандидаты, не взятые в этот проход ⬜
-- **Разрезы файлов:** `anteEconomy.ts` (1445: types+ECONOMY / чистые cost-функции / генерация офферов / класс), `manager/engine.ts` (генерация мира отделима), `ManagerScreen.tsx` (10 подкомпонентов — файл на компонент), `StartScreen.tsx` (ModeSelect / VariantSelect / RunConfigPanel). Механика чистая, но churn большой — делать по одному вместе с ближайшей задачей в том файле.
-- **`CampScreen` без мемоизации:** `evaluateCampPower` и `previewPower` пересчитываются на каждый рендер (8 `useState` в экране) и вызываются внутри `.map()` рынка. Вынести guard в обёртку + `useMemo`/`useCallback`; аудит замыканий обязателен.
-- **`OvrBadge`-примитив:** 9 ручных копий `playerOvrTier` + разметки OVR (`DraftScreen`, `Pentagon`, `TournamentScreen`, `ManagerScreen`×5, `CampCards`).
-- **Три проверки совместимости сейва** (`runPersist.isRunCompatible`, `managerStore.isSavedManagerCompatible`, `runLink.runLinkIssue`) с разной обработкой `dataBuiltAt` — свести в `state/dataVersions.ts`, сперва тест на managerStore (его нет).
+- ~~Разрезы файлов~~ — сделано в T12.7.
+- ~~`CampScreen` без мемоизации~~ — сделано в T12.7.
+- ~~`OvrBadge`-примитив~~ — сделано в T12.7.
+- ~~Три проверки совместимости сейва~~ — сделано в T12.7 (`state/dataVersions.ts` + тест managerStore).
 - **Тестовые дыры:** `arenaStore`/`duelStore` (reconnect, таймеры, модульное состояние), `managerStore`, `data/api/arena.ts`, `server/internal/model`.
 - **Сим-скрипты:** `sweep_seeds_both.ts` и `sim_run.ts` держат по 7 одинаковых хелперов и уже расходятся (stakes, useBoss) — общий `scripts/lib/sim_shared.ts`. Пока оба лишь подключены в `package.json` (`sim:sweep`, `sim:find-seed`).
 - **Сервер:** нет капа длины relay-лога и числа комнат, `POST /api/rooms` без rate-limit; graceful shutdown не дренит ws-сессии; `log.Fatalf` в горутине слушателя обходит `defer db.Close()`.
