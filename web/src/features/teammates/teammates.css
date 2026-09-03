@@ -20,9 +20,9 @@
 .teammates__node g:focus-visible .teammates__dot { fill: var(--on-invert); }
 .teammates__node g:focus-visible { outline: 2px solid var(--brand-green); outline-offset: 2px; }
 .teammates__name { fill: var(--on-invert); font: 700 10px Manrope, sans-serif; text-anchor: middle; }
-.teammates__events { fill: var(--muted-invert); font: 800 9px "Space Grotesk", sans-serif; text-anchor: middle; }
+.teammates__events { fill: var(--muted-invert); font: 800 9px var(--font-display); text-anchor: middle; }
 .teammates__center-dot { fill: color-mix(in srgb, var(--brand-green) 22%, var(--surface-invert)); stroke: var(--brand-green); stroke-width: 1.5; }
-.teammates__center-name { fill: var(--on-invert); font: 800 13px "Space Grotesk", sans-serif; text-anchor: middle; }
+.teammates__center-name { fill: var(--on-invert); font: 800 13px var(--font-display); text-anchor: middle; }
 
 .teammates__list { padding: 18px 20px; }
 .teammates__list ul { display: grid; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; }

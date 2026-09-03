@@ -993,7 +993,7 @@
   display: grid;
   flex: 0 0 auto;
   justify-items: center;
-  font: 800 24px/1 "Space Grotesk";
+  font: 800 24px/1 var(--font-display);
 }
 .camp-player-card__ovr small {
   color: var(--muted);

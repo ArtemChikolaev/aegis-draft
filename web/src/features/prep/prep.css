@@ -44,7 +44,7 @@
 .prep__who small { color: var(--muted-invert); font-size: 11px; }
 .prep__who--hero { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; }
 .prep__who--hero > span { display: grid; gap: 2px; min-width: 0; }
-.prep__delta { font: 800 14px "Space Grotesk", Manrope, sans-serif; font-style: normal; color: var(--muted-invert); letter-spacing: -.02em; }
+.prep__delta { font: 800 14px var(--font-display); font-style: normal; color: var(--muted-invert); letter-spacing: -.02em; }
 .prep__delta--up { color: var(--brand-green); }
 .prep__delta--down { color: var(--danger); }
 /* Разбор соперника: 17 составов — плотная сетка в две колонки, на узком экране одна. */

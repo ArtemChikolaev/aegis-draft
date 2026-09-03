@@ -3,9 +3,9 @@
 .duel { display: grid; gap: 20px; }
 .duel__head { display: grid; gap: 6px; justify-items: start; }
 .duel__lead { margin: 0; max-width: 560px; color: var(--muted); font-size: 14px; line-height: 1.5; }
-.duel__turn { margin: 0; font: 700 15px "Space Grotesk", Manrope, sans-serif; color: var(--accent-strong); }
+.duel__turn { margin: 0; font: 700 15px var(--font-display); color: var(--accent-strong); }
 .duel__turn--ban { color: var(--danger); }
-.duel__timer { margin-left: 8px; font: 700 13px "Space Grotesk", Manrope, sans-serif; color: var(--muted); }
+.duel__timer { margin-left: 8px; font: 700 13px var(--font-display); color: var(--muted); }
 .duel__timer[data-low="true"] { color: var(--danger); }
 
 .duel__setup { display: grid; gap: 18px; padding: 20px; max-width: 620px; }
@@ -20,7 +20,7 @@
 .duel__roster ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .duel__roster li { display: flex; align-items: center; gap: 8px; font-size: 13px; min-width: 0; }
 .duel__roster li b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.duel__ovr { margin-left: auto; font: 800 13px "Space Grotesk", Manrope, sans-serif; }
+.duel__ovr { margin-left: auto; font: 800 13px var(--font-display); }
 .duel__empty { color: var(--muted); }
 .duel__picked-heroes { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.5; }
 
@@ -68,6 +68,6 @@
 .duel__entry { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .duel__or { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
 .duel__code-label { margin: 0; color: var(--muted); font-size: 13px; }
-.duel__code { margin: 0; font: 800 34px "Space Grotesk", Manrope, sans-serif; letter-spacing: .18em; }
+.duel__code { margin: 0; font: 800 34px var(--font-display); letter-spacing: .18em; }
 .duel__members { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; }
 .duel__member--offline { color: var(--muted); }

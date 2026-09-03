@@ -50,13 +50,13 @@
     linear-gradient(137deg, transparent 34%, color-mix(in srgb, var(--brand-art-deep) 72%, transparent) 49.5%, transparent 50.5%);
 }
 .mode-card > * { position: relative; z-index: 1; }
-.mode-card__index { font: 600 12px "Space Grotesk"; letter-spacing: .1em; }
+.mode-card__index { font: 600 12px var(--font-display); letter-spacing: .1em; }
 /* min-width: 0 обязателен: grid-ребёнок с дефолтным min-width:auto растягивается под
    неразрывное слово и утаскивает заголовок под overflow:hidden карточки вместо переноса. */
 .mode-card__body { display: grid; gap: 10px; margin-top: auto; padding-top: 90px; min-width: 0; }
 /* Перенос с дефисом обязателен: «Tournament» на 44px не влезает в карточку в полосе ширин
    ~1500–1800px и резался overflow:hidden (баг-репорт 2026-08-31). */
-.mode-card__body strong { min-width: 0; font: 500 clamp(28px, 2.8vw, 44px)/.98 "Space Grotesk"; letter-spacing: -.05em; overflow-wrap: break-word; hyphens: auto; }
+.mode-card__body strong { min-width: 0; font: 500 clamp(28px, 2.8vw, 44px)/.98 var(--font-display); letter-spacing: -.05em; overflow-wrap: break-word; hyphens: auto; }
 .mode-card__body small { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; }
 .mode-card__body > span { max-width: 360px; color: rgba(255, 255, 255, .76); font-size: 12px; }
 .mode-card em { position: absolute; top: 24px; right: 24px; padding: 4px 7px; border: 1px solid rgba(255, 255, 255, .5); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .08em; }
@@ -75,7 +75,7 @@
 /* Превью остался только у Arena (Manager и Real Tournament ведут в свои экраны) — свечение в
    тон её карточке, чтобы «режим в разработке» не выглядел плоской заглушкой. */
 .mode-preview--arena .mode-preview__art { background: radial-gradient(circle at 82% 20%, #ffa9a0, transparent 22%), var(--surface-invert); }
-.mode-preview__art strong { font: 500 clamp(32px, 5vw, 70px)/1 "Space Grotesk"; letter-spacing: -.05em; }
+.mode-preview__art strong { font: 500 clamp(32px, 5vw, 70px)/1 var(--font-display); letter-spacing: -.05em; }
 .mode-preview__art span { color: var(--muted-invert); }
 /* Состояние сети: та же панель, но без «арт-обещания» — статус и действие. */
 .mode-preview__art--network strong { color: var(--muted-invert); }
@@ -184,11 +184,11 @@
     padding-top: 24px;
   }
 }
-.hero-art span strong { font: 600 clamp(18px, 1.8vw, 27px)/1 "Space Grotesk"; letter-spacing: -.03em; text-transform: uppercase; }
+.hero-art span strong { font: 600 clamp(18px, 1.8vw, 27px)/1 var(--font-display); letter-spacing: -.03em; text-transform: uppercase; }
 .hero-art span small { color: rgba(255, 255, 255, .78); font: 600 12px/1.4 Manrope; }
 .hero-art span::after { content: "→"; font-size: 22px; }
 .classic-art__copy { position: relative; z-index: 2; align-self: end; max-width: 440px; padding-bottom: 22px; }
-.classic-art__copy strong { font: 500 clamp(28px, 3vw, 44px)/1 "Space Grotesk"; letter-spacing: -.04em; }
+.classic-art__copy strong { font: 500 clamp(28px, 3vw, 44px)/1 var(--font-display); letter-spacing: -.04em; }
 .classic-art__copy p { margin: 12px 0 0; color: rgba(255, 255, 255, .76); font-size: 12px; }
 
 /* Classic: конфиг + launch.
@@ -230,7 +230,7 @@
   opacity: .85;
 }
 .launch-panel > *:not(.launch-panel__glow) { position: relative; z-index: 1; }
-.launch-panel__icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 58px; color: var(--surface-invert); background: var(--on-invert); font: 800 18px "Space Grotesk"; }
+.launch-panel__icon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 58px; color: var(--surface-invert); background: var(--on-invert); font: 800 18px var(--font-display); }
 .launch-panel h2 { margin-bottom: 10px; font-size: 25px; line-height: 1.15; letter-spacing: -.035em; }
 .launch-panel p { color: var(--muted-invert); font-size: 13px; }
 .launch-panel ul { display: grid; gap: 0; padding: 0; margin: 24px 0; list-style: none; }

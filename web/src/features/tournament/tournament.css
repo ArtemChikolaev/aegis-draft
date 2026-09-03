@@ -332,7 +332,7 @@
 .score-tier--mid { color: var(--tier-mid); }
 .score-tier--low { color: var(--tier-low); }
 .score-tier--weak { color: var(--tier-weak); }
-.field-list li b.field-strength { justify-self: end; font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); }
+.field-list li b.field-strength { justify-self: end; font: 800 13px/1 var(--font-display); }
 
 /* Пути UB/LB/OUT: полоска через ::before — без сдвига контента при раскраске.
    Стаггер задаёт JS (фаза распределения красит строку за строкой), не transition-delay:
@@ -489,7 +489,7 @@
 .run-summary__player { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .run-summary__player strong { font-size: 13px; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .run-summary__player small { color: var(--muted); font-size: 10px; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.run-summary__ovr { font: 800 13px/1 "Space Grotesk", var(--font-sans, sans-serif); text-align: right; font-variant-numeric: tabular-nums; }
+.run-summary__ovr { font: 800 13px/1 var(--font-display); text-align: right; font-variant-numeric: tabular-nums; }
 /* Ширина карточки героя задаёт высоту строки ростера, а та — высоту всей панели. Без подписи
    карточка = портрет 16:9 + паддинги, то есть на ту же высоту строки портрет влезает заметно
    шире: 44 → 68px при неизменных 62px строки и, значит, при сошедшихся панелях. */

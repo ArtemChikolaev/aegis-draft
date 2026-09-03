@@ -4,7 +4,7 @@
 .arena-draft { display: grid; gap: 20px; }
 .arena-draft__head { display: grid; gap: 6px; justify-items: start; }
 .arena-draft__meta { margin: 0; display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-.arena-draft__timer { font: 700 13px "Space Grotesk", Manrope, sans-serif; color: var(--accent-strong); }
+.arena-draft__timer { font: 700 13px var(--font-display); color: var(--accent-strong); }
 
 .arena-draft__board { display: grid; grid-template-columns: 230px minmax(0, 1fr) 250px; gap: 14px; align-items: start; }
 .arena-draft__panel { padding: 20px; }
@@ -15,7 +15,7 @@
 .arena-draft__timeline li { display: flex; align-items: baseline; gap: 6px; font-size: 12px; min-width: 0; }
 .arena-draft__timeline li.is-self { color: var(--accent-strong); font-weight: 700; }
 .arena-draft__timeline small { color: var(--muted); }
-.arena-draft__count { margin-left: auto; font: 700 11px "Space Grotesk", Manrope, sans-serif; color: var(--muted); }
+.arena-draft__count { margin-left: auto; font: 700 11px var(--font-display); color: var(--muted); }
 
 .arena-draft__pool { padding: 16px; display: grid; gap: 12px; }
 .arena-draft__hint, .arena-draft__submitted { margin: 0; font-size: 13px; color: var(--muted); }
@@ -33,7 +33,7 @@
 .arena-draft__candidate:hover:not(:disabled) { transform: translateY(-1px); background: var(--accent-soft); }
 .arena-draft__candidate:disabled { opacity: .4; cursor: not-allowed; }
 .arena-draft__candidate[data-selected="true"], .arena-draft__hero[data-selected="true"] { border-color: var(--accent-strong); box-shadow: 0 0 10px var(--accent-soft); }
-.arena-draft__ovr { font: 800 13px "Space Grotesk", Manrope, sans-serif; }
+.arena-draft__ovr { font: 800 13px var(--font-display); }
 .arena-draft__tag { font: 700 10px Manrope, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-strong); font-style: normal; }
 .arena-draft__tag--backup { color: var(--muted); }
 
