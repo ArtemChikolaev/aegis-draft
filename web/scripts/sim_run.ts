@@ -199,6 +199,10 @@ interface Agent {
   passive?: boolean;
   /** Оптимизирующий драфт героев (T6.4-остаток): pairScore-маргинал вместо packHeroes[0]. */
   optDraft?: boolean;
+  /** Отбор карточных наград по приросту силы (A/B Playbook, 2026-09-02): карта без прироста
+   *  СЕЙЧАС (условие не выполнено, только цена) пропускается в пользу следующего предпочтения.
+   *  Без этого агент — «слепой коллекционер», и фиксированный набор карт мерит его слепоту. */
+  selectCards?: boolean;
 }
 
 const AGENTS: Agent[] = [
@@ -246,6 +250,12 @@ const AGENTS: Agent[] = [
   // Верхняя граница ЖАДНОЙ игры (не истинный оптимум): лучшая по замеру политика наград плюс все
   // рычаги — качество, рероллы, адаптация к боссу. Политика наград здесь ВЫБРАНА ИЗМЕРЕНИЕМ:
   // приоритет карточек лишает агента золота и роняет win-rate почти вдвое (см. synergy-build).
+  // Билд с отбором: synergy-opt, но карту берёт только если она усиливает состав прямо сейчас.
+  // Нижняя граница осмысленного выбора карт человеком — для честного A/B Playbook.
+  {
+    name: "select-build", weights: { base: 1, hero: 1.3, chem: 1.6 }, rewardPref: ["item", "tactic", "action", "slot", "quality", "gold"],
+    holdGold: 0, maxRerolls: 1, buysQuality: true, bossAware: true, powerAware: true, optDraft: true, selectCards: true,
+  },
   {
     name: "greedy-oracle", weights: { base: 1, hero: 1, chem: 1 }, rewardPref: ["gold"],
     holdGold: 0, maxRerolls: 2, buysQuality: true, bossAware: true, powerAware: true,
@@ -465,7 +475,29 @@ function prepareMarket(engine: RunEngine, economy: RunEconomy, seed: string, sta
 
 /** Взять награду по предпочтению агента. Карточка занимает слот, поэтому при полном наборе
  *  падаем на следующий вид — иначе агент «выбирал» бы недоступное и терял награду вовсе. */
-function takeReward(economy: RunEconomy, agent: Agent, decision: Decision): void {
+/** Прирост силы от карточной награды ПРЯМО СЕЙЧАС — тем же evaluateRunPower, что у trade-in.
+ *  Улучшение тира своей карты считается за прирост всегда. */
+function rewardPowerDelta(engine: RunEngine, economy: RunEconomy, offer: Offer): number | null {
+  if (!offer.cardId || (offer.kind !== "item" && offer.kind !== "tactic")) return null;
+  if (offer.cardUpgrade) return 1;
+  const score = engine.score();
+  if (!score) return null;
+  const state = {
+    score: { base: score.base, heroSynergy: score.heroSynergy, chemistry: score.chemistry },
+    tacticContext: buildTacticContext(engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex),
+    activeHeroes: engine.heroes,
+    heroRarity: economy.heroRarity,
+  };
+  const buildOf = (equipped: readonly string[], rarity: Record<string, Rarity>) => ({
+    economy: economy.modifiers(), equippedCards: [...equipped], cardRarity: rarity, cardCharges: economy.cardCharges,
+  });
+  const now = evaluateRunPower(state, buildOf(economy.equippedTactics, economy.cardRarity)).power.total;
+  const rarityAfter = { ...economy.cardRarity, ...(offer.cardRarity ? { [offer.cardId]: offer.cardRarity } : {}) };
+  const after = evaluateRunPower(state, buildOf([...economy.equippedTactics, offer.cardId], rarityAfter)).power.total;
+  return after - now;
+}
+
+function takeReward(engine: RunEngine, economy: RunEconomy, agent: Agent, decision: Decision): void {
   const offers = economy.campView().rewardOffers;
   const order = agent.random
     ? decision.rng.shuffle([...offers]).map((o) => o.kind)
@@ -474,6 +506,10 @@ function takeReward(economy: RunEconomy, agent: Agent, decision: Decision): void
     const offer = offers.find((o) => o.kind === kind);
     if (!offer) continue;
     if (!economy.canTakeCard(offer.kind)) continue;
+    if (agent.selectCards) {
+      const delta = rewardPowerDelta(engine, economy, offer);
+      if (delta !== null && delta <= 0.01) continue;
+    }
     if (economy.chooseReward(offer.id)) return;
   }
   for (const offer of offers) if (economy.chooseReward(offer.id)) return;
@@ -775,7 +811,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
       stagesLeft: stageCount - campId,
       rng,
     };
-    takeReward(economy, agent, decision);
+    takeReward(engine, economy, agent, decision);
     playActions(economy);
     prepareMarket(engine, economy, seed, stageCount);
     const shopped = shopCamp(engine, economy, seed, agent, decision, stageCount, season);
