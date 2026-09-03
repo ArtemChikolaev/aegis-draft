@@ -23,7 +23,7 @@ import { TACTIC_SLOTS, tacticRarityFactor } from "../../game/tactics.ts";
 import { BuildRail, buildRailCards } from "../run/BuildRail.tsx";
 import { evaluateItems } from "../../game/items.ts";
 import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
-import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, screenShakeEnabled, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
+import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, OvrBadge, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, screenShakeEnabled, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { sfxSting, sfxVerdict } from "../../ui/sound.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
 import { SynergyBreakdown } from "../draft/SynergyBreakdown.tsx";
@@ -1041,7 +1041,7 @@ export function TournamentScreen() {
                         </div>
                         {/* Шкала ИГРОКА (54–99), не командная: scoreTier (78–90) красил
                             две трети ростера в красный — типовой 74 попадал в «weak». */}
-                        <b className={`run-summary__ovr ovr-tier--${playerOvrTier(ovr)}`}>{Math.round(ovr)}</b>
+                        <OvrBadge className="run-summary__ovr" ovr={ovr} />
                         {/* Портрет без подписи: в строке ростера ширина зажата, и поле под имя
                             усыхало до 34px — «Crystal Maiden» читался как «Cry…». Снятая
                             подпись отдана портрету, он опознаёт героя лучше трёх букв. */}

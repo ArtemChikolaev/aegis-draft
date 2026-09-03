@@ -4,6 +4,7 @@
 // Версии данных + dataHash пишем в сейв: при изменении датасета несовместимый забег отбрасываем.
 // После завершённого турнира сейв очищаем — но только когда UI доиграл reveal до
 // экрана результатов (finishTournament). Сама стадия playoffs ещё «в процессе».
+import { sameDataset } from "./dataVersions.ts";
 import type { RosterSlot } from "../game/engine.ts";
 import type { PrepAction } from "../game/prep.ts";
 import type { CandidateRef, RunConfig } from "../game/packs.ts";
@@ -123,19 +124,11 @@ export function isRunCompatible(
   dataBuiltAt?: string,
   balanceConfigVersion?: string,
 ): boolean {
-  const sameData = run.dataHash
-    ? run.dataHash === dataHash
-    : Boolean(run.dataBuiltAt && dataBuiltAt && run.dataBuiltAt === dataBuiltAt);
   const sameBalance = run.mode !== "run"
     || run.balanceConfigVersion === undefined
     || balanceConfigVersion === undefined
     || run.balanceConfigVersion === balanceConfigVersion;
-  return (
-    run.schemaVersion === schemaVersion
-    && run.ratingModelVersion === ratingModelVersion
-    && sameData
-    && sameBalance
-  );
+  return sameDataset(run, { schemaVersion, ratingModelVersion, dataHash, builtAt: dataBuiltAt ?? "" }) && sameBalance;
 }
 
 /** Можно ли предложить resume: версии ок + есть seed/config. Пустой actions — ок (только стартовали). */

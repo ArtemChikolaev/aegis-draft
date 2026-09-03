@@ -1,7 +1,7 @@
 // Общая обвязка клиентов relay-комнат (Arena MP2, Дуэль): reconnection-токены и пин версий.
 // Раньше жила копией в arenaStore и duelStore и расходилась только неймспейсом ключа.
 import { useRun } from "./runStore.ts";
-import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
+import { clientVersionsOf } from "./dataVersions.ts";
 import type { ArenaVersions } from "../data/api/arena.ts";
 
 export interface RoomTokenStore {
@@ -37,11 +37,5 @@ export function roomTokenStore(namespace: string): RoomTokenStore {
  *  участники обязаны сойтись датасетом и балансом, иначе паки и счёт разъедутся. */
 export function clientVersions(): ArenaVersions | null {
   const manifest = useRun.getState().data?.manifest;
-  if (!manifest) return null;
-  return {
-    schemaVersion: manifest.schemaVersion,
-    ratingModelVersion: manifest.ratingModelVersion,
-    dataHash: manifest.dataHash,
-    balanceConfigVersion: BALANCE_CONFIG_VERSION,
-  };
+  return manifest ? clientVersionsOf(manifest) : null;
 }

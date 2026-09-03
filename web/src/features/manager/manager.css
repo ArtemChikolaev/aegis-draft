@@ -38,7 +38,7 @@
 .manager__card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .manager__band { color: var(--accent-strong); font-size: 13px; letter-spacing: .08em; }
 .manager__ovr { display: flex; align-items: baseline; gap: 5px; font-size: 22px; font-weight: 800; }
-.manager__ovr em { color: var(--muted); font-style: normal; font-size: 10px; letter-spacing: .1em; }
+.manager__ovr small { color: var(--muted); font-size: 10px; letter-spacing: .1em; }
 .manager__card--hero { justify-items: center; }
 
 /* Контракты */

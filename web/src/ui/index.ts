@@ -10,6 +10,7 @@ export { Dealt } from "./Dealt.tsx";
 export { prefersReducedMotion, motionMs, useCountUp, useCardTilt, screenShakeEnabled, useScreenShakeSetting } from "./motion.ts";
 export { initSoundUnlock, setSoundEnabled, sfxBuy, sfxCashTick, sfxDeal, sfxReroll, sfxSting, sfxVerdict, soundEnabled, useSoundSetting } from "./sound.ts";
 export { playerOvrTier, type OvrTier } from "./ovrTier.ts";
+export { OvrBadge } from "./OvrBadge.tsx";
 export { HeroThumb } from "./HeroThumb.tsx";
 export { RoleTag } from "./RoleTag.tsx";
 export { RarityBadge } from "./RarityBadge.tsx";

@@ -24,7 +24,7 @@ import {
   type CalendarSlot,
   type ManagerEngine,
 } from "../../game/manager/engine.ts";
-import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, StatTile, Surface, TextField, playerOvrTier } from "../../ui/index.ts";
+import { Button, Eyebrow, HeroThumb, Modal, OptionGroup, OvrBadge, RoleTag, StatTile, Surface, TextField } from "../../ui/index.ts";
 import { sfxBuy } from "../../ui/sound.ts";
 import { useHero, useHeroName } from "../draft/heroes.ts";
 import { heroStatsForDisplay } from "../../game/score.ts";
@@ -236,7 +236,7 @@ function HallModal({ onClose }: { onClose: () => void }) {
                   <RoleTag role={p.role}>{t(roleMessageKey(p.role))}</RoleTag>
                   <strong>{p.nickname}</strong>
                   <small>{t("manager.hallPlayerLine", { seasons: p.seasons, titles: p.titles })}</small>
-                  <b className={`ovr-tier--${playerOvrTier(p.peakOvr)}`}>{p.peakOvr}</b>
+                  <OvrBadge ovr={p.peakOvr} />
                 </div>
               ))}
             </div>
@@ -294,7 +294,7 @@ function Tryouts({ engine }: { engine: ManagerEngine }) {
               </span>
               <strong>{offer.candidate.player.nickname}</strong>
               <small>{offer.candidate.teamName}</small>
-              <span className={`manager__ovr ovr-tier--${playerOvrTier(offer.candidate.player.ovr)}`}>{offer.candidate.player.ovr}<em>OVR</em></span>
+              <OvrBadge as="span" className="manager__ovr" ovr={offer.candidate.player.ovr} unit />
             </button>
           ))}
         </div>
@@ -413,7 +413,7 @@ function Contracts({ engine }: { engine: ManagerEngine }) {
                   <strong>{c.candidate.player.nickname}</strong>
                   <small>{c.filler ? t("manager.filler") : c.candidate.teamName}</small>
                 </span>
-                <b className={`manager__contract-ovr ovr-tier--${playerOvrTier(c.candidate.player.ovr)}`}>{c.candidate.player.ovr}</b>
+                <OvrBadge className="manager__contract-ovr" ovr={c.candidate.player.ovr} />
                 <span className="manager__contract-salary">${c.salary}k{t("manager.perMonth")}</span>
               </button>
             );
@@ -596,7 +596,7 @@ function Season({ engine }: { engine: ManagerEngine }) {
                     {p.fame > 0 && <em className="manager__fame">{p.fame}★</em>}
                     <em className={`manager__mood${unhappy ? " is-unhappy" : ""}`}>{unhappy ? "☹" : p.happiness >= 70 ? "♥" : "♡"} {p.happiness}</em>
                   </span>
-                  <b className={`ovr-tier--${playerOvrTier(p.candidate.player.ovr)}`}>{p.candidate.player.ovr}</b>
+                  <OvrBadge ovr={p.candidate.player.ovr} />
                   <span>${p.salary}k{t("manager.perMonth")}</span>
                 </button>
               );
@@ -951,7 +951,7 @@ function Review({ engine }: { engine: ManagerEngine }) {
                       <strong>{p.nickname}</strong>
                       <small>{offer.player.candidate.teamName} · ${offer.player.salary}k{t("manager.perMonth")}</small>
                     </span>
-                    <b className={`manager__contract-ovr ovr-tier--${playerOvrTier(p.ovr)}`}>{p.ovr}</b>
+                    <OvrBadge className="manager__contract-ovr" ovr={p.ovr} />
                     <span className="manager__contract-salary">{t("manager.transferFee", { n: offer.feeK })}</span>
                   </button>
                 );

@@ -12,6 +12,7 @@ import { ManagerEngine, type ManagerConfig, type ManagerState } from "../game/ma
 import { emptyHall, recordCareerStart, recordSeason, type HallState } from "../game/manager/hall.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readPersisted, removePersisted, writePersisted } from "./persist.ts";
+import { sameDataset } from "./dataVersions.ts";
 import { useRun } from "./runStore.ts";
 
 const KEY = "aegis:manager:v1";
@@ -19,7 +20,7 @@ const KEY = "aegis:manager:v1";
  *  (трофейная комната переживает и wipe карьеры, и апдейты датасета). */
 const HALL_KEY = "aegis:manager:hall:v1";
 
-interface SavedManager {
+export interface SavedManager {
   schemaVersion: number;
   ratingModelVersion: string;
   dataHash?: string;
@@ -27,15 +28,9 @@ interface SavedManager {
   state: ManagerState;
 }
 
-function isSavedManagerCompatible(saved: SavedManager, data: GameData): boolean {
-  const m = data.manifest;
-  const sameData = saved.dataHash ? saved.dataHash === m.dataHash : false;
-  return (
-    saved.schemaVersion === m.schemaVersion &&
-    saved.ratingModelVersion === m.ratingModelVersion &&
-    saved.economyVersion === MANAGER_ECONOMY_VERSION &&
-    sameData
-  );
+/** Совместимость long-save: общий штамп датасета (dataVersions) + версия экономики менеджера. */
+export function isSavedManagerCompatible(saved: SavedManager, data: GameData): boolean {
+  return saved.economyVersion === MANAGER_ECONOMY_VERSION && sameDataset(saved, data.manifest);
 }
 
 /** Сводка совместимого сейва для баннеров resume (стартовый экран + онбординг режима). */

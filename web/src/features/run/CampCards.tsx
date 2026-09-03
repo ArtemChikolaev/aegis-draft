@@ -11,7 +11,7 @@ import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import type { SummandDelta } from "./campPresentation.ts";
 import type { OfferOverlayAction } from "./OfferOverlay.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { Eyebrow, HeroThumb, playerOvrTier, RoleTag, TeamLogo, teamMonogram } from "../../ui/index.ts";
+import { Eyebrow, HeroThumb, OvrBadge, playerOvrTier, RoleTag, TeamLogo, teamMonogram } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 
 /** Перевод с уже подставленными переменными — ровно та сигнатура, что отдаёт `useI18n`. */
@@ -286,9 +286,7 @@ export function CampPlayerCard({
           <span><b>{player.economy}</b> ECO</span>
           <span><b>{player.reliability}</b> REL</span>
         </span>
-        <span className={`camp-player-card__ovr ovr-tier--${tier}`}>
-          {player.ovr}<small>OVR</small>
-        </span>
+        <OvrBadge as="span" className="camp-player-card__ovr" ovr={player.ovr} unit />
       </div>
     </div>
   );

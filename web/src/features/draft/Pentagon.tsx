@@ -3,7 +3,7 @@ import type { RosterSlot } from "../../game/engine.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
-import { HeroThumb, playerOvrTier, useCountUp } from "../../ui/index.ts";
+import { HeroThumb, OvrBadge, playerOvrTier, useCountUp } from "../../ui/index.ts";
 import { useHero } from "./heroes.ts";
 import "./pentagon.css";
 
@@ -240,7 +240,7 @@ export function Pentagon({ roster, centerValue, centerLabelKey = "common.teamOvr
                   <span className="pentagon-node__name" title={slot.candidate.player.nickname}>
                     {slot.candidate.player.nickname}
                   </span>
-                  <span className={`pentagon-node__ovr ovr-tier--${playerOvrTier(slot.candidate.player.ovr)}`}>{slot.candidate.player.ovr}</span>
+                  <OvrBadge as="span" className="pentagon-node__ovr" ovr={slot.candidate.player.ovr} />
                 </>
               )}
             </Tag>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey, roleMessageKey } from "../../i18n/core.ts";
-import { Button, Dealt, Eyebrow, HeroThumb, Modal, playerOvrTier, RoleTag, StatTile, Surface, TeamLogo, TeamName, teamMonogram } from "../../ui/index.ts";
+import { Button, Dealt, Eyebrow, HeroThumb, Modal, OvrBadge, playerOvrTier, RoleTag, StatTile, Surface, TeamLogo, teamMonogram, TeamName } from "../../ui/index.ts";
 import { sfxReroll } from "../../ui/sound.ts";
 import { Pentagon } from "./Pentagon.tsx";
 import { PlayerInspector } from "./PlayerInspector.tsx";
@@ -267,7 +267,7 @@ function CandidateCard({ candidate, enabled, onPick, index, showTeamLogo }: {
         <span title={t("draft.statEcoHint")}><b>{player.economy}</b> ECO</span>
         <span title={t("draft.statRelHint")}><b>{player.reliability}</b> REL</span>
       </span>
-      <span className={`candidate__ovr ovr-tier--${tier}`}>{player.ovr}<small>OVR</small></span>
+      <OvrBadge as="span" className="candidate__ovr" ovr={player.ovr} unit />
       <span className="candidate__action">{t("draft.pick")} →</span>
     </button>
   );
