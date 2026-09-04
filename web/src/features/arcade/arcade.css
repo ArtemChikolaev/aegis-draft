@@ -39,7 +39,7 @@
 .arcade-ability b { font: 800 16px var(--font-display); }
 .arcade-ability small { font-size: 9px; color: var(--muted-invert); }
 .arcade-ability i { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, .55); }
-.arcade-ability em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 18px var(--font-display); font-style: normal; }
+.arcade-ability em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 18px var(--font-display); font-style: normal; background: color-mix(in srgb, var(--surface-invert) 82%, transparent); }
 .arcade-ability[data-locked] { opacity: .35; }
 .arcade-ability[data-passive] { opacity: .8; }
 
