@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.1.0";
+export const ARCADE_CONFIG_VERSION = "a0.2.0";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -35,25 +35,31 @@ export const ARCADE = {
   player: {
     r: 16,
     maxHp: 620,
-    regen: 1.6,
+    /** Регенерация заметная: «отбежал — отдышался» должно занимать десятки секунд, не минуты. */
+    regen: 4,
     armor: 3,
     speed: 172,
     damage: 24,
     attackInterval: 0.85,
-    range: 74,
+    /** Мили-дальность больше зоны контакта с Рошаном (40+16+2): иначе бить босса можно только стоя в его уроне. */
+    range: 88,
     cleaveTargets: 2,
     cleaveRadius: 44,
     critChance: 0,
     critMult: 1.8,
-    pickup: 64,
+    /** Радиус сбора XP больше дальности удара: убитый на расстоянии удара враг отдаёт опыт без шага к нему
+     *  (e2e 2026-09-05: игрок у стены с 23 убийствами оставался 1-го уровня). */
+    pickup: 112,
     contactEvery: 0.7,
     reviveInvuln: 2.2,
     revivePush: 220,
   },
   xp: {
-    /** XP до следующего уровня: base + perLevel × уровень. */
-    base: 10,
-    perLevel: 7,
+    /** XP до следующего уровня: base + perLevel × уровень + quad × уровень². Квадратичный член
+     *  держит потолок ~20–22 к 9:00 (с линейной кривой бот брал 30-й — a0.2.0). */
+    base: 12,
+    perLevel: 9,
+    quad: 0.5,
     shardCap: 240,
     magnetSpeed: 420,
   },
@@ -73,11 +79,18 @@ export const ARCADE = {
   },
   boss: {
     slamRange: 96,
-    slamTelegraph: sec(0.75),
+    /** Рошан не даёт бесконечно кайтить: дальше chaseFrom он бежит быстрее игрока-без-бонусов. */
+    chaseFrom: 220,
+    chaseSpeed: 150,
+    slamTelegraph: sec(0.9),
     slamRadius: 124,
-    slamDmg: 78,
+    slamDmg: 92,
     slamStun: 0.8,
-    slamCooldown: sec(2.4),
+    slamCooldown: sec(2.8),
+    /** После удара Рошан стоит — окно наказания для мили; читаемый ритм «увернись → ударь → отойди». */
+    slamRecovery: sec(1.3),
+    /** Контакт босса реже и слабее обычного: его угроза — удар по телеграфу, а не прилипание. */
+    contactEvery: 1.1,
     enrageAt: sec(9 * 60),
   },
 } as const;

@@ -610,6 +610,8 @@ export class ArcadeSim {
       }
       return;
     }
+    // Восстановление после удара: босс стоит, контактом не бьёт — окно для мили.
+    if (e.slamCd > B.slamCooldown - B.slamRecovery) return;
     if (frozen) return;
     if (d <= B.slamRange + ARCADE.player.r && e.slamCd === 0) {
       e.slamT = B.slamTelegraph;
@@ -617,12 +619,12 @@ export class ArcadeSim {
       e.slamY = this.player.y;
       return;
     }
-    let speed = e.kind.speed * (enraged ? 1.6 : 1);
+    let speed = (d > B.chaseFrom ? B.chaseSpeed : e.kind.speed) * (enraged ? 1.6 : 1);
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT;
     e.y += dy / d * speed * DT;
     if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
-      e.contactCd = sec(ARCADE.player.contactEvery);
+      e.contactCd = sec(B.contactEvery);
       this.damagePlayer(e.dmg * (enraged ? 3 : 1));
     }
   }
@@ -863,7 +865,7 @@ export class ArcadeSim {
 // ---------- утилиты ----------
 
 export function xpToNext(level: number): number {
-  return ARCADE.xp.base + ARCADE.xp.perLevel * level;
+  return Math.round(ARCADE.xp.base + ARCADE.xp.perLevel * level + ARCADE.xp.quad * level * level);
 }
 
 function baseStats(): PlayerStats {
