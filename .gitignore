@@ -33,3 +33,6 @@ api_keys.txt
 test-results/
 web/test-results/
 web/playwright-report/
+
+# Черновики агентских QA-прогонов (playwright-скрипты в рабочем дереве web/)
+web/.tmp_*
