@@ -12,6 +12,7 @@ for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i].replac
 const RUNS = Number(args.get("runs") ?? 100);
 const BASE = args.get("seed") ?? "sim";
 const SCHOOL = (args.get("school") ?? "any") as SchoolId | "any";
+const RANK = Number(args.get("rank") ?? 0);
 const MAX_TICKS = ARCADE.endAt + TICK_HZ * 5;
 
 /** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */
@@ -102,7 +103,7 @@ let retreating = false;
 const results: RunResult[] = [];
 const t0 = performance.now();
 for (let i = 0; i < RUNS; i++) {
-  const sim = new ArcadeSim(`${BASE}-${i}`);
+  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK });
   const trace = args.get("trace") !== undefined && Number(args.get("trace")) === i;
   let lastHp = 0;
   while (!sim.over && sim.tick < MAX_TICKS) {
@@ -123,7 +124,7 @@ const elapsed = (performance.now() - t0) / 1000;
 const q = (arr: number[], k: number) => { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(k * s.length))]; };
 const secs = results.map((r) => r.seconds);
 const pct = (f: (r: RunResult) => boolean) => `${(results.filter(f).length / results.length * 100).toFixed(1)}%`;
-console.log(`arcade ${ARCADE_CONFIG_VERSION} · runs=${RUNS} · school=${SCHOOL} · ${elapsed.toFixed(1)}s`);
+console.log(`arcade ${ARCADE_CONFIG_VERSION} · runs=${RUNS} · school=${SCHOOL} · rank=${RANK} · ${elapsed.toFixed(1)}s`);
 console.log(`reached Roshan ${pct((r) => r.reachedRoshan)} · Roshan killed ${pct((r) => r.roshan)} · victory ${pct((r) => r.outcome === "victory")}`);
 console.log(`death time p25/p50/p75: ${q(secs, 0.25).toFixed(0)}s / ${q(secs, 0.5).toFixed(0)}s / ${q(secs, 0.75).toFixed(0)}s · level p50 ${q(results.map((r) => r.level), 0.5)} · kills p50 ${q(results.map((r) => r.kills), 0.5)}`);
 const byMinute = new Map<number, number>();

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, type ArcadeInput } from "../src/game/arcade/types.ts";
+import { rankOf, rankStep } from "../src/game/arcade/content/ranks.ts";
 
 /** Скриптованный ввод: кайт по квадрату + всегда берём первую карточку уровня. */
 function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
@@ -70,13 +71,38 @@ describe("arcade sim", () => {
   });
 
   it("производительность: тик с толпой укладывается в бюджет", () => {
-    const sim = new ArcadeSim("perf-1");
+    // Высокий ранг (плотность ×2) и бессмертный игрок — толпа гарантирована независимо от баланса.
+    const sim = new ArcadeSim("perf-1", { rank: 30 });
     for (let i = 0; i < sec(200); i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(scriptedInput(sim, sim.tick)); }
     const alive = sim.aliveEnemies();
     const t0 = performance.now();
     for (let i = 0; i < 600; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(scriptedInput(sim, sim.tick)); }
     const perTick = (performance.now() - t0) / 600;
-    expect(alive).toBeGreaterThan(50);
+    expect(alive).toBeGreaterThan(100);
     expect(perTick).toBeLessThan(4);
+  });
+
+  it("ранг множит силу врагов и меняет правила по рангам", () => {
+    const low = new ArcadeSim("rank-1", { rank: 0 });
+    const high = new ArcadeSim("rank-1", { rank: rankStep("archon", 3) });
+    for (let i = 0; i < sec(20); i++) { low.step(IDLE_INPUT); high.step(IDLE_INPUT); }
+    const maxHp = (sim: ArcadeSim) => Math.max(...sim.enemies.filter((e) => e.alive && e.kind.id === "kobold").map((e) => e.maxHp));
+    expect(maxHp(high)).toBeGreaterThan(maxHp(low) * 1.5);
+    expect(high.rank.trollPacks).toBe(true);
+    expect(low.rank.trollPacks).toBe(false);
+    expect(rankOf(39).tier).toBe("immortal");
+    expect(rankOf(39).stars).toBe(5);
+    expect(low.digest()).not.toBe(high.digest());
+  });
+
+  it("руна щедрости: взял — двойной спавн на 60 с и постоянный стек силы", () => {
+    const sim = new ArcadeSim("greed-1");
+    while (!sim.shrine.alive && sim.tick < sec(120)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT); }
+    expect(sim.shrine.alive).toBe(true);
+    sim.player.x = sim.shrine.x; sim.player.y = sim.shrine.y;
+    sim.step(IDLE_INPUT);
+    expect(sim.shrine.alive).toBe(false);
+    expect(sim.greedStacks).toBe(1);
+    expect(sim.greedUntil).toBeGreaterThan(sim.tick);
   });
 });

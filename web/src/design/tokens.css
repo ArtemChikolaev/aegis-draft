@@ -339,6 +339,7 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-crit: #ffc66b;
   --arcade-aegis: #ffd48a;
   --arcade-joystick: #f7f7f5;
+  --arcade-greed: #ffc66b;
 }
 
 /* Тач-устройства: любой контрол ввода — минимум 16px, иначе iOS Safari зумит вьюпорт

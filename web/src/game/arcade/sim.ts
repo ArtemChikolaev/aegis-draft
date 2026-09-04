@@ -11,11 +11,13 @@ import { Rng } from "../rng.ts";
 import { ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
+import { rankOf, type RankRules } from "./content/ranks.ts";
 import {
   IDLE_INPUT,
   sameInput,
   type AbilityKey,
   type ArcadeInput,
+  type ArcadeOptions,
   type ArcadeOutcome,
   type Enemy,
   type EnemyKind,
@@ -29,6 +31,7 @@ import {
   type Rarity,
   type SchoolId,
   type Shard,
+  type Shrine,
 } from "./types.ts";
 
 /** 16 направлений по кругу — константы вместо Math.cos/sin (детерминизм между движками). */
@@ -55,7 +58,14 @@ function len(x: number, y: number): number {
 export class ArcadeSim {
   readonly seed: string;
   readonly rng: Rng;
+  readonly rank: RankRules;
   tick = 0;
+  shrine: Shrine = { alive: false, x: 0, y: 0, until: 0 };
+  greedUntil = 0;
+  greedStacks = 0;
+  private nextShrineAt: number;
+  private nextTrollPackAt: number;
+  private readonly roshanAt: number;
   player: Player;
   enemies: Enemy[] = [];
   projectiles: Projectile[] = [];
@@ -79,9 +89,13 @@ export class ArcadeSim {
   /** Input-лог (записывается всегда: он дешёвый и нужен реплею/шарингу). */
   readonly log: InputLogEntry[] = [];
 
-  constructor(seed: string) {
+  constructor(seed: string, options: ArcadeOptions = {}) {
     this.seed = seed;
-    this.rng = new Rng(`arcade:${seed}`);
+    this.rank = rankOf(options.rank ?? 0);
+    this.rng = new Rng(`arcade:${seed}:r${this.rank.step}`);
+    this.roshanAt = this.rank.earlyRoshan ? ARCADE.roshanAt - sec(60) : ARCADE.roshanAt;
+    this.nextShrineAt = ARCADE.greed.firstAt;
+    this.nextTrollPackAt = sec(45);
     const P = ARCADE.player;
     this.player = {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
@@ -365,19 +379,23 @@ export class ArcadeSim {
 
   // ---------- статусы и урон ----------
 
+  private statusSec(seconds: number): number {
+    return this.rank.resistStatus ? seconds * 0.7 : seconds;
+  }
+
   private applyBurn(e: Enemy, dps: number, seconds: number): void {
     e.burnDps = Math.max(e.burnDps * (e.burnUntil > this.tick ? 1 : 0), dps);
-    e.burnUntil = Math.max(e.burnUntil, this.tick + sec(seconds));
+    e.burnUntil = Math.max(e.burnUntil, this.tick + sec(this.statusSec(seconds)));
   }
 
   private applyChill(e: Enemy, slow: number, seconds: number, stack = true): void {
     e.chillSlow = Math.max(e.chillUntil > this.tick ? e.chillSlow : 0, slow);
-    e.chillUntil = Math.max(e.chillUntil, this.tick + sec(seconds));
+    e.chillUntil = Math.max(e.chillUntil, this.tick + sec(this.statusSec(seconds)));
     if (!stack) return;
     const snap = this.upgradePower("ska_snap");
     if (snap > 0) {
       e.chillStacks++;
-      if (e.chillStacks >= 3) { e.chillStacks = 0; e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(0.8 + 0.3 * snap)); }
+      if (e.chillStacks >= 3) { e.chillStacks = 0; e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(0.8 + 0.3 * snap))); }
     }
   }
 
@@ -461,13 +479,20 @@ export class ArcadeSim {
     const p = this.player;
     this.over = {
       outcome, tick: this.tick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
-      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled,
+      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks,
     };
   }
 
   private regenAndHazards(): void {
     const p = this.player;
     if (this.tick % 6 === 0 && p.hp < p.stats.maxHp) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen * 0.1);
+    if (this.shrine.alive && len(this.shrine.x - p.x, this.shrine.y - p.y) < 34) {
+      this.shrine.alive = false;
+      this.greedUntil = this.tick + ARCADE.greed.duration;
+      this.greedStacks++;
+      this.shake = 8;
+      this.pushFx("nova", p.x, p.y, 120, 0, 24);
+    }
     if (this.aegisDrop && len(this.aegisDrop.x - p.x, this.aegisDrop.y - p.y) < 40) {
       p.aegis = true;
       this.aegisDrop = null;
@@ -480,7 +505,7 @@ export class ArcadeSim {
   private spawnTick(): void {
     const p = this.player;
     // Рошан: один раз на 7:00; пока жив — тишина.
-    if (this.tick === ARCADE.roshanAt) {
+    if (this.tick === this.roshanAt) {
       const r = this.spawnEnemy(ENEMY_KINDS.roshan, ...this.ringPoint(420, 480));
       this.roshan = r;
       this.shake = 12;
@@ -488,7 +513,8 @@ export class ArcadeSim {
     }
     if (this.roshan?.alive) return;
     const min = this.minutes;
-    const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * min) * (this.roshanKilled ? ARCADE.postRoshanRate : 1);
+    const greedy = this.tick < this.greedUntil;
+    const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * min) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min);
     const alive = this.aliveEnemies();
@@ -502,14 +528,26 @@ export class ArcadeSim {
       this.lastWaveAt = this.tick;
       const waveNo = Math.round(this.tick / ARCADE.waves.every);
       const [ox, oy] = this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40);
-      const size = ARCADE.waves.size + Math.floor(min / 2);
+      const size = Math.round((ARCADE.waves.size + Math.floor(min / 2)) * (this.rank.bigWaves ? 1.5 : 1));
       for (let i = 0; i < size; i++) this.spawnEnemy(ENEMY_KINDS.lane_creep, ox + (this.rng.float() - 0.5) * 120, oy + (this.rng.float() - 0.5) * 120);
-      if (waveNo % ARCADE.waves.siegeEvery === 0) this.spawnEnemy(ENEMY_KINDS.siege_creep, ox, oy);
+      if (waveNo % (this.rank.siegeOften ? 3 : ARCADE.waves.siegeEvery) === 0) this.spawnEnemy(ENEMY_KINDS.siege_creep, ox, oy);
     }
     if (this.golemIdx < ARCADE.waves.golemAt.length && this.tick >= ARCADE.waves.golemAt[this.golemIdx]) {
       this.golemIdx++;
       this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
+      if (this.rank.doubleGolems) this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
     }
+    if (this.rank.trollPacks && this.tick >= this.nextTrollPackAt) {
+      this.nextTrollPackAt = this.tick + sec(45);
+      for (let i = 0; i < 8; i++) this.spawnEnemy(ENEMY_KINDS.hill_troll, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 30));
+    }
+    // Руна щедрости: появляется недалеко, живёт ограниченно, следующая — по расписанию.
+    if (this.tick >= this.nextShrineAt && !this.shrine.alive) {
+      this.nextShrineAt = this.tick + ARCADE.greed.every;
+      const [sx, sy] = this.ringPoint(ARCADE.greed.distMin, ARCADE.greed.distMax);
+      this.shrine = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.greed.lifetime };
+    }
+    if (this.shrine.alive && this.tick >= this.shrine.until) this.shrine.alive = false;
     void p;
   }
 
@@ -529,8 +567,9 @@ export class ArcadeSim {
 
   private spawnEnemy(kind: EnemyKind, x: number, y: number): Enemy {
     const min = this.minutes;
-    const hpMult = kind.boss ? 1 : 1 + ARCADE.spawn.hpPerMin * min;
-    const dmgMult = kind.boss ? 1 : 1 + ARCADE.spawn.dmgPerMin * min;
+    const greed = 1 + ARCADE.greed.powerPerStack * this.greedStacks;
+    const hpMult = (kind.boss ? 1 : 1 + ARCADE.spawn.hpPerMin * min) * this.rank.hpMult * greed;
+    const dmgMult = (kind.boss ? 1 : 1 + ARCADE.spawn.dmgPerMin * min) * this.rank.dmgMult * greed;
     let e = this.enemies.find((o) => !o.alive);
     if (!e) { e = emptyEnemy(kind); this.enemies.push(e); }
     Object.assign(e, emptyEnemy(kind), { id: this.nextEnemyId++, alive: true, x, y, hp: kind.hp * hpMult, maxHp: kind.hp * hpMult, dmg: kind.dmg * dmgMult });
@@ -562,7 +601,7 @@ export class ArcadeSim {
       if (!e.alive) continue;
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (frozen) continue;
-      let speed = e.kind.speed;
+      let speed = e.kind.speed * this.rank.speedMult;
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
       const ranged = e.kind.ranged;
       if (ranged && d < ranged.range) {
@@ -698,8 +737,11 @@ export class ArcadeSim {
     }
   }
 
-  private gainXp(xp: number): void {
+  private gainXp(raw: number): void {
     const p = this.player;
+    let xp = raw;
+    if (this.tick < this.greedUntil) xp *= ARCADE.greed.xpMult;
+    if (this.rank.lessXp) xp *= 0.8;
     p.xp += xp;
     if (p.xp >= p.xpNext && !this.pending) {
       p.xp -= p.xpNext;
@@ -839,7 +881,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }
@@ -847,8 +889,8 @@ export class ArcadeSim {
   }
 
   /** Прогнать сим по input-логу на `untilSteps` вызовов step() (или до конца забега). */
-  static replay(seed: string, log: readonly InputLogEntry[], untilSteps: number): ArcadeSim {
-    const sim = new ArcadeSim(seed);
+  static replay(seed: string, log: readonly InputLogEntry[], untilSteps: number, options: ArcadeOptions = {}): ArcadeSim {
+    const sim = new ArcadeSim(seed, options);
     let idx = 0;
     let input: ArcadeInput = { ...IDLE_INPUT };
     for (let s = 0; s < untilSteps && !sim.over; s++) {

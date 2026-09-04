@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.2.0";
+export const ARCADE_CONFIG_VERSION = "a0.3.0";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -69,6 +69,19 @@ export const ARCADE = {
     end: [38, 36, 20, 6],
     endMin: 8,
     mult: { standard: 1, refined: 1.35, exotic: 1.8, arcana: 2.4 } as Record<string, number>,
+  },
+  /** Руны щедрости: первая на 0:50, дальше каждые 100 с; живёт 40 с; эффект 60 с. */
+  greed: {
+    firstAt: sec(50),
+    every: sec(100),
+    lifetime: sec(40),
+    duration: sec(60),
+    spawnMult: 2,
+    xpMult: 2,
+    /** Постоянная надбавка к HP/урону врагов за каждую взятую руну. */
+    powerPerStack: 0.08,
+    distMin: 340,
+    distMax: 420,
   },
   juggernaut: {
     q: { duration: 4, cooldown: 16, radius: 104, dps: [0, 42, 66, 90, 114], speedBonus: 0.12 },

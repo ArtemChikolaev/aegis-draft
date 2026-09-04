@@ -11,6 +11,18 @@
 .arcade-setup__goal { margin: 0; font-size: 17px; line-height: 1.45; }
 .arcade-setup__controls { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .arcade-setup__seed { display: grid; gap: 6px; }
+.arcade-rank { display: grid; gap: 8px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); }
+.arcade-rank__tiers { display: flex; flex-wrap: wrap; gap: 6px; }
+.arcade-rank__tier { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text); font: 700 11px var(--font-display); letter-spacing: .04em; text-transform: uppercase; }
+.arcade-rank__tier[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent); }
+.arcade-rank__tier[data-locked] { opacity: .4; }
+.arcade-rank__stars { display: flex; gap: 2px; }
+.arcade-rank__star { padding: 0 2px; border: 0; background: none; color: var(--muted); font-size: 22px; line-height: 1; }
+.arcade-rank__star[data-active] { color: var(--gold); }
+.arcade-rank__star:disabled { opacity: .3; }
+.arcade-rank__rules { display: grid; gap: 3px; margin: 0; padding: 0 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.arcade-rank__unlock { margin: 0; color: var(--muted); font-size: 11px; }
+.arcade-hud__rank { font: 800 11px var(--font-display); letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
 .arcade-setup__best { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 14px; }
 
 .arcade { padding: 6px 0 20px; }

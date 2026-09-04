@@ -9,7 +9,7 @@ import { heroArtSources } from "../../ui/artSource.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 type Palette = Record<PaletteKey, string>;
@@ -84,6 +84,7 @@ export class ArcadeRenderer {
     this.drawShards(sim, pal);
     this.drawWard(sim, pal);
     this.drawAegis(sim, pal, now);
+    this.drawShrine(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
@@ -143,6 +144,20 @@ export class ArcadeRenderer {
     c.moveTo(x, y - 16 + bob); c.lineTo(x + 12, y - 8 + bob); c.lineTo(x + 10, y + 8 + bob); c.lineTo(x, y + 16 + bob); c.lineTo(x - 10, y + 8 + bob); c.lineTo(x - 12, y - 8 + bob);
     c.closePath(); c.fill();
     c.strokeStyle = pal.text; c.lineWidth = 1.5; c.stroke();
+  }
+
+  private drawShrine(sim: ArcadeSim, pal: Palette, now: number): void {
+    const s = sim.shrine;
+    if (!s.alive) return;
+    const c = this.ctx;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 220);
+    const left = (s.until - sim.tick) / TICK_HZ;
+    c.strokeStyle = pal.greed; c.lineWidth = 2; c.globalAlpha = 0.35 + 0.35 * pulse;
+    c.beginPath(); c.arc(s.x, s.y, 34 + pulse * 6, 0, Math.PI * 2); c.stroke();
+    c.globalAlpha = left < 8 ? 0.4 + 0.6 * pulse : 1;
+    c.fillStyle = pal.greed;
+    c.beginPath(); c.moveTo(s.x, s.y - 18); c.lineTo(s.x + 13, s.y); c.lineTo(s.x, s.y + 18); c.lineTo(s.x - 13, s.y); c.closePath(); c.fill();
+    c.globalAlpha = 1;
   }
 
   private drawEnemies(sim: ArcadeSim, pal: Palette): void {

@@ -105,6 +105,20 @@ export interface Projectile {
   fromEnemy: boolean;
 }
 
+/** Руна щедрости (T13.7): взял — 60 с двойного спавна и опыта ценой постоянного усиления врагов. */
+export interface Shrine {
+  alive: boolean;
+  x: number;
+  y: number;
+  /** Тик исчезновения, если не взяли. */
+  until: number;
+}
+
+export interface ArcadeOptions {
+  /** Ступень лестницы сложности 0..39 (content/ranks.ts). */
+  rank?: number;
+}
+
 export interface Shard {
   alive: boolean;
   x: number;
@@ -183,4 +197,6 @@ export interface ArcadeOutcome {
   schools: SchoolId[];
   upgrades: string[];
   roshanKilled: boolean;
+  rank: number;
+  greedStacks: number;
 }

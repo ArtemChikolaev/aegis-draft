@@ -3,12 +3,13 @@
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
-import { bestArcadeEntry, getArcadeSim, useArcade } from "../../state/arcadeStore.ts";
+import { bestArcadeEntry, getArcadeSim, maxUnlockedRank, useArcade } from "../../state/arcadeStore.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { ARCADE, DT, TICK_HZ } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID } from "../../game/arcade/content/schools.ts";
+import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, screenShakeEnabled, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -30,9 +31,13 @@ function ArcadeSetup() {
   const backNative = useTmaChrome((s) => s.backNative);
   const history = useArcade((s) => s.history);
   const start = useArcade((s) => s.start);
+  const rank = useArcade((s) => s.rank);
+  const setRank = useArcade((s) => s.setRank);
   const hero = useHero()(JUGGERNAUT_ID);
   const [seed, setSeed] = useState("");
   const best = bestArcadeEntry(history);
+  const unlocked = maxUnlockedRank(history);
+  const current = rankOf(rank);
   return (
     <main className="arcade-setup">
       {!backNative && <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>}
@@ -54,12 +59,43 @@ function ArcadeSetup() {
         <Surface className="arcade-setup__run">
           <p className="arcade-setup__goal">{t("arcade.goal")}</p>
           <p className="arcade-setup__controls">{t("arcade.controls")}</p>
+          <div className="arcade-rank" data-testid="arcade-rank">
+            <span className="arcade-setup__label">{t("arcade.rank")} · {t(`arcade.tier.${current.tier}` as MessageKey)} {"★".repeat(current.stars)}</span>
+            <div className="arcade-rank__tiers">
+              {RANK_TIERS.map((tier) => {
+                const first = rankStep(tier, 1);
+                const locked = first > unlocked;
+                return (
+                  <button key={tier} type="button" className="arcade-rank__tier" data-active={current.tier === tier ? "true" : undefined} data-locked={locked ? "true" : undefined} disabled={locked} onClick={() => setRank(rankStep(tier, 1))}>
+                    {t(`arcade.tier.${tier}` as MessageKey)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="arcade-rank__stars">
+              {Array.from({ length: STARS }, (_, i) => {
+                const step = rankStep(current.tier, i + 1);
+                return <button key={i} type="button" className="arcade-rank__star" data-active={step <= rank ? "true" : undefined} disabled={step > unlocked} onClick={() => setRank(step)} aria-label={`${i + 1}★`}>★</button>;
+              })}
+            </div>
+            <ul className="arcade-rank__rules">
+              <li>{t("arcade.rank.mult", { hp: Math.round((current.hpMult - 1) * 100), dmg: Math.round((current.dmgMult - 1) * 100), spawn: Math.round((current.spawnMult - 1) * 100) })}</li>
+              {current.doubleGolems && <li>{t("arcade.rank.doubleGolems")}</li>}
+              {current.bigWaves && <li>{t("arcade.rank.bigWaves")}</li>}
+              {current.trollPacks && <li>{t("arcade.rank.trollPacks")}</li>}
+              {current.siegeOften && <li>{t("arcade.rank.siegeOften")}</li>}
+              {current.earlyRoshan && <li>{t("arcade.rank.earlyRoshan")}</li>}
+              {current.resistStatus && <li>{t("arcade.rank.resistStatus")}</li>}
+              {current.lessXp && <li>{t("arcade.rank.lessXp")}</li>}
+            </ul>
+            <p className="arcade-rank__unlock">{t("arcade.rank.unlock")}</p>
+          </div>
           <label className="arcade-setup__seed"><span className="arcade-setup__label">{t("common.seed")}</span><TextField value={seed} onChange={(e) => setSeed(e.target.value)} placeholder={t("arcade.seedRandom")} data-testid="arcade-seed" /></label>
           <Button variant="primary" data-testid="arcade-play" onClick={() => start(seed)}>{t("arcade.play")} →</Button>
           <div className="arcade-setup__best">
             <span className="arcade-setup__label">{t("arcade.best")}</span>
             {best
-              ? <span data-testid="arcade-best">{t(best.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")} · {formatClock(best.seconds * TICK_HZ)} · {t("arcade.hud.level")} {best.level} · {best.kills} {t("arcade.hud.kills").toLowerCase()}</span>
+              ? <span data-testid="arcade-best">{t(best.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")} · {t(`arcade.tier.${rankOf(best.rank ?? 0).tier}` as MessageKey)} {"★".repeat(rankOf(best.rank ?? 0).stars)} · {formatClock(best.seconds * TICK_HZ)} · {t("arcade.hud.level")} {best.level} · {best.kills} {t("arcade.hud.kills").toLowerCase()}</span>
               : <span>{t("arcade.noHistory")}</span>}
           </div>
         </Surface>
@@ -164,6 +200,8 @@ function ArcadeStage() {
                 <span>{t("arcade.hud.kills")} <b>{p.kills}</b></span>
                 <span>{t("arcade.hud.gold")} <b>{p.gold}</b></span>
                 {p.aegis && <Chip>{t("arcade.hud.aegis")}</Chip>}
+                {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
+                <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
               <Button variant="secondary" className="arcade-hud__pause" onClick={() => (status === "paused" ? resume() : pause())}>{status === "paused" ? t("arcade.hud.resume") : t("arcade.hud.pauseBtn")}</Button>
             </div>
@@ -241,6 +279,8 @@ function ArcadeStage() {
                 <div><dt>{t("arcade.hud.kills")}</dt><dd>{outcome.kills}</dd></div>
                 <div><dt>{t("arcade.hud.gold")}</dt><dd>{outcome.gold}</dd></div>
                 <div><dt>{t("arcade.hud.roshan")}</dt><dd>{t(outcome.roshanKilled ? "arcade.over.roshanYes" : "arcade.over.roshanNo")}</dd></div>
+                <div><dt>{t("arcade.rank")}</dt><dd>{t(`arcade.tier.${rankOf(outcome.rank).tier}` as MessageKey)} {"★".repeat(rankOf(outcome.rank).stars)}</dd></div>
+                {outcome.greedStacks > 0 && <div><dt>{t("arcade.hud.greed")}</dt><dd>×{outcome.greedStacks}</dd></div>}
               </dl>
               {outcome.schools.length > 0 && (
                 <div className="arcade-result__schools">
