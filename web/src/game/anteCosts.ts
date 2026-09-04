@@ -32,7 +32,9 @@ export function bossRerollCostFor(rerolls: number): number {
 /** Цена игрока в паке-рулетке растёт с его OVR: сильный дороже, слабый доступен рано (Balatro-
  *  ценообразование). Placeholder под balance spec (§10.F). */
 export function playerCost(ovr: number): number {
-  return Math.max(2, Math.round((ovr - 60) / 4));
+  const c = ECONOMY.playerCost;
+  const star = Math.max(0, ovr - c.starFrom);
+  return Math.max(c.min, Math.round((ovr - c.floorOvr) / c.perPoint + (star * star) / c.starDivisor));
 }
 
 /** Цена апгрейда ФОРМЫ той же личности (R5.3): за человека уже заплачено, поэтому старая форма

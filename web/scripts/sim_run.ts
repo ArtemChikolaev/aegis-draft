@@ -375,6 +375,8 @@ interface CampStat {
   /** Поздние синки (T5.9): куплено сборов и смен правила в этом лагере. */
   preps: number;
   bossRerolls: number;
+  /** Куплено игроков с OVR ≥ 90 (R5.3, цена звёзд) — по умолчанию 0 у лагерей без покупок. */
+  starBuys?: number;
 }
 
 interface RunResult {
@@ -608,9 +610,10 @@ function nextTier(current: Rarity): Rarity {
 function shopCamp(
   engine: RunEngine, economy: RunEconomy, seed: string, agent: Agent, decision: Decision, stageCount: number,
   season: SeasonModel,
-): { buys: number; rerolls: number; qualityUpgrades: number; trades: number } {
+): { buys: number; rerolls: number; qualityUpgrades: number; trades: number; starBuys: number } {
   recordCampDiagnostic(engine, economy, agent, decision, stageCount);
   let buys = 0;
+  let starBuys = 0;
   let rerolls = 0;
   let qualityUpgrades = 0;
   let trades = 0;
@@ -661,6 +664,7 @@ function shopCamp(
         if (!incoming || slotHolder?.player.accountId !== offer.playerSwap.outgoingAccountId) break;
         if (!economy.purchaseMarket(offer.id)) break;
         engine.replacePlayer(offer.playerSwap.slotIndex, incoming);
+        if (incoming.player.ovr >= 90) starBuys += 1;
       } else if (offer.kind === "hero" && offer.heroSwap) {
         if (!economy.purchaseMarket(offer.id)) break;
         engine.replaceHero(offer.heroSwap.outgoingHeroId, offer.heroSwap.incomingHeroId);
@@ -679,7 +683,7 @@ function shopCamp(
       ));
     } catch (error) { if (process.env.SIMDEBUG) console.error("shopCamp break:", error); break; }
   }
-  return { buys, rerolls, qualityUpgrades, trades };
+  return { buys, rerolls, qualityUpgrades, trades, starBuys };
 }
 
 /** Излишек золота уходит в поздние синки (T5.9). Ставится ПОСЛЕ рынка намеренно: синк обязан быть
@@ -869,6 +873,8 @@ interface Report {
   /** Куплено улучшений качества за забег. */
   qualityBought: number;
   /** Сколько активных героев в итоге не common (лут + улучшения). */
+  /** Куплено звёзд (OVR ≥ 90) на забег (R5.3). */
+  starBuys: number;
   rareHeroes: number;
   tactics: number;
   lostUnderBoss: number;
@@ -897,7 +903,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
   const dynastyDepths: number[] = [];
   let dynastyBuys = 0; let dynastyCamps = 0; let dynastyPreps = 0;
   let dynastyDeaths = 0; let dynastyBossDeaths = 0;
-  let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0;
+  let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0; let starBuys = 0;
   let preps = 0; let bossRerolls = 0; let trades = 0;
   let runsWithCharged = 0; let chargedTakenSum = 0; let chargesSum = 0;
   let chargedActiveSum = 0; let chargedStagesSum = 0; let runsWithTempered = 0; let temperedTakenSum = 0;
@@ -938,7 +944,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
     for (let s = 0; s <= result.stage && s < season.stages.length; s += 1) survivedTo[s] += 1;
     for (const camp of result.camps) {
       golds.push(camp.goldAfter);
-      buys += camp.buys; rerolls += camp.rerolls; qualityBought += camp.qualityUpgrades; camps += 1;
+      buys += camp.buys; rerolls += camp.rerolls; qualityBought += camp.qualityUpgrades; camps += 1; starBuys += camp.starBuys ?? 0;
       preps += camp.preps; bossRerolls += camp.bossRerolls; trades += camp.trades;
       // Отдельно по Династии: если рынок там упирается в потолок ростера, это видно как падение
       // покупок на лагерь — гадать об этом не нужно, оно измеряется.
@@ -960,6 +966,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
     trades: camps ? trades / camps : 0,
     qualityBought: played ? qualityBought / played : 0,
     rareHeroes: played ? rareHeroes / played : 0,
+    starBuys: played ? starBuys / played : 0,
     tactics: played ? tactics / played : 0,
     lostUnderBoss: played ? bossDeaths / played : 0,
     podium: played ? podium / played : 0,
@@ -1026,6 +1033,7 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
       + `  ${r.rareHeroes.toFixed(1).padStart(4)}  ${r.tactics.toFixed(1)}  ${pct(r.lostUnderBoss).padStart(6)}`,
     );
   }
+  console.log("\nЗвёзды (R5.3): куплено игроков OVR ≥ 90 на забег — " + reports.map((r) => `${r.agent} ${r.starBuys.toFixed(2)}`).join(" · "));
   if (reports.some((r) => r.dynasty)) {
     console.log("\nДинастия (из выигравших сезон): забегов · глубина p50/p90/max · покупок на лагерь (сезон → Династия)");
     for (const r of reports) {
