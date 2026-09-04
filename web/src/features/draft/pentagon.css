@@ -24,7 +24,10 @@
 .pentagon__ring line { stroke-linecap: round; }
 /* Подпись центрируется на точке (Pentagon.tsx кладёт её на нормаль к ребру), иначе текст
    начинался бы от середины ребра и уезжал вправо под линию. */
-.pentagon__edge-label { text-anchor: middle; dominant-baseline: central; font-size: 13px; font-weight: 700; }
+/* Ореол цветом фона панели: подпись и ребро красятся одним --chem-line, и там, где цифра ложится
+   на пересекающую линию того же цвета, она пропадала («+0.» вместо «+0.7», агентский проход
+   2026-09-05). paint-order рисует обводку ПОД заливкой — сам текст остаётся цвета ребра. */
+.pentagon__edge-label { text-anchor: middle; dominant-baseline: central; font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--surface-invert); stroke-width: 3px; stroke-linejoin: round; }
 .pentagon__ring--thin line { stroke: var(--line-invert); }
 .pentagon__ring--chem line { stroke: var(--chem-line); filter: drop-shadow(0 0 5px var(--chem-line)); }
 .pentagon__ring--chem .pentagon__edge-label { fill: var(--chem-line); }

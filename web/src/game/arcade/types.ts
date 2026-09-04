@@ -18,8 +18,8 @@ export function sameInput(a: ArcadeInput, b: ArcadeInput): boolean {
   return a.mx === b.mx && a.my === b.my && a.cast === b.cast && a.choose === b.choose;
 }
 
-/** Запись input-лога: ввод действует с тика `tick` и до следующей записи. */
-export type InputLogEntry = [tick: number, mx: number, my: number, cast: number, choose: number];
+/** Запись input-лога: ввод действует с вызова step() №`step` и до следующей записи. */
+export type InputLogEntry = [step: number, mx: number, my: number, cast: number, choose: number];
 
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"

@@ -129,6 +129,36 @@ export function Pentagon({ roster, centerValue, centerLabelKey = "common.teamOvr
     return ia != null && ib != null && !isAdjacent(ia, ib, roster.length);
   });
 
+  // Элементы пентагона считаются до разметки: линии и подписи рисуются разными проходами (см. ниже).
+  const chordItems = chordEdges.map((edge) => {
+    const a = layouts[slotByAccount.get(edge.a)!].vertex;
+    const b = layouts[slotByAccount.get(edge.b)!].vertex;
+    return {
+      key: `${edge.a}:${edge.b}`,
+      className: `pentagon__edge pentagon__edge--${chemTier(edge.bonus)}`,
+      a, b,
+      label: edgeLabelPos(a, b, true),
+      text: fmtEdge(edge.bonus),
+    };
+  });
+  const ringItems = layouts.map((l, i) => {
+    const next = layouts[(i + 1) % layouts.length];
+    const idA = roster[i].candidate?.player.accountId;
+    const idB = roster[(i + 1) % roster.length].candidate?.player.accountId;
+    const bonus = idA != null && idB != null ? bonusByPair.get(pairKey(idA, idB)) : undefined;
+    const tone = ringTone(bonus);
+    return {
+      key: `ring-${i}`,
+      className: tone === "chem" && bonus != null
+        ? `pentagon__ring pentagon__ring--chem pentagon__ring--${chemTier(bonus)}`
+        : `pentagon__ring pentagon__ring--${tone}`,
+      a: l.vertex, b: next.vertex,
+      strokeWidth: tone === "chem" ? RING_STROKE_CHEM : RING_STROKE_THIN,
+      label: edgeLabelPos(l.vertex, next.vertex),
+      text: bonus != null && Math.abs(bonus) >= EDGE_MIN ? fmtEdge(bonus) : null,
+    };
+  });
+
   return (
     <div className="pentagon-wrap">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="pentagon" role="img" aria-label={t("pentagon.label")}>
@@ -137,48 +167,34 @@ export function Pentagon({ roster, centerValue, centerLabelKey = "common.teamOvr
           <line key={i} x1={C} y1={C} x2={l.vertex.x} y2={l.vertex.y} className="pentagon__spoke" strokeWidth={1} />
         ))}
 
-        {chordEdges.map((edge) => {
-          const ia = slotByAccount.get(edge.a)!;
-          const ib = slotByAccount.get(edge.b)!;
-          const a = layouts[ia].vertex;
-          const b = layouts[ib].vertex;
-          const label = edgeLabelPos(a, b, true);
-          const tone = chemTier(edge.bonus);
-          return (
-            <g key={`${edge.a}:${edge.b}`} className={`pentagon__edge pentagon__edge--${tone}`}>
-              <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className="pentagon__edge-line" strokeWidth={CHORD_STROKE} />
-              <text x={label.x} y={label.y} className="pentagon__edge-label">{fmtEdge(edge.bonus)}</text>
-            </g>
-          );
-        })}
+        {/* Линии — все, затем подписи ОТДЕЛЬНЫМ слоем: подпись ребра, отрисованная внутри своей
+            группы, накрывалась линией (со свечением) соседнего ребра, отрисованного позже —
+            «+0.7» читалось как «+0.» (агентский проход 2026-09-05). Классы группы у обёртки
+            подписи те же, чтобы токены цвета (`--chem-line`) применялись как прежде. */}
+        {chordItems.map((item) => (
+          <g key={item.key} className={item.className}>
+            <line x1={item.a.x} y1={item.a.y} x2={item.b.x} y2={item.b.y} className="pentagon__edge-line" strokeWidth={CHORD_STROKE} />
+          </g>
+        ))}
 
-        {layouts.map((l, i) => {
-          const next = layouts[(i + 1) % layouts.length];
-          const idA = roster[i].candidate?.player.accountId;
-          const idB = roster[(i + 1) % roster.length].candidate?.player.accountId;
-          const bonus = idA != null && idB != null ? bonusByPair.get(pairKey(idA, idB)) : undefined;
-          const tone = ringTone(bonus);
-          const label = edgeLabelPos(l.vertex, next.vertex);
-          return (
-            <g
-              key={`ring-${i}`}
-              className={tone === "chem" && bonus != null
-                ? `pentagon__ring pentagon__ring--chem pentagon__ring--${chemTier(bonus)}`
-                : `pentagon__ring pentagon__ring--${tone}`}
-            >
-              <line
-                x1={l.vertex.x}
-                y1={l.vertex.y}
-                x2={next.vertex.x}
-                y2={next.vertex.y}
-                strokeWidth={tone === "chem" ? RING_STROKE_CHEM : RING_STROKE_THIN}
-              />
-              {bonus != null && Math.abs(bonus) >= EDGE_MIN && (
-                <text x={label.x} y={label.y} className="pentagon__edge-label">{fmtEdge(bonus)}</text>
-              )}
+        {ringItems.map((item) => (
+          <g key={item.key} className={item.className}>
+            <line x1={item.a.x} y1={item.a.y} x2={item.b.x} y2={item.b.y} strokeWidth={item.strokeWidth} />
+          </g>
+        ))}
+
+        <g className="pentagon__labels">
+          {chordItems.map((item) => (
+            <g key={`${item.key}-label`} className={item.className}>
+              <text x={item.label.x} y={item.label.y} className="pentagon__edge-label">{item.text}</text>
             </g>
-          );
-        })}
+          ))}
+          {ringItems.map((item) => item.text && (
+            <g key={`${item.key}-label`} className={item.className}>
+              <text x={item.label.x} y={item.label.y} className="pentagon__edge-label">{item.text}</text>
+            </g>
+          ))}
+        </g>
 
         {filled > 0 && centerValue != null && (
           <>

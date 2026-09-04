@@ -17,6 +17,7 @@
 .mode-card--manager::before { background: radial-gradient(circle at 76% 22%, #ffc18c, transparent 18%), radial-gradient(ellipse at 45% 45%, #d97757, #532619 42%, transparent 72%); }
 .mode-card--tournament::before { background: radial-gradient(circle at 76% 22%, #a9c6ff, transparent 18%), radial-gradient(ellipse at 45% 45%, #446db4, #17233b 42%, transparent 72%); }
 .mode-card--arena::before { background: radial-gradient(circle at 76% 22%, #ffa9a0, transparent 18%), radial-gradient(ellipse at 45% 45%, #c94436, #4a1511 42%, transparent 72%); }
+.mode-card--arcade::before { background: radial-gradient(circle at 76% 22%, #ffd48a, transparent 18%), radial-gradient(ellipse at 45% 45%, #b8742a, #3d2408 42%, transparent 72%); }
 .mode-card--duel::before { background: radial-gradient(circle at 76% 22%, #8fe3d9, transparent 18%), radial-gradient(ellipse at 45% 45%, #2e9184, #0d2f2a 42%, transparent 72%); }
 /* Выбор варианта внутри Classic. Всего две карточки, поэтому центрируем весь блок (без третьей
    карточки грид режимов смотрелся бы прижатым влево). Палитра у вариантов одна — фирменная:

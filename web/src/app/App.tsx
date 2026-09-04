@@ -20,6 +20,7 @@ import { HqScreen } from "../features/hq/HqScreen.tsx";
 import { RulesScreen } from "../features/rules/RulesScreen.tsx";
 import { ManagerScreen } from "../features/manager/ManagerScreen.tsx";
 import { DuelScreen } from "../features/duel/DuelScreen.tsx";
+import { ArcadeScreen } from "../features/arcade/ArcadeScreen.tsx";
 import { ArenaDraftScreen } from "../features/arena/ArenaDraftScreen.tsx";
 import { useArena } from "../state/arenaStore.ts";
 import { useI18n } from "../i18n/I18nProvider.tsx";
@@ -37,7 +38,7 @@ export function App() {
   // override). Нейтрально, пока режим не выбран (mode === null): это mode-select и экран выбора
   // варианта. Вешается на весь app-shell, поэтому Settings/справочник, открытые ИЗ режима, тоже
   // наследуют его гамму (карточку варианта Roguelite тегаем отдельно — она на нейтральном экране).
-  const modeAccent = mode === "run" ? "violet" : mode === "manager" ? "orange" : mode === "tournament" ? "blue" : mode === "arena" ? "red" : mode === "duel" ? "teal" : undefined;
+  const modeAccent = mode === "run" ? "violet" : mode === "manager" ? "orange" : mode === "tournament" ? "blue" : mode === "arena" ? "red" : mode === "duel" ? "teal" : mode === "arcade" ? "amber" : undefined;
   // Тот же атрибут дублируем на <body>, потому что модалки рендерятся ПОРТАЛОМ в body и вне
   // `.app-shell` гамму режима уже не наследуют: в Roguelite Run свечение модалки возвращалось к
   // базовому зелёному (плейтест 2026-08-05). Токены — обычные наследуемые custom properties,
@@ -152,7 +153,7 @@ export function App() {
         /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
            (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
            так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
-        <div className="enter-fade" key={mode === "manager" ? "manager" : mode === "duel" ? "duel" : phase}>
+        <div className="enter-fade" key={mode === "manager" ? "manager" : mode === "duel" ? "duel" : mode === "arcade" ? "arcade" : phase}>
           {/* Manager — свой мир со своим long-save: фазы classic-забега его не касаются.
               Плашки resume висят и над его онбордингом — как на остальных start-экранах. */}
           {mode === "manager" && phase === "start" ? (
@@ -165,6 +166,9 @@ export function App() {
             /* Дуэль (M-DUEL) — как Manager: свой мир, фазы classic-забега его не касаются.
                Персиста у hotseat-серии нет, поэтому и resume-плашек над ней нет. */
             <DuelScreen />
+          ) : mode === "arcade" && phase === "start" ? (
+            /* Аркада (M13) — real-time сим со своим стором; сейва посреди забега нет. */
+            <ArcadeScreen />
           ) : (
             <>
               {/* T7.3: упавшая загрузка данных — не вечная орбита, а retry. Баннер с причиной

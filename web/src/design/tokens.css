@@ -273,6 +273,12 @@ html[data-theme="light"] [data-accent="red"] {
   --accent-soft: rgba(182, 57, 43, .12);
   --on-accent: #fff;
 }
+html[data-theme="light"] [data-accent="amber"] {
+  --accent: #9a5b12;
+  --accent-strong: #7a4709;
+  --accent-soft: rgba(154, 91, 18, .12);
+  --on-accent: #fff;
+}
 html[data-theme="light"] [data-accent="teal"] {
   --accent: #1f7f72;
   --accent-strong: #16605a;
@@ -298,6 +304,41 @@ html[data-theme="light"] [data-accent="teal"] {
 [data-accent="teal"] {
   --accent: #8fe3d9; --accent-strong: #4db8aa; --accent-soft: rgba(77, 184, 170, .16); --on-accent: #06211d;
   --brand-green: #8fe3d9; --brand-glow: #3aa393; --brand-art-hot: #8fe3d9; --brand-art-mid: #2e9184; --brand-art-deep: #0d2f2a;
+}
+
+/* Аркада (M13, PRD §5.15): янтарь — цвет Aegis и леса Radiant на закате; тот же принцип
+   тон-в-гамму. Ниже — палитра самого canvas: рендер снимает `--arcade-*` через getComputedStyle,
+   потому что canvas не наследует CSS-переменные. Сцена всегда тёмная (как панели режимов), поэтому
+   палитра не дублируется в светлой теме. */
+[data-accent="amber"] {
+  --accent: #ffd48a; --accent-strong: #e0a44f; --accent-soft: rgba(224, 164, 79, .16); --on-accent: #2a1a05;
+  --brand-green: #ffd48a; --brand-glow: #d9973f; --brand-art-hot: #ffd48a; --brand-art-mid: #b8742a; --brand-art-deep: #3d2408;
+}
+:root {
+  --arcade-ground: #0f1a12;
+  --arcade-ground-line: rgba(255, 255, 255, .045);
+  --arcade-bounds: rgba(255, 212, 138, .35);
+  --arcade-grunt: #8a6a4a;
+  --arcade-brute: #b0563a;
+  --arcade-swift: #7aa66a;
+  --arcade-creep: #6f7f8f;
+  --arcade-elite: #c9a24a;
+  --arcade-boss: #e0684f;
+  --arcade-player: #1c1c1c;
+  --arcade-player-ring: #ffd48a;
+  --arcade-shard: #8ff0b5;
+  --arcade-fire: #ff9a45;
+  --arcade-frost: #8bd8ff;
+  --arcade-lightning: #d7bcff;
+  --arcade-hp: #5bd98c;
+  --arcade-hp-bg: rgba(255, 255, 255, .14);
+  --arcade-text: #f7f7f5;
+  --arcade-telegraph: #ff806d;
+  --arcade-ward: #9ce77e;
+  --arcade-heal: #9ce77e;
+  --arcade-crit: #ffc66b;
+  --arcade-aegis: #ffd48a;
+  --arcade-joystick: #f7f7f5;
 }
 
 /* Тач-устройства: любой контрол ввода — минимум 16px, иначе iOS Safari зумит вьюпорт

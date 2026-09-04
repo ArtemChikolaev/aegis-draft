@@ -30,6 +30,9 @@ export const MODES: { value: RunMode; label: MessageKey; hint: MessageKey; detai
   // Дуэль (M-DUEL): онлайн 1×1 по коду комнаты (relay-инфраструктура MP0). App перехватывает
   // selectedMode === "duel" до фазовых экранов, как у Manager.
   { value: "duel", label: "start.modeDuel", hint: "start.modeDuelHint", detail: "start.modeDuelLong", available: true, needsNetwork: true },
+  // Аркада (M13, PRD §5.15): 2D survivors-роглайк. Офлайн-режим, свой стор (arcadeStore), App
+  // перехватывает selectedMode === "arcade" до фазовых экранов, как у Manager/Duel.
+  { value: "arcade", label: "start.modeArcade", hint: "start.modeArcadeHint", detail: "start.modeArcadeLong", available: true },
 ];
 
 /** Режимы, использующие Classic-конфиг драфта (Quick Draft и Roguelite Run поверх него).

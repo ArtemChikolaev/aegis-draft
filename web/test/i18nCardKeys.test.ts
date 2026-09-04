@@ -5,6 +5,7 @@ import { ITEMS } from "../src/game/items.ts";
 import { CAMP_ACTIONS } from "../src/game/campActions.ts";
 import { BOSSES } from "../src/game/bossConditions.ts";
 import { MUTATORS } from "../src/game/dynastyMutators.ts";
+import { TALENTS, UPGRADES } from "../src/game/arcade/content/schools.ts";
 
 // Ключи карт/боссов/мутаторов собираются в рантайме шаблоном (`${kind}.${id}`, `${item ? "item" : "tactic"}.${id}`),
 // поэтому tsc их не проверяет, а grep по литералу не видит. 2026-09-02 шесть `tactic.*` удалили как
@@ -15,6 +16,8 @@ const expectedKeys = [
   ...Object.keys(CAMP_ACTIONS).flatMap((id) => [`action.${id}`, `action.desc.${id}`]),
   ...Object.keys(BOSSES).flatMap((id) => [`boss.${id}`, `boss.desc.${id}`]),
   ...Object.keys(MUTATORS).flatMap((id) => [`mutator.${id}`, `mutator.desc.${id}`]),
+  ...UPGRADES.flatMap((u) => [`arcade.up.${u.id}`, `arcade.up.${u.id}.desc`]),
+  ...Object.values(TALENTS).flat().map((id) => `arcade.t.${id}`),
 ];
 
 describe("i18n: ключи каталогов карт существуют в обеих локалях", () => {

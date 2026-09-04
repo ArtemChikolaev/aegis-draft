@@ -12,7 +12,8 @@ import type { RunEconomyState } from "../game/anteEconomy.ts";
 import type { Role } from "../types/data.ts";
 import { readCached, readPersisted, removePersisted, writePersisted } from "./persist.ts";
 
-export type RunMode = "classic" | "run" | "manager" | "tournament" | "arena" | "duel";
+/** `arcade` (PRD §5.15) — отдельный мир, как Manager/Duel: App перехватывает его до фазовых экранов. */
+export type RunMode = "classic" | "run" | "manager" | "tournament" | "arena" | "duel" | "arcade";
 
 /** Действие игрока в забеге. Replay на движке восстанавливает точное состояние. */
 export type RunAction =
