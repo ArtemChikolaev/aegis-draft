@@ -25,6 +25,7 @@ export interface ArcadeHistoryEntry {
   /** Ступень лестницы сложности (T13.7); у записей до a0.3.0 отсутствует = 0. */
   rank?: number;
   greedStacks?: number;
+  items?: string[];
 }
 
 const HISTORY_KEY = "aegis-draft.arcade.history";
@@ -63,6 +64,8 @@ interface ArcadeStore {
   pause: () => void;
   resume: () => void;
   choose: (index: number) => void;
+  /** Действие в Secret Shop (SHOP_ACT): купить слот / реролл / закрыть. */
+  shopAct: (act: number) => void;
   /** Забег закончился внутри сима — зафиксировать результат и записать историю. */
   finish: () => void;
   quit: () => void;
@@ -95,7 +98,12 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   },
   choose(index) {
     if (!sim || !sim.pending) return;
-    sim.step({ mx: 0, my: 0, cast: 0, choose: index });
+    sim.step({ mx: 0, my: 0, cast: 0, choose: index, act: 0 });
+    set((s) => ({ serial: s.serial + 1 }));
+  },
+  shopAct(act) {
+    if (!sim || !sim.shopOpen) return;
+    sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act });
     set((s) => ({ serial: s.serial + 1 }));
   },
   finish() {
@@ -103,7 +111,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const o = sim.over;
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
-      schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks,
+      schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items,
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));

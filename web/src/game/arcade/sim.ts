@@ -12,6 +12,7 @@ import { ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
+import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, ITEM_RARITY_MULT, type ShopOffer } from "./content/items.ts";
 import {
   IDLE_INPUT,
   sameInput,
@@ -32,6 +33,7 @@ import {
   type SchoolId,
   type Shard,
   type Shrine,
+  type Spot,
 } from "./types.ts";
 
 /** 16 направлений по кругу — константы вместо Math.cos/sin (детерминизм между движками). */
@@ -63,6 +65,14 @@ export class ArcadeSim {
   shrine: Shrine = { alive: false, x: 0, y: 0, until: 0 };
   greedUntil = 0;
   greedStacks = 0;
+  shopkeeper: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
+  bounty: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
+  /** Открытый магазин останавливает мир, как выбор карточки. */
+  shopOpen = false;
+  shopOffers: ShopOffer[] = [];
+  shopRerolls = 0;
+  private shopIdx = 0;
+  private nextBountyAt = ARCADE.bounty.every;
   private nextShrineAt: number;
   private nextTrollPackAt: number;
   private readonly roshanAt: number;
@@ -102,7 +112,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, omniLeft: 0, omniNextAt: 0,
-      schools: [], upgrades: {}, talents: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
+      schools: [], upgrades: {}, talents: [], items: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
@@ -127,12 +137,16 @@ export class ArcadeSim {
   step(input: ArcadeInput): void {
     if (this.over) return;
     if (!sameInput(input, this.lastInput)) {
-      this.log.push([this.steps, input.mx, input.my, input.cast, input.choose]);
+      this.log.push([this.steps, input.mx, input.my, input.cast, input.choose, input.act]);
       this.lastInput = { ...input };
     }
     this.steps++;
     if (this.pending) {
       if (input.choose >= 0 && input.choose < this.pending.length) this.applyOffer(this.pending[input.choose]);
+      return;
+    }
+    if (this.shopOpen) {
+      this.shopAction(input.act);
       return;
     }
     const p = this.player;
@@ -184,7 +198,7 @@ export class ArcadeSim {
       if (target) {
         p.attackCd = sec(p.stats.attackInterval);
         this.hitWithAttack(target);
-        let cleave = ARCADE.player.cleaveTargets - 1;
+        let cleave = ARCADE.player.cleaveTargets - 1 + p.stats.cleave;
         for (const e of this.enemies) {
           if (cleave <= 0) break;
           if (!e.alive || e === target) continue;
@@ -241,7 +255,7 @@ export class ArcadeSim {
   private castQ(): void {
     const p = this.player, J = ARCADE.juggernaut;
     p.spinUntil = this.tick + sec(J.q.duration);
-    p.cooldowns.q = sec(J.q.cooldown);
+    p.cooldowns.q = sec(J.q.cooldown * (1 - p.stats.cooldown));
     this.pushFx("spin", p.x, p.y, 0, 0, sec(J.q.duration));
     this.thunderclap();
   }
@@ -251,7 +265,7 @@ export class ArcadeSim {
     p.wardUntil = this.tick + sec(J.w.duration);
     p.wardX = p.x - p.facingX * 30;
     p.wardY = p.y - p.facingY * 30;
-    p.cooldowns.w = sec(J.w.cooldown);
+    p.cooldowns.w = sec(J.w.cooldown * (1 - p.stats.cooldown));
   }
 
   private castR(): void {
@@ -259,7 +273,7 @@ export class ArcadeSim {
     p.omniLeft = J.r.slashes[p.abilities.r];
     p.omniNextAt = this.tick;
     p.invulnUntil = Math.max(p.invulnUntil, this.tick + sec(J.r.duration));
-    p.cooldowns.r = sec(J.r.cooldown[p.abilities.r]);
+    p.cooldowns.r = sec(J.r.cooldown[p.abilities.r] * (1 - p.stats.cooldown));
     this.shake = 14;
     this.thunderclap();
   }
@@ -283,6 +297,7 @@ export class ArcadeSim {
     let kind: FxKind = "hit";
     if (this.rng.float() < p.stats.critChance) { dmg *= p.stats.critMult; kind = "crit"; }
     this.damageEnemy(e, dmg, kind);
+    if (p.stats.lifesteal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + dmg * p.stats.lifesteal);
     // Школы «Attack»: статусы с удара.
     const burn = this.upgradePower("rad_strike");
     if (burn > 0) this.applyBurn(e, 6 * burn * this.burnMult(), 3);
@@ -417,7 +432,7 @@ export class ArcadeSim {
     e.alive = false;
     const p = this.player;
     p.kills++;
-    p.gold += e.kind.gold;
+    p.gold += e.kind.gold + p.stats.goldPerKill;
     this.dropShard(e.x, e.y, e.kind.xp);
     const blast = this.upgradePower("rad_blast");
     if (blast > 0 && this.tick < e.burnUntil) {
@@ -439,7 +454,7 @@ export class ArcadeSim {
     const armor = p.stats.armor;
     const reduction = (0.06 * armor) / (1 + 0.06 * armor);
     p.hp -= amount * (1 - reduction);
-    if (stun > 0 && this.tick >= p.spinUntil) p.stunUntil = Math.max(p.stunUntil, this.tick + sec(stun));
+    if (stun > 0 && this.tick >= p.spinUntil && !p.stats.stunImmune) p.stunUntil = Math.max(p.stunUntil, this.tick + sec(stun));
     this.shake = Math.max(this.shake, 4);
   }
 
@@ -479,7 +494,7 @@ export class ArcadeSim {
     const p = this.player;
     this.over = {
       outcome, tick: this.tick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
-      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks,
+      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id),
     };
   }
 
@@ -493,6 +508,12 @@ export class ArcadeSim {
       this.shake = 8;
       this.pushFx("nova", p.x, p.y, 120, 0, 24);
     }
+    if (this.bounty.alive && len(this.bounty.x - p.x, this.bounty.y - p.y) < 34) {
+      this.bounty.alive = false;
+      p.gold += this.bounty.value;
+      this.pushFx("heal", p.x, p.y - 30, 0, 0, 40, this.bounty.value);
+    }
+    if (this.shopkeeper.alive && !this.shopOpen && len(this.shopkeeper.x - p.x, this.shopkeeper.y - p.y) < 44) this.openShop();
     if (this.aegisDrop && len(this.aegisDrop.x - p.x, this.aegisDrop.y - p.y) < 40) {
       p.aegis = true;
       this.aegisDrop = null;
@@ -548,6 +569,20 @@ export class ArcadeSim {
       this.shrine = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.greed.lifetime };
     }
     if (this.shrine.alive && this.tick >= this.shrine.until) this.shrine.alive = false;
+    // Secret Shop: торговец в окна расписания.
+    if (this.shopIdx < ARCADE.shop.at.length && this.tick >= ARCADE.shop.at[this.shopIdx]) {
+      this.shopIdx++;
+      const [sx, sy] = this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
+      this.shopkeeper = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.shop.lifetime, value: 0 };
+    }
+    if (this.shopkeeper.alive && this.tick >= this.shopkeeper.until) this.shopkeeper.alive = false;
+    // Bounty-руна каждые 3 минуты.
+    if (this.tick >= this.nextBountyAt) {
+      this.nextBountyAt += ARCADE.bounty.every;
+      const [bx, by] = this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
+      this.bounty = { alive: true, x: bx, y: by, until: this.tick + ARCADE.bounty.lifetime, value: Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * min) };
+    }
+    if (this.bounty.alive && this.tick >= this.bounty.until) this.bounty.alive = false;
     void p;
   }
 
@@ -742,6 +777,7 @@ export class ArcadeSim {
     let xp = raw;
     if (this.tick < this.greedUntil) xp *= ARCADE.greed.xpMult;
     if (this.rank.lessXp) xp *= 0.8;
+    xp *= 1 + p.stats.xpMult;
     p.xp += xp;
     if (p.xp >= p.xpNext && !this.pending) {
       p.xp -= p.xpNext;
@@ -750,6 +786,52 @@ export class ArcadeSim {
       this.pushFx("levelup", p.x, p.y, 0, 0, 40);
       this.pending = this.rollOffers();
       if (this.pending.length === 0) this.pending = null;
+    }
+  }
+
+  // ---------- Secret Shop ----------
+
+  private openShop(): void {
+    this.shopOpen = true;
+    this.shopRerolls = 0;
+    this.shopOffers = this.rollShopOffers();
+  }
+
+  private rollShopOffers(): ShopOffer[] {
+    const offers: ShopOffer[] = [];
+    const pool = [...ARCADE_ITEMS];
+    for (let i = 0; i < ARCADE.shop.offers && pool.length > 0; i++) {
+      const def = pool.splice(this.rng.int(pool.length), 1)[0];
+      const rarity = this.rollRarity();
+      offers.push({ id: def.id, rarity, price: Math.round(def.price * ITEM_PRICE_MULT[rarity]) });
+    }
+    return offers;
+  }
+
+  shopRerollPrice(): number {
+    return ARCADE.shop.rerollBase + ARCADE.shop.rerollStep * this.shopRerolls;
+  }
+
+  private shopAction(act: number): void {
+    const p = this.player;
+    if (act >= 1 && act <= 3) {
+      const offer = this.shopOffers[act - 1];
+      if (!offer || p.gold < offer.price || p.items.length >= ARCADE.shop.slots) return;
+      p.gold -= offer.price;
+      p.items.push({ id: offer.id, rarity: offer.rarity });
+      this.shopOffers.splice(act - 1, 1);
+      this.recomputeStats();
+      this.pushFx("levelup", p.x, p.y, 0, 0, 30);
+    } else if (act === 4) {
+      const price = this.shopRerollPrice();
+      if (p.gold < price) return;
+      p.gold -= price;
+      this.shopRerolls++;
+      this.shopOffers = this.rollShopOffers();
+    } else if (act === 5) {
+      this.shopOpen = false;
+      // Торговец уходит, чтобы игрок не открывал лавку заново каждым касанием.
+      this.shopkeeper.alive = false;
     }
   }
 
@@ -831,8 +913,28 @@ export class ArcadeSim {
     if (p.talents.includes("t20_armor")) s.armor += 6;
     if (p.talents.includes("t25_regen")) s.regen += 12;
     const over = this.upgradePower("mae_overcharge");
-    s.attackInterval /= 1 + 0.12 * over;
-    s.speed *= 1 + 0.04 * over;
+    let attackSpeed = 0.12 * over, moveSpeed = 0.04 * over;
+    for (const owned of p.items) {
+      const def = ARCADE_ITEM_BY_ID[owned.id];
+      if (!def) continue;
+      const m = ITEM_RARITY_MULT[owned.rarity];
+      const e = def.effect;
+      if (e.regen) s.regen += e.regen * m;
+      if (e.lifesteal) s.lifesteal += e.lifesteal * m;
+      if (e.armor) s.armor += e.armor * (e.armor > 0 ? m : 1);
+      if (e.attackSpeed) attackSpeed += e.attackSpeed * m;
+      if (e.crit) s.critChance += e.crit * m;
+      if (e.damage) s.damage += e.damage * m;
+      if (e.moveSpeed) moveSpeed += e.moveSpeed * m;
+      if (e.maxHp) s.maxHp += Math.round(e.maxHp * m);
+      if (e.goldPerKill) s.goldPerKill += Math.round(e.goldPerKill * m);
+      if (e.xpMult) s.xpMult += e.xpMult * m;
+      if (e.stunImmune) s.stunImmune = true;
+      if (e.cleave) s.cleave += Math.round(e.cleave * m);
+      if (e.cooldown) s.cooldown = Math.min(0.5, s.cooldown + e.cooldown * m);
+    }
+    s.attackInterval /= 1 + attackSpeed;
+    s.speed *= 1 + moveSpeed;
     const ratio = p.stats ? p.hp / p.stats.maxHp : 1;
     p.stats = s;
     p.hp = Math.min(s.maxHp, Math.max(p.hp, ratio * s.maxHp));
@@ -881,7 +983,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }
@@ -895,8 +997,8 @@ export class ArcadeSim {
     let input: ArcadeInput = { ...IDLE_INPUT };
     for (let s = 0; s < untilSteps && !sim.over; s++) {
       while (idx < log.length && log[idx][0] <= s) {
-        const [, mx, my, cast, choose] = log[idx++];
-        input = { mx, my, cast, choose };
+        const [, mx, my, cast, choose, act] = log[idx++];
+        input = { mx, my, cast, choose, act: act ?? 0 };
       }
       sim.step(input);
     }
@@ -912,7 +1014,7 @@ export function xpToNext(level: number): number {
 
 function baseStats(): PlayerStats {
   const P = ARCADE.player;
-  return { maxHp: P.maxHp, regen: P.regen, armor: P.armor, speed: P.speed, damage: P.damage, attackInterval: P.attackInterval, range: P.range, critChance: P.critChance, critMult: P.critMult, pickup: P.pickup };
+  return { maxHp: P.maxHp, regen: P.regen, armor: P.armor, speed: P.speed, damage: P.damage, attackInterval: P.attackInterval, range: P.range, critChance: P.critChance, critMult: P.critMult, pickup: P.pickup, lifesteal: 0, goldPerKill: 0, xpMult: 0, stunImmune: false, cleave: 0, cooldown: 0 };
 }
 
 function emptyEnemy(kind: EnemyKind): Enemy {

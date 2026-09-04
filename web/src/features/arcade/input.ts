@@ -62,7 +62,7 @@ export class ArcadeInputController {
     }
     const l = Math.hypot(dx, dy);
     if (l > 1) { dx /= l; dy /= l; }
-    const input: ArcadeInput = { mx: Math.round(dx * 16), my: Math.round(dy * 16), cast: this.castMask, choose: -1 };
+    const input: ArcadeInput = { mx: Math.round(dx * 16), my: Math.round(dy * 16), cast: this.castMask, choose: -1, act: 0 };
     this.castMask = 0;
     return input;
   }

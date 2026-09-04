@@ -10,6 +10,8 @@ import type { MessageKey } from "../../i18n/core.ts";
 import { ARCADE, DT, TICK_HZ } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID } from "../../game/arcade/content/schools.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
+import { ARCADE_ITEM_BY_ID } from "../../game/arcade/content/items.ts";
+import { SHOP_ACT } from "../../game/arcade/types.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, screenShakeEnabled, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -113,6 +115,7 @@ function ArcadeStage() {
   const pause = useArcade((s) => s.pause);
   const resume = useArcade((s) => s.resume);
   const choose = useArcade((s) => s.choose);
+  const shopAct = useArcade((s) => s.shopAct);
   const finish = useArcade((s) => s.finish);
   const quit = useArcade((s) => s.quit);
   const start = useArcade((s) => s.start);
@@ -130,6 +133,8 @@ function ArcadeStage() {
     const canvas = canvasRef.current, stage = stageRef.current;
     if (!canvas || !stage) return;
     const renderer = new ArcadeRenderer(canvas, hero.picture || "juggernaut");
+    // Dev-хук для headless-QA (телепорт к торговцу/Рошану без ожидания): в прод-сборке его нет.
+    if (import.meta.env.DEV) (window as unknown as { __arcadeSim?: typeof getArcadeSim }).__arcadeSim = getArcadeSim;
     const controller = new ArcadeInputController(stage);
     controllerRef.current = controller;
     controller.onPause = () => {
@@ -144,13 +149,14 @@ function ArcadeStage() {
     let acc = 0;
     let frame = 0;
     let wasPending = false;
+    let wasShop = false;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       const sim = getArcadeSim();
       if (!sim) return;
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (statusRef.current === "running" && !sim.pending && !sim.over) {
+      if (statusRef.current === "running" && !sim.pending && !sim.shopOpen && !sim.over) {
         acc += dt;
         let steps = 0;
         while (acc >= DT && steps < 5) {
@@ -160,8 +166,9 @@ function ArcadeStage() {
         }
         if (steps === 5) acc = 0;
       }
-      if (sim.pending && !wasPending) { sfxBuy(); bump(); }
+      if ((sim.pending && !wasPending) || (sim.shopOpen && !wasShop)) { sfxBuy(); bump(); }
       wasPending = sim.pending !== null;
+      wasShop = sim.shopOpen;
       if (sim.over) { finish(); }
       if (sim.roshan?.alive && sim.tick === ARCADE.roshanAt + 1) sfxSting("boss");
       if (++frame % 6 === 0) bump();
@@ -216,6 +223,11 @@ function ArcadeStage() {
                 <div className="arcade-bar arcade-bar--hp" title="HP"><i style={{ width: `${Math.max(0, p.hp / p.stats.maxHp) * 100}%` }} /><span>{Math.ceil(p.hp)} / {p.stats.maxHp}</span></div>
                 <div className="arcade-bar arcade-bar--xp"><i style={{ width: `${Math.min(1, p.xp / p.xpNext) * 100}%` }} /><span>{t("arcade.hud.level")} {p.level}</span></div>
               </div>
+              {p.items.length > 0 && (
+                <div className="arcade-hud__items" data-testid="arcade-items">
+                  {p.items.map((it, i) => <span key={i} className="arcade-hud__item" data-rarity={it.rarity} title={t(`arcade.item.${it.id}` as MessageKey)}><ItemIcon slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" /></span>)}
+                </div>
+              )}
               <div className="arcade-hud__abilities">
                 {(["q", "w", "e", "r"] as const).map((key) => {
                   const lvl = p.abilities[key];
@@ -255,6 +267,33 @@ function ArcadeStage() {
             </Surface>
           </div>
         )}
+        {sim?.shopOpen && status !== "over" && (
+          <div className="arcade-overlay" data-testid="arcade-shop">
+            <div className="arcade-levelup arcade-shop">
+              <Eyebrow>{t("arcade.shop.title")}</Eyebrow>
+              <h2>{t("arcade.shop.gold", { gold: sim.player.gold })}</h2>
+              <p className="arcade-shop__hint">{t("arcade.shop.hint", { n: sim.player.items.length, max: ARCADE.shop.slots })}</p>
+              <div className="arcade-offers">
+                {sim.shopOffers.map((offer, i) => {
+                  const def = ARCADE_ITEM_BY_ID[offer.id];
+                  const affordable = sim.player.gold >= offer.price && sim.player.items.length < ARCADE.shop.slots;
+                  return (
+                    <button key={`${offer.id}-${i}`} type="button" className="arcade-offer" data-kind="item" data-rarity={offer.rarity} data-testid={`arcade-shop-${i}`} disabled={!affordable} onClick={() => shopAct(i + 1)}>
+                      <span className="arcade-offer__tag"><ItemIcon slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
+                      <strong>{t(`arcade.item.${offer.id}` as MessageKey)}</strong>
+                      <small>{t("arcade.shop.price", { gold: offer.price })}</small>
+                      <p>{t(`arcade.item.${offer.id}.desc` as MessageKey)}</p>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                <Button variant="secondary" disabled={sim.player.gold < sim.shopRerollPrice()} onClick={() => shopAct(SHOP_ACT.reroll)}>{t("arcade.shop.reroll", { gold: sim.shopRerollPrice() })}</Button>
+                <Button variant="primary" data-testid="arcade-shop-close" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.shop.close")}</Button>
+              </div>
+            </div>
+          </div>
+        )}
         {sim?.pending && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-levelup">
             <div className="arcade-levelup">
@@ -282,6 +321,11 @@ function ArcadeStage() {
                 <div><dt>{t("arcade.rank")}</dt><dd>{t(`arcade.tier.${rankOf(outcome.rank).tier}` as MessageKey)} {"★".repeat(rankOf(outcome.rank).stars)}</dd></div>
                 {outcome.greedStacks > 0 && <div><dt>{t("arcade.hud.greed")}</dt><dd>×{outcome.greedStacks}</dd></div>}
               </dl>
+              {outcome.items.length > 0 && (
+                <div className="arcade-result__schools">
+                  {outcome.items.map((id, i) => <Chip key={`${id}-${i}`}><ItemIcon slug={ARCADE_ITEM_BY_ID[id]?.art ?? id} name={id} size="sm" /> {t(`arcade.item.${id}` as MessageKey)}</Chip>)}
+                </div>
+              )}
               {outcome.schools.length > 0 && (
                 <div className="arcade-result__schools">
                   {outcome.schools.map((s) => <Chip key={s}><ItemIcon slug={SCHOOL_ART[s]} name={s} size="sm" /> {t(`arcade.school.${s}` as MessageKey)}</Chip>)}

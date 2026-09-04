@@ -5,6 +5,7 @@
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
+import { SHOP_ACT } from "../src/game/arcade/types.ts";
 import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
 
 const args = new Map<string, string>();
@@ -34,7 +35,13 @@ function pickOffer(offers: Offer[], school: SchoolId | "any"): number {
 /** Политика бота: собирать шарды, держать врагов на дистанции удара, бежать только от давки или при
  *  низком HP, не прижиматься к стенам. Juggernaut — мили: «убегать всегда» = не качаться. */
 function botInput(sim: ArcadeSim): ArcadeInput {
-  if (sim.pending) return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending, SCHOOL) };
+  if (sim.pending) return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending, SCHOOL), act: 0 };
+  if (sim.shopOpen) {
+    // Жадно: самый дорогой доступный предмет, потом закрыть.
+    let best = -1, bestPrice = -1;
+    sim.shopOffers.forEach((o, i) => { if (o.price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
+    return { mx: 0, my: 0, cast: 0, choose: -1, act: best >= 0 ? best + 1 : SHOP_ACT.close };
+  }
   const p = sim.player;
   const hpPct = p.hp / p.stats.maxHp;
   let cx = 0, cy = 0, danger = 0, near = 0;
@@ -64,7 +71,7 @@ function botInput(sim: ArcadeSim): ArcadeInput {
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d < ARCADE.boss.slamRadius + 30) {
       const ux = d > 1 ? dx / d : 1, uy = d > 1 ? dy / d : 0;
-      return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: 0, choose: -1 };
+      return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: 0, choose: -1, act: 0 };
     }
   }
   if (rosh) retreating = retreating ? hpPct < 0.55 : hpPct < 0.3; else retreating = false;
@@ -75,8 +82,16 @@ function botInput(sim: ArcadeSim): ArcadeInput {
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d > rosh.kind.r + 60) { fx += dx / d * 2; fy += dy / d * 2; }
     const l = Math.sqrt(fx * fx + fy * fy);
-    if (l < 0.05) return { mx: 0, my: 0, cast: 0, choose: -1 };
-    return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1 };
+    if (l < 0.05) return { mx: 0, my: 0, cast: 0, choose: -1, act: 0 };
+    return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1, act: 0 };
+  }
+  // Торговец и bounty-руна: идём, если не бежим.
+  if (!flee) {
+    for (const spot of [sim.shopkeeper, sim.bounty]) {
+      if (!spot.alive) continue;
+      const dx = spot.x - p.x, dy = spot.y - p.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+      if (d < 700) { fx += dx / d * 1.5; fy += dy / d * 1.5; }
+    }
   }
   if (flee && near > 0) {
     const l = Math.sqrt(cx * cx + cy * cy) || 1;
@@ -91,8 +106,8 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   if (p.x < margin) fx += (margin - p.x) / margin * 2; if (p.x > ARCADE.world.w - margin) fx -= (p.x - (ARCADE.world.w - margin)) / margin * 2;
   if (p.y < margin) fy += (margin - p.y) / margin * 2; if (p.y > ARCADE.world.h - margin) fy -= (p.y - (ARCADE.world.h - margin)) / margin * 2;
   const l = Math.sqrt(fx * fx + fy * fy);
-  if (l < 0.05) return { mx: 0, my: 0, cast: 0, choose: -1 };
-  return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1 };
+  if (l < 0.05) return { mx: 0, my: 0, cast: 0, choose: -1, act: 0 };
+  return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1, act: 0 };
 }
 
 interface RunResult { seconds: number; level: number; kills: number; roshan: boolean; reachedRoshan: boolean; outcome: string; schools: string[]; roshanHp: number }
@@ -115,10 +130,10 @@ for (let i = 0; i < RUNS; i++) {
       lastHp = r.hp;
     }
   }
-  const o = sim.over ?? { outcome: "timeout", tick: sim.tick, level: sim.player.level, kills: sim.player.kills, roshanKilled: sim.roshanKilled, schools: sim.player.schools };
+  const o = sim.over ?? { outcome: "timeout", tick: sim.tick, level: sim.player.level, kills: sim.player.kills, gold: sim.player.gold, roshanKilled: sim.roshanKilled, schools: sim.player.schools };
   const roshanHp = sim.roshan ? Math.max(0, sim.roshan.hp / sim.roshan.maxHp) : 1;
   results.push({ seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.roshanAt, outcome: o.outcome, schools: [...o.schools], roshanHp });
-  if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
+  if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
 }
 const elapsed = (performance.now() - t0) / 1000;
 const q = (arr: number[], k: number) => { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(k * s.length))]; };

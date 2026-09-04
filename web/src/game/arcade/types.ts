@@ -10,16 +10,20 @@ export interface ArcadeInput {
   my: number;
   cast: number;
   choose: number;
+  /** Действие в магазине (T13.8): 0 — нет, 1..3 — купить слот, 4 — реролл, 5 — закрыть. */
+  act: number;
 }
 
-export const IDLE_INPUT: Readonly<ArcadeInput> = Object.freeze({ mx: 0, my: 0, cast: 0, choose: -1 });
+export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5 } as const;
+
+export const IDLE_INPUT: Readonly<ArcadeInput> = Object.freeze({ mx: 0, my: 0, cast: 0, choose: -1, act: 0 });
 
 export function sameInput(a: ArcadeInput, b: ArcadeInput): boolean {
-  return a.mx === b.mx && a.my === b.my && a.cast === b.cast && a.choose === b.choose;
+  return a.mx === b.mx && a.my === b.my && a.cast === b.cast && a.choose === b.choose && a.act === b.act;
 }
 
 /** Запись input-лога: ввод действует с вызова step() №`step` и до следующей записи. */
-export type InputLogEntry = [step: number, mx: number, my: number, cast: number, choose: number];
+export type InputLogEntry = [step: number, mx: number, my: number, cast: number, choose: number, act: number];
 
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
@@ -114,6 +118,15 @@ export interface Shrine {
   until: number;
 }
 
+/** Точка на карте с таймером жизни: торговец Secret Shop, bounty-руна. */
+export interface Spot {
+  alive: boolean;
+  x: number;
+  y: number;
+  until: number;
+  value: number;
+}
+
 export interface ArcadeOptions {
   /** Ступень лестницы сложности 0..39 (content/ranks.ts). */
   rank?: number;
@@ -150,6 +163,12 @@ export interface PlayerStats {
   critChance: number;
   critMult: number;
   pickup: number;
+  lifesteal: number;
+  goldPerKill: number;
+  xpMult: number;
+  stunImmune: boolean;
+  cleave: number;
+  cooldown: number;
 }
 
 export interface Player {
@@ -181,6 +200,8 @@ export interface Player {
   schools: SchoolId[];
   upgrades: Record<string, { rank: number; power: number }>;
   talents: string[];
+  /** Инвентарь Secret Shop — до 6 слотов, как в Dota. */
+  items: { id: string; rarity: Rarity }[];
   stats: PlayerStats;
   /** Таймеры периодических эффектов школ (тик следующего срабатывания). */
   ringAt: number;
@@ -199,4 +220,5 @@ export interface ArcadeOutcome {
   roshanKilled: boolean;
   rank: number;
   greedStacks: number;
+  items: string[];
 }

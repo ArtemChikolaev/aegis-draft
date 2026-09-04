@@ -3,13 +3,14 @@ import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, type ArcadeInput } from "../src/game/arcade/types.ts";
 import { rankOf, rankStep } from "../src/game/arcade/content/ranks.ts";
+import { SHOP_ACT } from "../src/game/arcade/types.ts";
 
 /** Скриптованный ввод: кайт по квадрату + всегда берём первую карточку уровня. */
 function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
   if (sim.pending) return { ...IDLE_INPUT, choose: 0 };
   const phase = Math.floor(tick / 90) % 4;
   const dirs = [[16, 0], [0, 16], [-16, 0], [0, -16]];
-  return { mx: dirs[phase][0], my: dirs[phase][1], cast: 0, choose: -1 };
+  return { mx: dirs[phase][0], my: dirs[phase][1], cast: 0, choose: -1, act: 0 };
 }
 
 function run(seed: string, ticks: number): ArcadeSim {
@@ -41,12 +42,12 @@ describe("arcade sim", () => {
 
   it("level-up останавливает мир до выбора карточки", () => {
     const sim = new ArcadeSim("pause-1");
-    while (!sim.pending && sim.tick < sec(120)) sim.step({ mx: 16, my: 0, cast: 0, choose: -1 });
+    while (!sim.pending && sim.tick < sec(120)) sim.step({ mx: 16, my: 0, cast: 0, choose: -1, act: 0 });
     expect(sim.pending).not.toBeNull();
     const tick = sim.tick;
-    sim.step({ mx: 16, my: 0, cast: 0, choose: -1 });
+    sim.step({ mx: 16, my: 0, cast: 0, choose: -1, act: 0 });
     expect(sim.tick).toBe(tick);
-    sim.step({ mx: 0, my: 0, cast: 0, choose: 0 });
+    sim.step({ mx: 0, my: 0, cast: 0, choose: 0, act: 0 });
     expect(sim.pending).toBeNull();
     sim.step(IDLE_INPUT);
     expect(sim.tick).toBe(tick + 1);
@@ -104,5 +105,28 @@ describe("arcade sim", () => {
     expect(sim.shrine.alive).toBe(false);
     expect(sim.greedStacks).toBe(1);
     expect(sim.greedUntil).toBeGreaterThan(sim.tick);
+  });
+
+  it("Secret Shop: касание открывает лавку и ставит мир на паузу, покупка списывает золото и меняет статы", () => {
+    const sim = new ArcadeSim("shop-1");
+    while (!sim.shopkeeper.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT); }
+    expect(sim.shopkeeper.alive).toBe(true);
+    sim.player.x = sim.shopkeeper.x; sim.player.y = sim.shopkeeper.y;
+    sim.step(IDLE_INPUT);
+    expect(sim.shopOpen).toBe(true);
+    const tick = sim.tick;
+    sim.step(IDLE_INPUT);
+    expect(sim.tick).toBe(tick);
+    sim.player.gold = 1000;
+    const offer = sim.shopOffers[0];
+    const before = { ...sim.player.stats };
+    sim.step({ ...IDLE_INPUT, act: SHOP_ACT.buy1 });
+    expect(sim.player.gold).toBe(1000 - offer.price);
+    expect(sim.player.items[0]?.id).toBe(offer.id);
+    expect(JSON.stringify(sim.player.stats)).not.toBe(JSON.stringify(before));
+    sim.step({ ...IDLE_INPUT, act: SHOP_ACT.close });
+    expect(sim.shopOpen).toBe(false);
+    sim.step(IDLE_INPUT);
+    expect(sim.tick).toBe(tick + 1);
   });
 });

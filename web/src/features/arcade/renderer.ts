@@ -9,7 +9,7 @@ import { heroArtSources } from "../../ui/artSource.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 type Palette = Record<PaletteKey, string>;
@@ -85,6 +85,7 @@ export class ArcadeRenderer {
     this.drawWard(sim, pal);
     this.drawAegis(sim, pal, now);
     this.drawShrine(sim, pal, now);
+    this.drawSpots(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
@@ -158,6 +159,28 @@ export class ArcadeRenderer {
     c.fillStyle = pal.greed;
     c.beginPath(); c.moveTo(s.x, s.y - 18); c.lineTo(s.x + 13, s.y); c.lineTo(s.x, s.y + 18); c.lineTo(s.x - 13, s.y); c.closePath(); c.fill();
     c.globalAlpha = 1;
+  }
+
+  private drawSpots(sim: ArcadeSim, pal: Palette, now: number): void {
+    const c = this.ctx;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 200);
+    if (sim.shopkeeper.alive) {
+      const s = sim.shopkeeper;
+      c.fillStyle = pal.shop;
+      c.beginPath(); c.arc(s.x, s.y, 16 + pulse * 2, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = pal.text; c.lineWidth = 2; c.globalAlpha = 0.6;
+      c.beginPath(); c.arc(s.x, s.y, 40, 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 1;
+      c.fillStyle = pal.text; c.font = "800 11px var(--font-display, sans-serif)"; c.textAlign = "center";
+      c.fillText("SHOP", s.x, s.y - 26);
+    }
+    if (sim.bounty.alive) {
+      const b = sim.bounty;
+      c.fillStyle = pal.bounty;
+      c.beginPath(); c.arc(b.x, b.y, 12 + pulse * 2, 0, Math.PI * 2); c.fill();
+      c.fillStyle = pal.player; c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center";
+      c.fillText("$", b.x, b.y + 4);
+    }
   }
 
   private drawEnemies(sim: ArcadeSim, pal: Palette): void {

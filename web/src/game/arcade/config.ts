@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.3.0";
+export const ARCADE_CONFIG_VERSION = "a0.4.0";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -16,13 +16,13 @@ export const ARCADE = {
   postRoshanRate: 1.6,
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */
-    base: 1.1,
-    perMin: 0.62,
+    base: 1.7,
+    perMin: 0.85,
     cap: 460,
     ringMin: 560,
     ringMax: 680,
     /** Множители силы врагов по минутам. */
-    hpPerMin: 0.2,
+    hpPerMin: 0.16,
     dmgPerMin: 0.06,
   },
   waves: {
@@ -82,6 +82,24 @@ export const ARCADE = {
     powerPerStack: 0.08,
     distMin: 340,
     distMax: 420,
+  },
+  /** Secret Shop (T13.8): торговец появляется рядом в окна, живёт lifetime; реролл дорожает. */
+  shop: {
+    at: [sec(3 * 60), sec(6 * 60)],
+    lifetime: sec(45),
+    offers: 3,
+    slots: 6,
+    rerollBase: 40,
+    rerollStep: 25,
+    distMin: 260,
+    distMax: 340,
+  },
+  /** Bounty-руны: каждые 3 минуты, золото растёт с минутой. */
+  bounty: {
+    every: sec(3 * 60),
+    lifetime: sec(40),
+    base: 30,
+    perMin: 6,
   },
   juggernaut: {
     q: { duration: 4, cooldown: 16, radius: 104, dps: [0, 42, 66, 90, 114], speedBonus: 0.12 },
