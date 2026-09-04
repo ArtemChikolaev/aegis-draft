@@ -1,0 +1,186 @@
+// Arcade (PRD §5.15, BACKLOG M13) — типы чистого real-time сима. Никакого DOM/React: ядро
+// тестируется в Node и крутится headless в `scripts/sim_arcade.ts`. Детерминизм — свойство
+// контракта: `seed + input-лог` ⇒ тот же забег (см. sim.ts, правила в брифе §3.1).
+
+/** Ввод за один тик. `mx/my` — направление движения в шестнадцатых (−16..16): квантование
+ *  делает input-лог компактным и защищает от дрожания float между устройствами. `cast` —
+ *  битовая маска ручного каста (1=Q, 2=W, 4=E, 8=R); `choose` — индекс карточки уровня, −1 = нет. */
+export interface ArcadeInput {
+  mx: number;
+  my: number;
+  cast: number;
+  choose: number;
+}
+
+export const IDLE_INPUT: Readonly<ArcadeInput> = Object.freeze({ mx: 0, my: 0, cast: 0, choose: -1 });
+
+export function sameInput(a: ArcadeInput, b: ArcadeInput): boolean {
+  return a.mx === b.mx && a.my === b.my && a.cast === b.cast && a.choose === b.choose;
+}
+
+/** Запись input-лога: ввод действует с тика `tick` и до следующей записи. */
+export type InputLogEntry = [tick: number, mx: number, my: number, cast: number, choose: number];
+
+export type EnemyKindId =
+  | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
+  | "lane_creep" | "siege_creep" | "golem" | "roshan";
+
+export interface EnemyKind {
+  id: EnemyKindId;
+  hp: number;
+  speed: number;
+  /** Контактный урон за удар (каждые `contactEvery` секунд, пока касается). */
+  dmg: number;
+  r: number;
+  xp: number;
+  gold: number;
+  elite?: boolean;
+  boss?: boolean;
+  /** Стреляет снарядом с дистанции (осадный крип). */
+  ranged?: { range: number; every: number; speed: number };
+  /** С какой минуты появляется в обычном спавне и вес в пуле. */
+  fromMin: number;
+  weight: number;
+  /** Цвет-роль для рендера (токен подбирается на стороне UI). */
+  tone: "grunt" | "brute" | "swift" | "elite" | "boss" | "creep";
+}
+
+export type SchoolId = "radiance" | "skadi" | "maelstrom";
+export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive";
+export type Rarity = "standard" | "refined" | "exotic" | "arcana";
+
+export interface UpgradeDef {
+  id: string;
+  school: SchoolId;
+  type: UpgradeType;
+  maxRank: number;
+}
+
+export type AbilityKey = "q" | "w" | "e" | "r";
+
+/** Карточка уровня. `ability` — очко в способность, `upgrade` — школа, `talent` — талант 10/15/20/25. */
+export type Offer =
+  | { kind: "ability"; key: AbilityKey }
+  | { kind: "upgrade"; id: string; rarity: Rarity }
+  | { kind: "talent"; id: string };
+
+export interface Enemy {
+  id: number;
+  alive: boolean;
+  kind: EnemyKind;
+  x: number;
+  y: number;
+  hp: number;
+  maxHp: number;
+  dmg: number;
+  contactCd: number;
+  shotCd: number;
+  burnUntil: number;
+  burnDps: number;
+  chillUntil: number;
+  chillSlow: number;
+  chillStacks: number;
+  freezeUntil: number;
+  stunUntil: number;
+  hitAt: number;
+  /** Босс: обратный отсчёт телеграфа удара (тики) и позиция удара. */
+  slamT: number;
+  slamX: number;
+  slamY: number;
+  slamCd: number;
+}
+
+export interface Projectile {
+  alive: boolean;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  dmg: number;
+  ttl: number;
+  pierce: number;
+  hits: number[];
+  kind: "fire" | "shard" | "siege" | "zap";
+  fromEnemy: boolean;
+}
+
+export interface Shard {
+  alive: boolean;
+  x: number;
+  y: number;
+  xp: number;
+}
+
+export type FxKind = "hit" | "crit" | "slash" | "nova" | "zap" | "burst" | "heal" | "revive" | "levelup" | "spin";
+
+export interface Fx {
+  kind: FxKind;
+  x: number;
+  y: number;
+  x2: number;
+  y2: number;
+  born: number;
+  dur: number;
+  value: number;
+}
+
+export interface PlayerStats {
+  maxHp: number;
+  regen: number;
+  armor: number;
+  speed: number;
+  damage: number;
+  attackInterval: number;
+  range: number;
+  critChance: number;
+  critMult: number;
+  pickup: number;
+}
+
+export interface Player {
+  x: number;
+  y: number;
+  hp: number;
+  level: number;
+  xp: number;
+  xpNext: number;
+  gold: number;
+  kills: number;
+  facingX: number;
+  facingY: number;
+  attackCd: number;
+  stunUntil: number;
+  invulnUntil: number;
+  aegis: boolean;
+  aegisUsed: boolean;
+  abilities: Record<AbilityKey, number>;
+  cooldowns: Record<AbilityKey, number>;
+  /** Blade Fury активен до тика; Healing Ward жив до тика; Omnislash: оставшиеся удары. */
+  spinUntil: number;
+  wardUntil: number;
+  wardX: number;
+  wardY: number;
+  omniLeft: number;
+  omniNextAt: number;
+  /** Школы в порядке взятия (макс. 3) и суммарная «сила» апгрейда (ранги × множитель редкости). */
+  schools: SchoolId[];
+  upgrades: Record<string, { rank: number; power: number }>;
+  talents: string[];
+  stats: PlayerStats;
+  /** Таймеры периодических эффектов школ (тик следующего срабатывания). */
+  ringAt: number;
+  shardsAt: number;
+  staticAt: number;
+}
+
+export interface ArcadeOutcome {
+  outcome: "dead" | "victory";
+  tick: number;
+  level: number;
+  kills: number;
+  gold: number;
+  schools: SchoolId[];
+  upgrades: string[];
+  roshanKilled: boolean;
+}

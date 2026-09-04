@@ -744,8 +744,9 @@
   border-radius: 0;
   border-left: 3px solid var(--accent);
 }
+.ante-result__actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .ante-result strong { font-size: 16px; color: var(--text); }
-.ante-result span { color: var(--muted); font-size: 13px; }
+.ante-result > span { color: var(--muted); font-size: 13px; }
 .ante-result--won { border-left-color: var(--brand-green); }
 .ante-result--lost { border-left-color: var(--danger); }
 /* Вердикт этапа — кульминация (R15.3): баннер входит той же вспышкой исхода, что и свой матч.

@@ -62,6 +62,9 @@ test("roguelite run: этапы через Буткемп и завершени�
 
   await expect(page.getByTestId("tournament-complete")).toBeVisible();
   expect(stagesPlayed).toBeGreaterThanOrEqual(1);
+  // Агентский проход 2026-09-05: после вылета действие «новый забег» — у самого баннера,
+  // а не только внизу длинного экрана итога.
+  await expect(page.getByTestId("ante-result-restart")).toBeVisible();
   expect(stagesPlayed).toBeLessThan(SEASON.stages.length);
   await expect(page.locator(".career-run").first())
     .toContainText(`Stage ${stagesPlayed}/${SEASON.stages.length}`);

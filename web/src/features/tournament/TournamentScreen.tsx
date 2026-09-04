@@ -961,6 +961,15 @@ export function TournamentScreen() {
               <Surface className={`ante-result ante-result--${ante.phase} enter`} data-testid="ante-result">
                 <strong>{anteResultTitle}</strong>
                 <span>{anteResultText}</span>
+                {/* Агентский проход 2026-09-05: после вылета главное действие лежало в самом низу
+                    экрана длиной ~3800px (прогноз, группы, сетка, итоги, карьера). Те же два
+                    действия, что и внизу, — у баннера, куда и прокручивает resultRef. */}
+                {ante.phase === "lost" && (
+                  <div className="ante-result__actions">
+                    <Button variant="primary" data-testid="ante-result-restart" onClick={restartSameConfig}>{t("tournament.restartSame")}<span>↻</span></Button>
+                    <Button variant="secondary" data-testid="ante-result-change" onClick={reset}>{t("tournament.restartChange")}</Button>
+                  </div>
+                )}
               </Surface>
             )}
             {/* Победа сезона (R6.3) — терминальное состояние с собственным разбором: что именно
