@@ -757,6 +757,18 @@ test("roguelite run: предмет в слоте показывает разл�
   await expect(power).toBeVisible();
   await expect(page.getByTestId("camp-power-total")).not.toBeEmpty();
 
+  // Тир предмета за золото (LG3-хвост, b1.46.0): у предмета в слоте есть кнопка «Тир → refined»
+  // с ценой; по карману — покупка поднимает тир на месте, а разложение остаётся видимым.
+  const upgrade = page.locator('[data-testid^="item-upgrade-"]').first();
+  await expect(upgrade).toBeVisible();
+  await expect(upgrade).toContainText(/refined|Refined/i);
+  await expect(slot).toHaveAttribute("data-card-tier", "standard");
+  if (await upgrade.isEnabled()) {
+    await upgrade.click();
+    await expect(slot).toHaveAttribute("data-card-tier", "refined");
+    await expect(page.getByTestId("camp-power")).toBeVisible();
+  }
+
   // Сила, с которой команда выходит на этап, совпадает с показанным итогом.
   await page.getByTestId("camp-next-stage").click();
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();

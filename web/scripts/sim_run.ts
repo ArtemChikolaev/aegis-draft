@@ -68,6 +68,8 @@ const useBoss = !process.env.NOBOSS;
 // поведенческий эквивалент b1.26 на тех же сидах (дроп-ролл идёт отдельным потоком и карточные
 // награды не сдвигает, поэтому выключать сам дроп не нужно).
 const useEditions = !process.env.NOEDITIONS;
+/** Тир предмета за золото (LG3-хвост): NOITEMUP=1 выключает рычаг — A/B на общих сидах. */
+const useItemUpgrades = !process.env.NOITEMUP;
 /** Поздние синки (T5.9). Выключаются флагом, чтобы их эффект мерился НА ТЕХ ЖЕ сидах и агентах:
  *  разница профиля тогда принадлежит синкам, а не выборке (методика R6.4). */
 const useSinks = !process.argv.includes("--no-sinks");
@@ -377,6 +379,8 @@ interface CampStat {
   bossRerolls: number;
   /** Куплено игроков с OVR ≥ 90 (R5.3, цена звёзд) — по умолчанию 0 у лагерей без покупок. */
   starBuys?: number;
+  /** Куплено тиров предметов (LG3-хвост). */
+  itemUpgrades?: number;
 }
 
 interface RunResult {
@@ -499,6 +503,26 @@ function rewardPowerDelta(engine: RunEngine, economy: RunEconomy, offer: Offer):
   return after - now;
 }
 
+/** Прирост силы от следующего тира предмета в слоте — тем же evaluateRunPower, что игра. */
+function itemUpgradePowerDelta(engine: RunEngine, economy: RunEconomy, cardId: string): number | null {
+  const current = economy.cardRarity[cardId] ?? "common";
+  const next = nextTier(current);
+  const score = engine.score();
+  if (!score || next === current) return null;
+  const state = {
+    score: { base: score.base, heroSynergy: score.heroSynergy, chemistry: score.chemistry },
+    tacticContext: buildTacticContext(engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex),
+    activeHeroes: engine.heroes,
+    heroRarity: economy.heroRarity,
+  };
+  const buildOf = (rarity: Record<string, Rarity>) => ({
+    economy: economy.modifiers(), equippedCards: [...economy.equippedTactics], cardRarity: rarity, cardCharges: economy.cardCharges,
+  });
+  const now = evaluateRunPower(state, buildOf(economy.cardRarity)).power.total;
+  const after = evaluateRunPower(state, buildOf({ ...economy.cardRarity, [cardId]: next })).power.total;
+  return after - now;
+}
+
 function takeReward(engine: RunEngine, economy: RunEconomy, agent: Agent, decision: Decision): void {
   const offers = economy.campView().rewardOffers;
   const order = agent.random
@@ -520,7 +544,8 @@ function takeReward(engine: RunEngine, economy: RunEconomy, agent: Agent, decisi
 type Action =
   | { kind: "market"; offer: Offer; value: number; cost: number }
   | { kind: "quality"; heroId: number; value: number; cost: number }
-  | { kind: "trade"; outId: string; inId: string; value: number; cost: number };
+  | { kind: "trade"; outId: string; inId: string; value: number; cost: number }
+  | { kind: "itemUpgrade"; cardId: string; value: number; cost: number };
 
 /** Run power билда с подменённой картой (LG1) — тем же runStrength-слоем, что играет игра.
  *  null — состава ещё нет. */
@@ -585,6 +610,17 @@ function availableActions(
       actions.push({ kind: "quality", heroId, value: (next - now) * agent.weights.hero, cost: freeUpgrade ? 0 : cost });
     }
   }
+  // Тир предмета за золото (LG3-хвост): та же шкала, что у остальных покупок — прирост силы
+  // забега от следующего тира. NOITEMUP=1 выключает рычаг для A/B на общих сидах.
+  if (useItemUpgrades && agent.powerAware) {
+    for (const cardId of economy.equippedTactics) {
+      const cost = economy.itemUpgradeCost(cardId);
+      if (cost == null || cost > budget) continue;
+      const delta = itemUpgradePowerDelta(engine, economy, cardId);
+      if (delta == null || delta <= 0) continue;
+      actions.push({ kind: "itemUpgrade", cardId, value: delta, cost });
+    }
+  }
   // Trade-in (LG1): смена оси конкурирует с покупками за то же золото. Ценность — дельта силы
   // после обмена тем же runStrength-слоем; отрицательные обмены агент не делает (value-фильтр
   // общий). Не для random/passive: у них нет модели ценности.
@@ -610,10 +646,11 @@ function nextTier(current: Rarity): Rarity {
 function shopCamp(
   engine: RunEngine, economy: RunEconomy, seed: string, agent: Agent, decision: Decision, stageCount: number,
   season: SeasonModel,
-): { buys: number; rerolls: number; qualityUpgrades: number; trades: number; starBuys: number } {
+): { buys: number; rerolls: number; qualityUpgrades: number; trades: number; starBuys: number; itemUpgrades: number } {
   recordCampDiagnostic(engine, economy, agent, decision, stageCount);
   let buys = 0;
   let starBuys = 0;
+  let itemUpgrades = 0;
   let rerolls = 0;
   let qualityUpgrades = 0;
   let trades = 0;
@@ -645,6 +682,12 @@ function shopCamp(
     if (best.kind === "quality") {
       if (!economy.upgradeHeroRarity(best.heroId)) break;
       qualityUpgrades += 1;
+      continue;
+    }
+
+    if (best.kind === "itemUpgrade") {
+      if (!economy.upgradeItemTier(best.cardId)) break;
+      itemUpgrades += 1;
       continue;
     }
 
@@ -683,7 +726,7 @@ function shopCamp(
       ));
     } catch (error) { if (process.env.SIMDEBUG) console.error("shopCamp break:", error); break; }
   }
-  return { buys, rerolls, qualityUpgrades, trades, starBuys };
+  return { buys, rerolls, qualityUpgrades, trades, starBuys, itemUpgrades };
 }
 
 /** Излишек золота уходит в поздние синки (T5.9). Ставится ПОСЛЕ рынка намеренно: синк обязан быть
@@ -874,6 +917,8 @@ interface Report {
   qualityBought: number;
   /** Сколько активных героев в итоге не common (лут + улучшения). */
   /** Куплено звёзд (OVR ≥ 90) на забег (R5.3). */
+  /** Куплено тиров предметов на забег (LG3-хвост). */
+  itemUpgrades: number;
   starBuys: number;
   rareHeroes: number;
   tactics: number;
@@ -903,7 +948,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
   const dynastyDepths: number[] = [];
   let dynastyBuys = 0; let dynastyCamps = 0; let dynastyPreps = 0;
   let dynastyDeaths = 0; let dynastyBossDeaths = 0;
-  let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0; let starBuys = 0;
+  let buys = 0; let rerolls = 0; let qualityBought = 0; let rareHeroes = 0; let tactics = 0; let camps = 0; let starBuys = 0; let itemUpgrades = 0;
   let preps = 0; let bossRerolls = 0; let trades = 0;
   let runsWithCharged = 0; let chargedTakenSum = 0; let chargesSum = 0;
   let chargedActiveSum = 0; let chargedStagesSum = 0; let runsWithTempered = 0; let temperedTakenSum = 0;
@@ -944,7 +989,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
     for (let s = 0; s <= result.stage && s < season.stages.length; s += 1) survivedTo[s] += 1;
     for (const camp of result.camps) {
       golds.push(camp.goldAfter);
-      buys += camp.buys; rerolls += camp.rerolls; qualityBought += camp.qualityUpgrades; camps += 1; starBuys += camp.starBuys ?? 0;
+      buys += camp.buys; rerolls += camp.rerolls; qualityBought += camp.qualityUpgrades; camps += 1; starBuys += camp.starBuys ?? 0; itemUpgrades += camp.itemUpgrades ?? 0;
       preps += camp.preps; bossRerolls += camp.bossRerolls; trades += camp.trades;
       // Отдельно по Династии: если рынок там упирается в потолок ростера, это видно как падение
       // покупок на лагерь — гадать об этом не нужно, оно измеряется.
@@ -967,6 +1012,7 @@ function runAgent(agent: Agent, seeds: number, season: SeasonModel, dynasty = fa
     qualityBought: played ? qualityBought / played : 0,
     rareHeroes: played ? rareHeroes / played : 0,
     starBuys: played ? starBuys / played : 0,
+    itemUpgrades: played ? itemUpgrades / played : 0,
     tactics: played ? tactics / played : 0,
     lostUnderBoss: played ? bossDeaths / played : 0,
     podium: played ? podium / played : 0,
@@ -1033,6 +1079,7 @@ function printReports(title: string, reports: Report[], season: SeasonModel): vo
       + `  ${r.rareHeroes.toFixed(1).padStart(4)}  ${r.tactics.toFixed(1)}  ${pct(r.lostUnderBoss).padStart(6)}`,
     );
   }
+  console.log("\nТиры предметов (LG3): куплено на забег — " + reports.map((r) => `${r.agent} ${r.itemUpgrades.toFixed(2)}`).join(" · "));
   console.log("\nЗвёзды (R5.3): куплено игроков OVR ≥ 90 на забег — " + reports.map((r) => `${r.agent} ${r.starBuys.toFixed(2)}`).join(" · "));
   if (reports.some((r) => r.dynasty)) {
     console.log("\nДинастия (из выигравших сезон): забегов · глубина p50/p90/max · покупок на лагерь (сезон → Династия)");

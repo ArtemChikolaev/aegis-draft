@@ -4,7 +4,7 @@
 import { squadSynergyOf } from "../../data/dataFiles.ts";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ECONOMY, tradeInRarity, type Offer, type Summand, type SummandValues } from "../../game/anteEconomy.ts";
-import type { Rarity } from "../../game/rarity.ts";
+import { nextRarity, type Rarity } from "../../game/rarity.ts";
 import {
   conditionAxes,
   effectMatch,
@@ -124,6 +124,8 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
   const discardTactic = useRun((s) => s.discardTactic);
   const tradeCardAction = useRun((s) => s.tradeCard);
   const enchantCard = useRun((s) => s.enchantCard);
+  const upgradeItemTier = useRun((s) => s.upgradeItemTier);
+  const economy = useRun((s) => s.economy);
   const rerollTrade = useRun((s) => s.rerollTrade);
   const discardAction = useRun((s) => s.discardAction);
   const playCampAction = useRun((s) => s.playCampAction);
@@ -844,6 +846,14 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
                   onTrade={setTradeFor}
                   onDiscard={discardTactic}
                   onEnchant={enchantCard}
+                  itemUpgradeCostOf={(cardId) => economy?.itemUpgradeCost(cardId) ?? null}
+                  itemUpgradeDelta={(cardId) => {
+                    const next = nextRarity(camp.cardRarity[cardId] ?? "common");
+                    if (!next) return 0;
+                    const after = evaluateCampPower(currentPowerState, { ...build, cardRarity: { ...build.cardRarity, [cardId]: next } });
+                    return after.power.total - currentEvaluation.power.total;
+                  }}
+                  onUpgradeItem={upgradeItemTier}
                 />
               )}
 

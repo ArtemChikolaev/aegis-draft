@@ -255,6 +255,8 @@ interface RunStore {
   tradeCard: (outgoingId: string, incomingId: string) => void;
   /** Зачаровать карту токеном титула Династии (LG6): выбранная Edition на карту без Edition. */
   enchantCard: (cardId: string, edition: CardEdition) => void;
+  /** Поднять предмет в слоте на тир за золото (LG3-хвост). */
+  upgradeItemTier: (cardId: string) => void;
   rerollTrade: () => void;
   /** Буткемп: выбросить неразыгранное одноразовое действие. */
   discardAction: (actionId: string) => void;
@@ -1466,6 +1468,13 @@ export const useRun = create<RunStore>((set, get) => {
       if (!economy || phase !== "camp" || !economy.discardTactic(tacticId)) return;
       // Тактика меняет цены/размер рынка (её trade-off) — пересобираем офферы под новый набор.
       economy.invalidateMarketOffers();
+      syncCamp();
+    },
+
+    upgradeItemTier(cardId) {
+      const { economy, phase } = get();
+      if (!economy || phase !== "camp" || !economy.upgradeItemTier(cardId)) return;
+      // Тир меняет числа эффекта и потолок зарядов — тот же синк, что у покупок.
       syncCamp();
     },
 

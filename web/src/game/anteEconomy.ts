@@ -17,7 +17,7 @@ import { chargeCapForRarity, type CardEdition } from "./editions.ts";
 import type { PlacementKey } from "./tournament.ts";
 import { TACTIC_SLOTS, isTacticId } from "./tactics.ts";
 import { CAMP_ACTION_SLOTS, campActionDef, isCampActionId } from "./campActions.ts";
-import { evaluateItems, isItemId } from "./items.ts";
+import { evaluateItems, isItemId, itemUpgradeCost } from "./items.ts";
 import { rollHeroRarity, upgradeCost } from "./heroRarity.ts";
 import { nextRarity, rarityRank, type Rarity } from "./rarity.ts";
 
@@ -790,6 +790,29 @@ export class RunEconomy {
     if (free) this.state.freeRarityUpgrades -= 1;
     else this.spend(cost);
     this.state.heroRarity[String(heroId)] = target;
+    return true;
+  }
+
+  /** Цена поднять предмет в слоте standard → refined (LG3-хвост); null — не предмет, не в слоте
+   *  или уже выше standard (exotic/arcana — только дроп). Дорожает с каждой купленной за забег
+   *  ступенью. Учёт золота проверяет вызывающий. */
+  itemUpgradeCost(cardId: string): number | null {
+    if (!isItemId(cardId) || !this.state.equippedTactics.includes(cardId)) return null;
+    const base = itemUpgradeCost(this.state.cardRarity?.[cardId] ?? "common");
+    if (base == null) return null;
+    return Math.round(base * (1 + ECONOMY.itemUpgradeEscalation * (this.state.paidItemUpgrades ?? 0)));
+  }
+
+  /** Поднять предмет на один тир за золото (без ухода в минус, бесплатных токенов нет —
+   *  это осознанная трата, а не награда). Ось та же, что у дропа/награды-улучшения:
+   *  cardRarity, поэтому описание, вклад и превью читают одно значение. Возвращает успех. */
+  upgradeItemTier(cardId: string): boolean {
+    const cost = this.itemUpgradeCost(cardId);
+    const target = nextRarity(this.state.cardRarity?.[cardId] ?? "common");
+    if (cost == null || !target || !this.affordable(cost)) return false;
+    this.spend(cost);
+    this.state.cardRarity = { ...(this.state.cardRarity ?? {}), [cardId]: target };
+    this.state.paidItemUpgrades = (this.state.paidItemUpgrades ?? 0) + 1;
     return true;
   }
 

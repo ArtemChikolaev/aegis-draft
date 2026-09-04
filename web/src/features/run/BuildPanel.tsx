@@ -3,10 +3,10 @@
 // арифметика по-прежнему считается на экране и приходит сюда готовой — панель только рисует
 // и зовёт переданные действия (тот же шов, что MarketPanel/RewardPanel).
 import { chargeCapForRarity } from "../../game/editions.ts";
-import { itemAt, itemDef, itemLabel, itemTier } from "../../game/items.ts";
+import { ITEM_RARITY, itemAt, itemDef, itemLabel, itemTier } from "../../game/items.ts";
 import { isTacticId, tacticLabelParams } from "../../game/tactics.ts";
 import { itemArtSlug } from "../../game/itemArt.ts";
-import type { Rarity } from "../../game/rarity.ts";
+import { nextRarity, type Rarity } from "../../game/rarity.ts";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { ItemIcon, PowerBreakdown, RarityBadge } from "../../ui/index.ts";
@@ -17,7 +17,7 @@ import type { CampBuildView } from "./campMarketView.ts";
 
 export function BuildPanel(props: CampBuildView) {
   const { t } = useI18n();
-  const { camp, tactics, itemEval, power, widePoolProgress, onInspectCard, onTrade, onDiscard, onEnchant } = props;
+  const { camp, tactics, itemEval, power, widePoolProgress, onInspectCard, onTrade, onDiscard, onEnchant, itemUpgradeCostOf, itemUpgradeDelta, onUpgradeItem } = props;
   return (
     <div className="camp__build-col" data-testid="camp-tactics">
       <div className="camp__build-head">
@@ -155,6 +155,31 @@ export function BuildPanel(props: CampBuildView) {
                   ✕
                 </button>
               </div>
+              {/* Тир предмета за золото (LG3-хвост): своя строка ПОД шапкой, а не внутри её flex-ряда —
+                там кнопка вылезала за карточку и попадала под соседний слот (поймано e2e). Тактикам
+                не показывается: у них нет тира. */}
+              {item && (() => {
+                const upgradeCost = itemUpgradeCostOf(tacticId);
+                const next = nextRarity(cardRarity);
+                if (upgradeCost == null || !next) return null;
+                const delta = itemUpgradeDelta(tacticId);
+                const affordable = camp.unlimitedGold || upgradeCost <= camp.gold;
+                return (
+                  <span className="camp-slot__upgrade">
+                    <button
+                      type="button"
+                      data-testid={`item-upgrade-${tacticId}`}
+                      disabled={!affordable}
+                      title={t("camp.itemUpgradeHint", { mult: ITEM_RARITY.magnitude[next] })}
+                      onClick={() => { sfxBuy(); onUpgradeItem(tacticId); }}
+                    >
+                      <span aria-hidden="true">⬆</span> {t("camp.itemUpgrade", { tier: t(`cardTier.${itemTier(next)}` as MessageKey) })}
+                      {" · "}{t("camp.cost", { cost: upgradeCost })}
+                      {delta !== 0 && <em className={`camp-offer__delta camp-offer__delta--${delta > 0 ? "up" : "down"}`}>{signed(delta)}</em>}
+                    </button>
+                  </span>
+                );
+              })()}
               <p className="camp-slot__desc">
                 {label
                   ? t(label.template as MessageKey, itemLabelParams(label.params, t))

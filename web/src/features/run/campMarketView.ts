@@ -23,6 +23,11 @@ export interface CampBuildView {
   onTrade: (cardId: string) => void;
   onDiscard: (cardId: string) => void;
   onEnchant: (cardId: string, edition: "charged" | "tempered") => void;
+  /** Улучшение тира предмета за золото (LG3-хвост): цена (null — не улучшается), прирост силы
+   *  забега от следующего тира и действие. Считает экран — тем же evaluateCampPower, что вклад. */
+  itemUpgradeCostOf: (cardId: string) => number | null;
+  itemUpgradeDelta: (cardId: string) => number;
+  onUpgradeItem: (cardId: string) => void;
 }
 
 /** Раздел «Подготовка»: слоты одноразовых Camp Actions. */

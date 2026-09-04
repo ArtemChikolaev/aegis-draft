@@ -1309,5 +1309,23 @@
   transition: background .15s, transform .15s;
 }
 .camp-slot__enchant button:hover { transform: translateY(-1px); background: color-mix(in srgb, var(--edition-charged, var(--accent)) 14%, transparent); }
+/* Тир предмета за золото (LG3-хвост): та же форма, что у зачарования, но цвет — акцент режима,
+   не Edition: это ось качества, а не поведения. Прирост — обычным чипом дельты. */
+.camp-slot__upgrade { display: flex; margin: 6px 0 2px; }
+.camp-slot__upgrade button {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; max-width: 100%; text-align: left;
+  padding: 3px 8px;
+  border: 1px dashed var(--accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  transition: background .15s, transform .15s;
+}
+.camp-slot__upgrade button:hover:not(:disabled) { transform: translateY(-1px); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.camp-slot__upgrade button:disabled { opacity: .45; cursor: default; }
+.camp-slot__upgrade em { font-style: normal; }
 .camp-slot__enchant button + button { border-color: var(--edition-tempered, var(--muted)); color: var(--edition-tempered, var(--muted)); }
 .camp-slot__enchant button + button:hover { background: color-mix(in srgb, var(--edition-tempered, var(--muted)) 14%, transparent); }
