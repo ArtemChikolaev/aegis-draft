@@ -9,6 +9,36 @@
 /* Четыре режима (M10): auto-fit держит ряд на десктопе, 2×2 на планшете, столбик на мобиле —
    компоновка не зашита в число карточек. */
 .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+/* Меню режимов: список строк слева + одна большая карточка-превью справа (2026-09-05). Превью
+   переиспользует .mode-card (тот же арт ::before по модификатору режима), чтобы айдентика
+   режимов не расходилась между списком и старыми карточками вариантов Classic. */
+.mode-menu { display: grid; grid-template-columns: minmax(300px, .95fr) minmax(0, 1.05fr); gap: 18px; align-items: stretch; }
+.mode-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; align-content: start; }
+.mode-row { position: relative; display: grid; grid-template-columns: 30px 6px minmax(0, 1fr) auto 20px; align-items: center; gap: 14px; width: 100%; padding: 16px 18px; text-align: left; color: var(--text); border: 1px solid var(--line); border-radius: 14px; background: var(--surface); transition: border-color .15s, background .15s, transform .15s; }
+.mode-row:hover, .mode-row[data-active] { border-color: var(--line-strong); background: var(--surface-soft); transform: translateX(4px); }
+.mode-row__index { font: 600 11px var(--font-display); letter-spacing: .1em; color: var(--muted); }
+.mode-row__swatch { width: 6px; height: 40px; border-radius: 3px; background: var(--mode-swatch, var(--accent)); box-shadow: 0 0 14px color-mix(in srgb, var(--mode-swatch, var(--accent)) 60%, transparent); }
+.mode-row__body { display: grid; gap: 4px; min-width: 0; }
+.mode-row__body strong { font: 500 clamp(20px, 2vw, 26px)/1.02 var(--font-display); letter-spacing: -.04em; overflow-wrap: break-word; hyphens: auto; }
+.mode-row__body small { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.mode-row em { padding: 4px 7px; border: 1px solid var(--line-strong); border-radius: 999px; font-size: 9px; font-style: normal; letter-spacing: .08em; color: var(--muted); }
+.mode-row em[data-offline] { border-color: var(--danger); color: var(--danger); }
+.mode-row__arrow { justify-self: end; color: var(--muted); transition: transform .15s, color .15s; }
+.mode-row:hover .mode-row__arrow, .mode-row[data-active] .mode-row__arrow { transform: translateX(3px); color: var(--text); }
+.mode-row[data-offline] { opacity: .74; }
+.mode-row--classic { --mode-swatch: var(--brand-art-hot); }
+.mode-row--manager { --mode-swatch: #ffc18c; }
+.mode-row--tournament { --mode-swatch: #a9c6ff; }
+.mode-row--arena { --mode-swatch: #ffa9a0; }
+.mode-row--duel { --mode-swatch: #8fe3d9; }
+.mode-row--arcade { --mode-swatch: #ffd48a; }
+.mode-stage { min-height: 100%; cursor: pointer; }
+.mode-stage .mode-card__body { padding-top: 120px; }
+.mode-stage .mode-card__body > span { max-width: 440px; font-size: 14px; line-height: 1.5; }
+@media (max-width: 900px) {
+  .mode-menu { grid-template-columns: 1fr; }
+  .mode-stage { display: none; }
+}
 .mode-card { position: relative; display: grid; align-content: space-between; min-height: 430px; padding: 26px; overflow: hidden; text-align: left; color: var(--on-invert); border: 1px solid var(--line); border-radius: 18px; background: var(--surface-invert); transition: transform .2s, border-color .2s; }
 .mode-card:hover { transform: translateY(-5px); border-color: rgba(255, 255, 255, .42); }
 .mode-card::before { content: ""; position: absolute; inset: 0; opacity: .72; transition: transform .5s; }
