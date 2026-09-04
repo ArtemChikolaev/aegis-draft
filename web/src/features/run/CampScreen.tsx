@@ -180,7 +180,14 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
     () => new Map(data.events.map((event) => [event.id, event.short ?? event.name])),
     [data.events],
   );
+  const eventYears = useMemo(() => new Map(data.events.map((event) => [event.id, event.year])), [data.events]);
   const eventLabel = (eventId: string) => eventNames.get(eventId) ?? eventId;
+  const heroName = (heroId: number) => hero(heroId).name;
+  /** Происхождение формы (R5.3): «событие · год». */
+  const originOf = (eventId: string) => {
+    const year = eventYears.get(eventId);
+    return year ? `${eventLabel(eventId)} · ${year}` : eventLabel(eventId);
+  };
 
   // Алиасы остались от эпохи, когда guard стоял здесь же (пропсы теперь non-null): локальные
   // функции превью ссылаются на них, менять их тело ради переименования незачем.
@@ -251,11 +258,12 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
   const nextLabel = ante.target <= 1
     ? t("ante.nextTargetWin")
     : t("ante.nextTargetTop", { rank: ante.target });
-  const { chemistryEdges, displayPhs, heroRows, chemistryRows } = useMemo(() => {
+  const { chemistryEdges, phs, displayPhs, heroRows, chemistryRows } = useMemo(() => {
     const phs = heroStatsForAssignment(data);
     const displayPhs = heroStatsForDisplay(data);
     return {
       chemistryEdges: chemistryPairEdges(chemistryPlayersFromRoster(snapshot.roster), squadSynergyOf(data), data.teammates),
+      phs,
       displayPhs,
       heroRows: heroSynergyRows(snapshot.roster, score.assignment, phs, displayPhs),
       chemistryRows: squadChemistryRows(snapshot.roster, squadSynergyOf(data), data.teammates),
@@ -538,12 +546,12 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
   function playerOfferSummary(incoming: Candidate, outgoing: Candidate | null | undefined, afterHeroId?: number) {
     return (
       <>
-        <CampPlayerCard candidate={incoming} heroId={afterHeroId} />
+        <CampPlayerCard candidate={incoming} heroId={afterHeroId} origin={originOf(incoming.eventId)} />
         {outgoing && (
           outgoing.player.accountId === incoming.player.accountId ? (
             <div className="camp-offer__fit camp-offer__fit--form" data-form-upgrade="true">
               <small>{t("camp.formUpgrade")}</small>
-              <strong>{eventLabel(outgoing.eventId)}</strong>
+              <strong>{originOf(outgoing.eventId)}</strong>
               <span>{outgoing.player.ovr} OVR →</span>
             </div>
           ) : (
@@ -555,6 +563,42 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
           )
         )}
       </>
+    );
+  }
+
+  /** Разбор замены игрока в оверлее (R5.3): явное правило по герою и по сыгранности — какие
+   *  пары с составом ПОСЛЕ замены дают Chemistry и сколько pro-игр у входящего на его герое.
+   *  Считается тем же squadSynergy/playerHeroStats, что и счёт: список не может разойтись с дельтой. */
+  function playerOfferDetails(incoming: Candidate, outgoing: Candidate | null | undefined, afterHeroId: number | undefined, slotIndex: number) {
+    const rosterAfter = replaceRosterCandidate(slotIndex, incoming);
+    const edges = chemistryPairEdges(chemistryPlayersFromRoster(rosterAfter), squadSynergyOf(data), data.teammates)
+      .filter((edge) => edge.a === incoming.player.accountId || edge.b === incoming.player.accountId)
+      .sort((x, y) => y.games - x.games);
+    const nickOf = (accountId: number) => rosterAfter.find((slot) => slot.candidate?.player.accountId === accountId)?.candidate?.player.nickname ?? String(accountId);
+    const heroGames = afterHeroId != null ? playerHeroGames(phs, incoming.player.accountId, afterHeroId) : null;
+    return (
+      <ul className="camp-offer__details" data-testid="offer-player-details">
+        {afterHeroId != null && (
+          <li>
+            <span>{t("camp.detailHero")}</span>
+            <strong>{heroName(afterHeroId)}{heroGames != null ? ` · ${t(campHeroGamesMessageKey(locale, heroGames), { n: heroGames })}` : ""}</strong>
+          </li>
+        )}
+        <li>
+          <span>{t("camp.detailPairs")}</span>
+          <strong>
+            {edges.length === 0
+              ? t("camp.detailNoPairs")
+              : edges.slice(0, 3).map((edge) => t("camp.detailPair", { nick: nickOf(edge.a === incoming.player.accountId ? edge.b : edge.a), games: edge.games, bonus: fmt(edge.bonus) })).join(" · ")}
+          </strong>
+        </li>
+        {outgoing && outgoing.player.accountId !== incoming.player.accountId && (
+          <li>
+            <span>{t("camp.detailLeaves")}</span>
+            <strong>{outgoing.player.nickname} · {originOf(outgoing.eventId)}</strong>
+          </li>
+        )}
+      </ul>
     );
   }
 
@@ -877,6 +921,7 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
               replaceRosterCandidate={replaceRosterCandidate}
               replaceActiveHero={replaceActiveHero}
               playerOfferSummary={playerOfferSummary}
+              playerOfferDetails={playerOfferDetails}
               heroOfferSummary={heroOfferSummary}
               rarityOfferSummary={rarityOfferSummary}
               setInspected={setInspected}

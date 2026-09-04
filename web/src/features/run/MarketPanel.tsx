@@ -36,7 +36,7 @@ export function MarketPanel(props: CampMarketView) {
     camp, snapshot, score, power, candidates,
     playerOffers, heroOffers,
     previewPower, replaceRosterCandidate, replaceActiveHero,
-    playerOfferSummary, heroOfferSummary, rarityOfferSummary,
+    playerOfferSummary, playerOfferDetails, heroOfferSummary, rarityOfferSummary,
     setInspected, buyMarket, rerollMarket, upgradeHeroRarity,
   } = props;
   // Раздача рынка (R14.4). Ключ обязан меняться на новый лагерь И на каждый реролл: CSS-анимация
@@ -183,7 +183,7 @@ export function MarketPanel(props: CampMarketView) {
                   onOpen={() => setInspected({
                     title: incoming.player.nickname,
                     subtitle: outgoing ? t("camp.replacesPlayer") + " " + outgoing.player.nickname : undefined,
-                    summary,
+                    summary: <>{summary}{playerOfferDetails(incoming, outgoing, afterHeroId, offer.playerSwap!.slotIndex)}</>,
                     deltas,
                     total: powerDelta,
                     from: preview?.before.power.total ?? power.total,

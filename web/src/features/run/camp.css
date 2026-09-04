@@ -1329,3 +1329,9 @@
 .camp-slot__upgrade em { font-style: normal; }
 .camp-slot__enchant button + button { border-color: var(--edition-tempered, var(--muted)); color: var(--edition-tempered, var(--muted)); }
 .camp-slot__enchant button + button:hover { background: color-mix(in srgb, var(--edition-tempered, var(--muted)) 14%, transparent); }
+
+/* Разбор замены игрока в оверлее (R5.3): строки «подпись — значение», как у разложения. */
+.camp-offer__details { display: grid; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; }
+.camp-offer__details li { display: grid; gap: 2px; font-size: 11px; }
+.camp-offer__details li span { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.camp-offer__details li strong { font-weight: 600; line-height: 1.35; }

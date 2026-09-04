@@ -74,6 +74,13 @@ export interface CampMarketView {
     outgoing: Candidate | null | undefined,
     afterHeroId?: number,
   ) => ReactNode;
+  /** Разбор замены в оверлее (R5.3): герой с pro-играми, пары сыгранности, кто уходит. */
+  playerOfferDetails: (
+    incoming: Candidate,
+    outgoing: Candidate | null | undefined,
+    afterHeroId: number | undefined,
+    slotIndex: number,
+  ) => ReactNode;
   heroOfferSummary: (
     offer: Offer,
     incomingRarity: Rarity,

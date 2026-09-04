@@ -252,12 +252,16 @@ export function ItemMatch({ match, hero, t }: {
 export function CampPlayerCard({
   candidate,
   heroId,
+  origin,
   label,
   testId,
   nameTestId,
 }: {
   candidate: Candidate;
   heroId?: number;
+  /** Происхождение формы (R5.3): «событие · год» рядом с командой — форма игрока принадлежит
+   *  конкретному турниру, и без этого два оффера одного человека неразличимы. */
+  origin?: string;
   /** Подпись слота. На рынке её НЕ передают: там оффер всегда идёт под роль игрока, и подпись
    *  дублировала бы `RoleTag` буква в букву («SUPPORT · SUPPORT»), съедая ширину у ника —
    *  живьём именно она обрезалась в «SUPPO…», а не длинное имя. Резерв подпись оставляет:
@@ -295,7 +299,7 @@ export function CampPlayerCard({
       <div className="camp-player-card__identity">
         <span>
           <strong data-testid={nameTestId}>{player.nickname}</strong>
-          <small>{candidate.teamName}</small>
+          <small>{candidate.teamName}{origin ? ` · ${origin}` : ""}</small>
         </span>
         {assignedHero && <HeroThumb {...assignedHero} showName={false} />}
       </div>
