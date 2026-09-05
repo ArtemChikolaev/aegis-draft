@@ -437,7 +437,12 @@ function ArcadeStage() {
               {(p.items.length > 0 || p.neutral) && (
                 <div className="arcade-hud__items" data-testid="arcade-items">
                   {p.neutral && <span className="arcade-hud__item arcade-hud__item--neutral" title={t(`arcade.neutral.${p.neutral}` as MessageKey)}><b>N</b></span>}
-                  {p.items.map((it, i) => <span key={i} className="arcade-hud__item" data-rarity={it.rarity} title={t(`arcade.item.${it.id}` as MessageKey)}><ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" /></span>)}
+                  {Object.values(p.items.reduce<Record<string, { id: string; rarity: string; n: number }>>((acc, it) => { const k = `${it.id}:${it.rarity}`; acc[k] = acc[k] ? { ...acc[k], n: acc[k].n + 1 } : { id: it.id, rarity: it.rarity, n: 1 }; return acc; }, {})).map((g) => (
+                    <span key={`${g.id}:${g.rarity}`} className="arcade-hud__item" data-rarity={g.rarity} title={`${t(`arcade.item.${g.id}` as MessageKey)}${g.n > 1 ? ` ×${g.n} · ${t("arcade.shop.stacks")}` : ""}`}>
+                      <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[g.id]?.art ?? g.id} name={g.id} size="sm" />
+                      {g.n > 1 && <b className="arcade-hud__stack" data-testid="arcade-item-stack">×{g.n}</b>}
+                    </span>
+                  ))}
                 </div>
               )}
               <div className="arcade-hud__abilities">
@@ -534,7 +539,7 @@ function ArcadeStage() {
                     <button key={`${offer.id}-${i}`} type="button" className="arcade-offer" data-kind="item" data-rarity={offer.rarity} data-testid={`arcade-shop-${i}`} disabled={!affordable} onClick={() => shopAct(i + 1)}>
                       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
                       <strong>{t(`arcade.item.${offer.id}` as MessageKey)}</strong>
-                      <small>{t("arcade.shop.price", { gold: offer.price })}</small>
+                      <small>{t("arcade.shop.price", { gold: offer.price })}{sim.player.items.filter((it) => it.id === offer.id).length > 0 && <> · {t("arcade.shop.haveN", { n: sim.player.items.filter((it) => it.id === offer.id).length })}</>}</small>
                       <p>{t(`arcade.item.${offer.id}.desc` as MessageKey)}</p>
                     </button>
                   );

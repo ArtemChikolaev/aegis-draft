@@ -40,7 +40,7 @@ def parse_args():
     p.add_argument("--ortho", type=float, default=0.0, help="принудительный охват камеры в единицах модели (0 = по силуэту)")
     p.add_argument("--pixel", action="store_true", help="пиксель-арт в духе Dead Cells: движок Workbench (плоский студийный свет, контур, без сглаживания), маленький кадр (48 px герой), палитра без дизеринга — см. docs/arcade-dota-sprites.md §7")
     p.add_argument("--outline", type=float, default=1.0, help="толщина контура Workbench в пикселях (только --pixel)")
-    p.add_argument("--light", type=float, default=1.0, help="яркость студийного света Workbench (только --pixel): тёмным моделям (Shadow Fiend, Рошан) 1.4–1.8")
+    p.add_argument("--light", type=float, default=1.25, help="яркость студийного света Workbench (только --pixel): тёмным моделям (Shadow Fiend, Рошан) 1.4–1.8")
     return p.parse_args(argv)
 
 def reset_scene():
@@ -96,6 +96,7 @@ def setup_render(size, samples, pixel=False, outline=1.0, light=1.0):
             pass
         scene.render.filter_size = 0.0
         scene.render.line_thickness = max(0.5, outline)
+        scene.view_settings.exposure = 0.25  # тёмные модели Dota на маленьком кадре «мылятся» в кашу — приподнимаем
     else:
         scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else ("BLENDER_EEVEE" if "BLENDER_EEVEE" in engines else "CYCLES")
     if scene.render.engine == "CYCLES":
@@ -244,13 +245,32 @@ def main():
     if a.pixel:
         # Workbench в режиме TEXTURE берёт АКТИВНЫЙ узел-картинку материала; у материалов Dota первым идёт
         # detailmask/normal (чёрный силуэт) — делаем активной текстуру цвета (*_color*).
+        def base_color_image(tree):
+            # Надёжнее имён: идём от Principled BSDF по входу Base Color до узла-картинки (через mix/etc., глубина 4).
+            bsdf = next((n for n in tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+            if bsdf and bsdf.inputs["Base Color"].links:
+                frontier = [bsdf.inputs["Base Color"].links[0].from_node]
+                for _ in range(4):
+                    nxt = []
+                    for n in frontier:
+                        if n.type == "TEX_IMAGE" and n.image:
+                            return n
+                        for inp in n.inputs:
+                            for l in inp.links:
+                                nxt.append(l.from_node)
+                    frontier = nxt
+            imgs = [n for n in tree.nodes if n.type == "TEX_IMAGE" and n.image]
+            bad = ("mask", "normal", "_orm", "spec", "rough", "metal", "detail")
+            good = [n for n in imgs if "_color" in n.image.name.lower() and not any(b in n.image.name.lower() for b in bad)]
+            return (good or [n for n in imgs if not any(b in n.image.name.lower() for b in bad)] or imgs or [None])[0]
         for m in bpy.data.materials:
             if not m.use_nodes:
                 continue
-            imgs = [n for n in m.node_tree.nodes if n.type == "TEX_IMAGE" and n.image]
-            col = [n for n in imgs if "_color" in n.image.name.lower()] or [n for n in imgs if "normal" not in n.image.name.lower() and "mask" not in n.image.name.lower()] or imgs
-            if col:
-                m.node_tree.nodes.active = col[0]
+            node = base_color_image(m.node_tree)
+            if node:
+                m.node_tree.nodes.active = node
+            else:
+                print(f"WARN: у материала {m.name} нет текстуры цвета — Workbench нарисует его серым")
     setup_render(a.frame, a.samples, a.pixel, a.outline, a.light)
     rig = Rig(objs)
     armatures = [o for o in objs if o.type == "ARMATURE"]

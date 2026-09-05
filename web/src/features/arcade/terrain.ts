@@ -83,7 +83,7 @@ export class Terrain {
     if (dGrass) {
       c.imageSmoothingEnabled = true;
       // Обычные текстуры 512 px кладём в 256 мировых px (×0.5); пиксельные 256 px — ×2, чтобы 1 тексель = 1 внутренний пиксель при ?pixel=2.
-      const texScale = pixelSheetsOn() ? 2 : 0.5;
+      const texScale = pixelSheetsOn() ? 4 : 0.5; // пиксельная земля 128 px: тексель = 2 внутренних пикселя, читается как пиксель-арт, а не шум
       const pat = (im: HTMLImageElement) => { const pt = c.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(texScale)); return pt; };
       c.fillStyle = pat(dGrass);
       c.fillRect(0, 0, CHUNK, CHUNK);
@@ -109,10 +109,15 @@ export class Terrain {
         const fc = fill.getContext("2d")!;
         const pt = fc.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(M - ox, M - oy).scale(texScale));
         fc.fillStyle = pt; fc.fillRect(0, 0, size, size);
+        // Размытие без ctx.filter: Safari/старые webview его не знают и рисовали жёсткие квадраты (фидбэк владельца).
+        // Маску уменьшаем в `blur` раз со сглаживанием и растягиваем обратно — мягкий край на всех движках одинаково.
+        const step = Math.max(2, Math.round(blur));
+        const small = document.createElement("canvas"); small.width = small.height = Math.ceil(size / step);
+        const sc = small.getContext("2d")!;
+        sc.imageSmoothingEnabled = true; sc.drawImage(mask, 0, 0, small.width, small.height);
         fc.globalCompositeOperation = "destination-in";
-        fc.filter = `blur(${blur}px)`;
-        fc.drawImage(mask, 0, 0);
-        fc.filter = "none";
+        fc.imageSmoothingEnabled = true;
+        fc.drawImage(small, 0, 0, small.width, small.height, 0, 0, size, size);
         c.drawImage(fill, M, M, CHUNK, CHUNK, 0, 0, CHUNK, CHUNK);
       };
       if (dDirt) layer(dDirt, (gx, gy) => this.tileAt(gx, gy) === 2, 7);

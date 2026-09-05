@@ -71,6 +71,15 @@ export class ArcadeRenderer {
   private pixelCanvas: HTMLCanvasElement | null = null;
   private pixelCtx: CanvasRenderingContext2D | null = null;
   private mainCtx: CanvasRenderingContext2D;
+  /** Надписи (урон, SHOP, T1, $) в пиксельном режиме рисуются поверх буфера на полном разрешении — иначе текст мылится. */
+  private labels: { text: string; x: number; y: number; font: string; fill: string; alpha: number; align: CanvasTextAlign }[] = [];
+  private camSnapX = 0;
+  private camSnapY = 0;
+
+  private text(c: CanvasRenderingContext2D, text: string, x: number, y: number): void {
+    if (this.pixel > 1) this.labels.push({ text, x, y, font: c.font, fill: String(c.fillStyle), alpha: c.globalAlpha, align: c.textAlign });
+    else c.fillText(text, x, y);
+  }
 
   constructor(private readonly canvas: HTMLCanvasElement, heroPicture: string) {
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -132,7 +141,9 @@ export class ArcadeRenderer {
     if (this.pixel > 1) {
       // Камера по целым внутренним пикселям: иначе чанки земли и спрайты дрожат и дают швы на полупикселях.
       const P = this.pixel;
-      this.ctx.translate(-Math.round((camX - this.shakeX) / P) * P, -Math.round((camY - this.shakeY) / P) * P);
+      this.camSnapX = Math.round((camX - this.shakeX) / P) * P; this.camSnapY = Math.round((camY - this.shakeY) / P) * P;
+      this.labels.length = 0;
+      this.ctx.translate(-this.camSnapX, -this.camSnapY);
     } else this.ctx.translate(-camX + this.shakeX, -camY + this.shakeY);
     this.drawGround(sim, camX, camY, pal);
     if (sim.pit) this.drawRiverAndPit(pal);
@@ -155,6 +166,10 @@ export class ArcadeRenderer {
       m.imageSmoothingEnabled = false;
       m.drawImage(this.pixelCanvas, 0, 0, this.pixelCanvas.width, this.pixelCanvas.height, 0, 0, this.pixelCanvas.width * this.pixel, this.pixelCanvas.height * this.pixel);
       m.imageSmoothingEnabled = true;
+      // Надписи — на полном разрешении, в тех же мировых координатах.
+      m.save(); m.translate(-this.camSnapX, -this.camSnapY);
+      for (const l of this.labels) { m.font = l.font; m.fillStyle = l.fill; m.globalAlpha = l.alpha; m.textAlign = l.align; m.fillText(l.text, l.x, l.y); }
+      m.globalAlpha = 1; m.restore();
     }
     if (joystick) this.drawJoystick(joystick, pal);
   }
@@ -250,7 +265,7 @@ export class ArcadeRenderer {
       c.beginPath(); c.arc(s.x, s.y, 40, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
       c.fillStyle = pal.text; c.font = "800 11px var(--font-display, sans-serif)"; c.textAlign = "center";
-      c.fillText("SHOP", s.x, s.y - 26);
+      this.text(c, "SHOP", s.x, s.y - 26);
     }
     if (sim.neutralToken.alive) {
       const n = sim.neutralToken;
@@ -258,14 +273,14 @@ export class ArcadeRenderer {
       c.beginPath(); c.moveTo(n.x, n.y - 14 - pulse * 2); c.lineTo(n.x + 12, n.y); c.lineTo(n.x, n.y + 14 + pulse * 2); c.lineTo(n.x - 12, n.y); c.closePath(); c.stroke();
       c.setLineDash([]); c.globalAlpha = 1;
       c.fillStyle = pal.text; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
-      c.fillText(`T${n.value}`, n.x, n.y - 20);
+      this.text(c, `T${n.value}`, n.x, n.y - 20);
     }
     if (sim.bounty.alive) {
       const b = sim.bounty;
       c.fillStyle = pal.bounty;
       c.beginPath(); c.arc(b.x, b.y, 12 + pulse * 2, 0, Math.PI * 2); c.fill();
       c.fillStyle = pal.player; c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center";
-      c.fillText("$", b.x, b.y + 4);
+      this.text(c, "$", b.x, b.y + 4);
     }
   }
 
@@ -505,7 +520,7 @@ export class ArcadeRenderer {
           c.globalAlpha = 1 - k;
           c.fillStyle = f.kind === "heal" ? pal.heal : f.kind === "crit" ? pal.crit : pal.text;
           c.font = f.kind === "crit" ? "800 16px var(--font-display, sans-serif)" : "700 12px var(--font-display, sans-serif)";
-          c.fillText(String(f.value), f.x, f.y - 10 - k * 26);
+          this.text(c, String(f.value), f.x, f.y - 10 - k * 26);
           break;
         }
         case "slash": {

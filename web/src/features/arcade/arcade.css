@@ -177,3 +177,7 @@
 .arcade-sfxdebug li[data-status="played"] { color: var(--accent); }
 
 .arcade-ability-icon[data-pixel] { image-rendering: pixelated; }
+
+/* Стаки одинаковых предметов в HUD (владелец 2026-09-06: «не понимаю, складываются ли») */
+.arcade-hud__item { position: relative; }
+.arcade-hud__stack { position: absolute; right: -4px; bottom: -4px; padding: 0 4px; border-radius: 6px; background: var(--surface-invert); color: var(--on-invert); font: 800 10px var(--font-display); line-height: 14px; }
