@@ -22,7 +22,7 @@ import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { ArcadeInputController } from "./input.ts";
-import { heroHitSfx, heroSpinSfx, preloadHeroSfx, resetHeroSfx } from "./heroSfx.ts";
+import { heroHitSfx, heroSpinSfx, heroVoice, preloadHeroSfx, preloadHeroVoice, resetHeroSfx } from "./heroSfx.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
@@ -89,9 +89,9 @@ function ArcadeSetup() {
               const def = HEROES[id];
               const info = heroOf(def.dotaId);
               return (
-                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { setHero(id); preloadHeroSfx(id); }}>
+                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); }}>
                   <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
-                  <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}{def.kit !== def.id && ` · ${t(`arcade.arch.${def.kit}` as MessageKey)}`}</small>
+                  <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
                 </button>
               );
             })}
@@ -294,6 +294,8 @@ function ArcadeStage() {
     let wasBoss = false;
     let wasNeutral = false;
     let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0 };
+    // Реплики (T13.16 срез 2): спавн — при старте, ходьба — раз в 25–45 с движения, остальное — по событиям сима.
+    let spoke = false, movingSince = 0, nextMoveLine = 0, lastPx = 0, lastPy = 0, wasOver = false;
     let hitStop = 0;
     let hurtUntil = 0;
     const loop = (now: number) => {
@@ -323,6 +325,20 @@ function ArcadeStage() {
       if (ev.crits > seen.crits) { sfxArcade("crit"); heroHitSfx(sim.hero.id, true, now); }
       else if (ev.hits > seen.hits) { if (!heroHitSfx(sim.hero.id, false, now)) sfxArcade("hit"); }
       heroSpinSfx(sim.hero.id, sim.tick < sim.player.spinUntil && !sim.over && statusRef.current === "running");
+      // Реплики героя.
+      if (!spoke && sim.tick > 30 && statusRef.current === "running") { spoke = true; heroVoice(sim.hero.id, "spawn", now); nextMoveLine = now + 20000 + Math.random() * 15000; }
+      if (!sim.over && statusRef.current === "running") {
+        const moved = Math.abs(sim.player.x - lastPx) + Math.abs(sim.player.y - lastPy) > 0.5;
+        lastPx = sim.player.x; lastPy = sim.player.y;
+        if (!moved) movingSince = now; else if (now - movingSince > 1500 && now > nextMoveLine) { if (heroVoice(sim.hero.id, "move", now, 1, 15000)) nextMoveLine = now + 25000 + Math.random() * 20000; }
+        if (ev.eliteKills > seen.eliteKills) heroVoice(sim.hero.id, "kill", now, 0.7, 8000);
+        else if (ev.kills > seen.kills) heroVoice(sim.hero.id, "kill", now, 0.08, 14000);
+        if (ev.ults > seen.ults) heroVoice(sim.hero.id, "ability", now, 0.8, 10000);
+        else if (ev.casts > seen.casts) heroVoice(sim.hero.id, "attack", now, 0.1, 18000);
+        if (ev.hurt > seen.hurt) heroVoice(sim.hero.id, "pain", now, 0.06, 12000);
+        if (sim.pending && !wasPending) heroVoice(sim.hero.id, "level", now, 0.45, 20000);
+      }
+      if (sim.over && !wasOver) { wasOver = true; heroVoice(sim.hero.id, sim.player.hp <= 0 ? "death" : "kill", now); }
       if (ev.ults > seen.ults) sfxArcade("ult");
       else if (ev.casts > seen.casts) sfxArcade("cast");
       if (ev.hurt > seen.hurt) { sfxArcade("hurt"); hurtUntil = now + 140; }
@@ -347,6 +363,7 @@ function ArcadeStage() {
     const onVisibility = () => { if (document.hidden) useArcade.getState().pause(); };
     document.addEventListener("visibilitychange", onVisibility);
     preloadHeroSfx(heroDef.id);
+    preloadHeroVoice(heroDef.id);
     return () => {
       cancelAnimationFrame(raf);
       resetHeroSfx();

@@ -353,7 +353,8 @@ export class ArcadeRenderer {
     const c = this.ctx;
     for (const pr of sim.projectiles) {
       if (!pr.alive) continue;
-      c.fillStyle = pr.kind === "fire" ? pal.fire : pr.kind === "shard" ? pal.frost : pr.kind === "zap" ? pal.lightning : pr.kind === "arrow" ? pal.playerRing : pal.brute;
+      // Снаряд автоатаки — в цвете героя (тёмно-красный у Shadow Fiend, лёд у Lich…), а не общий жёлтый шарик.
+      c.fillStyle = pr.kind === "fire" ? pal.fire : pr.kind === "shard" ? pal.frost : pr.kind === "zap" ? pal.lightning : pr.kind === "arrow" ? (pr.fromEnemy ? pal.brute : HERO_TINT[sim.hero.id] ?? pal.playerRing) : pal.brute;
       c.beginPath(); c.arc(pr.x, pr.y, pr.r, 0, Math.PI * 2); c.fill();
     }
   }

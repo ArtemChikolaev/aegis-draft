@@ -143,7 +143,7 @@ export class ArcadeSim {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
       facingX: 1, facingY: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
-      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, sigArmed: false,
+      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -256,7 +256,12 @@ export class ArcadeSim {
     if (!stunned && p.attackCd === 0 && this.tick >= p.spinUntil && p.burstLeft === 0 && this.tick >= p.fieldUntil) {
       const target = this.nearestEnemy(p.x, p.y, p.stats.range);
       if (target) {
-        p.attackCd = sec(p.stats.attackInterval * (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil ? 1 - this.hero.signature.value : 1));
+        {
+          let k = 1;
+          if (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil) k *= 1 - Math.min(0.6, this.hero.signature.value * this.sigScale());
+          if (this.tick < p.frenzyUntil) k *= 1 - p.frenzyMult;
+          p.attackCd = sec(p.stats.attackInterval * Math.max(0.25, k));
+        }
         if (this.hero.ranged) {
           const d = len(target.x - p.x, target.y - p.y) || 1;
           this.spawnProjectile(p.x, p.y, (target.x - p.x) / d * 560, (target.y - p.y) / d * 560, 6, 0, sec(1.2), 0, "arrow", false, true);
@@ -302,6 +307,16 @@ export class ArcadeSim {
       case "culling_blade": return this.cullTarget(ab) !== null;
       case "omni": case "freezing_field": case "thundergod":
         return near >= A.ultEnemies || bossNear || (hpPct < A.ultHpPct && near >= 3);
+      // Собственные киты шаблонных героев.
+      case "line_burst": case "meteor": case "gust": case "multishot": case "remnant": case "edict":
+        return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
+      case "goo": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= A.aoeEnemies;
+      case "dash": return (hpPct < 0.4 && near >= 1) || (ab.value.some((v) => v > 0) && (near >= A.aoeEnemies || bossNear));
+      case "armor_buff": case "frenzy": case "haste": case "rage": case "death_pact": case "damage_ward":
+        return near >= A.aoeEnemies || bossNear || (hpPct < 0.5 && near >= 1);
+      case "mass_freeze": case "requiem": case "ravage":
+        return near >= A.ultEnemies || bossNear || (hpPct < A.ultHpPct && near >= 3);
+      case "life_drain": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || (hpPct < 0.6 && near >= 2);
       default: return false;
     }
   }
@@ -402,6 +417,129 @@ export class ArcadeSim {
         for (const e of this.enemiesWithin(p.x, p.y, radius)) { this.damageEnemy(e, value, "zap"); this.pushFx("zap", e.x, e.y - 120, e.x, e.y, 10); }
         this.shake = 16;
         break;
+      // ---- собственные киты шаблонных героев (2026-09-06) ----
+      case "dash": {
+        // Blink/Leap/Time Walk/Phantom Strike/Ball Lightning: при низком HP — рывок от ближайшего врага, иначе — к сильнейшему.
+        const nearest = this.nearestEnemy(p.x, p.y, 600);
+        if (!nearest) { cast = false; break; }
+        const escape = p.hp / p.stats.maxHp < 0.4;
+        const target = escape ? null : (this.strongestWithin(p.x, p.y, radius) ?? nearest);
+        let dx: number, dy: number;
+        if (target) { dx = target.x - p.x; dy = target.y - p.y; } else { dx = p.x - nearest.x; dy = p.y - nearest.y; }
+        const d = len(dx, dy) || 1;
+        const dist = target ? Math.min(radius, Math.max(0, d - 26)) : radius;
+        const ox = p.x, oy = p.y;
+        p.x = Math.min(ARCADE.world.w - 40, Math.max(40, p.x + dx / d * dist));
+        p.y = Math.min(ARCADE.world.h - 40, Math.max(40, p.y + dy / d * dist));
+        p.invulnUntil = Math.max(p.invulnUntil, this.tick + sec(0.35));
+        if (value > 0) { for (const e of this.enemiesWithin(p.x, p.y, 110)) this.damageEnemy(e, value, "zap"); this.pushFx("nova", p.x, p.y, 110, 0, 10); }
+        this.pushFx("slash", ox, oy, p.x, p.y, 8);
+        break;
+      }
+      case "line_burst": case "meteor": {
+        // Shadowraze / Dragon Slave / Powershot / Earth Spike / Split Earth / Chaos Meteor: зоны по направлению взгляда.
+        const n = ab.count?.[lvl] ?? 3;
+        const fl = len(p.facingX, p.facingY) || 1;
+        const fx = p.facingX / fl, fy = p.facingY / fl;
+        const step = radius * 1.6 + 20;
+        for (let i = 1; i <= n; i++) {
+          const cx = p.x + fx * step * i, cy = p.y + fy * step * i;
+          for (const e of this.enemiesWithin(cx, cy, radius)) {
+            this.damageEnemy(e, value, "burst");
+            if (ab.duration && !e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(ab.duration)));
+            if (ab.kind === "meteor") this.applyBurn(e, value * 0.25, 3);
+          }
+          this.pushFx("nova", cx, cy, radius, 0, 12);
+        }
+        break;
+      }
+      case "armor_buff":
+        p.armorBuffUntil = this.tick + sec(ab.duration ?? 5);
+        this.pushFx("heal", p.x, p.y - 30, 0, 0, 14);
+        break;
+      case "rage":
+        p.rageUntil = this.tick + sec(ab.duration ?? 8); p.rageMult = value;
+        p.hasteUntil = Math.max(p.hasteUntil, p.rageUntil);
+        this.pushFx("levelup", p.x, p.y, 0, 0, 20);
+        break;
+      case "death_pact":
+        this.heal(p.stats.maxHp * 0.3);
+        p.rageUntil = this.tick + sec(ab.duration ?? 12); p.rageMult = value;
+        this.pushFx("revive", p.x, p.y, 0, 0, 24);
+        break;
+      case "frenzy":
+        p.frenzyUntil = this.tick + sec(ab.duration ?? 4); p.frenzyMult = value;
+        break;
+      case "haste":
+        p.hasteUntil = this.tick + sec(ab.duration ?? 5);
+        p.evadeUntil = p.hasteUntil; p.evadeChance = value;
+        break;
+      case "damage_ward":
+        p.wardUntil = this.tick + sec(ab.duration ?? 10);
+        p.wardX = p.x; p.wardY = p.y;
+        break;
+      case "life_drain": {
+        const target = this.eliteWithin(p.x, p.y, radius) ?? this.strongestWithin(p.x, p.y, radius) ?? this.nearestEnemy(p.x, p.y, radius);
+        if (!target) { cast = false; break; }
+        p.drainUntil = this.tick + sec(ab.duration ?? 4); p.drainTarget = target.id;
+        break;
+      }
+      case "gust": {
+        const hit = this.enemiesWithin(p.x, p.y, radius);
+        if (hit.length === 0) { cast = false; break; }
+        for (const e of hit) {
+          const dx = e.x - p.x, dy = e.y - p.y, d = len(dx, dy) || 1;
+          if (!e.kind.unstoppable && !e.kind.structure) { e.x = Math.min(ARCADE.world.w - 20, Math.max(20, e.x + dx / d * 90)); e.y = Math.min(ARCADE.world.h - 20, Math.max(20, e.y + dy / d * 90)); }
+          this.damageEnemy(e, value, "burst");
+          this.applyChill(e, 0.5, ab.duration ?? 2, false);
+        }
+        this.pushFx("nova", p.x, p.y, radius, 0, 12);
+        break;
+      }
+      case "multishot": {
+        const n = ab.count?.[lvl] ?? 5;
+        const fl = len(p.facingX, p.facingY) || 1;
+        const base = Math.atan2(p.facingY / fl, p.facingX / fl);
+        for (let i = 0; i < n; i++) {
+          const a = base + (i - (n - 1) / 2) * (Math.PI * 70 / 180) / Math.max(1, n - 1);
+          this.spawnProjectile(p.x, p.y, Math.cos(a) * 520, Math.sin(a) * 520, 6, value, sec(radius / 520), 1, "arrow", false);
+        }
+        break;
+      }
+      case "remnant":
+        p.zoneX = p.x; p.zoneY = p.y; p.zoneUntil = this.tick + sec(12);
+        this.pushFx("zap", p.x, p.y - 40, p.x, p.y, 8);
+        break;
+      case "edict":
+        p.zoneUntil = this.tick + sec(ab.duration ?? 7);
+        break;
+      case "mass_freeze":
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 1.5 : ab.duration ?? 3.5)));
+        this.pushFx("nova", p.x, p.y, radius, 0, sec(ab.duration ?? 3.5));
+        this.shake = 10;
+        break;
+      case "requiem": {
+        const souls = p.stacks;
+        const dmg = value + souls * (ab.count?.[lvl] ?? 6);
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) { this.damageEnemy(e, dmg, "burst"); this.applyChill(e, 0.5, 3, false); }
+        p.stacks = Math.floor(souls / 2);
+        this.pushFx("nova", p.x, p.y, radius, 0, 20);
+        this.shake = 14;
+        break;
+      }
+      case "goo": {
+        const target = this.eliteWithin(p.x, p.y, radius) ?? this.strongestWithin(p.x, p.y, radius) ?? this.nearestEnemy(p.x, p.y, radius);
+        if (!target) { cast = false; break; }
+        this.damageEnemy(target, value, "burst");
+        this.applyChill(target, 0.5, ab.duration ?? 3);
+        this.pushFx("zap", p.x, p.y, target.x, target.y, 8);
+        break;
+      }
+      case "ravage":
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) { this.damageEnemy(e, value, "burst"); if (!e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(ab.duration ?? 1.5))); }
+        this.pushFx("nova", p.x, p.y, radius, 0, 18);
+        this.shake = 16;
+        break;
       default: cast = false;
     }
     if (!cast) return;
@@ -454,6 +592,38 @@ export class ArcadeSim {
         p.burstNextAt = this.tick + 6;
         if (this.tick >= p.fieldUntil) p.burstLeft = 0;
       } else p.burstLeft = 0;
+    }
+    // Nether Ward (Pugna): тотем бьёт ближайшего врага в радиусе.
+    const dwKey = ABILITY_KEYS.find((k) => H[k].kind === "damage_ward");
+    if (dwKey && this.tick < p.wardUntil && this.tick % 15 === 0) {
+      const t = this.nearestEnemy(p.wardX, p.wardY, H[dwKey].radius ?? 200);
+      if (t) { this.damageEnemy(t, H[dwKey].value[p.abilities[dwKey]], "zap"); this.pushFx("zap", p.wardX, p.wardY - 30, t.x, t.y, 6); }
+    }
+    // Static Remnant (Storm): мина взрывается, когда враг подошёл.
+    if (this.tick < p.zoneUntil && H.q.kind === "remnant") {
+      const r = H.q.radius ?? 130;
+      if (this.countEnemiesWithin(p.zoneX, p.zoneY, r * 0.55) > 0) {
+        for (const e of this.enemiesWithin(p.zoneX, p.zoneY, r)) this.damageEnemy(e, H.q.value[p.abilities.q], "zap");
+        this.pushFx("nova", p.zoneX, p.zoneY, r, 0, 12);
+        p.zoneUntil = 0;
+      }
+    }
+    // Diabolic Edict (Leshrac): случайные разряды по врагам вокруг героя.
+    if (this.tick < p.zoneUntil && H.w.kind === "edict" && this.tick % 8 === 0) {
+      const around = this.enemiesWithin(p.x, p.y, H.w.radius ?? 260);
+      if (around.length > 0) { const e = around[this.rng.int(around.length)]; this.damageEnemy(e, H.w.value[p.abilities.w], "burst"); this.pushFx("burst", e.x, e.y, 24, 0, 8); }
+    }
+    // Life Drain / Mana Drain: канал по цели с лечением.
+    if (this.tick < p.drainUntil && this.tick % 6 === 0) {
+      const key = ABILITY_KEYS.find((k) => H[k].kind === "life_drain");
+      const t = key ? this.enemies.find((e) => e.alive && e.id === p.drainTarget) : undefined;
+      if (!key || !t || len(t.x - p.x, t.y - p.y) > (H[key].radius ?? 300) + 120) p.drainUntil = 0;
+      else {
+        const dmg = H[key].value[p.abilities[key]] * 0.1 * (key === "r" && this.talentPower("t25_ult") ? 1.5 : 1);
+        this.damageEnemy(t, dmg, "burst");
+        this.heal(dmg);
+        if (this.tick % 12 === 0) this.pushFx("zap", t.x, t.y, p.x, p.y, 6);
+      }
     }
     if (this.tick < p.zoneUntil && H.q.kind === "shrapnel" && this.tick % 12 === 0) {
       const radius = H.q.radius ?? 180;
@@ -525,20 +695,31 @@ export class ArcadeSim {
     if (head.kind === "headshot" && p.abilities.w > 0 && this.rng.float() < 0.3) { dmg += head.value[p.abilities.w]; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.25)); kind = "crit"; }
     // Фирменные пассивки (T13.15): души SF, ярость Ursa, меткость Drow, Time Lock Void — до удара; Cleave и Overload — после.
     const sig = this.hero.signature;
-    if (sig?.kind === "souls") dmg += p.stacks * sig.value;
+    const sc = this.sigScale();
+    if (sig?.kind === "souls") dmg += p.stacks * sig.value * sc;
     else if (sig?.kind === "swipes") {
       if (p.stackTarget === e.id) p.stacks = Math.min(sig.cap ?? 12, p.stacks + 1); else { p.stacks = 1; p.stackTarget = e.id; }
-      dmg += p.stacks * sig.value;
+      dmg += p.stacks * sig.value * sc;
     } else if (sig?.kind === "marksmanship") {
-      if (Math.hypot(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) { dmg *= 1 + sig.value; kind = "crit"; }
-    } else if (sig?.kind === "timelock" && this.rng.float() < sig.value) {
-      dmg += 20; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(sig.duration ?? 0.5)); kind = "crit";
+      if (Math.hypot(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) { dmg *= 1 + sig.value * sc; kind = "crit"; }
+    } else if (sig?.kind === "timelock" && this.rng.float() < Math.min(0.5, sig.value * sc)) {
+      dmg += 20 * sc; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(sig.duration ?? 0.5)); kind = "crit";
     }
+    // Пассивки собственных китов на удар: Searing Arrows, Mana Break, Frost Arrows; ярость (God's Strength/Enrage/Warpath/Death Pact).
+    for (const key of ABILITY_KEYS) {
+      const ab = this.hero.abilities[key];
+      const lvl = p.abilities[key];
+      if (!ab.passive || lvl === 0) continue;
+      if (ab.kind === "searing") { dmg += ab.value[lvl]; this.applyBurn(e, ab.value[lvl] * 0.5, 2); }
+      else if (ab.kind === "mana_break") { dmg += ab.value[lvl]; this.applyChill(e, 0.25, 0.6, false); }
+      else if (ab.kind === "frost_arrows") this.applyChill(e, ab.value[lvl], 2, false);
+    }
+    if (this.tick < p.rageUntil) dmg *= 1 + p.rageMult;
     this.damageEnemy(e, dmg, kind);
-    if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * sig.value, "slash"); }
+    if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * Math.min(0.95, sig.value * sc), "slash"); }
     if (sig?.kind === "overload" && p.sigArmed) {
       p.sigArmed = false;
-      for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 80)) this.damageEnemy(o, sig.value, "zap");
+      for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 80)) this.damageEnemy(o, sig.value * sc, "zap");
       this.pushFx("nova", e.x, e.y, sig.radius ?? 80, 0, 10);
     }
     if (p.stats.lifesteal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + dmg * p.stats.lifesteal);
@@ -660,9 +841,21 @@ export class ArcadeSim {
     }
   }
 
+  /** Множитель фирменной пассивки от её пассивного слота (kind "signature"); без слота или на 0-м уровне — 1. */
+  private sigScale(): number {
+    for (const key of ABILITY_KEYS) {
+      const ab = this.hero.abilities[key];
+      if (ab.kind === "signature") { const lvl = this.player.abilities[key]; return lvl > 0 ? ab.value[lvl] : 1; }
+    }
+    return 1;
+  }
+
   damageEnemy(e: Enemy, amount: number, fx: FxKind): void {
     if (!e.alive || amount <= 0) return;
     let dmg = amount;
+    // Presence of the Dark Lord (SF): враги рядом с героем получают больше урона.
+    const pres = this.hero.abilities.e;
+    if (pres.kind === "presence" && this.player.abilities.e > 0 && len(e.x - this.player.x, e.y - this.player.y) <= (pres.radius ?? 300)) dmg *= 1 + pres.value[this.player.abilities.e];
     const shatter = this.upgradePower("ska_shatter");
     if (shatter > 0) {
       if (this.tick < e.freezeUntil) dmg *= 1 + 0.4 * shatter;
@@ -682,7 +875,7 @@ export class ArcadeSim {
     this.events.kills++;
     const sig = this.hero.signature;
     if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (e.kind.elite || e.kind.boss ? 6 : 1));
-    if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * (e.kind.elite || e.kind.boss ? 5 : 1));
+    if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1));
     if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
     this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
     p.gold += e.kind.gold + p.stats.goldPerKill;
@@ -726,7 +919,8 @@ export class ArcadeSim {
     const p = this.player;
     if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.hero.abilities.r.kind === "omni")) return;
     const sig = this.hero.signature;
-    if (sig?.kind === "blur" && this.rng.float() < sig.value) return; // уклонение PA
+    if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
+    if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
     const reduction = (0.06 * armor) / (1 + 0.06 * armor);
     p.hp -= amount * (1 - reduction);
@@ -734,7 +928,7 @@ export class ArcadeSim {
     if (sig?.kind === "quill" && this.tick >= p.sigUntil) {
       // Quill Spray Bristleback: залп иглами в ответ на урон, не чаще раза в полсекунды.
       p.sigUntil = this.tick + sec(0.5);
-      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 130)) this.damageEnemy(e, sig.value, "burst");
+      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 130)) this.damageEnemy(e, sig.value * this.sigScale(), "burst");
       this.pushFx("nova", p.x, p.y, sig.radius ?? 130, 0, 8);
     }
     const helix = this.hero.abilities.e;
@@ -1353,6 +1547,8 @@ export class ArcadeSim {
         case "crit": s.critChance += ab.value[lvl]; break;
         case "arcane_aura": s.cooldown += ab.value[lvl]; s.regen += lvl; break;
         case "take_aim": s.range += ab.value[lvl]; attackSpeed += 0.05 * lvl; break;
+        case "armor_passive": s.armor += ab.value[lvl]; break;
+        case "coup": s.critChance += ab.value[lvl]; s.critMult = Math.max(s.critMult, ab.count?.[lvl] ?? s.critMult); break;
         default: break;
       }
     }

@@ -253,6 +253,15 @@ export interface Player {
   stackTarget: number;
   sigUntil: number;
   sigArmed: boolean;
+  /** Бафы собственных китов: ярость (×урон), исступление (скорость атаки), уклонение, вытягивание жизни. */
+  rageUntil: number;
+  rageMult: number;
+  frenzyUntil: number;
+  frenzyMult: number;
+  evadeUntil: number;
+  evadeChance: number;
+  drainUntil: number;
+  drainTarget: number;
   hasteUntil: number;
   /** Школы в порядке взятия (макс. 3) и суммарная «сила» апгрейда (ранги × множитель редкости). */
   schools: SchoolId[];

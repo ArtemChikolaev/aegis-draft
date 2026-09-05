@@ -24,7 +24,11 @@ export type AbilityKind =
   | "nova" | "frostbite" | "arcane_aura" | "freezing_field"
   | "shrapnel" | "headshot" | "take_aim" | "assassinate"
   | "berserker_call" | "battle_hunger" | "counter_helix" | "culling_blade"
-  | "arc_lightning" | "lightning_bolt" | "static_field" | "thundergod";
+  | "arc_lightning" | "lightning_bolt" | "static_field" | "thundergod"
+  // Виды для собственных китов шаблонных героев (владелец 2026-09-06: «каждый герой уникален»).
+  | "dash" | "line_burst" | "meteor" | "armor_buff" | "rage" | "frenzy" | "haste" | "damage_ward" | "life_drain"
+  | "gust" | "multishot" | "remnant" | "mass_freeze" | "requiem" | "goo" | "ravage" | "edict" | "death_pact"
+  | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup";
 
 export interface AbilityDef {
   kind: AbilityKind;
@@ -110,89 +114,137 @@ const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
 };
 
 /** Архетипы шаблонных китов: только уже реализованные виды способностей — новый герой не требует кода сима. */
-export const ARCHETYPES: Record<ArchetypeId, { ranged: boolean; abilities: HeroDef["abilities"] }> = {
-  // Мили-керри: вихрь + пожирающий голод + крит + серия ударов.
-  blademaster: {
-    ranged: false,
-    abilities: {
-      q: { kind: "spin", value: [0, 38, 60, 82, 104], cooldown: 15, radius: 100, duration: 3.5 },
-      w: { kind: "battle_hunger", value: [0, 12, 18, 24, 30], cooldown: 12, radius: 300, duration: 5, count: [0, 2, 3, 4, 5] },
-      e: { kind: "crit", value: [0, 0.18, 0.24, 0.3, 0.36], cooldown: 0, passive: true },
-      r: { kind: "omni", value: [0, 100, 180, 260], cooldown: 70, radius: 220, duration: 1.5, count: [0, 5, 7, 9] },
-    },
-  },
-  // Кастер огня/льда: нова + разряд + аура + ледяное поле.
-  frostfire: {
-    ranged: true,
-    abilities: {
-      q: { kind: "nova", value: [0, 100, 155, 210, 265], cooldown: 8, radius: 165, duration: 3 },
-      w: { kind: "lightning_bolt", value: [0, 130, 200, 270, 340], cooldown: 7, radius: 400, duration: 0.4 },
-      e: { kind: "arcane_aura", value: [0, 0.05, 0.09, 0.13, 0.17], cooldown: 0, passive: true },
-      r: { kind: "freezing_field", value: [0, 65, 100, 135], cooldown: 62, radius: 260, duration: 6 },
-    },
-  },
-  // Стрелок: зона осколков + хедшот + прицел + град молний как «залп».
-  marksman: {
-    ranged: true,
-    abilities: {
-      q: { kind: "shrapnel", value: [0, 13, 21, 29, 37], cooldown: 13, radius: 165, duration: 8 },
-      w: { kind: "headshot", value: [0, 18, 36, 54, 72], cooldown: 0, passive: true },
-      e: { kind: "take_aim", value: [0, 40, 70, 100, 130], cooldown: 0, passive: true },
-      r: { kind: "thundergod", value: [0, 100, 170, 240], cooldown: 80, radius: 600 },
-    },
-  },
-  // Танк: зов + тотем лечения + контр-спин + серия ударов.
-  warlord: {
-    ranged: false,
-    abilities: {
-      q: { kind: "berserker_call", value: [0, 1.3, 1.6, 1.9, 2.2], cooldown: 14, radius: 165, duration: 3 },
-      w: { kind: "ward", value: [0, 0.024, 0.03, 0.036, 0.042], cooldown: 32, radius: 170, duration: 8 },
-      e: { kind: "counter_helix", value: [0, 40, 60, 80, 100], cooldown: 0, radius: 130, passive: true },
-      r: { kind: "omni", value: [0, 90, 160, 230], cooldown: 70, radius: 220, duration: 1.5, count: [0, 5, 7, 9] },
-    },
-  },
-  // Нюкер: дуга + обморожение + статика + гнев.
-  stormcaller: {
-    ranged: true,
-    abilities: {
-      q: { kind: "arc_lightning", value: [0, 28, 42, 56, 70], cooldown: 2.8, radius: 320, count: [0, 3, 4, 5, 6] },
-      w: { kind: "frostbite", value: [0, 110, 170, 230, 290], cooldown: 8.5, radius: 320, duration: 1.8 },
-      e: { kind: "static_field", value: [0, 0.02, 0.032, 0.044, 0.056], cooldown: 0, radius: 300, passive: true },
-      r: { kind: "thundergod", value: [0, 140, 220, 300], cooldown: 80, radius: 660 },
-    },
-  },
-};
+// Архетипы удраны 2026-09-06: у каждого шаблонного героя теперь собственный кит (см. TEMPLATE_HEROES ниже).
 
 const MELEE_BASE: HeroDef["base"] = {};
 const RANGED_BASE: HeroDef["base"] = { maxHp: 510, speed: 160, damage: 21, attackInterval: 1.0, range: 310, armor: 1, pickup: 230 };
 
-function templateHero(id: TemplateHeroId, dotaId: number, picture: string, archetype: ArchetypeId, base: HeroDef["base"] = {}, signature?: SignatureDef): HeroDef {
-  const arch = ARCHETYPES[archetype];
-  return { id, kit: archetype, dotaId, picture, ranged: arch.ranged, base: { ...(arch.ranged ? RANGED_BASE : MELEE_BASE), ...base }, abilities: arch.abilities, signature };
+type Kit = HeroDef["abilities"];
+function hero(id: TemplateHeroId, dotaId: number, picture: string, ranged: boolean, base: HeroDef["base"], abilities: Kit, signature?: SignatureDef): HeroDef {
+  return { id, kit: id, dotaId, picture, ranged, base: { ...(ranged ? RANGED_BASE : MELEE_BASE), ...base }, abilities, signature };
 }
+/** Пассивный слот, усиливающий фирменную пассивку героя (SignatureDef): множитель к её `value` по уровню. */
+const SIG: AbilityDef = { kind: "signature", value: [0, 1, 1.35, 1.7, 2.05], cooldown: 0, passive: true };
 
-export const HEROES: Record<HeroId, HeroDef> = {
-  ...UNIQUE_HEROES,
-  phantom_assassin: templateHero("phantom_assassin", 44, "phantom_assassin", "blademaster", { speed: 176, damage: 26, maxHp: 560 }, { kind: "blur", value: 0.22 }),
-  anti_mage: templateHero("anti_mage", 1, "antimage", "blademaster", { speed: 182, attackInterval: 0.8, maxHp: 580 }),
-  lina: templateHero("lina", 25, "lina", "frostfire", { damage: 24, maxHp: 500 }, { kind: "fiery_soul", value: 0.3, duration: 6 }),
-  lich: templateHero("lich", 31, "lich", "frostfire", { maxHp: 580, armor: 2, speed: 156 }),
-  drow_ranger: templateHero("drow_ranger", 6, "drow_ranger", "marksman", { range: 350, damage: 25 }, { kind: "marksmanship", value: 0.35, radius: 220 }),
-  windranger: templateHero("windranger", 21, "windrunner", "marksman", { speed: 168, attackInterval: 0.85 }),
-  bristleback: templateHero("bristleback", 99, "bristleback", "warlord", { maxHp: 760, armor: 6, regen: 5, damage: 18 }, { kind: "quill", value: 30, radius: 130 }),
-  sven: templateHero("sven", 18, "sven", "warlord", { maxHp: 700, damage: 26, armor: 4, regen: 3 }, { kind: "cleave", value: 0.5, radius: 85 }),
-  storm_spirit: templateHero("storm_spirit", 17, "storm_spirit", "stormcaller", { speed: 172, maxHp: 500 }, { kind: "overload", value: 45, radius: 80 }),
-  leshrac: templateHero("leshrac", 52, "leshrac", "stormcaller", { damage: 24, maxHp: 520, armor: 2 }),
-  faceless_void: templateHero("faceless_void", 41, "faceless_void", "blademaster", { speed: 170, damage: 25, maxHp: 600, armor: 4 }, { kind: "timelock", value: 0.18, duration: 0.5 }),
-  ursa: templateHero("ursa", 70, "ursa", "blademaster", { attackInterval: 0.75, damage: 22, maxHp: 640, armor: 4 }, { kind: "swipes", value: 4, cap: 12 }),
-  lion: templateHero("lion", 26, "lion", "stormcaller", { maxHp: 480, damage: 20, speed: 158 }),
-  shadow_fiend: templateHero("shadow_fiend", 11, "nevermore", "stormcaller", { damage: 30, maxHp: 470, attackInterval: 0.9 }, { kind: "souls", value: 1.2, cap: 36 }),
-  pugna: templateHero("pugna", 45, "pugna", "frostfire", { speed: 166, maxHp: 470, damage: 20 }),
-  invoker: templateHero("invoker", 74, "invoker", "frostfire", { maxHp: 530, damage: 23, armor: 2 }),
-  tidehunter: templateHero("tidehunter", 29, "tidehunter", "warlord", { maxHp: 820, armor: 7, regen: 4, speed: 158, damage: 16 }),
-  mirana: templateHero("mirana", 9, "mirana", "marksman", { speed: 172, range: 330 }),
-  clinkz: templateHero("clinkz", 56, "clinkz", "marksman", { attackInterval: 0.85, damage: 20, maxHp: 470 }, { kind: "deathpact", value: 6 }),
+/** Собственные киты: по четыре умения «как в Dota» на героя, значения в масштабе уникальных китов выше. */
+const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
+  phantom_assassin: hero("phantom_assassin", 44, "phantom_assassin", false, { speed: 176, damage: 26, maxHp: 560 }, {
+    q: { kind: "goo", value: [0, 60, 90, 120, 150], cooldown: 6, radius: 320, duration: 2 },            // Stifling Dagger
+    w: { kind: "dash", value: [0, 40, 60, 80, 100], cooldown: 9, radius: 280 },                          // Phantom Strike
+    e: SIG,                                                                                              // Blur
+    r: { kind: "coup", value: [0, 0.15, 0.2, 0.25], cooldown: 0, count: [0, 2.6, 3.2, 3.8], passive: true }, // Coup de Grace
+  }, { kind: "blur", value: 0.22 }),
+  anti_mage: hero("anti_mage", 1, "antimage", false, { speed: 182, attackInterval: 0.8, maxHp: 580 }, {
+    q: { kind: "mana_break", value: [0, 8, 14, 20, 26], cooldown: 0, passive: true },                    // Mana Break
+    w: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 7, radius: 320 },                               // Blink
+    e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Counterspell
+    r: { kind: "assassinate", value: [0, 320, 520, 720], cooldown: 60, radius: 320 },                    // Mana Void
+  }),
+  lina: hero("lina", 25, "lina", true, { damage: 24, maxHp: 500 }, {
+    q: { kind: "line_burst", value: [0, 70, 105, 140, 175], cooldown: 7, radius: 60, count: [0, 3, 3, 3, 3] },          // Dragon Slave
+    w: { kind: "line_burst", value: [0, 90, 135, 180, 225], cooldown: 10, radius: 95, count: [0, 1, 1, 1, 1], duration: 0.9 }, // Light Strike Array
+    e: SIG,                                                                                              // Fiery Soul
+    r: { kind: "assassinate", value: [0, 350, 600, 850], cooldown: 55, radius: 340 },                    // Laguna Blade
+  }, { kind: "fiery_soul", value: 0.3, duration: 6 }),
+  lich: hero("lich", 31, "lich", true, { maxHp: 580, armor: 2, speed: 156 }, {
+    q: { kind: "nova", value: [0, 90, 140, 190, 240], cooldown: 8, radius: 160, duration: 3 },           // Frost Blast
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Frost Shield
+    e: { kind: "frostbite", value: [0, 60, 100, 140, 180], cooldown: 12, radius: 320, duration: 1.6 },   // Sinister Gaze
+    r: { kind: "arc_lightning", value: [0, 120, 190, 260], cooldown: 50, radius: 340, count: [0, 7, 9, 11] }, // Chain Frost
+  }),
+  drow_ranger: hero("drow_ranger", 6, "drow_ranger", true, { range: 350, damage: 25 }, {
+    q: { kind: "frost_arrows", value: [0, 0.2, 0.3, 0.4, 0.5], cooldown: 0, passive: true },             // Frost Arrows
+    w: { kind: "gust", value: [0, 40, 70, 100, 130], cooldown: 12, radius: 220, duration: 2 },           // Gust
+    e: { kind: "multishot", value: [0, 34, 50, 66, 82], cooldown: 9, radius: 380, count: [0, 5, 6, 7, 8] }, // Multishot
+    r: SIG,                                                                                              // Marksmanship
+  }, { kind: "marksmanship", value: 0.35, radius: 220 }),
+  windranger: hero("windranger", 21, "windrunner", true, { speed: 168, attackInterval: 0.85 }, {
+    q: { kind: "lightning_bolt", value: [0, 70, 110, 150, 190], cooldown: 9, radius: 340, duration: 1.3 }, // Shackleshot
+    w: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 55, count: [0, 4, 4, 4, 4] }, // Powershot
+    e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 14, duration: 4 },                     // Windrun
+    r: { kind: "frenzy", value: [0, 0.55, 0.65, 0.75], cooldown: 45, duration: 6 },                      // Focus Fire
+  }),
+  bristleback: hero("bristleback", 99, "bristleback", false, { maxHp: 760, armor: 6, regen: 5, damage: 18 }, {
+    q: { kind: "goo", value: [0, 40, 60, 80, 100], cooldown: 5, radius: 300, duration: 3 },             // Viscous Nasal Goo
+    w: { kind: "nova", value: [0, 40, 60, 80, 100], cooldown: 4, radius: 150, duration: 1 },             // Quill Spray
+    e: { kind: "armor_passive", value: [0, 4, 6, 8, 10], cooldown: 0, passive: true },                   // Bristleback
+    r: { kind: "rage", value: [0, 0.5, 0.75, 1.0], cooldown: 50, duration: 9 },                          // Warpath
+  }, { kind: "quill", value: 30, radius: 130 }),
+  sven: hero("sven", 18, "sven", false, { maxHp: 700, damage: 26, armor: 4, regen: 3 }, {
+    q: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 320, duration: 1.2 }, // Storm Hammer
+    w: SIG,                                                                                              // Great Cleave
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 16, duration: 6 },                        // Warcry
+    r: { kind: "rage", value: [0, 1.0, 1.5, 2.0], cooldown: 60, duration: 10 },                          // God's Strength
+  }, { kind: "cleave", value: 0.5, radius: 85 }),
+  storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 172, maxHp: 500 }, {
+    q: { kind: "remnant", value: [0, 90, 140, 190, 240], cooldown: 4, radius: 130 },                    // Static Remnant
+    w: { kind: "frostbite", value: [0, 50, 80, 110, 140], cooldown: 11, radius: 300, duration: 1.2 },    // Electric Vortex
+    e: SIG,                                                                                              // Overload
+    r: { kind: "dash", value: [0, 140, 220, 300], cooldown: 24, radius: 460 },                           // Ball Lightning
+  }, { kind: "overload", value: 45, radius: 80 }),
+  leshrac: hero("leshrac", 52, "leshrac", true, { damage: 24, maxHp: 520, armor: 2 }, {
+    q: { kind: "line_burst", value: [0, 90, 135, 180, 225], cooldown: 8, radius: 100, count: [0, 1, 1, 1, 1], duration: 1.0 }, // Split Earth
+    w: { kind: "edict", value: [0, 22, 32, 42, 52], cooldown: 14, radius: 260, duration: 7 },            // Diabolic Edict
+    e: { kind: "arc_lightning", value: [0, 60, 90, 120, 150], cooldown: 5, radius: 320, count: [0, 3, 4, 5, 6] }, // Lightning Storm
+    r: { kind: "freezing_field", value: [0, 60, 95, 130], cooldown: 55, radius: 240, duration: 7 },      // Pulse Nova
+  }),
+  faceless_void: hero("faceless_void", 41, "faceless_void", false, { speed: 170, damage: 25, maxHp: 600, armor: 4 }, {
+    q: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 10, radius: 320 },                              // Time Walk
+    w: { kind: "nova", value: [0, 30, 50, 70, 90], cooldown: 9, radius: 200, duration: 5 },              // Time Dilation
+    e: SIG,                                                                                              // Time Lock
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 70, radius: 230, duration: 3.5 },           // Chronosphere
+  }, { kind: "timelock", value: 0.18, duration: 0.5 }),
+  ursa: hero("ursa", 70, "ursa", false, { attackInterval: 0.75, damage: 22, maxHp: 640, armor: 4 }, {
+    q: { kind: "nova", value: [0, 60, 90, 120, 150], cooldown: 7, radius: 170, duration: 3 },            // Earthshock
+    w: { kind: "frenzy", value: [0, 0.45, 0.55, 0.65, 0.72], cooldown: 12, duration: 4 },                // Overpower
+    e: SIG,                                                                                              // Fury Swipes
+    r: { kind: "rage", value: [0, 0.3, 0.45, 0.6], cooldown: 45, duration: 6 },                          // Enrage
+  }, { kind: "swipes", value: 4, cap: 12 }),
+  lion: hero("lion", 26, "lion", true, { maxHp: 480, damage: 20, speed: 158 }, {
+    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 60, count: [0, 3, 3, 3, 3], duration: 1.0 }, // Earth Spike
+    w: { kind: "frostbite", value: [0, 20, 30, 40, 50], cooldown: 12, radius: 320, duration: 2.2 },      // Hex
+    e: { kind: "life_drain", value: [0, 20, 30, 40, 50], cooldown: 12, radius: 300, duration: 4 },       // Mana Drain
+    r: { kind: "assassinate", value: [0, 400, 650, 900], cooldown: 60, radius: 340 },                    // Finger of Death
+  }),
+  shadow_fiend: hero("shadow_fiend", 11, "nevermore", true, { damage: 30, maxHp: 470, attackInterval: 0.9 }, {
+    q: { kind: "line_burst", value: [0, 75, 110, 145, 180], cooldown: 6, radius: 70, count: [0, 3, 3, 3, 3] }, // Shadowraze ×3
+    w: SIG,                                                                                              // Necromastery
+    e: { kind: "presence", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, radius: 300, passive: true },  // Presence of the Dark Lord
+    r: { kind: "requiem", value: [0, 120, 200, 280], cooldown: 70, radius: 260, count: [0, 6, 9, 12] },   // Requiem of Souls
+  }, { kind: "souls", value: 1.2, cap: 36 }),
+  pugna: hero("pugna", 45, "pugna", true, { speed: 166, maxHp: 470, damage: 20 }, {
+    q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 6, radius: 150, duration: 1 },           // Nether Blast
+    w: { kind: "goo", value: [0, 30, 45, 60, 75], cooldown: 8, radius: 320, duration: 3 },               // Decrepify
+    e: { kind: "damage_ward", value: [0, 18, 26, 34, 42], cooldown: 16, radius: 200, duration: 10 },     // Nether Ward
+    r: { kind: "life_drain", value: [0, 60, 90, 120], cooldown: 40, radius: 340, duration: 5 },          // Life Drain
+  }),
+  invoker: hero("invoker", 74, "invoker", true, { maxHp: 530, damage: 23, armor: 2 }, {
+    q: { kind: "frostbite", value: [0, 50, 80, 110, 140], cooldown: 9, radius: 320, duration: 1.5 },     // Cold Snap
+    w: { kind: "assassinate", value: [0, 160, 240, 320, 400], cooldown: 12, radius: 360 },               // Sun Strike
+    e: { kind: "meteor", value: [0, 70, 105, 140, 175], cooldown: 12, radius: 90, count: [0, 2, 2, 2, 2] }, // Chaos Meteor
+    r: { kind: "ravage", value: [0, 150, 240, 330], cooldown: 60, radius: 240, duration: 1.2 },          // Deafening Blast
+  }),
+  tidehunter: hero("tidehunter", 29, "tidehunter", false, { maxHp: 820, armor: 7, regen: 4, speed: 158, damage: 16 }, {
+    q: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 300, duration: 3 },            // Gush
+    w: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Kraken Shell
+    e: { kind: "nova", value: [0, 60, 90, 120, 150], cooldown: 5, radius: 140, duration: 1.5 },          // Anchor Smash
+    r: { kind: "ravage", value: [0, 150, 230, 310], cooldown: 70, radius: 300, duration: 1.8 },          // Ravage
+  }),
+  mirana: hero("mirana", 9, "mirana", true, { speed: 172, range: 330 }, {
+    q: { kind: "nova", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 200, duration: 0.5 },          // Starstorm
+    w: { kind: "lightning_bolt", value: [0, 110, 170, 230, 290], cooldown: 12, radius: 380, duration: 2.0 }, // Sacred Arrow
+    e: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 9, radius: 300 },                               // Leap
+    r: { kind: "haste", value: [0, 0.6, 0.7, 0.8], cooldown: 60, duration: 8 },                          // Moonlight Shadow
+  }),
+  clinkz: hero("clinkz", 56, "clinkz", true, { attackInterval: 0.85, damage: 20, maxHp: 470 }, {
+    q: { kind: "frenzy", value: [0, 0.5, 0.6, 0.68, 0.75], cooldown: 12, duration: 5 },                  // Strafe
+    w: { kind: "searing", value: [0, 12, 18, 24, 30], cooldown: 0, passive: true },                      // Searing Arrows
+    e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 15, duration: 5 },                     // Skeleton Walk
+    r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 12 },                    // Death Pact
+  }, { kind: "deathpact", value: 6 }),
 };
+
+export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };
 
 /** Таланты 10/15/20/25 — общая лестница для всех героев (Dota-подобные пары). */
 export const HERO_TALENTS: Record<number, readonly [string, string]> = {
