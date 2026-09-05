@@ -38,6 +38,9 @@ def parse_args():
     p.add_argument("--margin", type=float, default=1.12)
     p.add_argument("--samples", type=int, default=16)
     p.add_argument("--ortho", type=float, default=0.0, help="принудительный охват камеры в единицах модели (0 = по силуэту)")
+    p.add_argument("--pixel", action="store_true", help="пиксель-арт в духе Dead Cells: движок Workbench (плоский студийный свет, контур, без сглаживания), маленький кадр (48 px герой), палитра без дизеринга — см. docs/arcade-dota-sprites.md §7")
+    p.add_argument("--outline", type=float, default=1.0, help="толщина контура Workbench в пикселях (только --pixel)")
+    p.add_argument("--light", type=float, default=1.0, help="яркость студийного света Workbench (только --pixel): тёмным моделям (Shadow Fiend, Рошан) 1.4–1.8")
     return p.parse_args(argv)
 
 def reset_scene():
@@ -64,13 +67,40 @@ def pick_action(actions, key, strict=False):
     candidates.sort(key=lambda a: (not a.name.lower().startswith(key), len(a.name)))
     return candidates[0]
 
-def setup_render(size, samples):
+def setup_render(size, samples, pixel=False, outline=1.0, light=1.0):
     scene = bpy.context.scene
     engines = [e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items]
-    scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else ("BLENDER_EEVEE" if "BLENDER_EEVEE" in engines else "CYCLES")
+    if pixel:
+        # Пиксель-арт (Dead Cells-подход: 3D → низкое разрешение без сглаживания): Workbench даёт плоскую заливку
+        # текстурой, ровный студийный свет и чёрный контур по силуэту — то, что руками рисует пиксель-художник.
+        scene.render.engine = "BLENDER_WORKBENCH"
+        sh = scene.display.shading
+        sh.light = "STUDIO"
+        sh.color_type = "TEXTURE"
+        sh.show_shadows = False
+        sh.show_cavity = True
+        sh.cavity_type = "SCREEN"
+        sh.curvature_ridge_factor = 0.6
+        sh.curvature_valley_factor = 1.2
+        sh.show_object_outline = True
+        sh.object_outline_color = (0.05, 0.04, 0.07)
+        sh.show_specular_highlight = False
+        try:
+            sh.studiolight_intensity = light
+        except Exception:
+            pass
+        try:
+            scene.display.render_aa = "OFF"
+            scene.display.viewport_aa = "OFF"
+        except Exception:
+            pass
+        scene.render.filter_size = 0.0
+        scene.render.line_thickness = max(0.5, outline)
+    else:
+        scene.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in engines else ("BLENDER_EEVEE" if "BLENDER_EEVEE" in engines else "CYCLES")
     if scene.render.engine == "CYCLES":
         scene.cycles.samples = samples
-    else:
+    elif scene.render.engine != "BLENDER_WORKBENCH":
         try:
             scene.eevee.taa_render_samples = samples
         except Exception:
@@ -211,7 +241,17 @@ def main():
             print(f"WARN: у части {os.path.basename(part)} кости без пары в теле (пойдут за родителем): {missing[:6]}")
         objs.extend(pobjs)
         print("attached part:", os.path.basename(part), "bones", sum(len(pa.pose.bones) for pa in part_arms))
-    setup_render(a.frame, a.samples)
+    if a.pixel:
+        # Workbench в режиме TEXTURE берёт АКТИВНЫЙ узел-картинку материала; у материалов Dota первым идёт
+        # detailmask/normal (чёрный силуэт) — делаем активной текстуру цвета (*_color*).
+        for m in bpy.data.materials:
+            if not m.use_nodes:
+                continue
+            imgs = [n for n in m.node_tree.nodes if n.type == "TEX_IMAGE" and n.image]
+            col = [n for n in imgs if "_color" in n.image.name.lower()] or [n for n in imgs if "normal" not in n.image.name.lower() and "mask" not in n.image.name.lower()] or imgs
+            if col:
+                m.node_tree.nodes.active = col[0]
+    setup_render(a.frame, a.samples, a.pixel, a.outline, a.light)
     rig = Rig(objs)
     armatures = [o for o in objs if o.type == "ARMATURE"]
     actions = list(bpy.data.actions)
@@ -374,7 +414,7 @@ def main():
         "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
         "anchor": {"x": 0.5, "y": round(anchor_y, 3)},
         "anims": {k: {"row": v["row"], "frames": v["frames"]} for k, v in meta_anims.items()},
-        "source": os.path.basename(a.glb), "orientation": mode, "pitch": a.pitch,
+        "source": os.path.basename(a.glb), "orientation": mode, "pitch": a.pitch, "pixel": bool(a.pixel),
     }
     with open(os.path.join(out_dir, f"{a.name}.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)

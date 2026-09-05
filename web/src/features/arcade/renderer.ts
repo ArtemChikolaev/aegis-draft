@@ -10,7 +10,7 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, spriteVersion, type CharAnim } from "./sprites.ts";
+import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { itemArtSources } from "../../ui/artSource.ts";
@@ -80,6 +80,7 @@ export class ArcadeRenderer {
       const q = new URLSearchParams(window.location.search).get("pixel");
       const n = q === null ? 0 : q === "" ? 3 : Number(q);
       if (n >= 2 && n <= 6) this.pixel = Math.floor(n);
+      setPixelSheets(this.pixel > 1);
     }
     const [src] = heroArtSources(heroPicture);
     if (src) {

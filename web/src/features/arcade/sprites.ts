@@ -214,20 +214,35 @@ export interface DotaSheet {
 
 const dotaSheets = new Map<string, DotaSheet | null | "loading">();
 
+/** Пиксельные листы (`dota_px/`, Dead Cells-стиль, docs/arcade-dota-sprites.md §7): включаются рендерером в пиксельном режиме; нет px-листа — берётся обычный. */
+let pixelSheets = false;
+export function setPixelSheets(on: boolean): void {
+  if (pixelSheets === on) return;
+  pixelSheets = on;
+  dotaSheets.clear();
+  version++;
+}
+
+function loadSheet(name: string, dir: string, onMiss: () => void): void {
+  fetch(`${ROOT}${dir}/${name}.json`)
+    .then((r) => (r.ok ? (r.json() as Promise<DotaMeta>) : null))
+    .then((meta) => {
+      if (!meta || !meta.anims) { onMiss(); return; }
+      const el = new Image();
+      el.onload = () => { dotaSheets.set(name, { img: el, meta }); version++; };
+      el.onerror = () => { onMiss(); };
+      el.src = `${ROOT}${dir}/${name}.png`;
+    })
+    .catch(() => { onMiss(); });
+}
+
 export function dotaSheet(name: string): DotaSheet | null {
   const v = dotaSheets.get(name);
   if (v === undefined) {
     dotaSheets.set(name, "loading");
-    fetch(`${ROOT}dota/${name}.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<DotaMeta>) : null))
-      .then((meta) => {
-        if (!meta || !meta.anims) { dotaSheets.set(name, null); version++; return; }
-        const el = new Image();
-        el.onload = () => { dotaSheets.set(name, { img: el, meta }); version++; };
-        el.onerror = () => { dotaSheets.set(name, null); version++; };
-        el.src = `${ROOT}dota/${name}.png`;
-      })
-      .catch(() => { dotaSheets.set(name, null); version++; });
+    const miss = () => { dotaSheets.set(name, null); version++; };
+    if (pixelSheets) loadSheet(name, "dota_px", () => loadSheet(name, "dota", miss));
+    else loadSheet(name, "dota", miss);
     return null;
   }
   return v === "loading" ? null : v;
@@ -279,6 +294,7 @@ export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, ani
 
 /** Бесшовная текстура земли Dota (`dota/terrain/<name>.png`), если положена. */
 export function dotaTerrain(name: string): HTMLImageElement | null {
-  const el = img(`dota/terrain/${name}.png`, ROOT);
+  const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${name}.png`, ROOT);
   return ready(el) ? el : null;
 }
+export function pixelSheetsOn(): boolean { return pixelSheets; }

@@ -14,7 +14,7 @@ DOTA="${DOTA:-$HOME/Library/Application Support/Steam/steamapps/common/dota 2 be
 S2V="${S2V:-$HOME/tools/s2v/Source2Viewer-CLI}"
 BLENDER="${BLENDER:-/Applications/Blender.app/Contents/MacOS/Blender}"
 OUT="${OUT:-$HOME/dota-export}"
-SPRITES="$HERE/../../public/art/sprites/dota"
+SPRITES="${SPRITES:-$HERE/../../public/art/sprites/dota}"   # SPRITES=…/dota_px для пиксельных листов (§7)
 VPK="$DOTA/pak01_dir.vpk"
 [ -f "$VPK" ] || { echo "нет $VPK — установи Dota 2 или задай DOTA=..."; exit 1; }
 [ -x "$S2V" ] || { echo "нет Source2Viewer-CLI: $S2V"; exit 1; }
@@ -46,7 +46,9 @@ while IFS=$'\t' read -r id vmdl args parts; do
   "$BLENDER" -b -P "$HERE/render_dota_sprites.py" -- --glb "$GLB" --name "$id" --out "$SPRITES" $args ${PARTS:+--parts "$PARTS"} 2>&1 | grep -E 'actions in file|attached|orientation|sheet |WARN|Error|Traceback' || true
   # Палитра 256 цветов (pngquant, brew install pngquant): лист худеет в 4–5 раз без видимой потери на 128 px.
   if command -v pngquant >/dev/null 2>&1 && [ -f "$SPRITES/$id.png" ]; then
-    pngquant --quality 75-95 --speed 1 --force --output "$SPRITES/$id.png" 256 "$SPRITES/$id.png" && echo "   pngquant → $(du -h "$SPRITES/$id.png" | cut -f1)"
+    # Пиксельные листы: 48 цветов без дизеринга (--nofs) — ровные пятна, как в рисованном пиксель-арте.
+    if [[ "$args" == *"--pixel"* ]]; then pngquant --nofs --speed 1 --force --output "$SPRITES/$id.png" 48 "$SPRITES/$id.png"
+    else pngquant --quality 75-95 --speed 1 --force --output "$SPRITES/$id.png" 256 "$SPRITES/$id.png"; fi && echo "   pngquant → $(du -h "$SPRITES/$id.png" | cut -f1)"
   fi
 done < "$MANIFEST"
 echo "== текстуры земли лежат в maps/<набор>_assets/blends/ (см. docs/arcade-dota-sprites.md §4); уже установлены в $SPRITES/terrain/"

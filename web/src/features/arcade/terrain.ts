@@ -6,7 +6,7 @@
 import { Rng } from "../../game/rng.ts";
 import { ARCADE } from "../../game/arcade/config.ts";
 import type { ActId } from "../../game/arcade/types.ts";
-import { dotaSheet, dotaTerrain, drawDotaFrame, tileImage } from "./sprites.ts";
+import { dotaSheet, dotaTerrain, drawDotaFrame, pixelSheetsOn, tileImage } from "./sprites.ts";
 
 export const CHUNK = 512;
 const TILE = 64;
@@ -130,7 +130,9 @@ export class Terrain {
     const dDirt = dotaTerrain("dirt"), dWater = dotaTerrain("water");
     if (dGrass) {
       c.imageSmoothingEnabled = true;
-      const pat = (im: HTMLImageElement) => { const pt = c.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(0.5)); return pt; };
+      // Обычные текстуры 512 px кладём в 256 мировых px (×0.5); пиксельные 256 px — ×2, чтобы 1 тексель = 1 внутренний пиксель при ?pixel=2.
+      const texScale = pixelSheetsOn() ? 2 : 0.5;
+      const pat = (im: HTMLImageElement) => { const pt = c.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(texScale)); return pt; };
       c.fillStyle = pat(dGrass);
       c.fillRect(0, 0, CHUNK, CHUNK);
       // Тропы и вода — слоем с размытой маской, а не квадратами тайлов: у текстур Dota нет кромок автотайла,
@@ -150,7 +152,7 @@ export class Terrain {
         if (!any) return;
         const fill = document.createElement("canvas"); fill.width = fill.height = CHUNK;
         const fc = fill.getContext("2d")!;
-        const pt = fc.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(0.5));
+        const pt = fc.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(texScale));
         fc.fillStyle = pt; fc.fillRect(0, 0, CHUNK, CHUNK);
         fc.globalCompositeOperation = "destination-in";
         fc.filter = `blur(${blur}px)`;
