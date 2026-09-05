@@ -10,13 +10,16 @@ export type UniqueHeroId = "juggernaut" | "crystal_maiden" | "sniper" | "axe" | 
 export type TemplateHeroId =
   | "phantom_assassin" | "anti_mage" | "lina" | "lich" | "drow_ranger" | "windranger"
   | "bristleback" | "sven" | "storm_spirit" | "leshrac"
-  | "faceless_void" | "ursa" | "lion" | "shadow_fiend" | "pugna" | "invoker" | "tidehunter" | "mirana" | "clinkz";
+  | "faceless_void" | "ursa" | "lion" | "shadow_fiend" | "pugna" | "invoker" | "tidehunter" | "mirana" | "clinkz"
+  // Волна 2 (2026-09-06, владелец: «по итогу нужны абсолютно все персонажи»): киты из тех же видов + Reincarnation.
+  | "wraith_king" | "dragon_knight" | "kunkka" | "necrophos" | "razor" | "venomancer" | "witch_doctor" | "luna";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
   "juggernaut", "crystal_maiden", "sniper", "axe", "zeus",
   "phantom_assassin", "anti_mage", "lina", "lich", "drow_ranger", "windranger", "bristleback", "sven", "storm_spirit", "leshrac",
   "faceless_void", "ursa", "lion", "shadow_fiend", "pugna", "invoker", "tidehunter", "mirana", "clinkz",
+  "wraith_king", "dragon_knight", "kunkka", "necrophos", "razor", "venomancer", "witch_doctor", "luna",
 ];
 
 export type AbilityKind =
@@ -28,7 +31,8 @@ export type AbilityKind =
   // Виды для собственных китов шаблонных героев (владелец 2026-09-06: «каждый герой уникален»).
   | "dash" | "line_burst" | "meteor" | "armor_buff" | "rage" | "frenzy" | "haste" | "damage_ward" | "life_drain"
   | "gust" | "multishot" | "remnant" | "mass_freeze" | "requiem" | "goo" | "ravage" | "edict" | "death_pact"
-  | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup" | "mana_void";
+  | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup" | "mana_void"
+  | "reincarnation";
 
 export interface AbilityDef {
   kind: AbilityKind;
@@ -43,7 +47,7 @@ export interface AbilityDef {
 }
 
 /** Фирменная пассивка героя поверх кита архетипа (BACKLOG T13.15): то, что делает Shadow Fiend Shadow Fiend'ом. */
-export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathpact" | "fiery_soul" | "overload" | "marksmanship" | "quill" | "blur";
+export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathpact" | "fiery_soul" | "overload" | "marksmanship" | "quill" | "blur" | "vampiric";
 export interface SignatureDef { kind: SignatureKind; value: number; cap?: number; radius?: number; duration?: number }
 
 export interface HeroDef {
@@ -242,6 +246,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 15, duration: 5 },                     // Skeleton Walk
     r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 12 },                    // Death Pact
   }, { kind: "deathpact", value: 6 }),
+  // ---- Волна 2 ----
+  wraith_king: hero("wraith_king", 42, "skeleton_king", false, { maxHp: 760, armor: 5, damage: 27, speed: 158, regen: 2 }, {
+    q: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 320, duration: 1.4 },  // Wraithfire Blast
+    w: SIG,                                                                                              // Vampiric Spirit
+    e: { kind: "crit", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 0, passive: true },                  // Mortal Strike
+    r: { kind: "reincarnation", value: [0, 0.4, 0.6, 0.8], cooldown: 150, passive: true },               // Reincarnation
+  }, { kind: "vampiric", value: 0.14 }),
+  dragon_knight: hero("dragon_knight", 49, "dragon_knight", false, { maxHp: 720, armor: 6, damage: 25, regen: 3, speed: 160 }, {
+    q: { kind: "line_burst", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 70, count: [0, 4, 4, 4, 4] }, // Breathe Fire
+    w: { kind: "lightning_bolt", value: [0, 70, 110, 150, 190], cooldown: 10, radius: 220, duration: 1.8 }, // Dragon Tail
+    e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Dragon Blood
+    r: { kind: "rage", value: [0, 0.6, 0.9, 1.2], cooldown: 60, duration: 12 },                          // Elder Dragon Form
+  }, { kind: "cleave", value: 0.35, radius: 80 }),
+  kunkka: hero("kunkka", 23, "kunkka", false, { maxHp: 700, armor: 4, damage: 28, regen: 2 }, {
+    q: { kind: "meteor", value: [0, 120, 180, 240, 300], cooldown: 12, radius: 130, count: [0, 1, 1, 1, 1], duration: 1.6 }, // Torrent
+    w: SIG,                                                                                              // Tidebringer
+    e: { kind: "dash", value: [0, 50, 75, 100, 125], cooldown: 12, radius: 240 },                         // X Marks the Spot
+    r: { kind: "line_burst", value: [0, 300, 450, 600], cooldown: 60, radius: 120, count: [0, 5, 5, 5], duration: 1.4 }, // Ghostship
+  }, { kind: "cleave", value: 0.7, radius: 110 }),
+  necrophos: hero("necrophos", 36, "necrolyte", true, { maxHp: 560, armor: 2, regen: 4, damage: 21, speed: 158 }, {
+    q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 7, radius: 300, duration: 1.5 },          // Death Pulse
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 18, duration: 5 },                        // Ghost Shroud
+    e: { kind: "presence", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, radius: 260, passive: true },  // Heartstopper Aura
+    r: { kind: "assassinate", value: [0, 450, 700, 950], cooldown: 55, radius: 340 },                    // Reaper's Scythe
+  }),
+  razor: hero("razor", 15, "razor", true, { maxHp: 560, armor: 3, damage: 22, speed: 170, attackInterval: 0.9 }, {
+    q: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 9, radius: 340, duration: 1.0 },          // Plasma Field
+    w: { kind: "life_drain", value: [0, 18, 26, 34, 42], cooldown: 14, radius: 320, duration: 5 },        // Static Link
+    e: { kind: "haste", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 20, duration: 8 },                   // Storm Surge
+    r: { kind: "edict", value: [0, 60, 90, 120], cooldown: 50, duration: 12, radius: 320 },              // Eye of the Storm
+  }),
+  venomancer: hero("venomancer", 40, "venomancer", true, { maxHp: 520, armor: 2, damage: 20, speed: 160 }, {
+    q: { kind: "line_burst", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 60, count: [0, 4, 4, 4, 4] }, // Venomous Gale
+    w: { kind: "searing", value: [0, 8, 12, 16, 20], cooldown: 0, passive: true },                       // Poison Sting
+    e: { kind: "damage_ward", value: [0, 18, 26, 34, 42], cooldown: 12, duration: 10, radius: 300 },     // Plague Ward
+    r: { kind: "nova", value: [0, 220, 340, 460], cooldown: 55, radius: 380, duration: 3 },              // Poison Nova
+  }),
+  witch_doctor: hero("witch_doctor", 30, "witch_doctor", true, { maxHp: 520, armor: 1, damage: 21, speed: 160 }, {
+    q: { kind: "lightning_bolt", value: [0, 70, 105, 140, 175], cooldown: 9, radius: 320, duration: 1.0 }, // Paralyzing Cask
+    w: { kind: "ward", value: [0, 12, 18, 24, 30], cooldown: 16, duration: 8 },                           // Voodoo Restoration
+    e: { kind: "goo", value: [0, 60, 95, 130, 165], cooldown: 10, radius: 300, duration: 3 },             // Maledict
+    r: { kind: "damage_ward", value: [0, 60, 90, 120], cooldown: 60, duration: 8, radius: 350 },          // Death Ward
+  }),
+  luna: hero("luna", 48, "luna", true, { maxHp: 520, armor: 2, damage: 23, speed: 174, attackInterval: 0.85 }, {
+    q: { kind: "lightning_bolt", value: [0, 80, 125, 170, 215], cooldown: 6, radius: 330, duration: 0.6 }, // Lucent Beam
+    w: { kind: "multishot", value: [0, 30, 45, 60, 75], cooldown: 8, radius: 360, count: [0, 3, 4, 5, 6] }, // Moon Glaives
+    e: { kind: "armor_passive", value: [0, 2, 3, 4, 5], cooldown: 0, passive: true },                    // Lunar Blessing
+    r: { kind: "thundergod", value: [0, 120, 180, 240], cooldown: 60, radius: 420, count: [0, 6, 8, 10] }, // Eclipse
+  }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };

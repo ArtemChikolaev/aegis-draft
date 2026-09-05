@@ -40,6 +40,7 @@ const IMPACT: Record<string, "blade" | "heavy" | "blunt" | "light" | "none"> = {
   // Стрелки: у кого есть свой impact в файлах Dota — он (см. else-ветка), у остальных — лёгкий удар снаряда по плоти.
   crystal_maiden: "none", sniper: "none", lich: "none", lion: "none", pugna: "none", drow_ranger: "none", lina: "none",
   zeus: "light", windranger: "light", storm_spirit: "light", leshrac: "light", shadow_fiend: "light", invoker: "light", mirana: "light", clinkz: "light",
+  wraith_king: "heavy", dragon_knight: "heavy", kunkka: "blade", necrophos: "light", razor: "light", venomancer: "light", witch_doctor: "light", luna: "light",
 };
 
 /** Удар героя: true — сыграли сэмпл Dota (или он на подходе), false — клипов нет, играй синтетику. Не чаще раза в 45 мс. */

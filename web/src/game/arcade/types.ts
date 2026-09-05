@@ -286,6 +286,8 @@ export interface Player {
   stacks: number;
   stackTarget: number;
   sigUntil: number;
+  /** Reincarnation (Wraith King): тик, с которого пассивка снова готова. */
+  reincAt: number;
   sigArmed: boolean;
   /** Бафы собственных китов: ярость (×урон), исступление (скорость атаки), уклонение, вытягивание жизни. */
   rageUntil: number;

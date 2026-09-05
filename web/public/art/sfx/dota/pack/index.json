@@ -224,6 +224,108 @@
     "lion_r_1.m4a"
    ]
   },
+  "wraith_king": {
+   "q": [
+    "wraith_king_q_1.m4a"
+   ],
+   "e": [
+    "wraith_king_e_1.m4a"
+   ],
+   "r": [
+    "wraith_king_r_1.m4a"
+   ]
+  },
+  "dragon_knight": {
+   "q": [
+    "dragon_knight_q_1.m4a"
+   ],
+   "w": [
+    "dragon_knight_w_1.m4a"
+   ],
+   "r": [
+    "dragon_knight_r_1.m4a"
+   ]
+  },
+  "kunkka": {
+   "q": [
+    "kunkka_q_1.m4a"
+   ],
+   "w": [
+    "kunkka_w_1.m4a"
+   ],
+   "e": [
+    "kunkka_e_1.m4a"
+   ],
+   "r": [
+    "kunkka_r_1.m4a",
+    "kunkka_r_2.m4a"
+   ]
+  },
+  "necrophos": {
+   "q": [
+    "necrophos_q_1.m4a"
+   ],
+   "w": [
+    "necrophos_w_1.m4a"
+   ],
+   "r": [
+    "necrophos_r_1.m4a",
+    "necrophos_r_2.m4a"
+   ]
+  },
+  "razor": {
+   "q": [
+    "razor_q_1.m4a"
+   ],
+   "w": [
+    "razor_w_1.m4a"
+   ],
+   "e": [
+    "razor_e_1.m4a"
+   ],
+   "r": [
+    "razor_r_1.m4a",
+    "razor_r_2.m4a"
+   ]
+  },
+  "venomancer": {
+   "q": [
+    "venomancer_q_1.m4a"
+   ],
+   "e": [
+    "venomancer_e_1.m4a"
+   ],
+   "r": [
+    "venomancer_r_1.m4a"
+   ]
+  },
+  "witch_doctor": {
+   "q": [
+    "witch_doctor_q_1.m4a",
+    "witch_doctor_q_2.m4a"
+   ],
+   "w": [
+    "witch_doctor_w_1.m4a"
+   ],
+   "e": [
+    "witch_doctor_e_1.m4a"
+   ],
+   "r": [
+    "witch_doctor_r_1.m4a"
+   ]
+  },
+  "luna": {
+   "q": [
+    "luna_q_1.m4a"
+   ],
+   "w": [
+    "luna_w_1.m4a",
+    "luna_w_2.m4a"
+   ],
+   "r": [
+    "luna_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

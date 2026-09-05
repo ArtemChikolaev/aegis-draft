@@ -38,6 +38,14 @@ invoker invoker cold_snap sun_strike chaos_meteor deafening_blast
 tidehunter tidehunter gush kraken_shell anchor_smash ravage
 mirana mirana starfall arrow leap invis
 clinkz clinkz strafe searing_arrows wind_walk death_pact
+wraith_king skeleton_king hellfire_blast spectral_blade mortal_strike reincarnation
+dragon_knight dragon_knight breathe_fire dragon_tail dragon_blood elder_dragon_form
+kunkka kunkka torrent tidebringer x_marks_the_spot ghostship
+necrophos necrolyte death_pulse ghost_shroud heartstopper_aura reapers_scythe
+razor razor plasma_field static_link storm_surge eye_of_the_storm
+venomancer venomancer venomous_gale poison_sting plague_ward poison_nova
+witch_doctor witch_doctor paralyzing_cask voodoo_restoration maledict death_ward
+luna luna lucent_beam moon_glaive lunar_blessing eclipse
 '
 missing=""
 while read -r id dota q w e r; do

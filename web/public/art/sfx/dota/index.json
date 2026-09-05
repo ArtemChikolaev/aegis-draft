@@ -22,5 +22,13 @@
   "invoker": {},
   "tidehunter": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
   "mirana": {},
-  "clinkz": {"attack":["attack_1.m4a"]}
+  "clinkz": {"attack":["attack_1.m4a"]},
+  "wraith_king": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "dragon_knight": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "kunkka": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "necrophos": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "razor": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "venomancer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "witch_doctor": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
+  "luna": {"impact":["impact_1.m4a"]}
 }

@@ -160,7 +160,7 @@ export class ArcadeSim {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
-      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, reincAt: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -913,6 +913,9 @@ export class ArcadeSim {
   damageEnemy(e: Enemy, amount: number, fx: FxKind): void {
     if (!e.alive || amount <= 0) return;
     let dmg = amount;
+    // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
+    const vamp = this.hero.signature;
+    if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
     // Presence of the Dark Lord (SF): враги рядом с героем получают больше урона.
     const pres = this.hero.abilities.e;
     if (pres.kind === "presence" && this.player.abilities.e > 0 && len(e.x - this.player.x, e.y - this.player.y) <= (pres.radius ?? 300)) dmg *= 1 + pres.value[this.player.abilities.e];
@@ -1022,7 +1025,25 @@ export class ArcadeSim {
     if (p.aegis) {
       p.aegis = false;
       p.aegisUsed = true;
-      p.hp = p.stats.maxHp;
+      this.revive(p.stats.maxHp);
+      return;
+    }
+    // Reincarnation (Wraith King): пассивный ульт — встаёт сам раз в перезарядку с долей HP по уровню.
+    const r = this.hero.abilities.r;
+    if (r.kind === "reincarnation" && p.abilities.r > 0 && this.tick >= p.reincAt) {
+      p.reincAt = this.tick + sec(r.cooldown);
+      this.revive(p.stats.maxHp * r.value[p.abilities.r]);
+      return;
+    }
+    p.hp = 0;
+    this.finish("dead");
+  }
+
+  /** Подъём после смертельного урона (Aegis / Reincarnation): HP, неуязвимость, толчок и стан толпы вокруг. */
+  private revive(hp: number): void {
+    const p = this.player;
+    {
+      p.hp = Math.max(1, Math.min(p.stats.maxHp, hp));
       p.invulnUntil = this.tick + sec(ARCADE.player.reviveInvuln);
       for (const e of this.enemies) {
         if (!e.alive || e.kind.boss) continue;
@@ -1036,10 +1057,7 @@ export class ArcadeSim {
       }
       this.shake = 20;
       this.pushFx("revive", p.x, p.y, 0, 0, 50);
-      return;
     }
-    p.hp = 0;
-    this.finish("dead");
   }
 
   private finish(outcome: "dead" | "victory"): void {

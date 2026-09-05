@@ -64,3 +64,40 @@ describe("фирменные пассивки героев (T13.15)", () => {
     expect(a.digest()).toBe(b.digest());
   });
 });
+
+describe("волна 2 героев (2026-09-06): Reincarnation и Vampiric Spirit у Wraith King", () => {
+  it("Reincarnation: смертельный урон с изученным R поднимает героя с долей HP и уходит в перезарядку; без R — смерть", () => {
+    const sim = new ArcadeSim("wk-reinc", { hero: "wraith_king" });
+    const p = sim.player;
+    p.abilities.r = 1;
+    p.hp = 1;
+    (sim as unknown as { damagePlayer(a: number, s: number): void }).damagePlayer(9999, 0);
+    if (p.hp <= 0) sim.step(IDLE_INPUT);
+    expect(sim.over).toBeFalsy();
+    expect(p.hp).toBeGreaterThanOrEqual(p.stats.maxHp * 0.4 - 1);
+    expect(p.reincAt).toBeGreaterThan(sim.tick);
+    // Вторая смерть до конца перезарядки — настоящая (неуязвимость после подъёма снимаем, иначе урон игнорируется).
+    p.invulnUntil = 0;
+    p.hp = 1;
+    (sim as unknown as { damagePlayer(a: number, s: number): void }).damagePlayer(9999, 0);
+    for (let i = 0; i < 3 && !sim.over; i++) sim.step(IDLE_INPUT);
+    expect(sim.over).toBeTruthy();
+  });
+
+  it("Vampiric Spirit: автоатака лечит долю урона, множитель растёт с уровнем W", () => {
+    const sim = new ArcadeSim("wk-vamp", { hero: "wraith_king" });
+    for (let i = 0; i < 60 * 6 && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(IDLE_INPUT); }
+    const e = sim.enemies.find((x) => x.alive)!;
+    e.hp = 1e6;
+    sim.player.hp = 100;
+    sim.damageEnemy(e, 200, "hit");
+    expect(sim.player.hp).toBeCloseTo(100 + 200 * 0.14, 3);
+    sim.player.abilities.w = 4; // SIG ×2.05
+    sim.player.hp = 100;
+    sim.damageEnemy(e, 200, "hit");
+    expect(sim.player.hp).toBeCloseTo(100 + 200 * 0.14 * 2.05, 3);
+    sim.player.hp = 100;
+    sim.damageEnemy(e, 200, "burst"); // умения не вампирят
+    expect(sim.player.hp).toBe(100);
+  });
+});
