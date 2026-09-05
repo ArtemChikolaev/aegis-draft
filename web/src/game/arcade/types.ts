@@ -27,7 +27,7 @@ export type InputLogEntry = [step: number, mx: number, my: number, cast: number,
 
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
-  | "lane_creep" | "siege_creep" | "golem" | "roshan";
+  | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -40,6 +40,12 @@ export interface EnemyKind {
   gold: number;
   elite?: boolean;
   boss?: boolean;
+  /** Неподвижное строение (Древний): не ходит, стреляет; смерть = победа акта. */
+  structure?: boolean;
+  /** Доля полученного урона, возвращаемая игроку (Tormentor). */
+  reflect?: number;
+  /** Не берут статусы: горение, заморозка, стан, замедление. */
+  unstoppable?: boolean;
   /** Стреляет снарядом с дистанции (осадный крип). */
   ranged?: { range: number; every: number; speed: number };
   /** С какой минуты появляется в обычном спавне и вес в пуле. */
@@ -134,7 +140,11 @@ export interface ArcadeOptions {
   rank?: number;
   /** Герой (content/heroes.ts); по умолчанию Juggernaut. */
   hero?: string;
+  /** Акт: `short` — разминка до 9:00 (срез 0), `full` — 20 минут до Древнего. */
+  act?: ActId;
 }
+
+export type ActId = "short" | "full";
 
 export interface Shard {
   alive: boolean;
@@ -232,4 +242,5 @@ export interface ArcadeOutcome {
   greedStacks: number;
   items: string[];
   hero: string;
+  act: ActId;
 }

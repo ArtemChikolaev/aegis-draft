@@ -5,7 +5,7 @@
 import { create } from "zustand";
 import { ArcadeSim } from "../game/arcade/sim.ts";
 import { ARCADE_CONFIG_VERSION } from "../game/arcade/config.ts";
-import type { ArcadeOutcome, SchoolId } from "../game/arcade/types.ts";
+import type { ActId, ArcadeOutcome, SchoolId } from "../game/arcade/types.ts";
 import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { createRunSeed } from "../game/rng.ts";
@@ -28,6 +28,7 @@ export interface ArcadeHistoryEntry {
   greedStacks?: number;
   items?: string[];
   hero?: string;
+  act?: ActId;
 }
 
 const HISTORY_KEY = "aegis-draft.arcade.history";
@@ -56,6 +57,7 @@ interface ArcadeStore {
   /** Выбранная ступень сложности для следующего забега. */
   rank: number;
   hero: HeroId;
+  act: ActId;
   serial: number;
   outcome: ArcadeOutcome | null;
   history: ArcadeHistoryEntry[];
@@ -65,6 +67,7 @@ interface ArcadeStore {
   start: (seed?: string) => void;
   setRank: (rank: number) => void;
   setHero: (hero: HeroId) => void;
+  setAct: (act: ActId) => void;
   pause: () => void;
   resume: () => void;
   choose: (index: number) => void;
@@ -81,6 +84,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   seed: "",
   rank: 0,
   hero: "juggernaut",
+  act: "full",
   serial: 0,
   outcome: null,
   history: readHistory(),
@@ -89,8 +93,11 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   start(seed) {
     const next = seed?.trim() || createRunSeed();
     const rank = Math.min(get().rank, maxUnlockedRank(get().history));
-    sim = new ArcadeSim(next, { rank, hero: get().hero });
+    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act });
     set({ status: "running", seed: next, rank, outcome: null, serial: 0 });
+  },
+  setAct(act) {
+    set({ act });
   },
   setHero(hero) {
     if (hero in HEROES) set({ hero });
@@ -119,7 +126,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const o = sim.over;
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
-      schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero,
+      schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
@@ -137,7 +144,8 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
 /** Открытая ступень: победа на ступени N открывает N+1 (как у референса — сложность за победы). */
 export function maxUnlockedRank(history: ArcadeHistoryEntry[]): number {
   let best = 0;
-  for (const e of history) if (e.outcome === "victory") best = Math.max(best, (e.rank ?? 0) + 1);
+  // Ступень открывает только победа в полном акте: разминка до 9:00 — тренировка, не зачёт.
+  for (const e of history) if (e.outcome === "victory" && (e.act ?? "short") === "full") best = Math.max(best, (e.rank ?? 0) + 1);
   return Math.min(MAX_RANK_STEP, best);
 }
 

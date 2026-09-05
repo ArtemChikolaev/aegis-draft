@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.5.0";
+export const ARCADE_CONFIG_VERSION = "a0.6.0";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -9,11 +9,19 @@ export const sec = (s: number): number => Math.round(s * TICK_HZ);
 
 export const ARCADE = {
   world: { w: 3200, h: 3200 },
-  /** Срез 0: Рошан на 7:00, победа — дожить до 9:00 с убитым Рошаном. */
-  roshanAt: sec(7 * 60),
-  endAt: sec(9 * 60),
+  /** Акты (PRD §5.15). `short` — разминка среза 0: Рошан на 7:00, победа — дожить до 9:00 с убитым
+   *  Рошаном. `full` — как у референса: Рошан на 7:00 и 14:00, Tormentor на 10:30, на 20:00 —
+   *  Древний под мегакрипами, две минуты до эскалации; победа — снести Древнего. */
+  acts: {
+    short: { roshanAt: [sec(7 * 60)], tormentorAt: -1, ancientAt: -1, ancientDeadline: -1, endAt: sec(9 * 60) },
+    full: { roshanAt: [sec(7 * 60), sec(14 * 60)], tormentorAt: sec(10.5 * 60), ancientAt: sec(20 * 60), ancientDeadline: sec(22 * 60), endAt: -1 },
+  } as Record<string, { roshanAt: number[]; tormentorAt: number; ancientAt: number; ancientDeadline: number; endAt: number }>,
   /** Пока Рошан жив, обычные спавны стоят; после его смерти — интенсивность ×postRoshanRate. */
   postRoshanRate: 1.6,
+  /** Второй Рошан сильнее первого (как респавн в Dota). */
+  secondRoshan: { hpMult: 1.4, dmgMult: 1.25 },
+  ancient: { megaEvery: sec(15), megaSize: 8, megaHpMult: 2, lateMult: 2, spawnMult: 1.3 },
+  tormentor: { reflectCap: 30 },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */
     base: 1.7,
@@ -21,9 +29,14 @@ export const ARCADE = {
     cap: 460,
     ringMin: 560,
     ringMax: 680,
-    /** Множители силы врагов по минутам. */
+    /** Множители силы врагов по минутам — до `kneeMin` линейно, дальше (полный акт) — пологий хвост:
+     *  линейный рост, откалиброванный на 9 минут, к 20-й давал ×4 HP и 19 спавнов/с (0% побед бота). */
     hpPerMin: 0.16,
     dmgPerMin: 0.06,
+    kneeMin: 9,
+    lateHpPerMin: 0.06,
+    lateDmgPerMin: 0.02,
+    latePerMin: 0.15,
   },
   waves: {
     every: sec(30),
@@ -105,6 +118,8 @@ export const ARCADE = {
   autoCast: { aoeEnemies: 3, healHpPct: 0.6, ultEnemies: 8, ultHpPct: 0.32 },
   boss: {
     slamRange: 96,
+    /** Рошан звереет, если жив дольше enrageAfter секунд после появления. */
+    enrageAfter: sec(120),
     /** Рошан не даёт бесконечно кайтить: дальше chaseFrom он бежит быстрее игрока-без-бонусов. */
     chaseFrom: 220,
     chaseSpeed: 150,
@@ -117,6 +132,5 @@ export const ARCADE = {
     slamRecovery: sec(1.3),
     /** Контакт босса реже и слабее обычного: его угроза — удар по телеграфу, а не прилипание. */
     contactEvery: 1.1,
-    enrageAt: sec(9 * 60),
   },
 } as const;

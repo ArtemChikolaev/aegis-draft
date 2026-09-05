@@ -18,6 +18,7 @@ import {
   IDLE_INPUT,
   sameInput,
   type AbilityKey,
+  type ActId,
   type ArcadeInput,
   type ArcadeOptions,
   type ArcadeOutcome,
@@ -77,7 +78,13 @@ export class ArcadeSim {
   private nextBountyAt = ARCADE.bounty.every;
   private nextShrineAt: number;
   private nextTrollPackAt: number;
-  private readonly roshanAt: number;
+  readonly act: ActId;
+  private readonly roshanAt: number[];
+  private roshanIdx = 0;
+  private roshanSpawnedAt = 0;
+  private tormentorSpawned = false;
+  ancient: Enemy | null = null;
+  private nextMegaAt = 0;
   player: Player;
   enemies: Enemy[] = [];
   projectiles: Projectile[] = [];
@@ -105,8 +112,9 @@ export class ArcadeSim {
     this.seed = seed;
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
-    this.rng = new Rng(`arcade:${seed}:r${this.rank.step}:${this.hero.id}`);
-    this.roshanAt = this.rank.earlyRoshan ? ARCADE.roshanAt - sec(60) : ARCADE.roshanAt;
+    this.act = options.act === "full" ? "full" : "short";
+    this.rng = new Rng(`arcade:${seed}:r${this.rank.step}:${this.hero.id}:${this.act}`);
+    this.roshanAt = ARCADE.acts[this.act].roshanAt.map((t, i) => (i === 0 && this.rank.earlyRoshan ? t - sec(60) : t));
     this.nextShrineAt = ARCADE.greed.firstAt;
     this.nextTrollPackAt = sec(45);
     const P = ARCADE.player;
@@ -167,7 +175,8 @@ export class ArcadeSim {
     this.regenAndHazards();
     this.pruneFx();
     if (p.hp <= 0) this.onLethal();
-    if (this.tick >= ARCADE.endAt && this.roshanKilled && !this.over) this.finish("victory");
+    const A = ARCADE.acts[this.act];
+    if (A.endAt > 0 && this.tick >= A.endAt && this.roshanKilled && !this.over) this.finish("victory");
   }
 
   // ---------- игрок ----------
@@ -281,7 +290,7 @@ export class ArcadeSim {
       case "frostbite": {
         const target = this.eliteWithin(p.x, p.y, radius) ?? this.nearestEnemy(p.x, p.y, radius);
         if (!target) { cast = false; break; }
-        target.freezeUntil = Math.max(target.freezeUntil, this.tick + sec(this.statusSec(target.kind.boss ? 1 : ab.duration ?? 2)));
+        if (!target.kind.unstoppable) target.freezeUntil = Math.max(target.freezeUntil, this.tick + sec(this.statusSec(target.kind.boss ? 1 : ab.duration ?? 2)));
         this.damageEnemy(target, value, "burst");
         this.pushFx("zap", p.x, p.y, target.x, target.y, 10);
         break;
@@ -306,7 +315,7 @@ export class ArcadeSim {
         break;
       }
       case "berserker_call":
-        for (const e of this.enemiesWithin(p.x, p.y, radius)) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(value)));
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) if (!e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(value)));
         p.armorBuffUntil = this.tick + sec(ab.duration ?? 3);
         this.pushFx("nova", p.x, p.y, radius, 0, 14);
         break;
@@ -563,11 +572,13 @@ export class ArcadeSim {
   }
 
   private applyBurn(e: Enemy, dps: number, seconds: number): void {
+    if (e.kind.unstoppable) return;
     e.burnDps = Math.max(e.burnDps * (e.burnUntil > this.tick ? 1 : 0), dps);
     e.burnUntil = Math.max(e.burnUntil, this.tick + sec(this.statusSec(seconds)));
   }
 
   private applyChill(e: Enemy, slow: number, seconds: number, stack = true): void {
+    if (e.kind.unstoppable) return;
     e.chillSlow = Math.max(e.chillUntil > this.tick ? e.chillSlow : 0, slow);
     e.chillUntil = Math.max(e.chillUntil, this.tick + sec(this.statusSec(seconds)));
     if (!stack) return;
@@ -588,6 +599,7 @@ export class ArcadeSim {
     }
     e.hp -= dmg;
     e.hitAt = this.tick;
+    if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect));
     if (fx === "hit" || fx === "crit" || (e.kind.elite || e.kind.boss) && this.tick % 4 === 0) this.pushFx(fx, e.x, e.y - e.kind.r, 0, 0, 26, Math.round(dmg));
     if (e.hp <= 0) this.killEnemy(e);
   }
@@ -604,11 +616,25 @@ export class ArcadeSim {
       for (const o of this.enemiesWithin(e.x, e.y, 60)) if (o !== e) this.damageEnemy(o, dmg, "burst");
       this.pushFx("burst", e.x, e.y, 60, 0, 14);
     }
+    // Пул врагов переиспользует объекты: ссылку на босса снимаем сразу, иначе «Рошан жив» проверяет
+    // уже кобольда в том же объекте и глушит спавн до конца забега (баг a0.2–a0.5, 2026-09-05).
+    if (e === this.roshan) this.roshan = null;
+    if (e === this.ancient) this.ancient = null;
     if (e.kind.boss) {
       this.roshanKilled = true;
       this.aegisDrop = { x: e.x, y: e.y };
       this.shake = 24;
       this.pushFx("nova", e.x, e.y, 220, 0, 40);
+    }
+    if (e.kind.structure) {
+      this.shake = 30;
+      this.pushFx("nova", e.x, e.y, 400, 0, 60);
+      this.finish("victory");
+    }
+    if (e.kind.id === "tormentor") {
+      // Награда за Tormentor: щедрость без платы — 60 с двойного опыта.
+      this.greedUntil = Math.max(this.greedUntil, this.tick + ARCADE.greed.duration);
+      this.pushFx("nova", e.x, e.y, 160, 0, 30);
     }
   }
 
@@ -663,7 +689,7 @@ export class ArcadeSim {
     const p = this.player;
     this.over = {
       outcome, tick: this.tick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
-      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id,
+      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id, act: this.act,
     };
   }
 
@@ -694,17 +720,41 @@ export class ArcadeSim {
 
   private spawnTick(): void {
     const p = this.player;
-    // Рошан: один раз на 7:00; пока жив — тишина.
-    if (this.tick === this.roshanAt) {
+    const A = ARCADE.acts[this.act];
+    // Рошан по расписанию акта; пока жив — тишина. Второй — сильнее (респавн).
+    if (this.roshanIdx < this.roshanAt.length && this.tick === this.roshanAt[this.roshanIdx]) {
       const r = this.spawnEnemy(ENEMY_KINDS.roshan, ...this.ringPoint(420, 480));
+      if (this.roshanIdx > 0) { r.hp *= ARCADE.secondRoshan.hpMult; r.maxHp *= ARCADE.secondRoshan.hpMult; r.dmg *= ARCADE.secondRoshan.dmgMult; }
+      this.roshanIdx++;
       this.roshan = r;
+      this.roshanSpawnedAt = this.tick;
       this.shake = 12;
       return;
     }
     if (this.roshan?.alive) return;
+    // Tormentor и Древний — не глушат обычный спавн.
+    if (!this.tormentorSpawned && A.tormentorAt > 0 && this.tick >= A.tormentorAt) {
+      this.tormentorSpawned = true;
+      this.spawnEnemy(ENEMY_KINDS.tormentor, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40));
+    }
+    if (!this.ancient && A.ancientAt > 0 && this.tick >= A.ancientAt) {
+      this.ancient = this.spawnEnemy(ENEMY_KINDS.ancient, ...this.ringPoint(520, 580));
+      this.nextMegaAt = this.tick;
+      this.shake = 16;
+    }
+    if (this.ancient?.alive && this.tick >= this.nextMegaAt) {
+      this.nextMegaAt = this.tick + ARCADE.ancient.megaEvery;
+      const late = A.ancientDeadline > 0 && this.tick >= A.ancientDeadline ? ARCADE.ancient.lateMult : 1;
+      const size = ARCADE.ancient.megaSize * late;
+      for (let i = 0; i < size; i++) {
+        const m = this.spawnEnemy(ENEMY_KINDS.lane_creep, this.ancient.x + (this.rng.float() - 0.5) * 200, this.ancient.y + (this.rng.float() - 0.5) * 200);
+        m.hp *= ARCADE.ancient.megaHpMult; m.maxHp *= ARCADE.ancient.megaHpMult;
+      }
+      if (late > 1) this.spawnEnemy(ENEMY_KINDS.siege_creep, this.ancient.x, this.ancient.y);
+    }
     const min = this.minutes;
     const greedy = this.tick < this.greedUntil;
-    const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * min) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1);
+    const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min);
     const alive = this.aliveEnemies();
@@ -772,8 +822,9 @@ export class ArcadeSim {
   private spawnEnemy(kind: EnemyKind, x: number, y: number): Enemy {
     const min = this.minutes;
     const greed = 1 + ARCADE.greed.powerPerStack * this.greedStacks;
-    const hpMult = (kind.boss ? 1 : 1 + ARCADE.spawn.hpPerMin * min) * this.rank.hpMult * greed;
-    const dmgMult = (kind.boss ? 1 : 1 + ARCADE.spawn.dmgPerMin * min) * this.rank.dmgMult * greed;
+    const early = Math.min(min, ARCADE.spawn.kneeMin), late = Math.max(0, min - ARCADE.spawn.kneeMin);
+    const hpMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.hpPerMin * early + ARCADE.spawn.lateHpPerMin * late) * this.rank.hpMult * greed;
+    const dmgMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.dmgPerMin * early + ARCADE.spawn.lateDmgPerMin * late) * this.rank.dmgMult * greed;
     let e = this.enemies.find((o) => !o.alive);
     if (!e) { e = emptyEnemy(kind); this.enemies.push(e); }
     Object.assign(e, emptyEnemy(kind), { id: this.nextEnemyId++, alive: true, x, y, hp: kind.hp * hpMult, maxHp: kind.hp * hpMult, dmg: kind.dmg * dmgMult });
@@ -804,7 +855,15 @@ export class ArcadeSim {
       if (this.tick < e.burnUntil && this.tick % 12 === 0) this.damageEnemy(e, e.burnDps * 0.2, "burst");
       if (!e.alive) continue;
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
-      if (frozen) continue;
+      if (e.kind.structure) {
+        const shot = e.kind.ranged;
+        if (shot && d < shot.range && e.shotCd === 0) {
+          e.shotCd = sec(shot.every);
+          this.spawnProjectile(e.x, e.y, dx / d * shot.speed, dy / d * shot.speed, 10, e.dmg, sec(2.4), 0, "siege", true);
+        }
+        continue;
+      }
+      if (frozen && !e.kind.unstoppable) continue;
       let speed = e.kind.speed * this.rank.speedMult;
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
       const ranged = e.kind.ranged;
@@ -841,7 +900,7 @@ export class ArcadeSim {
   private moveBoss(e: Enemy, dx: number, dy: number, d: number, frozen: boolean): void {
     const B = ARCADE.boss;
     e.slamCd = Math.max(0, e.slamCd - 1);
-    const enraged = this.tick >= B.enrageAt;
+    const enraged = this.tick - this.roshanSpawnedAt >= B.enrageAfter;
     if (e.slamT > 0) {
       e.slamT--;
       if (e.slamT === 0) {

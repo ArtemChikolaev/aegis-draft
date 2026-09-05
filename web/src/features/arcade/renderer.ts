@@ -191,13 +191,17 @@ export class ArcadeRenderer {
       const r = e.kind.r;
       const flash = tick - e.hitAt < 4;
       c.fillStyle = flash ? pal.text : tick < e.freezeUntil ? pal.frost : pal[TONE_KEY[e.kind.tone]];
-      c.beginPath(); c.arc(e.x, e.y, r, 0, Math.PI * 2); c.fill();
+      if (e.kind.structure) {
+        c.fillRect(e.x - r, e.y - r, r * 2, r * 2);
+        c.strokeStyle = pal.text; c.lineWidth = 3; c.strokeRect(e.x - r + 6, e.y - r + 6, r * 2 - 12, r * 2 - 12);
+      } else { c.beginPath(); c.arc(e.x, e.y, r, 0, Math.PI * 2); c.fill(); }
+      if (e.kind.reflect) { c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([4, 4]); c.beginPath(); c.arc(e.x, e.y, r + 8, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
       if (tick < e.burnUntil) { c.strokeStyle = pal.fire; c.lineWidth = 2; c.beginPath(); c.arc(e.x, e.y, r + 2.5, 0, Math.PI * 2); c.stroke(); }
       else if (tick < e.chillUntil) { c.strokeStyle = pal.frost; c.lineWidth = 2; c.beginPath(); c.arc(e.x, e.y, r + 2.5, 0, Math.PI * 2); c.stroke(); }
-      if (e.kind.elite || e.kind.boss) {
-        c.strokeStyle = pal.text; c.lineWidth = e.kind.boss ? 3 : 2;
+      if (e.kind.elite || e.kind.boss || e.kind.structure) {
+        c.strokeStyle = pal.text; c.lineWidth = e.kind.boss || e.kind.structure ? 3 : 2;
         c.beginPath(); c.arc(e.x, e.y, r + 5, 0, Math.PI * 2); c.stroke();
-        const w = e.kind.boss ? 120 : 48;
+        const w = e.kind.boss || e.kind.structure ? 120 : 48;
         c.fillStyle = pal.hpBg; c.fillRect(e.x - w / 2, e.y - r - 16, w, 5);
         c.fillStyle = pal.hp; c.fillRect(e.x - w / 2, e.y - r - 16, w * Math.max(0, e.hp / e.maxHp), 5);
       }

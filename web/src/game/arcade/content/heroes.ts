@@ -80,7 +80,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     id: "zeus", dotaId: 22, picture: "zeus", ranged: true,
     base: { maxHp: 500, speed: 160, damage: 22, attackInterval: 1.0, range: 300, armor: 1 },
     abilities: {
-      q: { kind: "arc_lightning", value: [0, 36, 54, 72, 90], cooldown: 2.2, radius: 320, count: [0, 4, 6, 8, 10] },
+      q: { kind: "arc_lightning", value: [0, 40, 60, 80, 100], cooldown: 2.2, radius: 320, count: [0, 4, 6, 8, 10] },
       w: { kind: "lightning_bolt", value: [0, 140, 220, 300, 380], cooldown: 7, radius: 420, duration: 0.5 },
       e: { kind: "static_field", value: [0, 0.03, 0.045, 0.06, 0.075], cooldown: 0, radius: 320, passive: true },
       r: { kind: "thundergod", value: [0, 220, 340, 460], cooldown: 70, radius: 760 },

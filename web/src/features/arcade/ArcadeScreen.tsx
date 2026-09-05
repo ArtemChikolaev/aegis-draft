@@ -37,6 +37,8 @@ function ArcadeSetup() {
   const setRank = useArcade((s) => s.setRank);
   const heroId = useArcade((s) => s.hero);
   const setHero = useArcade((s) => s.setHero);
+  const act = useArcade((s) => s.act);
+  const setAct = useArcade((s) => s.setAct);
   const heroOf = useHero();
   const [seed, setSeed] = useState("");
   const best = bestArcadeEntry(history);
@@ -72,7 +74,12 @@ function ArcadeSetup() {
           </ul>
         </Surface>
         <Surface className="arcade-setup__run">
-          <p className="arcade-setup__goal">{t("arcade.goal")}</p>
+          <div className="arcade-act" data-testid="arcade-act">
+            {(["full", "short"] as const).map((id) => (
+              <button key={id} type="button" className="arcade-rank__tier" data-active={act === id ? "true" : undefined} data-testid={`arcade-act-${id}`} onClick={() => setAct(id)}>{t(`arcade.act.${id}` as MessageKey)}</button>
+            ))}
+          </div>
+          <p className="arcade-setup__goal">{t(act === "full" ? "arcade.goalFull" : "arcade.goal")}</p>
           <p className="arcade-setup__controls">{t("arcade.controls")}</p>
           <div className="arcade-rank" data-testid="arcade-rank">
             <span className="arcade-setup__label">{t("arcade.rank")} · {t(`arcade.tier.${current.tier}` as MessageKey)} {"★".repeat(current.stars)}</span>
@@ -165,6 +172,7 @@ function ArcadeStage() {
     let frame = 0;
     let wasPending = false;
     let wasShop = false;
+    let wasBoss = false;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       const sim = getArcadeSim();
@@ -185,7 +193,9 @@ function ArcadeStage() {
       wasPending = sim.pending !== null;
       wasShop = sim.shopOpen;
       if (sim.over) { finish(); }
-      if (sim.roshan?.alive && sim.tick === ARCADE.roshanAt + 1) sfxSting("boss");
+      const bossAlive = sim.roshan?.alive === true || sim.ancient?.alive === true;
+      if (bossAlive && !wasBoss) sfxSting("boss");
+      wasBoss = bossAlive;
       if (++frame % 6 === 0) bump();
       renderer.draw(sim, now, controller.joystick, screenShakeEnabled());
     };
@@ -208,7 +218,7 @@ function ArcadeStage() {
   const cast = useCallback((key: AbilityKey) => controllerRef.current?.cast(ABILITY_MASK[key]), []);
   const sim = getArcadeSim();
   const p = sim?.player;
-  const boss = sim?.roshan?.alive ? sim.roshan : null;
+  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : null;
 
   return (
     <main className="arcade" data-testid="arcade-stage">
@@ -229,7 +239,7 @@ function ArcadeStage() {
             </div>
             {boss && (
               <div className="arcade-hud__boss">
-                <span>{t("arcade.hud.roshan")}</span>
+                <span>{t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
                 <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, boss.hp / boss.maxHp) * 100}%` }} /></div>
               </div>
             )}
@@ -335,6 +345,7 @@ function ArcadeStage() {
                 <div><dt>{t("arcade.hud.gold")}</dt><dd>{outcome.gold}</dd></div>
                 <div><dt>{t("arcade.hud.roshan")}</dt><dd>{t(outcome.roshanKilled ? "arcade.over.roshanYes" : "arcade.over.roshanNo")}</dd></div>
                 <div><dt>{t("arcade.rank")}</dt><dd>{t(`arcade.tier.${rankOf(outcome.rank).tier}` as MessageKey)} {"★".repeat(rankOf(outcome.rank).stars)}</dd></div>
+                <div><dt>{t("arcade.actLabel")}</dt><dd>{t(`arcade.act.${outcome.act}` as MessageKey)}</dd></div>
                 {outcome.greedStacks > 0 && <div><dt>{t("arcade.hud.greed")}</dt><dd>×{outcome.greedStacks}</dd></div>}
               </dl>
               {outcome.items.length > 0 && (

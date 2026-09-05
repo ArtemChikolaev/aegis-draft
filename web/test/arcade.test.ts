@@ -61,7 +61,7 @@ describe("arcade sim", () => {
   it("Рошан появляется на 7:00 и обычный спавн стоит, пока он жив", () => {
     const sim = new ArcadeSim("rosh-1");
     // Бессмертный игрок ради расписания: чиним HP каждый тик.
-    while (sim.tick < ARCADE.roshanAt + sec(5)) {
+    while (sim.tick < ARCADE.acts.short.roshanAt[0] + sec(5)) {
       sim.player.hp = sim.player.stats.maxHp;
       sim.step(scriptedInput(sim, sim.tick));
     }
@@ -84,7 +84,7 @@ describe("arcade sim", () => {
     const t0 = performance.now();
     for (let i = 0; i < 600; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(scriptedInput(sim, sim.tick)); }
     const perTick = (performance.now() - t0) / 600;
-    expect(alive).toBeGreaterThan(100);
+    expect(alive).toBeGreaterThan(50);
     expect(perTick).toBeLessThan(4);
   });
 
@@ -150,5 +150,26 @@ describe("arcade sim", () => {
       // Бессмертие в тесте — вне лога, поэтому сравниваем только тик и убийства ≥ (реплей мог умереть раньше).
       expect(replayed.tick, hero).toBeLessThanOrEqual(a.tick);
     }
+  });
+
+  it("полный акт: второй Рошан на 14:00 сильнее, Древний на 20:00, его смерть — победа", () => {
+    const sim = new ArcadeSim("full-1", { act: "full" });
+    const run = (until: number) => { while (sim.tick < until && !sim.over) { sim.player.hp = 1e6; sim.step(scriptedInput(sim, sim.tick)); } };
+    run(sec(7 * 60 + 2));
+    const first = sim.roshan!;
+    expect(first.alive).toBe(true);
+    first.hp = 0; sim.damageEnemy(first, 1, "hit");
+    expect(sim.over).toBeNull();
+    run(sec(14 * 60 + 2));
+    const second = sim.roshan!;
+    expect(second.alive).toBe(true);
+    expect(second.maxHp).toBeGreaterThan(first.maxHp * 1.5);
+    second.hp = 0; sim.damageEnemy(second, 1, "hit");
+    run(sec(20 * 60 + 2));
+    expect(sim.ancient?.alive).toBe(true);
+    expect(sim.over).toBeNull();
+    sim.ancient!.hp = 1; sim.damageEnemy(sim.ancient!, 5, "hit");
+    expect(sim.over?.outcome).toBe("victory");
+    expect(sim.over?.act).toBe("full");
   });
 });

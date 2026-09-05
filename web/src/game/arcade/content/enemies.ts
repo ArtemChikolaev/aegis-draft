@@ -17,6 +17,12 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   },
   golem: { id: "golem", hp: 950, speed: 50, dmg: 40, r: 24, xp: 40, gold: 15, elite: true, fromMin: 99, weight: 0, tone: "elite" },
   roshan: { id: "roshan", hp: 4200, speed: 68, dmg: 26, r: 40, xp: 120, gold: 60, boss: true, fromMin: 99, weight: 0, tone: "boss" },
+  // Как в Dota: стоит на месте и отражает урон — бой с ним добровольный.
+  tormentor: { id: "tormentor", hp: 3600, speed: 0, dmg: 30, r: 26, xp: 90, gold: 45, elite: true, reflect: 0.25, unstoppable: true, fromMin: 99, weight: 0, tone: "elite" },
+  ancient: {
+    id: "ancient", hp: 9000, speed: 0, dmg: 55, r: 58, xp: 300, gold: 200, structure: true, unstoppable: true, fromMin: 99, weight: 0, tone: "boss",
+    ranged: { range: 560, every: 1.0, speed: 280 },
+  },
 };
 
 /** Пул обычного спавна на минуте `min` (виды, доступные к этому времени). */
