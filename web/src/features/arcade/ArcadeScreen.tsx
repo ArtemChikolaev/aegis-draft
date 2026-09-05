@@ -23,6 +23,7 @@ import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, 
 import { useHero } from "../draft/heroes.ts";
 import { ArcadeInputController } from "./input.ts";
 import { heroHitSfx, heroSpinSfx, heroVoice, preloadHeroSfx, preloadHeroVoice, resetHeroSfx } from "./heroSfx.ts";
+import { ensureMusic, stopMusic } from "./music.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
@@ -152,7 +153,7 @@ function ArcadeSetup() {
           </div>
           <ul className="arcade-setup__kit">
             {(["q", "w", "e", "r"] as const).map((key) => (
-              <li key={key}><b>{key.toUpperCase()}</b> <span>{t(`arcade.ab.${HEROES[heroId].kit}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${HEROES[heroId].kit}.${key}.desc` as MessageKey)}</small></li>
+              <li key={key}><AbilityIcon hero={heroId} k={key} size={30} /> <span>{t(`arcade.ab.${HEROES[heroId].kit}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${HEROES[heroId].kit}.${key}.desc` as MessageKey)}</small></li>
             ))}
             {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey)}</small></li>}
           </ul>
@@ -339,6 +340,8 @@ function ArcadeStage() {
         if (sim.pending && !wasPending) heroVoice(sim.hero.id, "level", now, 0.45, 20000);
       }
       if (sim.over && !wasOver) { wasOver = true; heroVoice(sim.hero.id, sim.player.hp <= 0 ? "death" : "kill", now); }
+      // Музыка: боевые темы по кругу, тема Рошана пока он жив; на паузе и после конца — тишина.
+      ensureMusic(sim.over || statusRef.current !== "running" ? "off" : sim.roshan?.alive ? "roshan" : "battle");
       if (ev.ults > seen.ults) sfxArcade("ult");
       else if (ev.casts > seen.casts) sfxArcade("cast");
       if (ev.hurt > seen.hurt) { sfxArcade("hurt"); hurtUntil = now + 140; }
@@ -367,6 +370,7 @@ function ArcadeStage() {
     return () => {
       cancelAnimationFrame(raf);
       resetHeroSfx();
+      stopMusic();
       ro.disconnect();
       controller.dispose();
       controllerRef.current = null;
@@ -444,6 +448,7 @@ function ArcadeStage() {
                       onPointerDown={(e) => { e.stopPropagation(); cast(key); }}
                       title={t(`arcade.ab.${sim.hero.kit}.${key}` as MessageKey)}
                     >
+                      <AbilityIcon hero={sim.hero.id} k={key} size={30} />
                       <b>{key.toUpperCase()}</b>
                       <small>{lvl > 0 ? `${t("arcade.hud.lvlShort")}${lvl}` : "—"}</small>
                       {cd > 0 && cdTotal > 0 && <i style={{ height: `${(cd / cdTotal) * 100}%` }} />}
@@ -526,6 +531,18 @@ function ArcadeStage() {
                   );
                 })}
               </div>
+              {sim.player.items.length > 0 && (
+                <div className="arcade-shop__owned" data-testid="arcade-shop-owned">
+                  <span className="arcade-shop__owned-title">{t("arcade.shop.owned")}</span>
+                  {sim.player.items.map((it, i) => (
+                    <button key={`${it.id}-${i}`} type="button" className="arcade-shop__sell" data-rarity={it.rarity} data-testid={`arcade-shop-sell-${i}`} title={t(`arcade.item.${it.id}.desc` as MessageKey)} onClick={() => shopAct(SHOP_ACT.sellBase + i)}>
+                      <ItemIcon slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" />
+                      <span>{t(`arcade.item.${it.id}` as MessageKey)}</span>
+                      <small>{t("arcade.shop.sell", { gold: sim.itemSellPrice(it) })}</small>
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="arcade-overlay__actions arcade-shop__actions">
                 <Button variant="secondary" disabled={sim.player.gold < sim.shopRerollPrice()} onClick={() => shopAct(SHOP_ACT.reroll)}>{t("arcade.shop.reroll", { gold: sim.shopRerollPrice() })}</Button>
                 <Button variant="primary" data-testid="arcade-shop-close" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.shop.close")}</Button>
@@ -621,6 +638,13 @@ function ArcadeStage() {
   );
 }
 
+/** Иконка способности из Dota (`art/abilities/<hero>_<q|w|e|r>.png`, scripts/dota_ability_icons.sh); нет файла — просто буква. */
+function AbilityIcon({ hero, k, size = 28 }: { hero: string; k: AbilityKey; size?: number }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <b className="arcade-ability-icon arcade-ability-icon--fallback" style={{ width: size, height: size }}>{k.toUpperCase()}</b>;
+  return <img className="arcade-ability-icon" src={`${import.meta.env.BASE_URL}art/abilities/${hero}_${k}.png`} alt="" width={size} height={size} draggable={false} onError={() => setFailed(true)} />;
+}
+
 function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPick: () => void }) {
   const { t } = useI18n();
   const sim = getArcadeSim();
@@ -628,7 +652,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
     const lvl = (sim?.player.abilities[offer.key] ?? 0) + 1;
     return (
       <button type="button" className="arcade-offer" data-kind="ability" data-testid={`arcade-offer-${index}`} onClick={onPick}>
-        <span className="arcade-offer__tag">{t("arcade.offer.ability")} · {offer.key.toUpperCase()}</span>
+        <span className="arcade-offer__tag"><AbilityIcon hero={sim?.hero.id ?? "juggernaut"} k={offer.key} size={36} /> {t("arcade.offer.ability")} · {offer.key.toUpperCase()}</span>
         <strong>{t(`arcade.ab.${sim?.hero.kit ?? "juggernaut"}.${offer.key}` as MessageKey)}</strong>
         <small>{t("arcade.offer.point", { lvl })}</small>
         <p>{t(`arcade.ab.${sim?.hero.kit ?? "juggernaut"}.${offer.key}.desc` as MessageKey)}</p>

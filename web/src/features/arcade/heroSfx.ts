@@ -34,10 +34,12 @@ let lastHit = 0;
 let hitIndex = 0;
 
 /** Слой попадания поверх свиста удара героя (в Dota удар = замах + удар по плоти): клинок / тяжёлое / тупое; у стрелков — их impact. */
-const IMPACT: Record<string, "blade" | "heavy" | "blunt" | "none"> = {
+const IMPACT: Record<string, "blade" | "heavy" | "blunt" | "light" | "none"> = {
   juggernaut: "blade", phantom_assassin: "blade", anti_mage: "blade", faceless_void: "blunt", axe: "heavy", sven: "heavy", tidehunter: "heavy",
-  ursa: "blunt", bristleback: "blunt", crystal_maiden: "none", sniper: "none", zeus: "none", lina: "none", lich: "none", drow_ranger: "none", windranger: "none",
-  storm_spirit: "none", leshrac: "none", lion: "none", shadow_fiend: "none", pugna: "none", invoker: "none", mirana: "none", clinkz: "none",
+  ursa: "blunt", bristleback: "blunt",
+  // Стрелки: у кого есть свой impact в файлах Dota — он (см. else-ветка), у остальных — лёгкий удар снаряда по плоти.
+  crystal_maiden: "none", sniper: "none", lich: "none", lion: "none", pugna: "none", drow_ranger: "none", lina: "none",
+  zeus: "light", windranger: "light", storm_spirit: "light", leshrac: "light", shadow_fiend: "light", invoker: "light", mirana: "light", clinkz: "light",
 };
 
 /** Удар героя: true — сыграли сэмпл Dota (или он на подходе), false — клипов нет, играй синтетику. Не чаще раза в 45 мс. */

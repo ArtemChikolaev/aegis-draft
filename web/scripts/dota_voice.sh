@@ -61,4 +61,5 @@ sh="$OUT/shared"; mkdir -p "$sh"
 i=0; for f in $(find "$sh" -name 'sword_impact*.wav' | sort | head -3); do i=$((i+1)); conv "$f" "$DEST/shared/blade_$i.m4a"; done
 i=0; for f in $(find "$sh" -name 'heavy_blade_impact*.wav' | sort | head -3); do i=$((i+1)); conv "$f" "$DEST/shared/heavy_$i.m4a"; done
 i=0; for f in $(find "$sh" -name 'body_impact_medium_*.wav' | sort | head -3); do i=$((i+1)); conv "$f" "$DEST/shared/blunt_$i.m4a"; done
+i=0; for f in $(find "$sh" -name 'body_impact_light_*.wav' | sort | head -3); do i=$((i+1)); conv "$f" "$DEST/shared/light_$i.m4a"; done
 ls "$DEST/shared"; du -sh "$DEST/voice" "$DEST/shared"

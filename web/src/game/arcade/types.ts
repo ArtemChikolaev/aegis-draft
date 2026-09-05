@@ -16,7 +16,8 @@ export interface ArcadeInput {
   act: number;
 }
 
-export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5 } as const;
+/** Действия лавки/нейтралки/лута в `ArcadeInput.act`; 10..15 — продать предмет из слота (act − 10) за половину цены (владелец 2026-09-06: «нельзя поменять предмет»). */
+export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5, sellBase: 10 } as const;
 
 export const IDLE_INPUT: Readonly<ArcadeInput> = Object.freeze({ mx: 0, my: 0, cast: 0, choose: -1, act: 0 });
 

@@ -39,6 +39,7 @@ import {
   type Shard,
   type Shrine,
   type Spot,
+  SHOP_ACT,
 } from "./types.ts";
 
 /** 16 направлений по кругу — константы вместо Math.cos/sin (детерминизм между движками). */
@@ -1402,7 +1403,20 @@ export class ArcadeSim {
       this.shopOpen = false;
       // Торговец уходит, чтобы игрок не открывал лавку заново каждым касанием.
       this.shopkeeper.alive = false;
+    } else if (act >= SHOP_ACT.sellBase && act < SHOP_ACT.sellBase + ARCADE.shop.slots) {
+      // Продажа: слот освобождается, половина цены возвращается — так можно поменять предмет, когда слоты полны.
+      const idx = act - SHOP_ACT.sellBase;
+      const owned = p.items[idx];
+      if (!owned) return;
+      p.gold += this.itemSellPrice(owned);
+      p.items.splice(idx, 1);
+      this.recomputeStats();
     }
+  }
+
+  itemSellPrice(owned: { id: string; rarity: Rarity }): number {
+    const def = ARCADE_ITEM_BY_ID[owned.id];
+    return def ? Math.round(def.price * ITEM_PRICE_MULT[owned.rarity] * 0.5) : 0;
   }
 
   // ---------- экипировка (добыча) ----------
