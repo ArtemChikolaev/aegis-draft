@@ -10,13 +10,15 @@ import type { MessageKey } from "../../i18n/core.ts";
 import { ARCADE, DT, TICK_HZ } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID } from "../../game/arcade/content/schools.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
-import { ARCADE_ITEM_BY_ID } from "../../game/arcade/content/items.ts";
+import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
+import { preloadArcadeArt } from "./sprites.ts";
 import { IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS, SHARD_PRICE } from "../../game/arcade/content/cosmetics.ts";
-import { NEUTRAL_BY_ID } from "../../game/arcade/content/neutrals.ts";
+import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
@@ -96,7 +98,7 @@ function ArcadeSetup() {
               const def = HEROES[id];
               const info = heroOf(def.dotaId);
               return (
-                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); }}>
+                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); void preloadArcadeArt(id, Object.keys(ENEMY_KINDS), "short"); }}>
                   <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
                   <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
                 </button>
@@ -274,6 +276,10 @@ function ArcadeStage() {
   const statusRef = useRef(status);
   statusRef.current = status;
   void serial;
+  // Загрузка арта перед стартом: сим стоит, показываем «Загрузка…», чтобы не мелькали риги и голая земля.
+  const [loading, setLoading] = useState(true);
+  const loadingRef = useRef(true);
+  loadingRef.current = loading;
 
   useEffect(() => {
     const canvas = canvasRef.current, stage = stageRef.current;
@@ -287,6 +293,9 @@ function ArcadeStage() {
     controllerRef.current = controller;
     controller.onPause = () => {
       const s = useArcade.getState();
+      const cur = getArcadeSim();
+      // Пока открыт выбор прокачки/лавка/лут — игра и так стоит; пауза поверх карточек только путает (фидбэк владельца).
+      if (cur && (cur.pending || cur.shopOpen || cur.neutralOpen || cur.lootOpen)) return;
       if (s.status === "running") s.pause(); else if (s.status === "paused") s.resume();
     };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
@@ -315,7 +324,7 @@ function ArcadeStage() {
       // Hit-stop (R15-лестница): смерть элиты/босса замораживает мир на несколько кадров — только
       // здесь, в цикле экрана; сим о паузе не знает, детерминизм не трогается.
       if (hitStop > 0) { hitStop--; acc = 0; }
-      else if (statusRef.current === "running" && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.over) {
+      else if (statusRef.current === "running" && !loadingRef.current && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.over) {
         acc += dt;
         let steps = 0;
         while (acc >= DT && steps < 5) {
@@ -327,7 +336,7 @@ function ArcadeStage() {
       }
       // Дельты счётчиков сима → звук и juice. Пакет Dota (soundscape) первичен, синтетика — фолбэк.
       const ev = sim.events;
-      const handled = scape.frame(sim, now, statusRef.current === "running");
+      const handled = scape.frame(sim, now, statusRef.current === "running" && !loadingRef.current);
       if (ev.eliteKills > seen.eliteKills) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 6; }
       else if (ev.kills > seen.kills && !handled.kill) sfxArcade("kill");
       // Удары — сэмплы Dota героя (heroSfx), синтетика остаётся фолбэком.
@@ -335,7 +344,7 @@ function ArcadeStage() {
       else if (ev.hits > seen.hits) { if (!heroHitSfx(sim.hero.id, false, now)) sfxArcade("hit"); }
       heroSpinSfx(sim.hero.id, sim.tick < sim.player.spinUntil && !sim.over && statusRef.current === "running");
       // Реплики героя.
-      if (!spoke && sim.tick > 30 && statusRef.current === "running") { spoke = true; heroVoice(sim.hero.id, "spawn", now); nextMoveLine = now + 20000 + Math.random() * 15000; }
+      if (!spoke && sim.tick > 30 && statusRef.current === "running" && !loadingRef.current) { spoke = true; heroVoice(sim.hero.id, "spawn", now); nextMoveLine = now + 20000 + Math.random() * 15000; }
       if (!sim.over && statusRef.current === "running") {
         const moved = Math.abs(sim.player.x - lastPx) + Math.abs(sim.player.y - lastPy) > 0.5;
         lastPx = sim.player.x; lastPy = sim.player.y;
@@ -349,7 +358,7 @@ function ArcadeStage() {
       }
       if (sim.over && !wasOver) { wasOver = true; heroVoice(sim.hero.id, sim.player.hp <= 0 ? "death" : "kill", now); }
       // Музыка: боевые темы по кругу, тема Рошана пока он жив; на паузе и после конца — тишина.
-      ensureMusic(sim.over || statusRef.current !== "running" ? "off" : sim.roshan?.alive ? "roshan" : "battle");
+      ensureMusic(sim.over || statusRef.current !== "running" || loadingRef.current ? "off" : sim.roshan?.alive ? "roshan" : "battle");
       if (ev.ults > seen.ults) sfxArcade("ult");
       else if (ev.casts > seen.casts) sfxArcade("cast");
       if (ev.hurt > seen.hurt) { if (!handled.hurt) sfxArcade("hurt"); hurtUntil = now + 140; }
@@ -375,7 +384,12 @@ function ArcadeStage() {
     document.addEventListener("visibilitychange", onVisibility);
     preloadHeroSfx(heroDef.id);
     preloadHeroVoice(heroDef.id);
+    const simNow = getArcadeSim();
+    let cancelled = false;
+    setLoading(true);
+    void preloadArcadeArt(heroDef.id, Object.keys(ENEMY_KINDS), simNow?.act ?? "short").then(() => { if (!cancelled) setLoading(false); });
     return () => {
+      cancelled = true;
       cancelAnimationFrame(raf);
       resetHeroSfx();
       stopMusic();
@@ -436,7 +450,7 @@ function ArcadeStage() {
               </div>
               {(p.items.length > 0 || p.neutral) && (
                 <div className="arcade-hud__items" data-testid="arcade-items">
-                  {p.neutral && <span className="arcade-hud__item arcade-hud__item--neutral" title={t(`arcade.neutral.${p.neutral}` as MessageKey)}><b>N</b></span>}
+                  {p.neutral && <span className="arcade-hud__item arcade-hud__item--neutral" title={`${p.neutralEnchant ? `${t(`arcade.enchant.${p.neutralEnchant}` as MessageKey)} ` : ""}${t(`arcade.neutral.${p.neutral}` as MessageKey)}`}><ItemIcon pixel={PX} slug={p.neutral} name={p.neutral} size="sm" />{p.neutralEnchant && <b className="arcade-hud__stack">✦</b>}</span>}
                   {Object.values(p.items.reduce<Record<string, { id: string; rarity: string; n: number }>>((acc, it) => { const k = `${it.id}:${it.rarity}`; acc[k] = acc[k] ? { ...acc[k], n: acc[k].n + 1 } : { id: it.id, rarity: it.rarity, n: 1 }; return acc; }, {})).map((g) => (
                     <span key={`${g.id}:${g.rarity}`} className="arcade-hud__item" data-rarity={g.rarity} title={`${t(`arcade.item.${g.id}` as MessageKey)}${g.n > 1 ? ` ×${g.n} · ${t("arcade.shop.stacks")}` : ""}`}>
                       <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[g.id]?.art ?? g.id} name={g.id} size="sm" />
@@ -472,6 +486,11 @@ function ArcadeStage() {
                 })}
               </div>
             </div>
+          </div>
+        )}
+        {loading && (
+          <div className="arcade-overlay arcade-overlay--loading" data-testid="arcade-loading">
+            <div className="arcade-overlay__card"><Eyebrow>{t("arcade.loading.eyebrow")}</Eyebrow><h2>{t("arcade.loading.title")}</h2><p>{t("arcade.loading.hint")}</p></div>
           </div>
         )}
         {status === "paused" && sim && !sim.over && (
@@ -513,9 +532,10 @@ function ArcadeStage() {
               <div className="arcade-offers">
                 {sim.neutralOffers.map((n, i) => (
                   <button key={n.id} type="button" className="arcade-offer" data-kind="neutral" data-testid={`arcade-neutral-${i}`} onClick={() => shopAct(i + 1)}>
-                    <span className="arcade-offer__tag">{t("arcade.neutral.tier", { tier: n.tier })}</span>
-                    <strong>{t(`arcade.neutral.${n.id}` as MessageKey)}</strong>
+                    <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={n.id} name={n.id} size="sm" /> {t("arcade.neutral.tier", { tier: n.tier })}</span>
+                    <strong>{sim.neutralEnchants[i] ? `${t(`arcade.enchant.${sim.neutralEnchants[i]}` as MessageKey)} ` : ""}{t(`arcade.neutral.${n.id}` as MessageKey)}</strong>
                     <p>{t(`arcade.neutral.${n.id}.desc` as MessageKey)}</p>
+                    <StatList effects={[{ e: n.effect, m: 1 }, ...(sim.neutralEnchants[i] && NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]] ? [{ e: NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]].effect, m: n.tier, extra: true }] : [])]} />
                   </button>
                 ))}
               </div>
@@ -540,7 +560,8 @@ function ArcadeStage() {
                       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
                       <strong>{t(`arcade.item.${offer.id}` as MessageKey)}</strong>
                       <small>{t("arcade.shop.price", { gold: offer.price })}{sim.player.items.filter((it) => it.id === offer.id).length > 0 && <> · {t("arcade.shop.haveN", { n: sim.player.items.filter((it) => it.id === offer.id).length })}</>}</small>
-                      <p>{t(`arcade.item.${offer.id}.desc` as MessageKey)}</p>
+                      <StatList effects={itemEffectsAt(def, offer.rarity)} />
+                      {(offer.rarity === "standard" || offer.rarity === "refined") && def.extras && <small className="arcade-offer__more">{t("arcade.shop.moreAtExotic")}</small>}
                     </button>
                   );
                 })}
@@ -650,6 +671,39 @@ function ArcadeStage() {
         </Modal>
       )}
     </main>
+  );
+}
+
+/** Строки эффектов предмета с учётом множителя редкости: «+4 регенерации/с», «+20% крит»… (владелец 2026-09-06: «не видно, что даёт качество»). */
+function statLines(t: (k: MessageKey, v?: Record<string, string | number>) => string, effects: { e: ItemEffect; m: number; extra?: boolean }[]): { text: string; extra: boolean }[] {
+  const out: { text: string; extra: boolean }[] = [];
+  const pct = (v: number) => `${v > 0 ? "+" : ""}${Math.round(v * 100)}%`;
+  const num = (v: number, d = 0) => `${v > 0 ? "+" : ""}${d ? v.toFixed(d) : Math.round(v)}`;
+  for (const { e, m, extra } of effects) {
+    const add = (key: MessageKey, v: Record<string, string | number>) => out.push({ text: t(key, v), extra: !!extra });
+    if (e.regen) add("arcade.stat.regen", { v: num(e.regen * m, 1) });
+    if (e.lifesteal) add("arcade.stat.lifesteal", { v: pct(e.lifesteal * m) });
+    if (e.armor) add("arcade.stat.armor", { v: num(e.armor * m) });
+    if (e.attackSpeed) add("arcade.stat.attackSpeed", { v: pct(e.attackSpeed * m) });
+    if (e.crit) add("arcade.stat.crit", { v: pct(e.crit * m) });
+    if (e.damage) add("arcade.stat.damage", { v: num(e.damage * m) });
+    if (e.moveSpeed) add("arcade.stat.moveSpeed", { v: pct(e.moveSpeed * m) });
+    if (e.maxHp) add("arcade.stat.maxHp", { v: num(e.maxHp * m) });
+    if (e.goldPerKill) add("arcade.stat.goldPerKill", { v: num(e.goldPerKill * m) });
+    if (e.xpMult) add("arcade.stat.xpMult", { v: pct(e.xpMult * m) });
+    if (e.cleave) add("arcade.stat.cleave", { v: (e.cleave * m).toFixed(1) });
+    if (e.cooldown) add("arcade.stat.cooldown", { v: pct(e.cooldown * m) });
+    if (e.stunImmune) out.push({ text: t("arcade.stat.stunImmune"), extra: !!extra });
+  }
+  return out;
+}
+
+function StatList({ effects }: { effects: { e: ItemEffect; m: number; extra?: boolean }[] }) {
+  const { t } = useI18n();
+  return (
+    <ul className="arcade-stats">
+      {statLines(t, effects).map((l, i) => <li key={i} data-extra={l.extra ? "true" : undefined}>{l.text}</li>)}
+    </ul>
   );
 }
 

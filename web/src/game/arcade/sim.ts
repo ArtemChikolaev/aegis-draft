@@ -13,9 +13,9 @@ import { ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
-import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, ITEM_RARITY_MULT, type ShopOffer } from "./content/items.ts";
+import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
 import { HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
-import { NEUTRAL_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
+import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
 import { gearEffect, rollGear, uniqueGear, type GearItem } from "./content/gear.ts";
 import {
   IDLE_INPUT,
@@ -85,6 +85,8 @@ export class ArcadeSim {
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
   neutralOffers: NeutralDef[] = [];
+  /** Зачарования к предложенным нейтралкам (параллельно neutralOffers). */
+  neutralEnchants: string[] = [];
   private neutralIdx = 0;
   /** Добыча: сундук на карте, предметы на земле, открытый экран подбора (мир стоит). */
   chest: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
@@ -149,7 +151,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
-      schools: [], upgrades: {}, talents: [], items: [], neutral: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
+      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
@@ -1500,6 +1502,7 @@ export class ArcadeSim {
     while (offers.length < 2 && pool.length > 0) offers.push(pool.splice(this.rng.int(pool.length), 1)[0]);
     this.neutralToken.alive = false;
     this.neutralOffers = offers;
+    this.neutralEnchants = offers.map(() => NEUTRAL_ENCHANTS[this.rng.int(NEUTRAL_ENCHANTS.length)].id);
     this.neutralOpen = true;
   }
 
@@ -1509,6 +1512,7 @@ export class ArcadeSim {
       const def = this.neutralOffers[act - 1];
       if (!def) return;
       p.neutral = def.id;
+      p.neutralEnchant = this.neutralEnchants[act - 1] ?? null;
       this.recomputeStats();
       this.pushFx("levelup", p.x, p.y, 0, 0, 30);
       this.neutralOpen = false;
@@ -1625,9 +1629,13 @@ export class ArcadeSim {
     const effects: { e: (typeof ARCADE_ITEMS)[number]["effect"]; m: number }[] = [];
     for (const owned of p.items) {
       const def = ARCADE_ITEM_BY_ID[owned.id];
-      if (def) effects.push({ e: def.effect, m: ITEM_RARITY_MULT[owned.rarity] });
+      if (def) for (const fx of itemEffectsAt(def, owned.rarity)) effects.push({ e: fx.e, m: fx.m });
     }
-    if (p.neutral && NEUTRAL_BY_ID[p.neutral]) effects.push({ e: NEUTRAL_BY_ID[p.neutral].effect, m: 1 });
+    if (p.neutral && NEUTRAL_BY_ID[p.neutral]) {
+      effects.push({ e: NEUTRAL_BY_ID[p.neutral].effect, m: 1 });
+      const ench = p.neutralEnchant ? NEUTRAL_ENCHANT_BY_ID[p.neutralEnchant] : undefined;
+      if (ench) effects.push({ e: ench.effect, m: NEUTRAL_BY_ID[p.neutral].tier });
+    }
     for (const g of Object.values(p.gear)) effects.push({ e: gearEffect(g as GearItem), m: 1 });
     for (const { e, m } of effects) {
       if (e.regen) s.regen += e.regen * m;

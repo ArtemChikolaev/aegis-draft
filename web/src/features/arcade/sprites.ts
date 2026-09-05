@@ -298,3 +298,20 @@ export function dotaTerrain(name: string): HTMLImageElement | null {
   return ready(el) ? el : null;
 }
 export function pixelSheetsOn(): boolean { return pixelSheets; }
+
+/**
+ * Предзагрузка арта забега (владелец 2026-09-06: «на мгновение видна другая моделька и карта»): лист героя,
+ * враги акта, земля и пропсы. Резолвится, когда всё загрузилось или отвалилось, не дольше `timeoutMs`.
+ */
+export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act: string, timeoutMs = 6000): Promise<void> {
+  const sheets = [hero, ...enemyIds, "tree_oak", "tree_pine", "rock"];
+  const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
+  const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
+  kick();
+  const ready = () => sheets.every((n) => dotaSheets.get(n) !== "loading" && dotaSheets.get(n) !== undefined) && terrain.every((t) => { const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${t}.png`, ROOT); return el === null || (!!el && el.complete); });
+  return new Promise((resolve) => {
+    const started = Date.now();
+    const tick = () => { if (ready() || Date.now() - started > timeoutMs) resolve(); else window.setTimeout(tick, 50); };
+    tick();
+  });
+}

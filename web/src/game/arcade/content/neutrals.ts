@@ -12,6 +12,23 @@ export interface NeutralDef {
 
 export const NEUTRAL_TIER_AT_MIN: readonly number[] = [2, 5, 9, 13, 17];
 
+/** Зачарования нейтралок (как в Dota 7.39: у нейтрального предмета случайный модификатор-префикс со своим бонусом).
+ *  Величина ×тир предмета, чтобы зачарование поздней нейтралки было заметнее. */
+export interface NeutralEnchantDef { id: string; effect: ArcadeItemDef["effect"] }
+export const NEUTRAL_ENCHANTS: readonly NeutralEnchantDef[] = [
+  { id: "blooded", effect: { lifesteal: 0.03 } },
+  { id: "swift", effect: { moveSpeed: 0.03 } },
+  { id: "keen", effect: { crit: 0.04 } },
+  { id: "stalwart", effect: { armor: 2 } },
+  { id: "vital", effect: { maxHp: 60 } },
+  { id: "arcane", effect: { cooldown: 0.04 } },
+  { id: "greedy", effect: { goldPerKill: 1 } },
+  { id: "wise", effect: { xpMult: 0.05 } },
+  { id: "furious", effect: { attackSpeed: 0.08 } },
+  { id: "sharp", effect: { damage: 6 } },
+];
+export const NEUTRAL_ENCHANT_BY_ID: Record<string, NeutralEnchantDef> = Object.fromEntries(NEUTRAL_ENCHANTS.map((e) => [e.id, e]));
+
 export const NEUTRALS: readonly NeutralDef[] = [
   { id: "arcane_ring", tier: 1, effect: { cooldown: 0.05, regen: 1 } },
   { id: "broom_handle", tier: 1, effect: { damage: 8 } },

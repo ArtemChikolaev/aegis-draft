@@ -289,6 +289,8 @@ export interface Player {
   items: { id: string; rarity: Rarity }[];
   /** Нейтральный слот (один): id из content/neutrals.ts или null. */
   neutral: string | null;
+  /** Зачарование надетой нейтралки (content/neutrals.ts NEUTRAL_ENCHANTS) или null. */
+  neutralEnchant: string | null;
   /** Экипировка (T13.14): надетое по слотам и сумка забега. Типы — content/gear.ts (без импорта: цикл). */
   gear: Record<string, GearLike>;
   bag: GearLike[];

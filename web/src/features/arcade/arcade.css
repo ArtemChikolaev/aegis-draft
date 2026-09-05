@@ -181,3 +181,13 @@
 /* Стаки одинаковых предметов в HUD (владелец 2026-09-06: «не понимаю, складываются ли») */
 .arcade-hud__item { position: relative; }
 .arcade-hud__stack { position: absolute; right: -4px; bottom: -4px; padding: 0 4px; border-radius: 6px; background: var(--surface-invert); color: var(--on-invert); font: 800 10px var(--font-display); line-height: 14px; }
+
+/* Загрузка арта перед стартом — поверх всего, пауза поверх карточек не показывается (Esc игнорируется при выборе) */
+.arcade-overlay--loading { z-index: 4; }
+.arcade-overlay--loading .arcade-overlay__card p { margin: 0; color: var(--muted); font-size: 13px; }
+
+/* Список эффектов предмета/нейтралки; extra — открытые редкостью или зачарованием */
+.arcade-stats { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; }
+.arcade-stats li { padding: 2px 8px; border-radius: 999px; background: var(--surface-soft, var(--surface)); font-size: 12px; font-weight: 600; }
+.arcade-stats li[data-extra] { background: color-mix(in srgb, var(--rarity-arcana, var(--gold)) 18%, var(--surface)); color: var(--text); }
+.arcade-offer__more { color: var(--muted); font-size: 11px; }
