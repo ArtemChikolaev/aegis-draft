@@ -8,7 +8,8 @@
 export type Dir = 0 | 1 | 2 | 3; // up, left, down, right — порядок рядов LPC
 export type CharAnim = "walk" | "slash" | "thrust" | "bow" | "spellcast" | "hurt";
 
-const BASE = `${import.meta.env.BASE_URL}art/sprites/lpc/`;
+const ROOT = `${import.meta.env.BASE_URL}art/sprites/`;
+const BASE = `${ROOT}lpc/`;
 const FOLDER: Record<CharAnim, string> = { walk: "walkcycle", slash: "slash", thrust: "thrust", bow: "bow", spellcast: "spellcast", hurt: "hurt" };
 /** Кадров в ряду по анимации (hurt — один ряд из 6). */
 export const FRAMES: Record<CharAnim, number> = { walk: 9, slash: 6, thrust: 8, bow: 13, spellcast: 7, hurt: 6 };
@@ -56,12 +57,12 @@ const images = new Map<string, HTMLImageElement | null>();
 const composites = new Map<string, HTMLCanvasElement | null>();
 let version = 0;
 
-function img(path: string): HTMLImageElement | null | undefined {
+function img(path: string, root = BASE): HTMLImageElement | null | undefined {
   if (images.has(path)) return images.get(path);
   const el = new Image();
   el.onload = () => { version++; };
   el.onerror = () => { images.set(path, null); version++; };
-  el.src = BASE + path;
+  el.src = root + path;
   images.set(path, el);
   return el;
 }
@@ -191,4 +192,73 @@ export function heroLook(kit: string, tint: string): CharSpec {
     default:
       return { body: "male", layers: ["LEGS_robe_skirt", "TORSO_robe_shirt_brown", "HEAD_robe_hood"], weapon: "staff", tint, scale: 1.15 };
   }
+}
+
+/* ─── Листы из моделей Dota 2 (путь А, docs/arcade-dota-sprites.md) ───
+   `dota/<id>.json` + `dota/<id>.png`: строки = анимация × направление, колонки = кадры. Есть лист —
+   он главнее LPC и ригов. Загрузка ленивая; 404 = «нет», без повторных запросов. */
+export interface DotaMeta {
+  name: string;
+  frame: number;
+  dirs: number;
+  fps: number;
+  world: number;
+  anchor: { x: number; y: number };
+  anims: Record<string, { row: number; frames: number }>;
+}
+
+export interface DotaSheet {
+  img: HTMLImageElement;
+  meta: DotaMeta;
+}
+
+const dotaSheets = new Map<string, DotaSheet | null | "loading">();
+
+export function dotaSheet(name: string): DotaSheet | null {
+  const v = dotaSheets.get(name);
+  if (v === undefined) {
+    dotaSheets.set(name, "loading");
+    fetch(`${ROOT}dota/${name}.json`)
+      .then((r) => (r.ok ? (r.json() as Promise<DotaMeta>) : null))
+      .then((meta) => {
+        if (!meta || !meta.anims) { dotaSheets.set(name, null); version++; return; }
+        const el = new Image();
+        el.onload = () => { dotaSheets.set(name, { img: el, meta }); version++; };
+        el.onerror = () => { dotaSheets.set(name, null); version++; };
+        el.src = `${ROOT}dota/${name}.png`;
+      })
+      .catch(() => { dotaSheets.set(name, null); version++; });
+    return null;
+  }
+  return v === "loading" ? null : v;
+}
+
+/** Индекс направления листа Dota: 0 = лицом к камере (вниз по экрану), далее против часовой
+ *  на экране (вниз → вправо → вверх → влево) — так вращает модель Blender-скрипт (+Z). */
+export function dotaDir(dx: number, dy: number, dirs: number): number {
+  if (dx === 0 && dy === 0) return 0;
+  const angle = Math.atan2(dx, dy); // 0 = вниз, +90° = вправо
+  const step = (Math.PI * 2) / dirs;
+  return ((Math.round(angle / step) % dirs) + dirs) % dirs;
+}
+
+/** Нарисовать кадр листа Dota якорем ног в (x, y). Нет анимации — падаем на walk/idle; false — нечего рисовать. */
+export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, anim: string, dir: number, frame: number, x: number, y: number, alpha = 1, sizeMult = 1): boolean {
+  const m = sheet.meta;
+  const a = m.anims[anim] ?? (anim === "attack" || anim === "idle" ? m.anims.walk ?? m.anims.idle : anim === "walk" ? m.anims.idle : undefined);
+  if (!a) return false;
+  const row = a.row + (dir % m.dirs);
+  const f = a.frames > 0 ? ((frame % a.frames) + a.frames) % a.frames : 0;
+  const scale = (m.world / m.frame) * sizeMult;
+  const w = m.frame * scale;
+  c.globalAlpha = alpha;
+  c.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
+  c.globalAlpha = 1;
+  return true;
+}
+
+/** Бесшовная текстура земли Dota (`dota/terrain/<name>.png`), если положена. */
+export function dotaTerrain(name: string): HTMLImageElement | null {
+  const el = img(`dota/terrain/${name}.png`, ROOT);
+  return ready(el) ? el : null;
 }

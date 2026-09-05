@@ -6,7 +6,7 @@
 import { Rng } from "../../game/rng.ts";
 import { ARCADE } from "../../game/arcade/config.ts";
 import type { ActId } from "../../game/arcade/types.ts";
-import { tileImage } from "./sprites.ts";
+import { dotaTerrain, tileImage } from "./sprites.ts";
 
 export const CHUNK = 512;
 const TILE = 64;
@@ -125,6 +125,26 @@ export class Terrain {
     const treetop = tileImage("treetop"), rock = tileImage("rock");
     c.imageSmoothingEnabled = false;
     const night = this.act === "dire";
+    // Текстуры земли Dota (docs/arcade-dota-sprites.md §4): бесшовный паттерн важнее тайлов LPC.
+    const dGrass = dotaTerrain(night ? "grass_dire" : "grass") ?? dotaTerrain("grass");
+    const dDirt = dotaTerrain("dirt"), dWater = dotaTerrain("water");
+    if (dGrass) {
+      c.imageSmoothingEnabled = true;
+      const pat = (im: HTMLImageElement) => { const pt = c.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(0.5)); return pt; };
+      c.fillStyle = pat(dGrass);
+      c.fillRect(0, 0, CHUNK, CHUNK);
+      const dirtPat = dDirt ? pat(dDirt) : null, waterPat = dWater ? pat(dWater) : null;
+      for (let ty = 0; ty < n; ty++) for (let tx = 0; tx < n; tx++) {
+        const gx = t0x + tx, gy = t0y + ty;
+        const v = this.tileAt(gx, gy);
+        const inRiver = this.act === "river" && Math.abs(gy * TILE + TILE / 2 - ARCADE.river.y) < ARCADE.river.halfWidth;
+        if (inRiver && waterPat) { c.fillStyle = waterPat; c.fillRect(tx * TILE, ty * TILE, TILE, TILE); }
+        else if (v === 2 && dirtPat) { c.fillStyle = dirtPat; c.fillRect(tx * TILE, ty * TILE, TILE, TILE); }
+      }
+      if (night) { c.fillStyle = pal.grassA; c.globalAlpha = 0.5; c.fillRect(0, 0, CHUNK, CHUNK); c.globalAlpha = 1; }
+      this.paintDecor(c, ox, oy, pal, treetop, rock, night);
+      return;
+    }
     for (let ty = 0; ty < n; ty++) for (let tx = 0; tx < n; tx++) {
       const gx = t0x + tx, gy = t0y + ty;
       const v = this.tileAt(gx, gy);
@@ -152,27 +172,7 @@ export class Terrain {
         if (v === 2) { c.globalAlpha = 0.35; c.fillStyle = pal.grassA; c.fillRect(px, py, TILE, 3); c.fillRect(px, py, 3, TILE); c.globalAlpha = 1; }
       }
     }
-    if (grass && treetop && rock) {
-      const x1 = ox + CHUNK + 80, y1 = oy + CHUNK + 80;
-      for (const d of this.decor) {
-        if (d.x < ox - 80 || d.y < oy - 80 || d.x > x1 || d.y > y1) continue;
-        const x = d.x - ox, y = d.y - oy;
-        if (d.kind === "tree") {
-          const sz = d.s * 2.6;
-          const pine = (Math.floor(d.x * 7 + d.y * 3) & 1) === 1;
-          c.globalAlpha = 0.3; c.fillStyle = pal.treeDark; c.beginPath(); c.ellipse(x + 4, y + sz * 0.12, sz * 0.42, sz * 0.18, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
-          if (pine) c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 96, 96, 128, x - sz / 2, y - sz * 1.1, sz, sz * 1.33);
-          else c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 0, 96, 96, x - sz / 2, y - sz * 0.85, sz, sz);
-          if (night) { c.fillStyle = pal.treeDark; c.globalAlpha = 0.45; c.beginPath(); c.arc(x, y - sz * 0.35, sz * 0.5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
-        } else if (d.kind === "rock") {
-          const sz = d.s * 3;
-          c.drawImage(rock, (Math.floor(d.x) & 1) * 32, 0, 32, 32, x - sz / 2, y - sz / 2, sz, sz);
-        } else if (d.kind === "flower") {
-          c.fillStyle = pal.tuft; c.beginPath(); c.arc(x, y, 1.8, 0, Math.PI * 2); c.fill();
-        }
-      }
-      return;
-    }
+    if (grass && treetop && rock) { this.paintDecor(c, ox, oy, pal, treetop, rock, night); return; }
     const x1 = ox + CHUNK + 40, y1 = oy + CHUNK + 40;
     for (const d of this.decor) {
       if (d.x < ox - 40 || d.y < oy - 40 || d.x > x1 || d.y > y1) continue;
@@ -195,6 +195,29 @@ export class Terrain {
           c.fillStyle = pal.tree; c.beginPath(); c.arc(x - d.s * 0.2, y - d.s * 0.25, d.s * 0.7, 0, Math.PI * 2); c.fill();
           break;
         default: break;
+      }
+    }
+  }
+
+  /** Деревья, камни и цветы поверх земли (тайлы LPC; на текстурах Dota — те же, пока нет своих). */
+  private paintDecor(c: CanvasRenderingContext2D, ox: number, oy: number, pal: TerrainPalette, treetop: HTMLImageElement | null, rock: HTMLImageElement | null, night: boolean): void {
+    const x1 = ox + CHUNK + 80, y1 = oy + CHUNK + 80;
+    c.imageSmoothingEnabled = false;
+    for (const d of this.decor) {
+      if (d.x < ox - 80 || d.y < oy - 80 || d.x > x1 || d.y > y1) continue;
+      const x = d.x - ox, y = d.y - oy;
+      if (d.kind === "tree" && treetop) {
+        const sz = d.s * 2.6;
+        const pine = (Math.floor(d.x * 7 + d.y * 3) & 1) === 1;
+        c.globalAlpha = 0.3; c.fillStyle = pal.treeDark; c.beginPath(); c.ellipse(x + 4, y + sz * 0.12, sz * 0.42, sz * 0.18, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
+        if (pine) c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 96, 96, 128, x - sz / 2, y - sz * 1.1, sz, sz * 1.33);
+        else c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 0, 96, 96, x - sz / 2, y - sz * 0.85, sz, sz);
+        if (night) { c.fillStyle = pal.treeDark; c.globalAlpha = 0.45; c.beginPath(); c.arc(x, y - sz * 0.35, sz * 0.5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
+      } else if (d.kind === "rock" && rock) {
+        const sz = d.s * 3;
+        c.drawImage(rock, (Math.floor(d.x) & 1) * 32, 0, 32, 32, x - sz / 2, y - sz / 2, sz, sz);
+      } else if (d.kind === "flower") {
+        c.fillStyle = pal.tuft; c.beginPath(); c.arc(x, y, 1.8, 0, Math.PI * 2); c.fill();
       }
     }
   }

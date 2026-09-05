@@ -10,7 +10,7 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, drawCharFrame, drawMonsterFrame, enemyLook, heroLook, spriteVersion, type CharAnim } from "./sprites.ts";
+import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { itemArtSources } from "../../ui/artSource.ts";
@@ -297,7 +297,15 @@ export class ArcadeRenderer {
         const look = enemyLook(e.kind.id);
         let drawn = false;
         const dir = dirOf(sim.player.x - e.x, sim.player.y - e.y);
-        if (look.kind === "char") {
+        // Лист из модели Dota — главнее всего остального.
+        const ds = dotaSheet(e.kind.id);
+        if (ds) {
+          const anim = attackT >= 0 ? "attack" : moving ? "walk" : "idle";
+          const frames = ds.meta.anims[anim]?.frames ?? ds.meta.anims.walk?.frames ?? 1;
+          const frame = attackT >= 0 ? Math.floor(attackT * frames) : Math.floor((tick / 60) * ds.meta.fps * (moving ? speedK : 0.6) + e.id);
+          drawn = drawDotaFrame(c, ds, anim, dotaDir(sim.player.x - e.x, sim.player.y - e.y, ds.meta.dirs), frame, e.x, e.y + r * 0.6, flash ? 0.55 : 1, (e.kind.r * 2) / ds.meta.world > 1.2 ? (e.kind.r * 2) / ds.meta.world : 1);
+        }
+        if (!drawn && look.kind === "char") {
           const anim: CharAnim = attackT >= 0 ? attackAnim(look.spec) : "walk";
           const sheet = charSheet(e.kind.id, look.spec, anim);
           if (sheet) {
@@ -305,7 +313,7 @@ export class ArcadeRenderer {
             drawCharFrame(c, sheet, frame, dir, e.x, e.y + r * 0.6, look.spec.scale, flash ? 0.55 : 1);
             drawn = true;
           }
-        } else if (look.kind === "monster") {
+        } else if (!drawn && look.kind === "monster") {
           drawn = drawMonsterFrame(c, look.name, moving ? Math.floor((tick / 60) * 6 * speedK + e.id) : 1, dir, e.x, e.y + r * 0.6, flash ? 0.55 : 1);
         }
         if (!drawn) drawRig(c, e.x, e.y + r * 0.6, enemyRig(e.kind.id, tone, pal.limb), {
@@ -398,8 +406,14 @@ export class ArcadeRenderer {
     const atkT = p.attackCd > 0 && atkTotal - p.attackCd < atkTotal * 0.45 ? (atkTotal - p.attackCd) / (atkTotal * 0.45) : -1;
     const look = heroLook(sim.hero.kit, HERO_TINT[sim.hero.id] ?? pal.playerRing);
     const heroAnim: CharAnim = spinning || atkT >= 0 ? attackAnim(look) : "walk";
-    const heroSheet = charSheet(`hero:${sim.hero.id}`, look, heroAnim);
-    if (heroSheet) {
+    const heroDota = dotaSheet(sim.hero.id);
+    const heroSheet = heroDota ? null : charSheet(`hero:${sim.hero.id}`, look, heroAnim);
+    if (heroDota) {
+      const anim = spinning || atkT >= 0 ? "attack" : moving ? "walk" : "idle";
+      const frames = heroDota.meta.anims[anim]?.frames ?? heroDota.meta.anims.walk?.frames ?? 1;
+      const frame = anim === "attack" ? Math.floor((spinning ? (now / 90) % 1 : atkT) * frames) : anim === "walk" ? Math.floor(this.walkPhase * 1.6) : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
+      drawDotaFrame(c, heroDota, anim, dotaDir(p.facingX, p.facingY, heroDota.meta.dirs), frame, p.x, p.y + R * 0.75);
+    } else if (heroSheet) {
       const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 90) % 1 : atkT) * FRAMES[heroAnim]);
       drawCharFrame(c, heroSheet, frame, dirOf(p.facingX, p.facingY), p.x, p.y + R * 0.75, look.scale);
     } else {
@@ -479,8 +493,12 @@ export class ArcadeRenderer {
           // Смерть: у LPC-персонажей — кадры «hurt» (падение), у остальных — оседающий силуэт.
           const kindId = KIND_BY_INDEX[f.y2];
           const look = kindId ? enemyLook(kindId) : null;
+          const dsDeath = kindId ? dotaSheet(kindId) : null;
           const hurt = look?.kind === "char" ? charSheet(kindId!, look.spec, "hurt") : null;
-          if (hurt && look?.kind === "char") {
+          if (dsDeath && dsDeath.meta.anims.death) {
+            const fr = dsDeath.meta.anims.death.frames;
+            drawDotaFrame(c, dsDeath, "death", 0, Math.min(fr - 1, Math.floor(k * fr)), f.x, f.y + f.x2 * 0.6, 1 - k * 0.3);
+          } else if (hurt && look?.kind === "char") {
             drawCharFrame(c, hurt, Math.min(5, Math.floor(k * 6)), 2, f.x, f.y + f.x2 * 0.6, look.spec.scale, 1 - k * 0.3);
           } else {
             c.globalAlpha = (1 - k) * 0.6; c.fillStyle = pal.limb;
