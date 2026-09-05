@@ -143,7 +143,7 @@ export class ArcadeSim {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
       facingX: 1, facingY: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
-      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0,
+      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, sigArmed: false,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -256,7 +256,7 @@ export class ArcadeSim {
     if (!stunned && p.attackCd === 0 && this.tick >= p.spinUntil && p.burstLeft === 0 && this.tick >= p.fieldUntil) {
       const target = this.nearestEnemy(p.x, p.y, p.stats.range);
       if (target) {
-        p.attackCd = sec(p.stats.attackInterval);
+        p.attackCd = sec(p.stats.attackInterval * (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil ? 1 - this.hero.signature.value : 1));
         if (this.hero.ranged) {
           const d = len(target.x - p.x, target.y - p.y) || 1;
           this.spawnProjectile(p.x, p.y, (target.x - p.x) / d * 560, (target.y - p.y) / d * 560, 6, 0, sec(1.2), 0, "arrow", false, true);
@@ -406,6 +406,9 @@ export class ArcadeSim {
     }
     if (!cast) return;
     if (key === "r") this.events.ults++; else this.events.casts++;
+    const sig = this.hero.signature;
+    if (sig?.kind === "fiery_soul") p.sigUntil = this.tick + sec(sig.duration ?? 6); // Lina: скорость атаки после каста
+    if (sig?.kind === "overload") p.sigArmed = true; // Storm: следующий удар бьёт по площади
     // Culling Blade после добивания уходит на короткую перезарядку (3 с), не на полную и не на ноль.
     if (ab.kind === "culling_blade" && p.cooldowns.r === -1) p.cooldowns.r = sec(1.5);
     else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown));
@@ -520,7 +523,24 @@ export class ArcadeSim {
     if (kind === "crit") this.events.crits++;
     const head = this.hero.abilities.w;
     if (head.kind === "headshot" && p.abilities.w > 0 && this.rng.float() < 0.3) { dmg += head.value[p.abilities.w]; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.25)); kind = "crit"; }
+    // Фирменные пассивки (T13.15): души SF, ярость Ursa, меткость Drow, Time Lock Void — до удара; Cleave и Overload — после.
+    const sig = this.hero.signature;
+    if (sig?.kind === "souls") dmg += p.stacks * sig.value;
+    else if (sig?.kind === "swipes") {
+      if (p.stackTarget === e.id) p.stacks = Math.min(sig.cap ?? 12, p.stacks + 1); else { p.stacks = 1; p.stackTarget = e.id; }
+      dmg += p.stacks * sig.value;
+    } else if (sig?.kind === "marksmanship") {
+      if (Math.hypot(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) { dmg *= 1 + sig.value; kind = "crit"; }
+    } else if (sig?.kind === "timelock" && this.rng.float() < sig.value) {
+      dmg += 20; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(sig.duration ?? 0.5)); kind = "crit";
+    }
     this.damageEnemy(e, dmg, kind);
+    if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * sig.value, "slash"); }
+    if (sig?.kind === "overload" && p.sigArmed) {
+      p.sigArmed = false;
+      for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 80)) this.damageEnemy(o, sig.value, "zap");
+      this.pushFx("nova", e.x, e.y, sig.radius ?? 80, 0, 10);
+    }
     if (p.stats.lifesteal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + dmg * p.stats.lifesteal);
     // Школы «Attack»: статусы с удара.
     const burn = this.upgradePower("rad_strike");
@@ -660,6 +680,9 @@ export class ArcadeSim {
     const p = this.player;
     p.kills++;
     this.events.kills++;
+    const sig = this.hero.signature;
+    if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (e.kind.elite || e.kind.boss ? 6 : 1));
+    if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * (e.kind.elite || e.kind.boss ? 5 : 1));
     if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
     this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
     p.gold += e.kind.gold + p.stats.goldPerKill;
@@ -702,10 +725,18 @@ export class ArcadeSim {
   private damagePlayer(amount: number, stun = 0): void {
     const p = this.player;
     if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.hero.abilities.r.kind === "omni")) return;
+    const sig = this.hero.signature;
+    if (sig?.kind === "blur" && this.rng.float() < sig.value) return; // уклонение PA
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
     const reduction = (0.06 * armor) / (1 + 0.06 * armor);
     p.hp -= amount * (1 - reduction);
     this.events.hurt++;
+    if (sig?.kind === "quill" && this.tick >= p.sigUntil) {
+      // Quill Spray Bristleback: залп иглами в ответ на урон, не чаще раза в полсекунды.
+      p.sigUntil = this.tick + sec(0.5);
+      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 130)) this.damageEnemy(e, sig.value, "burst");
+      this.pushFx("nova", p.x, p.y, sig.radius ?? 130, 0, 8);
+    }
     const helix = this.hero.abilities.e;
     if (helix.kind === "counter_helix" && p.abilities.e > 0 && this.rng.float() < 0.12 + 0.04 * p.abilities.e) {
       for (const e of this.enemiesWithin(p.x, p.y, helix.radius ?? 130)) this.damageEnemy(e, helix.value[p.abilities.e], "spin");

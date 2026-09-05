@@ -55,7 +55,7 @@ def pick_action(actions, key):
     exact = [a for a in actions if a.name.lower() == key]
     if exact:
         return exact[0]
-    junk = ("portrait", "loadout", "turns", "versus", "lookframe", "_faces_dup", "spawn", "taunt", "arcana", "_cc_20", "haste", "injured", "showoff")
+    junk = ("portrait", "loadout", "turns", "versus", "lookframe", "_faces_dup", "spawn", "taunt", "arcana", "_cc_20", "haste", "injured", "showoff", "_alt", "basher", "ward", "pact", "effigy", "channel")
     candidates = [a for a in actions if key in a.name.lower() and not a.name.startswith("@") and not any(j in a.name.lower() for j in junk)]
     if not candidates:
         candidates = [a for a in actions if key in a.name.lower()]

@@ -126,6 +126,12 @@ cd /Users/Shared/Coding/aegis-draft/web && npm run dev   # или мой 5273
 Коммитить `public/art/sprites/dota/*` вместе (PNG + JSON). Размер: герой ~1–2 МБ на лист при
 128 px и 8 направлениях; при переполнении бюджета офлайн-кэша уменьшить `--frame` до 96.
 
+## 6. Звуки ударов героев
+```bash
+S2V=~/tools/s2v/Source2Viewer-CLI bash web/scripts/dota_sounds.sh
+```
+Скрипт выгружает `sounds/weapons/hero/<папка>/` (имена папок Valve отличаются: `zuus`, `bristlebog`, `nevermore`, `windrunner`, `antimage` — таблица в скрипте), берёт `attack*`/`*swing*`, `preattack*`, `impact*`, жмёт `afconvert` в AAC mono 40 kbps и пишет `public/art/sfx/dota/index.json`. Игра (`features/arcade/heroSfx.ts`) играет клип героя на каждый удар, петлю Blade Fury у Juggernaut; нет клипов — синтетика. Арканы/сеты: `arcana_*` файлы в тех же папках — под T13.12.
+
 ## Что делать, если
 - Модель серая/без текстур: перезапустить экспорт с `--gltf_export_materials --gltf_textures_adapt`;
   если текстуры всё равно не легли — открыть glb в Blender вручную и проверить Material Preview.

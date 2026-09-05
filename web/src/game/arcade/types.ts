@@ -248,6 +248,11 @@ export interface Player {
   zoneX: number;
   zoneY: number;
   armorBuffUntil: number;
+  /** Фирменная пассивка (heroes.ts signature): стаки (души/ярость), цель серии, таймер/взвод эффекта. */
+  stacks: number;
+  stackTarget: number;
+  sigUntil: number;
+  sigArmed: boolean;
   hasteUntil: number;
   /** Школы в порядке взятия (макс. 3) и суммарная «сила» апгрейда (ранги × множитель редкости). */
   schools: SchoolId[];

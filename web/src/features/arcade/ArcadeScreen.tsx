@@ -154,6 +154,7 @@ function ArcadeSetup() {
             {(["q", "w", "e", "r"] as const).map((key) => (
               <li key={key}><b>{key.toUpperCase()}</b> <span>{t(`arcade.ab.${HEROES[heroId].kit}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${HEROES[heroId].kit}.${key}.desc` as MessageKey)}</small></li>
             ))}
+            {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey)}</small></li>}
           </ul>
         </Surface>
         <Surface className="arcade-setup__run">
@@ -380,6 +381,7 @@ function ArcadeStage() {
                 {replayLog && <Chip>{t("arcade.hud.replay")}</Chip>}
                 {isArcadeDailySeed(seed) && <Chip>{t("arcade.hud.daily")}</Chip>}
                 {p.aegis && <Chip>{t("arcade.hud.aegis")}</Chip>}
+                {sim.hero.signature && (sim.hero.signature.kind === "souls" || sim.hero.signature.kind === "swipes") && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>

@@ -38,6 +38,10 @@ export interface AbilityDef {
   passive?: boolean;
 }
 
+/** Фирменная пассивка героя поверх кита архетипа (BACKLOG T13.15): то, что делает Shadow Fiend Shadow Fiend'ом. */
+export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathpact" | "fiery_soul" | "overload" | "marksmanship" | "quill" | "blur";
+export interface SignatureDef { kind: SignatureKind; value: number; cap?: number; radius?: number; duration?: number }
+
 export interface HeroDef {
   id: HeroId;
   dotaId: number;
@@ -49,6 +53,7 @@ export interface HeroDef {
    *  убийствами оставался 1-го уровня (headless-QA 2026-09-05). */
   base: Partial<Pick<PlayerStats, "maxHp" | "regen" | "armor" | "speed" | "damage" | "attackInterval" | "range" | "pickup">>;
   abilities: { q: AbilityDef; w: AbilityDef; e: AbilityDef; r: AbilityDef };
+  signature?: SignatureDef;
 }
 
 const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
@@ -161,32 +166,32 @@ export const ARCHETYPES: Record<ArchetypeId, { ranged: boolean; abilities: HeroD
 const MELEE_BASE: HeroDef["base"] = {};
 const RANGED_BASE: HeroDef["base"] = { maxHp: 510, speed: 160, damage: 21, attackInterval: 1.0, range: 310, armor: 1, pickup: 230 };
 
-function templateHero(id: TemplateHeroId, dotaId: number, picture: string, archetype: ArchetypeId, base: HeroDef["base"] = {}): HeroDef {
+function templateHero(id: TemplateHeroId, dotaId: number, picture: string, archetype: ArchetypeId, base: HeroDef["base"] = {}, signature?: SignatureDef): HeroDef {
   const arch = ARCHETYPES[archetype];
-  return { id, kit: archetype, dotaId, picture, ranged: arch.ranged, base: { ...(arch.ranged ? RANGED_BASE : MELEE_BASE), ...base }, abilities: arch.abilities };
+  return { id, kit: archetype, dotaId, picture, ranged: arch.ranged, base: { ...(arch.ranged ? RANGED_BASE : MELEE_BASE), ...base }, abilities: arch.abilities, signature };
 }
 
 export const HEROES: Record<HeroId, HeroDef> = {
   ...UNIQUE_HEROES,
-  phantom_assassin: templateHero("phantom_assassin", 44, "phantom_assassin", "blademaster", { speed: 176, damage: 26, maxHp: 560 }),
+  phantom_assassin: templateHero("phantom_assassin", 44, "phantom_assassin", "blademaster", { speed: 176, damage: 26, maxHp: 560 }, { kind: "blur", value: 0.22 }),
   anti_mage: templateHero("anti_mage", 1, "antimage", "blademaster", { speed: 182, attackInterval: 0.8, maxHp: 580 }),
-  lina: templateHero("lina", 25, "lina", "frostfire", { damage: 24, maxHp: 500 }),
+  lina: templateHero("lina", 25, "lina", "frostfire", { damage: 24, maxHp: 500 }, { kind: "fiery_soul", value: 0.3, duration: 6 }),
   lich: templateHero("lich", 31, "lich", "frostfire", { maxHp: 580, armor: 2, speed: 156 }),
-  drow_ranger: templateHero("drow_ranger", 6, "drow_ranger", "marksman", { range: 350, damage: 25 }),
+  drow_ranger: templateHero("drow_ranger", 6, "drow_ranger", "marksman", { range: 350, damage: 25 }, { kind: "marksmanship", value: 0.35, radius: 220 }),
   windranger: templateHero("windranger", 21, "windrunner", "marksman", { speed: 168, attackInterval: 0.85 }),
-  bristleback: templateHero("bristleback", 99, "bristleback", "warlord", { maxHp: 760, armor: 6, regen: 5, damage: 18 }),
-  sven: templateHero("sven", 18, "sven", "warlord", { maxHp: 700, damage: 26, armor: 4, regen: 3 }),
-  storm_spirit: templateHero("storm_spirit", 17, "storm_spirit", "stormcaller", { speed: 172, maxHp: 500 }),
+  bristleback: templateHero("bristleback", 99, "bristleback", "warlord", { maxHp: 760, armor: 6, regen: 5, damage: 18 }, { kind: "quill", value: 30, radius: 130 }),
+  sven: templateHero("sven", 18, "sven", "warlord", { maxHp: 700, damage: 26, armor: 4, regen: 3 }, { kind: "cleave", value: 0.5, radius: 85 }),
+  storm_spirit: templateHero("storm_spirit", 17, "storm_spirit", "stormcaller", { speed: 172, maxHp: 500 }, { kind: "overload", value: 45, radius: 80 }),
   leshrac: templateHero("leshrac", 52, "leshrac", "stormcaller", { damage: 24, maxHp: 520, armor: 2 }),
-  faceless_void: templateHero("faceless_void", 41, "faceless_void", "blademaster", { speed: 170, damage: 25, maxHp: 600, armor: 4 }),
-  ursa: templateHero("ursa", 70, "ursa", "blademaster", { attackInterval: 0.75, damage: 22, maxHp: 640, armor: 4 }),
+  faceless_void: templateHero("faceless_void", 41, "faceless_void", "blademaster", { speed: 170, damage: 25, maxHp: 600, armor: 4 }, { kind: "timelock", value: 0.18, duration: 0.5 }),
+  ursa: templateHero("ursa", 70, "ursa", "blademaster", { attackInterval: 0.75, damage: 22, maxHp: 640, armor: 4 }, { kind: "swipes", value: 4, cap: 12 }),
   lion: templateHero("lion", 26, "lion", "stormcaller", { maxHp: 480, damage: 20, speed: 158 }),
-  shadow_fiend: templateHero("shadow_fiend", 11, "nevermore", "stormcaller", { damage: 30, maxHp: 470, attackInterval: 0.9 }),
+  shadow_fiend: templateHero("shadow_fiend", 11, "nevermore", "stormcaller", { damage: 30, maxHp: 470, attackInterval: 0.9 }, { kind: "souls", value: 1.2, cap: 36 }),
   pugna: templateHero("pugna", 45, "pugna", "frostfire", { speed: 166, maxHp: 470, damage: 20 }),
   invoker: templateHero("invoker", 74, "invoker", "frostfire", { maxHp: 530, damage: 23, armor: 2 }),
   tidehunter: templateHero("tidehunter", 29, "tidehunter", "warlord", { maxHp: 820, armor: 7, regen: 4, speed: 158, damage: 16 }),
   mirana: templateHero("mirana", 9, "mirana", "marksman", { speed: 172, range: 330 }),
-  clinkz: templateHero("clinkz", 56, "clinkz", "marksman", { attackInterval: 0.85, damage: 20, maxHp: 470 }),
+  clinkz: templateHero("clinkz", 56, "clinkz", "marksman", { attackInterval: 0.85, damage: 20, maxHp: 470 }, { kind: "deathpact", value: 6 }),
 };
 
 /** Таланты 10/15/20/25 — общая лестница для всех героев (Dota-подобные пары). */
