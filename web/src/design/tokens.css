@@ -344,6 +344,8 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-bounty: #ffd48a;
   --arcade-ground-night: #070a10;
   --arcade-fog: rgba(3, 5, 9, .96);
+  --arcade-scrim: rgba(0, 0, 0, .55);        /* затемнение оверлеев и кулдауна на всегда-тёмной сцене */
+  --arcade-text-shadow: rgba(0, 0, 0, .6);   /* подложка HUD-текста над canvas */
   --arcade-river: #0f2431;
   --arcade-pit: #1a1210;
 }

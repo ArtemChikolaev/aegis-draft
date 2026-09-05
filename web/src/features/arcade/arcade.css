@@ -61,8 +61,8 @@
 .arcade-hud > * { pointer-events: none; }
 .arcade-hud__upper { display: grid; gap: 10px; }
 .arcade-hud__top { display: flex; align-items: center; gap: 16px; }
-.arcade-hud__clock { font: 500 34px/1 var(--font-display); letter-spacing: -.04em; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
-.arcade-hud__stats { display: flex; gap: 14px; align-items: center; font-size: 13px; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
+.arcade-hud__clock { font: 500 34px/1 var(--font-display); letter-spacing: -.04em; text-shadow: 0 1px 2px var(--arcade-text-shadow); }
+.arcade-hud__stats { display: flex; gap: 14px; align-items: center; font-size: 13px; text-shadow: 0 1px 2px var(--arcade-text-shadow); }
 .arcade-hud__stats b { font-size: 15px; }
 .arcade-hud__pause { margin-left: auto; pointer-events: auto; }
 .arcade-hud__boss { display: grid; gap: 4px; justify-items: center; justify-self: center; width: min(520px, 70%); font: 800 12px var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
@@ -74,7 +74,7 @@
 .arcade-bar--xp i { background: var(--arcade-shard); }
 .arcade-bar--boss { width: 100%; height: 12px; }
 .arcade-bar--boss i { background: var(--arcade-boss); }
-.arcade-bar span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px var(--font-display); color: var(--on-invert); text-shadow: 0 1px 2px rgba(0, 0, 0, .8); }
+.arcade-bar span { position: absolute; inset: 0; display: grid; place-items: center; font: 700 10px var(--font-display); color: var(--on-invert); text-shadow: 0 1px 2px var(--arcade-text-shadow); }
 .arcade-hud__abilities { display: flex; gap: 8px; pointer-events: auto; }
 .arcade-hud__items { display: flex; gap: 4px; margin-right: 10px; }
 .arcade-hud__item { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line-invert-strong); border-radius: 8px; background: var(--surface-invert); }
@@ -88,12 +88,12 @@
 .arcade-ability { position: relative; display: grid; place-items: center; width: 52px; height: 52px; padding: 0; overflow: hidden; border: 1px solid var(--line-invert-strong); border-radius: 12px; background: var(--surface-invert); color: var(--on-invert); }
 .arcade-ability b { font: 800 16px var(--font-display); }
 .arcade-ability small { font-size: 9px; color: var(--muted-invert); }
-.arcade-ability i { position: absolute; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, .55); }
+.arcade-ability i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--arcade-scrim); }
 .arcade-ability em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 18px var(--font-display); font-style: normal; background: color-mix(in srgb, var(--surface-invert) 82%, transparent); }
 .arcade-ability[data-locked] { opacity: .35; }
 .arcade-ability[data-passive] { opacity: .8; }
 
-.arcade-overlay { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 16px; background: color-mix(in srgb, #000 55%, transparent); backdrop-filter: blur(2px); }
+.arcade-overlay { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 16px; background: var(--arcade-scrim); backdrop-filter: blur(2px); }
 .arcade-overlay__card { display: grid; gap: 14px; width: min(520px, 100%); padding: 24px; }
 .arcade-overlay__card h2 { margin: 0; font: 500 36px/1 var(--font-display); letter-spacing: -.04em; }
 .arcade-overlay__card--over[data-outcome="victory"] h2 { color: var(--accent); }

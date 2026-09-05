@@ -409,7 +409,7 @@ export class ArcadeRenderer {
     const p = sim.player;
     const r = ARCADE.night.visibility;
     const grad = c.createRadialGradient(p.x, p.y, r * 0.55, p.x, p.y, r);
-    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(0, "transparent");
     grad.addColorStop(1, pal.fog);
     c.fillStyle = grad;
     c.fillRect(p.x - r, p.y - r, r * 2, r * 2);

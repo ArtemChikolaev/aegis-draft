@@ -9,12 +9,14 @@ import type { PlayerStats } from "../types.ts";
 export type UniqueHeroId = "juggernaut" | "crystal_maiden" | "sniper" | "axe" | "zeus";
 export type TemplateHeroId =
   | "phantom_assassin" | "anti_mage" | "lina" | "lich" | "drow_ranger" | "windranger"
-  | "bristleback" | "sven" | "storm_spirit" | "leshrac";
+  | "bristleback" | "sven" | "storm_spirit" | "leshrac"
+  | "faceless_void" | "ursa" | "lion" | "shadow_fiend" | "pugna" | "invoker" | "tidehunter" | "mirana" | "clinkz";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
   "juggernaut", "crystal_maiden", "sniper", "axe", "zeus",
   "phantom_assassin", "anti_mage", "lina", "lich", "drow_ranger", "windranger", "bristleback", "sven", "storm_spirit", "leshrac",
+  "faceless_void", "ursa", "lion", "shadow_fiend", "pugna", "invoker", "tidehunter", "mirana", "clinkz",
 ];
 
 export type AbilityKind =
@@ -176,6 +178,15 @@ export const HEROES: Record<HeroId, HeroDef> = {
   sven: templateHero("sven", 18, "sven", "warlord", { maxHp: 700, damage: 26, armor: 4, regen: 3 }),
   storm_spirit: templateHero("storm_spirit", 17, "storm_spirit", "stormcaller", { speed: 172, maxHp: 500 }),
   leshrac: templateHero("leshrac", 52, "leshrac", "stormcaller", { damage: 24, maxHp: 520, armor: 2 }),
+  faceless_void: templateHero("faceless_void", 41, "faceless_void", "blademaster", { speed: 170, damage: 25, maxHp: 600, armor: 4 }),
+  ursa: templateHero("ursa", 70, "ursa", "blademaster", { attackInterval: 0.75, damage: 22, maxHp: 640, armor: 4 }),
+  lion: templateHero("lion", 26, "lion", "stormcaller", { maxHp: 480, damage: 20, speed: 158 }),
+  shadow_fiend: templateHero("shadow_fiend", 11, "nevermore", "stormcaller", { damage: 30, maxHp: 470, attackInterval: 0.9 }),
+  pugna: templateHero("pugna", 45, "pugna", "frostfire", { speed: 166, maxHp: 470, damage: 20 }),
+  invoker: templateHero("invoker", 74, "invoker", "frostfire", { maxHp: 530, damage: 23, armor: 2 }),
+  tidehunter: templateHero("tidehunter", 29, "tidehunter", "warlord", { maxHp: 820, armor: 7, regen: 4, speed: 158, damage: 16 }),
+  mirana: templateHero("mirana", 9, "mirana", "marksman", { speed: 172, range: 330 }),
+  clinkz: templateHero("clinkz", 56, "clinkz", "marksman", { attackInterval: 0.85, damage: 20, maxHp: 470 }),
 };
 
 /** Таланты 10/15/20/25 — общая лестница для всех героев (Dota-подобные пары). */
