@@ -3,13 +3,12 @@
 // кэш-канвасы (полная карта 3200² в одном канвасе — 41 МБ, на телефоне много). Декор не влияет
 // на сим: это слой рендера. Когда появятся тайлсеты-спрайты, `paintChunk` меняется на блиттинг
 // тайлов — интерфейс чанков остаётся.
-import { Rng } from "../../game/rng.ts";
 import { ARCADE } from "../../game/arcade/config.ts";
 import type { ActId } from "../../game/arcade/types.ts";
+import { TILE, generateMap, type Decor } from "../../game/arcade/mapgen.ts";
 import { dotaSheet, dotaTerrain, drawDotaFrame, pixelSheetsOn, tileImage } from "./sprites.ts";
 
 export const CHUNK = 512;
-const TILE = 64;
 
 export interface TerrainPalette {
   grassA: string;
@@ -21,70 +20,21 @@ export interface TerrainPalette {
   tuft: string;
 }
 
-interface Decor { x: number; y: number; kind: "tree" | "rock" | "tuft" | "flower"; s: number }
 
 export class Terrain {
-  private readonly rng: Rng;
   private readonly tiles: Uint8Array;
   private readonly cols: number;
   private readonly rows: number;
-  private readonly decor: Decor[] = [];
+  private readonly decor: Decor[];
   private cache = new Map<string, HTMLCanvasElement>();
   private paletteKey = "";
   /** Версия загрузки спрайтов: выросла — тайлы могли подгрузиться, кэш чанков сбрасываем. */
   spriteVersion = 0;
 
   constructor(seed: string, readonly act: ActId) {
-    this.rng = new Rng(`terrain:${seed}:${act}`);
-    this.cols = Math.ceil(ARCADE.world.w / TILE);
-    this.rows = Math.ceil(ARCADE.world.h / TILE);
-    this.tiles = new Uint8Array(this.cols * this.rows);
-    this.generate();
-  }
-
-  /** 0/1 — два оттенка травы, 2 — земля/тропа. */
-  private generate(): void {
-    const { rng, cols, rows, tiles } = this;
-    for (let i = 0; i < tiles.length; i++) tiles[i] = rng.float() < 0.3 ? 1 : 0;
-    // Тропы: несколько случайных блужданий шириной 1–2 тайла.
-    for (let p = 0; p < 4; p++) {
-      let x = rng.int(cols), y = rng.int(rows);
-      let dx = rng.float() < 0.5 ? 1 : -1, dy = rng.float() < 0.5 ? 1 : -1;
-      for (let step = 0; step < 70; step++) {
-        tiles[y * cols + x] = 2;
-        if (rng.float() < 0.5 && x + dx >= 0 && x + dx < cols) x += dx; else if (y + dy >= 0 && y + dy < rows) y += dy;
-        if (rng.float() < 0.08) dx = -dx;
-        if (rng.float() < 0.08) dy = -dy;
-      }
-    }
-    // Поляны земли — блобы.
-    for (let b = 0; b < 8; b++) {
-      const cx = rng.int(cols), cy = rng.int(rows), r = 1 + rng.int(2);
-      for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
-        if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
-        if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r && rng.float() < 0.85) tiles[y * cols + x] = 2;
-      }
-    }
-    // Декор: рощи деревьев по кластерам, камни, пучки травы, цветы. Центр (старт) и река/яма чисты.
-    const clear = (x: number, y: number) => {
-      const dc = Math.hypot(x - ARCADE.world.w / 2, y - ARCADE.world.h / 2);
-      if (dc < 360) return true;
-      if (this.act === "river" && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 40 || Math.hypot(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.radius + 60)) return true;
-      return false;
-    };
-    for (let g = 0; g < 26; g++) {
-      const cx = rng.float() * ARCADE.world.w, cy = rng.float() * ARCADE.world.h;
-      const n = 3 + rng.int(6);
-      for (let i = 0; i < n; i++) {
-        const x = cx + (rng.float() - 0.5) * 260, y = cy + (rng.float() - 0.5) * 260;
-        if (x < 30 || y < 30 || x > ARCADE.world.w - 30 || y > ARCADE.world.h - 30 || clear(x, y)) continue;
-        this.decor.push({ x, y, kind: "tree", s: 26 + rng.float() * 18 });
-      }
-    }
-    for (let i = 0; i < 70; i++) { const x = rng.float() * ARCADE.world.w, y = rng.float() * ARCADE.world.h; if (!clear(x, y)) this.decor.push({ x, y, kind: "rock", s: 6 + rng.float() * 9 }); }
-    for (let i = 0; i < 700; i++) { const x = rng.float() * ARCADE.world.w, y = rng.float() * ARCADE.world.h; this.decor.push({ x, y, kind: rng.float() < 0.25 ? "flower" : "tuft", s: 3 + rng.float() * 4 }); }
-    // Деревья рисуем позже пучков — сортировка по y даёт правильное перекрытие крон.
-    this.decor.sort((a, b) => a.y - b.y);
+    // Карта — из общего генератора (game/arcade/mapgen.ts): те же деревья и камни, что сим считает препятствиями.
+    const map = generateMap(seed, act);
+    this.cols = map.cols; this.rows = map.rows; this.tiles = map.tiles; this.decor = map.decor;
   }
 
   /** Нарисовать видимую область. Смена палитры (тема/акт) сбрасывает кэш чанков. */
@@ -95,6 +45,8 @@ export class Terrain {
     const cx1 = Math.floor((camX + w) / CHUNK), cy1 = Math.floor((camY + h) / CHUNK);
     for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
       if (cx < 0 || cy < 0 || cx * CHUNK >= ARCADE.world.w || cy * CHUNK >= ARCADE.world.h) continue;
+      // В пиксельном проходе чанк уменьшается вдвое: со сглаживанием край чанка подмешивает прозрачное — тонкие светлые швы.
+      c.imageSmoothingEnabled = !pixelSheetsOn();
       c.drawImage(this.chunk(cx, cy, pal), cx * CHUNK, cy * CHUNK);
     }
     // Кэш не растёт бесконечно: держим ~30 чанков (видимая область + запас).
@@ -139,26 +91,29 @@ export class Terrain {
       // и жёсткая сетка 32 px читалась как «плитка». Маска строится с запасом за границу чанка, чтобы размытие
       // на стыке чанков совпадало и швов не было.
       const layer = (im: HTMLImageElement, hit: (gx: number, gy: number) => boolean, blur: number) => {
-        const pad = 3;
-        const mask = document.createElement("canvas"); mask.width = mask.height = CHUNK;
+        // Маска и заливка с запасом M по краям: размытие у границы холста спадает в прозрачность, и без запаса
+        // на стыках чанков оставались светлые линии (фидбэк владельца 2026-09-06 — «квадраты и швы»).
+        const pad = 3, M = pad * TILE;
+        const size = CHUNK + 2 * M;
+        const mask = document.createElement("canvas"); mask.width = mask.height = size;
         const mc = mask.getContext("2d")!;
         let any = false;
         mc.fillStyle = "#fff";
         for (let ty = -pad; ty < n + pad; ty++) for (let tx = -pad; tx < n + pad; tx++) {
           if (!hit(t0x + tx, t0y + ty)) continue;
           any = true;
-          mc.fillRect(tx * TILE, ty * TILE, TILE, TILE);
+          mc.fillRect(M + tx * TILE, M + ty * TILE, TILE, TILE);
         }
         if (!any) return;
-        const fill = document.createElement("canvas"); fill.width = fill.height = CHUNK;
+        const fill = document.createElement("canvas"); fill.width = fill.height = size;
         const fc = fill.getContext("2d")!;
-        const pt = fc.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(texScale));
-        fc.fillStyle = pt; fc.fillRect(0, 0, CHUNK, CHUNK);
+        const pt = fc.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(M - ox, M - oy).scale(texScale));
+        fc.fillStyle = pt; fc.fillRect(0, 0, size, size);
         fc.globalCompositeOperation = "destination-in";
         fc.filter = `blur(${blur}px)`;
         fc.drawImage(mask, 0, 0);
         fc.filter = "none";
-        c.drawImage(fill, 0, 0);
+        c.drawImage(fill, M, M, CHUNK, CHUNK, 0, 0, CHUNK, CHUNK);
       };
       if (dDirt) layer(dDirt, (gx, gy) => this.tileAt(gx, gy) === 2, 7);
       if (dWater && this.act === "river") layer(dWater, (_gx, gy) => Math.abs(gy * TILE + TILE / 2 - ARCADE.river.y) < ARCADE.river.halfWidth, 4);

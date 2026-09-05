@@ -29,9 +29,10 @@ export function teamArtSources(teamId: number | undefined, logoUrl: string | und
 }
 
 /** Иконка предмета по внутреннему имени Dota (значения `ITEM_ART`, см. game/itemArt.ts). */
-export function itemArtSources(slug: string): string[] {
+export function itemArtSources(slug: string, pixel = false): string[] {
   if (!slug) return [];
-  return [local(`items/${slug}.webp`), `${CDN}/items/${slug}.png`];
+  // Пиксельная Аркада (Dead Cells-стиль): 32×24 с палитрой из `items_px/`, дальше обычная цепочка.
+  return [...(pixel ? [local(`items_px/${slug}.png`)] : []), local(`items/${slug}.webp`), `${CDN}/items/${slug}.png`];
 }
 
 /**

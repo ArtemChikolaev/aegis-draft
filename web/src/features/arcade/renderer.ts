@@ -9,6 +9,7 @@ import { heroArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
+import { pixelScale } from "./pixelMode.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
@@ -76,12 +77,8 @@ export class ArcadeRenderer {
     if (!ctx) throw new Error("canvas 2d unavailable");
     this.ctx = ctx;
     this.mainCtx = ctx;
-    if (typeof window !== "undefined") {
-      const q = new URLSearchParams(window.location.search).get("pixel");
-      const n = q === null ? 0 : q === "" ? 3 : Number(q);
-      if (n >= 2 && n <= 6) this.pixel = Math.floor(n);
-      setPixelSheets(this.pixel > 1);
-    }
+    this.pixel = pixelScale();
+    setPixelSheets(this.pixel > 1);
     const [src] = heroArtSources(heroPicture);
     if (src) {
       this.portrait = new Image();
@@ -132,7 +129,11 @@ export class ArcadeRenderer {
     this.ctx.fillStyle = sim.night ? pal.groundNight : pal.ground;
     this.ctx.fillRect(0, 0, this.w, this.h);
     this.ctx.save();
-    this.ctx.translate(-camX + this.shakeX, -camY + this.shakeY);
+    if (this.pixel > 1) {
+      // Камера по целым внутренним пикселям: иначе чанки земли и спрайты дрожат и дают швы на полупикселях.
+      const P = this.pixel;
+      this.ctx.translate(-Math.round((camX - this.shakeX) / P) * P, -Math.round((camY - this.shakeY) / P) * P);
+    } else this.ctx.translate(-camX + this.shakeX, -camY + this.shakeY);
     this.drawGround(sim, camX, camY, pal);
     if (sim.pit) this.drawRiverAndPit(pal);
     this.drawShards(sim, pal);
@@ -439,6 +440,9 @@ export class ArcadeRenderer {
     const atkT = p.attackCd > 0 && atkTotal - p.attackCd < atkTotal * 0.45 ? (atkTotal - p.attackCd) / (atkTotal * 0.45) : -1;
     const look = heroLook(sim.hero.kit, HERO_TINT[sim.hero.id] ?? pal.playerRing);
     const heroAnim: CharAnim = spinning || atkT >= 0 ? attackAnim(look) : "walk";
+    // Куда смотрит спрайт: в цель, пока идёт удар/выстрел, иначе — по движению (Dead Cells/DMD: ноги бегут, корпус целится).
+    const aiming = sim.tick < p.aimUntil;
+    const lookX = aiming ? p.aimX : p.facingX, lookY = aiming ? p.aimY : p.facingY;
     const heroDota = dotaSheet(sim.hero.id);
     const heroSheet = heroDota ? null : charSheet(`hero:${sim.hero.id}`, look, heroAnim);
     if (heroDota) {
@@ -448,13 +452,13 @@ export class ArcadeRenderer {
       const anim = hasSpin ? "spin" : spinning || atkT >= 0 ? "attack" : moving ? "walk" : "idle";
       const frames = heroDota.meta.anims[anim]?.frames ?? heroDota.meta.anims.walk?.frames ?? 1;
       const frame = anim === "spin" ? Math.floor((now / 1000) * heroDota.meta.fps) : anim === "attack" ? Math.floor((spinning ? (now / 420) % 1 : atkT) * frames) : anim === "walk" ? Math.floor(this.walkPhase * 1.6) : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
-      drawDotaFrame(c, heroDota, anim, dotaDir(p.facingX, p.facingY, heroDota.meta.dirs), frame, p.x, p.y + R * 0.75);
+      drawDotaFrame(c, heroDota, anim, dotaDir(lookX, lookY, heroDota.meta.dirs), frame, p.x, p.y + R * 0.75);
     } else if (heroSheet) {
       const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 420) % 1 : atkT) * FRAMES[heroAnim]);
-      drawCharFrame(c, heroSheet, frame, dirOf(p.facingX, p.facingY), p.x, p.y + R * 0.75, look.scale);
+      drawCharFrame(c, heroSheet, frame, dirOf(lookX, lookY), p.x, p.y + R * 0.75, look.scale);
     } else {
       const rig: RigParams = { size: 1.15, body: pal.player, limb: pal.limb, head: pal.player, weapon: heroWeapon(sim.hero.kit) };
-      drawRig(c, p.x, p.y + R * 0.75, rig, { facing: p.facingX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
+      drawRig(c, p.x, p.y + R * 0.75, rig, { facing: lookX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
     }
     // Рамка (косметика) — второе кольцо у ног: бронза/серебро одно, золото и immortal — двойное с сиянием.
     const frame = this.cosmetic.frame;

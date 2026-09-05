@@ -70,6 +70,8 @@ export interface UpgradeDef {
   school: SchoolId;
   type: UpgradeType;
   maxRank: number;
+  /** Модификатор: предлагается, только если взят хотя бы один из перечисленных источников (владелец 2026-09-06: «предлагает +урон огня, когда огня ещё нет»). */
+  requires?: string[];
   /** Легендарный апгрейд (DMD-подобный «мега-пассив», T13.18): один ранг, редкое предложение, своя иконка-предмет. */
   legendary?: boolean;
   /** Нейтральный легендарный — не привязан к школе (школу в билд не добавляет). */
@@ -241,6 +243,10 @@ export interface Player {
   kills: number;
   facingX: number;
   facingY: number;
+  /** Направление последней атаки и до какого тика спрайт смотрит туда (владелец 2026-09-06: «стреляет вперёд, снаряд летит назад»). */
+  aimX: number;
+  aimY: number;
+  aimUntil: number;
   attackCd: number;
   stunUntil: number;
   invulnUntil: number;

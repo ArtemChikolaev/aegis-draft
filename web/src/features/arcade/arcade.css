@@ -175,3 +175,5 @@
 .arcade-sfxdebug ol { margin: 6px 0 0; padding-left: 18px; max-height: 140px; overflow: auto; }
 .arcade-sfxdebug li[data-status="failed"], .arcade-sfxdebug li[data-status="no-context"], .arcade-sfxdebug li[data-status="suspended"] { color: var(--danger); }
 .arcade-sfxdebug li[data-status="played"] { color: var(--accent); }
+
+.arcade-ability-icon[data-pixel] { image-rendering: pixelated; }

@@ -1,0 +1,34 @@
+{
+  "name": "pugna",
+  "frame": 64,
+  "dirs": 8,
+  "fps": 12,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 9
+    },
+    "idle": {
+      "row": 8,
+      "frames": 12
+    },
+    "attack": {
+      "row": 16,
+      "frames": 7
+    },
+    "death": {
+      "row": 24,
+      "frames": 12
+    }
+  },
+  "source": "pugna.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

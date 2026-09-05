@@ -8,16 +8,18 @@ import { itemArtSources, useArtSource } from "./artSource.ts";
 
 /** Иконка предмета по слагу (`game/itemArt.ts`). Картинка не загрузилась — узел исчезает целиком:
  *  рядом всегда есть название карточки, и «битая картинка» хуже её отсутствия. */
-export function ItemIcon({ slug, name, size = "md" }: {
+export function ItemIcon({ slug, name, size = "md", pixel = false }: {
   slug: string;
   name: string;
   size?: "sm" | "md";
+  /** Пиксельная версия иконки (Аркада в пиксельном режиме): низкое разрешение + image-rendering: pixelated. */
+  pixel?: boolean;
 }) {
-  const { src, onError } = useArtSource(itemArtSources(slug));
+  const { src, onError } = useArtSource(itemArtSources(slug, pixel));
   if (!src) return null;
   return (
     <img
-      className={`${styles.icon} ${styles[size]}`}
+      className={`${styles.icon} ${styles[size]}${pixel ? ` ${styles.pixel}` : ""}`}
       src={src}
       alt={name}
       loading="lazy"

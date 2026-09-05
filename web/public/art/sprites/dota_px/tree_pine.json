@@ -1,0 +1,22 @@
+{
+  "name": "tree_pine",
+  "frame": 96,
+  "dirs": 1,
+  "fps": 12,
+  "world": 192,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 1
+    }
+  },
+  "source": "armandpine_01.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

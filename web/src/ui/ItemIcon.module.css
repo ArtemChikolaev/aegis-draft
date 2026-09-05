@@ -9,3 +9,6 @@
 }
 .sm { width: 32px; height: 24px; }
 .md { width: 44px; height: 32px; }
+
+/* Пиксельная Аркада: маленький исходник растягивается без сглаживания. */
+.pixel { image-rendering: pixelated; }

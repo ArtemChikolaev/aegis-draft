@@ -26,6 +26,10 @@ import { ArcadeInputController } from "./input.ts";
 import { heroHitSfx, heroSpinSfx, heroVoice, preloadHeroSfx, preloadHeroVoice, resetHeroSfx } from "./heroSfx.ts";
 import { ensureMusic, stopMusic } from "./music.ts";
 import { Soundscape } from "./soundscape.ts";
+import { pixelScale } from "./pixelMode.ts";
+
+/** Пиксельный режим статичен на загрузку страницы (query-параметр) — иконки предметов и умений берём из px-наборов. */
+const PX = pixelScale() > 1;
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
@@ -107,7 +111,7 @@ function ArcadeSetup() {
                 return (
                   <button key={slot} type="button" className="arcade-gear__slot" data-active={gearSlot === slot ? "true" : undefined} data-rarity={item?.rarity} data-testid={`arcade-gear-slot-${slot}`} onClick={() => setGearSlot(gearSlot === slot ? null : slot)}>
                     <small>{t(`arcade.gear.slot.${slot}` as MessageKey)}</small>
-                    {item ? <><ItemIcon slug={gearArt(item)} name={item.base} size="sm" /><span>{t(`arcade.gearName.${item.base}` as MessageKey)}</span></> : <span className="arcade-gear__empty">—</span>}
+                    {item ? <><ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" /><span>{t(`arcade.gearName.${item.base}` as MessageKey)}</span></> : <span className="arcade-gear__empty">—</span>}
                   </button>
                 );
               })}
@@ -117,7 +121,7 @@ function ArcadeSetup() {
                 <li><Button variant="secondary" onClick={() => equipGear(gearSlot, null)}>{t("arcade.gear.unequip")}</Button></li>
                 {gear.items.filter((i) => i.slot === gearSlot).sort((a, b) => gearScore(b) - gearScore(a)).map((item) => (
                   <li key={item.uid} data-rarity={item.rarity} data-equipped={gear.equipped[gearSlot] === item.uid ? "true" : undefined}>
-                    <ItemIcon slug={gearArt(item)} name={item.base} size="sm" />
+                    <ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" />
                     <div>
                       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)} <em>· {t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier}</em></strong>
                       <span>{item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ")}</span>
@@ -414,7 +418,7 @@ function ArcadeStage() {
               <Button variant="secondary" className="arcade-hud__pause" onClick={() => (status === "paused" ? resume() : pause())}>{status === "paused" ? t("arcade.hud.resume") : t("arcade.hud.pauseBtn")}</Button>
             </div>
             <div className="arcade-hud__gear" data-testid="arcade-hud-gear">
-              {GEAR_SLOTS.map((slot) => { const g = p.gear[slot] as GearItem | undefined; return <span key={slot} className="arcade-hud__item" data-rarity={g?.rarity} title={g ? t(`arcade.gearName.${g.base}` as MessageKey) : t(`arcade.gear.slot.${slot}` as MessageKey)}>{g ? <ItemIcon slug={gearArt(g)} name={g.base} size="sm" /> : <i className="arcade-hud__slot-empty" />}</span>; })}
+              {GEAR_SLOTS.map((slot) => { const g = p.gear[slot] as GearItem | undefined; return <span key={slot} className="arcade-hud__item" data-rarity={g?.rarity} title={g ? t(`arcade.gearName.${g.base}` as MessageKey) : t(`arcade.gear.slot.${slot}` as MessageKey)}>{g ? <ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" /> : <i className="arcade-hud__slot-empty" />}</span>; })}
               {p.bag.length > 0 && <span className="arcade-hud__bag">{t("arcade.gear.bag", { n: p.bag.length, max: ARCADE.loot.bagCap })}</span>}
             </div>
             {boss && (
@@ -433,7 +437,7 @@ function ArcadeStage() {
               {(p.items.length > 0 || p.neutral) && (
                 <div className="arcade-hud__items" data-testid="arcade-items">
                   {p.neutral && <span className="arcade-hud__item arcade-hud__item--neutral" title={t(`arcade.neutral.${p.neutral}` as MessageKey)}><b>N</b></span>}
-                  {p.items.map((it, i) => <span key={i} className="arcade-hud__item" data-rarity={it.rarity} title={t(`arcade.item.${it.id}` as MessageKey)}><ItemIcon slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" /></span>)}
+                  {p.items.map((it, i) => <span key={i} className="arcade-hud__item" data-rarity={it.rarity} title={t(`arcade.item.${it.id}` as MessageKey)}><ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" /></span>)}
                 </div>
               )}
               <div className="arcade-hud__abilities">
@@ -528,7 +532,7 @@ function ArcadeStage() {
                   const affordable = sim.player.gold >= offer.price && sim.player.items.length < ARCADE.shop.slots;
                   return (
                     <button key={`${offer.id}-${i}`} type="button" className="arcade-offer" data-kind="item" data-rarity={offer.rarity} data-testid={`arcade-shop-${i}`} disabled={!affordable} onClick={() => shopAct(i + 1)}>
-                      <span className="arcade-offer__tag"><ItemIcon slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
+                      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
                       <strong>{t(`arcade.item.${offer.id}` as MessageKey)}</strong>
                       <small>{t("arcade.shop.price", { gold: offer.price })}</small>
                       <p>{t(`arcade.item.${offer.id}.desc` as MessageKey)}</p>
@@ -541,7 +545,7 @@ function ArcadeStage() {
                   <span className="arcade-shop__owned-title">{t("arcade.shop.owned")}</span>
                   {sim.player.items.map((it, i) => (
                     <button key={`${it.id}-${i}`} type="button" className="arcade-shop__sell" data-rarity={it.rarity} data-testid={`arcade-shop-sell-${i}`} title={t(`arcade.item.${it.id}.desc` as MessageKey)} onClick={() => shopAct(SHOP_ACT.sellBase + i)}>
-                      <ItemIcon slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" />
+                      <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" />
                       <span>{t(`arcade.item.${it.id}` as MessageKey)}</span>
                       <small>{t("arcade.shop.sell", { gold: sim.itemSellPrice(it) })}</small>
                     </button>
@@ -588,19 +592,19 @@ function ArcadeStage() {
                 <div className="arcade-drops" data-testid="arcade-loot-result">
                   <span className="arcade-setup__label">{t("arcade.loot.gained", { n: lastLoot.length })}</span>
                   <div className="arcade-result__schools">
-                    {lastLoot.map((g) => <Chip key={g.uid}><ItemIcon slug={gearArt(g)} name={g.base} size="sm" /> {t(`arcade.gearName.${g.base}` as MessageKey)} · {t(`arcade.rarity.${g.rarity}` as MessageKey)}</Chip>)}
+                    {lastLoot.map((g) => <Chip key={g.uid}><ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" /> {t(`arcade.gearName.${g.base}` as MessageKey)} · {t(`arcade.rarity.${g.rarity}` as MessageKey)}</Chip>)}
                   </div>
                 </div>
               )}
               {outcome.neutral && <p className="arcade-overlay__seed">{t("arcade.neutral.slot")}: {t(`arcade.neutral.${outcome.neutral}` as MessageKey)}</p>}
               {outcome.items.length > 0 && (
                 <div className="arcade-result__schools">
-                  {outcome.items.map((id, i) => <Chip key={`${id}-${i}`}><ItemIcon slug={ARCADE_ITEM_BY_ID[id]?.art ?? id} name={id} size="sm" /> {t(`arcade.item.${id}` as MessageKey)}</Chip>)}
+                  {outcome.items.map((id, i) => <Chip key={`${id}-${i}`}><ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[id]?.art ?? id} name={id} size="sm" /> {t(`arcade.item.${id}` as MessageKey)}</Chip>)}
                 </div>
               )}
               {outcome.schools.length > 0 && (
                 <div className="arcade-result__schools">
-                  {outcome.schools.map((s) => <Chip key={s}><ItemIcon slug={SCHOOL_ART[s]} name={s} size="sm" /> {t(`arcade.school.${s}` as MessageKey)}</Chip>)}
+                  {outcome.schools.map((s) => <Chip key={s}><ItemIcon pixel={PX} slug={SCHOOL_ART[s]} name={s} size="sm" /> {t(`arcade.school.${s}` as MessageKey)}</Chip>)}
                 </div>
               )}
               {lastDrops.length > 0 && (
@@ -663,7 +667,7 @@ function SfxDebugPanel({ hero }: { hero: string }) {
 function AbilityIcon({ hero, k, size = 28 }: { hero: string; k: AbilityKey; size?: number }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <b className="arcade-ability-icon arcade-ability-icon--fallback" style={{ width: size, height: size }}>{k.toUpperCase()}</b>;
-  return <img className="arcade-ability-icon" src={`${import.meta.env.BASE_URL}art/abilities/${hero}_${k}.png`} alt="" width={size} height={size} draggable={false} onError={() => setFailed(true)} />;
+  return <img className="arcade-ability-icon" data-pixel={PX ? "true" : undefined} src={`${import.meta.env.BASE_URL}art/${PX ? "abilities_px" : "abilities"}/${hero}_${k}.png`} alt="" width={size} height={size} draggable={false} onError={() => setFailed(true)} />;
 }
 
 function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPick: () => void }) {
@@ -693,7 +697,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   if (def.legendary) {
     return (
       <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity="legendary" data-testid={`arcade-offer-${index}`} onClick={onPick}>
-        <span className="arcade-offer__tag"><ItemIcon slug={def.art ?? SCHOOL_ART[def.school]} name={def.id} size="sm" /> {t("arcade.rarity.legendary")}{!def.neutral && <> · {t(`arcade.school.${def.school}` as MessageKey)}</>}</span>
+        <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art ?? SCHOOL_ART[def.school]} name={def.id} size="sm" /> {t("arcade.rarity.legendary")}{!def.neutral && <> · {t(`arcade.school.${def.school}` as MessageKey)}</>}</span>
         <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
         <small>{t("arcade.offer.legendaryHint")}</small>
         <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
@@ -702,7 +706,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   }
   return (
     <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity={offer.rarity} data-testid={`arcade-offer-${index}`} onClick={onPick}>
-      <span className="arcade-offer__tag"><ItemIcon slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</span>
+      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</span>
       <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)} · {t("arcade.offer.rank", { rank, max: def.maxRank })}</small>
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
@@ -729,7 +733,7 @@ function GearCard({ item, title }: { item: GearItem | null; title: string }) {
   if (!item) return <div className="arcade-offer arcade-offer--static" data-kind="gear"><span className="arcade-offer__tag">{title}</span><strong>—</strong><p>{t("arcade.loot.empty")}</p></div>;
   return (
     <div className="arcade-offer arcade-offer--static" data-kind="gear" data-rarity={item.rarity}>
-      <span className="arcade-offer__tag"><ItemIcon slug={gearArt(item)} name={item.base} size="sm" /> {title}</span>
+      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" /> {title}</span>
       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier} · {t("arcade.loot.score", { n: gearScore(item) })}</small>
       <p>{item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ")}</p>

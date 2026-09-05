@@ -8,6 +8,7 @@
 // Сим не знает про рендер: `fx` — журнал визуальных событий с ttl, рендерер читает его и
 // ничего в сим не пишет. Level-up останавливает мир (`pending`) до `input.choose`.
 import { Rng } from "../rng.ts";
+import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -100,6 +101,8 @@ export class ArcadeSim {
   private nextShrineAt: number;
   private nextTrollPackAt: number;
   readonly act: ActId;
+  /** Препятствия карты (деревья/камни из общего генератора): герой и обычные враги их обходят, боссы/структуры — нет. */
+  readonly obstacles: ObstacleGrid;
   private readonly roshanAt: number[];
   private roshanIdx = 0;
   private roshanSpawnedAt = 0;
@@ -135,6 +138,7 @@ export class ArcadeSim {
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
+    this.obstacles = new ObstacleGrid(generateMap(seed, this.act).obstacles);
     this.rng = new Rng(`arcade:${seed}:r${this.rank.step}:${this.hero.id}:${this.act}`);
     this.roshanAt = ARCADE.acts[this.act].roshanAt.map((t, i) => (i === 0 && this.rank.earlyRoshan ? t - sec(60) : t));
     this.nextShrineAt = ARCADE.greed.firstAt;
@@ -142,7 +146,7 @@ export class ArcadeSim {
     const P = ARCADE.player;
     this.player = {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
-      facingX: 1, facingY: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
+      facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
@@ -248,6 +252,7 @@ export class ArcadeSim {
     if (this.tick < p.fieldUntil) speed *= 0.5;
     p.x = clamp(p.x + dx * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
     p.y = clamp(p.y + dy * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
+    [p.x, p.y] = this.obstacles.resolve(p.x, p.y, ARCADE.player.r);
   }
 
   private playerCombat(input: ArcadeInput): void {
@@ -257,6 +262,8 @@ export class ArcadeSim {
     if (!stunned && p.attackCd === 0 && this.tick >= p.spinUntil && p.burstLeft === 0 && this.tick >= p.fieldUntil) {
       const target = this.nearestEnemy(p.x, p.y, p.stats.range);
       if (target) {
+        // Спрайт разворачивается к цели на время удара, ноги продолжают бежать куда жмут (см. renderer).
+        { const ax = target.x - p.x, ay = target.y - p.y, al = len(ax, ay) || 1; p.aimX = ax / al; p.aimY = ay / al; p.aimUntil = this.tick + sec(0.45); }
         {
           let k = 1;
           if (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil) k *= 1 - Math.min(0.6, this.hero.signature.value * this.sigScale());
@@ -444,6 +451,7 @@ export class ArcadeSim {
         const ox = p.x, oy = p.y;
         p.x = Math.min(ARCADE.world.w - 40, Math.max(40, p.x + dx / d * dist));
         p.y = Math.min(ARCADE.world.h - 40, Math.max(40, p.y + dy / d * dist));
+        [p.x, p.y] = this.obstacles.resolve(p.x, p.y, ARCADE.player.r);
         p.invulnUntil = Math.max(p.invulnUntil, this.tick + sec(0.35));
         if (value > 0) { for (const e of this.enemiesWithin(p.x, p.y, 110)) this.damageEnemy(e, value, "zap"); this.pushFx("nova", p.x, p.y, 110, 0, 10); }
         this.pushFx("slash", ox, oy, p.x, p.y, 8);
@@ -506,7 +514,7 @@ export class ArcadeSim {
         if (hit.length === 0) { cast = false; break; }
         for (const e of hit) {
           const dx = e.x - p.x, dy = e.y - p.y, d = len(dx, dy) || 1;
-          if (!e.kind.unstoppable && !e.kind.structure) { e.x = Math.min(ARCADE.world.w - 20, Math.max(20, e.x + dx / d * 90)); e.y = Math.min(ARCADE.world.h - 20, Math.max(20, e.y + dy / d * 90)); }
+          if (!e.kind.unstoppable && !e.kind.structure) { e.x = Math.min(ARCADE.world.w - 20, Math.max(20, e.x + dx / d * 90)); e.y = Math.min(ARCADE.world.h - 20, Math.max(20, e.y + dy / d * 90)); [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8); }
           this.damageEnemy(e, value, "burst");
           this.applyChill(e, 0.5, ab.duration ?? 2, false);
         }
@@ -1167,7 +1175,7 @@ export class ArcadeSim {
     // Уперлись в край мира — зеркалим на другую сторону игрока, чтобы враг не появился в кадре.
     if (x < 8 || x > ARCADE.world.w - 8) x = p.x - (x - p.x);
     if (y < 8 || y > ARCADE.world.h - 8) y = p.y - (y - p.y);
-    return [clamp(x, 8, ARCADE.world.w - 8), clamp(y, 8, ARCADE.world.h - 8)];
+    return this.obstacles.resolve(clamp(x, 8, ARCADE.world.w - 8), clamp(y, 8, ARCADE.world.h - 8), 24);
   }
 
   private spawnEnemy(kind: EnemyKind, x: number, y: number): Enemy {
@@ -1241,6 +1249,7 @@ export class ArcadeSim {
       }
       e.x += (dx / d * speed) * DT + sx * 0.5;
       e.y += (dy / d * speed) * DT + sy * 0.5;
+      if (!e.kind.boss && !e.kind.structure && !e.kind.unstoppable) [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
       // Контакт с игроком.
       if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
         e.contactCd = sec(ARCADE.player.contactEvery);
@@ -1524,7 +1533,7 @@ export class ArcadeSim {
     const rAllowed = R_LEVELS[p.abilities.r] !== undefined && p.level >= R_LEVELS[p.abilities.r];
     if (rAllowed) offers.push({ kind: "ability", key: "r" });
     // Легендарный апгрейд: гарантированно на LEGENDARY_LEVELS, иначе с растущим шансом с 8-го уровня.
-    const legs = LEGENDARY_UPGRADES.filter((u) => !p.upgrades[u.id] && (u.neutral || p.schools.length < 3 || p.schools.includes(u.school)));
+    const legs = LEGENDARY_UPGRADES.filter((u) => !p.upgrades[u.id] && (u.neutral || p.schools.includes(u.school)));
     if (legs.length > 0 && p.level >= 8 && (LEGENDARY_LEVELS.includes(p.level) || this.rng.float() < Math.min(0.22, 0.04 + 0.012 * this.minutes))) {
       offers.push({ kind: "upgrade", id: legs[this.rng.int(legs.length)].id, rarity: "arcana" });
     }
@@ -1545,7 +1554,8 @@ export class ArcadeSim {
   private rollUpgradeOffer(exclude: string[]): Offer | null {
     const p = this.player;
     const schools: readonly SchoolId[] = p.schools.length >= 3 ? p.schools : SCHOOLS;
-    const candidates = UPGRADES.filter((u) => !u.legendary && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < u.maxRank);
+    const owned = (id: string) => (p.upgrades[id]?.rank ?? 0) > 0;
+    const candidates = UPGRADES.filter((u) => !u.legendary && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < u.maxRank && (!u.requires || u.requires.some(owned)));
     if (candidates.length === 0) return null;
     const def = candidates[this.rng.int(candidates.length)];
     return { kind: "upgrade", id: def.id, rarity: this.rollRarity() };
