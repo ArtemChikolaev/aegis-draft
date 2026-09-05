@@ -31,7 +31,7 @@ import { Soundscape } from "./soundscape.ts";
 import { pixelScale } from "./pixelMode.ts";
 
 /** Пиксельный режим статичен на загрузку страницы (query-параметр) — иконки предметов и умений берём из px-наборов. */
-const PX = pixelScale() > 1;
+const PX = pixelScale() >= 1;
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 

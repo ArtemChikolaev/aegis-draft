@@ -9,7 +9,8 @@ import { heroArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
-import { pixelScale } from "./pixelMode.ts";
+import { densePixel, pixelScale } from "./pixelMode.ts";
+import { drawBurning, drawChilled, drawEmberRing, drawFrostMist, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks } from "./particles.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
@@ -19,7 +20,7 @@ import { tileImage } from "./sprites.ts";
 import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
-  "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost",
+  "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice",
   "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
@@ -73,7 +74,7 @@ export class ArcadeRenderer {
     return t === "fire" ? pal.fire : t === "frost" ? pal.frost : t === "lightning" ? pal.lightning : pal.playerRing;
   }
 
-  /** Пиксельный режим (прототип, `?pixel=2|3|4`): мир рисуется в буфер в N раз меньше без сглаживания и растягивается nearest — цельная «8-битная» картинка из тех же спрайтов. */
+  /** Пиксельный режим (`pixelMode.ts`): 0 — выключен, N ≥ 1 — CSS-пикселей на арт-пиксель; мир рисуется в буфер 1/N без сглаживания и растягивается nearest. */
   private pixel = 0;
   private pixelCanvas: HTMLCanvasElement | null = null;
   private pixelCtx: CanvasRenderingContext2D | null = null;
@@ -83,8 +84,11 @@ export class ArcadeRenderer {
   private camSnapX = 0;
   private camSnapY = 0;
 
+  /** Зерно частиц в мировых единицах: два арт-пикселя (как крупные искры Death Must Die), без пиксельного режима — 2. */
+  private artPx(): number { return this.pixel >= 1 ? this.pixel * 2 : 2; }
+
   private text(c: CanvasRenderingContext2D, text: string, x: number, y: number): void {
-    if (this.pixel > 1) this.labels.push({ text, x, y, font: c.font, fill: String(c.fillStyle), alpha: c.globalAlpha, align: c.textAlign });
+    if (this.pixel >= 1) this.labels.push({ text, x, y, font: c.font, fill: String(c.fillStyle), alpha: c.globalAlpha, align: c.textAlign });
     else c.fillText(text, x, y);
   }
 
@@ -94,7 +98,7 @@ export class ArcadeRenderer {
     this.ctx = ctx;
     this.mainCtx = ctx;
     this.pixel = pixelScale();
-    setPixelSheets(this.pixel > 1);
+    setPixelSheets(this.pixel >= 1, densePixel(this.pixel));
     const [src] = heroArtSources(heroPicture);
     if (src) {
       this.portrait = new Image();
@@ -135,8 +139,9 @@ export class ArcadeRenderer {
       this.shakeX = (Math.random() - 0.5) * k;
       this.shakeY = (Math.random() - 0.5) * k;
     } else { this.shakeX = 0; this.shakeY = 0; }
-    // Пиксельный проход: подменяем контекст на маленький буфер (1/N, без DPR), после мира растягиваем nearest.
-    if (this.pixel > 1) {
+    // Пиксельный проход: подменяем контекст на буфер 1/N CSS-размера без DPR (при факторе 1 — ровно CSS-размер: на Retina это
+    // 2 физических пикселя на арт-пиксель), после мира растягиваем nearest.
+    if (this.pixel >= 1) {
       const pw = Math.max(1, Math.ceil(this.w / this.pixel)), ph = Math.max(1, Math.ceil(this.h / this.pixel));
       if (!this.pixelCanvas) { this.pixelCanvas = document.createElement("canvas"); this.pixelCtx = this.pixelCanvas.getContext("2d", { alpha: false }); }
       if (this.pixelCanvas.width !== pw || this.pixelCanvas.height !== ph) { this.pixelCanvas.width = pw; this.pixelCanvas.height = ph; }
@@ -145,7 +150,7 @@ export class ArcadeRenderer {
     this.ctx.fillStyle = sim.night ? pal.groundNight : pal.ground;
     this.ctx.fillRect(0, 0, this.w, this.h);
     this.ctx.save();
-    if (this.pixel > 1) {
+    if (this.pixel >= 1) {
       // Камера по целым внутренним пикселям: иначе чанки земли и спрайты дрожат и дают швы на полупикселях.
       const P = this.pixel;
       this.camSnapX = Math.round((camX - this.shakeX) / P) * P; this.camSnapY = Math.round((camY - this.shakeY) / P) * P;
@@ -167,7 +172,7 @@ export class ArcadeRenderer {
     this.drawFx(sim, pal);
     if (sim.night) this.drawNight(sim, pal);
     this.ctx.restore();
-    if (this.pixel > 1 && this.pixelCanvas) {
+    if (this.pixel >= 1 && this.pixelCanvas) {
       this.ctx = this.mainCtx;
       const m = this.mainCtx;
       m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
@@ -396,10 +401,17 @@ export class ArcadeRenderer {
           facing, walkPhase: (tick / 60) * 7 * speedK + e.id * 1.7, moving, attackT,
           hit: flash, statusTint: tick < e.freezeUntil ? pal.frost : tick < e.burnUntil ? pal.fire : tick < e.chillUntil ? pal.frost : null,
         });
-        // Статус поверх спрайта: лёд/огонь — кольцо у ног (спрайт не перекрашиваем).
-        if (drawn && (tick < e.freezeUntil || tick < e.burnUntil || tick < e.chillUntil)) {
-          c.strokeStyle = tick < e.burnUntil ? pal.fire : pal.frost; c.lineWidth = 2; c.globalAlpha = 0.8;
-          c.beginPath(); c.ellipse(e.x, e.y + r * 0.6, r * 1.1, r * 0.45, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+        // Статус поверх спрайта — пиксельные частицы (particles.ts): горение — языки пламени, холод — ледяная крошка;
+        // заморозка — ещё и кольцо у ног. Спрайт не перекрашиваем.
+        if (drawn) {
+          const apx = this.artPx();
+          const h = ds ? ds.meta.world * 0.7 : r * 3; // видимый рост силуэта (кадр Dota занят моделью примерно на 70%)
+          if (tick < e.burnUntil) drawBurning(c, e.x, e.y + r * 0.6, h, tick, e.id, apx, pal);
+          if (tick < e.freezeUntil || tick < e.chillUntil) drawChilled(c, e.x, e.y + r * 0.6, h, tick, e.id, apx, pal);
+          if (tick < e.freezeUntil) {
+            c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.8;
+            c.beginPath(); c.ellipse(e.x, e.y + r * 0.6, r * 1.1, r * 0.45, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+          }
         }
       }
       if (e.kind.reflect) { c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([4, 4]); c.beginPath(); c.arc(e.x, e.y, r + 8, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
@@ -425,7 +437,9 @@ export class ArcadeRenderer {
     const c = this.ctx;
     for (const pr of sim.projectiles) {
       if (!pr.alive) continue;
-      // Снаряд автоатаки — в цвете героя (тёмно-красный у Shadow Fiend, лёд у Lich…), а не общий жёлтый шарик.
+      // Снаряд автоатаки — в цвете героя (тёмно-красный у Shadow Fiend, лёд у Lich…), а не общий жёлтый шарик; за огнём/льдом/
+      // молнией/ядром — пиксельный хвост (particles.ts).
+      if (pr.kind !== "arrow") drawProjectileTrail(c, pr.x, pr.y, pr.vx, pr.vy, pr.r, pr.kind, sim.tick, this.artPx(), pal);
       c.fillStyle = pr.kind === "fire" ? pal.fire : pr.kind === "shard" ? pal.frost : pr.kind === "zap" ? pal.lightning : pr.kind === "arrow" ? (pr.fromEnemy ? pal.brute : HERO_TINT[sim.hero.id] ?? pal.playerRing) : pal.brute;
       c.beginPath(); c.arc(pr.x, pr.y, pr.r, 0, Math.PI * 2); c.fill();
     }
@@ -437,6 +451,16 @@ export class ArcadeRenderer {
     const R = ARCADE.player.r + 4;
     const ring = this.tintKey(pal);
     this.drawTrail(p.x, p.y, now, pal);
+    // Ауры школ — частицами под героем: угольки Radiance, ледяная крошка Skadi, искры Maelstrom (плотность — от ранга).
+    {
+      const apx = this.artPx();
+      const rad = sim.upgradePower("rad_aura");
+      if (rad > 0) drawEmberRing(c, p.x, p.y + R * 0.75, 110 * (1 + 0.1 * sim.upgradePower("rad_inferno")), sim.tick, apx, pal, 10 + 6 * rad);
+      const ska = sim.upgradePower("ska_aura");
+      if (ska > 0) drawFrostMist(c, p.x, p.y + R * 0.75, 120, sim.tick, apx, pal, 8 + 5 * ska);
+      const mae = sim.upgradePower("mae_static");
+      if (mae > 0) drawSparks(c, p.x, p.y, R * 2.2, sim.tick, apx, pal, 2 + mae);
+    }
     const spinning = sim.tick < p.spinUntil;
     const invuln = sim.tick < p.invulnUntil || (p.burstLeft > 0 && sim.hero.abilities.r.kind === "omni");
     const spinR = sim.hero.abilities.q.radius ?? 104;
@@ -545,6 +569,7 @@ export class ArcadeRenderer {
       switch (f.kind) {
         case "hit": case "crit": case "heal": {
           if (f.value <= 0) break;
+          if (f.kind !== "heal") drawHitSparks(c, f.x, f.y, k, f.kind === "crit", f.born, this.artPx(), pal);
           c.globalAlpha = 1 - k;
           c.fillStyle = f.kind === "heal" ? pal.heal : f.kind === "crit" ? pal.crit : pal.text;
           c.font = f.kind === "crit" ? "800 16px var(--font-display, sans-serif)" : "700 12px var(--font-display, sans-serif)";
@@ -564,8 +589,12 @@ export class ArcadeRenderer {
           break;
         }
         case "nova": case "burst": {
-          c.globalAlpha = (1 - k) * 0.8; c.strokeStyle = f.kind === "burst" ? pal.fire : pal.lightning; c.lineWidth = 3;
-          c.beginPath(); c.arc(f.x, f.y, Math.max(1, f.x2 * (0.3 + 0.7 * k)), 0, Math.PI * 2); c.stroke();
+          const rr = Math.max(1, f.x2 * (0.3 + 0.7 * k));
+          c.globalAlpha = (1 - k) * 0.5; c.strokeStyle = f.kind === "burst" ? pal.fire : HERO_TINT[sim.hero.id] ?? pal.lightning; c.lineWidth = 2;
+          c.beginPath(); c.arc(f.x, f.y, rr, 0, Math.PI * 2); c.stroke();
+          // Нова — в цвете героя (Shadowraze тёмно-красная, Frost Nova ледяная), взрыв — огонь.
+          const novaMain = f.kind === "burst" ? pal.fire : HERO_TINT[sim.hero.id] ?? pal.lightning;
+          drawPixelRing(c, f.x, f.y, rr, k, f.born, this.artPx(), novaMain, f.kind === "burst" ? pal.ember : pal.text);
           break;
         }
         case "die": {

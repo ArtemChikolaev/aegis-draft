@@ -1,0 +1,22 @@
+{
+  "name": "rock",
+  "frame": 96,
+  "dirs": 1,
+  "fps": 12,
+  "world": 96,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.563
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 1
+    }
+  },
+  "source": "rock_ground001.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

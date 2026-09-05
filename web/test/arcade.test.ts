@@ -153,7 +153,7 @@ describe("arcade sim", () => {
       // Бессмертие в тесте — вне лога, поэтому сравниваем только тик и убийства ≥ (реплей мог умереть раньше).
       expect(replayed.tick, hero).toBeLessThanOrEqual(a.tick);
     }
-  });
+  }, 60_000); // 24 героя × 3 симуляции по 90 с: ~2.5 с на M-серии, на раннере CI укладывалось не всегда в дефолтные 5 с (упало 2026-09-06).
 
   it("полный акт: второй Рошан на 14:00 сильнее, Древний на 20:00, его смерть — победа", () => {
     const sim = new ArcadeSim("full-1", { act: "full" });
@@ -176,7 +176,7 @@ describe("arcade sim", () => {
     sim.ancient!.hp = 1; sim.damageEnemy(sim.ancient!, 5, "hit");
     expect(sim.over?.outcome).toBe("victory");
     expect(sim.over?.act).toBe("full");
-  });
+  }, 60_000); // полный акт 20 минут игрового времени — тот же запас, что у теста героев
 
   it("нейтральный токен: тир 1 на 2-й минуте, выбор ставит мир на паузу и занимает один слот", () => {
     const sim = new ArcadeSim("neutral-1");

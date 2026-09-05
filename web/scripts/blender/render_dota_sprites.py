@@ -41,6 +41,8 @@ def parse_args():
     p.add_argument("--pixel", action="store_true", help="пиксель-арт в духе Dead Cells: движок Workbench (плоский студийный свет, контур, без сглаживания), маленький кадр (48 px герой), палитра без дизеринга — см. docs/arcade-dota-sprites.md §7")
     p.add_argument("--outline", type=float, default=1.0, help="толщина контура Workbench в пикселях (только --pixel)")
     p.add_argument("--light", type=float, default=1.25, help="яркость студийного света Workbench (только --pixel): тёмным моделям (Shadow Fiend, Рошан) 1.4–1.8")
+    p.add_argument("--autoexpose", type=float, default=0.16, help="только --pixel: если средняя яркость текстуры цвета ниже порога, гамма поднимает её до --expose-target (Shadow Fiend в Dota светится selfillum/spec, а его color-текстура почти чёрная); 0 — выключить")
+    p.add_argument("--expose-target", type=float, default=0.4)
     return p.parse_args(argv)
 
 def reset_scene():
@@ -263,12 +265,39 @@ def main():
             bad = ("mask", "normal", "_orm", "spec", "rough", "metal", "detail")
             good = [n for n in imgs if "_color" in n.image.name.lower() and not any(b in n.image.name.lower() for b in bad)]
             return (good or [n for n in imgs if not any(b in n.image.name.lower() for b in bad)] or imgs or [None])[0]
+        def auto_expose(img, threshold, target):
+            # Workbench берёт пиксели картинки как есть (граф узлов не считается), поэтому светлим сами пиксели:
+            # гамма по среднему непрозрачных пикселей, чёрное остаётся чёрным, а тёмно-красная кожа SF читается.
+            import numpy as np
+            w, h = img.size
+            if w == 0 or h == 0:
+                return
+            px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
+            rgb = px[:, :3]
+            lum = rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+            mask = px[:, 3] > 0.5
+            mean = float(lum[mask].mean()) if mask.any() else float(lum.mean())
+            if mean <= 0.0 or mean >= threshold:
+                return
+            gamma = math.log(target) / math.log(mean)
+            px[:, :3] = np.clip(rgb, 0.0, 1.0) ** gamma
+            img.pixels.foreach_set(px.reshape(-1))
+            img.update()
+            try:
+                img.gl_free()
+            except Exception:
+                pass
+            print(f"autoexpose: {img.name} mean {mean:.3f} → gamma {gamma:.2f}")
+        exposed = set()
         for m in bpy.data.materials:
             if not m.use_nodes:
                 continue
             node = base_color_image(m.node_tree)
             if node:
                 m.node_tree.nodes.active = node
+                if a.autoexpose > 0 and node.image.name not in exposed:
+                    exposed.add(node.image.name)
+                    auto_expose(node.image, a.autoexpose, a.expose_target)
             else:
                 print(f"WARN: у материала {m.name} нет текстуры цвета — Workbench нарисует его серым")
     setup_render(a.frame, a.samples, a.pixel, a.outline, a.light)

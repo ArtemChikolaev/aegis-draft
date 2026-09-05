@@ -216,9 +216,11 @@ const dotaSheets = new Map<string, DotaSheet | null | "loading">();
 
 /** Пиксельные листы (`dota_px/`, Dead Cells-стиль, docs/arcade-dota-sprites.md §7): включаются рендерером в пиксельном режиме; нет px-листа — берётся обычный. */
 let pixelSheets = false;
-export function setPixelSheets(on: boolean): void {
-  if (pixelSheets === on) return;
+let denseSheets = false;
+export function setPixelSheets(on: boolean, dense = false): void {
+  if (pixelSheets === on && denseSheets === dense) return;
   pixelSheets = on;
+  denseSheets = dense;
   dotaSheets.clear();
   version++;
 }
@@ -241,7 +243,10 @@ export function dotaSheet(name: string): DotaSheet | null {
   if (v === undefined) {
     dotaSheets.set(name, "loading");
     const miss = () => { dotaSheets.set(name, null); version++; };
-    if (pixelSheets) loadSheet(name, "dota_px", () => loadSheet(name, "dota", miss));
+    // Плотный пиксель (фактор 1): 128-px кадры `dota_px2/`, нет — 64-px `dota_px/` (растянутся nearest ×2), нет — обычный лист.
+    const px = () => loadSheet(name, "dota_px", () => loadSheet(name, "dota", miss));
+    if (pixelSheets && denseSheets) loadSheet(name, "dota_px2", px);
+    else if (pixelSheets) px();
     else loadSheet(name, "dota", miss);
     return null;
   }

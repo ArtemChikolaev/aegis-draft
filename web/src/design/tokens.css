@@ -328,6 +328,9 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-player-ring: #ffd48a;
   --arcade-shard: #8ff0b5;
   --arcade-fire: #ff9a45;
+  --arcade-ember: #ffd27a;     /* ядро пламени / искры (particles.ts) */
+  --arcade-smoke: #5a4a44;     /* гаснущие частицы огня */
+  --arcade-ice: #e6f7ff;       /* светлая ледяная крошка */
   --arcade-frost: #8bd8ff;
   --arcade-lightning: #d7bcff;
   --arcade-hp: #5bd98c;

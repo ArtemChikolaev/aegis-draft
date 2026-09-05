@@ -73,6 +73,8 @@ export interface Pet {
   facingY: number;
   /** Тик последнего удара — для анимации. */
   hitAt: number;
+  /** Был ли в радиусе удара на прошлом тике: вход в радиус укорачивает перезарядку до замаха (tickPets). */
+  inReach: boolean;
 }
 export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive";
 export type Rarity = "standard" | "refined" | "exotic" | "arcana";

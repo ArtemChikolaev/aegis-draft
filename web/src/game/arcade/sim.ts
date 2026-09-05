@@ -64,6 +64,8 @@ export const KIND_INDEX: Record<string, number> = Object.fromEntries(Object.keys
 export const KIND_BY_INDEX: readonly string[] = Object.keys(ENEMY_KINDS);
 const R_LEVELS = [6, 12, 18];
 const GRID = 72;
+/** Питомец подошёл к новой цели, а перезарядка ещё идёт: бьёт не позже чем через 0.2 с (тиков) — см. tickPets. */
+const PET_REARM = 12;
 
 function len(x: number, y: number): number {
   return Math.sqrt(x * x + y * y);
@@ -1410,7 +1412,7 @@ export class ArcadeSim {
     };
     for (const kind of Object.keys(want) as PetKind[]) {
       let have = this.pets.filter((q) => q.kind === kind).length;
-      while (have < want[kind]) { this.pets.push({ kind, x: p.x + (this.rng.float() - 0.5) * 60, y: p.y + 40 + this.rng.float() * 20, cd: 0, facingX: 1, facingY: 0, hitAt: -999 }); have++; }
+      while (have < want[kind]) { this.pets.push({ kind, x: p.x + (this.rng.float() - 0.5) * 60, y: p.y + 40 + this.rng.float() * 20, cd: 0, facingX: 1, facingY: 0, hitAt: -999, inReach: false }); have++; }
     }
   }
 
@@ -1442,8 +1444,14 @@ export class ArcadeSim {
         pet.facingX = dx / d; pet.facingY = dy / d;
       }
       if (pet.kind !== "hawk") [pet.x, pet.y] = this.obstacles.resolve(pet.x, pet.y, def.r);
-      // Удар.
-      if (target && pet.cd === 0 && len(target.x - pet.x, target.y - pet.y) <= def.reach + target.kind.r) {
+      // Удар. Перезарядка — восстановление после удара, а не таймер погони: дойдя до новой цели, готовый питомец бьёт
+      // сразу, а с недоигранной перезарядкой — не позже чем через 0.2 с (фидбэк владельца 2026-09-06: волк/медведь бежали
+      // рядом с жертвой 2–3 с и только потом кусали). Нижняя граница между двумя ударами — половина `every`, чтобы прыжки
+      // по толпе не удваивали DPS.
+      const inReach = !!target && len(target.x - pet.x, target.y - pet.y) <= def.reach + target.kind.r;
+      if (inReach && !pet.inReach) pet.cd = Math.min(pet.cd, Math.max(PET_REARM, sec(def.every) / 2 - (this.tick - pet.hitAt)));
+      pet.inReach = inReach;
+      if (target && inReach && pet.cd === 0) {
         pet.cd = sec(def.every);
         pet.hitAt = this.tick;
         let dmg = def.dmg * rank * this.petPower();

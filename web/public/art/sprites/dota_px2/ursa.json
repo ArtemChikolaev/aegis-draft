@@ -1,0 +1,34 @@
+{
+  "name": "ursa",
+  "frame": 128,
+  "dirs": 8,
+  "fps": 12,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.756
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 10
+    },
+    "idle": {
+      "row": 8,
+      "frames": 12
+    },
+    "attack": {
+      "row": 16,
+      "frames": 6
+    },
+    "death": {
+      "row": 24,
+      "frames": 12
+    }
+  },
+  "source": "ursa.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

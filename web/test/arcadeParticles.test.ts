@@ -1,0 +1,53 @@
+import { describe, expect, it } from "vitest";
+import { drawBurning, drawChilled, drawEmberRing, drawHitSparks, drawPixelRing, drawProjectileTrail } from "../src/features/arcade/particles.ts";
+
+// Заглушка 2D-контекста: собираем прямоугольники, чтобы проверить количество, размер и привязку к сетке арт-пикселя.
+function stub() {
+  const rects: { x: number; y: number; w: number; h: number; alpha: number; fill: string }[] = [];
+  const c = { globalAlpha: 1, fillStyle: "", fillRect(x: number, y: number, w: number, h: number) { rects.push({ x, y, w, h, alpha: this.globalAlpha, fill: String(this.fillStyle) }); }, beginPath() {}, ellipse() {}, fill() {} };
+  return { c: c as unknown as CanvasRenderingContext2D, rects };
+}
+const pal = { fire: "fire", ember: "ember", smoke: "smoke", frost: "frost", ice: "ice", lightning: "lightning", text: "text" };
+
+describe("пиксельные частицы эффектов (particles.ts)", () => {
+  it("горение: несколько квадратов кратных зерну, над ногами врага, огненных цветов; детерминировано от тика", () => {
+    const a = stub(); drawBurning(a.c, 100, 100, 60, 500, 7, 2, pal);
+    const b = stub(); drawBurning(b.c, 100, 100, 60, 500, 7, 2, pal);
+    expect(a.rects.length).toBeGreaterThanOrEqual(8);
+    expect(Math.min(...a.rects.map((r) => r.y))).toBeLessThan(100 - 30); // пламя поднимается по силуэту, а не только у ног
+    expect(a.rects).toEqual(b.rects);
+    for (const r of a.rects) {
+      expect(r.w % 2).toBe(0); expect(r.w).toBeGreaterThanOrEqual(2);
+      expect(r.y).toBeLessThanOrEqual(100 + 2);
+      expect(["fire", "ember", "smoke"]).toContain(r.fill);
+      expect(r.alpha).toBeGreaterThan(0);
+    }
+    const c2 = stub(); drawBurning(c2.c, 100, 100, 60, 501, 7, 2, pal);
+    expect(c2.rects).not.toEqual(a.rects);
+    expect((a.c as unknown as { globalAlpha: number }).globalAlpha).toBe(1);
+  });
+
+  it("холод: ледяные осколки вокруг корпуса; кольцо угольков и хвост снаряда масштабируются зерном", () => {
+    const s = stub(); drawChilled(s.c, 0, 0, 60, 10, 3, 4, pal);
+    expect(s.rects.length).toBe(5);
+    for (const r of s.rects) { expect(r.w % 4).toBe(0); expect(["frost", "ice", "text"]).toContain(r.fill); }
+    const ring = stub(); drawEmberRing(ring.c, 0, 0, 110, 30, 2, pal, 12);
+    expect(ring.rects.length).toBe(12);
+    for (const r of ring.rects) expect(Math.hypot(r.x, r.y)).toBeLessThan(110 + 30);
+    const trail = stub(); drawProjectileTrail(trail.c, 50, 50, 260, 0, 6, "fire", 10, 2, pal);
+    expect(trail.rects.length).toBe(3);
+    for (const r of trail.rects) expect(r.x).toBeLessThan(50); // хвост позади по направлению полёта
+  });
+
+  it("искры попадания разлетаются со временем и гаснут; кольцо взрыва из отдельных пикселей", () => {
+    const early = stub(); drawHitSparks(early.c, 0, 0, 0.1, true, 42, 2, pal);
+    const late = stub(); drawHitSparks(late.c, 0, 0, 0.9, true, 42, 2, pal);
+    expect(early.rects.length).toBe(7);
+    const spread = (rs: typeof early.rects) => rs.reduce((m, r) => Math.max(m, Math.hypot(r.x, r.y)), 0);
+    expect(spread(late.rects)).toBeGreaterThan(spread(early.rects));
+    expect(late.rects[0].alpha).toBeLessThan(early.rects[0].alpha);
+    const ring = stub(); drawPixelRing(ring.c, 0, 0, 60, 0.5, 1, 2, "fire", "ember");
+    expect(ring.rects.length).toBeGreaterThanOrEqual(8);
+    for (const r of ring.rects) expect(["fire", "ember"]).toContain(r.fill);
+  });
+});

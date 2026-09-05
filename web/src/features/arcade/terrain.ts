@@ -7,6 +7,7 @@ import { ARCADE } from "../../game/arcade/config.ts";
 import type { ActId } from "../../game/arcade/types.ts";
 import { TILE, generateMap, type Decor } from "../../game/arcade/mapgen.ts";
 import { dotaSheet, dotaTerrain, drawDotaFrame, pixelSheetsOn, tileImage } from "./sprites.ts";
+import { pixelScale } from "./pixelMode.ts";
 
 export const CHUNK = 512;
 
@@ -83,8 +84,9 @@ export class Terrain {
     const dDirt = dotaTerrain("dirt"), dWater = dotaTerrain("water");
     if (dGrass) {
       c.imageSmoothingEnabled = true;
-      // Обычные текстуры 512 px кладём в 256 мировых px (×0.5); пиксельные 256 px — ×2, чтобы 1 тексель = 1 внутренний пиксель при ?pixel=2.
-      const texScale = pixelSheetsOn() ? 4 : 0.5; // пиксельная земля 128 px: тексель = 2 внутренних пикселя, читается как пиксель-арт, а не шум
+      // Пиксельная земля 128 px: тексель = 2 внутренних пикселя при любом факторе (при факторе 1 — ×2, при 2 — ×4), читается как
+      // пиксель-арт, а не шум; обычные текстуры 512 px кладём в 256 мировых px (×0.5).
+      const texScale = pixelSheetsOn() ? 2 * Math.max(1, pixelScale()) : 0.5;
       const pat = (im: HTMLImageElement) => { const pt = c.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(texScale)); return pt; };
       c.fillStyle = pat(dGrass);
       c.fillRect(0, 0, CHUNK, CHUNK);
