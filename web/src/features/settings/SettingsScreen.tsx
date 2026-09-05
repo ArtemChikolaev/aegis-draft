@@ -5,7 +5,7 @@ import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { useShell } from "../../state/shellStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
-import { Banner, Button, Eyebrow, Modal, OptionGroup, Surface, useScreenShakeSetting, useSoundSetting } from "../../ui/index.ts";
+import { Banner, Button, Eyebrow, Modal, OptionGroup, Surface, useScreenShakeSetting, useSoundSetting, useVolumeSetting } from "../../ui/index.ts";
 import { useInstallApp } from "../../state/installApp.ts";
 import { clearOfflineCache, formatBytes, readOfflineStatus, shortHash, type OfflineStatus } from "../../state/offlineStatus.ts";
 import { ensureOfflinePack } from "../../state/serviceWorker.ts";
@@ -25,6 +25,9 @@ export function SettingsScreen() {
   // Тряска экрана (R15.4) — отдельный тумблер, как в Balatro: не хотеть тряску ≠ reduced-motion.
   const [shakeEnabled, setShakeEnabled] = useScreenShakeSetting();
   const [soundOn, setSoundOn] = useSoundSetting();
+  const [volSfx, setVolSfx] = useVolumeSetting("sfx");
+  const [volMusic, setVolMusic] = useVolumeSetting("music");
+  const [volVoice, setVolVoice] = useVolumeSetting("voice");
 
   // Офлайн-копия (T11.4). Статус читается из настоящих кэшей, а не хранится где-то рядом:
   // иначе он расходится с реальностью ровно в тот момент, когда важен.
@@ -121,6 +124,17 @@ export function SettingsScreen() {
           value={soundOn ? "on" : "off"}
           onChange={(value) => setSoundOn(value === "on")}
         />
+        {soundOn && (
+          <div className="settings__volumes" data-testid="settings-volumes">
+            {([["sfx", t("settings.volumeSfx"), volSfx, setVolSfx], ["music", t("settings.volumeMusic"), volMusic, setVolMusic], ["voice", t("settings.volumeVoice"), volVoice, setVolVoice]] as const).map(([key, label, value, set]) => (
+              <label key={key} className="settings__volume">
+                <span>{label}</span>
+                <input type="range" min={0} max={100} step={5} value={Math.round(value * 100)} onChange={(e) => set(Number(e.target.value) / 100)} aria-label={label} data-testid={`settings-volume-${key}`} />
+                <b>{Math.round(value * 100)}%</b>
+              </label>
+            ))}
+          </div>
+        )}
         <OptionGroup
           title={t("settings.shake")}
           soonLabel={t("common.soon")}

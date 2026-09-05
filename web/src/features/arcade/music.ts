@@ -1,11 +1,12 @@
 // Фоновая музыка Аркады из треков Dota 2 (BACKLOG T13.16 срез 3; владелец: «фоновую музыку в тему»).
 // Три боевые темы по кругу с кроссфейдом, тема Рошана — пока он жив. HTMLAudio, а не WebAudio: треки длинные,
 // стримятся и не декодируются в память; громкость подстроена под тихий master игры. Уважает общий тумблер звука.
-import { soundEnabled } from "../../ui/sound.ts";
+import { getVolume, soundEnabled } from "../../ui/sound.ts";
 
 const ROOT = `${import.meta.env.BASE_URL}art/sfx/dota/music/`;
 const BATTLE = ["battle_01.mp3", "battle_02.mp3", "battle_03.mp3"];
-const VOLUME = 0.28;
+const BASE_VOLUME = 0.28;
+const vol = () => BASE_VOLUME * getVolume("music");
 const FADE_MS = 1500;
 
 type Mode = "off" | "battle" | "roshan";
@@ -31,8 +32,8 @@ function fadeSwap(next: HTMLAudioElement): void {
   cancelAnimationFrame(raf);
   const step = () => {
     const k = Math.min(1, (performance.now() - start) / FADE_MS);
-    if (current) current.volume = VOLUME * k;
-    if (fading) fading.volume = VOLUME * (1 - k);
+    if (current) current.volume = vol() * k;
+    if (fading) fading.volume = vol() * (1 - k);
     if (k < 1) raf = requestAnimationFrame(step);
     else if (fading) { fading.pause(); fading = null; }
   };
@@ -53,6 +54,7 @@ export function ensureMusic(want: Mode): void {
   if (!soundEnabled()) want = "off";
   if (want === mode) {
     if (current && current.paused && want !== "off") void current.play().catch(() => {});
+    if (current && !fading && Math.abs(current.volume - vol()) > 0.005) current.volume = vol(); // ползунок в настройках
     return;
   }
   mode = want;

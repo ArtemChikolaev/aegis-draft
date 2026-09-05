@@ -49,3 +49,9 @@
 
 /* Пометка «закрыто хардкором» на плитке справочника — тем же красным, что и обводка забега. */
 .settings__lock { color: var(--danger); font-size: 12px; }
+
+/* Громкость по каналам (владелец 2026-09-06): эффекты / музыка / реплики */
+.settings__volumes { display: grid; gap: 10px; margin: -6px 0 18px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); }
+.settings__volume { display: grid; grid-template-columns: 96px 1fr 44px; gap: 10px; align-items: center; font-size: 13px; color: var(--text); }
+.settings__volume input[type="range"] { width: 100%; accent-color: var(--accent); }
+.settings__volume b { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }

@@ -16,6 +16,34 @@ import { useSyncExternalStore } from "react";
 import { readCached, writePersisted } from "../state/persist.ts";
 
 const SOUND_KEY = "aegis-draft.sound";
+/** Громкость по каналам (0..1), хранится в persist: эффекты (сэмплы ударов/мобов + синтетика), музыка, реплики героев. */
+export type VolumeChannel = "sfx" | "music" | "voice";
+const VOLUME_KEY: Record<VolumeChannel, string> = { sfx: "aegis-draft.volume.sfx", music: "aegis-draft.volume.music", voice: "aegis-draft.volume.voice" };
+const VOLUME_DEFAULT: Record<VolumeChannel, number> = { sfx: 1, music: 0.8, voice: 1 };
+const volumeListeners = new Set<() => void>();
+export function getVolume(channel: VolumeChannel): number {
+  const raw = readCached(VOLUME_KEY[channel]);
+  const v = raw == null ? NaN : Number(raw);
+  return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : VOLUME_DEFAULT[channel];
+}
+export function setVolume(channel: VolumeChannel, value: number): void {
+  const v = Math.min(1, Math.max(0, value));
+  void writePersisted(VOLUME_KEY[channel], String(v));
+  if (channel === "sfx" && master) master.gain.value = MASTER_BASE * v;
+  if (channel === "voice" && voiceBus) voiceBus.gain.value = MASTER_BASE * v;
+  volumeListeners.forEach((l) => l());
+}
+export function useVolumeSetting(channel: VolumeChannel): [number, (v: number) => void] {
+  const value = useSyncExternalStore(
+    (listener) => { volumeListeners.add(listener); return () => volumeListeners.delete(listener); },
+    () => getVolume(channel),
+    () => VOLUME_DEFAULT[channel],
+  );
+  return [value, (v) => setVolume(channel, v)];
+}
+/** Общий уровень сознательно тихий: звук — подложка отклика, не саундтрек. Ползунки в настройках масштабируют его. */
+const MASTER_BASE = 0.5;
+let voiceBus: GainNode | null = null;
 const soundListeners = new Set<() => void>();
 
 export function soundEnabled(): boolean {
@@ -49,9 +77,11 @@ function ensureContext(): AudioContext | null {
     try {
       ctx = new AudioContext();
       master = ctx.createGain();
-      // Общий уровень сознательно тихий: звук — подложка отклика, не саундтрек.
-      master.gain.value = 0.5;
+      master.gain.value = MASTER_BASE * getVolume("sfx");
       master.connect(ctx.destination);
+      voiceBus = ctx.createGain();
+      voiceBus.gain.value = MASTER_BASE * getVolume("voice");
+      voiceBus.connect(ctx.destination);
     } catch {
       return null; // WebAudio нет (старый webview) — играем в тишине
     }
@@ -243,30 +273,49 @@ export function sfxVerdict(kind: "won" | "lost"): void {
 // null и больше не запрашивается.
 const samples = new Map<string, AudioBuffer | null | Promise<void>>();
 
+/** Журнал для отладочной панели (`?sfxdebug=1` в Аркаде): что просили сыграть и что вышло. */
+export interface SfxLogEntry { t: number; url: string; status: "played" | "pending" | "failed" | "muted" | "no-context" | "suspended"; gain: number }
+const sfxLog: SfxLogEntry[] = [];
+let sfxFailures = 0;
+export function sfxDebug(): { log: SfxLogEntry[]; state: string; master: number; cached: number; failed: number; enabled: boolean } {
+  return { log: sfxLog.slice(-12), state: ctx ? ctx.state : "none", master: master?.gain.value ?? 0, cached: [...samples.values()].filter((v) => v && !(v instanceof Promise)).length, failed: sfxFailures, enabled: soundEnabled() };
+}
+function logSfx(url: string, status: SfxLogEntry["status"], gain: number): void {
+  sfxLog.push({ t: Date.now(), url: url.split("/art/")[1] ?? url, status, gain });
+  if (sfxLog.length > 40) sfxLog.splice(0, 20);
+}
+
 export function preloadSample(url: string): void {
   const audio = ensureContext();
   if (!audio || samples.has(url)) return;
   const job = fetch(url)
     .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
     .then((buf) => audio.decodeAudioData(buf))
-    .then((decoded) => { samples.set(url, decoded); }, () => { samples.set(url, null); });
+    .then((decoded) => { samples.set(url, decoded); }, (err: unknown) => {
+      samples.set(url, null);
+      sfxFailures++;
+      if (sfxFailures <= 5) console.warn("[sfx] не удалось загрузить/декодировать сэмпл", url, err);
+    });
   samples.set(url, job);
 }
 
 /** Сыграть сэмпл; `rate` — лёгкая вариация тона, чтобы серия ударов не звучала как один файл. Вернёт false, если буфер ещё не готов. */
-export function sfxSample(url: string, gain = 0.4, rate = 1, at = 0): boolean {
-  if (!soundEnabled()) return true;
+export function sfxSample(url: string, gain = 0.4, rate = 1, at = 0, channel: "sfx" | "voice" = "sfx"): boolean {
+  if (!soundEnabled()) { logSfx(url, "muted", gain); return true; }
   const audio = ensureContext();
-  if (!audio || !master) return true;
+  if (!audio || !master) { logSfx(url, "no-context", gain); return true; }
   const buf = samples.get(url);
-  if (buf === undefined) { preloadSample(url); return false; }
-  if (!buf || buf instanceof Promise) return buf === null;
+  if (buf === undefined) { preloadSample(url); logSfx(url, "pending", gain); return false; }
+  // Не готов (грузится) или не декодировался — пусть экран сыграет синтетику, тишины быть не должно.
+  if (!buf || buf instanceof Promise) { logSfx(url, buf === null ? "failed" : "pending", gain); return false; }
+  if (audio.state !== "running") { void audio.resume().catch(() => {}); logSfx(url, "suspended", gain); return false; }
+  logSfx(url, "played", gain);
   const src = audio.createBufferSource();
   src.buffer = buf;
   src.playbackRate.value = rate;
   const g = audio.createGain();
   g.gain.value = gain;
-  src.connect(g); g.connect(master);
+  src.connect(g); g.connect(channel === "voice" && voiceBus ? voiceBus : master);
   src.start(audio.currentTime + at);
   return true;
 }

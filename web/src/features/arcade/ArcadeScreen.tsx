@@ -20,6 +20,7 @@ import { NEUTRAL_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
+import { sfxDebug, sfxSample } from "../../ui/sound.ts";
 import { useHero } from "../draft/heroes.ts";
 import { ArcadeInputController } from "./input.ts";
 import { heroHitSfx, heroSpinSfx, heroVoice, preloadHeroSfx, preloadHeroVoice, resetHeroSfx } from "./heroSfx.ts";
@@ -627,6 +628,7 @@ function ArcadeStage() {
           </div>
         )}
       </div>
+      {typeof window !== "undefined" && new URLSearchParams(window.location.search).has("sfxdebug") && <SfxDebugPanel hero={sim?.hero.id ?? "juggernaut"} />}
       <p className="arcade__credits">{t("arcade.credits")}</p>
       {confirmQuit && (
         <Modal title={t("arcade.hud.quit")} description={t("arcade.hud.quitConfirm")} onClose={() => setConfirmQuit(false)}>
@@ -643,6 +645,21 @@ function ArcadeStage() {
 }
 
 /** Иконка способности из Dota (`art/abilities/<hero>_<q|w|e|r>.png`, scripts/dota_ability_icons.sh); нет файла — просто буква. */
+/** Панель отладки звука (`?sfxdebug=1`): состояние AudioContext, кэш сэмплов, последние попытки и кнопка самопроверки — чтобы владелец мог прислать, что реально играет у него. */
+function SfxDebugPanel({ hero }: { hero: string }) {
+  const [, tick] = useState(0);
+  useEffect(() => { const id = window.setInterval(() => tick((n) => n + 1), 500); return () => window.clearInterval(id); }, []);
+  const d = sfxDebug();
+  const base = `${import.meta.env.BASE_URL}art/sfx/dota/`;
+  return (
+    <div className="arcade-sfxdebug" data-testid="arcade-sfxdebug">
+      <b>SFX debug</b> · ctx <i>{d.state}</i> · master {d.master.toFixed(2)} · enabled {String(d.enabled)} · cached {d.cached} · failed {d.failed}
+      <button type="button" onClick={() => { sfxSample(`${base}${hero}/attack_1.m4a`, 0.8); sfxSample(`${base}pack/enemies/kobold_death_1.m4a`, 0.8, 1, 0.5); sfxSample(`${base}voice/${hero}/spawn_1.mp3`, 0.9, 1, 1.2); }}>test: hit + kobold death + voice</button>
+      <ol>{d.log.slice().reverse().map((e, i) => <li key={i} data-status={e.status}>{e.status} · {e.url}</li>)}</ol>
+    </div>
+  );
+}
+
 function AbilityIcon({ hero, k, size = 28 }: { hero: string; k: AbilityKey; size?: number }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <b className="arcade-ability-icon arcade-ability-icon--fallback" style={{ width: size, height: size }}>{k.toUpperCase()}</b>;

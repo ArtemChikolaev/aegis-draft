@@ -94,7 +94,7 @@ export function heroVoice(hero: string, cat: VoiceCat, now: number, chance = 1, 
   const i = ((voiceIdx[cat] ?? -1) + 1 + Math.floor(Math.random() * Math.max(1, pool.length - 1))) % pool.length;
   voiceIdx[cat] = i;
   const u = vurl(hero, pool[i]);
-  if (!sfxSample(u, 0.9)) return false;
+  if (!sfxSample(u, 0.9, 1, 0, "voice")) return false;
   const dur = sampleDuration(u) || 2;
   voiceBusyUntil = now + dur * 1000 + 250;
   voiceCd[cat] = now + cooldownMs;

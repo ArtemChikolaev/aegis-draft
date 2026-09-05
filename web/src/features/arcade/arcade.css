@@ -168,3 +168,10 @@
 .arcade-ability .arcade-ability-icon { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; opacity: 0.85; }
 .arcade-ability[data-locked] .arcade-ability-icon { filter: grayscale(1) brightness(0.5); }
 .arcade-ability > b, .arcade-ability > small, .arcade-ability > em { position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+
+/* Панель отладки звука (?sfxdebug=1) */
+.arcade-sfxdebug { margin: 8px 0; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; font: 500 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); background: var(--surface); }
+.arcade-sfxdebug button { margin-left: 8px; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface-solid); color: var(--text); font: inherit; cursor: pointer; }
+.arcade-sfxdebug ol { margin: 6px 0 0; padding-left: 18px; max-height: 140px; overflow: auto; }
+.arcade-sfxdebug li[data-status="failed"], .arcade-sfxdebug li[data-status="no-context"], .arcade-sfxdebug li[data-status="suspended"] { color: var(--danger); }
+.arcade-sfxdebug li[data-status="played"] { color: var(--accent); }
