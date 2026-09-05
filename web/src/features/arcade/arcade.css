@@ -31,7 +31,7 @@
 .arcade-rank__tiers { display: flex; flex-wrap: wrap; gap: 6px; }
 .arcade-rank__tier { padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text); font: 700 11px var(--font-display); letter-spacing: .04em; text-transform: uppercase; }
 .arcade-rank__tier[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent); }
-.arcade-rank__tier[data-locked] { opacity: .4; }
+.arcade-rank__tier[data-locked] { opacity: .4; cursor: not-allowed; }
 .arcade-rank__stars { display: flex; gap: 2px; }
 .arcade-rank__star { padding: 0 2px; border: 0; background: none; color: var(--muted); font-size: 22px; line-height: 1; }
 .arcade-rank__star[data-active] { color: var(--gold); }

@@ -11,7 +11,7 @@ import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "groundNight", "fog",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 type Palette = Record<PaletteKey, string>;
@@ -92,7 +92,7 @@ export class ArcadeRenderer {
       this.shakeX = (Math.random() - 0.5) * k;
       this.shakeY = (Math.random() - 0.5) * k;
     } else { this.shakeX = 0; this.shakeY = 0; }
-    c.fillStyle = pal.ground;
+    c.fillStyle = sim.night ? pal.groundNight : pal.ground;
     c.fillRect(0, 0, this.w, this.h);
     c.save();
     c.translate(-camX + this.shakeX, -camY + this.shakeY);
@@ -106,6 +106,7 @@ export class ArcadeRenderer {
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
     this.drawFx(sim, pal);
+    if (sim.night) this.drawNight(sim, pal);
     c.restore();
     if (joystick) this.drawJoystick(joystick, pal);
   }
@@ -386,6 +387,25 @@ export class ArcadeRenderer {
       }
     }
     c.globalAlpha = 1;
+  }
+
+  /** Ночь: радиальный туман вокруг героя — за радиусом обзора сцена почти чёрная. */
+  private drawNight(sim: ArcadeSim, pal: Palette): void {
+    const c = this.ctx;
+    const p = sim.player;
+    const r = ARCADE.night.visibility;
+    const grad = c.createRadialGradient(p.x, p.y, r * 0.55, p.x, p.y, r);
+    grad.addColorStop(0, "rgba(0,0,0,0)");
+    grad.addColorStop(1, pal.fog);
+    c.fillStyle = grad;
+    c.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+    c.fillStyle = pal.fog;
+    // Четыре прямоугольника вокруг квадрата обзора — заливка без дорогого evenodd.
+    const camX = Math.max(0, Math.min(p.x - this.w / 2, ARCADE.world.w - this.w)), camY = Math.max(0, Math.min(p.y - this.h / 2, ARCADE.world.h - this.h));
+    c.fillRect(camX - 20, camY - 20, this.w + 40, Math.max(0, p.y - r - camY + 20));
+    c.fillRect(camX - 20, p.y + r, this.w + 40, Math.max(0, camY + this.h - (p.y + r) + 20));
+    c.fillRect(camX - 20, p.y - r, Math.max(0, p.x - r - camX + 20), r * 2);
+    c.fillRect(p.x + r, p.y - r, Math.max(0, camX + this.w - (p.x + r) + 20), r * 2);
   }
 
   private drawJoystick(j: { ox: number; oy: number; x: number; y: number }, pal: Palette): void {

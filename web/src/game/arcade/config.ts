@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.7.0";
+export const ARCADE_CONFIG_VERSION = "a0.8.0";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -15,7 +15,10 @@ export const ARCADE = {
   acts: {
     short: { roshanAt: [sec(7 * 60)], tormentorAt: -1, ancientAt: -1, ancientDeadline: -1, endAt: sec(9 * 60) },
     full: { roshanAt: [sec(7 * 60), sec(14 * 60)], tormentorAt: sec(10.5 * 60), ancientAt: sec(20 * 60), ancientDeadline: sec(22 * 60), endAt: -1 },
-  } as Record<string, { roshanAt: number[]; tormentorAt: number; ancientAt: number; ancientDeadline: number; endAt: number }>,
+    dire: { roshanAt: [sec(7 * 60), sec(14 * 60)], tormentorAt: sec(10.5 * 60), ancientAt: sec(20 * 60), ancientDeadline: sec(22 * 60), endAt: -1, night: true, hpMult: 1.15, speedMult: 1.06 },
+  } as Record<string, { roshanAt: number[]; tormentorAt: number; ancientAt: number; ancientDeadline: number; endAt: number; night?: boolean; hpMult?: number; speedMult?: number }>,
+  /** Ночь (акт 2): радиус обзора вокруг героя; дальше — туман, враги не видны (но идут). */
+  night: { visibility: 440 },
   /** Пока Рошан жив, обычные спавны стоят; после его смерти — интенсивность ×postRoshanRate. */
   postRoshanRate: 1.6,
   /** Второй Рошан сильнее первого (как респавн в Dota). */

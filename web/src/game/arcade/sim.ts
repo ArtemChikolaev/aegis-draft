@@ -120,7 +120,7 @@ export class ArcadeSim {
     this.seed = seed;
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
-    this.act = options.act === "full" ? "full" : "short";
+    this.act = options.act === "full" || options.act === "dire" ? options.act : "short";
     this.rng = new Rng(`arcade:${seed}:r${this.rank.step}:${this.hero.id}:${this.act}`);
     this.roshanAt = ARCADE.acts[this.act].roshanAt.map((t, i) => (i === 0 && this.rank.earlyRoshan ? t - sec(60) : t));
     this.nextShrineAt = ARCADE.greed.firstAt;
@@ -136,6 +136,11 @@ export class ArcadeSim {
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
     this.recomputeStats();
+  }
+
+  /** Ночной акт: рендер ограничивает обзор, сим — нет (враги идут как обычно). */
+  get night(): boolean {
+    return ARCADE.acts[this.act].night === true;
   }
 
   get seconds(): number {
@@ -850,7 +855,8 @@ export class ArcadeSim {
     const min = this.minutes;
     const greed = 1 + ARCADE.greed.powerPerStack * this.greedStacks;
     const early = Math.min(min, ARCADE.spawn.kneeMin), late = Math.max(0, min - ARCADE.spawn.kneeMin);
-    const hpMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.hpPerMin * early + ARCADE.spawn.lateHpPerMin * late) * this.rank.hpMult * greed;
+    const actHp = ARCADE.acts[this.act].hpMult ?? 1;
+    const hpMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.hpPerMin * early + ARCADE.spawn.lateHpPerMin * late) * this.rank.hpMult * greed * actHp;
     const dmgMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.dmgPerMin * early + ARCADE.spawn.lateDmgPerMin * late) * this.rank.dmgMult * greed;
     let e = this.enemies.find((o) => !o.alive);
     if (!e) { e = emptyEnemy(kind); this.enemies.push(e); }
@@ -891,7 +897,7 @@ export class ArcadeSim {
         continue;
       }
       if (frozen && !e.kind.unstoppable) continue;
-      let speed = e.kind.speed * this.rank.speedMult;
+      let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1);
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
       const ranged = e.kind.ranged;
       if (ranged && d < ranged.range) {

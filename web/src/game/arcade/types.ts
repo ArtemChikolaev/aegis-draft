@@ -145,7 +145,8 @@ export interface ArcadeOptions {
   act?: ActId;
 }
 
-export type ActId = "short" | "full";
+/** `dire` — акт 2: тот же 20-минутный ход, но ночь (обзор ограничен) и лес Dire (враги крепче и быстрее). */
+export type ActId = "short" | "full" | "dire";
 
 export interface Shard {
   alive: boolean;

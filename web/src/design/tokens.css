@@ -342,6 +342,8 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-greed: #ffc66b;
   --arcade-shop: #d5a5ff;
   --arcade-bounty: #ffd48a;
+  --arcade-ground-night: #070a10;
+  --arcade-fog: rgba(3, 5, 9, .96);
 }
 
 /* Тач-устройства: любой контрол ввода — минимум 16px, иначе iOS Safari зумит вьюпорт

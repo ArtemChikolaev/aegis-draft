@@ -15,7 +15,7 @@ const BASE = args.get("seed") ?? "sim";
 const SCHOOL = (args.get("school") ?? "any") as SchoolId | "any";
 const RANK = Number(args.get("rank") ?? 0);
 const HERO = args.get("hero") ?? "juggernaut";
-const ACT = (args.get("act") ?? "full") as "short" | "full";
+const ACT = (args.get("act") ?? "full") as "short" | "full" | "dire";
 const MAX_TICKS = TICK_HZ * 60 * 26;
 
 /** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */

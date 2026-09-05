@@ -194,4 +194,14 @@ describe("arcade sim", () => {
     expect(sim.player.neutral).toBe(sim.neutralOffers[1].id);
     expect(sim.player.stats.damage + sim.player.stats.maxHp + sim.player.stats.cooldown).not.toBe(before);
   });
+
+  it("акт 2 (Dire ночью): флаг ночи, враги крепче при том же времени", () => {
+    const day = new ArcadeSim("dire-1", { act: "full" });
+    const night = new ArcadeSim("dire-1", { act: "dire" });
+    expect(night.night).toBe(true);
+    expect(day.night).toBe(false);
+    for (let i = 0; i < sec(20); i++) { day.step(IDLE_INPUT); night.step(IDLE_INPUT); }
+    const maxHp = (sim: ArcadeSim) => Math.max(...sim.enemies.filter((e) => e.alive && e.kind.id === "kobold").map((e) => e.maxHp));
+    expect(maxHp(night)).toBeGreaterThan(maxHp(day) * 1.1);
+  });
 });

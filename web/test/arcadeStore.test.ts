@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { arcadeTrophies, bestArcadeEntry, maxUnlockedRank, useArcade, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
+import { arcadeTrophies, bestArcadeEntry, hasFullActVictory, maxUnlockedRank, useArcade, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
 import { SHARD_PRICE } from "../src/game/arcade/content/cosmetics.ts";
 
 const entry = (over: Partial<ArcadeHistoryEntry>): ArcadeHistoryEntry => ({
@@ -12,6 +12,12 @@ describe("arcadeStore: витрина и открытие рангов", () => {
     expect(maxUnlockedRank([entry({ outcome: "victory", act: "short", rank: 0 })])).toBe(0);
     expect(maxUnlockedRank([entry({ outcome: "victory", act: "full", rank: 0 })])).toBe(1);
     expect(maxUnlockedRank([entry({ outcome: "victory", act: "full", rank: 7 })])).toBe(8);
+    expect(maxUnlockedRank([entry({ outcome: "victory", act: "dire", rank: 2 })])).toBe(3);
+    expect(hasFullActVictory([entry({ outcome: "victory", act: "short" })])).toBe(false);
+    expect(hasFullActVictory([entry({ outcome: "victory", act: "full" })])).toBe(true);
+    useArcade.setState({ history: [], act: "full" });
+    useArcade.getState().setAct("dire");
+    expect(useArcade.getState().act).toBe("full");
   });
 
   it("трофеи считают забеги, победы, лучший ранг и разбивку по героям", () => {
