@@ -12,7 +12,9 @@ import { SCHOOL_ART, UPGRADE_BY_ID } from "../../game/arcade/content/schools.ts"
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { SHOP_ACT } from "../../game/arcade/types.ts";
+import { IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
+import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
+import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -40,8 +42,24 @@ function ArcadeSetup() {
   const act = useArcade((s) => s.act);
   const setAct = useArcade((s) => s.setAct);
   const heroOf = useHero();
+  const startDaily = useArcade((s) => s.startDaily);
+  const startReplay = useArcade((s) => s.startReplay);
+  const loadedReplay = useArcade((s) => s.loadedReplay);
+  const setLoadedReplay = useArcade((s) => s.setLoadedReplay);
   const [seed, setSeed] = useState("");
+  const [replayCode, setReplayCode] = useState("");
+  const daily = arcadeDaily();
+  const dailyEntry = history.find((e) => e.seed === daily.seed) ?? null;
   const best = bestArcadeEntry(history);
+  // Ссылка `#arcade=<код>`: открыли — предлагаем смотреть реплей сразу.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.location.hash.startsWith("#arcade=")) return;
+    const rep = decodeReplay(window.location.hash);
+    if (rep) setLoadedReplay(rep);
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }, [setLoadedReplay]);
+  const pastedReplay = replayCode.trim() ? decodeReplay(replayCode) : null;
+  const replayToWatch = pastedReplay ?? loadedReplay;
   const unlocked = maxUnlockedRank(history);
   const current = rankOf(rank);
   return (
@@ -114,6 +132,24 @@ function ArcadeSetup() {
           </div>
           <label className="arcade-setup__seed"><span className="arcade-setup__label">{t("common.seed")}</span><TextField value={seed} onChange={(e) => setSeed(e.target.value)} placeholder={t("arcade.seedRandom")} data-testid="arcade-seed" /></label>
           <Button variant="primary" data-testid="arcade-play" onClick={() => start(seed)}>{t("arcade.play")} →</Button>
+          <Surface className="arcade-daily" data-testid="arcade-daily">
+            <div>
+              <span className="arcade-setup__label">{t("arcade.daily.title")}</span>
+              <p>{t("arcade.daily.text", { hero: heroOf(HEROES[daily.hero].dotaId).name })}</p>
+              {dailyEntry && <p className="arcade-daily__done" data-testid="arcade-daily-done">{t(dailyEntry.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")} · {formatClock(dailyEntry.seconds * TICK_HZ)} · {t("arcade.hud.level")} {dailyEntry.level}</p>}
+            </div>
+            <Button variant="secondary" data-testid="arcade-daily-play" onClick={startDaily}>{t(dailyEntry ? "arcade.daily.again" : "arcade.daily.play")}</Button>
+          </Surface>
+          <label className="arcade-setup__seed">
+            <span className="arcade-setup__label">{t("arcade.replay.code")}</span>
+            <TextField value={replayCode} onChange={(e) => setReplayCode(e.target.value)} placeholder={t("arcade.replay.placeholder")} data-testid="arcade-replay-code" />
+          </label>
+          {replayToWatch && (
+            <div className="arcade-replay-load" data-testid="arcade-replay-load">
+              <span>{t("arcade.replay.found", { hero: heroOf(HEROES[replayToWatch.hero].dotaId).name, seed: replayToWatch.seed })}{!replayCompatible(replayToWatch) && ` · ${t("arcade.replay.version", { v: replayToWatch.version, cur: ARCADE_CONFIG_VERSION })}`}</span>
+              <Button variant="primary" data-testid="arcade-replay-watch" onClick={() => startReplay(replayToWatch)}>{t("arcade.replay.watch")}</Button>
+            </div>
+          )}
           <div className="arcade-setup__best">
             <span className="arcade-setup__label">{t("arcade.best")}</span>
             {best
@@ -139,7 +175,12 @@ function ArcadeStage() {
   const finish = useArcade((s) => s.finish);
   const quit = useArcade((s) => s.quit);
   const start = useArcade((s) => s.start);
+  const startReplay = useArcade((s) => s.startReplay);
   const bump = useArcade((s) => s.bump);
+  const replayLog = useArcade((s) => s.replayLog);
+  const replayRef = useRef(replayLog);
+  replayRef.current = replayLog;
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const heroId = useArcade((s) => s.hero);
   const heroDef = HEROES[heroId];
   const hero = useHero()(heroDef.dotaId);
@@ -189,7 +230,7 @@ function ArcadeStage() {
         acc += dt;
         let steps = 0;
         while (acc >= DT && steps < 5) {
-          sim.step(controller.read());
+          sim.step(replayRef.current ? replayInput(replayRef.current, sim.steps) : controller.read());
           acc -= DT;
           steps++;
         }
@@ -208,6 +249,7 @@ function ArcadeStage() {
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
+      if (replayRef.current && (sim.pending || sim.shopOpen)) sim.step(replayInput(replayRef.current, sim.steps));
       if (sim.pending && !wasPending) { sfxArcade("levelup"); bump(); }
       if (sim.shopOpen && !wasShop) { sfxBuy(); bump(); }
       wasPending = sim.pending !== null;
@@ -252,6 +294,8 @@ function ArcadeStage() {
               <span className="arcade-hud__stats">
                 <span>{t("arcade.hud.kills")} <b>{p.kills}</b></span>
                 <span>{t("arcade.hud.gold")} <b>{p.gold}</b></span>
+                {replayLog && <Chip>{t("arcade.hud.replay")}</Chip>}
+                {isArcadeDailySeed(seed) && <Chip>{t("arcade.hud.daily")}</Chip>}
                 {p.aegis && <Chip>{t("arcade.hud.aegis")}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
@@ -381,6 +425,13 @@ function ArcadeStage() {
                 </div>
               )}
               <p className="arcade-overlay__seed">{t("common.seed")}: <code>{seed}</code></p>
+              {sim && !replayLog && (
+                <div className="arcade-overlay__actions arcade-overlay__share">
+                  <Button variant="secondary" data-testid="arcade-copy-replay" onClick={() => { void copyText(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log })).then(() => setCopied("code")); }}>{copied === "code" ? t("arcade.replay.copied") : t("arcade.replay.copy")}</Button>
+                  <Button variant="secondary" onClick={() => { void copyText(replayUrl(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log }), window.location.origin, window.location.pathname)).then(() => setCopied("link")); }}>{copied === "link" ? t("link.copied") : t("link.copy")}</Button>
+                  <Button variant="secondary" data-testid="arcade-watch-replay" onClick={() => startReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: [...sim.log] })}>{t("arcade.replay.watch")}</Button>
+                </div>
+              )}
               <div className="arcade-overlay__actions">
                 <Button variant="primary" data-testid="arcade-again" onClick={() => start(seed)}>{t("arcade.over.again")}</Button>
                 <Button variant="secondary" onClick={() => start()}>{t("arcade.over.newSeed")}</Button>
@@ -436,4 +487,18 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
     </button>
   );
+}
+
+/** Ввод реплея для вызова step() №`step`: последняя запись лога с шагом ≤ step. Лог короткий
+ *  относительно числа шагов, поэтому линейный поиск с конца дешевле индекса. */
+function replayInput(log: readonly (readonly number[])[], step: number): ArcadeInput {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i];
+    if (e[0] <= step) return { mx: e[1], my: e[2], cast: e[3], choose: e[4], act: e[5] ?? 0 };
+  }
+  return { ...IDLE_INPUT };
+}
+
+async function copyText(text: string): Promise<void> {
+  try { await navigator.clipboard.writeText(text); } catch { /* буфер недоступен (http/TMA) — молча */ }
 }

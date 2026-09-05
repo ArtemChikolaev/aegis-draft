@@ -31,7 +31,9 @@ export interface HeroDef {
   dotaId: number;
   picture: string;
   ranged: boolean;
-  base: Partial<Pick<PlayerStats, "maxHp" | "regen" | "armor" | "speed" | "damage" | "attackInterval" | "range">>;
+  /** `pickup` у дальнобойных больше: шарды падают на дистанции выстрела, и без этого стрелок с 55
+   *  убийствами оставался 1-го уровня (headless-QA 2026-09-05). */
+  base: Partial<Pick<PlayerStats, "maxHp" | "regen" | "armor" | "speed" | "damage" | "attackInterval" | "range" | "pickup">>;
   abilities: { q: AbilityDef; w: AbilityDef; e: AbilityDef; r: AbilityDef };
 }
 
@@ -48,7 +50,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
   },
   crystal_maiden: {
     id: "crystal_maiden", dotaId: 5, picture: "crystal_maiden", ranged: true,
-    base: { maxHp: 560, speed: 162, damage: 22, attackInterval: 1.0, range: 300, armor: 1 },
+    base: { maxHp: 560, speed: 162, damage: 22, attackInterval: 1.0, range: 300, armor: 1, pickup: 230 },
     abilities: {
       q: { kind: "nova", value: [0, 110, 170, 230, 290], cooldown: 8, radius: 170, duration: 3 },
       w: { kind: "frostbite", value: [0, 140, 220, 300, 380], cooldown: 7, radius: 320, duration: 2 },
@@ -58,7 +60,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
   },
   sniper: {
     id: "sniper", dotaId: 35, picture: "sniper", ranged: true,
-    base: { maxHp: 540, speed: 158, damage: 26, attackInterval: 0.9, range: 340, armor: 1 },
+    base: { maxHp: 540, speed: 158, damage: 26, attackInterval: 0.9, range: 340, armor: 1, pickup: 250 },
     abilities: {
       q: { kind: "shrapnel", value: [0, 18, 28, 38, 48], cooldown: 12, radius: 180, duration: 8 },
       w: { kind: "headshot", value: [0, 20, 40, 60, 80], cooldown: 0, passive: true },
@@ -78,7 +80,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
   },
   zeus: {
     id: "zeus", dotaId: 22, picture: "zeus", ranged: true,
-    base: { maxHp: 500, speed: 160, damage: 22, attackInterval: 1.0, range: 300, armor: 1 },
+    base: { maxHp: 500, speed: 160, damage: 22, attackInterval: 1.0, range: 300, armor: 1, pickup: 230 },
     abilities: {
       q: { kind: "arc_lightning", value: [0, 40, 60, 80, 100], cooldown: 2.2, radius: 320, count: [0, 4, 6, 8, 10] },
       w: { kind: "lightning_bolt", value: [0, 140, 220, 300, 380], cooldown: 7, radius: 420, duration: 0.5 },

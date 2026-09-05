@@ -8,6 +8,8 @@ import { ARCADE_CONFIG_VERSION } from "../game/arcade/config.ts";
 import type { ActId, ArcadeOutcome, SchoolId } from "../game/arcade/types.ts";
 import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
+import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
+import type { InputLogEntry } from "../game/arcade/types.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readCached, writePersisted } from "./persist.ts";
 
@@ -63,8 +65,15 @@ interface ArcadeStore {
   history: ArcadeHistoryEntry[];
   /** Авто-каст способностей (по умолчанию включён: тач без него неиграбелен). */
   autoCast: boolean;
+  /** Просмотр реплея: ввод берётся из лога, а не с клавиатуры; в историю не пишется. */
+  replayLog: InputLogEntry[] | null;
+  /** Реплей, готовый к просмотру (из кода/ссылки). */
+  loadedReplay: ArcadeReplay | null;
 
   start: (seed?: string) => void;
+  startDaily: () => void;
+  startReplay: (replay: ArcadeReplay) => void;
+  setLoadedReplay: (replay: ArcadeReplay | null) => void;
   setRank: (rank: number) => void;
   setHero: (hero: HeroId) => void;
   setAct: (act: ActId) => void;
@@ -89,12 +98,26 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   outcome: null,
   history: readHistory(),
   autoCast: true,
+  replayLog: null,
+  loadedReplay: null,
 
   start(seed) {
     const next = seed?.trim() || createRunSeed();
     const rank = Math.min(get().rank, maxUnlockedRank(get().history));
     sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act });
-    set({ status: "running", seed: next, rank, outcome: null, serial: 0 });
+    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null });
+  },
+  startDaily() {
+    const d = arcadeDaily();
+    sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act });
+    set({ status: "running", seed: d.seed, rank: d.rank, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null });
+  },
+  startReplay(replay) {
+    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act });
+    set({ status: "running", seed: replay.seed, rank: replay.rank, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
+  },
+  setLoadedReplay(replay) {
+    set({ loadedReplay: replay });
   },
   setAct(act) {
     set({ act });
@@ -124,6 +147,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   finish() {
     if (!sim?.over || get().status === "over") return;
     const o = sim.over;
+    if (get().replayLog) { set({ status: "over", outcome: o }); return; }
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
       schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,

@@ -28,6 +28,11 @@
 .arcade-rank__rules { display: grid; gap: 3px; margin: 0; padding: 0 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.4; }
 .arcade-rank__unlock { margin: 0; color: var(--muted); font-size: 11px; }
 .arcade-hud__rank { font: 800 11px var(--font-display); letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
+.arcade-daily { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; }
+.arcade-daily p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.arcade-daily__done { color: var(--text); font-weight: 700; }
+.arcade-replay-load { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: 12px; font-size: 13px; }
+.arcade-overlay__share { padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .arcade-setup__best { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 14px; }
 
 .arcade { padding: 6px 0 20px; }
