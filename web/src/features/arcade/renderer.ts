@@ -6,6 +6,8 @@ import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
 import type { Enemy, Fx } from "../../game/arcade/types.ts";
 import { heroArtSources } from "../../ui/artSource.ts";
+import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
+import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost",
@@ -31,6 +33,20 @@ export class ArcadeRenderer {
   private dpr = 1;
   private shakeX = 0;
   private shakeY = 0;
+  /** Экип косметики: варианты по слотам (см. content/cosmetics.ts). Чисто визуально. */
+  private cosmetic: Partial<Record<CosmeticSlot, string>> = {};
+  private trail: { x: number; y: number; t: number }[] = [];
+
+  setCosmetics(equipped: Partial<Record<CosmeticSlot, string>>): void {
+    const next: Partial<Record<CosmeticSlot, string>> = {};
+    for (const [slot, id] of Object.entries(equipped)) if (id && COSMETIC_BY_ID[id]) next[slot as CosmeticSlot] = COSMETIC_BY_ID[id].variant;
+    this.cosmetic = next;
+  }
+
+  private tintKey(pal: Palette): string {
+    const t = this.cosmetic.tint;
+    return t === "fire" ? pal.fire : t === "frost" ? pal.frost : t === "lightning" ? pal.lightning : pal.playerRing;
+  }
 
   constructor(private readonly canvas: HTMLCanvasElement, heroPicture: string) {
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -229,6 +245,8 @@ export class ArcadeRenderer {
     const c = this.ctx;
     const p = sim.player;
     const R = ARCADE.player.r + 4;
+    const ring = this.tintKey(pal);
+    this.drawTrail(p.x, p.y, now, pal);
     const spinning = sim.tick < p.spinUntil;
     const invuln = sim.tick < p.invulnUntil || (p.burstLeft > 0 && sim.hero.abilities.r.kind === "omni");
     const spinR = sim.hero.abilities.q.radius ?? 104;
@@ -236,9 +254,9 @@ export class ArcadeRenderer {
       c.save();
       c.translate(p.x, p.y);
       c.rotate((now / 60) % (Math.PI * 2));
-      c.strokeStyle = pal.playerRing; c.lineWidth = 4; c.globalAlpha = 0.85;
+      c.strokeStyle = ring; c.lineWidth = 4; c.globalAlpha = 0.85;
       for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(0, 0, spinR - 6, i * 2.1, i * 2.1 + 1.2); c.stroke(); }
-      c.globalAlpha = 0.12; c.fillStyle = pal.playerRing;
+      c.globalAlpha = 0.12; c.fillStyle = ring;
       c.beginPath(); c.arc(0, 0, spinR, 0, Math.PI * 2); c.fill();
       c.restore();
     }
@@ -270,13 +288,39 @@ export class ArcadeRenderer {
       c.drawImage(this.portrait, (iw - side) / 2, (ih - side) / 2, side, side, p.x - R + 3, p.y - R + 3, (R - 3) * 2, (R - 3) * 2);
       c.restore();
     }
-    c.strokeStyle = p.aegis ? pal.aegis : pal.playerRing;
+    c.strokeStyle = p.aegis ? pal.aegis : ring;
     c.lineWidth = p.aegis ? 4 : 3;
     c.beginPath(); c.arc(p.x, p.y, R, 0, Math.PI * 2); c.stroke();
+    // Рамка медальона (косметика): бронза/серебро — второе кольцо, золото — двойное, immortal — сияние.
+    const frame = this.cosmetic.frame;
+    if (frame) {
+      c.strokeStyle = frame === "bronze" ? pal.grunt : frame === "silver" ? pal.text : frame === "gold" ? pal.aegis : pal.lightning;
+      c.lineWidth = 2; c.globalAlpha = frame === "immortal" ? 0.5 + 0.5 * Math.abs(Math.sin(now / 300)) : 0.9;
+      c.beginPath(); c.arc(p.x, p.y, R + 5, 0, Math.PI * 2); c.stroke();
+      if (frame === "gold" || frame === "immortal") { c.beginPath(); c.arc(p.x, p.y, R + 9, 0, Math.PI * 2); c.stroke(); }
+    }
     c.globalAlpha = 1;
     // Направление взгляда — короткий штрих.
-    c.strokeStyle = pal.playerRing; c.lineWidth = 3;
+    c.strokeStyle = ring; c.lineWidth = 3;
     c.beginPath(); c.moveTo(p.x + p.facingX * (R + 2), p.y + p.facingY * (R + 2)); c.lineTo(p.x + p.facingX * (R + 10), p.y + p.facingY * (R + 10)); c.stroke();
+  }
+
+  private drawTrail(x: number, y: number, now: number, pal: Palette): void {
+    const kind = this.cosmetic.trail;
+    if (!kind) { this.trail.length = 0; return; }
+    const last = this.trail[this.trail.length - 1];
+    if (!last || Math.hypot(last.x - x, last.y - y) > 6) this.trail.push({ x, y, t: now });
+    while (this.trail.length && now - this.trail[0].t > 500) this.trail.shift();
+    const c = this.ctx;
+    const color = kind === "fire" ? pal.fire : kind === "frost" ? pal.frost : kind === "lightning" ? pal.lightning : pal.aegis;
+    c.fillStyle = color;
+    for (const pt of this.trail) {
+      const k = 1 - (now - pt.t) / 500;
+      c.globalAlpha = k * 0.5;
+      const r = kind === "aegis" ? 3 + 3 * k : 2 + 4 * k;
+      c.beginPath(); c.arc(pt.x + (kind === "lightning" ? (Math.random() - 0.5) * 8 : 0), pt.y, r, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
   }
 
   private drawFx(sim: ArcadeSim, pal: Palette): void {
@@ -315,8 +359,14 @@ export class ArcadeRenderer {
           break;
         }
         case "die": {
-          c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = pal.text; c.lineWidth = 1.5;
-          c.beginPath(); c.arc(f.x, f.y, f.x2 + k * f.x2 * 1.6, 0, Math.PI * 2); c.stroke();
+          const death = this.cosmetic.death;
+          c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = death === "nova" ? pal.lightning : pal.text; c.lineWidth = death ? 2 : 1.5;
+          const rr = f.x2 + k * f.x2 * (death === "ring" ? 3 : death === "nova" ? 4 : 1.6);
+          c.beginPath(); c.arc(f.x, f.y, rr, 0, Math.PI * 2); c.stroke();
+          if (death === "shatter") {
+            c.fillStyle = pal.frost;
+            for (let i = 0; i < 6; i++) { const a = i * 1.047 + k; c.beginPath(); c.arc(f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr, 2, 0, Math.PI * 2); c.fill(); }
+          }
           break;
         }
         case "levelup": case "revive": {

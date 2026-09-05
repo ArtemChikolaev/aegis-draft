@@ -17,6 +17,7 @@ import { usePlaybook } from "../../state/playbookStore.ts";
 import { arcadeTrophies, useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, HERO_IDS } from "../../game/arcade/content/heroes.ts";
 import { rankOf } from "../../game/arcade/content/ranks.ts";
+import { COSMETICS } from "../../game/arcade/content/cosmetics.ts";
 import { formatClock } from "../arcade/renderer.ts";
 import { TICK_HZ } from "../../game/arcade/config.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -50,6 +51,7 @@ export function HqScreen() {
   const num = (value: number | null) => (value == null ? t("hq.none") : String(value));
   const arcadeHistory = useArcade((state) => state.history);
   const arcade = arcadeTrophies(arcadeHistory);
+  const cosmetics = useArcade((state) => state.cosmetics);
   const heroOf = useHero();
 
   return (
@@ -80,6 +82,7 @@ export function HqScreen() {
           <StatTile label={t("hq.arcadeWins")} value={String(arcade.victories)} sublabel={t("hq.arcadeFullWins", { n: arcade.fullVictories })} kind="synergy" />
           <StatTile label={t("hq.arcadeBestRank")} value={arcade.bestRank == null ? t("hq.none") : `${t(`arcade.tier.${rankOf(arcade.bestRank).tier}` as MessageKey)} ${"★".repeat(rankOf(arcade.bestRank).stars)}`} kind="synergy" />
           <StatTile label={t("hq.arcadeBestTime")} value={arcade.runs === 0 ? t("hq.none") : formatClock(arcade.bestSeconds * TICK_HZ)} kind="chemistry" />
+          <StatTile label={t("arcade.cosmetics.title")} value={`${cosmetics.owned.length}/${COSMETICS.length}`} sublabel={t("arcade.cosmetics.shards", { n: cosmetics.shards })} kind="base" />
         </div>
         <ul className="hq__heroes">
           {HERO_IDS.map((id) => {

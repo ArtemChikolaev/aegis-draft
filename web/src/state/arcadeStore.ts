@@ -10,6 +10,7 @@ import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
+import { COSMETIC_BY_ID, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readCached, writePersisted } from "./persist.ts";
 
@@ -34,6 +35,23 @@ export interface ArcadeHistoryEntry {
 }
 
 const HISTORY_KEY = "aegis-draft.arcade.history";
+const COSMETICS_KEY = "aegis-draft.arcade.cosmetics";
+
+export interface CosmeticsState {
+  owned: string[];
+  equipped: Partial<Record<CosmeticSlot, string>>;
+  shards: number;
+}
+
+function readCosmetics(): CosmeticsState {
+  try {
+    const raw = readCached(COSMETICS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as CosmeticsState) : null;
+    return parsed && Array.isArray(parsed.owned) ? { owned: parsed.owned, equipped: parsed.equipped ?? {}, shards: parsed.shards ?? 0 } : { owned: [], equipped: {}, shards: 0 };
+  } catch {
+    return { owned: [], equipped: {}, shards: 0 };
+  }
+}
 const HISTORY_CAP = 50;
 
 let sim: ArcadeSim | null = null;
@@ -69,11 +87,15 @@ interface ArcadeStore {
   replayLog: InputLogEntry[] | null;
   /** Реплей, готовый к просмотру (из кода/ссылки). */
   loadedReplay: ArcadeReplay | null;
+  /** Косметика (T13.12): коллекция, экип, осколки; дроп последнего забега — для экрана итога. */
+  cosmetics: CosmeticsState;
+  lastDrops: CosmeticDrop[];
 
   start: (seed?: string) => void;
   startDaily: () => void;
   startReplay: (replay: ArcadeReplay) => void;
   setLoadedReplay: (replay: ArcadeReplay | null) => void;
+  equip: (slot: CosmeticSlot, id: string | null) => void;
   setRank: (rank: number) => void;
   setHero: (hero: HeroId) => void;
   setAct: (act: ActId) => void;
@@ -100,12 +122,14 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   autoCast: true,
   replayLog: null,
   loadedReplay: null,
+  cosmetics: readCosmetics(),
+  lastDrops: [],
 
   start(seed) {
     const next = seed?.trim() || createRunSeed();
     const rank = Math.min(get().rank, maxUnlockedRank(get().history));
     sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act });
-    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null });
+    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [] });
   },
   startDaily() {
     const d = arcadeDaily();
@@ -115,6 +139,14 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   startReplay(replay) {
     sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act });
     set({ status: "running", seed: replay.seed, rank: replay.rank, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
+  },
+  equip(slot, id) {
+    if (id !== null && (!COSMETIC_BY_ID[id] || COSMETIC_BY_ID[id].slot !== slot || !get().cosmetics.owned.includes(id))) return;
+    const equipped = { ...get().cosmetics.equipped };
+    if (id === null) delete equipped[slot]; else equipped[slot] = id;
+    const cosmetics = { ...get().cosmetics, equipped };
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
   },
   setLoadedReplay(replay) {
     set({ loadedReplay: replay });
@@ -154,7 +186,15 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
-    set({ status: "over", outcome: o, history });
+    // Дроп косметики: детерминирован сидом и исходом; дубликаты → осколки.
+    const prev = get().cosmetics;
+    const drops = rollCosmeticDrops(sim.seed, o, prev.owned);
+    const owned = [...prev.owned];
+    let shards = prev.shards;
+    for (const d of drops) { if (d.duplicate) shards += d.shards; else owned.push(d.id); }
+    const cosmetics: CosmeticsState = { ...prev, owned, shards };
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ status: "over", outcome: o, history, cosmetics, lastDrops: drops });
   },
   quit() {
     sim = null;
