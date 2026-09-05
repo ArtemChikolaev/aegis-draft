@@ -19,6 +19,7 @@ import {
   sameInput,
   type AbilityKey,
   type ActId,
+  type ArcadeEventCounters,
   type ArcadeInput,
   type ArcadeOptions,
   type ArcadeOutcome,
@@ -97,6 +98,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -357,6 +359,7 @@ export class ArcadeSim {
       default: cast = false;
     }
     if (!cast) return;
+    if (key === "r") this.events.ults++; else this.events.casts++;
     // Culling Blade после добивания уходит на короткую перезарядку (3 с), не на полную и не на ноль.
     if (ab.kind === "culling_blade" && p.cooldowns.r === -1) p.cooldowns.r = sec(1.5);
     else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown));
@@ -467,6 +470,8 @@ export class ArcadeSim {
     let dmg = p.stats.damage * scale;
     let kind: FxKind = "hit";
     if (this.rng.float() < p.stats.critChance) { dmg *= p.stats.critMult; kind = "crit"; }
+    this.events.hits++;
+    if (kind === "crit") this.events.crits++;
     const head = this.hero.abilities.w;
     if (head.kind === "headshot" && p.abilities.w > 0 && this.rng.float() < 0.3) { dmg += head.value[p.abilities.w]; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.25)); kind = "crit"; }
     this.damageEnemy(e, dmg, kind);
@@ -608,6 +613,9 @@ export class ArcadeSim {
     e.alive = false;
     const p = this.player;
     p.kills++;
+    this.events.kills++;
+    if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
+    this.pushFx("die", e.x, e.y, e.kind.r, 0, e.kind.elite || e.kind.boss ? 22 : 10);
     p.gold += e.kind.gold + p.stats.goldPerKill;
     this.dropShard(e.x, e.y, e.kind.xp);
     const blast = this.upgradePower("rad_blast");
@@ -644,6 +652,7 @@ export class ArcadeSim {
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
     const reduction = (0.06 * armor) / (1 + 0.06 * armor);
     p.hp -= amount * (1 - reduction);
+    this.events.hurt++;
     const helix = this.hero.abilities.e;
     if (helix.kind === "counter_helix" && p.abilities.e > 0 && this.rng.float() < 0.12 + 0.04 * p.abilities.e) {
       for (const e of this.enemiesWithin(p.x, p.y, helix.radius ?? 130)) this.damageEnemy(e, helix.value[p.abilities.e], "spin");
@@ -995,7 +1004,7 @@ export class ArcadeSim {
       const dx = p.x - s.x, dy = p.y - s.y;
       const d = len(dx, dy);
       if (d > pick) continue;
-      if (d < 14) { s.alive = false; this.gainXp(s.xp); continue; }
+      if (d < 14) { s.alive = false; this.events.pickups++; this.gainXp(s.xp); continue; }
       s.x += dx / d * ARCADE.xp.magnetSpeed * DT;
       s.y += dy / d * ARCADE.xp.magnetSpeed * DT;
     }

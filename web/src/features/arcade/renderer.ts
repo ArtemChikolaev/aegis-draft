@@ -314,6 +314,11 @@ export class ArcadeRenderer {
           c.beginPath(); c.arc(f.x, f.y, Math.max(1, f.x2 * (0.3 + 0.7 * k)), 0, Math.PI * 2); c.stroke();
           break;
         }
+        case "die": {
+          c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = pal.text; c.lineWidth = 1.5;
+          c.beginPath(); c.arc(f.x, f.y, f.x2 + k * f.x2 * 1.6, 0, Math.PI * 2); c.stroke();
+          break;
+        }
         case "levelup": case "revive": {
           c.globalAlpha = (1 - k); c.strokeStyle = f.kind === "revive" ? pal.aegis : pal.playerRing; c.lineWidth = 4;
           c.beginPath(); c.arc(sim.player.x, sim.player.y, 24 + k * 90, 0, Math.PI * 2); c.stroke();

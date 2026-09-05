@@ -8,7 +8,7 @@ export { Banner } from "./Banner.tsx";
 export { Chip } from "./Chip.tsx";
 export { Dealt } from "./Dealt.tsx";
 export { prefersReducedMotion, motionMs, useCountUp, useCardTilt, screenShakeEnabled, useScreenShakeSetting } from "./motion.ts";
-export { initSoundUnlock, setSoundEnabled, sfxBuy, sfxCashTick, sfxDeal, sfxReroll, sfxSting, sfxVerdict, soundEnabled, useSoundSetting } from "./sound.ts";
+export { initSoundUnlock, setSoundEnabled, sfxArcade, sfxBuy, sfxCashTick, sfxDeal, sfxReroll, sfxSting, sfxVerdict, soundEnabled, useSoundSetting } from "./sound.ts";
 export { playerOvrTier, type OvrTier } from "./ovrTier.ts";
 export { OvrBadge } from "./OvrBadge.tsx";
 export { HeroThumb } from "./HeroThumb.tsx";

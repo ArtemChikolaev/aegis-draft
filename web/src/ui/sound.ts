@@ -194,6 +194,31 @@ export function sfxSting(kind: "win" | "loss" | "boss"): void {
   }
 }
 
+/* ─── Аркада (T13.10): бой в реальном времени — звуки короткие, тихие и с троттлингом на вид,
+   иначе 20 ударов в секунду превращаются в шум. Питч удара «плавает» по индексу — живее, чем
+   один и тот же пип. ─── */
+const arcadeLast: Record<string, number> = {};
+const ARCADE_MIN_GAP_MS: Record<string, number> = { hit: 70, crit: 120, cast: 60, ult: 200, hurt: 160, levelup: 300, kill: 90, elite: 300, pickup: 50 };
+let arcadeHitIndex = 0;
+
+export function sfxArcade(kind: "hit" | "crit" | "cast" | "ult" | "hurt" | "levelup" | "kill" | "elite" | "pickup"): void {
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  if (now - (arcadeLast[kind] ?? -1e9) < ARCADE_MIN_GAP_MS[kind]) return;
+  arcadeLast[kind] = now;
+  switch (kind) {
+    case "hit": arcadeHitIndex = (arcadeHitIndex + 1) % 5; voice({ wave: "noise", freq: semitone(1500, arcadeHitIndex * 2), gain: 0.03, duration: 0.035, q: 1.6 }); break;
+    case "crit": voice({ wave: "noise", freq: 900, freqTo: 2600, gain: 0.05, duration: 0.07, q: 1.2 }); voice({ wave: "square", freq: 1046.5, gain: 0.03, duration: 0.05 }); break;
+    case "cast": voice({ wave: "triangle", freq: 440, freqTo: 880, gain: 0.05, duration: 0.09 }); break;
+    case "ult": voice({ wave: "sawtooth", freq: 110, freqTo: 55, gain: 0.06, duration: 0.35 }); voice({ wave: "triangle", freq: 660, freqTo: 1320, gain: 0.05, duration: 0.18, at: 0.05 }); break;
+    case "hurt": voice({ wave: "noise", freq: 260, freqTo: 120, gain: 0.06, duration: 0.12, q: 0.8 }); break;
+    case "levelup": [659.25, 783.99, 1046.5].forEach((freq, i) => voice({ wave: "triangle", freq, gain: 0.06, duration: 0.14, at: i * 0.07 })); break;
+    case "kill": voice({ wave: "noise", freq: 700, freqTo: 300, gain: 0.025, duration: 0.05, q: 1.5 }); break;
+    case "elite": voice({ wave: "sawtooth", freq: 196, freqTo: 98, gain: 0.06, duration: 0.3 }); voice({ wave: "noise", freq: 1200, freqTo: 400, gain: 0.05, duration: 0.2, q: 1 }); break;
+    case "pickup": voice({ wave: "sine", freq: 1760, gain: 0.02, duration: 0.03 }); break;
+    default: break;
+  }
+}
+
 /** Тик выплаты в секвенции «этап пройден» (R15.2): питч растёт со строкой. */
 export function sfxCashTick(step: number, delayMs: number): void {
   voice({ wave: "sine", freq: semitone(720, step * 2), gain: 0.06, duration: 0.07, at: delayMs / 1000 });

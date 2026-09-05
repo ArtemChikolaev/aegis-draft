@@ -33,6 +33,13 @@
 .arcade { padding: 6px 0 20px; }
 .arcade__stage { position: relative; width: 100%; height: min(78vh, 760px); min-height: 420px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--arcade-ground); touch-action: none; user-select: none; }
 .arcade__canvas { display: block; width: 100%; height: 100%; }
+/* Juice (T13.10): вспышка по краям при уроне и пульс при низком HP — токенами; keyframes здесь
+   допустимы (обычный css, не module). */
+.arcade__stage::after { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; box-shadow: inset 0 0 0 0 transparent; transition: box-shadow .12s; }
+.arcade__stage[data-hurt="true"]::after { box-shadow: inset 0 0 60px 8px color-mix(in srgb, var(--arcade-telegraph) 55%, transparent); transition: none; }
+.arcade__stage[data-lowhp="true"]::after { animation: arcade-lowhp 1.1s ease-in-out infinite; }
+@keyframes arcade-lowhp { 0%, 100% { box-shadow: inset 0 0 40px 2px transparent; } 50% { box-shadow: inset 0 0 70px 10px color-mix(in srgb, var(--arcade-telegraph) 45%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .arcade__stage[data-lowhp="true"]::after { animation: none; box-shadow: inset 0 0 50px 6px color-mix(in srgb, var(--arcade-telegraph) 35%, transparent); } }
 
 .arcade-hud { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 12px 14px; pointer-events: none; color: var(--on-invert); }
 .arcade-hud > * { pointer-events: none; }

@@ -14,7 +14,7 @@ import { ARCADE_ITEM_BY_ID } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { SHOP_ACT } from "../../game/arcade/types.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
-import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, screenShakeEnabled, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
+import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { ArcadeInputController } from "./input.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
@@ -173,13 +173,19 @@ function ArcadeStage() {
     let wasPending = false;
     let wasShop = false;
     let wasBoss = false;
+    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0 };
+    let hitStop = 0;
+    let hurtUntil = 0;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       const sim = getArcadeSim();
       if (!sim) return;
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (statusRef.current === "running" && !sim.pending && !sim.shopOpen && !sim.over) {
+      // Hit-stop (R15-лестница): смерть элиты/босса замораживает мир на несколько кадров — только
+      // здесь, в цикле экрана; сим о паузе не знает, детерминизм не трогается.
+      if (hitStop > 0) { hitStop--; acc = 0; }
+      else if (statusRef.current === "running" && !sim.pending && !sim.shopOpen && !sim.over) {
         acc += dt;
         let steps = 0;
         while (acc >= DT && steps < 5) {
@@ -189,7 +195,21 @@ function ArcadeStage() {
         }
         if (steps === 5) acc = 0;
       }
-      if ((sim.pending && !wasPending) || (sim.shopOpen && !wasShop)) { sfxBuy(); bump(); }
+      // Дельты счётчиков сима → звук и juice.
+      const ev = sim.events;
+      if (ev.eliteKills > seen.eliteKills) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 6; }
+      else if (ev.kills > seen.kills) sfxArcade("kill");
+      if (ev.crits > seen.crits) sfxArcade("crit");
+      else if (ev.hits > seen.hits) sfxArcade("hit");
+      if (ev.ults > seen.ults) sfxArcade("ult");
+      else if (ev.casts > seen.casts) sfxArcade("cast");
+      if (ev.hurt > seen.hurt) { sfxArcade("hurt"); hurtUntil = now + 140; }
+      if (ev.pickups > seen.pickups) sfxArcade("pickup");
+      seen = { ...ev };
+      stage.dataset.hurt = now < hurtUntil ? "true" : "";
+      stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
+      if (sim.pending && !wasPending) { sfxArcade("levelup"); bump(); }
+      if (sim.shopOpen && !wasShop) { sfxBuy(); bump(); }
       wasPending = sim.pending !== null;
       wasShop = sim.shopOpen;
       if (sim.over) { finish(); }
