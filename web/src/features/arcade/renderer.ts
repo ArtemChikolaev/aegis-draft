@@ -65,10 +65,22 @@ export class ArcadeRenderer {
     return t === "fire" ? pal.fire : t === "frost" ? pal.frost : t === "lightning" ? pal.lightning : pal.playerRing;
   }
 
+  /** Пиксельный режим (прототип, `?pixel=2|3|4`): мир рисуется в буфер в N раз меньше без сглаживания и растягивается nearest — цельная «8-битная» картинка из тех же спрайтов. */
+  private pixel = 0;
+  private pixelCanvas: HTMLCanvasElement | null = null;
+  private pixelCtx: CanvasRenderingContext2D | null = null;
+  private mainCtx: CanvasRenderingContext2D;
+
   constructor(private readonly canvas: HTMLCanvasElement, heroPicture: string) {
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) throw new Error("canvas 2d unavailable");
     this.ctx = ctx;
+    this.mainCtx = ctx;
+    if (typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search).get("pixel");
+      const n = q === null ? 0 : q === "" ? 3 : Number(q);
+      if (n >= 2 && n <= 6) this.pixel = Math.floor(n);
+    }
     const [src] = heroArtSources(heroPicture);
     if (src) {
       this.portrait = new Image();
@@ -109,10 +121,17 @@ export class ArcadeRenderer {
       this.shakeX = (Math.random() - 0.5) * k;
       this.shakeY = (Math.random() - 0.5) * k;
     } else { this.shakeX = 0; this.shakeY = 0; }
-    c.fillStyle = sim.night ? pal.groundNight : pal.ground;
-    c.fillRect(0, 0, this.w, this.h);
-    c.save();
-    c.translate(-camX + this.shakeX, -camY + this.shakeY);
+    // Пиксельный проход: подменяем контекст на маленький буфер (1/N, без DPR), после мира растягиваем nearest.
+    if (this.pixel > 1) {
+      const pw = Math.max(1, Math.ceil(this.w / this.pixel)), ph = Math.max(1, Math.ceil(this.h / this.pixel));
+      if (!this.pixelCanvas) { this.pixelCanvas = document.createElement("canvas"); this.pixelCtx = this.pixelCanvas.getContext("2d", { alpha: false }); }
+      if (this.pixelCanvas.width !== pw || this.pixelCanvas.height !== ph) { this.pixelCanvas.width = pw; this.pixelCanvas.height = ph; }
+      if (this.pixelCtx) { this.ctx = this.pixelCtx; this.ctx.setTransform(1 / this.pixel, 0, 0, 1 / this.pixel, 0, 0); this.ctx.imageSmoothingEnabled = false; }
+    }
+    this.ctx.fillStyle = sim.night ? pal.groundNight : pal.ground;
+    this.ctx.fillRect(0, 0, this.w, this.h);
+    this.ctx.save();
+    this.ctx.translate(-camX + this.shakeX, -camY + this.shakeY);
     this.drawGround(sim, camX, camY, pal);
     if (sim.pit) this.drawRiverAndPit(pal);
     this.drawShards(sim, pal);
@@ -126,7 +145,15 @@ export class ArcadeRenderer {
     this.drawPlayer(sim, pal, now);
     this.drawFx(sim, pal);
     if (sim.night) this.drawNight(sim, pal);
-    c.restore();
+    this.ctx.restore();
+    if (this.pixel > 1 && this.pixelCanvas) {
+      this.ctx = this.mainCtx;
+      const m = this.mainCtx;
+      m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+      m.imageSmoothingEnabled = false;
+      m.drawImage(this.pixelCanvas, 0, 0, this.pixelCanvas.width, this.pixelCanvas.height, 0, 0, this.pixelCanvas.width * this.pixel, this.pixelCanvas.height * this.pixel);
+      m.imageSmoothingEnabled = true;
+    }
     if (joystick) this.drawJoystick(joystick, pal);
   }
 
