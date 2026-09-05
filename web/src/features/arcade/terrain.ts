@@ -61,7 +61,8 @@ export class Terrain {
     canvas.width = CHUNK; canvas.height = CHUNK;
     const c = canvas.getContext("2d")!;
     this.paintChunk(c, cx * CHUNK, cy * CHUNK, pal);
-    this.cache.set(key, canvas);
+    // Пока текстуры земли не загрузились, чанк — плейсхолдер: не кэшируем, чтобы он не пережил загрузку.
+    if (dotaTerrain("grass") || (tileImage("grass") && tileImage("dirt"))) this.cache.set(key, canvas);
     return canvas;
   }
 
@@ -148,9 +149,9 @@ export class Terrain {
         }
         if (night) { c.fillStyle = pal.grassA; c.globalAlpha = 0.6; c.fillRect(px, py, TILE, TILE); c.globalAlpha = 1; }
       } else {
+        // Плейсхолдер до загрузки текстур: ровная заливка без «уголков» на тропах (они оставались на экране светлыми L-линиями).
         c.fillStyle = v === 2 ? pal.dirt : v === 1 ? pal.grassB : pal.grassA;
         c.fillRect(px, py, TILE, TILE);
-        if (v === 2) { c.globalAlpha = 0.35; c.fillStyle = pal.grassA; c.fillRect(px, py, TILE, 3); c.fillRect(px, py, 3, TILE); c.globalAlpha = 1; }
       }
     }
     if (grass && treetop && rock) { this.paintDecor(c, ox, oy, pal, treetop, rock, night); return; }
