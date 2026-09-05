@@ -324,7 +324,7 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-creep: #6f7f8f;
   --arcade-elite: #c9a24a;
   --arcade-boss: #e0684f;
-  --arcade-player: #1c1c1c;
+  --arcade-player: #6b5340;   /* тело рига героя (кожа/доспех); голова — портрет */
   --arcade-player-ring: #ffd48a;
   --arcade-shard: #8ff0b5;
   --arcade-fire: #ff9a45;
@@ -346,6 +346,20 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-fog: rgba(3, 5, 9, .96);
   --arcade-scrim: rgba(0, 0, 0, .55);        /* затемнение оверлеев и кулдауна на всегда-тёмной сцене */
   --arcade-text-shadow: rgba(0, 0, 0, .6);   /* подложка HUD-текста над canvas */
+  /* Ландшафт (процедурные чанки, features/arcade/terrain.ts) и риги персонажей. */
+  --arcade-grass-a: #17301c;
+  --arcade-grass-b: #1a3620;
+  --arcade-dirt: #3a2e1e;
+  --arcade-rock: #4a4a44;
+  --arcade-tree: #245a2c;
+  --arcade-tree-dark: #143a1c;
+  --arcade-tuft: #2e6a34;
+  --arcade-limb: #221d18;
+  --arcade-grass-night-a: #0c1418;
+  --arcade-grass-night-b: #0e171c;
+  --arcade-dirt-night: #1c1714;
+  --arcade-tree-night: #16302a;
+  --arcade-tree-night-dark: #0b1d18;
   --arcade-river: #0f2431;
   --arcade-pit: #1a1210;
 }

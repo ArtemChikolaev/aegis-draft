@@ -8,10 +8,14 @@ import type { Enemy, Fx } from "../../game/arcade/types.ts";
 import { heroArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
+import { Terrain } from "./terrain.ts";
+import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
+import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost",
   "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "groundNight", "fog", "river", "pit",
+  "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 type Palette = Record<PaletteKey, string>;
@@ -36,6 +40,14 @@ export class ArcadeRenderer {
   /** Экип косметики: варианты по слотам (см. content/cosmetics.ts). Чисто визуально. */
   private cosmetic: Partial<Record<CosmeticSlot, string>> = {};
   private trail: { x: number; y: number; t: number }[] = [];
+  /** Ландшафт текущего забега (сид + акт) и слежение за движением героя для анимации ходьбы. */
+  private terrain: Terrain | null = null;
+  private terrainKey = "";
+  private prevX = 0;
+  private prevY = 0;
+  private walkPhase = 0;
+  private lastNow = 0;
+  private movingUntil = 0;
 
   setCosmetics(equipped: Partial<Record<CosmeticSlot, string>>): void {
     const next: Partial<Record<CosmeticSlot, string>> = {};
@@ -96,7 +108,7 @@ export class ArcadeRenderer {
     c.fillRect(0, 0, this.w, this.h);
     c.save();
     c.translate(-camX + this.shakeX, -camY + this.shakeY);
-    this.drawGround(camX, camY, pal);
+    this.drawGround(sim, camX, camY, pal);
     if (sim.pit) this.drawRiverAndPit(pal);
     this.drawShards(sim, pal);
     this.drawWard(sim, pal);
@@ -112,15 +124,14 @@ export class ArcadeRenderer {
     if (joystick) this.drawJoystick(joystick, pal);
   }
 
-  private drawGround(camX: number, camY: number, pal: Palette): void {
+  private drawGround(sim: ArcadeSim, camX: number, camY: number, pal: Palette): void {
     const c = this.ctx;
-    const step = 128;
-    c.strokeStyle = pal.groundLine;
-    c.lineWidth = 1;
-    c.beginPath();
-    for (let x = Math.floor(camX / step) * step; x <= camX + this.w; x += step) { c.moveTo(x, camY); c.lineTo(x, camY + this.h); }
-    for (let y = Math.floor(camY / step) * step; y <= camY + this.h; y += step) { c.moveTo(camX, y); c.lineTo(camX + this.w, y); }
-    c.stroke();
+    const key = `${sim.seed}:${sim.act}`;
+    if (!this.terrain || this.terrainKey !== key) { this.terrain = new Terrain(sim.seed, sim.act); this.terrainKey = key; }
+    const night = sim.night;
+    this.terrain.draw(c, camX, camY, this.w, this.h, night
+      ? { grassA: pal.grassNightA, grassB: pal.grassNightB, dirt: pal.dirtNight, rock: pal.rock, tree: pal.treeNight, treeDark: pal.treeNightDark, tuft: pal.treeNight }
+      : { grassA: pal.grassA, grassB: pal.grassB, dirt: pal.dirt, rock: pal.rock, tree: pal.tree, treeDark: pal.treeDark, tuft: pal.tuft });
     c.strokeStyle = pal.bounds;
     c.lineWidth = 6;
     c.strokeRect(0, 0, ARCADE.world.w, ARCADE.world.h);
@@ -229,14 +240,27 @@ export class ArcadeRenderer {
       if (!e.alive) continue;
       const r = e.kind.r;
       const flash = tick - e.hitAt < 4;
-      c.fillStyle = flash ? pal.text : tick < e.freezeUntil ? pal.frost : pal[TONE_KEY[e.kind.tone]];
+      const tone = pal[TONE_KEY[e.kind.tone]];
       if (e.kind.structure) {
+        c.fillStyle = flash ? pal.text : tone;
         c.fillRect(e.x - r, e.y - r, r * 2, r * 2);
         c.strokeStyle = pal.text; c.lineWidth = 3; c.strokeRect(e.x - r + 6, e.y - r + 6, r * 2 - 12, r * 2 - 12);
-      } else { c.beginPath(); c.arc(e.x, e.y, r, 0, Math.PI * 2); c.fill(); }
+      } else if (e.kind.id === "tormentor") {
+        c.fillStyle = flash ? pal.text : tone;
+        c.beginPath(); c.moveTo(e.x, e.y - r); c.lineTo(e.x + r, e.y); c.lineTo(e.x, e.y + r); c.lineTo(e.x - r, e.y); c.closePath(); c.fill();
+      } else {
+        const frozen = tick < e.freezeUntil || tick < e.stunUntil;
+        const facing: 1 | -1 = sim.player.x >= e.x ? 1 : -1;
+        const cd = e.kind.ranged ? e.shotCd : e.contactCd;
+        const total = e.kind.ranged ? sec(e.kind.ranged.every) : sec(ARCADE.player.contactEvery);
+        const attackT = cd > 0 && total - cd < total * 0.45 ? (total - cd) / (total * 0.45) : -1;
+        const speedK = e.kind.speed / 90;
+        drawRig(c, e.x, e.y + r * 0.6, enemyRig(e.kind.id, tone, pal.limb), {
+          facing, walkPhase: (tick / 60) * 7 * speedK + e.id * 1.7, moving: !frozen && e.kind.speed > 0, attackT,
+          hit: flash, statusTint: tick < e.freezeUntil ? pal.frost : tick < e.burnUntil ? pal.fire : tick < e.chillUntil ? pal.frost : null,
+        });
+      }
       if (e.kind.reflect) { c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([4, 4]); c.beginPath(); c.arc(e.x, e.y, r + 8, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
-      if (tick < e.burnUntil) { c.strokeStyle = pal.fire; c.lineWidth = 2; c.beginPath(); c.arc(e.x, e.y, r + 2.5, 0, Math.PI * 2); c.stroke(); }
-      else if (tick < e.chillUntil) { c.strokeStyle = pal.frost; c.lineWidth = 2; c.beginPath(); c.arc(e.x, e.y, r + 2.5, 0, Math.PI * 2); c.stroke(); }
       if (e.kind.elite || e.kind.boss || e.kind.structure) {
         c.strokeStyle = pal.text; c.lineWidth = e.kind.boss || e.kind.structure ? 3 : 2;
         c.beginPath(); c.arc(e.x, e.y, r + 5, 0, Math.PI * 2); c.stroke();
@@ -301,31 +325,31 @@ export class ArcadeRenderer {
       c.globalAlpha = 1;
     }
     c.globalAlpha = invuln ? 0.55 + 0.45 * Math.abs(Math.sin(now / 80)) : 1;
-    c.fillStyle = pal.player;
-    c.beginPath(); c.arc(p.x, p.y, R, 0, Math.PI * 2); c.fill();
-    if (this.portrait && this.portraitReady) {
-      c.save();
-      c.beginPath(); c.arc(p.x, p.y, R - 3, 0, Math.PI * 2); c.clip();
-      // Портрет Dota — 256×144, берём центральный квадрат.
-      const iw = this.portrait.naturalWidth, ih = this.portrait.naturalHeight, side = Math.min(iw, ih);
-      c.drawImage(this.portrait, (iw - side) / 2, (ih - side) / 2, side, side, p.x - R + 3, p.y - R + 3, (R - 3) * 2, (R - 3) * 2);
-      c.restore();
-    }
-    c.strokeStyle = p.aegis ? pal.aegis : ring;
-    c.lineWidth = p.aegis ? 4 : 3;
-    c.beginPath(); c.arc(p.x, p.y, R, 0, Math.PI * 2); c.stroke();
-    // Рамка медальона (косметика): бронза/серебро — второе кольцо, золото — двойное, immortal — сияние.
+    // Кольцо выбора у ног (как в Dota) — цвет оттенка косметики / Aegis.
+    c.strokeStyle = p.aegis ? pal.aegis : ring; c.lineWidth = p.aegis ? 3 : 2;
+    c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.05, R * 0.42, 0, 0, Math.PI * 2); c.stroke();
+    // Ходьба: движение определяем по смещению между кадрами (сим ввод не отдаёт).
+    const dt = this.lastNow ? Math.min(0.1, (now - this.lastNow) / 1000) : 0;
+    this.lastNow = now;
+    const moved = Math.hypot(p.x - this.prevX, p.y - this.prevY);
+    if (moved > 0.5) this.movingUntil = now + 120;
+    const moving = now < this.movingUntil;
+    if (moving) this.walkPhase += dt * 11;
+    this.prevX = p.x; this.prevY = p.y;
+    const atkTotal = sec(p.stats.attackInterval);
+    const atkT = p.attackCd > 0 && atkTotal - p.attackCd < atkTotal * 0.45 ? (atkTotal - p.attackCd) / (atkTotal * 0.45) : -1;
+    const rig: RigParams = { size: 1.15, body: pal.player, limb: pal.limb, head: pal.player, weapon: heroWeapon(sim.hero.kit) };
+    drawRig(c, p.x, p.y + R * 0.75, rig, { facing: p.facingX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 90) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
+    // Рамка (косметика) — второе кольцо у ног: бронза/серебро одно, золото и immortal — двойное с сиянием.
     const frame = this.cosmetic.frame;
     if (frame) {
       c.strokeStyle = frame === "bronze" ? pal.grunt : frame === "silver" ? pal.text : frame === "gold" ? pal.aegis : pal.lightning;
       c.lineWidth = 2; c.globalAlpha = frame === "immortal" ? 0.5 + 0.5 * Math.abs(Math.sin(now / 300)) : 0.9;
-      c.beginPath(); c.arc(p.x, p.y, R + 5, 0, Math.PI * 2); c.stroke();
-      if (frame === "gold" || frame === "immortal") { c.beginPath(); c.arc(p.x, p.y, R + 9, 0, Math.PI * 2); c.stroke(); }
+      c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.3, R * 0.55, 0, 0, Math.PI * 2); c.stroke();
+      if (frame === "gold" || frame === "immortal") { c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.5, R * 0.65, 0, 0, Math.PI * 2); c.stroke(); }
     }
     c.globalAlpha = 1;
-    // Направление взгляда — короткий штрих.
-    c.strokeStyle = ring; c.lineWidth = 3;
-    c.beginPath(); c.moveTo(p.x + p.facingX * (R + 2), p.y + p.facingY * (R + 2)); c.lineTo(p.x + p.facingX * (R + 10), p.y + p.facingY * (R + 10)); c.stroke();
+
   }
 
   private drawTrail(x: number, y: number, now: number, pal: Palette): void {
@@ -386,6 +410,9 @@ export class ArcadeRenderer {
           c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = death === "nova" ? pal.lightning : pal.text; c.lineWidth = death ? 2 : 1.5;
           const rr = f.x2 + k * f.x2 * (death === "ring" ? 3 : death === "nova" ? 4 : 1.6);
           c.beginPath(); c.arc(f.x, f.y, rr, 0, Math.PI * 2); c.stroke();
+          // Тело оседает: сплющенный силуэт, гаснущий к концу.
+          c.globalAlpha = (1 - k) * 0.6; c.fillStyle = pal.limb;
+          c.beginPath(); c.ellipse(f.x, f.y + f.x2 * 0.5, f.x2 * (1 + k * 0.6), Math.max(1, f.x2 * (0.6 - k * 0.5)), 0, 0, Math.PI * 2); c.fill();
           if (death === "shatter") {
             c.fillStyle = pal.frost;
             for (let i = 0; i < 6; i++) { const a = i * 1.047 + k; c.beginPath(); c.arc(f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr, 2, 0, Math.PI * 2); c.fill(); }
