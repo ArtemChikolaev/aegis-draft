@@ -15,6 +15,7 @@ import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, ITEM_RARITY_MULT, type ShopOffer } from "./content/items.ts";
 import { HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
+import { gearEffect, rollGear, uniqueGear, type GearItem } from "./content/gear.ts";
 import {
   IDLE_INPUT,
   sameInput,
@@ -83,6 +84,15 @@ export class ArcadeSim {
   neutralOpen = false;
   neutralOffers: NeutralDef[] = [];
   private neutralIdx = 0;
+  /** Добыча: сундук на карте, предметы на земле, открытый экран подбора (мир стоит). */
+  chest: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
+  groundLoot: { x: number; y: number; item: GearItem; until: number }[] = [];
+  lootOpen: GearItem | null = null;
+  /** Всё подобранное за забег — в инвентарь по итогу. */
+  loot: GearItem[] = [];
+  private nextChestAt = ARCADE.loot.chestFirstAt;
+  private lootSeq = 0;
+  private aegisDropped = false;
   shopRerolls = 0;
   private shopIdx = 0;
   private nextBountyAt = ARCADE.bounty.every;
@@ -134,10 +144,13 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0,
-      schools: [], upgrades: {}, talents: [], items: [], neutral: null, stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
+      schools: [], upgrades: {}, talents: [], items: [], neutral: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
+    for (const g of options.gear ?? []) this.player.gear[g.slot] = g;
+    // Уникальный Aegis of the Immortal: одно воскрешение уже на старте.
+    if (Object.values(this.player.gear).some((g) => g.unique === "aegis_of_the_immortal")) this.player.aegis = true;
     this.recomputeStats();
   }
 
@@ -189,6 +202,10 @@ export class ArcadeSim {
     }
     if (this.neutralOpen) {
       this.neutralAction(input.act);
+      return;
+    }
+    if (this.lootOpen) {
+      this.lootAction(input.act);
       return;
     }
     const p = this.player;
@@ -668,6 +685,13 @@ export class ArcadeSim {
       this.pushFx("nova", e.x, e.y, 400, 0, 60);
       this.finish("victory");
     }
+    // Экипировка: элита и боссы роняют всегда, обычные — редко; уникальные — с боссов.
+    if (e.kind.boss && !this.aegisDropped) { this.aegisDropped = true; this.dropLoot(e.x, e.y, uniqueGear("aegis_of_the_immortal", this.nextUid(), this.lootTier())); }
+    else if (e.kind.boss) this.dropLoot(e.x, e.y, this.rollLoot("exotic"));
+    else if (e.kind.id === "tormentor") this.dropLoot(e.x, e.y, uniqueGear("tormentors_shard", this.nextUid(), this.lootTier()));
+    else if (e.kind.structure) this.loot.push(uniqueGear("heart_of_the_ancient", this.nextUid(), 3));
+    else if (e.kind.elite) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
+    else if (this.rng.float() < ARCADE.loot.commonChance) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
     if (e.kind.id === "tormentor") {
       // Награда за Tormentor: щедрость без платы — 60 с двойного опыта.
       this.greedUntil = Math.max(this.greedUntil, this.tick + ARCADE.greed.duration);
@@ -727,7 +751,7 @@ export class ArcadeSim {
     const p = this.player;
     this.over = {
       outcome, tick: this.tick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
-      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id, act: this.act, neutral: p.neutral,
+      upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id, act: this.act, neutral: p.neutral, loot: [...this.loot],
     };
   }
 
@@ -748,6 +772,16 @@ export class ArcadeSim {
     }
     if (this.shopkeeper.alive && !this.shopOpen && len(this.shopkeeper.x - p.x, this.shopkeeper.y - p.y) < 44) this.openShop();
     if (this.neutralToken.alive && !this.neutralOpen && len(this.neutralToken.x - p.x, this.neutralToken.y - p.y) < 36) this.openNeutral();
+    if (this.chest.alive && !this.lootOpen && len(this.chest.x - p.x, this.chest.y - p.y) < 40) {
+      this.chest.alive = false;
+      this.lootOpen = this.rollLoot(this.rollRarity());
+      this.pushFx("levelup", this.chest.x, this.chest.y, 0, 0, 24);
+    }
+    if (!this.lootOpen) {
+      for (const g of this.groundLoot) {
+        if (g.until > 0 && len(g.x - p.x, g.y - p.y) < 30) { g.until = -1; this.lootOpen = g.item; break; }
+      }
+    }
     if (this.aegisDrop && len(this.aegisDrop.x - p.x, this.aegisDrop.y - p.y) < 40) {
       p.aegis = true;
       this.aegisDrop = null;
@@ -849,6 +883,15 @@ export class ArcadeSim {
       this.neutralToken = { alive: true, x: nx, y: ny, until: this.tick + ARCADE.neutral.lifetime, value: this.neutralIdx };
     }
     if (this.neutralToken.alive && this.tick >= this.neutralToken.until) this.neutralToken.alive = false;
+    // Сундук с экипировкой.
+    if (this.tick >= this.nextChestAt && !this.chest.alive) {
+      this.nextChestAt = this.tick + ARCADE.loot.chestEvery;
+      const [cx, cy] = this.ringPoint(ARCADE.loot.distMin, ARCADE.loot.distMax);
+      this.chest = { alive: true, x: cx, y: cy, until: this.tick + ARCADE.loot.chestLifetime, value: 0 };
+    }
+    if (this.chest.alive && this.tick >= this.chest.until) this.chest.alive = false;
+    for (const g of this.groundLoot) if (this.tick >= g.until) g.until = -1;
+    if (this.groundLoot.length && this.tick % 60 === 0) this.groundLoot = this.groundLoot.filter((g) => g.until > 0);
     void p;
   }
 
@@ -1131,6 +1174,48 @@ export class ArcadeSim {
     }
   }
 
+  // ---------- экипировка (добыча) ----------
+
+  private nextUid(): string {
+    return `${this.seed}:${this.tick}:${++this.lootSeq}`;
+  }
+
+  private lootTier(): 1 | 2 | 3 {
+    return this.tick >= ARCADE.loot.tier3At ? 3 : this.tick >= ARCADE.loot.tier2At ? 2 : 1;
+  }
+
+  private rollLoot(rarity: Rarity): GearItem {
+    return rollGear(this.rng, this.lootTier(), rarity, this.nextUid());
+  }
+
+  private dropLoot(x: number, y: number, item: GearItem): void {
+    this.groundLoot.push({ x, y, item, until: this.tick + ARCADE.loot.lootLifetime });
+  }
+
+  /** Экран подбора: 1 — надеть (старое в сумку), 2 — в сумку, 5 — оставить. Сумка полна — «в сумку» не срабатывает. */
+  private lootAction(act: number): void {
+    const p = this.player;
+    const item = this.lootOpen;
+    if (!item) return;
+    if (act === 1) {
+      const old = p.gear[item.slot];
+      p.gear[item.slot] = item;
+      this.loot.push(item);
+      // Снятое — в сумку (стартовое тоже: оно и так лежит в инвентаре, дубликата не будет — uid тот же).
+      if (old && p.bag.length < ARCADE.loot.bagCap) p.bag.push(old);
+      this.recomputeStats();
+      this.pushFx("levelup", p.x, p.y, 0, 0, 30);
+      this.lootOpen = null;
+    } else if (act === 2) {
+      if (p.bag.length >= ARCADE.loot.bagCap) return;
+      p.bag.push(item);
+      this.loot.push(item);
+      this.lootOpen = null;
+    } else if (act === 5) {
+      this.lootOpen = null;
+    }
+  }
+
   // ---------- нейтральные предметы ----------
 
   private openNeutral(): void {
@@ -1253,6 +1338,7 @@ export class ArcadeSim {
       if (def) effects.push({ e: def.effect, m: ITEM_RARITY_MULT[owned.rarity] });
     }
     if (p.neutral && NEUTRAL_BY_ID[p.neutral]) effects.push({ e: NEUTRAL_BY_ID[p.neutral].effect, m: 1 });
+    for (const g of Object.values(p.gear)) effects.push({ e: gearEffect(g as GearItem), m: 1 });
     for (const { e, m } of effects) {
       if (e.regen) s.regen += e.regen * m;
       if (e.lifesteal) s.lifesteal += e.lifesteal * m;
@@ -1319,7 +1405,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

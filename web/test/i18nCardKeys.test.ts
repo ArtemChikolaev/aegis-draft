@@ -10,6 +10,7 @@ import { ARCADE_ITEMS } from "../src/game/arcade/content/items.ts";
 import { HEROES, HERO_IDS } from "../src/game/arcade/content/heroes.ts";
 import { COSMETICS } from "../src/game/arcade/content/cosmetics.ts";
 import { NEUTRALS } from "../src/game/arcade/content/neutrals.ts";
+import { GEAR_BASES, UNIQUES } from "../src/game/arcade/content/gear.ts";
 
 // Ключи карт/боссов/мутаторов собираются в рантайме шаблоном (`${kind}.${id}`, `${item ? "item" : "tactic"}.${id}`),
 // поэтому tsc их не проверяет, а grep по литералу не видит. 2026-09-02 шесть `tactic.*` удалили как
@@ -27,6 +28,8 @@ const expectedKeys = [
   ...[...new Set(HERO_IDS.filter((h) => HEROES[h].kit !== h).map((h) => HEROES[h].kit))].map((a) => `arcade.arch.${a}`),
   ...COSMETICS.map((c) => `arcade.cosmetic.${c.id}`),
   ...NEUTRALS.flatMap((n) => [`arcade.neutral.${n.id}`, `arcade.neutral.${n.id}.desc`]),
+  ...GEAR_BASES.map((b) => `arcade.gearName.${b.id}`),
+  ...Object.values(UNIQUES).map((u) => `arcade.gearName.${u.base}`),
 ];
 
 describe("i18n: ключи каталогов карт существуют в обеих локалях", () => {

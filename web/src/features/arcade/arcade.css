@@ -8,6 +8,26 @@
 .arcade-heroes__pick { display: grid; gap: 4px; justify-items: center; padding: 8px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); }
 .arcade-heroes__pick[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); }
 .arcade-heroes__pick small { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.arcade-gear { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.arcade-gear__slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.arcade-gear__slot { display: grid; gap: 4px; justify-items: center; padding: 8px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: 11px; }
+.arcade-gear__slot small { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.arcade-gear__slot[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); }
+.arcade-gear__slot[data-rarity="refined"] { border-color: var(--blue); }
+.arcade-gear__slot[data-rarity="exotic"] { border-color: var(--role-support); }
+.arcade-gear__slot[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-gear__empty { color: var(--muted); }
+.arcade-gear__list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; max-height: 260px; overflow-y: auto; }
+.arcade-gear__list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; }
+.arcade-gear__list li[data-equipped] { border-color: var(--accent-strong); }
+.arcade-gear__list li strong em { font-style: normal; font-weight: 600; color: var(--muted); }
+.arcade-gear__list li span { display: block; color: var(--muted); font-size: 11px; }
+.arcade-hud__gear { display: flex; gap: 4px; align-items: center; }
+.arcade-hud__slot-empty { display: block; width: 14px; height: 14px; border: 1px dashed var(--line-invert-strong); border-radius: 4px; }
+.arcade-hud__bag { margin-left: 6px; font: 800 10px var(--font-display); letter-spacing: .06em; text-transform: uppercase; opacity: .85; }
+.arcade-offer--static { cursor: default; }
+.arcade-offer--static:hover { transform: none; border-color: var(--line); }
+.arcade-loot__compare { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .arcade-cosmetics { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
 .arcade-cosmetics__slot { display: grid; gap: 4px; }
 .arcade-cosmetics__slot small { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }

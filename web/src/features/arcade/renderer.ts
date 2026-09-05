@@ -12,6 +12,9 @@ import { Terrain } from "./terrain.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, drawCharFrame, drawMonsterFrame, enemyLook, heroLook, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
+import { gearArt } from "../../game/arcade/content/gear.ts";
+import { itemArtSources } from "../../ui/artSource.ts";
+import { tileImage } from "./sprites.ts";
 import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
@@ -117,6 +120,7 @@ export class ArcadeRenderer {
     this.drawAegis(sim, pal, now);
     this.drawShrine(sim, pal, now);
     this.drawSpots(sim, pal, now);
+    this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
@@ -233,6 +237,37 @@ export class ArcadeRenderer {
       c.beginPath(); c.arc(b.x, b.y, 12 + pulse * 2, 0, Math.PI * 2); c.fill();
       c.fillStyle = pal.player; c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center";
       c.fillText("$", b.x, b.y + 4);
+    }
+  }
+
+  private iconCache = new Map<string, HTMLImageElement>();
+  private icon(slug: string): HTMLImageElement | null {
+    let el = this.iconCache.get(slug);
+    if (!el) { el = new Image(); el.src = itemArtSources(slug)[0]; this.iconCache.set(slug, el); }
+    return el.complete && el.naturalWidth > 0 ? el : null;
+  }
+
+  /** Сундук (тайл LPC) и предметы на земле — иконка Dota с ореолом редкости. */
+  private drawLoot(sim: ArcadeSim, pal: Palette, now: number): void {
+    const c = this.ctx;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 220);
+    if (sim.chest.alive) {
+      const ch = tileImage("chests");
+      const { x, y } = sim.chest;
+      if (ch) { c.imageSmoothingEnabled = false; c.drawImage(ch, 0, 0, 32, 32, x - 24, y - 30, 48, 48); c.imageSmoothingEnabled = true; }
+      else { c.fillStyle = pal.aegis; c.fillRect(x - 14, y - 12, 28, 22); }
+      c.strokeStyle = pal.aegis; c.globalAlpha = 0.35 + 0.35 * pulse; c.lineWidth = 2;
+      c.beginPath(); c.ellipse(x, y + 10, 30 + pulse * 4, 12, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+    }
+    for (const g of sim.groundLoot) {
+      if (g.until <= 0) continue;
+      const color = g.item.rarity === "arcana" ? pal.aegis : g.item.rarity === "exotic" ? pal.lightning : g.item.rarity === "refined" ? pal.frost : pal.text;
+      c.strokeStyle = color; c.lineWidth = 2; c.globalAlpha = 0.5 + 0.4 * pulse;
+      c.beginPath(); c.ellipse(g.x, g.y + 8, 16, 7, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+      const img = this.icon(gearArt(g.item));
+      const bob = Math.sin(now / 200 + g.x) * 2;
+      if (img) c.drawImage(img, g.x - 14, g.y - 12 + bob, 28, 20);
+      else { c.fillStyle = color; c.fillRect(g.x - 8, g.y - 8 + bob, 16, 12); }
     }
   }
 

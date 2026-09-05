@@ -8,7 +8,7 @@ import { ARCADE_CONFIG_VERSION } from "../src/game/arcade/config.ts";
 function play(sim: ArcadeSim, ticks: number): void {
   for (let i = 0; i < ticks && !sim.over; i++) {
     const t = sim.tick;
-    const input = sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : { mx: [16, 0, -16, 0][Math.floor(t / 90) % 4], my: [0, 16, 0, -16][Math.floor(t / 90) % 4], cast: (t % 300 === 0 ? 1 : 0), choose: -1, act: 0 };
+    const input = sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : { mx: [16, 0, -16, 0][Math.floor(t / 90) % 4], my: [0, 16, 0, -16][Math.floor(t / 90) % 4], cast: (t % 300 === 0 ? 1 : 0), choose: -1, act: 0 };
     sim.step(input);
   }
 }
@@ -25,7 +25,7 @@ describe("arcade replay codec + daily", () => {
     // Сид с точкой и тильдой, версия с точками — всё, что ломало разделитель.
     const sim = new ArcadeSim("codec.2~x", { hero: "axe", rank: 3, act: "short" });
     play(sim, sec(120));
-    const code = encodeReplay({ seed: sim.seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log });
+    const code = encodeReplay({ seed: sim.seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: [] });
     const rep = decodeReplay(code)!;
     expect(rep.hero).toBe("axe");
     expect(rep.rank).toBe(3);

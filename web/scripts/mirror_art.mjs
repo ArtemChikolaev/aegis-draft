@@ -28,6 +28,7 @@ import { ITEM_ART } from "../src/game/itemArt.ts";
 import { SCHOOL_ART } from "../src/game/arcade/content/schools.ts";
 import { ARCADE_ITEMS } from "../src/game/arcade/content/items.ts";
 import { NEUTRALS } from "../src/game/arcade/content/neutrals.ts";
+import { GEAR_BASES, UNIQUES } from "../src/game/arcade/content/gear.ts";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const DATA_DIR = resolve(ROOT, "public/data");
@@ -73,7 +74,7 @@ async function collectTargets() {
     // Значения ITEM_ART — реальные внутренние имена Dota (см. комментарий в itemArt.ts),
     // поэтому берём именно их, а не ключи каталога.
     // Аркада (M13): иконки школ, предметов лавки и нейтралок — те же внутренние имена Dota.
-    ...[...new Set([...Object.values(ITEM_ART), ...Object.values(SCHOOL_ART), ...ARCADE_ITEMS.map((i) => i.art), ...NEUTRALS.map((n) => n.id)])].map((slug) => ({ kind: "items", name: slug, url: `${ITEM_CDN}/${slug}.png` })),
+    ...[...new Set([...Object.values(ITEM_ART), ...Object.values(SCHOOL_ART), ...ARCADE_ITEMS.map((i) => i.art), ...NEUTRALS.map((n) => n.id), ...GEAR_BASES.map((b) => b.art), ...Object.values(UNIQUES).map((u) => u.art)])].map((slug) => ({ kind: "items", name: slug, url: `${ITEM_CDN}/${slug}.png` })),
   ];
 }
 

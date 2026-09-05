@@ -11,6 +11,7 @@ import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
 import { COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
+import { GEAR_SALVAGE, GEAR_SLOTS, type GearItem, type GearSlot } from "../game/arcade/content/gear.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readCached, writePersisted } from "./persist.ts";
 
@@ -36,6 +37,28 @@ export interface ArcadeHistoryEntry {
 
 const HISTORY_KEY = "aegis-draft.arcade.history";
 const COSMETICS_KEY = "aegis-draft.arcade.cosmetics";
+const GEAR_KEY = "aegis-draft.arcade.gear";
+const GEAR_CAP = 80;
+
+export interface GearState {
+  items: GearItem[];
+  equipped: Partial<Record<GearSlot, string>>;
+}
+
+function readGear(): GearState {
+  try {
+    const raw = readCached(GEAR_KEY);
+    const parsed = raw ? (JSON.parse(raw) as GearState) : null;
+    return parsed && Array.isArray(parsed.items) ? { items: parsed.items, equipped: parsed.equipped ?? {} } : { items: [], equipped: {} };
+  } catch {
+    return { items: [], equipped: {} };
+  }
+}
+
+/** Надетые предметы как список для сима. */
+export function equippedGear(gear: GearState): GearItem[] {
+  return GEAR_SLOTS.map((slot) => gear.items.find((i) => i.uid === gear.equipped[slot])).filter((i): i is GearItem => !!i);
+}
 
 export interface CosmeticsState {
   owned: string[];
@@ -90,12 +113,18 @@ interface ArcadeStore {
   /** Косметика (T13.12): коллекция, экип, осколки; дроп последнего забега — для экрана итога. */
   cosmetics: CosmeticsState;
   lastDrops: CosmeticDrop[];
+  /** Экипировка между забегами (T13.14): инвентарь и надетое по слотам. */
+  gear: GearState;
+  lastLoot: GearItem[];
 
   start: (seed?: string) => void;
   startDaily: () => void;
   startReplay: (replay: ArcadeReplay) => void;
   setLoadedReplay: (replay: ArcadeReplay | null) => void;
   equip: (slot: CosmeticSlot, id: string | null) => void;
+  equipGear: (slot: GearSlot, uid: string | null) => void;
+  /** Разобрать предмет в осколки Aegis (надетый — снимается). */
+  salvageGear: (uid: string) => void;
   /** Купить косметику за осколки Aegis (трата дублей). false — не хватает или уже есть. */
   buyCosmetic: (id: string) => boolean;
   setRank: (rank: number) => void;
@@ -126,21 +155,45 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   loadedReplay: null,
   cosmetics: readCosmetics(),
   lastDrops: [],
+  gear: readGear(),
+  lastLoot: [],
 
   start(seed) {
     const next = seed?.trim() || createRunSeed();
     const rank = Math.min(get().rank, maxUnlockedRank(get().history));
-    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act });
-    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [] });
+    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: equippedGear(get().gear) });
+    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [], lastLoot: [] });
   },
   startDaily() {
     const d = arcadeDaily();
+    // Дейлик — без экипировки: у всех одинаковые условия.
     sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act });
     set({ status: "running", seed: d.seed, rank: d.rank, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null });
   },
   startReplay(replay) {
-    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act });
+    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear });
     set({ status: "running", seed: replay.seed, rank: replay.rank, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
+  },
+  equipGear(slot, uid) {
+    const g = get().gear;
+    if (uid !== null) { const item = g.items.find((i) => i.uid === uid); if (!item || item.slot !== slot) return; }
+    const equipped = { ...g.equipped };
+    if (uid === null) delete equipped[slot]; else equipped[slot] = uid;
+    const gear = { ...g, equipped };
+    void writePersisted(GEAR_KEY, JSON.stringify(gear));
+    set({ gear });
+  },
+  salvageGear(uid) {
+    const g = get().gear;
+    const item = g.items.find((i) => i.uid === uid);
+    if (!item) return;
+    const equipped = { ...g.equipped };
+    for (const slot of GEAR_SLOTS) if (equipped[slot] === uid) delete equipped[slot];
+    const gear = { items: g.items.filter((i) => i.uid !== uid), equipped };
+    const cosmetics = { ...get().cosmetics, shards: get().cosmetics.shards + GEAR_SALVAGE[item.rarity] };
+    void writePersisted(GEAR_KEY, JSON.stringify(gear));
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ gear, cosmetics });
   },
   buyCosmetic(id) {
     const def = COSMETIC_BY_ID[id];
@@ -185,7 +238,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set((s) => ({ serial: s.serial + 1 }));
   },
   shopAct(act) {
-    if (!sim || (!sim.shopOpen && !sim.neutralOpen)) return;
+    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen)) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act });
     set((s) => ({ serial: s.serial + 1 }));
   },
@@ -207,7 +260,22 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     for (const d of drops) { if (d.duplicate) shards += d.shards; else owned.push(d.id); }
     const cosmetics: CosmeticsState = { ...prev, owned, shards };
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
-    set({ status: "over", outcome: o, history, cosmetics, lastDrops: drops });
+    // Добыча — в инвентарь (и при смерти тоже, как у референса); переполнение — старые standard в осколки.
+    const loot = o.loot as GearItem[];
+    let items = [...get().gear.items.filter((i) => !loot.some((l) => l.uid === i.uid)), ...loot];
+    let extraShards = 0;
+    while (items.length > GEAR_CAP) {
+      const idx = items.findIndex((i) => i.rarity === "standard" && !Object.values(get().gear.equipped).includes(i.uid));
+      if (idx < 0) break;
+      extraShards += GEAR_SALVAGE.standard;
+      items.splice(idx, 1);
+    }
+    const equipped = { ...get().gear.equipped };
+    for (const slot of GEAR_SLOTS) { const g = sim.player.gear[slot] as GearItem | undefined; if (g) equipped[slot] = g.uid; }
+    const gear: GearState = { items, equipped };
+    void writePersisted(GEAR_KEY, JSON.stringify(gear));
+    if (extraShards) { cosmetics.shards += extraShards; void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics)); }
+    set({ status: "over", outcome: o, history, cosmetics, lastDrops: drops, gear, lastLoot: loot });
   },
   quit() {
     sim = null;

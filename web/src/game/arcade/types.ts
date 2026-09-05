@@ -11,7 +11,8 @@ export interface ArcadeInput {
   cast: number;
   choose: number;
   /** Действие в магазине (T13.8): 0 — нет, 1..3 — купить слот, 4 — реролл, 5 — закрыть.
-   *  Токен нейтралки использует те же коды: 1..2 — взять вариант, 5 — пропустить. */
+   *  Токен нейтралки использует те же коды: 1..2 — взять вариант, 5 — пропустить.
+   *  Добыча (T13.14): 1 — надеть, 2 — в сумку, 5 — оставить на земле. */
   act: number;
 }
 
@@ -139,6 +140,17 @@ export interface Spot {
   value: number;
 }
 
+/** Структурный тип предмета экипировки (полный — content/gear.ts GearItem). */
+export interface GearLike {
+  uid: string;
+  base: string;
+  slot: string;
+  rarity: Rarity;
+  tier: 1 | 2 | 3;
+  affixes: { stat: string; value: number }[];
+  unique?: string;
+}
+
 export interface ArcadeOptions {
   /** Ступень лестницы сложности 0..39 (content/ranks.ts). */
   rank?: number;
@@ -146,6 +158,8 @@ export interface ArcadeOptions {
   hero?: string;
   /** Акт: `short` — разминка до 9:00 (срез 0), `full` — 20 минут до Древнего. */
   act?: ActId;
+  /** Надетая экипировка на старте (из инвентаря между забегами); дейлик — без неё. */
+  gear?: GearLike[];
 }
 
 /** `dire` — акт 2: ночь (обзор ограничен) и лес Dire (враги крепче и быстрее). `river` — акт 3: река с рунами
@@ -243,6 +257,9 @@ export interface Player {
   items: { id: string; rarity: Rarity }[];
   /** Нейтральный слот (один): id из content/neutrals.ts или null. */
   neutral: string | null;
+  /** Экипировка (T13.14): надетое по слотам и сумка забега. Типы — content/gear.ts (без импорта: цикл). */
+  gear: Record<string, GearLike>;
+  bag: GearLike[];
   stats: PlayerStats;
   /** Таймеры периодических эффектов школ (тик следующего срабатывания). */
   ringAt: number;
@@ -265,4 +282,6 @@ export interface ArcadeOutcome {
   hero: string;
   act: ActId;
   neutral: string | null;
+  /** Добыча забега: всё подобранное (надетое новое + сумка) — уходит в инвентарь. */
+  loot: GearLike[];
 }

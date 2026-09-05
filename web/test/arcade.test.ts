@@ -13,6 +13,7 @@ function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
   // Торговец (3:00/6:00) ставит мир на паузу — без закрытия лавки длинные циклы тестов зависали.
   if (sim.shopOpen) return { ...IDLE_INPUT, act: SHOP_ACT.close };
   if (sim.neutralOpen) return { ...IDLE_INPUT, act: 1 };
+  if (sim.lootOpen) return { ...IDLE_INPUT, act: 1 };
   const phase = Math.floor(tick / 90) % 4;
   const dirs = [[16, 0], [0, 16], [-16, 0], [0, -16]];
   return { mx: dirs[phase][0], my: dirs[phase][1], cast: 0, choose: -1, act: 0 };
@@ -116,7 +117,7 @@ describe("arcade sim", () => {
 
   it("Secret Shop: касание открывает лавку и ставит мир на паузу, покупка списывает золото и меняет статы", () => {
     const sim = new ArcadeSim("shop-1");
-    while (!sim.shopkeeper.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT); }
+    while (!sim.shopkeeper.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.lootOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
     expect(sim.shopkeeper.alive).toBe(true);
     sim.player.x = sim.shopkeeper.x; sim.player.y = sim.shopkeeper.y;
     sim.step(IDLE_INPUT);
@@ -179,7 +180,7 @@ describe("arcade sim", () => {
 
   it("нейтральный токен: тир 1 на 2-й минуте, выбор ставит мир на паузу и занимает один слот", () => {
     const sim = new ArcadeSim("neutral-1");
-    while (!sim.neutralToken.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
+    while (!sim.neutralToken.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
     expect(sim.neutralToken.alive).toBe(true);
     expect(sim.neutralToken.value).toBe(1);
     sim.player.x = sim.neutralToken.x; sim.player.y = sim.neutralToken.y;

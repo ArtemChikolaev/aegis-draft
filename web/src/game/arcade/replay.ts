@@ -7,6 +7,7 @@ import { ARCADE_CONFIG_VERSION } from "./config.ts";
 import { HEROES, HERO_IDS, type HeroId } from "./content/heroes.ts";
 import { MAX_RANK_STEP } from "./content/ranks.ts";
 import type { ActId, InputLogEntry } from "./types.ts";
+import type { GearItem } from "./content/gear.ts";
 
 export interface ArcadeReplay {
   seed: string;
@@ -15,6 +16,8 @@ export interface ArcadeReplay {
   act: ActId;
   version: string;
   log: InputLogEntry[];
+  /** Надетая экипировка на старте (входит в детерминизм). */
+  gear: GearItem[];
 }
 
 const PREFIX = "A1";
@@ -72,19 +75,20 @@ const SEP = "~";
 const encodeSeed = (seed: string) => encodeURIComponent(seed).replace(/~/g, "%7E");
 
 export function encodeReplay(replay: ArcadeReplay): string {
-  return [PREFIX, encodeSeed(replay.seed), replay.hero, replay.rank, replay.act, replay.version, toBase64Url(packLog(replay.log))].join(SEP);
+  const gear = replay.gear?.length ? toBase64Url(new TextEncoder().encode(JSON.stringify(replay.gear))) : "";
+  return [PREFIX, encodeSeed(replay.seed), replay.hero, replay.rank, replay.act, replay.version, toBase64Url(packLog(replay.log)), gear].join(SEP);
 }
 
 /** Разбор кода реплея. Кривой ввод → null; чужая версия баланса возвращается как есть — решает вызывающий. */
 export function decodeReplay(text: string): ArcadeReplay | null {
   const raw = text.trim().replace(/^.*#arcade=/, "");
   const parts = raw.split(SEP);
-  if (parts.length !== 7 || parts[0] !== PREFIX) return null;
-  const [, seedRaw, hero, rankRaw, act, version, logRaw] = parts;
+  if ((parts.length !== 7 && parts.length !== 8) || parts[0] !== PREFIX) return null;
+  const [, seedRaw, hero, rankRaw, act, version, logRaw, gearRaw] = parts;
   if (!HERO_IDS.includes(hero as HeroId)) return null;
   const rank = Number(rankRaw);
   if (!Number.isInteger(rank) || rank < 0 || rank > MAX_RANK_STEP) return null;
-  if (act !== "short" && act !== "full") return null;
+  if (act !== "short" && act !== "full" && act !== "dire" && act !== "river") return null;
   const bytes = fromBase64Url(logRaw);
   if (!bytes) return null;
   const log = unpackLog(bytes);
@@ -92,7 +96,14 @@ export function decodeReplay(text: string): ArcadeReplay | null {
   let seed: string;
   try { seed = decodeURIComponent(seedRaw); } catch { return null; }
   if (!seed) return null;
-  return { seed, hero: hero as HeroId, rank, act, version, log };
+  let gear: GearItem[] = [];
+  if (gearRaw) {
+    const bytes = fromBase64Url(gearRaw);
+    if (!bytes) return null;
+    try { gear = JSON.parse(new TextDecoder().decode(bytes)) as GearItem[]; } catch { return null; }
+    if (!Array.isArray(gear)) return null;
+  }
+  return { seed, hero: hero as HeroId, rank, act, version, log, gear };
 }
 
 export function replayUrl(code: string, origin: string, pathname: string): string {
