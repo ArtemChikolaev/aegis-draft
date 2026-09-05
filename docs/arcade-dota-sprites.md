@@ -84,10 +84,13 @@ cd /Users/Shared/Coding/aegis-draft/web/scripts/blender
 | hellbear | `models/creeps/neutral_creeps/n_creep_beast/` |
 
 ## 4. Земля
-Текстуры террейна лежат в `materials/terrain/` (`vtex_c`). Экспорт:
+Текстуры террейна лежат в `maps/<набор>_assets/blends/` (наборы `jungle`, `summer`, `cavern`, `reef`, `journey`, `ti10`; `materials/terrain/` пуст). Экспорт конкретных файлов:
 ```bash
-"$S2V" -i "$DOTA/pak01_dir.vpk" -f materials/terrain/ -e vtex_c -o "$OUT/terrain" -d
+"$S2V" -i "$DOTA/pak01_dir.vpk" -l -f maps/jungle_assets/blends/ | grep color   # список
+"$S2V" -i "$DOTA/pak01_dir.vpk" -f maps/jungle_assets/blends/plants_01_color_psd_8552850e.vtex_c -o "$OUT/terrain/" -d
+"$S2V" -i "$DOTA/pak01_dir.vpk" -f maps/jungle_assets/blends/radiant_jungle_dirt_01_color_psd_133dcf93.vtex_c -o "$OUT/terrain/" -d
 ```
+Осторожно: часть «травы» (например, `summer_assets/.../grass_long_*`) — белые маски, которые красит шейдер; нужны текстуры с готовым цветом.
 Из полученных PNG нужны бесшовные: трава Radiant (`*grass*`/`*radiant*`), земля/тропа (`*dirt*`),
 для акта 2 — трава Dire, вода для реки. Положить как:
 `web/public/art/sprites/dota/terrain/grass.png`, `dirt.png`, `grass_dire.png`, `water.png`
