@@ -139,6 +139,8 @@
 .arcade-offer[data-rarity="refined"] { border-color: var(--rarity-refined, var(--blue)); }
 .arcade-offer[data-rarity="exotic"] { border-color: var(--rarity-exotic, var(--role-support)); }
 .arcade-offer[data-rarity="arcana"] { border-color: var(--rarity-arcana, var(--gold)); box-shadow: 0 0 0 1px var(--rarity-arcana, var(--gold)); }
+.arcade-offer[data-rarity="legendary"] { border-color: var(--rarity-arcana, var(--gold)); box-shadow: 0 0 0 2px var(--rarity-arcana, var(--gold)), 0 0 24px 0 var(--rarity-arcana, var(--gold)); background: linear-gradient(180deg, color-mix(in srgb, var(--rarity-arcana, var(--gold)) 14%, var(--surface-solid)), var(--surface-solid)); }
+.arcade-offer[data-rarity="legendary"] .arcade-offer__tag { color: var(--rarity-arcana, var(--gold)); font-weight: 800; }
 .arcade-offer[data-kind="talent"] { background: var(--surface-soft); }
 
 @media (max-width: 680px) { /* bp.md */

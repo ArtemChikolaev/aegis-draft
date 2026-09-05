@@ -70,6 +70,11 @@ export interface UpgradeDef {
   school: SchoolId;
   type: UpgradeType;
   maxRank: number;
+  /** Легендарный апгрейд (DMD-подобный «мега-пассив», T13.18): один ранг, редкое предложение, своя иконка-предмет. */
+  legendary?: boolean;
+  /** Нейтральный легендарный — не привязан к школе (школу в билд не добавляет). */
+  neutral?: boolean;
+  art?: string;
 }
 
 export type AbilityKey = "q" | "w" | "e" | "r";

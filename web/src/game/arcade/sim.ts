@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
-import { SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
+import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, ITEM_RARITY_MULT, type ShopOffer } from "./content/items.ts";
 import { HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
@@ -557,7 +557,7 @@ export class ArcadeSim {
     if (sig?.kind === "overload") p.sigArmed = true; // Storm: следующий удар бьёт по площади
     // Culling Blade после добивания уходит на короткую перезарядку (3 с), не на полную и не на ноль.
     if (ab.kind === "culling_blade" && p.cooldowns.r === -1) p.cooldowns.r = sec(1.5);
-    else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown));
+    else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1));
     if (key === "q" || key === "r") this.thunderclap();
     this.staticField();
   }
@@ -600,6 +600,11 @@ export class ArcadeSim {
         p.burstNextAt = this.tick + 6;
         if (this.tick >= p.fieldUntil) p.burstLeft = 0;
       } else p.burstLeft = 0;
+    }
+    // Лавина (легендарный Skadi): каждые 8 с вмораживает всех вокруг на 1.2 с.
+    if (this.upgradePower("leg_ska_avalanche") > 0 && this.tick % sec(8) === 0) {
+      for (const e of this.enemiesWithin(p.x, p.y, 210)) if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 0.6 : 1.2)));
+      this.pushFx("nova", p.x, p.y, 210, 0, 14);
     }
     // Nether Ward (Pugna): тотем бьёт ближайшего врага в радиусе.
     const dwKey = ABILITY_KEYS.find((k) => H[k].kind === "damage_ward");
@@ -737,7 +742,7 @@ export class ArcadeSim {
     const chill = this.upgradePower("ska_bite");
     if (chill > 0) this.applyChill(e, Math.min(0.6, 0.3 + 0.05 * chill), 2.5);
     const chain = this.upgradePower("mae_chain");
-    if (chain > 0 && this.rng.float() < 0.25 + 0.08 * chain) this.chainLightning(e, 20 * chain * this.lightningMult(), 3 + Math.floor(this.upgradePower("mae_mjollnir") * 2));
+    if (chain > 0 && this.rng.float() < 0.25 + 0.08 * chain) this.chainLightning(e, 20 * chain * this.lightningMult(), 3 + Math.floor(this.upgradePower("mae_mjollnir") * 2) + (this.upgradePower("leg_mae_thunder") > 0 ? 4 : 0));
   }
 
   private chainLightning(from: Enemy, dmg: number, targets: number): void {
@@ -810,11 +815,11 @@ export class ArcadeSim {
   }
 
   private burnMult(): number {
-    return 1 + 0.25 * this.upgradePower("rad_inferno");
+    return (1 + 0.25 * this.upgradePower("rad_inferno")) * (this.upgradePower("leg_rad_sun") > 0 ? 1.75 : 1);
   }
 
   private lightningMult(): number {
-    return 1 + 0.2 * this.upgradePower("mae_mjollnir");
+    return (1 + 0.2 * this.upgradePower("mae_mjollnir")) * (this.upgradePower("leg_mae_thunder") > 0 ? 1.5 : 1);
   }
 
   upgradePower(id: string): number {
@@ -869,6 +874,7 @@ export class ArcadeSim {
       if (this.tick < e.freezeUntil) dmg *= 1 + 0.4 * shatter;
       else if (this.tick < e.chillUntil) dmg *= 1 + 0.1 * shatter;
     }
+    if (this.tick < e.freezeUntil && this.upgradePower("leg_ska_glacier") > 0) dmg *= 2; // Ледник: вмороженные получают двойной урон
     e.hp -= dmg;
     e.hitAt = this.tick;
     if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect));
@@ -930,6 +936,7 @@ export class ArcadeSim {
     const sig = this.hero.signature;
     if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
     if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
+    if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return; // BKB: треть ударов мимо
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
     const reduction = (0.06 * armor) / (1 + 0.06 * armor);
     p.hp -= amount * (1 - reduction);
@@ -1504,6 +1511,11 @@ export class ArcadeSim {
     const pool: Offer[] = [];
     const rAllowed = R_LEVELS[p.abilities.r] !== undefined && p.level >= R_LEVELS[p.abilities.r];
     if (rAllowed) offers.push({ kind: "ability", key: "r" });
+    // Легендарный апгрейд: гарантированно на LEGENDARY_LEVELS, иначе с растущим шансом с 8-го уровня.
+    const legs = LEGENDARY_UPGRADES.filter((u) => !p.upgrades[u.id] && (u.neutral || p.schools.length < 3 || p.schools.includes(u.school)));
+    if (legs.length > 0 && p.level >= 8 && (LEGENDARY_LEVELS.includes(p.level) || this.rng.float() < Math.min(0.22, 0.04 + 0.012 * this.minutes))) {
+      offers.push({ kind: "upgrade", id: legs[this.rng.int(legs.length)].id, rarity: "arcana" });
+    }
     for (const k of ["q", "w", "e"] as const) if (p.abilities[k] < 4) pool.push({ kind: "ability", key: k });
     while (offers.length < 3) {
       const wantUpgrade = pool.length === 0 || this.rng.float() < 0.55;
@@ -1521,7 +1533,7 @@ export class ArcadeSim {
   private rollUpgradeOffer(exclude: string[]): Offer | null {
     const p = this.player;
     const schools: readonly SchoolId[] = p.schools.length >= 3 ? p.schools : SCHOOLS;
-    const candidates = UPGRADES.filter((u) => schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < u.maxRank);
+    const candidates = UPGRADES.filter((u) => !u.legendary && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < u.maxRank);
     if (candidates.length === 0) return null;
     const def = candidates[this.rng.int(candidates.length)];
     return { kind: "upgrade", id: def.id, rarity: this.rollRarity() };
@@ -1545,8 +1557,9 @@ export class ArcadeSim {
     else {
       const def = UPGRADE_BY_ID[offer.id];
       const cur = p.upgrades[offer.id] ?? { rank: 0, power: 0 };
-      p.upgrades[offer.id] = { rank: cur.rank + 1, power: cur.power + ARCADE.rarity.mult[offer.rarity] };
-      if (!p.schools.includes(def.school)) p.schools.push(def.school);
+      p.upgrades[offer.id] = { rank: cur.rank + 1, power: def.legendary ? 1 : cur.power + ARCADE.rarity.mult[offer.rarity] };
+      if (!def.neutral && !p.schools.includes(def.school)) p.schools.push(def.school);
+      if (def.id === "leg_rad_phoenix") p.aegis = true; // Феникс: одно возрождение, как Aegis
     }
     this.pending = null;
     this.recomputeStats();
@@ -1574,6 +1587,12 @@ export class ArcadeSim {
         default: break;
       }
     }
+    // Легендарные (T13.18).
+    if (this.upgradePower("leg_heart") > 0) { s.maxHp *= 1.4; s.regen += 12; }
+    if (this.upgradePower("leg_octarine") > 0) s.cooldown += 0.25;
+    if (this.upgradePower("leg_daedalus") > 0) { s.critChance += 0.25; s.critMult += 0.7; }
+    if (this.upgradePower("leg_satanic") > 0) s.lifesteal += 0.25;
+    if (this.upgradePower("leg_mae_haste") > 0) { attackSpeed += 0.35; moveSpeed += 0.1; }
     if (p.talents.includes("t10_dmg")) s.damage += 20;
     if (p.talents.includes("t10_ms")) s.speed *= 1.08;
     if (p.talents.includes("t15_crit")) s.critChance += 0.15;

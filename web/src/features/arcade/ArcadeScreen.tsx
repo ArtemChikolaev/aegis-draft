@@ -673,6 +673,16 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   }
   const def = UPGRADE_BY_ID[offer.id];
   const rank = (sim?.player.upgrades[offer.id]?.rank ?? 0) + 1;
+  if (def.legendary) {
+    return (
+      <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity="legendary" data-testid={`arcade-offer-${index}`} onClick={onPick}>
+        <span className="arcade-offer__tag"><ItemIcon slug={def.art ?? SCHOOL_ART[def.school]} name={def.id} size="sm" /> {t("arcade.rarity.legendary")}{!def.neutral && <> · {t(`arcade.school.${def.school}` as MessageKey)}</>}</span>
+        <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
+        <small>{t("arcade.offer.legendaryHint")}</small>
+        <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
+      </button>
+    );
+  }
   return (
     <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity={offer.rarity} data-testid={`arcade-offer-${index}`} onClick={onPick}>
       <span className="arcade-offer__tag"><ItemIcon slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</span>
