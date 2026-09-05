@@ -39,6 +39,11 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "beast_bear", school: "beast", type: "attack", maxRank: 3 },
   { id: "beast_pack", school: "beast", type: "power", maxRank: 2, requires: ["beast_wolf"] },
   { id: "beast_roar", school: "beast", type: "passive", maxRank: 3, requires: ["beast_wolf", "beast_bear"] },
+  // Гибриды двух школ (T13.21): открываются, когда обе школы уже в билде — ещё один слой путей.
+  { id: "hyb_steam", school: "radiance", type: "passive", maxRank: 2, requiresSchools: ["radiance", "skadi"] },
+  { id: "hyb_superconductor", school: "skadi", type: "passive", maxRank: 2, requiresSchools: ["skadi", "maelstrom"] },
+  { id: "hyb_plasma", school: "maelstrom", type: "passive", maxRank: 2, requiresSchools: ["radiance", "maelstrom"] },
+  { id: "hyb_wild_hunt", school: "beast", type: "passive", maxRank: 2, requiresSchools: ["beast", "skadi"] },
   // Легендарные (T13.18, владелец: «разбить на тиры, чтобы выпадали мега-сильные пассивки»): один ранг,
   // предлагаются редко (шанс растёт с минутами) и гарантированно на 12/18/24 уровнях. Механика — sim.ts по id.
   { id: "leg_heart", school: "radiance", type: "power", maxRank: 1, legendary: true, neutral: true, art: "heart" },

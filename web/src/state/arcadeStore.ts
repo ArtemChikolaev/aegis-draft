@@ -133,6 +133,9 @@ interface ArcadeStore {
   pause: () => void;
   resume: () => void;
   choose: (index: number) => void;
+  /** Реролл офферов уровня (за золото) и изгнание апгрейда (карта i). */
+  levelReroll: () => void;
+  levelBanish: (index: number) => void;
   /** Действие в Secret Shop (SHOP_ACT): купить слот / реролл / закрыть. */
   shopAct: (act: number) => void;
   /** Забег закончился внутри сима — зафиксировать результат и записать историю. */
@@ -235,6 +238,16 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   choose(index) {
     if (!sim || !sim.pending) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: index, act: 0 });
+    set((s) => ({ serial: s.serial + 1 }));
+  },
+  levelReroll() {
+    if (!sim || !sim.pending) return;
+    sim.step({ mx: 0, my: 0, cast: 0, choose: -2, act: 0 });
+    set((s) => ({ serial: s.serial + 1 }));
+  },
+  levelBanish(index) {
+    if (!sim || !sim.pending) return;
+    sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act: 30 + index });
     set((s) => ({ serial: s.serial + 1 }));
   },
   shopAct(act) {

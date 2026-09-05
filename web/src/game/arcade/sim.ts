@@ -119,6 +119,10 @@ export class ArcadeSim {
   shards: Shard[] = [];
   /** Питомцы школы «Зверинец» — состав синхронизируется с рангами апгрейдов (syncPets). */
   pets: Pet[] = [];
+  /** Прокачка: сколько рероллов сделано (цена растёт), изгнанные апгрейды и остаток изгнаний. */
+  levelRerolls = 0;
+  banished = new Set<string>();
+  banishesLeft = ARCADE.levelup.banishes;
   fx: Fx[] = [];
   pending: Offer[] | null = null;
   over: ArcadeOutcome | null = null;
@@ -205,6 +209,8 @@ export class ArcadeSim {
     this.steps++;
     if (this.pending) {
       if (input.choose >= 0 && input.choose < this.pending.length) this.applyOffer(this.pending[input.choose]);
+      else if (input.choose === -2) this.rerollPending();
+      else if (input.act >= 30 && input.act < 33) this.banishPending(input.act - 30);
       return;
     }
     if (this.shopOpen) {
@@ -781,7 +787,7 @@ export class ArcadeSim {
     const chill = this.upgradePower("ska_bite");
     if (chill > 0) this.applyChill(e, Math.min(0.6, 0.3 + 0.05 * chill), 2.5);
     const chain = this.upgradePower("mae_chain");
-    if (chain > 0 && this.rng.float() < 0.25 + 0.08 * chain) this.chainLightning(e, 20 * chain * this.lightningMult(), 3 + Math.floor(this.upgradePower("mae_mjollnir") * 2) + (this.upgradePower("leg_mae_thunder") > 0 ? 4 : 0));
+    if (chain > 0 && this.rng.float() < 0.25 + 0.08 * chain) this.chainLightning(e, 20 * chain * this.lightningMult(), 3 + Math.floor(this.upgradePower("mae_mjollnir") * 2) + (this.upgradePower("leg_mae_thunder") > 0 ? 4 : 0) + Math.floor(this.upgradePower("hyb_superconductor") * 2));
   }
 
   private chainLightning(from: Enemy, dmg: number, targets: number): void {
@@ -914,6 +920,13 @@ export class ArcadeSim {
       else if (this.tick < e.chillUntil) dmg *= 1 + 0.1 * shatter;
     }
     if (this.tick < e.freezeUntil && this.upgradePower("leg_ska_glacier") > 0) dmg *= 2; // Ледник: вмороженные получают двойной урон
+    // Гибриды школ: Пар — горящий и охлаждённый; Сверхпроводник — молния по вмороженному; Плазма — молния поджигает.
+    const steam = this.upgradePower("hyb_steam");
+    if (steam > 0 && this.tick < e.burnUntil && this.tick < e.chillUntil) dmg *= 1 + 0.25 * steam;
+    const cond = this.upgradePower("hyb_superconductor");
+    if (cond > 0 && fx === "zap" && this.tick < e.freezeUntil) dmg *= 1 + 0.35 * cond;
+    const plasma = this.upgradePower("hyb_plasma");
+    if (plasma > 0 && fx === "zap" && this.tick >= e.burnUntil) this.applyBurn(e, 5 * plasma, 2);
     e.hp -= dmg;
     e.hitAt = this.tick;
     if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect));
@@ -1433,7 +1446,9 @@ export class ArcadeSim {
       if (target && pet.cd === 0 && len(target.x - pet.x, target.y - pet.y) <= def.reach + target.kind.r) {
         pet.cd = sec(def.every);
         pet.hitAt = this.tick;
-        const dmg = def.dmg * rank * this.petPower();
+        let dmg = def.dmg * rank * this.petPower();
+        const hunt = this.upgradePower("hyb_wild_hunt");
+        if (hunt > 0 && (this.tick < target.chillUntil || this.tick < target.stunUntil)) dmg *= 1 + 0.3 * hunt; // Дикая охота
         this.damageEnemy(target, dmg, "hit");
         if (def.slow) this.applyChill(target, def.slow, 1, false);
         if (def.stun && !target.kind.unstoppable && this.rng.float() < def.stun) target.stunUntil = Math.max(target.stunUntil, this.tick + sec(0.3));
@@ -1644,11 +1659,36 @@ export class ArcadeSim {
     return offers;
   }
 
+  levelRerollPrice(): number {
+    return ARCADE.levelup.rerollBase + ARCADE.levelup.rerollStep * this.levelRerolls;
+  }
+
+  /** Реролл офферов уровня за золото: тот же генератор, новые карты. */
+  private rerollPending(): void {
+    const p = this.player;
+    const price = this.levelRerollPrice();
+    if (!this.pending || p.gold < price) return;
+    p.gold -= price;
+    this.levelRerolls++;
+    this.pending = this.rollOffers();
+  }
+
+  /** Изгнание: апгрейд уходит из пула до конца забега, карта заменяется новой; способности изгнать нельзя. */
+  private banishPending(index: number): void {
+    const offer = this.pending?.[index];
+    if (!offer || !this.pending || offer.kind !== "upgrade" || this.banishesLeft <= 0) return;
+    this.banished.add(offer.id);
+    this.banishesLeft--;
+    const rest = this.pending.filter((_, i) => i !== index);
+    const fresh = this.rollUpgradeOffer(rest.map((o) => (o.kind === "upgrade" ? o.id : "")));
+    this.pending = fresh ? [...rest.slice(0, index), fresh, ...rest.slice(index)] : rest;
+  }
+
   private rollUpgradeOffer(exclude: string[]): Offer | null {
     const p = this.player;
     const schools: readonly SchoolId[] = p.schools.length >= 3 ? p.schools : SCHOOLS;
     const owned = (id: string) => (p.upgrades[id]?.rank ?? 0) > 0;
-    const candidates = UPGRADES.filter((u) => !u.legendary && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < u.maxRank && (!u.requires || u.requires.some(owned)));
+    const candidates = UPGRADES.filter((u) => !u.legendary && !this.banished.has(u.id) && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < u.maxRank && (!u.requires || u.requires.some(owned)) && (!u.requiresSchools || u.requiresSchools.every((sc) => p.schools.includes(sc))));
     if (candidates.length === 0) return null;
     const def = candidates[this.rng.int(candidates.length)];
     return { kind: "upgrade", id: def.id, rarity: this.rollRarity() };

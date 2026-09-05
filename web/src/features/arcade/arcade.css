@@ -191,3 +191,8 @@
 .arcade-stats li { padding: 2px 8px; border-radius: 999px; background: var(--surface-soft, var(--surface)); font-size: 12px; font-weight: 600; }
 .arcade-stats li[data-extra] { background: color-mix(in srgb, var(--rarity-arcana, var(--gold)) 18%, var(--surface)); color: var(--text); }
 .arcade-offer__more { color: var(--muted); font-size: 11px; }
+
+/* Реролл/изгнание на экране прокачки (DMD: reroll + banish) */
+.arcade-offer-wrap { display: grid; gap: 6px; align-content: start; }
+.arcade-offer__banish { justify-self: center; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; }
+.arcade-offer__banish:hover { color: var(--text); border-color: var(--text); }

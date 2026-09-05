@@ -249,6 +249,8 @@ function ArcadeStage() {
   const pause = useArcade((s) => s.pause);
   const resume = useArcade((s) => s.resume);
   const choose = useArcade((s) => s.choose);
+  const levelReroll = useArcade((s) => s.levelReroll);
+  const levelBanish = useArcade((s) => s.levelBanish);
   const shopAct = useArcade((s) => s.shopAct);
   const finish = useArcade((s) => s.finish);
   const quit = useArcade((s) => s.quit);
@@ -593,8 +595,16 @@ function ArcadeStage() {
               <p className="arcade-shop__hint">{t("arcade.pickHint")}</p>
               <div className="arcade-offers">
                 {sim.pending.map((offer, i) => (
-                  <OfferCard key={i} offer={offer} index={i} onPick={() => choose(i)} />
+                  <div key={i} className="arcade-offer-wrap">
+                    <OfferCard offer={offer} index={i} onPick={() => choose(i)} />
+                    {offer.kind === "upgrade" && sim.banishesLeft > 0 && !UPGRADE_BY_ID[offer.id]?.legendary && (
+                      <button type="button" className="arcade-offer__banish" data-testid={`arcade-banish-${i}`} onClick={() => levelBanish(i)}>{t("arcade.levelup.banish", { n: sim.banishesLeft })}</button>
+                    )}
+                  </div>
                 ))}
+              </div>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                <Button variant="secondary" data-testid="arcade-levelup-reroll" disabled={sim.player.gold < sim.levelRerollPrice()} onClick={() => levelReroll()}>{t("arcade.levelup.reroll", { gold: sim.levelRerollPrice() })}</Button>
               </div>
             </div>
           </div>
@@ -765,7 +775,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   }
   return (
     <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity={offer.rarity} data-testid={`arcade-offer-${index}`} onClick={onPick}>
-      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</span>
+      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {def.requiresSchools ? t("arcade.offer.hybrid", { a: t(`arcade.school.${def.requiresSchools[0]}` as MessageKey), b: t(`arcade.school.${def.requiresSchools[1]}` as MessageKey) }) : <>{t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</>}</span>
       <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)} · {t("arcade.offer.rank", { rank, max: def.maxRank })}</small>
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
