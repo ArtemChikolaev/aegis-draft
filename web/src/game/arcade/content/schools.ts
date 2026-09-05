@@ -6,10 +6,11 @@ import type { SchoolId, UpgradeDef } from "../types.ts";
 export const SCHOOLS: readonly SchoolId[] = ["radiance", "skadi", "maelstrom"];
 
 /** Иконка школы — внутреннее имя предмета Dota (см. ui/artSource itemArtSources). */
+/** Иконки — настоящие предметы-тёзки школ (Eye of Skadi, Maelstrom); зеркалятся `npm run gen:art`. */
 export const SCHOOL_ART: Record<SchoolId, string> = {
   radiance: "radiance",
-  skadi: "heart",
-  maelstrom: "octarine_core",
+  skadi: "skadi",
+  maelstrom: "maelstrom",
 };
 
 export const UPGRADES: readonly UpgradeDef[] = [

@@ -5,6 +5,7 @@ import type { ArcadeItemDef } from "./items.ts";
 
 export interface NeutralDef {
   id: string;
+  /** Внутреннее имя предмета Dota = id (иконка в `art/items`). */
   tier: 1 | 2 | 3 | 4 | 5;
   effect: ArcadeItemDef["effect"];
 }

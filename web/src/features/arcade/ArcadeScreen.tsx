@@ -452,6 +452,7 @@ function ArcadeStage() {
             <div className="arcade-levelup">
               <Eyebrow>{t("arcade.levelUp", { n: sim.player.level })}</Eyebrow>
               <h2>{t("arcade.pick")}</h2>
+              <p className="arcade-shop__hint">{t("arcade.pickHint")}</p>
               <div className="arcade-offers">
                 {sim.pending.map((offer, i) => (
                   <OfferCard key={i} offer={offer} index={i} onPick={() => choose(i)} />
