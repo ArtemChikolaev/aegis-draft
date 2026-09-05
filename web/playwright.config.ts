@@ -16,6 +16,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
+  // CI: без потолка зависший прогон висел часами (2026-09-06, job «Browser smoke» > 6 ч) — режем в 35 мин, обычный прогон ≈ 19.
+  globalTimeout: process.env.CI ? 35 * 60_000 : undefined,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? "github" : "list",
   use: {

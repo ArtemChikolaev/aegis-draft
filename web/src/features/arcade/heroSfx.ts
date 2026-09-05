@@ -41,6 +41,7 @@ const IMPACT: Record<string, "blade" | "heavy" | "blunt" | "light" | "none"> = {
   crystal_maiden: "none", sniper: "none", lich: "none", lion: "none", pugna: "none", drow_ranger: "none", lina: "none",
   zeus: "light", windranger: "light", storm_spirit: "light", leshrac: "light", shadow_fiend: "light", invoker: "light", mirana: "light", clinkz: "light",
   wraith_king: "heavy", dragon_knight: "heavy", kunkka: "blade", necrophos: "light", razor: "light", venomancer: "light", witch_doctor: "light", luna: "light",
+  earthshaker: "heavy", bloodseeker: "blade", riki: "blade", queen_of_pain: "light", viper: "light", ogre_magi: "blunt", huskar: "light", slardar: "blunt",
 };
 
 /** Удар героя: true — сыграли сэмпл Dota (или он на подходе), false — клипов нет, играй синтетику. Не чаще раза в 45 мс. */
@@ -48,12 +49,18 @@ export function heroHitSfx(hero: string, crit: boolean, now: number): boolean {
   loadIndex();
   const e = index?.[hero];
   const pool = e?.attack?.length ? e.attack : e?.impact?.length ? e.impact : null;
-  if (!pool) return false;
+  const layer = IMPACT[hero] ?? "none";
+  // У части героев в vpk нет свиста удара (Slardar, Ogre Magi): играем хотя бы слой попадания из Dota, а не синтетику.
+  if (!pool && layer === "none") return false;
   if (now - lastHit < 45) return true;
   lastHit = now;
+  if (!pool) {
+    hitIndex = (hitIndex + 1) % 3;
+    sfxSample(`${ROOT}shared/${layer}_${1 + hitIndex}.m4a`, crit ? 0.6 : 0.45, crit ? 0.9 : 0.97 + hitIndex * 0.03);
+    return true;
+  }
   hitIndex = (hitIndex + 1) % pool.length;
   sfxSample(url(hero, pool[hitIndex]), crit ? 0.7 : 0.55, crit ? 0.92 : 0.97 + (hitIndex % 3) * 0.03);
-  const layer = IMPACT[hero] ?? "none";
   if (layer !== "none") sfxSample(`${ROOT}shared/${layer}_${1 + (hitIndex % 3)}.m4a`, crit ? 0.5 : 0.35, crit ? 0.9 : 1, 0.03);
   else if (e?.impact?.length && pool !== e.impact) sfxSample(url(hero, e.impact[hitIndex % e.impact.length]), 0.4, 1, 0.05);
   return true;

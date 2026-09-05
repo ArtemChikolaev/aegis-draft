@@ -179,6 +179,7 @@ export const HERO_TINT: Record<string, string> = {
   bristleback: "#c47a3a", sven: "#3a6ac4", storm_spirit: "#5ab8ff", leshrac: "#5bd0c8", faceless_void: "#7a5ccf", ursa: "#b86a3a",
   lion: "#c04a8a", shadow_fiend: "#c0402a", pugna: "#6ad0a0", invoker: "#c9a84a", tidehunter: "#3aa27a", mirana: "#c8c0ff", clinkz: "#ff9a3a",
   wraith_king: "#7ad8a0", dragon_knight: "#d8552a", kunkka: "#3a9ad8", necrophos: "#7ae08a", razor: "#7ab8ff", venomancer: "#8ad83a", witch_doctor: "#d8a03a", luna: "#8ab0ff",
+  earthshaker: "#c89a4a", bloodseeker: "#d83a3a", riki: "#8a5cd8", queen_of_pain: "#d85ab0", viper: "#7ad84a", ogre_magi: "#e08a3a", huskar: "#ff7a2a", slardar: "#3ab0c8",
 };
 
 /** Внешний вид героя по киту и цвету оттенка (свой у каждого героя). */

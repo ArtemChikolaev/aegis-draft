@@ -127,6 +127,14 @@ export interface Enemy {
   slamX: number;
   slamY: number;
   slamCd: number;
+  /** Rupture (Bloodseeker): до какого тика и сколько урона за 100 px пройденного пути; lastX/lastY — позиция на прошлом тике. */
+  ruptureUntil: number;
+  ruptureDps: number;
+  lastX: number;
+  lastY: number;
+  /** Corrosive Haze (Slardar): до какого тика цель получает на ampMult больше урона. */
+  ampUntil: number;
+  ampMult: number;
 }
 
 export interface Projectile {

@@ -101,3 +101,90 @@ describe("волна 2 героев (2026-09-06): Reincarnation и Vampiric Spir
     expect(sim.player.hp).toBe(100);
   });
 });
+
+describe("волна 3 героев (2026-09-06): Rupture, Corrosive Haze, Berserker's Blood, Aftershock, Multicast, Backstab, Thirst", () => {
+  const warm = (hero: string, seed: string) => {
+    const sim = new ArcadeSim(seed, { hero: hero as never });
+    for (let i = 0; i < 60 * 6 && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(IDLE_INPUT); }
+    return sim;
+  };
+  const cast = (sim: ArcadeSim, key: "q" | "w" | "e" | "r") => (sim as unknown as { castAbility(k: string, ab: unknown): void }).castAbility(key, sim.hero.abilities[key]);
+
+  it("Rupture: помеченный враг теряет HP пропорционально пройденному пути и ничего — стоя на месте", () => {
+    const sim = warm("bloodseeker", "bs-rupture");
+    const e = sim.enemies.find((x) => x.alive)!;
+    e.hp = 1e5; e.maxHp = 1e5;
+    e.ruptureUntil = sim.tick + 600; e.ruptureDps = 50; e.lastX = e.x; e.lastY = e.y;
+    const hp0 = e.hp;
+    e.x += 100; // шаг на 100 px → 50 урона
+    (sim as unknown as { tickRupture(): void }).tickRupture();
+    expect(hp0 - e.hp).toBeCloseTo(50, 0);
+    const hp1 = e.hp;
+    (sim as unknown as { tickRupture(): void }).tickRupture(); // без движения — без урона
+    expect(e.hp).toBe(hp1);
+  });
+
+  it("Corrosive Haze: цель с меткой получает больше урона на ampMult", () => {
+    const sim = warm("slardar", "sl-haze");
+    const e = sim.enemies.find((x) => x.alive)!;
+    e.hp = 1e5; e.maxHp = 1e5;
+    sim.damageEnemy(e, 100, "burst"); const plain = 1e5 - e.hp;
+    e.hp = 1e5; e.ampUntil = sim.tick + 600; e.ampMult = 0.5;
+    sim.damageEnemy(e, 100, "burst"); const amped = 1e5 - e.hp;
+    expect(amped).toBeCloseTo(plain * 1.5, 3);
+  });
+
+  it("Berserker's Blood: при потерянном HP включается frenzy пропорционально потере", () => {
+    const sim = warm("huskar", "hu-blood");
+    const p = sim.player;
+    p.abilities.e = 2; // value 0.5
+    p.hp = p.stats.maxHp * 0.25;
+    (sim as unknown as { heroPassives(): void }).heroPassives();
+    expect(p.frenzyUntil).toBeGreaterThan(sim.tick);
+    expect(p.frenzyMult).toBeCloseTo(0.5 * 0.75, 3);
+  });
+
+  it("Aftershock: каст умения бьёт и оглушает врагов рядом с Earthshaker", () => {
+    const sim = warm("earthshaker", "es-shock");
+    const p = sim.player;
+    const e = sim.enemies.find((x) => x.alive && !x.kind.unstoppable)!;
+    e.x = p.x + 60; e.y = p.y; e.hp = 1e5; e.maxHp = 1e5; e.stunUntil = 0;
+    p.abilities.w = 1; p.cooldowns.w = 0;
+    cast(sim, "w");
+    expect(e.hp).toBeLessThan(1e5);
+    expect(e.stunUntil).toBeGreaterThan(sim.tick);
+  });
+
+  it("Backstab: автоатака Riki по оглушённой цели бьёт сильнее, чем по свободной", () => {
+    const sim = warm("riki", "rk-stab");
+    const e = sim.enemies.find((x) => x.alive)!;
+    e.hp = 1e5; e.maxHp = 1e5; e.stunUntil = 0; e.chillUntil = 0; e.freezeUntil = 0;
+    sim.damageEnemy(e, 100, "hit"); const plain = 1e5 - e.hp;
+    e.hp = 1e5; e.stunUntil = sim.tick + 60;
+    sim.damageEnemy(e, 100, "hit"); const stab = 1e5 - e.hp;
+    expect(stab).toBeCloseTo(plain * 1.8, 3);
+  });
+
+  it("Thirst: враг с малым HP рядом даёт ускорение; Multicast сбрасывает перезарядку до 1 тика при удачном броске", () => {
+    const sim = warm("bloodseeker", "bs-thirst");
+    const p = sim.player;
+    const e = sim.enemies.find((x) => x.alive)!;
+    e.x = p.x + 100; e.y = p.y; e.hp = e.maxHp * 0.1;
+    p.hasteUntil = 0;
+    // heroPassives проверяет жажду раз в 10 тиков — дожимаем до кратного.
+    while (sim.tick % 10 !== 0) sim.step(IDLE_INPUT);
+    (sim as unknown as { heroPassives(): void }).heroPassives();
+    expect(p.hasteUntil).toBeGreaterThan(sim.tick);
+    const og = warm("ogre_magi", "og-multi");
+    og.player.abilities.q = 1;
+    let doubled = 0;
+    for (let i = 0; i < 40; i++) {
+      og.player.cooldowns.q = 0;
+      const t = og.enemies.find((x) => x.alive)!; t.x = og.player.x + 80; t.y = og.player.y; t.hp = 1e5; t.maxHp = 1e5;
+      cast(og, "q");
+      if (og.player.cooldowns.q === 1) doubled++;
+    }
+    expect(doubled).toBeGreaterThan(2);
+    expect(doubled).toBeLessThan(30);
+  });
+});

@@ -326,6 +326,95 @@
     "luna_r_1.m4a"
    ]
   },
+  "earthshaker": {
+   "q": [
+    "earthshaker_q_1.m4a"
+   ],
+   "w": [
+    "earthshaker_w_1.m4a"
+   ],
+   "r": [
+    "earthshaker_r_1.m4a"
+   ]
+  },
+  "bloodseeker": {
+   "q": [
+    "bloodseeker_q_1.m4a"
+   ],
+   "w": [
+    "bloodseeker_w_1.m4a",
+    "bloodseeker_w_2.m4a"
+   ],
+   "r": [
+    "bloodseeker_r_1.m4a"
+   ]
+  },
+  "riki": {
+   "q": [
+    "riki_q_1.m4a"
+   ],
+   "w": [
+    "riki_w_1.m4a"
+   ],
+   "e": [
+    "riki_e_1.m4a"
+   ]
+  },
+  "queen_of_pain": {
+   "q": [
+    "queen_of_pain_q_1.m4a"
+   ],
+   "w": [
+    "queen_of_pain_w_1.m4a"
+   ],
+   "e": [
+    "queen_of_pain_e_1.m4a"
+   ],
+   "r": [
+    "queen_of_pain_r_1.m4a"
+   ]
+  },
+  "viper": {
+   "w": [
+    "viper_w_1.m4a"
+   ],
+   "r": [
+    "viper_r_1.m4a"
+   ]
+  },
+  "ogre_magi": {
+   "q": [
+    "ogre_magi_q_1.m4a"
+   ],
+   "w": [
+    "ogre_magi_w_1.m4a"
+   ],
+   "e": [
+    "ogre_magi_e_1.m4a"
+   ],
+   "r": [
+    "ogre_magi_r_1.m4a"
+   ]
+  },
+  "huskar": {
+   "q": [
+    "huskar_q_1.m4a"
+   ],
+   "r": [
+    "huskar_r_1.m4a"
+   ]
+  },
+  "slardar": {
+   "q": [
+    "slardar_q_1.m4a"
+   ],
+   "w": [
+    "slardar_w_1.m4a"
+   ],
+   "r": [
+    "slardar_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

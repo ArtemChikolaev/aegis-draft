@@ -30,5 +30,13 @@
   "razor": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
   "venomancer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
   "witch_doctor": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "luna": {"impact":["impact_1.m4a"]}
+  "luna": {"impact":["impact_1.m4a"]},
+  "earthshaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "bloodseeker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "riki": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "queen_of_pain": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
+  "viper": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
+  "ogre_magi": {},
+  "huskar": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "slardar": {}
 }

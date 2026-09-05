@@ -46,6 +46,14 @@ razor razor plasma_field static_link storm_surge eye_of_the_storm
 venomancer venomancer venomous_gale poison_sting plague_ward poison_nova
 witch_doctor witch_doctor paralyzing_cask voodoo_restoration maledict death_ward
 luna luna lucent_beam moon_glaive lunar_blessing eclipse
+earthshaker earthshaker fissure enchant_totem aftershock echo_slam
+bloodseeker bloodseeker bloodrage blood_bath thirst rupture
+riki riki smoke_screen blink_strike tricks_of_the_trade backstab
+queen_of_pain queenofpain shadow_strike blink scream_of_pain sonic_wave
+viper viper poison_attack nethertoxin corrosive_skin viper_strike
+ogre_magi ogre_magi fireblast ignite bloodlust multicast
+huskar huskar inner_fire burning_spear berserkers_blood life_break
+slardar slardar sprint slithereen_crush bash amplify_damage
 '
 missing=""
 while read -r id dota q w e r; do

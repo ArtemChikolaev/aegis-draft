@@ -50,7 +50,7 @@ describe("arcade sim", () => {
     const sim = new ArcadeSim("pause-1");
     // Бессмертие: с плотностью a0.4.0 игрок, бегущий по прямой, умирал до первого уровня, и цикл без
     // проверки `over` крутился вечно (2026-09-05).
-    while (!sim.pending && !sim.over && sim.tick < sec(120)) { sim.player.hp = sim.player.stats.maxHp; sim.step({ mx: 16, my: 0, cast: 0, choose: -1, act: 0 }); }
+    for (let g = 0; g < sec(240) && !sim.pending && !sim.over && sim.tick < sec(120); g++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.lootOpen ? { ...IDLE_INPUT, act: 2 } : { mx: 16, my: 0, cast: 0, choose: -1, act: 0 }); }
     expect(sim.pending).not.toBeNull();
     const tick = sim.tick;
     sim.step({ mx: 16, my: 0, cast: 0, choose: -1, act: 0 });
@@ -64,7 +64,7 @@ describe("arcade sim", () => {
   it("Рошан появляется на 7:00 и обычный спавн стоит, пока он жив", () => {
     const sim = new ArcadeSim("rosh-1");
     // Бессмертный игрок ради расписания: чиним HP каждый тик.
-    while (sim.tick < ARCADE.acts.short.roshanAt[0] + sec(5)) {
+    for (let g = 0; g < sec(600) && !sim.over && sim.tick < ARCADE.acts.short.roshanAt[0] + sec(5); g++) {
       sim.player.hp = sim.player.stats.maxHp;
       sim.step(scriptedInput(sim, sim.tick));
     }
@@ -106,7 +106,7 @@ describe("arcade sim", () => {
 
   it("руна щедрости: взял — двойной спавн на 60 с и постоянный стек силы", () => {
     const sim = new ArcadeSim("greed-1");
-    while (!sim.shrine.alive && sim.tick < sec(120)) { sim.player.hp = sim.player.stats.maxHp; sim.step(scriptedInput(sim, sim.tick)); }
+    for (let g = 0; g < sec(240) && !sim.shrine.alive && !sim.over && sim.tick < sec(120); g++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.lootOpen ? { ...IDLE_INPUT, act: 2 } : scriptedInput(sim, sim.tick)); }
     expect(sim.shrine.alive).toBe(true);
     sim.player.x = sim.shrine.x; sim.player.y = sim.shrine.y;
     sim.step(IDLE_INPUT);
@@ -117,7 +117,7 @@ describe("arcade sim", () => {
 
   it("Secret Shop: касание открывает лавку и ставит мир на паузу, покупка списывает золото и меняет статы", () => {
     const sim = new ArcadeSim("shop-1");
-    while (!sim.shopkeeper.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.lootOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
+    for (let g = 0; g < sec(400) && !sim.shopkeeper.alive && !sim.over && sim.tick < sec(200); g++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.lootOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
     expect(sim.shopkeeper.alive).toBe(true);
     sim.player.x = sim.shopkeeper.x; sim.player.y = sim.shopkeeper.y;
     sim.step(IDLE_INPUT);
@@ -180,7 +180,7 @@ describe("arcade sim", () => {
 
   it("нейтральный токен: тир 1 на 2-й минуте, выбор ставит мир на паузу и занимает один слот", () => {
     const sim = new ArcadeSim("neutral-1");
-    while (!sim.neutralToken.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
+    for (let g = 0; g < sec(400) && !sim.neutralToken.alive && !sim.over && sim.tick < sec(200); g++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
     expect(sim.neutralToken.alive).toBe(true);
     expect(sim.neutralToken.value).toBe(1);
     sim.player.x = sim.neutralToken.x; sim.player.y = sim.neutralToken.y;
@@ -213,7 +213,7 @@ describe("arcade sim", () => {
     expect(spawnPool(5, "river").some((k) => k.id === "dark_troll")).toBe(true);
     const sim = new ArcadeSim("river-1", { act: "river" });
     sim.player.x = 300; sim.player.y = 300; // далеко от ямы
-    while (sim.tick < ARCADE.acts.river.roshanAt[0] + sec(10)) { sim.player.hp = 1e6; sim.player.x = 300; sim.player.y = 300; sim.step(scriptedInput(sim, sim.tick)); }
+    for (let g = 0; g < sec(900) && !sim.over && sim.tick < ARCADE.acts.river.roshanAt[0] + sec(10); g++) { sim.player.hp = 1e6; sim.player.x = 300; sim.player.y = 300; sim.step(sim.lootOpen ? { ...IDLE_INPUT, act: 2 } : scriptedInput(sim, sim.tick)); }
     const r = sim.roshan!;
     expect(r.alive).toBe(true);
     expect(Math.hypot(r.x - ARCADE.pit.x, r.y - ARCADE.pit.y)).toBeLessThan(60);

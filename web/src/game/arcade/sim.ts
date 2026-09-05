@@ -235,6 +235,8 @@ export class ArcadeSim {
     this.spawnTick();
     this.rebuildGrid();
     this.moveEnemies();
+    this.tickRupture();
+    this.heroPassives();
     this.tickPets();
     this.playerCombat(input);
     this.schoolEffects();
@@ -345,7 +347,7 @@ export class ArcadeSim {
       // Собственные киты шаблонных героев.
       case "line_burst": case "meteor": case "gust": case "multishot": case "remnant": case "edict":
         return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
-      case "goo": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= A.aoeEnemies;
+      case "goo": case "rupture": case "corrosive": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= A.aoeEnemies;
       case "dash": return (hpPct < 0.4 && near >= 1) || (ab.value.some((v) => v > 0) && (near >= A.aoeEnemies || bossNear));
       case "armor_buff": case "frenzy": case "haste": case "rage": case "death_pact": case "damage_ward":
         return near >= A.aoeEnemies || bossNear || (hpPct < 0.5 && near >= 1);
@@ -594,6 +596,24 @@ export class ArcadeSim {
         this.pushFx("nova", p.x, p.y, radius, 0, 18);
         this.shake = 16;
         break;
+      // ---- волна 3 (2026-09-06) ----
+      case "rupture": {
+        // Bloodseeker: цель кровоточит за каждый пройденный шаг (tickRupture) — в толпе враги бегут к герою и режут себя сами.
+        const target = this.eliteWithin(p.x, p.y, radius) ?? this.strongestWithin(p.x, p.y, radius) ?? this.nearestEnemy(p.x, p.y, radius);
+        if (!target) { cast = false; break; }
+        target.ruptureUntil = this.tick + sec(ab.duration ?? 8); target.ruptureDps = value; target.lastX = target.x; target.lastY = target.y;
+        this.damageEnemy(target, value, "burst");
+        this.pushFx("zap", p.x, p.y, target.x, target.y, 8);
+        break;
+      }
+      case "corrosive": {
+        // Slardar: сильнейшая цель получает на value больше урона от всего (damageEnemy).
+        const target = this.eliteWithin(p.x, p.y, radius) ?? this.strongestWithin(p.x, p.y, radius) ?? this.nearestEnemy(p.x, p.y, radius);
+        if (!target) { cast = false; break; }
+        target.ampUntil = this.tick + sec(ab.duration ?? 10); target.ampMult = value;
+        this.pushFx("zap", p.x, p.y, target.x, target.y, 8);
+        break;
+      }
       default: cast = false;
     }
     if (!cast) return;
@@ -602,9 +622,16 @@ export class ArcadeSim {
     const sig = this.hero.signature;
     if (sig?.kind === "fiery_soul") p.sigUntil = this.tick + sec(sig.duration ?? 6); // Lina: скорость атаки после каста
     if (sig?.kind === "overload") p.sigArmed = true; // Storm: следующий удар бьёт по площади
+    if (sig?.kind === "aftershock") { // Earthshaker: любой каст — толчок земли вокруг
+      const sc = this.sigScale();
+      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 160)) { this.damageEnemy(e, sig.value * sc, "burst"); if (!e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(0.6))); }
+      this.pushFx("nova", p.x, p.y, sig.radius ?? 160, 0, 10);
+    }
     // Culling Blade после добивания уходит на короткую перезарядку (3 с), не на полную и не на ноль.
     if (ab.kind === "culling_blade" && p.cooldowns.r === -1) p.cooldowns.r = sec(1.5);
     else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1));
+    // Multicast (Ogre Magi): с шансом умение срабатывает ещё раз на следующем тике (перезарядка сбрасывается до 1 тика).
+    if (sig?.kind === "multicast" && key !== "r" && ab.cooldown > 0 && this.rng.float() < Math.min(0.6, sig.value * this.sigScale())) { p.cooldowns[key] = 1; this.pushFx("levelup", p.x, p.y, 0, 0, 12); }
     if (key === "q" || key === "r") this.thunderclap();
     this.staticField();
   }
@@ -916,6 +943,10 @@ export class ArcadeSim {
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
     const vamp = this.hero.signature;
     if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
+    // Corrosive Haze (Slardar): помеченная цель получает больше от всего.
+    if (this.tick < e.ampUntil) dmg *= 1 + e.ampMult;
+    // Backstab (Riki): автоатака по оглушённой/замороженной/замедленной цели — «в спину».
+    if (fx === "hit" && vamp?.kind === "backstab" && (this.tick < e.stunUntil || this.tick < e.freezeUntil || this.tick < e.chillUntil)) dmg *= 1 + vamp.value * this.sigScale();
     // Presence of the Dark Lord (SF): враги рядом с героем получают больше урона.
     const pres = this.hero.abilities.e;
     if (pres.kind === "presence" && this.player.abilities.e > 0 && len(e.x - this.player.x, e.y - this.player.y) <= (pres.radius ?? 300)) dmg *= 1 + pres.value[this.player.abilities.e];
@@ -1251,6 +1282,38 @@ export class ArcadeSim {
       const key = cellKey(e.x, e.y);
       const cell = this.grid.get(key);
       if (cell) cell.push(e); else this.grid.set(key, [e]);
+    }
+  }
+
+  /** Rupture: урон за пройденный путь (value за 100 px), пока метка жива. */
+  private tickRupture(): void {
+    for (const e of this.enemies) {
+      if (!e.alive || this.tick >= e.ruptureUntil) continue;
+      const d = len(e.x - e.lastX, e.y - e.lastY);
+      if (d > 0.5 && d < 200) this.damageEnemy(e, e.ruptureDps * d / 100, "burst");
+      e.lastX = e.x; e.lastY = e.y;
+    }
+  }
+
+  /** Потиковые пассивки героя: Berserker's Blood (Huskar) — скорость атаки от потерянного HP через механику frenzy;
+   *  Thirst (Bloodseeker) — ускорение, пока рядом есть враг с малым HP. */
+  private heroPassives(): void {
+    const p = this.player;
+    for (const key of ABILITY_KEYS) {
+      const ab = this.hero.abilities[key];
+      const lvl = p.abilities[key];
+      if (ab.kind === "berserk_blood" && lvl > 0) {
+        const missing = 1 - Math.max(0, Math.min(1, p.hp / p.stats.maxHp));
+        if (missing > 0.05 && this.tick >= p.frenzyUntil - 2) { p.frenzyUntil = this.tick + 2; p.frenzyMult = ab.value[lvl] * missing; }
+      }
+    }
+    const sig = this.hero.signature;
+    if (sig?.kind === "thirst" && this.tick % 10 === 0) {
+      const r = sig.radius ?? 600;
+      for (const e of this.enemies) {
+        if (!e.alive || e.hp > e.maxHp * sig.value * this.sigScale()) continue;
+        if (len(e.x - p.x, e.y - p.y) <= r) { p.hasteUntil = Math.max(p.hasteUntil, this.tick + 12); break; }
+      }
     }
   }
 
@@ -1897,6 +1960,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0,
   };
 }
 

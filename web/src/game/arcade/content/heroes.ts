@@ -12,7 +12,9 @@ export type TemplateHeroId =
   | "bristleback" | "sven" | "storm_spirit" | "leshrac"
   | "faceless_void" | "ursa" | "lion" | "shadow_fiend" | "pugna" | "invoker" | "tidehunter" | "mirana" | "clinkz"
   // Волна 2 (2026-09-06, владелец: «по итогу нужны абсолютно все персонажи»): киты из тех же видов + Reincarnation.
-  | "wraith_king" | "dragon_knight" | "kunkka" | "necrophos" | "razor" | "venomancer" | "witch_doctor" | "luna";
+  | "wraith_king" | "dragon_knight" | "kunkka" | "necrophos" | "razor" | "venomancer" | "witch_doctor" | "luna"
+  // Волна 3: новые виды rupture/corrosive/berserk_blood и пассивки aftershock/multicast/backstab/thirst.
+  | "earthshaker" | "bloodseeker" | "riki" | "queen_of_pain" | "viper" | "ogre_magi" | "huskar" | "slardar";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -20,6 +22,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "phantom_assassin", "anti_mage", "lina", "lich", "drow_ranger", "windranger", "bristleback", "sven", "storm_spirit", "leshrac",
   "faceless_void", "ursa", "lion", "shadow_fiend", "pugna", "invoker", "tidehunter", "mirana", "clinkz",
   "wraith_king", "dragon_knight", "kunkka", "necrophos", "razor", "venomancer", "witch_doctor", "luna",
+  "earthshaker", "bloodseeker", "riki", "queen_of_pain", "viper", "ogre_magi", "huskar", "slardar",
 ];
 
 export type AbilityKind =
@@ -32,7 +35,7 @@ export type AbilityKind =
   | "dash" | "line_burst" | "meteor" | "armor_buff" | "rage" | "frenzy" | "haste" | "damage_ward" | "life_drain"
   | "gust" | "multishot" | "remnant" | "mass_freeze" | "requiem" | "goo" | "ravage" | "edict" | "death_pact"
   | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup" | "mana_void"
-  | "reincarnation";
+  | "reincarnation" | "rupture" | "corrosive" | "berserk_blood";
 
 export interface AbilityDef {
   kind: AbilityKind;
@@ -47,7 +50,8 @@ export interface AbilityDef {
 }
 
 /** Фирменная пассивка героя поверх кита архетипа (BACKLOG T13.15): то, что делает Shadow Fiend Shadow Fiend'ом. */
-export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathpact" | "fiery_soul" | "overload" | "marksmanship" | "quill" | "blur" | "vampiric";
+export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathpact" | "fiery_soul" | "overload" | "marksmanship" | "quill" | "blur" | "vampiric"
+  | "aftershock" | "multicast" | "backstab" | "thirst";
 export interface SignatureDef { kind: SignatureKind; value: number; cap?: number; radius?: number; duration?: number }
 
 export interface HeroDef {
@@ -263,8 +267,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "meteor", value: [0, 120, 180, 240, 300], cooldown: 12, radius: 130, count: [0, 1, 1, 1, 1], duration: 1.6 }, // Torrent
     w: SIG,                                                                                              // Tidebringer
     e: { kind: "dash", value: [0, 50, 75, 100, 125], cooldown: 12, radius: 240 },                         // X Marks the Spot
-    r: { kind: "line_burst", value: [0, 300, 450, 600], cooldown: 60, radius: 120, count: [0, 5, 5, 5], duration: 1.4 }, // Ghostship
-  }, { kind: "cleave", value: 0.7, radius: 110 }),
+    r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 120, count: [0, 5, 5, 5], duration: 1.4 }, // Ghostship
+  }, { kind: "cleave", value: 0.45, radius: 100 }),
   necrophos: hero("necrophos", 36, "necrolyte", true, { maxHp: 560, armor: 2, regen: 4, damage: 21, speed: 158 }, {
     q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 7, radius: 300, duration: 1.5 },          // Death Pulse
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 18, duration: 5 },                        // Ghost Shroud
@@ -278,16 +282,16 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "edict", value: [0, 60, 90, 120], cooldown: 50, duration: 12, radius: 320 },              // Eye of the Storm
   }),
   venomancer: hero("venomancer", 40, "venomancer", true, { maxHp: 520, armor: 2, damage: 20, speed: 160 }, {
-    q: { kind: "line_burst", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 60, count: [0, 4, 4, 4, 4] }, // Venomous Gale
+    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4] }, // Venomous Gale
     w: { kind: "searing", value: [0, 8, 12, 16, 20], cooldown: 0, passive: true },                       // Poison Sting
-    e: { kind: "damage_ward", value: [0, 18, 26, 34, 42], cooldown: 12, duration: 10, radius: 300 },     // Plague Ward
+    e: { kind: "damage_ward", value: [0, 24, 34, 44, 54], cooldown: 12, duration: 10, radius: 300 },     // Plague Ward
     r: { kind: "nova", value: [0, 220, 340, 460], cooldown: 55, radius: 380, duration: 3 },              // Poison Nova
   }),
-  witch_doctor: hero("witch_doctor", 30, "witch_doctor", true, { maxHp: 520, armor: 1, damage: 21, speed: 160 }, {
-    q: { kind: "lightning_bolt", value: [0, 70, 105, 140, 175], cooldown: 9, radius: 320, duration: 1.0 }, // Paralyzing Cask
+  witch_doctor: hero("witch_doctor", 30, "witch_doctor", true, { maxHp: 560, armor: 2, damage: 24, speed: 162 }, {
+    q: { kind: "lightning_bolt", value: [0, 90, 135, 180, 225], cooldown: 6, radius: 320, duration: 1.2 }, // Paralyzing Cask
     w: { kind: "ward", value: [0, 12, 18, 24, 30], cooldown: 16, duration: 8 },                           // Voodoo Restoration
-    e: { kind: "goo", value: [0, 60, 95, 130, 165], cooldown: 10, radius: 300, duration: 3 },             // Maledict
-    r: { kind: "damage_ward", value: [0, 60, 90, 120], cooldown: 60, duration: 8, radius: 350 },          // Death Ward
+    e: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 7, radius: 300, duration: 3 },             // Maledict
+    r: { kind: "damage_ward", value: [0, 80, 120, 160], cooldown: 55, duration: 9, radius: 350 },         // Death Ward
   }),
   luna: hero("luna", 48, "luna", true, { maxHp: 520, armor: 2, damage: 23, speed: 174, attackInterval: 0.85 }, {
     q: { kind: "lightning_bolt", value: [0, 80, 125, 170, 215], cooldown: 6, radius: 330, duration: 0.6 }, // Lucent Beam
@@ -295,6 +299,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "armor_passive", value: [0, 2, 3, 4, 5], cooldown: 0, passive: true },                    // Lunar Blessing
     r: { kind: "thundergod", value: [0, 120, 180, 240], cooldown: 60, radius: 420, count: [0, 6, 8, 10] }, // Eclipse
   }),
+  // ---- Волна 3 ----
+  earthshaker: hero("earthshaker", 7, "earthshaker", false, { maxHp: 700, armor: 4, damage: 26, regen: 2, speed: 160 }, {
+    q: { kind: "line_burst", value: [0, 110, 160, 210, 260], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], duration: 1.2 }, // Fissure
+    w: { kind: "rage", value: [0, 0.8, 1.2, 1.6, 2.0], cooldown: 12, duration: 3 },                       // Enchant Totem
+    e: SIG,                                                                                              // Aftershock
+    r: { kind: "ravage", value: [0, 260, 390, 520], cooldown: 60, radius: 360, duration: 1.4 },          // Echo Slam
+  }, { kind: "aftershock", value: 40, radius: 160 }),
+  bloodseeker: hero("bloodseeker", 4, "bloodseeker", false, { maxHp: 720, armor: 4, damage: 28, speed: 182, attackInterval: 0.85, regen: 3 }, {
+    q: { kind: "frenzy", value: [0, 0.25, 0.32, 0.39, 0.46], cooldown: 10, duration: 6 },                // Bloodrage
+    w: { kind: "meteor", value: [0, 130, 190, 250, 310], cooldown: 10, radius: 150, count: [0, 1, 1, 1, 1], duration: 1.5 }, // Blood Rite
+    e: SIG,                                                                                              // Thirst
+    r: { kind: "rupture", value: [0, 40, 60, 80], cooldown: 45, radius: 340, duration: 9 },              // Rupture
+  }, { kind: "thirst", value: 0.3, radius: 600 }),
+  riki: hero("riki", 32, "riki", false, { maxHp: 560, armor: 3, damage: 24, speed: 182, attackInterval: 0.8 }, {
+    q: { kind: "nova", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 260, duration: 4 },           // Smoke Screen
+    w: { kind: "dash", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 300 },                          // Blink Strike
+    e: { kind: "spin", value: [0, 70, 100, 130, 160], cooldown: 12, radius: 120, duration: 3 },          // Tricks of the Trade
+    r: SIG,                                                                                              // Cloak and Dagger
+  }, { kind: "backstab", value: 0.8 }),
+  queen_of_pain: hero("queen_of_pain", 39, "queenofpain", true, { maxHp: 580, armor: 3, damage: 25, speed: 178 }, {
+    q: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 7, radius: 320, duration: 3 },             // Shadow Strike
+    w: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 9, radius: 300 },                                // Blink
+    e: { kind: "nova", value: [0, 110, 160, 210, 260], cooldown: 5, radius: 300, duration: 0.8 },         // Scream of Pain
+    r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 110, count: [0, 5, 5, 5] }, // Sonic Wave
+  }),
+  viper: hero("viper", 47, "viper", true, { maxHp: 640, armor: 3, damage: 24, speed: 158, regen: 2 }, {
+    q: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Poison Attack
+    w: { kind: "nova", value: [0, 90, 135, 180, 230], cooldown: 7, radius: 300, duration: 2.5 },          // Nethertoxin
+    e: SIG,                                                                                              // Corrosive Skin
+    r: { kind: "assassinate", value: [0, 380, 600, 820], cooldown: 50, radius: 340 },                    // Viper Strike
+  }, { kind: "quill", value: 18, radius: 140 }),
+  ogre_magi: hero("ogre_magi", 84, "ogre_magi", true, { maxHp: 760, armor: 6, damage: 24, speed: 160, range: 250, regen: 3 }, {
+    q: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 7, radius: 320, duration: 1.4 }, // Fireblast
+    w: { kind: "goo", value: [0, 90, 130, 170, 210], cooldown: 8, radius: 320, duration: 3 },             // Ignite
+    e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 16, duration: 8 },                  // Bloodlust
+    r: SIG,                                                                                              // Multicast
+  }, { kind: "multicast", value: 0.25 }),
+  huskar: hero("huskar", 59, "huskar", true, { maxHp: 700, armor: 2, damage: 24, regen: 4, speed: 164, range: 260 }, {
+    q: { kind: "gust", value: [0, 80, 120, 160, 200], cooldown: 11, radius: 200, duration: 1.5 },        // Inner Fire
+    w: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Burning Spear
+    e: { kind: "berserk_blood", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 0, passive: true },            // Berserker's Blood
+    r: { kind: "dash", value: [0, 280, 420, 560], cooldown: 40, radius: 420 },                           // Life Break
+  }),
+  slardar: hero("slardar", 28, "slardar", false, { maxHp: 720, armor: 5, damage: 26, regen: 2, speed: 162 }, {
+    q: { kind: "haste", value: [0, 0.05, 0.08, 0.11, 0.14], cooldown: 14, duration: 7 },                 // Guardian Sprint
+    w: { kind: "ravage", value: [0, 80, 125, 170, 215], cooldown: 11, radius: 200, duration: 1.2 },      // Slithereen Crush
+    e: SIG,                                                                                              // Bash of the Deep
+    r: { kind: "corrosive", value: [0, 0.3, 0.45, 0.6], cooldown: 30, radius: 340, duration: 10 },       // Corrosive Haze
+  }, { kind: "timelock", value: 0.18, duration: 0.5 }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };

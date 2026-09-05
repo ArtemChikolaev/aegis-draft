@@ -30,7 +30,12 @@ describe("arcade gear", () => {
 
   it("сундук открывает экран добычи (мир стоит), «надеть» меняет статы, «в сумку» кладёт в сумку", () => {
     const sim = new ArcadeSim("chest-1");
-    while (!sim.chest.alive && sim.tick < sec(200)) { sim.player.hp = 1e6; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
+    // Цикл ограничен числом итераций, а не только тиком: экран добычи (lootOpen) и конец забега тик не двигают —
+    // на f2f875d такой `while` завис в CI на 6 часов (2026-09-06). Чужой лут — в сумку, чтобы мир шёл дальше.
+    for (let i = 0; i < sec(200) * 2 && !sim.chest.alive && sim.tick < sec(200) && !sim.over; i++) {
+      sim.player.hp = 1e6;
+      sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.lootOpen ? { ...IDLE_INPUT, act: 2 } : sim.shopOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT);
+    }
     expect(sim.chest.alive).toBe(true);
     sim.player.x = sim.chest.x; sim.player.y = sim.chest.y;
     sim.step(IDLE_INPUT);
