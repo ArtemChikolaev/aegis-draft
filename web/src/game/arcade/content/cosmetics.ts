@@ -36,6 +36,8 @@ export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["frame", "trail", "death
 
 /** Осколки Aegis за дубликат — по редкости. */
 export const DUPLICATE_SHARDS: Record<Rarity, number> = { standard: 5, refined: 12, exotic: 30, arcana: 80 };
+/** Цена конкретного предмета за осколки (трата дублей): ~4–6 дублей своей редкости. */
+export const SHARD_PRICE: Record<Rarity, number> = { standard: 20, refined: 50, exotic: 120, arcana: 320 };
 
 export interface CosmeticDrop {
   id: string;

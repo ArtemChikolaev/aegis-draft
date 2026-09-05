@@ -15,7 +15,7 @@ import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.
 import { IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
-import { COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS, SHARD_PRICE } from "../../game/arcade/content/cosmetics.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -49,6 +49,7 @@ function ArcadeSetup() {
   const setLoadedReplay = useArcade((s) => s.setLoadedReplay);
   const cosmetics = useArcade((s) => s.cosmetics);
   const equip = useArcade((s) => s.equip);
+  const buyCosmetic = useArcade((s) => s.buyCosmetic);
   const [seed, setSeed] = useState("");
   const [replayCode, setReplayCode] = useState("");
   const daily = arcadeDaily();
@@ -99,6 +100,11 @@ function ArcadeSetup() {
                     <button type="button" className="arcade-rank__tier" data-active={!cosmetics.equipped[slot] ? "true" : undefined} onClick={() => equip(slot, null)}>{t("arcade.cosmetics.none")}</button>
                     {options.map((c) => (
                       <button key={c.id} type="button" className="arcade-rank__tier" data-rarity={c.rarity} data-active={cosmetics.equipped[slot] === c.id ? "true" : undefined} data-testid={`arcade-cosmetic-${c.id}`} onClick={() => equip(slot, c.id)}>{t(`arcade.cosmetic.${c.id}` as MessageKey)}</button>
+                    ))}
+                    {COSMETICS.filter((c) => c.slot === slot && !cosmetics.owned.includes(c.id)).map((c) => (
+                      <button key={c.id} type="button" className="arcade-rank__tier arcade-cosmetics__buy" data-rarity={c.rarity} data-testid={`arcade-cosmetic-buy-${c.id}`} disabled={cosmetics.shards < SHARD_PRICE[c.rarity]} title={t("arcade.cosmetics.buyHint")} onClick={() => buyCosmetic(c.id)}>
+                        {t(`arcade.cosmetic.${c.id}` as MessageKey)} · {SHARD_PRICE[c.rarity]}
+                      </button>
                     ))}
                     {options.length === 0 && <em>{t("arcade.cosmetics.locked")}</em>}
                   </div>

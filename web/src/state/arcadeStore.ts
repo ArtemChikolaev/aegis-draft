@@ -10,7 +10,7 @@ import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
-import { COSMETIC_BY_ID, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
+import { COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readCached, writePersisted } from "./persist.ts";
 
@@ -96,6 +96,8 @@ interface ArcadeStore {
   startReplay: (replay: ArcadeReplay) => void;
   setLoadedReplay: (replay: ArcadeReplay | null) => void;
   equip: (slot: CosmeticSlot, id: string | null) => void;
+  /** Купить косметику за осколки Aegis (трата дублей). false — не хватает или уже есть. */
+  buyCosmetic: (id: string) => boolean;
   setRank: (rank: number) => void;
   setHero: (hero: HeroId) => void;
   setAct: (act: ActId) => void;
@@ -139,6 +141,15 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   startReplay(replay) {
     sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act });
     set({ status: "running", seed: replay.seed, rank: replay.rank, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
+  },
+  buyCosmetic(id) {
+    const def = COSMETIC_BY_ID[id];
+    const c = get().cosmetics;
+    if (!def || c.owned.includes(id) || c.shards < SHARD_PRICE[def.rarity]) return false;
+    const cosmetics: CosmeticsState = { ...c, owned: [...c.owned, id], shards: c.shards - SHARD_PRICE[def.rarity] };
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
+    return true;
   },
   equip(slot, id) {
     if (id !== null && (!COSMETIC_BY_ID[id] || COSMETIC_BY_ID[id].slot !== slot || !get().cosmetics.owned.includes(id))) return;

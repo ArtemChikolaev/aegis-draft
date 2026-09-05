@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { arcadeTrophies, bestArcadeEntry, maxUnlockedRank, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
+import { arcadeTrophies, bestArcadeEntry, maxUnlockedRank, useArcade, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
+import { SHARD_PRICE } from "../src/game/arcade/content/cosmetics.ts";
 
 const entry = (over: Partial<ArcadeHistoryEntry>): ArcadeHistoryEntry => ({
   seed: "s", outcome: "dead", seconds: 100, level: 5, kills: 50, gold: 10, schools: [], configVersion: "a", at: 1, hero: "juggernaut", act: "full", rank: 0, ...over,
@@ -28,5 +29,19 @@ describe("arcadeStore: витрина и открытие рангов", () => {
     expect(tr.perHero.zeus).toEqual({ runs: 2, victories: 1, bestSeconds: 1230, bestLevel: 22 });
     expect(tr.perHero.axe?.victories).toBe(1);
     expect(bestArcadeEntry(history)?.rank).toBe(2);
+  });
+
+  it("покупка косметики за осколки: не хватает — отказ, хватает — списание и владение, повторно — отказ", () => {
+    useArcade.setState({ cosmetics: { owned: [], equipped: {}, shards: SHARD_PRICE.refined - 1 } });
+    expect(useArcade.getState().buyCosmetic("frame_silver")).toBe(false);
+    useArcade.setState({ cosmetics: { owned: [], equipped: {}, shards: SHARD_PRICE.refined } });
+    expect(useArcade.getState().buyCosmetic("frame_silver")).toBe(true);
+    expect(useArcade.getState().cosmetics.owned).toEqual(["frame_silver"]);
+    expect(useArcade.getState().cosmetics.shards).toBe(0);
+    expect(useArcade.getState().buyCosmetic("frame_silver")).toBe(false);
+    useArcade.getState().equip("frame", "frame_silver");
+    expect(useArcade.getState().cosmetics.equipped.frame).toBe("frame_silver");
+    useArcade.getState().equip("trail", "trail_ember"); // не куплен — игнор
+    expect(useArcade.getState().cosmetics.equipped.trail).toBeUndefined();
   });
 });

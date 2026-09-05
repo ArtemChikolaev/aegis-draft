@@ -17,6 +17,8 @@
 .arcade-rank__tier[data-rarity="exotic"] { border-color: var(--role-support); }
 .arcade-rank__tier[data-rarity="arcana"] { border-color: var(--gold); }
 .arcade-drops { display: grid; gap: 6px; }
+.arcade-cosmetics__buy { opacity: .75; border-style: dashed; }
+.arcade-cosmetics__buy:disabled { opacity: .35; }
 .arcade-setup__kit { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .arcade-setup__kit li { display: grid; grid-template-columns: 28px 1fr; gap: 2px 10px; align-items: baseline; }
 .arcade-setup__kit b { font: 800 13px var(--font-display); color: var(--accent); }
