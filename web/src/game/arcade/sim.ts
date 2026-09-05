@@ -54,6 +54,9 @@ function rotate(x: number, y: number, c: number, s: number): [number, number] {
 }
 
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
+/** Индекс вида врага для fx смерти (рендер восстанавливает вид по числу). */
+export const KIND_INDEX: Record<string, number> = Object.fromEntries(Object.keys(ENEMY_KINDS).map((id, i) => [id, i]));
+export const KIND_BY_INDEX: readonly string[] = Object.keys(ENEMY_KINDS);
 const R_LEVELS = [6, 12, 18];
 const GRID = 72;
 
@@ -641,7 +644,7 @@ export class ArcadeSim {
     p.kills++;
     this.events.kills++;
     if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
-    this.pushFx("die", e.x, e.y, e.kind.r, 0, e.kind.elite || e.kind.boss ? 22 : 10);
+    this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
     p.gold += e.kind.gold + p.stats.goldPerKill;
     this.dropShard(e.x, e.y, e.kind.xp);
     const blast = this.upgradePower("rad_blast");

@@ -10,6 +10,8 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
+import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, drawCharFrame, drawMonsterFrame, enemyLook, heroLook, spriteVersion, type CharAnim } from "./sprites.ts";
+import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
@@ -129,6 +131,7 @@ export class ArcadeRenderer {
     const key = `${sim.seed}:${sim.act}`;
     if (!this.terrain || this.terrainKey !== key) { this.terrain = new Terrain(sim.seed, sim.act); this.terrainKey = key; }
     const night = sim.night;
+    this.terrain.spriteVersion = spriteVersion();
     this.terrain.draw(c, camX, camY, this.w, this.h, night
       ? { grassA: pal.grassNightA, grassB: pal.grassNightB, dirt: pal.dirtNight, rock: pal.rock, tree: pal.treeNight, treeDark: pal.treeNightDark, tuft: pal.treeNight }
       : { grassA: pal.grassA, grassB: pal.grassB, dirt: pal.dirt, rock: pal.rock, tree: pal.tree, treeDark: pal.treeDark, tuft: pal.tuft });
@@ -255,10 +258,30 @@ export class ArcadeRenderer {
         const total = e.kind.ranged ? sec(e.kind.ranged.every) : sec(ARCADE.player.contactEvery);
         const attackT = cd > 0 && total - cd < total * 0.45 ? (total - cd) / (total * 0.45) : -1;
         const speedK = e.kind.speed / 90;
-        drawRig(c, e.x, e.y + r * 0.6, enemyRig(e.kind.id, tone, pal.limb), {
-          facing, walkPhase: (tick / 60) * 7 * speedK + e.id * 1.7, moving: !frozen && e.kind.speed > 0, attackT,
+        const moving = !frozen && e.kind.speed > 0;
+        const look = enemyLook(e.kind.id);
+        let drawn = false;
+        const dir = dirOf(sim.player.x - e.x, sim.player.y - e.y);
+        if (look.kind === "char") {
+          const anim: CharAnim = attackT >= 0 ? attackAnim(look.spec) : "walk";
+          const sheet = charSheet(e.kind.id, look.spec, anim);
+          if (sheet) {
+            const frame = anim === "walk" ? (moving ? 1 + Math.floor((tick / 60) * 9 * speedK + e.id) % 8 : 0) : Math.floor(attackT * FRAMES[anim]);
+            drawCharFrame(c, sheet, frame, dir, e.x, e.y + r * 0.6, look.spec.scale, flash ? 0.55 : 1);
+            drawn = true;
+          }
+        } else if (look.kind === "monster") {
+          drawn = drawMonsterFrame(c, look.name, moving ? Math.floor((tick / 60) * 6 * speedK + e.id) : 1, dir, e.x, e.y + r * 0.6, flash ? 0.55 : 1);
+        }
+        if (!drawn) drawRig(c, e.x, e.y + r * 0.6, enemyRig(e.kind.id, tone, pal.limb), {
+          facing, walkPhase: (tick / 60) * 7 * speedK + e.id * 1.7, moving, attackT,
           hit: flash, statusTint: tick < e.freezeUntil ? pal.frost : tick < e.burnUntil ? pal.fire : tick < e.chillUntil ? pal.frost : null,
         });
+        // Статус поверх спрайта: лёд/огонь — кольцо у ног (спрайт не перекрашиваем).
+        if (drawn && (tick < e.freezeUntil || tick < e.burnUntil || tick < e.chillUntil)) {
+          c.strokeStyle = tick < e.burnUntil ? pal.fire : pal.frost; c.lineWidth = 2; c.globalAlpha = 0.8;
+          c.beginPath(); c.ellipse(e.x, e.y + r * 0.6, r * 1.1, r * 0.45, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+        }
       }
       if (e.kind.reflect) { c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([4, 4]); c.beginPath(); c.arc(e.x, e.y, r + 8, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
       if (e.kind.elite || e.kind.boss || e.kind.structure) {
@@ -338,8 +361,16 @@ export class ArcadeRenderer {
     this.prevX = p.x; this.prevY = p.y;
     const atkTotal = sec(p.stats.attackInterval);
     const atkT = p.attackCd > 0 && atkTotal - p.attackCd < atkTotal * 0.45 ? (atkTotal - p.attackCd) / (atkTotal * 0.45) : -1;
-    const rig: RigParams = { size: 1.15, body: pal.player, limb: pal.limb, head: pal.player, weapon: heroWeapon(sim.hero.kit) };
-    drawRig(c, p.x, p.y + R * 0.75, rig, { facing: p.facingX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 90) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
+    const look = heroLook(sim.hero.kit, HERO_TINT[sim.hero.id] ?? pal.playerRing);
+    const heroAnim: CharAnim = spinning || atkT >= 0 ? attackAnim(look) : "walk";
+    const heroSheet = charSheet(`hero:${sim.hero.id}`, look, heroAnim);
+    if (heroSheet) {
+      const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 90) % 1 : atkT) * FRAMES[heroAnim]);
+      drawCharFrame(c, heroSheet, frame, dirOf(p.facingX, p.facingY), p.x, p.y + R * 0.75, look.scale);
+    } else {
+      const rig: RigParams = { size: 1.15, body: pal.player, limb: pal.limb, head: pal.player, weapon: heroWeapon(sim.hero.kit) };
+      drawRig(c, p.x, p.y + R * 0.75, rig, { facing: p.facingX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 90) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
+    }
     // Рамка (косметика) — второе кольцо у ног: бронза/серебро одно, золото и immortal — двойное с сиянием.
     const frame = this.cosmetic.frame;
     if (frame) {
@@ -410,9 +441,16 @@ export class ArcadeRenderer {
           c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = death === "nova" ? pal.lightning : pal.text; c.lineWidth = death ? 2 : 1.5;
           const rr = f.x2 + k * f.x2 * (death === "ring" ? 3 : death === "nova" ? 4 : 1.6);
           c.beginPath(); c.arc(f.x, f.y, rr, 0, Math.PI * 2); c.stroke();
-          // Тело оседает: сплющенный силуэт, гаснущий к концу.
-          c.globalAlpha = (1 - k) * 0.6; c.fillStyle = pal.limb;
-          c.beginPath(); c.ellipse(f.x, f.y + f.x2 * 0.5, f.x2 * (1 + k * 0.6), Math.max(1, f.x2 * (0.6 - k * 0.5)), 0, 0, Math.PI * 2); c.fill();
+          // Смерть: у LPC-персонажей — кадры «hurt» (падение), у остальных — оседающий силуэт.
+          const kindId = KIND_BY_INDEX[f.y2];
+          const look = kindId ? enemyLook(kindId) : null;
+          const hurt = look?.kind === "char" ? charSheet(kindId!, look.spec, "hurt") : null;
+          if (hurt && look?.kind === "char") {
+            drawCharFrame(c, hurt, Math.min(5, Math.floor(k * 6)), 2, f.x, f.y + f.x2 * 0.6, look.spec.scale, 1 - k * 0.3);
+          } else {
+            c.globalAlpha = (1 - k) * 0.6; c.fillStyle = pal.limb;
+            c.beginPath(); c.ellipse(f.x, f.y + f.x2 * 0.5, f.x2 * (1 + k * 0.6), Math.max(1, f.x2 * (0.6 - k * 0.5)), 0, 0, Math.PI * 2); c.fill();
+          }
           if (death === "shatter") {
             c.fillStyle = pal.frost;
             for (let i = 0; i < 6; i++) { const a = i * 1.047 + k; c.beginPath(); c.arc(f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr, 2, 0, Math.PI * 2); c.fill(); }

@@ -47,6 +47,7 @@
 .arcade-setup__best { display: grid; gap: 4px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 14px; }
 
 .arcade { padding: 6px 0 20px; }
+.arcade__credits { margin: 8px 0 0; color: var(--muted); font-size: 11px; }
 .arcade__stage { position: relative; width: 100%; height: min(78vh, 760px); min-height: 420px; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); background: var(--arcade-ground); touch-action: none; user-select: none; }
 .arcade__canvas { display: block; width: 100%; height: 100%; }
 /* Juice (T13.10): вспышка по краям при уроне и пульс при низком HP — токенами; keyframes здесь

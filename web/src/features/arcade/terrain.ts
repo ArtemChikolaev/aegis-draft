@@ -6,6 +6,7 @@
 import { Rng } from "../../game/rng.ts";
 import { ARCADE } from "../../game/arcade/config.ts";
 import type { ActId } from "../../game/arcade/types.ts";
+import { tileImage } from "./sprites.ts";
 
 export const CHUNK = 512;
 const TILE = 64;
@@ -30,6 +31,8 @@ export class Terrain {
   private readonly decor: Decor[] = [];
   private cache = new Map<string, HTMLCanvasElement>();
   private paletteKey = "";
+  /** Версия загрузки спрайтов: выросла — тайлы могли подгрузиться, кэш чанков сбрасываем. */
+  spriteVersion = 0;
 
   constructor(seed: string, readonly act: ActId) {
     this.rng = new Rng(`terrain:${seed}:${act}`);
@@ -44,10 +47,10 @@ export class Terrain {
     const { rng, cols, rows, tiles } = this;
     for (let i = 0; i < tiles.length; i++) tiles[i] = rng.float() < 0.3 ? 1 : 0;
     // Тропы: несколько случайных блужданий шириной 1–2 тайла.
-    for (let p = 0; p < 6; p++) {
+    for (let p = 0; p < 4; p++) {
       let x = rng.int(cols), y = rng.int(rows);
       let dx = rng.float() < 0.5 ? 1 : -1, dy = rng.float() < 0.5 ? 1 : -1;
-      for (let step = 0; step < 90; step++) {
+      for (let step = 0; step < 70; step++) {
         tiles[y * cols + x] = 2;
         if (rng.float() < 0.5 && x + dx >= 0 && x + dx < cols) x += dx; else if (y + dy >= 0 && y + dy < rows) y += dy;
         if (rng.float() < 0.08) dx = -dx;
@@ -55,8 +58,8 @@ export class Terrain {
       }
     }
     // Поляны земли — блобы.
-    for (let b = 0; b < 14; b++) {
-      const cx = rng.int(cols), cy = rng.int(rows), r = 2 + rng.int(3);
+    for (let b = 0; b < 8; b++) {
+      const cx = rng.int(cols), cy = rng.int(rows), r = 1 + rng.int(2);
       for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
         if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
         if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r && rng.float() < 0.85) tiles[y * cols + x] = 2;
@@ -86,7 +89,7 @@ export class Terrain {
 
   /** Нарисовать видимую область. Смена палитры (тема/акт) сбрасывает кэш чанков. */
   draw(c: CanvasRenderingContext2D, camX: number, camY: number, w: number, h: number, pal: TerrainPalette): void {
-    const key = Object.values(pal).join("|");
+    const key = Object.values(pal).join("|") + `#${this.spriteVersion}`;
     if (key !== this.paletteKey) { this.cache.clear(); this.paletteKey = key; }
     const cx0 = Math.floor(camX / CHUNK), cy0 = Math.floor(camY / CHUNK);
     const cx1 = Math.floor((camX + w) / CHUNK), cy1 = Math.floor((camY + h) / CHUNK);
@@ -110,20 +113,65 @@ export class Terrain {
     return canvas;
   }
 
+  private tileAt(gx: number, gy: number): number {
+    if (gx < 0 || gy < 0 || gx >= this.cols || gy >= this.rows) return 0;
+    return this.tiles[gy * this.cols + gx];
+  }
+
   private paintChunk(c: CanvasRenderingContext2D, ox: number, oy: number, pal: TerrainPalette): void {
     const t0x = Math.floor(ox / TILE), t0y = Math.floor(oy / TILE);
     const n = CHUNK / TILE;
+    const grass = tileImage("grass"), dirt = tileImage("dirt"), water = tileImage("water");
+    const treetop = tileImage("treetop"), rock = tileImage("rock");
+    c.imageSmoothingEnabled = false;
+    const night = this.act === "dire";
     for (let ty = 0; ty < n; ty++) for (let tx = 0; tx < n; tx++) {
       const gx = t0x + tx, gy = t0y + ty;
-      const v = gx < this.cols && gy < this.rows ? this.tiles[gy * this.cols + gx] : 0;
-      c.fillStyle = v === 2 ? pal.dirt : v === 1 ? pal.grassB : pal.grassA;
-      c.fillRect(tx * TILE, ty * TILE, TILE, TILE);
-      // Мягкие края тропы: полупрозрачная кромка травы поверх земли.
-      if (v === 2) {
-        c.globalAlpha = 0.35; c.fillStyle = pal.grassA;
-        c.fillRect(tx * TILE, ty * TILE, TILE, 3); c.fillRect(tx * TILE, ty * TILE, 3, TILE);
-        c.globalAlpha = 1;
+      const v = this.tileAt(gx, gy);
+      const px = tx * TILE, py = ty * TILE;
+      const wy = gy * TILE + TILE / 2;
+      const inRiver = this.act === "river" && Math.abs(wy - ARCADE.river.y) < ARCADE.river.halfWidth;
+      if (grass && dirt) {
+        // LPC-автотайл 3×6 (32 px): центр (32,96), кромки вокруг; варианты травы — нижний ряд.
+        const h = ((gx * 73856093) ^ (gy * 19349663)) >>> 0;
+        if (inRiver && water) c.drawImage(water, 32, 96, 32, 32, px, py, TILE, TILE);
+        else if (v === 2) {
+          const up = this.tileAt(gx, gy - 1) === 2, down = this.tileAt(gx, gy + 1) === 2, left = this.tileAt(gx - 1, gy) === 2, right = this.tileAt(gx + 1, gy) === 2;
+          c.drawImage(grass, 32, 96, 32, 32, px, py, TILE, TILE);
+          const sx = !left ? 0 : !right ? 64 : 32, sy = !up ? 64 : !down ? 128 : 96;
+          c.drawImage(dirt, sx, sy, 32, 32, px, py, TILE, TILE);
+        } else {
+          const variant = h % 7 === 0 ? (h >> 3) % 3 : -1;
+          if (variant >= 0) c.drawImage(grass, variant * 32, 160, 32, 32, px, py, TILE, TILE);
+          else c.drawImage(grass, 32, 96, 32, 32, px, py, TILE, TILE);
+        }
+        if (night) { c.fillStyle = pal.grassA; c.globalAlpha = 0.6; c.fillRect(px, py, TILE, TILE); c.globalAlpha = 1; }
+      } else {
+        c.fillStyle = v === 2 ? pal.dirt : v === 1 ? pal.grassB : pal.grassA;
+        c.fillRect(px, py, TILE, TILE);
+        if (v === 2) { c.globalAlpha = 0.35; c.fillStyle = pal.grassA; c.fillRect(px, py, TILE, 3); c.fillRect(px, py, 3, TILE); c.globalAlpha = 1; }
       }
+    }
+    if (grass && treetop && rock) {
+      const x1 = ox + CHUNK + 80, y1 = oy + CHUNK + 80;
+      for (const d of this.decor) {
+        if (d.x < ox - 80 || d.y < oy - 80 || d.x > x1 || d.y > y1) continue;
+        const x = d.x - ox, y = d.y - oy;
+        if (d.kind === "tree") {
+          const sz = d.s * 2.6;
+          const pine = (Math.floor(d.x * 7 + d.y * 3) & 1) === 1;
+          c.globalAlpha = 0.3; c.fillStyle = pal.treeDark; c.beginPath(); c.ellipse(x + 4, y + sz * 0.12, sz * 0.42, sz * 0.18, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
+          if (pine) c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 96, 96, 128, x - sz / 2, y - sz * 1.1, sz, sz * 1.33);
+          else c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 0, 96, 96, x - sz / 2, y - sz * 0.85, sz, sz);
+          if (night) { c.fillStyle = pal.treeDark; c.globalAlpha = 0.45; c.beginPath(); c.arc(x, y - sz * 0.35, sz * 0.5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
+        } else if (d.kind === "rock") {
+          const sz = d.s * 3;
+          c.drawImage(rock, (Math.floor(d.x) & 1) * 32, 0, 32, 32, x - sz / 2, y - sz / 2, sz, sz);
+        } else if (d.kind === "flower") {
+          c.fillStyle = pal.tuft; c.beginPath(); c.arc(x, y, 1.8, 0, Math.PI * 2); c.fill();
+        }
+      }
+      return;
     }
     const x1 = ox + CHUNK + 40, y1 = oy + CHUNK + 40;
     for (const d of this.decor) {

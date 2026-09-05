@@ -349,6 +349,7 @@ function ArcadeStage() {
             )}
             </div>
             <div className="arcade-hud__bottom">
+              <HeroThumb picture={hero.picture || heroDef.picture} name={hero.name} size="md" showName={false} />
               <div className="arcade-hud__bars">
                 <div className="arcade-bar arcade-bar--hp" title="HP"><i style={{ width: `${Math.max(0, p.hp / p.stats.maxHp) * 100}%` }} /><span>{Math.ceil(p.hp)} / {p.stats.maxHp}</span></div>
                 <div className="arcade-bar arcade-bar--xp"><i style={{ width: `${Math.min(1, p.xp / p.xpNext) * 100}%` }} /><span>{t("arcade.hud.level")} {p.level}</span></div>
@@ -512,6 +513,7 @@ function ArcadeStage() {
           </div>
         )}
       </div>
+      <p className="arcade__credits">{t("arcade.credits")}</p>
       {confirmQuit && (
         <Modal title={t("arcade.hud.quit")} description={t("arcade.hud.quitConfirm")} onClose={() => setConfirmQuit(false)}>
           {({ close }) => (
