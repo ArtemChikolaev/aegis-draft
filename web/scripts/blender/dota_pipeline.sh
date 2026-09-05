@@ -24,9 +24,9 @@ if [ -z "$MANIFEST" ]; then
   MANIFEST="$(mktemp)"
   cat > "$MANIFEST" <<'TSV'
 # id	vmdl_c	render args
-juggernaut	models/heroes/juggernaut/juggernaut.vmdl_c	--dirs 8 --frame 128 --fps 12 --world 84 --anims walk=run_run,idle=idle,attack=attack,death=death	models/heroes/juggernaut/juggernaut_pants.vmdl_c,models/heroes/juggernaut/jugg_mask.vmdl_c,models/heroes/juggernaut/jugg_sword.vmdl_c,models/heroes/juggernaut/jugg_bracers.vmdl_c,models/heroes/juggernaut/jugg_cape.vmdl_c
-kobold	models/creeps/neutral_creeps/n_creep_kobold/kobold_a/n_creep_kobold_a.vmdl_c	--dirs 4 --frame 96 --fps 10 --world 56 --anims walk=run,idle=idle,attack=attack,death=death
-roshan	models/creeps/roshan/roshan.vmdl_c	--dirs 4 --frame 160 --fps 10 --max-frames 10 --world 180 --anims walk=roshan_run,idle=roshan_idle,attack=roshan_attack,death=roshan_die
+juggernaut	models/heroes/juggernaut/juggernaut.vmdl_c	--dirs 8 --frame 128 --fps 12 --max-frames 12 --world 84 --anims walk=run_run,idle=idle,attack=attack@0.12-0.7,death=death	models/heroes/juggernaut/juggernaut_pants.vmdl_c,models/heroes/juggernaut/jugg_mask.vmdl_c,models/heroes/juggernaut/jugg_sword.vmdl_c,models/heroes/juggernaut/jugg_bracers.vmdl_c,models/heroes/juggernaut/jugg_cape.vmdl_c
+kobold	models/creeps/neutral_creeps/n_creep_kobold/kobold_a/n_creep_kobold_a.vmdl_c	--dirs 4 --frame 96 --fps 10 --world 56 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+roshan	models/creeps/roshan/roshan.vmdl_c	--dirs 4 --frame 160 --fps 10 --max-frames 10 --world 180 --anims walk=roshan_run,idle=roshan_idle,attack=roshan_attack@0.1-0.75,death=roshan_die
 TSV
 fi
 mkdir -p "$OUT" "$SPRITES"
@@ -42,15 +42,20 @@ while IFS=$'\t' read -r id vmdl args parts; do
     IFS=',' read -ra PLIST <<< "$parts"
     for pv in "${PLIST[@]}"; do
       pn="$(basename "$pv" .vmdl_c)"; mkdir -p "$OUT/$id/parts/$pn"
-      "$S2V" -i "$VPK" -f "$pv" -o "$OUT/$id/parts/$pn/" -d --gltf_export_format glb --gltf_export_materials --gltf_textures_adapt >/dev/null 2>&1 || true
+      # --gltf_export_animations обязателен и для частей: без него CLI не пишет скин (скелет + веса),
+      # и часть застывает в bind-позе рядом с анимированным телом («два персонажа»).
+      "$S2V" -i "$VPK" -f "$pv" -o "$OUT/$id/parts/$pn/" -d --gltf_export_format glb --gltf_export_animations --gltf_export_materials --gltf_textures_adapt >/dev/null 2>&1 || true
       pg="$(find "$OUT/$id/parts/$pn" -name '*.glb' ! -name '*_physics.glb' | head -1)"
       [ -n "$pg" ] && PARTS="${PARTS:+$PARTS,}$pg"
     done
   fi
   [ -n "$GLB" ] || { echo "   glb не найден для $id — проверь путь vmdl_c (список: $S2V -i \"$VPK\" -l -f $(dirname "$vmdl")/)"; continue; }
   # shellcheck disable=SC2086
-  "$BLENDER" -b -P "$HERE/render_dota_sprites.py" -- --glb "$GLB" --name "$id" --out "$SPRITES" $args ${PARTS:+--parts "$PARTS"} 2>&1 | grep -E 'actions in file|attached|orientation|sheet |Error|Traceback' || true
+  "$BLENDER" -b -P "$HERE/render_dota_sprites.py" -- --glb "$GLB" --name "$id" --out "$SPRITES" $args ${PARTS:+--parts "$PARTS"} 2>&1 | grep -E 'actions in file|attached|orientation|sheet |WARN|Error|Traceback' || true
+  # Палитра 256 цветов (pngquant, brew install pngquant): лист худеет в 4–5 раз без видимой потери на 128 px.
+  if command -v pngquant >/dev/null 2>&1 && [ -f "$SPRITES/$id.png" ]; then
+    pngquant --quality 75-95 --speed 1 --force --output "$SPRITES/$id.png" 256 "$SPRITES/$id.png" && echo "   pngquant → $(du -h "$SPRITES/$id.png" | cut -f1)"
+  fi
 done < "$MANIFEST"
-echo "== текстуры земли (materials/terrain) → $OUT/terrain (выбрать вручную grass/dirt/water → $SPRITES/terrain/)"
-"$S2V" -i "$VPK" -f materials/terrain/ -e vtex_c -o "$OUT/terrain" -d >/dev/null 2>&1 || echo "   экспорт террейна не удался (не критично)"
+echo "== текстуры земли лежат в maps/<набор>_assets/blends/ (см. docs/arcade-dota-sprites.md §4); уже установлены в $SPRITES/terrain/"
 ls "$SPRITES"

@@ -16,15 +16,15 @@
     },
     "idle": {
       "row": 4,
-      "frames": 10
+      "frames": 16
     },
     "attack": {
       "row": 8,
-      "frames": 8
+      "frames": 5
     },
     "death": {
       "row": 12,
-      "frames": 10
+      "frames": 16
     }
   },
   "source": "n_creep_kobold_a.glb",

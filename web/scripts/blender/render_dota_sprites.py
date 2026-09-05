@@ -167,26 +167,45 @@ def main():
     if not objs:
         raise SystemExit("import failed: no objects")
     main_arms = [o for o in objs if o.type == "ARMATURE"]
-    # Части героя (в Dota штаны/маска/оружие — отдельные модели со скелетом-копией): берём их меши и
-    # переключаем модификатор Armature на скелет основной модели; кости совпадают по именам.
+    def drop_junk(lst):
+        # VRF кладёт в каждый glb служебную «Icosphere» без весов (маркер origin) — в кадре это шар у ног.
+        keep = []
+        for o in lst:
+            if o.type == "MESH" and o.name.startswith("Icosphere") and not o.vertex_groups:
+                bpy.data.objects.remove(o, do_unlink=True)
+            else:
+                keep.append(o)
+        return keep
+    objs = drop_junk(objs)
+    # Части героя (в Dota штаны/маска/оружие — отдельные модели со своим скелетом). Пересаживать их меши
+    # на скелет тела нельзя: у тела кости, к которым не привязан ни один вершинный вес (например sword_1),
+    # экспортируются с вырожденной позой покоя, и меч уезжает от руки. Поэтому часть оставляет свой скелет
+    # и веса, а каждая её кость копирует мировую трансформацию одноимённой кости тела (Copy Transforms):
+    # деформация части = поза тела относительно её собственной корректной позы покоя.
+    main_bones = {b.name.lower(): b.name for b in main_arms[0].data.bones} if main_arms else {}
     for part in [x for x in a.parts.split(",") if x.strip()]:
-        pobjs = import_glb(os.path.abspath(part.strip()))
+        pobjs = drop_junk(import_glb(os.path.abspath(part.strip())))
         part_arms = [o for o in pobjs if o.type == "ARMATURE"]
-        for o in pobjs:
-            if o.type != "MESH":
-                continue
-            if main_arms:
-                o.parent = main_arms[0]
-                o.matrix_parent_inverse = main_arms[0].matrix_world.inverted()
-                for mod in o.modifiers:
-                    if mod.type == "ARMATURE":
-                        mod.object = main_arms[0]
-                if not any(m.type == "ARMATURE" for m in o.modifiers):
-                    o.modifiers.new("Armature", "ARMATURE").object = main_arms[0]
-            objs.append(o)
+        if not part_arms or not main_arms:
+            print(f"WARN: у части {os.path.basename(part)} нет скелета — экспортируй её с --gltf_export_animations, иначе она застынет в bind-позе")
+            objs.extend(o for o in pobjs if o.type == "MESH")
+            continue
+        missing = []
         for pa in part_arms:
-            bpy.data.objects.remove(pa, do_unlink=True)
-        print("attached part:", os.path.basename(part))
+            for pb in pa.pose.bones:
+                target = main_bones.get(pb.name.lower())
+                if not target:
+                    missing.append(pb.name)
+                    continue
+                con = pb.constraints.new("COPY_TRANSFORMS")
+                con.target = main_arms[0]
+                con.subtarget = target
+                con.owner_space = "WORLD"
+                con.target_space = "WORLD"
+        if missing:
+            print(f"WARN: у части {os.path.basename(part)} кости без пары в теле (пойдут за родителем): {missing[:6]}")
+        objs.extend(pobjs)
+        print("attached part:", os.path.basename(part), "bones", sum(len(pa.pose.bones) for pa in part_arms))
     setup_render(a.frame, a.samples)
     rig = Rig(objs)
     armatures = [o for o in objs if o.type == "ARMATURE"]
@@ -196,11 +215,18 @@ def main():
         if "=" not in pair:
             continue
         ours, theirs = [s.strip() for s in pair.split("=", 1)]
+        # «attack=attack@0.15-0.75» — брать только часть клипа (доли длительности): у клипов Dota длинные
+        # замах и возврат, а в игре урон наносится в начале окна анимации — оставляем сам удар.
+        span = (0.0, 1.0)
+        if "@" in theirs:
+            theirs, rng = theirs.split("@", 1)
+            lo, hi = rng.split("-", 1)
+            span = (max(0.0, float(lo)), min(1.0, float(hi)))
         act = pick_action(actions, theirs) if armatures else None
-        anim_map.append((ours, act))
-    found = [(o, a_) for o, a_ in anim_map if a_ is not None]
-    anim_map = found if found else [("idle", None)]
-    print("actions in file:", [a_.name for a_ in actions], "→ rendering:", [(o, a_.name if a_ else None) for o, a_ in anim_map])
+        anim_map.append((ours, act, span))
+    found = [t for t in anim_map if t[1] is not None]
+    anim_map = found if found else [("idle", None, (0.0, 1.0))]
+    print("actions in file:", [a_.name for a_ in actions], "→ rendering:", [(o, a_.name if a_ else None, sp) for o, a_, sp in anim_map])
     scene = bpy.context.scene
     src_fps = scene.render.fps or 24
     tmp = os.path.join(bpy.app.tempdir, "aegis_sprites")
@@ -215,7 +241,7 @@ def main():
         bpy.context.view_layer.update()
 
     # --- Калибровка по силуэту: ориентация, центр, охват ---
-    first_act = next((act for _, act in anim_map if act is not None), None)
+    first_act = next((act for _, act, _ in anim_map if act is not None), None)
     if first_act is not None:
         use_action(first_act)
     wide = 40.0
@@ -267,10 +293,11 @@ def main():
     fps = a.fps
     rows = []  # (ours, dir, [frame paths])
     first_row = {}
-    for ours, act in anim_map:
+    for ours, act, span in anim_map:
         if act is not None:
             use_action(act)
             f0, f1 = act.frame_range
+            f0, f1 = f0 + (f1 - f0) * span[0], f0 + (f1 - f0) * span[1]
             seconds = max(0.05, (f1 - f0) / src_fps)
             n = max(2, min(a.max_frames, round(seconds * fps)))
             sample_frames = [f0 + (f1 - f0) * i / n for i in range(n)]
@@ -291,6 +318,8 @@ def main():
                     if cur is not None:
                         rig.fix.location = base_loc - __import__("mathutils").Vector((cur.x - root0.x, cur.y - root0.y, 0.0))
                         bpy.context.view_layer.update()
+                        if os.environ.get("SPRITE_DEBUG"):
+                            print(f"rootlock {ours} d{d} f{i}: root0 {tuple(round(v,2) for v in root0)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
                 path = os.path.join(tmp, f"{a.name}_{ours}_{d}_{i:02d}.png")
                 render_to(path)
                 paths.append(path)
