@@ -36,12 +36,13 @@
 
 .arcade-hud { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; padding: 12px 14px; pointer-events: none; color: var(--on-invert); }
 .arcade-hud > * { pointer-events: none; }
+.arcade-hud__upper { display: grid; gap: 10px; }
 .arcade-hud__top { display: flex; align-items: center; gap: 16px; }
 .arcade-hud__clock { font: 500 34px/1 var(--font-display); letter-spacing: -.04em; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
 .arcade-hud__stats { display: flex; gap: 14px; align-items: center; font-size: 13px; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); }
 .arcade-hud__stats b { font-size: 15px; }
 .arcade-hud__pause { margin-left: auto; pointer-events: auto; }
-.arcade-hud__boss { display: grid; gap: 4px; justify-items: center; align-self: center; width: min(520px, 70%); font: 800 12px var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
+.arcade-hud__boss { display: grid; gap: 4px; justify-items: center; justify-self: center; width: min(520px, 70%); font: 800 12px var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
 .arcade-hud__bottom { display: flex; align-items: flex-end; gap: 16px; }
 .arcade-hud__bars { display: grid; flex: 1; gap: 6px; max-width: 420px; }
 .arcade-bar { position: relative; height: 16px; overflow: hidden; border-radius: 8px; background: var(--arcade-hp-bg); }

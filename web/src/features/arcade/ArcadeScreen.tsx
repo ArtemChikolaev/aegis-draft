@@ -49,8 +49,8 @@ function ArcadeSetup() {
       {!backNative && <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>}
       <header className="screen-heading">
         <Eyebrow>{t("arcade.eyebrow")}</Eyebrow>
-        <h1>{t("arcade.title")}</h1>
-        <p>{t("arcade.lead")}</p>
+        <h1>{t(act === "full" ? "arcade.titleFull" : "arcade.title")}</h1>
+        <p>{t(act === "full" ? "arcade.leadFull" : "arcade.lead")}</p>
       </header>
       <div className="arcade-setup__grid">
         <Surface className="arcade-setup__hero" data-testid="arcade-hero">
@@ -226,6 +226,7 @@ function ArcadeStage() {
         <canvas ref={canvasRef} className="arcade__canvas" />
         {sim && p && (
           <div className="arcade-hud" aria-live="off">
+            <div className="arcade-hud__upper">
             <div className="arcade-hud__top">
               <span className="arcade-hud__clock" data-testid="arcade-clock">{formatClock(sim.tick)}</span>
               <span className="arcade-hud__stats">
@@ -243,6 +244,7 @@ function ArcadeStage() {
                 <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, boss.hp / boss.maxHp) * 100}%` }} /></div>
               </div>
             )}
+            </div>
             <div className="arcade-hud__bottom">
               <div className="arcade-hud__bars">
                 <div className="arcade-bar arcade-bar--hp" title="HP"><i style={{ width: `${Math.max(0, p.hp / p.stats.maxHp) * 100}%` }} /><span>{Math.ceil(p.hp)} / {p.stats.maxHp}</span></div>
