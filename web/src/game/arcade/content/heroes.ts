@@ -4,8 +4,18 @@
 // из heroes.json (dotaId — чтобы брать имя из датасета).
 import type { PlayerStats } from "../types.ts";
 
-export type HeroId = "juggernaut" | "crystal_maiden" | "sniper" | "axe" | "zeus";
-export const HERO_IDS: readonly HeroId[] = ["juggernaut", "crystal_maiden", "sniper", "axe", "zeus"];
+/** Уникальные киты — пять «ручных» героев; остальные — шаблоны по архетипам (ответ на «все герои»:
+ *  архетип = набор уже реализованных видов способностей, герой = портрет + параметры). */
+export type UniqueHeroId = "juggernaut" | "crystal_maiden" | "sniper" | "axe" | "zeus";
+export type TemplateHeroId =
+  | "phantom_assassin" | "anti_mage" | "lina" | "lich" | "drow_ranger" | "windranger"
+  | "bristleback" | "sven" | "storm_spirit" | "leshrac";
+export type HeroId = UniqueHeroId | TemplateHeroId;
+export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
+export const HERO_IDS: readonly HeroId[] = [
+  "juggernaut", "crystal_maiden", "sniper", "axe", "zeus",
+  "phantom_assassin", "anti_mage", "lina", "lich", "drow_ranger", "windranger", "bristleback", "sven", "storm_spirit", "leshrac",
+];
 
 export type AbilityKind =
   | "spin" | "ward" | "crit" | "omni"
@@ -31,15 +41,17 @@ export interface HeroDef {
   dotaId: number;
   picture: string;
   ranged: boolean;
+  /** Ключ текстов способностей: `arcade.ab.<kit>.<q|w|e|r>` — свой id у уникальных, архетип у шаблонов. */
+  kit: HeroId | ArchetypeId;
   /** `pickup` у дальнобойных больше: шарды падают на дистанции выстрела, и без этого стрелок с 55
    *  убийствами оставался 1-го уровня (headless-QA 2026-09-05). */
   base: Partial<Pick<PlayerStats, "maxHp" | "regen" | "armor" | "speed" | "damage" | "attackInterval" | "range" | "pickup">>;
   abilities: { q: AbilityDef; w: AbilityDef; e: AbilityDef; r: AbilityDef };
 }
 
-export const HEROES: Record<HeroId, HeroDef> = {
+const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
   juggernaut: {
-    id: "juggernaut", dotaId: 8, picture: "juggernaut", ranged: false,
+    id: "juggernaut", kit: "juggernaut", dotaId: 8, picture: "juggernaut", ranged: false,
     base: {},
     abilities: {
       q: { kind: "spin", value: [0, 38, 60, 82, 104], cooldown: 16, radius: 104, duration: 4 },
@@ -49,7 +61,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     },
   },
   crystal_maiden: {
-    id: "crystal_maiden", dotaId: 5, picture: "crystal_maiden", ranged: true,
+    id: "crystal_maiden", kit: "crystal_maiden", dotaId: 5, picture: "crystal_maiden", ranged: true,
     base: { maxHp: 560, speed: 162, damage: 22, attackInterval: 1.0, range: 300, armor: 1, pickup: 230 },
     abilities: {
       q: { kind: "nova", value: [0, 110, 170, 230, 290], cooldown: 8, radius: 170, duration: 3 },
@@ -59,7 +71,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     },
   },
   sniper: {
-    id: "sniper", dotaId: 35, picture: "sniper", ranged: true,
+    id: "sniper", kit: "sniper", dotaId: 35, picture: "sniper", ranged: true,
     base: { maxHp: 540, speed: 158, damage: 26, attackInterval: 0.9, range: 340, armor: 1, pickup: 250 },
     abilities: {
       q: { kind: "shrapnel", value: [0, 18, 28, 38, 48], cooldown: 12, radius: 180, duration: 8 },
@@ -69,7 +81,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     },
   },
   axe: {
-    id: "axe", dotaId: 2, picture: "axe", ranged: false,
+    id: "axe", kit: "axe", dotaId: 2, picture: "axe", ranged: false,
     base: { maxHp: 680, speed: 166, damage: 18, attackInterval: 0.95, range: 84, armor: 4, regen: 4 },
     abilities: {
       q: { kind: "berserker_call", value: [0, 1.4, 1.7, 2.0, 2.3], cooldown: 14, radius: 170, duration: 3 },
@@ -79,7 +91,7 @@ export const HEROES: Record<HeroId, HeroDef> = {
     },
   },
   zeus: {
-    id: "zeus", dotaId: 22, picture: "zeus", ranged: true,
+    id: "zeus", kit: "zeus", dotaId: 22, picture: "zeus", ranged: true,
     base: { maxHp: 500, speed: 160, damage: 22, attackInterval: 1.0, range: 300, armor: 1, pickup: 230 },
     abilities: {
       q: { kind: "arc_lightning", value: [0, 40, 60, 80, 100], cooldown: 2.2, radius: 320, count: [0, 4, 6, 8, 10] },
@@ -88,6 +100,82 @@ export const HEROES: Record<HeroId, HeroDef> = {
       r: { kind: "thundergod", value: [0, 220, 340, 460], cooldown: 70, radius: 760 },
     },
   },
+};
+
+/** Архетипы шаблонных китов: только уже реализованные виды способностей — новый герой не требует кода сима. */
+export const ARCHETYPES: Record<ArchetypeId, { ranged: boolean; abilities: HeroDef["abilities"] }> = {
+  // Мили-керри: вихрь + пожирающий голод + крит + серия ударов.
+  blademaster: {
+    ranged: false,
+    abilities: {
+      q: { kind: "spin", value: [0, 38, 60, 82, 104], cooldown: 15, radius: 100, duration: 3.5 },
+      w: { kind: "battle_hunger", value: [0, 12, 18, 24, 30], cooldown: 12, radius: 300, duration: 5, count: [0, 2, 3, 4, 5] },
+      e: { kind: "crit", value: [0, 0.18, 0.24, 0.3, 0.36], cooldown: 0, passive: true },
+      r: { kind: "omni", value: [0, 100, 180, 260], cooldown: 70, radius: 220, duration: 1.5, count: [0, 5, 7, 9] },
+    },
+  },
+  // Кастер огня/льда: нова + разряд + аура + ледяное поле.
+  frostfire: {
+    ranged: true,
+    abilities: {
+      q: { kind: "nova", value: [0, 100, 155, 210, 265], cooldown: 8, radius: 165, duration: 3 },
+      w: { kind: "lightning_bolt", value: [0, 130, 200, 270, 340], cooldown: 7, radius: 400, duration: 0.4 },
+      e: { kind: "arcane_aura", value: [0, 0.05, 0.09, 0.13, 0.17], cooldown: 0, passive: true },
+      r: { kind: "freezing_field", value: [0, 65, 100, 135], cooldown: 62, radius: 260, duration: 6 },
+    },
+  },
+  // Стрелок: зона осколков + хедшот + прицел + град молний как «залп».
+  marksman: {
+    ranged: true,
+    abilities: {
+      q: { kind: "shrapnel", value: [0, 13, 21, 29, 37], cooldown: 13, radius: 165, duration: 8 },
+      w: { kind: "headshot", value: [0, 18, 36, 54, 72], cooldown: 0, passive: true },
+      e: { kind: "take_aim", value: [0, 40, 70, 100, 130], cooldown: 0, passive: true },
+      r: { kind: "thundergod", value: [0, 100, 170, 240], cooldown: 80, radius: 600 },
+    },
+  },
+  // Танк: зов + тотем лечения + контр-спин + серия ударов.
+  warlord: {
+    ranged: false,
+    abilities: {
+      q: { kind: "berserker_call", value: [0, 1.3, 1.6, 1.9, 2.2], cooldown: 14, radius: 165, duration: 3 },
+      w: { kind: "ward", value: [0, 0.024, 0.03, 0.036, 0.042], cooldown: 32, radius: 170, duration: 8 },
+      e: { kind: "counter_helix", value: [0, 40, 60, 80, 100], cooldown: 0, radius: 130, passive: true },
+      r: { kind: "omni", value: [0, 90, 160, 230], cooldown: 70, radius: 220, duration: 1.5, count: [0, 5, 7, 9] },
+    },
+  },
+  // Нюкер: дуга + обморожение + статика + гнев.
+  stormcaller: {
+    ranged: true,
+    abilities: {
+      q: { kind: "arc_lightning", value: [0, 28, 42, 56, 70], cooldown: 2.8, radius: 320, count: [0, 3, 4, 5, 6] },
+      w: { kind: "frostbite", value: [0, 110, 170, 230, 290], cooldown: 8.5, radius: 320, duration: 1.8 },
+      e: { kind: "static_field", value: [0, 0.02, 0.032, 0.044, 0.056], cooldown: 0, radius: 300, passive: true },
+      r: { kind: "thundergod", value: [0, 140, 220, 300], cooldown: 80, radius: 660 },
+    },
+  },
+};
+
+const MELEE_BASE: HeroDef["base"] = {};
+const RANGED_BASE: HeroDef["base"] = { maxHp: 510, speed: 160, damage: 21, attackInterval: 1.0, range: 310, armor: 1, pickup: 230 };
+
+function templateHero(id: TemplateHeroId, dotaId: number, picture: string, archetype: ArchetypeId, base: HeroDef["base"] = {}): HeroDef {
+  const arch = ARCHETYPES[archetype];
+  return { id, kit: archetype, dotaId, picture, ranged: arch.ranged, base: { ...(arch.ranged ? RANGED_BASE : MELEE_BASE), ...base }, abilities: arch.abilities };
+}
+
+export const HEROES: Record<HeroId, HeroDef> = {
+  ...UNIQUE_HEROES,
+  phantom_assassin: templateHero("phantom_assassin", 44, "phantom_assassin", "blademaster", { speed: 176, damage: 26, maxHp: 560 }),
+  anti_mage: templateHero("anti_mage", 1, "antimage", "blademaster", { speed: 182, attackInterval: 0.8, maxHp: 580 }),
+  lina: templateHero("lina", 25, "lina", "frostfire", { damage: 24, maxHp: 500 }),
+  lich: templateHero("lich", 31, "lich", "frostfire", { maxHp: 580, armor: 2, speed: 156 }),
+  drow_ranger: templateHero("drow_ranger", 6, "drow_ranger", "marksman", { range: 350, damage: 25 }),
+  windranger: templateHero("windranger", 21, "windrunner", "marksman", { speed: 168, attackInterval: 0.85 }),
+  bristleback: templateHero("bristleback", 99, "bristleback", "warlord", { maxHp: 760, armor: 6, regen: 5, damage: 18 }),
+  sven: templateHero("sven", 18, "sven", "warlord", { maxHp: 700, damage: 26, armor: 4, regen: 3 }),
+  storm_spirit: templateHero("storm_spirit", 17, "storm_spirit", "stormcaller", { speed: 172, maxHp: 500 }),
+  leshrac: templateHero("leshrac", 52, "leshrac", "stormcaller", { damage: 24, maxHp: 520, armor: 2 }),
 };
 
 /** Таланты 10/15/20/25 — общая лестница для всех героев (Dota-подобные пары). */

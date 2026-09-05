@@ -85,7 +85,7 @@ function ArcadeSetup() {
               return (
                 <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => setHero(id)}>
                   <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
-                  <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
+                  <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}{def.kit !== def.id && ` · ${t(`arcade.arch.${def.kit}` as MessageKey)}`}</small>
                 </button>
               );
             })}
@@ -115,7 +115,7 @@ function ArcadeSetup() {
           </div>
           <ul className="arcade-setup__kit">
             {(["q", "w", "e", "r"] as const).map((key) => (
-              <li key={key}><b>{key.toUpperCase()}</b> <span>{t(`arcade.ab.${heroId}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${heroId}.${key}.desc` as MessageKey)}</small></li>
+              <li key={key}><b>{key.toUpperCase()}</b> <span>{t(`arcade.ab.${HEROES[heroId].kit}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${HEROES[heroId].kit}.${key}.desc` as MessageKey)}</small></li>
             ))}
           </ul>
         </Surface>
@@ -374,7 +374,7 @@ function ArcadeStage() {
                       data-passive={ab.passive ? "true" : undefined}
                       disabled={lvl === 0 || ab.passive}
                       onPointerDown={(e) => { e.stopPropagation(); cast(key); }}
-                      title={t(`arcade.ab.${sim.hero.id}.${key}` as MessageKey)}
+                      title={t(`arcade.ab.${sim.hero.kit}.${key}` as MessageKey)}
                     >
                       <b>{key.toUpperCase()}</b>
                       <small>{lvl > 0 ? `${t("arcade.hud.lvlShort")}${lvl}` : "—"}</small>
@@ -533,9 +533,9 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
     return (
       <button type="button" className="arcade-offer" data-kind="ability" data-testid={`arcade-offer-${index}`} onClick={onPick}>
         <span className="arcade-offer__tag">{t("arcade.offer.ability")} · {offer.key.toUpperCase()}</span>
-        <strong>{t(`arcade.ab.${sim?.hero.id ?? "juggernaut"}.${offer.key}` as MessageKey)}</strong>
+        <strong>{t(`arcade.ab.${sim?.hero.kit ?? "juggernaut"}.${offer.key}` as MessageKey)}</strong>
         <small>{t("arcade.offer.point", { lvl })}</small>
-        <p>{t(`arcade.ab.${sim?.hero.id ?? "juggernaut"}.${offer.key}.desc` as MessageKey)}</p>
+        <p>{t(`arcade.ab.${sim?.hero.kit ?? "juggernaut"}.${offer.key}.desc` as MessageKey)}</p>
       </button>
     );
   }

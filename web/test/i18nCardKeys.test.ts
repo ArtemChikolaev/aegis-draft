@@ -7,7 +7,7 @@ import { BOSSES } from "../src/game/bossConditions.ts";
 import { MUTATORS } from "../src/game/dynastyMutators.ts";
 import { TALENTS, UPGRADES } from "../src/game/arcade/content/schools.ts";
 import { ARCADE_ITEMS } from "../src/game/arcade/content/items.ts";
-import { HERO_IDS } from "../src/game/arcade/content/heroes.ts";
+import { HEROES, HERO_IDS } from "../src/game/arcade/content/heroes.ts";
 import { COSMETICS } from "../src/game/arcade/content/cosmetics.ts";
 import { NEUTRALS } from "../src/game/arcade/content/neutrals.ts";
 
@@ -23,7 +23,8 @@ const expectedKeys = [
   ...UPGRADES.flatMap((u) => [`arcade.up.${u.id}`, `arcade.up.${u.id}.desc`]),
   ...Object.values(TALENTS).flat().map((id) => `arcade.t.${id}`),
   ...ARCADE_ITEMS.flatMap((i) => [`arcade.item.${i.id}`, `arcade.item.${i.id}.desc`]),
-  ...HERO_IDS.flatMap((h) => ["q", "w", "e", "r"].flatMap((k) => [`arcade.ab.${h}.${k}`, `arcade.ab.${h}.${k}.desc`])),
+  ...[...new Set(HERO_IDS.map((h) => HEROES[h].kit))].flatMap((kit) => ["q", "w", "e", "r"].flatMap((k) => [`arcade.ab.${kit}.${k}`, `arcade.ab.${kit}.${k}.desc`])),
+  ...[...new Set(HERO_IDS.filter((h) => HEROES[h].kit !== h).map((h) => HEROES[h].kit))].map((a) => `arcade.arch.${a}`),
   ...COSMETICS.map((c) => `arcade.cosmetic.${c.id}`),
   ...NEUTRALS.flatMap((n) => [`arcade.neutral.${n.id}`, `arcade.neutral.${n.id}.desc`]),
 ];

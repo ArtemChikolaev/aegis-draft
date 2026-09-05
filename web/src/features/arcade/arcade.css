@@ -4,7 +4,7 @@
 .arcade-setup__grid { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(0, 1.1fr); gap: 18px; margin-top: 24px; }
 .arcade-setup__hero, .arcade-setup__run { display: grid; gap: 14px; padding: 22px; align-content: start; }
 .arcade-setup__label { font: 800 11px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-.arcade-heroes { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.arcade-heroes { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
 .arcade-heroes__pick { display: grid; gap: 4px; justify-items: center; padding: 8px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); }
 .arcade-heroes__pick[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); }
 .arcade-heroes__pick small { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
