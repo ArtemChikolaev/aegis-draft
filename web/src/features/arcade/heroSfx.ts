@@ -1,7 +1,7 @@
 // Звуки ударов героев из файлов Dota 2 (BACKLOG T13.16): `art/sfx/dota/index.json` → набор клипов на героя
 // (attack/pre/impact и петля Blade Fury у Juggernaut). Нет клипов у героя — экран играет синтетический
 // `sfxArcade`, как раньше. Загрузка ленивая: индекс один раз, буферы — при выборе героя (preloadHeroSfx).
-import { preloadSample, sfxLoop, sfxSample } from "../../ui/sound.ts";
+import { preloadSample, sampleDuration, sfxLoop, sfxSample } from "../../ui/sound.ts";
 
 interface HeroSfxEntry { attack?: string[]; pre?: string[]; impact?: string[]; spinLoop?: string; spinStop?: string }
 
@@ -33,6 +33,13 @@ export function preloadHeroSfx(hero: string): void {
 let lastHit = 0;
 let hitIndex = 0;
 
+/** Слой попадания поверх свиста удара героя (в Dota удар = замах + удар по плоти): клинок / тяжёлое / тупое; у стрелков — их impact. */
+const IMPACT: Record<string, "blade" | "heavy" | "blunt" | "none"> = {
+  juggernaut: "blade", phantom_assassin: "blade", anti_mage: "blade", faceless_void: "blunt", axe: "heavy", sven: "heavy", tidehunter: "heavy",
+  ursa: "blunt", bristleback: "blunt", crystal_maiden: "none", sniper: "none", zeus: "none", lina: "none", lich: "none", drow_ranger: "none", windranger: "none",
+  storm_spirit: "none", leshrac: "none", lion: "none", shadow_fiend: "none", pugna: "none", invoker: "none", mirana: "none", clinkz: "none",
+};
+
 /** Удар героя: true — сыграли сэмпл Dota (или он на подходе), false — клипов нет, играй синтетику. Не чаще раза в 45 мс. */
 export function heroHitSfx(hero: string, crit: boolean, now: number): boolean {
   loadIndex();
@@ -42,7 +49,53 @@ export function heroHitSfx(hero: string, crit: boolean, now: number): boolean {
   if (now - lastHit < 45) return true;
   lastHit = now;
   hitIndex = (hitIndex + 1) % pool.length;
-  sfxSample(url(hero, pool[hitIndex]), crit ? 0.55 : 0.4, crit ? 0.92 : 0.97 + (hitIndex % 3) * 0.03);
+  sfxSample(url(hero, pool[hitIndex]), crit ? 0.7 : 0.55, crit ? 0.92 : 0.97 + (hitIndex % 3) * 0.03);
+  const layer = IMPACT[hero] ?? "none";
+  if (layer !== "none") sfxSample(`${ROOT}shared/${layer}_${1 + (hitIndex % 3)}.m4a`, crit ? 0.5 : 0.35, crit ? 0.9 : 1, 0.03);
+  else if (e?.impact?.length && pool !== e.impact) sfxSample(url(hero, e.impact[hitIndex % e.impact.length]), 0.4, 1, 0.05);
+  return true;
+}
+
+// ---- Реплики героев (voice/<hero>/<cat>_N.mp3): один голосовой канал, категории с шансом и перезарядкой ----
+export type VoiceCat = "spawn" | "move" | "attack" | "kill" | "level" | "death" | "pain" | "ability";
+type VoiceIndex = Record<string, Partial<Record<VoiceCat, string[]>>>;
+let voice: VoiceIndex | null = null;
+let voiceJob: Promise<void> | null = null;
+let voiceBusyUntil = 0;
+const voiceCd: Partial<Record<VoiceCat, number>> = {};
+const voiceIdx: Partial<Record<VoiceCat, number>> = {};
+const vurl = (hero: string, file: string) => `${ROOT}voice/${hero}/${file}`;
+
+function loadVoice(): void {
+  if (voice || voiceJob || typeof fetch === "undefined") return;
+  voiceJob = fetch(`${ROOT}voice/index.json`)
+    .then((r) => (r.ok ? (r.json() as Promise<VoiceIndex>) : Promise.reject(new Error(String(r.status)))))
+    .then((data) => { voice = data; }, () => { voice = {}; });
+}
+
+export function preloadHeroVoice(hero: string): void {
+  loadVoice();
+  const run = () => { const e = voice?.[hero]; if (!e) return; for (const files of Object.values(e)) for (const f of files ?? []) preloadSample(vurl(hero, f)); };
+  if (voice) run(); else voiceJob?.then(run);
+}
+
+/**
+ * Сказать реплику категории: не поверх другой реплики, не чаще `cooldownMs` на категорию, с вероятностью `chance`.
+ * Случайность — UI-шная (Math.random), в сим и реплей не входит. Возвращает true, если реплика пошла.
+ */
+export function heroVoice(hero: string, cat: VoiceCat, now: number, chance = 1, cooldownMs = 0): boolean {
+  loadVoice();
+  const pool = voice?.[hero]?.[cat];
+  if (!pool?.length) return false;
+  if (now < voiceBusyUntil || now < (voiceCd[cat] ?? 0)) return false;
+  if (chance < 1 && Math.random() > chance) { voiceCd[cat] = now + cooldownMs * 0.5; return false; }
+  const i = ((voiceIdx[cat] ?? -1) + 1 + Math.floor(Math.random() * Math.max(1, pool.length - 1))) % pool.length;
+  voiceIdx[cat] = i;
+  const u = vurl(hero, pool[i]);
+  if (!sfxSample(u, 0.9)) return false;
+  const dur = sampleDuration(u) || 2;
+  voiceBusyUntil = now + dur * 1000 + 250;
+  voiceCd[cat] = now + cooldownMs;
   return true;
 }
 
@@ -65,4 +118,6 @@ export function heroSpinSfx(hero: string, spinning: boolean): void {
 
 export function resetHeroSfx(): void {
   if (spinStop) { spinStop(); spinStop = null; }
+  voiceBusyUntil = 0;
+  for (const k of Object.keys(voiceCd) as VoiceCat[]) delete voiceCd[k];
 }

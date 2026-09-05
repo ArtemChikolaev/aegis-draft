@@ -271,6 +271,12 @@ export function sfxSample(url: string, gain = 0.4, rate = 1, at = 0): boolean {
   return true;
 }
 
+/** Длительность декодированного сэмпла в секундах (0, если ещё не загружен): нужна голосовому каналу, чтобы реплики не накладывались. */
+export function sampleDuration(url: string): number {
+  const buf = samples.get(url);
+  return buf && !(buf instanceof Promise) ? buf.duration : 0;
+}
+
 /** Зацикленный сэмпл (Blade Fury): вернёт stop() с коротким затуханием; null, если буфер не готов. */
 export function sfxLoop(url: string, gain = 0.3): (() => void) | null {
   if (!soundEnabled()) return () => {};
