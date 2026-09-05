@@ -48,7 +48,7 @@ def import_glb(path):
     bpy.ops.import_scene.gltf(filepath=path)
     return [o for o in bpy.data.objects if o not in before]
 
-def pick_action(actions, key):
+def pick_action(actions, key, strict=False):
     """Точное имя → иначе самое короткое имя с подстрокой. Служебные клипы Source 2 («@run» — слои
     поворотов/скорости, portrait, loadout, turns, versus) в кандидаты не идут: они короче и обманывают выбор."""
     key = key.lower()
@@ -57,7 +57,7 @@ def pick_action(actions, key):
         return exact[0]
     junk = ("portrait", "loadout", "turns", "versus", "lookframe", "_faces_dup", "spawn", "taunt", "arcana", "_cc_20", "haste", "injured", "showoff", "_alt", "basher", "ward", "pact", "effigy", "channel")
     candidates = [a for a in actions if key in a.name.lower() and not a.name.startswith("@") and not any(j in a.name.lower() for j in junk)]
-    if not candidates:
+    if not candidates and not strict:
         candidates = [a for a in actions if key in a.name.lower()]
     if not candidates:
         return None
@@ -231,8 +231,14 @@ def main():
         alts = {"death": ["die", "dieAlt"], "die": ["death"], "run": ["walk"], "walk": ["run"]}
         act = None
         if armatures:
-            for key in [theirs] + alts.get(theirs, []):
-                act = pick_action(actions, key)
+            # Сначала строгий проход по всем синонимам (без служебных клипов), потом мягкий: иначе «death_pact»
+            # Clinkz перебивает его настоящий «die», потому что подстрока «death» нашлась раньше синонима.
+            keys = [theirs] + alts.get(theirs, [])
+            for strict in (True, False):
+                for key in keys:
+                    act = pick_action(actions, key, strict)
+                    if act is not None:
+                        break
                 if act is not None:
                     break
         anim_map.append((ours, act, span))

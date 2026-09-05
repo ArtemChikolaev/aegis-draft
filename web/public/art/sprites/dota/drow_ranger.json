@@ -1,5 +1,5 @@
 {
-  "name": "juggernaut",
+  "name": "drow_ranger",
   "frame": 128,
   "dirs": 8,
   "fps": 12,
@@ -7,12 +7,12 @@
   "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
   "anchor": {
     "x": 0.5,
-    "y": 0.791
+    "y": 0.816
   },
   "anims": {
     "walk": {
       "row": 0,
-      "frames": 8
+      "frames": 12
     },
     "idle": {
       "row": 8,
@@ -20,18 +20,14 @@
     },
     "attack": {
       "row": 16,
-      "frames": 7
+      "frames": 11
     },
     "death": {
       "row": 24,
       "frames": 12
-    },
-    "spin": {
-      "row": 32,
-      "frames": 12
     }
   },
-  "source": "juggernaut.glb",
+  "source": "drow_base.glb",
   "orientation": "none",
   "pitch": 45.0
 }

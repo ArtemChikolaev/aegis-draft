@@ -1,18 +1,18 @@
 {
-  "name": "juggernaut",
+  "name": "sven",
   "frame": 128,
   "dirs": 8,
   "fps": 12,
-  "world": 84,
+  "world": 92,
   "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
   "anchor": {
     "x": 0.5,
-    "y": 0.791
+    "y": 0.816
   },
   "anims": {
     "walk": {
       "row": 0,
-      "frames": 8
+      "frames": 9
     },
     "idle": {
       "row": 8,
@@ -25,13 +25,9 @@
     "death": {
       "row": 24,
       "frames": 12
-    },
-    "spin": {
-      "row": 32,
-      "frames": 12
     }
   },
-  "source": "juggernaut.glb",
+  "source": "sven.glb",
   "orientation": "none",
   "pitch": 45.0
 }
