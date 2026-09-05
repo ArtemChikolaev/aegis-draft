@@ -413,16 +413,19 @@ export class ArcadeRenderer {
     const heroDota = dotaSheet(sim.hero.id);
     const heroSheet = heroDota ? null : charSheet(`hero:${sim.hero.id}`, look, heroAnim);
     if (heroDota) {
-      const anim = spinning || atkT >= 0 ? "attack" : moving ? "walk" : "idle";
+      // Вихрь: свой клип `spin` (attack_spin у Juggernaut) в темпе листа; без него — клип удара, но не
+      // чаще 2.4 цикла/с (фидбэк владельца: «крутится слишком быстро» при цикле 90 мс).
+      const hasSpin = spinning && !!heroDota.meta.anims.spin;
+      const anim = hasSpin ? "spin" : spinning || atkT >= 0 ? "attack" : moving ? "walk" : "idle";
       const frames = heroDota.meta.anims[anim]?.frames ?? heroDota.meta.anims.walk?.frames ?? 1;
-      const frame = anim === "attack" ? Math.floor((spinning ? (now / 90) % 1 : atkT) * frames) : anim === "walk" ? Math.floor(this.walkPhase * 1.6) : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
+      const frame = anim === "spin" ? Math.floor((now / 1000) * heroDota.meta.fps) : anim === "attack" ? Math.floor((spinning ? (now / 420) % 1 : atkT) * frames) : anim === "walk" ? Math.floor(this.walkPhase * 1.6) : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
       drawDotaFrame(c, heroDota, anim, dotaDir(p.facingX, p.facingY, heroDota.meta.dirs), frame, p.x, p.y + R * 0.75);
     } else if (heroSheet) {
-      const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 90) % 1 : atkT) * FRAMES[heroAnim]);
+      const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 420) % 1 : atkT) * FRAMES[heroAnim]);
       drawCharFrame(c, heroSheet, frame, dirOf(p.facingX, p.facingY), p.x, p.y + R * 0.75, look.scale);
     } else {
       const rig: RigParams = { size: 1.15, body: pal.player, limb: pal.limb, head: pal.player, weapon: heroWeapon(sim.hero.kit) };
-      drawRig(c, p.x, p.y + R * 0.75, rig, { facing: p.facingX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 90) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
+      drawRig(c, p.x, p.y + R * 0.75, rig, { facing: p.facingX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
     }
     // Рамка (косметика) — второе кольцо у ног: бронза/серебро одно, золото и immortal — двойное с сиянием.
     const frame = this.cosmetic.frame;

@@ -49,14 +49,19 @@ def import_glb(path):
     return [o for o in bpy.data.objects if o not in before]
 
 def pick_action(actions, key):
+    """Точное имя → иначе самое короткое имя с подстрокой. Служебные клипы Source 2 («@run» — слои
+    поворотов/скорости, portrait, loadout, turns, versus) в кандидаты не идут: они короче и обманывают выбор."""
     key = key.lower()
     exact = [a for a in actions if a.name.lower() == key]
     if exact:
         return exact[0]
-    candidates = [a for a in actions if key in a.name.lower()]
+    junk = ("portrait", "loadout", "turns", "versus", "lookframe", "_faces_dup", "spawn", "taunt", "arcana", "_cc_20", "haste", "injured", "showoff")
+    candidates = [a for a in actions if key in a.name.lower() and not a.name.startswith("@") and not any(j in a.name.lower() for j in junk)]
+    if not candidates:
+        candidates = [a for a in actions if key in a.name.lower()]
     if not candidates:
         return None
-    candidates.sort(key=lambda a: len(a.name))
+    candidates.sort(key=lambda a: (not a.name.lower().startswith(key), len(a.name)))
     return candidates[0]
 
 def setup_render(size, samples):
@@ -222,7 +227,14 @@ def main():
             theirs, rng = theirs.split("@", 1)
             lo, hi = rng.split("-", 1)
             span = (max(0.0, float(lo)), min(1.0, float(hi)))
-        act = pick_action(actions, theirs) if armatures else None
+        # Синонимы Source 2: смерть у части моделей — «die»/«dieAlt», бег — «run» либо «walk».
+        alts = {"death": ["die", "dieAlt"], "die": ["death"], "run": ["walk"], "walk": ["run"]}
+        act = None
+        if armatures:
+            for key in [theirs] + alts.get(theirs, []):
+                act = pick_action(actions, key)
+                if act is not None:
+                    break
         anim_map.append((ours, act, span))
     found = [t for t in anim_map if t[1] is not None]
     anim_map = found if found else [("idle", None, (0.0, 1.0))]

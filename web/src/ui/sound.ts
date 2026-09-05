@@ -236,3 +236,54 @@ export function sfxVerdict(kind: "won" | "lost"): void {
     voice({ wave: "triangle", freq: 146.83, freqTo: 110, gain: 0.06, duration: 0.7, at: 0.3 });
   }
 }
+
+// ---- Сэмплы (AAC/m4a из файлов Dota 2, см. web/scripts/dota_sounds.sh) ----
+// Кэш декодированных буферов по URL; первый вызов только запускает загрузку и молчит — выстрел не
+// ждёт сети, а следующий удар уже звучит. Отсутствующий файл (404/ошибка декодирования) помечается
+// null и больше не запрашивается.
+const samples = new Map<string, AudioBuffer | null | Promise<void>>();
+
+export function preloadSample(url: string): void {
+  const audio = ensureContext();
+  if (!audio || samples.has(url)) return;
+  const job = fetch(url)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+    .then((buf) => audio.decodeAudioData(buf))
+    .then((decoded) => { samples.set(url, decoded); }, () => { samples.set(url, null); });
+  samples.set(url, job);
+}
+
+/** Сыграть сэмпл; `rate` — лёгкая вариация тона, чтобы серия ударов не звучала как один файл. Вернёт false, если буфер ещё не готов. */
+export function sfxSample(url: string, gain = 0.4, rate = 1, at = 0): boolean {
+  if (!soundEnabled()) return true;
+  const audio = ensureContext();
+  if (!audio || !master) return true;
+  const buf = samples.get(url);
+  if (buf === undefined) { preloadSample(url); return false; }
+  if (!buf || buf instanceof Promise) return buf === null;
+  const src = audio.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+  const g = audio.createGain();
+  g.gain.value = gain;
+  src.connect(g); g.connect(master);
+  src.start(audio.currentTime + at);
+  return true;
+}
+
+/** Зацикленный сэмпл (Blade Fury): вернёт stop() с коротким затуханием; null, если буфер не готов. */
+export function sfxLoop(url: string, gain = 0.3): (() => void) | null {
+  if (!soundEnabled()) return () => {};
+  const audio = ensureContext();
+  if (!audio || !master) return () => {};
+  const buf = samples.get(url);
+  if (buf === undefined) { preloadSample(url); return null; }
+  if (!buf || buf instanceof Promise) return null;
+  const src = audio.createBufferSource();
+  src.buffer = buf; src.loop = true;
+  const g = audio.createGain();
+  g.gain.value = gain;
+  src.connect(g); g.connect(master);
+  src.start();
+  return () => { const t = audio.currentTime; g.gain.setValueAtTime(gain, t); g.gain.linearRampToValueAtTime(0.0001, t + 0.12); src.stop(t + 0.13); };
+}

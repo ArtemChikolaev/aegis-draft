@@ -22,6 +22,7 @@ import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { ArcadeInputController } from "./input.ts";
+import { heroHitSfx, heroSpinSfx, preloadHeroSfx, resetHeroSfx } from "./heroSfx.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
@@ -88,7 +89,7 @@ function ArcadeSetup() {
               const def = HEROES[id];
               const info = heroOf(def.dotaId);
               return (
-                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => setHero(id)}>
+                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { setHero(id); preloadHeroSfx(id); }}>
                   <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
                   <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}{def.kit !== def.id && ` · ${t(`arcade.arch.${def.kit}` as MessageKey)}`}</small>
                 </button>
@@ -317,8 +318,10 @@ function ArcadeStage() {
       const ev = sim.events;
       if (ev.eliteKills > seen.eliteKills) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 6; }
       else if (ev.kills > seen.kills) sfxArcade("kill");
-      if (ev.crits > seen.crits) sfxArcade("crit");
-      else if (ev.hits > seen.hits) sfxArcade("hit");
+      // Удары — сэмплы Dota героя (heroSfx), синтетика остаётся фолбэком и слоем крита.
+      if (ev.crits > seen.crits) { sfxArcade("crit"); heroHitSfx(sim.hero.id, true, now); }
+      else if (ev.hits > seen.hits) { if (!heroHitSfx(sim.hero.id, false, now)) sfxArcade("hit"); }
+      heroSpinSfx(sim.hero.id, sim.tick < sim.player.spinUntil && !sim.over && statusRef.current === "running");
       if (ev.ults > seen.ults) sfxArcade("ult");
       else if (ev.casts > seen.casts) sfxArcade("cast");
       if (ev.hurt > seen.hurt) { sfxArcade("hurt"); hurtUntil = now + 140; }
@@ -342,8 +345,10 @@ function ArcadeStage() {
     raf = requestAnimationFrame(loop);
     const onVisibility = () => { if (document.hidden) useArcade.getState().pause(); };
     document.addEventListener("visibilitychange", onVisibility);
+    preloadHeroSfx(heroDef.id);
     return () => {
       cancelAnimationFrame(raf);
+      resetHeroSfx();
       ro.disconnect();
       controller.dispose();
       controllerRef.current = null;
