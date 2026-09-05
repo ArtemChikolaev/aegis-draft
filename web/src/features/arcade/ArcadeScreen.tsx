@@ -16,6 +16,7 @@ import { IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS, SHARD_PRICE } from "../../game/arcade/content/cosmetics.ts";
+import { NEUTRAL_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -247,6 +248,7 @@ function ArcadeStage() {
     let wasPending = false;
     let wasShop = false;
     let wasBoss = false;
+    let wasNeutral = false;
     let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0 };
     let hitStop = 0;
     let hurtUntil = 0;
@@ -259,7 +261,7 @@ function ArcadeStage() {
       // Hit-stop (R15-лестница): смерть элиты/босса замораживает мир на несколько кадров — только
       // здесь, в цикле экрана; сим о паузе не знает, детерминизм не трогается.
       if (hitStop > 0) { hitStop--; acc = 0; }
-      else if (statusRef.current === "running" && !sim.pending && !sim.shopOpen && !sim.over) {
+      else if (statusRef.current === "running" && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.over) {
         acc += dt;
         let steps = 0;
         while (acc >= DT && steps < 5) {
@@ -282,9 +284,10 @@ function ArcadeStage() {
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
-      if (replayRef.current && (sim.pending || sim.shopOpen)) sim.step(replayInput(replayRef.current, sim.steps));
+      if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen)) sim.step(replayInput(replayRef.current, sim.steps));
       if (sim.pending && !wasPending) { sfxArcade("levelup"); bump(); }
-      if (sim.shopOpen && !wasShop) { sfxBuy(); bump(); }
+      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral)) { sfxBuy(); bump(); }
+      wasNeutral = sim.neutralOpen;
       wasPending = sim.pending !== null;
       wasShop = sim.shopOpen;
       if (sim.over) { finish(); }
@@ -347,8 +350,9 @@ function ArcadeStage() {
                 <div className="arcade-bar arcade-bar--hp" title="HP"><i style={{ width: `${Math.max(0, p.hp / p.stats.maxHp) * 100}%` }} /><span>{Math.ceil(p.hp)} / {p.stats.maxHp}</span></div>
                 <div className="arcade-bar arcade-bar--xp"><i style={{ width: `${Math.min(1, p.xp / p.xpNext) * 100}%` }} /><span>{t("arcade.hud.level")} {p.level}</span></div>
               </div>
-              {p.items.length > 0 && (
+              {(p.items.length > 0 || p.neutral) && (
                 <div className="arcade-hud__items" data-testid="arcade-items">
+                  {p.neutral && <span className="arcade-hud__item arcade-hud__item--neutral" title={t(`arcade.neutral.${p.neutral}` as MessageKey)}><b>N</b></span>}
                   {p.items.map((it, i) => <span key={i} className="arcade-hud__item" data-rarity={it.rarity} title={t(`arcade.item.${it.id}` as MessageKey)}><ItemIcon slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" /></span>)}
                 </div>
               )}
@@ -390,6 +394,27 @@ function ArcadeStage() {
                 <Button variant="leave" onClick={() => setConfirmQuit(true)}>{t("arcade.hud.quit")}</Button>
               </div>
             </Surface>
+          </div>
+        )}
+        {sim?.neutralOpen && status !== "over" && (
+          <div className="arcade-overlay" data-testid="arcade-neutral">
+            <div className="arcade-levelup arcade-shop">
+              <Eyebrow>{t("arcade.neutral.title", { tier: NEUTRAL_BY_ID[sim.neutralOffers[0]?.id]?.tier ?? 1 })}</Eyebrow>
+              <h2>{t("arcade.neutral.pick")}</h2>
+              <p className="arcade-shop__hint">{sim.player.neutral ? t("arcade.neutral.replaces", { name: t(`arcade.neutral.${sim.player.neutral}` as MessageKey) }) : t("arcade.neutral.slot")}</p>
+              <div className="arcade-offers">
+                {sim.neutralOffers.map((n, i) => (
+                  <button key={n.id} type="button" className="arcade-offer" data-kind="neutral" data-testid={`arcade-neutral-${i}`} onClick={() => shopAct(i + 1)}>
+                    <span className="arcade-offer__tag">{t("arcade.neutral.tier", { tier: n.tier })}</span>
+                    <strong>{t(`arcade.neutral.${n.id}` as MessageKey)}</strong>
+                    <p>{t(`arcade.neutral.${n.id}.desc` as MessageKey)}</p>
+                  </button>
+                ))}
+              </div>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                <Button variant="secondary" data-testid="arcade-neutral-skip" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.neutral.skip")}</Button>
+              </div>
+            </div>
           </div>
         )}
         {sim?.shopOpen && status !== "over" && (
@@ -447,6 +472,7 @@ function ArcadeStage() {
                 <div><dt>{t("arcade.actLabel")}</dt><dd>{t(`arcade.act.${outcome.act}` as MessageKey)}</dd></div>
                 {outcome.greedStacks > 0 && <div><dt>{t("arcade.hud.greed")}</dt><dd>×{outcome.greedStacks}</dd></div>}
               </dl>
+              {outcome.neutral && <p className="arcade-overlay__seed">{t("arcade.neutral.slot")}: {t(`arcade.neutral.${outcome.neutral}` as MessageKey)}</p>}
               {outcome.items.length > 0 && (
                 <div className="arcade-result__schools">
                   {outcome.items.map((id, i) => <Chip key={`${id}-${i}`}><ItemIcon slug={ARCADE_ITEM_BY_ID[id]?.art ?? id} name={id} size="sm" /> {t(`arcade.item.${id}` as MessageKey)}</Chip>)}

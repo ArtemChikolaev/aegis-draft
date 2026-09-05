@@ -10,7 +10,8 @@ export interface ArcadeInput {
   my: number;
   cast: number;
   choose: number;
-  /** Действие в магазине (T13.8): 0 — нет, 1..3 — купить слот, 4 — реролл, 5 — закрыть. */
+  /** Действие в магазине (T13.8): 0 — нет, 1..3 — купить слот, 4 — реролл, 5 — закрыть.
+   *  Токен нейтралки использует те же коды: 1..2 — взять вариант, 5 — пропустить. */
   act: number;
 }
 
@@ -235,6 +236,8 @@ export interface Player {
   talents: string[];
   /** Инвентарь Secret Shop — до 6 слотов, как в Dota. */
   items: { id: string; rarity: Rarity }[];
+  /** Нейтральный слот (один): id из content/neutrals.ts или null. */
+  neutral: string | null;
   stats: PlayerStats;
   /** Таймеры периодических эффектов школ (тик следующего срабатывания). */
   ringAt: number;
@@ -256,4 +259,5 @@ export interface ArcadeOutcome {
   items: string[];
   hero: string;
   act: ActId;
+  neutral: string | null;
 }

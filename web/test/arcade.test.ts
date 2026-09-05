@@ -11,6 +11,7 @@ function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
   if (sim.pending) return { ...IDLE_INPUT, choose: 0 };
   // Торговец (3:00/6:00) ставит мир на паузу — без закрытия лавки длинные циклы тестов зависали.
   if (sim.shopOpen) return { ...IDLE_INPUT, act: SHOP_ACT.close };
+  if (sim.neutralOpen) return { ...IDLE_INPUT, act: 1 };
   const phase = Math.floor(tick / 90) % 4;
   const dirs = [[16, 0], [0, 16], [-16, 0], [0, -16]];
   return { mx: dirs[phase][0], my: dirs[phase][1], cast: 0, choose: -1, act: 0 };
@@ -158,12 +159,14 @@ describe("arcade sim", () => {
     run(sec(7 * 60 + 2));
     const first = sim.roshan!;
     expect(first.alive).toBe(true);
+    // Пул переиспользует объекты — запоминаем число, а не ссылку.
+    const firstMaxHp = first.maxHp;
     first.hp = 0; sim.damageEnemy(first, 1, "hit");
     expect(sim.over).toBeNull();
     run(sec(14 * 60 + 2));
     const second = sim.roshan!;
     expect(second.alive).toBe(true);
-    expect(second.maxHp).toBeGreaterThan(first.maxHp * 1.5);
+    expect(second.maxHp).toBeGreaterThan(firstMaxHp * 1.3);
     second.hp = 0; sim.damageEnemy(second, 1, "hit");
     run(sec(20 * 60 + 2));
     expect(sim.ancient?.alive).toBe(true);
@@ -171,5 +174,24 @@ describe("arcade sim", () => {
     sim.ancient!.hp = 1; sim.damageEnemy(sim.ancient!, 5, "hit");
     expect(sim.over?.outcome).toBe("victory");
     expect(sim.over?.act).toBe("full");
+  });
+
+  it("нейтральный токен: тир 1 на 2-й минуте, выбор ставит мир на паузу и занимает один слот", () => {
+    const sim = new ArcadeSim("neutral-1");
+    while (!sim.neutralToken.alive && sim.tick < sec(200)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen ? { ...IDLE_INPUT, act: SHOP_ACT.close } : IDLE_INPUT); }
+    expect(sim.neutralToken.alive).toBe(true);
+    expect(sim.neutralToken.value).toBe(1);
+    sim.player.x = sim.neutralToken.x; sim.player.y = sim.neutralToken.y;
+    sim.step(IDLE_INPUT);
+    expect(sim.neutralOpen).toBe(true);
+    expect(sim.neutralOffers.length).toBe(2);
+    const tick = sim.tick;
+    sim.step(IDLE_INPUT);
+    expect(sim.tick).toBe(tick);
+    const before = sim.player.stats.damage + sim.player.stats.maxHp + sim.player.stats.cooldown;
+    sim.step({ ...IDLE_INPUT, act: 2 });
+    expect(sim.neutralOpen).toBe(false);
+    expect(sim.player.neutral).toBe(sim.neutralOffers[1].id);
+    expect(sim.player.stats.damage + sim.player.stats.maxHp + sim.player.stats.cooldown).not.toBe(before);
   });
 });

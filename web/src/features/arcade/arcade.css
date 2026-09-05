@@ -78,6 +78,7 @@
 .arcade-hud__abilities { display: flex; gap: 8px; pointer-events: auto; }
 .arcade-hud__items { display: flex; gap: 4px; margin-right: 10px; }
 .arcade-hud__item { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--line-invert-strong); border-radius: 8px; background: var(--surface-invert); }
+.arcade-hud__item--neutral { border-style: dashed; font: 800 12px var(--font-display); }
 .arcade-hud__item[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-hud__item[data-rarity="exotic"] { border-color: var(--role-support); }
 .arcade-hud__item[data-rarity="arcana"] { border-color: var(--gold); }

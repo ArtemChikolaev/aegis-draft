@@ -183,7 +183,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set((s) => ({ serial: s.serial + 1 }));
   },
   shopAct(act) {
-    if (!sim || !sim.shopOpen) return;
+    if (!sim || (!sim.shopOpen && !sim.neutralOpen)) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act });
     set((s) => ({ serial: s.serial + 1 }));
   },

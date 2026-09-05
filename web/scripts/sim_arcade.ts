@@ -38,6 +38,7 @@ function pickOffer(offers: Offer[], school: SchoolId | "any"): number {
  *  низком HP, не прижиматься к стенам. Juggernaut — мили: «убегать всегда» = не качаться. */
 function botInput(sim: ArcadeSim): ArcadeInput {
   if (sim.pending) return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending, SCHOOL), act: 0 };
+  if (sim.neutralOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: 1 };
   if (sim.shopOpen) {
     // Жадно: самый дорогой доступный предмет, потом закрыть.
     let best = -1, bestPrice = -1;
@@ -91,7 +92,7 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   }
   // Торговец и bounty-руна: идём, если не бежим.
   if (!flee) {
-    for (const spot of [sim.shopkeeper, sim.bounty]) {
+    for (const spot of [sim.shopkeeper, sim.bounty, sim.neutralToken]) {
       if (!spot.alive) continue;
       const dx = spot.x - p.x, dy = spot.y - p.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
       if (d < 700) { fx += dx / d * 1.5; fy += dy / d * 1.5; }

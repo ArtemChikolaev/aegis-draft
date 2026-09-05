@@ -190,6 +190,14 @@ export class ArcadeRenderer {
       c.fillStyle = pal.text; c.font = "800 11px var(--font-display, sans-serif)"; c.textAlign = "center";
       c.fillText("SHOP", s.x, s.y - 26);
     }
+    if (sim.neutralToken.alive) {
+      const n = sim.neutralToken;
+      c.strokeStyle = pal.text; c.lineWidth = 2; c.setLineDash([3, 3]); c.globalAlpha = 0.9;
+      c.beginPath(); c.moveTo(n.x, n.y - 14 - pulse * 2); c.lineTo(n.x + 12, n.y); c.lineTo(n.x, n.y + 14 + pulse * 2); c.lineTo(n.x - 12, n.y); c.closePath(); c.stroke();
+      c.setLineDash([]); c.globalAlpha = 1;
+      c.fillStyle = pal.text; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
+      c.fillText(`T${n.value}`, n.x, n.y - 20);
+    }
     if (sim.bounty.alive) {
       const b = sim.bounty;
       c.fillStyle = pal.bounty;

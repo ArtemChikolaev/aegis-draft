@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.6.0";
+export const ARCADE_CONFIG_VERSION = "a0.7.0";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -107,6 +107,8 @@ export const ARCADE = {
     distMin: 260,
     distMax: 340,
   },
+  /** Нейтральные предметы: токен тира рядом с игроком на минутах NEUTRAL_TIER_AT_MIN, живёт lifetime. */
+  neutral: { lifetime: sec(60), distMin: 200, distMax: 300 },
   /** Bounty-руны: каждые 3 минуты, золото растёт с минутой. */
   bounty: {
     every: sec(3 * 60),
