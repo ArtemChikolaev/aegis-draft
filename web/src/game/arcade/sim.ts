@@ -304,7 +304,7 @@ export class ArcadeSim {
         return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
       case "frostbite": case "lightning_bolt":
         return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= A.aoeEnemies;
-      case "assassinate": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= 6;
+      case "assassinate": case "mana_void": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= 6;
       case "culling_blade": return this.cullTarget(ab) !== null;
       case "omni": case "freezing_field": case "thundergod":
         return near >= A.ultEnemies || bossNear || (hpPct < A.ultHpPct && near >= 3);
@@ -376,6 +376,18 @@ export class ArcadeSim {
         this.damageEnemy(target, value, "crit");
         this.pushFx("zap", p.x, p.y, target.x, target.y, 14);
         this.shake = 6;
+        break;
+      }
+      case "mana_void": {
+        // Маны в рогалике нет: пустота бьёт по «истраченному» — урон растёт с потерянным здоровьем цели, взрыв задевает соседей.
+        const target = this.strongestWithin(p.x, p.y, radius);
+        if (!target) { cast = false; break; }
+        const missing = 1 - Math.max(0, target.hp) / Math.max(1, target.maxHp);
+        const dmg = value * (1 + 1.2 * Math.min(1, Math.max(0, missing)));
+        this.damageEnemy(target, dmg, "crit");
+        for (const o of this.enemiesWithin(target.x, target.y, 120)) if (o !== target) this.damageEnemy(o, dmg * 0.5, "burst");
+        this.pushFx("nova", target.x, target.y, 120, 0, 14);
+        this.shake = 8;
         break;
       }
       case "berserker_call":

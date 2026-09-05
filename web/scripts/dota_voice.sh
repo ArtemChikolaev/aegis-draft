@@ -14,13 +14,16 @@ VPK="$DOTA/pak01_dir.vpk"
 [ -x "$S2V" ] || { echo "нет Source2Viewer-CLI: $S2V"; exit 1; }
 conv() { afconvert -f m4af -d aac -b 48000 -c 1 "$1" "$2" >/dev/null 2>&1; }
 # id героя → папка sounds/vo/<...>
-HEROES="juggernaut:juggernaut axe:axe crystal_maiden:crystalmaiden sniper:sniper zeus:zuus phantom_assassin:phantom_assassin anti_mage:antimage lina:lina lich:lich drow_ranger:drowranger windranger:windrunner bristleback:bristleback sven:sven storm_spirit:stormspirit leshrac:leshrac faceless_void:faceless_void ursa:ursa lion:lion shadow_fiend:nevermore pugna:pugna invoker:invoker tidehunter:tidehunter mirana:mirana clinkz:clinkz"
+# id героя → папка sounds/vo/<...> → префикс БАЗОВОЙ озвучки. В папках лежат и персоны/арканы (amp_wei у Anti-Mage,
+# jung_axe, kidvoker у Invoker, mira_per, pa_asan, helmet_snip, zeus_mars), и по алфавиту они идут раньше базовых —
+# без явного префикса герой говорил чужим голосом (владелец 2026-09-06: «у Anti-Mage женская озвучка»).
+HEROES="juggernaut:juggernaut:jug_ axe:axe:axe_ crystal_maiden:crystalmaiden:cm_ sniper:sniper:snip_ zeus:zuus:zuus_ phantom_assassin:phantom_assassin:phass_ anti_mage:antimage:anti_ lina:lina:lina_ lich:lich:lich_ drow_ranger:drowranger:dro_ windranger:windrunner:wind_ bristleback:bristleback:bristle_ sven:sven:sven_ storm_spirit:stormspirit:ss_ leshrac:leshrac:lesh_ faceless_void:faceless_void:face_ ursa:ursa:ursa_ lion:lion:lion_ shadow_fiend:nevermore:nev_ pugna:pugna:pugna_ invoker:invoker:invo_ tidehunter:tidehunter:tide_ mirana:mirana:mir_ clinkz:clinkz:clinkz_"
 # категория → regex по имени файла (без префикса героя и номера) → сколько брать
 CATS="spawn:(_spawn)$:2 move:(_move)$:6 attack:(_attack)$:3 kill:(_kill)$:4 level:(_level|_levelup)$:2 death:(_death)$:2 pain:(_pain)$:2 ability:(_ability_[a-z_]+|_enrage|_overpower|_earthshock|_ult|_ulti|_laguna|_requiem|_omnislash|_bladefury|_chrono|_ravage|_finger|_godstrength|_focusfire|_multishot|_ballLightning|_deathpact|_lifedrain|_blink|_sunstrike|_pulsenova)$:4"
 mkdir -p "$OUT" "$DEST/voice" "$DEST/shared"
 INDEX="$DEST/voice/index.json"; echo "{" > "$INDEX"; first=1
 for pair in $HEROES; do
-  id="${pair%%:*}"; folder="${pair##*:}"
+  id="${pair%%:*}"; rest="${pair#*:}"; folder="${rest%%:*}"; prefix="${rest##*:}"
   src="$OUT/$id"; mkdir -p "$src"
   "$S2V" -i "$VPK" -f "sounds/vo/$folder/" -e vsnd_c -o "$src/" -d >/dev/null 2>&1 || true
   dir="$(find "$src" -type d -path "*vo/$folder" | head -1)"
@@ -28,10 +31,10 @@ for pair in $HEROES; do
   # Реплики в vpk лежат как MP3 внутри vsnd — CLI отдаёт .mp3 (кладём как есть, MP3 читают все браузеры) или .wav (жмём).
   # Базовый набор: без аркан/персон/альт-озвучек (arc, wolf, sc_, persona, dc, ti<N>) и без «мета»-реплик (rival/ally/item/deny/…).
   mkdir -p "$DEST/voice/$id"; rm -f "$DEST/voice/$id"/*.m4a "$DEST/voice/$id"/*.mp3
-  entry="$(python3 - "$dir" "$DEST/voice/$id" <<'PYSEL'
+  entry="$(python3 - "$dir" "$DEST/voice/$id" "$prefix" <<'PYSEL'
 import os, re, sys, shutil, subprocess
-src, dest = sys.argv[1], sys.argv[2]
-files = sorted(f for f in os.listdir(src) if f.endswith((".mp3", ".wav")))
+src, dest, prefix = sys.argv[1], sys.argv[2], sys.argv[3]
+files = sorted(f for f in os.listdir(src) if f.endswith((".mp3", ".wav")) and f.startswith(prefix))
 bad = re.compile(r"_arc_|^arc_|_wolf_|sc_|persona|_dc_|ti[0-9]|rival|ally|item|deny|nomana|notyet|purch|thanks|_lose|_win_?[0-9]|laugh|happy|anger|respawn|lasthit|cast_|emote|wheel|chat")
 cats = [("spawn", r"_spawn", 2), ("move", r"_move", 6), ("attack", r"_attack", 3), ("kill", r"_kill", 4), ("level", r"_level(up)?", 2),
         ("death", r"_death", 2), ("pain", r"_pain", 2), ("ability", r"_ability_|_enrage|_overpower|_earthshock|_ulti?_|_laguna|_requiem|_omnislash|_bladefury|_chrono|_ravage|_finger|_godstrength|_focusfire|_multishot|_ballLightning|_deathpact|_lifedrain|_blink|_sunstrike|_pulsenova", 4)]

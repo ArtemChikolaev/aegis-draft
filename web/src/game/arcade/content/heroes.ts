@@ -28,7 +28,7 @@ export type AbilityKind =
   // Виды для собственных китов шаблонных героев (владелец 2026-09-06: «каждый герой уникален»).
   | "dash" | "line_burst" | "meteor" | "armor_buff" | "rage" | "frenzy" | "haste" | "damage_ward" | "life_drain"
   | "gust" | "multishot" | "remnant" | "mass_freeze" | "requiem" | "goo" | "ravage" | "edict" | "death_pact"
-  | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup";
+  | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup" | "mana_void";
 
 export interface AbilityDef {
   kind: AbilityKind;
@@ -138,7 +138,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "mana_break", value: [0, 8, 14, 20, 26], cooldown: 0, passive: true },                    // Mana Break
     w: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 7, radius: 320 },                               // Blink
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Counterspell
-    r: { kind: "assassinate", value: [0, 320, 520, 720], cooldown: 60, radius: 320 },                    // Mana Void
+    r: { kind: "mana_void", value: [0, 260, 420, 580], cooldown: 60, radius: 320 },                      // Mana Void: ×(1 + потерянное HP цели), сплэш
   }),
   lina: hero("lina", 25, "lina", true, { damage: 24, maxHp: 500 }, {
     q: { kind: "line_burst", value: [0, 70, 105, 140, 175], cooldown: 7, radius: 60, count: [0, 3, 3, 3, 3] },          // Dragon Slave
