@@ -4,14 +4,16 @@
 import { Rng } from "../../rng.ts";
 import type { ArcadeOutcome, Rarity } from "../types.ts";
 
-export type CosmeticSlot = "frame" | "trail" | "death" | "tint";
+export type CosmeticSlot = "frame" | "trail" | "death" | "tint" | "skin";
 
 export interface CosmeticDef {
   id: string;
   slot: CosmeticSlot;
   rarity: Rarity;
-  /** Параметр для рендера: цвет-ключ палитры (`--arcade-*`) или вариант эффекта. */
+  /** Параметр для рендера: цвет-ключ палитры (`--arcade-*`), вариант эффекта, а у скина — имя листа `<hero>@<skin>`. */
   variant: string;
+  /** Скин привязан к герою: надетый скин другого героя просто не применяется. */
+  hero?: string;
 }
 
 export const COSMETICS: readonly CosmeticDef[] = [
@@ -29,10 +31,21 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "tint_radiance", slot: "tint", rarity: "standard", variant: "fire" },
   { id: "tint_skadi", slot: "tint", rarity: "refined", variant: "frost" },
   { id: "tint_arcane", slot: "tint", rarity: "exotic", variant: "lightning" },
+  // Скины (этап 3, владелец: «арканы и сеты, как в Dota; персона Wei — хороший ход»): модель + озвучка из тех же файлов Dota.
+  { id: "skin_sf_arcana", slot: "skin", rarity: "arcana", variant: "shadow_fiend@arcana", hero: "shadow_fiend" },
+  { id: "skin_jugg_arcana", slot: "skin", rarity: "arcana", variant: "juggernaut@arcana", hero: "juggernaut" },
+  { id: "skin_am_wei", slot: "skin", rarity: "exotic", variant: "anti_mage@wei", hero: "anti_mage" },
 ];
 
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));
-export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["frame", "trail", "death", "tint"];
+export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["skin", "frame", "trail", "death", "tint"];
+
+/** Имя листа/озвучки героя с учётом надетого скина: `<hero>@<skin>`, если скин этого героя надет, иначе id героя. */
+export function skinnedHero(hero: string, equipped: Partial<Record<CosmeticSlot, string>>): string {
+  const id = equipped.skin;
+  const def = id ? COSMETIC_BY_ID[id] : undefined;
+  return def && def.slot === "skin" && def.hero === hero ? def.variant : hero;
+}
 
 /** Осколки Aegis за дубликат — по редкости. */
 export const DUPLICATE_SHARDS: Record<Rarity, number> = { standard: 5, refined: 12, exotic: 30, arcana: 80 };

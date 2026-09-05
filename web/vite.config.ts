@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import { aegisGameLogPlugin } from "./vite-plugin-game-log.ts";
+import { swKillSwitchPlugin } from "./vite-plugin-sw-killswitch.ts";
 
 // base конфигурируется через VITE_BASE (деплой на GitHub Pages ставит /aegis-draft/);
 // по умолчанию корень — для dev, превью и хостингов без сабпути (Cloudflare/Netlify).
@@ -10,6 +11,8 @@ export default defineConfig({
   plugins: [
     react(),
     aegisGameLogPlugin(),
+    // Dev: по URL прод-воркера отдаём самоуничтожающийся SW, чтобы старый precache не подменял dev-бандл.
+    swKillSwitchPlugin(),
     // Офлайн (ADR 0003, T11.1). Режим injectManifest: плагин подставляет в наш `src/sw.ts`
     // список хешированных ассетов сборки, вся стратегия — наша (готовые рецепты не умеют
     // атомарный своп датасета по dataHash).

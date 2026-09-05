@@ -61,6 +61,13 @@ export class ArcadeRenderer {
     this.cosmetic = next;
   }
 
+  /** Лист героя с учётом скина (`<hero>@<skin>`), с падением на базовый лист, пока скин не загрузился или не для этого героя. */
+  private heroSheet(hero: string) {
+    const skin = this.cosmetic.skin;
+    if (skin && skin.startsWith(`${hero}@`)) { const ds = dotaSheet(skin); if (ds) return ds; }
+    return dotaSheet(hero);
+  }
+
   private tintKey(pal: Palette): string {
     const t = this.cosmetic.tint;
     return t === "fire" ? pal.fire : t === "frost" ? pal.frost : t === "lightning" ? pal.lightning : pal.playerRing;
@@ -479,7 +486,7 @@ export class ArcadeRenderer {
     // Куда смотрит спрайт: в цель, пока идёт удар/выстрел, иначе — по движению (Dead Cells/DMD: ноги бегут, корпус целится).
     const aiming = sim.tick < p.aimUntil;
     const lookX = aiming ? p.aimX : p.facingX, lookY = aiming ? p.aimY : p.facingY;
-    const heroDota = dotaSheet(sim.hero.id);
+    const heroDota = this.heroSheet(sim.hero.id);
     const heroSheet = heroDota ? null : charSheet(`hero:${sim.hero.id}`, look, heroAnim);
     if (heroDota) {
       // Вихрь: свой клип `spin` (attack_spin у Juggernaut) в темпе листа; без него — клип удара, но не

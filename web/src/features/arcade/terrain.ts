@@ -121,8 +121,10 @@ export class Terrain {
         fc.drawImage(small, 0, 0, small.width, small.height, 0, 0, size, size);
         c.drawImage(fill, M, M, CHUNK, CHUNK, 0, 0, CHUNK, CHUNK);
       };
-      if (dDirt) layer(dDirt, (gx, gy) => this.tileAt(gx, gy) === 2, 7);
-      if (dWater && this.act === "river") layer(dWater, (_gx, gy) => Math.abs(gy * TILE + TILE / 2 - ARCADE.river.y) < ARCADE.river.halfWidth, 4);
+      // В пиксельном режиме чанк уменьшается вдвое — край троп нужен шире, иначе тайлы читаются квадратами.
+      const soft = pixelSheetsOn() ? 2.2 : 1;
+      if (dDirt) layer(dDirt, (gx, gy) => this.tileAt(gx, gy) === 2, 7 * soft);
+      if (dWater && this.act === "river") layer(dWater, (_gx, gy) => Math.abs(gy * TILE + TILE / 2 - ARCADE.river.y) < ARCADE.river.halfWidth, 4 * soft);
       if (night) { c.fillStyle = pal.grassA; c.globalAlpha = 0.5; c.fillRect(0, 0, CHUNK, CHUNK); c.globalAlpha = 1; }
       this.paintDecor(c, ox, oy, pal, treetop, rock, night);
       return;
