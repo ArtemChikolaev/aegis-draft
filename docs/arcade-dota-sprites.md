@@ -131,6 +131,12 @@ cd /Users/Shared/Coding/aegis-draft/web && npm run dev   # или мой 5273
 S2V=~/tools/s2v/Source2Viewer-CLI bash web/scripts/dota_sounds.sh
 ```
 Скрипт выгружает `sounds/weapons/hero/<папка>/` (имена папок Valve отличаются: `zuus`, `bristlebog`, `nevermore`, `windrunner`, `antimage` — таблица в скрипте), берёт `attack*`/`*swing*`, `preattack*`, `impact*`, жмёт `afconvert` в AAC mono 40 kbps и пишет `public/art/sfx/dota/index.json`. Игра (`features/arcade/heroSfx.ts`) играет клип героя на каждый удар, петлю Blade Fury у Juggernaut; нет клипов — синтетика. Арканы/сеты: `arcana_*` файлы в тех же папках — под T13.12.
+- **Скины и базовые префиксы (2026-09-06):** в папке `sounds/vo/<hero>/` лежат вперемешку база, арканы и персоны; базовый
+  префикс определять по именам `*_move_01.vsnd_c` (S2V -l), не по частоте: Razor — `raz_` (`rz_vsa_` — аркана), Dragon Knight —
+  `drag_` (`dk_davion_`/`dk_slyrak_` — персоны), Earthshaker — `erth_` (`earth_arcana_`), QoP — `pain_` (`qop_arc_`), Ogre —
+  `ogmag_` (`ogm_arc_`). Скин со своей озвучкой — отдельная запись `hero@skin:папка:префикс` в `dota_voice.sh`; токены скинов
+  (`_arc_`, `_vsa_`, `_per_`, `_davion_`, `persona`, …) исключаются из базы, но не из набора самого скина. Скин без своей
+  озвучки (арканы CM/PA) говорит голосом базового героя (`voiceKey` в `heroSfx.ts`).
 
 ## 7. Пиксельный стиль (Dead Cells-подход) — пилот
 Решение владельца 2026-09-06: режим должен выглядеть пиксельным, ориентир — Dead Cells (детальный пиксель, не 8-бит).

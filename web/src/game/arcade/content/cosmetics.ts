@@ -35,6 +35,23 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_sf_arcana", slot: "skin", rarity: "arcana", variant: "shadow_fiend@arcana", hero: "shadow_fiend" },
   { id: "skin_jugg_arcana", slot: "skin", rarity: "arcana", variant: "juggernaut@arcana", hero: "juggernaut" },
   { id: "skin_am_wei", slot: "skin", rarity: "exotic", variant: "anti_mage@wei", hero: "anti_mage" },
+  // Партия 2 (2026-09-06, владелец: «у кого-то есть арканы, у кого-то личности»): модели аркан/персон из vpk
+  // (`models/heroes/<hero>*` и `models/items/<hero>/arcana*`), озвучка — свои префиксы в dota_voice.sh, нет своей — базовая.
+  { id: "skin_cm_arcana", slot: "skin", rarity: "arcana", variant: "crystal_maiden@arcana", hero: "crystal_maiden" },
+  { id: "skin_cm_persona", slot: "skin", rarity: "exotic", variant: "crystal_maiden@persona", hero: "crystal_maiden" },
+  { id: "skin_dk_persona", slot: "skin", rarity: "exotic", variant: "dragon_knight@persona", hero: "dragon_knight" },
+  { id: "skin_mirana_persona", slot: "skin", rarity: "exotic", variant: "mirana@persona", hero: "mirana" },
+  { id: "skin_pa_arcana", slot: "skin", rarity: "arcana", variant: "phantom_assassin@arcana", hero: "phantom_assassin" },
+  { id: "skin_pa_persona", slot: "skin", rarity: "exotic", variant: "phantom_assassin@persona", hero: "phantom_assassin" },
+  { id: "skin_zeus_arcana", slot: "skin", rarity: "arcana", variant: "zeus@arcana", hero: "zeus" },
+  { id: "skin_wk_arcana", slot: "skin", rarity: "arcana", variant: "wraith_king@arcana", hero: "wraith_king" },
+  { id: "skin_es_arcana", slot: "skin", rarity: "arcana", variant: "earthshaker@arcana", hero: "earthshaker" },
+  { id: "skin_qop_arcana", slot: "skin", rarity: "arcana", variant: "queen_of_pain@arcana", hero: "queen_of_pain" },
+  { id: "skin_fv_arcana", slot: "skin", rarity: "arcana", variant: "faceless_void@arcana", hero: "faceless_void" },
+  { id: "skin_wr_arcana", slot: "skin", rarity: "arcana", variant: "windranger@arcana", hero: "windranger" },
+  { id: "skin_ogre_arcana", slot: "skin", rarity: "arcana", variant: "ogre_magi@arcana", hero: "ogre_magi" },
+  { id: "skin_razor_arcana", slot: "skin", rarity: "arcana", variant: "razor@arcana", hero: "razor" },
+  { id: "skin_invoker_kid", slot: "skin", rarity: "exotic", variant: "invoker@kid", hero: "invoker" },
 ];
 
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));

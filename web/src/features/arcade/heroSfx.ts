@@ -83,9 +83,17 @@ function loadVoice(): void {
     .then((data) => { voice = data; }, () => { voice = {}; });
 }
 
+/** Ключ озвучки: скин со своими репликами (`hero@skin` в индексе) или базовый герой (арканы без отдельной озвучки). */
+function voiceKey(hero: string): string {
+  const has = (k: string) => { const e = voice?.[k]; return !!e && Object.values(e).some((files) => files && files.length > 0); };
+  if (has(hero)) return hero;
+  const base = hero.split("@")[0];
+  return has(base) ? base : hero;
+}
+
 export function preloadHeroVoice(hero: string): void {
   loadVoice();
-  const run = () => { const e = voice?.[hero]; if (!e) return; for (const files of Object.values(e)) for (const f of files ?? []) preloadSample(vurl(hero, f)); };
+  const run = () => { const key = voiceKey(hero); const e = voice?.[key]; if (!e) return; for (const files of Object.values(e)) for (const f of files ?? []) preloadSample(vurl(key, f)); };
   if (voice) run(); else voiceJob?.then(run);
 }
 
@@ -95,13 +103,14 @@ export function preloadHeroVoice(hero: string): void {
  */
 export function heroVoice(hero: string, cat: VoiceCat, now: number, chance = 1, cooldownMs = 0): boolean {
   loadVoice();
-  const pool = voice?.[hero]?.[cat];
+  const key = voiceKey(hero);
+  const pool = voice?.[key]?.[cat];
   if (!pool?.length) return false;
   if (now < voiceBusyUntil || now < (voiceCd[cat] ?? 0)) return false;
   if (chance < 1 && Math.random() > chance) { voiceCd[cat] = now + cooldownMs * 0.5; return false; }
   const i = ((voiceIdx[cat] ?? -1) + 1 + Math.floor(Math.random() * Math.max(1, pool.length - 1))) % pool.length;
   voiceIdx[cat] = i;
-  const u = vurl(hero, pool[i]);
+  const u = vurl(key, pool[i]);
   if (!sfxSample(u, 0.9, 1, 0, "voice")) return false;
   const dur = sampleDuration(u) || 2;
   voiceBusyUntil = now + dur * 1000 + 250;
