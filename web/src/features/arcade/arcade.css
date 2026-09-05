@@ -153,8 +153,8 @@
 
 /* Лавка: свои предметы с продажей (T13.8, фидбэк владельца 2026-09-06 — «нельзя поменять предмет») */
 .arcade-shop__owned { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0 4px; }
-.arcade-shop__owned-title { flex-basis: 100%; font: 500 12px var(--font-body); color: var(--muted); }
-.arcade-shop__sell { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 500 12px var(--font-body); cursor: pointer; }
+.arcade-shop__owned-title { flex-basis: 100%; font: 500 12px inherit; color: var(--muted); }
+.arcade-shop__sell { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 500 12px inherit; cursor: pointer; }
 .arcade-shop__sell small { color: var(--accent); font-weight: 700; }
 .arcade-shop__sell:hover { border-color: var(--accent); }
 
