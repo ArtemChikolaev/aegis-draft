@@ -154,6 +154,7 @@ export class ArcadeRenderer {
     this.drawSpots(sim, pal, now);
     this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
+    this.drawPets(sim, pal);
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
     this.drawFx(sim, pal);
@@ -312,6 +313,26 @@ export class ArcadeRenderer {
       const bob = Math.sin(now / 200 + g.x) * 2;
       if (img) c.drawImage(img, g.x - 14, g.y - 12 + bob, 28, 20);
       else { c.fillStyle = color; c.fillRect(g.x - 8, g.y - 8 + bob, 16, 12); }
+    }
+  }
+
+  /** Питомцы «Зверинца»: листы dota_px/{hawk,wolf,bear}; без листа — цветной кружок с обводкой героя. */
+  private drawPets(sim: ArcadeSim, pal: Palette): void {
+    const c = this.ctx;
+    const tick = sim.tick;
+    for (const pet of sim.pets) {
+      const ds = dotaSheet(pet.kind);
+      const attacking = tick - pet.hitAt < 14;
+      if (ds) {
+        const anim = attacking ? "attack" : "walk";
+        const frames = ds.meta.anims[anim]?.frames ?? ds.meta.anims.idle?.frames ?? 1;
+        const frame = attacking ? Math.floor(((tick - pet.hitAt) / 14) * frames) : Math.floor((tick / 60) * ds.meta.fps);
+        drawDotaFrame(c, ds, anim, dotaDir(pet.facingX, pet.facingY, ds.meta.dirs), frame, pet.x, pet.y + (pet.kind === "hawk" ? -18 : 6));
+      } else {
+        c.fillStyle = pal.player; c.globalAlpha = 0.9;
+        c.beginPath(); c.arc(pet.x, pet.y, pet.kind === "bear" ? 14 : 9, 0, Math.PI * 2); c.fill();
+        c.globalAlpha = 1;
+      }
     }
   }
 

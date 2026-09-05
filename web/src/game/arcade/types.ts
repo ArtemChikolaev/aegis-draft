@@ -61,7 +61,19 @@ export interface EnemyKind {
   tone: "grunt" | "brute" | "swift" | "elite" | "boss" | "creep";
 }
 
-export type SchoolId = "radiance" | "skadi" | "maelstrom";
+export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast";
+
+/** Питомец (школа «Зверинец»): позиция, цель, перезарядка удара; неуязвим, следует за героем. */
+export interface Pet {
+  kind: "hawk" | "wolf" | "bear";
+  x: number;
+  y: number;
+  cd: number;
+  facingX: number;
+  facingY: number;
+  /** Тик последнего удара — для анимации. */
+  hitAt: number;
+}
 export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive";
 export type Rarity = "standard" | "refined" | "exotic" | "arcana";
 

@@ -117,6 +117,8 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   const margin = 240;
   if (p.x < margin) fx += (margin - p.x) / margin * 2; if (p.x > ARCADE.world.w - margin) fx -= (p.x - (ARCADE.world.w - margin)) / margin * 2;
   if (p.y < margin) fy += (margin - p.y) / margin * 2; if (p.y > ARCADE.world.h - margin) fy -= (p.y - (ARCADE.world.h - margin)) / margin * 2;
+  // Препятствия (T13.19): бот ходит по прямой — подруливаем вокруг деревьев/камней тем же steer, что и сим при упоре.
+  [fx, fy] = sim.obstacles.steer(p.x, p.y, fx, fy, ARCADE.player.r, 80);
   const l = Math.sqrt(fx * fx + fy * fy);
   if (l < 0.05) return { mx: 0, my: 0, cast: 0, choose: -1, act: 0 };
   return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1, act: 0 };

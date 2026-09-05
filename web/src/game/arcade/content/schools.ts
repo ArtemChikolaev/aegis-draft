@@ -3,7 +3,7 @@
 // Тексты — в i18n (`arcade.up.<id>` / `arcade.up.<id>.desc`), иконки — `art/items`.
 import type { SchoolId, UpgradeDef } from "../types.ts";
 
-export const SCHOOLS: readonly SchoolId[] = ["radiance", "skadi", "maelstrom"];
+export const SCHOOLS: readonly SchoolId[] = ["radiance", "skadi", "maelstrom", "beast"];
 
 /** Иконка школы — внутреннее имя предмета Dota (см. ui/artSource itemArtSources). */
 /** Иконки — настоящие предметы-тёзки школ (Eye of Skadi, Maelstrom); зеркалятся `npm run gen:art`. */
@@ -11,6 +11,7 @@ export const SCHOOL_ART: Record<SchoolId, string> = {
   radiance: "radiance",
   skadi: "skadi",
   maelstrom: "maelstrom",
+  beast: "helm_of_the_dominator",
 };
 
 // Дерево как у богов DMD: сначала ИСТОЧНИК статуса (аура/удар/залп), потом модификаторы к нему (`requires`) —
@@ -31,6 +32,13 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "mae_overcharge", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap"] },
   { id: "mae_clap", school: "maelstrom", type: "strike", maxRank: 3 },
   { id: "mae_mjollnir", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap"] },
+  // Зверинец (T13.21, питомцы как призывы DMD): ястреб собирает опыт, волк кусает и замедляет, медведь бьёт и оглушает;
+  // стая и рёв — модификаторы, требуют зверя.
+  { id: "beast_hawk", school: "beast", type: "power", maxRank: 3 },
+  { id: "beast_wolf", school: "beast", type: "strike", maxRank: 3 },
+  { id: "beast_bear", school: "beast", type: "attack", maxRank: 3 },
+  { id: "beast_pack", school: "beast", type: "power", maxRank: 2, requires: ["beast_wolf"] },
+  { id: "beast_roar", school: "beast", type: "passive", maxRank: 3, requires: ["beast_wolf", "beast_bear"] },
   // Легендарные (T13.18, владелец: «разбить на тиры, чтобы выпадали мега-сильные пассивки»): один ранг,
   // предлагаются редко (шанс растёт с минутами) и гарантированно на 12/18/24 уровнях. Механика — sim.ts по id.
   { id: "leg_heart", school: "radiance", type: "power", maxRank: 1, legendary: true, neutral: true, art: "heart" },

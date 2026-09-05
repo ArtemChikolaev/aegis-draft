@@ -692,7 +692,7 @@ function statLines(t: (k: MessageKey, v?: Record<string, string | number>) => st
     if (e.goldPerKill) add("arcade.stat.goldPerKill", { v: num(e.goldPerKill * m) });
     if (e.xpMult) add("arcade.stat.xpMult", { v: pct(e.xpMult * m) });
     if (e.cleave) add("arcade.stat.cleave", { v: (e.cleave * m).toFixed(1) });
-    if (e.cooldown) add("arcade.stat.cooldown", { v: pct(e.cooldown * m) });
+    if (e.cooldown) add("arcade.stat.cooldown", { v: `${Math.round(e.cooldown * m * 100)}%` });
     if (e.stunImmune) out.push({ text: t("arcade.stat.stunImmune"), extra: !!extra });
   }
   return out;

@@ -9,6 +9,7 @@
 // ничего в сим не пишет. Level-up останавливает мир (`pending`) до `input.choose`.
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
+import { PETS, type PetKind } from "./content/pets.ts";
 import { ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -41,6 +42,7 @@ import {
   type Shrine,
   type Spot,
   SHOP_ACT,
+  type Pet,
 } from "./types.ts";
 
 /** 16 направлений по кругу — константы вместо Math.cos/sin (детерминизм между движками). */
@@ -115,6 +117,8 @@ export class ArcadeSim {
   enemies: Enemy[] = [];
   projectiles: Projectile[] = [];
   shards: Shard[] = [];
+  /** Питомцы школы «Зверинец» — состав синхронизируется с рангами апгрейдов (syncPets). */
+  pets: Pet[] = [];
   fx: Fx[] = [];
   pending: Offer[] | null = null;
   over: ArcadeOutcome | null = null;
@@ -223,6 +227,7 @@ export class ArcadeSim {
     this.spawnTick();
     this.rebuildGrid();
     this.moveEnemies();
+    this.tickPets();
     this.playerCombat(input);
     this.schoolEffects();
     this.moveProjectiles();
@@ -252,9 +257,21 @@ export class ArcadeSim {
     let speed = p.stats.speed;
     if (this.tick < p.spinUntil || this.tick < p.hasteUntil) speed *= 1.12;
     if (this.tick < p.fieldUntil) speed *= 0.5;
+    const ox = p.x, oy = p.y;
     p.x = clamp(p.x + dx * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
     p.y = clamp(p.y + dy * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
     [p.x, p.y] = this.obstacles.resolve(p.x, p.y, ARCADE.player.r);
+    // Упёрлись в дерево/камень (прошли меньше 40% шага) — скользим по касательной, а не стоим носом в ствол.
+    // Без этого бот калибровки, идущий по прямой, терял 25 п.п. побед; игроку тоже приятнее.
+    if (l > 0.05) {
+      const want = speed * DT * Math.min(1, l), got = len(p.x - ox, p.y - oy);
+      if (got < want * 0.4) {
+        const [sx, sy] = this.obstacles.steer(ox, oy, dx, dy, ARCADE.player.r);
+        p.x = clamp(ox + sx * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
+        p.y = clamp(oy + sy * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
+        [p.x, p.y] = this.obstacles.resolve(p.x, p.y, ARCADE.player.r);
+      }
+    }
   }
 
   private playerCombat(input: ArcadeInput): void {
@@ -1249,9 +1266,18 @@ export class ArcadeSim {
           if (od > 0 && od < minD) { sx += ox / od * (minD - od); sy += oy / od * (minD - od); }
         }
       }
+      const ex0 = e.x, ey0 = e.y;
       e.x += (dx / d * speed) * DT + sx * 0.5;
       e.y += (dy / d * speed) * DT + sy * 0.5;
-      if (!e.kind.boss && !e.kind.structure && !e.kind.unstoppable) [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+      if (!e.kind.boss && !e.kind.structure && !e.kind.unstoppable) {
+        [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+        // Застрял за деревом — обойти по касательной (иначе толпа копится за стволами и не доходит).
+        if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
+          const [mx, my] = this.obstacles.steer(ex0, ey0, dx / d, dy / d, e.kind.r * 0.8, 28);
+          e.x = ex0 + mx * speed * DT; e.y = ey0 + my * speed * DT;
+          [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+        }
+      }
       // Контакт с игроком.
       if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
         e.contactCd = sec(ARCADE.player.contactEvery);
@@ -1359,6 +1385,69 @@ export class ArcadeSim {
     }
     if (!free) { free = { alive: false, x: 0, y: 0, xp: 0 }; this.shards.push(free); }
     free.alive = true; free.x = x; free.y = y; free.xp = xp;
+  }
+
+  /** Состав питомцев по рангам апгрейдов: волков 1 + Стая, медведь и ястреб по одному. Новые появляются у героя. */
+  private syncPets(): void {
+    const p = this.player;
+    const want: Record<PetKind, number> = {
+      hawk: (p.upgrades.beast_hawk?.rank ?? 0) > 0 ? 1 : 0,
+      wolf: (p.upgrades.beast_wolf?.rank ?? 0) > 0 ? 1 + (p.upgrades.beast_pack?.rank ?? 0) : 0,
+      bear: (p.upgrades.beast_bear?.rank ?? 0) > 0 ? 1 : 0,
+    };
+    for (const kind of Object.keys(want) as PetKind[]) {
+      let have = this.pets.filter((q) => q.kind === kind).length;
+      while (have < want[kind]) { this.pets.push({ kind, x: p.x + (this.rng.float() - 0.5) * 60, y: p.y + 40 + this.rng.float() * 20, cd: 0, facingX: 1, facingY: 0, hitAt: -999 }); have++; }
+    }
+  }
+
+  private petPower(): number {
+    return 1 + 0.35 * (this.player.upgrades.beast_roar?.rank ?? 0);
+  }
+
+  private tickPets(): void {
+    if (this.pets.length === 0) return;
+    const p = this.player;
+    for (let i = 0; i < this.pets.length; i++) {
+      const pet = this.pets[i];
+      const def = PETS[pet.kind];
+      const rank = this.player.upgrades[pet.kind === "hawk" ? "beast_hawk" : pet.kind === "wolf" ? "beast_wolf" : "beast_bear"]?.rank ?? 1;
+      pet.cd = Math.max(0, pet.cd - 1);
+      // Цель: ближайший враг в радиусе поиска; иначе — держаться рядом с героем (каждый со своим смещением).
+      const target = def.seek > 0 ? this.nearestEnemy(pet.x, pet.y, def.seek) : null;
+      let tx: number, ty: number;
+      if (target) { tx = target.x; ty = target.y; }
+      else { const ang = (i * 2.4) % 6.283; tx = p.x + Math.cos(ang) * def.leash; ty = p.y + Math.sin(ang) * def.leash; }
+      const dx = tx - pet.x, dy = ty - pet.y, d = len(dx, dy) || 1;
+      const stop = target ? def.reach * 0.8 + target.kind.r : 8;
+      const far = len(pet.x - p.x, pet.y - p.y);
+      // Слишком далеко от героя — телепорт за спину (как Spirit Bear на привязи).
+      if (far > 520) { pet.x = p.x - p.facingX * 30; pet.y = p.y - p.facingY * 30; continue; }
+      if (d > stop) {
+        const sp = def.speed * (far > 300 ? 1.6 : 1) * DT;
+        pet.x += dx / d * Math.min(sp, d - stop); pet.y += dy / d * Math.min(sp, d - stop);
+        pet.facingX = dx / d; pet.facingY = dy / d;
+      }
+      if (pet.kind !== "hawk") [pet.x, pet.y] = this.obstacles.resolve(pet.x, pet.y, def.r);
+      // Удар.
+      if (target && pet.cd === 0 && len(target.x - pet.x, target.y - pet.y) <= def.reach + target.kind.r) {
+        pet.cd = sec(def.every);
+        pet.hitAt = this.tick;
+        const dmg = def.dmg * rank * this.petPower();
+        this.damageEnemy(target, dmg, "hit");
+        if (def.slow) this.applyChill(target, def.slow, 1, false);
+        if (def.stun && !target.kind.unstoppable && this.rng.float() < def.stun) target.stunUntil = Math.max(target.stunUntil, this.tick + sec(0.3));
+      }
+      // Ястреб: собирает шарды вокруг себя (радиус растёт с рангом).
+      if (def.collect) {
+        const rr = def.collect + 30 * (rank - 1);
+        for (const sh of this.shards) {
+          if (!sh.alive) continue;
+          const sd = len(sh.x - pet.x, sh.y - pet.y);
+          if (sd < rr) { const ddx = pet.x - sh.x, ddy = pet.y - sh.y; sh.x += ddx / (sd || 1) * ARCADE.xp.magnetSpeed * 1.5 * DT; sh.y += ddy / (sd || 1) * ARCADE.xp.magnetSpeed * 1.5 * DT; if (sd < 14) { sh.alive = false; this.events.pickups++; this.gainXp(sh.xp); } }
+        }
+      }
+    }
   }
 
   private collectShards(): void {
@@ -1589,6 +1678,7 @@ export class ArcadeSim {
     }
     this.pending = null;
     this.recomputeStats();
+    this.syncPets();
     // Уровень мог набежать «через» (несколько шардов разом) — следующий выбор на следующем тике.
     if (p.xp >= p.xpNext) { const carry = p.xp; p.xp = 0; this.gainXp(carry); }
   }

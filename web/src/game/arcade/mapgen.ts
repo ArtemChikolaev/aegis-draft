@@ -13,7 +13,7 @@ export interface ArcadeMap { cols: number; rows: number; tiles: Uint8Array; deco
 
 /** Коллизия: у дерева — ствол (меньше кроны), у камня — почти весь спрайт. */
 export function obstacleRadius(d: Decor): number {
-  return d.kind === "tree" ? 8 + d.s * 0.32 : 6 + d.s * 1.1;
+  return d.kind === "tree" ? 6 + d.s * 0.26 : 4 + d.s * 0.95;
 }
 
 export function generateMap(seed: string, act: ActId): ArcadeMap {
@@ -99,6 +99,35 @@ export class ObstacleGrid {
     }
     return [x, y];
   }
+  /**
+   * Подруливание: если по курсу (dx, dy) в пределах `ahead` стоит препятствие, вернуть направление, скользящее по
+   * касательной к нему (в сторону, куда ближе обойти). Иначе — исходное. Нужен и игроку (не упираться носом в
+   * дерево), и боту калибровки, который ходит по прямой.
+   */
+  steer(x: number, y: number, dx: number, dy: number, r: number, ahead = 36): [number, number] {
+    const l = Math.hypot(dx, dy);
+    if (l < 1e-6) return [dx, dy];
+    const ux = dx / l, uy = dy / l;
+    let best: Obstacle | null = null, bestT = Infinity;
+    for (const o of this.near(x + ux * ahead * 0.5, y + uy * ahead * 0.5)) {
+      const ox = o.x - x, oy = o.y - y;
+      const t = ox * ux + oy * uy;                 // проекция центра на курс
+      if (t <= 0 || t > ahead + o.r) continue;
+      const side = Math.abs(ox * uy - oy * ux);    // расстояние центра от линии курса
+      if (side >= o.r + r) continue;
+      if (t < bestT) { bestT = t; best = o; }
+    }
+    if (!best) return [dx, dy];
+    const ox = best.x - x, oy = best.y - y;
+    const cross = ox * uy - oy * ux;              // знак — с какой стороны центр
+    const sgn = cross > 0 ? 1 : -1;               // обходим со стороны, противоположной центру
+    const tx = -uy * sgn, ty = ux * sgn;          // касательная
+    const k = Math.min(1, (best.r + r) / Math.max(1, bestT)); // чем ближе, тем сильнее сворачиваем
+    const nx = ux * (1 - 0.7 * k) + tx * k, ny = uy * (1 - 0.7 * k) + ty * k;
+    const nl = Math.hypot(nx, ny) || 1;
+    return [nx / nl * l, ny / nl * l];
+  }
+
   blocked(x: number, y: number, r: number): boolean {
     for (const o of this.near(x, y)) { const dx = x - o.x, dy = y - o.y, m = o.r + r; if (dx * dx + dy * dy < m * m) return true; }
     return false;

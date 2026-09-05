@@ -1,0 +1,34 @@
+{
+  "name": "bear",
+  "frame": 64,
+  "dirs": 4,
+  "fps": 10,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.786
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 8
+    },
+    "idle": {
+      "row": 4,
+      "frames": 8
+    },
+    "attack": {
+      "row": 8,
+      "frames": 6
+    },
+    "death": {
+      "row": 12,
+      "frames": 8
+    }
+  },
+  "source": "spirit_bear.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}
