@@ -1,0 +1,33 @@
+{
+  "name": "juggernaut",
+  "frame": 128,
+  "dirs": 8,
+  "fps": 12,
+  "world": 84,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 8
+    },
+    "idle": {
+      "row": 8,
+      "frames": 10
+    },
+    "attack": {
+      "row": 16,
+      "frames": 10
+    },
+    "death": {
+      "row": 24,
+      "frames": 10
+    }
+  },
+  "source": "juggernaut.glb",
+  "orientation": "none",
+  "pitch": 45.0
+}
