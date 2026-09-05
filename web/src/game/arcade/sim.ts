@@ -118,7 +118,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -551,6 +551,7 @@ export class ArcadeSim {
     }
     if (!cast) return;
     if (key === "r") this.events.ults++; else this.events.casts++;
+    if (key === "q") this.events.castQ++; else if (key === "w") this.events.castW++; else if (key === "e") this.events.castE++; else this.events.castR++;
     const sig = this.hero.signature;
     if (sig?.kind === "fiery_soul") p.sigUntil = this.tick + sec(sig.duration ?? 6); // Lina: скорость атаки после каста
     if (sig?.kind === "overload") p.sigArmed = true; // Storm: следующий удар бьёт по площади
@@ -922,8 +923,9 @@ export class ArcadeSim {
     }
   }
 
-  private damagePlayer(amount: number, stun = 0): void {
+  private damagePlayer(amount: number, stun = 0, by?: EnemyKind): void {
     const p = this.player;
+    this.events.hurtBy = by ? KIND_INDEX[by.id] ?? -1 : -1;
     if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.hero.abilities.r.kind === "omni")) return;
     const sig = this.hero.signature;
     if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
@@ -1223,7 +1225,7 @@ export class ArcadeSim {
       // Контакт с игроком.
       if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
         e.contactCd = sec(ARCADE.player.contactEvery);
-        this.damagePlayer(e.dmg);
+        this.damagePlayer(e.dmg, 0, e.kind);
       }
     }
     void B;
@@ -1237,7 +1239,7 @@ export class ArcadeSim {
       e.slamT--;
       if (e.slamT === 0) {
         const p = this.player;
-        if (len(p.x - e.slamX, p.y - e.slamY) <= B.slamRadius + ARCADE.player.r) this.damagePlayer(B.slamDmg * (enraged ? 3 : 1), B.slamStun);
+        if (len(p.x - e.slamX, p.y - e.slamY) <= B.slamRadius + ARCADE.player.r) this.damagePlayer(B.slamDmg * (enraged ? 3 : 1), B.slamStun, e.kind);
         this.shake = Math.max(this.shake, 10);
         this.pushFx("nova", e.slamX, e.slamY, B.slamRadius, 0, 16);
         e.slamCd = B.slamCooldown;
@@ -1269,7 +1271,7 @@ export class ArcadeSim {
     e.y += dy / d * speed * DT;
     if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
       e.contactCd = sec(B.contactEvery);
-      this.damagePlayer(e.dmg * (enraged ? 3 : 1));
+      this.damagePlayer(e.dmg * (enraged ? 3 : 1), 0, e.kind);
     }
   }
 

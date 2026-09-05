@@ -1,0 +1,540 @@
+{
+ "abilities": {
+  "juggernaut": {
+   "w": [
+    "juggernaut_w_1.m4a"
+   ],
+   "r": [
+    "juggernaut_r_1.m4a",
+    "juggernaut_r_2.m4a"
+   ]
+  },
+  "axe": {
+   "q": [
+    "axe_q_1.m4a"
+   ],
+   "w": [
+    "axe_w_1.m4a"
+   ],
+   "e": [
+    "axe_e_1.m4a"
+   ],
+   "r": [
+    "axe_r_1.m4a"
+   ]
+  },
+  "crystal_maiden": {
+   "q": [
+    "crystal_maiden_q_1.m4a",
+    "crystal_maiden_q_2.m4a"
+   ],
+   "w": [
+    "crystal_maiden_w_1.m4a"
+   ],
+   "r": [
+    "crystal_maiden_r_1.mp3"
+   ]
+  },
+  "sniper": {
+   "q": [
+    "sniper_q_1.m4a"
+   ],
+   "r": [
+    "sniper_r_1.m4a",
+    "sniper_r_2.m4a"
+   ]
+  },
+  "zeus": {
+   "q": [
+    "zeus_q_1.m4a"
+   ],
+   "w": [
+    "zeus_w_1.m4a"
+   ],
+   "e": [
+    "zeus_e_1.m4a"
+   ],
+   "r": [
+    "zeus_r_1.m4a"
+   ]
+  },
+  "phantom_assassin": {
+   "q": [
+    "phantom_assassin_q_1.m4a"
+   ],
+   "w": [
+    "phantom_assassin_w_1.m4a"
+   ],
+   "r": [
+    "phantom_assassin_r_1.m4a"
+   ]
+  },
+  "anti_mage": {
+   "w": [
+    "anti_mage_w_1.m4a",
+    "anti_mage_w_2.m4a"
+   ],
+   "e": [
+    "anti_mage_e_1.m4a"
+   ],
+   "r": [
+    "anti_mage_r_1.m4a",
+    "anti_mage_r_2.m4a"
+   ]
+  },
+  "lina": {
+   "q": [
+    "lina_q_1.m4a",
+    "lina_q_2.m4a"
+   ],
+   "w": [
+    "lina_w_1.m4a"
+   ],
+   "e": [
+    "lina_e_1.m4a"
+   ],
+   "r": [
+    "lina_r_1.m4a"
+   ]
+  },
+  "lich": {
+   "q": [
+    "lich_q_1.m4a"
+   ],
+   "w": [
+    "lich_w_1.m4a"
+   ],
+   "e": [
+    "lich_e_1.m4a"
+   ],
+   "r": [
+    "lich_r_1.m4a"
+   ]
+  },
+  "drow_ranger": {
+   "w": [
+    "drow_ranger_w_1.m4a"
+   ],
+   "e": [
+    "drow_ranger_e_1.m4a"
+   ]
+  },
+  "windranger": {
+   "q": [
+    "windranger_q_1.m4a",
+    "windranger_q_2.m4a"
+   ],
+   "w": [
+    "windranger_w_1.m4a",
+    "windranger_w_2.m4a"
+   ],
+   "e": [
+    "windranger_e_1.m4a"
+   ],
+   "r": [
+    "windranger_r_1.m4a"
+   ]
+  },
+  "bristleback": {
+   "q": [
+    "bristleback_q_1.m4a"
+   ],
+   "w": [
+    "bristleback_w_1.m4a"
+   ],
+   "r": [
+    "bristleback_r_1.m4a"
+   ]
+  },
+  "sven": {
+   "q": [
+    "sven_q_1.m4a",
+    "sven_q_2.m4a"
+   ],
+   "e": [
+    "sven_e_1.m4a"
+   ],
+   "r": [
+    "sven_r_1.m4a"
+   ]
+  },
+  "storm_spirit": {
+   "q": [
+    "storm_spirit_q_1.m4a"
+   ],
+   "w": [
+    "storm_spirit_w_1.m4a"
+   ],
+   "e": [
+    "storm_spirit_e_1.m4a"
+   ],
+   "r": [
+    "storm_spirit_r_1.m4a"
+   ]
+  },
+  "leshrac": {
+   "q": [
+    "leshrac_q_1.m4a"
+   ],
+   "w": [
+    "leshrac_w_1.m4a",
+    "leshrac_w_2.m4a"
+   ],
+   "e": [
+    "leshrac_e_1.m4a",
+    "leshrac_e_2.m4a"
+   ],
+   "r": [
+    "leshrac_r_1.m4a"
+   ]
+  },
+  "faceless_void": {
+   "q": [
+    "faceless_void_q_1.m4a"
+   ],
+   "w": [
+    "faceless_void_w_1.m4a"
+   ],
+   "r": [
+    "faceless_void_r_1.m4a"
+   ]
+  },
+  "ursa": {
+   "q": [
+    "ursa_q_1.m4a"
+   ],
+   "w": [
+    "ursa_w_1.m4a"
+   ],
+   "r": [
+    "ursa_r_1.m4a"
+   ]
+  },
+  "lion": {
+   "q": [
+    "lion_q_1.m4a"
+   ],
+   "w": [
+    "lion_w_1.m4a"
+   ],
+   "e": [
+    "lion_e_1.m4a"
+   ],
+   "r": [
+    "lion_r_1.m4a"
+   ]
+  },
+  "shadow_fiend": {
+   "q": [
+    "shadow_fiend_q_1.m4a"
+   ],
+   "r": [
+    "shadow_fiend_r_1.m4a",
+    "shadow_fiend_r_2.m4a"
+   ]
+  },
+  "pugna": {
+   "q": [
+    "pugna_q_1.m4a"
+   ],
+   "w": [
+    "pugna_w_1.m4a"
+   ],
+   "e": [
+    "pugna_e_1.m4a"
+   ],
+   "r": [
+    "pugna_r_1.m4a"
+   ]
+  },
+  "invoker": {
+   "q": [
+    "invoker_q_1.m4a"
+   ],
+   "w": [
+    "invoker_w_1.m4a"
+   ],
+   "e": [
+    "invoker_e_1.m4a",
+    "invoker_e_2.m4a"
+   ],
+   "r": [
+    "invoker_r_1.m4a"
+   ]
+  },
+  "tidehunter": {
+   "q": [
+    "tidehunter_q_1.m4a"
+   ],
+   "w": [
+    "tidehunter_w_1.m4a"
+   ],
+   "e": [
+    "tidehunter_e_1.m4a"
+   ],
+   "r": [
+    "tidehunter_r_1.m4a"
+   ]
+  },
+  "mirana": {
+   "q": [
+    "mirana_q_1.m4a"
+   ],
+   "w": [
+    "mirana_w_1.m4a"
+   ],
+   "e": [
+    "mirana_e_1.m4a",
+    "mirana_e_2.m4a"
+   ],
+   "r": [
+    "mirana_r_1.m4a"
+   ]
+  },
+  "clinkz": {
+   "q": [
+    "clinkz_q_1.m4a"
+   ],
+   "e": [
+    "clinkz_e_1.m4a"
+   ],
+   "r": [
+    "clinkz_r_1.m4a"
+   ]
+  }
+ },
+ "enemies": {
+  "kobold": {
+   "attack": [
+    "kobold_attack_1.m4a",
+    "kobold_attack_2.m4a"
+   ],
+   "death": [
+    "kobold_death_1.m4a",
+    "kobold_death_2.m4a",
+    "kobold_death_3.m4a",
+    "kobold_death_4.m4a"
+   ]
+  },
+  "kobold_foreman": {
+   "attack": [
+    "kobold_foreman_attack_1.m4a",
+    "kobold_foreman_attack_2.m4a"
+   ],
+   "death": [
+    "kobold_foreman_death_1.m4a"
+   ]
+  },
+  "hill_troll": {
+   "attack": [
+    "hill_troll_attack_1.m4a",
+    "hill_troll_attack_2.m4a",
+    "hill_troll_attack_3.m4a",
+    "hill_troll_attack_4.m4a"
+   ],
+   "death": [
+    "hill_troll_death_1.m4a",
+    "hill_troll_death_2.m4a",
+    "hill_troll_death_3.m4a",
+    "hill_troll_death_4.m4a"
+   ]
+  },
+  "dark_troll": {
+   "attack": [
+    "dark_troll_attack_1.m4a",
+    "dark_troll_attack_2.m4a",
+    "dark_troll_attack_3.m4a",
+    "dark_troll_attack_4.m4a"
+   ],
+   "death": [
+    "dark_troll_death_1.m4a"
+   ]
+  },
+  "satyr": {
+   "attack": [
+    "satyr_attack_1.m4a",
+    "satyr_attack_2.m4a",
+    "satyr_attack_3.m4a",
+    "satyr_attack_4.m4a"
+   ],
+   "death": [
+    "satyr_death_1.m4a",
+    "satyr_death_2.m4a",
+    "satyr_death_3.m4a",
+    "satyr_death_4.m4a"
+   ],
+   "aggro": [
+    "satyr_aggro_1.m4a"
+   ]
+  },
+  "ogre": {
+   "attack": [
+    "ogre_attack_1.m4a",
+    "ogre_attack_2.m4a",
+    "ogre_attack_3.m4a"
+   ],
+   "death": [
+    "ogre_death_1.m4a",
+    "ogre_death_2.m4a",
+    "ogre_death_3.m4a",
+    "ogre_death_4.m4a"
+   ]
+  },
+  "centaur": {
+   "attack": [
+    "centaur_attack_1.m4a",
+    "centaur_attack_2.m4a"
+   ],
+   "death": [
+    "centaur_death_1.m4a",
+    "centaur_death_2.m4a"
+   ]
+  },
+  "wildwing": {
+   "attack": [
+    "wildwing_attack_1.m4a",
+    "wildwing_attack_2.m4a",
+    "wildwing_attack_3.m4a",
+    "wildwing_attack_4.m4a"
+   ],
+   "death": [
+    "wildwing_death_1.m4a",
+    "wildwing_death_2.m4a",
+    "wildwing_death_3.m4a"
+   ]
+  },
+  "hellbear": {
+   "attack": [
+    "hellbear_attack_1.m4a",
+    "hellbear_attack_2.m4a",
+    "hellbear_attack_3.m4a"
+   ],
+   "death": [
+    "hellbear_death_1.m4a",
+    "hellbear_death_2.m4a"
+   ]
+  },
+  "golem": {
+   "attack": [
+    "golem_attack_1.m4a",
+    "golem_attack_2.m4a",
+    "golem_attack_3.m4a"
+   ],
+   "death": [
+    "golem_death_1.m4a",
+    "golem_death_2.m4a",
+    "golem_death_3.m4a"
+   ]
+  },
+  "lane_creep": {
+   "attack": [
+    "lane_creep_attack_1.m4a",
+    "lane_creep_attack_2.m4a",
+    "lane_creep_attack_3.m4a"
+   ]
+  },
+  "siege_creep": {
+   "attack": [
+    "siege_creep_attack_1.m4a",
+    "siege_creep_attack_2.m4a"
+   ],
+   "aggro": [
+    "siege_creep_aggro_1.m4a"
+   ]
+  },
+  "roshan": {
+   "attack": [
+    "roshan_attack_1.m4a",
+    "roshan_attack_2.m4a",
+    "roshan_attack_3.m4a",
+    "roshan_attack_4.m4a"
+   ],
+   "aggro": [
+    "roshan_aggro_1.m4a",
+    "roshan_aggro_2.m4a",
+    "roshan_aggro_3.m4a",
+    "roshan_aggro_4.m4a"
+   ]
+  },
+  "_generic": {
+   "attack": [
+    "_generic_attack_1.m4a",
+    "_generic_attack_2.m4a",
+    "_generic_attack_3.m4a",
+    "_generic_attack_4.m4a"
+   ],
+   "death": [
+    "_generic_death_1.m4a",
+    "_generic_death_2.m4a"
+   ]
+  }
+ },
+ "ui": {
+  "levelup": [
+   "levelup_1.m4a"
+  ],
+  "abilitylevel": [
+   "abilitylevel_1.m4a"
+  ],
+  "coins": [
+   "coins_1.m4a"
+  ],
+  "buy": [
+   "buy_1.m4a"
+  ],
+  "lasthit": [
+   "lasthit_1.m4a"
+  ],
+  "itemPickup": [
+   "itemPickup_1.m4a"
+  ],
+  "rune": [
+   "rune_1.m4a",
+   "rune_2.m4a",
+   "rune_3.m4a"
+  ],
+  "heroPicked": [
+   "heroPicked_1.m4a"
+  ],
+  "deny": [
+   "deny_1.m4a"
+  ],
+  "aegis": [
+   "aegis_1.m4a"
+  ]
+ },
+ "fx": {
+  "crit": [
+   "crit_1.m4a",
+   "crit_2.m4a",
+   "crit_3.m4a"
+  ],
+  "fireRing": [
+   "fireRing_1.m4a"
+  ],
+  "frostShatter": [
+   "frostShatter_1.m4a",
+   "frostShatter_2.m4a"
+  ],
+  "chain": [
+   "chain_1.m4a"
+  ],
+  "radianceLoop": [
+   "radianceLoop_1.m4a"
+  ],
+  "roshanRoar": [
+   "roshanRoar_1.m4a"
+  ],
+  "whoosh": [
+   "whoosh_1.m4a",
+   "whoosh_2.m4a",
+   "whoosh_3.m4a"
+  ],
+  "nova": [
+   "nova_1.m4a"
+  ],
+  "zap": [
+   "zap_1.m4a"
+  ]
+ }
+}

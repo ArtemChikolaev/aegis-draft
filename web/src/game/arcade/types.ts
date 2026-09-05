@@ -187,6 +187,12 @@ export interface ArcadeEventCounters {
   kills: number;
   eliteKills: number;
   pickups: number;
+  /** Касты по кнопкам (звук умения героя) и вид последнего врага, ударившего героя (индекс KIND_INDEX, −1 — снаряд/неизвестно). */
+  castQ: number;
+  castW: number;
+  castE: number;
+  castR: number;
+  hurtBy: number;
 }
 
 export interface Fx {

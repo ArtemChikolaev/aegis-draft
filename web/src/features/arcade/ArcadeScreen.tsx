@@ -24,6 +24,7 @@ import { useHero } from "../draft/heroes.ts";
 import { ArcadeInputController } from "./input.ts";
 import { heroHitSfx, heroSpinSfx, heroVoice, preloadHeroSfx, preloadHeroVoice, resetHeroSfx } from "./heroSfx.ts";
 import { ensureMusic, stopMusic } from "./music.ts";
+import { Soundscape } from "./soundscape.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
@@ -295,6 +296,7 @@ function ArcadeStage() {
     let wasBoss = false;
     let wasNeutral = false;
     let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0 };
+    const scape = new Soundscape(heroDef.id);
     // Реплики (T13.16 срез 2): спавн — при старте, ходьба — раз в 25–45 с движения, остальное — по событиям сима.
     let spoke = false, movingSince = 0, nextMoveLine = 0, lastPx = 0, lastPy = 0, wasOver = false;
     let hitStop = 0;
@@ -318,12 +320,13 @@ function ArcadeStage() {
         }
         if (steps === 5) acc = 0;
       }
-      // Дельты счётчиков сима → звук и juice.
+      // Дельты счётчиков сима → звук и juice. Пакет Dota (soundscape) первичен, синтетика — фолбэк.
       const ev = sim.events;
+      const handled = scape.frame(sim, now, statusRef.current === "running");
       if (ev.eliteKills > seen.eliteKills) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 6; }
-      else if (ev.kills > seen.kills) sfxArcade("kill");
-      // Удары — сэмплы Dota героя (heroSfx), синтетика остаётся фолбэком и слоем крита.
-      if (ev.crits > seen.crits) { sfxArcade("crit"); heroHitSfx(sim.hero.id, true, now); }
+      else if (ev.kills > seen.kills && !handled.kill) sfxArcade("kill");
+      // Удары — сэмплы Dota героя (heroSfx), синтетика остаётся фолбэком.
+      if (ev.crits > seen.crits) { if (!handled.crit) sfxArcade("crit"); heroHitSfx(sim.hero.id, true, now); }
       else if (ev.hits > seen.hits) { if (!heroHitSfx(sim.hero.id, false, now)) sfxArcade("hit"); }
       heroSpinSfx(sim.hero.id, sim.tick < sim.player.spinUntil && !sim.over && statusRef.current === "running");
       // Реплики героя.
@@ -344,13 +347,13 @@ function ArcadeStage() {
       ensureMusic(sim.over || statusRef.current !== "running" ? "off" : sim.roshan?.alive ? "roshan" : "battle");
       if (ev.ults > seen.ults) sfxArcade("ult");
       else if (ev.casts > seen.casts) sfxArcade("cast");
-      if (ev.hurt > seen.hurt) { sfxArcade("hurt"); hurtUntil = now + 140; }
+      if (ev.hurt > seen.hurt) { if (!handled.hurt) sfxArcade("hurt"); hurtUntil = now + 140; }
       if (ev.pickups > seen.pickups) sfxArcade("pickup");
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
       if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen)) sim.step(replayInput(replayRef.current, sim.steps));
-      if (sim.pending && !wasPending) { sfxArcade("levelup"); bump(); }
+      if (sim.pending && !wasPending) { if (!handled.levelup) sfxArcade("levelup"); bump(); }
       if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral)) { sfxBuy(); bump(); }
       wasNeutral = sim.neutralOpen;
       wasPending = sim.pending !== null;
@@ -371,6 +374,7 @@ function ArcadeStage() {
       cancelAnimationFrame(raf);
       resetHeroSfx();
       stopMusic();
+      scape.dispose();
       ro.disconnect();
       controller.dispose();
       controllerRef.current = null;
