@@ -107,6 +107,13 @@ def setup_camera_and_lights(bb, pitch_deg, margin):
     key_o = bpy.data.objects.new("Key", key); key_o.rotation_euler = (math.radians(50), 0, math.radians(35)); scene.collection.objects.link(key_o)
     fill = bpy.data.lights.new("Fill", "SUN"); fill.energy = 1.2
     fill_o = bpy.data.objects.new("Fill", fill); fill_o.rotation_euler = (math.radians(60), 0, math.radians(-120)); scene.collection.objects.link(fill_o)
+    # Направления получаем ОРБИТОЙ камеры и света вокруг модели (а не вращением иерархии модели —
+    # у импортированных glTF бывают повороты на арматуре, и вращение корня их складывает непредсказуемо).
+    pivot = bpy.data.objects.new("SpritePivot", None)
+    scene.collection.objects.link(pivot)
+    for o in (cam, key_o, fill_o):
+        o.parent = pivot
+    setup_camera_and_lights.pivot = pivot
     world = bpy.data.worlds.new("W"); scene.world = world
     world.use_nodes = True
     bg = world.node_tree.nodes.get("Background")
@@ -121,14 +128,10 @@ def main():
     objs = import_glb(os.path.abspath(a.glb))
     if not objs:
         raise SystemExit("import failed: no objects")
-    root = bpy.data.objects.new("SpriteRoot", None)
-    bpy.context.scene.collection.objects.link(root)
-    for o in objs:
-        if o.parent is None:
-            o.parent = root
     setup_render(a.frame, a.samples)
     bb = bbox_of(objs)
     setup_camera_and_lights(bb, a.pitch, a.margin)
+    pivot = setup_camera_and_lights.pivot
     armatures = [o for o in objs if o.type == "ARMATURE"]
     actions = list(bpy.data.actions)
     anim_map = []
@@ -138,8 +141,10 @@ def main():
         ours, theirs = [s.strip() for s in pair.split("=", 1)]
         act = pick_action(actions, theirs) if armatures else None
         anim_map.append((ours, act))
-    if not any(act for _, act in anim_map):
-        anim_map = [("idle", None)]
+    # Состояния без экшена не рендерим (игра сама падает на walk/idle) — кроме случая, когда экшенов нет вовсе.
+    found = [(o, a_) for o, a_ in anim_map if a_ is not None]
+    anim_map = found if found else [("idle", None)]
+    print("actions in file:", [a_.name for a_ in actions], "→ rendering:", [o for o, _ in anim_map])
     scene = bpy.context.scene
     src_fps = scene.render.fps or 24  # частота, с которой импортёр glTF разложил анимации по кадрам
     fps = a.fps
@@ -162,7 +167,8 @@ def main():
             sample_frames = [scene.frame_current]
         first_row[ours] = len(rows)
         for d in range(a.dirs):
-            root.rotation_euler = (0, 0, math.radians(d * 360.0 / a.dirs + a.yaw_offset))
+            # Камера уходит по часовой (−Z) → модель на экране поворачивается против часовой: вниз, вправо, вверх, влево.
+            pivot.rotation_euler = (0, 0, -math.radians(d * 360.0 / a.dirs + a.yaw_offset))
             paths = []
             for i, fr in enumerate(sample_frames):
                 scene.frame_set(int(math.floor(fr)), subframe=fr - math.floor(fr))

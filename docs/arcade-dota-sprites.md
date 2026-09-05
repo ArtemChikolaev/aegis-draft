@@ -93,6 +93,15 @@ cd /Users/Shared/Coding/aegis-draft/web/scripts/blender
 `web/public/art/sprites/dota/terrain/grass.png`, `dirt.png`, `grass_dire.png`, `water.png`
 (любой квадрат 256–1024 px). Игра замостит ими землю паттерном вместо тайлов LPC.
 
+## 4а. Всё одной командой
+`web/scripts/blender/dota_pipeline.sh` делает шаги 1–4 для манифеста (по умолчанию спайк: Juggernaut, кобольд, Рошан):
+```bash
+DOTA="$HOME/Library/Application Support/Steam/steamapps/common/dota 2 beta/game/dota" \
+S2V=~/tools/s2v/Source2Viewer-CLI BLENDER=/Applications/Blender.app/Contents/MacOS/Blender \
+bash web/scripts/blender/dota_pipeline.sh
+```
+Свой набор — TSV `id<TAB>vmdl_c<TAB>аргументы` первым параметром. Рендер-скрипт проверен на синтетической модели: лист 8 кадров × 4 направления собирается за ~10 с, мета корректна; направления получаются орбитой камеры (не вращением модели).
+
 ## 5. Проверка и коммит
 ```bash
 cd /Users/Shared/Coding/aegis-draft/web && npm run dev   # или мой 5273
