@@ -429,7 +429,7 @@ function ArcadeStage() {
         {status === "over" && outcome && (
           <div className="arcade-overlay" data-testid="arcade-over">
             <Surface className="arcade-overlay__card arcade-overlay__card--over" data-outcome={outcome.outcome}>
-              <Eyebrow>{t("arcade.title")} · {hero.name}</Eyebrow>
+              <Eyebrow>{t(outcome.act === "full" ? "arcade.titleFull" : "arcade.title")} · {hero.name}</Eyebrow>
               <h2>{t(outcome.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")}</h2>
               <dl className="arcade-result">
                 <div><dt>{t("arcade.over.time")}</dt><dd>{formatClock(outcome.tick)}</dd></div>
