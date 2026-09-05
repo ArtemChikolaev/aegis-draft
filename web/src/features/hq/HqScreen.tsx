@@ -14,6 +14,12 @@ import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { HQ_STAKE_ORDER, collectionStats, hqTrophies, useCareer, type CardCollectionStat } from "../../state/careerStore.ts";
 import { usePlaybook } from "../../state/playbookStore.ts";
+import { arcadeTrophies, useArcade } from "../../state/arcadeStore.ts";
+import { HEROES, HERO_IDS } from "../../game/arcade/content/heroes.ts";
+import { rankOf } from "../../game/arcade/content/ranks.ts";
+import { formatClock } from "../arcade/renderer.ts";
+import { TICK_HZ } from "../../game/arcade/config.ts";
+import { useHero } from "../draft/heroes.ts";
 import { PLAYBOOK_MAX, PLAYBOOK_MIN, PLAYBOOK_RECOMMENDED, isPlaybookCard, normalizePlaybook } from "../../game/playbook.ts";
 import { Banner, Button, Eyebrow, ItemIcon, StatTile, Surface } from "../../ui/index.ts";
 import { BuildCardInspector } from "../run/BuildCardInspector.tsx";
@@ -42,6 +48,9 @@ export function HqScreen() {
   const total = GROUPS.reduce((sum, group) => sum + group.ids.length, 0);
   const discovered = GROUPS.reduce((sum, group) => sum + group.ids.filter((id) => stats[id]).length, 0);
   const num = (value: number | null) => (value == null ? t("hq.none") : String(value));
+  const arcadeHistory = useArcade((state) => state.history);
+  const arcade = arcadeTrophies(arcadeHistory);
+  const heroOf = useHero();
 
   return (
     <main className="hq" data-testid="hq-screen">
@@ -61,6 +70,28 @@ export function HqScreen() {
           <StatTile label={t("hq.dynastyBest")} value={trophies.dynastyBest == null ? t("hq.none") : `+${trophies.dynastyBest}`} kind="synergy" />
           <StatTile label={t("hq.dailyPlayed")} value={String(trophies.dailyPlayed)} kind="chemistry" />
         </div>
+      </Surface>
+
+      <Surface className="hq__panel" data-testid="hq-arcade">
+        <h2 className="hq__section">{t("hq.arcade")}</h2>
+        <p className="hq__hint">{t("hq.arcadeHint")}</p>
+        <div className="hq__tiles">
+          <StatTile label={t("hq.arcadeRuns")} value={String(arcade.runs)} kind="base" />
+          <StatTile label={t("hq.arcadeWins")} value={String(arcade.victories)} sublabel={t("hq.arcadeFullWins", { n: arcade.fullVictories })} kind="synergy" />
+          <StatTile label={t("hq.arcadeBestRank")} value={arcade.bestRank == null ? t("hq.none") : `${t(`arcade.tier.${rankOf(arcade.bestRank).tier}` as MessageKey)} ${"★".repeat(rankOf(arcade.bestRank).stars)}`} kind="synergy" />
+          <StatTile label={t("hq.arcadeBestTime")} value={arcade.runs === 0 ? t("hq.none") : formatClock(arcade.bestSeconds * TICK_HZ)} kind="chemistry" />
+        </div>
+        <ul className="hq__heroes">
+          {HERO_IDS.map((id) => {
+            const h = arcade.perHero[id];
+            return (
+              <li key={id} data-played={h ? "true" : undefined}>
+                <strong>{heroOf(HEROES[id].dotaId).name}</strong>
+                <span>{h ? t("hq.arcadeHeroLine", { runs: h.runs, wins: h.victories, time: formatClock(h.bestSeconds * TICK_HZ), lvl: h.bestLevel }) : t("hq.arcadeHeroNone")}</span>
+              </li>
+            );
+          })}
+        </ul>
       </Surface>
 
       <Surface className="hq__panel">

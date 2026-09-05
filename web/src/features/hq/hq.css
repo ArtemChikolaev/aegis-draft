@@ -5,6 +5,10 @@
 .hq__section { margin: 0 0 14px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
 .hq__tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .hq__hint { margin: -6px 0 14px; color: var(--muted); font-size: 12px; }
+.hq__heroes { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.hq__heroes li { display: grid; gap: 2px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 12px; color: var(--muted); }
+.hq__heroes li strong { color: var(--text); font-size: 14px; }
+.hq__heroes li[data-played] { border-color: var(--line-strong); }
 .hq__stakes { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .hq__stakes li { display: grid; grid-template-columns: minmax(150px, .8fr) 1.6fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 12px; }
 .hq__stakes li span { color: var(--muted); }

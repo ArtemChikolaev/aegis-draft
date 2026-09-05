@@ -4,6 +4,13 @@ import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { careerRunId, summarizeCareer, useCareer, type CareerPlacementBucket } from "../../state/careerStore.ts";
 import { Banner, Button, Eyebrow, StatTile, Surface } from "../../ui/index.ts";
+import { useArcade } from "../../state/arcadeStore.ts";
+import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { rankOf } from "../../game/arcade/content/ranks.ts";
+import { formatClock } from "../arcade/renderer.ts";
+import { TICK_HZ } from "../../game/arcade/config.ts";
+import { useHero } from "../draft/heroes.ts";
+import type { MessageKey } from "../../i18n/core.ts";
 import { CareerRunCard, placementLabels, sortRunsNewestFirst } from "./CareerRunCard.tsx";
 import "./career.css";
 
@@ -22,6 +29,8 @@ export function CareerScreen() {
 
   const summary = summarizeCareer(entries);
   const runs = sortRunsNewestFirst(entries);
+  const arcadeHistory = useArcade((state) => state.history);
+  const heroOf = useHero();
 
   const stats = [
     { label: t("career.runs"), value: summary.runs, kind: "base" as const },
@@ -57,6 +66,24 @@ export function CareerScreen() {
               ))}
             </div>
           </Surface>
+          {arcadeHistory.length > 0 && (
+            <Surface className="career-page__stats" data-testid="career-arcade">
+              <h2>{t("career.arcade")}</h2>
+              <ul className="career-arcade">
+                {arcadeHistory.slice(0, 8).map((e) => {
+                  const heroId = ((e.hero ?? "juggernaut") as HeroId) in HEROES ? ((e.hero ?? "juggernaut") as HeroId) : "juggernaut";
+                  const rank = rankOf(e.rank ?? 0);
+                  return (
+                    <li key={e.at} data-outcome={e.outcome}>
+                      <strong>{heroOf(HEROES[heroId].dotaId).name}</strong>
+                      <span>{t(e.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")} · {formatClock(e.seconds * TICK_HZ)} · {t("arcade.hud.level")} {e.level}</span>
+                      <em>{t(`arcade.act.${e.act ?? "short"}` as MessageKey)} · {t(`arcade.tier.${rank.tier}` as MessageKey)} {"★".repeat(rank.stars)}</em>
+                    </li>
+                  );
+                })}
+              </ul>
+            </Surface>
+          )}
 
           <Surface className="career-page__runs">
             <h2>{t("career.allRuns", { count: runs.length })}</h2>

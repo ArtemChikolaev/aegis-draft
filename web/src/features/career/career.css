@@ -76,6 +76,11 @@
 /* Кнопка «назад» остаётся по содержимому — тянем только блоки-панели (как в .heroes). */
 .career-page > header, .career-page > .career-page__stats, .career-page > .career-page__runs { justify-self: stretch; width: 100%; }
 .career-page__stats { padding: 22px; }
+.career-arcade { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.career-arcade li { display: grid; grid-template-columns: minmax(120px, .6fr) minmax(0, 1.4fr) auto; gap: 12px; align-items: baseline; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; }
+.career-arcade li em { font-style: normal; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.career-arcade li[data-outcome="victory"] strong { color: var(--accent); }
+@media (max-width: 680px) { .career-arcade li { grid-template-columns: 1fr; gap: 2px; } }
 .career-page__stats h2, .career-page__runs h2 { margin: 0 0 12px; font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .career-page__grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
 .career-page__runs { padding: 22px; }

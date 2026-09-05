@@ -149,6 +149,35 @@ export function maxUnlockedRank(history: ArcadeHistoryEntry[]): number {
   return Math.min(MAX_RANK_STEP, best);
 }
 
+export interface ArcadeTrophies {
+  runs: number;
+  victories: number;
+  fullVictories: number;
+  /** Лучшая ступень, взятая победой в полном акте; null — побед нет. */
+  bestRank: number | null;
+  /** Лучшее время выживания в секундах (по любому акту). */
+  bestSeconds: number;
+  perHero: Record<string, { runs: number; victories: number; bestSeconds: number; bestLevel: number }>;
+}
+
+/** Витрина Аркады для Штаба и Карьеры (T13.5) — производная собственной истории режима. */
+export function arcadeTrophies(history: ArcadeHistoryEntry[]): ArcadeTrophies {
+  const out: ArcadeTrophies = { runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {} };
+  for (const e of history) {
+    const hero = e.hero ?? "juggernaut";
+    const h = out.perHero[hero] ?? (out.perHero[hero] = { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0 });
+    out.runs++; h.runs++;
+    h.bestSeconds = Math.max(h.bestSeconds, e.seconds);
+    h.bestLevel = Math.max(h.bestLevel, e.level);
+    out.bestSeconds = Math.max(out.bestSeconds, e.seconds);
+    if (e.outcome === "victory") {
+      out.victories++; h.victories++;
+      if ((e.act ?? "short") === "full") { out.fullVictories++; out.bestRank = Math.max(out.bestRank ?? 0, e.rank ?? 0); }
+    }
+  }
+  return out;
+}
+
 /** Лучший результат в истории: сначала победы, потом по времени выживания. */
 export function bestArcadeEntry(history: ArcadeHistoryEntry[]): ArcadeHistoryEntry | null {
   let best: ArcadeHistoryEntry | null = null;
