@@ -76,22 +76,25 @@ cd /Users/Shared/Coding/aegis-draft/web/scripts/blender
 `centaur`, `wildwing`, `lane_creep`, `siege_creep`, `golem`, `roshan`, `tormentor`, `dark_troll`,
 `hellbear`, `ancient`). Игра ищет `dota/<id>.json`; нашла — рисует ей, нет — LPC/риг.
 
-Модели Dota для врагов (ориентир по путям в vpk):
-| Враг в игре | Модель |
-|---|---|
-| kobold / kobold_foreman | `models/creeps/neutral_creeps/n_creep_kobold/` (`n_creep_kobold`, `n_creep_kobold_tunneler` / `_foreman`) |
-| hill_troll | `models/creeps/neutral_creeps/n_creep_troll_dark_a/` или `n_creep_forest_troll_*` |
-| satyr | `models/creeps/neutral_creeps/n_creep_satyr_a/` |
-| ogre | `models/creeps/neutral_creeps/n_creep_ogre_lrg/` |
-| centaur | `models/creeps/neutral_creeps/n_creep_centaur_*/` |
-| wildwing | `models/creeps/neutral_creeps/n_creep_gargoyle/` (wildwing = harpy → `n_creep_harpy_*`) |
-| lane_creep / siege_creep | `models/creeps/lane_creeps/creep_radiant_melee/`, `creep_radiant_siege/` |
-| golem | `models/creeps/neutral_creeps/n_creep_golem_a/` |
-| roshan | `models/creeps/roshan/roshan` |
-| tormentor | `models/creeps/misc/tormentor/` |
-| ancient | `models/props_structures/radiant_ancient001` (статичная, `--dirs 1`) |
-| dark_troll | `models/creeps/neutral_creeps/n_creep_troll_dark_b/` |
-| hellbear | `models/creeps/neutral_creeps/n_creep_beast/` |
+Модели Dota, которые уже в манифесте `web/scripts/blender/dota_manifest.tsv` (проверенные пути в vpk):
+| В игре | Модель | Заметки |
+|---|---|---|
+| kobold / kobold_foreman | `n_creep_kobold/kobold_a/n_creep_kobold_a`, `kobold_c/n_creep_kobold_c` | анимации `run/idle/attack/death` |
+| hill_troll | `n_creep_forest_trolls/n_creep_forest_troll_berserker` + часть `…_berserker_axe` | имена с префиксом модели — подстрока находит |
+| satyr | `n_creep_satyr_b/n_creep_satyr_b` | `satyr_b_run` и т. п. |
+| ogre | `n_creep_ogre_med/n_creep_ogre_med` | |
+| centaur | `n_creep_centaur_lrg/n_creep_centaur_lrg` | бег — `runN` |
+| wildwing | `n_creep_gargoyle/n_creep_gargoyle` | idle — `gargoyle_idle2` |
+| dark_troll | `n_creep_troll_dark_b/n_creep_troll_dark_b` | |
+| hellbear | `n_creep_beast/n_creep_beast` | смерть — `die` |
+| lane_creep / siege_creep | `lane_creeps/creep_radiant_melee/radiant_melee`, `creep_good_siege/creep_good_siege` | у осадного смерти нет (отдельная deathsim-модель) |
+| golem | `n_creep_golem_a/neutral_creep_golem_a` | смерть — `dieAlt` |
+| roshan | `models/creeps/roshan/roshan` | `roshan_*` |
+| ancient | `models/props_structures/good_ancient001` | статичная, `--dirs 1` |
+| tree_oak / tree_pine / rock | `props_tree/tree_oak_01`, `props_tree/armandpine/armandpine_01`, `props_nature/rock_ground001` | статичные; листва и камень в экспорте белёсые (нет шейдерного тинта) — игра подкрашивает их при отрисовке (`tint` в `drawDotaFrame`) |
+| tormentor | модели в vpk нет (`models/` без `tormentor`) | остаётся фигура |
+
+Все пути — под `models/creeps/neutral_creeps/`, если не указано иное. Полный список моделей: `"$S2V" -i "$VPK" -l -f models/ -e vmdl_c`.
 
 ## 4. Земля
 Текстуры террейна лежат в `maps/<набор>_assets/blends/` (наборы `jungle`, `summer`, `cavern`, `reef`, `journey`, `ti10`; `materials/terrain/` пуст). Экспорт конкретных файлов:

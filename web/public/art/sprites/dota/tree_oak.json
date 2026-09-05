@@ -1,0 +1,21 @@
+{
+  "name": "tree_oak",
+  "frame": 192,
+  "dirs": 1,
+  "fps": 12,
+  "world": 150,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 1
+    }
+  },
+  "source": "tree_oak_01.glb",
+  "orientation": "none",
+  "pitch": 45.0
+}

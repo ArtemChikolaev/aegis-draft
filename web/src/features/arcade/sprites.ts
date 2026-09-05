@@ -243,7 +243,13 @@ export function dotaDir(dx: number, dy: number, dirs: number): number {
 }
 
 /** Нарисовать кадр листа Dota якорем ног в (x, y). Нет анимации — падаем на walk/idle; false — нечего рисовать. */
-export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, anim: string, dir: number, frame: number, x: number, y: number, alpha = 1, sizeMult = 1): boolean {
+let tintScratch: HTMLCanvasElement | null = null;
+
+/**
+ * Кадр листа Dota. `tint` — цвет поверх силуэта (source-atop): у части пропсов (листва деревьев, камни) в
+ * экспорте VRF нет шейдерного тинта Source 2, и они выходят белёсыми — подкрашиваем на месте, тени сохраняются.
+ */
+export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, anim: string, dir: number, frame: number, x: number, y: number, alpha = 1, sizeMult = 1, tint?: string): boolean {
   const m = sheet.meta;
   const a = m.anims[anim] ?? (anim === "attack" || anim === "idle" ? m.anims.walk ?? m.anims.idle : anim === "walk" ? m.anims.idle : undefined);
   if (!a) return false;
@@ -252,7 +258,21 @@ export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, ani
   const scale = (m.world / m.frame) * sizeMult;
   const w = m.frame * scale;
   c.globalAlpha = alpha;
-  c.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
+  if (tint) {
+    if (!tintScratch) tintScratch = document.createElement("canvas");
+    if (tintScratch.width < m.frame) tintScratch.width = tintScratch.height = m.frame;
+    const sc = tintScratch.getContext("2d")!;
+    sc.globalCompositeOperation = "source-over";
+    sc.clearRect(0, 0, m.frame, m.frame);
+    sc.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, 0, 0, m.frame, m.frame);
+    sc.globalCompositeOperation = "source-atop";
+    sc.fillStyle = tint;
+    sc.fillRect(0, 0, m.frame, m.frame);
+    sc.globalCompositeOperation = "source-over";
+    c.drawImage(tintScratch, 0, 0, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
+  } else {
+    c.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
+  }
   c.globalAlpha = 1;
   return true;
 }

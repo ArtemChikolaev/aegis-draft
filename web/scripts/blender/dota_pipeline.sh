@@ -6,7 +6,7 @@
 #   bash dota_pipeline.sh [manifest.tsv]
 # Манифест (TSV, # — комментарий): <id в игре>\t<путь vmdl_c в vpk>\t<аргументы render_dota_sprites.py>[\t<части: vmdl_c через запятую>]
 # Части — отдельные модели героя (штаны/маска/оружие у героев Dota): пришиваются к скелету основной.
-# По умолчанию — спайк: Juggernaut, кобольд, Рошан. Экспорт кладётся в $OUT (по умолчанию ~/dota-export),
+# По умолчанию — полный манифест dota_manifest.tsv (герои, враги, пропсы). Экспорт кладётся в $OUT (по умолчанию ~/dota-export),
 # листы — в web/public/art/sprites/dota/.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -19,16 +19,8 @@ VPK="$DOTA/pak01_dir.vpk"
 [ -f "$VPK" ] || { echo "нет $VPK — установи Dota 2 или задай DOTA=..."; exit 1; }
 [ -x "$S2V" ] || { echo "нет Source2Viewer-CLI: $S2V"; exit 1; }
 [ -x "$BLENDER" ] || { echo "нет Blender: $BLENDER"; exit 1; }
-MANIFEST="${1:-}"
-if [ -z "$MANIFEST" ]; then
-  MANIFEST="$(mktemp)"
-  cat > "$MANIFEST" <<'TSV'
-# id	vmdl_c	render args
-juggernaut	models/heroes/juggernaut/juggernaut.vmdl_c	--dirs 8 --frame 128 --fps 12 --max-frames 12 --world 84 --anims walk=run_run,idle=idle,attack=attack@0.12-0.7,death=death	models/heroes/juggernaut/juggernaut_pants.vmdl_c,models/heroes/juggernaut/jugg_mask.vmdl_c,models/heroes/juggernaut/jugg_sword.vmdl_c,models/heroes/juggernaut/jugg_bracers.vmdl_c,models/heroes/juggernaut/jugg_cape.vmdl_c
-kobold	models/creeps/neutral_creeps/n_creep_kobold/kobold_a/n_creep_kobold_a.vmdl_c	--dirs 4 --frame 96 --fps 10 --world 56 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
-roshan	models/creeps/roshan/roshan.vmdl_c	--dirs 4 --frame 160 --fps 10 --max-frames 10 --world 180 --anims walk=roshan_run,idle=roshan_idle,attack=roshan_attack@0.1-0.75,death=roshan_die
-TSV
-fi
+MANIFEST="${1:-$HERE/dota_manifest.tsv}"
+[ -f "$MANIFEST" ] || { echo "нет манифеста $MANIFEST"; exit 1; }
 mkdir -p "$OUT" "$SPRITES"
 while IFS=$'\t' read -r id vmdl args parts; do
   [[ -z "$id" || "$id" == \#* ]] && continue

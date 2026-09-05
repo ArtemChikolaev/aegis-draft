@@ -279,7 +279,11 @@ export class ArcadeRenderer {
       const r = e.kind.r;
       const flash = tick - e.hitAt < 4;
       const tone = pal[TONE_KEY[e.kind.tone]];
-      if (e.kind.structure) {
+      const staticSheet = e.kind.structure || e.kind.id === "tormentor" ? dotaSheet(e.kind.id) : null;
+      if (staticSheet) {
+        // Древний/Tormentor из модели Dota — один кадр idle; размер от радиуса, как у остальных.
+        drawDotaFrame(c, staticSheet, "idle", 0, 0, e.x, e.y + r * 0.6, flash ? 0.55 : 1, (e.kind.r * 2) / staticSheet.meta.world > 1.2 ? (e.kind.r * 2) / staticSheet.meta.world : 1);
+      } else if (e.kind.structure) {
         c.fillStyle = flash ? pal.text : tone;
         c.fillRect(e.x - r, e.y - r, r * 2, r * 2);
         c.strokeStyle = pal.text; c.lineWidth = 3; c.strokeRect(e.x - r + 6, e.y - r + 6, r * 2 - 12, r * 2 - 12);

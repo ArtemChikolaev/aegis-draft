@@ -1,0 +1,21 @@
+# Манифест конвейера «модели Dota 2 → спрайт-листы Аркады» (docs/arcade-dota-sprites.md §4а).
+# Колонки через TAB: <id листа = id героя/врага/пропса в игре>	<vmdl_c в pak01_dir.vpk>	<аргументы render_dota_sprites.py>[	<части героя: vmdl_c через запятую>]
+# Запуск: bash dota_pipeline.sh [этот файл]; одну строку — скопируй её в отдельный tsv.
+juggernaut	models/heroes/juggernaut/juggernaut.vmdl_c	--dirs 8 --frame 128 --fps 12 --max-frames 12 --world 84 --anims walk=run_run,idle=idle,attack=attack@0.12-0.7,death=death	models/heroes/juggernaut/juggernaut_pants.vmdl_c,models/heroes/juggernaut/jugg_mask.vmdl_c,models/heroes/juggernaut/jugg_sword.vmdl_c,models/heroes/juggernaut/jugg_bracers.vmdl_c,models/heroes/juggernaut/jugg_cape.vmdl_c
+kobold	models/creeps/neutral_creeps/n_creep_kobold/kobold_a/n_creep_kobold_a.vmdl_c	--dirs 4 --frame 96 --fps 10 --world 56 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+roshan	models/creeps/roshan/roshan.vmdl_c	--dirs 4 --frame 160 --fps 10 --max-frames 10 --world 180 --anims walk=roshan_run,idle=roshan_idle,attack=roshan_attack@0.1-0.75,death=roshan_die
+kobold_foreman	models/creeps/neutral_creeps/n_creep_kobold/kobold_c/n_creep_kobold_c.vmdl_c	--dirs 4 --frame 96 --fps 10 --max-frames 10 --world 66 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+hill_troll	models/creeps/neutral_creeps/n_creep_forest_trolls/n_creep_forest_troll_berserker.vmdl_c	--dirs 4 --frame 96 --fps 10 --max-frames 10 --world 64 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death	models/creeps/neutral_creeps/n_creep_forest_trolls/n_creep_forest_troll_berserker_axe.vmdl_c
+satyr	models/creeps/neutral_creeps/n_creep_satyr_b/n_creep_satyr_b.vmdl_c	--dirs 4 --frame 96 --fps 10 --max-frames 10 --world 72 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+ogre	models/creeps/neutral_creeps/n_creep_ogre_med/n_creep_ogre_med.vmdl_c	--dirs 4 --frame 128 --fps 10 --max-frames 10 --world 95 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+centaur	models/creeps/neutral_creeps/n_creep_centaur_lrg/n_creep_centaur_lrg.vmdl_c	--dirs 4 --frame 128 --fps 10 --max-frames 10 --world 95 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+wildwing	models/creeps/neutral_creeps/n_creep_gargoyle/n_creep_gargoyle.vmdl_c	--dirs 4 --frame 128 --fps 10 --max-frames 10 --world 80 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+dark_troll	models/creeps/neutral_creeps/n_creep_troll_dark_b/n_creep_troll_dark_b.vmdl_c	--dirs 4 --frame 96 --fps 10 --max-frames 10 --world 68 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+lane_creep	models/creeps/lane_creeps/creep_radiant_melee/radiant_melee.vmdl_c	--dirs 4 --frame 96 --fps 10 --max-frames 10 --world 66 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+siege_creep	models/creeps/lane_creeps/creep_good_siege/creep_good_siege.vmdl_c	--dirs 4 --frame 128 --fps 10 --max-frames 10 --world 100 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=death
+tree_oak	models/props_tree/tree_oak_01.vmdl_c	--dirs 1 --frame 192 --max-frames 1 --world 150 --anims idle=idle
+tree_pine	models/props_tree/armandpine/armandpine_01.vmdl_c	--dirs 1 --frame 192 --max-frames 1 --world 170 --anims idle=idle
+rock	models/props_nature/rock_ground001.vmdl_c	--dirs 1 --frame 96 --max-frames 1 --world 44 --anims idle=idle
+ancient	models/props_structures/good_ancient001.vmdl_c	--dirs 1 --frame 256 --max-frames 1 --world 300 --anims idle=idle
+hellbear	models/creeps/neutral_creeps/n_creep_beast/n_creep_beast.vmdl_c	--dirs 4 --frame 128 --fps 10 --max-frames 10 --world 105 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=die
+golem	models/creeps/neutral_creeps/n_creep_golem_a/neutral_creep_golem_a.vmdl_c	--dirs 4 --frame 128 --fps 10 --max-frames 10 --world 130 --anims walk=run,idle=idle,attack=attack@0.1-0.75,death=dieAlt

@@ -6,7 +6,7 @@
 import { Rng } from "../../game/rng.ts";
 import { ARCADE } from "../../game/arcade/config.ts";
 import type { ActId } from "../../game/arcade/types.ts";
-import { dotaTerrain, tileImage } from "./sprites.ts";
+import { dotaSheet, dotaTerrain, drawDotaFrame, tileImage } from "./sprites.ts";
 
 export const CHUNK = 512;
 const TILE = 64;
@@ -133,14 +133,33 @@ export class Terrain {
       const pat = (im: HTMLImageElement) => { const pt = c.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(0.5)); return pt; };
       c.fillStyle = pat(dGrass);
       c.fillRect(0, 0, CHUNK, CHUNK);
-      const dirtPat = dDirt ? pat(dDirt) : null, waterPat = dWater ? pat(dWater) : null;
-      for (let ty = 0; ty < n; ty++) for (let tx = 0; tx < n; tx++) {
-        const gx = t0x + tx, gy = t0y + ty;
-        const v = this.tileAt(gx, gy);
-        const inRiver = this.act === "river" && Math.abs(gy * TILE + TILE / 2 - ARCADE.river.y) < ARCADE.river.halfWidth;
-        if (inRiver && waterPat) { c.fillStyle = waterPat; c.fillRect(tx * TILE, ty * TILE, TILE, TILE); }
-        else if (v === 2 && dirtPat) { c.fillStyle = dirtPat; c.fillRect(tx * TILE, ty * TILE, TILE, TILE); }
-      }
+      // Тропы и вода — слоем с размытой маской, а не квадратами тайлов: у текстур Dota нет кромок автотайла,
+      // и жёсткая сетка 32 px читалась как «плитка». Маска строится с запасом за границу чанка, чтобы размытие
+      // на стыке чанков совпадало и швов не было.
+      const layer = (im: HTMLImageElement, hit: (gx: number, gy: number) => boolean, blur: number) => {
+        const pad = 3;
+        const mask = document.createElement("canvas"); mask.width = mask.height = CHUNK;
+        const mc = mask.getContext("2d")!;
+        let any = false;
+        mc.fillStyle = "#fff";
+        for (let ty = -pad; ty < n + pad; ty++) for (let tx = -pad; tx < n + pad; tx++) {
+          if (!hit(t0x + tx, t0y + ty)) continue;
+          any = true;
+          mc.fillRect(tx * TILE, ty * TILE, TILE, TILE);
+        }
+        if (!any) return;
+        const fill = document.createElement("canvas"); fill.width = fill.height = CHUNK;
+        const fc = fill.getContext("2d")!;
+        const pt = fc.createPattern(im, "repeat")!; pt.setTransform(new DOMMatrix().translate(-ox, -oy).scale(0.5));
+        fc.fillStyle = pt; fc.fillRect(0, 0, CHUNK, CHUNK);
+        fc.globalCompositeOperation = "destination-in";
+        fc.filter = `blur(${blur}px)`;
+        fc.drawImage(mask, 0, 0);
+        fc.filter = "none";
+        c.drawImage(fill, 0, 0);
+      };
+      if (dDirt) layer(dDirt, (gx, gy) => this.tileAt(gx, gy) === 2, 7);
+      if (dWater && this.act === "river") layer(dWater, (_gx, gy) => Math.abs(gy * TILE + TILE / 2 - ARCADE.river.y) < ARCADE.river.halfWidth, 4);
       if (night) { c.fillStyle = pal.grassA; c.globalAlpha = 0.5; c.fillRect(0, 0, CHUNK, CHUNK); c.globalAlpha = 1; }
       this.paintDecor(c, ox, oy, pal, treetop, rock, night);
       return;
@@ -201,21 +220,26 @@ export class Terrain {
 
   /** Деревья, камни и цветы поверх земли (тайлы LPC; на текстурах Dota — те же, пока нет своих). */
   private paintDecor(c: CanvasRenderingContext2D, ox: number, oy: number, pal: TerrainPalette, treetop: HTMLImageElement | null, rock: HTMLImageElement | null, night: boolean): void {
-    const x1 = ox + CHUNK + 80, y1 = oy + CHUNK + 80;
+    const x1 = ox + CHUNK + 120, y1 = oy + CHUNK + 120;
     c.imageSmoothingEnabled = false;
+    // Пропсы из моделей Dota (деревья/камни, docs/arcade-dota-sprites.md) — приоритет над LPC-кронами.
+    const dOak = dotaSheet("tree_oak"), dPine = dotaSheet("tree_pine"), dRock = dotaSheet("rock");
     for (const d of this.decor) {
-      if (d.x < ox - 80 || d.y < oy - 80 || d.x > x1 || d.y > y1) continue;
+      if (d.x < ox - 120 || d.y < oy - 120 || d.x > x1 || d.y > y1) continue;
       const x = d.x - ox, y = d.y - oy;
-      if (d.kind === "tree" && treetop) {
+      if (d.kind === "tree" && (treetop || dOak || dPine)) {
         const sz = d.s * 2.6;
         const pine = (Math.floor(d.x * 7 + d.y * 3) & 1) === 1;
         c.globalAlpha = 0.3; c.fillStyle = pal.treeDark; c.beginPath(); c.ellipse(x + 4, y + sz * 0.12, sz * 0.42, sz * 0.18, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
-        if (pine) c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 96, 96, 128, x - sz / 2, y - sz * 1.1, sz, sz * 1.33);
-        else c.drawImage(treetop, (Math.floor(d.x) & 1) * 96, 0, 96, 96, x - sz / 2, y - sz * 0.85, sz, sz);
+        const ds = (pine ? dPine : dOak) ?? dOak ?? dPine;
+        if (ds) { c.imageSmoothingEnabled = true; drawDotaFrame(c, ds, "idle", 0, 0, x, y, 1, sz / 110, night ? "rgba(30,55,50,0.6)" : pine ? "rgba(40,95,50,0.55)" : "rgba(60,120,45,0.55)"); c.imageSmoothingEnabled = false; }
+        else if (pine) c.drawImage(treetop!, (Math.floor(d.x) & 1) * 96, 96, 96, 128, x - sz / 2, y - sz * 1.1, sz, sz * 1.33);
+        else c.drawImage(treetop!, (Math.floor(d.x) & 1) * 96, 0, 96, 96, x - sz / 2, y - sz * 0.85, sz, sz);
         if (night) { c.fillStyle = pal.treeDark; c.globalAlpha = 0.45; c.beginPath(); c.arc(x, y - sz * 0.35, sz * 0.5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
-      } else if (d.kind === "rock" && rock) {
+      } else if (d.kind === "rock" && (rock || dRock)) {
         const sz = d.s * 3;
-        c.drawImage(rock, (Math.floor(d.x) & 1) * 32, 0, 32, 32, x - sz / 2, y - sz / 2, sz, sz);
+        if (dRock) { c.imageSmoothingEnabled = true; drawDotaFrame(c, dRock, "idle", 0, 0, x, y + sz * 0.3, 1, sz / 40, night ? "rgba(40,45,55,0.6)" : "rgba(95,90,75,0.55)"); c.imageSmoothingEnabled = false; }
+        else c.drawImage(rock!, (Math.floor(d.x) & 1) * 32, 0, 32, 32, x - sz / 2, y - sz / 2, sz, sz);
       } else if (d.kind === "flower") {
         c.fillStyle = pal.tuft; c.beginPath(); c.arc(x, y, 1.8, 0, Math.PI * 2); c.fill();
       }
