@@ -438,9 +438,13 @@ export class ArcadeSim {
       }
       case "line_burst": case "meteor": {
         // Shadowraze / Dragon Slave / Powershot / Earth Spike / Split Earth / Chaos Meteor: зоны по направлению взгляда.
+        // Прицел — на ближайшего врага (как автоприцел в DMD): игрок и бот кайтят спиной к толпе, и зоны по взгляду летели мимо.
         const n = ab.count?.[lvl] ?? 3;
-        const fl = len(p.facingX, p.facingY) || 1;
-        const fx = p.facingX / fl, fy = p.facingY / fl;
+        const aim = this.nearestEnemy(p.x, p.y, 420);
+        let fx = p.facingX, fy = p.facingY;
+        if (aim) { fx = aim.x - p.x; fy = aim.y - p.y; }
+        const fl = len(fx, fy) || 1;
+        fx /= fl; fy /= fl;
         const step = radius * 1.6 + 20;
         for (let i = 1; i <= n; i++) {
           const cx = p.x + fx * step * i, cy = p.y + fy * step * i;
@@ -515,6 +519,8 @@ export class ArcadeSim {
         break;
       case "mass_freeze":
         for (const e of this.enemiesWithin(p.x, p.y, radius)) if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 1.5 : ab.duration ?? 3.5)));
+        // Внутри Chronosphere Void бьёт вдвое чаще — иначе ульт без урона.
+        p.frenzyUntil = this.tick + sec(ab.duration ?? 3.5); p.frenzyMult = 0.5;
         this.pushFx("nova", p.x, p.y, radius, 0, sec(ab.duration ?? 3.5));
         this.shake = 10;
         break;
@@ -926,8 +932,8 @@ export class ArcadeSim {
     p.hp -= amount * (1 - reduction);
     this.events.hurt++;
     if (sig?.kind === "quill" && this.tick >= p.sigUntil) {
-      // Quill Spray Bristleback: залп иглами в ответ на урон, не чаще раза в полсекунды.
-      p.sigUntil = this.tick + sec(0.5);
+      // Quill Spray Bristleback: залп иглами в ответ на урон, не чаще раза в 0.8 с (при 0.5 с бот брал 75–87% в разминке).
+      p.sigUntil = this.tick + sec(0.8);
       for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 130)) this.damageEnemy(e, sig.value * this.sigScale(), "burst");
       this.pushFx("nova", p.x, p.y, sig.radius ?? 130, 0, 8);
     }

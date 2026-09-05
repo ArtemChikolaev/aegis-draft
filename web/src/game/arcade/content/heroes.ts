@@ -164,41 +164,41 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 14, duration: 4 },                     // Windrun
     r: { kind: "frenzy", value: [0, 0.55, 0.65, 0.75], cooldown: 45, duration: 6 },                      // Focus Fire
   }),
-  bristleback: hero("bristleback", 99, "bristleback", false, { maxHp: 760, armor: 6, regen: 5, damage: 18 }, {
-    q: { kind: "goo", value: [0, 40, 60, 80, 100], cooldown: 5, radius: 300, duration: 3 },             // Viscous Nasal Goo
-    w: { kind: "nova", value: [0, 40, 60, 80, 100], cooldown: 4, radius: 150, duration: 1 },             // Quill Spray
-    e: { kind: "armor_passive", value: [0, 4, 6, 8, 10], cooldown: 0, passive: true },                   // Bristleback
-    r: { kind: "rage", value: [0, 0.5, 0.75, 1.0], cooldown: 50, duration: 9 },                          // Warpath
-  }, { kind: "quill", value: 30, radius: 130 }),
+  bristleback: hero("bristleback", 99, "bristleback", false, { maxHp: 680, armor: 5, regen: 3, damage: 18 }, {
+    q: { kind: "goo", value: [0, 40, 60, 80, 100], cooldown: 7, radius: 300, duration: 3 },             // Viscous Nasal Goo
+    w: { kind: "nova", value: [0, 30, 45, 60, 75], cooldown: 5, radius: 150, duration: 1 },              // Quill Spray
+    e: { kind: "armor_passive", value: [0, 3, 4, 6, 7], cooldown: 0, passive: true },                    // Bristleback
+    r: { kind: "rage", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 9 },                           // Warpath
+  }, { kind: "quill", value: 18, radius: 110 }),
   sven: hero("sven", 18, "sven", false, { maxHp: 700, damage: 26, armor: 4, regen: 3 }, {
     q: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 320, duration: 1.2 }, // Storm Hammer
     w: SIG,                                                                                              // Great Cleave
     e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 16, duration: 6 },                        // Warcry
     r: { kind: "rage", value: [0, 1.0, 1.5, 2.0], cooldown: 60, duration: 10 },                          // God's Strength
   }, { kind: "cleave", value: 0.5, radius: 85 }),
-  storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 172, maxHp: 500 }, {
-    q: { kind: "remnant", value: [0, 90, 140, 190, 240], cooldown: 4, radius: 130 },                    // Static Remnant
+  storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 168, maxHp: 470 }, {
+    q: { kind: "remnant", value: [0, 60, 95, 130, 165], cooldown: 6, radius: 130 },                     // Static Remnant
     w: { kind: "frostbite", value: [0, 50, 80, 110, 140], cooldown: 11, radius: 300, duration: 1.2 },    // Electric Vortex
     e: SIG,                                                                                              // Overload
-    r: { kind: "dash", value: [0, 140, 220, 300], cooldown: 24, radius: 460 },                           // Ball Lightning
+    r: { kind: "dash", value: [0, 110, 170, 240], cooldown: 26, radius: 460 },                           // Ball Lightning
   }, { kind: "overload", value: 45, radius: 80 }),
   leshrac: hero("leshrac", 52, "leshrac", true, { damage: 24, maxHp: 520, armor: 2 }, {
     q: { kind: "line_burst", value: [0, 90, 135, 180, 225], cooldown: 8, radius: 100, count: [0, 1, 1, 1, 1], duration: 1.0 }, // Split Earth
-    w: { kind: "edict", value: [0, 22, 32, 42, 52], cooldown: 14, radius: 260, duration: 7 },            // Diabolic Edict
+    w: { kind: "edict", value: [0, 18, 26, 34, 42], cooldown: 14, radius: 260, duration: 7 },            // Diabolic Edict
     e: { kind: "arc_lightning", value: [0, 60, 90, 120, 150], cooldown: 5, radius: 320, count: [0, 3, 4, 5, 6] }, // Lightning Storm
-    r: { kind: "freezing_field", value: [0, 60, 95, 130], cooldown: 55, radius: 240, duration: 7 },      // Pulse Nova
+    r: { kind: "freezing_field", value: [0, 50, 80, 110], cooldown: 55, radius: 240, duration: 7 },      // Pulse Nova
   }),
   faceless_void: hero("faceless_void", 41, "faceless_void", false, { speed: 170, damage: 25, maxHp: 600, armor: 4 }, {
     q: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 10, radius: 320 },                              // Time Walk
-    w: { kind: "nova", value: [0, 30, 50, 70, 90], cooldown: 9, radius: 200, duration: 5 },              // Time Dilation
+    w: { kind: "nova", value: [0, 50, 80, 110, 140], cooldown: 9, radius: 200, duration: 5 },            // Time Dilation
     e: SIG,                                                                                              // Time Lock
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 70, radius: 230, duration: 3.5 },           // Chronosphere
   }, { kind: "timelock", value: 0.18, duration: 0.5 }),
   ursa: hero("ursa", 70, "ursa", false, { attackInterval: 0.75, damage: 22, maxHp: 640, armor: 4 }, {
-    q: { kind: "nova", value: [0, 60, 90, 120, 150], cooldown: 7, radius: 170, duration: 3 },            // Earthshock
+    q: { kind: "nova", value: [0, 50, 75, 100, 125], cooldown: 7, radius: 170, duration: 3 },            // Earthshock
     w: { kind: "frenzy", value: [0, 0.45, 0.55, 0.65, 0.72], cooldown: 12, duration: 4 },                // Overpower
     e: SIG,                                                                                              // Fury Swipes
-    r: { kind: "rage", value: [0, 0.3, 0.45, 0.6], cooldown: 45, duration: 6 },                          // Enrage
+    r: { kind: "rage", value: [0, 0.25, 0.38, 0.5], cooldown: 45, duration: 6 },                         // Enrage
   }, { kind: "swipes", value: 4, cap: 12 }),
   lion: hero("lion", 26, "lion", true, { maxHp: 480, damage: 20, speed: 158 }, {
     q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 60, count: [0, 3, 3, 3, 3], duration: 1.0 }, // Earth Spike
@@ -231,7 +231,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "ravage", value: [0, 150, 230, 310], cooldown: 70, radius: 300, duration: 1.8 },          // Ravage
   }),
   mirana: hero("mirana", 9, "mirana", true, { speed: 172, range: 330 }, {
-    q: { kind: "nova", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 200, duration: 0.5 },          // Starstorm
+    q: { kind: "nova", value: [0, 50, 75, 100, 125], cooldown: 8, radius: 200, duration: 0.5 },          // Starstorm
     w: { kind: "lightning_bolt", value: [0, 110, 170, 230, 290], cooldown: 12, radius: 380, duration: 2.0 }, // Sacred Arrow
     e: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 9, radius: 300 },                               // Leap
     r: { kind: "haste", value: [0, 0.6, 0.7, 0.8], cooldown: 60, duration: 8 },                          // Moonlight Shadow
