@@ -5,6 +5,7 @@ import { IDLE_INPUT, type ArcadeInput } from "../src/game/arcade/types.ts";
 import { rankOf, rankStep } from "../src/game/arcade/content/ranks.ts";
 import { SHOP_ACT } from "../src/game/arcade/types.ts";
 import { HERO_IDS } from "../src/game/arcade/content/heroes.ts";
+import { spawnPool } from "../src/game/arcade/content/enemies.ts";
 
 /** Скриптованный ввод: кайт по квадрату + всегда берём первую карточку уровня. */
 function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
@@ -203,5 +204,19 @@ describe("arcade sim", () => {
     for (let i = 0; i < sec(20); i++) { day.step(IDLE_INPUT); night.step(IDLE_INPUT); }
     const maxHp = (sim: ArcadeSim) => Math.max(...sim.enemies.filter((e) => e.alive && e.kind.id === "kobold").map((e) => e.maxHp));
     expect(maxHp(night)).toBeGreaterThan(maxHp(day) * 1.1);
+  });
+
+  it("акт 3: Рошан в яме и не выходит за поводок; Dire-крипы только в актах 2–3", () => {
+    expect(spawnPool(5, "short").some((k) => k.id === "hellbear")).toBe(false);
+    expect(spawnPool(5, "dire").some((k) => k.id === "hellbear")).toBe(true);
+    expect(spawnPool(5, "river").some((k) => k.id === "dark_troll")).toBe(true);
+    const sim = new ArcadeSim("river-1", { act: "river" });
+    sim.player.x = 300; sim.player.y = 300; // далеко от ямы
+    while (sim.tick < ARCADE.acts.river.roshanAt[0] + sec(10)) { sim.player.hp = 1e6; sim.player.x = 300; sim.player.y = 300; sim.step(scriptedInput(sim, sim.tick)); }
+    const r = sim.roshan!;
+    expect(r.alive).toBe(true);
+    expect(Math.hypot(r.x - ARCADE.pit.x, r.y - ARCADE.pit.y)).toBeLessThan(60);
+    // Игрок снаружи — обычный спавн не глушится.
+    expect(sim.aliveEnemies()).toBeGreaterThan(5);
   });
 });

@@ -3,7 +3,7 @@
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
-import { bestArcadeEntry, getArcadeSim, hasFullActVictory, maxUnlockedRank, useArcade } from "../../state/arcadeStore.ts";
+import { bestArcadeEntry, getArcadeSim, hasActVictory, hasFullActVictory, maxUnlockedRank, useArcade } from "../../state/arcadeStore.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
@@ -72,8 +72,8 @@ function ArcadeSetup() {
       {!backNative && <Button variant="back" onClick={() => setMode(null)}>← {t("start.backToModes")}</Button>}
       <header className="screen-heading">
         <Eyebrow>{t("arcade.eyebrow")}</Eyebrow>
-        <h1>{t(act === "full" ? "arcade.titleFull" : act === "dire" ? "arcade.titleDire" : "arcade.title")}</h1>
-        <p>{t(act === "full" ? "arcade.leadFull" : act === "dire" ? "arcade.leadDire" : "arcade.lead")}</p>
+        <h1>{t(act === "full" ? "arcade.titleFull" : act === "dire" ? "arcade.titleDire" : act === "river" ? "arcade.titleRiver" : "arcade.title")}</h1>
+        <p>{t(act === "full" ? "arcade.leadFull" : act === "dire" ? "arcade.leadDire" : act === "river" ? "arcade.leadRiver" : "arcade.lead")}</p>
       </header>
       <div className="arcade-setup__grid">
         <Surface className="arcade-setup__hero" data-testid="arcade-hero">
@@ -121,14 +121,14 @@ function ArcadeSetup() {
         </Surface>
         <Surface className="arcade-setup__run">
           <div className="arcade-act" data-testid="arcade-act">
-            {(["full", "dire", "short"] as const).map((id) => {
-              const locked = id === "dire" && !hasFullActVictory(history);
+            {(["full", "dire", "river", "short"] as const).map((id) => {
+              const locked = (id === "dire" && !hasFullActVictory(history)) || (id === "river" && !hasActVictory(history, "dire"));
               return (
-                <button key={id} type="button" className="arcade-rank__tier" data-active={act === id ? "true" : undefined} data-locked={locked ? "true" : undefined} disabled={locked} title={locked ? t("arcade.act.direLocked") : undefined} data-testid={`arcade-act-${id}`} onClick={() => setAct(id)}>{t(`arcade.act.${id}` as MessageKey)}</button>
+                <button key={id} type="button" className="arcade-rank__tier" data-active={act === id ? "true" : undefined} data-locked={locked ? "true" : undefined} disabled={locked} title={locked ? t(id === "river" ? "arcade.act.riverLocked" : "arcade.act.direLocked") : undefined} data-testid={`arcade-act-${id}`} onClick={() => setAct(id)}>{t(`arcade.act.${id}` as MessageKey)}</button>
               );
             })}
           </div>
-          <p className="arcade-setup__goal">{t(act === "full" ? "arcade.goalFull" : act === "dire" ? "arcade.goalDire" : "arcade.goal")}</p>
+          <p className="arcade-setup__goal">{t(act === "full" ? "arcade.goalFull" : act === "dire" ? "arcade.goalDire" : act === "river" ? "arcade.goalRiver" : "arcade.goal")}</p>
           <p className="arcade-setup__controls">{t("arcade.controls")}</p>
           <div className="arcade-rank" data-testid="arcade-rank">
             <span className="arcade-setup__label">{t("arcade.rank")} · {t(`arcade.tier.${current.tier}` as MessageKey)} {"★".repeat(current.stars)}</span>
@@ -463,7 +463,7 @@ function ArcadeStage() {
         {status === "over" && outcome && (
           <div className="arcade-overlay" data-testid="arcade-over">
             <Surface className="arcade-overlay__card arcade-overlay__card--over" data-outcome={outcome.outcome}>
-              <Eyebrow>{t(outcome.act === "full" ? "arcade.titleFull" : outcome.act === "dire" ? "arcade.titleDire" : "arcade.title")} · {hero.name}</Eyebrow>
+              <Eyebrow>{t(outcome.act === "full" ? "arcade.titleFull" : outcome.act === "dire" ? "arcade.titleDire" : outcome.act === "river" ? "arcade.titleRiver" : "arcade.title")} · {hero.name}</Eyebrow>
               <h2>{t(outcome.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")}</h2>
               <dl className="arcade-result">
                 <div><dt>{t("arcade.over.time")}</dt><dd>{formatClock(outcome.tick)}</dd></div>

@@ -10,6 +10,12 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   ogre: { id: "ogre", hp: 170, speed: 58, dmg: 22, r: 17, xp: 7, gold: 3, fromMin: 3, weight: 4, tone: "brute" },
   centaur: { id: "centaur", hp: 240, speed: 86, dmg: 26, r: 16, xp: 9, gold: 4, fromMin: 4.5, weight: 3, tone: "brute" },
   wildwing: { id: "wildwing", hp: 210, speed: 104, dmg: 18, r: 14, xp: 8, gold: 4, fromMin: 5.5, weight: 3, tone: "swift" },
+  // Лес Dire (акт 2+): стрелок-тролль и медведь — новые формы давления: снаряды и крепкий брут.
+  dark_troll: {
+    id: "dark_troll", hp: 64, speed: 74, dmg: 12, r: 12, xp: 4, gold: 2, fromMin: 1.5, weight: 5, tone: "creep", acts: ["dire", "river"],
+    ranged: { range: 230, every: 2.2, speed: 210 },
+  },
+  hellbear: { id: "hellbear", hp: 330, speed: 72, dmg: 30, r: 19, xp: 11, gold: 5, fromMin: 4, weight: 3, tone: "brute", acts: ["dire", "river"] },
   lane_creep: { id: "lane_creep", hp: 56, speed: 84, dmg: 10, r: 12, xp: 3, gold: 2, fromMin: 99, weight: 0, tone: "creep" },
   siege_creep: {
     id: "siege_creep", hp: 230, speed: 54, dmg: 30, r: 18, xp: 10, gold: 6, fromMin: 99, weight: 0, tone: "creep",
@@ -26,8 +32,8 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
 };
 
 /** Пул обычного спавна на минуте `min` (виды, доступные к этому времени). */
-export function spawnPool(min: number): EnemyKind[] {
+export function spawnPool(min: number, act = "short"): EnemyKind[] {
   const pool: EnemyKind[] = [];
-  for (const kind of Object.values(ENEMY_KINDS)) if (kind.weight > 0 && kind.fromMin <= min) pool.push(kind);
+  for (const kind of Object.values(ENEMY_KINDS)) if (kind.weight > 0 && kind.fromMin <= min && (!kind.acts || kind.acts.includes(act))) pool.push(kind);
   return pool;
 }

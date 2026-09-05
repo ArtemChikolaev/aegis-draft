@@ -15,7 +15,7 @@ const BASE = args.get("seed") ?? "sim";
 const SCHOOL = (args.get("school") ?? "any") as SchoolId | "any";
 const RANK = Number(args.get("rank") ?? 0);
 const HERO = args.get("hero") ?? "juggernaut";
-const ACT = (args.get("act") ?? "full") as "short" | "full" | "dire";
+const ACT = (args.get("act") ?? "full") as "short" | "full" | "dire" | "river";
 const MAX_TICKS = TICK_HZ * 60 * 26;
 
 /** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */
@@ -69,6 +69,7 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   }
   // Рошан: уклоняемся от ТОЧКИ удара во время телеграфа (как человек), между ударами — бьём.
   // Древний: как босс — идём в дальность удара и бьём (снаряды строения не уклоняемы для бота).
+  // Акт 3: к Рошану идём в яму (босс привязан к ней); снаружи он лечится, поэтому не тянем.
   const rosh = sim.roshan?.alive ? sim.roshan : sim.ancient?.alive ? sim.ancient : null;
   if (rosh && rosh.slamT > 0) {
     const dx = p.x - rosh.slamX, dy = p.y - rosh.slamY;

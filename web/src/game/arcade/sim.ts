@@ -120,7 +120,7 @@ export class ArcadeSim {
     this.seed = seed;
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
-    this.act = options.act === "full" || options.act === "dire" ? options.act : "short";
+    this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
     this.rng = new Rng(`arcade:${seed}:r${this.rank.step}:${this.hero.id}:${this.act}`);
     this.roshanAt = ARCADE.acts[this.act].roshanAt.map((t, i) => (i === 0 && this.rank.earlyRoshan ? t - sec(60) : t));
     this.nextShrineAt = ARCADE.greed.firstAt;
@@ -141,6 +141,17 @@ export class ArcadeSim {
   /** Ночной акт: рендер ограничивает обзор, сим — нет (враги идут как обычно). */
   get night(): boolean {
     return ARCADE.acts[this.act].night === true;
+  }
+
+  /** Акт 3: яма Рошана и река. */
+  get pit(): boolean {
+    return ARCADE.acts[this.act].pit === true;
+  }
+
+  /** Игрок внутри ямы (акт 3) — только тогда Рошан преследует и обычный спавн стоит. */
+  playerInPit(): boolean {
+    const P = ARCADE.pit;
+    return this.pit && len(this.player.x - P.x, this.player.y - P.y) <= P.radius + 40;
   }
 
   get seconds(): number {
@@ -748,7 +759,7 @@ export class ArcadeSim {
     const A = ARCADE.acts[this.act];
     // Рошан по расписанию акта; пока жив — тишина. Второй — сильнее (респавн).
     if (this.roshanIdx < this.roshanAt.length && this.tick === this.roshanAt[this.roshanIdx]) {
-      const r = this.spawnEnemy(ENEMY_KINDS.roshan, ...this.ringPoint(420, 480));
+      const r = this.pit ? this.spawnEnemy(ENEMY_KINDS.roshan, ARCADE.pit.x, ARCADE.pit.y) : this.spawnEnemy(ENEMY_KINDS.roshan, ...this.ringPoint(420, 480));
       if (this.roshanIdx > 0) { r.hp *= ARCADE.secondRoshan.hpMult; r.maxHp *= ARCADE.secondRoshan.hpMult; r.dmg *= ARCADE.secondRoshan.dmgMult; }
       this.roshanIdx++;
       this.roshan = r;
@@ -756,7 +767,8 @@ export class ArcadeSim {
       this.shake = 12;
       return;
     }
-    if (this.roshan?.alive) return;
+    // Акт 3: пока ты не в яме, лес живёт своей жизнью — Рошан ждёт тебя, спавн идёт.
+    if (this.roshan?.alive && (!this.pit || this.playerInPit())) return;
     // Tormentor и Древний — не глушат обычный спавн.
     if (!this.tormentorSpawned && A.tormentorAt > 0 && this.tick >= A.tormentorAt) {
       this.tormentorSpawned = true;
@@ -781,7 +793,7 @@ export class ArcadeSim {
     const greedy = this.tick < this.greedUntil;
     const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
-    const pool = spawnPool(min);
+    const pool = spawnPool(min, this.act);
     const alive = this.aliveEnemies();
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;
@@ -809,7 +821,7 @@ export class ArcadeSim {
     // Руна щедрости: появляется недалеко, живёт ограниченно, следующая — по расписанию.
     if (this.tick >= this.nextShrineAt && !this.shrine.alive) {
       this.nextShrineAt = this.tick + ARCADE.greed.every;
-      const [sx, sy] = this.ringPoint(ARCADE.greed.distMin, ARCADE.greed.distMax);
+      const [sx, sy] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.greed.distMin, ARCADE.greed.distMax);
       this.shrine = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.greed.lifetime };
     }
     if (this.shrine.alive && this.tick >= this.shrine.until) this.shrine.alive = false;
@@ -823,7 +835,7 @@ export class ArcadeSim {
     // Bounty-руна каждые 3 минуты.
     if (this.tick >= this.nextBountyAt) {
       this.nextBountyAt += ARCADE.bounty.every;
-      const [bx, by] = this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
+      const [bx, by] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.bounty = { alive: true, x: bx, y: by, until: this.tick + ARCADE.bounty.lifetime, value: Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * min) };
     }
     if (this.bounty.alive && this.tick >= this.bounty.until) this.bounty.alive = false;
@@ -835,6 +847,14 @@ export class ArcadeSim {
     }
     if (this.neutralToken.alive && this.tick >= this.neutralToken.until) this.neutralToken.alive = false;
     void p;
+  }
+
+  /** Акт 3: точка в русле реки недалеко от игрока по X (руны живут в реке, как в Dota). */
+  private riverPoint(): [number, number] {
+    const R = ARCADE.river;
+    const x = clamp(this.player.x + (this.rng.float() * 2 - 1) * 500, 40, ARCADE.world.w - 40);
+    const y = R.y + (this.rng.float() * 2 - 1) * (R.halfWidth - 30);
+    return [x, y];
   }
 
   /** Точка на квадратном «кольце» вокруг игрока (без тригонометрии), в границах мира. */
@@ -855,7 +875,8 @@ export class ArcadeSim {
     const min = this.minutes;
     const greed = 1 + ARCADE.greed.powerPerStack * this.greedStacks;
     const early = Math.min(min, ARCADE.spawn.kneeMin), late = Math.max(0, min - ARCADE.spawn.kneeMin);
-    const actHp = ARCADE.acts[this.act].hpMult ?? 1;
+    // Множитель акта — только лесу: боссы и Древний одинаковы во всех актах, иначе акт 3 = Рошан ×1.3.
+    const actHp = kind.boss || kind.structure ? 1 : ARCADE.acts[this.act].hpMult ?? 1;
     const hpMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.hpPerMin * early + ARCADE.spawn.lateHpPerMin * late) * this.rank.hpMult * greed * actHp;
     const dmgMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.dmgPerMin * early + ARCADE.spawn.lateDmgPerMin * late) * this.rank.dmgMult * greed;
     let e = this.enemies.find((o) => !o.alive);
@@ -948,6 +969,16 @@ export class ArcadeSim {
     // Восстановление после удара: босс стоит, контактом не бьёт — окно для мили.
     if (e.slamCd > B.slamCooldown - B.slamRecovery) return;
     if (frozen) return;
+    // Акт 3: Рошан не выходит из ямы — снаружи он идёт домой и лечится.
+    if (this.pit) {
+      const P = ARCADE.pit;
+      const home = len(e.x - P.x, e.y - P.y);
+      if (len(this.player.x - P.x, this.player.y - P.y) > P.leash) {
+        if (home > 8) { e.x += (P.x - e.x) / home * e.kind.speed * DT; e.y += (P.y - e.y) / home * e.kind.speed * DT; }
+        if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * P.regenPerSec);
+        return;
+      }
+    }
     if (d <= B.slamRange + ARCADE.player.r && e.slamCd === 0) {
       e.slamT = B.slamTelegraph;
       e.slamX = this.player.x;

@@ -15,6 +15,7 @@ describe("arcadeStore: витрина и открытие рангов", () => {
     expect(maxUnlockedRank([entry({ outcome: "victory", act: "dire", rank: 2 })])).toBe(3);
     expect(hasFullActVictory([entry({ outcome: "victory", act: "short" })])).toBe(false);
     expect(hasFullActVictory([entry({ outcome: "victory", act: "full" })])).toBe(true);
+    expect(maxUnlockedRank([entry({ outcome: "victory", act: "river", rank: 4 })])).toBe(5);
     useArcade.setState({ history: [], act: "full" });
     useArcade.getState().setAct("dire");
     expect(useArcade.getState().act).toBe("full");

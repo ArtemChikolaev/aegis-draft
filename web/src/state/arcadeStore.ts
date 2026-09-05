@@ -164,6 +164,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   },
   setAct(act) {
     if (act === "dire" && !hasFullActVictory(get().history)) return;
+    if (act === "river" && !hasActVictory(get().history, "dire")) return;
     set({ act });
   },
   setHero(hero) {
@@ -217,16 +218,20 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   },
 }));
 
-/** Акт 2 (лес Dire) открывает победа в полном акте 1. */
+/** Победа в конкретном акте (акт 2 открывает победа в полном акте 1, акт 3 — победа в акте 2). */
+export function hasActVictory(history: ArcadeHistoryEntry[], act: ActId): boolean {
+  return history.some((e) => e.outcome === "victory" && e.act === act);
+}
+
 export function hasFullActVictory(history: ArcadeHistoryEntry[]): boolean {
-  return history.some((e) => e.outcome === "victory" && e.act === "full");
+  return hasActVictory(history, "full");
 }
 
 /** Открытая ступень: победа на ступени N открывает N+1 (как у референса — сложность за победы). */
 export function maxUnlockedRank(history: ArcadeHistoryEntry[]): number {
   let best = 0;
   // Ступень открывает только победа в полном акте: разминка до 9:00 — тренировка, не зачёт.
-  for (const e of history) if (e.outcome === "victory" && (e.act === "full" || e.act === "dire")) best = Math.max(best, (e.rank ?? 0) + 1);
+  for (const e of history) if (e.outcome === "victory" && e.act && e.act !== "short") best = Math.max(best, (e.rank ?? 0) + 1);
   return Math.min(MAX_RANK_STEP, best);
 }
 
@@ -253,7 +258,7 @@ export function arcadeTrophies(history: ArcadeHistoryEntry[]): ArcadeTrophies {
     out.bestSeconds = Math.max(out.bestSeconds, e.seconds);
     if (e.outcome === "victory") {
       out.victories++; h.victories++;
-      if (e.act === "full" || e.act === "dire") { out.fullVictories++; out.bestRank = Math.max(out.bestRank ?? 0, e.rank ?? 0); }
+      if (e.act && e.act !== "short") { out.fullVictories++; out.bestRank = Math.max(out.bestRank ?? 0, e.rank ?? 0); }
     }
   }
   return out;

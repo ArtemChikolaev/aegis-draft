@@ -28,7 +28,8 @@ export type InputLogEntry = [step: number, mx: number, my: number, cast: number,
 
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
-  | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient";
+  | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
+  | "dark_troll" | "hellbear";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -52,6 +53,8 @@ export interface EnemyKind {
   /** С какой минуты появляется в обычном спавне и вес в пуле. */
   fromMin: number;
   weight: number;
+  /** Только в актах из списка (нет списка — во всех). */
+  acts?: readonly string[];
   /** Цвет-роль для рендера (токен подбирается на стороне UI). */
   tone: "grunt" | "brute" | "swift" | "elite" | "boss" | "creep";
 }
@@ -145,8 +148,9 @@ export interface ArcadeOptions {
   act?: ActId;
 }
 
-/** `dire` — акт 2: тот же 20-минутный ход, но ночь (обзор ограничен) и лес Dire (враги крепче и быстрее). */
-export type ActId = "short" | "full" | "dire";
+/** `dire` — акт 2: ночь (обзор ограничен) и лес Dire (враги крепче и быстрее). `river` — акт 3: река с рунами
+ *  и яма Рошана в центре карты (босс привязан к яме, спавн не глушится, пока ты снаружи). */
+export type ActId = "short" | "full" | "dire" | "river";
 
 export interface Shard {
   alive: boolean;

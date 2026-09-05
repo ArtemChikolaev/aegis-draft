@@ -11,7 +11,7 @@ import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "groundNight", "fog",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "groundNight", "fog", "river", "pit",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 type Palette = Record<PaletteKey, string>;
@@ -97,6 +97,7 @@ export class ArcadeRenderer {
     c.save();
     c.translate(-camX + this.shakeX, -camY + this.shakeY);
     this.drawGround(camX, camY, pal);
+    if (sim.pit) this.drawRiverAndPit(pal);
     this.drawShards(sim, pal);
     this.drawWard(sim, pal);
     this.drawAegis(sim, pal, now);
@@ -123,6 +124,19 @@ export class ArcadeRenderer {
     c.strokeStyle = pal.bounds;
     c.lineWidth = 6;
     c.strokeRect(0, 0, ARCADE.world.w, ARCADE.world.h);
+  }
+
+  private drawRiverAndPit(pal: Palette): void {
+    const c = this.ctx;
+    const R = ARCADE.river, P = ARCADE.pit;
+    c.fillStyle = pal.river; c.globalAlpha = 0.85;
+    c.fillRect(0, R.y - R.halfWidth, ARCADE.world.w, R.halfWidth * 2);
+    c.globalAlpha = 1;
+    c.fillStyle = pal.pit;
+    c.beginPath(); c.arc(P.x, P.y, P.radius, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([8, 6]); c.globalAlpha = 0.6;
+    c.beginPath(); c.arc(P.x, P.y, P.leash, 0, Math.PI * 2); c.stroke();
+    c.setLineDash([]); c.globalAlpha = 1;
   }
 
   private drawShards(sim: ArcadeSim, pal: Palette): void {
