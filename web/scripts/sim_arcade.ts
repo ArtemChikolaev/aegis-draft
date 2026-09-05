@@ -14,6 +14,7 @@ const RUNS = Number(args.get("runs") ?? 100);
 const BASE = args.get("seed") ?? "sim";
 const SCHOOL = (args.get("school") ?? "any") as SchoolId | "any";
 const RANK = Number(args.get("rank") ?? 0);
+const HERO = args.get("hero") ?? "juggernaut";
 const MAX_TICKS = ARCADE.endAt + TICK_HZ * 5;
 
 /** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */
@@ -75,7 +76,7 @@ function botInput(sim: ArcadeSim): ArcadeInput {
     }
   }
   if (rosh) retreating = retreating ? hpPct < 0.55 : hpPct < 0.3; else retreating = false;
-  const flee = rosh ? retreating : danger > 9 || hpPct < 0.35;
+  const flee = rosh ? retreating : danger > (sim.hero.ranged ? 6 : 9) || hpPct < 0.35;
   if (rosh && !flee) {
     // Босс жив: шарды и толпа вторичны — идём в дальность удара и стоим.
     const dx = rosh.x - p.x, dy = rosh.y - p.y;
@@ -97,6 +98,12 @@ function botInput(sim: ArcadeSim): ArcadeInput {
     const l = Math.sqrt(cx * cx + cy * cy) || 1;
     fx -= cx / l * 2; fy -= cy / l * 2;
     if (sd < 200) { fx += sx * 0.5; fy += sy * 0.5; }
+  } else if (sim.hero.ranged) {
+    // Дальний бой: держим дистанцию ~70% дальности — подходим, если далеко, отходим, если близко.
+    const keep = p.stats.range * 0.7;
+    if (sd < 600) { fx += sx * 0.8; fy += sy * 0.8; }
+    if (nd > keep + 40 && nd < 600) { fx += nx * 0.6; fy += ny * 0.6; }
+    else if (nd < keep - 30 && near > 0) { const l = Math.sqrt(cx * cx + cy * cy) || 1; fx -= cx / l * 1.2; fy -= cy / l * 1.2; }
   } else {
     if (sd < 600) { fx += sx * 1.0; fy += sy * 1.0; }
     if (nd > 60 && nd < 500) { fx += nx * 0.7; fy += ny * 0.7; }
@@ -118,7 +125,7 @@ let retreating = false;
 const results: RunResult[] = [];
 const t0 = performance.now();
 for (let i = 0; i < RUNS; i++) {
-  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK });
+  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO });
   const trace = args.get("trace") !== undefined && Number(args.get("trace")) === i;
   let lastHp = 0;
   while (!sim.over && sim.tick < MAX_TICKS) {
@@ -139,7 +146,7 @@ const elapsed = (performance.now() - t0) / 1000;
 const q = (arr: number[], k: number) => { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(k * s.length))]; };
 const secs = results.map((r) => r.seconds);
 const pct = (f: (r: RunResult) => boolean) => `${(results.filter(f).length / results.length * 100).toFixed(1)}%`;
-console.log(`arcade ${ARCADE_CONFIG_VERSION} · runs=${RUNS} · school=${SCHOOL} · rank=${RANK} · ${elapsed.toFixed(1)}s`);
+console.log(`arcade ${ARCADE_CONFIG_VERSION} · runs=${RUNS} · hero=${HERO} · school=${SCHOOL} · rank=${RANK} · ${elapsed.toFixed(1)}s`);
 console.log(`reached Roshan ${pct((r) => r.reachedRoshan)} · Roshan killed ${pct((r) => r.roshan)} · victory ${pct((r) => r.outcome === "victory")}`);
 console.log(`death time p25/p50/p75: ${q(secs, 0.25).toFixed(0)}s / ${q(secs, 0.5).toFixed(0)}s / ${q(secs, 0.75).toFixed(0)}s · level p50 ${q(results.map((r) => r.level), 0.5)} · kills p50 ${q(results.map((r) => r.kills), 0.5)}`);
 const byMinute = new Map<number, number>();

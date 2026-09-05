@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.4.0";
+export const ARCADE_CONFIG_VERSION = "a0.5.0";
 
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
@@ -101,13 +101,8 @@ export const ARCADE = {
     base: 30,
     perMin: 6,
   },
-  juggernaut: {
-    q: { duration: 4, cooldown: 16, radius: 104, dps: [0, 42, 66, 90, 114], speedBonus: 0.12 },
-    w: { duration: 8, cooldown: 32, radius: 170, healPct: [0, 0.028, 0.034, 0.04, 0.046] },
-    e: { crit: [0, 0.2, 0.25, 0.3, 0.35], mult: 1.8 },
-    r: { duration: 1.5, cooldown: [0, 70, 62, 54], slashes: [0, 5, 7, 9], dmg: [0, 110, 200, 290], radius: 230 },
-    autoCast: { qEnemies: 4, qRadius: 130, wHpPct: 0.6, rEnemies: 10, rHpPct: 0.32 },
-  },
+  /** Авто-каст (общий для видов способностей): порог врагов в радиусе и HP. */
+  autoCast: { aoeEnemies: 3, healHpPct: 0.6, ultEnemies: 8, ultHpPct: 0.32 },
   boss: {
     slamRange: 96,
     /** Рошан не даёт бесконечно кайтить: дальше chaseFrom он бежит быстрее игрока-без-бонусов. */

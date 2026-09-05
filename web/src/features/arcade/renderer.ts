@@ -129,7 +129,7 @@ export class ArcadeRenderer {
     c.strokeStyle = pal.ward;
     c.globalAlpha = 0.25 + 0.2 * pulse;
     c.lineWidth = 2;
-    c.beginPath(); c.arc(p.wardX, p.wardY, ARCADE.juggernaut.w.radius, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(p.wardX, p.wardY, sim.hero.abilities.w.radius ?? 170, 0, Math.PI * 2); c.stroke();
     c.globalAlpha = 1;
     c.fillStyle = pal.ward;
     c.beginPath(); c.arc(p.wardX, p.wardY, 7 + pulse * 2, 0, Math.PI * 2); c.fill();
@@ -216,7 +216,7 @@ export class ArcadeRenderer {
     const c = this.ctx;
     for (const pr of sim.projectiles) {
       if (!pr.alive) continue;
-      c.fillStyle = pr.kind === "fire" ? pal.fire : pr.kind === "shard" ? pal.frost : pr.kind === "zap" ? pal.lightning : pal.brute;
+      c.fillStyle = pr.kind === "fire" ? pal.fire : pr.kind === "shard" ? pal.frost : pr.kind === "zap" ? pal.lightning : pr.kind === "arrow" ? pal.playerRing : pal.brute;
       c.beginPath(); c.arc(pr.x, pr.y, pr.r, 0, Math.PI * 2); c.fill();
     }
   }
@@ -226,16 +226,34 @@ export class ArcadeRenderer {
     const p = sim.player;
     const R = ARCADE.player.r + 4;
     const spinning = sim.tick < p.spinUntil;
-    const invuln = sim.tick < p.invulnUntil || p.omniLeft > 0;
+    const invuln = sim.tick < p.invulnUntil || (p.burstLeft > 0 && sim.hero.abilities.r.kind === "omni");
+    const spinR = sim.hero.abilities.q.radius ?? 104;
     if (spinning) {
       c.save();
       c.translate(p.x, p.y);
       c.rotate((now / 60) % (Math.PI * 2));
       c.strokeStyle = pal.playerRing; c.lineWidth = 4; c.globalAlpha = 0.85;
-      for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(0, 0, ARCADE.juggernaut.q.radius - 6, i * 2.1, i * 2.1 + 1.2); c.stroke(); }
+      for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(0, 0, spinR - 6, i * 2.1, i * 2.1 + 1.2); c.stroke(); }
       c.globalAlpha = 0.12; c.fillStyle = pal.playerRing;
-      c.beginPath(); c.arc(0, 0, ARCADE.juggernaut.q.radius, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(0, 0, spinR, 0, Math.PI * 2); c.fill();
       c.restore();
+    }
+    // Freezing Field / Shrapnel / Berserker's Call — зоны и бафы других героев.
+    if (sim.tick < p.fieldUntil) {
+      c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.5;
+      c.beginPath(); c.arc(p.x, p.y, sim.hero.abilities.r.radius ?? 270, 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 1;
+    }
+    if (sim.tick < p.zoneUntil) {
+      c.fillStyle = pal.fire; c.globalAlpha = 0.12;
+      c.beginPath(); c.arc(p.zoneX, p.zoneY, sim.hero.abilities.q.radius ?? 180, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 0.6; c.strokeStyle = pal.fire; c.lineWidth = 1.5; c.stroke();
+      c.globalAlpha = 1;
+    }
+    if (sim.tick < p.armorBuffUntil) {
+      c.strokeStyle = pal.telegraph; c.lineWidth = 3; c.globalAlpha = 0.7;
+      c.beginPath(); c.arc(p.x, p.y, R + 8, 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 1;
     }
     c.globalAlpha = invuln ? 0.55 + 0.45 * Math.abs(Math.sin(now / 80)) : 1;
     c.fillStyle = pal.player;

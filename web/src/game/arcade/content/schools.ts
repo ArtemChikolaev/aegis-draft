@@ -32,10 +32,5 @@ export const UPGRADES: readonly UpgradeDef[] = [
 
 export const UPGRADE_BY_ID: Record<string, UpgradeDef> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 
-/** Таланты Juggernaut на 10/15/20/25 — по два на уровень, как в Dota. */
-export const TALENTS: Record<number, readonly [string, string]> = {
-  10: ["t10_dmg", "t10_ms"],
-  15: ["t15_crit", "t15_hp"],
-  20: ["t20_spin", "t20_armor"],
-  25: ["t25_omni", "t25_regen"],
-};
+/** Таланты 10/15/20/25 — общая лестница героев (см. content/heroes.ts). */
+export { HERO_TALENTS as TALENTS } from "./heroes.ts";

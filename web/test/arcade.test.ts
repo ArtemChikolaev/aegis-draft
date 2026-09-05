@@ -4,10 +4,13 @@ import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, type ArcadeInput } from "../src/game/arcade/types.ts";
 import { rankOf, rankStep } from "../src/game/arcade/content/ranks.ts";
 import { SHOP_ACT } from "../src/game/arcade/types.ts";
+import { HERO_IDS } from "../src/game/arcade/content/heroes.ts";
 
 /** Скриптованный ввод: кайт по квадрату + всегда берём первую карточку уровня. */
 function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
   if (sim.pending) return { ...IDLE_INPUT, choose: 0 };
+  // Торговец (3:00/6:00) ставит мир на паузу — без закрытия лавки длинные циклы тестов зависали.
+  if (sim.shopOpen) return { ...IDLE_INPUT, act: SHOP_ACT.close };
   const phase = Math.floor(tick / 90) % 4;
   const dirs = [[16, 0], [0, 16], [-16, 0], [0, -16]];
   return { mx: dirs[phase][0], my: dirs[phase][1], cast: 0, choose: -1, act: 0 };
@@ -42,7 +45,9 @@ describe("arcade sim", () => {
 
   it("level-up останавливает мир до выбора карточки", () => {
     const sim = new ArcadeSim("pause-1");
-    while (!sim.pending && sim.tick < sec(120)) sim.step({ mx: 16, my: 0, cast: 0, choose: -1, act: 0 });
+    // Бессмертие: с плотностью a0.4.0 игрок, бегущий по прямой, умирал до первого уровня, и цикл без
+    // проверки `over` крутился вечно (2026-09-05).
+    while (!sim.pending && !sim.over && sim.tick < sec(120)) { sim.player.hp = sim.player.stats.maxHp; sim.step({ mx: 16, my: 0, cast: 0, choose: -1, act: 0 }); }
     expect(sim.pending).not.toBeNull();
     const tick = sim.tick;
     sim.step({ mx: 16, my: 0, cast: 0, choose: -1, act: 0 });
@@ -98,7 +103,7 @@ describe("arcade sim", () => {
 
   it("руна щедрости: взял — двойной спавн на 60 с и постоянный стек силы", () => {
     const sim = new ArcadeSim("greed-1");
-    while (!sim.shrine.alive && sim.tick < sec(120)) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT); }
+    while (!sim.shrine.alive && sim.tick < sec(120)) { sim.player.hp = sim.player.stats.maxHp; sim.step(scriptedInput(sim, sim.tick)); }
     expect(sim.shrine.alive).toBe(true);
     sim.player.x = sim.shrine.x; sim.player.y = sim.shrine.y;
     sim.step(IDLE_INPUT);
@@ -128,5 +133,22 @@ describe("arcade sim", () => {
     expect(sim.shopOpen).toBe(false);
     sim.step(IDLE_INPUT);
     expect(sim.tick).toBe(tick + 1);
+  });
+
+  it("каждый герой детерминирован, реплеится и наносит урон своим китом", () => {
+    for (const hero of HERO_IDS) {
+      const a = new ArcadeSim(`hero-${hero}`, { hero });
+      const b = new ArcadeSim(`hero-${hero}`, { hero });
+      for (let i = 0; i < sec(90); i++) {
+        a.player.hp = a.player.stats.maxHp; b.player.hp = b.player.stats.maxHp;
+        a.step(scriptedInput(a, a.tick)); b.step(scriptedInput(b, b.tick));
+      }
+      expect(a.digest(), hero).toBe(b.digest());
+      expect(a.player.kills, hero).toBeGreaterThan(20);
+      expect(a.player.level, hero).toBeGreaterThanOrEqual(3);
+      const replayed = ArcadeSim.replay(`hero-${hero}`, a.log, a.steps, { hero });
+      // Бессмертие в тесте — вне лога, поэтому сравниваем только тик и убийства ≥ (реплей мог умереть раньше).
+      expect(replayed.tick, hero).toBeLessThanOrEqual(a.tick);
+    }
   });
 });

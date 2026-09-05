@@ -11,6 +11,7 @@ import { ARCADE, DT, TICK_HZ } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID } from "../../game/arcade/content/schools.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID } from "../../game/arcade/content/items.ts";
+import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { SHOP_ACT } from "../../game/arcade/types.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, screenShakeEnabled, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
@@ -19,7 +20,6 @@ import { ArcadeInputController } from "./input.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
-const JUGGERNAUT_ID = 8;
 const ABILITY_MASK: Record<AbilityKey, number> = { q: 1, w: 2, e: 4, r: 8 };
 
 export function ArcadeScreen() {
@@ -35,7 +35,9 @@ function ArcadeSetup() {
   const start = useArcade((s) => s.start);
   const rank = useArcade((s) => s.rank);
   const setRank = useArcade((s) => s.setRank);
-  const hero = useHero()(JUGGERNAUT_ID);
+  const heroId = useArcade((s) => s.hero);
+  const setHero = useArcade((s) => s.setHero);
+  const heroOf = useHero();
   const [seed, setSeed] = useState("");
   const best = bestArcadeEntry(history);
   const unlocked = maxUnlockedRank(history);
@@ -51,10 +53,21 @@ function ArcadeSetup() {
       <div className="arcade-setup__grid">
         <Surface className="arcade-setup__hero" data-testid="arcade-hero">
           <span className="arcade-setup__label">{t("arcade.hero")}</span>
-          <HeroThumb picture={hero.picture || "juggernaut"} name={hero.name} size="lg" layout="card" />
+          <div className="arcade-heroes" data-testid="arcade-heroes">
+            {HERO_IDS.map((id) => {
+              const def = HEROES[id];
+              const info = heroOf(def.dotaId);
+              return (
+                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => setHero(id)}>
+                  <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
+                  <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
+                </button>
+              );
+            })}
+          </div>
           <ul className="arcade-setup__kit">
             {(["q", "w", "e", "r"] as const).map((key) => (
-              <li key={key}><b>{key.toUpperCase()}</b> <span>{t(`arcade.ab.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${key}.desc` as MessageKey)}</small></li>
+              <li key={key}><b>{key.toUpperCase()}</b> <span>{t(`arcade.ab.${heroId}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${heroId}.${key}.desc` as MessageKey)}</small></li>
             ))}
           </ul>
         </Surface>
@@ -97,7 +110,7 @@ function ArcadeSetup() {
           <div className="arcade-setup__best">
             <span className="arcade-setup__label">{t("arcade.best")}</span>
             {best
-              ? <span data-testid="arcade-best">{t(best.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")} · {t(`arcade.tier.${rankOf(best.rank ?? 0).tier}` as MessageKey)} {"★".repeat(rankOf(best.rank ?? 0).stars)} · {formatClock(best.seconds * TICK_HZ)} · {t("arcade.hud.level")} {best.level} · {best.kills} {t("arcade.hud.kills").toLowerCase()}</span>
+              ? <span data-testid="arcade-best">{heroOf(HEROES[(best.hero as HeroId) in HEROES ? (best.hero as HeroId) : "juggernaut"].dotaId).name} · {t(best.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")} · {t(`arcade.tier.${rankOf(best.rank ?? 0).tier}` as MessageKey)} {"★".repeat(rankOf(best.rank ?? 0).stars)} · {formatClock(best.seconds * TICK_HZ)} · {t("arcade.hud.level")} {best.level} · {best.kills} {t("arcade.hud.kills").toLowerCase()}</span>
               : <span>{t("arcade.noHistory")}</span>}
           </div>
         </Surface>
@@ -120,7 +133,9 @@ function ArcadeStage() {
   const quit = useArcade((s) => s.quit);
   const start = useArcade((s) => s.start);
   const bump = useArcade((s) => s.bump);
-  const hero = useHero()(JUGGERNAUT_ID);
+  const heroId = useArcade((s) => s.hero);
+  const heroDef = HEROES[heroId];
+  const hero = useHero()(heroDef.dotaId);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controllerRef = useRef<ArcadeInputController | null>(null);
@@ -132,7 +147,7 @@ function ArcadeStage() {
   useEffect(() => {
     const canvas = canvasRef.current, stage = stageRef.current;
     if (!canvas || !stage) return;
-    const renderer = new ArcadeRenderer(canvas, hero.picture || "juggernaut");
+    const renderer = new ArcadeRenderer(canvas, hero.picture || heroDef.picture);
     // Dev-хук для headless-QA (телепорт к торговцу/Рошану без ожидания): в прод-сборке его нет.
     if (import.meta.env.DEV) (window as unknown as { __arcadeSim?: typeof getArcadeSim }).__arcadeSim = getArcadeSim;
     const controller = new ArcadeInputController(stage);
@@ -184,7 +199,7 @@ function ArcadeStage() {
       controllerRef.current = null;
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, [hero.picture, bump, finish]);
+  }, [hero.picture, heroDef.picture, bump, finish]);
 
   useEffect(() => {
     if (status === "over" && outcome) sfxVerdict(outcome.outcome === "victory" ? "won" : "lost");
@@ -231,7 +246,8 @@ function ArcadeStage() {
               <div className="arcade-hud__abilities">
                 {(["q", "w", "e", "r"] as const).map((key) => {
                   const lvl = p.abilities[key];
-                  const cdTotal = key === "q" ? ARCADE.juggernaut.q.cooldown : key === "w" ? ARCADE.juggernaut.w.cooldown : key === "r" ? ARCADE.juggernaut.r.cooldown[Math.max(1, lvl)] : 0;
+                  const ab = sim.hero.abilities[key];
+                  const cdTotal = ab.passive ? 0 : ab.cooldown * (1 - p.stats.cooldown);
                   const cd = p.cooldowns[key] / TICK_HZ;
                   return (
                     <button
@@ -239,10 +255,10 @@ function ArcadeStage() {
                       type="button"
                       className="arcade-ability"
                       data-locked={lvl === 0 ? "true" : undefined}
-                      data-passive={key === "e" ? "true" : undefined}
-                      disabled={lvl === 0 || key === "e"}
+                      data-passive={ab.passive ? "true" : undefined}
+                      disabled={lvl === 0 || ab.passive}
                       onPointerDown={(e) => { e.stopPropagation(); cast(key); }}
-                      title={t(`arcade.ab.${key}` as MessageKey)}
+                      title={t(`arcade.ab.${sim.hero.id}.${key}` as MessageKey)}
                     >
                       <b>{key.toUpperCase()}</b>
                       <small>{lvl > 0 ? `${t("arcade.hud.lvlShort")}${lvl}` : "—"}</small>
@@ -310,7 +326,7 @@ function ArcadeStage() {
         {status === "over" && outcome && (
           <div className="arcade-overlay" data-testid="arcade-over">
             <Surface className="arcade-overlay__card arcade-overlay__card--over" data-outcome={outcome.outcome}>
-              <Eyebrow>{t("arcade.title")}</Eyebrow>
+              <Eyebrow>{t("arcade.title")} · {hero.name}</Eyebrow>
               <h2>{t(outcome.outcome === "victory" ? "arcade.over.victory" : "arcade.over.dead")}</h2>
               <dl className="arcade-result">
                 <div><dt>{t("arcade.over.time")}</dt><dd>{formatClock(outcome.tick)}</dd></div>
@@ -363,9 +379,9 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
     return (
       <button type="button" className="arcade-offer" data-kind="ability" data-testid={`arcade-offer-${index}`} onClick={onPick}>
         <span className="arcade-offer__tag">{t("arcade.offer.ability")} · {offer.key.toUpperCase()}</span>
-        <strong>{t(`arcade.ab.${offer.key}` as MessageKey)}</strong>
+        <strong>{t(`arcade.ab.${sim?.hero.id ?? "juggernaut"}.${offer.key}` as MessageKey)}</strong>
         <small>{t("arcade.offer.point", { lvl })}</small>
-        <p>{t(`arcade.ab.${offer.key}.desc` as MessageKey)}</p>
+        <p>{t(`arcade.ab.${sim?.hero.id ?? "juggernaut"}.${offer.key}.desc` as MessageKey)}</p>
       </button>
     );
   }

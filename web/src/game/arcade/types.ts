@@ -105,8 +105,10 @@ export interface Projectile {
   ttl: number;
   pierce: number;
   hits: number[];
-  kind: "fire" | "shard" | "siege" | "zap";
+  kind: "fire" | "shard" | "siege" | "zap" | "arrow";
   fromEnemy: boolean;
+  /** Снаряд автоатаки: попадание идёт через onAttackHit (криты, статусы школ, вампиризм). */
+  attack: boolean;
 }
 
 /** Руна щедрости (T13.7): взял — 60 с двойного спавна и опыта ценой постоянного усиления врагов. */
@@ -130,6 +132,8 @@ export interface Spot {
 export interface ArcadeOptions {
   /** Ступень лестницы сложности 0..39 (content/ranks.ts). */
   rank?: number;
+  /** Герой (content/heroes.ts); по умолчанию Juggernaut. */
+  hero?: string;
 }
 
 export interface Shard {
@@ -189,13 +193,19 @@ export interface Player {
   aegisUsed: boolean;
   abilities: Record<AbilityKey, number>;
   cooldowns: Record<AbilityKey, number>;
-  /** Blade Fury активен до тика; Healing Ward жив до тика; Omnislash: оставшиеся удары. */
+  /** Активные эффекты способностей (общие для видов): вихрь/поле до тика, тотем, серия ударов, зона, бафы. */
   spinUntil: number;
   wardUntil: number;
   wardX: number;
   wardY: number;
-  omniLeft: number;
-  omniNextAt: number;
+  burstLeft: number;
+  burstNextAt: number;
+  fieldUntil: number;
+  zoneUntil: number;
+  zoneX: number;
+  zoneY: number;
+  armorBuffUntil: number;
+  hasteUntil: number;
   /** Школы в порядке взятия (макс. 3) и суммарная «сила» апгрейда (ранги × множитель редкости). */
   schools: SchoolId[];
   upgrades: Record<string, { rank: number; power: number }>;
@@ -221,4 +231,5 @@ export interface ArcadeOutcome {
   rank: number;
   greedStacks: number;
   items: string[];
+  hero: string;
 }
