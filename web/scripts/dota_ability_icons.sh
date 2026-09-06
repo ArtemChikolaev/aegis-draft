@@ -86,6 +86,14 @@ batrider batrider sticky_napalm flamebreak firefly flaming_lasso
 bounty_hunter bounty_hunter shuriken_toss jinada wind_walk track
 broodmother broodmother spawn_spiderlings spin_web incapacitating_bite insatiable_hunger
 clockwerk rattletrap battery_assault power_cogs rocket_flare hookshot
+earth_spirit earth_spirit boulder_smash rolling_boulder geomagnetic_grip magnetize
+elder_titan elder_titan echo_stomp ancestral_spirit natural_order earth_splitter
+ember_spirit ember_spirit searing_chains sleight_of_fist flame_guard fire_remnant
+grimstroke grimstroke dark_artistry ink_creature spirit_walk soul_chain
+gyrocopter gyrocopter rocket_barrage homing_missile flak_cannon call_down
+keeper_of_the_light keeper_of_the_light illuminate blinding_light chakra_magic will_o_wisp
+magnus magnataur shockwave empower skewer reverse_polarity
+mars mars spear gods_rebuke bulwark arena_of_blood
 '
 missing=""
 while read -r id dota q w e r; do

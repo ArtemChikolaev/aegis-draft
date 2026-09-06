@@ -22,7 +22,9 @@ export type TemplateHeroId =
   // Волна 6.
   | "omniknight" | "abaddon" | "beastmaster" | "brewmaster" | "centaur" | "dark_seer" | "death_prophet" | "disruptor"
   // Волна 7.
-  | "lycan" | "lone_druid" | "alchemist" | "bane" | "batrider" | "bounty_hunter" | "broodmother" | "clockwerk";
+  | "lycan" | "lone_druid" | "alchemist" | "bane" | "batrider" | "bounty_hunter" | "broodmother" | "clockwerk"
+  // Волна 8.
+  | "earth_spirit" | "elder_titan" | "ember_spirit" | "grimstroke" | "gyrocopter" | "keeper_of_the_light" | "magnus" | "mars";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -35,6 +37,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "silencer", "skywrath_mage", "dazzle", "jakiro", "shadow_shaman", "warlock", "enigma", "tinker",
   "omniknight", "abaddon", "beastmaster", "brewmaster", "centaur", "dark_seer", "death_prophet", "disruptor",
   "lycan", "lone_druid", "alchemist", "bane", "batrider", "bounty_hunter", "broodmother", "clockwerk",
+  "earth_spirit", "elder_titan", "ember_spirit", "grimstroke", "gyrocopter", "keeper_of_the_light", "magnus", "mars",
 ];
 
 export type AbilityKind =
@@ -555,6 +558,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 15, radius: 180, duration: 2 },           // Power Cogs
     e: { kind: "line_burst", value: [0, 60, 95, 130, 165], cooldown: 8, radius: 60, count: [0, 4, 4, 4, 4] }, // Rocket Flare
     r: { kind: "dash", value: [0, 150, 250, 350], cooldown: 40, radius: 500 },                           // Hookshot
+  }),
+  // ---- Волна 8 ----
+  earth_spirit: hero("earth_spirit", 107, "earth_spirit", false, { maxHp: 780, armor: 5, damage: 28, speed: 166, regen: 3 }, {
+    q: { kind: "lightning_bolt", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 320, duration: 1.2 }, // Boulder Smash
+    w: { kind: "dash", value: [0, 80, 120, 160, 200], cooldown: 9, radius: 300 },                         // Rolling Boulder
+    e: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 9, radius: 340, duration: 3 },             // Geomagnetic Grip
+    r: { kind: "edict", value: [0, 80, 120, 160], cooldown: 60, duration: 8, radius: 300 },              // Magnetize
+  }),
+  elder_titan: hero("elder_titan", 103, "elder_titan", false, { maxHp: 820, armor: 5, damage: 29, speed: 158, regen: 3 }, {
+    q: { kind: "ravage", value: [0, 110, 160, 210, 260], cooldown: 11, radius: 260, duration: 2 },        // Echo Stomp
+    w: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 8, radius: 74, count: [0, 3, 3, 3, 3] }, // Astral Spirit
+    e: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 320, duration: 8 },  // Natural Order
+    r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 90, count: [0, 5, 5, 5], duration: 1.0 }, // Earth Splitter
+  }),
+  ember_spirit: hero("ember_spirit", 106, "ember_spirit", false, { maxHp: 620, armor: 3, damage: 26, speed: 176, attackInterval: 0.85 }, {
+    q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 260, duration: 2 },             // Searing Chains
+    w: { kind: "spin", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 220, duration: 1.5 },          // Sleight of Fist
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Flame Guard
+    r: { kind: "dash", value: [0, 150, 250, 350], cooldown: 40, radius: 500 },                           // Fire Remnant
+  }),
+  grimstroke: hero("grimstroke", 121, "grimstroke", true, { maxHp: 620, armor: 3, damage: 25, speed: 164 }, {
+    q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Stroke of Fate
+    w: { kind: "life_drain", value: [0, 30, 40, 50, 60], cooldown: 12, radius: 320, duration: 4 },        // Phantom's Embrace
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Ink Swell
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 260, duration: 2.5 },            // Soulbind
+  }),
+  gyrocopter: hero("gyrocopter", 72, "gyrocopter", true, { maxHp: 620, armor: 3, damage: 25, speed: 166 }, {
+    q: { kind: "edict", value: [0, 50, 70, 90, 110], cooldown: 10, duration: 5, radius: 260 },            // Rocket Barrage
+    w: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 10, radius: 340, duration: 1.5 }, // Homing Missile
+    e: { kind: "multishot", value: [0, 45, 60, 78, 95], cooldown: 8, radius: 360, count: [0, 3, 4, 5, 6] }, // Flak Cannon
+    r: { kind: "meteor", value: [0, 250, 375, 500], cooldown: 60, radius: 220, count: [0, 1, 1, 1], duration: 1.2 }, // Call Down
+  }),
+  keeper_of_the_light: hero("keeper_of_the_light", 90, "keeper_of_the_light", true, { maxHp: 600, armor: 3, damage: 24, speed: 168, range: 340 }, {
+    q: { kind: "line_burst", value: [0, 130, 190, 250, 300], cooldown: 8, radius: 84, count: [0, 5, 5, 5, 5] }, // Illuminate
+    w: { kind: "gust", value: [0, 90, 135, 180, 225], cooldown: 11, radius: 260, duration: 1.5 },         // Blinding Light
+    e: { kind: "arcane_aura", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, passive: true },            // Chakra Magic
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 320, duration: 2.5 },            // Will-O-Wisp
+  }),
+  magnus: hero("magnus", 97, "magnataur", false, { maxHp: 820, armor: 5, damage: 30, speed: 162, regen: 3 }, {
+    q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 74, count: [0, 4, 4, 4, 4] }, // Shockwave
+    w: { kind: "rage", value: [0, 0.6, 0.75, 0.9, 1.1], cooldown: 14, duration: 8 },                     // Empower
+    e: { kind: "dash", value: [0, 110, 160, 210, 260], cooldown: 11, radius: 320 },                       // Skewer
+    r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 70, radius: 260, duration: 2.5 },          // Reverse Polarity
+  }, { kind: "cleave", value: 0.4, radius: 90 }),
+  mars: hero("mars", 129, "mars", false, { maxHp: 780, armor: 5, damage: 28, speed: 160, regen: 3 }, {
+    q: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 7, radius: 320, duration: 1.5 }, // Spear of Mars
+    w: { kind: "gust", value: [0, 120, 175, 230, 290], cooldown: 10, radius: 220, duration: 1.0 },       // God's Rebuke
+    e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Bulwark
+    r: { kind: "ravage", value: [0, 240, 360, 480], cooldown: 60, radius: 300, duration: 1.5 },          // Arena of Blood
   }),
 };
 

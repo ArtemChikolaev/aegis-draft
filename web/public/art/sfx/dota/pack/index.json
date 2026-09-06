@@ -800,6 +800,95 @@
     "clockwerk_r_1.m4a"
    ]
   },
+  "earth_spirit": {
+   "q": [
+    "earth_spirit_q_1.m4a"
+   ],
+   "w": [
+    "earth_spirit_w_1.m4a"
+   ],
+   "r": [
+    "earth_spirit_r_1.m4a"
+   ]
+  },
+  "elder_titan": {
+   "q": [
+    "elder_titan_q_1.m4a"
+   ],
+   "w": [
+    "elder_titan_w_1.m4a"
+   ],
+   "r": [
+    "elder_titan_r_1.m4a",
+    "elder_titan_r_2.m4a"
+   ]
+  },
+  "ember_spirit": {
+   "q": [
+    "ember_spirit_q_1.m4a"
+   ],
+   "w": [
+    "ember_spirit_w_1.m4a"
+   ],
+   "e": [
+    "ember_spirit_e_1.m4a"
+   ],
+   "r": [
+    "ember_spirit_r_1.m4a"
+   ]
+  },
+  "grimstroke": {
+   "q": [
+    "grimstroke_q_1.m4a"
+   ],
+   "w": [
+    "grimstroke_w_1.m4a"
+   ],
+   "e": [
+    "grimstroke_e_1.m4a"
+   ],
+   "r": [
+    "grimstroke_r_1.m4a"
+   ]
+  },
+  "gyrocopter": {
+   "q": [
+    "gyrocopter_q_1.m4a"
+   ],
+   "w": [
+    "gyrocopter_w_1.m4a"
+   ],
+   "e": [
+    "gyrocopter_e_1.m4a"
+   ],
+   "r": [
+    "gyrocopter_r_1.m4a"
+   ]
+  },
+  "magnus": {
+   "q": [
+    "magnus_q_1.m4a"
+   ],
+   "w": [
+    "magnus_w_1.m4a"
+   ],
+   "e": [
+    "magnus_e_1.m4a"
+   ],
+   "r": [
+    "magnus_r_1.m4a",
+    "magnus_r_2.m4a"
+   ]
+  },
+  "mars": {
+   "q": [
+    "mars_q_1.m4a"
+   ],
+   "w": [
+    "mars_w_1.m4a"
+   ],
+   "r": []
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

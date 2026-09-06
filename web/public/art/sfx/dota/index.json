@@ -70,5 +70,12 @@
   "batrider": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
   "bounty_hunter": {},
   "broodmother": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "clockwerk": {"attack":["attack_1.m4a","attack_2.m4a"]}
+  "clockwerk": {"attack":["attack_1.m4a","attack_2.m4a"]},
+  "earth_spirit": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "elder_titan": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "ember_spirit": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "grimstroke": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
+  "gyrocopter": {"attack":["attack_1.m4a"]},
+  "magnus": {"attack":["attack_1.m4a","attack_2.m4a"]},
+  "mars": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]}
 }
