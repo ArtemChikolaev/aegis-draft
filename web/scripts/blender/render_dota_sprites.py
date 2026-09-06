@@ -401,11 +401,14 @@ def main():
             span = (max(0.0, float(lo)), min(1.0, float(hi)))
         # Синонимы Source 2: смерть у части моделей — «die»/«dieAlt», бег — «run» либо «walk».
         alts = {"death": ["die", "dieAlt"], "die": ["death"], "run": ["walk"], "walk": ["run"]}
+        # «spin=whirling|chakram» — свои варианты имени клипа через `|`: у Valve вращение называется
+        # по способности (whirling_death, tricks_of_the_trade, rolling_thunder), общего слова нет.
+        wanted = [t for t in theirs.split("|") if t]
         act = None
         if armatures:
             # Сначала строгий проход по всем синонимам (без служебных клипов), потом мягкий: иначе «death_pact»
             # Clinkz перебивает его настоящий «die», потому что подстрока «death» нашлась раньше синонима.
-            keys = [theirs] + alts.get(theirs, [])
+            keys = wanted + [k for w in wanted for k in alts.get(w, [])]
             for strict in (True, False):
                 for key in keys:
                     act = pick_action(actions, key, strict)
