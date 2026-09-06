@@ -85,7 +85,14 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_skywrath_arcana", slot: "skin", rarity: "arcana", variant: "skywrath_mage@arcana", hero: "skywrath_mage" },
   { id: "skin_spectre_arcana", slot: "skin", rarity: "arcana", variant: "spectre@arcana", hero: "spectre" },
   { id: "skin_vs_arcana", slot: "skin", rarity: "arcana", variant: "vengeful_spirit@arcana", hero: "vengeful_spirit" },
-  { id: "skin_drow_arcana", slot: "skin", rarity: "arcana", variant: "drow_ranger@arcana", hero: "drow_ranger" },
+  // Аркана Drow («Мороз возмездия») ВЫКЛЮЧЕНА: её модель не собирается нашим конвейером. Тело
+  // (`drow_arcana.vmdl_c`) и косметика — семь отдельных частей, и части деформируются мимо тела:
+  // плащ вырастает вдвое, причёска расходится веером. Это не выбор glb и не дубли мешей (оба
+  // дефекта конвейера починены отдельно) и не способ пришивания — Copy Transforms и пересадка
+  // мешей на скелет тела дают побайтово одинаковый кадр. Нужен разбор именно этой модели
+  // (у неё и клипы называются `drow_arc_*`, а не `idle`/`run`), поэтому лист остаётся в
+  // репозитории, а из гардероба облик убран — лучше без аркан, чем с месивом. Строка вернётся
+  // вместе с рабочим листом; см. BACKLOG T13.28.
   // Сеты Dota (T13.27, вопрос владельца «можно ли конкретные предметы из сетов»): сет — это части
   // `models/items/<hero>/<set>_{head,arms,legs,back,weapon}`, которые пришиваются к скелету базового
   // героя ровно как части аркан. Лист — `<hero>@<set>`, редкость exotic (в Dota это не аркана).
@@ -202,7 +209,7 @@ export const COSMETICS: readonly CosmeticDef[] = [
 /** Арканы, у которых в Dota есть настоящий стиль (свой набор текстур): лист `<variant>~style1`
  *  рендерится отдельно (строка в манифестах + `--style <токен Valve>`, см. dota_style_textures.sh). */
 const SHEET_STYLE_SKINS = new Set([
-  "skin_jugg_arcana", "skin_drow_arcana", "skin_pudge_arcana",
+  "skin_jugg_arcana", "skin_pudge_arcana",
   "skin_es_arcana", "skin_qop_arcana", "skin_wr_arcana", "skin_ogre_arcana",
 ]);
 for (const c of COSMETICS) if (SHEET_STYLE_SKINS.has(c.id)) (c as { styles?: readonly StyleDef[] }).styles = [{ id: "style1", sheet: true }, ...GEMS];
