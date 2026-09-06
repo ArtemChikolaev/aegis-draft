@@ -232,7 +232,21 @@ def alpha_bounds(path):
     mask = px[:, :, 3] > 0.05
     if not mask.any():
         return None
-    rows = np.where(mask.any(axis=1))[0]; cols = np.where(mask.any(axis=0))[0]
+    # Границы берём не по крайнему непрозрачному пикселю, а по 2% массы силуэта с каждого края:
+    # тонкие отростки (цепь оружия Batrider, крюк Pudge в стойке, брошенный предмет) раздували габарит
+    # и герой рисовался в разы мельче остальных. Тело такой обрезки не замечает.
+    def span(counts):
+        total = counts.sum()
+        if total <= 0:
+            return None
+        cum = np.cumsum(counts)
+        lo = int(np.searchsorted(cum, total * 0.02))
+        hi = int(np.searchsorted(cum, total * 0.98))
+        return max(0, lo), min(len(counts) - 1, hi)
+    rspan = span(mask.sum(axis=1)); cspan = span(mask.sum(axis=0))
+    if rspan is None or cspan is None:
+        return None
+    rows = np.array(rspan); cols = np.array(cspan)
     # bpy: строка 0 — низ картинки; переворачиваем в «сверху вниз».
     top = h - 1 - rows.max(); bottom = h - 1 - rows.min()
     return (cols.min(), cols.max(), top, bottom, w, h)
@@ -443,11 +457,13 @@ def main():
         bpy.context.view_layer.update()
 
     # --- Калибровка по силуэту: ориентация, центр, охват ---
-    # Кадрируем по стойке, а не по первому клипу списка: у Meepo клип каста уводит модель далеко от
-    # начала координат, и охват камеры считался по этой позе — в листе герой уезжал за верх кадра.
-    first_act = next((act for ours, act, _ in anim_map if act is not None and ours == "idle"), None)
-    if first_act is None:
-        first_act = next((act for _, act, _ in anim_map if act is not None), None)
+    # Кадрируем по САМОЙ КОМПАКТНОЙ из поз «стойка» и «ходьба», а не по первому клипу списка: у Meepo
+    # клип каста уводит модель далеко от начала координат, а у арканы Pudge разлетается стойка — в обоих
+    # случаях охват считался по кривой позе и герой рисовался полоской в углу кадра.
+    frame_acts = [act for ours, act, _ in anim_map if act is not None and ours in ("idle", "walk")]
+    if not frame_acts:
+        frame_acts = [act for _, act, _ in anim_map if act is not None][:1]
+    first_act = frame_acts[0] if frame_acts else None
     if first_act is not None:
         use_action(first_act)
     wide = 40.0
@@ -465,8 +481,27 @@ def main():
                 best, best_ratio = cand, ratio
         mode = best
     rig.orient(mode)
-    front = probe(rig, tmp, "front", 0.0, wide, 0.0)   # X и вертикаль
-    top = probe(rig, tmp, "top", 90.0, wide, 0.0)       # X и глубина (экранная вертикаль сверху = −Y мира... знак нам не важен)
+    def measure(act, tag):
+        if act is not None:
+            use_action(act)
+        f = probe(rig, tmp, f"front_{tag}", 0.0, wide, 0.0)   # X и вертикаль
+        t = probe(rig, tmp, f"top_{tag}", 90.0, wide, 0.0)     # X и глубина
+        return f, t
+    best = None
+    for i, act in enumerate(frame_acts or [None]):
+        f, t = measure(act, str(i))
+        if not f:
+            continue
+        span = (f["vmax"] - f["vmin"]) * (f["xmax"] - f["xmin"])
+        if best is None or span < best[0]:
+            best = (span, f, t, act)
+    if best is not None:
+        _, front, top, chosen = best
+        print(f"кадр по клипу: {chosen.name if chosen else '—'}")
+        if chosen is not None:
+            use_action(chosen)
+    else:
+        front, top = None, None
     if front:
         cx = (front["xmin"] + front["xmax"]) / 2
         zmin, zmax = front["vmin"], front["vmax"]
