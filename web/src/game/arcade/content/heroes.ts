@@ -28,7 +28,9 @@ export type TemplateHeroId =
   // Волна 9.
   | "morphling" | "naga_siren" | "natures_prophet" | "nyx_assassin" | "oracle" | "outworld_destroyer" | "pangolier" | "phoenix"
   // Волна 10.
-  | "puck" | "pudge" | "rubick" | "sand_king" | "shadow_demon" | "slark" | "snapfire" | "spirit_breaker";
+  | "puck" | "pudge" | "rubick" | "sand_king" | "shadow_demon" | "slark" | "snapfire" | "spirit_breaker"
+  // Волна 11.
+  | "techies" | "terrorblade" | "timbersaw" | "treant" | "troll_warlord" | "tusk" | "underlord" | "undying";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -44,6 +46,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "earth_spirit", "elder_titan", "ember_spirit", "grimstroke", "gyrocopter", "keeper_of_the_light", "magnus", "mars",
   "morphling", "naga_siren", "natures_prophet", "nyx_assassin", "oracle", "outworld_destroyer", "pangolier", "phoenix",
   "puck", "pudge", "rubick", "sand_king", "shadow_demon", "slark", "snapfire", "spirit_breaker",
+  "techies", "terrorblade", "timbersaw", "treant", "troll_warlord", "tusk", "underlord", "undying",
 ];
 
 export type AbilityKind =
@@ -712,6 +715,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: SIG,                                                                                              // Greater Bash
     r: { kind: "lightning_bolt", value: [0, 250, 375, 500], cooldown: 45, radius: 400, duration: 1.5 },   // Nether Strike
   }, { kind: "timelock", value: 0.2, duration: 0.6 }),
+  // ---- Волна 11 ----
+  techies: hero("techies", 105, "techies", true, { maxHp: 660, armor: 3, damage: 25, speed: 160, range: 320 }, {
+    q: { kind: "meteor", value: [0, 140, 200, 260, 320], cooldown: 7, radius: 150, count: [0, 1, 1, 1, 1], duration: 1.2 }, // Sticky Bomb
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Reactive Tazer
+    e: { kind: "dash", value: [0, 150, 210, 270, 350], cooldown: 14, radius: 320 },                       // Blast Off!
+    r: { kind: "remnant", value: [0, 260, 390, 520], cooldown: 16, radius: 170 },                        // Proximity Mines
+  }),
+  terrorblade: hero("terrorblade", 109, "terrorblade", false, { maxHp: 560, armor: 3, damage: 25, speed: 168, attackInterval: 0.9 }, {
+    q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 10, radius: 300, duration: 3 },            // Reflection
+    w: { kind: "damage_ward", value: [0, 18, 25, 32, 40], cooldown: 16, duration: 12, radius: 300 },     // Conjure Image
+    e: { kind: "rage", value: [0, 0.35, 0.45, 0.55, 0.7], cooldown: 30, duration: 10 },                  // Metamorphosis
+    r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 60, duration: 4 },                      // Sunder
+  }),
+  timbersaw: hero("timbersaw", 98, "shredder", false, { maxHp: 740, armor: 4, damage: 26, speed: 164, regen: 3 }, {
+    q: { kind: "spin", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 200, duration: 1.5 },          // Whirling Death
+    w: { kind: "dash", value: [0, 90, 135, 180, 230], cooldown: 6, radius: 400 },                         // Timber Chain
+    e: { kind: "armor_passive", value: [0, 4, 6, 8, 10], cooldown: 0, passive: true },                   // Reactive Armor
+    r: { kind: "damage_ward", value: [0, 50, 75, 100], cooldown: 30, duration: 8, radius: 260 },          // Chakram
+  }),
+  treant: hero("treant", 83, "treant", false, { maxHp: 920, armor: 4, damage: 32, speed: 156, regen: 5, attackInterval: 1.1 }, {
+    q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], duration: 1.0 }, // Nature's Grasp
+    w: { kind: "life_drain", value: [0, 34, 46, 58, 70], cooldown: 9, radius: 300, duration: 4 },         // Leech Seed
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 6 },                        // Living Armor
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 360, duration: 3 },              // Overgrowth
+  }),
+  troll_warlord: hero("troll_warlord", 95, "troll_warlord", false, { maxHp: 680, armor: 4, damage: 27, speed: 170, attackInterval: 0.8 }, {
+    q: { kind: "line_burst", value: [0, 70, 105, 140, 170], cooldown: 8, radius: 60, count: [0, 4, 4, 4, 4] }, // Whirling Axes
+    w: { kind: "frenzy", value: [0, 0.25, 0.3, 0.35, 0.4], cooldown: 14, duration: 8 },                  // Berserker's Rage
+    e: { kind: "crit", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },                  // Fervor
+    r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 8 },                           // Battle Trance
+  }, { kind: "vampiric", value: 0.1 }),
+  tusk: hero("tusk", 100, "tusk", false, { maxHp: 780, armor: 5, damage: 29, speed: 166, regen: 3 }, {
+    q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 64, count: [0, 3, 3, 3, 3] }, // Ice Shards
+    w: { kind: "dash", value: [0, 130, 190, 250, 320], cooldown: 11, radius: 400 },                       // Snowball
+    e: { kind: "rage", value: [0, 0.5, 0.65, 0.8, 0.9], cooldown: 12, duration: 6 },                     // Tag Team
+    r: { kind: "lightning_bolt", value: [0, 250, 375, 500], cooldown: 30, radius: 150, duration: 1.0 },   // Walrus Punch
+  }),
+  underlord: hero("underlord", 108, "abyssal_underlord", false, { maxHp: 880, armor: 5, damage: 29, speed: 158, regen: 3 }, {
+    q: { kind: "meteor", value: [0, 160, 235, 310, 380], cooldown: 9, radius: 200, count: [0, 1, 1, 1, 1], duration: 1.0 }, // Firestorm
+    w: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 14, radius: 200, duration: 2 },           // Pit of Malice
+    e: { kind: "presence", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, radius: 300, passive: true },  // Atrophy Aura
+    r: { kind: "dash", value: [0, 140, 230, 320], cooldown: 45, radius: 500 },                           // Fiend's Gate
+  }),
+  undying: hero("undying", 85, "undying", false, { maxHp: 860, armor: 3, damage: 27, speed: 154, regen: 4 }, {
+    q: { kind: "life_drain", value: [0, 24, 34, 44, 54], cooldown: 8, radius: 300, duration: 4 },         // Decay
+    w: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 5 },                            // Soul Rip
+    e: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 20, duration: 12, radius: 300 },     // Tombstone
+    r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 12 },                          // Flesh Golem
+  }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };

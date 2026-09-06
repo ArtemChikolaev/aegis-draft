@@ -187,6 +187,7 @@ export const HERO_TINT: Record<string, string> = {
   earth_spirit: "#8ad8a0", elder_titan: "#7ab0e0", ember_spirit: "#ff8a4a", grimstroke: "#8a6ad8", gyrocopter: "#e0b04a", keeper_of_the_light: "#ffe89a", magnus: "#8ab0c8", mars: "#d84a3a",
   morphling: "#7ad8e8", naga_siren: "#5ac8c0", natures_prophet: "#7ad06a", nyx_assassin: "#a06ad8", oracle: "#e0c87a", outworld_destroyer: "#8a8ae8", pangolier: "#e0a06a", phoenix: "#ff9a3a",
   puck: "#c8a0ff", pudge: "#a08a5a", rubick: "#7ae0a0", sand_king: "#d8b06a", shadow_demon: "#a05ad8", slark: "#5ab0a0", snapfire: "#e0a04a", spirit_breaker: "#7a8ad8",
+  techies: "#e0d05a", terrorblade: "#7ad8d0", timbersaw: "#c88a4a", treant: "#6ab04a", troll_warlord: "#c8a05a", tusk: "#8ac8ff", underlord: "#a06a5a", undying: "#8ac86a",
 };
 
 /** Внешний вид героя по киту и цвету оттенка (свой у каждого героя). */

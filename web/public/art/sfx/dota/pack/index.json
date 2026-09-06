@@ -1082,6 +1082,98 @@
     "spirit_breaker_r_1.m4a"
    ]
   },
+  "techies": {
+   "q": [
+    "techies_q_1.m4a"
+   ],
+   "w": [
+    "techies_w_1.m4a"
+   ],
+   "e": [
+    "techies_e_1.m4a"
+   ],
+   "r": [
+    "techies_r_1.m4a",
+    "techies_r_2.m4a"
+   ]
+  },
+  "terrorblade": {
+   "q": [
+    "terrorblade_q_1.m4a"
+   ],
+   "w": [
+    "terrorblade_w_1.m4a"
+   ],
+   "e": [
+    "terrorblade_e_1.m4a"
+   ],
+   "r": [
+    "terrorblade_r_1.m4a"
+   ]
+  },
+  "timbersaw": {
+   "q": [
+    "timbersaw_q_1.m4a"
+   ],
+   "w": [
+    "timbersaw_w_1.m4a"
+   ],
+   "r": [
+    "timbersaw_r_1.m4a"
+   ]
+  },
+  "treant": {
+   "q": [
+    "treant_q_1.m4a"
+   ],
+   "w": [
+    "treant_w_1.m4a"
+   ],
+   "e": [
+    "treant_e_1.m4a"
+   ],
+   "r": [
+    "treant_r_1.m4a"
+   ]
+  },
+  "troll_warlord": {
+   "q": [
+    "troll_warlord_q_1.m4a"
+   ],
+   "w": [
+    "troll_warlord_w_1.m4a"
+   ],
+   "r": [
+    "troll_warlord_r_1.m4a"
+   ]
+  },
+  "tusk": {
+   "q": [
+    "tusk_q_1.m4a"
+   ],
+   "w": [
+    "tusk_w_1.m4a"
+   ],
+   "e": [],
+   "r": [
+    "tusk_r_1.mp3",
+    "tusk_r_2.m4a"
+   ]
+  },
+  "undying": {
+   "q": [
+    "undying_q_1.m4a"
+   ],
+   "w": [
+    "undying_w_1.m4a"
+   ],
+   "e": [
+    "undying_e_1.m4a"
+   ],
+   "r": [
+    "undying_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

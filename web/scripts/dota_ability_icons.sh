@@ -110,6 +110,14 @@ shadow_demon shadow_demon disruption disseminate shadow_poison demonic_purge
 slark slark dark_pact pounce essence_shift shadow_dance
 snapfire snapfire scatterblast firesnap_cookie lil_shredder mortimer_kisses
 spirit_breaker spirit_breaker charge_of_darkness bulldoze greater_bash nether_strike
+techies techies sticky_bomb reactive_tazer suicide land_mines
+terrorblade terrorblade reflection conjure_image metamorphosis sunder
+timbersaw shredder whirling_death timber_chain reactive_armor chakram
+treant treant natures_grasp leech_seed living_armor overgrowth
+troll_warlord troll_warlord whirling_axes_melee berserkers_rage fervor battle_trance
+tusk tusk ice_shards snowball tag_team walrus_punch
+underlord abyssal_underlord firestorm pit_of_malice atrophy_aura dark_rift
+undying undying decay soul_rip tombstone flesh_golem
 '
 missing=""
 while read -r id dota q w e r; do

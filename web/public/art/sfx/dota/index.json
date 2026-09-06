@@ -93,5 +93,13 @@
   "shadow_demon": {},
   "slark": {},
   "snapfire": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "spirit_breaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]}
+  "spirit_breaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "techies": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
+  "terrorblade": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "timbersaw": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "treant": {},
+  "troll_warlord": {},
+  "tusk": {},
+  "underlord": {},
+  "undying": {}
 }
