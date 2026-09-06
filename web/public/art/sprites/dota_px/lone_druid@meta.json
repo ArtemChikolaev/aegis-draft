@@ -1,6 +1,6 @@
 {
-  "name": "shadow_fiend",
-  "frame": 128,
+  "name": "lone_druid@meta",
+  "frame": 64,
   "dirs": 8,
   "fps": 12,
   "world": 128,
@@ -20,14 +20,14 @@
     },
     "attack": {
       "row": 16,
-      "frames": 7
+      "frames": 5
     },
     "death": {
       "row": 24,
       "frames": 12
     }
   },
-  "source": "nevermore.glb",
+  "source": "true_form.glb",
   "orientation": "none",
   "pitch": 45.0,
   "pixel": true

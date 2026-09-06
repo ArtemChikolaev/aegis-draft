@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawBurning, drawChilled, drawEmberRing, drawHitSparks, drawPixelRing, drawProjectileTrail } from "../src/features/arcade/particles.ts";
+import { drawBurning, drawChilled, drawEmberRing, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail } from "../src/features/arcade/particles.ts";
 
 // Заглушка 2D-контекста: собираем прямоугольники, чтобы проверить количество, размер и привязку к сетке арт-пикселя.
 function stub() {
@@ -49,5 +49,36 @@ describe("пиксельные частицы эффектов (particles.ts)", 
     const ring = stub(); drawPixelRing(ring.c, 0, 0, 60, 0.5, 1, 2, "fire", "ember");
     expect(ring.rects.length).toBeGreaterThanOrEqual(8);
     for (const r of ring.rects) expect(["fire", "ember"]).toContain(r.fill);
+  });
+});
+
+describe("снаряд автоатаки по герою (владелец 2026-09-06: «у Мираны стрела, у Shadow Fiend сгусток»)", () => {
+  const stub = () => {
+    const rects: { x: number; y: number; w: number; fill: string }[] = [];
+    const c = { globalAlpha: 1, fillStyle: "", fillRect(x: number, y: number, w: number) { rects.push({ x, y, w, fill: String(this.fillStyle) }); }, beginPath() {}, ellipse() {}, fill() {} };
+    return { c: c as unknown as CanvasRenderingContext2D, rects };
+  };
+  it("стрела длиннее сгустка и вытянута вдоль полёта", () => {
+    const arrow = stub(); drawHeroProjectile(arrow.c, 0, 0, 100, 0, "arrow", "tint", "core", 2);
+    const bolt = stub(); drawHeroProjectile(bolt.c, 0, 0, 100, 0, "bolt", "tint", "core", 2);
+    const spanX = (rs: typeof arrow.rects) => Math.max(...rs.map((r) => r.x)) - Math.min(...rs.map((r) => r.x));
+    const spanY = (rs: typeof arrow.rects) => Math.max(...rs.map((r) => r.y)) - Math.min(...rs.map((r) => r.y));
+    expect(spanX(arrow.rects)).toBeGreaterThan(spanX(bolt.rects));
+    expect(spanX(arrow.rects)).toBeGreaterThan(spanY(arrow.rects));
+  });
+  it("поворачивается вслед за вектором скорости", () => {
+    const right = stub(); drawHeroProjectile(right.c, 0, 0, 100, 0, "arrow", "tint", "core", 2);
+    const down = stub(); drawHeroProjectile(down.c, 0, 0, 0, 100, "arrow", "tint", "core", 2);
+    const spanX = (rs: typeof right.rects) => Math.max(...rs.map((r) => r.x)) - Math.min(...rs.map((r) => r.x));
+    const spanY = (rs: typeof right.rects) => Math.max(...rs.map((r) => r.y)) - Math.min(...rs.map((r) => r.y));
+    expect(spanX(right.rects)).toBeGreaterThan(spanY(right.rects));
+    expect(spanY(down.rects)).toBeGreaterThan(spanX(down.rects));
+  });
+  it("клинок и пуля рисуются своими наборами квадратов", () => {
+    const knife = stub(); drawHeroProjectile(knife.c, 0, 0, 100, 0, "knife", "tint", "core", 2);
+    const bullet = stub(); drawHeroProjectile(bullet.c, 0, 0, 100, 0, "bullet", "tint", "core", 2);
+    expect(knife.rects.length).toBe(4);
+    expect(bullet.rects.length).toBe(2);
+    expect(knife.rects.some((r) => r.fill === "core")).toBe(true);
   });
 });

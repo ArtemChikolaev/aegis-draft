@@ -133,3 +133,45 @@ export function drawPixelRing(c: CanvasRenderingContext2D, x: number, y: number,
   }
   c.globalAlpha = 1;
 }
+
+/** Вид снаряда автоатаки героя (владелец 2026-09-06: «не один и тот же шарик у всех — у Мираны стрела,
+ *  у Shadow Fiend красный сгусток»). Рисуем пиксельными квадратами вдоль вектора скорости. */
+export type ProjectileArt = "arrow" | "bolt" | "knife" | "bullet";
+
+export function drawHeroProjectile(c: CanvasRenderingContext2D, x: number, y: number, vx: number, vy: number, art: ProjectileArt, color: string, core: string, px: number): void {
+  const l = Math.hypot(vx, vy) || 1;
+  const ux = vx / l, uy = vy / l;      // вдоль полёта
+  const nx = -uy, ny = ux;             // поперёк
+  const at = (along: number, across: number, size: number, fill: string) => {
+    c.fillStyle = fill;
+    dot(c, x + ux * along + nx * across, y + uy * along + ny * across, size, px);
+  };
+  switch (art) {
+    case "arrow":
+      // Древко назад, наконечник вперёд, оперение по бокам.
+      at(px * 2, 0, px * 2, core);
+      at(0, 0, px, color);
+      at(-px * 2, 0, px, color);
+      at(-px * 3, px, px, color);
+      at(-px * 3, -px, px, color);
+      break;
+    case "knife":
+      // Клинок вдоль полёта и короткая гарда поперёк.
+      at(px, 0, px * 2, core);
+      at(-px, 0, px, color);
+      at(-px, px, px, color);
+      at(-px, -px, px, color);
+      break;
+    case "bullet":
+      at(px, 0, px * 2, core);
+      at(-px, 0, px, color);
+      break;
+    default:
+      // Сгусток: светлое ядро и ореол.
+      at(0, 0, px * 2, core);
+      at(-px, px, px, color);
+      at(-px, -px, px, color);
+      at(-px * 2, 0, px, color);
+      break;
+  }
+}

@@ -5,7 +5,7 @@
 import { create } from "zustand";
 import { ArcadeSim } from "../game/arcade/sim.ts";
 import { ARCADE_CONFIG_VERSION } from "../game/arcade/config.ts";
-import type { ActId, ArcadeOutcome, SchoolId } from "../game/arcade/types.ts";
+import type { AbilityKey, ActId, ArcadeOutcome, SchoolId } from "../game/arcade/types.ts";
 import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
@@ -38,6 +38,20 @@ export interface ArcadeHistoryEntry {
 const HISTORY_KEY = "aegis-draft.arcade.history";
 const COSMETICS_KEY = "aegis-draft.arcade.cosmetics";
 const GEAR_KEY = "aegis-draft.arcade.gear";
+const AUTOCAST_KEY = "aegis-draft.arcade.autocast";
+
+/** Автокаст по умениям — настройка игрока, живёт между забегами (владелец 2026-09-06:
+ *  «умения не должны нажиматься сами, пока не включишь переключатель рядом»). По умолчанию всё выключено. */
+export type AutoCastState = Record<AbilityKey, boolean>;
+const AUTOCAST_OFF: AutoCastState = { q: false, w: false, e: false, r: false };
+function readAutoCast(): AutoCastState {
+  try {
+    const parsed = JSON.parse(readCached(AUTOCAST_KEY) ?? "null") as Partial<AutoCastState> | null;
+    return parsed ? { q: !!parsed.q, w: !!parsed.w, e: !!parsed.e, r: !!parsed.r } : { ...AUTOCAST_OFF };
+  } catch {
+    return { ...AUTOCAST_OFF };
+  }
+}
 const GEAR_CAP = 80;
 
 export interface GearState {
@@ -105,7 +119,7 @@ interface ArcadeStore {
   outcome: ArcadeOutcome | null;
   history: ArcadeHistoryEntry[];
   /** Авто-каст способностей (по умолчанию включён: тач без него неиграбелен). */
-  autoCast: boolean;
+  autoCast: AutoCastState;
   /** Просмотр реплея: ввод берётся из лога, а не с клавиатуры; в историю не пишется. */
   replayLog: InputLogEntry[] | null;
   /** Реплей, готовый к просмотру (из кода/ссылки). */
@@ -138,6 +152,8 @@ interface ArcadeStore {
   levelBanish: (index: number) => void;
   /** Действие в Secret Shop (SHOP_ACT): купить слот / реролл / закрыть. */
   shopAct: (act: number) => void;
+  /** Переключить автокаст умения (сохраняется между забегами; в сим уходит через input-лог). */
+  toggleAutoCast: (key: AbilityKey) => void;
   /** Забег закончился внутри сима — зафиксировать результат и записать историю. */
   finish: () => void;
   quit: () => void;
@@ -153,7 +169,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   serial: 0,
   outcome: null,
   history: readHistory(),
-  autoCast: true,
+  autoCast: readAutoCast(),
   replayLog: null,
   loadedReplay: null,
   cosmetics: readCosmetics(),
@@ -249,6 +265,11 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     if (!sim || !sim.pending) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act: 30 + index });
     set((s) => ({ serial: s.serial + 1 }));
+  },
+  toggleAutoCast(key) {
+    const autoCast: AutoCastState = { ...get().autoCast, [key]: !get().autoCast[key] };
+    void writePersisted(AUTOCAST_KEY, JSON.stringify(autoCast));
+    set({ autoCast });
   },
   shopAct(act) {
     if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen)) return;

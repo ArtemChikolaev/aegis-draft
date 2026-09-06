@@ -18,6 +18,8 @@ export interface ArcadeInput {
 
 /** Действия лавки/нейтралки/лута в `ArcadeInput.act`; 10..15 — продать предмет из слота (act − 10) за половину цены (владелец 2026-09-06: «нельзя поменять предмет»). */
 export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5, sellBase: 10 } as const;
+/** `act` = AUTOCAST_ACT + индекс умения (0=q…3=r) переключает автокаст этого умения. */
+export const AUTOCAST_ACT = 40;
 
 export const IDLE_INPUT: Readonly<ArcadeInput> = Object.freeze({ mx: 0, my: 0, cast: 0, choose: -1, act: 0 });
 
@@ -278,6 +280,10 @@ export interface Player {
   aegisUsed: boolean;
   abilities: Record<AbilityKey, number>;
   cooldowns: Record<AbilityKey, number>;
+  /** Автокаст по умениям (владелец 2026-09-06: «умения не должны нажиматься сами, пока не включишь»).
+   *  В симе по умолчанию включён — так гоняются бот калибровки и старые реплеи; экран выключает его
+   *  на старте забега через `act` (см. AUTOCAST_ACT), поэтому состояние всегда попадает в input-лог. */
+  autoCast: Record<AbilityKey, boolean>;
   /** Активные эффекты способностей (общие для видов): вихрь/поле до тика, тотем, серия ударов, зона, бафы. */
   spinUntil: number;
   wardUntil: number;
@@ -296,6 +302,9 @@ export interface Player {
   sigUntil: number;
   /** Reincarnation (Wraith King): тик, с которого пассивка снова готова. */
   reincAt: number;
+  /** Смена формы (Metamorphosis, Elder Dragon Form, True Form): до какого тика герой в альтернативной форме.
+   *  В форме меняются модель (лист `<hero>@meta`), тип атаки и дальность — см. AbilityDef.form. */
+  formUntil: number;
   sigArmed: boolean;
   /** Бафы собственных китов: ярость (×урон), исступление (скорость атаки), уклонение, вытягивание жизни. */
   rageUntil: number;

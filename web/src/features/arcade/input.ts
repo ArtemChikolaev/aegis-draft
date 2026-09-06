@@ -11,6 +11,8 @@ const KEY_CAST: Record<string, number> = { KeyQ: 1, Digit1: 1, KeyE: 2, Digit2: 
 export class ArcadeInputController {
   private keys = new Set<string>();
   private castMask = 0;
+  /** Очередь `act` для мира (переключатели автокаста): по одному на тик, чтобы каждое попало в input-лог. */
+  private pendingAct: number[] = [];
   private stick: { id: number; ox: number; oy: number; x: number; y: number } | null = null;
   /** Для рендера джойстика на тач-экране. */
   get joystick(): { ox: number; oy: number; x: number; y: number } | null {
@@ -39,6 +41,12 @@ export class ArcadeInputController {
   }
 
   /** Кнопка способности на тач-панели: каст буферизуется до следующего тика. */
+  /** Поставить `act` в очередь на ближайшие тики (переключатель автокаста из HUD). Дубликаты не копятся:
+   *  экран зовёт это каждый кадр, пока сим не догнал настройку, а применить нужно ровно один раз. */
+  queueAct(act: number): void {
+    if (!this.pendingAct.includes(act)) this.pendingAct.push(act);
+  }
+
   cast(mask: number): void {
     this.castMask |= mask;
   }
@@ -62,7 +70,7 @@ export class ArcadeInputController {
     }
     const l = Math.hypot(dx, dy);
     if (l > 1) { dx /= l; dy /= l; }
-    const input: ArcadeInput = { mx: Math.round(dx * 16), my: Math.round(dy * 16), cast: this.castMask, choose: -1, act: 0 };
+    const input: ArcadeInput = { mx: Math.round(dx * 16), my: Math.round(dy * 16), cast: this.castMask, choose: -1, act: this.pendingAct.shift() ?? 0 };
     this.castMask = 0;
     return input;
   }

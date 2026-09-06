@@ -15,7 +15,7 @@ import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
-import { HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
+import { type FormDef, HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
 import { gearEffect, rollGear, uniqueGear, type GearItem } from "./content/gear.ts";
 import {
@@ -41,6 +41,7 @@ import {
   type Shard,
   type Shrine,
   type Spot,
+  AUTOCAST_ACT,
   SHOP_ACT,
   type Pet,
 } from "./types.ts";
@@ -160,7 +161,8 @@ export class ArcadeSim {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
-      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, reincAt: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      autoCast: { q: true, w: true, e: true, r: true },
+      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -228,6 +230,10 @@ export class ArcadeSim {
       return;
     }
     const p = this.player;
+    if (input.act >= AUTOCAST_ACT && input.act < AUTOCAST_ACT + ABILITY_KEYS.length) {
+      const key = ABILITY_KEYS[input.act - AUTOCAST_ACT];
+      p.autoCast[key] = !p.autoCast[key];
+    }
     this.tick++;
     this.shake = Math.max(0, this.shake - 1);
     this.tickCooldowns();
@@ -284,12 +290,34 @@ export class ArcadeSim {
     }
   }
 
+  /** Форма активна? В ней могут отличаться тип атаки и дальность (Metamorphosis, Elder Dragon Form, True Form). */
+  formNow(): FormDef | null {
+    if (this.tick >= this.player.formUntil) return null;
+    for (const key of ABILITY_KEYS) {
+      const ab = this.hero.abilities[key];
+      if (ab.kind === "metamorphosis" && ab.form) return ab.form;
+    }
+    return null;
+  }
+
+  /** Тип атаки с учётом формы. */
+  rangedNow(): boolean {
+    return this.formNow()?.ranged ?? this.hero.ranged;
+  }
+
+  /** Дальность автоатаки с учётом формы: форма задаёт свою, а предметы и апгрейды по-прежнему прибавляют. */
+  attackRange(): number {
+    const form = this.formNow();
+    const base = this.hero.base.range ?? ARCADE.player.range;
+    return form ? Math.max(60, this.player.stats.range + (form.range - base)) : this.player.stats.range;
+  }
+
   private playerCombat(input: ArcadeInput): void {
     const p = this.player;
     const stunned = this.tick < p.stunUntil;
     // --- автоатака: мили — удар + клив, дальний бой — снаряд ---
     if (!stunned && p.attackCd === 0 && this.tick >= p.spinUntil && p.burstLeft === 0 && this.tick >= p.fieldUntil) {
-      const target = this.nearestEnemy(p.x, p.y, p.stats.range);
+      const target = this.nearestEnemy(p.x, p.y, this.attackRange());
       if (target) {
         // Спрайт разворачивается к цели на время удара, ноги продолжают бежать куда жмут (см. renderer).
         { const ax = target.x - p.x, ay = target.y - p.y, al = len(ax, ay) || 1; p.aimX = ax / al; p.aimY = ay / al; p.aimUntil = this.tick + sec(0.45); }
@@ -299,7 +327,7 @@ export class ArcadeSim {
           if (this.tick < p.frenzyUntil) k *= 1 - p.frenzyMult;
           p.attackCd = sec(p.stats.attackInterval * Math.max(0.25, k));
         }
-        if (this.hero.ranged) {
+        if (this.rangedNow()) {
           const d = len(target.x - p.x, target.y - p.y) || 1;
           this.spawnProjectile(p.x, p.y, (target.x - p.x) / d * 560, (target.y - p.y) / d * 560, 6, 0, sec(1.2), 0, "arrow", false, true);
         } else {
@@ -320,7 +348,7 @@ export class ArcadeSim {
       for (const key of ABILITY_KEYS) {
         const ab = this.hero.abilities[key];
         if (ab.passive || p.abilities[key] === 0 || p.cooldowns[key] > 0) continue;
-        if ((input.cast & masks[key]) !== 0 || this.wantsCast(ab)) this.castAbility(key, ab);
+        if ((input.cast & masks[key]) !== 0 || (p.autoCast[key] && this.wantsCast(ab))) this.castAbility(key, ab);
       }
     }
     this.tickActiveAbilities();
@@ -349,7 +377,7 @@ export class ArcadeSim {
         return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
       case "goo": case "rupture": case "corrosive": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= A.aoeEnemies;
       case "dash": return (hpPct < 0.4 && near >= 1) || (ab.value.some((v) => v > 0) && (near >= A.aoeEnemies || bossNear));
-      case "armor_buff": case "frenzy": case "haste": case "rage": case "death_pact": case "damage_ward":
+      case "armor_buff": case "frenzy": case "haste": case "rage": case "death_pact": case "damage_ward": case "metamorphosis":
         return near >= A.aoeEnemies || bossNear || (hpPct < 0.5 && near >= 1);
       case "mass_freeze": case "requiem": case "ravage":
         return near >= A.ultEnemies || bossNear || (hpPct < A.ultHpPct && near >= 3);
@@ -510,6 +538,13 @@ export class ArcadeSim {
       case "armor_buff":
         p.armorBuffUntil = this.tick + sec(ab.duration ?? 5);
         this.pushFx("heal", p.x, p.y - 30, 0, 0, 14);
+        break;
+      case "metamorphosis":
+        // Смена формы: модель, тип атаки и дальность меняются на время действия (renderer читает formUntil).
+        p.formUntil = this.tick + sec(ab.duration ?? 10);
+        p.rageUntil = p.formUntil; p.rageMult = value;
+        this.pushFx("levelup", p.x, p.y, 0, 0, 24);
+        this.shake = 12;
         break;
       case "rage":
         p.rageUntil = this.tick + sec(ab.duration ?? 8); p.rageMult = value;

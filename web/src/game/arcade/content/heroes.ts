@@ -65,10 +65,21 @@ export type AbilityKind =
   | "dash" | "line_burst" | "meteor" | "armor_buff" | "rage" | "frenzy" | "haste" | "damage_ward" | "life_drain"
   | "gust" | "multishot" | "remnant" | "mass_freeze" | "requiem" | "goo" | "ravage" | "edict" | "death_pact"
   | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup" | "mana_void"
-  | "reincarnation" | "rupture" | "corrosive" | "berserk_blood";
+  | "reincarnation" | "rupture" | "corrosive" | "berserk_blood" | "metamorphosis";
+
+/** Альтернативная форма (Metamorphosis у Terrorblade, Elder Dragon Form у Dragon Knight, True Form у Lone Druid):
+ *  меняются модель, тип атаки и дальность — владелец 2026-09-06: «нажимает скилл и ничего не происходит». */
+export interface FormDef {
+  /** Тип атаки в форме: дальний бой или ближний. */
+  ranged: boolean;
+  /** Дальность атаки в форме (для ближней — радиус удара). */
+  range: number;
+}
 
 export interface AbilityDef {
   kind: AbilityKind;
+  /** Только для kind: "metamorphosis". Лист спрайта — `<heroId>@meta`. */
+  form?: FormDef;
   /** Главная величина по уровню способности (index = уровень; 0 — не изучена). */
   value: number[];
   cooldown: number;
@@ -291,7 +302,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "line_burst", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 70, count: [0, 4, 4, 4, 4] }, // Breathe Fire
     w: { kind: "lightning_bolt", value: [0, 70, 110, 150, 190], cooldown: 10, radius: 220, duration: 1.8 }, // Dragon Tail
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Dragon Blood
-    r: { kind: "rage", value: [0, 0.6, 0.9, 1.2], cooldown: 60, duration: 12 },                          // Elder Dragon Form
+    r: { kind: "metamorphosis", value: [0, 0.6, 0.9, 1.2], cooldown: 60, duration: 12, form: { ranged: true, range: 340 } }, // Elder Dragon Form
   }, { kind: "cleave", value: 0.35, radius: 80 }),
   kunkka: hero("kunkka", 23, "kunkka", false, { maxHp: 700, armor: 4, damage: 28, regen: 2 }, {
     q: { kind: "meteor", value: [0, 120, 180, 240, 300], cooldown: 12, radius: 130, count: [0, 1, 1, 1, 1], duration: 1.6 }, // Torrent
@@ -536,7 +547,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "damage_ward", value: [0, 45, 58, 72, 85], cooldown: 18, duration: 15, radius: 320 },     // Summon Spirit Bear
     w: SIG,                                                                                              // Spirit Link
     e: { kind: "gust", value: [0, 70, 105, 140, 170], cooldown: 11, radius: 260, duration: 1.5 },         // Savage Roar
-    r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 15 },                          // True Form
+    r: { kind: "metamorphosis", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 15, form: { ranged: false, range: 150 } }, // True Form
   }, { kind: "vampiric", value: 0.12 }),
   alchemist: hero("alchemist", 73, "alchemist", false, { maxHp: 720, armor: 4, damage: 26, speed: 160, regen: 3 }, {
     q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 12, radius: 300, duration: 4 },            // Acid Spray
@@ -731,7 +742,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   terrorblade: hero("terrorblade", 109, "terrorblade", false, { maxHp: 560, armor: 3, damage: 25, speed: 168, attackInterval: 0.9 }, {
     q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 10, radius: 300, duration: 3 },            // Reflection
     w: { kind: "damage_ward", value: [0, 18, 25, 32, 40], cooldown: 16, duration: 12, radius: 300 },     // Conjure Image
-    e: { kind: "rage", value: [0, 0.35, 0.45, 0.55, 0.7], cooldown: 30, duration: 10 },                  // Metamorphosis
+    e: { kind: "metamorphosis", value: [0, 0.35, 0.45, 0.55, 0.7], cooldown: 30, duration: 10, form: { ranged: true, range: 330 } }, // Metamorphosis
     r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 60, duration: 4 },                      // Sunder
   }),
   timbersaw: hero("timbersaw", 98, "shredder", false, { maxHp: 740, armor: 4, damage: 26, speed: 164, regen: 3 }, {

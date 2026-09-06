@@ -14,7 +14,7 @@ import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/ar
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { preloadArcadeArt } from "./sprites.ts";
-import { IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
+import { AUTOCAST_ACT, IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS, SHARD_PRICE, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
@@ -32,6 +32,7 @@ import { pixelScale } from "./pixelMode.ts";
 
 /** Пиксельный режим статичен на загрузку страницы (query-параметр) — иконки предметов и умений берём из px-наборов. */
 const PX = pixelScale() >= 1;
+const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
@@ -261,6 +262,8 @@ function ArcadeStage() {
   const levelReroll = useArcade((s) => s.levelReroll);
   const levelBanish = useArcade((s) => s.levelBanish);
   const shopAct = useArcade((s) => s.shopAct);
+  const autoCastSetting = useArcade((s) => s.autoCast);
+  const toggleAutoCast = useArcade((s) => s.toggleAutoCast);
   const finish = useArcade((s) => s.finish);
   const quit = useArcade((s) => s.quit);
   const start = useArcade((s) => s.start);
@@ -346,6 +349,15 @@ function ArcadeStage() {
           steps++;
         }
         if (steps === 5) acc = 0;
+      }
+      // Автокаст: в симе он включён по умолчанию (так гоняется бот и читаются старые реплеи), а игрок
+      // управляет им из HUD. Разницу закрываем через `act` — она попадает в input-лог, реплей точен.
+      if (!replayRef.current && statusRef.current === "running" && !loadingRef.current && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.over) {
+        const want = useArcade.getState().autoCast;
+        for (let i = 0; i < ABILITY_KEYS_UI.length; i++) {
+          const k = ABILITY_KEYS_UI[i];
+          if (sim.player.autoCast[k] !== want[k]) { controller.queueAct(AUTOCAST_ACT + i); break; }
+        }
       }
       // Дельты счётчиков сима → звук и juice. Пакет Dota (soundscape) первичен, синтетика — фолбэк.
       const ev = sim.events;
@@ -492,6 +504,21 @@ function ArcadeStage() {
                       <AbilityIcon hero={sim.hero.id} k={key} size={30} />
                       <b>{key.toUpperCase()}</b>
                       <small>{lvl > 0 ? `${t("arcade.hud.lvlShort")}${lvl}` : "—"}</small>
+                      {!ab.passive && (
+                        // Переключатель автокаста рядом с умением (владелец 2026-09-06): выключен — умение
+                        // срабатывает только по нажатию, включён — само по перезарядке.
+                        <span
+                          role="checkbox"
+                          tabIndex={0}
+                          aria-checked={autoCastSetting[key]}
+                          className="arcade-ability__auto"
+                          data-on={autoCastSetting[key] ? "true" : undefined}
+                          data-testid={`arcade-autocast-${key}`}
+                          title={t(autoCastSetting[key] ? "arcade.hud.autoCastOn" : "arcade.hud.autoCastOff")}
+                          onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleAutoCast(key); }}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); toggleAutoCast(key); } }}
+                        >{t("arcade.hud.autoCastShort")}</span>
+                      )}
                       {cd > 0 && cdTotal > 0 && <i style={{ height: `${(cd / cdTotal) * 100}%` }} />}
                       {cd > 0 && <em>{Math.ceil(cd)}</em>}
                     </button>

@@ -192,6 +192,15 @@ export const HERO_TINT: Record<string, string> = {
   marci: "#e0b07a", muerta: "#7ae0c8", primal_beast: "#c86a4a", kez: "#d8b06a", ringmaster: "#d85a6a", meepo: "#c8a06a", io: "#a0e0ff",
 };
 
+/** Вид снаряда автоатаки: лучники стреляют стрелой, метатели — клинком, стрелки́ — пулей, остальные — сгустком
+ *  в цвете героя (`HERO_TINT`). Владелец 2026-09-06: «у Мираны своя стрела, у Shadow Fiend красный сгусток». */
+export const HERO_PROJECTILE: Record<string, "arrow" | "knife" | "bullet"> = {
+  drow_ranger: "arrow", mirana: "arrow", windranger: "arrow", clinkz: "arrow", medusa: "arrow", hoodwink: "arrow",
+  lone_druid: "arrow", huskar: "arrow",
+  luna: "knife", silencer: "knife", ringmaster: "knife", phantom_assassin: "knife", templar_assassin: "knife",
+  sniper: "bullet", gyrocopter: "bullet", muerta: "bullet", snapfire: "bullet", tinker: "bullet",
+};
+
 /** Внешний вид героя по киту и цвету оттенка (свой у каждого героя). */
 export function heroLook(kit: string, tint: string): CharSpec {
   switch (kit) {

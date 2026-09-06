@@ -10,9 +10,9 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { drawBurning, drawChilled, drawEmberRing, drawFrostMist, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks } from "./particles.ts";
+import { drawBurning, drawChilled, drawEmberRing, drawFrostMist, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks } from "./particles.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { itemArtSources } from "../../ui/artSource.ts";
@@ -63,7 +63,9 @@ export class ArcadeRenderer {
   }
 
   /** Лист героя с учётом скина (`<hero>@<skin>`), с падением на базовый лист, пока скин не загрузился или не для этого героя. */
-  private heroSheet(hero: string) {
+  /** Лист героя: альтернативная форма (Metamorphosis) важнее скина, скин важнее базовой модели. */
+  private heroSheet(hero: string, form = false) {
+    if (form) { const ds = dotaSheet(`${hero}@meta`); if (ds) return ds; }
     const skin = this.cosmetic.skin;
     if (skin && skin.startsWith(`${hero}@`)) { const ds = dotaSheet(skin); if (ds) return ds; }
     return dotaSheet(hero);
@@ -437,11 +439,16 @@ export class ArcadeRenderer {
     const c = this.ctx;
     for (const pr of sim.projectiles) {
       if (!pr.alive) continue;
-      // Снаряд автоатаки — в цвете героя (тёмно-красный у Shadow Fiend, лёд у Lich…), а не общий жёлтый шарик; за огнём/льдом/
-      // молнией/ядром — пиксельный хвост (particles.ts).
+      // Снаряд автоатаки — свой у героя: лучники шлют стрелу, метатели клинок, стрелки́ пулю, остальные сгусток
+      // в цвете героя (владелец 2026-09-06). За огнём/льдом/молнией/ядром — пиксельный хвост (particles.ts).
       if (pr.kind !== "arrow") drawProjectileTrail(c, pr.x, pr.y, pr.vx, pr.vy, pr.r, pr.kind, sim.tick, this.artPx(), pal);
-      c.fillStyle = pr.kind === "fire" ? pal.fire : pr.kind === "shard" ? pal.frost : pr.kind === "zap" ? pal.lightning : pr.kind === "arrow" ? (pr.fromEnemy ? pal.brute : HERO_TINT[sim.hero.id] ?? pal.playerRing) : pal.brute;
-      c.beginPath(); c.arc(pr.x, pr.y, pr.r, 0, Math.PI * 2); c.fill();
+      const tint = pr.kind === "fire" ? pal.fire : pr.kind === "shard" ? pal.frost : pr.kind === "zap" ? pal.lightning : pr.kind === "arrow" ? (pr.fromEnemy ? pal.brute : HERO_TINT[sim.hero.id] ?? pal.playerRing) : pal.brute;
+      if (pr.kind === "arrow" && !pr.fromEnemy) {
+        drawHeroProjectile(c, pr.x, pr.y, pr.vx, pr.vy, HERO_PROJECTILE[sim.hero.id] ?? "bolt", tint, pal.text, this.artPx());
+      } else {
+        c.fillStyle = tint;
+        c.beginPath(); c.arc(pr.x, pr.y, pr.r, 0, Math.PI * 2); c.fill();
+      }
     }
   }
 
@@ -450,6 +457,8 @@ export class ArcadeRenderer {
     const p = sim.player;
     const R = ARCADE.player.r + 4;
     const ring = this.tintKey(pal);
+    // Альтернативная форма (Metamorphosis и родня): другой лист и красное кольцо у ног — видно, что ульт сработал.
+    const inForm = sim.tick < p.formUntil;
     this.drawTrail(p.x, p.y, now, pal);
     // Ауры школ — частицами под героем: угольки Radiance, ледяная крошка Skadi, искры Maelstrom (плотность — от ранга).
     {
@@ -493,7 +502,7 @@ export class ArcadeRenderer {
     }
     c.globalAlpha = invuln ? 0.55 + 0.45 * Math.abs(Math.sin(now / 80)) : 1;
     // Кольцо выбора у ног (как в Dota) — цвет оттенка косметики / Aegis.
-    c.strokeStyle = p.aegis ? pal.aegis : ring; c.lineWidth = p.aegis ? 3 : 2;
+    c.strokeStyle = p.aegis ? pal.aegis : inForm ? pal.crit : ring; c.lineWidth = p.aegis || inForm ? 3 : 2;
     c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.05, R * 0.42, 0, 0, Math.PI * 2); c.stroke();
     // Ходьба: движение определяем по смещению между кадрами (сим ввод не отдаёт).
     const dt = this.lastNow ? Math.min(0.1, (now - this.lastNow) / 1000) : 0;
@@ -510,7 +519,7 @@ export class ArcadeRenderer {
     // Куда смотрит спрайт: в цель, пока идёт удар/выстрел, иначе — по движению (Dead Cells/DMD: ноги бегут, корпус целится).
     const aiming = sim.tick < p.aimUntil;
     const lookX = aiming ? p.aimX : p.facingX, lookY = aiming ? p.aimY : p.facingY;
-    const heroDota = this.heroSheet(sim.hero.id);
+    const heroDota = this.heroSheet(sim.hero.id, inForm);
     const heroSheet = heroDota ? null : charSheet(`hero:${sim.hero.id}`, look, heroAnim);
     if (heroDota) {
       // Вихрь: свой клип `spin` (attack_spin у Juggernaut) в темпе листа; без него — клип удара, но не
