@@ -458,7 +458,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "multishot", value: [0, 25, 35, 45, 55], cooldown: 7, radius: 360, count: [0, 3, 4, 5, 6] }, // Split Shot
     w: { kind: "arc_lightning", value: [0, 70, 105, 140, 175], cooldown: 8, radius: 320, count: [0, 3, 4, 5, 6] }, // Mystic Snake
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Mana Shield
-    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 400, duration: 2.5 },            // Stone Gaze
+    r: { kind: "mass_freeze", value: [0, 200, 300, 400], cooldown: 60, radius: 400, duration: 2.5 },      // Stone Gaze
   }, { kind: "cleave", value: 0.4, radius: 95 }),
   // ---- Волна 5 ----
   silencer: hero("silencer", 75, "silencer", true, { maxHp: 540, armor: 2, damage: 24, speed: 162 }, {
@@ -630,7 +630,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Stroke of Fate
     w: { kind: "life_drain", value: [0, 30, 40, 50, 60], cooldown: 12, radius: 320, duration: 4 },        // Phantom's Embrace
     e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Ink Swell
-    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 260, duration: 2.5 },            // Soulbind
+    r: { kind: "mass_freeze", value: [0, 220, 330, 440], cooldown: 60, radius: 260, duration: 2.5 },      // Soulbind
   }, { kind: "multicast", value: 0.28 }),
   gyrocopter: hero("gyrocopter", 72, "gyrocopter", true, { maxHp: 620, armor: 3, damage: 25, speed: 166 }, {
     q: { kind: "edict", value: [0, 50, 70, 90, 110], cooldown: 10, duration: 5, radius: 260 },            // Rocket Barrage
@@ -642,7 +642,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "line_burst", value: [0, 130, 190, 250, 300], cooldown: 8, radius: 84, count: [0, 5, 5, 5, 5] }, // Illuminate
     w: { kind: "gust", value: [0, 90, 135, 180, 225], cooldown: 11, radius: 260, duration: 1.5 },         // Blinding Light
     e: { kind: "arcane_aura", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, passive: true },            // Chakra Magic
-    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 320, duration: 2.5 },            // Will-O-Wisp
+    r: { kind: "mass_freeze", value: [0, 220, 330, 440], cooldown: 60, radius: 320, duration: 2.5 },      // Will-O-Wisp
   }, { kind: "multicast", value: 0.3 }),
   magnus: hero("magnus", 97, "magnataur", false, { maxHp: 820, armor: 5, damage: 30, speed: 162, regen: 3 }, {
     q: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 8, radius: 70, count: [0, 4, 4, 4, 4] }, // Shockwave
@@ -885,7 +885,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 70, count: [0, 3, 3, 3, 3] }, // Tame the Beasts
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Escape Act
     e: { kind: "lightning_bolt", value: [0, 90, 135, 180, 230], cooldown: 6, radius: 320, duration: 0.5 }, // Impalement Arts
-    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 320, duration: 2.5 },            // Wheel
+    r: { kind: "mass_freeze", value: [0, 220, 330, 440], cooldown: 60, radius: 320, duration: 2.5 },      // Wheel
   }, { kind: "multicast", value: 0.28 }),
   meepo: hero("meepo", 82, "meepo", false, { maxHp: 640, armor: 3, damage: 25, speed: 172, attackInterval: 0.85 }, {
     q: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 12, radius: 180, duration: 2 },           // Earthbind
