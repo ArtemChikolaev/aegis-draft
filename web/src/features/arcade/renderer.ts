@@ -330,6 +330,12 @@ export class ArcadeRenderer {
    * Картинка зоны-мины. Static Remnant у Storm Spirit и Aether Remnant у Void Spirit — это в Dota
    * призрак самого героя, а не «шарик»; рисуем листом героя вполупрозрачно, как иллюзии в drawWard.
    */
+  /** Умение героя по виду, а не по букве слота: один и тот же вид у разных героев стоит в разных слотах. */
+  private static slot(sim: ArcadeSim, kind: string): AbilityDef | null {
+    const key = ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === kind);
+    return key ? sim.hero.abilities[key] : null;
+  }
+
   private drawZoneSummon(sim: ArcadeSim, ab: AbilityDef, x: number, y: number): void {
     const art = ab.summon;
     if (!art) return;
@@ -573,8 +579,10 @@ export class ArcadeRenderer {
       if (mae > 0) drawSparks(c, p.x, p.y, R * 2.2, sim.tick, apx, pal, 2 + mae);
     }
     const spinning = sim.tick < p.spinUntil;
-    const invuln = sim.tick < p.invulnUntil || (p.burstLeft > 0 && sim.hero.abilities.r.kind === "omni");
-    const spinR = sim.hero.abilities.q.radius ?? 104;
+    const invuln = sim.tick < p.invulnUntil || (p.burstLeft > 0 && ArcadeRenderer.slot(sim, "omni") !== null);
+    // Радиус вихря — у своего слота: Rolling Thunder у Pangolier и Raptor Dance у Kez стоят в R,
+    // и кольцо рисовалось радиусом чужого `q` (у Pangolier 104 вместо 190).
+    const spinR = (ArcadeRenderer.slot(sim, "spin") ?? sim.hero.abilities.q).radius ?? 104;
     if (spinning) {
       c.save();
       c.translate(p.x, p.y);
@@ -588,7 +596,7 @@ export class ArcadeRenderer {
     // Freezing Field / Shrapnel / Berserker's Call — зоны и бафы других героев.
     if (sim.tick < p.fieldUntil) {
       c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.5;
-      c.beginPath(); c.arc(p.x, p.y, sim.hero.abilities.r.radius ?? 270, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.arc(p.x, p.y, (ArcadeRenderer.slot(sim, "freezing_field") ?? sim.hero.abilities.r).radius ?? 270, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
     }
     // Зона умения. Радиус берём у того слота, где стоит умение, а не у `q`: Diabolic Edict у Leshrac

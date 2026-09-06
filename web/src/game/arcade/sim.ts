@@ -608,7 +608,13 @@ export class ArcadeSim {
         p.zoneUntil = this.tick + sec(ab.duration ?? 7);
         break;
       case "mass_freeze":
-        for (const e of this.enemiesWithin(p.x, p.y, radius)) if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 1.5 : ab.duration ?? 3.5)));
+        // `value` у mass_freeze — урон в момент каста, и он не обязателен: Chronosphere, Global Silence,
+        // Stone Gaze и Song of the Siren стоят с нулём и остаются чистым контролем. Ненулевой урон
+        // нужен ультам, которые в Dota бьют (Winter's Curse) — раньше число в таблице просто молчало.
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) {
+          if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 1.5 : ab.duration ?? 3.5)));
+          if (value > 0) this.damageEnemy(e, value, "burst");
+        }
         // Внутри Chronosphere Void бьёт вдвое чаще — иначе ульт без урона.
         p.frenzyUntil = this.tick + sec(ab.duration ?? 3.5); p.frenzyMult = 0.5;
         this.pushFx("nova", p.x, p.y, radius, 0, sec(ab.duration ?? 3.5));
@@ -680,34 +686,52 @@ export class ArcadeSim {
   private tickActiveAbilities(): void {
     const p = this.player;
     const H = this.hero.abilities;
-    if (this.tick < p.spinUntil && this.tick % 6 === 0 && H.q.kind === "spin") {
-      const dps = H.q.value[p.abilities.q];
+    // Слот ищем по виду умения, а не по букве: Rolling Thunder у Pangolier и Raptor Dance у Kez —
+    // это `spin` в R, Hand of God у Chen и Cold Embrace у Winter Wyvern — `ward` в R и E. Каст ставил
+    // spinUntil/wardUntil, а тик проверял H.q/H.w и молчал: одиннадцать умений не делали ничего.
+    const spinKey = ABILITY_KEYS.find((k) => H[k].kind === "spin");
+    if (spinKey && this.tick < p.spinUntil && this.tick % 6 === 0) {
+      const sp = H[spinKey];
+      const dps = sp.value[p.abilities[spinKey]];
       for (const e of this.enemies) {
         if (!e.alive) continue;
-        if (len(e.x - p.x, e.y - p.y) <= (H.q.radius ?? 104) + e.kind.r) this.damageEnemy(e, dps * 0.1, "spin");
+        if (len(e.x - p.x, e.y - p.y) <= (sp.radius ?? 104) + e.kind.r) this.damageEnemy(e, dps * 0.1, "spin");
       }
     }
-    if (this.tick < p.wardUntil && H.w.kind === "ward") {
+    const healKey = ABILITY_KEYS.find((k) => H[k].kind === "ward");
+    if (healKey && this.tick < p.wardUntil) {
+      const hw = H[healKey];
       const d = len(p.x - p.wardX, p.y - p.wardY);
       if (d > 40) { p.wardX += (p.x - p.wardX) / d * 120 * DT; p.wardY += (p.y - p.wardY) / d * 120 * DT; }
-      if (this.tick % 30 === 0 && len(p.x - p.wardX, p.y - p.wardY) <= (H.w.radius ?? 170)) this.heal(p.stats.maxHp * H.w.value[p.abilities.w] * 0.5);
+      // `value` у лечащего тотема живёт в двух единицах, и обе осмысленны: доля максимума HP
+      // (Healing Ward у Juggernaut 0.028–0.046, Nature's Attendants, Hand of God) и плоское
+      // число HP (Purification, Shadow Wave, Cold Embrace — 10–32). Раньше формула умножала
+      // на максимум всегда: плоская тридцатка лечила тридцать максимумов за тик, и герой с
+      // таким умением не умирал вовсе (Witch Doctor, Warlock, Undying — у них `ward` в W и
+      // это работало и до правки слотов).
+      const v = hw.value[p.abilities[healKey]];
+      if (this.tick % 30 === 0 && len(p.x - p.wardX, p.y - p.wardY) <= (hw.radius ?? 170)) this.heal(v < 1 ? p.stats.maxHp * v * 0.5 : v);
     }
     if (p.burstLeft > 0 && this.tick >= p.burstNextAt) {
       const ult = this.talentPower("t25_ult") ? 1.5 : 1;
-      if (H.r.kind === "omni") {
-        const candidates = this.enemiesWithin(p.x, p.y, H.r.radius ?? 230);
+      const omniKey = ABILITY_KEYS.find((k) => H[k].kind === "omni");
+      const fieldKey = ABILITY_KEYS.find((k) => H[k].kind === "freezing_field");
+      if (omniKey) {
+        const ob = H[omniKey];
+        const candidates = this.enemiesWithin(p.x, p.y, ob.radius ?? 230);
         if (candidates.length === 0) p.burstLeft = 0;
         else {
           const target = candidates[this.rng.int(candidates.length)];
-          this.damageEnemy(target, H.r.value[p.abilities.r] * ult, "slash");
+          this.damageEnemy(target, ob.value[p.abilities[omniKey]] * ult, "slash");
           this.pushFx("slash", p.x, p.y, target.x, target.y, 12);
           p.burstLeft--;
-          p.burstNextAt = this.tick + Math.max(3, Math.floor(sec(H.r.duration ?? 1.5) / (H.r.count?.[p.abilities.r] ?? 5)));
+          p.burstNextAt = this.tick + Math.max(3, Math.floor(sec(ob.duration ?? 1.5) / (ob.count?.[p.abilities[omniKey]] ?? 5)));
         }
-      } else if (H.r.kind === "freezing_field") {
-        const radius = H.r.radius ?? 270;
+      } else if (fieldKey) {
+        const fb = H[fieldKey];
+        const radius = fb.radius ?? 270;
         const ex = p.x + (this.rng.float() * 2 - 1) * radius, ey = p.y + (this.rng.float() * 2 - 1) * radius;
-        for (const e of this.enemiesWithin(ex, ey, 80)) this.damageEnemy(e, H.r.value[p.abilities.r] * ult, "burst");
+        for (const e of this.enemiesWithin(ex, ey, 80)) this.damageEnemy(e, fb.value[p.abilities[fieldKey]] * ult, "burst");
         for (const e of this.enemiesWithin(p.x, p.y, radius)) this.applyChill(e, 0.4, 0.5, false);
         this.pushFx("burst", ex, ey, 80, 0, 12);
         p.burstLeft--;
@@ -755,9 +779,11 @@ export class ArcadeSim {
         if (this.tick % 12 === 0) this.pushFx("zap", t.x, t.y, p.x, p.y, 6);
       }
     }
-    if (this.tick < p.zoneUntil && H.q.kind === "shrapnel" && this.tick % 12 === 0) {
-      const radius = H.q.radius ?? 180;
-      for (const e of this.enemiesWithin(p.zoneX, p.zoneY, radius)) { this.damageEnemy(e, H.q.value[p.abilities.q] * 0.2, "burst"); this.applyChill(e, 0.3, 0.4, false); }
+    const shrapKey = ABILITY_KEYS.find((k) => H[k].kind === "shrapnel");
+    if (shrapKey && this.tick < p.zoneUntil && this.tick % 12 === 0) {
+      const sb = H[shrapKey];
+      const radius = sb.radius ?? 180;
+      for (const e of this.enemiesWithin(p.zoneX, p.zoneY, radius)) { this.damageEnemy(e, sb.value[p.abilities[shrapKey]] * 0.2, "burst"); this.applyChill(e, 0.3, 0.4, false); }
     }
   }
 
