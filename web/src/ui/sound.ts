@@ -22,8 +22,10 @@ const VOLUME_KEY: Record<VolumeChannel, string> = { sfx: "aegis-draft.volume.sfx
 const VOLUME_DEFAULT: Record<VolumeChannel, number> = { sfx: 1, music: 0.8, voice: 1 };
 const volumeListeners = new Set<() => void>();
 export function getVolume(channel: VolumeChannel): number {
+  // Пустую строку в хранилище считаем «значения нет»: `Number("")` — это 0, и такой ключ бесшумно
+  // выключал бы канал навсегда, причём чинился бы только через DevTools.
   const raw = readCached(VOLUME_KEY[channel]);
-  const v = raw == null ? NaN : Number(raw);
+  const v = raw == null || raw.trim() === "" ? NaN : Number(raw);
   return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : VOLUME_DEFAULT[channel];
 }
 export function setVolume(channel: VolumeChannel, value: number): void {
