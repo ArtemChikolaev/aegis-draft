@@ -86,6 +86,13 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_spectre_arcana", slot: "skin", rarity: "arcana", variant: "spectre@arcana", hero: "spectre" },
   { id: "skin_vs_arcana", slot: "skin", rarity: "arcana", variant: "vengeful_spirit@arcana", hero: "vengeful_spirit" },
   { id: "skin_drow_arcana", slot: "skin", rarity: "arcana", variant: "drow_ranger@arcana", hero: "drow_ranger" },
+  // Сеты Dota (T13.27, вопрос владельца «можно ли конкретные предметы из сетов»): сет — это части
+  // `models/items/<hero>/<set>_{head,arms,legs,back,weapon}`, которые пришиваются к скелету базового
+  // героя ровно как части аркан. Лист — `<hero>@<set>`, редкость exotic (в Dota это не аркана).
+  { id: "skin_jugg_bladesrunner", slot: "skin", rarity: "exotic", variant: "juggernaut@bladesrunner", hero: "juggernaut" },
+  { id: "skin_pa_darkfeather", slot: "skin", rarity: "exotic", variant: "phantom_assassin@darkfeather", hero: "phantom_assassin" },
+  { id: "skin_axe_blackthorn", slot: "skin", rarity: "exotic", variant: "axe@blackthorn", hero: "axe" },
+  { id: "skin_pudge_scarecrow", slot: "skin", rarity: "exotic", variant: "pudge@scarecrow", hero: "pudge" },
 ];
 
 /** Арканы, у которых в Dota есть настоящий стиль (свой набор текстур): лист `<variant>~style1`
