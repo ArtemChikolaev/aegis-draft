@@ -16,7 +16,7 @@
 # самый высокий силуэт спереди, затем центруем и подбираем охват камеры по силуэту спереди и сверху.
 # Направление 0 = лицом к камере (вниз по экрану), далее против часовой на экране (вниз, вправо,
 # вверх, влево): камера и свет орбитой уходят по часовой.
-import bpy, sys, os, json, math, argparse
+import bpy, sys, os, re, json, math, argparse
 
 def parse_args():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -284,7 +284,33 @@ def main():
             else:
                 keep.append(o)
         return keep
-    objs = drop_junk(objs)
+    def drop_dupes(lst):
+        # Source2Viewer выгружает КАЖДУЮ группу тела моделью: у косметики аркан это три совпадающих
+        # меша — `._dummy`, базовый и `<имя>_style1`. Все три лежат в одних координатах, и на спрайте
+        # причёска/лук выходили утроенным месивом (владелец: «у drow ranger опять проблемы с арканой»).
+        # Стиль у нас — подмена текстур базового меша (--style), поэтому лишние копии просто убираем.
+        order = [o.name for o in lst]
+        groups = {}
+        for o in lst:
+            if o.type != "MESH":
+                continue
+            groups.setdefault((len(o.data.vertices), tuple(round(v, 3) for v in o.dimensions)), []).append(o)
+        dead = set()
+        for same in groups.values():
+            if len(same) < 2:
+                continue
+            def rank(o):
+                mesh = o.name.rsplit(".", 1)[-1].lower()
+                return (mesh.endswith("_dummy") or mesh == "_dummy", bool(re.search(r"_style\d+$", mesh)), len(mesh))
+            same.sort(key=rank)
+            for extra in same[1:]:
+                dead.add(extra.name)
+            for extra in same[1:]:
+                bpy.data.objects.remove(extra, do_unlink=True)
+        if dead:
+            print(f"   убрано дублей меша: {len(dead)}")
+        return [bpy.data.objects[n] for n in order if n not in dead and n in bpy.data.objects]
+    objs = drop_dupes(drop_junk(objs))
     base_meshes = [o for o in objs if o.type == "MESH"]
     # Части героя (в Dota штаны/маска/оружие — отдельные модели со своим скелетом). Пересаживать их меши
     # на скелет тела нельзя: у тела кости, к которым не привязан ни один вершинный вес (например sword_1),
@@ -293,7 +319,7 @@ def main():
     # деформация части = поза тела относительно её собственной корректной позы покоя.
     main_bones = {b.name.lower(): b.name for b in main_arms[0].data.bones} if main_arms else {}
     for part in [x for x in a.parts.split(",") if x.strip()]:
-        pobjs = drop_junk(import_glb(os.path.abspath(part.strip())))
+        pobjs = drop_dupes(drop_junk(import_glb(os.path.abspath(part.strip()))))
         part_arms = [o for o in pobjs if o.type == "ARMATURE"]
         if not part_arms or not main_arms:
             print(f"WARN: у части {os.path.basename(part)} нет скелета — экспортируй её с --gltf_export_animations, иначе она застынет в bind-позе")
@@ -566,12 +592,20 @@ def main():
                     cur = root_world()
                     if cur is not None:
                         dx, dy = cur.x - clip_root0.x, cur.y - clip_root0.y
-                        # Ограничиваем компенсацию половиной охвата камеры: у части моделей (Meepo,
-                        # персона Dragon Knight) корневая кость несёт огромное смещение, и «отмотка»
-                        # root motion уводила всю сборку за кадр — лист выходил пустым или обрезанным.
-                        if abs(dx) < extent * 0.5 and abs(dy) < extent * 0.5:
-                            rig.fix.location = base_loc - __import__("mathutils").Vector((dx, dy, 0.0))
-                            bpy.context.view_layer.update()
+                        # Компенсацию ОГРАНИЧИВАЕМ половиной охвата камеры, но не отключаем. Раньше
+                        # здесь стояло условие «если смещение больше предела — не компенсировать
+                        # вовсе», и это давало ровно обратный эффект: в длинном клипе бега корень
+                        # уходит далеко, компенсация выключалась, и герой просто выбегал за кадр —
+                        # у Juggernaut последние три кадра ряда walk из восьми были пустыми
+                        # (владелец 2026-09-06: «джагер во время бега опять пропадает»). Предел
+                        # нужен для моделей, у которых корневая кость несёт огромное постоянное
+                        # смещение (Meepo, персона Dragon Knight) — там «отмотка» уводила сборку за
+                        # кадр. Обрезка даёт и то, и другое: далеко уехавший герой останется в кадре.
+                        lim = extent * 0.5
+                        dx = max(-lim, min(lim, dx))
+                        dy = max(-lim, min(lim, dy))
+                        rig.fix.location = base_loc - __import__("mathutils").Vector((dx, dy, 0.0))
+                        bpy.context.view_layer.update()
                         if os.environ.get("SPRITE_DEBUG"):
                             print(f"rootlock {ours} d{d} f{i}: root0 {tuple(round(v,2) for v in clip_root0)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
                 path = os.path.join(tmp, f"{a.name}_{ours}_{d}_{i:02d}.png")

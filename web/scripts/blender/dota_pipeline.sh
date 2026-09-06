@@ -28,7 +28,14 @@ while IFS=$'\t' read -r id vmdl args parts; do
   # -o со слэшем на конце = папка (при одном совпадении -f CLI иначе трактует -o как имя файла).
   mkdir -p "$OUT/$id"
   "$S2V" -i "$VPK" -f "$vmdl" -o "$OUT/$id/" -d --gltf_export_format glb --gltf_export_animations --gltf_export_materials --gltf_textures_adapt 2>&1 | grep -E 'Writing model|Error|error' || true
-  GLB="$(find "$OUT/$id" -name '*.glb' ! -name '*_physics.glb' ! -name '*_hitbox*' | head -1)"
+  # Берём glb ИМЕННО запрошенной модели: CLI с -d тянет и зависимости (у drow_arcana это базовое
+  # тело drow_base), а `head -1` отдавал первый по алфавиту — арканой рисовалось голое тело с
+  # навешанными косметическими частями («рассыпуха»). Порядок: точный путь → basename → что нашлось.
+  GLB="$OUT/$id/${vmdl%.vmdl_c}.glb"
+  if [ ! -f "$GLB" ]; then
+    GLB="$(find "$OUT/$id" -name "$(basename "$vmdl" .vmdl_c).glb" ! -path '*/parts/*' | head -1)"
+    [ -n "$GLB" ] || GLB="$(find "$OUT/$id" -name '*.glb' ! -name '*_physics.glb' ! -name '*_hitbox*' ! -path '*/parts/*' | head -1)"
+  fi
   PARTS=""
   if [ -n "${parts:-}" ]; then
     IFS=',' read -ra PLIST <<< "$parts"
