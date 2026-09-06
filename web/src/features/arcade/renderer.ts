@@ -190,6 +190,7 @@ export class ArcadeRenderer {
     this.drawGround(sim, camX, camY, pal);
     if (sim.pit) this.drawRiverAndPit(pal);
     this.drawShards(sim, pal);
+    this.drawFx(sim, pal, "ground");
     this.drawWard(sim, pal);
     this.drawAegis(sim, pal, now);
     this.drawShrine(sim, pal, now);
@@ -199,7 +200,7 @@ export class ArcadeRenderer {
     this.drawPets(sim, pal);
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
-    this.drawFx(sim, pal);
+    this.drawFx(sim, pal, "top");
     if (sim.night) {
       // Пепел в воздухе (T13.22): рисуем ДО тумана, иначе дальние искры светятся сквозь темноту.
       const camX = Math.max(0, Math.min(sim.player.x - this.w / 2, ARCADE.world.w - this.w));
@@ -658,7 +659,12 @@ export class ArcadeRenderer {
     c.globalAlpha = 1;
   }
 
-  private drawFx(sim: ArcadeSim, pal: Palette): void {
+  /** Эффекты, которые лежат НА ЗЕМЛЕ: кольца, круги зон, оседающие тела. Рисуются до сущностей —
+   *  иначе кольцо просвечивает сквозь героя (фидбэк владельца 2026-09-06). Остальные (числа урона,
+   *  искры попаданий, вспышки) — поверх. */
+  private static readonly GROUND_FX = new Set(["nova", "spin", "die", "levelup", "revive"]);
+
+  private drawFx(sim: ArcadeSim, pal: Palette, layer: "ground" | "top"): void {
     const c = this.ctx;
     const tick = sim.tick;
     c.font = "700 13px var(--font-display, sans-serif)";
@@ -666,6 +672,7 @@ export class ArcadeRenderer {
     for (const f of sim.fx) {
       const age = tick - f.born;
       if (age >= f.dur) continue;
+      if (ArcadeRenderer.GROUND_FX.has(f.kind) !== (layer === "ground")) continue;
       const k = age / f.dur;
       switch (f.kind) {
         case "hit": case "crit": case "heal": {

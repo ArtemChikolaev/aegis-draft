@@ -348,8 +348,17 @@ def main():
             rgb = px[:, :3]
             lum = rgb @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
             mask = px[:, 3] > 0.5
-            mean = float(lum[mask].mean()) if mask.any() else float(lum.mean())
+            vis = lum[mask] if mask.any() else lum
+            mean = float(vis.mean())
             if mean <= 0.0 or mean >= threshold:
+                return
+            # Светлим только РАВНОМЕРНО тёмные текстуры. У арканы Phantom Assassin средняя яркость тоже
+            # низкая (0.13), но это белая филигрань по чёрному: гамма вытягивала белое, и герой выходил
+            # блёклым пятном (фидбэк владельца 2026-09-06). Разделяет их верхний процентиль: у арканы
+            # p99 = 0.85 (светлые детали есть), у Shadow Fiend — 0.30 (текстура тёмная целиком).
+            p99 = float(np.percentile(vis, 99))
+            if p99 >= 0.6:
+                print(f"autoexpose: {img.name} пропущен — светлые детали есть (p99 {p99:.2f})")
                 return
             gamma = math.log(target) / math.log(mean)
             px[:, :3] = np.clip(rgb, 0.0, 1.0) ** gamma
