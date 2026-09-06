@@ -79,6 +79,13 @@ export interface FormDef {
   range: number;
 }
 
+/**
+ * Умение героя. **Слот — это ещё и ключ к арту и звуку:** иконка лежит в
+ * `art/abilities{,_px}/<hero>_<slot>.png`, звук каста — в `art/sfx/dota/pack/abilities` по тому же
+ * ключу. Меняешь вид или название умения в слоте (или переставляешь умения местами) — переставь и
+ * файлы, и строки в `scripts/dota_ability_icons.sh` и `scripts/dota_sfx_pack.py`, иначе на кнопке
+ * Q останется старая картинка и старый звук (поймано на Slardar и Clinkz, 2026-09-06).
+ */
 export interface AbilityDef {
   kind: AbilityKind;
   /** Только для kind: "metamorphosis". Лист спрайта — `<heroId>@meta`. */

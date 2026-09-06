@@ -37,7 +37,7 @@ pugna pugna nether_blast decrepify nether_ward life_drain
 invoker invoker cold_snap sun_strike chaos_meteor deafening_blast
 tidehunter tidehunter gush kraken_shell anchor_smash ravage
 mirana mirana starfall arrow leap invis
-clinkz clinkz strafe searing_arrows wind_walk death_pact
+clinkz clinkz burning_barrage searing_arrows wind_walk death_pact
 wraith_king skeleton_king hellfire_blast spectral_blade mortal_strike reincarnation
 dragon_knight dragon_knight breathe_fire dragon_tail dragon_blood elder_dragon_form
 kunkka kunkka torrent tidebringer x_marks_the_spot ghostship
