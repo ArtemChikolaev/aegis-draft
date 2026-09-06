@@ -116,5 +116,11 @@
   "kez": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
   "ringmaster": {"attack":["attack_1.m4a"]},
   "meepo": {},
-  "io": {}
+  "io": {},
+  "phantom_lancer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "enchantress": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
+  "chen": {"attack":["attack_1.m4a"]},
+  "ancient_apparition": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "monkey_king": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "dark_willow": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a"]}
 }
