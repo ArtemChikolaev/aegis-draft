@@ -435,7 +435,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 8, radius: 320, duration: 3 },            // Crippling Fear
     e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 18, duration: 8 },                  // Hunter in the Night
     r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 12 },                      // Dark Ascension
-  }, { kind: "thirst", value: 0.32, radius: 600 }),
+  }, { kind: "thirst", value: 0.2, radius: 460 }),
   doom: hero("doom", 69, "doom_bringer", false, { maxHp: 780, armor: 4, damage: 28, speed: 156, regen: 3 }, {
     q: { kind: "life_drain", value: [0, 20, 28, 36, 44], cooldown: 14, radius: 300, duration: 5 },        // Devour
     w: { kind: "remnant", value: [0, 90, 140, 190, 240], cooldown: 16, radius: 170 },                    // Scorched Earth
@@ -719,7 +719,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "assassinate", value: [0, 300, 460, 620], cooldown: 40, radius: 200 },                    // Dismember
   }, { kind: "growth", value: 4, cap: 420 }),
   rubick: hero("rubick", 86, "rubick", true, { maxHp: 620, armor: 3, damage: 26, speed: 166 }, {
-    q: { kind: "frostbite", value: [0, 90, 135, 180, 225], cooldown: 9, radius: 320, duration: 2 },       // Telekinesis
+    q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 9, radius: 240, duration: 2 },            // Telekinesis
     w: { kind: "arc_lightning", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Fade Bolt
     e: { kind: "arcane_aura", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, passive: true },            // Arcane Supremacy
     r: SIG,                                                                                              // Spell Steal
@@ -834,7 +834,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 12, duration: 4 },                            // Cold Embrace
     r: { kind: "mass_freeze", value: [0, 200, 300, 400], cooldown: 55, radius: 320, duration: 3 },        // Winter's Curse
   }, { kind: "vampiric", value: 0.09 }),
-  arc_warden: hero("arc_warden", 113, "arc_warden", true, { maxHp: 640, armor: 3, damage: 26, speed: 166, range: 330 }, {
+  arc_warden: hero("arc_warden", 113, "arc_warden", true, { maxHp: 640, armor: 3, damage: 31, speed: 166, range: 400, attackInterval: 0.8 }, {
     q: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 340, duration: 5 },             // Flux
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Magnetic Field
     e: { kind: "remnant", value: [0, 160, 235, 310, 380], cooldown: 7, radius: 170 },                    // Spark Wraith
@@ -887,7 +887,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 12, radius: 180, duration: 2 },           // Earthbind
     w: { kind: "dash", value: [0, 120, 180, 240, 300], cooldown: 8, radius: 400 },                        // Poof
     e: SIG,                                                                                              // Ransack
-    r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 20, radius: 300, summon: { art: "illusion", count: 2 } },          // Divided We Stand
+    r: { kind: "damage_ward", value: [0, 45, 65, 85], cooldown: 40, duration: 20, radius: 300, summon: { art: "illusion", count: 2 } },         // Divided We Stand
   }, { kind: "vampiric", value: 0.12 }),
   io: hero("io", 91, "wisp", true, { maxHp: 620, armor: 3, damage: 24, speed: 172, regen: 5 }, {
     q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Tether
@@ -924,7 +924,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "nova", value: [0, 95, 140, 190, 240], cooldown: 7, radius: 260, duration: 2 },           // Cold Feet
     w: { kind: "remnant", value: [0, 40, 55, 70, 88], cooldown: 10, radius: 240, duration: 8 },          // Ice Vortex
     e: { kind: "frost_arrows", value: [0, 0.2, 0.28, 0.36, 0.44], cooldown: 0, passive: true },          // Chilling Touch
-    r: { kind: "mass_freeze", value: [0, 260, 390, 520], cooldown: 55, radius: 460, duration: 2.5 },     // Ice Blast
+    r: { kind: "mass_freeze", value: [0, 200, 300, 400], cooldown: 65, radius: 320, duration: 2.5 },     // Ice Blast
   }, { kind: "thirst", value: 0.32, radius: 600 }),
   monkey_king: hero("monkey_king", 114, "monkey_king", false, { maxHp: 660, armor: 4, damage: 27, speed: 178, attackInterval: 0.85 }, {
     q: { kind: "line_burst", value: [0, 130, 195, 260, 325], cooldown: 8, radius: 420 },                 // Boundless Strike
