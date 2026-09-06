@@ -608,6 +608,106 @@
     "tinker_r_1.m4a"
    ]
   },
+  "omniknight": {
+   "q": [
+    "omniknight_q_1.m4a"
+   ],
+   "w": [
+    "omniknight_w_1.m4a"
+   ],
+   "r": [
+    "omniknight_r_1.m4a"
+   ]
+  },
+  "abaddon": {
+   "q": [
+    "abaddon_q_1.m4a"
+   ],
+   "w": [
+    "abaddon_w_1.m4a"
+   ],
+   "r": [
+    "abaddon_r_1.m4a"
+   ]
+  },
+  "beastmaster": {
+   "q": [
+    "beastmaster_q_1.m4a"
+   ],
+   "w": [
+    "beastmaster_w_1.m4a"
+   ],
+   "e": [
+    "beastmaster_e_1.m4a"
+   ],
+   "r": [
+    "beastmaster_r_1.m4a"
+   ]
+  },
+  "brewmaster": {
+   "q": [
+    "brewmaster_q_1.m4a"
+   ],
+   "w": [
+    "brewmaster_w_1.m4a"
+   ],
+   "r": [
+    "brewmaster_r_1.m4a"
+   ]
+  },
+  "centaur": {
+   "q": [
+    "centaur_q_1.m4a"
+   ],
+   "w": [
+    "centaur_w_1.m4a"
+   ],
+   "r": [
+    "centaur_r_1.m4a"
+   ]
+  },
+  "dark_seer": {
+   "q": [
+    "dark_seer_q_1.m4a"
+   ],
+   "w": [
+    "dark_seer_w_1.m4a"
+   ],
+   "e": [
+    "dark_seer_e_1.m4a"
+   ],
+   "r": [
+    "dark_seer_r_1.m4a"
+   ]
+  },
+  "death_prophet": {
+   "q": [
+    "death_prophet_q_1.m4a"
+   ],
+   "w": [
+    "death_prophet_w_1.m4a"
+   ],
+   "e": [
+    "death_prophet_e_1.m4a"
+   ],
+   "r": [
+    "death_prophet_r_1.m4a"
+   ]
+  },
+  "disruptor": {
+   "q": [
+    "disruptor_q_1.m4a"
+   ],
+   "w": [
+    "disruptor_w_1.m4a"
+   ],
+   "e": [
+    "disruptor_e_1.m4a"
+   ],
+   "r": [
+    "disruptor_r_1.mp3"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

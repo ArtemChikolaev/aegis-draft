@@ -70,6 +70,14 @@ shadow_shaman shadow_shaman ether_shock voodoo shackles mass_serpent_ward
 warlock warlock fatal_bonds shadow_word upheaval rain_of_chaos
 enigma enigma malefice demonic_conversion midnight_pulse black_hole
 tinker tinker laser heat_seeking_missile defense_matrix rearm
+omniknight omniknight purification repel hammer_of_purity guardian_angel
+abaddon abaddon death_coil aphotic_shield frostmourne borrowed_time
+beastmaster beastmaster wild_axes call_of_the_wild inner_beast primal_roar
+brewmaster brewmaster thunder_clap cinder_brew drunken_brawler primal_split
+centaur centaur hoof_stomp double_edge return stampede
+dark_seer dark_seer vacuum ion_shell surge wall_of_replica
+death_prophet death_prophet carrion_swarm silence spirit_siphon exorcism
+disruptor disruptor thunder_strike glimpse kinetic_field static_storm
 '
 missing=""
 while read -r id dota q w e r; do

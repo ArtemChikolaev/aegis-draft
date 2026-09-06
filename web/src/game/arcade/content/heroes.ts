@@ -18,7 +18,9 @@ export type TemplateHeroId =
   // Волна 4.
   | "tiny" | "spectre" | "chaos_knight" | "night_stalker" | "doom" | "legion_commander" | "templar_assassin" | "medusa"
   // Волна 5.
-  | "silencer" | "skywrath_mage" | "dazzle" | "jakiro" | "shadow_shaman" | "warlock" | "enigma" | "tinker";
+  | "silencer" | "skywrath_mage" | "dazzle" | "jakiro" | "shadow_shaman" | "warlock" | "enigma" | "tinker"
+  // Волна 6.
+  | "omniknight" | "abaddon" | "beastmaster" | "brewmaster" | "centaur" | "dark_seer" | "death_prophet" | "disruptor";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -29,6 +31,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "earthshaker", "bloodseeker", "riki", "queen_of_pain", "viper", "ogre_magi", "huskar", "slardar",
   "tiny", "spectre", "chaos_knight", "night_stalker", "doom", "legion_commander", "templar_assassin", "medusa",
   "silencer", "skywrath_mage", "dazzle", "jakiro", "shadow_shaman", "warlock", "enigma", "tinker",
+  "omniknight", "abaddon", "beastmaster", "brewmaster", "centaur", "dark_seer", "death_prophet", "disruptor",
 ];
 
 export type AbilityKind =
@@ -452,6 +455,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Defense Matrix
     r: SIG,                                                                                              // Rearm
   }, { kind: "multicast", value: 0.4 }),
+  // ---- Волна 6 ----
+  omniknight: hero("omniknight", 57, "omniknight", false, { maxHp: 760, armor: 5, damage: 26, speed: 158, regen: 3 }, {
+    q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Purification
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Heavenly Grace
+    e: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Hammer of Purity
+    r: { kind: "death_pact", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 8 },                      // Guardian Angel
+  }),
+  abaddon: hero("abaddon", 102, "abaddon", false, { maxHp: 820, armor: 5, damage: 28, speed: 162, regen: 3 }, {
+    q: { kind: "lightning_bolt", value: [0, 110, 165, 220, 270], cooldown: 5, radius: 300, duration: 0.3 }, // Mist Coil
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 5 },                        // Aphotic Shield
+    e: { kind: "frost_arrows", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },          // Curse of Avernus
+    r: { kind: "reincarnation", value: [0, 0.5, 0.7, 0.9], cooldown: 120, passive: true },               // Borrowed Time
+  }),
+  beastmaster: hero("beastmaster", 38, "beastmaster", false, { maxHp: 700, armor: 4, damage: 28, speed: 164, regen: 2 }, {
+    q: { kind: "line_burst", value: [0, 80, 125, 170, 215], cooldown: 8, radius: 64, count: [0, 3, 3, 3, 3] }, // Wild Axes
+    w: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 14, duration: 12, radius: 300 },     // Call of the Wild Boar
+    e: { kind: "frenzy", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 14, duration: 8 },                  // Inner Beast
+    r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 60, radius: 260, duration: 2 },            // Primal Roar
+  }),
+  brewmaster: hero("brewmaster", 78, "brewmaster", false, { maxHp: 740, armor: 4, damage: 27, speed: 160, regen: 3 }, {
+    q: { kind: "ravage", value: [0, 90, 135, 180, 230], cooldown: 10, radius: 240, duration: 1.0 },       // Thunder Clap
+    w: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 10, radius: 300, duration: 3 },            // Cinder Brew
+    e: SIG,                                                                                              // Drunken Brawler
+    r: { kind: "rage", value: [0, 0.8, 1.1, 1.4], cooldown: 70, duration: 12 },                          // Primal Split
+  }, { kind: "blur", value: 0.2 }),
+  centaur: hero("centaur", 96, "centaur", false, { maxHp: 840, armor: 4, damage: 28, speed: 158, regen: 3 }, {
+    q: { kind: "ravage", value: [0, 100, 150, 200, 250], cooldown: 9, radius: 220, duration: 1.5 },       // Hoof Stomp
+    w: { kind: "lightning_bolt", value: [0, 150, 220, 290, 360], cooldown: 5, radius: 180, duration: 0.2 }, // Double Edge
+    e: SIG,                                                                                              // Retaliate
+    r: { kind: "haste", value: [0, 0.1, 0.15, 0.2], cooldown: 50, duration: 6 },                          // Stampede
+  }, { kind: "quill", value: 16, radius: 160 }),
+  dark_seer: hero("dark_seer", 55, "dark_seer", false, { maxHp: 700, armor: 4, damage: 26, speed: 162, regen: 2 }, {
+    q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 10, radius: 300, duration: 2 },           // Vacuum
+    w: { kind: "edict", value: [0, 40, 60, 80, 100], cooldown: 14, duration: 8, radius: 260 },            // Ion Shell
+    e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 12, duration: 6 },                  // Surge
+    r: { kind: "line_burst", value: [0, 200, 300, 400], cooldown: 60, radius: 120, count: [0, 3, 3, 3], duration: 1.0 }, // Wall of Replica
+  }),
+  death_prophet: hero("death_prophet", 43, "death_prophet", true, { maxHp: 560, armor: 2, damage: 24, speed: 164 }, {
+    q: { kind: "line_burst", value: [0, 90, 135, 180, 230], cooldown: 7, radius: 70, count: [0, 3, 3, 3, 3] }, // Crypt Swarm
+    w: { kind: "nova", value: [0, 40, 65, 90, 115], cooldown: 12, radius: 320, duration: 3 },             // Silence
+    e: { kind: "life_drain", value: [0, 20, 28, 36, 44], cooldown: 12, radius: 320, duration: 5 },        // Spirit Siphon
+    r: { kind: "edict", value: [0, 60, 90, 120], cooldown: 70, duration: 12, radius: 380 },              // Exorcism
+  }),
+  disruptor: hero("disruptor", 87, "disruptor", true, { maxHp: 600, armor: 3, damage: 24, speed: 162 }, {
+    q: { kind: "lightning_bolt", value: [0, 100, 150, 200, 250], cooldown: 5, radius: 320, duration: 0.5 }, // Thunder Strike
+    w: { kind: "goo", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 340, duration: 3 },              // Glimpse
+    e: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 16, radius: 200, duration: 2 },           // Kinetic Field
+    r: { kind: "nova", value: [0, 260, 390, 520], cooldown: 60, radius: 320, duration: 3 },              // Static Storm
+  }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };

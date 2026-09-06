@@ -54,5 +54,13 @@
   "shadow_shaman": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
   "warlock": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
   "enigma": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "tinker": {"attack":["attack_1.m4a","attack_2.m4a"]}
+  "tinker": {"attack":["attack_1.m4a","attack_2.m4a"]},
+  "omniknight": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "abaddon": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
+  "beastmaster": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a"]},
+  "brewmaster": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "centaur": {},
+  "dark_seer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "death_prophet": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "disruptor": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]}
 }
