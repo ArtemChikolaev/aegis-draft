@@ -670,10 +670,10 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 70, radius: 400, duration: 3 },              // Song of the Siren
   }, { kind: "crit", value: 0.18, cap: 2 }),
   natures_prophet: hero("natures_prophet", 53, "furion", true, { maxHp: 560, armor: 2, damage: 25, speed: 164, range: 340 }, {
-    q: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 12, radius: 160, duration: 2 },           // Sprout
+    q: { kind: "mass_freeze", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 190, duration: 2 },     // Sprout
     w: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 14, radius: 400 },                               // Teleportation
-    e: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 16, duration: 15, radius: 320, summon: { art: "treant", count: 2 } },     // Nature's Call
-    r: { kind: "arc_lightning", value: [0, 100, 160, 220], cooldown: 50, radius: 400, count: [0, 5, 7, 9] }, // Wrath of Nature
+    e: { kind: "damage_ward", value: [0, 34, 48, 62, 76], cooldown: 14, duration: 15, radius: 320, summon: { art: "treant", count: 3 } },     // Nature's Call
+    r: { kind: "arc_lightning", value: [0, 120, 190, 260], cooldown: 36, radius: 400, count: [0, 6, 8, 10] }, // Wrath of Nature
   }, { kind: "multicast", value: 0.28 }),
   nyx_assassin: hero("nyx_assassin", 88, "nyx_assassin", false, { maxHp: 640, armor: 4, damage: 26, speed: 174 }, {
     q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 9, radius: 60, count: [0, 3, 3, 3, 3], duration: 1.5 }, // Impale
@@ -848,9 +848,9 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "vampiric", value: 0.07 }),
   hoodwink: hero("hoodwink", 123, "hoodwink", true, { maxHp: 620, armor: 3, damage: 26, speed: 174 }, {
     q: { kind: "arc_lightning", value: [0, 110, 160, 210, 260], cooldown: 6, radius: 320, count: [0, 3, 4, 4, 5] }, // Acorn Shot
-    w: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2 },       // Bushwhack
+    w: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 9, radius: 240, duration: 2 },            // Bushwhack
     e: { kind: "haste", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 12, duration: 5 },                  // Scurry
-    r: { kind: "assassinate", value: [0, 400, 600, 800], cooldown: 45, radius: 500 },                    // Sharpshooter
+    r: { kind: "line_burst", value: [0, 200, 300, 400], cooldown: 26, radius: 90, count: [0, 5, 5, 5] }, // Sharpshooter
   }, { kind: "backstab", value: 0.5 }),
   // ---- Волна 13 ----
   marci: hero("marci", 136, "marci", false, { maxHp: 680, armor: 4, damage: 27, speed: 176, attackInterval: 0.85 }, {
