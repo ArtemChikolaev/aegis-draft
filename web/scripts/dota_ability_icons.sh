@@ -25,7 +25,7 @@ lina lina dragon_slave light_strike_array fiery_soul laguna_blade
 lich lich frost_nova frost_shield sinister_gaze chain_frost
 drow_ranger drow_ranger frost_arrows wave_of_silence multishot marksmanship
 windranger windrunner shackleshot powershot windrun focusfire
-bristleback bristleback viscous_nasal_goo quill_spray bristleback warpath
+bristleback bristleback quill_spray viscous_nasal_goo bristleback warpath
 sven sven storm_bolt great_cleave warcry gods_strength
 storm_spirit storm_spirit static_remnant electric_vortex overload ball_lightning
 leshrac leshrac split_earth diabolic_edict lightning_storm pulse_nova
@@ -53,7 +53,7 @@ queen_of_pain queenofpain shadow_strike blink scream_of_pain sonic_wave
 viper viper poison_attack nethertoxin corrosive_skin viper_strike
 ogre_magi ogre_magi fireblast ignite bloodlust multicast
 huskar huskar inner_fire burning_spear berserkers_blood life_break
-slardar slardar sprint slithereen_crush bash amplify_damage
+slardar slardar slithereen_crush sprint bash amplify_damage
 tiny tiny avalanche toss tree_grab grow
 spectre spectre spectral_dagger desolate dispersion haunt
 chaos_knight chaos_knight chaos_bolt reality_rift chaos_strike phantasm
@@ -106,7 +106,7 @@ puck puck illusory_orb waning_rift phase_shift dream_coil
 pudge pudge meat_hook rot flesh_heap dismember
 rubick rubick telekinesis fade_bolt arcane_supremacy spell_steal
 sand_king sandking burrowstrike sand_storm caustic_finale epicenter
-shadow_demon shadow_demon disruption disseminate shadow_poison demonic_purge
+shadow_demon shadow_demon shadow_poison disseminate disruption demonic_purge
 slark slark dark_pact pounce essence_shift shadow_dance
 snapfire snapfire scatterblast firesnap_cookie lil_shredder mortimer_kisses
 spirit_breaker spirit_breaker charge_of_darkness bulldoze greater_bash nether_strike
@@ -123,7 +123,7 @@ visage visage grave_chill soul_assumption gravekeepers_cloak summon_familiars
 void_spirit void_spirit aether_remnant dissimilate resonant_pulse astral_step
 weaver weaver the_swarm shukuchi geminate_attack time_lapse
 winter_wyvern winter_wyvern arctic_burn splinter_blast cold_embrace winters_curse
-arc_warden arc_warden flux magnetic_field spark_wraith tempest_double
+arc_warden arc_warden spark_wraith magnetic_field flux tempest_double
 dawnbreaker dawnbreaker fire_wreath celestial_hammer luminosity solar_guardian
 hoodwink hoodwink acorn_shot bushwhack scurry sharpshooter
 marci marci grapple companion_run guardian unleash

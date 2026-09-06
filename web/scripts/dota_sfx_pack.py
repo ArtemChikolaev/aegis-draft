@@ -27,6 +27,8 @@ I = "sounds/items/"
 def hero(folder, q, w, e, r):
     return {k: [f"{H}{folder}/{n}" for n in v] for k, v in (("q", q), ("w", w), ("e", e), ("r", r)) if v}
 
+# Порядок в строке — НАШИ слоты q/w/e/r, а не порядок Dota: у Slardar, Bristleback,
+# Shadow Demon и Arc Warden зачистка переехала в Q (a0.31–a0.32), и звук поехал следом.
 ABILITIES = {
     "juggernaut": hero("juggernaut", [], ["healing_ward_cast"], [], ["omnislash_attack1", "omnislash_attack2"]),
     "axe": hero("axe", ["berserkers_call"], ["battle_hunger"], ["counterhelix"], ["culling_blade_success"]),
@@ -39,7 +41,7 @@ ABILITIES = {
     "lich": hero("lich", ["frost_nova"], ["frost_armor"], ["dark_ritual"], ["chain_frost_cast"]),
     "drow_ranger": hero("drow_ranger", [], ["silence"], ["multishot_channel"], []),
     "windranger": hero("windrunner", ["shackleshot_cast", "shackleshot_bind"], ["windrunner_powershot", "powershot_damage01"], ["windrun"], ["focus_fire"]),
-    "bristleback": hero("bristlebog", ["goo_cast"], ["quill_cast"], [], ["bristleback"]),
+    "bristleback": hero("bristlebog", ["quill_cast"], ["goo_cast"], [], ["bristleback"]),
     "sven": hero("sven", ["storm_bolt", "storm_bolt_impact"], [], ["warcry"], ["gods_strength"]),
     "storm_spirit": hero("storm_spirit", ["static_remnant_plant"], ["electric_vortex_cast"], ["overload"], ["ball_lightning"]),
     "leshrac": hero("leshrac", ["split_earth"], ["diabolic_edict01", "diabolic_edict02"], ["lightning_storm01", "lightning_storm02"], ["pulse_nova"]),
@@ -63,7 +65,7 @@ ABILITIES = {
     "viper": hero("viper", [], ["nethertoxin_cast"], [], ["viper_strike"]),
     "ogre_magi": hero("ogre_magi", ["fireblast_cast"], ["ignite_cast"], ["bloodlust_cast"], ["multicast01"]),
     "huskar": hero("huskar", ["inner_fire"], [], [], ["life_break"]),
-    "slardar": hero("slardar", ["sprint_on"], ["slithereen_crush"], [], ["amplify_damage"]),
+    "slardar": hero("slardar", ["slithereen_crush"], ["sprint_on"], [], ["amplify_damage"]),
     # Волна 4 героев (2026-09-06)
     "tiny": hero("tiny", ["tiny_avalanche"], ["tiny_toss_throw"], ["tree_grab"], ["tiny_grow"]),
     "spectre": hero("spectre", ["dagger_cast"], [], [], ["haunt_cast", "haunt"]),
@@ -122,7 +124,7 @@ ABILITIES = {
     "pudge": hero("pudge", ["hook_throw"], ["rot"], [], ["dismember_swing1"]),
     "rubick": hero("rubick", ["telekinesis_cast"], ["fade_bolt_cast"], [], ["spell_steal_cast"]),
     "sand_king": hero("sand_king", [], ["sand_king_sandstorm_start"], [], ["sand_king_epicenter"]),
-    "shadow_demon": hero("shadow_demon", ["disruption"], ["soul_catcher_cast"], ["shadow_poison_cast"], ["demonic_purge_cast"]),
+    "shadow_demon": hero("shadow_demon", ["shadow_poison_cast"], ["soul_catcher_cast"], ["disruption"], ["demonic_purge_cast"]),
     "slark": hero("slark", ["dark_pact_cast"], ["pounce_cast"], [], ["shadow_dance"]),
     "snapfire": hero("snapfire", ["shotgun_fire"], ["cookie_cast"], ["armor_shredder_target"], ["magma01", "lizard_blob_launch"]),
     "spirit_breaker": hero("spirit_breaker", ["charge_cast"], ["bulldoze"], [], ["nether_strike_in"]),
@@ -139,7 +141,7 @@ ABILITIES = {
     "void_spirit": hero("void_spirit", ["remnant_cast"], ["dissimilate_cast"], ["pulse_cast"], ["astral_start"]),
     "weaver": hero("weaver", ["swarm_cast"], ["shukuchi"], [], ["time_lapse"]),
     "winter_wyvern": hero("winter_wyvern", [], ["splinter_blast_cast"], ["cold_embrace_cast"], ["winters_curse_cast"]),
-    "arc_warden": hero("arc_warden", ["flux_cast"], ["magnetic_field_cast"], ["spark_wraith_cast"], ["tempest_double"]),
+    "arc_warden": hero("arc_warden", ["spark_wraith_cast"], ["magnetic_field_cast"], ["flux_cast"], ["tempest_double"]),
     "dawnbreaker": hero("dawnbreaker", ["fire_wreath_cast"], ["celestial_hammer_cast"], [], ["solar_flare"]),
     "hoodwink": hero("hoodwink", ["acorn_shot_bounce01"], ["bushwhack_cast"], ["scurry_cast"], ["sharpshooter_cast"]),
     # Волна 13 героев (2026-09-06)
