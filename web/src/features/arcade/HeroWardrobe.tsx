@@ -27,6 +27,18 @@ const LOOP_S = IDLE_S + WALK_S + ATTACK_S;
  * Анимированное превью облика: тот же лист `dota_px*`, что рисует бой, кадры крутятся по часам
  * страницы (не по симу — это витрина, а не забег). `static` — одна поза для карточки списка.
  */
+/**
+ * Масштаб превью облика. При увеличении держим ЦЕЛОЕ число физических пикселей на арт-пиксель:
+ * при дробном (230 css / 128 арт = 1.8) nearest-neighbour тянет часть пикселей вдвое, часть нет,
+ * и облик выходит кашей. Округляем, а не отсекаем вниз — у кадра есть поля вокруг силуэта, лишние
+ * 10–15% срезают пустоту, а не героя. При уменьшении (миниатюры 48 px под лист 128) целых чисел
+ * нет вовсе, поэтому там оставляем дробный масштаб: иначе миниатюра показывала бы кроп в упор.
+ */
+export function previewScale(size: number, world: number, dpr: number): number {
+  const ideal = (size * 1.02) / Math.max(1, world);
+  return ideal * dpr >= 1 ? Math.round(ideal * dpr) / dpr : ideal;
+}
+
 function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; size: number; hue?: number; still?: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const { t } = useI18n();
@@ -60,7 +72,7 @@ function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; s
       // Ходьба разворачивает модель кругом, стойка и удар — лицом к камере.
       const dir = anim === "walk" ? Math.floor(((loop - IDLE_S) / WALK_S) * s.meta.dirs) % s.meta.dirs : 0;
       const frame = still ? 0 : Math.floor(el * s.meta.fps);
-      const mult = (size * 1.02) / Math.max(1, s.meta.world);
+      const mult = previewScale(size, s.meta.world, dpr);
       drawDotaFrame(c, s, anim, dir, frame, size / 2, size * 0.9, 1, mult);
     };
     draw();

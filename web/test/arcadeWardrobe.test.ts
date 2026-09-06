@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import { COSMETICS, skinnedHero, skinnedSheet, skinnedStyle } from "../src/game/arcade/content/cosmetics.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
+import { previewScale } from "../src/features/arcade/HeroWardrobe.tsx";
 
 // Гардероб (T13.27): облик героя выбирается и покупается в своём окне, у аркан бывают стили.
 // Тест держит в согласии три места: cosmetics.ts (какие стили объявлены), манифесты спрайтов
@@ -67,3 +68,21 @@ describe("гардероб: облик и стиль", () => {
     expect(skinnedSheet("zeus", useArcade.getState().cosmetics.equipped, useArcade.getState().cosmetics.styles)).toBe(skin.variant);
   });
 });
+// Превью облика тянулось дробным масштабом (стенд 230 css на лист 128 арт-пикселей = 1.8), и
+// nearest-neighbour растягивал часть пикселей вдвое, часть нет — облик выходил кашей.
+describe("масштаб превью облика", () => {
+  it("на увеличении — целое число физических пикселей на арт-пиксель", () => {
+    for (const dpr of [1, 2, 3]) {
+      const m = previewScale(230, 128, dpr);
+      expect(Number.isInteger(Math.round(m * dpr * 1e6) / 1e6), `dpr ${dpr}: масштаб ${m}`).toBe(true);
+      expect(m * dpr).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("на уменьшении масштаб остаётся дробным: миниатюра показывает фигуру целиком, а не кроп", () => {
+    const m = previewScale(48, 128, 1);
+    expect(m).toBeLessThan(1);
+    expect(m * 128).toBeLessThanOrEqual(48 * 1.02 + 0.001);
+  });
+});
+
