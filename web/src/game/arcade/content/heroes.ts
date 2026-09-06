@@ -236,8 +236,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "frenzy", value: [0, 0.55, 0.65, 0.75], cooldown: 45, duration: 6 },                      // Focus Fire
   }, { kind: "marksmanship", value: 0.3, radius: 220 }),
   bristleback: hero("bristleback", 99, "bristleback", false, { maxHp: 680, armor: 5, regen: 3, damage: 18 }, {
-    q: { kind: "goo", value: [0, 40, 60, 80, 100], cooldown: 7, radius: 300, duration: 3 },             // Viscous Nasal Goo
-    w: { kind: "nova", value: [0, 30, 45, 60, 75], cooldown: 5, radius: 150, duration: 1 },              // Quill Spray
+    q: { kind: "nova", value: [0, 30, 45, 60, 75], cooldown: 5, radius: 150, duration: 1 },              // Quill Spray
+    w: { kind: "goo", value: [0, 40, 60, 80, 100], cooldown: 7, radius: 300, duration: 3 },             // Viscous Nasal Goo
     e: { kind: "armor_passive", value: [0, 3, 4, 6, 7], cooldown: 0, passive: true },                    // Bristleback
     r: { kind: "rage", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 9 },                           // Warpath
   }, { kind: "quill", value: 18, radius: 110 }),
@@ -406,8 +406,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "dash", value: [0, 280, 420, 560], cooldown: 40, radius: 420 },                           // Life Break
   }, { kind: "thirst", value: 0.35, radius: 600 }),
   slardar: hero("slardar", 28, "slardar", false, { maxHp: 720, armor: 5, damage: 26, regen: 2, speed: 162 }, {
-    q: { kind: "haste", value: [0, 0.05, 0.08, 0.11, 0.14], cooldown: 14, duration: 7 },                 // Guardian Sprint
-    w: { kind: "ravage", value: [0, 80, 125, 170, 215], cooldown: 11, radius: 200, duration: 1.2 },      // Slithereen Crush
+    q: { kind: "ravage", value: [0, 80, 125, 170, 215], cooldown: 11, radius: 200, duration: 1.2 },      // Slithereen Crush
+    w: { kind: "haste", value: [0, 0.05, 0.08, 0.11, 0.14], cooldown: 14, duration: 7 },                 // Guardian Sprint
     e: SIG,                                                                                              // Bash of the Deep
     r: { kind: "corrosive", value: [0, 0.3, 0.45, 0.6], cooldown: 30, radius: 340, duration: 10 },       // Corrosive Haze
   }, { kind: "timelock", value: 0.18, duration: 0.5 }),
@@ -468,13 +468,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 600, duration: 2 },              // Global Silence
   }, { kind: "souls", value: 1.1, cap: 32 }),
   skywrath_mage: hero("skywrath_mage", 101, "skywrath_mage", true, { maxHp: 540, armor: 2, damage: 25, speed: 166, range: 340 }, {
-    q: { kind: "lightning_bolt", value: [0, 110, 165, 220, 280], cooldown: 3, radius: 340, duration: 0.3 }, // Arcane Bolt
+    q: { kind: "arc_lightning", value: [0, 90, 135, 180, 225], cooldown: 4, radius: 340, count: [0, 3, 4, 4, 5] }, // Arcane Bolt
     w: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 340, duration: 3 },             // Concussive Shot
     e: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 340, duration: 6 },  // Ancient Seal
     r: { kind: "line_burst", value: [0, 360, 540, 720], cooldown: 40, radius: 140, count: [0, 1, 1, 1], duration: 0.5 }, // Mystic Flare
   }, { kind: "multicast", value: 0.3 }),
   dazzle: hero("dazzle", 50, "dazzle", true, { maxHp: 640, armor: 4, damage: 27, speed: 164, regen: 3 }, {
-    q: { kind: "goo", value: [0, 100, 150, 200, 250], cooldown: 5, radius: 320, duration: 4 },            // Poison Touch
+    q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 6, radius: 85, count: [0, 3, 3, 3, 3] }, // Poison Touch
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 20, duration: 4 },                        // Shallow Grave
     e: { kind: "ward", value: [0, 12, 18, 24, 30], cooldown: 12, duration: 6 },                           // Shadow Wave
     r: { kind: "arcane_aura", value: [0, 0.1, 0.18, 0.25], cooldown: 0, passive: true },                 // Bad Juju
@@ -578,7 +578,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 15 },                      // Chemical Rage
   }, { kind: "souls", value: 1.2, cap: 34 }),
   bane: hero("bane", 3, "bane", true, { maxHp: 620, armor: 3, damage: 25, speed: 162 }, {
-    q: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 320, duration: 4 },             // Enfeeble
+    q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 240, duration: 2 },            // Enfeeble
     w: { kind: "life_drain", value: [0, 34, 46, 58, 70], cooldown: 8, radius: 320, duration: 3 },         // Brain Sap
     e: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 12, radius: 320, duration: 3 },       // Nightmare
     r: { kind: "assassinate", value: [0, 380, 590, 800], cooldown: 60, radius: 340 },                    // Fiend's Grip
@@ -731,9 +731,9 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "nova", value: [0, 240, 360, 480], cooldown: 70, radius: 340, duration: 3 },              // Epicenter
   }, { kind: "aftershock", value: 34, radius: 160 }),
   shadow_demon: hero("shadow_demon", 79, "shadow_demon", true, { maxHp: 560, armor: 2, damage: 24, speed: 162 }, {
-    q: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2.5 },     // Disruption
+    q: { kind: "line_burst", value: [0, 70, 105, 140, 170], cooldown: 6, radius: 60, count: [0, 4, 4, 4, 4] }, // Shadow Poison
     w: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 320, duration: 8 },  // Disseminate
-    e: { kind: "line_burst", value: [0, 70, 105, 140, 170], cooldown: 6, radius: 60, count: [0, 4, 4, 4, 4] }, // Shadow Poison
+    e: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2.5 },     // Disruption
     r: { kind: "goo", value: [0, 200, 310, 420], cooldown: 50, radius: 340, duration: 5 },               // Demonic Purge
   }, { kind: "swipes", value: 4, cap: 12 }),
   slark: hero("slark", 93, "slark", false, { maxHp: 540, armor: 3, damage: 23, speed: 174, attackInterval: 0.9 }, {
