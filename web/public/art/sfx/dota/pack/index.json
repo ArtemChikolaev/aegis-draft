@@ -1174,6 +1174,92 @@
     "undying_r_1.m4a"
    ]
   },
+  "visage": {
+   "q": [
+    "visage_q_1.m4a"
+   ],
+   "w": [
+    "visage_w_1.m4a"
+   ],
+   "r": [
+    "visage_r_1.m4a"
+   ]
+  },
+  "void_spirit": {
+   "q": [
+    "void_spirit_q_1.m4a"
+   ],
+   "w": [
+    "void_spirit_w_1.m4a"
+   ],
+   "e": [
+    "void_spirit_e_1.m4a"
+   ],
+   "r": [
+    "void_spirit_r_1.m4a"
+   ]
+  },
+  "weaver": {
+   "q": [
+    "weaver_q_1.m4a"
+   ],
+   "w": [
+    "weaver_w_1.m4a"
+   ],
+   "r": [
+    "weaver_r_1.m4a"
+   ]
+  },
+  "winter_wyvern": {
+   "w": [
+    "winter_wyvern_w_1.m4a"
+   ],
+   "e": [
+    "winter_wyvern_e_1.m4a"
+   ],
+   "r": [
+    "winter_wyvern_r_1.m4a"
+   ]
+  },
+  "arc_warden": {
+   "q": [
+    "arc_warden_q_1.m4a"
+   ],
+   "w": [
+    "arc_warden_w_1.m4a"
+   ],
+   "e": [
+    "arc_warden_e_1.m4a"
+   ],
+   "r": [
+    "arc_warden_r_1.m4a"
+   ]
+  },
+  "dawnbreaker": {
+   "q": [
+    "dawnbreaker_q_1.m4a"
+   ],
+   "w": [
+    "dawnbreaker_w_1.m4a"
+   ],
+   "r": [
+    "dawnbreaker_r_1.m4a"
+   ]
+  },
+  "hoodwink": {
+   "q": [
+    "hoodwink_q_1.m4a"
+   ],
+   "w": [
+    "hoodwink_w_1.m4a"
+   ],
+   "e": [
+    "hoodwink_e_1.m4a"
+   ],
+   "r": [
+    "hoodwink_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

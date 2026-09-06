@@ -30,7 +30,9 @@ export type TemplateHeroId =
   // Волна 10.
   | "puck" | "pudge" | "rubick" | "sand_king" | "shadow_demon" | "slark" | "snapfire" | "spirit_breaker"
   // Волна 11.
-  | "techies" | "terrorblade" | "timbersaw" | "treant" | "troll_warlord" | "tusk" | "underlord" | "undying";
+  | "techies" | "terrorblade" | "timbersaw" | "treant" | "troll_warlord" | "tusk" | "underlord" | "undying"
+  // Волна 12.
+  | "vengeful_spirit" | "visage" | "void_spirit" | "weaver" | "winter_wyvern" | "arc_warden" | "dawnbreaker" | "hoodwink";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -47,6 +49,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "morphling", "naga_siren", "natures_prophet", "nyx_assassin", "oracle", "outworld_destroyer", "pangolier", "phoenix",
   "puck", "pudge", "rubick", "sand_king", "shadow_demon", "slark", "snapfire", "spirit_breaker",
   "techies", "terrorblade", "timbersaw", "treant", "troll_warlord", "tusk", "underlord", "undying",
+  "vengeful_spirit", "visage", "void_spirit", "weaver", "winter_wyvern", "arc_warden", "dawnbreaker", "hoodwink",
 ];
 
 export type AbilityKind =
@@ -763,6 +766,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 5 },                            // Soul Rip
     e: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 20, duration: 12, radius: 300 },     // Tombstone
     r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 12 },                          // Flesh Golem
+  }),
+  // ---- Волна 12 ----
+  vengeful_spirit: hero("vengeful_spirit", 20, "vengefulspirit", true, { maxHp: 640, armor: 3, damage: 26, speed: 168 }, {
+    q: { kind: "lightning_bolt", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 320, duration: 1.5 }, // Magic Missile
+    w: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Wave of Terror
+    e: { kind: "presence", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, radius: 300, passive: true },  // Vengeance Aura
+    r: { kind: "dash", value: [0, 100, 175, 250], cooldown: 40, radius: 500 },                           // Nether Swap
+  }),
+  visage: hero("visage", 92, "visage", true, { maxHp: 600, armor: 3, damage: 25, speed: 160 }, {
+    q: { kind: "goo", value: [0, 60, 95, 130, 165], cooldown: 8, radius: 320, duration: 4 },              // Grave Chill
+    w: { kind: "lightning_bolt", value: [0, 100, 155, 210, 260], cooldown: 6, radius: 320, duration: 0.2 }, // Soul Assumption
+    e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Gravekeeper's Cloak
+    r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 15, radius: 320 },          // Summon Familiars
+  }),
+  void_spirit: hero("void_spirit", 126, "void_spirit", false, { maxHp: 660, armor: 4, damage: 27, speed: 172 }, {
+    q: { kind: "remnant", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 170 },                   // Aether Remnant
+    w: { kind: "nova", value: [0, 90, 135, 180, 230], cooldown: 10, radius: 240, duration: 1 },           // Dissimilate
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Resonant Pulse
+    r: { kind: "dash", value: [0, 200, 310, 420], cooldown: 20, radius: 500 },                           // Astral Step
+  }),
+  weaver: hero("weaver", 63, "weaver", true, { maxHp: 620, armor: 3, damage: 28, speed: 176 }, {
+    q: { kind: "damage_ward", value: [0, 35, 47, 58, 70], cooldown: 12, duration: 12, radius: 300 },     // The Swarm
+    w: { kind: "haste", value: [0, 0.15, 0.2, 0.25, 0.3], cooldown: 8, duration: 4 },                    // Shukuchi
+    e: { kind: "crit", value: [0, 0.16, 0.21, 0.26, 0.3], cooldown: 0, passive: true },                  // Geminate Attack
+    r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 3 },                      // Time Lapse
+  }),
+  winter_wyvern: hero("winter_wyvern", 112, "winter_wyvern", true, { maxHp: 640, armor: 3, damage: 25, speed: 162, range: 340 }, {
+    q: { kind: "searing", value: [0, 14, 20, 26, 32], cooldown: 0, passive: true },                      // Arctic Burn
+    w: { kind: "arc_lightning", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Splinter Blast
+    e: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 12, duration: 4 },                            // Cold Embrace
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 300, duration: 3 },              // Winter's Curse
+  }),
+  arc_warden: hero("arc_warden", 113, "arc_warden", true, { maxHp: 640, armor: 3, damage: 26, speed: 166, range: 330 }, {
+    q: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 340, duration: 5 },             // Flux
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Magnetic Field
+    e: { kind: "remnant", value: [0, 160, 235, 310, 380], cooldown: 7, radius: 170 },                    // Spark Wraith
+    r: SIG,                                                                                              // Tempest Double
+  }, { kind: "multicast", value: 0.35 }),
+  dawnbreaker: hero("dawnbreaker", 135, "dawnbreaker", false, { maxHp: 680, armor: 3, damage: 26, speed: 158, regen: 2 }, {
+    q: { kind: "spin", value: [0, 45, 65, 85, 110], cooldown: 10, radius: 200, duration: 1.5 },          // Starbreaker
+    w: { kind: "line_burst", value: [0, 60, 90, 120, 150], cooldown: 11, radius: 60, count: [0, 4, 4, 4, 4] }, // Celestial Hammer
+    e: SIG,                                                                                              // Luminosity
+    r: { kind: "meteor", value: [0, 250, 375, 500], cooldown: 60, radius: 220, count: [0, 1, 1, 1], duration: 1.5 }, // Solar Guardian
+  }, { kind: "vampiric", value: 0.07 }),
+  hoodwink: hero("hoodwink", 123, "hoodwink", true, { maxHp: 620, armor: 3, damage: 26, speed: 174 }, {
+    q: { kind: "arc_lightning", value: [0, 110, 160, 210, 260], cooldown: 6, radius: 320, count: [0, 3, 4, 4, 5] }, // Acorn Shot
+    w: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2 },       // Bushwhack
+    e: { kind: "haste", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 12, duration: 5 },                  // Scurry
+    r: { kind: "assassinate", value: [0, 400, 600, 800], cooldown: 45, radius: 500 },                    // Sharpshooter
   }),
 };
 

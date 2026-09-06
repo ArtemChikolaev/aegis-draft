@@ -101,5 +101,13 @@
   "troll_warlord": {},
   "tusk": {},
   "underlord": {},
-  "undying": {}
+  "undying": {},
+  "vengeful_spirit": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "visage": {},
+  "void_spirit": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]},
+  "weaver": {"attack":["attack_1.m4a","attack_2.m4a"]},
+  "winter_wyvern": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"impact":["impact_1.m4a"]},
+  "arc_warden": {},
+  "dawnbreaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "hoodwink": {"attack":["attack_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]}
 }

@@ -118,6 +118,14 @@ troll_warlord troll_warlord whirling_axes_melee berserkers_rage fervor battle_tr
 tusk tusk ice_shards snowball tag_team walrus_punch
 underlord abyssal_underlord firestorm pit_of_malice atrophy_aura dark_rift
 undying undying decay soul_rip tombstone flesh_golem
+vengeful_spirit vengefulspirit magic_missile wave_of_terror command_aura nether_swap
+visage visage grave_chill soul_assumption gravekeepers_cloak summon_familiars
+void_spirit void_spirit aether_remnant dissimilate resonant_pulse astral_step
+weaver weaver the_swarm shukuchi geminate_attack time_lapse
+winter_wyvern winter_wyvern arctic_burn splinter_blast cold_embrace winters_curse
+arc_warden arc_warden flux magnetic_field spark_wraith tempest_double
+dawnbreaker dawnbreaker fire_wreath celestial_hammer luminosity solar_guardian
+hoodwink hoodwink acorn_shot bushwhack scurry sharpshooter
 '
 missing=""
 while read -r id dota q w e r; do
