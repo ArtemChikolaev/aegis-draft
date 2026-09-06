@@ -119,8 +119,13 @@
 .arcade-ability[data-locked] { opacity: .35; }
 .arcade-ability[data-passive] { opacity: .8; }
 
-.arcade-overlay { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; padding: 16px; background: var(--arcade-scrim); backdrop-filter: blur(2px); }
-.arcade-overlay__card { display: grid; gap: 14px; width: min(520px, 100%); padding: 24px; }
+/* Оверлей прокручивается, а карточка центрируется автополями: при `place-items: center` длинная
+   карточка (итог забега с двумя десятками предметов лута) вылезала за экран СВЕРХУ И СНИЗУ, и
+   кнопки «Ещё раз / Новый сид / В меню» оказывались за краем без возможности доскроллить —
+   владелец 2026-09-06: «нет возможности выйти в главное меню после победы». В flexbox автополя
+   схлопываются, когда содержимое не влезает, поэтому верх карточки не срезается. */
+.arcade-overlay { position: absolute; inset: 0; z-index: 2; display: flex; overflow-y: auto; overscroll-behavior: contain; padding: 16px; background: var(--arcade-scrim); backdrop-filter: blur(2px); }
+.arcade-overlay__card { display: grid; gap: 14px; width: min(520px, 100%); padding: 24px; margin: auto; }
 .arcade-overlay__card h2 { margin: 0; font: 500 36px/1 var(--font-display); letter-spacing: -.04em; }
 .arcade-overlay__card--over[data-outcome="victory"] h2 { color: var(--accent); }
 .arcade-overlay__card--over[data-outcome="dead"] h2 { color: var(--danger); }

@@ -60,7 +60,7 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "leg_mae_haste", school: "maelstrom", type: "power", maxRank: 1, legendary: true, art: "maelstrom" },
   // Партия 2 (2026-09-06): у «Зверинца» легендарок не было вовсе, а нейтральных — всего шесть на три школы.
   { id: "leg_butterfly", school: "skadi", type: "passive", maxRank: 1, legendary: true, neutral: true, art: "butterfly" },
-  { id: "leg_moonshard", school: "maelstrom", type: "attack", maxRank: 1, legendary: true, neutral: true, art: "mask_of_madness" },
+  { id: "leg_moonshard", school: "maelstrom", type: "attack", maxRank: 1, legendary: true, neutral: true, art: "moon_shard" },
   { id: "leg_lotus", school: "radiance", type: "passive", maxRank: 1, legendary: true, neutral: true, art: "sphere" },
   { id: "leg_bloodstone", school: "skadi", type: "cast", maxRank: 1, legendary: true, neutral: true, art: "bloodstone" },
   { id: "leg_beast_alpha", school: "beast", type: "power", maxRank: 1, legendary: true, art: "helm_of_the_dominator" },
