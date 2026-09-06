@@ -102,6 +102,14 @@ oracle oracle fortunes_end fates_edict purifying_flames false_promise
 outworld_destroyer obsidian_destroyer arcane_orb astral_imprisonment essence_aura sanity_eclipse
 pangolier pangolier swashbuckle shield_crash lucky_shot gyroshell
 phoenix phoenix icarus_dive fire_spirits sun_ray supernova
+puck puck illusory_orb waning_rift phase_shift dream_coil
+pudge pudge meat_hook rot flesh_heap dismember
+rubick rubick telekinesis fade_bolt arcane_supremacy spell_steal
+sand_king sandking burrowstrike sand_storm caustic_finale epicenter
+shadow_demon shadow_demon disruption disseminate shadow_poison demonic_purge
+slark slark dark_pact pounce essence_shift shadow_dance
+snapfire snapfire scatterblast firesnap_cookie lil_shredder mortimer_kisses
+spirit_breaker spirit_breaker charge_of_darkness bulldoze greater_bash nether_strike
 '
 missing=""
 while read -r id dota q w e r; do

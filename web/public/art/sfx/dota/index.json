@@ -85,5 +85,13 @@
   "oracle": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"]},
   "outworld_destroyer": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
   "pangolier": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "phoenix": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a"]}
+  "phoenix": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a"]},
+  "puck": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
+  "pudge": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "rubick": {},
+  "sand_king": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "shadow_demon": {},
+  "slark": {},
+  "snapfire": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
+  "spirit_breaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]}
 }

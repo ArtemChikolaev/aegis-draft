@@ -35,7 +35,7 @@ describe("arcade replay codec + daily", () => {
     const replayed = ArcadeSim.replay(rep.seed, rep.log, sim.steps, { hero: rep.hero, rank: rep.rank, act: rep.act });
     expect(replayed.digest()).toBe(sim.digest());
     expect(decodeReplay("A1~x~y")).toBeNull();
-    expect(decodeReplay(code.replace("axe", "pudge"))).toBeNull();
+    expect(decodeReplay(code.replace("axe", "no_such_hero"))).toBeNull();
     expect(decodeReplay(`https://x/y#arcade=${code}`)?.seed).toBe(sim.seed);
   });
 

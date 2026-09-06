@@ -987,6 +987,101 @@
     "phoenix_r_1.mp3"
    ]
   },
+  "puck": {
+   "q": [
+    "puck_q_1.m4a"
+   ],
+   "w": [
+    "puck_w_1.m4a"
+   ],
+   "e": [
+    "puck_e_1.m4a"
+   ],
+   "r": [
+    "puck_r_1.m4a"
+   ]
+  },
+  "pudge": {
+   "q": [
+    "pudge_q_1.m4a"
+   ],
+   "w": [
+    "pudge_w_1.m4a"
+   ],
+   "r": [
+    "pudge_r_1.m4a"
+   ]
+  },
+  "rubick": {
+   "q": [
+    "rubick_q_1.m4a"
+   ],
+   "w": [
+    "rubick_w_1.m4a"
+   ],
+   "r": [
+    "rubick_r_1.m4a"
+   ]
+  },
+  "sand_king": {
+   "w": [
+    "sand_king_w_1.m4a"
+   ],
+   "r": [
+    "sand_king_r_1.m4a"
+   ]
+  },
+  "shadow_demon": {
+   "q": [
+    "shadow_demon_q_1.m4a"
+   ],
+   "w": [
+    "shadow_demon_w_1.m4a"
+   ],
+   "e": [
+    "shadow_demon_e_1.m4a"
+   ],
+   "r": [
+    "shadow_demon_r_1.m4a"
+   ]
+  },
+  "slark": {
+   "q": [
+    "slark_q_1.m4a"
+   ],
+   "w": [
+    "slark_w_1.m4a"
+   ],
+   "r": [
+    "slark_r_1.m4a"
+   ]
+  },
+  "snapfire": {
+   "q": [
+    "snapfire_q_1.m4a"
+   ],
+   "w": [
+    "snapfire_w_1.m4a"
+   ],
+   "e": [
+    "snapfire_e_1.m4a"
+   ],
+   "r": [
+    "snapfire_r_1.m4a",
+    "snapfire_r_2.m4a"
+   ]
+  },
+  "spirit_breaker": {
+   "q": [
+    "spirit_breaker_q_1.m4a"
+   ],
+   "w": [
+    "spirit_breaker_w_1.m4a"
+   ],
+   "r": [
+    "spirit_breaker_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

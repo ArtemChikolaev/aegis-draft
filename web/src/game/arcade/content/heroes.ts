@@ -26,7 +26,9 @@ export type TemplateHeroId =
   // Волна 8.
   | "earth_spirit" | "elder_titan" | "ember_spirit" | "grimstroke" | "gyrocopter" | "keeper_of_the_light" | "magnus" | "mars"
   // Волна 9.
-  | "morphling" | "naga_siren" | "natures_prophet" | "nyx_assassin" | "oracle" | "outworld_destroyer" | "pangolier" | "phoenix";
+  | "morphling" | "naga_siren" | "natures_prophet" | "nyx_assassin" | "oracle" | "outworld_destroyer" | "pangolier" | "phoenix"
+  // Волна 10.
+  | "puck" | "pudge" | "rubick" | "sand_king" | "shadow_demon" | "slark" | "snapfire" | "spirit_breaker";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -41,6 +43,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "lycan", "lone_druid", "alchemist", "bane", "batrider", "bounty_hunter", "broodmother", "clockwerk",
   "earth_spirit", "elder_titan", "ember_spirit", "grimstroke", "gyrocopter", "keeper_of_the_light", "magnus", "mars",
   "morphling", "naga_siren", "natures_prophet", "nyx_assassin", "oracle", "outworld_destroyer", "pangolier", "phoenix",
+  "puck", "pudge", "rubick", "sand_king", "shadow_demon", "slark", "snapfire", "spirit_breaker",
 ];
 
 export type AbilityKind =
@@ -660,6 +663,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 60, count: [0, 5, 5, 5, 5] }, // Sun Ray
     r: { kind: "reincarnation", value: [0, 0.5, 0.7, 0.9], cooldown: 120, passive: true },               // Supernova
   }),
+  // ---- Волна 10 ----
+  puck: hero("puck", 13, "puck", true, { maxHp: 600, armor: 3, damage: 25, speed: 172 }, {
+    q: { kind: "line_burst", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Illusory Orb
+    w: { kind: "nova", value: [0, 100, 145, 190, 240], cooldown: 9, radius: 280, duration: 2 },           // Waning Rift
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 8, duration: 3 },                          // Phase Shift
+    r: { kind: "ravage", value: [0, 150, 225, 300], cooldown: 60, radius: 300, duration: 2.5 },          // Dream Coil
+  }),
+  pudge: hero("pudge", 14, "pudge", false, { maxHp: 880, armor: 4, damage: 31, speed: 154, regen: 4 }, {
+    q: { kind: "dash", value: [0, 120, 180, 240, 300], cooldown: 10, radius: 500 },                       // Meat Hook
+    w: { kind: "edict", value: [0, 40, 57, 74, 90], cooldown: 10, duration: 6, radius: 220 },             // Rot
+    e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Flesh Heap
+    r: { kind: "assassinate", value: [0, 300, 460, 620], cooldown: 40, radius: 200 },                    // Dismember
+  }),
+  rubick: hero("rubick", 86, "rubick", true, { maxHp: 620, armor: 3, damage: 26, speed: 166 }, {
+    q: { kind: "frostbite", value: [0, 90, 135, 180, 225], cooldown: 9, radius: 320, duration: 2 },       // Telekinesis
+    w: { kind: "arc_lightning", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Fade Bolt
+    e: { kind: "arcane_aura", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, passive: true },            // Arcane Supremacy
+    r: SIG,                                                                                              // Spell Steal
+  }, { kind: "multicast", value: 0.3 }),
+  sand_king: hero("sand_king", 16, "sand_king", false, { maxHp: 800, armor: 5, damage: 28, speed: 162, regen: 3 }, {
+    q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], duration: 1.6 }, // Burrowstrike
+    w: { kind: "edict", value: [0, 60, 85, 110, 135], cooldown: 12, duration: 6, radius: 260 },           // Sand Storm
+    e: { kind: "searing", value: [0, 12, 18, 24, 30], cooldown: 0, passive: true },                      // Caustic Finale
+    r: { kind: "nova", value: [0, 240, 360, 480], cooldown: 70, radius: 340, duration: 3 },              // Epicenter
+  }),
+  shadow_demon: hero("shadow_demon", 79, "shadow_demon", true, { maxHp: 560, armor: 2, damage: 24, speed: 162 }, {
+    q: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2.5 },     // Disruption
+    w: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 320, duration: 8 },  // Disseminate
+    e: { kind: "line_burst", value: [0, 70, 105, 140, 170], cooldown: 6, radius: 60, count: [0, 4, 4, 4, 4] }, // Shadow Poison
+    r: { kind: "goo", value: [0, 200, 310, 420], cooldown: 50, radius: 340, duration: 5 },               // Demonic Purge
+  }),
+  slark: hero("slark", 93, "slark", false, { maxHp: 540, armor: 3, damage: 23, speed: 174, attackInterval: 0.9 }, {
+    q: { kind: "nova", value: [0, 50, 80, 110, 140], cooldown: 10, radius: 200, duration: 1 },            // Dark Pact
+    w: { kind: "dash", value: [0, 70, 105, 140, 180], cooldown: 12, radius: 320 },                        // Pounce
+    e: SIG,                                                                                              // Essence Shift
+    r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 55, duration: 6 },                      // Shadow Dance
+  }, { kind: "vampiric", value: 0.05 }),
+  snapfire: hero("snapfire", 128, "snapfire", true, { maxHp: 680, armor: 4, damage: 26, speed: 162, range: 300 }, {
+    q: { kind: "multishot", value: [0, 55, 72, 90, 110], cooldown: 7, radius: 300, count: [0, 4, 5, 6, 7] }, // Scatterblast
+    w: { kind: "dash", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 300 },                         // Firesnap Cookie
+    e: { kind: "frenzy", value: [0, 0.3, 0.35, 0.4, 0.45], cooldown: 14, duration: 6 },                  // Lil' Shredder
+    r: { kind: "meteor", value: [0, 200, 300, 400], cooldown: 55, radius: 130, count: [0, 3, 3, 3], duration: 1.0 }, // Mortimer Kisses
+  }),
+  spirit_breaker: hero("spirit_breaker", 71, "spirit_breaker", false, { maxHp: 840, armor: 5, damage: 30, speed: 166, regen: 3 }, {
+    q: { kind: "dash", value: [0, 150, 220, 290, 360], cooldown: 12, radius: 600 },                       // Charge of Darkness
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 16, duration: 6 },                        // Bulldoze
+    e: SIG,                                                                                              // Greater Bash
+    r: { kind: "lightning_bolt", value: [0, 250, 375, 500], cooldown: 45, radius: 400, duration: 1.5 },   // Nether Strike
+  }, { kind: "timelock", value: 0.2, duration: 0.6 }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };
