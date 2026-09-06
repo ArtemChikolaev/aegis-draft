@@ -7,15 +7,31 @@
   "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
   "anchor": {
     "x": 0.5,
-    "y": 0.65
+    "y": 0.684
   },
   "anims": {
-    "idle": {
+    "cast": {
       "row": 0,
+      "frames": 12
+    },
+    "walk": {
+      "row": 8,
+      "frames": 12
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 10
+    },
+    "death": {
+      "row": 32,
       "frames": 12
     }
   },
-  "source": "phoenix.glb",
+  "source": "phoenix_bird.glb",
   "orientation": "none",
   "pitch": 45.0,
   "pixel": true

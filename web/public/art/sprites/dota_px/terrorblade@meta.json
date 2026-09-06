@@ -7,23 +7,27 @@
   "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
   "anchor": {
     "x": 0.5,
-    "y": 0.794
+    "y": 0.751
   },
   "anims": {
-    "walk": {
+    "cast": {
       "row": 0,
-      "frames": 12
+      "frames": 10
     },
-    "idle": {
+    "walk": {
       "row": 8,
       "frames": 12
     },
-    "attack": {
+    "idle": {
       "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
       "frames": 8
     },
     "death": {
-      "row": 24,
+      "row": 32,
       "frames": 12
     }
   },

@@ -535,8 +535,16 @@ def main():
     rows = []  # (ours, dir, [frame paths])
     first_row = {}
     for ours, act, span in anim_map:
+        # Опору для гашения root motion берём У КАЖДОГО клипа свою: общая опора от клипа кадрирования
+        # сдвигала другие клипы (у Monkey King ряд idle уезжал за кадр и оставалось 66 пикселей).
+        clip_root0 = root0
         if act is not None:
             use_action(act)
+            scene.frame_set(int(act.frame_range[0]))
+            bpy.context.view_layer.update()
+            rig.fix.location = base_loc
+            bpy.context.view_layer.update()
+            clip_root0 = root_world() or root0
             f0, f1 = act.frame_range
             f0, f1 = f0 + (f1 - f0) * span[0], f0 + (f1 - f0) * span[1]
             seconds = max(0.05, (f1 - f0) / src_fps)
@@ -551,13 +559,13 @@ def main():
             paths = []
             for i, fr in enumerate(sample_frames):
                 scene.frame_set(int(math.floor(fr)), subframe=fr - math.floor(fr))
-                if not a.no_root_lock and root0 is not None:
+                if not a.no_root_lock and clip_root0 is not None:
                     # Гасим горизонтальное смещение корня (бег «на месте»); вертикаль оставляем (прыжки).
                     rig.fix.location = base_loc
                     bpy.context.view_layer.update()
                     cur = root_world()
                     if cur is not None:
-                        dx, dy = cur.x - root0.x, cur.y - root0.y
+                        dx, dy = cur.x - clip_root0.x, cur.y - clip_root0.y
                         # Ограничиваем компенсацию половиной охвата камеры: у части моделей (Meepo,
                         # персона Dragon Knight) корневая кость несёт огромное смещение, и «отмотка»
                         # root motion уводила всю сборку за кадр — лист выходил пустым или обрезанным.
@@ -565,7 +573,7 @@ def main():
                             rig.fix.location = base_loc - __import__("mathutils").Vector((dx, dy, 0.0))
                             bpy.context.view_layer.update()
                         if os.environ.get("SPRITE_DEBUG"):
-                            print(f"rootlock {ours} d{d} f{i}: root0 {tuple(round(v,2) for v in root0)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
+                            print(f"rootlock {ours} d{d} f{i}: root0 {tuple(round(v,2) for v in clip_root0)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
                 path = os.path.join(tmp, f"{a.name}_{ours}_{d}_{i:02d}.png")
                 render_to(path)
                 paths.append(path)

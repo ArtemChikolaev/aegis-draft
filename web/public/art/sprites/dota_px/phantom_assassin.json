@@ -10,20 +10,24 @@
     "y": 0.816
   },
   "anims": {
-    "walk": {
+    "cast": {
       "row": 0,
+      "frames": 9
+    },
+    "walk": {
+      "row": 8,
       "frames": 11
     },
     "idle": {
-      "row": 8,
+      "row": 16,
       "frames": 12
     },
     "attack": {
-      "row": 16,
-      "frames": 9
+      "row": 24,
+      "frames": 8
     },
     "death": {
-      "row": 24,
+      "row": 32,
       "frames": 12
     }
   },

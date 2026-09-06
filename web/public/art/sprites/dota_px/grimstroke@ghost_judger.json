@@ -1,0 +1,38 @@
+{
+  "name": "grimstroke@ghost_judger",
+  "frame": 64,
+  "dirs": 8,
+  "fps": 12,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.734
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 6
+    },
+    "walk": {
+      "row": 8,
+      "frames": 12
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 8
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "grimstroke.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}
