@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { COSMETICS, DUPLICATE_SHARDS, rollCosmeticDrops } from "../src/game/arcade/content/cosmetics.ts";
 import type { ArcadeOutcome } from "../src/game/arcade/types.ts";
@@ -33,5 +34,17 @@ describe("arcade cosmetics drops", () => {
       return n;
     };
     expect(rare(20)).toBeGreaterThan(rare(0) * 1.5);
+  });
+
+  // Рамка — наклейка на земле, а не наклейка на герое: рисовать её надо ДО спрайта. Когда блок стоял
+  // после отрисовки листа, кольцо ложилось поверх ног (владелец 2026-09-06: «круг опять просвечивает
+  // через модельку»). Порядок держим проверкой исходника: в canvas его иначе не увидеть.
+  it("кольцо рамки рисуется до спрайта героя, а не поверх", () => {
+    const src = readFileSync(new URL("../src/features/arcade/renderer.ts", import.meta.url), "utf8");
+    const ring = src.indexOf("const frameRing = this.cosmetic.frame");
+    const sprite = src.indexOf("drawDotaFrame(c, heroDota,");
+    expect(ring, "не нашёл блок рамки в рендерере").toBeGreaterThan(-1);
+    expect(sprite, "не нашёл отрисовку листа героя").toBeGreaterThan(-1);
+    expect(ring, "рамка должна рисоваться раньше спрайта").toBeLessThan(sprite);
   });
 });

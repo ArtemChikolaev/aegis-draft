@@ -622,10 +622,23 @@ export class ArcadeRenderer {
       c.beginPath(); c.arc(p.x, p.y, R + 8, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
     }
-    c.globalAlpha = invuln ? 0.55 + 0.45 * Math.abs(Math.sin(now / 80)) : 1;
+    const heroAlpha = invuln ? 0.55 + 0.45 * Math.abs(Math.sin(now / 80)) : 1;
+    c.globalAlpha = heroAlpha;
     // Кольцо выбора у ног (как в Dota) — цвет оттенка косметики / Aegis.
     c.strokeStyle = p.aegis ? pal.aegis : inForm ? pal.crit : ring; c.lineWidth = p.aegis || inForm ? 3 : 2;
     c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.05, R * 0.42, 0, 0, Math.PI * 2); c.stroke();
+    // Рамка (косметика) — второе кольцо у ног: бронза/серебро одно, золото и immortal — двойное с
+    // сиянием. Рисуется ЗДЕСЬ, вместе с кольцом выбора и до спрайта: это наклейка на земле. Когда
+    // она шла после спрайта, кольцо ложилось поверх ног (владелец 2026-09-06: «круг опять
+    // просвечивает через модельку»).
+    const frameRing = this.cosmetic.frame;
+    if (frameRing) {
+      c.strokeStyle = frameRing === "bronze" ? pal.grunt : frameRing === "silver" ? pal.text : frameRing === "gold" ? pal.aegis : pal.lightning;
+      c.lineWidth = 2; c.globalAlpha = heroAlpha * (frameRing === "immortal" ? 0.5 + 0.5 * Math.abs(Math.sin(now / 300)) : 0.9);
+      c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.3, R * 0.55, 0, 0, Math.PI * 2); c.stroke();
+      if (frameRing === "gold" || frameRing === "immortal") { c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.5, R * 0.65, 0, 0, Math.PI * 2); c.stroke(); }
+      c.globalAlpha = heroAlpha;
+    }
     // Ходьба: движение определяем по смещению между кадрами (сим ввод не отдаёт).
     const dt = this.lastNow ? Math.min(0.1, (now - this.lastNow) / 1000) : 0;
     this.lastNow = now;
@@ -669,14 +682,6 @@ export class ArcadeRenderer {
     } else {
       const rig: RigParams = { size: 1.15, body: pal.player, limb: pal.limb, head: pal.player, weapon: heroWeapon(sim.hero.kit) };
       drawRig(c, p.x, p.y + R * 0.75, rig, { facing: lookX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
-    }
-    // Рамка (косметика) — второе кольцо у ног: бронза/серебро одно, золото и immortal — двойное с сиянием.
-    const frame = this.cosmetic.frame;
-    if (frame) {
-      c.strokeStyle = frame === "bronze" ? pal.grunt : frame === "silver" ? pal.text : frame === "gold" ? pal.aegis : pal.lightning;
-      c.lineWidth = 2; c.globalAlpha = frame === "immortal" ? 0.5 + 0.5 * Math.abs(Math.sin(now / 300)) : 0.9;
-      c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.3, R * 0.55, 0, 0, Math.PI * 2); c.stroke();
-      if (frame === "gold" || frame === "immortal") { c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.5, R * 0.65, 0, 0, Math.PI * 2); c.stroke(); }
     }
     c.globalAlpha = 1;
 
