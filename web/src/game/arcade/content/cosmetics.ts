@@ -94,6 +94,9 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_pa_darkfeather", slot: "skin", rarity: "exotic", variant: "phantom_assassin@darkfeather", hero: "phantom_assassin" },
   { id: "skin_axe_blackthorn", slot: "skin", rarity: "exotic", variant: "axe@blackthorn", hero: "axe" },
   { id: "skin_pudge_scarecrow", slot: "skin", rarity: "exotic", variant: "pudge@scarecrow", hero: "pudge" },
+  // Io: его облики — цельные модели в `models/items/io/`, а не части по слотам, поэтому в
+  // автоподбор сетов они не попали.
+  { id: "skin_io_calavera", slot: "skin", rarity: "exotic", variant: "io@calavera", hero: "io" },
   // Сет каждому герою, у которого не было косметики (T13.27): части `models/items/<hero>/<set>_*`
   // пришиваются к скелету базовой модели тем же Copy Transforms, что и части аркан.
   { id: "skin_lina_dragonfire", slot: "skin", rarity: "exotic", variant: "lina@dragonfire", hero: "lina" },
