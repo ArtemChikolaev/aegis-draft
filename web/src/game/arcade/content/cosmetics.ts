@@ -94,6 +94,14 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_pa_darkfeather", slot: "skin", rarity: "exotic", variant: "phantom_assassin@darkfeather", hero: "phantom_assassin" },
   { id: "skin_axe_blackthorn", slot: "skin", rarity: "exotic", variant: "axe@blackthorn", hero: "axe" },
   { id: "skin_pudge_scarecrow", slot: "skin", rarity: "exotic", variant: "pudge@scarecrow", hero: "pudge" },
+  // Сет каждому герою, у которого не было косметики (T13.27): части `models/items/<hero>/<set>_*`
+  // пришиваются к скелету базовой модели тем же Copy Transforms, что и части аркан.
+  { id: "skin_phantom_lancer_rakshasa", slot: "skin", rarity: "exotic", variant: "phantom_lancer@rakshasa", hero: "phantom_lancer" },
+  { id: "skin_enchantress_the_sheep", slot: "skin", rarity: "exotic", variant: "enchantress@the_sheep", hero: "enchantress" },
+  { id: "skin_chen_eye_of_power", slot: "skin", rarity: "exotic", variant: "chen@eye_of_power", hero: "chen" },
+  { id: "skin_ancient_apparition_frost_djin", slot: "skin", rarity: "exotic", variant: "ancient_apparition@frost_djin", hero: "ancient_apparition" },
+  { id: "skin_monkey_king_fiery_vajrapani", slot: "skin", rarity: "exotic", variant: "monkey_king@fiery_vajrapani", hero: "monkey_king" },
+  { id: "skin_dark_willow_deathcap_fairy", slot: "skin", rarity: "exotic", variant: "dark_willow@deathcap_fairy", hero: "dark_willow" },
   // Io: его облики — цельные модели в `models/items/io/`, а не части по слотам, поэтому в
   // автоподбор сетов они не попали.
   { id: "skin_io_calavera", slot: "skin", rarity: "exotic", variant: "io@calavera", hero: "io" },
