@@ -682,7 +682,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "dash", value: [0, 200, 310, 420], cooldown: 45, radius: 500 },                           // Vendetta
   }, { kind: "quill", value: 18, radius: 160 }),
   oracle: hero("oracle", 111, "oracle", true, { maxHp: 560, armor: 2, damage: 23, speed: 162 }, {
-    q: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2 },       // Fortune's End
+    q: { kind: "nova", value: [0, 70, 105, 140, 180], cooldown: 8, radius: 250, duration: 1.6 },          // Fortune's End
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Fate's Edict
     e: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Purifying Flames
     r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 60, duration: 8 },                      // False Promise
@@ -891,7 +891,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "vampiric", value: 0.12 }),
   io: hero("io", 91, "wisp", true, { maxHp: 620, armor: 3, damage: 24, speed: 172, regen: 5 }, {
     q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Tether
-    w: { kind: "multishot", value: [0, 60, 82, 105, 130], cooldown: 7, radius: 320, count: [0, 4, 5, 5, 6] }, // Spirits
+    w: { kind: "spin", value: [0, 50, 70, 90, 110], cooldown: 7, radius: 210, duration: 4 },              // Spirits
     e: { kind: "frenzy", value: [0, 0.3, 0.35, 0.4, 0.45], cooldown: 14, duration: 6 },                  // Overcharge
     r: { kind: "dash", value: [0, 0, 0, 0], cooldown: 40, radius: 600 },                                  // Relocate
   }, { kind: "vampiric", value: 0.12 }),
