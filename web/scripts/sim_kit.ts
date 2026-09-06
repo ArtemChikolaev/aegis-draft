@@ -37,17 +37,33 @@ function run(level: number, seed: string): { kills: number; hp: number; alive: b
   return { kills: sim.events.kills, hp: Math.max(0, Math.round(sim.player.hp)), alive: !sim.over };
 }
 
-const off: number[] = [], on: number[] = [];
-let aliveOff = 0, aliveOn = 0;
-for (let i = 0; i < RUNS; i++) {
-  const seed = `${SEED}-${i}`;
-  const a = run(0, seed), b = run(4, seed);
-  off.push(a.kills); on.push(b.kills);
-  if (a.alive) aliveOff++;
-  if (b.alive) aliveOn++;
-}
 const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
-const k0 = avg(off), k4 = avg(on);
-console.log(`вклад слота ${SLOT.toUpperCase()} · ${HERO} · ранг ${RANK} · ${RUNS} прогонов по ${TICKS} тиков`);
-console.log(`убийств: без умения ${k0.toFixed(1)} · с 4-м уровнем ${k4.toFixed(1)} · разница ${(k4 - k0 >= 0 ? "+" : "")}${(k4 - k0).toFixed(1)} (${k0 > 0 ? (((k4 - k0) / k0) * 100).toFixed(0) : "—"}%)`);
-console.log(`дожили до конца пробы: без ${aliveOff}/${RUNS} · с умением ${aliveOn}/${RUNS}`);
+
+/** Одна база сидов: доля прироста убийств от прокачки слота. */
+function measure(base: string): { pct: number; k0: number; k4: number; aliveOff: number; aliveOn: number } {
+  const off: number[] = [], on: number[] = [];
+  let aliveOff = 0, aliveOn = 0;
+  for (let i = 0; i < RUNS; i++) {
+    const seed = `${base}-${i}`;
+    const a = run(0, seed), b = run(4, seed);
+    off.push(a.kills); on.push(b.kills);
+    if (a.alive) aliveOff++;
+    if (b.alive) aliveOn++;
+  }
+  const k0 = avg(off), k4 = avg(on);
+  return { pct: k0 > 0 ? ((k4 - k0) / k0) * 100 : 0, k0, k4, aliveOff, aliveOn };
+}
+
+// Порог доверия измерен 2026-09-06: один и тот же слот на трёх базах давал −13% / +7% / +2%, то есть
+// всё в пределах ±20% — шум. Поэтому по умолчанию гоняем ТРИ базы и печатаем вердикт, а не одно число.
+const NOISE = 20;
+const bases = Number(arg("bases", "3"));
+const res = Array.from({ length: bases }, (_, i) => measure(i === 0 ? SEED : `${SEED}${i}`));
+console.log(`вклад слота ${SLOT.toUpperCase()} · ${HERO} · ранг ${RANK} · ${RUNS} прогонов по ${TICKS} тиков · баз сидов ${bases}`);
+for (const [i, r] of res.entries()) {
+  console.log(`  база ${i + 1}: убийств ${r.k0.toFixed(1)} → ${r.k4.toFixed(1)} · ${(r.pct >= 0 ? "+" : "")}${r.pct.toFixed(0)}% · дожили ${r.aliveOff}/${RUNS} → ${r.aliveOn}/${RUNS}`);
+}
+const pcts = res.map((r) => r.pct);
+const lo = Math.min(...pcts), hi = Math.max(...pcts), mid = avg(pcts);
+const verdict = lo > NOISE ? "УВЕРЕННЫЙ ПЛЮС" : hi < -NOISE ? "УВЕРЕННЫЙ МИНУС" : "В ПРЕДЕЛАХ ШУМА (±20%) — не основание для правки";
+console.log(`итог: ${(mid >= 0 ? "+" : "")}${mid.toFixed(0)}% (разброс ${lo.toFixed(0)}…${hi.toFixed(0)}%) — ${verdict}`);
