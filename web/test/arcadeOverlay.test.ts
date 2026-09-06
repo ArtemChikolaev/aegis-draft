@@ -18,6 +18,21 @@ describe("оверлеи Аркады", () => {
     expect(overlay, "без overflow-y кнопки под длинным списком недостижимы").toContain("overflow-y: auto");
     // `place-items: center` в гриде срезает верх длинной карточки; автополя во flex так не делают.
     expect(overlay).not.toContain("place-items: center");
-    expect(rule(".arcade-overlay__card"), "карточка центрируется через margin: auto").toContain("margin: auto");
+    // Автополя должны стоять у ВСЕГО прямого содержимого оверлея, а не у одной карточки: под ним
+    // живут и `__card` (пауза, загрузка, итог), и `.arcade-levelup` (прокачка, лут, нейтралка,
+    // лавка). Когда автополя были только у карточки, flexbox прижал остальные четыре экрана влево
+    // (владелец 2026-09-06: «вся прокачка сдвинулась влево»).
+    expect(CSS, "содержимое оверлея центрируется через margin: auto").toMatch(/\.arcade-overlay > \* \{[^}]*margin: auto/);
+  });
+
+  it("каждый экран под оверлеем — прямой потомок с автополями", () => {
+    const screen = readFileSync(new URL("../src/features/arcade/ArcadeScreen.tsx", import.meta.url), "utf8");
+    // Класс прямого потомка каждого оверлея: <div className="arcade-overlay …"><X className="…">
+    const kids = [...screen.matchAll(/className="arcade-overlay[^"]*"[^>]*>\s*<[A-Za-z]+ className="([^"]+)"/g)]
+      .map((m) => m[1].split(" ")[0]);
+    expect(kids.length, "не нашёл ни одного оверлея в разметке").toBeGreaterThan(3);
+    for (const cls of new Set(kids)) {
+      expect(["arcade-overlay__card", "arcade-levelup"], `у .${cls} нет правила с автополями`).toContain(cls);
+    }
   });
 });
