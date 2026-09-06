@@ -65,6 +65,20 @@ describe("звук героев Аркады", () => {
   // В индексе ударов рядом со списками лежат одиночные имена (`spinLoop` у Juggernaut) — учитываем оба вида.
   const read = (p: string) => JSON.parse(readFileSync(new URL(p, import.meta.url), "utf8")) as Record<string, Record<string, string[] | string>>;
 
+  it("у каждого героя есть звуки умений, и все файлы пака на месте", () => {
+    const pack = read("../public/art/sfx/dota/pack/index.json") as unknown as Record<string, Record<string, Record<string, string[]>>>;
+    expect(Object.keys(HEROES).filter((h) => !pack.abilities?.[h]), "герои без звуков умений").toEqual([]);
+    for (const [section, entries] of Object.entries(pack)) {
+      for (const [hid, cats] of Object.entries(entries)) {
+        for (const v of Object.values(cats)) {
+          for (const n of Array.isArray(v) ? v : [v]) {
+            expect(existsSync(new URL(`../public/art/sfx/dota/pack/${section}/${n}`, import.meta.url)), `${hid}/${n}`).toBe(true);
+          }
+        }
+      }
+    }
+  });
+
   it("у каждого героя есть удары и реплики, и все файлы на месте", () => {
     const sfx = read("../public/art/sfx/dota/index.json");
     const voice = read("../public/art/sfx/dota/voice/index.json");

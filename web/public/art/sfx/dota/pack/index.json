@@ -1,26 +1,234 @@
 {
  "abilities": {
-  "juggernaut": {
-   "w": [
-    "juggernaut_w_1.m4a"
+  "abaddon": {
+   "q": [
+    "abaddon_q_1.m4a"
    ],
    "r": [
-    "juggernaut_r_1.m4a",
-    "juggernaut_r_2.m4a"
+    "abaddon_r_1.m4a"
+   ],
+   "w": [
+    "abaddon_w_1.m4a"
+   ]
+  },
+  "alchemist": {
+   "q": [
+    "alchemist_q_1.m4a"
+   ],
+   "r": [
+    "alchemist_r_1.m4a"
+   ],
+   "w": [
+    "alchemist_w_1.m4a"
+   ]
+  },
+  "ancient_apparition": {
+   "e": [
+    "ancient_apparition_e_1.m4a"
+   ],
+   "q": [
+    "ancient_apparition_q_1.m4a"
+   ],
+   "r": [
+    "ancient_apparition_r_1.m4a"
+   ],
+   "w": [
+    "ancient_apparition_w_1.m4a"
+   ]
+  },
+  "anti_mage": {
+   "e": [
+    "anti_mage_e_1.m4a"
+   ],
+   "r": [
+    "anti_mage_r_1.m4a",
+    "anti_mage_r_2.m4a"
+   ],
+   "w": [
+    "anti_mage_w_1.m4a",
+    "anti_mage_w_2.m4a"
+   ]
+  },
+  "arc_warden": {
+   "e": [
+    "arc_warden_e_1.m4a"
+   ],
+   "q": [
+    "arc_warden_q_1.m4a"
+   ],
+   "r": [
+    "arc_warden_r_1.m4a"
+   ],
+   "w": [
+    "arc_warden_w_1.m4a"
    ]
   },
   "axe": {
-   "q": [
-    "axe_q_1.m4a"
-   ],
-   "w": [
-    "axe_w_1.m4a"
-   ],
    "e": [
     "axe_e_1.m4a"
    ],
+   "q": [
+    "axe_q_1.m4a"
+   ],
    "r": [
     "axe_r_1.m4a"
+   ],
+   "w": [
+    "axe_w_1.m4a"
+   ]
+  },
+  "bane": {
+   "e": [
+    "bane_e_1.m4a"
+   ],
+   "q": [
+    "bane_q_1.m4a"
+   ],
+   "r": [],
+   "w": [
+    "bane_w_1.m4a"
+   ]
+  },
+  "batrider": {
+   "e": [
+    "batrider_e_1.m4a"
+   ],
+   "r": [
+    "batrider_r_1.m4a"
+   ],
+   "w": [
+    "batrider_w_1.m4a"
+   ]
+  },
+  "beastmaster": {
+   "e": [
+    "beastmaster_e_1.m4a"
+   ],
+   "q": [
+    "beastmaster_q_1.m4a"
+   ],
+   "r": [
+    "beastmaster_r_1.m4a"
+   ],
+   "w": [
+    "beastmaster_w_1.m4a"
+   ]
+  },
+  "bloodseeker": {
+   "q": [
+    "bloodseeker_q_1.m4a"
+   ],
+   "r": [
+    "bloodseeker_r_1.m4a"
+   ],
+   "w": [
+    "bloodseeker_w_1.m4a",
+    "bloodseeker_w_2.m4a"
+   ]
+  },
+  "bounty_hunter": {
+   "e": [
+    "bounty_hunter_e_1.m4a"
+   ],
+   "q": [
+    "bounty_hunter_q_1.m4a"
+   ],
+   "r": [
+    "bounty_hunter_r_1.m4a"
+   ]
+  },
+  "brewmaster": {
+   "q": [
+    "brewmaster_q_1.m4a"
+   ],
+   "r": [
+    "brewmaster_r_1.m4a"
+   ],
+   "w": [
+    "brewmaster_w_1.m4a"
+   ]
+  },
+  "bristleback": {
+   "q": [
+    "bristleback_q_1.m4a"
+   ],
+   "r": [
+    "bristleback_r_1.m4a"
+   ],
+   "w": [
+    "bristleback_w_1.m4a"
+   ]
+  },
+  "broodmother": {
+   "q": [
+    "broodmother_q_1.m4a"
+   ],
+   "r": [
+    "broodmother_r_1.m4a"
+   ],
+   "w": [
+    "broodmother_w_1.m4a"
+   ]
+  },
+  "centaur": {
+   "q": [
+    "centaur_q_1.m4a"
+   ],
+   "r": [
+    "centaur_r_1.m4a"
+   ],
+   "w": [
+    "centaur_w_1.m4a"
+   ]
+  },
+  "chaos_knight": {
+   "q": [
+    "chaos_knight_q_1.m4a"
+   ],
+   "r": [
+    "chaos_knight_r_1.m4a"
+   ],
+   "w": [
+    "chaos_knight_w_1.m4a"
+   ]
+  },
+  "chen": {
+   "e": [
+    "chen_e_1.m4a"
+   ],
+   "q": [
+    "chen_q_1.m4a"
+   ],
+   "r": [
+    "chen_r_1.m4a"
+   ],
+   "w": [
+    "chen_w_1.m4a"
+   ]
+  },
+  "clinkz": {
+   "e": [
+    "clinkz_e_1.m4a"
+   ],
+   "q": [
+    "clinkz_q_1.m4a"
+   ],
+   "r": [
+    "clinkz_r_1.m4a"
+   ]
+  },
+  "clockwerk": {
+   "e": [
+    "clockwerk_e_1.m4a"
+   ],
+   "q": [
+    "clockwerk_q_1.m4a"
+   ],
+   "r": [
+    "clockwerk_r_1.m4a"
+   ],
+   "w": [
+    "clockwerk_w_1.m4a"
    ]
   },
   "crystal_maiden": {
@@ -28,372 +236,248 @@
     "crystal_maiden_q_1.m4a",
     "crystal_maiden_q_2.m4a"
    ],
-   "w": [
-    "crystal_maiden_w_1.m4a"
-   ],
    "r": [
     "crystal_maiden_r_1.mp3"
-   ]
-  },
-  "sniper": {
-   "q": [
-    "sniper_q_1.m4a"
-   ],
-   "r": [
-    "sniper_r_1.m4a",
-    "sniper_r_2.m4a"
-   ]
-  },
-  "zeus": {
-   "q": [
-    "zeus_q_1.m4a"
    ],
    "w": [
-    "zeus_w_1.m4a"
-   ],
+    "crystal_maiden_w_1.m4a"
+   ]
+  },
+  "dark_seer": {
    "e": [
-    "zeus_e_1.m4a"
+    "dark_seer_e_1.m4a"
    ],
-   "r": [
-    "zeus_r_1.m4a"
-   ]
-  },
-  "phantom_assassin": {
    "q": [
-    "phantom_assassin_q_1.m4a"
-   ],
-   "w": [
-    "phantom_assassin_w_1.m4a"
+    "dark_seer_q_1.m4a"
    ],
    "r": [
-    "phantom_assassin_r_1.m4a"
+    "dark_seer_r_1.m4a"
+   ],
+   "w": [
+    "dark_seer_w_1.m4a"
    ]
   },
-  "anti_mage": {
-   "w": [
-    "anti_mage_w_1.m4a",
-    "anti_mage_w_2.m4a"
-   ],
+  "dark_willow": {
    "e": [
-    "anti_mage_e_1.m4a"
+    "dark_willow_e_1.m4a"
+   ],
+   "q": [
+    "dark_willow_q_1.m4a"
    ],
    "r": [
-    "anti_mage_r_1.m4a",
-    "anti_mage_r_2.m4a"
-   ]
-  },
-  "lina": {
-   "q": [
-    "lina_q_1.m4a",
-    "lina_q_2.m4a"
+    "dark_willow_r_1.m4a"
    ],
    "w": [
-    "lina_w_1.m4a"
+    "dark_willow_w_1.m4a"
+   ]
+  },
+  "dawnbreaker": {
+   "q": [
+    "dawnbreaker_q_1.m4a"
    ],
+   "r": [
+    "dawnbreaker_r_1.m4a"
+   ],
+   "w": [
+    "dawnbreaker_w_1.m4a"
+   ]
+  },
+  "dazzle": {
    "e": [
-    "lina_e_1.m4a"
+    "dazzle_e_1.m4a"
    ],
-   "r": [
-    "lina_r_1.m4a"
-   ]
-  },
-  "lich": {
    "q": [
-    "lich_q_1.m4a"
+    "dazzle_q_1.m4a"
    ],
    "w": [
-    "lich_w_1.m4a"
-   ],
+    "dazzle_w_1.m4a"
+   ]
+  },
+  "death_prophet": {
    "e": [
-    "lich_e_1.m4a"
+    "death_prophet_e_1.m4a"
+   ],
+   "q": [
+    "death_prophet_q_1.m4a"
    ],
    "r": [
-    "lich_r_1.m4a"
+    "death_prophet_r_1.m4a"
+   ],
+   "w": [
+    "death_prophet_w_1.m4a"
    ]
   },
-  "drow_ranger": {
-   "w": [
-    "drow_ranger_w_1.m4a"
-   ],
+  "disruptor": {
    "e": [
-    "drow_ranger_e_1.m4a"
-   ]
-  },
-  "windranger": {
+    "disruptor_e_1.m4a"
+   ],
    "q": [
-    "windranger_q_1.m4a",
-    "windranger_q_2.m4a"
+    "disruptor_q_1.m4a"
+   ],
+   "r": [
+    "disruptor_r_1.mp3"
    ],
    "w": [
-    "windranger_w_1.m4a",
-    "windranger_w_2.m4a"
-   ],
-   "e": [
-    "windranger_e_1.m4a"
-   ],
-   "r": [
-    "windranger_r_1.m4a"
+    "disruptor_w_1.m4a"
    ]
   },
-  "bristleback": {
+  "doom": {
    "q": [
-    "bristleback_q_1.m4a"
+    "doom_q_1.m4a"
+   ],
+   "r": [
+    "doom_r_1.m4a"
    ],
    "w": [
-    "bristleback_w_1.m4a"
-   ],
-   "r": [
-    "bristleback_r_1.m4a"
-   ]
-  },
-  "sven": {
-   "q": [
-    "sven_q_1.m4a",
-    "sven_q_2.m4a"
-   ],
-   "e": [
-    "sven_e_1.m4a"
-   ],
-   "r": [
-    "sven_r_1.m4a"
-   ]
-  },
-  "storm_spirit": {
-   "q": [
-    "storm_spirit_q_1.m4a"
-   ],
-   "w": [
-    "storm_spirit_w_1.m4a"
-   ],
-   "e": [
-    "storm_spirit_e_1.m4a"
-   ],
-   "r": [
-    "storm_spirit_r_1.m4a"
-   ]
-  },
-  "leshrac": {
-   "q": [
-    "leshrac_q_1.m4a"
-   ],
-   "w": [
-    "leshrac_w_1.m4a",
-    "leshrac_w_2.m4a"
-   ],
-   "e": [
-    "leshrac_e_1.m4a",
-    "leshrac_e_2.m4a"
-   ],
-   "r": [
-    "leshrac_r_1.m4a"
-   ]
-  },
-  "faceless_void": {
-   "q": [
-    "faceless_void_q_1.m4a"
-   ],
-   "w": [
-    "faceless_void_w_1.m4a"
-   ],
-   "r": [
-    "faceless_void_r_1.m4a"
-   ]
-  },
-  "ursa": {
-   "q": [
-    "ursa_q_1.m4a"
-   ],
-   "w": [
-    "ursa_w_1.m4a"
-   ],
-   "r": [
-    "ursa_r_1.m4a"
-   ]
-  },
-  "lion": {
-   "q": [
-    "lion_q_1.m4a"
-   ],
-   "w": [
-    "lion_w_1.m4a"
-   ],
-   "e": [
-    "lion_e_1.m4a"
-   ],
-   "r": [
-    "lion_r_1.m4a"
-   ]
-  },
-  "wraith_king": {
-   "q": [
-    "wraith_king_q_1.m4a"
-   ],
-   "e": [
-    "wraith_king_e_1.m4a"
-   ],
-   "r": [
-    "wraith_king_r_1.m4a"
+    "doom_w_1.m4a"
    ]
   },
   "dragon_knight": {
    "q": [
     "dragon_knight_q_1.m4a"
    ],
-   "w": [
-    "dragon_knight_w_1.m4a"
-   ],
    "r": [
     "dragon_knight_r_1.m4a"
-   ]
-  },
-  "kunkka": {
-   "q": [
-    "kunkka_q_1.m4a"
    ],
    "w": [
-    "kunkka_w_1.m4a"
-   ],
+    "dragon_knight_w_1.m4a"
+   ]
+  },
+  "drow_ranger": {
    "e": [
-    "kunkka_e_1.m4a"
-   ],
-   "r": [
-    "kunkka_r_1.m4a",
-    "kunkka_r_2.m4a"
-   ]
-  },
-  "necrophos": {
-   "q": [
-    "necrophos_q_1.m4a"
+    "drow_ranger_e_1.m4a"
    ],
    "w": [
-    "necrophos_w_1.m4a"
-   ],
-   "r": [
-    "necrophos_r_1.m4a",
-    "necrophos_r_2.m4a"
+    "drow_ranger_w_1.m4a"
    ]
   },
-  "razor": {
+  "earth_spirit": {
    "q": [
-    "razor_q_1.m4a"
+    "earth_spirit_q_1.m4a"
+   ],
+   "r": [
+    "earth_spirit_r_1.m4a"
    ],
    "w": [
-    "razor_w_1.m4a"
-   ],
-   "e": [
-    "razor_e_1.m4a"
-   ],
-   "r": [
-    "razor_r_1.m4a",
-    "razor_r_2.m4a"
-   ]
-  },
-  "venomancer": {
-   "q": [
-    "venomancer_q_1.m4a"
-   ],
-   "e": [
-    "venomancer_e_1.m4a"
-   ],
-   "r": [
-    "venomancer_r_1.m4a"
-   ]
-  },
-  "witch_doctor": {
-   "q": [
-    "witch_doctor_q_1.m4a",
-    "witch_doctor_q_2.m4a"
-   ],
-   "w": [
-    "witch_doctor_w_1.m4a"
-   ],
-   "e": [
-    "witch_doctor_e_1.m4a"
-   ],
-   "r": [
-    "witch_doctor_r_1.m4a"
-   ]
-  },
-  "luna": {
-   "q": [
-    "luna_q_1.m4a"
-   ],
-   "w": [
-    "luna_w_1.m4a",
-    "luna_w_2.m4a"
-   ],
-   "r": [
-    "luna_r_1.m4a"
+    "earth_spirit_w_1.m4a"
    ]
   },
   "earthshaker": {
    "q": [
     "earthshaker_q_1.m4a"
    ],
-   "w": [
-    "earthshaker_w_1.m4a"
-   ],
    "r": [
     "earthshaker_r_1.m4a"
-   ]
-  },
-  "bloodseeker": {
-   "q": [
-    "bloodseeker_q_1.m4a"
    ],
    "w": [
-    "bloodseeker_w_1.m4a",
-    "bloodseeker_w_2.m4a"
+    "earthshaker_w_1.m4a"
+   ]
+  },
+  "elder_titan": {
+   "q": [
+    "elder_titan_q_1.m4a"
    ],
    "r": [
-    "bloodseeker_r_1.m4a"
-   ]
-  },
-  "riki": {
-   "q": [
-    "riki_q_1.m4a"
+    "elder_titan_r_1.m4a",
+    "elder_titan_r_2.m4a"
    ],
    "w": [
-    "riki_w_1.m4a"
-   ],
+    "elder_titan_w_1.m4a"
+   ]
+  },
+  "ember_spirit": {
    "e": [
-    "riki_e_1.m4a"
-   ]
-  },
-  "queen_of_pain": {
+    "ember_spirit_e_1.m4a"
+   ],
    "q": [
-    "queen_of_pain_q_1.m4a"
+    "ember_spirit_q_1.m4a"
+   ],
+   "r": [
+    "ember_spirit_r_1.m4a"
    ],
    "w": [
-    "queen_of_pain_w_1.m4a"
-   ],
+    "ember_spirit_w_1.m4a"
+   ]
+  },
+  "enchantress": {
    "e": [
-    "queen_of_pain_e_1.m4a"
+    "enchantress_e_1.m4a"
    ],
-   "r": [
-    "queen_of_pain_r_1.m4a"
-   ]
-  },
-  "viper": {
-   "w": [
-    "viper_w_1.m4a"
-   ],
-   "r": [
-    "viper_r_1.m4a"
-   ]
-  },
-  "ogre_magi": {
    "q": [
-    "ogre_magi_q_1.m4a"
-   ],
-   "w": [
-    "ogre_magi_w_1.m4a"
-   ],
-   "e": [
-    "ogre_magi_e_1.m4a"
+    "enchantress_q_1.m4a"
    ],
    "r": [
-    "ogre_magi_r_1.m4a"
+    "enchantress_r_1.m4a"
+   ],
+   "w": [
+    "enchantress_w_1.m4a"
+   ]
+  },
+  "enigma": {
+   "e": [
+    "enigma_e_1.mp3"
+   ],
+   "q": [
+    "enigma_q_1.m4a"
+   ],
+   "r": [
+    "enigma_r_1.m4a"
+   ],
+   "w": [
+    "enigma_w_1.m4a"
+   ]
+  },
+  "faceless_void": {
+   "q": [
+    "faceless_void_q_1.m4a"
+   ],
+   "r": [
+    "faceless_void_r_1.m4a"
+   ],
+   "w": [
+    "faceless_void_w_1.m4a"
+   ]
+  },
+  "grimstroke": {
+   "e": [
+    "grimstroke_e_1.m4a"
+   ],
+   "q": [
+    "grimstroke_q_1.m4a"
+   ],
+   "r": [
+    "grimstroke_r_1.m4a"
+   ],
+   "w": [
+    "grimstroke_w_1.m4a"
+   ]
+  },
+  "gyrocopter": {
+   "e": [
+    "gyrocopter_e_1.m4a"
+   ],
+   "q": [
+    "gyrocopter_q_1.m4a"
+   ],
+   "r": [
+    "gyrocopter_r_1.m4a"
+   ],
+   "w": [
+    "gyrocopter_w_1.m4a"
+   ]
+  },
+  "hoodwink": {
+   "e": [
+    "hoodwink_e_1.m4a"
+   ],
+   "q": [
+    "hoodwink_q_1.m4a"
+   ],
+   "r": [
+    "hoodwink_r_1.m4a"
+   ],
+   "w": [
+    "hoodwink_w_1.m4a"
    ]
   },
   "huskar": {
@@ -404,945 +488,617 @@
     "huskar_r_1.m4a"
    ]
   },
-  "slardar": {
-   "q": [
-    "slardar_q_1.m4a"
-   ],
-   "w": [
-    "slardar_w_1.m4a"
-   ],
-   "r": [
-    "slardar_r_1.m4a"
-   ]
-  },
-  "tiny": {
-   "q": [
-    "tiny_q_1.m4a"
-   ],
-   "w": [
-    "tiny_w_1.m4a"
-   ],
+  "invoker": {
    "e": [
-    "tiny_e_1.m4a"
+    "invoker_e_1.m4a",
+    "invoker_e_2.m4a"
+   ],
+   "q": [
+    "invoker_q_1.m4a"
    ],
    "r": [
-    "tiny_r_1.m4a"
-   ]
-  },
-  "spectre": {
-   "q": [
-    "spectre_q_1.m4a"
-   ],
-   "r": [
-    "spectre_r_1.m4a",
-    "spectre_r_2.m4a"
-   ]
-  },
-  "chaos_knight": {
-   "q": [
-    "chaos_knight_q_1.m4a"
+    "invoker_r_1.m4a"
    ],
    "w": [
-    "chaos_knight_w_1.m4a"
-   ],
-   "r": [
-    "chaos_knight_r_1.m4a"
+    "invoker_w_1.m4a"
    ]
   },
-  "night_stalker": {
-   "q": [
-    "night_stalker_q_1.m4a"
-   ],
-   "w": [
-    "night_stalker_w_1.m4a"
-   ],
-   "r": [
-    "night_stalker_r_1.m4a"
-   ]
-  },
-  "doom": {
-   "q": [
-    "doom_q_1.m4a"
-   ],
-   "w": [
-    "doom_w_1.m4a"
-   ],
-   "r": [
-    "doom_r_1.m4a"
-   ]
-  },
-  "legion_commander": {
-   "q": [
-    "legion_commander_q_1.m4a"
-   ],
-   "w": [
-    "legion_commander_w_1.m4a"
-   ],
-   "r": [
-    "legion_commander_r_1.m4a",
-    "legion_commander_r_2.m4a"
-   ]
-  },
-  "templar_assassin": {
-   "q": [
-    "templar_assassin_q_1.m4a"
-   ],
-   "w": [
-    "templar_assassin_w_1.m4a"
-   ],
-   "r": [
-    "templar_assassin_r_1.m4a",
-    "templar_assassin_r_2.m4a"
-   ]
-  },
-  "medusa": {
-   "q": [
-    "medusa_q_1.m4a"
-   ],
-   "w": [
-    "medusa_w_1.m4a"
-   ],
-   "r": [
-    "medusa_r_1.mp3"
-   ]
-  },
-  "silencer": {
-   "q": [
-    "silencer_q_1.m4a"
-   ],
+  "io": {
    "e": [
-    "silencer_e_1.m4a"
+    "io_e_1.m4a"
+   ],
+   "q": [
+    "io_q_1.m4a"
    ],
    "r": [
-    "silencer_r_1.m4a"
-   ]
-  },
-  "skywrath_mage": {
-   "q": [
-    "skywrath_mage_q_1.m4a"
+    "io_r_1.m4a"
    ],
    "w": [
-    "skywrath_mage_w_1.m4a"
-   ],
-   "e": [
-    "skywrath_mage_e_1.m4a"
-   ],
-   "r": [
-    "skywrath_mage_r_1.m4a",
-    "skywrath_mage_r_2.m4a"
-   ]
-  },
-  "dazzle": {
-   "q": [
-    "dazzle_q_1.m4a"
-   ],
-   "w": [
-    "dazzle_w_1.m4a"
-   ],
-   "e": [
-    "dazzle_e_1.m4a"
+    "io_w_1.m4a"
    ]
   },
   "jakiro": {
    "q": [
     "jakiro_q_1.m4a"
    ],
-   "w": [
-    "jakiro_w_1.m4a"
-   ],
    "r": [
     "jakiro_r_1.m4a",
     "jakiro_r_2.m4a"
+   ],
+   "w": [
+    "jakiro_w_1.m4a"
    ]
   },
-  "shadow_shaman": {
-   "q": [
-    "shadow_shaman_q_1.m4a"
+  "juggernaut": {
+   "r": [
+    "juggernaut_r_1.m4a",
+    "juggernaut_r_2.m4a"
    ],
+   "w": [
+    "juggernaut_w_1.m4a"
+   ]
+  },
+  "keeper_of_the_light": {
    "e": [
-    "shadow_shaman_e_1.m4a"
+    "keeper_of_the_light_e_1.m4a"
    ],
-   "r": [
-    "shadow_shaman_r_1.m4a"
-   ]
-  },
-  "warlock": {
    "q": [
-    "warlock_q_1.m4a"
-   ],
-   "w": [
-    "warlock_w_1.m4a"
-   ],
-   "e": [
-    "warlock_e_1.m4a"
+    "keeper_of_the_light_q_1.m4a"
    ],
    "r": [
-    "warlock_r_1.m4a"
-   ]
-  },
-  "enigma": {
-   "q": [
-    "enigma_q_1.m4a"
+    "keeper_of_the_light_r_1.m4a"
    ],
    "w": [
-    "enigma_w_1.m4a"
-   ],
-   "e": [
-    "enigma_e_1.mp3"
-   ],
-   "r": [
-    "enigma_r_1.m4a"
-   ]
-  },
-  "tinker": {
-   "q": [
-    "tinker_q_1.m4a"
-   ],
-   "w": [
-    "tinker_w_1.m4a"
-   ],
-   "e": [
-    "tinker_e_1.m4a"
-   ],
-   "r": [
-    "tinker_r_1.m4a"
-   ]
-  },
-  "omniknight": {
-   "q": [
-    "omniknight_q_1.m4a"
-   ],
-   "w": [
-    "omniknight_w_1.m4a"
-   ],
-   "r": [
-    "omniknight_r_1.m4a"
-   ]
-  },
-  "abaddon": {
-   "q": [
-    "abaddon_q_1.m4a"
-   ],
-   "w": [
-    "abaddon_w_1.m4a"
-   ],
-   "r": [
-    "abaddon_r_1.m4a"
-   ]
-  },
-  "beastmaster": {
-   "q": [
-    "beastmaster_q_1.m4a"
-   ],
-   "w": [
-    "beastmaster_w_1.m4a"
-   ],
-   "e": [
-    "beastmaster_e_1.m4a"
-   ],
-   "r": [
-    "beastmaster_r_1.m4a"
-   ]
-  },
-  "brewmaster": {
-   "q": [
-    "brewmaster_q_1.m4a"
-   ],
-   "w": [
-    "brewmaster_w_1.m4a"
-   ],
-   "r": [
-    "brewmaster_r_1.m4a"
-   ]
-  },
-  "centaur": {
-   "q": [
-    "centaur_q_1.m4a"
-   ],
-   "w": [
-    "centaur_w_1.m4a"
-   ],
-   "r": [
-    "centaur_r_1.m4a"
-   ]
-  },
-  "dark_seer": {
-   "q": [
-    "dark_seer_q_1.m4a"
-   ],
-   "w": [
-    "dark_seer_w_1.m4a"
-   ],
-   "e": [
-    "dark_seer_e_1.m4a"
-   ],
-   "r": [
-    "dark_seer_r_1.m4a"
-   ]
-  },
-  "death_prophet": {
-   "q": [
-    "death_prophet_q_1.m4a"
-   ],
-   "w": [
-    "death_prophet_w_1.m4a"
-   ],
-   "e": [
-    "death_prophet_e_1.m4a"
-   ],
-   "r": [
-    "death_prophet_r_1.m4a"
-   ]
-  },
-  "disruptor": {
-   "q": [
-    "disruptor_q_1.m4a"
-   ],
-   "w": [
-    "disruptor_w_1.m4a"
-   ],
-   "e": [
-    "disruptor_e_1.m4a"
-   ],
-   "r": [
-    "disruptor_r_1.mp3"
-   ]
-  },
-  "lycan": {
-   "q": [
-    "lycan_q_1.m4a"
-   ],
-   "w": [
-    "lycan_w_1.m4a"
-   ],
-   "r": [
-    "lycan_r_1.m4a"
-   ]
-  },
-  "lone_druid": {
-   "q": [
-    "lone_druid_q_1.m4a"
-   ],
-   "e": [
-    "lone_druid_e_1.m4a"
-   ],
-   "r": [
-    "lone_druid_r_1.m4a"
-   ]
-  },
-  "alchemist": {
-   "q": [
-    "alchemist_q_1.m4a"
-   ],
-   "w": [
-    "alchemist_w_1.m4a"
-   ],
-   "r": [
-    "alchemist_r_1.m4a"
-   ]
-  },
-  "bane": {
-   "q": [
-    "bane_q_1.m4a"
-   ],
-   "w": [
-    "bane_w_1.m4a"
-   ],
-   "e": [
-    "bane_e_1.m4a"
-   ],
-   "r": []
-  },
-  "batrider": {
-   "w": [
-    "batrider_w_1.m4a"
-   ],
-   "e": [
-    "batrider_e_1.m4a"
-   ],
-   "r": [
-    "batrider_r_1.m4a"
-   ]
-  },
-  "bounty_hunter": {
-   "q": [
-    "bounty_hunter_q_1.m4a"
-   ],
-   "e": [
-    "bounty_hunter_e_1.m4a"
-   ],
-   "r": [
-    "bounty_hunter_r_1.m4a"
-   ]
-  },
-  "broodmother": {
-   "q": [
-    "broodmother_q_1.m4a"
-   ],
-   "w": [
-    "broodmother_w_1.m4a"
-   ],
-   "r": [
-    "broodmother_r_1.m4a"
-   ]
-  },
-  "clockwerk": {
-   "q": [
-    "clockwerk_q_1.m4a"
-   ],
-   "w": [
-    "clockwerk_w_1.m4a"
-   ],
-   "e": [
-    "clockwerk_e_1.m4a"
-   ],
-   "r": [
-    "clockwerk_r_1.m4a"
-   ]
-  },
-  "earth_spirit": {
-   "q": [
-    "earth_spirit_q_1.m4a"
-   ],
-   "w": [
-    "earth_spirit_w_1.m4a"
-   ],
-   "r": [
-    "earth_spirit_r_1.m4a"
-   ]
-  },
-  "elder_titan": {
-   "q": [
-    "elder_titan_q_1.m4a"
-   ],
-   "w": [
-    "elder_titan_w_1.m4a"
-   ],
-   "r": [
-    "elder_titan_r_1.m4a",
-    "elder_titan_r_2.m4a"
-   ]
-  },
-  "ember_spirit": {
-   "q": [
-    "ember_spirit_q_1.m4a"
-   ],
-   "w": [
-    "ember_spirit_w_1.m4a"
-   ],
-   "e": [
-    "ember_spirit_e_1.m4a"
-   ],
-   "r": [
-    "ember_spirit_r_1.m4a"
-   ]
-  },
-  "grimstroke": {
-   "q": [
-    "grimstroke_q_1.m4a"
-   ],
-   "w": [
-    "grimstroke_w_1.m4a"
-   ],
-   "e": [
-    "grimstroke_e_1.m4a"
-   ],
-   "r": [
-    "grimstroke_r_1.m4a"
-   ]
-  },
-  "gyrocopter": {
-   "q": [
-    "gyrocopter_q_1.m4a"
-   ],
-   "w": [
-    "gyrocopter_w_1.m4a"
-   ],
-   "e": [
-    "gyrocopter_e_1.m4a"
-   ],
-   "r": [
-    "gyrocopter_r_1.m4a"
-   ]
-  },
-  "magnus": {
-   "q": [
-    "magnus_q_1.m4a"
-   ],
-   "w": [
-    "magnus_w_1.m4a"
-   ],
-   "e": [
-    "magnus_e_1.m4a"
-   ],
-   "r": [
-    "magnus_r_1.m4a",
-    "magnus_r_2.m4a"
-   ]
-  },
-  "mars": {
-   "q": [
-    "mars_q_1.m4a"
-   ],
-   "w": [
-    "mars_w_1.m4a"
-   ],
-   "r": []
-  },
-  "morphling": {
-   "q": [
-    "morphling_q_1.m4a"
-   ],
-   "w": [
-    "morphling_w_1.m4a"
-   ],
-   "r": [
-    "morphling_r_1.m4a"
-   ]
-  },
-  "naga_siren": {
-   "q": [
-    "naga_siren_q_1.m4a"
-   ],
-   "w": [
-    "naga_siren_w_1.m4a"
-   ],
-   "e": [
-    "naga_siren_e_1.m4a"
-   ],
-   "r": [
-    "naga_siren_r_1.m4a"
-   ]
-  },
-  "natures_prophet": {
-   "q": [
-    "natures_prophet_q_1.m4a"
-   ],
-   "w": [
-    "natures_prophet_w_1.m4a"
-   ],
-   "e": [
-    "natures_prophet_e_1.m4a"
-   ],
-   "r": [
-    "natures_prophet_r_1.m4a"
-   ]
-  },
-  "nyx_assassin": {
-   "q": [
-    "nyx_assassin_q_1.m4a"
-   ],
-   "w": [
-    "nyx_assassin_w_1.m4a"
-   ],
-   "r": [
-    "nyx_assassin_r_1.m4a"
-   ]
-  },
-  "oracle": {
-   "q": [
-    "oracle_q_1.m4a"
-   ],
-   "w": [
-    "oracle_w_1.m4a"
-   ],
-   "e": [
-    "oracle_e_1.m4a"
-   ],
-   "r": [
-    "oracle_r_1.m4a"
-   ]
-  },
-  "outworld_destroyer": {
-   "w": [
-    "outworld_destroyer_w_1.m4a"
-   ],
-   "r": [
-    "outworld_destroyer_r_1.m4a",
-    "outworld_destroyer_r_2.m4a"
-   ]
-  },
-  "pangolier": {
-   "q": [
-    "pangolier_q_1.m4a"
-   ],
-   "w": [
-    "pangolier_w_1.m4a"
-   ],
-   "r": [
-    "pangolier_r_1.m4a"
-   ]
-  },
-  "phoenix": {
-   "q": [
-    "phoenix_q_1.m4a"
-   ],
-   "w": [
-    "phoenix_w_1.m4a"
-   ],
-   "e": [
-    "phoenix_e_1.m4a"
-   ],
-   "r": [
-    "phoenix_r_1.mp3"
-   ]
-  },
-  "puck": {
-   "q": [
-    "puck_q_1.m4a"
-   ],
-   "w": [
-    "puck_w_1.m4a"
-   ],
-   "e": [
-    "puck_e_1.m4a"
-   ],
-   "r": [
-    "puck_r_1.m4a"
-   ]
-  },
-  "pudge": {
-   "q": [
-    "pudge_q_1.m4a"
-   ],
-   "w": [
-    "pudge_w_1.m4a"
-   ],
-   "r": [
-    "pudge_r_1.m4a"
-   ]
-  },
-  "rubick": {
-   "q": [
-    "rubick_q_1.m4a"
-   ],
-   "w": [
-    "rubick_w_1.m4a"
-   ],
-   "r": [
-    "rubick_r_1.m4a"
-   ]
-  },
-  "sand_king": {
-   "w": [
-    "sand_king_w_1.m4a"
-   ],
-   "r": [
-    "sand_king_r_1.m4a"
-   ]
-  },
-  "shadow_demon": {
-   "q": [
-    "shadow_demon_q_1.m4a"
-   ],
-   "w": [
-    "shadow_demon_w_1.m4a"
-   ],
-   "e": [
-    "shadow_demon_e_1.m4a"
-   ],
-   "r": [
-    "shadow_demon_r_1.m4a"
-   ]
-  },
-  "slark": {
-   "q": [
-    "slark_q_1.m4a"
-   ],
-   "w": [
-    "slark_w_1.m4a"
-   ],
-   "r": [
-    "slark_r_1.m4a"
-   ]
-  },
-  "snapfire": {
-   "q": [
-    "snapfire_q_1.m4a"
-   ],
-   "w": [
-    "snapfire_w_1.m4a"
-   ],
-   "e": [
-    "snapfire_e_1.m4a"
-   ],
-   "r": [
-    "snapfire_r_1.m4a",
-    "snapfire_r_2.m4a"
-   ]
-  },
-  "spirit_breaker": {
-   "q": [
-    "spirit_breaker_q_1.m4a"
-   ],
-   "w": [
-    "spirit_breaker_w_1.m4a"
-   ],
-   "r": [
-    "spirit_breaker_r_1.m4a"
-   ]
-  },
-  "techies": {
-   "q": [
-    "techies_q_1.m4a"
-   ],
-   "w": [
-    "techies_w_1.m4a"
-   ],
-   "e": [
-    "techies_e_1.m4a"
-   ],
-   "r": [
-    "techies_r_1.m4a",
-    "techies_r_2.m4a"
-   ]
-  },
-  "terrorblade": {
-   "q": [
-    "terrorblade_q_1.m4a"
-   ],
-   "w": [
-    "terrorblade_w_1.m4a"
-   ],
-   "e": [
-    "terrorblade_e_1.m4a"
-   ],
-   "r": [
-    "terrorblade_r_1.m4a"
-   ]
-  },
-  "timbersaw": {
-   "q": [
-    "timbersaw_q_1.m4a"
-   ],
-   "w": [
-    "timbersaw_w_1.m4a"
-   ],
-   "r": [
-    "timbersaw_r_1.m4a"
-   ]
-  },
-  "treant": {
-   "q": [
-    "treant_q_1.m4a"
-   ],
-   "w": [
-    "treant_w_1.m4a"
-   ],
-   "e": [
-    "treant_e_1.m4a"
-   ],
-   "r": [
-    "treant_r_1.m4a"
-   ]
-  },
-  "troll_warlord": {
-   "q": [
-    "troll_warlord_q_1.m4a"
-   ],
-   "w": [
-    "troll_warlord_w_1.m4a"
-   ],
-   "r": [
-    "troll_warlord_r_1.m4a"
-   ]
-  },
-  "tusk": {
-   "q": [
-    "tusk_q_1.m4a"
-   ],
-   "w": [
-    "tusk_w_1.m4a"
-   ],
-   "e": [],
-   "r": [
-    "tusk_r_1.mp3",
-    "tusk_r_2.m4a"
-   ]
-  },
-  "undying": {
-   "q": [
-    "undying_q_1.m4a"
-   ],
-   "w": [
-    "undying_w_1.m4a"
-   ],
-   "e": [
-    "undying_e_1.m4a"
-   ],
-   "r": [
-    "undying_r_1.m4a"
-   ]
-  },
-  "visage": {
-   "q": [
-    "visage_q_1.m4a"
-   ],
-   "w": [
-    "visage_w_1.m4a"
-   ],
-   "r": [
-    "visage_r_1.m4a"
-   ]
-  },
-  "void_spirit": {
-   "q": [
-    "void_spirit_q_1.m4a"
-   ],
-   "w": [
-    "void_spirit_w_1.m4a"
-   ],
-   "e": [
-    "void_spirit_e_1.m4a"
-   ],
-   "r": [
-    "void_spirit_r_1.m4a"
-   ]
-  },
-  "weaver": {
-   "q": [
-    "weaver_q_1.m4a"
-   ],
-   "w": [
-    "weaver_w_1.m4a"
-   ],
-   "r": [
-    "weaver_r_1.m4a"
-   ]
-  },
-  "winter_wyvern": {
-   "w": [
-    "winter_wyvern_w_1.m4a"
-   ],
-   "e": [
-    "winter_wyvern_e_1.m4a"
-   ],
-   "r": [
-    "winter_wyvern_r_1.m4a"
-   ]
-  },
-  "arc_warden": {
-   "q": [
-    "arc_warden_q_1.m4a"
-   ],
-   "w": [
-    "arc_warden_w_1.m4a"
-   ],
-   "e": [
-    "arc_warden_e_1.m4a"
-   ],
-   "r": [
-    "arc_warden_r_1.m4a"
-   ]
-  },
-  "dawnbreaker": {
-   "q": [
-    "dawnbreaker_q_1.m4a"
-   ],
-   "w": [
-    "dawnbreaker_w_1.m4a"
-   ],
-   "r": [
-    "dawnbreaker_r_1.m4a"
-   ]
-  },
-  "hoodwink": {
-   "q": [
-    "hoodwink_q_1.m4a"
-   ],
-   "w": [
-    "hoodwink_w_1.m4a"
-   ],
-   "e": [
-    "hoodwink_e_1.m4a"
-   ],
-   "r": [
-    "hoodwink_r_1.m4a"
-   ]
-  },
-  "marci": {
-   "q": [
-    "marci_q_1.m4a"
-   ],
-   "w": [
-    "marci_w_1.m4a"
-   ],
-   "e": [
-    "marci_e_1.m4a"
-   ],
-   "r": [
-    "marci_r_1.m4a"
-   ]
-  },
-  "muerta": {
-   "q": [
-    "muerta_q_1.m4a"
-   ],
-   "w": [
-    "muerta_w_1.m4a"
-   ],
-   "r": [
-    "muerta_r_1.m4a"
-   ]
-  },
-  "primal_beast": {
-   "q": [
-    "primal_beast_q_1.m4a"
-   ],
-   "w": [
-    "primal_beast_w_1.m4a"
-   ],
-   "e": [
-    "primal_beast_e_1.m4a"
-   ],
-   "r": [
-    "primal_beast_r_1.m4a"
+    "keeper_of_the_light_w_1.m4a"
    ]
   },
   "kez": {
    "q": [
     "kez_q_1.m4a"
    ],
-   "w": [
-    "kez_w_1.m4a"
-   ],
    "r": [
     "kez_r_1.m4a"
+   ],
+   "w": [
+    "kez_w_1.m4a"
    ]
   },
-  "ringmaster": {
-   "q": [],
-   "w": [
-    "ringmaster_w_1.m4a"
-   ],
+  "kunkka": {
    "e": [
-    "ringmaster_e_1.m4a"
+    "kunkka_e_1.m4a"
    ],
-   "r": []
+   "q": [
+    "kunkka_q_1.m4a"
+   ],
+   "r": [
+    "kunkka_r_1.m4a",
+    "kunkka_r_2.m4a"
+   ],
+   "w": [
+    "kunkka_w_1.m4a"
+   ]
+  },
+  "legion_commander": {
+   "q": [
+    "legion_commander_q_1.m4a"
+   ],
+   "r": [
+    "legion_commander_r_1.m4a",
+    "legion_commander_r_2.m4a"
+   ],
+   "w": [
+    "legion_commander_w_1.m4a"
+   ]
+  },
+  "leshrac": {
+   "e": [
+    "leshrac_e_1.m4a",
+    "leshrac_e_2.m4a"
+   ],
+   "q": [
+    "leshrac_q_1.m4a"
+   ],
+   "r": [
+    "leshrac_r_1.m4a"
+   ],
+   "w": [
+    "leshrac_w_1.m4a",
+    "leshrac_w_2.m4a"
+   ]
+  },
+  "lich": {
+   "e": [
+    "lich_e_1.m4a"
+   ],
+   "q": [
+    "lich_q_1.m4a"
+   ],
+   "r": [
+    "lich_r_1.m4a"
+   ],
+   "w": [
+    "lich_w_1.m4a"
+   ]
+  },
+  "lifestealer": {
+   "q": [
+    "lifestealer_q_1.m4a"
+   ],
+   "r": [
+    "lifestealer_r_1.m4a"
+   ],
+   "w": [
+    "lifestealer_w_1.m4a"
+   ]
+  },
+  "lina": {
+   "e": [
+    "lina_e_1.m4a"
+   ],
+   "q": [
+    "lina_q_1.m4a",
+    "lina_q_2.m4a"
+   ],
+   "r": [
+    "lina_r_1.m4a"
+   ],
+   "w": [
+    "lina_w_1.m4a"
+   ]
+  },
+  "lion": {
+   "e": [
+    "lion_e_1.m4a"
+   ],
+   "q": [
+    "lion_q_1.m4a"
+   ],
+   "r": [
+    "lion_r_1.m4a"
+   ],
+   "w": [
+    "lion_w_1.m4a"
+   ]
+  },
+  "lone_druid": {
+   "e": [
+    "lone_druid_e_1.m4a"
+   ],
+   "q": [
+    "lone_druid_q_1.m4a"
+   ],
+   "r": [
+    "lone_druid_r_1.m4a"
+   ]
+  },
+  "luna": {
+   "q": [
+    "luna_q_1.m4a"
+   ],
+   "r": [
+    "luna_r_1.m4a"
+   ],
+   "w": [
+    "luna_w_1.m4a",
+    "luna_w_2.m4a"
+   ]
+  },
+  "lycan": {
+   "q": [
+    "lycan_q_1.m4a"
+   ],
+   "r": [
+    "lycan_r_1.m4a"
+   ],
+   "w": [
+    "lycan_w_1.m4a"
+   ]
+  },
+  "magnus": {
+   "e": [
+    "magnus_e_1.m4a"
+   ],
+   "q": [
+    "magnus_q_1.m4a"
+   ],
+   "r": [
+    "magnus_r_1.m4a",
+    "magnus_r_2.m4a"
+   ],
+   "w": [
+    "magnus_w_1.m4a"
+   ]
+  },
+  "marci": {
+   "e": [
+    "marci_e_1.m4a"
+   ],
+   "q": [
+    "marci_q_1.m4a"
+   ],
+   "r": [
+    "marci_r_1.m4a"
+   ],
+   "w": [
+    "marci_w_1.m4a"
+   ]
+  },
+  "mars": {
+   "q": [
+    "mars_q_1.m4a"
+   ],
+   "r": [],
+   "w": [
+    "mars_w_1.m4a"
+   ]
+  },
+  "medusa": {
+   "q": [
+    "medusa_q_1.m4a"
+   ],
+   "r": [
+    "medusa_r_1.mp3"
+   ],
+   "w": [
+    "medusa_w_1.m4a"
+   ]
   },
   "meepo": {
    "q": [
     "meepo_q_1.m4a"
    ],
-   "w": [
-    "meepo_w_1.m4a"
-   ],
    "r": [
     "meepo_r_1.m4a"
-   ]
-  },
-  "io": {
-   "q": [
-    "io_q_1.m4a"
    ],
    "w": [
-    "io_w_1.m4a"
-   ],
+    "meepo_w_1.m4a"
+   ]
+  },
+  "mirana": {
    "e": [
-    "io_e_1.m4a"
+    "mirana_e_1.m4a",
+    "mirana_e_2.m4a"
+   ],
+   "q": [
+    "mirana_q_1.m4a"
    ],
    "r": [
-    "io_r_1.m4a"
+    "mirana_r_1.m4a"
+   ],
+   "w": [
+    "mirana_w_1.m4a"
+   ]
+  },
+  "monkey_king": {
+   "e": [
+    "monkey_king_e_1.m4a"
+   ],
+   "q": [
+    "monkey_king_q_1.m4a"
+   ],
+   "r": [
+    "monkey_king_r_1.m4a"
+   ],
+   "w": [
+    "monkey_king_w_1.m4a"
+   ]
+  },
+  "morphling": {
+   "q": [
+    "morphling_q_1.m4a"
+   ],
+   "r": [
+    "morphling_r_1.m4a"
+   ],
+   "w": [
+    "morphling_w_1.m4a"
+   ]
+  },
+  "muerta": {
+   "q": [
+    "muerta_q_1.m4a"
+   ],
+   "r": [
+    "muerta_r_1.m4a"
+   ],
+   "w": [
+    "muerta_w_1.m4a"
+   ]
+  },
+  "naga_siren": {
+   "e": [
+    "naga_siren_e_1.m4a"
+   ],
+   "q": [
+    "naga_siren_q_1.m4a"
+   ],
+   "r": [
+    "naga_siren_r_1.m4a"
+   ],
+   "w": [
+    "naga_siren_w_1.m4a"
+   ]
+  },
+  "natures_prophet": {
+   "e": [
+    "natures_prophet_e_1.m4a"
+   ],
+   "q": [
+    "natures_prophet_q_1.m4a"
+   ],
+   "r": [
+    "natures_prophet_r_1.m4a"
+   ],
+   "w": [
+    "natures_prophet_w_1.m4a"
+   ]
+  },
+  "necrophos": {
+   "q": [
+    "necrophos_q_1.m4a"
+   ],
+   "r": [
+    "necrophos_r_1.m4a",
+    "necrophos_r_2.m4a"
+   ],
+   "w": [
+    "necrophos_w_1.m4a"
+   ]
+  },
+  "night_stalker": {
+   "q": [
+    "night_stalker_q_1.m4a"
+   ],
+   "r": [
+    "night_stalker_r_1.m4a"
+   ],
+   "w": [
+    "night_stalker_w_1.m4a"
+   ]
+  },
+  "nyx_assassin": {
+   "q": [
+    "nyx_assassin_q_1.m4a"
+   ],
+   "r": [
+    "nyx_assassin_r_1.m4a"
+   ],
+   "w": [
+    "nyx_assassin_w_1.m4a"
+   ]
+  },
+  "ogre_magi": {
+   "e": [
+    "ogre_magi_e_1.m4a"
+   ],
+   "q": [
+    "ogre_magi_q_1.m4a"
+   ],
+   "r": [
+    "ogre_magi_r_1.m4a"
+   ],
+   "w": [
+    "ogre_magi_w_1.m4a"
+   ]
+  },
+  "omniknight": {
+   "q": [
+    "omniknight_q_1.m4a"
+   ],
+   "r": [
+    "omniknight_r_1.m4a"
+   ],
+   "w": [
+    "omniknight_w_1.m4a"
+   ]
+  },
+  "oracle": {
+   "e": [
+    "oracle_e_1.m4a"
+   ],
+   "q": [
+    "oracle_q_1.m4a"
+   ],
+   "r": [
+    "oracle_r_1.m4a"
+   ],
+   "w": [
+    "oracle_w_1.m4a"
+   ]
+  },
+  "outworld_destroyer": {
+   "r": [
+    "outworld_destroyer_r_1.m4a",
+    "outworld_destroyer_r_2.m4a"
+   ],
+   "w": [
+    "outworld_destroyer_w_1.m4a"
+   ]
+  },
+  "pangolier": {
+   "q": [
+    "pangolier_q_1.m4a"
+   ],
+   "r": [
+    "pangolier_r_1.m4a"
+   ],
+   "w": [
+    "pangolier_w_1.m4a"
+   ]
+  },
+  "phantom_assassin": {
+   "q": [
+    "phantom_assassin_q_1.m4a"
+   ],
+   "r": [
+    "phantom_assassin_r_1.m4a"
+   ],
+   "w": [
+    "phantom_assassin_w_1.m4a"
+   ]
+  },
+  "phantom_lancer": {
+   "e": [
+    "phantom_lancer_e_1.m4a"
+   ],
+   "q": [
+    "phantom_lancer_q_1.m4a"
+   ],
+   "r": [
+    "phantom_lancer_r_1.m4a"
+   ],
+   "w": [
+    "phantom_lancer_w_1.m4a"
+   ]
+  },
+  "phoenix": {
+   "e": [
+    "phoenix_e_1.m4a"
+   ],
+   "q": [
+    "phoenix_q_1.m4a"
+   ],
+   "r": [
+    "phoenix_r_1.mp3"
+   ],
+   "w": [
+    "phoenix_w_1.m4a"
+   ]
+  },
+  "primal_beast": {
+   "e": [
+    "primal_beast_e_1.m4a"
+   ],
+   "q": [
+    "primal_beast_q_1.m4a"
+   ],
+   "r": [
+    "primal_beast_r_1.m4a"
+   ],
+   "w": [
+    "primal_beast_w_1.m4a"
+   ]
+  },
+  "puck": {
+   "e": [
+    "puck_e_1.m4a"
+   ],
+   "q": [
+    "puck_q_1.m4a"
+   ],
+   "r": [
+    "puck_r_1.m4a"
+   ],
+   "w": [
+    "puck_w_1.m4a"
+   ]
+  },
+  "pudge": {
+   "q": [
+    "pudge_q_1.m4a"
+   ],
+   "r": [
+    "pudge_r_1.m4a"
+   ],
+   "w": [
+    "pudge_w_1.m4a"
+   ]
+  },
+  "pugna": {
+   "e": [
+    "pugna_e_1.m4a"
+   ],
+   "q": [
+    "pugna_q_1.m4a"
+   ],
+   "r": [
+    "pugna_r_1.m4a"
+   ],
+   "w": [
+    "pugna_w_1.m4a"
+   ]
+  },
+  "queen_of_pain": {
+   "e": [
+    "queen_of_pain_e_1.m4a"
+   ],
+   "q": [
+    "queen_of_pain_q_1.m4a"
+   ],
+   "r": [
+    "queen_of_pain_r_1.m4a"
+   ],
+   "w": [
+    "queen_of_pain_w_1.m4a"
+   ]
+  },
+  "razor": {
+   "e": [
+    "razor_e_1.m4a"
+   ],
+   "q": [
+    "razor_q_1.m4a"
+   ],
+   "r": [
+    "razor_r_1.m4a",
+    "razor_r_2.m4a"
+   ],
+   "w": [
+    "razor_w_1.m4a"
+   ]
+  },
+  "riki": {
+   "e": [
+    "riki_e_1.m4a"
+   ],
+   "q": [
+    "riki_q_1.m4a"
+   ],
+   "w": [
+    "riki_w_1.m4a"
+   ]
+  },
+  "ringmaster": {
+   "e": [
+    "ringmaster_e_1.m4a"
+   ],
+   "q": [],
+   "r": [],
+   "w": [
+    "ringmaster_w_1.m4a"
+   ]
+  },
+  "rubick": {
+   "q": [
+    "rubick_q_1.m4a"
+   ],
+   "r": [
+    "rubick_r_1.m4a"
+   ],
+   "w": [
+    "rubick_w_1.m4a"
+   ]
+  },
+  "sand_king": {
+   "r": [
+    "sand_king_r_1.m4a"
+   ],
+   "w": [
+    "sand_king_w_1.m4a"
+   ]
+  },
+  "shadow_demon": {
+   "e": [
+    "shadow_demon_e_1.m4a"
+   ],
+   "q": [
+    "shadow_demon_q_1.m4a"
+   ],
+   "r": [
+    "shadow_demon_r_1.m4a"
+   ],
+   "w": [
+    "shadow_demon_w_1.m4a"
    ]
   },
   "shadow_fiend": {
@@ -1354,77 +1110,522 @@
     "shadow_fiend_r_2.m4a"
    ]
   },
-  "pugna": {
-   "q": [
-    "pugna_q_1.m4a"
-   ],
-   "w": [
-    "pugna_w_1.m4a"
-   ],
+  "shadow_shaman": {
    "e": [
-    "pugna_e_1.m4a"
+    "shadow_shaman_e_1.m4a"
+   ],
+   "q": [
+    "shadow_shaman_q_1.m4a"
    ],
    "r": [
-    "pugna_r_1.m4a"
+    "shadow_shaman_r_1.m4a"
    ]
   },
-  "invoker": {
-   "q": [
-    "invoker_q_1.m4a"
-   ],
-   "w": [
-    "invoker_w_1.m4a"
-   ],
+  "silencer": {
    "e": [
-    "invoker_e_1.m4a",
-    "invoker_e_2.m4a"
+    "silencer_e_1.m4a"
+   ],
+   "q": [
+    "silencer_q_1.m4a"
    ],
    "r": [
-    "invoker_r_1.m4a"
+    "silencer_r_1.m4a"
+   ]
+  },
+  "skywrath_mage": {
+   "e": [
+    "skywrath_mage_e_1.m4a"
+   ],
+   "q": [
+    "skywrath_mage_q_1.m4a"
+   ],
+   "r": [
+    "skywrath_mage_r_1.m4a",
+    "skywrath_mage_r_2.m4a"
+   ],
+   "w": [
+    "skywrath_mage_w_1.m4a"
+   ]
+  },
+  "slardar": {
+   "q": [
+    "slardar_q_1.m4a"
+   ],
+   "r": [
+    "slardar_r_1.m4a"
+   ],
+   "w": [
+    "slardar_w_1.m4a"
+   ]
+  },
+  "slark": {
+   "q": [
+    "slark_q_1.m4a"
+   ],
+   "r": [
+    "slark_r_1.m4a"
+   ],
+   "w": [
+    "slark_w_1.m4a"
+   ]
+  },
+  "snapfire": {
+   "e": [
+    "snapfire_e_1.m4a"
+   ],
+   "q": [
+    "snapfire_q_1.m4a"
+   ],
+   "r": [
+    "snapfire_r_1.m4a",
+    "snapfire_r_2.m4a"
+   ],
+   "w": [
+    "snapfire_w_1.m4a"
+   ]
+  },
+  "sniper": {
+   "q": [
+    "sniper_q_1.m4a"
+   ],
+   "r": [
+    "sniper_r_1.m4a",
+    "sniper_r_2.m4a"
+   ]
+  },
+  "spectre": {
+   "q": [
+    "spectre_q_1.m4a"
+   ],
+   "r": [
+    "spectre_r_1.m4a",
+    "spectre_r_2.m4a"
+   ]
+  },
+  "spirit_breaker": {
+   "q": [
+    "spirit_breaker_q_1.m4a"
+   ],
+   "r": [
+    "spirit_breaker_r_1.m4a"
+   ],
+   "w": [
+    "spirit_breaker_w_1.m4a"
+   ]
+  },
+  "storm_spirit": {
+   "e": [
+    "storm_spirit_e_1.m4a"
+   ],
+   "q": [
+    "storm_spirit_q_1.m4a"
+   ],
+   "r": [
+    "storm_spirit_r_1.m4a"
+   ],
+   "w": [
+    "storm_spirit_w_1.m4a"
+   ]
+  },
+  "sven": {
+   "e": [
+    "sven_e_1.m4a"
+   ],
+   "q": [
+    "sven_q_1.m4a",
+    "sven_q_2.m4a"
+   ],
+   "r": [
+    "sven_r_1.m4a"
+   ]
+  },
+  "techies": {
+   "e": [
+    "techies_e_1.m4a"
+   ],
+   "q": [
+    "techies_q_1.m4a"
+   ],
+   "r": [
+    "techies_r_1.m4a",
+    "techies_r_2.m4a"
+   ],
+   "w": [
+    "techies_w_1.m4a"
+   ]
+  },
+  "templar_assassin": {
+   "q": [
+    "templar_assassin_q_1.m4a"
+   ],
+   "r": [
+    "templar_assassin_r_1.m4a",
+    "templar_assassin_r_2.m4a"
+   ],
+   "w": [
+    "templar_assassin_w_1.m4a"
+   ]
+  },
+  "terrorblade": {
+   "e": [
+    "terrorblade_e_1.m4a"
+   ],
+   "q": [
+    "terrorblade_q_1.m4a"
+   ],
+   "r": [
+    "terrorblade_r_1.m4a"
+   ],
+   "w": [
+    "terrorblade_w_1.m4a"
    ]
   },
   "tidehunter": {
-   "q": [
-    "tidehunter_q_1.m4a"
-   ],
-   "w": [
-    "tidehunter_w_1.m4a"
-   ],
    "e": [
     "tidehunter_e_1.m4a"
    ],
+   "q": [
+    "tidehunter_q_1.m4a"
+   ],
    "r": [
     "tidehunter_r_1.m4a"
-   ]
-  },
-  "mirana": {
-   "q": [
-    "mirana_q_1.m4a"
    ],
    "w": [
-    "mirana_w_1.m4a"
-   ],
-   "e": [
-    "mirana_e_1.m4a",
-    "mirana_e_2.m4a"
-   ],
-   "r": [
-    "mirana_r_1.m4a"
+    "tidehunter_w_1.m4a"
    ]
   },
-  "clinkz": {
+  "timbersaw": {
    "q": [
-    "clinkz_q_1.m4a"
-   ],
-   "e": [
-    "clinkz_e_1.m4a"
+    "timbersaw_q_1.m4a"
    ],
    "r": [
-    "clinkz_r_1.m4a"
+    "timbersaw_r_1.m4a"
+   ],
+   "w": [
+    "timbersaw_w_1.m4a"
+   ]
+  },
+  "tinker": {
+   "e": [
+    "tinker_e_1.m4a"
+   ],
+   "q": [
+    "tinker_q_1.m4a"
+   ],
+   "r": [
+    "tinker_r_1.m4a"
+   ],
+   "w": [
+    "tinker_w_1.m4a"
+   ]
+  },
+  "tiny": {
+   "e": [
+    "tiny_e_1.m4a"
+   ],
+   "q": [
+    "tiny_q_1.m4a"
+   ],
+   "r": [
+    "tiny_r_1.m4a"
+   ],
+   "w": [
+    "tiny_w_1.m4a"
+   ]
+  },
+  "treant": {
+   "e": [
+    "treant_e_1.m4a"
+   ],
+   "q": [
+    "treant_q_1.m4a"
+   ],
+   "r": [
+    "treant_r_1.m4a"
+   ],
+   "w": [
+    "treant_w_1.m4a"
+   ]
+  },
+  "troll_warlord": {
+   "q": [
+    "troll_warlord_q_1.m4a"
+   ],
+   "r": [
+    "troll_warlord_r_1.m4a"
+   ],
+   "w": [
+    "troll_warlord_w_1.m4a"
+   ]
+  },
+  "tusk": {
+   "e": [],
+   "q": [
+    "tusk_q_1.m4a"
+   ],
+   "r": [
+    "tusk_r_1.mp3",
+    "tusk_r_2.m4a"
+   ],
+   "w": [
+    "tusk_w_1.m4a"
+   ]
+  },
+  "underlord": {
+   "q": [
+    "underlord_q_1.m4a"
+   ],
+   "r": [
+    "underlord_r_1.m4a"
+   ],
+   "w": [
+    "underlord_w_1.m4a"
+   ]
+  },
+  "undying": {
+   "e": [
+    "undying_e_1.m4a"
+   ],
+   "q": [
+    "undying_q_1.m4a"
+   ],
+   "r": [
+    "undying_r_1.m4a"
+   ],
+   "w": [
+    "undying_w_1.m4a"
+   ]
+  },
+  "ursa": {
+   "q": [
+    "ursa_q_1.m4a"
+   ],
+   "r": [
+    "ursa_r_1.m4a"
+   ],
+   "w": [
+    "ursa_w_1.m4a"
+   ]
+  },
+  "vengeful_spirit": {
+   "q": [
+    "vengeful_spirit_q_1.m4a"
+   ],
+   "r": [
+    "vengeful_spirit_r_1.m4a"
+   ],
+   "w": [
+    "vengeful_spirit_w_1.m4a"
+   ]
+  },
+  "venomancer": {
+   "e": [
+    "venomancer_e_1.m4a"
+   ],
+   "q": [
+    "venomancer_q_1.m4a"
+   ],
+   "r": [
+    "venomancer_r_1.m4a"
+   ]
+  },
+  "viper": {
+   "r": [
+    "viper_r_1.m4a"
+   ],
+   "w": [
+    "viper_w_1.m4a"
+   ]
+  },
+  "visage": {
+   "q": [
+    "visage_q_1.m4a"
+   ],
+   "r": [
+    "visage_r_1.m4a"
+   ],
+   "w": [
+    "visage_w_1.m4a"
+   ]
+  },
+  "void_spirit": {
+   "e": [
+    "void_spirit_e_1.m4a"
+   ],
+   "q": [
+    "void_spirit_q_1.m4a"
+   ],
+   "r": [
+    "void_spirit_r_1.m4a"
+   ],
+   "w": [
+    "void_spirit_w_1.m4a"
+   ]
+  },
+  "warlock": {
+   "e": [
+    "warlock_e_1.m4a"
+   ],
+   "q": [
+    "warlock_q_1.m4a"
+   ],
+   "r": [
+    "warlock_r_1.m4a"
+   ],
+   "w": [
+    "warlock_w_1.m4a"
+   ]
+  },
+  "weaver": {
+   "q": [
+    "weaver_q_1.m4a"
+   ],
+   "r": [
+    "weaver_r_1.m4a"
+   ],
+   "w": [
+    "weaver_w_1.m4a"
+   ]
+  },
+  "windranger": {
+   "e": [
+    "windranger_e_1.m4a"
+   ],
+   "q": [
+    "windranger_q_1.m4a",
+    "windranger_q_2.m4a"
+   ],
+   "r": [
+    "windranger_r_1.m4a"
+   ],
+   "w": [
+    "windranger_w_1.m4a",
+    "windranger_w_2.m4a"
+   ]
+  },
+  "winter_wyvern": {
+   "e": [
+    "winter_wyvern_e_1.m4a"
+   ],
+   "r": [
+    "winter_wyvern_r_1.m4a"
+   ],
+   "w": [
+    "winter_wyvern_w_1.m4a"
+   ]
+  },
+  "witch_doctor": {
+   "e": [
+    "witch_doctor_e_1.m4a"
+   ],
+   "q": [
+    "witch_doctor_q_1.m4a",
+    "witch_doctor_q_2.m4a"
+   ],
+   "r": [
+    "witch_doctor_r_1.m4a"
+   ],
+   "w": [
+    "witch_doctor_w_1.m4a"
+   ]
+  },
+  "wraith_king": {
+   "e": [
+    "wraith_king_e_1.m4a"
+   ],
+   "q": [
+    "wraith_king_q_1.m4a"
+   ],
+   "r": [
+    "wraith_king_r_1.m4a"
+   ]
+  },
+  "zeus": {
+   "e": [
+    "zeus_e_1.m4a"
+   ],
+   "q": [
+    "zeus_q_1.m4a"
+   ],
+   "r": [
+    "zeus_r_1.m4a"
+   ],
+   "w": [
+    "zeus_w_1.m4a"
    ]
   }
  },
  "enemies": {
+  "_generic": {
+   "attack": [
+    "_generic_attack_1.m4a",
+    "_generic_attack_2.m4a",
+    "_generic_attack_3.m4a",
+    "_generic_attack_4.m4a"
+   ],
+   "death": [
+    "_generic_death_1.m4a",
+    "_generic_death_2.m4a"
+   ]
+  },
+  "centaur": {
+   "attack": [
+    "centaur_attack_1.m4a",
+    "centaur_attack_2.m4a"
+   ],
+   "death": [
+    "centaur_death_1.m4a",
+    "centaur_death_2.m4a"
+   ]
+  },
+  "dark_troll": {
+   "attack": [
+    "dark_troll_attack_1.m4a",
+    "dark_troll_attack_2.m4a",
+    "dark_troll_attack_3.m4a",
+    "dark_troll_attack_4.m4a"
+   ],
+   "death": [
+    "dark_troll_death_1.m4a"
+   ]
+  },
+  "golem": {
+   "attack": [
+    "golem_attack_1.m4a",
+    "golem_attack_2.m4a",
+    "golem_attack_3.m4a"
+   ],
+   "death": [
+    "golem_death_1.m4a",
+    "golem_death_2.m4a",
+    "golem_death_3.m4a"
+   ]
+  },
+  "hellbear": {
+   "attack": [
+    "hellbear_attack_1.m4a",
+    "hellbear_attack_2.m4a",
+    "hellbear_attack_3.m4a"
+   ],
+   "death": [
+    "hellbear_death_1.m4a",
+    "hellbear_death_2.m4a"
+   ]
+  },
+  "hill_troll": {
+   "attack": [
+    "hill_troll_attack_1.m4a",
+    "hill_troll_attack_2.m4a",
+    "hill_troll_attack_3.m4a",
+    "hill_troll_attack_4.m4a"
+   ],
+   "death": [
+    "hill_troll_death_1.m4a",
+    "hill_troll_death_2.m4a",
+    "hill_troll_death_3.m4a",
+    "hill_troll_death_4.m4a"
+   ]
+  },
   "kobold": {
    "attack": [
     "kobold_attack_1.m4a",
@@ -1446,46 +1647,11 @@
     "kobold_foreman_death_1.m4a"
    ]
   },
-  "hill_troll": {
+  "lane_creep": {
    "attack": [
-    "hill_troll_attack_1.m4a",
-    "hill_troll_attack_2.m4a",
-    "hill_troll_attack_3.m4a",
-    "hill_troll_attack_4.m4a"
-   ],
-   "death": [
-    "hill_troll_death_1.m4a",
-    "hill_troll_death_2.m4a",
-    "hill_troll_death_3.m4a",
-    "hill_troll_death_4.m4a"
-   ]
-  },
-  "dark_troll": {
-   "attack": [
-    "dark_troll_attack_1.m4a",
-    "dark_troll_attack_2.m4a",
-    "dark_troll_attack_3.m4a",
-    "dark_troll_attack_4.m4a"
-   ],
-   "death": [
-    "dark_troll_death_1.m4a"
-   ]
-  },
-  "satyr": {
-   "attack": [
-    "satyr_attack_1.m4a",
-    "satyr_attack_2.m4a",
-    "satyr_attack_3.m4a",
-    "satyr_attack_4.m4a"
-   ],
-   "death": [
-    "satyr_death_1.m4a",
-    "satyr_death_2.m4a",
-    "satyr_death_3.m4a",
-    "satyr_death_4.m4a"
-   ],
-   "aggro": [
-    "satyr_aggro_1.m4a"
+    "lane_creep_attack_1.m4a",
+    "lane_creep_attack_2.m4a",
+    "lane_creep_attack_3.m4a"
    ]
   },
   "ogre": {
@@ -1501,14 +1667,44 @@
     "ogre_death_4.m4a"
    ]
   },
-  "centaur": {
+  "roshan": {
+   "aggro": [
+    "roshan_aggro_1.m4a",
+    "roshan_aggro_2.m4a",
+    "roshan_aggro_3.m4a",
+    "roshan_aggro_4.m4a"
+   ],
    "attack": [
-    "centaur_attack_1.m4a",
-    "centaur_attack_2.m4a"
+    "roshan_attack_1.m4a",
+    "roshan_attack_2.m4a",
+    "roshan_attack_3.m4a",
+    "roshan_attack_4.m4a"
+   ]
+  },
+  "satyr": {
+   "aggro": [
+    "satyr_aggro_1.m4a"
+   ],
+   "attack": [
+    "satyr_attack_1.m4a",
+    "satyr_attack_2.m4a",
+    "satyr_attack_3.m4a",
+    "satyr_attack_4.m4a"
    ],
    "death": [
-    "centaur_death_1.m4a",
-    "centaur_death_2.m4a"
+    "satyr_death_1.m4a",
+    "satyr_death_2.m4a",
+    "satyr_death_3.m4a",
+    "satyr_death_4.m4a"
+   ]
+  },
+  "siege_creep": {
+   "aggro": [
+    "siege_creep_aggro_1.m4a"
+   ],
+   "attack": [
+    "siege_creep_attack_1.m4a",
+    "siege_creep_attack_2.m4a"
    ]
   },
   "wildwing": {
@@ -1523,108 +1719,12 @@
     "wildwing_death_2.m4a",
     "wildwing_death_3.m4a"
    ]
-  },
-  "hellbear": {
-   "attack": [
-    "hellbear_attack_1.m4a",
-    "hellbear_attack_2.m4a",
-    "hellbear_attack_3.m4a"
-   ],
-   "death": [
-    "hellbear_death_1.m4a",
-    "hellbear_death_2.m4a"
-   ]
-  },
-  "golem": {
-   "attack": [
-    "golem_attack_1.m4a",
-    "golem_attack_2.m4a",
-    "golem_attack_3.m4a"
-   ],
-   "death": [
-    "golem_death_1.m4a",
-    "golem_death_2.m4a",
-    "golem_death_3.m4a"
-   ]
-  },
-  "lane_creep": {
-   "attack": [
-    "lane_creep_attack_1.m4a",
-    "lane_creep_attack_2.m4a",
-    "lane_creep_attack_3.m4a"
-   ]
-  },
-  "siege_creep": {
-   "attack": [
-    "siege_creep_attack_1.m4a",
-    "siege_creep_attack_2.m4a"
-   ],
-   "aggro": [
-    "siege_creep_aggro_1.m4a"
-   ]
-  },
-  "roshan": {
-   "attack": [
-    "roshan_attack_1.m4a",
-    "roshan_attack_2.m4a",
-    "roshan_attack_3.m4a",
-    "roshan_attack_4.m4a"
-   ],
-   "aggro": [
-    "roshan_aggro_1.m4a",
-    "roshan_aggro_2.m4a",
-    "roshan_aggro_3.m4a",
-    "roshan_aggro_4.m4a"
-   ]
-  },
-  "_generic": {
-   "attack": [
-    "_generic_attack_1.m4a",
-    "_generic_attack_2.m4a",
-    "_generic_attack_3.m4a",
-    "_generic_attack_4.m4a"
-   ],
-   "death": [
-    "_generic_death_1.m4a",
-    "_generic_death_2.m4a"
-   ]
   }
  },
- "ui": {
-  "levelup": [
-   "levelup_1.m4a"
-  ],
-  "abilitylevel": [
-   "abilitylevel_1.m4a"
-  ],
-  "coins": [
-   "coins_1.m4a"
-  ],
-  "buy": [
-   "buy_1.m4a"
-  ],
-  "lasthit": [
-   "lasthit_1.m4a"
-  ],
-  "itemPickup": [
-   "itemPickup_1.m4a"
-  ],
-  "rune": [
-   "rune_1.m4a",
-   "rune_2.m4a",
-   "rune_3.m4a"
-  ],
-  "heroPicked": [
-   "heroPicked_1.m4a"
-  ],
-  "deny": [
-   "deny_1.m4a"
-  ],
-  "aegis": [
-   "aegis_1.m4a"
-  ]
- },
  "fx": {
+  "chain": [
+   "chain_1.m4a"
+  ],
   "crit": [
    "crit_1.m4a",
    "crit_2.m4a",
@@ -1637,8 +1737,8 @@
    "frostShatter_1.m4a",
    "frostShatter_2.m4a"
   ],
-  "chain": [
-   "chain_1.m4a"
+  "nova": [
+   "nova_1.m4a"
   ],
   "radianceLoop": [
    "radianceLoop_1.m4a"
@@ -1651,11 +1751,42 @@
    "whoosh_2.m4a",
    "whoosh_3.m4a"
   ],
-  "nova": [
-   "nova_1.m4a"
-  ],
   "zap": [
    "zap_1.m4a"
+  ]
+ },
+ "ui": {
+  "abilitylevel": [
+   "abilitylevel_1.m4a"
+  ],
+  "aegis": [
+   "aegis_1.m4a"
+  ],
+  "buy": [
+   "buy_1.m4a"
+  ],
+  "coins": [
+   "coins_1.m4a"
+  ],
+  "deny": [
+   "deny_1.m4a"
+  ],
+  "heroPicked": [
+   "heroPicked_1.m4a"
+  ],
+  "itemPickup": [
+   "itemPickup_1.m4a"
+  ],
+  "lasthit": [
+   "lasthit_1.m4a"
+  ],
+  "levelup": [
+   "levelup_1.m4a"
+  ],
+  "rune": [
+   "rune_1.m4a",
+   "rune_2.m4a",
+   "rune_3.m4a"
   ]
  }
 }
