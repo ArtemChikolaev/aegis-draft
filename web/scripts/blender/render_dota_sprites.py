@@ -111,7 +111,7 @@ def pick_action(actions, key, strict=False):
         # Valve называет клипы каста по способности, а не «cast»: у Shadow Fiend это `nevermore_Requiem`
         # и `nevermore_Shadowraze_1`, у Naga — `siren_song`. Ряд `cast` нужен всем героям (рендерер
         # проигрывает его на событие каста), поэтому берём любой клип, который не из служебного набора.
-        skip = ("idle", "run", "walk", "attack", "death", "loadout", "portrait", "turn", "spawn", "stun",
+        skip = ("bindpose", "idle", "run", "walk", "attack", "death", "loadout", "portrait", "turn", "spawn", "stun",
                 "flail", "victory", "defeat", "taunt", "teleport", "capture", "cloth", "gesture", "look",
                 "injured", "haste", "_alt", "rare", "effigy", "debut", "workshop", "_mm", "bp_", "loop",
                 "sleep", "hover", "blend", "transition", "slide", "shape", "physics", "dropped", "_fx")
