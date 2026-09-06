@@ -31,6 +31,7 @@ def parse_args():
     p.add_argument("--world", type=int, default=84, help="желаемая высота спрайта в игровых px (мета)")
     p.add_argument("--anims", default="walk=run,idle=idle,attack=attack,death=death")
     p.add_argument("--pitch", type=float, default=45.0, help="высота камеры над горизонтом, градусов (90 = строго сверху; 45 читается как RTS/DMD)")
+    p.add_argument("--hide-base", action="store_true", help="скрыть меши основной модели и оставить только части: скелет и анимации берём у героя, а вид — у арканы (её собственный item-glb часто без клипов ходьбы, и герой «скользил»)")
     p.add_argument("--parts", default="", help="доп. glb через запятую (штаны/маска/оружие героя Dota): их меши пришиваются к скелету основной модели по именам костей")
     p.add_argument("--no-root-lock", action="store_true", help="не гасить смещение корневой кости (root motion) в анимациях")
     p.add_argument("--yaw-offset", type=float, default=0.0, help="поворот направления 0 (модели Source 2 из VRF уже смотрят в камеру)")
@@ -54,20 +55,28 @@ def import_glb(path):
     return [o for o in bpy.data.objects if o not in before]
 
 def pick_action(actions, key, strict=False):
-    """Точное имя → иначе самое короткое имя с подстрокой. Служебные клипы Source 2 («@run» — слои
-    поворотов/скорости, portrait, loadout, turns, versus) в кандидаты не идут: они короче и обманывают выбор."""
+    """Точное имя → иначе лучший по подстроке. Служебные клипы Source 2 не выкидываем жёстко, а штрафуем:
+    у item-моделей аркан ВСЕ клипы идут с префиксом `@` («@arcana_run_anim», «@arc_run_haste»), и жёсткий
+    фильтр обнулял кандидатов — выбор сваливался в «что угодно с подстрокой» и брал скольжение на скорости
+    (владелец 2026-09-06: «аркана Drow не ходит, а скользит по полу»)."""
     key = key.lower()
     exact = [a for a in actions if a.name.lower() == key]
     if exact:
         return exact[0]
-    junk = ("portrait", "loadout", "turns", "versus", "lookframe", "_faces_dup", "spawn", "taunt", "arcana", "_cc_20", "haste", "injured", "showoff", "_alt", "basher", "ward", "pact", "effigy", "channel")
-    candidates = [a for a in actions if key in a.name.lower() and not a.name.startswith("@") and not any(j in a.name.lower() for j in junk)]
-    if not candidates and not strict:
-        candidates = [a for a in actions if key in a.name.lower()]
-    if not candidates:
+    # Совсем не про движение — эти в кандидаты не идут никогда.
+    hard = ("portrait", "loadout", "lookframe", "_faces_dup", "_cc_20", "basher", "ward", "pact", "effigy", "channel", "debut")
+    # Вариации той же анимации: годятся, но только если ничего лучше нет.
+    soft = ("haste", "injured", "showoff", "_alt", "versus", "turns", "taunt", "spawn", "agg", "green", "copy", "slide", "gesture", "sidestep", "loop_end", "_end", "_to_", "stop", "start", "heavy", "rare", "custom")
+    def score(a):
+        n = a.name.lower()
+        return (sum(1 for t in soft if t in n), n.startswith("@"), not n.startswith(key), len(n))
+    cands = [a for a in actions if key in a.name.lower() and not any(h in a.name.lower() for h in hard)]
+    if not cands and not strict:
+        cands = [a for a in actions if key in a.name.lower()]
+    if not cands:
         return None
-    candidates.sort(key=lambda a: (not a.name.lower().startswith(key), len(a.name)))
-    return candidates[0]
+    cands.sort(key=score)
+    return cands[0]
 
 def setup_render(size, samples, pixel=False, outline=1.0, light=1.0):
     scene = bpy.context.scene
@@ -215,6 +224,7 @@ def main():
                 keep.append(o)
         return keep
     objs = drop_junk(objs)
+    base_meshes = [o for o in objs if o.type == "MESH"]
     # Части героя (в Dota штаны/маска/оружие — отдельные модели со своим скелетом). Пересаживать их меши
     # на скелет тела нельзя: у тела кости, к которым не привязан ни один вершинный вес (например sword_1),
     # экспортируются с вырожденной позой покоя, и меч уезжает от руки. Поэтому часть оставляет свой скелет
@@ -244,6 +254,13 @@ def main():
             print(f"WARN: у части {os.path.basename(part)} кости без пары в теле (пойдут за родителем): {missing[:6]}")
         objs.extend(pobjs)
         print("attached part:", os.path.basename(part), "bones", sum(len(pa.pose.bones) for pa in part_arms))
+    if a.hide_base:
+        # Скелет и анимации берём у героя, а показываем только надетые части (аркана целиком заменяет тело).
+        for o in base_meshes:
+            if o.name in bpy.data.objects:
+                bpy.data.objects.remove(o, do_unlink=True)
+        objs = [o for o in objs if o not in base_meshes]
+        print(f"hide-base: убрано мешей тела {len(base_meshes)}")
     if a.pixel:
         # Workbench в режиме TEXTURE берёт АКТИВНЫЙ узел-картинку материала; у материалов Dota первым идёт
         # detailmask/normal (чёрный силуэт) — делаем активной текстуру цвета (*_color*).
