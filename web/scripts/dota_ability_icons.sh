@@ -54,6 +54,14 @@ viper viper poison_attack nethertoxin corrosive_skin viper_strike
 ogre_magi ogre_magi fireblast ignite bloodlust multicast
 huskar huskar inner_fire burning_spear berserkers_blood life_break
 slardar slardar sprint slithereen_crush bash amplify_damage
+tiny tiny avalanche toss tree_grab grow
+spectre spectre spectral_dagger desolate dispersion haunt
+chaos_knight chaos_knight chaos_bolt reality_rift chaos_strike phantasm
+night_stalker night_stalker void crippling_fear hunter_in_the_night darkness
+doom doom_bringer devour scorched_earth infernal_blade doom
+legion_commander legion_commander overwhelming_odds press_the_attack moment_of_courage duel
+templar_assassin templar_assassin refraction meld psi_blades psionic_trap
+medusa medusa split_shot mystic_snake mana_shield stone_gaze
 '
 missing=""
 while read -r id dota q w e r; do

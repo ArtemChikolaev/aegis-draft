@@ -42,6 +42,7 @@ const IMPACT: Record<string, "blade" | "heavy" | "blunt" | "light" | "none"> = {
   zeus: "light", windranger: "light", storm_spirit: "light", leshrac: "light", shadow_fiend: "light", invoker: "light", mirana: "light", clinkz: "light",
   wraith_king: "heavy", dragon_knight: "heavy", kunkka: "blade", necrophos: "light", razor: "light", venomancer: "light", witch_doctor: "light", luna: "light",
   earthshaker: "heavy", bloodseeker: "blade", riki: "blade", queen_of_pain: "light", viper: "light", ogre_magi: "blunt", huskar: "light", slardar: "blunt",
+  tiny: "heavy", spectre: "blade", chaos_knight: "heavy", night_stalker: "blunt", doom: "heavy", legion_commander: "blade", templar_assassin: "light", medusa: "light",
 };
 
 /** Удар героя: true — сыграли сэмпл Dota (или он на подходе), false — клипов нет, играй синтетику. Не чаще раза в 45 мс. */

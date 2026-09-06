@@ -686,19 +686,22 @@ export class ArcadeSim {
       const t = this.nearestEnemy(p.wardX, p.wardY, H[dwKey].radius ?? 200);
       if (t) { this.damageEnemy(t, H[dwKey].value[p.abilities[dwKey]], "zap"); this.pushFx("zap", p.wardX, p.wardY - 30, t.x, t.y, 6); }
     }
-    // Static Remnant (Storm): мина взрывается, когда враг подошёл.
-    if (this.tick < p.zoneUntil && H.q.kind === "remnant") {
-      const r = H.q.radius ?? 130;
+    // Static Remnant (Storm): мина взрывается, когда враг подошёл. Слот — любой (Doom: Scorched Earth в W).
+    const remKey = ABILITY_KEYS.find((k) => H[k].kind === "remnant");
+    if (remKey && this.tick < p.zoneUntil) {
+      const r = H[remKey].radius ?? 130;
       if (this.countEnemiesWithin(p.zoneX, p.zoneY, r * 0.55) > 0) {
-        for (const e of this.enemiesWithin(p.zoneX, p.zoneY, r)) this.damageEnemy(e, H.q.value[p.abilities.q], "zap");
+        for (const e of this.enemiesWithin(p.zoneX, p.zoneY, r)) this.damageEnemy(e, H[remKey].value[p.abilities[remKey]], "zap");
         this.pushFx("nova", p.zoneX, p.zoneY, r, 0, 12);
         p.zoneUntil = 0;
       }
     }
-    // Diabolic Edict (Leshrac): случайные разряды по врагам вокруг героя.
-    if (this.tick < p.zoneUntil && H.w.kind === "edict" && this.tick % 8 === 0) {
-      const around = this.enemiesWithin(p.x, p.y, H.w.radius ?? 260);
-      if (around.length > 0) { const e = around[this.rng.int(around.length)]; this.damageEnemy(e, H.w.value[p.abilities.w], "burst"); this.pushFx("burst", e.x, e.y, 24, 0, 8); }
+    // Diabolic Edict (Leshrac) / Eye of the Storm (Razor R) / Haunt (Spectre R): случайные разряды по врагам вокруг героя.
+    // Раньше проверялся только слот W — ульт Razor молчал (2026-09-06).
+    const edKey = ABILITY_KEYS.find((k) => H[k].kind === "edict");
+    if (edKey && this.tick < p.zoneUntil && this.tick % 8 === 0) {
+      const around = this.enemiesWithin(p.x, p.y, H[edKey].radius ?? 260);
+      if (around.length > 0) { const e = around[this.rng.int(around.length)]; this.damageEnemy(e, H[edKey].value[p.abilities[edKey]], "burst"); this.pushFx("burst", e.x, e.y, 24, 0, 8); }
     }
     // Life Drain / Mana Drain: канал по цели с лечением.
     if (this.tick < p.drainUntil && this.tick % 6 === 0) {

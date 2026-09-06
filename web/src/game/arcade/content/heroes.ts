@@ -14,7 +14,9 @@ export type TemplateHeroId =
   // Волна 2 (2026-09-06, владелец: «по итогу нужны абсолютно все персонажи»): киты из тех же видов + Reincarnation.
   | "wraith_king" | "dragon_knight" | "kunkka" | "necrophos" | "razor" | "venomancer" | "witch_doctor" | "luna"
   // Волна 3: новые виды rupture/corrosive/berserk_blood и пассивки aftershock/multicast/backstab/thirst.
-  | "earthshaker" | "bloodseeker" | "riki" | "queen_of_pain" | "viper" | "ogre_magi" | "huskar" | "slardar";
+  | "earthshaker" | "bloodseeker" | "riki" | "queen_of_pain" | "viper" | "ogre_magi" | "huskar" | "slardar"
+  // Волна 4.
+  | "tiny" | "spectre" | "chaos_knight" | "night_stalker" | "doom" | "legion_commander" | "templar_assassin" | "medusa";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -23,6 +25,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "faceless_void", "ursa", "lion", "shadow_fiend", "pugna", "invoker", "tidehunter", "mirana", "clinkz",
   "wraith_king", "dragon_knight", "kunkka", "necrophos", "razor", "venomancer", "witch_doctor", "luna",
   "earthshaker", "bloodseeker", "riki", "queen_of_pain", "viper", "ogre_magi", "huskar", "slardar",
+  "tiny", "spectre", "chaos_knight", "night_stalker", "doom", "legion_commander", "templar_assassin", "medusa",
 ];
 
 export type AbilityKind =
@@ -348,6 +351,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: SIG,                                                                                              // Bash of the Deep
     r: { kind: "corrosive", value: [0, 0.3, 0.45, 0.6], cooldown: 30, radius: 340, duration: 10 },       // Corrosive Haze
   }, { kind: "timelock", value: 0.18, duration: 0.5 }),
+  // ---- Волна 4 ----
+  tiny: hero("tiny", 19, "tiny", false, { maxHp: 800, armor: 3, damage: 30, speed: 150, regen: 2, attackInterval: 1.15 }, {
+    q: { kind: "line_burst", value: [0, 110, 165, 220, 275], cooldown: 10, radius: 140, count: [0, 1, 1, 1, 1], duration: 1.2 }, // Avalanche
+    w: { kind: "gust", value: [0, 90, 140, 190, 240], cooldown: 12, radius: 220, duration: 1.5 },        // Toss
+    e: SIG,                                                                                              // Tree Grab
+    r: { kind: "armor_passive", value: [0, 6, 9, 12], cooldown: 0, passive: true },                      // Grow
+  }, { kind: "cleave", value: 0.5, radius: 95 }),
+  spectre: hero("spectre", 67, "spectre", false, { maxHp: 680, armor: 5, damage: 27, speed: 172, regen: 2 }, {
+    q: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 320, duration: 3 },             // Spectral Dagger
+    w: { kind: "crit", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },                  // Desolate
+    e: SIG,                                                                                              // Dispersion
+    r: { kind: "edict", value: [0, 80, 120, 160], cooldown: 50, duration: 8, radius: 420 },              // Haunt
+  }, { kind: "quill", value: 14, radius: 160 }),
+  chaos_knight: hero("chaos_knight", 81, "chaos_knight", false, { maxHp: 740, armor: 4, damage: 30, speed: 164, regen: 2 }, {
+    q: { kind: "lightning_bolt", value: [0, 80, 130, 180, 230], cooldown: 9, radius: 320, duration: 2.0 }, // Chaos Bolt
+    w: { kind: "dash", value: [0, 60, 90, 120, 150], cooldown: 9, radius: 300 },                          // Reality Rift
+    e: { kind: "crit", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 0, passive: true },                  // Chaos Strike
+    r: { kind: "rage", value: [0, 0.8, 1.1, 1.4], cooldown: 60, duration: 10 },                          // Phantasm
+  }),
+  night_stalker: hero("night_stalker", 60, "night_stalker", false, { maxHp: 800, armor: 5, damage: 29, speed: 178, regen: 3 }, {
+    q: { kind: "goo", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 320, duration: 3 },            // Void
+    w: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 8, radius: 320, duration: 3 },            // Crippling Fear
+    e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 18, duration: 8 },                  // Hunter in the Night
+    r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 12 },                      // Dark Ascension
+  }),
+  doom: hero("doom", 69, "doom_bringer", false, { maxHp: 780, armor: 4, damage: 28, speed: 156, regen: 3 }, {
+    q: { kind: "life_drain", value: [0, 20, 28, 36, 44], cooldown: 14, radius: 300, duration: 5 },        // Devour
+    w: { kind: "remnant", value: [0, 90, 140, 190, 240], cooldown: 16, radius: 170 },                    // Scorched Earth
+    e: { kind: "searing", value: [0, 12, 18, 24, 30], cooldown: 0, passive: true },                      // Infernal Blade
+    r: { kind: "assassinate", value: [0, 420, 660, 900], cooldown: 60, radius: 340 },                    // Doom
+  }),
+  legion_commander: hero("legion_commander", 104, "legion_commander", false, { maxHp: 620, armor: 3, damage: 24, speed: 164, regen: 2 }, {
+    q: { kind: "nova", value: [0, 60, 100, 140, 180], cooldown: 9, radius: 300, duration: 1.0 },          // Overwhelming Odds
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Press the Attack
+    e: SIG,                                                                                              // Moment of Courage
+    r: { kind: "assassinate", value: [0, 300, 470, 640], cooldown: 70, radius: 300 },                    // Duel
+  }, { kind: "vampiric", value: 0.06 }),
+  templar_assassin: hero("templar_assassin", 46, "templar_assassin", true, { maxHp: 560, armor: 3, damage: 26, speed: 168, range: 250 }, {
+    q: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 15, duration: 6 },                        // Refraction
+    w: { kind: "dash", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 280 },                       // Meld
+    e: SIG,                                                                                              // Psi Blades
+    r: { kind: "damage_ward", value: [0, 60, 90, 120], cooldown: 45, duration: 10, radius: 320 },         // Psionic Trap
+  }, { kind: "cleave", value: 0.5, radius: 120 }),
+  medusa: hero("medusa", 94, "medusa", true, { maxHp: 560, armor: 3, damage: 22, speed: 158, range: 330 }, {
+    q: { kind: "multishot", value: [0, 25, 35, 45, 55], cooldown: 7, radius: 360, count: [0, 3, 4, 5, 6] }, // Split Shot
+    w: { kind: "arc_lightning", value: [0, 70, 105, 140, 175], cooldown: 8, radius: 320, count: [0, 3, 4, 5, 6] }, // Mystic Snake
+    e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Mana Shield
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 400, duration: 2.5 },            // Stone Gaze
+  }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };

@@ -415,6 +415,97 @@
     "slardar_r_1.m4a"
    ]
   },
+  "tiny": {
+   "q": [
+    "tiny_q_1.m4a"
+   ],
+   "w": [
+    "tiny_w_1.m4a"
+   ],
+   "e": [
+    "tiny_e_1.m4a"
+   ],
+   "r": [
+    "tiny_r_1.m4a"
+   ]
+  },
+  "spectre": {
+   "q": [
+    "spectre_q_1.m4a"
+   ],
+   "r": [
+    "spectre_r_1.m4a",
+    "spectre_r_2.m4a"
+   ]
+  },
+  "chaos_knight": {
+   "q": [
+    "chaos_knight_q_1.m4a"
+   ],
+   "w": [
+    "chaos_knight_w_1.m4a"
+   ],
+   "r": [
+    "chaos_knight_r_1.m4a"
+   ]
+  },
+  "night_stalker": {
+   "q": [
+    "night_stalker_q_1.m4a"
+   ],
+   "w": [
+    "night_stalker_w_1.m4a"
+   ],
+   "r": [
+    "night_stalker_r_1.m4a"
+   ]
+  },
+  "doom": {
+   "q": [
+    "doom_q_1.m4a"
+   ],
+   "w": [
+    "doom_w_1.m4a"
+   ],
+   "r": [
+    "doom_r_1.m4a"
+   ]
+  },
+  "legion_commander": {
+   "q": [
+    "legion_commander_q_1.m4a"
+   ],
+   "w": [
+    "legion_commander_w_1.m4a"
+   ],
+   "r": [
+    "legion_commander_r_1.m4a",
+    "legion_commander_r_2.m4a"
+   ]
+  },
+  "templar_assassin": {
+   "q": [
+    "templar_assassin_q_1.m4a"
+   ],
+   "w": [
+    "templar_assassin_w_1.m4a"
+   ],
+   "r": [
+    "templar_assassin_r_1.m4a",
+    "templar_assassin_r_2.m4a"
+   ]
+  },
+  "medusa": {
+   "q": [
+    "medusa_q_1.m4a"
+   ],
+   "w": [
+    "medusa_w_1.m4a"
+   ],
+   "r": [
+    "medusa_r_1.mp3"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

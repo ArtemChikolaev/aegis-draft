@@ -188,3 +188,19 @@ describe("волна 3 героев (2026-09-06): Rupture, Corrosive Haze, Berse
     expect(doubled).toBeLessThan(30);
   });
 });
+
+
+describe("зоны по виду, а не по слоту (2026-09-06)", () => {
+  it("Eye of the Storm (Razor, edict в слоте R) бьёт врагов вокруг во время действия", () => {
+    const sim = new ArcadeSim("rz-edict", { hero: "razor" });
+    for (let i = 0; i < 60 * 6 && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(IDLE_INPUT); }
+    const p = sim.player;
+    p.abilities.r = 1; p.cooldowns.r = 0;
+    const es = sim.enemies.filter((x) => x.alive).slice(0, 4);
+    for (const e of es) { e.x = p.x + 100; e.y = p.y; e.hp = 1e5; e.maxHp = 1e5; }
+    (sim as unknown as { castAbility(k: string, ab: unknown): void }).castAbility("r", sim.hero.abilities.r);
+    expect(p.zoneUntil).toBeGreaterThan(sim.tick);
+    for (let i = 0; i < 60; i++) { p.hp = 1e6; for (const e of es) { e.x = p.x + 100; e.y = p.y; } sim.step(IDLE_INPUT); }
+    expect(es.some((e) => e.hp < 1e5)).toBe(true);
+  });
+});

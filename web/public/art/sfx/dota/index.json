@@ -38,5 +38,13 @@
   "viper": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
   "ogre_magi": {},
   "huskar": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "slardar": {}
+  "slardar": {},
+  "tiny": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "spectre": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]},
+  "chaos_knight": {},
+  "night_stalker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "doom": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "legion_commander": {},
+  "templar_assassin": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "medusa": {}
 }
