@@ -889,10 +889,10 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "vampiric", value: 0.12 }),
   // ---- Волна 15 (последние семь из датасета; Largo ждёт модель в vpk) ----
   phantom_lancer: hero("phantom_lancer", 12, "phantom_lancer", false, { maxHp: 620, armor: 4, damage: 25, speed: 174 }, {
-    q: { kind: "goo", value: [0, 70, 105, 140, 175], cooldown: 6, radius: 330, duration: 2 },            // Spirit Lance
+    q: { kind: "goo", value: [0, 95, 140, 185, 230], cooldown: 5, radius: 330, duration: 2 },            // Spirit Lance
     w: { kind: "dash", value: [0, 60, 90, 120, 150], cooldown: 11, radius: 320 },                        // Doppelganger
     e: { kind: "haste", value: [0, 0.25, 0.32, 0.4, 0.48], cooldown: 12, duration: 4 },                  // Phantom Rush
-    r: { kind: "damage_ward", value: [0, 26, 36, 46], cooldown: 30, duration: 12, radius: 300, summon: { art: "illusion", count: 3 } }, // Juxtapose
+    r: { kind: "damage_ward", value: [0, 44, 60, 78], cooldown: 26, duration: 14, radius: 320, summon: { art: "illusion", count: 3 } }, // Juxtapose
   }, { kind: "blur", value: 0.22 }),
   lifestealer: hero("lifestealer", 54, "life_stealer", false, { maxHp: 760, armor: 4, damage: 28, speed: 172, regen: 4 }, {
     q: { kind: "rage", value: [0, 0.45, 0.6, 0.75, 0.9], cooldown: 18, duration: 5 },                    // Rage
@@ -907,16 +907,16 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "line_burst", value: [0, 150, 230, 310], cooldown: 22, radius: 380 },                     // Impetus
   }, { kind: "marksmanship", value: 0.3, radius: 220 }),
   chen: hero("chen", 66, "chen", true, { maxHp: 620, armor: 4, damage: 24, speed: 172, range: 300, regen: 4 }, {
-    q: { kind: "goo", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 330, duration: 3 },             // Penitence
-    w: { kind: "damage_ward", value: [0, 26, 36, 46, 56], cooldown: 16, duration: 14, radius: 320, summon: { art: "hellbear", count: 2 } }, // Holy Persuasion
+    q: { kind: "goo", value: [0, 90, 130, 170, 215], cooldown: 6, radius: 330, duration: 3 },            // Penitence
+    w: { kind: "damage_ward", value: [0, 46, 62, 78, 95], cooldown: 14, duration: 16, radius: 340, summon: { art: "hellbear", count: 2 } }, // Holy Persuasion
     e: { kind: "haste", value: [0, 0.2, 0.26, 0.32, 0.4], cooldown: 14, duration: 5 },                   // Divine Favor
-    r: { kind: "ward", value: [0, 0.09, 0.13, 0.17], cooldown: 60, radius: 900, duration: 1 },           // Hand of God
+    r: { kind: "ward", value: [0, 0.16, 0.22, 0.28], cooldown: 50, radius: 900, duration: 1 },           // Hand of God
   }, { kind: "deathpact", value: 7 }),
   ancient_apparition: hero("ancient_apparition", 68, "ancient_apparition", true, { maxHp: 560, armor: 2, damage: 24, speed: 162, range: 340 }, {
-    q: { kind: "frostbite", value: [0, 130, 200, 270, 340], cooldown: 8, radius: 340, duration: 2 },     // Cold Feet
-    w: { kind: "remnant", value: [0, 22, 32, 42, 52], cooldown: 12, radius: 200, duration: 8 },          // Ice Vortex
+    q: { kind: "nova", value: [0, 95, 140, 190, 240], cooldown: 7, radius: 260, duration: 2 },           // Cold Feet
+    w: { kind: "remnant", value: [0, 40, 55, 70, 88], cooldown: 10, radius: 240, duration: 8 },          // Ice Vortex
     e: { kind: "frost_arrows", value: [0, 0.2, 0.28, 0.36, 0.44], cooldown: 0, passive: true },          // Chilling Touch
-    r: { kind: "mass_freeze", value: [0, 180, 280, 380], cooldown: 65, radius: 420, duration: 2.5 },     // Ice Blast
+    r: { kind: "mass_freeze", value: [0, 260, 390, 520], cooldown: 55, radius: 460, duration: 2.5 },     // Ice Blast
   }, { kind: "thirst", value: 0.32, radius: 600 }),
   monkey_king: hero("monkey_king", 114, "monkey_king", false, { maxHp: 660, armor: 4, damage: 27, speed: 178, attackInterval: 0.85 }, {
     q: { kind: "line_burst", value: [0, 130, 195, 260, 325], cooldown: 8, radius: 420 },                 // Boundless Strike
@@ -925,10 +925,10 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "ravage", value: [0, 150, 230, 320], cooldown: 55, radius: 280, duration: 1.4 },          // Wukong's Command
   }, { kind: "swipes", value: 5, cap: 12 }),
   dark_willow: hero("dark_willow", 119, "dark_willow", true, { maxHp: 580, armor: 3, damage: 25, speed: 168, range: 320 }, {
-    q: { kind: "goo", value: [0, 65, 100, 135, 170], cooldown: 7, radius: 340, duration: 2.5 },          // Bramble Maze
+    q: { kind: "nova", value: [0, 70, 105, 140, 175], cooldown: 7, radius: 230, duration: 2.5 },         // Bramble Maze
     w: { kind: "dash", value: [0, 50, 75, 100, 125], cooldown: 10, radius: 300 },                        // Shadow Realm
-    e: { kind: "remnant", value: [0, 24, 34, 44, 54], cooldown: 13, radius: 210, duration: 8 },          // Cursed Crown
-    r: { kind: "edict", value: [0, 70, 105, 140], cooldown: 60, duration: 10, radius: 340 },             // Bedlam
+    e: { kind: "remnant", value: [0, 40, 55, 70, 88], cooldown: 12, radius: 240, duration: 8 },          // Cursed Crown
+    r: { kind: "edict", value: [0, 80, 115, 150], cooldown: 55, duration: 10, radius: 340 },             // Bedlam
   }, { kind: "blur", value: 0.2 }),
 };
 
