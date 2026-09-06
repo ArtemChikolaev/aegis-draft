@@ -1,126 +1,907 @@
 {
-  "juggernaut": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"spinLoop":"spin_loop.m4a","spinStop":"spin_stop.m4a"},
-  "axe": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "crystal_maiden": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
-  "sniper": {"attack":["attack_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "zeus": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "phantom_assassin": {"attack":["attack_1.m4a"]},
-  "anti_mage": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "lina": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "lich": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "drow_ranger": {"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
-  "windranger": {"attack":["attack_1.m4a"]},
-  "bristleback": {},
-  "sven": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "storm_spirit": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "leshrac": {"attack":["attack_1.m4a"]},
-  "faceless_void": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "ursa": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "lion": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
-  "shadow_fiend": {"attack":["attack_1.m4a","attack_2.m4a"]},
-  "pugna": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "invoker": {},
-  "tidehunter": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "mirana": {},
-  "clinkz": {"attack":["attack_1.m4a"]},
-  "wraith_king": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "dragon_knight": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "kunkka": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "necrophos": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "razor": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "venomancer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "witch_doctor": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "luna": {"impact":["impact_1.m4a"]},
-  "earthshaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "bloodseeker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "riki": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "queen_of_pain": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
-  "viper": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "ogre_magi": {},
-  "huskar": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "slardar": {},
-  "tiny": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "spectre": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]},
-  "chaos_knight": {},
-  "night_stalker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "doom": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "legion_commander": {},
-  "templar_assassin": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "medusa": {},
-  "silencer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "skywrath_mage": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
-  "dazzle": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "jakiro": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"impact":["impact_1.m4a"]},
-  "shadow_shaman": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "warlock": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "enigma": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "tinker": {"attack":["attack_1.m4a","attack_2.m4a"]},
-  "omniknight": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "abaddon": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "beastmaster": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a"]},
-  "brewmaster": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "centaur": {},
-  "dark_seer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "death_prophet": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "disruptor": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]},
-  "lycan": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "lone_druid": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a"]},
-  "alchemist": {},
-  "bane": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a"]},
-  "batrider": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "bounty_hunter": {},
-  "broodmother": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "clockwerk": {"attack":["attack_1.m4a","attack_2.m4a"]},
-  "earth_spirit": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "elder_titan": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "ember_spirit": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "grimstroke": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "gyrocopter": {"attack":["attack_1.m4a"]},
-  "magnus": {"attack":["attack_1.m4a","attack_2.m4a"]},
-  "mars": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "morphling": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "naga_siren": {},
-  "natures_prophet": {},
-  "nyx_assassin": {},
-  "oracle": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"]},
-  "outworld_destroyer": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "pangolier": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "phoenix": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a"]},
-  "puck": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "pudge": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "rubick": {},
-  "sand_king": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "shadow_demon": {},
-  "slark": {},
-  "snapfire": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a"]},
-  "spirit_breaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "techies": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "terrorblade": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "timbersaw": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "treant": {},
-  "troll_warlord": {},
-  "tusk": {},
-  "underlord": {},
-  "undying": {},
-  "vengeful_spirit": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "visage": {},
-  "void_spirit": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]},
-  "weaver": {"attack":["attack_1.m4a","attack_2.m4a"]},
-  "winter_wyvern": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"impact":["impact_1.m4a"]},
-  "arc_warden": {},
-  "dawnbreaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "hoodwink": {"attack":["attack_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
-  "marci": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
-  "muerta": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a"]},
-  "primal_beast": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "kez": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "ringmaster": {"attack":["attack_1.m4a"]},
-  "meepo": {},
-  "io": {},
-  "phantom_lancer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
-  "enchantress": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
-  "chen": {"attack":["attack_1.m4a"]},
-  "ancient_apparition": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "monkey_king": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "dark_willow": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a"]}
+ "abaddon": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ]
+ },
+ "alchemist": {},
+ "ancient_apparition": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "anti_mage": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "arc_warden": {},
+ "axe": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "bane": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ]
+ },
+ "batrider": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "beastmaster": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "bloodseeker": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "bounty_hunter": {},
+ "brewmaster": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "bristleback": {},
+ "broodmother": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "centaur": {},
+ "chaos_knight": {},
+ "chen": {
+  "attack": [
+   "attack_1.m4a"
+  ]
+ },
+ "clinkz": {
+  "attack": [
+   "attack_1.m4a"
+  ]
+ },
+ "clockwerk": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ]
+ },
+ "crystal_maiden": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a",
+   "impact_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "dark_seer": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "dark_willow": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ]
+ },
+ "dawnbreaker": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "dazzle": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "death_prophet": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "disruptor": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "doom": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "dragon_knight": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "drow_ranger": {
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a",
+   "impact_3.m4a"
+  ]
+ },
+ "earth_spirit": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "earthshaker": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "elder_titan": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "ember_spirit": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "enchantress": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a",
+   "impact_3.m4a"
+  ]
+ },
+ "enigma": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "faceless_void": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "grimstroke": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "gyrocopter": {
+  "attack": [
+   "attack_1.m4a"
+  ]
+ },
+ "hoodwink": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ]
+ },
+ "huskar": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "invoker": {},
+ "io": {},
+ "jakiro": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ]
+ },
+ "juggernaut": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "spinLoop": "spin_loop.m4a",
+  "spinStop": "spin_stop.m4a"
+ },
+ "keeper_of_the_light": {
+  "impact": [
+   "impact_1.m4a"
+  ]
+ },
+ "kez": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "kunkka": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "legion_commander": {},
+ "leshrac": {
+  "attack": [
+   "attack_1.m4a"
+  ]
+ },
+ "lich": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "lifestealer": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "lina": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "lion": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a",
+   "impact_3.m4a"
+  ]
+ },
+ "lone_druid": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "luna": {
+  "impact": [
+   "impact_1.m4a"
+  ]
+ },
+ "lycan": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "magnus": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ]
+ },
+ "marci": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a",
+   "impact_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "mars": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "medusa": {},
+ "meepo": {},
+ "mirana": {},
+ "monkey_king": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "morphling": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "muerta": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "naga_siren": {},
+ "natures_prophet": {},
+ "necrophos": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "night_stalker": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "nyx_assassin": {},
+ "ogre_magi": {},
+ "omniknight": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "oracle": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "outworld_destroyer": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "pangolier": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "phantom_assassin": {
+  "attack": [
+   "attack_1.m4a"
+  ]
+ },
+ "phantom_lancer": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "phoenix": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ]
+ },
+ "primal_beast": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "puck": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "pudge": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "pugna": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "queen_of_pain": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a",
+   "impact_3.m4a"
+  ]
+ },
+ "razor": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "riki": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "ringmaster": {
+  "attack": [
+   "attack_1.m4a"
+  ]
+ },
+ "rubick": {},
+ "sand_king": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "shadow_demon": {},
+ "shadow_fiend": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ]
+ },
+ "shadow_shaman": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "silencer": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "skywrath_mage": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a",
+   "impact_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "slardar": {},
+ "slark": {},
+ "snapfire": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "sniper": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ]
+ },
+ "spectre": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "spirit_breaker": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "storm_spirit": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "sven": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "techies": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a",
+   "impact_2.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "templar_assassin": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "terrorblade": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "tidehunter": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "timbersaw": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "tinker": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ]
+ },
+ "tiny": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a",
+   "pre_2.m4a"
+  ]
+ },
+ "treant": {},
+ "troll_warlord": {},
+ "tusk": {},
+ "underlord": {},
+ "undying": {},
+ "ursa": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "vengeful_spirit": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "venomancer": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "viper": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "visage": {},
+ "void_spirit": {
+  "attack": [
+   "attack_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "warlock": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "weaver": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ]
+ },
+ "windranger": {
+  "attack": [
+   "attack_1.m4a"
+  ]
+ },
+ "winter_wyvern": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ]
+ },
+ "witch_doctor": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "impact": [
+   "impact_1.m4a"
+  ],
+  "pre": [
+   "pre_1.m4a"
+  ]
+ },
+ "wraith_king": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ },
+ "zeus": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a",
+   "attack_3.m4a"
+  ]
+ }
 }

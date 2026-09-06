@@ -10,6 +10,8 @@ import {
   sfxVerdict,
   soundEnabled,
 } from "../src/ui/sound.ts";
+import { existsSync, readFileSync } from "node:fs";
+import { HEROES } from "../src/game/arcade/content/heroes.ts";
 
 // Node без DOM/WebAudio — ровно окружение headless e2e: слой обязан молчать, а не падать.
 afterEach(() => {
@@ -52,5 +54,29 @@ describe("sound (R15.5)", () => {
     expect(soundEnabled()).toBe(false);
     setSoundEnabled(true);
     expect(soundEnabled()).toBe(true);
+  });
+});
+
+// Звук героя (T13.16): у каждого героя Аркады должны быть и удары, и реплики, а индексы не должны
+// ссылаться на несуществующие файлы. Дыры были не «нет звуков в Dota», а несовпадение имён папок
+// Valve с нашими id: удары KotL лежат в `keeper`, у Lifestealer — в `lifestealer` (озвучка,
+// наоборот, в `life_stealer`); у Phoenix, Marci и Io файлы реплик вообще без номера в имени.
+describe("звук героев Аркады", () => {
+  // В индексе ударов рядом со списками лежат одиночные имена (`spinLoop` у Juggernaut) — учитываем оба вида.
+  const read = (p: string) => JSON.parse(readFileSync(new URL(p, import.meta.url), "utf8")) as Record<string, Record<string, string[] | string>>;
+
+  it("у каждого героя есть удары и реплики, и все файлы на месте", () => {
+    const sfx = read("../public/art/sfx/dota/index.json");
+    const voice = read("../public/art/sfx/dota/voice/index.json");
+    const ids = Object.keys(HEROES);
+    expect(ids.filter((h) => !sfx[h]), "герои без звуков удара").toEqual([]);
+    expect(ids.filter((h) => !voice[h]), "герои без реплик").toEqual([]);
+    for (const [idx, root] of [[sfx, "../public/art/sfx/dota"], [voice, "../public/art/sfx/dota/voice"]] as const) {
+      for (const [hid, cats] of Object.entries(idx)) {
+        for (const v of Object.values(cats)) {
+          for (const n of Array.isArray(v) ? v : [v]) expect(existsSync(new URL(`${root}/${hid}/${n}`, import.meta.url)), `${hid}/${n}`).toBe(true);
+        }
+      }
+    }
   });
 });

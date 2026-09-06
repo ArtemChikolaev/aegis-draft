@@ -1,143 +1,5966 @@
 {
-  "juggernaut": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "axe": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "crystal_maiden": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "sniper": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "zeus": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "phantom_assassin": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "anti_mage": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "lina": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "lich": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "drow_ranger": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "windranger": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "bristleback": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3"]},
-  "sven": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "storm_spirit": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "leshrac": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "faceless_void": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "ursa": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "lion": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "shadow_fiend": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "pugna": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "invoker": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "tidehunter": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "mirana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "clinkz": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "shadow_fiend@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "anti_mage@wei": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3"]},
-  "juggernaut@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "wraith_king": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "dragon_knight": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "kunkka": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "necrophos": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "razor": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "venomancer": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "witch_doctor": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "luna": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "earthshaker": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "bloodseeker": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "riki": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "queen_of_pain": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "viper": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "ogre_magi": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "huskar": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "slardar": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "crystal_maiden@persona": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "dragon_knight@persona": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "mirana@persona": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "phantom_assassin@persona": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "zeus@arcana": {},
-  "wraith_king@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "earthshaker@arcana": {"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "queen_of_pain@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "faceless_void@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "windranger@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "ogre_magi@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "razor@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "invoker@kid": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "tiny": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "spectre": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "chaos_knight": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "night_stalker": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "doom": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "legion_commander": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "templar_assassin": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "medusa": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "silencer": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "skywrath_mage": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3"]},
-  "dazzle": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "jakiro": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "shadow_shaman": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "warlock": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "enigma": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "tinker": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "omniknight": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "abaddon": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "beastmaster": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "brewmaster": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "centaur": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "dark_seer": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "death_prophet": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "disruptor": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "lycan": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "lone_druid": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "alchemist": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "bane": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "batrider": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "bounty_hunter": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "broodmother": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "clockwerk": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "earth_spirit": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3"]},
-  "elder_titan": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "ember_spirit": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "grimstroke": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "gyrocopter": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "keeper_of_the_light": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "magnus": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "mars": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "morphling": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "naga_siren": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "natures_prophet": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "nyx_assassin": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "oracle": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "outworld_destroyer": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "pangolier": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "puck": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "pudge": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "rubick": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "sand_king": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "shadow_demon": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "slark": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "snapfire": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "spirit_breaker": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "techies": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "terrorblade": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "timbersaw": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "treant": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "troll_warlord": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "tusk": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "underlord": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "undying": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "vengeful_spirit": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "visage": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "void_spirit": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3"]},
-  "weaver": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "winter_wyvern": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "arc_warden": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "dawnbreaker": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "hoodwink": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "muerta": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "primal_beast": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"]},
-  "kez": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "ringmaster": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3"]},
-  "meepo": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "pudge@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "rubick@arcana": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "phantom_lancer": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "lifestealer": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "enchantress": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "chen": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "ancient_apparition": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3","ability_3.mp3","ability_4.mp3"]},
-  "monkey_king": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]},
-  "dark_willow": {"spawn":["spawn_1.mp3","spawn_2.mp3"],"move":["move_1.mp3","move_2.mp3","move_3.mp3","move_4.mp3","move_5.mp3","move_6.mp3"],"attack":["attack_1.mp3","attack_2.mp3","attack_3.mp3"],"kill":["kill_1.mp3","kill_2.mp3","kill_3.mp3","kill_4.mp3"],"level":["level_1.mp3","level_2.mp3"],"death":["death_1.mp3","death_2.mp3"],"pain":["pain_1.mp3","pain_2.mp3"],"ability":["ability_1.mp3","ability_2.mp3"]}
+ "abaddon": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "alchemist": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "ancient_apparition": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "anti_mage": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "anti_mage@wei": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "arc_warden": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "axe": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "bane": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "batrider": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "beastmaster": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "bloodseeker": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "bounty_hunter": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "brewmaster": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "bristleback": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "broodmother": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "centaur": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "chaos_knight": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "chen": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "clinkz": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "clockwerk": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "crystal_maiden": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "crystal_maiden@persona": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "dark_seer": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "dark_willow": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "dawnbreaker": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "dazzle": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "death_prophet": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "disruptor": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "doom": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "dragon_knight": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "dragon_knight@persona": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "drow_ranger": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "earth_spirit": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "earthshaker": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "earthshaker@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ]
+ },
+ "elder_titan": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "ember_spirit": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "enchantress": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "enigma": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "faceless_void": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "faceless_void@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "grimstroke": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "gyrocopter": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "hoodwink": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "huskar": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "invoker": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "invoker@kid": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "io": {
+  "attack": [
+   "attack_1.m4a",
+   "attack_2.m4a"
+  ],
+  "death": [
+   "death_1.m4a"
+  ],
+  "kill": [
+   "kill_1.m4a"
+  ],
+  "level": [
+   "level_1.m4a"
+  ],
+  "move": [
+   "move_1.m4a",
+   "move_2.m4a",
+   "move_3.m4a",
+   "move_4.m4a"
+  ]
+ },
+ "jakiro": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "juggernaut": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "juggernaut@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "keeper_of_the_light": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "kez": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "kunkka": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "legion_commander": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "leshrac": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "lich": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "lifestealer": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "lina": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "lion": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "lone_druid": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "luna": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "lycan": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "magnus": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "marci": {
+  "move": [
+   "move_1.m4a",
+   "move_2.m4a",
+   "move_3.m4a"
+  ]
+ },
+ "mars": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "medusa": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "meepo": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "mirana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "mirana@persona": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "monkey_king": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "morphling": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "muerta": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "naga_siren": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "natures_prophet": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "necrophos": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "night_stalker": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "nyx_assassin": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "ogre_magi": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "ogre_magi@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "omniknight": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "oracle": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "outworld_destroyer": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "pangolier": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "phantom_assassin": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "phantom_assassin@persona": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "phantom_lancer": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "phoenix": {
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3"
+  ]
+ },
+ "primal_beast": {
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "puck": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "pudge": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "pudge@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "pugna": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "queen_of_pain": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "queen_of_pain@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "razor": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "razor@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "riki": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "ringmaster": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "rubick": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "rubick@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "sand_king": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "shadow_demon": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "shadow_fiend": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "shadow_fiend@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "shadow_shaman": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "silencer": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "skywrath_mage": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "slardar": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "slark": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "snapfire": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "sniper": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "spectre": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "spirit_breaker": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "storm_spirit": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "sven": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "techies": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "templar_assassin": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "terrorblade": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "tidehunter": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "timbersaw": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "tinker": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "tiny": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "treant": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "troll_warlord": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "tusk": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "underlord": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "undying": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "ursa": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "vengeful_spirit": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "venomancer": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "viper": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "visage": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "void_spirit": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "warlock": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "weaver": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "windranger": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "windranger@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "winter_wyvern": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "witch_doctor": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "wraith_king": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "wraith_king@arcana": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "zeus": {
+  "ability": [
+   "ability_1.mp3",
+   "ability_2.mp3",
+   "ability_3.mp3",
+   "ability_4.mp3"
+  ],
+  "attack": [
+   "attack_1.mp3",
+   "attack_2.mp3",
+   "attack_3.mp3"
+  ],
+  "death": [
+   "death_1.mp3",
+   "death_2.mp3"
+  ],
+  "kill": [
+   "kill_1.mp3",
+   "kill_2.mp3",
+   "kill_3.mp3",
+   "kill_4.mp3"
+  ],
+  "level": [
+   "level_1.mp3",
+   "level_2.mp3"
+  ],
+  "move": [
+   "move_1.mp3",
+   "move_2.mp3",
+   "move_3.mp3",
+   "move_4.mp3",
+   "move_5.mp3",
+   "move_6.mp3"
+  ],
+  "pain": [
+   "pain_1.mp3",
+   "pain_2.mp3"
+  ],
+  "spawn": [
+   "spawn_1.mp3",
+   "spawn_2.mp3"
+  ]
+ },
+ "zeus@arcana": {}
 }
