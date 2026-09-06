@@ -299,7 +299,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   invoker: hero("invoker", 74, "invoker", true, { maxHp: 600, damage: 25, armor: 2 }, {
     q: { kind: "nova", value: [0, 55, 85, 115, 145], cooldown: 9, radius: 180, duration: 1 },            // EMP
     w: { kind: "assassinate", value: [0, 160, 240, 320, 400], cooldown: 9, radius: 360 },                // Sun Strike
-    e: { kind: "meteor", value: [0, 70, 105, 140, 175], cooldown: 10, radius: 130, count: [0, 3, 3, 3, 3] }, // Chaos Meteor
+    e: { kind: "meteor", value: [0, 90, 135, 180, 225], cooldown: 8, radius: 190, count: [0, 3, 3, 3, 3] }, // Chaos Meteor
     r: { kind: "ravage", value: [0, 150, 240, 330], cooldown: 60, radius: 240, duration: 1.2 },          // Deafening Blast
   }, { kind: "multicast", value: 0.45 }),
   tidehunter: hero("tidehunter", 29, "tidehunter", false, { maxHp: 820, armor: 7, regen: 4, speed: 158, damage: 16 }, {
