@@ -758,7 +758,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "damage_ward", value: [0, 18, 25, 32, 40], cooldown: 16, duration: 12, radius: 300, summon: { art: "illusion", count: 2 } },     // Conjure Image
     e: { kind: "metamorphosis", value: [0, 0.35, 0.45, 0.55, 0.7], cooldown: 30, duration: 10, form: { ranged: true, range: 330 } }, // Metamorphosis
     r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 60, duration: 4 },                      // Sunder
-  }, { kind: "vampiric", value: 0.1 }),
+  }, { kind: "vampiric", value: 0.07 }),
   timbersaw: hero("timbersaw", 98, "shredder", false, { maxHp: 740, armor: 4, damage: 26, speed: 164, regen: 3 }, {
     q: { kind: "spin", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 200, duration: 1.5 },          // Whirling Death
     w: { kind: "dash", value: [0, 90, 135, 180, 230], cooldown: 6, radius: 400 },                         // Timber Chain
@@ -862,13 +862,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "spin", value: [0, 70, 100, 130, 160], cooldown: 12, radius: 190, duration: 3 },          // Trample
     e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Uproar
     r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 60, radius: 220, duration: 2 },            // Pulverize
-  }, { kind: "quill", value: 16, radius: 120 }),
+  }, { kind: "quill", value: 7, radius: 100 }),
   kez: hero("kez", 145, "kez", false, { maxHp: 760, armor: 5, damage: 29, speed: 180, attackInterval: 0.85 }, {
     q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 5, radius: 64, count: [0, 3, 3, 3, 3] }, // Echo Slash
     w: { kind: "dash", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 400 },                        // Grappling Claw
     e: { kind: "crit", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 0, passive: true },                  // Kazurai Katana
     r: { kind: "spin", value: [0, 100, 160, 220], cooldown: 50, radius: 220, duration: 2.5 },             // Raptor Dance
-  }, { kind: "crit", value: 0.18, cap: 2.2 }),
+  }, { kind: "crit", value: 0.14, cap: 2.2 }),
   ringmaster: hero("ringmaster", 131, "ringmaster", true, { maxHp: 580, armor: 3, damage: 24, speed: 162 }, {
     q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 70, count: [0, 3, 3, 3, 3] }, // Tame the Beasts
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Escape Act
