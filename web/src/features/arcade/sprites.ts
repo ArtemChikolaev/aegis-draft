@@ -302,6 +302,15 @@ export function dotaSheet(name: string): DotaSheet | null {
   return v === "loading" ? null : v;
 }
 
+/** Лист врага по его виду. Id вида и id героя живут в разных словарях и однажды столкнулись:
+ *  `centaur` — это и неутральный кентавр-крип, и Centaur Warrunner, и одна строка манифеста
+ *  затирала другую, из-за чего крип бегал в модели героя. Вид врага в симе переименовать нельзя
+ *  (он в реплеях и ленте fx), поэтому разводим только имена листов. */
+const ENEMY_SHEET: Record<string, string> = { centaur: "centaur_creep" };
+export function enemySheet(kindId: string): DotaSheet | null {
+  return dotaSheet(ENEMY_SHEET[kindId] ?? kindId);
+}
+
 /** Состояние листа: «грузится» отличается от «нет такого листа» — гардеробу нужно показать,
  *  что облик ещё не отрендерен, а не пустую рамку (фидбэк владельца 2026-09-06). */
 export function dotaSheetState(name: string): "loading" | "missing" | "ready" {
@@ -366,7 +375,7 @@ export function pixelSheetsOn(): boolean { return pixelSheets; }
  * враги акта, земля и пропсы. Резолвится, когда всё загрузилось или отвалилось, не дольше `timeoutMs`.
  */
 export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act: string, timeoutMs = 6000): Promise<void> {
-  const sheets = [hero, ...enemyIds, "tree_oak", "tree_pine", "rock"];
+  const sheets = [hero, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), "tree_oak", "tree_pine", "rock"];
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
   const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
   kick();

@@ -15,7 +15,7 @@ import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawBurning, drawChilled, drawEmberRing, drawFrostMist, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks } from "./particles.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, hueSheet, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, heroLook, hueSheet, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { itemArtSources } from "../../ui/artSource.ts";
@@ -425,7 +425,7 @@ export class ArcadeRenderer {
       const r = e.kind.r;
       const flash = tick - e.hitAt < 4;
       const tone = pal[TONE_KEY[e.kind.tone]];
-      const staticSheet = e.kind.structure || e.kind.id === "tormentor" ? dotaSheet(e.kind.id) : null;
+      const staticSheet = e.kind.structure || e.kind.id === "tormentor" ? enemySheet(e.kind.id) : null;
       if (staticSheet) {
         // Древний/Tormentor из модели Dota — один кадр idle; размер от радиуса, как у остальных.
         drawDotaFrame(c, staticSheet, "idle", 0, 0, e.x, e.y + r * 0.6, flash ? 0.55 : 1, (e.kind.r * 2) / staticSheet.meta.world > 1.2 ? (e.kind.r * 2) / staticSheet.meta.world : 1);
@@ -448,7 +448,7 @@ export class ArcadeRenderer {
         let drawn = false;
         const dir = dirOf(sim.player.x - e.x, sim.player.y - e.y);
         // Лист из модели Dota — главнее всего остального.
-        const ds = dotaSheet(e.kind.id);
+        const ds = enemySheet(e.kind.id);
         if (ds) {
           const anim = attackT >= 0 ? "attack" : moving ? "walk" : "idle";
           const frames = ds.meta.anims[anim]?.frames ?? ds.meta.anims.walk?.frames ?? 1;
@@ -690,7 +690,7 @@ export class ArcadeRenderer {
           // Смерть: у LPC-персонажей — кадры «hurt» (падение), у остальных — оседающий силуэт.
           const kindId = KIND_BY_INDEX[f.y2];
           const look = kindId ? enemyLook(kindId) : null;
-          const dsDeath = kindId ? dotaSheet(kindId) : null;
+          const dsDeath = kindId ? enemySheet(kindId) : null;
           const hurt = look?.kind === "char" ? charSheet(kindId!, look.spec, "hurt") : null;
           if (dsDeath && dsDeath.meta.anims.death) {
             const fr = dsDeath.meta.anims.death.frames;

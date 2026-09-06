@@ -107,6 +107,19 @@ def pick_action(actions, key, strict=False):
     cands = [a for a in actions if key in a.name.lower() and not any(h in a.name.lower() for h in hard)]
     if not cands and not strict:
         cands = [a for a in actions if key in a.name.lower()]
+    if not cands and key == "cast":
+        # Valve называет клипы каста по способности, а не «cast»: у Shadow Fiend это `nevermore_Requiem`
+        # и `nevermore_Shadowraze_1`, у Naga — `siren_song`. Ряд `cast` нужен всем героям (рендерер
+        # проигрывает его на событие каста), поэтому берём любой клип, который не из служебного набора.
+        skip = ("idle", "run", "walk", "attack", "death", "loadout", "portrait", "turn", "spawn", "stun",
+                "flail", "victory", "defeat", "taunt", "teleport", "capture", "cloth", "gesture", "look",
+                "injured", "haste", "_alt", "rare", "effigy", "debut", "workshop", "_mm", "bp_", "loop",
+                "sleep", "hover", "blend", "transition", "slide", "shape", "physics", "dropped", "_fx")
+        alt = [a for a in actions if not any(t in a.name.lower() for t in skip)]
+        alt.sort(key=lambda a: (a.name.lower().startswith("@"), len(a.name)))
+        if alt:
+            print(f"cast: клипа «cast» нет, взят {alt[0].name}")
+            return alt[0]
     if not cands:
         return None
     cands.sort(key=score)
