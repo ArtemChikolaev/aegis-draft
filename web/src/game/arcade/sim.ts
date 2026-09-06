@@ -1036,6 +1036,8 @@ export class ArcadeSim {
     }
     if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
     this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
+    // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
+    if (this.tick < e.burnUntil) this.pushFx("ash", e.x, e.y, e.kind.r, 0, 44);
     p.gold += e.kind.gold + p.stats.goldPerKill;
     this.dropShard(e.x, e.y, e.kind.xp);
     const blast = this.upgradePower("rad_blast");

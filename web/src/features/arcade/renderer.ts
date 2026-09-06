@@ -13,7 +13,7 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
+import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, heroLook, hueSheet, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
@@ -665,7 +665,7 @@ export class ArcadeRenderer {
   /** Эффекты, которые лежат НА ЗЕМЛЕ: кольца, круги зон, оседающие тела. Рисуются до сущностей —
    *  иначе кольцо просвечивает сквозь героя (фидбэк владельца 2026-09-06). Остальные (числа урона,
    *  искры попаданий, вспышки) — поверх. */
-  private static readonly GROUND_FX = new Set(["nova", "spin", "die", "levelup", "revive"]);
+  private static readonly GROUND_FX = new Set(["nova", "spin", "die", "levelup", "revive", "ash"]);
 
   private drawFx(sim: ArcadeSim, pal: Palette, layer: "ground" | "top"): void {
     const c = this.ctx;
@@ -733,9 +733,19 @@ export class ArcadeRenderer {
           }
           break;
         }
+        case "ash": {
+          drawAsh(c, f.x, f.y, Math.max(10, f.x2), k, f.born, this.artPx(), pal);
+          break;
+        }
         case "levelup": case "revive": {
           c.globalAlpha = (1 - k); c.strokeStyle = f.kind === "revive" ? pal.aegis : pal.playerRing; c.lineWidth = 4;
           c.beginPath(); c.arc(sim.player.x, sim.player.y, 24 + k * 90, 0, Math.PI * 2); c.stroke();
+          if (f.kind === "revive") {
+            // Вспышка Aegis (T13.22): второе кольцо вдогонку и сноп искр — возрождение должно читаться
+            // как событие, а не как ещё один левелап.
+            c.beginPath(); c.arc(sim.player.x, sim.player.y, 12 + k * 46, 0, Math.PI * 2); c.stroke();
+            drawSparks(c, sim.player.x, sim.player.y, 30 + k * 70, sim.tick, this.artPx(), pal, 10);
+          }
           break;
         }
         default: break;

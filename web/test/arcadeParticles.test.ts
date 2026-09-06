@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawBurning, drawChilled, drawDust, drawEmberRing, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWeather } from "../src/features/arcade/particles.ts";
+import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWeather } from "../src/features/arcade/particles.ts";
 
 // Заглушка 2D-контекста: собираем прямоугольники, чтобы проверить количество, размер и привязку к сетке арт-пикселя.
 function stub() {
@@ -110,5 +110,24 @@ describe("погода и пыль рывка (T13.22)", () => {
     expect(Math.min(...near.rects.map((r) => r.x))).toBeLessThan(500 - 50);
     const late = stub(); drawDust(late.c, 500, 500, 120, 0, 0.95, 2, pal);
     expect(Math.max(...late.rects.map((r) => r.alpha))).toBeLessThan(Math.max(...near.rects.map((r) => r.alpha)));
+  });
+});
+
+describe("дым сгоревшего врага (T13.22)", () => {
+  it("столб поднимается над точкой смерти и гаснет к концу", () => {
+    const early = stub(); drawAsh(early.c, 300, 300, 16, 0.5, 5, 2, pal);
+    expect(early.rects.length).toBeGreaterThan(2);
+    for (const r of early.rects) {
+      expect(r.y).toBeLessThanOrEqual(300 + 2); // только вверх от точки смерти
+      expect(["ember", "fire", "smoke"]).toContain(r.fill);
+    }
+    // В самом начале частицы ещё не стартовали, в конце — почти прозрачны.
+    const start = stub(); drawAsh(start.c, 300, 300, 16, 0, 5, 2, pal);
+    expect(start.rects.length).toBe(0);
+    const late = stub(); drawAsh(late.c, 300, 300, 16, 0.97, 5, 2, pal);
+    expect(Math.max(...late.rects.map((r) => r.alpha))).toBeLessThan(Math.max(...early.rects.map((r) => r.alpha)));
+    // Детерминировано семенем.
+    const again = stub(); drawAsh(again.c, 300, 300, 16, 0.5, 5, 2, pal);
+    expect(again.rects).toEqual(early.rects);
   });
 });

@@ -210,7 +210,7 @@ export interface Shard {
   xp: number;
 }
 
-export type FxKind = "hit" | "crit" | "slash" | "nova" | "zap" | "burst" | "heal" | "revive" | "levelup" | "spin" | "die";
+export type FxKind = "hit" | "crit" | "slash" | "nova" | "zap" | "burst" | "heal" | "revive" | "levelup" | "spin" | "die" | "ash";
 
 /** Монотонные счётчики событий для звука и juice на стороне экрана: дельта между кадрами —
  *  «что случилось», без подписки на сим и без влияния на детерминизм. */

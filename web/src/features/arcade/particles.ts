@@ -86,6 +86,25 @@ export function drawWeather(c: CanvasRenderingContext2D, camX: number, camY: num
   c.globalAlpha = 1;
 }
 
+/**
+ * Дым и угольки на месте сгоревшего врага (T13.22): столб поднимается и гаснет за время эффекта.
+ * `k` — доля прожитого (0…1), `r` — радиус врага: от него зависит ширина столба.
+ */
+export function drawAsh(c: CanvasRenderingContext2D, x: number, y: number, r: number, k: number, seed: number, px: number, pal: ParticlePalette): void {
+  const n = 10;
+  for (let i = 0; i < n; i++) {
+    // Каждая частица стартует со своей задержкой, поэтому столб не гаснет разом.
+    const t = Math.max(0, Math.min(1, (k - hash(seed, i) * 0.35) / 0.65));
+    if (t <= 0) continue;
+    const ox = (hash(seed, i + 11) - 0.5) * r * 2 * (0.4 + t);
+    const py = y - t * r * 3.4;
+    c.globalAlpha = (1 - t) * 0.85;
+    c.fillStyle = t < 0.3 ? pal.ember : t < 0.6 ? pal.fire : pal.smoke;
+    dot(c, x + ox, py, px * (t < 0.3 ? 2 : 1), px);
+  }
+  c.globalAlpha = 1;
+}
+
 /** Пыль из-под ног при рывке: короткий шлейф квадратов позади точки прыжка. */
 export function drawDust(c: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, k: number, px: number, pal: ParticlePalette): void {
   const d = Math.hypot(dx, dy) || 1;
