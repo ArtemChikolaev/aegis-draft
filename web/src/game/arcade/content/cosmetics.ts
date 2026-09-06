@@ -89,6 +89,7 @@ export const COSMETICS: readonly CosmeticDef[] = [
   // Сеты Dota (T13.27, вопрос владельца «можно ли конкретные предметы из сетов»): сет — это части
   // `models/items/<hero>/<set>_{head,arms,legs,back,weapon}`, которые пришиваются к скелету базового
   // героя ровно как части аркан. Лист — `<hero>@<set>`, редкость exotic (в Dota это не аркана).
+  { id: "skin_tb_arcana", slot: "skin", rarity: "arcana", variant: "terrorblade@arcana", hero: "terrorblade" },
   { id: "skin_jugg_bladesrunner", slot: "skin", rarity: "exotic", variant: "juggernaut@bladesrunner", hero: "juggernaut" },
   { id: "skin_pa_darkfeather", slot: "skin", rarity: "exotic", variant: "phantom_assassin@darkfeather", hero: "phantom_assassin" },
   { id: "skin_axe_blackthorn", slot: "skin", rarity: "exotic", variant: "axe@blackthorn", hero: "axe" },
