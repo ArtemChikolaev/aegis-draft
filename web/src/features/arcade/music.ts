@@ -55,6 +55,10 @@ export function ensureMusic(want: Mode): void {
   if (want === mode) {
     if (current && current.paused && want !== "off") void current.play().catch(() => {});
     if (current && !fading && Math.abs(current.volume - vol()) > 0.005) current.volume = vol(); // ползунок в настройках
+    // Следующую боевую тему заводим ЗА полторы секунды до конца текущей, а не по событию `ended`:
+    // иначе кроссфейд начинался уже на тишине и между треками провисала пауза в полтора такта.
+    if (want === "battle" && current && !fading && Number.isFinite(current.duration) && current.duration > 0
+        && current.duration - current.currentTime <= FADE_MS / 1000) nextBattle();
     return;
   }
   mode = want;
