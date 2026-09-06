@@ -176,7 +176,7 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_muerta_deathcaster", slot: "skin", rarity: "exotic", variant: "muerta@deathcaster", hero: "muerta" },
   { id: "skin_primal_beast_primeval", slot: "skin", rarity: "exotic", variant: "primal_beast@primeval", hero: "primal_beast" },
   { id: "skin_ringmaster_fear_harvester", slot: "skin", rarity: "exotic", variant: "ringmaster@fear_harvester", hero: "ringmaster" },
-  { id: "skin_meepo_farm", slot: "skin", rarity: "exotic", variant: "meepo@farm", hero: "meepo" },
+  { id: "skin_meepo_sir_meepalot", slot: "skin", rarity: "exotic", variant: "meepo@sir_meepalot", hero: "meepo" },
   { id: "skin_viper_king_viper", slot: "skin", rarity: "exotic", variant: "viper@king_viper", hero: "viper" },
   { id: "skin_enigma_life_cycle", slot: "skin", rarity: "exotic", variant: "enigma@life_cycle", hero: "enigma" },
   { id: "skin_batrider_fiery_heart", slot: "skin", rarity: "exotic", variant: "batrider@fiery_heart", hero: "batrider" },

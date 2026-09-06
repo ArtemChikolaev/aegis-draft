@@ -443,7 +443,11 @@ def main():
         bpy.context.view_layer.update()
 
     # --- Калибровка по силуэту: ориентация, центр, охват ---
-    first_act = next((act for _, act, _ in anim_map if act is not None), None)
+    # Кадрируем по стойке, а не по первому клипу списка: у Meepo клип каста уводит модель далеко от
+    # начала координат, и охват камеры считался по этой позе — в листе герой уезжал за верх кадра.
+    first_act = next((act for ours, act, _ in anim_map if act is not None and ours == "idle"), None)
+    if first_act is None:
+        first_act = next((act for _, act, _ in anim_map if act is not None), None)
     if first_act is not None:
         use_action(first_act)
     wide = 40.0
@@ -518,8 +522,13 @@ def main():
                     bpy.context.view_layer.update()
                     cur = root_world()
                     if cur is not None:
-                        rig.fix.location = base_loc - __import__("mathutils").Vector((cur.x - root0.x, cur.y - root0.y, 0.0))
-                        bpy.context.view_layer.update()
+                        dx, dy = cur.x - root0.x, cur.y - root0.y
+                        # Ограничиваем компенсацию половиной охвата камеры: у части моделей (Meepo,
+                        # персона Dragon Knight) корневая кость несёт огромное смещение, и «отмотка»
+                        # root motion уводила всю сборку за кадр — лист выходил пустым или обрезанным.
+                        if abs(dx) < extent * 0.5 and abs(dy) < extent * 0.5:
+                            rig.fix.location = base_loc - __import__("mathutils").Vector((dx, dy, 0.0))
+                            bpy.context.view_layer.update()
                         if os.environ.get("SPRITE_DEBUG"):
                             print(f"rootlock {ours} d{d} f{i}: root0 {tuple(round(v,2) for v in root0)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
                 path = os.path.join(tmp, f"{a.name}_{ours}_{d}_{i:02d}.png")
