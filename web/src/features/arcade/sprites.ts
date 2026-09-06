@@ -217,7 +217,7 @@ export function heroLook(kit: string, tint: string): CharSpec {
 }
 
 /* ─── Листы из моделей Dota 2 (путь А, docs/arcade-dota-sprites.md) ───
-   `dota/<id>.json` + `dota/<id>.png`: строки = анимация × направление, колонки = кадры. Есть лист —
+   `dota/<id>.json` + `dota/<id>.webp`: строки = анимация × направление, колонки = кадры. Есть лист —
    он главнее LPC и ригов. Загрузка ленивая; 404 = «нет», без повторных запросов. */
 export interface DotaMeta {
   name: string;
@@ -283,7 +283,10 @@ function loadSheet(name: string, dir: string, onMiss: () => void): void {
       const el = new Image();
       el.onload = () => { dotaSheets.set(name, { img: el, meta }); version++; };
       el.onerror = () => { onMiss(); };
-      el.src = `${ROOT}${dir}/${name}.png`;
+      // Листы лежат в WebP: у уже квантованного пиксель-арта lossless WebP на ~7% меньше PNG
+      // (замер 2026-09-06), и это единственный формат-выигрыш без потери резкости — lossy WebP на
+      // резких краях с альфой выходит наоборот КРУПНЕЕ PNG.
+      el.src = `${ROOT}${dir}/${name}.webp`;
     })
     .catch(() => { onMiss(); });
 }
@@ -364,9 +367,9 @@ export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, ani
   return true;
 }
 
-/** Бесшовная текстура земли Dota (`dota/terrain/<name>.png`), если положена. */
+/** Бесшовная текстура земли Dota (`dota/terrain/<name>.webp`), если положена. */
 export function dotaTerrain(name: string): HTMLImageElement | null {
-  const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${name}.png`, ROOT);
+  const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${name}.webp`, ROOT);
   return ready(el) ? el : null;
 }
 export function pixelSheetsOn(): boolean { return pixelSheets; }
@@ -380,7 +383,7 @@ export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act:
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
   const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
   kick();
-  const ready = () => sheets.every((n) => dotaSheets.get(n) !== "loading" && dotaSheets.get(n) !== undefined) && terrain.every((t) => { const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${t}.png`, ROOT); return el === null || (!!el && el.complete); });
+  const ready = () => sheets.every((n) => dotaSheets.get(n) !== "loading" && dotaSheets.get(n) !== undefined) && terrain.every((t) => { const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${t}.webp`, ROOT); return el === null || (!!el && el.complete); });
   return new Promise((resolve) => {
     const started = Date.now();
     const tick = () => { if (ready() || Date.now() - started > timeoutMs) resolve(); else window.setTimeout(tick, 50); };

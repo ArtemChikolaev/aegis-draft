@@ -1,0 +1,22 @@
+{
+  "name": "ward_healing",
+  "frame": 64,
+  "dirs": 4,
+  "fps": 12,
+  "world": 96,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.776
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 12
+    }
+  },
+  "source": "jugg_healing_ward.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

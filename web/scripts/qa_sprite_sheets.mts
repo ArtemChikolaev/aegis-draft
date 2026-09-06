@@ -33,7 +33,7 @@ const manifest = new Map<string, Set<string>>();
 
 const b64 = (p: string) => readFileSync(p).toString("base64");
 const PAGE = `(async (png, meta, anim) => {
-  const img = new Image(); img.src = 'data:image/png;base64,' + png; await img.decode();
+  const img = new Image(); img.src = 'data:image/webp;base64,' + png; await img.decode();
   const f = meta.frame;
   const c = document.createElement('canvas'); c.width = f; c.height = f;
   const x = c.getContext('2d', { willReadFrequently: true });
@@ -61,7 +61,7 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 const measure = async (id: string) => {
   const meta = JSON.parse(readFileSync(`${ROOT}/${id}.json`, "utf8"));
-  return (await page.evaluate(`${PAGE}(${JSON.stringify(b64(`${ROOT}/${id}.png`))}, ${JSON.stringify(meta)}, "walk")`)) as {
+  return (await page.evaluate(`${PAGE}(${JSON.stringify(b64(`${ROOT}/${id}.webp`))}, ${JSON.stringify(meta)}, "walk")`)) as {
     pixels: number; top: number; bottom: number; motion: number; frames: number; anims: string[];
   };
 };

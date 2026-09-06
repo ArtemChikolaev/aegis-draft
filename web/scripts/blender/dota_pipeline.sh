@@ -7,7 +7,7 @@
 # Манифест (TSV, # — комментарий): <id в игре>\t<путь vmdl_c в vpk>\t<аргументы render_dota_sprites.py>[\t<части: vmdl_c через запятую>]
 # Части — отдельные модели героя (штаны/маска/оружие у героев Dota): пришиваются к скелету основной.
 # По умолчанию — полный манифест dota_manifest.tsv (герои, враги, пропсы). Экспорт кладётся в $OUT (по умолчанию ~/dota-export),
-# листы — в web/public/art/sprites/dota/.
+# листы — в web/public/art/sprites/dota/ (<id>.json + <id>.webp).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 DOTA="${DOTA:-$HOME/Library/Application Support/Steam/steamapps/common/dota 2 beta/game/dota}"
@@ -61,6 +61,12 @@ while IFS=$'\t' read -r id vmdl args parts; do
     # Пиксельные листы: 48 цветов без дизеринга (--nofs) — ровные пятна, как в рисованном пиксель-арте.
     if [[ "$args" == *"--pixel"* ]]; then pngquant --nofs --speed 1 --force --output "$SPRITES/$id.png" 48 "$SPRITES/$id.png"
     else pngquant --quality 75-95 --speed 1 --force --output "$SPRITES/$id.png" 256 "$SPRITES/$id.png"; fi && echo "   pngquant → $(du -h "$SPRITES/$id.png" | cut -f1)"
+  fi
+  # WebP без потерь поверх квантованного PNG: минус ~7% к весу при той же картинке (brew install webp).
+  # Именно lossless: lossy WebP на резких краях с альфой выходит КРУПНЕЕ PNG.
+  if command -v cwebp >/dev/null 2>&1 && [ -f "$SPRITES/$id.png" ]; then
+    cwebp -lossless -z 6 -quiet "$SPRITES/$id.png" -o "$SPRITES/$id.webp" && rm -f "$SPRITES/$id.png" \
+      && echo "   webp → $(du -h "$SPRITES/$id.webp" | cut -f1)"
   fi
 done < "$MANIFEST"
 echo "== текстуры земли лежат в maps/<набор>_assets/blends/ (см. docs/arcade-dota-sprites.md §4); уже установлены в $SPRITES/terrain/"

@@ -19,7 +19,7 @@ for line in open(manifest, encoding="utf-8"):
         continue
     cols = line.split("\t")
     sid, args = cols[0], cols[2] if len(cols) > 2 else ""
-    png, js = os.path.join(sprites, sid + ".png"), os.path.join(sprites, sid + ".json")
+    png, js = os.path.join(sprites, sid + ".webp"), os.path.join(sprites, sid + ".json")
     if not os.path.exists(png) or not os.path.exists(js):
         print(line); continue
     m = re.search(r"--anims (\S+)", args)
