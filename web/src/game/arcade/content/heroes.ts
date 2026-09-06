@@ -254,11 +254,11 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 16, duration: 6 },                        // Warcry
     r: { kind: "rage", value: [0, 1.0, 1.5, 2.0], cooldown: 60, duration: 10 },                          // God's Strength
   }, { kind: "cleave", value: 0.5, radius: 85 }),
-  storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 168, maxHp: 470 }, {
+  storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 168, maxHp: 540 }, {
     q: { kind: "remnant", value: [0, 60, 95, 130, 165], cooldown: 6, radius: 130, summon: { art: "illusion" } }, // Static Remnant
     w: { kind: "frostbite", value: [0, 50, 80, 110, 140], cooldown: 11, radius: 300, duration: 1.2 },    // Electric Vortex
     e: SIG,                                                                                              // Overload
-    r: { kind: "dash", value: [0, 110, 170, 240], cooldown: 26, radius: 460 },                           // Ball Lightning
+    r: { kind: "dash", value: [0, 150, 230, 320], cooldown: 22, radius: 460 },                           // Ball Lightning
   }, { kind: "overload", value: 45, radius: 80 }),
   leshrac: hero("leshrac", 52, "leshrac", true, { damage: 24, maxHp: 520, armor: 2 }, {
     q: { kind: "line_burst", value: [0, 90, 135, 180, 225], cooldown: 8, radius: 100, count: [0, 1, 1, 1, 1], duration: 1.0 }, // Split Earth
