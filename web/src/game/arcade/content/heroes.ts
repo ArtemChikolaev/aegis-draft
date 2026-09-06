@@ -216,12 +216,19 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "frostbite", value: [0, 60, 100, 140, 180], cooldown: 12, radius: 320, duration: 1.6 },   // Sinister Gaze
     r: { kind: "arc_lightning", value: [0, 120, 190, 260], cooldown: 50, radius: 340, count: [0, 7, 9, 11] }, // Chain Frost
   }, { kind: "overload", value: 40, radius: 90 }),
-  drow_ranger: hero("drow_ranger", 6, "drow_ranger", true, { range: 350, damage: 25 }, {
-    q: { kind: "frost_arrows", value: [0, 0.2, 0.3, 0.4, 0.5], cooldown: 0, passive: true },             // Frost Arrows
-    w: { kind: "gust", value: [0, 40, 70, 100, 130], cooldown: 12, radius: 220, duration: 2 },           // Gust
-    e: { kind: "multishot", value: [0, 34, 50, 66, 82], cooldown: 9, radius: 380, count: [0, 5, 6, 7, 8] }, // Multishot
+  // Полный экран баланса 2026-09-06: 3–7% побед на 60 прогонах — худший герой набора. Причина не в
+  // числах умений, а в раскладе слотов: два из четырёх у неё пассивные, весь урон идёт с автоатак,
+  // а профиль атаки был базовый для дальнобойных. Ускорили атаку, подняли урон и саму Меткость.
+  drow_ranger: hero("drow_ranger", 6, "drow_ranger", true, { range: 350, damage: 28, attackInterval: 0.85, maxHp: 660, armor: 3 }, {
+    // Frost Arrows стали залпом по площади: пассивный слот у героя, где ещё и ульт — пассивка,
+    // оставлял её с одним активным умением на всю толпу, и она гибла на второй минуте.
+    q: { kind: "nova", value: [0, 50, 80, 110, 140], cooldown: 7, radius: 210, duration: 2 },            // Frost Arrows
+    w: { kind: "gust", value: [0, 70, 110, 150, 190], cooldown: 10, radius: 240, duration: 2 },          // Gust
+    e: { kind: "multishot", value: [0, 44, 62, 80, 100], cooldown: 7, radius: 380, count: [0, 5, 6, 7, 8] }, // Multishot
     r: SIG,                                                                                              // Marksmanship
-  }, { kind: "marksmanship", value: 0.35, radius: 220 }),
+    // Радиус Меткости 140, а не 220: бонус даётся за выстрел «издалека», но бой идёт вплотную —
+    // на 220 он почти не срабатывал, и вся ставка героя на автоатаку не работала.
+  }, { kind: "marksmanship", value: 0.5, radius: 140 }),
   windranger: hero("windranger", 21, "windrunner", true, { speed: 168, attackInterval: 0.85 }, {
     q: { kind: "lightning_bolt", value: [0, 70, 110, 150, 190], cooldown: 9, radius: 340, duration: 1.3 }, // Shackleshot
     w: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 55, count: [0, 4, 4, 4, 4] }, // Powershot
@@ -418,10 +425,10 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "edict", value: [0, 80, 120, 160], cooldown: 50, duration: 8, radius: 420 },              // Haunt
   }, { kind: "quill", value: 14, radius: 160 }),
   chaos_knight: hero("chaos_knight", 81, "chaos_knight", false, { maxHp: 740, armor: 4, damage: 30, speed: 164, regen: 2 }, {
-    q: { kind: "lightning_bolt", value: [0, 80, 130, 180, 230], cooldown: 9, radius: 320, duration: 2.0 }, // Chaos Bolt
+    q: { kind: "nova", value: [0, 85, 130, 175, 220], cooldown: 7, radius: 230, duration: 2.0 },         // Chaos Bolt
     w: { kind: "dash", value: [0, 60, 90, 120, 150], cooldown: 9, radius: 300 },                          // Reality Rift
     e: { kind: "crit", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 0, passive: true },                  // Chaos Strike
-    r: { kind: "rage", value: [0, 0.8, 1.1, 1.4], cooldown: 60, duration: 10 },                          // Phantasm
+    r: { kind: "damage_ward", value: [0, 52, 72, 92], cooldown: 40, duration: 14, radius: 320, summon: { art: "illusion", count: 3 } }, // Phantasm
   }, { kind: "crit", value: 0.2, cap: 2.4 }),
   night_stalker: hero("night_stalker", 60, "night_stalker", false, { maxHp: 800, armor: 5, damage: 29, speed: 178, regen: 3 }, {
     q: { kind: "goo", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 320, duration: 3 },            // Void
@@ -822,10 +829,10 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 3 },                      // Time Lapse
   }, { kind: "swipes", value: 4, cap: 12 }),
   winter_wyvern: hero("winter_wyvern", 112, "winter_wyvern", true, { maxHp: 640, armor: 3, damage: 25, speed: 162, range: 340 }, {
-    q: { kind: "searing", value: [0, 14, 20, 26, 32], cooldown: 0, passive: true },                      // Arctic Burn
+    q: { kind: "line_burst", value: [0, 75, 110, 145, 180], cooldown: 7, radius: 70, count: [0, 3, 3, 4, 4] }, // Arctic Burn
     w: { kind: "arc_lightning", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Splinter Blast
     e: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 12, duration: 4 },                            // Cold Embrace
-    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 300, duration: 3 },              // Winter's Curse
+    r: { kind: "mass_freeze", value: [0, 200, 300, 400], cooldown: 55, radius: 320, duration: 3 },        // Winter's Curse
   }, { kind: "vampiric", value: 0.09 }),
   arc_warden: hero("arc_warden", 113, "arc_warden", true, { maxHp: 640, armor: 3, damage: 26, speed: 166, range: 330 }, {
     q: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 340, duration: 5 },             // Flux
