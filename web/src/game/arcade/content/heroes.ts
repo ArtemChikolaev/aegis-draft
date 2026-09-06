@@ -835,9 +835,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "mass_freeze", value: [0, 200, 300, 400], cooldown: 55, radius: 320, duration: 3 },        // Winter's Curse
   }, { kind: "vampiric", value: 0.09 }),
   arc_warden: hero("arc_warden", 113, "arc_warden", true, { maxHp: 640, armor: 3, damage: 31, speed: 166, range: 400, attackInterval: 0.8 }, {
-    q: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 340, duration: 5 },             // Flux
+    // Слот Q — единственное умение, которое у героя есть с первого уровня, поэтому в нём должен
+    // стоять его основной инструмент зачистки. У Arc Warden там стоял Flux — точечный дот с узким
+    // условием каста, и герой не успевал за волнами (уровень 12 и 617 убийств против 26 и 2525 у
+    // Rubick на тех же сидах). Меняем местами: искра-цепь в Q, Flux в E.
+    q: { kind: "arc_lightning", value: [0, 110, 160, 210, 260], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Spark Wraith
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Magnetic Field
-    e: { kind: "remnant", value: [0, 160, 235, 310, 380], cooldown: 7, radius: 170 },                    // Spark Wraith
+    e: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 340, duration: 5 },            // Flux
     r: SIG,                                                                                              // Tempest Double
   }, { kind: "multicast", value: 0.35 }),
   dawnbreaker: hero("dawnbreaker", 135, "dawnbreaker", false, { maxHp: 680, armor: 3, damage: 26, speed: 158, regen: 2 }, {

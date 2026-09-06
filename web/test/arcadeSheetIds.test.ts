@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
@@ -33,3 +33,16 @@ describe("id листов спрайтов", () => {
     }
   });
 });
+// Строка манифеста без отрендеренного листа = невидимый герой (или вард) в бою: загрузчик тихо
+// отдаёт undefined, а рендер рисует кружок. Ловим это до игры, а не в бою.
+describe("листы на диске", () => {
+  it("под каждую строку манифеста лежит лист в обоих наборах", () => {
+    for (const [file, dir] of [["dota_manifest_px.tsv", "dota_px"], ["dota_manifest_px2.tsv", "dota_px2"]] as const) {
+      const missing = rows(file).filter((id) =>
+        !existsSync(new URL(`../public/art/sprites/${dir}/${id}.webp`, import.meta.url))
+        || !existsSync(new URL(`../public/art/sprites/${dir}/${id}.json`, import.meta.url)));
+      expect(missing, `${dir}: нет листа`).toEqual([]);
+    }
+  });
+});
+
