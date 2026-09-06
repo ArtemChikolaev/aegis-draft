@@ -62,5 +62,13 @@
   "centaur": {},
   "dark_seer": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
   "death_prophet": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "disruptor": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]}
+  "disruptor": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a"]},
+  "lycan": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "lone_druid": {"attack":["attack_1.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a"]},
+  "alchemist": {},
+  "bane": {"attack":["attack_1.m4a","attack_2.m4a"],"impact":["impact_1.m4a"]},
+  "batrider": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "bounty_hunter": {},
+  "broodmother": {"attack":["attack_1.m4a","attack_2.m4a"],"pre":["pre_1.m4a","pre_2.m4a"]},
+  "clockwerk": {"attack":["attack_1.m4a","attack_2.m4a"]}
 }

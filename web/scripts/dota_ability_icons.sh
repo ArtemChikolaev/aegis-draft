@@ -78,6 +78,14 @@ centaur centaur hoof_stomp double_edge return stampede
 dark_seer dark_seer vacuum ion_shell surge wall_of_replica
 death_prophet death_prophet carrion_swarm silence spirit_siphon exorcism
 disruptor disruptor thunder_strike glimpse kinetic_field static_storm
+lycan lycan summon_wolves howl feral_impulse shapeshift
+lone_druid lone_druid spirit_bear spirit_link savage_roar true_form
+alchemist alchemist acid_spray unstable_concoction corrosive_weaponry chemical_rage
+bane bane enfeeble brain_sap nightmare fiends_grip
+batrider batrider sticky_napalm flamebreak firefly flaming_lasso
+bounty_hunter bounty_hunter shuriken_toss jinada wind_walk track
+broodmother broodmother spawn_spiderlings spin_web incapacitating_bite insatiable_hunger
+clockwerk rattletrap battery_assault power_cogs rocket_flare hookshot
 '
 missing=""
 while read -r id dota q w e r; do

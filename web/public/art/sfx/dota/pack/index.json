@@ -708,6 +708,98 @@
     "disruptor_r_1.mp3"
    ]
   },
+  "lycan": {
+   "q": [
+    "lycan_q_1.m4a"
+   ],
+   "w": [
+    "lycan_w_1.m4a"
+   ],
+   "r": [
+    "lycan_r_1.m4a"
+   ]
+  },
+  "lone_druid": {
+   "q": [
+    "lone_druid_q_1.m4a"
+   ],
+   "e": [
+    "lone_druid_e_1.m4a"
+   ],
+   "r": [
+    "lone_druid_r_1.m4a"
+   ]
+  },
+  "alchemist": {
+   "q": [
+    "alchemist_q_1.m4a"
+   ],
+   "w": [
+    "alchemist_w_1.m4a"
+   ],
+   "r": [
+    "alchemist_r_1.m4a"
+   ]
+  },
+  "bane": {
+   "q": [
+    "bane_q_1.m4a"
+   ],
+   "w": [
+    "bane_w_1.m4a"
+   ],
+   "e": [
+    "bane_e_1.m4a"
+   ],
+   "r": []
+  },
+  "batrider": {
+   "w": [
+    "batrider_w_1.m4a"
+   ],
+   "e": [
+    "batrider_e_1.m4a"
+   ],
+   "r": [
+    "batrider_r_1.m4a"
+   ]
+  },
+  "bounty_hunter": {
+   "q": [
+    "bounty_hunter_q_1.m4a"
+   ],
+   "e": [
+    "bounty_hunter_e_1.m4a"
+   ],
+   "r": [
+    "bounty_hunter_r_1.m4a"
+   ]
+  },
+  "broodmother": {
+   "q": [
+    "broodmother_q_1.m4a"
+   ],
+   "w": [
+    "broodmother_w_1.m4a"
+   ],
+   "r": [
+    "broodmother_r_1.m4a"
+   ]
+  },
+  "clockwerk": {
+   "q": [
+    "clockwerk_q_1.m4a"
+   ],
+   "w": [
+    "clockwerk_w_1.m4a"
+   ],
+   "e": [
+    "clockwerk_e_1.m4a"
+   ],
+   "r": [
+    "clockwerk_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

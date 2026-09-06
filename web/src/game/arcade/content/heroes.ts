@@ -20,7 +20,9 @@ export type TemplateHeroId =
   // Волна 5.
   | "silencer" | "skywrath_mage" | "dazzle" | "jakiro" | "shadow_shaman" | "warlock" | "enigma" | "tinker"
   // Волна 6.
-  | "omniknight" | "abaddon" | "beastmaster" | "brewmaster" | "centaur" | "dark_seer" | "death_prophet" | "disruptor";
+  | "omniknight" | "abaddon" | "beastmaster" | "brewmaster" | "centaur" | "dark_seer" | "death_prophet" | "disruptor"
+  // Волна 7.
+  | "lycan" | "lone_druid" | "alchemist" | "bane" | "batrider" | "bounty_hunter" | "broodmother" | "clockwerk";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -32,6 +34,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "tiny", "spectre", "chaos_knight", "night_stalker", "doom", "legion_commander", "templar_assassin", "medusa",
   "silencer", "skywrath_mage", "dazzle", "jakiro", "shadow_shaman", "warlock", "enigma", "tinker",
   "omniknight", "abaddon", "beastmaster", "brewmaster", "centaur", "dark_seer", "death_prophet", "disruptor",
+  "lycan", "lone_druid", "alchemist", "bane", "batrider", "bounty_hunter", "broodmother", "clockwerk",
 ];
 
 export type AbilityKind =
@@ -503,6 +506,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "goo", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 340, duration: 3 },              // Glimpse
     e: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 16, radius: 200, duration: 2 },           // Kinetic Field
     r: { kind: "nova", value: [0, 260, 390, 520], cooldown: 60, radius: 320, duration: 3 },              // Static Storm
+  }),
+  // ---- Волна 7 ----
+  lycan: hero("lycan", 77, "lycan", false, { maxHp: 720, armor: 4, damage: 28, speed: 168, regen: 2 }, {
+    q: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 14, duration: 12, radius: 300 },     // Summon Wolves
+    w: { kind: "rage", value: [0, 0.4, 0.55, 0.7, 0.85], cooldown: 12, duration: 6 },                    // Howl
+    e: { kind: "crit", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },                  // Feral Impulse
+    r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 12 },                      // Shapeshift
+  }),
+  lone_druid: hero("lone_druid", 80, "lone_druid", true, { maxHp: 660, armor: 4, damage: 27, speed: 164, range: 340 }, {
+    q: { kind: "damage_ward", value: [0, 45, 58, 72, 85], cooldown: 18, duration: 15, radius: 320 },     // Summon Spirit Bear
+    w: SIG,                                                                                              // Spirit Link
+    e: { kind: "gust", value: [0, 70, 105, 140, 170], cooldown: 11, radius: 260, duration: 1.5 },         // Savage Roar
+    r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 15 },                          // True Form
+  }, { kind: "vampiric", value: 0.12 }),
+  alchemist: hero("alchemist", 73, "alchemist", false, { maxHp: 720, armor: 4, damage: 26, speed: 160, regen: 3 }, {
+    q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 12, radius: 300, duration: 4 },            // Acid Spray
+    w: { kind: "lightning_bolt", value: [0, 90, 135, 180, 230], cooldown: 10, radius: 300, duration: 1.8 }, // Unstable Concoction
+    e: { kind: "frost_arrows", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },          // Corrosive Weaponry
+    r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 15 },                      // Chemical Rage
+  }),
+  bane: hero("bane", 3, "bane", true, { maxHp: 620, armor: 3, damage: 25, speed: 162 }, {
+    q: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 320, duration: 4 },             // Enfeeble
+    w: { kind: "life_drain", value: [0, 34, 46, 58, 70], cooldown: 8, radius: 320, duration: 3 },         // Brain Sap
+    e: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 12, radius: 320, duration: 3 },       // Nightmare
+    r: { kind: "assassinate", value: [0, 380, 590, 800], cooldown: 60, radius: 340 },                    // Fiend's Grip
+  }),
+  batrider: hero("batrider", 65, "batrider", true, { maxHp: 640, armor: 3, damage: 24, speed: 168, range: 300 }, {
+    q: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 5, radius: 320, duration: 4 },             // Sticky Napalm
+    w: { kind: "gust", value: [0, 110, 160, 210, 260], cooldown: 10, radius: 240, duration: 2 },         // Flamebreak
+    e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 16, duration: 8 },                  // Firefly
+    r: { kind: "frostbite", value: [0, 150, 250, 350], cooldown: 60, radius: 340, duration: 3 },          // Flaming Lasso
+  }),
+  bounty_hunter: hero("bounty_hunter", 62, "bounty_hunter", false, { maxHp: 660, armor: 4, damage: 27, speed: 178, attackInterval: 0.85 }, {
+    q: { kind: "arc_lightning", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 320, count: [0, 2, 3, 3, 4] }, // Shuriken Toss
+    w: { kind: "crit", value: [0, 0.14, 0.18, 0.22, 0.26], cooldown: 0, passive: true },                 // Jinada
+    e: { kind: "dash", value: [0, 110, 160, 210, 260], cooldown: 11, radius: 280 },                       // Shadow Walk
+    r: { kind: "corrosive", value: [0, 0.25, 0.32, 0.4], cooldown: 20, radius: 340, duration: 10 },      // Track
+  }, { kind: "backstab", value: 0.5 }),
+  broodmother: hero("broodmother", 61, "broodmother", false, { maxHp: 600, armor: 3, damage: 24, speed: 170 }, {
+    q: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 12, duration: 12, radius: 300 },     // Spawn Spiderlings
+    w: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 14, duration: 8 },                  // Spin Web
+    e: { kind: "frost_arrows", value: [0, 0.15, 0.2, 0.25, 0.3], cooldown: 0, passive: true },           // Incapacitating Bite
+    r: { kind: "rage", value: [0, 0.5, 0.7, 0.9], cooldown: 50, duration: 10 },                           // Insatiable Hunger
+  }, { kind: "vampiric", value: 0.07 }),
+  clockwerk: hero("clockwerk", 51, "rattletrap", false, { maxHp: 740, armor: 5, damage: 26, speed: 160, regen: 2 }, {
+    q: { kind: "edict", value: [0, 40, 60, 80, 100], cooldown: 14, duration: 8, radius: 200 },            // Battery Assault
+    w: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 15, radius: 180, duration: 2 },           // Power Cogs
+    e: { kind: "line_burst", value: [0, 60, 95, 130, 165], cooldown: 8, radius: 60, count: [0, 4, 4, 4, 4] }, // Rocket Flare
+    r: { kind: "dash", value: [0, 150, 250, 350], cooldown: 40, radius: 500 },                           // Hookshot
   }),
 };
 
