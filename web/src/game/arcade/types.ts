@@ -325,7 +325,9 @@ export interface Player {
   hasteUntil: number;
   /** Школы в порядке взятия (макс. 3) и суммарная «сила» апгрейда (ранги × множитель редкости). */
   schools: SchoolId[];
-  upgrades: Record<string, { rank: number; power: number }>;
+  /** `cap` — потолок рангов у этого апгрейда: базовый `maxRank` плюс надбавка за редкость,
+   *  с которой его брали (см. `ARCADE.rarity.rankBonus`). Растёт, если попался вариант реже. */
+  upgrades: Record<string, { rank: number; power: number; cap: number }>;
   talents: string[];
   /** Инвентарь Secret Shop — до 6 слотов, как в Dota. */
   items: { id: string; rarity: Rarity }[];

@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.21.0";
+export const ARCADE_CONFIG_VERSION = "a0.22.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -97,6 +97,10 @@ export const ARCADE = {
     end: [38, 36, 20, 6],
     endMin: 8,
     mult: { standard: 1, refined: 1.35, exotic: 1.8, arcana: 2.4 } as Record<string, number>,
+    /** Надбавка к потолку рангов за редкость (T13.18, «как в Death Must Die»): обычный вариант
+     *  улучшения упирается в свой `maxRank`, редкий поднимает потолок — редкость решает не только
+     *  «насколько сильнее сейчас», но и «как далеко это можно докачать». */
+    rankBonus: { standard: 0, refined: 0, exotic: 1, arcana: 2 } as Record<string, number>,
   },
   /** Руны щедрости: первая на 0:50, дальше каждые 100 с; живёт 40 с; эффект 60 с. */
   greed: {

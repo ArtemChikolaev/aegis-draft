@@ -841,6 +841,9 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   }
   const def = UPGRADE_BY_ID[offer.id];
   const rank = (sim?.player.upgrades[offer.id]?.rank ?? 0) + 1;
+  // Потолок рангов у апгрейда растёт от редкости, поэтому в карточке показываем СВОЙ потолок,
+  // а не базовый `maxRank`: иначе на «4 из 3» игрок решит, что видит баг.
+  const cap = Math.max(sim?.player.upgrades[offer.id]?.cap ?? 0, UPGRADE_BY_ID[offer.id].maxRank + (ARCADE.rarity.rankBonus[offer.rarity] ?? 0));
   if (def.legendary) {
     return (
       <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity="legendary" data-testid={`arcade-offer-${index}`} onClick={onPick}>
@@ -855,7 +858,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
     <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity={offer.rarity} data-testid={`arcade-offer-${index}`} onClick={onPick}>
       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {def.requiresSchools ? t("arcade.offer.hybrid", { a: t(`arcade.school.${def.requiresSchools[0]}` as MessageKey), b: t(`arcade.school.${def.requiresSchools[1]}` as MessageKey) }) : <>{t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</>}</span>
       <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
-      <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)} · {t("arcade.offer.rank", { rank, max: def.maxRank })}</small>
+      <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)} · {t("arcade.offer.rank", { rank, max: cap })}{cap > def.maxRank && <> · {t("arcade.offer.capUp", { n: cap - def.maxRank })}</>}</small>
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
     </button>
   );

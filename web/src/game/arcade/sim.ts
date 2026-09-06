@@ -1884,7 +1884,7 @@ export class ArcadeSim {
     const p = this.player;
     const schools: readonly SchoolId[] = p.schools.length >= 3 ? p.schools : SCHOOLS;
     const owned = (id: string) => (p.upgrades[id]?.rank ?? 0) > 0;
-    const candidates = UPGRADES.filter((u) => !u.legendary && !this.banished.has(u.id) && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < u.maxRank && (!u.requires || u.requires.some(owned)) && (!u.requiresSchools || u.requiresSchools.every((sc) => p.schools.includes(sc))));
+    const candidates = UPGRADES.filter((u) => !u.legendary && !this.banished.has(u.id) && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < (p.upgrades[u.id]?.cap ?? u.maxRank) && (!u.requires || u.requires.some(owned)) && (!u.requiresSchools || u.requiresSchools.every((sc) => p.schools.includes(sc))));
     if (candidates.length === 0) return null;
     const def = candidates[this.rng.int(candidates.length)];
     return { kind: "upgrade", id: def.id, rarity: this.rollRarity() };
@@ -1907,8 +1907,14 @@ export class ArcadeSim {
     else if (offer.kind === "talent") p.talents.push(offer.id);
     else {
       const def = UPGRADE_BY_ID[offer.id];
-      const cur = p.upgrades[offer.id] ?? { rank: 0, power: 0 };
-      p.upgrades[offer.id] = { rank: cur.rank + 1, power: def.legendary ? 1 : cur.power + ARCADE.rarity.mult[offer.rarity] };
+      const cur = p.upgrades[offer.id] ?? { rank: 0, power: 0, cap: def.maxRank };
+      // Редкость поднимает потолок рангов, а не только силу ранга: экзотический вариант даёт +1
+      // ступень сверх `maxRank`, арканный +2. Потолок только растёт — взял редкий вариант однажды,
+      // дальше можно докачивать и обычными.
+      // Легендарки берутся один раз (maxRank 1) и всегда приходят с редкостью arcana — надбавка их
+      // не касается, иначе одна легендарка бралась бы трижды.
+      const cap = def.legendary ? def.maxRank : Math.max(cur.cap, def.maxRank + (ARCADE.rarity.rankBonus[offer.rarity] ?? 0));
+      p.upgrades[offer.id] = { rank: cur.rank + 1, power: def.legendary ? 1 : cur.power + ARCADE.rarity.mult[offer.rarity], cap };
       if (!def.neutral && !p.schools.includes(def.school)) p.schools.push(def.school);
       if (def.id === "leg_rad_phoenix") p.aegis = true; // Феникс: одно возрождение, как Aegis
     }
