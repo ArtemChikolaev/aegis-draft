@@ -622,7 +622,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "edict", value: [0, 80, 120, 160], cooldown: 60, duration: 8, radius: 300 },              // Magnetize
   }, { kind: "aftershock", value: 34, radius: 160 }),
   elder_titan: hero("elder_titan", 103, "elder_titan", false, { maxHp: 820, armor: 5, damage: 29, speed: 158, regen: 3 }, {
-    q: { kind: "ravage", value: [0, 110, 160, 210, 260], cooldown: 11, radius: 260, duration: 2 },        // Echo Stomp
+    q: { kind: "ravage", value: [0, 110, 160, 210, 260], cooldown: 14, radius: 260, duration: 2 },        // Echo Stomp
     w: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 8, radius: 74, count: [0, 3, 3, 3, 3] }, // Astral Spirit
     e: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 320, duration: 8 },  // Natural Order
     r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 90, count: [0, 5, 5, 5], duration: 1.0 }, // Earth Splitter
@@ -658,11 +658,11 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 70, radius: 260, duration: 2.5 },          // Reverse Polarity
   }, { kind: "cleave", value: 0.4, radius: 90 }),
   mars: hero("mars", 129, "mars", false, { maxHp: 780, armor: 5, damage: 28, speed: 160, regen: 3 }, {
-    q: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 7, radius: 320, duration: 1.5 }, // Spear of Mars
+    q: { kind: "lightning_bolt", value: [0, 110, 165, 220, 270], cooldown: 8, radius: 320, duration: 1.5 }, // Spear of Mars
     w: { kind: "gust", value: [0, 120, 175, 230, 290], cooldown: 10, radius: 220, duration: 1.0 },       // God's Rebuke
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Bulwark
     r: { kind: "ravage", value: [0, 240, 360, 480], cooldown: 60, radius: 300, duration: 1.5 },          // Arena of Blood
-  }, { kind: "tough", value: 7 }),
+  }, { kind: "tough", value: 5 }),
   // ---- Волна 9 ----
   morphling: hero("morphling", 10, "morphling", true, { maxHp: 580, armor: 3, damage: 25, speed: 168, range: 340 }, {
     q: { kind: "dash", value: [0, 100, 150, 200, 250], cooldown: 9, radius: 400 },                        // Waveform
@@ -710,8 +710,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "dash", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 400 },                        // Icarus Dive
     w: { kind: "multishot", value: [0, 40, 55, 70, 90], cooldown: 9, radius: 340, count: [0, 3, 4, 5, 6] }, // Fire Spirits
     e: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 60, count: [0, 5, 5, 5, 5] }, // Sun Ray
-    r: { kind: "reincarnation", value: [0, 0.5, 0.7, 0.9], cooldown: 120, passive: true },               // Supernova
-  }, { kind: "aura_burn", value: 11, radius: 140 }),
+    r: { kind: "reincarnation", value: [0, 0.4, 0.55, 0.7], cooldown: 150, passive: true },              // Supernova
+  }, { kind: "aura_burn", value: 8, radius: 140 }),
   // ---- Волна 10 ----
   puck: hero("puck", 13, "puck", true, { maxHp: 600, armor: 3, damage: 25, speed: 172 }, {
     q: { kind: "line_burst", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Illusory Orb
@@ -777,9 +777,9 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   timbersaw: hero("timbersaw", 98, "shredder", false, { maxHp: 740, armor: 4, damage: 26, speed: 164, regen: 3 }, {
     q: { kind: "spin", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 200, duration: 1.5 },          // Whirling Death
     w: { kind: "dash", value: [0, 90, 135, 180, 230], cooldown: 6, radius: 400 },                         // Timber Chain
-    e: { kind: "armor_passive", value: [0, 4, 6, 8, 10], cooldown: 0, passive: true },                   // Reactive Armor
+    e: { kind: "armor_passive", value: [0, 3, 4, 6, 7], cooldown: 0, passive: true },                    // Reactive Armor
     r: { kind: "damage_ward", value: [0, 50, 75, 100], cooldown: 30, duration: 8, radius: 260 },          // Chakram
-  }, { kind: "tough", value: 3 }),
+  }, { kind: "tough", value: 2 }),
   treant: hero("treant", 83, "treant", false, { maxHp: 920, armor: 4, damage: 32, speed: 156, regen: 5, attackInterval: 1.1 }, {
     q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], duration: 1.0 }, // Nature's Grasp
     w: { kind: "life_drain", value: [0, 34, 46, 58, 70], cooldown: 9, radius: 300, duration: 4 },         // Leech Seed
