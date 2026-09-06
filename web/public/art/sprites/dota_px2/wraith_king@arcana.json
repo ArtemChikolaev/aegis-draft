@@ -20,7 +20,7 @@
     },
     "idle": {
       "row": 16,
-      "frames": 2
+      "frames": 12
     },
     "attack": {
       "row": 24,

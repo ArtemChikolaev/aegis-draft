@@ -1,0 +1,38 @@
+{
+  "name": "witch_doctor@monke",
+  "frame": 128,
+  "dirs": 8,
+  "fps": 12,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.779
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 6
+    },
+    "walk": {
+      "row": 8,
+      "frames": 11
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 8
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "witchdoctor.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

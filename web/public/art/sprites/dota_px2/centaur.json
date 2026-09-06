@@ -1,30 +1,34 @@
 {
   "name": "centaur",
   "frame": 128,
-  "dirs": 4,
-  "fps": 10,
+  "dirs": 8,
+  "fps": 12,
   "world": 128,
   "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
   "anchor": {
     "x": 0.5,
-    "y": 0.771
+    "y": 0.804
   },
   "anims": {
-    "walk": {
+    "cast": {
       "row": 0,
-      "frames": 4
+      "frames": 8
+    },
+    "walk": {
+      "row": 8,
+      "frames": 5
     },
     "idle": {
-      "row": 4,
-      "frames": 10
+      "row": 16,
+      "frames": 12
     },
     "attack": {
-      "row": 8,
-      "frames": 4
+      "row": 24,
+      "frames": 5
     },
     "death": {
-      "row": 12,
-      "frames": 10
+      "row": 32,
+      "frames": 12
     }
   },
   "source": "n_creep_centaur_lrg.glb",

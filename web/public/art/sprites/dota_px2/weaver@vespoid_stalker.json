@@ -1,0 +1,38 @@
+{
+  "name": "weaver@vespoid_stalker",
+  "frame": 128,
+  "dirs": 8,
+  "fps": 12,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.671
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 9
+    },
+    "walk": {
+      "row": 8,
+      "frames": 10
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 7
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "weaver.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

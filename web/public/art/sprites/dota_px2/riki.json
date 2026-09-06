@@ -29,6 +29,10 @@
     "death": {
       "row": 32,
       "frames": 12
+    },
+    "spin": {
+      "row": 40,
+      "frames": 5
     }
   },
   "source": "rikimaru.glb",
