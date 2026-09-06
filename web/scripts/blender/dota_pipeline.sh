@@ -55,7 +55,7 @@ while IFS=$'\t' read -r id vmdl args parts; do
   fi
   [ -n "$GLB" ] || { echo "   glb не найден для $id — проверь путь vmdl_c (список: $S2V -i \"$VPK\" -l -f $(dirname "$vmdl")/)"; continue; }
   # shellcheck disable=SC2086
-  "$BLENDER" -b -P "$HERE/render_dota_sprites.py" -- --glb "$GLB" --name "$id" --out "$SPRITES" $args ${PARTS:+--parts "$PARTS"} 2>&1 | grep -E 'actions in file|attached|orientation|sheet |WARN|Error|Traceback' || true
+  "$BLENDER" -b -P "$HERE/render_dota_sprites.py" -- --glb "$GLB" --name "$id" --out "$SPRITES" $args ${PARTS:+--parts "$PARTS"} 2>&1 | grep -E 'actions in file|attached|orientation|sheet |cast:|style |WARN|Error|Traceback' || true
   # Палитра 256 цветов (pngquant, brew install pngquant): лист худеет в 4–5 раз без видимой потери на 128 px.
   if command -v pngquant >/dev/null 2>&1 && [ -f "$SPRITES/$id.png" ]; then
     # Пиксельные листы: 48 цветов без дизеринга (--nofs) — ровные пятна, как в рисованном пиксель-арте.
