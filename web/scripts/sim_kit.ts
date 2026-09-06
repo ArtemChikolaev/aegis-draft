@@ -20,9 +20,12 @@ const SLOT = arg("slot", "w") as AbilityKey;
 const RUNS = Number(arg("runs", "12"));
 const TICKS = Number(arg("ticks", "5400")); // 90 секунд игрового времени
 const SEED = arg("seed", "kit");
+// Ранг поднимает HP и число врагов. На нулевом ранге сильный герой выкашивает ВЕСЬ спавн, и добавка
+// урона не даёт лишних убийств — слот выглядит мёртвым, не будучи им. На высоком ранге насыщения нет.
+const RANK = Number(arg("rank", "0"));
 
 function run(level: number, seed: string): { kills: number; hp: number; alive: boolean } {
-  const sim = new ArcadeSim(seed, { rank: 0, hero: HERO, act: "short" });
+  const sim = new ArcadeSim(seed, { rank: RANK, hero: HERO, act: "short" });
   // Уровни ставим ДО первого шага: сим читает их каждый тик, ничего пересчитывать не нужно.
   sim.player.abilities[SLOT] = level;
   sim.player.hp = sim.player.stats.maxHp;
@@ -45,6 +48,6 @@ for (let i = 0; i < RUNS; i++) {
 }
 const avg = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
 const k0 = avg(off), k4 = avg(on);
-console.log(`вклад слота ${SLOT.toUpperCase()} · ${HERO} · ${RUNS} прогонов по ${TICKS} тиков`);
+console.log(`вклад слота ${SLOT.toUpperCase()} · ${HERO} · ранг ${RANK} · ${RUNS} прогонов по ${TICKS} тиков`);
 console.log(`убийств: без умения ${k0.toFixed(1)} · с 4-м уровнем ${k4.toFixed(1)} · разница ${(k4 - k0 >= 0 ? "+" : "")}${(k4 - k0).toFixed(1)} (${k0 > 0 ? (((k4 - k0) / k0) * 100).toFixed(0) : "—"}%)`);
 console.log(`дожили до конца пробы: без ${aliveOff}/${RUNS} · с умением ${aliveOn}/${RUNS}`);
