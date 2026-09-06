@@ -12,6 +12,7 @@ import {
 } from "../src/ui/sound.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
+import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 
 // Node без DOM/WebAudio — ровно окружение headless e2e: слой обязан молчать, а не падать.
 afterEach(() => {
@@ -68,6 +69,7 @@ describe("звук героев Аркады", () => {
   it("у каждого героя есть звуки умений, и все файлы пака на месте", () => {
     const pack = read("../public/art/sfx/dota/pack/index.json") as unknown as Record<string, Record<string, Record<string, string[]>>>;
     expect(Object.keys(HEROES).filter((h) => !pack.abilities?.[h]), "герои без звуков умений").toEqual([]);
+    expect(Object.keys(ENEMY_KINDS).filter((k) => !pack.enemies?.[k]), "виды врагов без звуков").toEqual([]);
     for (const [section, entries] of Object.entries(pack)) {
       for (const [hid, cats] of Object.entries(entries)) {
         for (const v of Object.values(cats)) {

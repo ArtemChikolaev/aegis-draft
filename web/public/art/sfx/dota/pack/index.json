@@ -1568,6 +1568,16 @@
     "_generic_death_2.m4a"
    ]
   },
+  "ancient": {
+   "attack": [
+    "ancient_attack_1.m4a",
+    "ancient_attack_2.m4a",
+    "ancient_attack_3.m4a"
+   ],
+   "death": [
+    "ancient_death_1.m4a"
+   ]
+  },
   "centaur": {
    "attack": [
     "centaur_attack_1.m4a",
@@ -1705,6 +1715,16 @@
    "attack": [
     "siege_creep_attack_1.m4a",
     "siege_creep_attack_2.m4a"
+   ]
+  },
+  "tormentor": {
+   "attack": [
+    "tormentor_attack_1.m4a",
+    "tormentor_attack_2.m4a",
+    "tormentor_attack_3.m4a"
+   ],
+   "death": [
+    "tormentor_death_1.m4a"
    ]
   },
   "wildwing": {

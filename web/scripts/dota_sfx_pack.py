@@ -184,6 +184,12 @@ ENEMIES = {
     "lane_creep": {"attack": [f"{C}good/melee_attack_impact{i}" for i in (1, 2, 3)]},
     "siege_creep": {"attack": [f"{C}good/range_projectile_impact{i}" for i in (2, 3)], "aggro": [f"{C}good/range_projectile_launch"]},
     "roshan": {"attack": [f"{C}roshan/attack0{i}" for i in (1, 2, 3)] + [f"{C}roshan/slam"], "aggro": [f"{C}roshan/grunt0{i}" for i in (1, 2, 3)] + [f"{C}roshan/revenge_roar"]},
+    # У Tormentor нет ни модели, ни ударных звуков в vpk — только его «отражение» в ambient. Берём
+    # его как звук удара по нему: это ровно то, что слышно в игре, когда по Торментору бьют.
+    "tormentor": {"attack": [f"sounds/ambient/tormentor_reflect0{i}" for i in (1, 2, 3)], "death": [f"{D}death_golem_granite"]},
+    # Древний — постройка, а не существо: удары по нему звучат как удары по зданию, а падение —
+    # как разрушение Древнего (`physics/damage/building/`).
+    "ancient": {"attack": [f"sounds/physics/damage/building/damage0{i}" for i in (1, 2, 3)], "death": ["sounds/physics/damage/building/dire_ancient_destruction_lose"]},
     "_generic": {"attack": melee, "death": [f"{D}death_troll_common_01", f"{D}death_kobold_common_01"]},
 }
 UI = {
