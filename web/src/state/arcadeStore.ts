@@ -42,12 +42,13 @@ const AUTOCAST_KEY = "aegis-draft.arcade.autocast";
 
 /** Автокаст по умениям — настройка игрока, живёт между забегами (владелец 2026-09-06:
  *  «умения не должны нажиматься сами, пока не включишь переключатель рядом»). По умолчанию всё выключено. */
-export type AutoCastState = Record<AbilityKey, boolean>;
-const AUTOCAST_OFF: AutoCastState = { q: false, w: false, e: false, r: false };
+export type AutoCastState = Record<AbilityKey, boolean> & { attack: boolean };
+// Автоатака по умолчанию включена (без неё герой просто стоит), умения — выключены.
+const AUTOCAST_OFF: AutoCastState = { q: false, w: false, e: false, r: false, attack: true };
 function readAutoCast(): AutoCastState {
   try {
     const parsed = JSON.parse(readCached(AUTOCAST_KEY) ?? "null") as Partial<AutoCastState> | null;
-    return parsed ? { q: !!parsed.q, w: !!parsed.w, e: !!parsed.e, r: !!parsed.r } : { ...AUTOCAST_OFF };
+    return parsed ? { q: !!parsed.q, w: !!parsed.w, e: !!parsed.e, r: !!parsed.r, attack: parsed.attack !== false } : { ...AUTOCAST_OFF };
   } catch {
     return { ...AUTOCAST_OFF };
   }
@@ -153,7 +154,7 @@ interface ArcadeStore {
   /** Действие в Secret Shop (SHOP_ACT): купить слот / реролл / закрыть. */
   shopAct: (act: number) => void;
   /** Переключить автокаст умения (сохраняется между забегами; в сим уходит через input-лог). */
-  toggleAutoCast: (key: AbilityKey) => void;
+  toggleAutoCast: (key: AbilityKey | "attack") => void;
   /** Забег закончился внутри сима — зафиксировать результат и записать историю. */
   finish: () => void;
   quit: () => void;

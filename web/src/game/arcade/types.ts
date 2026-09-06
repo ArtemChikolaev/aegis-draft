@@ -18,8 +18,11 @@ export interface ArcadeInput {
 
 /** Действия лавки/нейтралки/лута в `ArcadeInput.act`; 10..15 — продать предмет из слота (act − 10) за половину цены (владелец 2026-09-06: «нельзя поменять предмет»). */
 export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5, sellBase: 10 } as const;
-/** `act` = AUTOCAST_ACT + индекс умения (0=q…3=r) переключает автокаст этого умения. */
+/** `act` = AUTOCAST_ACT + индекс умения (0=q…3=r) переключает автокаст этого умения, +4 — автоатаку. */
 export const AUTOCAST_ACT = 40;
+export const AUTOATTACK_ACT = AUTOCAST_ACT + 4;
+/** Бит ручной атаки в `cast` (умения занимают 1|2|4|8). */
+export const ATTACK_MASK = 16;
 
 export const IDLE_INPUT: Readonly<ArcadeInput> = Object.freeze({ mx: 0, my: 0, cast: 0, choose: -1, act: 0 });
 
@@ -284,6 +287,8 @@ export interface Player {
    *  В симе по умолчанию включён — так гоняются бот калибровки и старые реплеи; экран выключает его
    *  на старте забега через `act` (см. AUTOCAST_ACT), поэтому состояние всегда попадает в input-лог. */
   autoCast: Record<AbilityKey, boolean>;
+  /** Автоатака: выключена — герой бьёт только по команде (бит ATTACK_MASK во вводе). */
+  autoAttack: boolean;
   /** Активные эффекты способностей (общие для видов): вихрь/поле до тика, тотем, серия ударов, зона, бафы. */
   spinUntil: number;
   wardUntil: number;

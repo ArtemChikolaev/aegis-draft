@@ -6,7 +6,8 @@ import type { ArcadeInput } from "../../game/arcade/types.ts";
 const KEY_DIR: Record<string, [number, number]> = {
   KeyW: [0, -1], ArrowUp: [0, -1], KeyS: [0, 1], ArrowDown: [0, 1], KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0],
 };
-const KEY_CAST: Record<string, number> = { KeyQ: 1, Digit1: 1, KeyE: 2, Digit2: 2, KeyR: 8, Digit4: 8, Digit3: 4 };
+// KeyF / Digit5 — ручная атака (владелец 2026-09-06: «либо персонаж бьёт сам, либо мы бьём вручную»).
+const KEY_CAST: Record<string, number> = { KeyQ: 1, Digit1: 1, KeyE: 2, Digit2: 2, KeyR: 8, Digit4: 8, Digit3: 4, KeyF: 16, Digit5: 16 };
 
 export class ArcadeInputController {
   private keys = new Set<string>();

@@ -14,7 +14,7 @@ import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/ar
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { preloadArcadeArt } from "./sprites.ts";
-import { AUTOCAST_ACT, IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
+import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS, SHARD_PRICE, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
@@ -358,6 +358,7 @@ function ArcadeStage() {
           const k = ABILITY_KEYS_UI[i];
           if (sim.player.autoCast[k] !== want[k]) { controller.queueAct(AUTOCAST_ACT + i); break; }
         }
+        if (sim.player.autoAttack !== want.attack) controller.queueAct(AUTOATTACK_ACT);
       }
       // Дельты счётчиков сима → звук и juice. Пакет Dota (soundscape) первичен, синтетика — фолбэк.
       const ev = sim.events;
@@ -485,6 +486,27 @@ function ArcadeStage() {
                 </div>
               )}
               <div className="arcade-hud__abilities">
+                {/* Автоатака: значок «А» переключает, само нажатие бьёт один раз (клавиша F). */}
+                <button
+                  type="button"
+                  className="arcade-ability"
+                  data-testid="arcade-attack"
+                  onPointerDown={(e) => { e.stopPropagation(); controllerRef.current?.cast(ATTACK_MASK); }}
+                  title={t(autoCastSetting.attack ? "arcade.hud.autoAttackOn" : "arcade.hud.autoAttackOff")}
+                >
+                  <b>{t("arcade.hud.attackShort")}</b>
+                  <small>F</small>
+                  <span
+                    role="checkbox"
+                    tabIndex={0}
+                    aria-checked={autoCastSetting.attack}
+                    className="arcade-ability__auto"
+                    data-on={autoCastSetting.attack ? "true" : undefined}
+                    data-testid="arcade-autoattack"
+                    onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleAutoCast("attack"); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); toggleAutoCast("attack"); } }}
+                  >{t("arcade.hud.autoCastShort")}</span>
+                </button>
                 {(["q", "w", "e", "r"] as const).map((key) => {
                   const lvl = p.abilities[key];
                   const ab = sim.hero.abilities[key];

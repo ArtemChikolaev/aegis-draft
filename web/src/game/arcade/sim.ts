@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, type PetKind } from "./content/pets.ts";
-import { ARCADE, DT, TICK_HZ, sec } from "./config.ts";
+import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
@@ -41,6 +41,8 @@ import {
   type Shard,
   type Shrine,
   type Spot,
+  ATTACK_MASK,
+  AUTOATTACK_ACT,
   AUTOCAST_ACT,
   SHOP_ACT,
   type Pet,
@@ -161,7 +163,7 @@ export class ArcadeSim {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
-      autoCast: { q: true, w: true, e: true, r: true },
+      autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
@@ -233,6 +235,8 @@ export class ArcadeSim {
     if (input.act >= AUTOCAST_ACT && input.act < AUTOCAST_ACT + ABILITY_KEYS.length) {
       const key = ABILITY_KEYS[input.act - AUTOCAST_ACT];
       p.autoCast[key] = !p.autoCast[key];
+    } else if (input.act === AUTOATTACK_ACT) {
+      p.autoAttack = !p.autoAttack;
     }
     this.tick++;
     this.shake = Math.max(0, this.shake - 1);
@@ -316,7 +320,8 @@ export class ArcadeSim {
     const p = this.player;
     const stunned = this.tick < p.stunUntil;
     // --- автоатака: мили — удар + клив, дальний бой — снаряд ---
-    if (!stunned && p.attackCd === 0 && this.tick >= p.spinUntil && p.burstLeft === 0 && this.tick >= p.fieldUntil) {
+    const wantsAttack = p.autoAttack || (input.cast & ATTACK_MASK) !== 0;
+    if (wantsAttack && !stunned && p.attackCd === 0 && this.tick >= p.spinUntil && p.burstLeft === 0 && this.tick >= p.fieldUntil) {
       const target = this.nearestEnemy(p.x, p.y, this.attackRange());
       if (target) {
         // Спрайт разворачивается к цели на время удара, ноги продолжают бежать куда жмут (см. renderer).
@@ -1637,7 +1642,7 @@ export class ArcadeSim {
     for (let i = 0; i < ARCADE.shop.offers && pool.length > 0; i++) {
       const def = pool.splice(this.rng.int(pool.length), 1)[0];
       const rarity = this.rollRarity();
-      offers.push({ id: def.id, rarity, price: Math.round(def.price * ITEM_PRICE_MULT[rarity]) });
+      offers.push({ id: def.id, rarity, price: DEV_FREE_SHOP ? 0 : Math.round(def.price * ITEM_PRICE_MULT[rarity]) });
     }
     return offers;
   }
@@ -1657,7 +1662,7 @@ export class ArcadeSim {
       this.recomputeStats();
       this.pushFx("levelup", p.x, p.y, 0, 0, 30);
     } else if (act === 4) {
-      const price = this.shopRerollPrice();
+      const price = DEV_FREE_SHOP ? 0 : this.shopRerollPrice();
       if (p.gold < price) return;
       p.gold -= price;
       this.shopRerolls++;
@@ -1794,7 +1799,7 @@ export class ArcadeSim {
   /** Реролл офферов уровня за золото: тот же генератор, новые карты. */
   private rerollPending(): void {
     const p = this.player;
-    const price = this.levelRerollPrice();
+    const price = DEV_FREE_SHOP ? 0 : this.levelRerollPrice();
     if (!this.pending || p.gold < price) return;
     p.gold -= price;
     this.levelRerolls++;

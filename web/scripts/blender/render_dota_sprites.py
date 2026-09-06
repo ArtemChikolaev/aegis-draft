@@ -248,7 +248,15 @@ def main():
         # Workbench в режиме TEXTURE берёт АКТИВНЫЙ узел-картинку материала; у материалов Dota первым идёт
         # detailmask/normal (чёрный силуэт) — делаем активной текстуру цвета (*_color*).
         def base_color_image(tree):
-            # Надёжнее имён: идём от Principled BSDF по входу Base Color до узла-картинки (через mix/etc., глубина 4).
+            # Сначала по имени: `*_color*` без масок. У аркан (PA «Многоликий парадокс», демон Terrorblade)
+            # ход по графу от Principled BSDF приводил к маске, и тело выходило серым без текстуры
+            # (фидбэк владельца 2026-09-06) — а нужный `*_color*` в экспорте есть всегда.
+            imgs_all = [n for n in tree.nodes if n.type == "TEX_IMAGE" and n.image]
+            bad_tokens = ("mask", "normal", "_orm", "spec", "rough", "metal", "detail")
+            by_name = [n for n in imgs_all if "_color" in n.image.name.lower() and not any(b in n.image.name.lower() for b in bad_tokens)]
+            if by_name:
+                return by_name[0]
+            # Иначе идём от Principled BSDF по входу Base Color до узла-картинки (через mix/etc., глубина 4).
             bsdf = next((n for n in tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
             if bsdf and bsdf.inputs["Base Color"].links:
                 frontier = [bsdf.inputs["Base Color"].links[0].from_node]

@@ -50,6 +50,11 @@ export class ArcadeRenderer {
   /** Ландшафт текущего забега (сид + акт) и слежение за движением героя для анимации ходьбы. */
   private terrain: Terrain | null = null;
   private terrainKey = "";
+  /** Анимация каста (владелец 2026-09-06: «есть анимации — каст ульты SF, вызов энтов у NP»): до какого момента
+   *  играть клип `cast` и с какого счётчика он начался. Считаем по событиям сима, а не по вводу. */
+  private castUntil = 0;
+  private castFrom = 0;
+  private seenCasts = -1;
   private prevX = 0;
   private prevY = 0;
   private walkPhase = 0;
@@ -459,6 +464,10 @@ export class ArcadeRenderer {
     const ring = this.tintKey(pal);
     // Альтернативная форма (Metamorphosis и родня): другой лист и красное кольцо у ног — видно, что ульт сработал.
     const inForm = sim.tick < p.formUntil;
+    // Клип каста запускаем по счётчику умений сима: он растёт и от автокаста, и от нажатия.
+    const castsNow = sim.events.casts + sim.events.ults;
+    if (this.seenCasts < 0) this.seenCasts = castsNow;
+    else if (castsNow > this.seenCasts) { this.seenCasts = castsNow; this.castUntil = now + 420; this.castFrom = now; }
     this.drawTrail(p.x, p.y, now, pal);
     // Ауры школ — частицами под героем: угольки Radiance, ледяная крошка Skadi, искры Maelstrom (плотность — от ранга).
     {
@@ -525,9 +534,14 @@ export class ArcadeRenderer {
       // Вихрь: свой клип `spin` (attack_spin у Juggernaut) в темпе листа; без него — клип удара, но не
       // чаще 2.4 цикла/с (фидбэк владельца: «крутится слишком быстро» при цикле 90 мс).
       const hasSpin = spinning && !!heroDota.meta.anims.spin;
-      const anim = hasSpin ? "spin" : spinning || atkT >= 0 ? "attack" : moving ? "walk" : "idle";
+      const casting = !spinning && now < this.castUntil && !!heroDota.meta.anims.cast;
+      const anim = hasSpin ? "spin" : casting ? "cast" : spinning || atkT >= 0 ? "attack" : moving ? "walk" : "idle";
       const frames = heroDota.meta.anims[anim]?.frames ?? heroDota.meta.anims.walk?.frames ?? 1;
-      const frame = anim === "spin" ? Math.floor((now / 1000) * heroDota.meta.fps) : anim === "attack" ? Math.floor((spinning ? (now / 420) % 1 : atkT) * frames) : anim === "walk" ? Math.floor(this.walkPhase * 1.6) : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
+      const frame = anim === "spin" ? Math.floor((now / 1000) * heroDota.meta.fps)
+        : anim === "cast" ? Math.min(frames - 1, Math.floor(((now - this.castFrom) / 420) * frames))
+        : anim === "attack" ? Math.floor((spinning ? (now / 420) % 1 : atkT) * frames)
+        : anim === "walk" ? Math.floor(this.walkPhase * 1.6)
+        : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
       drawDotaFrame(c, heroDota, anim, dotaDir(lookX, lookY, heroDota.meta.dirs), frame, p.x, p.y + R * 0.75);
     } else if (heroSheet) {
       const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 420) % 1 : atkT) * FRAMES[heroAnim]);

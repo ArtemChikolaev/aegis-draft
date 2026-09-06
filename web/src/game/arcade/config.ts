@@ -3,6 +3,13 @@
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
 export const ARCADE_CONFIG_VERSION = "a0.18.0";
 
+/** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
+ *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
+ *  сюда не попадают, поэтому баланс и golden-тесты не меняются. */
+// `typeof window` проверяем ПЕРВЫМ: под tsx (бот калибровки) и в node-окружении vitest `import.meta.env`
+// не существует, и обращение к нему падало бы на импорте модуля.
+export const DEV_FREE_SHOP = typeof window !== "undefined" && import.meta.env?.DEV === true;
+
 export const TICK_HZ = 60;
 export const DT = 1 / TICK_HZ;
 export const sec = (s: number): number => Math.round(s * TICK_HZ);
