@@ -47,6 +47,28 @@ test.describe("arcade", () => {
     await expect(chip).toHaveAttribute("title", /Necromastery|Некромастерия/);
   });
 
+  test("лавка: предмет раскрывается по тычку и показывает характеристики", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    await page.getByTestId("arcade-seed").fill("e2e-arcade-shop");
+    await page.getByTestId("arcade-play").click();
+    await expect(page.getByTestId("arcade-clock")).toBeVisible();
+    // Лавка приходит по касанию торговца — в тесте открываем её напрямую через dev-хук.
+    await page.evaluate("(() => { const s = window.__arcadeSim(); s.player.gold = 9999; s.openShop(); })()");
+    const shop = page.getByTestId("arcade-shop");
+    await expect(shop).toBeVisible();
+    await page.getByTestId("arcade-shop-0").click();
+    const item = page.getByTestId("arcade-shop-item-0");
+    await expect(item).toBeVisible();
+    // До тычка характеристик нет, после — есть, и продажа отдельной кнопкой.
+    await expect(page.getByTestId("arcade-shop-details-0")).toHaveCount(0);
+    await item.click();
+    const details = page.getByTestId("arcade-shop-details-0");
+    await expect(details).toBeVisible();
+    await expect(details.locator("li").first()).toBeVisible();
+    await expect(page.getByTestId("arcade-shop-sell-0")).toBeVisible();
+  });
+
   test("гардероб: облик открывается по герою, покупка и надевание работают", async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-arcade").click();

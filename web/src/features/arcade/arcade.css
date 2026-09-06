@@ -239,3 +239,9 @@
 .arcade-ability--sig { pointer-events: none; opacity: .85; }
 .arcade-ability--sig b { color: var(--accent); }
 .arcade-ability--sig small { max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Предмет в лавке раскрывается по тычку: статы и описание, продажа отдельной кнопкой (T13.28). */
+.arcade-shop__item { display: grid; gap: 6px; }
+.arcade-shop__item[data-open] .arcade-shop__sell { border-color: var(--accent-strong); }
+.arcade-shop__details { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+.arcade-shop__details p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }

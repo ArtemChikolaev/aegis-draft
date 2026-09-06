@@ -275,7 +275,10 @@ export class ArcadeRenderer {
     if (sim.tick >= p.wardUntil) return;
     const c = this.ctx;
     const pulse = 0.5 + 0.5 * Math.sin(sim.tick / 6);
-    const key = ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "damage_ward");
+    // Ward-умения бывают двух видов: `damage_ward` (призыв, который бьёт) и `ward` (лечащий тотем).
+    // Оба ставят точку в wardX/wardY, поэтому и картинку ищем по обоим.
+    const key = ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "damage_ward")
+      ?? ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "ward");
     const ab = key ? sim.hero.abilities[key] : sim.hero.abilities.w;
     c.strokeStyle = pal.ward;
     c.globalAlpha = 0.25 + 0.2 * pulse;

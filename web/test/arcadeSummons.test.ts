@@ -17,7 +17,8 @@ describe("призывы Аркады", () => {
       for (const ab of Object.values(hero.abilities)) {
         if (!ab.summon) continue;
         seen++;
-        expect(ab.kind, `${hero.id}: призыв объявлен не у damage_ward`).toBe("damage_ward");
+        // Картинка призыва бывает у обоих ward-видов: `damage_ward` (бьёт) и `ward` (лечащий тотем).
+        expect(["damage_ward", "ward"], `${hero.id}: призыв объявлен не у ward-умения`).toContain(ab.kind);
         if (ab.summon.art !== "illusion") expect(sheets.has(ab.summon.art), `${hero.id} → ${ab.summon.art}`).toBe(true);
         expect((ab.summon.count ?? 1) >= 1 && (ab.summon.count ?? 1) <= 4, `${hero.id}: count`).toBe(true);
       }

@@ -129,7 +129,8 @@ const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
     base: {},
     abilities: {
       q: { kind: "spin", value: [0, 38, 60, 82, 104], cooldown: 16, radius: 104, duration: 4 },
-      w: { kind: "ward", value: [0, 0.028, 0.034, 0.04, 0.046], cooldown: 32, radius: 170, duration: 8 },
+      // Healing Ward — настоящий тотем из Dota, а не зелёный шар (фидбэк владельца 2026-09-06).
+      w: { kind: "ward", value: [0, 0.028, 0.034, 0.04, 0.046], cooldown: 32, radius: 170, duration: 8, summon: { art: "ward_healing" } },
       e: { kind: "crit", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 0, passive: true },
       r: { kind: "omni", value: [0, 110, 200, 290], cooldown: 70, radius: 230, duration: 1.5, count: [0, 5, 7, 9] },
     },

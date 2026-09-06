@@ -247,6 +247,8 @@ function ArcadeStage() {
   const levelReroll = useArcade((s) => s.levelReroll);
   const levelBanish = useArcade((s) => s.levelBanish);
   const shopAct = useArcade((s) => s.shopAct);
+  /** Раскрытый предмет в лавке: показываем его статы и описание, продажа — отдельной кнопкой. */
+  const [openItem, setOpenItem] = useState<number | null>(null);
   const autoCastSetting = useArcade((s) => s.autoCast);
   const toggleAutoCast = useArcade((s) => s.toggleAutoCast);
   const finish = useArcade((s) => s.finish);
@@ -629,13 +631,31 @@ function ArcadeStage() {
               {sim.player.items.length > 0 && (
                 <div className="arcade-shop__owned" data-testid="arcade-shop-owned">
                   <span className="arcade-shop__owned-title">{t("arcade.shop.owned")}</span>
-                  {sim.player.items.map((it, i) => (
-                    <button key={`${it.id}-${i}`} type="button" className="arcade-shop__sell" data-rarity={it.rarity} data-testid={`arcade-shop-sell-${i}`} title={t(`arcade.item.${it.id}.desc` as MessageKey)} onClick={() => shopAct(SHOP_ACT.sellBase + i)}>
-                      <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" />
-                      <span>{t(`arcade.item.${it.id}` as MessageKey)}</span>
-                      <small>{t("arcade.shop.sell", { gold: sim.itemSellPrice(it) })}</small>
-                    </button>
-                  ))}
+                  {sim.player.items.map((it, i) => {
+                    // Владелец 2026-09-06: «в лавке видно только цену продажи, а характеристик нет».
+                    // Тычок раскрывает предмет — статы и описание; продажа отдельной кнопкой, чтобы
+                    // случайное касание не продавало сборку.
+                    const def = ARCADE_ITEM_BY_ID[it.id];
+                    const open = openItem === i;
+                    return (
+                      <div key={`${it.id}-${i}`} className="arcade-shop__item" data-open={open ? "true" : undefined}>
+                        <button type="button" className="arcade-shop__sell" data-rarity={it.rarity} data-testid={`arcade-shop-item-${i}`} aria-expanded={open} onClick={() => setOpenItem(open ? null : i)}>
+                          <ItemIcon pixel={PX} slug={def?.art ?? it.id} name={it.id} size="sm" />
+                          <span>{t(`arcade.item.${it.id}` as MessageKey)}</span>
+                          <small>{t(`arcade.rarity.${it.rarity}` as MessageKey)}</small>
+                        </button>
+                        {open && (
+                          <div className="arcade-shop__details" data-testid={`arcade-shop-details-${i}`}>
+                            {def && <StatList effects={itemEffectsAt(def, it.rarity)} />}
+                            <p>{t(`arcade.item.${it.id}.desc` as MessageKey)}</p>
+                            <Button variant="leave" data-testid={`arcade-shop-sell-${i}`} onClick={() => { setOpenItem(null); shopAct(SHOP_ACT.sellBase + i); }}>
+                              {t("arcade.shop.sell", { gold: sim.itemSellPrice(it) })}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               <div className="arcade-overlay__actions arcade-shop__actions">
