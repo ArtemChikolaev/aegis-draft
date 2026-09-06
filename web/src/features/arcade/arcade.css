@@ -212,7 +212,9 @@
 .arcade-wardrobe__stage small[data-rarity] { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
 .arcade-wardrobe__stage small[data-rarity="arcana"] { color: var(--gold); opacity: 1; }
 .arcade-wardrobe__stage small[data-rarity="exotic"] { color: var(--role-support); opacity: 1; }
+.arcade-wardrobe__slot { position: relative; display: inline-flex; align-items: center; justify-content: center; }
 .arcade-wardrobe__canvas { image-rendering: pixelated; }
+.arcade-wardrobe__pending { position: absolute; inset: auto 0 44%; text-align: center; font-size: 10px; font-style: normal; opacity: .55; }
 .arcade-wardrobe__actions { display: flex; gap: 8px; margin-top: 4px; }
 .arcade-wardrobe__hint { opacity: .6; font-size: 11px; }
 .arcade-wardrobe__styles { display: grid; justify-items: center; gap: 4px; margin-top: 4px; }

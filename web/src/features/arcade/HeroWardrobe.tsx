@@ -12,7 +12,7 @@ import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, type CosmeticDef, type Cosmetic
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { dotaSheet, drawDotaFrame, hueSheet, setPixelSheets } from "./sprites.ts";
+import { dotaSheet, dotaSheetState, drawDotaFrame, hueSheet, setPixelSheets } from "./sprites.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
 const EFFECT_SLOTS: readonly CosmeticSlot[] = ["frame", "trail", "death", "tint"];
@@ -29,7 +29,10 @@ const LOOP_S = IDLE_S + WALK_S + ATTACK_S;
  */
 function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; size: number; hue?: number; still?: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
+  const { t } = useI18n();
+  const [missing, setMissing] = useState(false);
   useEffect(() => {
+    setMissing(false);
     const px = pixelScale();
     setPixelSheets(px >= 1, densePixel(px));
     const cv = ref.current;
@@ -43,7 +46,9 @@ function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; s
     let raf = 0;
     const draw = () => {
       raf = requestAnimationFrame(draw);
-      const raw = dotaSheet(sheet) ?? dotaSheet(sheet.split("~")[0]);
+      const bare = sheet.split("~")[0];
+      const raw = dotaSheet(sheet) ?? dotaSheet(bare);
+      if (!raw && dotaSheetState(sheet) === "missing" && dotaSheetState(bare) === "missing") setMissing(true);
       const s = raw && hue ? hueSheet(raw, hue) : raw;
       c.imageSmoothingEnabled = false;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -61,7 +66,12 @@ function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; s
     draw();
     return () => cancelAnimationFrame(raf);
   }, [sheet, size, hue, still]);
-  return <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />;
+  return (
+    <span className="arcade-wardrobe__slot" style={{ width: size, height: size }}>
+      <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />
+      {missing && <em className="arcade-wardrobe__pending">{t("arcade.wardrobe.pending")}</em>}
+    </span>
+  );
 }
 
 interface Look {

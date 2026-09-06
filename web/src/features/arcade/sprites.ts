@@ -302,6 +302,14 @@ export function dotaSheet(name: string): DotaSheet | null {
   return v === "loading" ? null : v;
 }
 
+/** Состояние листа: «грузится» отличается от «нет такого листа» — гардеробу нужно показать,
+ *  что облик ещё не отрендерен, а не пустую рамку (фидбэк владельца 2026-09-06). */
+export function dotaSheetState(name: string): "loading" | "missing" | "ready" {
+  const v = dotaSheets.get(name);
+  if (v === undefined || v === "loading") return "loading";
+  return v === null ? "missing" : "ready";
+}
+
 /** Индекс направления листа Dota: 0 = лицом к камере (вниз по экрану), далее против часовой
  *  на экране (вниз → вправо → вверх → влево) — так вращает модель Blender-скрипт (+Z). */
 export function dotaDir(dx: number, dy: number, dirs: number): number {
