@@ -41,6 +41,18 @@ while IFS=$'\t' read -r id vmdl args parts; do
       [ -n "$pg" ] && PARTS="${PARTS:+$PARTS,}$pg"
     done
   fi
+  # Стиль арканы (--style <токен Valve>): текстуры стиля лежат в vpk отдельно от модели, glb их не
+  # привозит — достаём сами в $OUT/$id/styletex и подкладываем рендеру (см. dota_style_textures.sh).
+  STYLE_TOK="$(printf '%s' "$args" | sed -n 's/.*--style \([A-Za-z0-9_]*\).*/\1/p')"
+  if [ -n "$STYLE_TOK" ]; then
+    folder="$(printf '%s' "$vmdl" | cut -d/ -f3)"
+    sdir="$OUT/$id/styletex"; rm -rf "$sdir"; mkdir -p "$sdir"
+    for root in items heroes; do
+      DOTA="$DOTA" S2V="$S2V" bash "$HERE/dota_style_textures.sh" "models/$root/$folder" "$STYLE_TOK" "$sdir" >/dev/null 2>&1 || true
+    done
+    echo "   стиль $STYLE_TOK: текстур $(find "$sdir" -name '*.png' | wc -l | tr -d ' ')"
+    args="$args --style-dir $sdir"
+  fi
   [ -n "$GLB" ] || { echo "   glb не найден для $id — проверь путь vmdl_c (список: $S2V -i \"$VPK\" -l -f $(dirname "$vmdl")/)"; continue; }
   # shellcheck disable=SC2086
   "$BLENDER" -b -P "$HERE/render_dota_sprites.py" -- --glb "$GLB" --name "$id" --out "$SPRITES" $args ${PARTS:+--parts "$PARTS"} 2>&1 | grep -E 'actions in file|attached|orientation|sheet |WARN|Error|Traceback' || true

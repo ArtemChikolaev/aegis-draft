@@ -44,7 +44,41 @@ def parse_args():
     p.add_argument("--light", type=float, default=1.25, help="яркость студийного света Workbench (только --pixel): тёмным моделям (Shadow Fiend, Рошан) 1.4–1.8")
     p.add_argument("--autoexpose", type=float, default=0.16, help="только --pixel: если средняя яркость текстуры цвета ниже порога, гамма поднимает её до --expose-target (Shadow Fiend в Dota светится selfillum/spec, а его color-текстура почти чёрная); 0 — выключить")
     p.add_argument("--expose-target", type=float, default=0.4)
+    p.add_argument("--style", default="", help="стиль арканы Dota (style1/style2): color-текстуры материалов подменяются одноимёнными из --style-dir; см. dota_style_textures.sh")
+    p.add_argument("--style-dir", default="", help="папка с PNG стиля (рекурсивно), распакованными из vpk")
     return p.parse_args(argv)
+
+
+def style_index(root):
+    """PNG стиля из vpk по именам файлов: {имя без расширения в нижнем регистре: путь}."""
+    idx = {}
+    for dirpath, _dirs, files in os.walk(root):
+        for f in files:
+            if f.lower().endswith(".png"):
+                idx[os.path.splitext(f)[0].lower()] = os.path.join(dirpath, f)
+    return idx
+
+
+def _color_prefix(name):
+    """Токены имени текстуры до слова `color` включительно: хвост (psd/png + хэш) у стиля свой."""
+    t = os.path.splitext(name)[0].lower().split("_")
+    return t[: t.index("color") + 1] if "color" in t else None
+
+
+def style_texture(idx, image_name, style):
+    """Текстура стиля для базовой color-текстуры. Токен стиля Valve ставит в разные места:
+    `drow_arcana_base_color` → `drow_arcana_base_style1_color` (суффиксом), а
+    `juggernaut_arcana_body_color` → `juggernaut_arcana_v2_body_color` (в середине).
+    Поэтому ищем имя, которое равно базовому со вставленным токеном стиля в любой позиции."""
+    base = _color_prefix(image_name)
+    if not base:
+        return None
+    want = {tuple(base[:i] + [style] + base[i:]) for i in range(len(base))}
+    for key, path in idx.items():
+        pref = _color_prefix(key)
+        if pref and tuple(pref) in want:
+            return path
+    return None
 
 def reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -313,11 +347,20 @@ def main():
             except Exception:
                 pass
             print(f"autoexpose: {img.name} mean {mean:.3f} → gamma {gamma:.2f}")
+        styles = style_index(a.style_dir) if a.style and a.style_dir else {}
+        swapped = 0
         exposed = set()
         for m in bpy.data.materials:
             if not m.use_nodes:
                 continue
             node = base_color_image(m.node_tree)
+            if node and styles:
+                # Стиль арканы — та же модель с другим набором текстур (Dota хранит их отдельным
+                # материалом `arcana_style1`, в glb приезжает только базовый).
+                alt = style_texture(styles, node.image.name, a.style)
+                if alt:
+                    node.image = bpy.data.images.load(alt, check_existing=True)
+                    swapped += 1
             if node:
                 m.node_tree.nodes.active = node
                 if a.autoexpose > 0 and node.image.name not in exposed:
@@ -325,6 +368,8 @@ def main():
                     auto_expose(node.image, a.autoexpose, a.expose_target)
             else:
                 print(f"WARN: у материала {m.name} нет текстуры цвета — Workbench нарисует его серым")
+        if a.style:
+            print(f"style {a.style}: подменено текстур {swapped}" if swapped else f"WARN: стиль {a.style} не нашёл ни одной текстуры в {a.style_dir}")
     setup_render(a.frame, a.samples, a.pixel, a.outline, a.light)
     rig = Rig(objs)
     armatures = [o for o in objs if o.type == "ARMATURE"]

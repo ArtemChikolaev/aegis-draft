@@ -88,6 +88,14 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_drow_arcana", slot: "skin", rarity: "arcana", variant: "drow_ranger@arcana", hero: "drow_ranger" },
 ];
 
+/** Арканы, у которых в Dota есть настоящий стиль (свой набор текстур): лист `<variant>~style1`
+ *  рендерится отдельно (строка в манифестах + `--style <токен Valve>`, см. dota_style_textures.sh). */
+const SHEET_STYLE_SKINS = new Set([
+  "skin_jugg_arcana", "skin_drow_arcana", "skin_pudge_arcana",
+  "skin_es_arcana", "skin_qop_arcana", "skin_wr_arcana", "skin_ogre_arcana",
+]);
+for (const c of COSMETICS) if (SHEET_STYLE_SKINS.has(c.id)) (c as { styles?: readonly StyleDef[] }).styles = [{ id: "style1", sheet: true }, ...GEMS];
+
 // Самоцветы — у всех аркан (владелец 2026-09-06: «у Terrorblade куча гемов, аркана может быть любого цвета»).
 // Персоны и сеты цвет не меняют: у них в Dota гнезда под самоцвет нет.
 for (const c of COSMETICS) if (c.slot === "skin" && c.rarity === "arcana" && !c.styles) (c as { styles?: readonly StyleDef[] }).styles = GEMS;
