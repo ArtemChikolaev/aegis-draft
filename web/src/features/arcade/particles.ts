@@ -86,6 +86,29 @@ export function drawHealAura(c: CanvasRenderingContext2D, x: number, y: number, 
 }
 
 /**
+ * Бьющий вард без своей модели (Nether Ward, Plague Ward, Death Ward, Mass Serpent Ward, Psionic
+ * Trap, Tombstone): рисуется пиксельный тотем — колышек с горящим оком наверху и тенью у основания.
+ * Это заглушка до настоящих моделей из Dota, но читается как поставленный объект, а не как «шарик».
+ */
+export function drawWardTotem(c: CanvasRenderingContext2D, x: number, y: number, tick: number, px: number, main: string, glow: string, dark: string): void {
+  // Единица — два арт-пикселя: на одном тотем выходит с ноготь и не читается рядом с героем.
+  const u = px * 2;
+  const q = (v: number) => Math.round(v / px) * px;
+  const bob = Math.round(Math.sin(tick / 16)) * px;
+  const rect = (top: number, w: number, h: number, fill: string) => { c.fillStyle = fill; c.fillRect(q(x - (w * u) / 2), q(y + top * u - bob), w * u, h * u); };
+  c.globalAlpha = 0.3; rect(0, 6, 1, dark); c.globalAlpha = 1;   // тень у основания
+  rect(-2, 4, 2, dark);                                          // основание-камень
+  rect(-7, 2, 5, dark);                                          // древко (тёмное, чтобы читался силуэт)
+  rect(-7, 4, 1, main);                                          // перекладина
+  rect(-10, 4, 3, main);                                         // голова тотема
+  rect(-11, 2, 1, dark);                                         // навершие
+  // Око: пульсирует, поэтому вард видно в толпе.
+  c.globalAlpha = 0.55 + 0.45 * Math.sin(tick / 7);
+  rect(-9, 2, 2, glow);
+  c.globalAlpha = 1;
+}
+
+/**
  * Погода ночью (T13.22): редкие искры пепла сносит ветром через весь экран. Рисуется в мировых
  * координатах поверх земли, поэтому «летит» относительно карты, а не приклеена к камере; сетка
  * частиц привязана к экранному прямоугольнику, чтобы их число не росло с размером мира.

@@ -16,7 +16,7 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
+import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, heroLook, hueSheet, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
@@ -293,10 +293,7 @@ export class ArcadeRenderer {
       // Лечащая зона без модели — не «шарик на полу»: в Dota Shadow Wave, Purification и Cold
       // Embrace светятся вокруг цели. Бьющий вард без листа пока остаётся кружком (T13.27).
       if (ab.kind === "ward") drawHealAura(c, p.wardX, p.wardY, ab.radius ?? 170, sim.tick, this.artPx(), pal.heal, pal.text);
-      else {
-        c.fillStyle = pal.ward;
-        c.beginPath(); c.arc(p.wardX, p.wardY, 7 + pulse * 2, 0, Math.PI * 2); c.fill();
-      }
+      else drawWardTotem(c, p.wardX, p.wardY, sim.tick, this.artPx(), pal.ward, pal.text, pal.treeDark);
       return;
     }
     const illusion = art.art === "illusion";

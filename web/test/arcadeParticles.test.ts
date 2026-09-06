@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawHealAura, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWeather } from "../src/features/arcade/particles.ts";
+import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawHealAura, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWardTotem, drawWeather } from "../src/features/arcade/particles.ts";
 
 // Заглушка 2D-контекста: собираем прямоугольники, чтобы проверить количество, размер и привязку к сетке арт-пикселя.
 function stub() {
@@ -143,5 +143,21 @@ describe("дым сгоревшего врага (T13.22)", () => {
     expect(small.rects.length).toBeLessThan(a.rects.length);
     expect(Math.min(...a.rects.map((r) => r.y))).toBeLessThan(100);
     for (const r of a.rects) { expect(r.w % 2).toBe(0); expect(["heal", "text"]).toContain(r.fill); }
+  });
+
+  // Бьющий вард без своей модели рисовался кружком 7 px. Заглушка — пиксельный тотем: тень,
+  // основание, древко, голова с оком. Проверяем силуэт: он выше, чем шире, и стоит над точкой.
+  it("тотем варда: пиксельный силуэт над точкой, выше своей ширины", () => {
+    const a = stub(); drawWardTotem(a.c, 200, 200, 40, 2, "ward", "glow", "dark");
+    const b = stub(); drawWardTotem(b.c, 200, 200, 40, 2, "ward", "glow", "dark");
+    expect(a.rects).toEqual(b.rects);
+    const top = Math.min(...a.rects.map((r) => r.y));
+    const bottom = Math.max(...a.rects.map((r) => r.y + r.h));
+    const left = Math.min(...a.rects.map((r) => r.x));
+    const right = Math.max(...a.rects.map((r) => r.x + r.w));
+    expect(bottom - top, "тотем должен быть выше своей ширины").toBeGreaterThan(right - left);
+    expect(top).toBeLessThan(200);      // стоит над точкой, а не под ней
+    expect(bottom).toBeGreaterThanOrEqual(200);
+    for (const r of a.rects) { expect(r.x % 2).toBe(0); expect(r.y % 2).toBe(0); }
   });
 });
