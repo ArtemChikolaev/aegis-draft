@@ -55,3 +55,11 @@ describe("призывы Аркады", () => {
     expect(sim.player.wardY).toBe(y);
   });
 });
+  // Лист призыва грузится лениво, поэтому его надо тянуть вместе с героем: иначе первый вард
+  // виден только со второго раза (на первом касте лист ещё качается).
+  it("призывы героя попадают в предзагрузку арта", async () => {
+    const src = readFileSync(new URL("../src/features/arcade/sprites.ts", import.meta.url), "utf8");
+    const fn = src.slice(src.indexOf("export function preloadArcadeArt"));
+    expect(fn.slice(0, fn.indexOf("return new Promise"))).toContain("summon");
+  });
+

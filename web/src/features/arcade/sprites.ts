@@ -8,6 +8,11 @@
 export type Dir = 0 | 1 | 2 | 3; // up, left, down, right — порядок рядов LPC
 export type CharAnim = "walk" | "slash" | "thrust" | "bow" | "spellcast" | "hurt";
 
+import { HEROES, type HeroDef } from "../../game/arcade/content/heroes.ts";
+import type { AbilityKey } from "../../game/arcade/types.ts";
+
+const ABILITY_SLOTS: readonly AbilityKey[] = ["q", "w", "e", "r"];
+
 const ROOT = `${import.meta.env.BASE_URL}art/sprites/`;
 const BASE = `${ROOT}lpc/`;
 const FOLDER: Record<CharAnim, string> = { walk: "walkcycle", slash: "slash", thrust: "thrust", bow: "bow", spellcast: "spellcast", hurt: "hurt" };
@@ -379,7 +384,14 @@ export function pixelSheetsOn(): boolean { return pixelSheets; }
  * враги акта, земля и пропсы. Резолвится, когда всё загрузилось или отвалилось, не дольше `timeoutMs`.
  */
 export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act: string, timeoutMs = 6000): Promise<void> {
-  const sheets = [hero, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), "tree_oak", "tree_pine", "rock"];
+  // Листы призывов героя грузим заранее вместе с ним: иначе первый вард (или паучки, или голем)
+  // виден только со второго раза — на первом касте лист ещё качается, и на полу пусто.
+  const base = hero.split("@")[0].split("~")[0];
+  const def: HeroDef | undefined = (HEROES as Record<string, HeroDef | undefined>)[base];
+  const summons = ABILITY_SLOTS
+    .map((k) => def?.abilities[k].summon?.art)
+    .filter((a): a is string => !!a && a !== "illusion");
+  const sheets = [hero, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), ...summons, "tree_oak", "tree_pine", "rock"];
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
   const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
   kick();
