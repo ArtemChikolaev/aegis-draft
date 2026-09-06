@@ -13,7 +13,7 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { drawBurning, drawChilled, drawEmberRing, drawFrostMist, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks } from "./particles.ts";
+import { drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, heroLook, hueSheet, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
@@ -60,6 +60,9 @@ export class ArcadeRenderer {
   private castUntil = 0;
   private castFrom = 0;
   private seenCasts = -1;
+  /** Пыль рывка: откуда и до какого момента её рисовать (см. drawDust). */
+  private dashFrom: { x: number; y: number } | null = null;
+  private dashUntil = 0;
   private prevX = 0;
   private prevY = 0;
   private walkPhase = 0;
@@ -197,7 +200,13 @@ export class ArcadeRenderer {
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
     this.drawFx(sim, pal);
-    if (sim.night) this.drawNight(sim, pal);
+    if (sim.night) {
+      // Пепел в воздухе (T13.22): рисуем ДО тумана, иначе дальние искры светятся сквозь темноту.
+      const camX = Math.max(0, Math.min(sim.player.x - this.w / 2, ARCADE.world.w - this.w));
+      const camY = Math.max(0, Math.min(sim.player.y - this.h / 2, ARCADE.world.h - this.h));
+      drawWeather(c, camX, camY, this.w, this.h, sim.tick, this.artPx(), pal, 90);
+      this.drawNight(sim, pal);
+    }
     this.ctx.restore();
     if (this.pixel >= 1 && this.pixelCanvas) {
       this.ctx = this.mainCtx;
@@ -579,10 +588,17 @@ export class ArcadeRenderer {
     const dt = this.lastNow ? Math.min(0.1, (now - this.lastNow) / 1000) : 0;
     this.lastNow = now;
     const moved = Math.hypot(p.x - this.prevX, p.y - this.prevY);
+    // Рывок (Blink, Phantom Strike, Rolling Boulder) сим не помечает отдельно — ловим скачок позиции
+    // между кадрами: обычный бег даёт единицы пикселей, телепорт — сотню.
+    if (moved > 70) { this.dashFrom = { x: this.prevX, y: this.prevY }; this.dashUntil = now + 280; }
     if (moved > 0.5) this.movingUntil = now + 120;
     const moving = now < this.movingUntil;
     if (moving) this.walkPhase += dt * 11;
     this.prevX = p.x; this.prevY = p.y;
+    if (this.dashFrom && now < this.dashUntil) {
+      const k = 1 - (this.dashUntil - now) / 280;
+      drawDust(c, p.x, p.y + R * 0.75, p.x - this.dashFrom.x, p.y - this.dashFrom.y, k, this.artPx(), pal);
+    }
     const atkTotal = sec(p.stats.attackInterval);
     const atkT = p.attackCd > 0 && atkTotal - p.attackCd < atkTotal * 0.45 ? (atkTotal - p.attackCd) / (atkTotal * 0.45) : -1;
     const look = heroLook(sim.hero.kit, HERO_TINT[sim.hero.id] ?? pal.playerRing);

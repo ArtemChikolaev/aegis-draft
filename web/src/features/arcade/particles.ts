@@ -65,6 +65,41 @@ export function drawEmberRing(c: CanvasRenderingContext2D, x: number, y: number,
   c.globalAlpha = 1;
 }
 
+/**
+ * Погода ночью (T13.22): редкие искры пепла сносит ветром через весь экран. Рисуется в мировых
+ * координатах поверх земли, поэтому «летит» относительно карты, а не приклеена к камере; сетка
+ * частиц привязана к экранному прямоугольнику, чтобы их число не росло с размером мира.
+ */
+export function drawWeather(c: CanvasRenderingContext2D, camX: number, camY: number, w: number, h: number, tick: number, px: number, pal: ParticlePalette, count: number): void {
+  const life = 260;
+  for (let i = 0; i < count; i++) {
+    const t = (tick + hash(i, 71) * life) % life;
+    const k = t / life;
+    // Каждая искра живёт в своей колонке; за жизнь сносит вправо и вниз на пол-экрана.
+    const x = camX + hash(i, 13) * w + k * w * 0.45;
+    const y = camY + ((hash(i, 29) * h + k * h * 0.8) % h);
+    // Дым на ночной земле не виден вовсе — основная масса светлая, каждая пятая искра тлеет угольком.
+    c.globalAlpha = (k < 0.15 ? k / 0.15 : k > 0.8 ? (1 - k) / 0.2 : 1) * 0.5;
+    c.fillStyle = i % 5 === 0 ? pal.ember : pal.text;
+    dot(c, x, y, px * (i % 5 === 0 ? 3 : 2), px);
+  }
+  c.globalAlpha = 1;
+}
+
+/** Пыль из-под ног при рывке: короткий шлейф квадратов позади точки прыжка. */
+export function drawDust(c: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, k: number, px: number, pal: ParticlePalette): void {
+  const d = Math.hypot(dx, dy) || 1;
+  const ux = dx / d, uy = dy / d;
+  for (let i = 0; i < 8; i++) {
+    const along = (i / 8) * d;
+    const spread = (hash(i, 47) - 0.5) * 14;
+    c.globalAlpha = (1 - k) * (1 - i / 10) * 0.75;
+    c.fillStyle = i % 3 === 0 ? pal.smoke : pal.text;
+    dot(c, x - ux * along - uy * spread, y - uy * along + ux * spread * 0.5 + k * 6, px * (i % 3 === 0 ? 2 : 1), px);
+  }
+  c.globalAlpha = 1;
+}
+
 /** Аура Skadi: ледяная крошка оседает вокруг героя. */
 export function drawFrostMist(c: CanvasRenderingContext2D, x: number, y: number, radius: number, tick: number, px: number, pal: ParticlePalette, density: number): void {
   const life = 90;

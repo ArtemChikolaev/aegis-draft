@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawBurning, drawChilled, drawEmberRing, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail } from "../src/features/arcade/particles.ts";
+import { drawBurning, drawChilled, drawDust, drawEmberRing, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWeather } from "../src/features/arcade/particles.ts";
 
 // Заглушка 2D-контекста: собираем прямоугольники, чтобы проверить количество, размер и привязку к сетке арт-пикселя.
 function stub() {
@@ -80,5 +80,35 @@ describe("снаряд автоатаки по герою (владелец 2026
     expect(knife.rects.length).toBe(4);
     expect(bullet.rects.length).toBe(2);
     expect(knife.rects.some((r) => r.fill === "core")).toBe(true);
+  });
+});
+
+describe("погода и пыль рывка (T13.22)", () => {
+  it("пепел ночью держится в прямоугольнике камеры и детерминирован тиком", () => {
+    const a = stub(); drawWeather(a.c, 1000, 2000, 800, 600, 300, 2, pal, 40);
+    const b = stub(); drawWeather(b.c, 1000, 2000, 800, 600, 300, 2, pal, 40);
+    expect(a.rects.length).toBe(40);
+    expect(a.rects).toEqual(b.rects);
+    for (const r of a.rects) {
+      // Искру сносит вправо почти на пол-экрана — правая граница с запасом.
+      expect(r.x).toBeGreaterThanOrEqual(1000 - 8);
+      expect(r.x).toBeLessThanOrEqual(1000 + 800 * 1.5);
+      expect(r.y).toBeGreaterThanOrEqual(2000 - 8);
+      expect(r.y).toBeLessThanOrEqual(2000 + 600 + 8);
+      expect(["text", "ember"]).toContain(r.fill);
+      expect(r.w % 2).toBe(0);
+    }
+    const c2 = stub(); drawWeather(c2.c, 1000, 2000, 800, 600, 301, 2, pal, 40);
+    expect(c2.rects).not.toEqual(a.rects);
+  });
+
+  it("пыль рывка ложится позади героя и гаснет к концу", () => {
+    const near = stub(); drawDust(near.c, 500, 500, 120, 0, 0.1, 2, pal);
+    expect(near.rects.length).toBe(8);
+    // Рывок был слева направо — шлейф остаётся слева от героя.
+    expect(Math.max(...near.rects.map((r) => r.x))).toBeLessThanOrEqual(500 + 8);
+    expect(Math.min(...near.rects.map((r) => r.x))).toBeLessThan(500 - 50);
+    const late = stub(); drawDust(late.c, 500, 500, 120, 0, 0.95, 2, pal);
+    expect(Math.max(...late.rects.map((r) => r.alpha))).toBeLessThan(Math.max(...near.rects.map((r) => r.alpha)));
   });
 });
