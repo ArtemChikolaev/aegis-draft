@@ -60,24 +60,31 @@ export const GEAR_BASES: readonly GearBase[] = [
 ];
 export const GEAR_BASE_BY_ID: Record<string, GearBase> = Object.fromEntries(GEAR_BASES.map((b) => [b.id, b]));
 
-/** Пулы аффиксов по слоту: первый — гарантированный, остальные — опциональные. */
-const AFFIX_POOL: Record<GearSlot, { guaranteed: AffixStat[]; optional: AffixStat[] }> = {
-  weapon: { guaranteed: ["damage"], optional: ["attackSpeed", "crit", "lifesteal"] },
-  helm: { guaranteed: ["armor"], optional: ["maxHp", "cooldown", "regen"] },
-  armor: { guaranteed: ["maxHp"], optional: ["armor", "regen", "lifesteal"] },
-  boots: { guaranteed: ["moveSpeed"], optional: ["armor", "attackSpeed", "maxHp"] },
-  amulet: { guaranteed: ["regen"], optional: ["xpMult", "cooldown", "crit"] },
+/** Пулы аффиксов по слоту: первый — гарантированный, остальные — опциональные.
+ *  В каждом пуле по четыре опциональных: арканному предмету нужно четыре аффикса, а при трёх
+ *  вариантах он брал весь пул целиком и все арканные предметы слота выходили одинаковыми. */
+export const AFFIX_POOL: Record<GearSlot, { guaranteed: AffixStat[]; optional: AffixStat[] }> = {
+  weapon: { guaranteed: ["damage"], optional: ["attackSpeed", "crit", "lifesteal", "moveSpeed"] },
+  helm: { guaranteed: ["armor"], optional: ["maxHp", "cooldown", "regen", "xpMult"] },
+  armor: { guaranteed: ["maxHp"], optional: ["armor", "regen", "lifesteal", "cooldown"] },
+  boots: { guaranteed: ["moveSpeed"], optional: ["armor", "attackSpeed", "maxHp", "regen"] },
+  amulet: { guaranteed: ["regen"], optional: ["xpMult", "cooldown", "crit", "goldPerKill"] },
   ring: { guaranteed: ["goldPerKill"], optional: ["crit", "lifesteal", "maxHp", "cooldown"] },
 };
 
 /** База значения аффикса на тир 1 (тир умножает ×1 / ×1.6 / ×2.4). */
 const AFFIX_BASE: Record<AffixStat, [min: number, max: number]> = {
   damage: [4, 10], attackSpeed: [0.04, 0.1], crit: [0.03, 0.07], lifesteal: [0.02, 0.05], maxHp: [40, 90], armor: [1, 3],
-  regen: [0.6, 1.6], cooldown: [0.02, 0.05], moveSpeed: [0.02, 0.05], goldPerKill: [1, 1], xpMult: [0.03, 0.07],
+  regen: [0.6, 1.6], cooldown: [0.02, 0.05], moveSpeed: [0.02, 0.05], goldPerKill: [1, 3], xpMult: [0.03, 0.07],
 };
 const TIER_MULT = [0, 1, 1.6, 2.4];
-const RARITY_AFFIXES: Record<Rarity, number> = { standard: 1, refined: 2, exotic: 3, arcana: 3 };
-const RARITY_VALUE_MULT: Record<Rarity, number> = { standard: 1, refined: 1.1, exotic: 1.2, arcana: 1.45 };
+// Арканный предмет получает четвёртый аффикс — раньше он отличался от экзотического только
+// множителем значений, и «аркана» читалась как «экзот +20%».
+const RARITY_AFFIXES: Record<Rarity, number> = { standard: 1, refined: 2, exotic: 3, arcana: 4 };
+// Разброс по редкости был почти плоским (1 / 1.1 / 1.2 / 1.45) — вчетверо мельче, чем у улучшений
+// школ (1 / 1.35 / 1.8 / 2.4). Экипировка живёт между забегами, поэтому кривую держим положе, чем
+// у улучшений, но заметной.
+const RARITY_VALUE_MULT: Record<Rarity, number> = { standard: 1, refined: 1.15, exotic: 1.35, arcana: 1.7 };
 
 export interface GearAffix {
   stat: AffixStat;

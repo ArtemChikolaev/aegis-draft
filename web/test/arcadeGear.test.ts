@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Rng } from "../src/game/rng.ts";
-import { GEAR_BASES, GEAR_SLOTS, UNIQUES, gearEffect, gearScore, rollGear, uniqueGear } from "../src/game/arcade/content/gear.ts";
+import { AFFIX_POOL, GEAR_BASES, GEAR_SLOTS, UNIQUES, gearEffect, gearScore, rollGear, uniqueGear } from "../src/game/arcade/content/gear.ts";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, SHOP_ACT } from "../src/game/arcade/types.ts";
@@ -94,6 +94,26 @@ describe("контент экипировки (T13.14, партия 2)", () => {
     for (const u of Object.values(UNIQUES)) check(u.base, u.art);
     expect(GEAR_BASES.length).toBeGreaterThanOrEqual(34);
     expect(Object.keys(UNIQUES).length).toBeGreaterThanOrEqual(6);
+  });
+
+  // Редкость экипировки решала почти ничего: аркана отличалась от экзота на 20% значений и тем же
+  // числом аффиксов, а `goldPerKill` катался в диапазоне [1, 1] — все кольца выходили одинаковыми.
+  it("редкость даёт и число аффиксов, и заметный разброс значений", () => {
+    for (const slot of GEAR_SLOTS) {
+      const pool = AFFIX_POOL[slot];
+      expect(pool.optional.length, `${slot}: арканному предмету нужно 4 аффикса, значит и опций не меньше`).toBeGreaterThanOrEqual(4);
+    }
+    const rng = new Rng("gear-rarity");
+    const counts = (["standard", "refined", "exotic", "arcana"] as const).map((r) => rollGear(rng, 3, r, `u-${r}`, "weapon").affixes.length);
+    expect(counts).toEqual([1, 2, 3, 4]);
+    // Значения арканного предмета заметно выше обычного — берём медиану по гарантированному аффиксу.
+    const dmg = (r: "standard" | "arcana") => {
+      const v: number[] = [];
+      const rr = new Rng(`gear-${r}`);
+      for (let i = 0; i < 200; i++) v.push(rollGear(rr, 3, r, `u${i}`, "weapon").affixes.find((a) => a.stat === "damage")!.value);
+      return v.sort((a, b) => a - b)[100];
+    };
+    expect(dmg("arcana") / dmg("standard")).toBeGreaterThan(1.5);
   });
 
   it("на каждом слоте есть база первого тира — иначе ранний лут не соберётся", () => {
