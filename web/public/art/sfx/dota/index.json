@@ -109,5 +109,12 @@
   "winter_wyvern": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"impact":["impact_1.m4a"]},
   "arc_warden": {},
   "dawnbreaker": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
-  "hoodwink": {"attack":["attack_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]}
+  "hoodwink": {"attack":["attack_1.m4a"],"impact":["impact_1.m4a","impact_2.m4a"]},
+  "marci": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a","pre_2.m4a"],"impact":["impact_1.m4a","impact_2.m4a","impact_3.m4a"]},
+  "muerta": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"],"pre":["pre_1.m4a"]},
+  "primal_beast": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "kez": {"attack":["attack_1.m4a","attack_2.m4a","attack_3.m4a"]},
+  "ringmaster": {"attack":["attack_1.m4a"]},
+  "meepo": {},
+  "io": {}
 }

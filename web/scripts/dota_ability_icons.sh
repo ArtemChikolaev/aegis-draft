@@ -126,6 +126,13 @@ winter_wyvern winter_wyvern arctic_burn splinter_blast cold_embrace winters_curs
 arc_warden arc_warden flux magnetic_field spark_wraith tempest_double
 dawnbreaker dawnbreaker fire_wreath celestial_hammer luminosity solar_guardian
 hoodwink hoodwink acorn_shot bushwhack scurry sharpshooter
+marci marci grapple companion_run guardian unleash
+muerta muerta dead_shot the_calling gunslinger pierce_the_veil
+primal_beast primal_beast onslaught trample uproar pulverize
+kez kez echo_slash grappling_claw kazurai_katana raptor_dance
+ringmaster ringmaster tame_the_beasts the_box impalement wheel
+meepo meepo earthbind poof ransack divided_we_stand
+io wisp tether spirits overcharge relocate
 '
 missing=""
 while read -r id dota q w e r; do

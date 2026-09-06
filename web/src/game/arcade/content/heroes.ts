@@ -32,7 +32,9 @@ export type TemplateHeroId =
   // Волна 11.
   | "techies" | "terrorblade" | "timbersaw" | "treant" | "troll_warlord" | "tusk" | "underlord" | "undying"
   // Волна 12.
-  | "vengeful_spirit" | "visage" | "void_spirit" | "weaver" | "winter_wyvern" | "arc_warden" | "dawnbreaker" | "hoodwink";
+  | "vengeful_spirit" | "visage" | "void_spirit" | "weaver" | "winter_wyvern" | "arc_warden" | "dawnbreaker" | "hoodwink"
+  // Волна 13 (Largo в локальном vpk без модели — пропущен).
+  | "marci" | "muerta" | "primal_beast" | "kez" | "ringmaster" | "meepo" | "io";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -50,6 +52,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "puck", "pudge", "rubick", "sand_king", "shadow_demon", "slark", "snapfire", "spirit_breaker",
   "techies", "terrorblade", "timbersaw", "treant", "troll_warlord", "tusk", "underlord", "undying",
   "vengeful_spirit", "visage", "void_spirit", "weaver", "winter_wyvern", "arc_warden", "dawnbreaker", "hoodwink",
+  "marci", "muerta", "primal_beast", "kez", "ringmaster", "meepo", "io",
 ];
 
 export type AbilityKind =
@@ -815,6 +818,49 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2 },       // Bushwhack
     e: { kind: "haste", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 12, duration: 5 },                  // Scurry
     r: { kind: "assassinate", value: [0, 400, 600, 800], cooldown: 45, radius: 500 },                    // Sharpshooter
+  }),
+  // ---- Волна 13 ----
+  marci: hero("marci", 136, "marci", false, { maxHp: 680, armor: 4, damage: 27, speed: 176, attackInterval: 0.85 }, {
+    q: { kind: "gust", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 200, duration: 1.5 },        // Dispose
+    w: { kind: "dash", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 400 },                       // Rebound
+    e: { kind: "rage", value: [0, 0.4, 0.55, 0.7, 0.8], cooldown: 14, duration: 6 },                     // Sidekick
+    r: { kind: "frenzy", value: [0, 0.4, 0.48, 0.55], cooldown: 60, duration: 8 },                       // Unleash
+  }, { kind: "vampiric", value: 0.1 }),
+  muerta: hero("muerta", 138, "muerta", true, { maxHp: 700, armor: 4, damage: 28, speed: 168, range: 330 }, {
+    q: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 6, radius: 330, duration: 0.8 }, // Dead Shot
+    w: { kind: "nova", value: [0, 100, 145, 190, 240], cooldown: 8, radius: 300, duration: 2 },           // The Calling (духи бьют по площади: с edict бот умирал до Рошана)
+    e: { kind: "crit", value: [0, 0.14, 0.18, 0.22, 0.26], cooldown: 0, passive: true },                 // Gunslinger
+    r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 8 },                           // Pierce the Veil
+  }),
+  primal_beast: hero("primal_beast", 137, "primal_beast", false, { maxHp: 940, armor: 5, damage: 31, speed: 158, regen: 4, attackInterval: 1.1 }, {
+    q: { kind: "dash", value: [0, 160, 235, 310, 380], cooldown: 9, radius: 500 },                        // Onslaught
+    w: { kind: "spin", value: [0, 70, 100, 130, 160], cooldown: 12, radius: 190, duration: 3 },          // Trample
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Uproar
+    r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 60, radius: 220, duration: 2 },            // Pulverize
+  }),
+  kez: hero("kez", 145, "kez", false, { maxHp: 760, armor: 5, damage: 29, speed: 180, attackInterval: 0.85 }, {
+    q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 5, radius: 64, count: [0, 3, 3, 3, 3] }, // Echo Slash
+    w: { kind: "dash", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 400 },                        // Grappling Claw
+    e: { kind: "crit", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 0, passive: true },                  // Kazurai Katana
+    r: { kind: "spin", value: [0, 100, 160, 220], cooldown: 50, radius: 220, duration: 2.5 },             // Raptor Dance
+  }),
+  ringmaster: hero("ringmaster", 131, "ringmaster", true, { maxHp: 580, armor: 3, damage: 24, speed: 162 }, {
+    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 70, count: [0, 3, 3, 3, 3] }, // Tame the Beasts
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Escape Act
+    e: { kind: "lightning_bolt", value: [0, 90, 135, 180, 230], cooldown: 6, radius: 320, duration: 0.5 }, // Impalement Arts
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 320, duration: 2.5 },            // Wheel
+  }),
+  meepo: hero("meepo", 82, "meepo", false, { maxHp: 640, armor: 3, damage: 25, speed: 172, attackInterval: 0.85 }, {
+    q: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 12, radius: 180, duration: 2 },           // Earthbind
+    w: { kind: "dash", value: [0, 120, 180, 240, 300], cooldown: 8, radius: 400 },                        // Poof
+    e: SIG,                                                                                              // Ransack
+    r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 20, radius: 300 },          // Divided We Stand
+  }, { kind: "vampiric", value: 0.12 }),
+  io: hero("io", 91, "wisp", true, { maxHp: 620, armor: 3, damage: 24, speed: 172, regen: 5 }, {
+    q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Tether
+    w: { kind: "multishot", value: [0, 60, 82, 105, 130], cooldown: 7, radius: 320, count: [0, 4, 5, 5, 6] }, // Spirits
+    e: { kind: "frenzy", value: [0, 0.3, 0.35, 0.4, 0.45], cooldown: 14, duration: 6 },                  // Overcharge
+    r: { kind: "dash", value: [0, 0, 0, 0], cooldown: 40, radius: 600 },                                  // Relocate
   }),
 };
 

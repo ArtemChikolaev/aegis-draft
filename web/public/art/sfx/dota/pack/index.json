@@ -1260,6 +1260,91 @@
     "hoodwink_r_1.m4a"
    ]
   },
+  "marci": {
+   "q": [
+    "marci_q_1.m4a"
+   ],
+   "w": [
+    "marci_w_1.m4a"
+   ],
+   "e": [
+    "marci_e_1.m4a"
+   ],
+   "r": [
+    "marci_r_1.m4a"
+   ]
+  },
+  "muerta": {
+   "q": [
+    "muerta_q_1.m4a"
+   ],
+   "w": [
+    "muerta_w_1.m4a"
+   ],
+   "r": [
+    "muerta_r_1.m4a"
+   ]
+  },
+  "primal_beast": {
+   "q": [
+    "primal_beast_q_1.m4a"
+   ],
+   "w": [
+    "primal_beast_w_1.m4a"
+   ],
+   "e": [
+    "primal_beast_e_1.m4a"
+   ],
+   "r": [
+    "primal_beast_r_1.m4a"
+   ]
+  },
+  "kez": {
+   "q": [
+    "kez_q_1.m4a"
+   ],
+   "w": [
+    "kez_w_1.m4a"
+   ],
+   "r": [
+    "kez_r_1.m4a"
+   ]
+  },
+  "ringmaster": {
+   "q": [],
+   "w": [
+    "ringmaster_w_1.m4a"
+   ],
+   "e": [
+    "ringmaster_e_1.m4a"
+   ],
+   "r": []
+  },
+  "meepo": {
+   "q": [
+    "meepo_q_1.m4a"
+   ],
+   "w": [
+    "meepo_w_1.m4a"
+   ],
+   "r": [
+    "meepo_r_1.m4a"
+   ]
+  },
+  "io": {
+   "q": [
+    "io_q_1.m4a"
+   ],
+   "w": [
+    "io_w_1.m4a"
+   ],
+   "e": [
+    "io_e_1.m4a"
+   ],
+   "r": [
+    "io_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"
