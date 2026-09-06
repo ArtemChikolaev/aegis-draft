@@ -1,0 +1,34 @@
+{
+  "name": "warlock_golem",
+  "frame": 128,
+  "dirs": 4,
+  "fps": 10,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.801
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 10
+    },
+    "idle": {
+      "row": 4,
+      "frames": 10
+    },
+    "attack": {
+      "row": 8,
+      "frames": 5
+    },
+    "death": {
+      "row": 12,
+      "frames": 10
+    }
+  },
+  "source": "warlock_demon.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

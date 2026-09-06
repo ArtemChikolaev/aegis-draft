@@ -1,0 +1,22 @@
+{
+  "name": "trap_psionic",
+  "frame": 128,
+  "dirs": 4,
+  "fps": 10,
+  "world": 96,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 1
+    }
+  },
+  "source": "lanaya_trap_crystal.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

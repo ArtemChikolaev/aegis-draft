@@ -1,0 +1,26 @@
+{
+  "name": "ward_serpent",
+  "frame": 64,
+  "dirs": 4,
+  "fps": 10,
+  "world": 110,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 10
+    },
+    "attack": {
+      "row": 4,
+      "frames": 8
+    }
+  },
+  "source": "shadowshaman_totem.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}

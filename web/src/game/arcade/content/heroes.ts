@@ -169,7 +169,7 @@ const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
     id: "zeus", kit: "zeus", dotaId: 22, picture: "zeus", ranged: true,
     base: { maxHp: 500, speed: 160, damage: 22, attackInterval: 1.0, range: 300, armor: 1, pickup: 230 },
     abilities: {
-      q: { kind: "arc_lightning", value: [0, 40, 60, 80, 100], cooldown: 2.2, radius: 320, count: [0, 4, 6, 8, 10] },
+      q: { kind: "arc_lightning", value: [0, 40, 60, 80, 100], cooldown: 3.2, radius: 320, count: [0, 4, 6, 8, 10] },
       w: { kind: "lightning_bolt", value: [0, 140, 220, 300, 380], cooldown: 7, radius: 420, duration: 0.5 },
       e: { kind: "static_field", value: [0, 0.03, 0.045, 0.06, 0.075], cooldown: 0, radius: 320, passive: true },
       r: { kind: "thundergod", value: [0, 220, 340, 460], cooldown: 70, radius: 760 },
@@ -205,8 +205,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "mana_void", value: [0, 260, 420, 580], cooldown: 60, radius: 320 },                      // Mana Void: ×(1 + потерянное HP цели), сплэш
   }, { kind: "blur", value: 0.2 }),
   lina: hero("lina", 25, "lina", true, { damage: 26, maxHp: 580, armor: 2 }, {
-    q: { kind: "line_burst", value: [0, 70, 105, 140, 175], cooldown: 7, radius: 60, count: [0, 3, 3, 3, 3] },          // Dragon Slave
-    w: { kind: "line_burst", value: [0, 90, 135, 180, 225], cooldown: 10, radius: 95, count: [0, 1, 1, 1, 1], duration: 0.9 }, // Light Strike Array
+    q: { kind: "line_burst", value: [0, 70, 105, 140, 175], cooldown: 7, radius: 95, count: [0, 3, 3, 3, 3] },          // Dragon Slave
+    w: { kind: "line_burst", value: [0, 90, 135, 180, 225], cooldown: 10, radius: 130, count: [0, 1, 1, 1, 1], duration: 0.9 }, // Light Strike Array
     e: SIG,                                                                                              // Fiery Soul
     r: { kind: "assassinate", value: [0, 350, 600, 850], cooldown: 55, radius: 340 },                    // Laguna Blade
   }, { kind: "fiery_soul", value: 0.3, duration: 6 }),
@@ -231,7 +231,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "marksmanship", value: 0.5, radius: 140 }),
   windranger: hero("windranger", 21, "windrunner", true, { speed: 168, attackInterval: 0.85 }, {
     q: { kind: "lightning_bolt", value: [0, 70, 110, 150, 190], cooldown: 9, radius: 340, duration: 1.3 }, // Shackleshot
-    w: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 55, count: [0, 4, 4, 4, 4] }, // Powershot
+    w: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 95, count: [0, 4, 4, 4, 4] }, // Powershot
     e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 14, duration: 4 },                     // Windrun
     r: { kind: "frenzy", value: [0, 0.55, 0.65, 0.75], cooldown: 45, duration: 6 },                      // Focus Fire
   }, { kind: "marksmanship", value: 0.3, radius: 220 }),
@@ -272,7 +272,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "rage", value: [0, 0.25, 0.38, 0.5], cooldown: 45, duration: 6 },                         // Enrage
   }, { kind: "swipes", value: 4, cap: 12 }),
   lion: hero("lion", 26, "lion", true, { maxHp: 480, damage: 20, speed: 158 }, {
-    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 60, count: [0, 3, 3, 3, 3], duration: 1.0 }, // Earth Spike
+    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 100, count: [0, 3, 3, 3, 3], duration: 1.0 }, // Earth Spike
     w: { kind: "frostbite", value: [0, 20, 30, 40, 50], cooldown: 12, radius: 320, duration: 2.2 },      // Hex
     e: { kind: "life_drain", value: [0, 20, 30, 40, 50], cooldown: 12, radius: 300, duration: 4 },       // Mana Drain
     r: { kind: "assassinate", value: [0, 400, 650, 900], cooldown: 60, radius: 340 },                    // Finger of Death
@@ -286,7 +286,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   pugna: hero("pugna", 45, "pugna", true, { speed: 166, maxHp: 470, damage: 20 }, {
     q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 6, radius: 150, duration: 1 },           // Nether Blast
     w: { kind: "goo", value: [0, 30, 45, 60, 75], cooldown: 8, radius: 320, duration: 3 },               // Decrepify
-    e: { kind: "damage_ward", value: [0, 18, 26, 34, 42], cooldown: 16, radius: 200, duration: 10 },     // Nether Ward
+    e: { kind: "damage_ward", value: [0, 18, 26, 34, 42], cooldown: 16, radius: 200, duration: 10, summon: { art: "ward_nether" } }, // Nether Ward
     r: { kind: "life_drain", value: [0, 60, 90, 120], cooldown: 40, radius: 340, duration: 5 },          // Life Drain
   }, { kind: "fiery_soul", value: 0.25, duration: 5 }),
   invoker: hero("invoker", 74, "invoker", true, { maxHp: 600, damage: 25, armor: 2 }, {
@@ -302,13 +302,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "ravage", value: [0, 150, 230, 310], cooldown: 70, radius: 300, duration: 1.8 },          // Ravage
   }, { kind: "tough", value: 4 }),
   mirana: hero("mirana", 9, "mirana", true, { speed: 172, range: 330 }, {
-    q: { kind: "nova", value: [0, 50, 75, 100, 125], cooldown: 8, radius: 200, duration: 0.5 },          // Starstorm
+    q: { kind: "nova", value: [0, 70, 105, 140, 180], cooldown: 8, radius: 280, duration: 0.5 },         // Starstorm
     w: { kind: "lightning_bolt", value: [0, 110, 170, 230, 290], cooldown: 12, radius: 380, duration: 2.0 }, // Sacred Arrow
     e: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 9, radius: 300 },                               // Leap
     r: { kind: "haste", value: [0, 0.6, 0.7, 0.8], cooldown: 60, duration: 8 },                          // Moonlight Shadow
   }, { kind: "marksmanship", value: 0.3, radius: 230 }),
   clinkz: hero("clinkz", 56, "clinkz", true, { attackInterval: 0.85, damage: 20, maxHp: 470 }, {
-    q: { kind: "frenzy", value: [0, 0.5, 0.6, 0.68, 0.75], cooldown: 12, duration: 5 },                  // Strafe
+    q: { kind: "multishot", value: [0, 55, 78, 100, 125], cooldown: 8, radius: 340, count: [0, 4, 5, 6, 7] }, // Burning Barrage
     w: { kind: "searing", value: [0, 12, 18, 24, 30], cooldown: 0, passive: true },                      // Searing Arrows
     e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 15, duration: 5 },                     // Skeleton Walk
     r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 12 },                    // Death Pact
@@ -347,14 +347,14 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   venomancer: hero("venomancer", 40, "venomancer", true, { maxHp: 520, armor: 2, damage: 20, speed: 160 }, {
     q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4] }, // Venomous Gale
     w: { kind: "searing", value: [0, 8, 12, 16, 20], cooldown: 0, passive: true },                       // Poison Sting
-    e: { kind: "damage_ward", value: [0, 24, 34, 44, 54], cooldown: 12, duration: 10, radius: 300 },     // Plague Ward
+    e: { kind: "damage_ward", value: [0, 24, 34, 44, 54], cooldown: 12, duration: 10, radius: 300, summon: { art: "ward_plague", count: 2 } }, // Plague Ward
     r: { kind: "nova", value: [0, 220, 340, 460], cooldown: 55, radius: 380, duration: 3 },              // Poison Nova
   }, { kind: "aura_burn", value: 9, radius: 160 }),
   witch_doctor: hero("witch_doctor", 30, "witch_doctor", true, { maxHp: 560, armor: 2, damage: 24, speed: 162 }, {
     q: { kind: "lightning_bolt", value: [0, 90, 135, 180, 225], cooldown: 6, radius: 320, duration: 1.2 }, // Paralyzing Cask
     w: { kind: "ward", value: [0, 12, 18, 24, 30], cooldown: 16, duration: 8 },                           // Voodoo Restoration
     e: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 7, radius: 300, duration: 3 },             // Maledict
-    r: { kind: "damage_ward", value: [0, 80, 120, 160], cooldown: 55, duration: 9, radius: 350 },         // Death Ward
+    r: { kind: "damage_ward", value: [0, 80, 120, 160], cooldown: 55, duration: 9, radius: 350, summon: { art: "ward_death" } }, // Death Ward
   }, { kind: "multicast", value: 0.28 }),
   luna: hero("luna", 48, "luna", true, { maxHp: 520, armor: 2, damage: 23, speed: 174, attackInterval: 0.85 }, {
     q: { kind: "lightning_bolt", value: [0, 80, 125, 170, 215], cooldown: 6, radius: 330, duration: 0.6 }, // Lucent Beam
@@ -452,7 +452,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 15, duration: 6 },                        // Refraction
     w: { kind: "dash", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 280 },                       // Meld
     e: SIG,                                                                                              // Psi Blades
-    r: { kind: "damage_ward", value: [0, 60, 90, 120], cooldown: 45, duration: 10, radius: 320 },         // Psionic Trap
+    r: { kind: "damage_ward", value: [0, 60, 90, 120], cooldown: 45, duration: 10, radius: 320, summon: { art: "trap_psionic", count: 2 } }, // Psionic Trap
   }, { kind: "cleave", value: 0.5, radius: 120 }),
   medusa: hero("medusa", 94, "medusa", true, { maxHp: 560, armor: 3, damage: 22, speed: 158, range: 330 }, {
     q: { kind: "multishot", value: [0, 25, 35, 45, 55], cooldown: 7, radius: 360, count: [0, 3, 4, 5, 6] }, // Split Shot
@@ -489,13 +489,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 7, radius: 70, count: [0, 3, 3, 3, 3] }, // Ether Shock
     w: { kind: "frostbite", value: [0, 40, 60, 80, 100], cooldown: 12, radius: 320, duration: 2.5 },       // Hex
     e: { kind: "life_drain", value: [0, 20, 28, 36, 44], cooldown: 12, radius: 300, duration: 4 },        // Shackles
-    r: { kind: "damage_ward", value: [0, 70, 105, 140], cooldown: 60, duration: 10, radius: 340 },        // Mass Serpent Ward
+    r: { kind: "damage_ward", value: [0, 70, 105, 140], cooldown: 60, duration: 10, radius: 340, summon: { art: "ward_serpent", count: 3 } }, // Mass Serpent Ward
   }, { kind: "multicast", value: 0.28 }),
   warlock: hero("warlock", 37, "warlock", true, { maxHp: 640, armor: 3, damage: 25, speed: 160, regen: 2 }, {
     q: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 340, duration: 1 },            // Fatal Bonds
     w: { kind: "ward", value: [0, 10, 15, 20, 24], cooldown: 14, duration: 8 },                           // Shadow Word
     e: { kind: "nova", value: [0, 70, 105, 140, 170], cooldown: 12, radius: 300, duration: 4 },            // Upheaval
-    r: { kind: "meteor", value: [0, 280, 420, 560], cooldown: 60, radius: 200, count: [0, 1, 1, 1], duration: 1.5 }, // Rain of Chaos
+    r: { kind: "damage_ward", value: [0, 95, 140, 185], cooldown: 60, duration: 16, radius: 340, summon: { art: "warlock_golem" } }, // Rain of Chaos
   }, { kind: "deathpact", value: 7 }),
   enigma: hero("enigma", 33, "enigma", true, { maxHp: 620, armor: 3, damage: 25, speed: 160 }, {
     q: { kind: "lightning_bolt", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 320, duration: 1.6 }, // Malefice
@@ -596,7 +596,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "corrosive", value: [0, 0.25, 0.32, 0.4], cooldown: 20, radius: 340, duration: 10 },      // Track
   }, { kind: "backstab", value: 0.5 }),
   broodmother: hero("broodmother", 61, "broodmother", false, { maxHp: 600, armor: 3, damage: 24, speed: 170 }, {
-    q: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 12, duration: 12, radius: 300 },     // Spawn Spiderlings
+    q: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 12, duration: 12, radius: 300, summon: { art: "spiderling", count: 3 } }, // Spawn Spiderlings
     w: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 14, duration: 8 },                  // Spin Web
     e: { kind: "frost_arrows", value: [0, 0.15, 0.2, 0.25, 0.3], cooldown: 0, passive: true },           // Incapacitating Bite
     r: { kind: "rage", value: [0, 0.5, 0.7, 0.9], cooldown: 50, duration: 10 },                           // Insatiable Hunger
@@ -759,7 +759,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "meteor", value: [0, 140, 200, 260, 320], cooldown: 7, radius: 150, count: [0, 1, 1, 1, 1], duration: 1.2 }, // Sticky Bomb
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Reactive Tazer
     e: { kind: "dash", value: [0, 150, 210, 270, 350], cooldown: 14, radius: 320 },                       // Blast Off!
-    r: { kind: "remnant", value: [0, 260, 390, 520], cooldown: 16, radius: 170 },                        // Proximity Mines
+    r: { kind: "remnant", value: [0, 260, 390, 520], cooldown: 16, radius: 170, summon: { art: "mine_techies" } }, // Proximity Mines
   }, { kind: "overload", value: 44, radius: 90 }),
   terrorblade: hero("terrorblade", 109, "terrorblade", false, { maxHp: 560, armor: 3, damage: 25, speed: 168, attackInterval: 0.9 }, {
     q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 10, radius: 300, duration: 3 },            // Reflection
@@ -800,7 +800,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   undying: hero("undying", 85, "undying", false, { maxHp: 860, armor: 3, damage: 27, speed: 154, regen: 4 }, {
     q: { kind: "life_drain", value: [0, 34, 48, 62, 76], cooldown: 7, radius: 320, duration: 4 },         // Decay
     w: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 5 },                            // Soul Rip
-    e: { kind: "damage_ward", value: [0, 38, 52, 66, 80], cooldown: 18, duration: 12, radius: 320 },     // Tombstone
+    e: { kind: "damage_ward", value: [0, 38, 52, 66, 80], cooldown: 18, duration: 12, radius: 320, summon: { art: "tombstone" } }, // Tombstone
     r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 12 },                          // Flesh Golem
   }, { kind: "growth", value: 9, cap: 600 }),
   // ---- Волна 12 ----
@@ -823,7 +823,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "dash", value: [0, 200, 310, 420], cooldown: 20, radius: 500 },                           // Astral Step
   }, { kind: "blur", value: 0.2 }),
   weaver: hero("weaver", 63, "weaver", true, { maxHp: 620, armor: 3, damage: 28, speed: 176 }, {
-    q: { kind: "damage_ward", value: [0, 35, 47, 58, 70], cooldown: 12, duration: 12, radius: 300 },     // The Swarm
+    q: { kind: "damage_ward", value: [0, 35, 47, 58, 70], cooldown: 12, duration: 12, radius: 300, summon: { art: "beetle", count: 3 } }, // The Swarm
     w: { kind: "haste", value: [0, 0.15, 0.2, 0.25, 0.3], cooldown: 8, duration: 4 },                    // Shukuchi
     e: { kind: "crit", value: [0, 0.16, 0.21, 0.26, 0.3], cooldown: 0, passive: true },                  // Geminate Attack
     r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 3 },                      // Time Lapse

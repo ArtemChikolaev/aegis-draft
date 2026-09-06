@@ -1,0 +1,26 @@
+{
+  "name": "ward_nether",
+  "frame": 64,
+  "dirs": 4,
+  "fps": 10,
+  "world": 110,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.632
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 2
+    },
+    "attack": {
+      "row": 4,
+      "frames": 2
+    }
+  },
+  "source": "pugna_ward.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true
+}
