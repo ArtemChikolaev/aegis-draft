@@ -79,15 +79,19 @@ export interface CosmeticsState {
   owned: string[];
   equipped: Partial<Record<CosmeticSlot, string>>;
   shards: number;
+  /** Выбранный стиль скина (аркана/самоцвет): id косметики → id стиля. Стиль бесплатен, он идёт со скином. */
+  styles: Record<string, string>;
 }
 
 function readCosmetics(): CosmeticsState {
   try {
     const raw = readCached(COSMETICS_KEY);
     const parsed = raw ? (JSON.parse(raw) as CosmeticsState) : null;
-    return parsed && Array.isArray(parsed.owned) ? { owned: parsed.owned, equipped: parsed.equipped ?? {}, shards: parsed.shards ?? 0 } : { owned: [], equipped: {}, shards: 0 };
+    return parsed && Array.isArray(parsed.owned)
+      ? { owned: parsed.owned, equipped: parsed.equipped ?? {}, shards: parsed.shards ?? 0, styles: parsed.styles ?? {} }
+      : { owned: [], equipped: {}, shards: 0, styles: {} };
   } catch {
-    return { owned: [], equipped: {}, shards: 0 };
+    return { owned: [], equipped: {}, shards: 0, styles: {} };
   }
 }
 const HISTORY_CAP = 50;
@@ -137,6 +141,8 @@ interface ArcadeStore {
   startReplay: (replay: ArcadeReplay) => void;
   setLoadedReplay: (replay: ArcadeReplay | null) => void;
   equip: (slot: CosmeticSlot, id: string | null) => void;
+  /** Выбрать стиль скина (аркана с самоцветом/стилем). null — базовый стиль. */
+  setStyle: (cosmeticId: string, styleId: string | null) => void;
   equipGear: (slot: GearSlot, uid: string | null) => void;
   /** Разобрать предмет в осколки Aegis (надетый — снимается). */
   salvageGear: (uid: string) => void;
@@ -223,6 +229,15 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });
     return true;
+  },
+  setStyle(cosmeticId, styleId) {
+    const def = COSMETIC_BY_ID[cosmeticId];
+    if (!def || (styleId !== null && !def.styles?.includes(styleId))) return;
+    const styles = { ...get().cosmetics.styles };
+    if (styleId === null) delete styles[cosmeticId]; else styles[cosmeticId] = styleId;
+    const cosmetics = { ...get().cosmetics, styles };
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
   },
   equip(slot, id) {
     if (id !== null && (!COSMETIC_BY_ID[id] || COSMETIC_BY_ID[id].slot !== slot || !get().cosmetics.owned.includes(id))) return;

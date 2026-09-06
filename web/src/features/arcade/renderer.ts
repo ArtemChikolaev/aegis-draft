@@ -61,9 +61,15 @@ export class ArcadeRenderer {
   private lastNow = 0;
   private movingUntil = 0;
 
-  setCosmetics(equipped: Partial<Record<CosmeticSlot, string>>): void {
+  setCosmetics(equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>> = {}): void {
     const next: Partial<Record<CosmeticSlot, string>> = {};
-    for (const [slot, id] of Object.entries(equipped)) if (id && COSMETIC_BY_ID[id]) next[slot as CosmeticSlot] = COSMETIC_BY_ID[id].variant;
+    for (const [slot, id] of Object.entries(equipped)) {
+      const def = id ? COSMETIC_BY_ID[id] : undefined;
+      if (!def) continue;
+      const style = styles[def.id];
+      // Стиль аркан — тот же лист с суффиксом `~<style>`; нет такого листа — heroSheet откатится на базовый.
+      next[slot as CosmeticSlot] = style && def.styles?.includes(style) ? `${def.variant}~${style}` : def.variant;
+    }
     this.cosmetic = next;
   }
 
@@ -72,7 +78,12 @@ export class ArcadeRenderer {
   private heroSheet(hero: string, form = false) {
     if (form) { const ds = dotaSheet(`${hero}@meta`); if (ds) return ds; }
     const skin = this.cosmetic.skin;
-    if (skin && skin.startsWith(`${hero}@`)) { const ds = dotaSheet(skin); if (ds) return ds; }
+    if (skin && skin.startsWith(`${hero}@`)) {
+      const ds = dotaSheet(skin);
+      if (ds) return ds;
+      const bare = skin.split("~")[0];
+      if (bare !== skin) { const b = dotaSheet(bare); if (b) return b; }
+    }
     return dotaSheet(hero);
   }
 

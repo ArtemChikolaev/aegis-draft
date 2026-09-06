@@ -14,6 +14,9 @@ export interface CosmeticDef {
   variant: string;
   /** Скин привязан к герою: надетый скин другого героя просто не применяется. */
   hero?: string;
+  /** Стили аркан (в Dota — «стили» и самоцветы): та же модель, другой набор текстур.
+   *  Лист стиля — `<variant>~<style>`; нет листа — рисуется базовый вариант скина. */
+  styles?: readonly string[];
 }
 
 export const COSMETICS: readonly CosmeticDef[] = [
@@ -64,11 +67,25 @@ export const COSMETICS: readonly CosmeticDef[] = [
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));
 export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["skin", "frame", "trail", "death", "tint"];
 
-/** Имя листа/озвучки героя с учётом надетого скина: `<hero>@<skin>`, если скин этого героя надет, иначе id героя. */
+/** Имя листа/озвучки героя с учётом надетого скина: `<hero>@<skin>`, если скин этого героя надет, иначе id героя.
+ *  Стиль сюда НЕ входит: озвучка у стилей общая со скином. */
 export function skinnedHero(hero: string, equipped: Partial<Record<CosmeticSlot, string>>): string {
   const id = equipped.skin;
   const def = id ? COSMETIC_BY_ID[id] : undefined;
   return def && def.slot === "skin" && def.hero === hero ? def.variant : hero;
+}
+
+/** Имя листа спрайтов с учётом скина и выбранного стиля: `<hero>@<skin>~<style>`. */
+export function skinnedSheet(
+  hero: string,
+  equipped: Partial<Record<CosmeticSlot, string>>,
+  styles: Readonly<Record<string, string>> = {},
+): string {
+  const id = equipped.skin;
+  const def = id ? COSMETIC_BY_ID[id] : undefined;
+  if (!def || def.slot !== "skin" || def.hero !== hero) return hero;
+  const style = styles[def.id];
+  return style && def.styles?.includes(style) ? `${def.variant}~${style}` : def.variant;
 }
 
 /** Осколки Aegis за дубликат — по редкости. */

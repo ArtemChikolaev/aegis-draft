@@ -17,7 +17,7 @@ import { preloadArcadeArt } from "./sprites.ts";
 import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
-import { COSMETICS, COSMETIC_BY_ID, COSMETIC_SLOTS, SHARD_PRICE, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
 import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
@@ -29,6 +29,7 @@ import { heroHitSfx, heroSpinSfx, heroVoice, preloadHeroSfx, preloadHeroVoice, r
 import { ensureMusic, stopMusic } from "./music.ts";
 import { Soundscape } from "./soundscape.ts";
 import { pixelScale } from "./pixelMode.ts";
+import { HeroWardrobe, wornSkin } from "./HeroWardrobe.tsx";
 
 /** Пиксельный режим статичен на загрузку страницы (query-параметр) — иконки предметов и умений берём из px-наборов. */
 const PX = pixelScale() >= 1;
@@ -61,12 +62,12 @@ function ArcadeSetup() {
   const loadedReplay = useArcade((s) => s.loadedReplay);
   const setLoadedReplay = useArcade((s) => s.setLoadedReplay);
   const cosmetics = useArcade((s) => s.cosmetics);
-  const equip = useArcade((s) => s.equip);
-  const buyCosmetic = useArcade((s) => s.buyCosmetic);
   const gear = useArcade((s) => s.gear);
   const equipGear = useArcade((s) => s.equipGear);
   const salvageGear = useArcade((s) => s.salvageGear);
   const [gearSlot, setGearSlot] = useState<GearSlot | null>(null);
+  /** Гардероб (владелец 2026-09-06): открывается тычком по уже выбранному герою и кнопкой «Внешний вид». */
+  const [wardrobe, setWardrobe] = useState<HeroId | null>(null);
   const [seed, setSeed] = useState("");
   const [replayCode, setReplayCode] = useState("");
   const daily = arcadeDaily();
@@ -99,14 +100,14 @@ function ArcadeSetup() {
               const def = HEROES[id];
               const info = heroOf(def.dotaId);
               return (
-                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); void preloadArcadeArt(id, Object.keys(ENEMY_KINDS), "short"); }}>
+                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { if (id === heroId) { setWardrobe(id); return; } setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); void preloadArcadeArt(id, Object.keys(ENEMY_KINDS), "short"); }}>
                   <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
                   <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
                   {(() => {
                     // Бейдж скина на карточке героя (владелец: «косметика по герою»): надетый — по редкости, иначе — сколько доступно.
                     const skins = COSMETICS.filter((c) => c.slot === "skin" && c.hero === id);
                     if (skins.length === 0) return null;
-                    const on = skins.find((c) => c.id === cosmetics.equipped.skin);
+                    const on = wornSkin(id, cosmetics.equipped.skin);
                     return on
                       ? <span className="arcade-heroes__skin" data-rarity={on.rarity} data-testid={`arcade-hero-skin-${id}`}>{t(on.rarity === "arcana" ? "arcade.rarity.arcana" : "arcade.cosmetics.persona")}</span>
                       : <span className="arcade-heroes__skin" data-testid={`arcade-hero-skins-${id}`}>{t("arcade.cosmetics.skinsCount", { n: skins.length })}</span>;
@@ -148,26 +149,7 @@ function ArcadeSetup() {
           </div>
           <div className="arcade-cosmetics" data-testid="arcade-cosmetics">
             <span className="arcade-setup__label">{t("arcade.cosmetics.title")} · {cosmetics.owned.length}/{COSMETICS.length} · {t("arcade.cosmetics.shards", { n: cosmetics.shards })}</span>
-            {COSMETIC_SLOTS.map((slot) => {
-              const options = COSMETICS.filter((c) => c.slot === slot && cosmetics.owned.includes(c.id) && (!c.hero || c.hero === heroId));
-              return (
-                <div key={slot} className="arcade-cosmetics__slot">
-                  <small>{t(`arcade.cosmetics.slot.${slot}` as MessageKey)}</small>
-                  <div className="arcade-cosmetics__options">
-                    <button type="button" className="arcade-rank__tier" data-active={!cosmetics.equipped[slot] ? "true" : undefined} onClick={() => equip(slot, null)}>{t("arcade.cosmetics.none")}</button>
-                    {options.map((c) => (
-                      <button key={c.id} type="button" className="arcade-rank__tier" data-rarity={c.rarity} data-active={cosmetics.equipped[slot] === c.id ? "true" : undefined} data-testid={`arcade-cosmetic-${c.id}`} onClick={() => equip(slot, c.id)}>{t(`arcade.cosmetic.${c.id}` as MessageKey)}</button>
-                    ))}
-                    {COSMETICS.filter((c) => c.slot === slot && !cosmetics.owned.includes(c.id) && (!c.hero || c.hero === heroId)).map((c) => (
-                      <button key={c.id} type="button" className="arcade-rank__tier arcade-cosmetics__buy" data-rarity={c.rarity} data-testid={`arcade-cosmetic-buy-${c.id}`} disabled={cosmetics.shards < SHARD_PRICE[c.rarity]} title={t("arcade.cosmetics.buyHint")} onClick={() => buyCosmetic(c.id)}>
-                        {t(`arcade.cosmetic.${c.id}` as MessageKey)} · {SHARD_PRICE[c.rarity]}
-                      </button>
-                    ))}
-                    {options.length === 0 && <em>{t("arcade.cosmetics.locked")}</em>}
-                  </div>
-                </div>
-              );
-            })}
+            <Button variant="secondary" data-testid="arcade-wardrobe-open" onClick={() => setWardrobe(heroId)}>{t("arcade.wardrobe.open")}</Button>
           </div>
           <ul className="arcade-setup__kit">
             {(["q", "w", "e", "r"] as const).map((key) => (
@@ -246,6 +228,7 @@ function ArcadeSetup() {
           </div>
         </Surface>
       </div>
+      {wardrobe && <HeroWardrobe hero={wardrobe} onClose={() => setWardrobe(null)} />}
     </main>
   );
 }
@@ -274,12 +257,13 @@ function ArcadeStage() {
   replayRef.current = replayLog;
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const equippedCosmetics = useArcade((s) => s.cosmetics.equipped);
+  const cosmeticStyles = useArcade((s) => s.cosmetics.styles);
   const lastDrops = useArcade((s) => s.lastDrops);
   const lastLoot = useArcade((s) => s.lastLoot);
   // Экипировка на старте забега — часть кода реплея (детерминизм): снимок берём один раз при монтировании.
   const startGear = useRef<GearItem[]>(equippedGear(useArcade.getState().gear)).current;
   const rendererRef = useRef<ArcadeRenderer | null>(null);
-  useEffect(() => { rendererRef.current?.setCosmetics(equippedCosmetics); }, [equippedCosmetics]);
+  useEffect(() => { rendererRef.current?.setCosmetics(equippedCosmetics, cosmeticStyles); }, [equippedCosmetics, cosmeticStyles]);
   const heroId = useArcade((s) => s.hero);
   const heroDef = HEROES[heroId];
   const hero = useHero()(heroDef.dotaId);
@@ -300,7 +284,7 @@ function ArcadeStage() {
     if (!canvas || !stage) return;
     const renderer = new ArcadeRenderer(canvas, hero.picture || heroDef.picture);
     rendererRef.current = renderer;
-    renderer.setCosmetics(useArcade.getState().cosmetics.equipped);
+    renderer.setCosmetics(useArcade.getState().cosmetics.equipped, useArcade.getState().cosmetics.styles);
     // Dev-хук для headless-QA (телепорт к торговцу/Рошану без ожидания): в прод-сборке его нет.
     if (import.meta.env.DEV) { const w = window as unknown as { __arcadeSim?: typeof getArcadeSim; __sfxDebug?: typeof sfxDebug }; w.__arcadeSim = getArcadeSim; w.__sfxDebug = sfxDebug; }
     const controller = new ArcadeInputController(stage);

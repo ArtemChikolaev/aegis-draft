@@ -201,3 +201,33 @@
 .arcade-offer-wrap { display: grid; gap: 6px; align-content: start; }
 .arcade-offer__banish { justify-self: center; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; }
 .arcade-offer__banish:hover { color: var(--text); border-color: var(--text); }
+
+/* Гардероб героя (T13.27): превью облика + список обликов + слоты эффектов.
+   Живёт внутри Modal, а у панели модалки инвертированная поверхность (--surface-invert / --on-invert),
+   поэтому фоны и рамки берём из invert-словаря, иначе светлая плашка съедает светлый текст. */
+.arcade-wardrobe { display: grid; gap: 16px; color: var(--on-invert); }
+.arcade-wardrobe__shards { font: 800 11px var(--font-display); letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+.arcade-wardrobe__stage { display: grid; justify-items: center; gap: 6px; padding: 12px; border: 1px solid var(--line-invert); border-radius: 14px; background: var(--surface-invert-soft); }
+.arcade-wardrobe__stage strong { font: 800 15px var(--font-display); text-align: center; }
+.arcade-wardrobe__stage small[data-rarity] { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+.arcade-wardrobe__stage small[data-rarity="arcana"] { color: var(--gold); opacity: 1; }
+.arcade-wardrobe__stage small[data-rarity="exotic"] { color: var(--role-support); opacity: 1; }
+.arcade-wardrobe__canvas { image-rendering: pixelated; }
+.arcade-wardrobe__actions { display: flex; gap: 8px; margin-top: 4px; }
+.arcade-wardrobe__hint { opacity: .6; font-size: 11px; }
+.arcade-wardrobe__styles { display: grid; justify-items: center; gap: 4px; margin-top: 4px; }
+.arcade-wardrobe__styles small { font: 800 10px var(--font-display); letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+.arcade-wardrobe__looks { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.arcade-wardrobe__look { position: relative; display: grid; justify-items: center; gap: 2px; width: 96px; padding: 6px; border: 1px solid var(--line-invert); border-radius: 12px; background: var(--surface-invert-soft); color: var(--on-invert); }
+.arcade-wardrobe__look[data-active] { border-color: var(--accent-strong); box-shadow: inset 0 0 0 1px var(--accent-strong); }
+.arcade-wardrobe__look[data-rarity="refined"] { border-color: var(--blue); }
+.arcade-wardrobe__look[data-rarity="exotic"] { border-color: var(--role-support); }
+.arcade-wardrobe__look[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-wardrobe__look:not([data-owned]) .arcade-wardrobe__canvas { opacity: .5; filter: grayscale(1); }
+.arcade-wardrobe__look span { font-size: 10px; line-height: 1.25; text-align: center; }
+.arcade-wardrobe__look b { font: 800 9px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.arcade-wardrobe__look em { font: 800 10px var(--font-display); color: var(--gold); font-style: normal; }
+.arcade-wardrobe__effects { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line-invert); border-radius: 12px; }
+.arcade-wardrobe__effects .arcade-cosmetics__slot small { opacity: .7; color: inherit; }
+.arcade-wardrobe .arcade-rank__tier { border-color: var(--line-invert); background: var(--surface-invert-soft); color: var(--on-invert); }
+.arcade-wardrobe .arcade-rank__tier[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent); }
