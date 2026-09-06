@@ -5,9 +5,12 @@
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
 import type { AbilityKey, Enemy, Fx } from "../../game/arcade/types.ts";
+import type { AbilityDef } from "../../game/arcade/content/heroes.ts";
 
 /** Порядок слотов умений — тот же, что в симе (там он приватный). */
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
+/** Умения, которые держат зону в `zoneUntil`: мина на месте (`remnant`), осколки (`shrapnel`) и разряды вокруг героя (`edict`). */
+const ZONE_KINDS = new Set(["remnant", "shrapnel", "edict"]);
 import { heroArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
@@ -323,6 +326,21 @@ export class ArcadeRenderer {
     }
   }
 
+  /**
+   * Картинка зоны-мины. Static Remnant у Storm Spirit и Aether Remnant у Void Spirit — это в Dota
+   * призрак самого героя, а не «шарик»; рисуем листом героя вполупрозрачно, как иллюзии в drawWard.
+   */
+  private drawZoneSummon(sim: ArcadeSim, ab: AbilityDef, x: number, y: number): void {
+    const art = ab.summon;
+    if (!art) return;
+    const illusion = art.art === "illusion";
+    const ds = illusion ? this.heroSheet(sim.hero.id) : dotaSheet(art.art);
+    if (!ds) return;
+    const frames = ds.meta.anims.idle?.frames ?? 1;
+    const frame = Math.floor((sim.tick / 60) * ds.meta.fps) % Math.max(1, frames);
+    drawDotaFrame(this.ctx, ds, "idle", 0, frame, x, y, illusion ? 0.5 : 1, illusion ? 0.86 : 1);
+  }
+
   private drawAegis(sim: ArcadeSim, pal: Palette, now: number): void {
     if (!sim.aegisDrop) return;
     const c = this.ctx;
@@ -573,11 +591,21 @@ export class ArcadeRenderer {
       c.beginPath(); c.arc(p.x, p.y, sim.hero.abilities.r.radius ?? 270, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
     }
+    // Зона умения. Радиус берём у того слота, где стоит умение, а не у `q`: Diabolic Edict у Leshrac
+    // в W, Eye of the Storm у Razor и Haunt у Spectre — в R, и кольцо рисовалось чужого размера.
+    // Edict бьёт вокруг героя (сим — enemiesWithin(p.x, p.y)), а zoneX/zoneY он вообще не ставит,
+    // так что кольцо висело в начале координат карты.
     if (sim.tick < p.zoneUntil) {
+      const zk = ABILITY_KEYS.find((k) => ZONE_KINDS.has(sim.hero.abilities[k].kind));
+      const zab = zk ? sim.hero.abilities[zk] : sim.hero.abilities.q;
+      const atHero = zab.kind === "edict";
+      const zx = atHero ? p.x : p.zoneX;
+      const zy = atHero ? p.y : p.zoneY;
       c.fillStyle = pal.fire; c.globalAlpha = 0.12;
-      c.beginPath(); c.arc(p.zoneX, p.zoneY, sim.hero.abilities.q.radius ?? 180, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(zx, zy, zab.radius ?? 180, 0, Math.PI * 2); c.fill();
       c.globalAlpha = 0.6; c.strokeStyle = pal.fire; c.lineWidth = 1.5; c.stroke();
       c.globalAlpha = 1;
+      this.drawZoneSummon(sim, zab, zx, zy);
     }
     if (sim.tick < p.armorBuffUntil) {
       c.strokeStyle = pal.telegraph; c.lineWidth = 3; c.globalAlpha = 0.7;

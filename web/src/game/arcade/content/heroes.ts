@@ -248,7 +248,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "rage", value: [0, 1.0, 1.5, 2.0], cooldown: 60, duration: 10 },                          // God's Strength
   }, { kind: "cleave", value: 0.5, radius: 85 }),
   storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 168, maxHp: 470 }, {
-    q: { kind: "remnant", value: [0, 60, 95, 130, 165], cooldown: 6, radius: 130 },                     // Static Remnant
+    q: { kind: "remnant", value: [0, 60, 95, 130, 165], cooldown: 6, radius: 130, summon: { art: "illusion" } }, // Static Remnant
     w: { kind: "frostbite", value: [0, 50, 80, 110, 140], cooldown: 11, radius: 300, duration: 1.2 },    // Electric Vortex
     e: SIG,                                                                                              // Overload
     r: { kind: "dash", value: [0, 110, 170, 240], cooldown: 26, radius: 460 },                           // Ball Lightning
@@ -817,7 +817,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 15, radius: 320, summon: { art: "hawk", count: 2 } },          // Summon Familiars
   }, { kind: "tough", value: 5 }),
   void_spirit: hero("void_spirit", 126, "void_spirit", false, { maxHp: 660, armor: 4, damage: 27, speed: 172 }, {
-    q: { kind: "remnant", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 170 },                   // Aether Remnant
+    q: { kind: "remnant", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 170, summon: { art: "illusion" } }, // Aether Remnant
     w: { kind: "nova", value: [0, 90, 135, 180, 230], cooldown: 10, radius: 240, duration: 1 },           // Dissimilate
     e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Resonant Pulse
     r: { kind: "dash", value: [0, 200, 310, 420], cooldown: 20, radius: 500 },                           // Astral Step
