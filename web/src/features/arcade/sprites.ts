@@ -229,8 +229,36 @@ export interface DotaMeta {
 }
 
 export interface DotaSheet {
-  img: HTMLImageElement;
+  /** Картинка листа; у листа с самоцветом — оффскрин-канвас с повёрнутым тоном (см. hueSheet). */
+  img: HTMLImageElement | HTMLCanvasElement;
   meta: DotaMeta;
+}
+
+/**
+ * Лист с повёрнутым тоном — самоцвет арканы (в Dota Ethereal Gem меняет цвет параметром материала,
+ * у нас — фильтром поверх готового листа). Считается один раз на пару «лист + градусы» и кэшируется:
+ * лист большой, но это одна отрисовка, а в кадре мы уже блиттим готовый канвас.
+ */
+const hueSheets = new Map<string, DotaSheet>();
+export function hueSheet(sheet: DotaSheet, deg: number): DotaSheet {
+  if (!deg || typeof document === "undefined") return sheet;
+  const key = `${sheet.meta.name}#${deg}`;
+  const cached = hueSheets.get(key);
+  if (cached) return cached;
+  const src = sheet.img;
+  const w = src instanceof HTMLCanvasElement ? src.width : src.naturalWidth;
+  const h = src instanceof HTMLCanvasElement ? src.height : src.naturalHeight;
+  if (!w || !h) return sheet;
+  const cv = document.createElement("canvas");
+  cv.width = w;
+  cv.height = h;
+  const c = cv.getContext("2d");
+  if (!c) return sheet;
+  c.filter = `hue-rotate(${deg}deg)`;
+  c.drawImage(src, 0, 0);
+  const out: DotaSheet = { img: cv, meta: sheet.meta };
+  hueSheets.set(key, out);
+  return out;
 }
 
 const dotaSheets = new Map<string, DotaSheet | null | "loading">();

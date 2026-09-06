@@ -232,7 +232,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   },
   setStyle(cosmeticId, styleId) {
     const def = COSMETIC_BY_ID[cosmeticId];
-    if (!def || (styleId !== null && !def.styles?.includes(styleId))) return;
+    if (!def || (styleId !== null && !def.styles?.some((st) => st.id === styleId))) return;
     const styles = { ...get().cosmetics.styles };
     if (styleId === null) delete styles[cosmeticId]; else styles[cosmeticId] = styleId;
     const cosmetics = { ...get().cosmetics, styles };

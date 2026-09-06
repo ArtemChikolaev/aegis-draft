@@ -14,10 +14,34 @@ export interface CosmeticDef {
   variant: string;
   /** Скин привязан к герою: надетый скин другого героя просто не применяется. */
   hero?: string;
-  /** Стили аркан (в Dota — «стили» и самоцветы): та же модель, другой набор текстур.
-   *  Лист стиля — `<variant>~<style>`; нет листа — рисуется базовый вариант скина. */
-  styles?: readonly string[];
+  /** Стили облика — «стили» и самоцветы Dota. См. StyleDef. */
+  styles?: readonly StyleDef[];
 }
+
+/**
+ * Стиль облика. В Dota это две разные вещи, и мы держим обе:
+ * - **стиль** (Bladeform Legacy у Juggernaut, Frost Avalanche у Drow) — тот же меш с другим набором
+ *   текстур: `sheet: true`, рисуется отдельным листом `<variant>~<id>`;
+ * - **самоцвет** (Ethereal Gem у Terrorblade и прочих аркан) — в Dota это параметр цвета материала,
+ *   у нас — поворот тона готового листа на `hue` градусов, без перерендера.
+ */
+export interface StyleDef {
+  id: string;
+  /** Отдельный лист `<variant>~<id>` (нужен рендер из vpk). */
+  sheet?: boolean;
+  /** Поворот тона листа в градусах (самоцвет). */
+  hue?: number;
+}
+
+/** Палитра самоцветов: как Ethereal Gem, только оттенок задаём сами. Поворот тона, поэтому у разных
+ *  аркан один и тот же самоцвет даёт разные цвета — игрок видит результат в превью гардероба. */
+export const GEMS: readonly StyleDef[] = [
+  { id: "gem1", hue: 45 },
+  { id: "gem2", hue: 100 },
+  { id: "gem3", hue: 160 },
+  { id: "gem4", hue: 215 },
+  { id: "gem5", hue: 285 },
+];
 
 export const COSMETICS: readonly CosmeticDef[] = [
   { id: "frame_bronze", slot: "frame", rarity: "standard", variant: "bronze" },
@@ -64,6 +88,10 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_drow_arcana", slot: "skin", rarity: "arcana", variant: "drow_ranger@arcana", hero: "drow_ranger" },
 ];
 
+// Самоцветы — у всех аркан (владелец 2026-09-06: «у Terrorblade куча гемов, аркана может быть любого цвета»).
+// Персоны и сеты цвет не меняют: у них в Dota гнезда под самоцвет нет.
+for (const c of COSMETICS) if (c.slot === "skin" && c.rarity === "arcana" && !c.styles) (c as { styles?: readonly StyleDef[] }).styles = GEMS;
+
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));
 export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["skin", "frame", "trail", "death", "tint"];
 
@@ -84,8 +112,20 @@ export function skinnedSheet(
   const id = equipped.skin;
   const def = id ? COSMETIC_BY_ID[id] : undefined;
   if (!def || def.slot !== "skin" || def.hero !== hero) return hero;
-  const style = styles[def.id];
-  return style && def.styles?.includes(style) ? `${def.variant}~${style}` : def.variant;
+  const style = def.styles?.find((st) => st.id === styles[def.id]);
+  return style?.sheet ? `${def.variant}~${style.id}` : def.variant;
+}
+
+/** Стиль, выбранный для надетого скина этого героя (или null): нужен рендеру для поворота тона. */
+export function skinnedStyle(
+  hero: string,
+  equipped: Partial<Record<CosmeticSlot, string>>,
+  styles: Readonly<Record<string, string>> = {},
+): StyleDef | null {
+  const id = equipped.skin;
+  const def = id ? COSMETIC_BY_ID[id] : undefined;
+  if (!def || def.slot !== "skin" || def.hero !== hero) return null;
+  return def.styles?.find((st) => st.id === styles[def.id]) ?? null;
 }
 
 /** Осколки Aegis за дубликат — по редкости. */

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
-import { COSMETICS, skinnedHero, skinnedSheet } from "../src/game/arcade/content/cosmetics.ts";
+import { COSMETICS, skinnedHero, skinnedSheet, skinnedStyle } from "../src/game/arcade/content/cosmetics.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
 
 // Гардероб (T13.27): облик героя выбирается и покупается в своём окне, у аркан бывают стили.
@@ -19,21 +19,30 @@ describe("гардероб: облик и стиль", () => {
     expect(skinnedSheet("lina", eq)).toBe("lina");
   });
 
-  it("стиль попадает в имя листа только если объявлен у скина", () => {
+  it("отдельный лист берётся только под стиль-текстуру, самоцвет листа не меняет", () => {
     const eq = { skin: "skin_zeus_arcana" };
-    expect(skinnedSheet("zeus", eq, { skin_zeus_arcana: "style1" })).toBe(
-      COSMETICS.find((c) => c.id === "skin_zeus_arcana")!.styles?.includes("style1") ? "zeus@arcana~style1" : "zeus@arcana",
-    );
+    const zeus = COSMETICS.find((c) => c.id === "skin_zeus_arcana")!;
+    const gem = zeus.styles!.find((st) => st.hue !== undefined)!;
+    // Самоцвет — поворот тона того же листа, имя листа прежнее.
+    expect(skinnedSheet("zeus", eq, { skin_zeus_arcana: gem.id })).toBe("zeus@arcana");
+    expect(skinnedStyle("zeus", eq, { skin_zeus_arcana: gem.id })?.hue).toBe(gem.hue);
     // Выдуманный стиль игнорируется всегда.
     expect(skinnedSheet("zeus", eq, { skin_zeus_arcana: "no_such_style" })).toBe("zeus@arcana");
+    expect(skinnedStyle("zeus", eq, { skin_zeus_arcana: "no_such_style" })).toBeNull();
+  });
+
+  it("у каждой арканы есть самоцветы, у персон их нет", () => {
+    for (const c of COSMETICS.filter((x) => x.slot === "skin")) {
+      const gems = (c.styles ?? []).filter((st) => st.hue !== undefined);
+      expect(gems.length > 0, c.id).toBe(c.rarity === "arcana");
+    }
   });
 
   it("setStyle принимает только объявленный стиль и снимается по null", () => {
-    const withStyles = COSMETICS.find((c) => c.styles && c.styles.length > 0);
-    useArcade.getState().setStyle("skin_zeus_arcana", "no_such_style");
-    expect(useArcade.getState().cosmetics.styles.skin_zeus_arcana).toBeUndefined();
-    if (!withStyles) return;
-    const style = withStyles.styles![0];
+    const withStyles = COSMETICS.find((c) => c.styles && c.styles.length > 0)!;
+    useArcade.getState().setStyle(withStyles.id, "no_such_style");
+    expect(useArcade.getState().cosmetics.styles[withStyles.id]).toBeUndefined();
+    const style = withStyles.styles![0].id;
     useArcade.getState().setStyle(withStyles.id, style);
     expect(useArcade.getState().cosmetics.styles[withStyles.id]).toBe(style);
     useArcade.getState().setStyle(withStyles.id, null);
@@ -43,8 +52,9 @@ describe("гардероб: облик и стиль", () => {
   it("под каждый объявленный стиль есть лист в обоих пиксельных манифестах", () => {
     const px = new Set(rows("dota_manifest_px.tsv")), px2 = new Set(rows("dota_manifest_px2.tsv"));
     for (const c of COSMETICS) for (const st of c.styles ?? []) {
-      expect(px.has(`${c.variant}~${st}`), `${c.variant}~${st} в dota_manifest_px.tsv`).toBe(true);
-      expect(px2.has(`${c.variant}~${st}`), `${c.variant}~${st} в dota_manifest_px2.tsv`).toBe(true);
+      if (!st.sheet) continue; // самоцвет рисуется поворотом тона того же листа
+      expect(px.has(`${c.variant}~${st.id}`), `${c.variant}~${st.id} в dota_manifest_px.tsv`).toBe(true);
+      expect(px2.has(`${c.variant}~${st.id}`), `${c.variant}~${st.id} в dota_manifest_px2.tsv`).toBe(true);
     }
   });
 

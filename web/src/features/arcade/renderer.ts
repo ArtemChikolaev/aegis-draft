@@ -12,7 +12,7 @@ import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawBurning, drawChilled, drawEmberRing, drawFrostMist, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks } from "./particles.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, heroLook, hueSheet, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { itemArtSources } from "../../ui/artSource.ts";
@@ -46,6 +46,8 @@ export class ArcadeRenderer {
   private shakeY = 0;
   /** Экип косметики: варианты по слотам (см. content/cosmetics.ts). Чисто визуально. */
   private cosmetic: Partial<Record<CosmeticSlot, string>> = {};
+  /** Самоцвет надетой арканы: поворот тона листа героя в градусах (0 — без самоцвета). */
+  private skinHue = 0;
   private trail: { x: number; y: number; t: number }[] = [];
   /** Ландшафт текущего забега (сид + акт) и слежение за движением героя для анимации ходьбы. */
   private terrain: Terrain | null = null;
@@ -63,14 +65,18 @@ export class ArcadeRenderer {
 
   setCosmetics(equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>> = {}): void {
     const next: Partial<Record<CosmeticSlot, string>> = {};
+    let hue = 0;
     for (const [slot, id] of Object.entries(equipped)) {
       const def = id ? COSMETIC_BY_ID[id] : undefined;
       if (!def) continue;
-      const style = styles[def.id];
-      // Стиль аркан — тот же лист с суффиксом `~<style>`; нет такого листа — heroSheet откатится на базовый.
-      next[slot as CosmeticSlot] = style && def.styles?.includes(style) ? `${def.variant}~${style}` : def.variant;
+      const style = def.styles?.find((st) => st.id === styles[def.id]);
+      // Стиль-текстура — отдельный лист `~<style>` (нет такого листа — heroSheet откатится на базовый),
+      // самоцвет — поворот тона готового листа.
+      next[slot as CosmeticSlot] = style?.sheet ? `${def.variant}~${style.id}` : def.variant;
+      if (slot === "skin" && style?.hue) hue = style.hue;
     }
     this.cosmetic = next;
+    this.skinHue = hue;
   }
 
   /** Лист героя с учётом скина (`<hero>@<skin>`), с падением на базовый лист, пока скин не загрузился или не для этого героя. */
@@ -80,9 +86,9 @@ export class ArcadeRenderer {
     const skin = this.cosmetic.skin;
     if (skin && skin.startsWith(`${hero}@`)) {
       const ds = dotaSheet(skin);
-      if (ds) return ds;
+      if (ds) return hueSheet(ds, this.skinHue);
       const bare = skin.split("~")[0];
-      if (bare !== skin) { const b = dotaSheet(bare); if (b) return b; }
+      if (bare !== skin) { const b = dotaSheet(bare); if (b) return hueSheet(b, this.skinHue); }
     }
     return dotaSheet(hero);
   }

@@ -8,11 +8,11 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, type CosmeticDef, type CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, type CosmeticDef, type CosmeticSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { dotaSheet, drawDotaFrame, setPixelSheets } from "./sprites.ts";
+import { dotaSheet, drawDotaFrame, hueSheet, setPixelSheets } from "./sprites.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
 const EFFECT_SLOTS: readonly CosmeticSlot[] = ["frame", "trail", "death", "tint"];
@@ -27,7 +27,7 @@ const LOOP_S = IDLE_S + WALK_S + ATTACK_S;
  * Анимированное превью облика: тот же лист `dota_px*`, что рисует бой, кадры крутятся по часам
  * страницы (не по симу — это витрина, а не забег). `static` — одна поза для карточки списка.
  */
-function LookPreview({ sheet, size, still = false }: { sheet: string; size: number; still?: boolean }) {
+function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; size: number; hue?: number; still?: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     const px = pixelScale();
@@ -43,7 +43,8 @@ function LookPreview({ sheet, size, still = false }: { sheet: string; size: numb
     let raf = 0;
     const draw = () => {
       raf = requestAnimationFrame(draw);
-      const s = dotaSheet(sheet) ?? dotaSheet(sheet.split("~")[0]);
+      const raw = dotaSheet(sheet) ?? dotaSheet(sheet.split("~")[0]);
+      const s = raw && hue ? hueSheet(raw, hue) : raw;
       c.imageSmoothingEnabled = false;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, size, size);
@@ -59,7 +60,7 @@ function LookPreview({ sheet, size, still = false }: { sheet: string; size: numb
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [sheet, size, still]);
+  }, [sheet, size, hue, still]);
   return <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />;
 }
 
@@ -87,8 +88,8 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const equippedSkin = skins.find((c) => c.id === cosmetics.equipped.skin) ?? null;
   const [selId, setSelId] = useState<string | null>(equippedSkin?.id ?? null);
   const sel = looks.find((l) => (l.def?.id ?? null) === selId) ?? looks[0];
-  const selStyle = sel.def ? cosmetics.styles[sel.def.id] : undefined;
-  const previewSheet = sel.def && selStyle && sel.def.styles?.includes(selStyle) ? `${sel.sheet}~${selStyle}` : sel.sheet;
+  const selStyle: StyleDef | undefined = sel.def?.styles?.find((st) => st.id === cosmetics.styles[sel.def!.id]);
+  const previewSheet = selStyle?.sheet ? `${sel.sheet}~${selStyle.id}` : sel.sheet;
   const worn = (sel.def?.id ?? null) === (equippedSkin?.id ?? null);
   const price = sel.def ? SHARD_PRICE[sel.def.rarity] : 0;
   return (
@@ -102,7 +103,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
     >
       <div className="arcade-wardrobe" data-testid="arcade-wardrobe">
         <div className="arcade-wardrobe__stage">
-          <LookPreview key={previewSheet} sheet={previewSheet} size={220} />
+          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? 0}`} sheet={previewSheet} size={220} hue={selStyle?.hue ?? 0} />
           <strong data-testid="arcade-wardrobe-name">
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
           </strong>
@@ -128,8 +129,9 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               <div className="arcade-cosmetics__options">
                 <button type="button" className="arcade-rank__tier" data-active={!selStyle ? "true" : undefined} onClick={() => setStyle(sel.def!.id, null)}>{t("arcade.wardrobe.styleBase")}</button>
                 {sel.def.styles.map((st) => (
-                  <button key={st} type="button" className="arcade-rank__tier" data-active={selStyle === st ? "true" : undefined} data-testid={`arcade-wardrobe-style-${st}`} onClick={() => setStyle(sel.def!.id, st)}>
-                    {t(`arcade.style.${st}` as MessageKey)}
+                  <button key={st.id} type="button" className="arcade-rank__tier" data-active={selStyle?.id === st.id ? "true" : undefined} data-testid={`arcade-wardrobe-style-${st.id}`} onClick={() => setStyle(sel.def!.id, st.id)}>
+                    {st.hue !== undefined && <i className="arcade-wardrobe__gem" style={{ background: `hsl(${st.hue} 72% 56%)` }} />}
+                    {t(`arcade.style.${st.id}` as MessageKey)}
                   </button>
                 ))}
               </div>
