@@ -66,6 +66,26 @@ export function drawEmberRing(c: CanvasRenderingContext2D, x: number, y: number,
 }
 
 /**
+ * Лечащая зона без своей модели (Shadow Wave, Purification, Cold Embrace, Nature's Attendants):
+ * в Dota это не тотем на полу, а свечение вокруг цели, поэтому вместо «шарика» рисуем пыльцу,
+ * которая всплывает внутри радиуса. Тотем со своим листом (Healing Ward) рисуется как раньше.
+ */
+export function drawHealAura(c: CanvasRenderingContext2D, x: number, y: number, radius: number, tick: number, px: number, heal: string, text: string): void {
+  const life = 56;
+  const n = Math.max(6, Math.round(radius / 14));
+  for (let i = 0; i < n; i++) {
+    const t = (tick * 0.9 + hash(i, 11) * life) % life;
+    const k = t / life;
+    const a = hash(i, 17) * Math.PI * 2;
+    const rr = radius * (0.2 + 0.7 * hash(i, 23));
+    c.globalAlpha = (1 - k) * 0.85;
+    c.fillStyle = k < 0.5 ? heal : text;
+    dot(c, x + Math.cos(a) * rr, y + Math.sin(a) * rr * 0.55 - k * 26, px * (k < 0.4 ? 2 : 1), px);
+  }
+  c.globalAlpha = 1;
+}
+
+/**
  * Погода ночью (T13.22): редкие искры пепла сносит ветром через весь экран. Рисуется в мировых
  * координатах поверх земли, поэтому «летит» относительно карты, а не приклеена к камере; сетка
  * частиц привязана к экранному прямоугольнику, чтобы их число не росло с размером мира.

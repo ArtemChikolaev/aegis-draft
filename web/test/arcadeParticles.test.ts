@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWeather } from "../src/features/arcade/particles.ts";
+import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawHealAura, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWeather } from "../src/features/arcade/particles.ts";
 
 // Заглушка 2D-контекста: собираем прямоугольники, чтобы проверить количество, размер и привязку к сетке арт-пикселя.
 function stub() {
@@ -129,5 +129,19 @@ describe("дым сгоревшего врага (T13.22)", () => {
     // Детерминировано семенем.
     const again = stub(); drawAsh(again.c, 300, 300, 16, 0.5, 5, 2, pal);
     expect(again.rects).toEqual(early.rects);
+  });
+
+  // Лечащая зона без своей модели рисовалась «шариком» на полу; теперь это пыльца, всплывающая
+  // внутри радиуса (T13.27). Проверяем: частиц тем больше, чем шире радиус; они поднимаются вверх
+  // и детерминированы от тика.
+  it("лечащая аура: пыльца по радиусу, поднимается вверх, детерминирована", () => {
+    const a = stub(); drawHealAura(a.c, 100, 100, 170, 300, 2, "heal", "text");
+    const b = stub(); drawHealAura(b.c, 100, 100, 170, 300, 2, "heal", "text");
+    expect(a.rects).toEqual(b.rects);
+    expect(a.rects.length).toBeGreaterThanOrEqual(12);
+    const small = stub(); drawHealAura(small.c, 100, 100, 60, 300, 2, "heal", "text");
+    expect(small.rects.length).toBeLessThan(a.rects.length);
+    expect(Math.min(...a.rects.map((r) => r.y))).toBeLessThan(100);
+    for (const r of a.rects) { expect(r.w % 2).toBe(0); expect(["heal", "text"]).toContain(r.fill); }
   });
 });
