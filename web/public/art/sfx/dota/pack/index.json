@@ -889,6 +889,104 @@
    ],
    "r": []
   },
+  "morphling": {
+   "q": [
+    "morphling_q_1.m4a"
+   ],
+   "w": [
+    "morphling_w_1.m4a"
+   ],
+   "r": [
+    "morphling_r_1.m4a"
+   ]
+  },
+  "naga_siren": {
+   "q": [
+    "naga_siren_q_1.m4a"
+   ],
+   "w": [
+    "naga_siren_w_1.m4a"
+   ],
+   "e": [
+    "naga_siren_e_1.m4a"
+   ],
+   "r": [
+    "naga_siren_r_1.m4a"
+   ]
+  },
+  "natures_prophet": {
+   "q": [
+    "natures_prophet_q_1.m4a"
+   ],
+   "w": [
+    "natures_prophet_w_1.m4a"
+   ],
+   "e": [
+    "natures_prophet_e_1.m4a"
+   ],
+   "r": [
+    "natures_prophet_r_1.m4a"
+   ]
+  },
+  "nyx_assassin": {
+   "q": [
+    "nyx_assassin_q_1.m4a"
+   ],
+   "w": [
+    "nyx_assassin_w_1.m4a"
+   ],
+   "r": [
+    "nyx_assassin_r_1.m4a"
+   ]
+  },
+  "oracle": {
+   "q": [
+    "oracle_q_1.m4a"
+   ],
+   "w": [
+    "oracle_w_1.m4a"
+   ],
+   "e": [
+    "oracle_e_1.m4a"
+   ],
+   "r": [
+    "oracle_r_1.m4a"
+   ]
+  },
+  "outworld_destroyer": {
+   "w": [
+    "outworld_destroyer_w_1.m4a"
+   ],
+   "r": [
+    "outworld_destroyer_r_1.m4a",
+    "outworld_destroyer_r_2.m4a"
+   ]
+  },
+  "pangolier": {
+   "q": [
+    "pangolier_q_1.m4a"
+   ],
+   "w": [
+    "pangolier_w_1.m4a"
+   ],
+   "r": [
+    "pangolier_r_1.m4a"
+   ]
+  },
+  "phoenix": {
+   "q": [
+    "phoenix_q_1.m4a"
+   ],
+   "w": [
+    "phoenix_w_1.m4a"
+   ],
+   "e": [
+    "phoenix_e_1.m4a"
+   ],
+   "r": [
+    "phoenix_r_1.mp3"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

@@ -24,7 +24,9 @@ export type TemplateHeroId =
   // Волна 7.
   | "lycan" | "lone_druid" | "alchemist" | "bane" | "batrider" | "bounty_hunter" | "broodmother" | "clockwerk"
   // Волна 8.
-  | "earth_spirit" | "elder_titan" | "ember_spirit" | "grimstroke" | "gyrocopter" | "keeper_of_the_light" | "magnus" | "mars";
+  | "earth_spirit" | "elder_titan" | "ember_spirit" | "grimstroke" | "gyrocopter" | "keeper_of_the_light" | "magnus" | "mars"
+  // Волна 9.
+  | "morphling" | "naga_siren" | "natures_prophet" | "nyx_assassin" | "oracle" | "outworld_destroyer" | "pangolier" | "phoenix";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -38,6 +40,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "omniknight", "abaddon", "beastmaster", "brewmaster", "centaur", "dark_seer", "death_prophet", "disruptor",
   "lycan", "lone_druid", "alchemist", "bane", "batrider", "bounty_hunter", "broodmother", "clockwerk",
   "earth_spirit", "elder_titan", "ember_spirit", "grimstroke", "gyrocopter", "keeper_of_the_light", "magnus", "mars",
+  "morphling", "naga_siren", "natures_prophet", "nyx_assassin", "oracle", "outworld_destroyer", "pangolier", "phoenix",
 ];
 
 export type AbilityKind =
@@ -607,6 +610,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "gust", value: [0, 120, 175, 230, 290], cooldown: 10, radius: 220, duration: 1.0 },       // God's Rebuke
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Bulwark
     r: { kind: "ravage", value: [0, 240, 360, 480], cooldown: 60, radius: 300, duration: 1.5 },          // Arena of Blood
+  }),
+  // ---- Волна 9 ----
+  morphling: hero("morphling", 10, "morphling", true, { maxHp: 580, armor: 3, damage: 25, speed: 168, range: 340 }, {
+    q: { kind: "dash", value: [0, 100, 150, 200, 250], cooldown: 9, radius: 400 },                        // Waveform
+    w: { kind: "lightning_bolt", value: [0, 100, 155, 210, 260], cooldown: 8, radius: 340, duration: 1.2 }, // Adaptive Strike
+    e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Attribute Shift
+    r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 10 },                          // Morph
+  }),
+  naga_siren: hero("naga_siren", 89, "naga_siren", false, { maxHp: 680, armor: 4, damage: 26, speed: 170, attackInterval: 0.9 }, {
+    q: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 14, duration: 12, radius: 300 },     // Mirror Image
+    w: { kind: "frostbite", value: [0, 40, 60, 80, 100], cooldown: 10, radius: 320, duration: 2.5 },      // Ensnare
+    e: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 260, duration: 2 },            // Rip Tide
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 70, radius: 400, duration: 3 },              // Song of the Siren
+  }),
+  natures_prophet: hero("natures_prophet", 53, "furion", true, { maxHp: 560, armor: 2, damage: 25, speed: 164, range: 340 }, {
+    q: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 12, radius: 160, duration: 2 },           // Sprout
+    w: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 14, radius: 400 },                               // Teleportation
+    e: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 16, duration: 15, radius: 320 },     // Nature's Call
+    r: { kind: "arc_lightning", value: [0, 100, 160, 220], cooldown: 50, radius: 400, count: [0, 5, 7, 9] }, // Wrath of Nature
+  }),
+  nyx_assassin: hero("nyx_assassin", 88, "nyx_assassin", false, { maxHp: 640, armor: 4, damage: 26, speed: 174 }, {
+    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 9, radius: 60, count: [0, 3, 3, 3, 3], duration: 1.5 }, // Impale
+    w: { kind: "lightning_bolt", value: [0, 90, 135, 180, 230], cooldown: 7, radius: 320, duration: 0.2 }, // Mana Burn
+    e: SIG,                                                                                              // Spiked Carapace
+    r: { kind: "dash", value: [0, 200, 310, 420], cooldown: 45, radius: 500 },                           // Vendetta
+  }, { kind: "quill", value: 18, radius: 160 }),
+  oracle: hero("oracle", 111, "oracle", true, { maxHp: 560, armor: 2, damage: 23, speed: 162 }, {
+    q: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2 },       // Fortune's End
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Fate's Edict
+    e: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Purifying Flames
+    r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 60, duration: 8 },                      // False Promise
+  }),
+  outworld_destroyer: hero("outworld_destroyer", 76, "obsidian_destroyer", true, { maxHp: 640, armor: 3, damage: 28, speed: 162, range: 340 }, {
+    q: { kind: "lightning_bolt", value: [0, 100, 150, 200, 250], cooldown: 4, radius: 340, duration: 0.3 }, // Arcane Orb (активный: с двумя пассивками бот умирал на 2-й минуте)
+    w: { kind: "frostbite", value: [0, 110, 160, 210, 260], cooldown: 8, radius: 340, duration: 2.5 },    // Astral Imprisonment
+    e: { kind: "arcane_aura", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 0, passive: true },           // Essence Flux
+    r: { kind: "nova", value: [0, 300, 450, 600], cooldown: 60, radius: 340, duration: 1 },              // Sanity's Eclipse
+  }),
+  pangolier: hero("pangolier", 120, "pangolier", false, { maxHp: 660, armor: 4, damage: 26, speed: 172 }, {
+    q: { kind: "line_burst", value: [0, 70, 105, 140, 170], cooldown: 7, radius: 60, count: [0, 3, 3, 3, 3] }, // Swashbuckle
+    w: { kind: "ravage", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 220, duration: 1 },         // Shield Crash
+    e: { kind: "crit", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 0, passive: true },                  // Lucky Shot
+    r: { kind: "spin", value: [0, 60, 100, 150], cooldown: 50, radius: 200, duration: 4 },                // Rolling Thunder
+  }),
+  phoenix: hero("phoenix", 110, "phoenix", true, { maxHp: 620, armor: 2, damage: 24, speed: 164, regen: 3 }, {
+    q: { kind: "dash", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 400 },                        // Icarus Dive
+    w: { kind: "multishot", value: [0, 40, 55, 70, 90], cooldown: 9, radius: 340, count: [0, 3, 4, 5, 6] }, // Fire Spirits
+    e: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 60, count: [0, 5, 5, 5, 5] }, // Sun Ray
+    r: { kind: "reincarnation", value: [0, 0.5, 0.7, 0.9], cooldown: 120, passive: true },               // Supernova
   }),
 };
 

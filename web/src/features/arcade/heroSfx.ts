@@ -47,6 +47,7 @@ const IMPACT: Record<string, "blade" | "heavy" | "blunt" | "light" | "none"> = {
   omniknight: "heavy", abaddon: "blade", beastmaster: "blade", brewmaster: "blunt", centaur: "heavy", dark_seer: "blunt", death_prophet: "light", disruptor: "light",
   lycan: "blade", lone_druid: "light", alchemist: "heavy", bane: "light", batrider: "light", bounty_hunter: "blade", broodmother: "blade", clockwerk: "blunt",
   earth_spirit: "blunt", elder_titan: "heavy", ember_spirit: "blade", grimstroke: "light", gyrocopter: "light", keeper_of_the_light: "light", magnus: "heavy", mars: "blade",
+  morphling: "light", naga_siren: "blade", natures_prophet: "light", nyx_assassin: "blade", oracle: "light", outworld_destroyer: "light", pangolier: "blade", phoenix: "light",
 };
 
 /** Удар героя: true — сыграли сэмпл Dota (или он на подходе), false — клипов нет, играй синтетику. Не чаще раза в 45 мс. */

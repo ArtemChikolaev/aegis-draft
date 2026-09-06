@@ -94,6 +94,14 @@ gyrocopter gyrocopter rocket_barrage homing_missile flak_cannon call_down
 keeper_of_the_light keeper_of_the_light illuminate blinding_light chakra_magic will_o_wisp
 magnus magnataur shockwave empower skewer reverse_polarity
 mars mars spear gods_rebuke bulwark arena_of_blood
+morphling morphling waveform adaptive_strike_agi morph_agi replicate
+naga_siren naga_siren mirror_image ensnare rip_tide song_of_the_siren
+natures_prophet furion sprout teleportation force_of_nature wrath_of_nature
+nyx_assassin nyx_assassin impale mana_burn spiked_carapace vendetta
+oracle oracle fortunes_end fates_edict purifying_flames false_promise
+outworld_destroyer obsidian_destroyer arcane_orb astral_imprisonment essence_aura sanity_eclipse
+pangolier pangolier swashbuckle shield_crash lucky_shot gyroshell
+phoenix phoenix icarus_dive fire_spirits sun_ray supernova
 '
 missing=""
 while read -r id dota q w e r; do
