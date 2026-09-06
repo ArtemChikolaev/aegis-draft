@@ -178,7 +178,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Counterspell
     r: { kind: "mana_void", value: [0, 260, 420, 580], cooldown: 60, radius: 320 },                      // Mana Void: ×(1 + потерянное HP цели), сплэш
   }),
-  lina: hero("lina", 25, "lina", true, { damage: 24, maxHp: 500 }, {
+  lina: hero("lina", 25, "lina", true, { damage: 26, maxHp: 580, armor: 2 }, {
     q: { kind: "line_burst", value: [0, 70, 105, 140, 175], cooldown: 7, radius: 60, count: [0, 3, 3, 3, 3] },          // Dragon Slave
     w: { kind: "line_burst", value: [0, 90, 135, 180, 225], cooldown: 10, radius: 95, count: [0, 1, 1, 1, 1], duration: 0.9 }, // Light Strike Array
     e: SIG,                                                                                              // Fiery Soul
@@ -300,9 +300,9 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 120, count: [0, 5, 5, 5], duration: 1.4 }, // Ghostship
   }, { kind: "cleave", value: 0.45, radius: 100 }),
   necrophos: hero("necrophos", 36, "necrolyte", true, { maxHp: 560, armor: 2, regen: 4, damage: 21, speed: 158 }, {
-    q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 7, radius: 300, duration: 1.5 },          // Death Pulse
+    q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 300, duration: 1.5 },           // Death Pulse
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 18, duration: 5 },                        // Ghost Shroud
-    e: { kind: "presence", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, radius: 260, passive: true },  // Heartstopper Aura
+    e: { kind: "presence", value: [0, 0.07, 0.1, 0.14, 0.17], cooldown: 0, radius: 260, passive: true }, // Heartstopper Aura
     r: { kind: "assassinate", value: [0, 450, 700, 950], cooldown: 55, radius: 340 },                    // Reaper's Scythe
   }),
   razor: hero("razor", 15, "razor", true, { maxHp: 560, armor: 3, damage: 22, speed: 170, attackInterval: 0.9 }, {
@@ -612,8 +612,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 320, duration: 2.5 },            // Will-O-Wisp
   }),
   magnus: hero("magnus", 97, "magnataur", false, { maxHp: 820, armor: 5, damage: 30, speed: 162, regen: 3 }, {
-    q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 74, count: [0, 4, 4, 4, 4] }, // Shockwave
-    w: { kind: "rage", value: [0, 0.6, 0.75, 0.9, 1.1], cooldown: 14, duration: 8 },                     // Empower
+    q: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 8, radius: 70, count: [0, 4, 4, 4, 4] }, // Shockwave
+    w: { kind: "rage", value: [0, 0.4, 0.5, 0.6, 0.75], cooldown: 14, duration: 8 },                     // Empower
     e: { kind: "dash", value: [0, 110, 160, 210, 260], cooldown: 11, radius: 320 },                       // Skewer
     r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 70, radius: 260, duration: 2.5 },          // Reverse Polarity
   }, { kind: "cleave", value: 0.4, radius: 90 }),
@@ -826,9 +826,9 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "rage", value: [0, 0.4, 0.55, 0.7, 0.8], cooldown: 14, duration: 6 },                     // Sidekick
     r: { kind: "frenzy", value: [0, 0.4, 0.48, 0.55], cooldown: 60, duration: 8 },                       // Unleash
   }, { kind: "vampiric", value: 0.1 }),
-  muerta: hero("muerta", 138, "muerta", true, { maxHp: 700, armor: 4, damage: 28, speed: 168, range: 330 }, {
-    q: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 6, radius: 330, duration: 0.8 }, // Dead Shot
-    w: { kind: "nova", value: [0, 100, 145, 190, 240], cooldown: 8, radius: 300, duration: 2 },           // The Calling (духи бьют по площади: с edict бот умирал до Рошана)
+  muerta: hero("muerta", 138, "muerta", true, { maxHp: 780, armor: 5, damage: 30, speed: 170, range: 330, regen: 3 }, {
+    q: { kind: "lightning_bolt", value: [0, 160, 235, 310, 380], cooldown: 5, radius: 330, duration: 0.8 }, // Dead Shot
+    w: { kind: "nova", value: [0, 130, 190, 250, 310], cooldown: 7, radius: 320, duration: 2 },           // The Calling (духи бьют по площади: с edict бот умирал до Рошана)
     e: { kind: "crit", value: [0, 0.14, 0.18, 0.22, 0.26], cooldown: 0, passive: true },                 // Gunslinger
     r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 8 },                           // Pierce the Veil
   }),

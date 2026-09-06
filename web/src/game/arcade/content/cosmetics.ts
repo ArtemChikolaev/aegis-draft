@@ -52,6 +52,13 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_ogre_arcana", slot: "skin", rarity: "arcana", variant: "ogre_magi@arcana", hero: "ogre_magi" },
   { id: "skin_razor_arcana", slot: "skin", rarity: "arcana", variant: "razor@arcana", hero: "razor" },
   { id: "skin_invoker_kid", slot: "skin", rarity: "exotic", variant: "invoker@kid", hero: "invoker" },
+  // Партия 3 (2026-09-06): арканы героев волн 2–12; у кого нет своей озвучки — говорит голосом базового героя.
+  { id: "skin_pudge_arcana", slot: "skin", rarity: "arcana", variant: "pudge@arcana", hero: "pudge" },
+  { id: "skin_rubick_arcana", slot: "skin", rarity: "arcana", variant: "rubick@arcana", hero: "rubick" },
+  { id: "skin_skywrath_arcana", slot: "skin", rarity: "arcana", variant: "skywrath_mage@arcana", hero: "skywrath_mage" },
+  { id: "skin_spectre_arcana", slot: "skin", rarity: "arcana", variant: "spectre@arcana", hero: "spectre" },
+  { id: "skin_vs_arcana", slot: "skin", rarity: "arcana", variant: "vengeful_spirit@arcana", hero: "vengeful_spirit" },
+  { id: "skin_drow_arcana", slot: "skin", rarity: "arcana", variant: "drow_ranger@arcana", hero: "drow_ranger" },
 ];
 
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));
