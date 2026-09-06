@@ -145,6 +145,13 @@ ABILITIES = {
     # Волна 13 героев (2026-09-06)
     "marci": hero("marci", ["dispose_cast"], ["rebound_cast"], ["sidekick"], ["unleash_cast"]),
     "muerta": hero("muerta", ["deadshot_cast"], ["revenants_cast"], [], ["pierce_the_veil"]),
+    "phantom_lancer": hero("phantom_lancer", ["lance_cast"], ["doppelwalk_cast"], [], ["juxtapose"]),
+    "lifestealer": hero("life_stealer", ["rage"], ["open_wounds_cast"], [], ["infest_cast"]),
+    "enchantress": hero("enchantress", ["enchant_cast"], ["attendants_cast"], [], ["impetus"]),
+    "chen": hero("chen", ["penitence_cast"], ["persuasion_cast"], [], ["hand_of_god"]),
+    "ancient_apparition": hero("ancient_apparition", ["coldfeet_cast"], ["icevortex_cast"], [], ["iceblast_cast"]),
+    "monkey_king": hero("monkey_king", ["boundless_strike"], ["spring_cast"], [], ["wukongs_command"]),
+    "dark_willow": hero("dark_willow", ["bramble_cast"], ["shadow_realm"], [], ["bedlam"]),
     "primal_beast": hero("primal_beast", ["onslaught_cast"], ["ground_pound"], ["uproar_cast"], ["pulverize_cast"]),
     "kez": hero("kez", ["echo_katana_cast"], ["vault_cast"], [], ["raptor_cast"]),
     "ringmaster": hero("ringmaster", ["impale_cast"], ["box_target"], ["impale_stab_1"], ["wheel_deploy"]),

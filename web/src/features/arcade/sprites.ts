@@ -190,6 +190,7 @@ export const HERO_TINT: Record<string, string> = {
   techies: "#e0d05a", terrorblade: "#7ad8d0", timbersaw: "#c88a4a", treant: "#6ab04a", troll_warlord: "#c8a05a", tusk: "#8ac8ff", underlord: "#a06a5a", undying: "#8ac86a",
   vengeful_spirit: "#8a9ad8", visage: "#8ab0a0", void_spirit: "#8a6ad8", weaver: "#c8a04a", winter_wyvern: "#a0d8ff", arc_warden: "#7ad8ff", dawnbreaker: "#ffd06a", hoodwink: "#c88a5a",
   marci: "#e0b07a", muerta: "#7ae0c8", primal_beast: "#c86a4a", kez: "#d8b06a", ringmaster: "#d85a6a", meepo: "#c8a06a", io: "#a0e0ff",
+  phantom_lancer: "#6ab0d8", lifestealer: "#c8544a", enchantress: "#8ad86a", chen: "#e0d8a0", ancient_apparition: "#a0d8e8", monkey_king: "#e0a84a", dark_willow: "#a06ad8",
 };
 
 /** Вид снаряда автоатаки: лучники стреляют стрелой, метатели — клинком, стрелки́ — пулей, остальные — сгустком

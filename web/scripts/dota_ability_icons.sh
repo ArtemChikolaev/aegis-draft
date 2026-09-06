@@ -133,6 +133,13 @@ kez kez echo_slash grappling_claw kazurai_katana raptor_dance
 ringmaster ringmaster tame_the_beasts the_box impalement wheel
 meepo meepo earthbind poof ransack divided_we_stand
 io wisp tether spirits overcharge relocate
+phantom_lancer phantom_lancer spirit_lance doppelwalk phantom_edge juxtapose
+lifestealer life_stealer rage open_wounds feast infest
+enchantress enchantress impetus enchant natures_attendants untouchable
+chen chen penitence holy_persuasion divine_favor hand_of_god
+ancient_apparition ancient_apparition cold_feet ice_vortex chilling_touch ice_blast
+monkey_king monkey_king boundless_strike tree_dance primal_spring wukongs_command
+dark_willow dark_willow bramble_maze shadow_realm cursed_crown bedlam
 '
 missing=""
 while read -r id dota q w e r; do

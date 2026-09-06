@@ -34,7 +34,9 @@ export type TemplateHeroId =
   // Волна 12.
   | "vengeful_spirit" | "visage" | "void_spirit" | "weaver" | "winter_wyvern" | "arc_warden" | "dawnbreaker" | "hoodwink"
   // Волна 13 (Largo в локальном vpk без модели — пропущен).
-  | "marci" | "muerta" | "primal_beast" | "kez" | "ringmaster" | "meepo" | "io";
+  | "marci" | "muerta" | "primal_beast" | "kez" | "ringmaster" | "meepo" | "io"
+  // Волна 15 (2026-09-06): последние семь из датасета. Остался только Largo — его модели в vpk нет.
+  | "phantom_lancer" | "lifestealer" | "enchantress" | "chen" | "ancient_apparition" | "monkey_king" | "dark_willow";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -50,6 +52,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "earth_spirit", "elder_titan", "ember_spirit", "grimstroke", "gyrocopter", "keeper_of_the_light", "magnus", "mars",
   "morphling", "naga_siren", "natures_prophet", "nyx_assassin", "oracle", "outworld_destroyer", "pangolier", "phoenix",
   "puck", "pudge", "rubick", "sand_king", "shadow_demon", "slark", "snapfire", "spirit_breaker",
+  "phantom_lancer", "lifestealer", "enchantress", "chen", "ancient_apparition", "monkey_king", "dark_willow",
   "techies", "terrorblade", "timbersaw", "treant", "troll_warlord", "tusk", "underlord", "undying",
   "vengeful_spirit", "visage", "void_spirit", "weaver", "winter_wyvern", "arc_warden", "dawnbreaker", "hoodwink",
   "marci", "muerta", "primal_beast", "kez", "ringmaster", "meepo", "io",
@@ -884,6 +887,49 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "frenzy", value: [0, 0.3, 0.35, 0.4, 0.45], cooldown: 14, duration: 6 },                  // Overcharge
     r: { kind: "dash", value: [0, 0, 0, 0], cooldown: 40, radius: 600 },                                  // Relocate
   }, { kind: "vampiric", value: 0.12 }),
+  // ---- Волна 15 (последние семь из датасета; Largo ждёт модель в vpk) ----
+  phantom_lancer: hero("phantom_lancer", 12, "phantom_lancer", false, { maxHp: 620, armor: 4, damage: 25, speed: 174 }, {
+    q: { kind: "goo", value: [0, 70, 105, 140, 175], cooldown: 6, radius: 330, duration: 2 },            // Spirit Lance
+    w: { kind: "dash", value: [0, 60, 90, 120, 150], cooldown: 11, radius: 320 },                        // Doppelganger
+    e: { kind: "haste", value: [0, 0.25, 0.32, 0.4, 0.48], cooldown: 12, duration: 4 },                  // Phantom Rush
+    r: { kind: "damage_ward", value: [0, 26, 36, 46], cooldown: 30, duration: 12, radius: 300, summon: { art: "illusion", count: 3 } }, // Juxtapose
+  }, { kind: "blur", value: 0.22 }),
+  lifestealer: hero("lifestealer", 54, "life_stealer", false, { maxHp: 760, armor: 4, damage: 28, speed: 172, regen: 4 }, {
+    q: { kind: "rage", value: [0, 0.45, 0.6, 0.75, 0.9], cooldown: 18, duration: 5 },                    // Rage
+    w: { kind: "life_drain", value: [0, 26, 36, 46, 56], cooldown: 10, radius: 300, duration: 4 },       // Open Wounds
+    e: { kind: "frenzy", value: [0, 0.25, 0.32, 0.4, 0.48], cooldown: 14, duration: 6 },                 // Ghoul Frenzy
+    r: { kind: "ravage", value: [0, 160, 250, 340], cooldown: 55, radius: 260, duration: 1.2 },          // Infest
+  }, { kind: "vampiric", value: 0.14 }),
+  enchantress: hero("enchantress", 58, "enchantress", true, { maxHp: 600, armor: 3, damage: 26, speed: 168, range: 300 }, {
+    q: { kind: "goo", value: [0, 55, 85, 115, 145], cooldown: 7, radius: 330, duration: 3 },             // Enchant
+    w: { kind: "ward", value: [0, 0.03, 0.038, 0.046, 0.054], cooldown: 26, radius: 180, duration: 8 },  // Nature's Attendants
+    e: { kind: "damage_ward", value: [0, 24, 34, 44, 54], cooldown: 16, duration: 14, radius: 300, summon: { art: "treant", count: 2 } }, // Enchant creep
+    r: { kind: "line_burst", value: [0, 150, 230, 310], cooldown: 22, radius: 380 },                     // Impetus
+  }, { kind: "marksmanship", value: 0.3, radius: 220 }),
+  chen: hero("chen", 66, "chen", true, { maxHp: 620, armor: 4, damage: 24, speed: 172, range: 300, regen: 4 }, {
+    q: { kind: "goo", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 330, duration: 3 },             // Penitence
+    w: { kind: "damage_ward", value: [0, 26, 36, 46, 56], cooldown: 16, duration: 14, radius: 320, summon: { art: "hellbear", count: 2 } }, // Holy Persuasion
+    e: { kind: "haste", value: [0, 0.2, 0.26, 0.32, 0.4], cooldown: 14, duration: 5 },                   // Divine Favor
+    r: { kind: "ward", value: [0, 0.09, 0.13, 0.17], cooldown: 60, radius: 900, duration: 1 },           // Hand of God
+  }, { kind: "deathpact", value: 7 }),
+  ancient_apparition: hero("ancient_apparition", 68, "ancient_apparition", true, { maxHp: 560, armor: 2, damage: 24, speed: 162, range: 340 }, {
+    q: { kind: "frostbite", value: [0, 130, 200, 270, 340], cooldown: 8, radius: 340, duration: 2 },     // Cold Feet
+    w: { kind: "remnant", value: [0, 22, 32, 42, 52], cooldown: 12, radius: 200, duration: 8 },          // Ice Vortex
+    e: { kind: "frost_arrows", value: [0, 0.2, 0.28, 0.36, 0.44], cooldown: 0, passive: true },          // Chilling Touch
+    r: { kind: "mass_freeze", value: [0, 180, 280, 380], cooldown: 65, radius: 420, duration: 2.5 },     // Ice Blast
+  }, { kind: "thirst", value: 0.32, radius: 600 }),
+  monkey_king: hero("monkey_king", 114, "monkey_king", false, { maxHp: 660, armor: 4, damage: 27, speed: 178, attackInterval: 0.85 }, {
+    q: { kind: "line_burst", value: [0, 130, 195, 260, 325], cooldown: 8, radius: 420 },                 // Boundless Strike
+    w: { kind: "dash", value: [0, 70, 105, 140, 175], cooldown: 9, radius: 340 },                        // Primal Spring
+    e: { kind: "haste", value: [0, 0.22, 0.28, 0.34, 0.42], cooldown: 12, duration: 4 },                 // Tree Dance
+    r: { kind: "ravage", value: [0, 150, 230, 320], cooldown: 55, radius: 280, duration: 1.4 },          // Wukong's Command
+  }, { kind: "swipes", value: 5, cap: 12 }),
+  dark_willow: hero("dark_willow", 119, "dark_willow", true, { maxHp: 580, armor: 3, damage: 25, speed: 168, range: 320 }, {
+    q: { kind: "goo", value: [0, 65, 100, 135, 170], cooldown: 7, radius: 340, duration: 2.5 },          // Bramble Maze
+    w: { kind: "dash", value: [0, 50, 75, 100, 125], cooldown: 10, radius: 300 },                        // Shadow Realm
+    e: { kind: "remnant", value: [0, 24, 34, 44, 54], cooldown: 13, radius: 210, duration: 8 },          // Cursed Crown
+    r: { kind: "edict", value: [0, 70, 105, 140], cooldown: 60, duration: 10, radius: 340 },             // Bedlam
+  }, { kind: "blur", value: 0.2 }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };
