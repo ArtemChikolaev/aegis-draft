@@ -4,7 +4,10 @@
 // Тригонометрия здесь разрешена: рендер не участвует в детерминизме.
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
-import type { Enemy, Fx } from "../../game/arcade/types.ts";
+import type { AbilityKey, Enemy, Fx } from "../../game/arcade/types.ts";
+
+/** Порядок слотов умений — тот же, что в симе (там он приватный). */
+const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 import { heroArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
@@ -251,18 +254,60 @@ export class ArcadeRenderer {
     }
   }
 
+  /**
+   * Призыв на земле. Владелец 2026-09-06: «Terrorblade должен звать иллюзии, а он ставит на пол шарик».
+   * Сим остался прежним (один источник урона в точке), меняется только картинка: иллюзии рисуются
+   * листом самого героя вполупрозрачно, звери — своим листом (`wolf`, `bear`, `treant`, `hawk`).
+   * Умения без `summon` (варды, надгробие, ловушка) остаются кружком с кольцом радиуса.
+   */
   private drawWard(sim: ArcadeSim, pal: Palette): void {
     const p = sim.player;
     if (sim.tick >= p.wardUntil) return;
     const c = this.ctx;
     const pulse = 0.5 + 0.5 * Math.sin(sim.tick / 6);
+    const key = ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "damage_ward");
+    const ab = key ? sim.hero.abilities[key] : sim.hero.abilities.w;
     c.strokeStyle = pal.ward;
     c.globalAlpha = 0.25 + 0.2 * pulse;
     c.lineWidth = 2;
-    c.beginPath(); c.arc(p.wardX, p.wardY, sim.hero.abilities.w.radius ?? 170, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(p.wardX, p.wardY, ab.radius ?? 170, 0, Math.PI * 2); c.stroke();
     c.globalAlpha = 1;
-    c.fillStyle = pal.ward;
-    c.beginPath(); c.arc(p.wardX, p.wardY, 7 + pulse * 2, 0, Math.PI * 2); c.fill();
+    const art = ab.summon;
+    if (!art) {
+      c.fillStyle = pal.ward;
+      c.beginPath(); c.arc(p.wardX, p.wardY, 7 + pulse * 2, 0, Math.PI * 2); c.fill();
+      return;
+    }
+    const illusion = art.art === "illusion";
+    const ds = illusion ? this.heroSheet(sim.hero.id) : dotaSheet(art.art);
+    const n = art.count ?? 1;
+    // Цель зова: ближайший враг в радиусе — призыв повёрнут к нему и бьёт, иначе стоит лицом к игроку.
+    let tx = p.x, ty = p.y, attacking = false;
+    let best = Infinity;
+    for (const e of sim.enemies) {
+      if (!e.alive) continue;
+      const d = Math.hypot(e.x - p.wardX, e.y - p.wardY);
+      if (d < best && d <= (ab.radius ?? 200)) { best = d; tx = e.x; ty = e.y; attacking = true; }
+    }
+    for (let i = 0; i < n; i++) {
+      // Ставим призывы веером вокруг точки зова: иначе они слипаются в один силуэт и прячутся
+      // под самим героем (точку зова сим ставит ровно в игрока — трогать её нельзя, это сид и лог).
+      const ang = n === 1 ? Math.PI : (i / n) * Math.PI * 2 + Math.PI * 0.75;
+      const off = 30;
+      const x = p.wardX + Math.cos(ang) * off;
+      const y = p.wardY + Math.sin(ang) * off * 0.55;
+      if (!ds) {
+        c.fillStyle = pal.ward;
+        c.beginPath(); c.arc(x, y, 8, 0, Math.PI * 2); c.fill();
+        continue;
+      }
+      const anim = attacking ? "attack" : "idle";
+      const frames = ds.meta.anims[anim]?.frames ?? 1;
+      const frame = Math.floor(((sim.tick + i * 7) / 60) * ds.meta.fps) % Math.max(1, frames);
+      const dir = dotaDir(tx - x, ty - y, ds.meta.dirs);
+      // Иллюзия — тот же герой, только полупрозрачный и чуть мельче: тинт превращал её в зелёное пятно.
+      drawDotaFrame(c, ds, anim, dir, frame, x, y, illusion ? 0.62 : 1, illusion ? 0.86 : 1);
+    }
   }
 
   private drawAegis(sim: ArcadeSim, pal: Palette, now: number): void {

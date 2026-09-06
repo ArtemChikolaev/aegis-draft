@@ -88,7 +88,14 @@ export interface AbilityDef {
   /** Вторичное число по уровню (число целей/ударов, длительность стана и т.п.). */
   count?: number[];
   passive?: boolean;
+  /** Вид призыва у kind: "damage_ward" — чисто визуальный (владелец 2026-09-06: «Terrorblade
+   *  должен звать иллюзии, а он ставит на пол шарик»). Урон и радиус не меняются: сим по-прежнему
+   *  считает один источник, рисуем то, что призывает герой в Dota. */
+  summon?: SummonDef;
 }
+
+/** `art` — «illusion» (копия героя) или имя листа существа (`wolf`, `bear`, `treant`, `hawk`, `hellbear`). */
+export interface SummonDef { art: string; count?: number }
 
 /** Фирменная пассивка героя поверх кита архетипа (BACKLOG T13.15): то, что делает Shadow Fiend Shadow Fiend'ом. */
 export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathpact" | "fiery_soul" | "overload" | "marksmanship" | "quill" | "blur" | "vampiric"
@@ -502,7 +509,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }),
   beastmaster: hero("beastmaster", 38, "beastmaster", false, { maxHp: 700, armor: 4, damage: 28, speed: 164, regen: 2 }, {
     q: { kind: "line_burst", value: [0, 80, 125, 170, 215], cooldown: 8, radius: 64, count: [0, 3, 3, 3, 3] }, // Wild Axes
-    w: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 14, duration: 12, radius: 300 },     // Call of the Wild Boar
+    w: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 14, duration: 12, radius: 300, summon: { art: "hellbear" } },     // Call of the Wild Boar
     e: { kind: "frenzy", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 14, duration: 8 },                  // Inner Beast
     r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 60, radius: 260, duration: 2 },            // Primal Roar
   }),
@@ -538,13 +545,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }),
   // ---- Волна 7 ----
   lycan: hero("lycan", 77, "lycan", false, { maxHp: 720, armor: 4, damage: 28, speed: 168, regen: 2 }, {
-    q: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 14, duration: 12, radius: 300 },     // Summon Wolves
+    q: { kind: "damage_ward", value: [0, 20, 28, 36, 44], cooldown: 14, duration: 12, radius: 300, summon: { art: "wolf", count: 2 } },     // Summon Wolves
     w: { kind: "rage", value: [0, 0.4, 0.55, 0.7, 0.85], cooldown: 12, duration: 6 },                    // Howl
     e: { kind: "crit", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },                  // Feral Impulse
     r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 12 },                      // Shapeshift
   }),
   lone_druid: hero("lone_druid", 80, "lone_druid", true, { maxHp: 660, armor: 4, damage: 27, speed: 164, range: 340 }, {
-    q: { kind: "damage_ward", value: [0, 45, 58, 72, 85], cooldown: 18, duration: 15, radius: 320 },     // Summon Spirit Bear
+    q: { kind: "damage_ward", value: [0, 45, 58, 72, 85], cooldown: 18, duration: 15, radius: 320, summon: { art: "bear" } },     // Summon Spirit Bear
     w: SIG,                                                                                              // Spirit Link
     e: { kind: "gust", value: [0, 70, 105, 140, 170], cooldown: 11, radius: 260, duration: 1.5 },         // Savage Roar
     r: { kind: "metamorphosis", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 15, form: { ranged: false, range: 150 } }, // True Form
@@ -642,7 +649,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 10 },                          // Morph
   }),
   naga_siren: hero("naga_siren", 89, "naga_siren", false, { maxHp: 680, armor: 4, damage: 26, speed: 170, attackInterval: 0.9 }, {
-    q: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 14, duration: 12, radius: 300 },     // Mirror Image
+    q: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 14, duration: 12, radius: 300, summon: { art: "illusion", count: 3 } },     // Mirror Image
     w: { kind: "frostbite", value: [0, 40, 60, 80, 100], cooldown: 10, radius: 320, duration: 2.5 },      // Ensnare
     e: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 260, duration: 2 },            // Rip Tide
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 70, radius: 400, duration: 3 },              // Song of the Siren
@@ -650,7 +657,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   natures_prophet: hero("natures_prophet", 53, "furion", true, { maxHp: 560, armor: 2, damage: 25, speed: 164, range: 340 }, {
     q: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 12, radius: 160, duration: 2 },           // Sprout
     w: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 14, radius: 400 },                               // Teleportation
-    e: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 16, duration: 15, radius: 320 },     // Nature's Call
+    e: { kind: "damage_ward", value: [0, 25, 35, 45, 55], cooldown: 16, duration: 15, radius: 320, summon: { art: "treant", count: 2 } },     // Nature's Call
     r: { kind: "arc_lightning", value: [0, 100, 160, 220], cooldown: 50, radius: 400, count: [0, 5, 7, 9] }, // Wrath of Nature
   }),
   nyx_assassin: hero("nyx_assassin", 88, "nyx_assassin", false, { maxHp: 640, armor: 4, damage: 26, speed: 174 }, {
@@ -741,7 +748,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }),
   terrorblade: hero("terrorblade", 109, "terrorblade", false, { maxHp: 560, armor: 3, damage: 25, speed: 168, attackInterval: 0.9 }, {
     q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 10, radius: 300, duration: 3 },            // Reflection
-    w: { kind: "damage_ward", value: [0, 18, 25, 32, 40], cooldown: 16, duration: 12, radius: 300 },     // Conjure Image
+    w: { kind: "damage_ward", value: [0, 18, 25, 32, 40], cooldown: 16, duration: 12, radius: 300, summon: { art: "illusion", count: 2 } },     // Conjure Image
     e: { kind: "metamorphosis", value: [0, 0.35, 0.45, 0.55, 0.7], cooldown: 30, duration: 10, form: { ranged: true, range: 330 } }, // Metamorphosis
     r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 60, duration: 4 },                      // Sunder
   }),
@@ -792,7 +799,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "goo", value: [0, 60, 95, 130, 165], cooldown: 8, radius: 320, duration: 4 },              // Grave Chill
     w: { kind: "lightning_bolt", value: [0, 100, 155, 210, 260], cooldown: 6, radius: 320, duration: 0.2 }, // Soul Assumption
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Gravekeeper's Cloak
-    r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 15, radius: 320 },          // Summon Familiars
+    r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 15, radius: 320, summon: { art: "hawk", count: 2 } },          // Summon Familiars
   }),
   void_spirit: hero("void_spirit", 126, "void_spirit", false, { maxHp: 660, armor: 4, damage: 27, speed: 172 }, {
     q: { kind: "remnant", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 170 },                   // Aether Remnant
@@ -865,7 +872,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "mass_freeze", value: [0, 0, 0, 0, 0], cooldown: 12, radius: 180, duration: 2 },           // Earthbind
     w: { kind: "dash", value: [0, 120, 180, 240, 300], cooldown: 8, radius: 400 },                        // Poof
     e: SIG,                                                                                              // Ransack
-    r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 20, radius: 300 },          // Divided We Stand
+    r: { kind: "damage_ward", value: [0, 30, 45, 60], cooldown: 40, duration: 20, radius: 300, summon: { art: "illusion", count: 2 } },          // Divided We Stand
   }, { kind: "vampiric", value: 0.12 }),
   io: hero("io", 91, "wisp", true, { maxHp: 620, armor: 3, damage: 24, speed: 172, regen: 5 }, {
     q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Tether
