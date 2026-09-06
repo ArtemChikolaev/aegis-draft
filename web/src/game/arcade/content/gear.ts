@@ -43,6 +43,20 @@ export const GEAR_BASES: readonly GearBase[] = [
   { id: "ring_of_health", slot: "ring", art: "ring_of_health", minTier: 2 },
   { id: "sages_mask", slot: "ring", art: "sobi_mask", minTier: 1 },
   { id: "ring_of_basilius", slot: "ring", art: "ring_of_basilius", minTier: 2 },
+  // Партия 2 (T13.14, 2026-09-06): на слот приходилось 3–4 базы, и лут повторялся уже к третьему забегу.
+  // Иконки — только из локального зеркала `public/art/items_px`, чтобы офлайн не лез в CDN.
+  { id: "mind_breaker", slot: "weapon", art: "mind_breaker", minTier: 2 },
+  { id: "paladin_sword", slot: "weapon", art: "paladin_sword", minTier: 2 },
+  { id: "battle_fury", slot: "weapon", art: "bfury", minTier: 3 },
+  { id: "spell_prism", slot: "helm", art: "spell_prism", minTier: 2 },
+  { id: "apex", slot: "helm", art: "apex", minTier: 3 },
+  { id: "pipe_of_insight", slot: "armor", art: "pipe", minTier: 2 },
+  { id: "titan_sliver", slot: "armor", art: "titan_sliver", minTier: 3 },
+  { id: "guardian_greaves", slot: "boots", art: "guardian_greaves", minTier: 3 },
+  { id: "faded_broach", slot: "amulet", art: "faded_broach", minTier: 1 },
+  { id: "trickster_cloak", slot: "amulet", art: "trickster_cloak", minTier: 2 },
+  { id: "pupils_gift", slot: "ring", art: "pupils_gift", minTier: 1 },
+  { id: "vambrace", slot: "ring", art: "vambrace", minTier: 2 },
 ];
 export const GEAR_BASE_BY_ID: Record<string, GearBase> = Object.fromEntries(GEAR_BASES.map((b) => [b.id, b]));
 
@@ -78,13 +92,17 @@ export interface GearItem {
   tier: 1 | 2 | 3;
   affixes: GearAffix[];
   /** Уникальный предмет босса (фиксированные аффиксы + особое свойство). */
-  unique?: "aegis_of_the_immortal" | "tormentors_shard" | "heart_of_the_ancient";
+  unique?: "aegis_of_the_immortal" | "tormentors_shard" | "heart_of_the_ancient" | "divine_rapier" | "manta_of_illusions" | "giants_ring";
 }
 
 export const UNIQUES: Record<NonNullable<GearItem["unique"]>, { base: string; art: string; slot: GearSlot; affixes: GearAffix[] }> = {
   aegis_of_the_immortal: { base: "aegis", art: "aegis", slot: "amulet", affixes: [{ stat: "regen", value: 3 }, { stat: "maxHp", value: 150 }] },
   tormentors_shard: { base: "tormentors_shard", art: "aghanims_shard", slot: "ring", affixes: [{ stat: "goldPerKill", value: 2 }, { stat: "crit", value: 0.1 }] },
   heart_of_the_ancient: { base: "heart_of_the_ancient", art: "heart", slot: "armor", affixes: [{ stat: "maxHp", value: 400 }, { stat: "regen", value: 6 }, { stat: "armor", value: 5 }] },
+  // Партия 2: уникальных было три на все слоты, и после второго босса выпадать становилось нечему.
+  divine_rapier: { base: "divine_rapier", art: "rapier", slot: "weapon", affixes: [{ stat: "damage", value: 120 }, { stat: "crit", value: 0.12 }] },
+  manta_of_illusions: { base: "manta_of_illusions", art: "manta", slot: "amulet", affixes: [{ stat: "attackSpeed", value: 0.18 }, { stat: "moveSpeed", value: 0.08 }] },
+  giants_ring: { base: "giants_ring", art: "giants_ring", slot: "ring", affixes: [{ stat: "maxHp", value: 260 }, { stat: "armor", value: 4 }] },
 };
 
 function round(stat: AffixStat, v: number): number {

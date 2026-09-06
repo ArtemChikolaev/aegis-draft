@@ -164,7 +164,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
-      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -990,6 +990,8 @@ export class ArcadeSim {
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
     const vamp = this.hero.signature;
     if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
+    // Кровавик (легендарка): лечит с урона умениями — то есть со всего, кроме автоатак и критов.
+    if (fx !== "hit" && fx !== "crit" && this.upgradePower("leg_bloodstone") > 0) this.heal(amount * 0.1);
     // Corrosive Haze (Slardar): помеченная цель получает больше от всего.
     if (this.tick < e.ampUntil) dmg *= 1 + e.ampMult;
     // Backstab (Riki): автоатака по оглушённой/замороженной/замедленной цели — «в спину».
@@ -1059,7 +1061,12 @@ export class ArcadeSim {
     }
     // Экипировка: элита и боссы роняют всегда, обычные — редко; уникальные — с боссов.
     if (e.kind.boss && !this.aegisDropped) { this.aegisDropped = true; this.dropLoot(e.x, e.y, uniqueGear("aegis_of_the_immortal", this.nextUid(), this.lootTier())); }
-    else if (e.kind.boss) this.dropLoot(e.x, e.y, this.rollLoot("exotic"));
+    else if (e.kind.boss) {
+      // Второй и следующие боссы роняют уникальное из партии 2 — иначе Рапира, Манта и Кольцо
+      // великана недостижимы: первый босс всегда отдаёт Аегис, а остальные роняли обычный exotic.
+      const pool = ["divine_rapier", "manta_of_illusions", "giants_ring"] as const;
+      this.dropLoot(e.x, e.y, uniqueGear(pool[this.rng.int(pool.length)], this.nextUid(), this.lootTier()));
+    }
     else if (e.kind.id === "tormentor") this.dropLoot(e.x, e.y, uniqueGear("tormentors_shard", this.nextUid(), this.lootTier()));
     else if (e.kind.structure) this.loot.push(uniqueGear("heart_of_the_ancient", this.nextUid(), 3));
     else if (e.kind.elite) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
@@ -1079,6 +1086,7 @@ export class ArcadeSim {
     if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
     if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
     if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return; // BKB: треть ударов мимо
+    if (this.upgradePower("leg_butterfly") > 0 && this.rng.float() < 0.25) return; // Бабочка: четверть ударов мимо
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
     const reduction = (0.06 * armor) / (1 + 0.06 * armor);
     // Kraken Shell: плоское снижение поверх брони, но удар всегда проходит хотя бы на 1 — иначе
@@ -1091,6 +1099,13 @@ export class ArcadeSim {
       p.sigUntil = this.tick + sec(0.8);
       for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 130)) this.damageEnemy(e, sig.value * this.sigScale(), "burst");
       this.pushFx("nova", p.x, p.y, sig.radius ?? 130, 0, 8);
+    }
+    if (this.upgradePower("leg_lotus") > 0 && this.tick >= p.lotusUntil) {
+      // Лотос: полученный урон возвращается по всем вокруг. Ограничение по времени — иначе в толпе
+      // герой отражает каждый тик и убивает волну, ничего не делая.
+      p.lotusUntil = this.tick + sec(0.5);
+      for (const e of this.enemiesWithin(p.x, p.y, 150)) this.damageEnemy(e, amount * 0.6, "burst");
+      this.pushFx("nova", p.x, p.y, 150, 0, 8);
     }
     const helix = this.hero.abilities.e;
     if (helix.kind === "counter_helix" && p.abilities.e > 0 && this.rng.float() < 0.12 + 0.04 * p.abilities.e) {
@@ -1547,10 +1562,12 @@ export class ArcadeSim {
   /** Состав питомцев по рангам апгрейдов: волков 1 + Стая, медведь и ястреб по одному. Новые появляются у героя. */
   private syncPets(): void {
     const p = this.player;
+    // Псарня (легендарка): по зверю сверх каждого уже взятого вида — она не даёт зверя с нуля.
+    const kennel = this.upgradePower("leg_beast_kennel") > 0 ? 1 : 0;
     const want: Record<PetKind, number> = {
-      hawk: (p.upgrades.beast_hawk?.rank ?? 0) > 0 ? 1 : 0,
-      wolf: (p.upgrades.beast_wolf?.rank ?? 0) > 0 ? 1 + (p.upgrades.beast_pack?.rank ?? 0) : 0,
-      bear: (p.upgrades.beast_bear?.rank ?? 0) > 0 ? 1 : 0,
+      hawk: (p.upgrades.beast_hawk?.rank ?? 0) > 0 ? 1 + kennel : 0,
+      wolf: (p.upgrades.beast_wolf?.rank ?? 0) > 0 ? 1 + (p.upgrades.beast_pack?.rank ?? 0) + kennel : 0,
+      bear: (p.upgrades.beast_bear?.rank ?? 0) > 0 ? 1 + kennel : 0,
     };
     for (const kind of Object.keys(want) as PetKind[]) {
       let have = this.pets.filter((q) => q.kind === kind).length;
@@ -1559,7 +1576,7 @@ export class ArcadeSim {
   }
 
   private petPower(): number {
-    return 1 + 0.35 * (this.player.upgrades.beast_roar?.rank ?? 0);
+    return (1 + 0.35 * (this.player.upgrades.beast_roar?.rank ?? 0)) * (this.upgradePower("leg_beast_alpha") > 0 ? 2 : 1);
   }
 
   private tickPets(): void {
@@ -1900,6 +1917,8 @@ export class ArcadeSim {
     if (this.upgradePower("leg_daedalus") > 0) { s.critChance += 0.25; s.critMult += 0.7; }
     if (this.upgradePower("leg_satanic") > 0) s.lifesteal += 0.25;
     if (this.upgradePower("leg_mae_haste") > 0) { attackSpeed += 0.35; moveSpeed += 0.1; }
+    if (this.upgradePower("leg_butterfly") > 0) { attackSpeed += 0.2; moveSpeed += 0.06; }
+    if (this.upgradePower("leg_moonshard") > 0) attackSpeed += 0.55;
     if (p.talents.includes("t10_dmg")) s.damage += 20;
     if (p.talents.includes("t10_ms")) s.speed *= 1.08;
     if (p.talents.includes("t15_crit")) s.critChance += 0.15;

@@ -32,4 +32,43 @@ test.describe("arcade", () => {
     await page.getByRole("dialog").getByRole("button", { name: /Leave run|Выйти из забега/ }).click();
     await expect(page.getByTestId("arcade-hero")).toBeVisible();
   });
+
+  test("фирменная пассивка героя видна в HUD", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    // У Juggernaut (герой по умолчанию) пассивка заведена отдельной способностью, поэтому берём того,
+    // у кого она именно фирменная — Shadow Fiend с душами.
+    await page.getByTestId("arcade-hero-shadow_fiend").click();
+    await page.getByTestId("arcade-seed").fill("e2e-arcade-sig");
+    await page.getByTestId("arcade-play").click();
+    await expect(page.getByTestId("arcade-clock")).toBeVisible();
+    const chip = page.getByTestId("arcade-hud-signature");
+    await expect(chip).toBeVisible();
+    await expect(chip).toHaveAttribute("title", /Necromastery|Некромастерия/);
+  });
+
+  test("гардероб: облик открывается по герою, покупка и надевание работают", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    // Тычок по НЕ выбранному герою только выбирает его, по уже выбранному — открывает гардероб.
+    // Какой герой выбран на старте, зависит от сохранённого выбора, поэтому тычем второй раз только
+    // если окно ещё не открылось (иначе второй клик уходит в подложку модалки).
+    await page.getByTestId("arcade-hero-juggernaut").click();
+    if ((await page.getByTestId("arcade-wardrobe").count()) === 0) await page.getByTestId("arcade-hero-juggernaut").click();
+    const wardrobe = page.getByTestId("arcade-wardrobe");
+    await expect(wardrobe).toBeVisible();
+    await expect(page.getByTestId("arcade-wardrobe-look-base")).toBeVisible();
+    const arcana = page.getByTestId("arcade-wardrobe-look-skin_jugg_arcana");
+    await expect(arcana).toBeVisible();
+    await arcana.click();
+    // В dev-сборке косметика бесплатна, поэтому кнопка покупки доступна сразу.
+    const buy = page.getByTestId("arcade-wardrobe-buy");
+    await expect(buy).toBeVisible();
+    await buy.click();
+    await expect(page.getByTestId("arcade-wardrobe-buy")).toHaveCount(0);
+    // Самоцвет переключается и остаётся выбранным.
+    const gem = page.getByTestId("arcade-wardrobe-style-gem4");
+    await gem.click();
+    await expect(gem).toHaveAttribute("data-active", "true");
+  });
 });

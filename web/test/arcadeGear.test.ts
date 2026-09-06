@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Rng } from "../src/game/rng.ts";
-import { GEAR_SLOTS, gearEffect, gearScore, rollGear, uniqueGear } from "../src/game/arcade/content/gear.ts";
+import { GEAR_BASES, GEAR_SLOTS, UNIQUES, gearEffect, gearScore, rollGear, uniqueGear } from "../src/game/arcade/content/gear.ts";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, SHOP_ACT } from "../src/game/arcade/types.ts";
@@ -79,5 +79,26 @@ describe("arcade gear", () => {
     expect(useArcade.getState().gear.items.length).toBe(0);
     expect(useArcade.getState().gear.equipped.helm).toBeUndefined();
     expect(useArcade.getState().cosmetics.shards).toBe(8);
+  });
+});
+
+describe("контент экипировки (T13.14, партия 2)", () => {
+  it("у каждой базы и уникального есть локальная иконка и строки RU+EN", async () => {
+    const { readFileSync, existsSync } = await import("node:fs");
+    const core = readFileSync(new URL("../src/i18n/core.ts", import.meta.url), "utf8");
+    const check = (id: string, art: string) => {
+      expect(existsSync(new URL(`../public/art/items_px/${art}.png`, import.meta.url)), `иконка ${art}`).toBe(true);
+      expect((core.match(new RegExp(`"arcade.gearName.${id}"`, "g")) ?? []).length, `строки ${id}`).toBe(2);
+    };
+    for (const b of GEAR_BASES) check(b.id, b.art);
+    for (const u of Object.values(UNIQUES)) check(u.base, u.art);
+    expect(GEAR_BASES.length).toBeGreaterThanOrEqual(34);
+    expect(Object.keys(UNIQUES).length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("на каждом слоте есть база первого тира — иначе ранний лут не соберётся", () => {
+    for (const slot of GEAR_SLOTS) {
+      expect(GEAR_BASES.some((b) => b.slot === slot && b.minTier === 1), slot).toBe(true);
+    }
   });
 });

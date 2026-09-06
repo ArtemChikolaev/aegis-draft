@@ -305,6 +305,8 @@ export interface Player {
   stacks: number;
   stackTarget: number;
   sigUntil: number;
+  /** Легендарка «Лотос»: до какого тика отражение урона на перезарядке. */
+  lotusUntil: number;
   /** Reincarnation (Wraith King): тик, с которого пассивка снова готова. */
   reincAt: number;
   /** Смена формы (Metamorphosis, Elder Dragon Form, True Form): до какого тика герой в альтернативной форме.

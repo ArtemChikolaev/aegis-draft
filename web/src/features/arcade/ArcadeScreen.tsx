@@ -38,6 +38,8 @@ import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
 const ABILITY_MASK: Record<AbilityKey, number> = { q: 1, w: 2, e: 4, r: 8 };
+/** Пассивки, которые копят стаки в `player.stacks` — у них в HUD показываем число, а не название. */
+const STACKING_SIGS = new Set(["souls", "swipes", "growth"]);
 
 export function ArcadeScreen() {
   const status = useArcade((s) => s.status);
@@ -470,6 +472,18 @@ function ArcadeStage() {
                 </div>
               )}
               <div className="arcade-hud__abilities">
+                {sim.hero.signature && (
+                  // Фирменная пассивка в HUD (T13.15): она не нажимается, но её видно — а у копящих
+                  // пассивок (души, ярость, плоть) рядом счётчик, иначе рост ничем не подтверждается.
+                  <span
+                    className="arcade-ability arcade-ability--sig"
+                    data-testid="arcade-hud-signature"
+                    title={`${t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} — ${t(`arcade.sig.${sim.hero.signature.kind}.desc` as MessageKey)}`}
+                  >
+                    <b>✦</b>
+                    <small>{STACKING_SIGS.has(sim.hero.signature.kind) ? Math.round(p.stacks) : t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)}</small>
+                  </span>
+                )}
                 {/* Автоатака: значок «А» переключает, само нажатие бьёт один раз (клавиша F). */}
                 <button
                   type="button"

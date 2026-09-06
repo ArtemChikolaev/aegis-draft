@@ -234,3 +234,8 @@
 .arcade-wardrobe__effects .arcade-cosmetics__slot small { opacity: .7; color: inherit; }
 .arcade-wardrobe .arcade-rank__tier { border-color: var(--line-invert); background: var(--surface-invert-soft); color: var(--on-invert); }
 .arcade-wardrobe .arcade-rank__tier[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent); }
+
+/* Фирменная пассивка в ряду умений: не кнопка, поэтому без наведения и курсора. */
+.arcade-ability--sig { pointer-events: none; opacity: .85; }
+.arcade-ability--sig b { color: var(--accent); }
+.arcade-ability--sig small { max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
