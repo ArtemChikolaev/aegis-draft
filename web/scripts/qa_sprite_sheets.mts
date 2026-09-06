@@ -61,9 +61,15 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 const measure = async (id: string) => {
   const meta = JSON.parse(readFileSync(`${ROOT}/${id}.json`, "utf8"));
-  return (await page.evaluate(`${PAGE}(${JSON.stringify(b64(`${ROOT}/${id}.webp`))}, ${JSON.stringify(meta)}, "walk")`)) as {
+  const r = (await page.evaluate(`${PAGE}(${JSON.stringify(b64(`${ROOT}/${id}.webp`))}, ${JSON.stringify(meta)}, "walk")`)) as {
     pixels: number; top: number; bottom: number; motion: number; frames: number; anims: string[];
   };
+  // На экране размер решает не только число пикселей в кадре: рендер масштабирует лист как
+  // `world / frame`. У облика с более широким набором (Frost Djinn у AA) охват камеры больше,
+  // поэтому `world` в манифесте больше — и сравнивать силуэты надо уже с учётом этого масштаба,
+  // иначе правильный по размеру облик выглядит «мелким» для проверки (2026-09-06).
+  const scale = (meta.world ?? meta.frame) / meta.frame;
+  return { ...r, screen: r.pixels * scale * scale };
 };
 
 const base = new Map<string, Awaited<ReturnType<typeof measure>>>();
@@ -74,7 +80,7 @@ for (const id of ids) {
     if (!base.has(hero)) base.set(hero, await measure(hero));
     const b = base.get(hero)!;
     const m = await measure(id);
-    const ratio = m.pixels / Math.max(1, b.pixels);
+    const ratio = m.screen / Math.max(1, b.screen);
     const want = manifest.get(id);
     const missing = want ? [...want].filter((k) => !m.anims.includes(k)) : [];
     const flags = [
