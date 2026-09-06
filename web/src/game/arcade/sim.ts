@@ -820,7 +820,6 @@ export class ArcadeSim {
     let kind: FxKind = "hit";
     if (this.rng.float() < p.stats.critChance) { dmg *= p.stats.critMult; kind = "crit"; }
     this.events.hits++;
-    if (kind === "crit") this.events.crits++;
     const head = this.hero.abilities.w;
     if (head.kind === "headshot" && p.abilities.w > 0 && this.rng.float() < 0.3) { dmg += head.value[p.abilities.w]; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.25)); kind = "crit"; }
     // Фирменные пассивки (T13.15): души SF, ярость Ursa, меткость Drow, Time Lock Void — до удара; Cleave и Overload — после.
@@ -834,6 +833,8 @@ export class ArcadeSim {
       if (Math.hypot(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) { dmg *= 1 + sig.value * sc; kind = "crit"; }
     } else if (sig?.kind === "timelock" && this.rng.float() < Math.min(0.5, sig.value * sc)) {
       dmg += 20 * sc; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(sig.duration ?? 0.5)); kind = "crit";
+    } else if (sig?.kind === "crit" && this.rng.float() < Math.min(0.6, sig.value * sc)) {
+      dmg *= sig.cap ?? 2; kind = "crit"; // Blade Dance: шанс на усиленный удар
     }
     // Пассивки собственных китов на удар: Searing Arrows, Mana Break, Frost Arrows; ярость (God's Strength/Enrage/Warpath/Death Pact).
     for (const key of ABILITY_KEYS) {
@@ -845,6 +846,9 @@ export class ArcadeSim {
       else if (ab.kind === "frost_arrows") this.applyChill(e, ab.value[lvl], 2, false);
     }
     if (this.tick < p.rageUntil) dmg *= 1 + p.rageMult;
+    // Счётчик критов считаем здесь, а не сразу после шанса из статов: усиленным ударом делают и
+    // фирменные пассивки (Blade Dance, Меткость, Time Lock), а раньше они в счётчик не попадали.
+    if (kind === "crit") this.events.crits++;
     this.damageEnemy(e, dmg, kind);
     if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * Math.min(0.95, sig.value * sc), "slash"); }
     if (sig?.kind === "overload" && p.sigArmed) {
@@ -1021,6 +1025,13 @@ export class ArcadeSim {
     const sig = this.hero.signature;
     if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (e.kind.elite || e.kind.boss ? 6 : 1));
     if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1));
+    if (sig?.kind === "growth") {
+      // Flesh Heap: убийства наращивают запас здоровья до потолка; прибавка идёт и в текущее hp,
+      // иначе герой с полным hp получает только пустую полоску.
+      const add = sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1);
+      const room = (sig.cap ?? 400) - p.stacks;
+      if (room > 0) { const gain = Math.min(add, room); p.stacks += gain; p.stats.maxHp += gain; p.hp += gain; }
+    }
     if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
     this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
     p.gold += e.kind.gold + p.stats.goldPerKill;
@@ -1070,7 +1081,10 @@ export class ArcadeSim {
     if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return; // BKB: треть ударов мимо
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
     const reduction = (0.06 * armor) / (1 + 0.06 * armor);
-    p.hp -= amount * (1 - reduction);
+    // Kraken Shell: плоское снижение поверх брони, но удар всегда проходит хотя бы на 1 — иначе
+    // мелкие враги перестают быть угрозой совсем и забег превращается в прогулку.
+    const flat = sig?.kind === "tough" ? sig.value * this.sigScale() : 0;
+    p.hp -= Math.max(1, amount * (1 - reduction) - flat);
     this.events.hurt++;
     if (sig?.kind === "quill" && this.tick >= p.sigUntil) {
       // Quill Spray Bristleback: залп иглами в ответ на урон, не чаще раза в 0.8 с (при 0.5 с бот брал 75–87% в разминке).
@@ -1351,6 +1365,10 @@ export class ArcadeSim {
       }
     }
     const sig = this.hero.signature;
+    if (sig?.kind === "aura_burn" && this.tick % 30 === 0) {
+      // Heartstopper Aura: тик раз в полсекунды по всем в радиусе, без зависимости от ударов.
+      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 150)) this.damageEnemy(e, sig.value * this.sigScale(), "burst");
+    }
     if (sig?.kind === "thirst" && this.tick % 10 === 0) {
       const r = sig.radius ?? 600;
       for (const e of this.enemies) {

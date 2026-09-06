@@ -204,3 +204,77 @@ describe("зоны по виду, а не по слоту (2026-09-06)", () => {
     expect(es.some((e) => e.hp < 1e5)).toBe(true);
   });
 });
+
+describe("фирменные пассивки волны 14 (T13.15, 80 героев)", () => {
+  it("у каждого героя есть либо фирменная пассивка, либо своя пассивная способность в ките", () => {
+    const keys = ["q", "w", "e", "r"] as const;
+    for (const id of Object.keys(HEROES) as (keyof typeof HEROES)[]) {
+      const h = HEROES[id];
+      const ownPassive = keys.some((k) => h.abilities[k].passive && h.abilities[k].kind !== "signature");
+      expect(!!h.signature || ownPassive, id).toBe(true);
+    }
+  });
+
+  it("tough снимает плоскую часть урона, но удар всегда проходит", () => {
+    const sim = new ArcadeSim("sig-tough", { hero: "tidehunter" });
+    expect(HEROES.tidehunter.signature!.kind).toBe("tough");
+    sim.player.stats.armor = 0;
+    const before = sim.player.hp;
+    sim.damagePlayer(20);
+    const taken = before - sim.player.hp;
+    expect(taken).toBeLessThan(20);
+    expect(taken).toBeGreaterThan(0);
+    // Слабый удар не обнуляется: минимум единица урона.
+    const mid = sim.player.hp;
+    sim.damagePlayer(1);
+    expect(mid - sim.player.hp).toBe(1);
+  });
+
+  it("growth наращивает запас здоровья за убийства до потолка", () => {
+    const sim = new ArcadeSim("sig-growth", { hero: "pudge" });
+    const sig = HEROES.pudge.signature!;
+    expect(sig.kind).toBe("growth");
+    sim.player.hp = 1e6;
+    warm(sim, 60 * 20);
+    const maxBefore = sim.player.stats.maxHp;
+    const victims = alive(sim).slice(0, 3);
+    expect(victims.length).toBe(3);
+    for (const e of victims) sim.damageEnemy(e, 1e6, "hit");
+    expect(sim.player.stats.maxHp).toBeCloseTo(maxBefore + sig.value * 3, 3);
+    // Потолок: дальше запас не растёт.
+    sim.player.stacks = sig.cap!;
+    const capped = sim.player.stats.maxHp;
+    for (const e of alive(sim).slice(0, 2)) sim.damageEnemy(e, 1e6, "hit");
+    expect(sim.player.stats.maxHp).toBe(capped);
+  });
+
+  it("aura_burn бьёт врагов рядом сам по себе, без ударов героя", () => {
+    const sim = new ArcadeSim("sig-aura", { hero: "necrophos" });
+    expect(HEROES.necrophos.signature!.kind).toBe("aura_burn");
+    sim.player.hp = 1e6;
+    warm(sim, 60 * 20);
+    // Ставим врага вплотную сами (после разминки живые могут оказаться далеко) и выключаем герою
+    // атаку и автокаст: тогда любая потеря здоровья у врага — это именно аура.
+    sim.player.autoAttack = false;
+    for (const k of ["q", "w", "e", "r"] as const) sim.player.autoCast[k] = false;
+    const victim = alive(sim)[0];
+    expect(victim, "нужен живой враг").toBeTruthy();
+    victim.hp = victim.maxHp = 1e6;
+    const hpBefore = victim.hp;
+    const hitsBefore = sim.events.hits;
+    for (let i = 0; i < 60 && !sim.over; i++) { victim.x = sim.player.x + 40; victim.y = sim.player.y; sim.step(IDLE_INPUT); }
+    expect(sim.events.hits).toBe(hitsBefore);
+    expect(hpBefore - victim.hp).toBeGreaterThan(0);
+  });
+
+  it("crit иногда удваивает удар", () => {
+    const sim = new ArcadeSim("sig-crit", { hero: "chaos_knight" });
+    const sig = HEROES.chaos_knight.signature!;
+    expect(sig.kind).toBe("crit");
+    expect(sig.cap).toBeGreaterThan(1);
+    sim.player.hp = 1e6;
+    warm(sim, 60 * 40);
+    expect(sim.events.hits).toBeGreaterThan(10);
+    expect(sim.events.crits).toBeGreaterThan(0);
+  });
+});
