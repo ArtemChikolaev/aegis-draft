@@ -30,7 +30,23 @@ export const NEUTRAL_ENCHANTS: readonly NeutralEnchantDef[] = [
 export const NEUTRAL_ENCHANT_BY_ID: Record<string, NeutralEnchantDef> = Object.fromEntries(NEUTRAL_ENCHANTS.map((e) => [e.id, e]));
 
 export const NEUTRALS: readonly NeutralDef[] = [
+  // Тир 1–5 по 6 предметов (2026-09-06, владелец: «нейтралки всегда одни и те же» — было по 3 на тир при двух офферах).
   { id: "arcane_ring", tier: 1, effect: { cooldown: 0.05, regen: 1 } },
+  { id: "trusty_shovel", tier: 1, effect: { goldPerKill: 1, maxHp: 60 } },
+  { id: "occult_bracelet", tier: 1, effect: { cooldown: 0.04, damage: 6 } },
+  { id: "royal_jelly", tier: 1, effect: { regen: 2, maxHp: 60 } },
+  { id: "grove_bow", tier: 2, effect: { attackSpeed: 0.15, damage: 8 } },
+  { id: "vampire_fangs", tier: 2, effect: { lifesteal: 0.08 } },
+  { id: "whisper_of_the_dread", tier: 2, effect: { damage: 14, cooldown: 0.04 } },
+  { id: "elven_tunic", tier: 3, effect: { attackSpeed: 0.2, moveSpeed: 0.05 } },
+  { id: "cloak_of_flames", tier: 3, effect: { armor: 4, damage: 12 } },
+  { id: "craggy_coat", tier: 3, effect: { armor: 8, maxHp: 80 } },
+  { id: "ninja_gear", tier: 4, effect: { moveSpeed: 0.1, crit: 0.08 } },
+  { id: "timeless_relic", tier: 4, effect: { cooldown: 0.1, damage: 16 } },
+  { id: "havoc_hammer", tier: 4, effect: { damage: 28, maxHp: 100 } },
+  { id: "mirror_shield", tier: 5, effect: { armor: 10, maxHp: 250 } },
+  { id: "fallen_sky", tier: 5, effect: { damage: 36, moveSpeed: 0.08 } },
+  { id: "pirate_hat", tier: 5, effect: { attackSpeed: 0.25, moveSpeed: 0.1, goldPerKill: 2 } },
   { id: "broom_handle", tier: 1, effect: { damage: 8 } },
   { id: "faded_broach", tier: 1, effect: { maxHp: 90, moveSpeed: 0.03 } },
   { id: "vambrace", tier: 2, effect: { damage: 12, armor: 2 } },

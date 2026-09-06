@@ -16,7 +16,9 @@ export type TemplateHeroId =
   // Волна 3: новые виды rupture/corrosive/berserk_blood и пассивки aftershock/multicast/backstab/thirst.
   | "earthshaker" | "bloodseeker" | "riki" | "queen_of_pain" | "viper" | "ogre_magi" | "huskar" | "slardar"
   // Волна 4.
-  | "tiny" | "spectre" | "chaos_knight" | "night_stalker" | "doom" | "legion_commander" | "templar_assassin" | "medusa";
+  | "tiny" | "spectre" | "chaos_knight" | "night_stalker" | "doom" | "legion_commander" | "templar_assassin" | "medusa"
+  // Волна 5.
+  | "silencer" | "skywrath_mage" | "dazzle" | "jakiro" | "shadow_shaman" | "warlock" | "enigma" | "tinker";
 export type HeroId = UniqueHeroId | TemplateHeroId;
 export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
@@ -26,6 +28,7 @@ export const HERO_IDS: readonly HeroId[] = [
   "wraith_king", "dragon_knight", "kunkka", "necrophos", "razor", "venomancer", "witch_doctor", "luna",
   "earthshaker", "bloodseeker", "riki", "queen_of_pain", "viper", "ogre_magi", "huskar", "slardar",
   "tiny", "spectre", "chaos_knight", "night_stalker", "doom", "legion_commander", "templar_assassin", "medusa",
+  "silencer", "skywrath_mage", "dazzle", "jakiro", "shadow_shaman", "warlock", "enigma", "tinker",
 ];
 
 export type AbilityKind =
@@ -400,6 +403,55 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Mana Shield
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 400, duration: 2.5 },            // Stone Gaze
   }),
+  // ---- Волна 5 ----
+  silencer: hero("silencer", 75, "silencer", true, { maxHp: 540, armor: 2, damage: 24, speed: 162 }, {
+    q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 8, radius: 320, duration: 3 },            // Arcane Curse
+    w: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Glaives of Wisdom
+    e: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 320, duration: 1.0 }, // Last Word
+    r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 600, duration: 2 },              // Global Silence
+  }),
+  skywrath_mage: hero("skywrath_mage", 101, "skywrath_mage", true, { maxHp: 540, armor: 2, damage: 25, speed: 166, range: 340 }, {
+    q: { kind: "lightning_bolt", value: [0, 110, 165, 220, 280], cooldown: 3, radius: 340, duration: 0.3 }, // Arcane Bolt
+    w: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 340, duration: 3 },             // Concussive Shot
+    e: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 340, duration: 6 },  // Ancient Seal
+    r: { kind: "line_burst", value: [0, 360, 540, 720], cooldown: 40, radius: 140, count: [0, 1, 1, 1], duration: 0.5 }, // Mystic Flare
+  }),
+  dazzle: hero("dazzle", 50, "dazzle", true, { maxHp: 640, armor: 4, damage: 27, speed: 164, regen: 3 }, {
+    q: { kind: "goo", value: [0, 100, 150, 200, 250], cooldown: 5, radius: 320, duration: 4 },            // Poison Touch
+    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 20, duration: 4 },                        // Shallow Grave
+    e: { kind: "ward", value: [0, 12, 18, 24, 30], cooldown: 12, duration: 6 },                           // Shadow Wave
+    r: { kind: "arcane_aura", value: [0, 0.1, 0.18, 0.25], cooldown: 0, passive: true },                 // Bad Juju
+  }),
+  jakiro: hero("jakiro", 64, "jakiro", true, { maxHp: 660, armor: 3, damage: 24, speed: 158 }, {
+    q: { kind: "line_burst", value: [0, 130, 190, 250, 300], cooldown: 6, radius: 78, count: [0, 3, 3, 3, 3] }, // Dual Breath
+    w: { kind: "line_burst", value: [0, 70, 105, 140, 180], cooldown: 10, radius: 56, count: [0, 4, 4, 4, 4], duration: 1.5 }, // Ice Path
+    e: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Liquid Fire
+    r: { kind: "damage_ward", value: [0, 90, 135, 180], cooldown: 60, duration: 10, radius: 320 },        // Macropyre
+  }),
+  shadow_shaman: hero("shadow_shaman", 27, "shadow_shaman", true, { maxHp: 540, armor: 2, damage: 24, speed: 160 }, {
+    q: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 7, radius: 70, count: [0, 3, 3, 3, 3] }, // Ether Shock
+    w: { kind: "frostbite", value: [0, 40, 60, 80, 100], cooldown: 12, radius: 320, duration: 2.5 },       // Hex
+    e: { kind: "life_drain", value: [0, 20, 28, 36, 44], cooldown: 12, radius: 300, duration: 4 },        // Shackles
+    r: { kind: "damage_ward", value: [0, 70, 105, 140], cooldown: 60, duration: 10, radius: 340 },        // Mass Serpent Ward
+  }),
+  warlock: hero("warlock", 37, "warlock", true, { maxHp: 640, armor: 3, damage: 25, speed: 160, regen: 2 }, {
+    q: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 340, duration: 1 },            // Fatal Bonds
+    w: { kind: "ward", value: [0, 10, 15, 20, 24], cooldown: 14, duration: 8 },                           // Shadow Word
+    e: { kind: "nova", value: [0, 70, 105, 140, 170], cooldown: 12, radius: 300, duration: 4 },            // Upheaval
+    r: { kind: "meteor", value: [0, 280, 420, 560], cooldown: 60, radius: 200, count: [0, 1, 1, 1], duration: 1.5 }, // Rain of Chaos
+  }),
+  enigma: hero("enigma", 33, "enigma", true, { maxHp: 620, armor: 3, damage: 25, speed: 160 }, {
+    q: { kind: "lightning_bolt", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 320, duration: 1.6 }, // Malefice
+    w: { kind: "multishot", value: [0, 45, 58, 72, 85], cooldown: 7, radius: 360, count: [0, 3, 4, 5, 6] }, // Demonic Conversion
+    e: { kind: "remnant", value: [0, 140, 200, 260, 320], cooldown: 12, radius: 200 },                   // Midnight Pulse
+    r: { kind: "ravage", value: [0, 240, 360, 480], cooldown: 70, radius: 320, duration: 3 },            // Black Hole
+  }),
+  tinker: hero("tinker", 34, "tinker", true, { maxHp: 660, armor: 4, damage: 25, speed: 164, range: 320, regen: 2 }, {
+    q: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 6, radius: 320, duration: 0.5 }, // Laser
+    w: { kind: "arc_lightning", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 340, count: [0, 2, 3, 4, 5] }, // Heat-Seeking Missile
+    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Defense Matrix
+    r: SIG,                                                                                              // Rearm
+  }, { kind: "multicast", value: 0.4 }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };

@@ -93,19 +93,13 @@ function ensureContext(): AudioContext | null {
  *  контекст реально заиграл. `pointerdown` + `keydown`: жест мыши/тача/клавиатуры равноправны. */
 export function initSoundUnlock(): void {
   if (typeof window === "undefined") return;
+  // Слушатели живут постоянно (не снимаются после первого resume): контекст может снова уснуть (interrupted на iOS,
+  // вкладка в фоне) или появиться заново вне жеста (HMR-дубль модуля в dev, первый сэмпл до клика) — тогда
+  // resume() из rAF-цикла браузер отклоняет, и эффекты молчат, пока голос из старого контекста звучит (2026-09-06).
   const unlock = () => {
     const audio = ensureContext();
-    if (!audio) {
-      remove();
-      return;
-    }
-    void audio.resume().then(() => {
-      if (audio.state === "running") remove();
-    }).catch(() => {});
-  };
-  const remove = () => {
-    window.removeEventListener("pointerdown", unlock);
-    window.removeEventListener("keydown", unlock);
+    if (!audio || audio.state === "running") return;
+    void audio.resume().catch(() => {});
   };
   window.addEventListener("pointerdown", unlock);
   window.addEventListener("keydown", unlock);

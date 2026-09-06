@@ -1695,7 +1695,8 @@ export class ArcadeSim {
     const tier = this.neutralToken.value;
     const pool = neutralsOfTier(tier);
     const offers: NeutralDef[] = [];
-    while (offers.length < 2 && pool.length > 0) offers.push(pool.splice(this.rng.int(pool.length), 1)[0]);
+    // Три предложения из шести на тир — в разных забегах выпадают разные (владелец 2026-09-06).
+    while (offers.length < 3 && pool.length > 0) offers.push(pool.splice(this.rng.int(pool.length), 1)[0]);
     this.neutralToken.alive = false;
     this.neutralOffers = offers;
     this.neutralEnchants = offers.map(() => NEUTRAL_ENCHANTS[this.rng.int(NEUTRAL_ENCHANTS.length)].id);
@@ -1704,7 +1705,7 @@ export class ArcadeSim {
 
   private neutralAction(act: number): void {
     const p = this.player;
-    if (act === 1 || act === 2) {
+    if (act >= 1 && act <= 3) {
       const def = this.neutralOffers[act - 1];
       if (!def) return;
       p.neutral = def.id;

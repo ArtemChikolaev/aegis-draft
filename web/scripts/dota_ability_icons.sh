@@ -62,6 +62,14 @@ doom doom_bringer devour scorched_earth infernal_blade doom
 legion_commander legion_commander overwhelming_odds press_the_attack moment_of_courage duel
 templar_assassin templar_assassin refraction meld psi_blades psionic_trap
 medusa medusa split_shot mystic_snake mana_shield stone_gaze
+silencer silencer curse_of_the_silent glaives_of_wisdom last_word global_silence
+skywrath_mage skywrath_mage arcane_bolt concussive_shot ancient_seal mystic_flare
+dazzle dazzle poison_touch shallow_grave shadow_wave bad_juju
+jakiro jakiro dual_breath ice_path liquid_fire macropyre
+shadow_shaman shadow_shaman ether_shock voodoo shackles mass_serpent_ward
+warlock warlock fatal_bonds shadow_word upheaval rain_of_chaos
+enigma enigma malefice demonic_conversion midnight_pulse black_hole
+tinker tinker laser heat_seeking_missile defense_matrix rearm
 '
 missing=""
 while read -r id dota q w e r; do

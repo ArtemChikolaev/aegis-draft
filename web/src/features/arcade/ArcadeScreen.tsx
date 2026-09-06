@@ -299,7 +299,7 @@ function ArcadeStage() {
     rendererRef.current = renderer;
     renderer.setCosmetics(useArcade.getState().cosmetics.equipped);
     // Dev-хук для headless-QA (телепорт к торговцу/Рошану без ожидания): в прод-сборке его нет.
-    if (import.meta.env.DEV) (window as unknown as { __arcadeSim?: typeof getArcadeSim }).__arcadeSim = getArcadeSim;
+    if (import.meta.env.DEV) { const w = window as unknown as { __arcadeSim?: typeof getArcadeSim; __sfxDebug?: typeof sfxDebug }; w.__arcadeSim = getArcadeSim; w.__sfxDebug = sfxDebug; }
     const controller = new ArcadeInputController(stage);
     controllerRef.current = controller;
     controller.onPause = () => {

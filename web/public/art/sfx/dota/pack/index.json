@@ -506,6 +506,108 @@
     "medusa_r_1.mp3"
    ]
   },
+  "silencer": {
+   "q": [
+    "silencer_q_1.m4a"
+   ],
+   "e": [
+    "silencer_e_1.m4a"
+   ],
+   "r": [
+    "silencer_r_1.m4a"
+   ]
+  },
+  "skywrath_mage": {
+   "q": [
+    "skywrath_mage_q_1.m4a"
+   ],
+   "w": [
+    "skywrath_mage_w_1.m4a"
+   ],
+   "e": [
+    "skywrath_mage_e_1.m4a"
+   ],
+   "r": [
+    "skywrath_mage_r_1.m4a",
+    "skywrath_mage_r_2.m4a"
+   ]
+  },
+  "dazzle": {
+   "q": [
+    "dazzle_q_1.m4a"
+   ],
+   "w": [
+    "dazzle_w_1.m4a"
+   ],
+   "e": [
+    "dazzle_e_1.m4a"
+   ]
+  },
+  "jakiro": {
+   "q": [
+    "jakiro_q_1.m4a"
+   ],
+   "w": [
+    "jakiro_w_1.m4a"
+   ],
+   "r": [
+    "jakiro_r_1.m4a",
+    "jakiro_r_2.m4a"
+   ]
+  },
+  "shadow_shaman": {
+   "q": [
+    "shadow_shaman_q_1.m4a"
+   ],
+   "e": [
+    "shadow_shaman_e_1.m4a"
+   ],
+   "r": [
+    "shadow_shaman_r_1.m4a"
+   ]
+  },
+  "warlock": {
+   "q": [
+    "warlock_q_1.m4a"
+   ],
+   "w": [
+    "warlock_w_1.m4a"
+   ],
+   "e": [
+    "warlock_e_1.m4a"
+   ],
+   "r": [
+    "warlock_r_1.m4a"
+   ]
+  },
+  "enigma": {
+   "q": [
+    "enigma_q_1.m4a"
+   ],
+   "w": [
+    "enigma_w_1.m4a"
+   ],
+   "e": [
+    "enigma_e_1.mp3"
+   ],
+   "r": [
+    "enigma_r_1.m4a"
+   ]
+  },
+  "tinker": {
+   "q": [
+    "tinker_q_1.m4a"
+   ],
+   "w": [
+    "tinker_w_1.m4a"
+   ],
+   "e": [
+    "tinker_e_1.m4a"
+   ],
+   "r": [
+    "tinker_r_1.m4a"
+   ]
+  },
   "shadow_fiend": {
    "q": [
     "shadow_fiend_q_1.m4a"

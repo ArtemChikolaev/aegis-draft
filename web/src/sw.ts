@@ -74,6 +74,9 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return; // чужое — мимо нас (см. шапку)
+  // Медиа-элементы (<audio> музыки Аркады) ходят с заголовком Range и ждут 206: cache-first отдавал бы полный ответ
+  // или падал на cache.put(206) — в проде музыка молчала (владелец 2026-09-06). Такие запросы — напрямую в сеть.
+  if (request.destination === "audio" || request.destination === "video" || request.headers.has("range")) return;
 
   if (request.mode === "navigate") {
     event.respondWith(navigationFirst(request));

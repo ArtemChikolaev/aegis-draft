@@ -186,7 +186,7 @@ describe("arcade sim", () => {
     sim.player.x = sim.neutralToken.x; sim.player.y = sim.neutralToken.y;
     sim.step(IDLE_INPUT);
     expect(sim.neutralOpen).toBe(true);
-    expect(sim.neutralOffers.length).toBe(2);
+    expect(sim.neutralOffers.length).toBe(3); // шесть на тир, три предложения (2026-09-06)
     const tick = sim.tick;
     sim.step(IDLE_INPUT);
     expect(sim.tick).toBe(tick);
