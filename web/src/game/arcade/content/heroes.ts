@@ -256,7 +256,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "cleave", value: 0.5, radius: 85 }),
   storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 168, maxHp: 540 }, {
     q: { kind: "remnant", value: [0, 60, 95, 130, 165], cooldown: 6, radius: 130, summon: { art: "illusion" } }, // Static Remnant
-    w: { kind: "frostbite", value: [0, 50, 80, 110, 140], cooldown: 11, radius: 300, duration: 1.2 },    // Electric Vortex
+    w: { kind: "nova", value: [0, 90, 140, 190, 240], cooldown: 8, radius: 290, duration: 1.2 },         // Electric Vortex
     e: SIG,                                                                                              // Overload
     r: { kind: "dash", value: [0, 150, 230, 320], cooldown: 22, radius: 460 },                           // Ball Lightning
   }, { kind: "overload", value: 45, radius: 80 }),
@@ -402,7 +402,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "quill", value: 18, radius: 140 }),
   ogre_magi: hero("ogre_magi", 84, "ogre_magi", true, { maxHp: 760, armor: 6, damage: 24, speed: 160, range: 250, regen: 3 }, {
     q: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 7, radius: 320, duration: 1.4 }, // Fireblast
-    w: { kind: "goo", value: [0, 90, 130, 170, 210], cooldown: 8, radius: 320, duration: 3 },             // Ignite
+    w: { kind: "nova", value: [0, 90, 130, 170, 210], cooldown: 8, radius: 240, duration: 1.5 },          // Ignite
     e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 16, duration: 8 },                  // Bloodlust
     r: SIG,                                                                                              // Multicast
   }, { kind: "multicast", value: 0.25 }),
@@ -483,7 +483,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   dazzle: hero("dazzle", 50, "dazzle", true, { maxHp: 640, armor: 4, damage: 27, speed: 164, regen: 3 }, {
     q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 6, radius: 85, count: [0, 3, 3, 3, 3] }, // Poison Touch
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 20, duration: 4 },                        // Shallow Grave
-    e: { kind: "ward", value: [0, 12, 18, 24, 30], cooldown: 12, duration: 6 },                           // Shadow Wave
+    e: { kind: "life_drain", value: [0, 40, 55, 70, 85], cooldown: 9, radius: 320, duration: 4 },         // Shadow Wave
     r: { kind: "arcane_aura", value: [0, 0.1, 0.18, 0.25], cooldown: 0, passive: true },                 // Bad Juju
   }, { kind: "vampiric", value: 0.08 }),
   jakiro: hero("jakiro", 64, "jakiro", true, { maxHp: 660, armor: 3, damage: 24, speed: 158 }, {
