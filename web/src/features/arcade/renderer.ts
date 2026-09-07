@@ -28,7 +28,7 @@ import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
@@ -463,9 +463,20 @@ export class ArcadeRenderer {
     }
     for (const g of sim.groundLoot) {
       if (g.until <= 0) continue;
-      const color = g.item.rarity === "arcana" ? pal.arcana : g.item.rarity === "exotic" ? pal.lightning : g.item.rarity === "refined" ? pal.frost : pal.text;
-      c.strokeStyle = color; c.lineWidth = 2; c.globalAlpha = 0.5 + 0.4 * pulse;
-      c.beginPath(); c.ellipse(g.x, g.y + 8, 16, 7, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+      // Подсветка по редкости (владелец: «фиолетовый на земле кажется обычным предметом»): обычный — тонкое
+      // кольцо; refined/exotic/arcana — кольцо толще, светящаяся подложка и столб света, ярче с редкостью.
+      const tier = g.item.rarity === "arcana" ? 3 : g.item.rarity === "exotic" ? 2 : g.item.rarity === "refined" ? 1 : 0;
+      const color = tier === 3 ? pal.arcana : tier === 2 ? pal.exotic : tier === 1 ? pal.refined : pal.text;
+      if (tier > 0) {
+        const grad = c.createLinearGradient(0, g.y - 40 - tier * 10, 0, g.y + 8);
+        grad.addColorStop(0, "transparent"); grad.addColorStop(1, color);
+        c.fillStyle = grad; c.globalAlpha = 0.18 + 0.1 * tier + 0.12 * pulse;
+        c.fillRect(g.x - 10 - tier * 2, g.y - 40 - tier * 10, 20 + tier * 4, 48 + tier * 10);
+        c.fillStyle = color; c.globalAlpha = 0.22 + 0.16 * pulse;
+        c.beginPath(); c.ellipse(g.x, g.y + 8, 22 + tier * 2, 10 + tier, 0, 0, Math.PI * 2); c.fill();
+      }
+      c.strokeStyle = color; c.lineWidth = tier > 0 ? 3 : 2; c.globalAlpha = tier > 0 ? 0.8 + 0.2 * pulse : 0.4 + 0.3 * pulse;
+      c.beginPath(); c.ellipse(g.x, g.y + 8, 16 + tier, 7, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
       const img = this.icon(gearArt(g.item));
       const bob = Math.sin(now / 200 + g.x) * 2;
       if (img) c.drawImage(img, g.x - 14, g.y - 12 + bob, 28, 20);

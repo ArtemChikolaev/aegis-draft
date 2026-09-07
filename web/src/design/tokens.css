@@ -345,7 +345,9 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-greed: #ffc66b;
   --arcade-shop: #d5a5ff;
   --arcade-bounty: #ffd48a;
-  --arcade-arcana: #ff4d5e;    /* добыча качества arcana на земле — красный, как --card-tier-arcana */
+  --arcade-arcana: #ff4d5e;    /* добыча на земле по редкости: arcana красный (как --card-tier-arcana), */
+  --arcade-exotic: #c45cff;    /* exotic — насыщенный фиолетовый (бледный --arcade-lightning читался как обычный), */
+  --arcade-refined: #4fb8ff;   /* refined — синий */
   --arcade-rune-dd: #ff7a45;   /* руны у реки: цвета как в Dota */
   --arcade-rune-shield: #7fd9ff;
   --arcade-rune-arcane: #c98bff;
