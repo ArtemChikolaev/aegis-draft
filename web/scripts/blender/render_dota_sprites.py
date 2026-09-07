@@ -31,6 +31,8 @@ def parse_args():
     p.add_argument("--world", type=int, default=84, help="желаемая высота спрайта в игровых px (мета)")
     p.add_argument("--anims", default="walk=run,idle=idle,attack=attack,death=death")
     p.add_argument("--pitch", type=float, default=45.0, help="высота камеры над горизонтом, градусов (90 = строго сверху; 45 читается как RTS/DMD)")
+    p.add_argument("--drop-mat", default="", help="регулярка по имени материала: грани с таким материалом убираются (меш без граней — целиком). Для шейдерных материалов без цвета — огненный «хвост» арканы Jugg (`juggernaut_arcana_mask_tail`: additive-fire, в Workbench чёрное знамя)")
+    p.add_argument("--drop-vgroup", default="", help="регулярка по имени кости (группы вершин): грани, чьи вершины держит в основном такая кость, убираются — укоротить цепочку ткани/гривы без физики (грива арканы Jugg: `chain_[3-9]` оставляет половину)")
     p.add_argument("--hide-base", action="store_true", help="скрыть меши основной модели и оставить только части: скелет и анимации берём у героя, а вид — у арканы (её собственный item-glb часто без клипов ходьбы, и герой «скользил»)")
     p.add_argument("--parts", default="", help="доп. glb через запятую (штаны/маска/оружие героя Dota): их меши пришиваются к скелету основной модели по именам костей")
     p.add_argument("--no-root-lock", action="store_true", help="не гасить смещение корневой кости (root motion) в анимациях")
@@ -367,11 +369,40 @@ def main():
     # аркану откатили на базовое тело (T13.28).
     main_actions = list(bpy.data.actions)
     main_arms = [o for o in objs if o.type == "ARMATURE"]
+    drop_mat_re = re.compile(a.drop_mat) if a.drop_mat else None
+    drop_vg_re = re.compile(a.drop_vgroup) if a.drop_vgroup else None
+    def drop_mat_faces(o):
+        # --drop-mat: грани шейдерных материалов (additive-огонь, скролл) убираем — цвета у них нет,
+        # Workbench рисует чёрным. --drop-vgroup: грани, которые держит кость по регулярке (хвост цепочки).
+        # Возвращает False, если меш опустел и его надо снять целиком.
+        if o.type != "MESH" or (not drop_mat_re and not drop_vg_re):
+            return True
+        bad = {i for i, m in enumerate(o.data.materials) if m and drop_mat_re and drop_mat_re.search(m.name)}
+        bad_vg = {g.index for g in o.vertex_groups if drop_vg_re and drop_vg_re.search(g.name)}
+        if not bad and not bad_vg:
+            return True
+        held = set()
+        if bad_vg:
+            for v in o.data.vertices:
+                if v.groups and max(v.groups, key=lambda g: g.weight).group in bad_vg:
+                    held.add(v.index)
+        import bmesh
+        bm = bmesh.new(); bm.from_mesh(o.data)
+        doomed = [f for f in bm.faces if f.material_index in bad or (held and sum(v.index in held for v in f.verts) * 2 >= len(f.verts))]
+        n_all = len(bm.faces)
+        bmesh.ops.delete(bm, geom=doomed, context="FACES")
+        left = len(bm.faces)
+        bm.to_mesh(o.data); bm.free(); o.data.update()
+        what = [o.data.materials[i].name for i in sorted(bad)] + ([f"кости {a.drop_vgroup}"] if held else [])
+        print(f"drop-mat: {o.name.rsplit('.', 1)[-1]} убрано граней {len(doomed)}/{n_all} ({', '.join(what)})")
+        return left > 0
     def drop_junk(lst):
         # VRF кладёт в каждый glb служебную «Icosphere» без весов (маркер origin) — в кадре это шар у ног.
         keep = []
         for o in lst:
             if o.type == "MESH" and o.name.startswith("Icosphere") and not o.vertex_groups:
+                bpy.data.objects.remove(o, do_unlink=True)
+            elif not drop_mat_faces(o):
                 bpy.data.objects.remove(o, do_unlink=True)
             else:
                 keep.append(o)
