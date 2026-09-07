@@ -120,7 +120,7 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
         const last = trailPts[trailPts.length - 1];
         if (!last || Math.hypot(last.x - tx, last.y - ty) > 4) trailPts.push({ x: tx, y: ty, t: now });
         while (trailPts.length && now - trailPts[0].t > 520) trailPts.shift();
-        drawTrailEffect(c, trailPts, now, fx.trail, px, pal);
+        drawTrailEffect(c, trailPts, now, fx.trail, px, pal, (tx, ty, alpha) => { drawDotaFrame(c, s, anim, dir, frame, tx, ty, alpha, mult * 0.96); });
       }
       if (fx?.frame) drawGroundEffect(c, hx, hy, R, fx.frame, tick, px, pal, 0);
       let geo: AuraGeo | null = null;

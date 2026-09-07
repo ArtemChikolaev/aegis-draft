@@ -57,6 +57,8 @@ export class ArcadeRenderer {
   private skinGem: number | null = null;
   private skinGlow = false;
   private trail: { x: number; y: number; t: number }[] = [];
+  /** Последний нарисованный кадр героя — для призрачных копий в следе (рисуются до героя, на прошлом кадре). */
+  private lastHero: { sheet: DotaSheet; anim: string; dir: number; frame: number } | null = null;
   /** Вспышка свечения по клавише T (владелец 2026-09-07: «чтобы из тебя шёл огонь, когда ты хочешь»): до какого момента. */
   private flareUntil = 0;
 
@@ -417,6 +419,22 @@ export class ArcadeRenderer {
       c.fillStyle = pal.player; c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center";
       this.text(c, "$", b.x, b.y + 4);
     }
+    if (sim.rune.alive) {
+      // Руна — модель Dota (`rune_<вид>`); пока лист не загружен — кружок цвета руны с буквой.
+      const r = sim.rune;
+      const ds = dotaSheet(`rune_${sim.runeKind}`);
+      c.globalAlpha = 0.35 + 0.25 * pulse;
+      c.fillStyle = sim.runeKind === "dd" ? pal.fire : sim.runeKind === "shield" ? pal.heal : sim.runeKind === "arcane" ? pal.lightning : pal.text;
+      c.beginPath(); c.ellipse(r.x, r.y + 6, 16, 7, 0, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 1;
+      const bob = Math.round(Math.sin(sim.tick / 12) * 3);
+      if (!ds || !drawDotaFrame(c, ds, "idle", 0, 0, r.x, r.y + 8 + bob)) {
+        c.fillStyle = sim.runeKind === "dd" ? pal.fire : sim.runeKind === "shield" ? pal.heal : sim.runeKind === "arcane" ? pal.lightning : pal.text;
+        c.beginPath(); c.arc(r.x, r.y + bob, 11, 0, Math.PI * 2); c.fill();
+        c.fillStyle = pal.player; c.font = "800 11px var(--font-display, sans-serif)"; c.textAlign = "center";
+        this.text(c, sim.runeKind === "dd" ? "DD" : sim.runeKind === "shield" ? "S" : sim.runeKind === "arcane" ? "A" : "I", r.x, r.y + bob + 4);
+      }
+    }
   }
 
   private iconCache = new Map<string, HTMLImageElement>();
@@ -455,13 +473,16 @@ export class ArcadeRenderer {
     const c = this.ctx;
     const tick = sim.tick;
     for (const pet of sim.pets) {
-      const ds = dotaSheet(pet.kind);
+      // Иллюзия — лист самого героя (в Метаморфозе — форма), полупрозрачная и чуть мельче.
+      const illusion = pet.kind === "illusion";
+      const ds = illusion ? this.heroSheet(sim.hero.id, sim.formNow() !== null) : dotaSheet(pet.kind);
       const attacking = tick - pet.hitAt < 14;
       if (ds) {
         const anim = attacking ? "attack" : "walk";
         const frames = ds.meta.anims[anim]?.frames ?? ds.meta.anims.idle?.frames ?? 1;
         const frame = attacking ? Math.floor(((tick - pet.hitAt) / 14) * frames) : Math.floor((tick / 60) * ds.meta.fps);
-        drawDotaFrame(c, ds, anim, dotaDir(pet.facingX, pet.facingY, ds.meta.dirs), frame, pet.x, pet.y + (pet.kind === "hawk" ? -18 : 6));
+        const fading = illusion && pet.until !== undefined && pet.until - tick < 60 ? (pet.until - tick) / 60 : 1;
+        drawDotaFrame(c, ds, anim, dotaDir(pet.facingX, pet.facingY, ds.meta.dirs), frame, pet.x, pet.y + (pet.kind === "hawk" ? -18 : 6), illusion ? 0.62 * fading : 1, illusion ? 0.9 : 1);
       } else {
         c.fillStyle = pal.player; c.globalAlpha = 0.9;
         c.beginPath(); c.arc(pet.x, pet.y, pet.kind === "bear" ? 14 : 9, 0, Math.PI * 2); c.fill();
@@ -689,6 +710,7 @@ export class ArcadeRenderer {
         : anim === "walk" ? Math.floor(this.walkPhase * 1.6)
         : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
       const hdir = dotaDir(lookX, lookY, heroDota.meta.dirs);
+      this.lastHero = { sheet: heroDota, anim, dir: hdir, frame };
       const geo = this.auraGeo(heroDota, anim, hdir, frame, p.x, p.y + R * 0.75);
       this.drawAura(sim, geo, now, pal, "back");
       drawDotaFrame(c, heroDota, anim, hdir, frame, p.x, p.y + R * 0.75);
@@ -730,7 +752,9 @@ export class ArcadeRenderer {
     const last = this.trail[this.trail.length - 1];
     if (!last || Math.hypot(last.x - x, last.y - y) > 6) this.trail.push({ x, y, t: now });
     while (this.trail.length && now - this.trail[0].t > 520) this.trail.shift();
-    drawTrailEffect(this.ctx, this.trail, now, kind, this.artPx(), pal);
+    const lh = this.lastHero;
+    const c = this.ctx;
+    drawTrailEffect(c, this.trail, now, kind, this.artPx(), pal, lh ? (tx, ty, alpha) => { drawDotaFrame(c, lh.sheet, lh.anim, lh.dir, lh.frame, tx, ty, alpha, 0.96); } : undefined);
   }
 
   /** Свечение героя (слот `aura`) по контуру силуэта: слой `back` до спрайта, `front` после; вспышка по T разжигает его. */

@@ -603,7 +603,7 @@ export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act:
   const summons = ABILITY_SLOTS
     .map((k) => def?.abilities[k].summon?.art)
     .filter((a): a is string => !!a && a !== "illusion");
-  const sheets = [hero, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), ...summons, "tree_oak", "tree_pine", "rock"];
+  const sheets = [hero, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), ...summons, "tree_oak", "tree_pine", "rock", "rune_dd", "rune_shield", "rune_arcane", "rune_illusion"];
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
   const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
   kick();

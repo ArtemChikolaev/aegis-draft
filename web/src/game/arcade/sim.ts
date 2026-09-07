@@ -10,6 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, type PetKind } from "./content/pets.ts";
+import { RUNE_KINDS, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -89,6 +90,9 @@ export class ArcadeSim {
   greedStacks = 0;
   shopkeeper: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   bounty: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
+  /** Руна (dd/shield/arcane/illusion): `value` не используется, вид — в `runeKind`. */
+  rune: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
+  runeKind: RuneKind = "dd";
   /** Открытый магазин останавливает мир, как выбор карточки. */
   shopOpen = false;
   shopOffers: ShopOffer[] = [];
@@ -116,6 +120,7 @@ export class ArcadeSim {
   shopRerolls = 0;
   private shopIdx = 0;
   private nextBountyAt = ARCADE.bounty.every;
+  private nextRuneAt = ARCADE.rune.first;
   private nextShrineAt: number;
   private nextTrollPackAt: number;
   readonly act: ActId;
@@ -173,7 +178,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
-      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -587,6 +592,12 @@ export class ArcadeSim {
         p.evadeUntil = p.hasteUntil; p.evadeChance = value;
         break;
       case "damage_ward":
+        if (ab.summon?.art === "illusion") {
+          // Иллюзии — не тотем на полу, а копии героя, которые бегут за ним и бьют вокруг (владелец
+          // 2026-09-07: Terrorblade, Naga, Phantom Lancer, Chaos Knight); урон удара — значение умения.
+          this.spawnIllusions(ab.summon.count ?? 1, ab.duration ?? 10, value);
+          break;
+        }
         p.wardUntil = this.tick + sec(ab.duration ?? 10);
         p.wardX = p.x; p.wardY = p.y;
         break;
@@ -693,7 +704,7 @@ export class ArcadeSim {
     }
     // Culling Blade после добивания уходит на короткую перезарядку (3 с), не на полную и не на ноль.
     if (ab.kind === "culling_blade" && p.cooldowns.r === -1) p.cooldowns.r = sec(1.5);
-    else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1));
+    else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1) * (this.tick < p.arcaneUntil ? 1 - ARCADE.rune.arcane.cooldown : 1));
     // Multicast (Ogre Magi): с шансом умение срабатывает ещё раз на следующем тике (перезарядка сбрасывается до 1 тика).
     if (sig?.kind === "multicast" && key !== "r" && ab.cooldown > 0 && this.rng.float() < Math.min(0.6, sig.value * this.sigScale())) { p.cooldowns[key] = 1; this.pushFx("levelup", p.x, p.y, 0, 0, 12); }
     if (key === "q" || key === "r") this.thunderclap();
@@ -860,7 +871,7 @@ export class ArcadeSim {
 
   private onAttackHit(e: Enemy, scale = 1): void {
     const p = this.player;
-    let dmg = p.stats.damage * scale;
+    let dmg = p.stats.damage * scale * (this.tick < p.ddUntil ? ARCADE.rune.dd.mult : 1);
     let kind: FxKind = "hit";
     if (this.rng.float() < p.stats.critChance) { dmg *= p.stats.critMult; kind = "crit"; }
     this.events.hits++;
@@ -1138,7 +1149,10 @@ export class ArcadeSim {
     // Kraken Shell: плоское снижение поверх брони, но удар всегда проходит хотя бы на 1 — иначе
     // мелкие враги перестают быть угрозой совсем и забег превращается в прогулку.
     const flat = sig?.kind === "tough" ? sig.value * this.sigScale() : 0;
-    p.hp -= Math.max(1, amount * (1 - reduction) - flat);
+    let taken = Math.max(1, amount * (1 - reduction) - flat);
+    // Руна щита: запас принимает урон первым, пока не кончится он или срок.
+    if (this.tick < p.shieldUntil && p.shieldHp > 0) { const ab = Math.min(p.shieldHp, taken); p.shieldHp -= ab; taken -= ab; if (taken <= 0) return; }
+    p.hp -= taken;
     this.events.hurt++;
     if (sig?.kind === "quill" && this.tick >= p.sigUntil) {
       // Quill Spray Bristleback: залп иглами в ответ на урон, не чаще раза в 0.8 с (при 0.5 с бот брал 75–87% в разминке).
@@ -1232,6 +1246,7 @@ export class ArcadeSim {
       p.gold += this.bounty.value;
       this.pushFx("heal", p.x, p.y - 30, 0, 0, 40, this.bounty.value);
     }
+    if (this.rune.alive && len(this.rune.x - p.x, this.rune.y - p.y) < 34) { this.rune.alive = false; this.applyRune(this.runeKind); }
     if (this.shopkeeper.alive && !this.shopOpen && len(this.shopkeeper.x - p.x, this.shopkeeper.y - p.y) < 44) this.openShop();
     if (this.neutralToken.alive && !this.neutralOpen && len(this.neutralToken.x - p.x, this.neutralToken.y - p.y) < 36) this.openNeutral();
     // Добыча не подбирается касанием — только помечается как «рядом» (PICKUP_ACT → pickupNear).
@@ -1340,6 +1355,14 @@ export class ArcadeSim {
       this.bounty = { alive: true, x: bx, y: by, until: this.tick + ARCADE.bounty.lifetime, value: Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * min) };
     }
     if (this.bounty.alive && this.tick >= this.bounty.until) this.bounty.alive = false;
+    // Руны: раз в две минуты, вид — по сиду, у реки (акт с рекой) или на кольце вокруг героя.
+    if (this.tick >= this.nextRuneAt) {
+      this.nextRuneAt += ARCADE.rune.every;
+      const [rx, ry] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
+      this.runeKind = RUNE_KINDS[this.rng.int(RUNE_KINDS.length)];
+      this.rune = { alive: true, x: rx, y: ry, until: this.tick + ARCADE.rune.lifetime, value: 0 };
+    }
+    if (this.rune.alive && this.tick >= this.rune.until) this.rune.alive = false;
     // Нейтральный токен по тирам-минутам.
     if (this.neutralIdx < NEUTRAL_TIER_AT_MIN.length && min >= NEUTRAL_TIER_AT_MIN[this.neutralIdx] && !this.neutralToken.alive) {
       this.neutralIdx++;
@@ -1612,15 +1635,44 @@ export class ArcadeSim {
     const p = this.player;
     // Псарня (легендарка): по зверю сверх каждого уже взятого вида — она не даёт зверя с нуля.
     const kennel = this.upgradePower("leg_beast_kennel") > 0 ? 1 : 0;
-    const want: Record<PetKind, number> = {
+    // Иллюзии сюда не входят: они живут по таймеру (spawnIllusions/expirePets), а не по апгрейду.
+    const want: Partial<Record<PetKind, number>> = {
       hawk: (p.upgrades.beast_hawk?.rank ?? 0) > 0 ? 1 + kennel : 0,
       wolf: (p.upgrades.beast_wolf?.rank ?? 0) > 0 ? 1 + (p.upgrades.beast_pack?.rank ?? 0) + kennel : 0,
       bear: (p.upgrades.beast_bear?.rank ?? 0) > 0 ? 1 + kennel : 0,
     };
     for (const kind of Object.keys(want) as PetKind[]) {
       let have = this.pets.filter((q) => q.kind === kind).length;
-      while (have < want[kind]) { this.pets.push({ kind, x: p.x + (this.rng.float() - 0.5) * 60, y: p.y + 40 + this.rng.float() * 20, cd: 0, facingX: 1, facingY: 0, hitAt: -999, inReach: false }); have++; }
+      while (have < (want[kind] ?? 0)) { this.pets.push({ kind, x: p.x + (this.rng.float() - 0.5) * 60, y: p.y + 40 + this.rng.float() * 20, cd: 0, facingX: 1, facingY: 0, hitAt: -999, inReach: false }); have++; }
     }
+  }
+
+  /** Руна подобрана: эффект по виду (ARCADE.rune). */
+  private applyRune(kind: RuneKind): void {
+    const p = this.player;
+    const R = ARCADE.rune;
+    if (kind === "dd") p.ddUntil = this.tick + sec(R.dd.seconds);
+    else if (kind === "shield") { p.shieldHp = Math.round(p.stats.maxHp * R.shield.frac); p.shieldUntil = this.tick + sec(R.shield.seconds); }
+    else if (kind === "arcane") p.arcaneUntil = this.tick + sec(R.arcane.seconds);
+    else this.spawnIllusions(R.illusion.count, R.illusion.seconds, p.stats.damage * R.illusion.dmgFrac);
+    this.pushFx("levelup", p.x, p.y, 0, 0, 30);
+  }
+
+  /** Иллюзии героя: `count` копий на `seconds` секунд с уроном `dmg` за удар. Появляются за спиной героя. */
+  private spawnIllusions(count: number, seconds: number, dmg: number): void {
+    const p = this.player;
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + Math.PI * 0.5;
+      this.pets.push({ kind: "illusion", x: p.x + Math.cos(ang) * 36, y: p.y + Math.sin(ang) * 24, cd: 0, facingX: p.facingX || 1, facingY: p.facingY, hitAt: -999, inReach: false, until: this.tick + sec(seconds), dmg });
+    }
+  }
+
+  /** Иллюзии живут по таймеру; остальные питомцы — пока стоит апгрейд. */
+  private expirePets(): void {
+    if (this.pets.length === 0) return;
+    let w = 0;
+    for (const pet of this.pets) if (pet.until === undefined || this.tick < pet.until) this.pets[w++] = pet;
+    this.pets.length = w;
   }
 
   private petPower(): number {
@@ -1628,12 +1680,18 @@ export class ArcadeSim {
   }
 
   private tickPets(): void {
+    this.expirePets();
     if (this.pets.length === 0) return;
     const p = this.player;
+    const ranged = this.rangedNow();
     for (let i = 0; i < this.pets.length; i++) {
       const pet = this.pets[i];
-      const def = PETS[pet.kind];
-      const rank = this.player.upgrades[pet.kind === "hawk" ? "beast_hawk" : pet.kind === "wolf" ? "beast_wolf" : "beast_bear"]?.rank ?? 1;
+      const base = PETS[pet.kind];
+      // Иллюзия повторяет героя: его скорость, период удара и дальность (в Метаморфозе Terrorblade — дальний бой).
+      const def = pet.kind === "illusion"
+        ? { ...base, speed: p.stats.speed * 1.05, every: p.stats.attackInterval, reach: ranged ? Math.max(60, this.attackRange() - 20) : 34 }
+        : base;
+      const rank = pet.kind === "illusion" ? 1 : this.player.upgrades[pet.kind === "hawk" ? "beast_hawk" : pet.kind === "wolf" ? "beast_wolf" : "beast_bear"]?.rank ?? 1;
       pet.cd = Math.max(0, pet.cd - 1);
       // Цель: ближайший враг в радиусе поиска; иначе — держаться рядом с героем (каждый со своим смещением).
       const target = def.seek > 0 ? this.nearestEnemy(pet.x, pet.y, def.seek) : null;
@@ -1661,6 +1719,17 @@ export class ArcadeSim {
       if (target && inReach && pet.cd === 0) {
         pet.cd = sec(def.every);
         pet.hitAt = this.tick;
+        if (pet.kind === "illusion") {
+          const idmg = (pet.dmg ?? 0) * (this.tick < p.ddUntil ? ARCADE.rune.dd.mult : 1);
+          if (ranged) {
+            const dd = len(target.x - pet.x, target.y - pet.y) || 1;
+            this.spawnProjectile(pet.x, pet.y, (target.x - pet.x) / dd * 560, (target.y - pet.y) / dd * 560, 6, idmg, sec(1.2), 0, "arrow", false);
+          } else {
+            this.damageEnemy(target, idmg, "hit");
+            this.pushFx("slash", pet.x, pet.y, target.x, target.y, 10);
+          }
+          continue;
+        }
         let dmg = def.dmg * rank * this.petPower();
         const hunt = this.upgradePower("hyb_wild_hunt");
         if (hunt > 0 && (this.tick < target.chillUntil || this.tick < target.stunUntil)) dmg *= 1 + 0.3 * hunt; // Дикая охота

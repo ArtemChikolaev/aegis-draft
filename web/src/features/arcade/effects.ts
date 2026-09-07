@@ -45,7 +45,7 @@ function pixelEllipse(c: CanvasRenderingContext2D, x: number, y: number, rx: num
 
 export type GroundEffect = "ember" | "frost" | "gold" | "void";
 export type AuraEffect = "fire" | "frost" | "lightning" | "aegis";
-export type TrailEffect = "fire" | "frost" | "lightning" | "aegis";
+export type TrailEffect = "fire" | "frost" | "lightning" | "aegis" | "blood" | "leaves" | "void" | "spectral";
 export type DeathEffect = "ring" | "shatter" | "nova";
 
 /**
@@ -286,9 +286,13 @@ export function drawAuraEffect(c: CanvasRenderingContext2D, geo: AuraGeo, kind: 
   }
 }
 
-/** След за героем (слот `trail`): точки пути с возрастом в мс (свежие — в конце массива). */
-export function drawTrailEffect(c: CanvasRenderingContext2D, pts: readonly { x: number; y: number; t: number }[], now: number, kind: TrailEffect, px: number, pal: EffectPalette): void {
-  const maxAge = 520;
+/**
+ * След за героем (слот `trail`): точки пути с возрастом в мс (свежие — в конце массива). След «жирный»
+ * (владелец 2026-09-07): каждая точка — кластер из нескольких квадратов на ширину шага, живёт ~0.8 с.
+ * `silhouette(x, y, alpha)` рисует кадр героя в точке — для призрачных копий.
+ */
+export function drawTrailEffect(c: CanvasRenderingContext2D, pts: readonly { x: number; y: number; t: number }[], now: number, kind: TrailEffect, px: number, pal: EffectPalette, silhouette?: (x: number, y: number, alpha: number) => void): void {
+  const maxAge = kind === "spectral" ? 420 : 820;
   for (let i = 0; i < pts.length; i++) {
     const pt = pts[i];
     const age = now - pt.t;
@@ -297,41 +301,83 @@ export function drawTrailEffect(c: CanvasRenderingContext2D, pts: readonly { x: 
     const seed = Math.round(pt.x * 3 + pt.y * 7);
     switch (kind) {
       case "fire": {
-        // Языки пламени от следа: угольки в начале, огонь, потом дым, поднимаются вверх.
-        const rise = (1 - k) * 18;
-        c.globalAlpha = 0.9 * k;
-        c.fillStyle = k > 0.7 ? pal.ember : k > 0.35 ? pal.fire : pal.smoke;
-        dot(c, pt.x + (hash(seed, 1) - 0.5) * px * 3, pt.y - rise, px * (k > 0.5 ? 2 : 1), px);
-        if (k > 0.5) { c.fillStyle = pal.fire; dot(c, pt.x + (hash(seed, 2) - 0.5) * px * 5, pt.y - rise - px * 2, px, px); }
-        break;
-      }
-      case "frost": {
-        // Ледяная крошка остаётся лежать на земле и изредка блестит.
-        const glint = ((now >> 5) + seed) % 7 === 0;
-        c.globalAlpha = 0.85 * k;
-        c.fillStyle = glint ? pal.text : i % 2 ? pal.ice : pal.frost;
-        dot(c, pt.x + (hash(seed, 3) - 0.5) * px * 4, pt.y + (hash(seed, 4) - 0.5) * px * 2, px * (glint ? 2 : 1), px);
-        break;
-      }
-      case "lightning": {
-        // Ломаная молния между соседними точками пути: дрожит каждый кадр.
-        const prev = pts[i - 1];
-        if (!prev) break;
-        c.globalAlpha = 0.9 * k;
-        c.fillStyle = (now >> 4) % 2 ? pal.lightning : pal.text;
-        const segs = 3;
-        for (let s = 0; s <= segs; s++) {
-          const q = s / segs;
-          const j = s === 0 || s === segs ? 0 : (hash(seed + (now >> 4), s) - 0.5) * px * 6;
-          dot(c, prev.x + (pt.x - prev.x) * q + j, prev.y + (pt.y - prev.y) * q + j, px, px);
+        // Языки пламени от следа: угольки в начале, огонь, потом дым; три язычка на точку поднимаются вверх.
+        for (let j = 0; j < 3; j++) {
+          const kk = Math.min(1, k + j * 0.08);
+          const rise = (1 - kk) * 26;
+          c.globalAlpha = 0.95 * kk;
+          c.fillStyle = kk > 0.7 ? pal.ember : kk > 0.35 ? pal.fire : pal.smoke;
+          dot(c, pt.x + (hash(seed, j) - 0.5) * px * 7, pt.y - rise - j * px, px * (kk > 0.5 ? 2 : 1), px);
         }
         break;
       }
+      case "frost": {
+        // Ледяная корка на земле шириной в шаг, изредка блестит, сверху тянется иней.
+        for (let j = 0; j < 3; j++) {
+          const glint = ((now >> 5) + seed + j) % 9 === 0;
+          c.globalAlpha = 0.9 * k;
+          c.fillStyle = glint ? pal.text : (i + j) % 2 ? pal.ice : pal.frost;
+          dot(c, pt.x + (hash(seed, 3 + j) - 0.5) * px * 8, pt.y + (hash(seed, 4 + j) - 0.5) * px * 3, px * (glint ? 2 : 1), px);
+        }
+        c.globalAlpha = 0.5 * k; c.fillStyle = pal.ice;
+        dot(c, pt.x + (hash(seed, 9) - 0.5) * px * 4, pt.y - (1 - k) * 14, px, px);
+        break;
+      }
+      case "lightning": {
+        // Ломаная молния между соседними точками пути шириной в два арт-пикселя, дрожит каждый кадр.
+        const prev = pts[i - 1];
+        if (!prev) break;
+        c.globalAlpha = 0.95 * k;
+        c.fillStyle = (now >> 4) % 2 ? pal.lightning : pal.text;
+        const segs = 4;
+        for (let s2 = 0; s2 <= segs; s2++) {
+          const q = s2 / segs;
+          const j = s2 === 0 || s2 === segs ? 0 : (hash(seed + (now >> 4), s2) - 0.5) * px * 8;
+          dot(c, prev.x + (pt.x - prev.x) * q + j, prev.y + (pt.y - prev.y) * q + j, px * 2, px);
+        }
+        if (hash(seed, now >> 5) < 0.3) { c.fillStyle = pal.text; dot(c, pt.x + px * 3, pt.y - px * 3, px, px); }
+        break;
+      }
       case "aegis": {
-        // Золотые искры всплывают и гаснут белым.
-        c.globalAlpha = k;
-        c.fillStyle = k > 0.5 ? pal.aegis : pal.text;
-        dot(c, pt.x + (hash(seed, 5) - 0.5) * px * 4, pt.y - (1 - k) * 14, px * (k > 0.6 ? 2 : 1), px);
+        // Золотые искры всплывают и гаснут белым; на земле остаётся мерцающий след.
+        for (let j = 0; j < 2; j++) {
+          c.globalAlpha = k;
+          c.fillStyle = k > 0.5 ? pal.aegis : pal.text;
+          dot(c, pt.x + (hash(seed, 5 + j) - 0.5) * px * 7, pt.y - (1 - k) * (14 + j * 8), px * (k > 0.6 ? 2 : 1), px);
+        }
+        break;
+      }
+      case "blood": {
+        // Кровавые капли на земле: тёмные пятна и редкие светлые брызги, не поднимаются.
+        for (let j = 0; j < 3; j++) {
+          c.globalAlpha = 0.85 * k;
+          c.fillStyle = j === 0 ? pal.crit : "#5a0f14";
+          dot(c, pt.x + (hash(seed, 20 + j) - 0.5) * px * 9, pt.y + (hash(seed, 30 + j) - 0.5) * px * 4, px * (j === 0 ? 2 : 1), px);
+        }
+        break;
+      }
+      case "leaves": {
+        // Листопад: листья кружат и оседают, зелёные и рыжие.
+        for (let j = 0; j < 2; j++) {
+          const sway = Math.sin((now / 90) + i + j) * px * 3;
+          c.globalAlpha = 0.9 * k;
+          c.fillStyle = (i + j) % 3 === 0 ? pal.ember : pal.heal;
+          dot(c, pt.x + (hash(seed, 40 + j) - 0.5) * px * 8 + sway, pt.y - k * 18 + j * px * 2, px * 2, px);
+        }
+        break;
+      }
+      case "void": {
+        // Дым пустоты: тёмно-фиолетовые клубы расширяются и тают, внутри редкие искры.
+        for (let j = 0; j < 3; j++) {
+          c.globalAlpha = 0.55 * k;
+          c.fillStyle = j === 2 ? pal.lightning : "#2a1846";
+          dot(c, pt.x + (hash(seed, 50 + j) - 0.5) * px * (6 + (1 - k) * 8), pt.y - (1 - k) * 16 - j * px, px * (j === 2 ? 1 : 3), px);
+        }
+        break;
+      }
+      case "spectral": {
+        // Призрачные копии героя: сам кадр, гаснущий по следу (каждая вторая точка, чтобы не слипались).
+        if (i % 2 === 0 && silhouette) silhouette(pt.x, pt.y, 0.45 * k);
         break;
       }
     }

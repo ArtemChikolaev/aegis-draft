@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.38.0";
+export const ARCADE_CONFIG_VERSION = "a0.39.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -103,6 +103,16 @@ export const ARCADE = {
     rankBonus: { standard: 0, refined: 0, exotic: 1, arcana: 2 } as Record<string, number>,
   },
   /** Руны щедрости: первая на 0:50, дальше каждые 100 с; живёт 40 с; эффект 60 с. */
+  /** Руны (T13.32): раз в 2 минуты со сдвигом от bounty, лежат 45 с; эффекты — по мотивам Dota. */
+  rune: {
+    first: sec(90),
+    every: sec(120),
+    lifetime: sec(45),
+    dd: { seconds: 45, mult: 2 },
+    shield: { seconds: 45, frac: 0.5 },
+    arcane: { seconds: 50, cooldown: 0.3 },
+    illusion: { seconds: 75, count: 2, dmgFrac: 0.35 },
+  },
   greed: {
     firstAt: sec(50),
     every: sec(100),

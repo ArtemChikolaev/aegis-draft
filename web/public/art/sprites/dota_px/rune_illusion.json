@@ -1,0 +1,23 @@
+{
+  "name": "rune_illusion",
+  "frame": 32,
+  "dirs": 1,
+  "fps": 12,
+  "world": 64,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 2
+    }
+  },
+  "source": "rune_illusion01.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.12
+}

@@ -1,7 +1,10 @@
 // Питомцы школы «Зверинец» (T13.21, референс — призывы Death Must Die): сущности сима со своим ИИ.
 // Ястреб Beastmaster собирает шарды, волк Lycan кусает и замедляет, Медведь-дух Lone Druid бьёт тяжело и
 // изредка оглушает. Спрайты — `dota_px/{hawk,wolf,bear}` через тот же конвейер (dota_manifest_px.tsv).
-export type PetKind = "hawk" | "wolf" | "bear";
+/** `illusion` — копия героя (руна иллюзий, Conjure Image, Mirror Image, Juxtapose, Phantasm): бежит за героем и бьёт
+ *  как он — в ближнем бою рядом, в дальнем снарядом; у Terrorblade в Метаморфозе иллюзии тоже переходят в дальний бой.
+ *  Скорость, дальность и период удара берутся у героя на лету (см. sim.tickPets), в таблице — только тело и поводок. */
+export type PetKind = "hawk" | "wolf" | "bear" | "illusion";
 
 export interface PetDef {
   kind: PetKind;
@@ -26,4 +29,5 @@ export const PETS: Record<PetKind, PetDef> = {
   hawk: { kind: "hawk", r: 10, speed: 260, leash: 60, seek: 0, dmg: 0, every: 0, reach: 0, collect: 110 },
   wolf: { kind: "wolf", r: 12, speed: 210, leash: 70, seek: 260, dmg: 14, every: 1.1, reach: 30, slow: 0.35 },
   bear: { kind: "bear", r: 18, speed: 150, leash: 80, seek: 200, dmg: 30, every: 1.6, reach: 40, stun: 0.2 },
+  illusion: { kind: "illusion", r: 14, speed: 0, leash: 56, seek: 320, dmg: 0, every: 0, reach: 0 },
 };

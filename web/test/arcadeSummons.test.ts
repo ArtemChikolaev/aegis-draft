@@ -44,15 +44,17 @@ describe("призывы Аркады", () => {
     expect(seen).toBeGreaterThanOrEqual(6);
   });
 
-  it("призыв не трогает сим: Conjure Image у Terrorblade ставит источник урона ровно в игрока", () => {
+  it("Conjure Image у Terrorblade призывает иллюзии-питомцев у героя, а не тотем в точке каста", () => {
+    // T13.32 (владелец 2026-09-07): иллюзии бегут за героем и бьют вокруг, урон удара — значение умения.
     const sim = new ArcadeSim("summon-1", { rank: 0, hero: "terrorblade", act: "short" });
     sim.player.abilities.w = 2;
     for (let i = 0; i < 5; i++) sim.step({ ...IDLE_INPUT });
     const { x, y } = sim.player;
     sim.step({ ...IDLE_INPUT, cast: 2 });
-    expect(sim.player.wardUntil).toBeGreaterThan(sim.tick);
-    expect(sim.player.wardX).toBe(x);
-    expect(sim.player.wardY).toBe(y);
+    expect(sim.player.wardUntil).toBeLessThanOrEqual(sim.tick);
+    const ill = sim.pets.filter((p) => p.kind === "illusion");
+    expect(ill.length).toBe(sim.hero.abilities.w.summon?.count ?? 1);
+    for (const p of ill) { expect(Math.hypot(p.x - x, p.y - y)).toBeLessThan(80); expect(p.dmg).toBe(sim.hero.abilities.w.value[2]); }
   });
 });
   // Лист призыва грузится лениво, поэтому его надо тянуть вместе с героем: иначе первый вард

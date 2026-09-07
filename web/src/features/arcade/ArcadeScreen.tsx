@@ -444,6 +444,9 @@ function ArcadeStage() {
                 {replayLog && <Chip>{t("arcade.hud.replay")}</Chip>}
                 {isArcadeDailySeed(seed) && <Chip>{t("arcade.hud.daily")}</Chip>}
                 {p.aegis && <Chip>{t("arcade.hud.aegis")}</Chip>}
+                {sim.tick < p.ddUntil && <Chip data-testid="arcade-rune-dd">{t("arcade.rune.dd")} {formatClock(p.ddUntil - sim.tick)}</Chip>}
+                {sim.tick < p.shieldUntil && p.shieldHp > 0 && <Chip data-testid="arcade-rune-shield">{t("arcade.rune.shield")} {Math.ceil(p.shieldHp)}</Chip>}
+                {sim.tick < p.arcaneUntil && <Chip data-testid="arcade-rune-arcane">{t("arcade.rune.arcane")} {formatClock(p.arcaneUntil - sim.tick)}</Chip>}
                 {sim.hero.signature && (sim.hero.signature.kind === "souls" || sim.hero.signature.kind === "swipes") && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>

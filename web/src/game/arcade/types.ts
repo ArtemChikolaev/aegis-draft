@@ -80,7 +80,7 @@ export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast";
 
 /** Питомец (школа «Зверинец»): позиция, цель, перезарядка удара; неуязвим, следует за героем. */
 export interface Pet {
-  kind: "hawk" | "wolf" | "bear";
+  kind: "hawk" | "wolf" | "bear" | "illusion";
   x: number;
   y: number;
   cd: number;
@@ -90,7 +90,14 @@ export interface Pet {
   hitAt: number;
   /** Был ли в радиусе удара на прошлом тике: вход в радиус укорачивает перезарядку до замаха (tickPets). */
   inReach: boolean;
+  /** Иллюзия: тик исчезновения и урон удара (доля урона героя или значение умения). */
+  until?: number;
+  dmg?: number;
 }
+
+/** Руны у реки, как в Dota (владелец 2026-09-07): двойной урон, щит, магия (короче перезарядки), иллюзии. */
+export type RuneKind = "dd" | "shield" | "arcane" | "illusion";
+export const RUNE_KINDS: readonly RuneKind[] = ["dd", "shield", "arcane", "illusion"];
 export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive";
 export type Rarity = "standard" | "refined" | "exotic" | "arcana";
 
@@ -333,6 +340,11 @@ export interface Player {
   drainUntil: number;
   drainTarget: number;
   hasteUntil: number;
+  /** Руны: двойной урон до тика, щит (запас и срок), магия (короче перезарядки) до тика. */
+  ddUntil: number;
+  shieldHp: number;
+  shieldUntil: number;
+  arcaneUntil: number;
   /** Школы в порядке взятия (макс. 3) и суммарная «сила» апгрейда (ранги × множитель редкости). */
   schools: SchoolId[];
   /** `cap` — потолок рангов у этого апгрейда: базовый `maxRank` плюс надбавка за редкость,

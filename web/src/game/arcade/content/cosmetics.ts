@@ -64,6 +64,11 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "trail_frost", slot: "trail", rarity: "refined", variant: "frost" },
   { id: "trail_arc", slot: "trail", rarity: "exotic", variant: "lightning" },
   { id: "trail_aegis", slot: "trail", rarity: "arcana", variant: "aegis" },
+  // Следы второй волны (владелец 2026-09-07: «жирные» следы, разные): кровь, листва, пустота, призрачные копии героя.
+  { id: "trail_blood", slot: "trail", rarity: "standard", variant: "blood" },
+  { id: "trail_leaves", slot: "trail", rarity: "refined", variant: "leaves" },
+  { id: "trail_void", slot: "trail", rarity: "exotic", variant: "void" },
+  { id: "trail_spectral", slot: "trail", rarity: "arcana", variant: "spectral" },
   { id: "death_ring", slot: "death", rarity: "standard", variant: "ring" },
   { id: "death_shatter", slot: "death", rarity: "refined", variant: "shatter" },
   { id: "death_nova", slot: "death", rarity: "exotic", variant: "nova" },
