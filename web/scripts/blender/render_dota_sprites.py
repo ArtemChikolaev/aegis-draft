@@ -1021,6 +1021,13 @@ def main():
         # вместе с ростом рамки (кадр 160 с запасом 1.4 против 128 с 1.12).
         "margin": a.margin,
     }
+    # Тон свечения (градусы): самоцветы в игре (gemSheet) красят пиксели этого тона, а не «доминирующий
+    # тон листа» из скана — у тёмных аркан TB скан промахивался, и зелёные пятна ядра оставались.
+    glow_src = a.glow_color if (a.glow_mask_dir or a.glow_mat) else (a.glow_from_alpha or "")
+    if glow_src:
+        import colorsys
+        gr, gg, gb = [float(v) for v in glow_src.split(",")][:3]
+        meta["glow"] = round(colorsys.rgb_to_hsv(gr, gg, gb)[0] * 360, 1)
     with open(os.path.join(out_dir, f"{a.name}.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
     print(f"sheet {png} {W}x{H}; anims {meta['anims']}; anchor {meta['anchor']}")

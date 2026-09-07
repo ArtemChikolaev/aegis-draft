@@ -234,6 +234,9 @@ export interface DotaMeta {
   anims: Record<string, { row: number; frames: number }>;
   /** Запас кадра вокруг силуэта (render_dota_sprites.py --margin); нет в мете — старые листы с 1.12. */
   margin?: number;
+  /** Тон свечения листа в градусах (render_dota_sprites.py пишет из --glow-color / --glow-from-alpha):
+   *  самоцветы красят пиксели этого тона с мягкими порогами, скан доминирующего тона не нужен. */
+  glow?: number;
 }
 
 export interface DotaSheet {
@@ -255,6 +258,11 @@ export interface DotaSheet {
 const GLOW_SAT = 0.3;
 const GLOW_VAL = 0.45;
 const GLOW_HUE_TOL = 40;
+/** Пороги акцента: у листа с известным тоном свечения (`meta.glow`) мягче — блёклые пиксели ядра
+ *  груди TB (s ≈ 0.2) тоже его, владелец 2026-09-07: «зелёные пятна должны стать цвета самоцвета». */
+function glowThresholds(meta: DotaMeta): { sat: number; val: number; tol: number } {
+  return meta.glow !== undefined ? { sat: 0.16, val: 0.38, tol: 55 } : { sat: GLOW_SAT, val: GLOW_VAL, tol: GLOW_HUE_TOL };
+}
 /** Доля акцентных пикселей среди непрозрачных, ниже которой лист считается без свечения. */
 const GLOW_MIN_SHARE = 0.002;
 
@@ -326,7 +334,7 @@ function scanGlow(sheet: DotaSheet): GlowScan {
     bins[Math.floor(hh / 10) % 36] += wgt;
     hs.push(hh); ws.push(wgt);
   }
-  if (!opaque || strong / opaque < GLOW_MIN_SHARE) { glowScans.set(key, none); return none; }
+  if (!opaque || (strong / opaque < GLOW_MIN_SHARE && sheet.meta.glow === undefined)) { glowScans.set(key, none); return none; }
   let peak = 0;
   for (let b = 1; b < 36; b++) if (bins[b] > bins[peak]) peak = b;
   const center = peak * 10 + 5;
@@ -339,14 +347,16 @@ function scanGlow(sheet: DotaSheet): GlowScan {
   }
   let hue = (Math.atan2(sy, sx) * 180) / Math.PI;
   if (hue < 0) hue += 360;
+  if (sheet.meta.glow !== undefined) hue = sheet.meta.glow;
+  const th = glowThresholds(sheet.meta);
   let accent = 0;
   for (let i = 0; i < px.length; i += 4) {
     if (px[i + 3] < 128) continue;
     const [hh, s, v] = rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
-    if (s >= GLOW_SAT && v >= GLOW_VAL && hueDist(hh, hue) <= GLOW_HUE_TOL) accent++;
+    if (s >= th.sat && v >= th.val && hueDist(hh, hue) <= th.tol) accent++;
   }
   const share = accent / opaque;
-  const out: GlowScan = share >= GLOW_MIN_SHARE ? { glow: { hue, share }, data, w, h } : none;
+  const out: GlowScan = share >= GLOW_MIN_SHARE || sheet.meta.glow !== undefined ? { glow: { hue, share }, data, w, h } : none;
   glowScans.set(key, out);
   return out;
 }
@@ -375,15 +385,18 @@ export function gemSheet(sheet: DotaSheet, gemHue: number | null): DotaSheet {
   const out = new Uint8ClampedArray(src);
   const mask = new Uint8Array(w * h);
   const hue = scan.glow.hue;
+  const th = glowThresholds(sheet.meta);
   // 1. Акцентные пиксели: отметить и, если выбран самоцвет, перекрасить (тон меняем, S и V оставляем).
   for (let p = 0, i = 0; i < src.length; i += 4, p++) {
     if (src[i + 3] < 128) continue;
     const [hh, s, v] = rgbToHsv(src[i] / 255, src[i + 1] / 255, src[i + 2] / 255);
-    if (s < GLOW_SAT || v < GLOW_VAL || hueDist(hh, hue) > GLOW_HUE_TOL) continue;
-    const t = Math.min(1, (s - GLOW_SAT) / 0.35) * Math.min(1, (v - GLOW_VAL) / 0.35);
+    if (s < th.sat || v < th.val || hueDist(hh, hue) > th.tol) continue;
+    const t = Math.min(1, (s - th.sat) / 0.35) * Math.min(1, (v - th.val) / 0.35);
     mask[p] = 1 + Math.round(t * 254);
     if (gemHue !== null) {
-      const [r, g, b] = hsvToRgb(gemHue, s, v);
+      // Самоцвет должен читаться (владелец 2026-09-07: «красный гем очень блеклый»): тусклые пиксели
+      // свечения (v ≈ 0.5 у тёмных аркан TB) при перекраске подтягиваем по насыщенности и яркости.
+      const [r, g, b] = hsvToRgb(gemHue, Math.max(s, 0.75), Math.max(v, 0.85));
       out[i] = Math.round(r * 255); out[i + 1] = Math.round(g * 255); out[i + 2] = Math.round(b * 255);
     }
   }

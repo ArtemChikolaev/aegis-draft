@@ -9,7 +9,7 @@
 // `death` — эффект смерти врагов, `tint` — оттенок умений (читает рендерер напрямую).
 import { drawFrostMist, drawPixelRing, type ParticlePalette } from "./particles.ts";
 
-export interface EffectPalette extends ParticlePalette { aegis: string; playerRing: string; heal: string; crit: string }
+export interface EffectPalette extends ParticlePalette { aegis: string; playerRing: string; heal: string; crit: string; veil: string; veilGlow: string }
 
 /** Цвета эффектов из токенов `--arcade-*`: canvas не наследует CSS-переменные. */
 export function readEffectPalette(): EffectPalette {
@@ -19,6 +19,7 @@ export function readEffectPalette(): EffectPalette {
     fire: get("fire", "#ff9a45"), ember: get("ember", "#ffd27a"), smoke: get("smoke", "#5a4a44"), frost: get("frost", "#8bd8ff"),
     ice: get("ice", "#e6f7ff"), lightning: get("lightning", "#d7bcff"), text: get("text", "#fff"), aegis: get("aegis", "#ffd48a"),
     playerRing: get("player-ring", "#ffd48a"), heal: get("heal", "#9ce77e"), crit: get("crit", "#ff6b6b"),
+    veil: get("veil", "#1b4f52"), veilGlow: get("veil-glow", "#4fe3d3"),
   };
 }
 
@@ -44,7 +45,7 @@ function pixelEllipse(c: CanvasRenderingContext2D, x: number, y: number, rx: num
 }
 
 export type GroundEffect = "ember" | "frost" | "gold" | "void";
-export type AuraEffect = "fire" | "frost" | "lightning" | "aegis";
+export type AuraEffect = "fire" | "frost" | "lightning" | "aegis" | "veil";
 export type TrailEffect = "fire" | "frost" | "lightning" | "aegis" | "blood" | "leaves" | "void" | "spectral";
 export type DeathEffect = "ring" | "shatter" | "nova";
 
@@ -226,6 +227,51 @@ export function drawAuraEffect(c: CanvasRenderingContext2D, geo: AuraGeo, kind: 
           dot(c, pt.x, pt.y, px, px); dot(c, pt.x, pt.y - px * 1.5, px, px);
           if (glint) dot(c, pt.x + px, pt.y - px, px, px);
         }
+      }
+      c.globalAlpha = 1;
+      break;
+    }
+    case "veil": {
+      // Вуаль арканы PA «Manifold Paradox»: в Dota плащ-дым и шипастый капюшон — частицы, в модели их нет.
+      // Сзади — тёмно-бирюзовый дым, стелющийся от ног и плывущий за спину, с редкими светлыми искрами;
+      // спереди — корона из пяти шипов над макушкой с бирюзовыми остриями.
+      if (layer === "back") {
+        rim(geo, pal.veilGlow, 0.22 + flare * 0.3, px);
+        const life = 80, count = Math.round(n * 0.6 * boost);
+        for (let i = 0; i < count; i++) {
+          const pt = edgePoint(geo, Math.floor(hash(seed, i + 500) * n));
+          if (pt.y < geo.top + h * 0.25) continue;
+          const t = (tick * 0.6 + hash(seed, i + 501) * life) % life, k = t / life;
+          const side = pt.x < cx ? -1 : 1;
+          const drift = side * k * px * (5 + hash(seed, i + 502) * 4) + Math.sin(k * 7 + i) * px * 1.5;
+          c.globalAlpha = (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85) * 0.85;
+          c.fillStyle = i % 5 === 0 ? pal.veilGlow : pal.veil;
+          dot(c, pt.x + drift, pt.y - k * h * 0.45 * boost, px * (k < 0.5 ? 3 : 2), px);
+        }
+        // Шлейф за спиной: столб дыма от плеч вниз и назад.
+        for (let i = 0; i < Math.round(14 * boost); i++) {
+          const t = (tick * 0.5 + hash(seed, i + 600) * life) % life, k = t / life;
+          const x = cx + (hash(seed, i + 601) - 0.5) * px * 6 + Math.sin(k * 5 + i) * px * 2;
+          const y = geo.top + h * 0.3 + k * h * 0.8;
+          c.globalAlpha = (1 - k) * 0.7;
+          c.fillStyle = pal.veil;
+          dot(c, x, y, px * 3, px);
+        }
+      } else {
+        // Корона: центральный шип и по два с каждой стороны, веером; острия светятся.
+        const spikes = [[0, 7], [-2.2, 5], [2.2, 5], [-4, 3], [4, 3]];
+        const flick = hash(tick >> 3, seed + 9) * 0.5;
+        for (const [dx, len] of spikes) {
+          for (let j = 0; j <= len; j++) {
+            const k = j / len;
+            c.globalAlpha = 1;
+            c.fillStyle = j === len ? pal.veilGlow : pal.veil;
+            dot(c, cx + dx * px * (0.6 + k * 0.7), geo.top + px * 1.5 - j * px * 1.1, px, px);
+          }
+        }
+        c.globalAlpha = 0.6 + flick;
+        c.fillStyle = pal.veilGlow;
+        dot(c, cx - px * 1.5, geo.top + px * 3, px, px); dot(c, cx + px * 1.5, geo.top + px * 3, px, px);
       }
       c.globalAlpha = 1;
       break;

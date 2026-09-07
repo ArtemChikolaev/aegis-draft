@@ -28,7 +28,7 @@ import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "veil", "veilGlow", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
@@ -775,10 +775,12 @@ export class ArcadeRenderer {
 
   /** Свечение героя (слот `aura`) по контуру силуэта: слой `back` до спрайта, `front` после; вспышка по T разжигает его. */
   private drawAura(sim: ArcadeSim, geo: AuraGeo, now: number, pal: Palette, layer: "back" | "front"): void {
+    const skinFx = (this.cosmetic.skin ? COSMETIC_BY_ID[this.cosmetic.skin]?.fx?.aura : undefined) as AuraEffect | undefined;
     const kind = this.cosmetic.aura as AuraEffect | undefined;
-    if (!kind) return;
+    if (!kind && !skinFx) return;
     const flareK = now < this.flareUntil ? Math.sin(((this.flareUntil - now) / 1200) * Math.PI) : 0;
-    drawAuraEffect(this.ctx, geo, kind, sim.tick, 7, this.artPx(), pal, flareK, layer);
+    if (skinFx) drawAuraEffect(this.ctx, geo, skinFx, sim.tick, 11, this.artPx(), pal, flareK, layer);
+    if (kind && kind !== skinFx) drawAuraEffect(this.ctx, geo, kind, sim.tick, 7, this.artPx(), pal, flareK, layer);
     this.ctx.globalAlpha = 1;
   }
 

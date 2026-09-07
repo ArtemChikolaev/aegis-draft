@@ -188,7 +188,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   // (как в Dota: призматический самоцвет красит эффекты, и облику без них он не нужен).
   const arcana = sel.def?.rarity === "arcana";
   const effectVariant = (slot: CosmeticSlot) => { const id = cosmetics.equipped[slot]; return id ? COSMETIC_BY_ID[id]?.variant : undefined; };
-  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: effectVariant("aura") as AuraEffect | undefined, trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
+  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: (effectVariant("aura") ?? sel.def?.fx?.aura) as AuraEffect | undefined, trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
   const glow = useSheetGlow(previewSheet, arcana);
   const styleOptions = (sel.def?.styles ?? []).filter((st) => st.hue === undefined || !!glow);
   return (
