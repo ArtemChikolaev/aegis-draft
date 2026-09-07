@@ -255,3 +255,39 @@
 .arcade-shop__item[data-open] .arcade-shop__sell { border-color: var(--accent-strong); }
 .arcade-shop__details { display: grid; gap: 6px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
 .arcade-shop__details p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
+
+/* Подбор по кнопке и экран сборки (владелец 2026-09-07: «подходишь к предмету и нажимаешь кнопку»,
+   «открывать карту того, что прокачивали»). Подсказка висит над нижней панелью HUD. */
+.arcade-hud__build { margin-left: auto; pointer-events: auto; }
+.arcade-hud__build + .arcade-hud__pause { margin-left: 8px; }
+.arcade-hud__pickup { pointer-events: auto; align-self: center; display: inline-flex; align-items: center; gap: 8px; margin: 0 auto 10px; padding: 8px 14px; border: 1px solid var(--accent-strong); border-radius: 999px; background: var(--surface-invert); color: var(--on-invert); font: 700 13px var(--font-display); cursor: pointer; animation: arcade-pickup-pulse 1.2s ease-in-out infinite; }
+.arcade-hud__pickup span { color: var(--muted-invert); font-weight: 500; }
+.arcade-hud__pickup span[data-rarity="refined"] { color: var(--blue); }
+.arcade-hud__pickup span[data-rarity="exotic"] { color: var(--role-support); }
+.arcade-hud__pickup span[data-rarity="arcana"] { color: var(--gold); }
+.arcade-hud__pickup small { padding: 1px 6px; border: 1px solid var(--line-invert-strong); border-radius: 6px; font: 800 10px var(--font-display); color: var(--muted-invert); }
+@keyframes arcade-pickup-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-strong) 45%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
+.arcade-build { width: min(960px, 100%); }
+.arcade-build__section { display: grid; gap: 8px; width: 100%; justify-items: stretch; text-align: left; }
+.arcade-build__label { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted-invert); }
+.arcade-build__gear { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.arcade-offer[data-compact] { padding: 8px 10px; gap: 2px; }
+.arcade-offer[data-compact] p { font-size: 11px; line-height: 1.3; }
+.arcade-build__skills { display: flex; flex-wrap: wrap; gap: 6px; }
+.arcade-build__skill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 4px; border: 1px solid var(--line-invert-strong); border-radius: 10px; background: var(--surface-invert); color: var(--on-invert); font-size: 12px; }
+.arcade-build__skill b { font: 700 12px var(--font-display); }
+.arcade-build__skill small { color: var(--muted-invert); }
+.arcade-build__skill[data-legendary] { border-color: var(--gold); }
+.arcade-build__skill[data-talent] { border-style: dashed; }
+.arcade-build__skill[data-rarity="refined"] { border-color: var(--blue); }
+.arcade-build__skill[data-rarity="exotic"] { border-color: var(--role-support); }
+.arcade-build__skill[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-bag { display: grid; gap: 6px; width: 100%; }
+.arcade-bag__list { display: grid; gap: 4px; width: 100%; }
+.arcade-bag__row { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line-invert-strong); border-radius: 10px; background: var(--surface-invert); color: var(--on-invert); text-align: left; }
+.arcade-bag__row[data-rarity="refined"] { border-color: var(--blue); }
+.arcade-bag__row[data-rarity="exotic"] { border-color: var(--role-support); }
+.arcade-bag__row[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-bag__name { display: grid; gap: 1px; min-width: 0; }
+.arcade-bag__name b { font: 700 13px var(--font-display); }
+.arcade-bag__name small { color: var(--muted-invert); font-size: 11px; line-height: 1.3; }

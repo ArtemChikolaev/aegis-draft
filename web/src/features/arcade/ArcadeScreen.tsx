@@ -14,7 +14,7 @@ import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/ar
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { preloadArcadeArt } from "./sprites.ts";
-import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, IDLE_INPUT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
+import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { COSMETICS, COSMETIC_BY_ID, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
@@ -300,6 +300,9 @@ function ArcadeStage() {
       if (cur && (cur.pending || cur.shopOpen || cur.neutralOpen || cur.lootOpen)) return;
       if (s.status === "running") s.pause(); else if (s.status === "paused") s.resume();
     };
+    // Подбор (G / Enter) и экран сборки (Tab / I) — через `act` в сим: попадают в input-лог, реплей повторяет.
+    controller.onPickup = () => { const cur = getArcadeSim(); if (cur && cur.nearLoot && !cur.lootOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
+    controller.onBuild = () => { const cur = getArcadeSim(); if (cur && !cur.pending && !cur.shopOpen && !cur.neutralOpen && !cur.lootOpen && useArcade.getState().status === "running") controller.queueAct(BUILD_ACT); };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
     ro.observe(stage);
     renderer.resize(stage.clientWidth, stage.clientHeight);
@@ -443,6 +446,7 @@ function ArcadeStage() {
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
+              <Button variant="secondary" className="arcade-hud__build" data-testid="arcade-build-open" onClick={() => controllerRef.current?.onBuild?.()}>{t("arcade.build.open")}</Button>
               <Button variant="secondary" className="arcade-hud__pause" onClick={() => (status === "paused" ? resume() : pause())}>{status === "paused" ? t("arcade.hud.resume") : t("arcade.hud.pauseBtn")}</Button>
             </div>
             <div className="arcade-hud__gear" data-testid="arcade-hud-gear">
@@ -456,6 +460,14 @@ function ArcadeStage() {
               </div>
             )}
             </div>
+            {sim.nearLoot && !sim.lootOpen && !sim.buildOpen && status === "running" && (
+              <button type="button" className="arcade-hud__pickup" data-testid="arcade-pickup" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
+                {sim.nearLoot.item && <ItemIcon pixel={PX} slug={gearArt(sim.nearLoot.item as GearItem)} name={sim.nearLoot.item.base} size="sm" />}
+                <b>{sim.nearLoot.kind === "chest" ? t("arcade.loot.pickupChest") : t("arcade.loot.pickup")}</b>
+                {sim.nearLoot.item && <span data-rarity={sim.nearLoot.item.rarity}>{t(`arcade.gearName.${sim.nearLoot.item.base}` as MessageKey)}</span>}
+                <small>G</small>
+              </button>
+            )}
             <div className="arcade-hud__bottom">
               <HeroThumb picture={hero.picture || heroDef.picture} name={hero.name} size="md" showName={false} />
               <div className="arcade-hud__bars">
@@ -577,10 +589,85 @@ function ArcadeStage() {
                 <GearCard item={sim.lootOpen} title={t("arcade.loot.found")} />
                 <GearCard item={(sim.player.gear[sim.lootOpen.slot] as GearItem | undefined) ?? null} title={t("arcade.loot.current")} />
               </div>
+              {sim.player.bag.length >= ARCADE.loot.bagCap && (
+                <div className="arcade-bag" data-testid="arcade-loot-bagfull">
+                  <p className="arcade-shop__hint">{t("arcade.loot.bagFull")}</p>
+                  <BagList bag={sim.player.bag as GearItem[]} onDrop={(i) => shopAct(BAG_DROP_ACT + i)} dropLabel={t("arcade.loot.drop")} />
+                </div>
+              )}
               <div className="arcade-overlay__actions arcade-shop__actions">
                 <Button variant="primary" data-testid="arcade-loot-equip" onClick={() => shopAct(1)}>{t("arcade.loot.equip")}</Button>
                 <Button variant="secondary" data-testid="arcade-loot-bag" disabled={sim.player.bag.length >= ARCADE.loot.bagCap} onClick={() => shopAct(2)}>{t("arcade.gear.bag", { n: sim.player.bag.length, max: ARCADE.loot.bagCap })}</Button>
                 <Button variant="leave" data-testid="arcade-loot-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.loot.leave")}</Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {sim?.buildOpen && status !== "over" && (
+          <div className="arcade-overlay" data-testid="arcade-build">
+            <div className="arcade-levelup arcade-shop arcade-build">
+              <Eyebrow>{t("arcade.build.title")}</Eyebrow>
+              <h2>{hero.name}</h2>
+              <section className="arcade-build__section">
+                <small className="arcade-build__label">{t("arcade.build.gear")}</small>
+                <div className="arcade-build__gear">
+                  {GEAR_SLOTS.map((slot) => <GearCard key={slot} item={(sim.player.gear[slot] as GearItem | undefined) ?? null} title={t(`arcade.gear.slot.${slot}` as MessageKey)} compact />)}
+                </div>
+              </section>
+              <section className="arcade-build__section">
+                <small className="arcade-build__label">{t("arcade.build.bag")} {sim.player.bag.length}/{ARCADE.loot.bagCap}</small>
+                {sim.player.bag.length === 0
+                  ? <p className="arcade-shop__hint">{t("arcade.build.bagEmpty")}</p>
+                  : <BagList bag={sim.player.bag as GearItem[]} onEquip={(i) => controllerRef.current?.queueAct(BAG_EQUIP_ACT + i)} onDrop={(i) => controllerRef.current?.queueAct(BAG_DROP_ACT + i)} equipLabel={t("arcade.build.equip")} dropLabel={t("arcade.loot.drop")} />}
+              </section>
+              <section className="arcade-build__section">
+                <small className="arcade-build__label">{t("arcade.build.skills")}</small>
+                {Object.keys(sim.player.upgrades).length === 0 && sim.player.talents.length === 0
+                  ? <p className="arcade-shop__hint">{t("arcade.build.skillsEmpty")}</p>
+                  : (
+                    <div className="arcade-build__skills">
+                      {Object.entries(sim.player.upgrades).map(([id, u]) => {
+                        const def = UPGRADE_BY_ID[id];
+                        return (
+                          <span key={id} className="arcade-build__skill" data-legendary={def?.legendary ? "true" : undefined} title={t(`arcade.up.${id}.desc` as MessageKey)}>
+                            <ItemIcon pixel={PX} slug={def?.art ?? SCHOOL_ART[def?.school ?? "radiance"]} name={id} size="sm" />
+                            <b>{t(`arcade.up.${id}` as MessageKey)}</b>
+                            <small>{def?.legendary ? t("arcade.build.legendary") : t("arcade.build.rank", { n: u.rank })}</small>
+                          </span>
+                        );
+                      })}
+                      {sim.player.talents.map((id) => (
+                        <span key={id} className="arcade-build__skill" data-talent="true">
+                          <b>{t(`arcade.t.${id}` as MessageKey)}</b>
+                          <small>{t("arcade.offer.talent")}</small>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+              </section>
+              {(sim.player.items.length > 0 || sim.player.neutral) && (
+                <section className="arcade-build__section">
+                  <small className="arcade-build__label">{t("arcade.build.items")}</small>
+                  <div className="arcade-build__skills">
+                    {sim.player.neutral && (
+                      <span className="arcade-build__skill" data-neutral="true" title={t(`arcade.neutral.${sim.player.neutral}.desc` as MessageKey)}>
+                        <ItemIcon pixel={PX} slug={sim.player.neutral} name={sim.player.neutral} size="sm" />
+                        <b>{sim.player.neutralEnchant ? `${t(`arcade.enchant.${sim.player.neutralEnchant}` as MessageKey)} ` : ""}{t(`arcade.neutral.${sim.player.neutral}` as MessageKey)}</b>
+                        <small>{t("arcade.build.neutral")}</small>
+                      </span>
+                    )}
+                    {sim.player.items.map((it, i) => (
+                      <span key={`${it.id}:${i}`} className="arcade-build__skill" data-rarity={it.rarity} title={t(`arcade.item.${it.id}.desc` as MessageKey)}>
+                        <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" />
+                        <b>{t(`arcade.item.${it.id}` as MessageKey)}</b>
+                        <small>{t(`arcade.rarity.${it.rarity}` as MessageKey)}</small>
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                <Button variant="primary" data-testid="arcade-build-close" onClick={() => controllerRef.current?.queueAct(BUILD_ACT)}>{t("arcade.build.close")}</Button>
               </div>
             </div>
           </div>
@@ -878,11 +965,28 @@ async function copyText(text: string): Promise<void> {
   try { await navigator.clipboard.writeText(text); } catch { /* буфер недоступен (http/TMA) — молча */ }
 }
 
-function GearCard({ item, title }: { item: GearItem | null; title: string }) {
+/** Сумка: список предметов с «надеть» / «выбросить». Экран добычи даёт только выброс (освободить место). */
+function BagList({ bag, onEquip, onDrop, equipLabel, dropLabel }: { bag: GearItem[]; onEquip?: (i: number) => void; onDrop: (i: number) => void; equipLabel?: string; dropLabel: string }) {
   const { t } = useI18n();
-  if (!item) return <div className="arcade-offer arcade-offer--static" data-kind="gear"><span className="arcade-offer__tag">{title}</span><strong>—</strong><p>{t("arcade.loot.empty")}</p></div>;
   return (
-    <div className="arcade-offer arcade-offer--static" data-kind="gear" data-rarity={item.rarity}>
+    <div className="arcade-bag__list">
+      {bag.map((g, i) => (
+        <div key={g.uid} className="arcade-bag__row" data-rarity={g.rarity} data-testid={`arcade-bag-${i}`}>
+          <ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" />
+          <span className="arcade-bag__name"><b>{t(`arcade.gearName.${g.base}` as MessageKey)}</b><small>{t(`arcade.gear.slot.${g.slot}` as MessageKey)} · T{g.tier} · {t("arcade.loot.score", { n: gearScore(g) })} · {g.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ")}</small></span>
+          {onEquip && <Button variant="secondary" data-testid={`arcade-bag-equip-${i}`} onClick={() => onEquip(i)}>{equipLabel}</Button>}
+          <Button variant="leave" data-testid={`arcade-bag-drop-${i}`} onClick={() => onDrop(i)}>{dropLabel}</Button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GearCard({ item, title, compact = false }: { item: GearItem | null; title: string; compact?: boolean }) {
+  const { t } = useI18n();
+  if (!item) return <div className="arcade-offer arcade-offer--static" data-kind="gear" data-compact={compact ? "true" : undefined}><span className="arcade-offer__tag">{title}</span><strong>—</strong><p>{t("arcade.loot.empty")}</p></div>;
+  return (
+    <div className="arcade-offer arcade-offer--static" data-kind="gear" data-rarity={item.rarity} data-compact={compact ? "true" : undefined}>
       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" /> {title}</span>
       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier} · {t("arcade.loot.score", { n: gearScore(item) })}</small>

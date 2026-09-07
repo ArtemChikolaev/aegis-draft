@@ -3,7 +3,7 @@ import { Rng } from "../src/game/rng.ts";
 import { AFFIX_POOL, GEAR_BASES, GEAR_SLOTS, UNIQUES, gearEffect, gearScore, rollGear, uniqueGear } from "../src/game/arcade/content/gear.ts";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
-import { IDLE_INPUT, SHOP_ACT } from "../src/game/arcade/types.ts";
+import { BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { decodeReplay, encodeReplay } from "../src/game/arcade/replay.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
 
@@ -38,7 +38,12 @@ describe("arcade gear", () => {
     }
     expect(sim.chest.alive).toBe(true);
     sim.player.x = sim.chest.x; sim.player.y = sim.chest.y;
+    // Касание сундука больше не открывает добычу — только помечает «рядом»; подбор — по PICKUP_ACT
+    // (владелец 2026-09-07: «подходишь и нажимаешь кнопку, а не 100% автоматически»).
     sim.step(IDLE_INPUT);
+    expect(sim.lootOpen).toBeNull();
+    expect(sim.nearLoot?.kind).toBe("chest");
+    sim.step({ ...IDLE_INPUT, act: PICKUP_ACT });
     expect(sim.lootOpen).not.toBeNull();
     const tick = sim.tick;
     sim.step(IDLE_INPUT);
@@ -55,6 +60,44 @@ describe("arcade gear", () => {
     sim.step({ ...IDLE_INPUT, act: 2 });
     expect(sim.player.bag.length).toBe(1);
     expect(ARCADE.loot.bagCap).toBeGreaterThan(1);
+    // «Оставить» кладёт предмет к ногам, а не удаляет: его видно на земле и можно подобрать снова.
+    sim.lootOpen = { ...item, uid: "x3" };
+    sim.step({ ...IDLE_INPUT, act: SHOP_ACT.close });
+    expect(sim.lootOpen).toBeNull();
+    expect(sim.groundLoot.some((g) => g.item.uid === "x3" && g.until > 0)).toBe(true);
+    sim.step(IDLE_INPUT);
+    expect(sim.nearLoot?.item?.uid).toBe("x3");
+    sim.step({ ...IDLE_INPUT, act: PICKUP_ACT });
+    expect(sim.lootOpen?.uid).toBe("x3");
+    sim.step({ ...IDLE_INPUT, act: 2 });
+    expect(sim.player.bag.map((b) => b.uid)).toEqual(["x2", "x3"]);
+  });
+
+  it("экран сборки: надеть из сумки и выбросить на землю, мир стоит", () => {
+    const sim = new ArcadeSim("build-1");
+    const item = rollGear(new Rng("b"), 1, "refined", "b1", "ring");
+    const other = rollGear(new Rng("c"), 1, "exotic", "b2", "ring");
+    sim.player.gear.ring = item;
+    sim.player.bag.push(other);
+    sim.loot.push(item, other);
+    sim.step({ ...IDLE_INPUT, act: BUILD_ACT });
+    expect(sim.buildOpen).toBe(true);
+    const tick = sim.tick;
+    sim.step({ ...IDLE_INPUT, mx: 16 });
+    expect(sim.tick).toBe(tick);
+    // Надеть из сумки: кольца меняются местами.
+    sim.step({ ...IDLE_INPUT, act: BAG_EQUIP_ACT });
+    expect(sim.player.gear.ring?.uid).toBe("b2");
+    expect(sim.player.bag.map((b) => b.uid)).toEqual(["b1"]);
+    // Выбросить: лежит у ног, из «подобранного за забег» ушло.
+    sim.step({ ...IDLE_INPUT, act: BAG_DROP_ACT });
+    expect(sim.player.bag.length).toBe(0);
+    expect(sim.groundLoot.some((g) => g.item.uid === "b1")).toBe(true);
+    expect(sim.loot.some((g) => g.uid === "b1")).toBe(false);
+    sim.step({ ...IDLE_INPUT, act: BUILD_ACT });
+    expect(sim.buildOpen).toBe(false);
+    sim.step(IDLE_INPUT);
+    expect(sim.tick).toBe(tick + 1);
   });
 
   it("реплей несёт экипировку старта", () => {

@@ -5,7 +5,8 @@
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
-import { SHOP_ACT } from "../src/game/arcade/types.ts";
+import { PICKUP_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
+import { gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
 import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
 
 const args = new Map<string, string>();
@@ -39,6 +40,13 @@ function pickOffer(offers: Offer[], school: SchoolId | "any"): number {
 function botInput(sim: ArcadeSim): ArcadeInput {
   if (sim.pending) return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending, SCHOOL), act: 0 };
   if (sim.neutralOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: 1 };
+  // Добыча подбирается кнопкой (PICKUP_ACT), не касанием: бот жмёт её, как только сундук/предмет рядом.
+  if (sim.nearLoot && !sim.lootOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
+  if (sim.lootOpen) {
+    const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;
+    const better = !cur || gearScore(sim.lootOpen) > gearScore(cur);
+    return { mx: 0, my: 0, cast: 0, choose: -1, act: better ? 1 : sim.player.bag.length < 12 ? 2 : SHOP_ACT.close };
+  }
   if (sim.shopOpen) {
     // Жадно: самый дорогой доступный предмет, потом закрыть.
     let best = -1, bestPrice = -1;
@@ -93,7 +101,7 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   }
   // Торговец и bounty-руна: идём, если не бежим.
   if (!flee) {
-    for (const spot of [sim.shopkeeper, sim.bounty, sim.neutralToken]) {
+    for (const spot of [sim.shopkeeper, sim.bounty, sim.neutralToken, sim.chest]) {
       if (!spot.alive) continue;
       const dx = spot.x - p.x, dy = spot.y - p.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
       if (d < 700) { fx += dx / d * 1.5; fy += dy / d * 1.5; }

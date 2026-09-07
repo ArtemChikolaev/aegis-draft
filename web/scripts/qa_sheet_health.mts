@@ -6,7 +6,9 @@
 //   • строб  — чередование двух поз (кадр i похож на i+2 куда больше, чем на i+1): признак того, что
 //              длинный клип сэмплирован реже цикла шага (Muerta: 12 кадров на 7 с бега);
 //   • провал — насколько проседает площадь силуэта между кадрами: «не дорисовалась» ловится так;
-//   • тон    — средняя яркость и насыщенность силуэта (стойка, лицом): чёрная модель / серая без текстур.
+//   • тон    — средняя яркость и насыщенность силуэта (стойка, лицом): чёрная модель / серая без текстур;
+//   • срез   — доля кадров, где силуэт упирается в край кадра: оружие/плащ обрезаны рамкой (арбалет
+//              арканы Drow в ударе, владелец 2026-09-07: «кадр, где лук не до конца отрисован»).
 // Запуск из web/: `npx tsx scripts/qa_sheet_health.mts [dota_px2] [id…] [--json] [--top N]`
 // Без id — все листы папки; печатает худшие по каждому признаку (порогом тут не отделаться: у смерти
 // рывок велик по природе, поэтому ранжируем, а не отсекаем).
@@ -21,7 +23,7 @@ const asJson = argv.includes("--json");
 const top = Number(argv[argv.indexOf("--top") + 1]) || 25;
 const ids = (only.length ? only : readdirSync(ROOT).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5))).sort();
 
-interface AnimStat { куски: number; рывок: number; строб: number; провал: number; где: string }
+interface AnimStat { куски: number; рывок: number; строб: number; провал: number; срез: number; где: string }
 interface SheetStat { anims: Record<string, AnimStat>; яркость: number; насыщенность: number; пусто: number }
 
 const PAGE = `(async (b64, meta) => {
@@ -32,20 +34,21 @@ const PAGE = `(async (b64, meta) => {
   let lumSum = 0, satSum = 0, lumN = 0, empty = 0, total = 0;
   const grab = (row, fr) => { x.clearRect(0, 0, F, F); x.drawImage(img, fr*F, row*F, F, F, 0, 0, F, F); return x.getImageData(0, 0, F, F).data; };
   for (const [name, a] of Object.entries(meta.anims)) {
-    let worstParts = 0, worstJit = 0, worstStrobe = 0, worstDrop = 0, worstWhere = '';
+    let worstParts = 0, worstJit = 0, worstStrobe = 0, worstDrop = 0, worstWhere = ''; let cut = 0, cutTotal = 0;
     for (let d = 0; d < meta.dirs; d++) {
       const cent = [], parts = [], area = [], masks = [];
       for (let fr = 0; fr < a.frames; fr++) {
         const px = grab(a.row + d, fr);
-        const on = new Uint8Array(F*F); let n = 0, sx = 0, sy = 0;
+        const on = new Uint8Array(F*F); let n = 0, sx = 0, sy = 0, edge = 0;
         for (let i = 0, p = 0; i < px.length; i += 4, p++) if (px[i+3] > 60) {
-          on[p] = 1; n++; sx += p % F; sy += (p/F)|0;
+          on[p] = 1; n++; const X = p % F, Y = (p/F)|0; sx += X; sy += Y; if (X === 0 || Y === 0 || X === F-1 || Y === F-1) edge++;
           if (name === 'idle' && d === 0 && fr === 0) {
             const r = px[i]/255, g = px[i+1]/255, b = px[i+2]/255, mx = Math.max(r,g,b), mn = Math.min(r,g,b);
             lumSum += 0.299*r + 0.587*g + 0.114*b; satSum += mx > 0 ? (mx - mn)/mx : 0; lumN++;
           }
         }
         total++; if (n < 30) empty++;
+        if (n >= 30) { cutTotal++; if (edge >= 3) cut++; }
         area.push(n); masks.push(on);
         if (n < 30) { parts.push(0); cent.push(null); continue; }
         cent.push([sx/n, sy/n]);
@@ -92,7 +95,7 @@ const PAGE = `(async (b64, meta) => {
         if (drop > worstDrop) worstDrop = drop;
       }
     }
-    anims[name] = { куски: worstParts, рывок: +worstJit.toFixed(1), строб: +worstStrobe.toFixed(2), провал: +worstDrop.toFixed(2), где: worstWhere };
+    anims[name] = { куски: worstParts, рывок: +worstJit.toFixed(1), строб: +worstStrobe.toFixed(2), провал: +worstDrop.toFixed(2), срез: +(cutTotal ? cut / cutTotal : 0).toFixed(2), где: worstWhere };
   }
   return { anims, яркость: lumN ? +(lumSum/lumN).toFixed(3) : 0, насыщенность: lumN ? +(satSum/lumN).toFixed(3) : 0, пусто: +(empty/Math.max(1,total)).toFixed(3) };
 })`;
@@ -105,7 +108,7 @@ for (const id of ids) {
   all[id] = await page.evaluate(`${PAGE}(${JSON.stringify(readFileSync(`${ROOT}/${id}.webp`).toString("base64"))}, ${JSON.stringify(meta)})`) as SheetStat;
   if (only.length && !asJson) {
     const s = all[id];
-    console.log(`${id.padEnd(34)} яркость ${s.яркость} насыщ ${s.насыщенность} пусто ${Math.round(s.пусто*100)}% · ${Object.entries(s.anims).map(([k, v]) => `${k}: кусков ${v.куски} рывок ${v.рывок}% строб ${v.строб} провал ${Math.round(v.провал*100)}%`).join(" · ")}`);
+    console.log(`${id.padEnd(34)} яркость ${s.яркость} насыщ ${s.насыщенность} пусто ${Math.round(s.пусто*100)}% · ${Object.entries(s.anims).map(([k, v]) => `${k}: кусков ${v.куски} рывок ${v.рывок}% строб ${v.строб} провал ${Math.round(v.провал*100)}% срез ${Math.round(v.срез*100)}%`).join(" · ")}`);
   }
 }
 await browser.close();
@@ -120,6 +123,7 @@ const print = (title: string, list: string[]) => { console.log(`\n== ${title}`);
 print(`строб в беге/стойке (чередование двух поз), топ ${top}`, loop.filter((r) => r.v.строб >= 0.3).sort((a, b) => b.v.строб - a.v.строб).slice(0, top).map((r) => `${r.id.padEnd(34)} ${r.anim.padEnd(5)} строб ${r.v.строб} рывок ${r.v.рывок}%`));
 print(`рывок в беге/стойке, топ ${top}`, loop.sort((a, b) => b.v.рывок - a.v.рывок).slice(0, top).map((r) => `${r.id.padEnd(34)} ${r.anim.padEnd(5)} рывок ${r.v.рывок}% строб ${r.v.строб}`));
 print(`провал силуэта в беге/стойке (кадры пропадают), топ ${top}`, loop.filter((r) => r.v.провал >= 0.3).sort((a, b) => b.v.провал - a.v.провал).slice(0, top).map((r) => `${r.id.padEnd(34)} ${r.anim.padEnd(5)} провал ${Math.round(r.v.провал*100)}%`));
+print(`срезано рамкой кадра (доля кадров ряда, где силуэт упирается в край), топ ${top}`, rows.filter((r) => r.v.срез >= 0.05).sort((a, b) => b.v.срез - a.v.срез).slice(0, top).map((r) => `${r.id.padEnd(34)} ${r.anim.padEnd(6)} срез ${Math.round(r.v.срез*100)}%`));
 print(`рассыпается на куски (любой ряд, кусков ≥ 3)`, rows.filter((r) => r.v.куски >= 3).sort((a, b) => b.v.куски - a.v.куски).slice(0, top).map((r) => `${r.id.padEnd(34)} ${r.anim.padEnd(6)} кусков ${r.v.куски} (${r.v.где})`));
 const sheets = Object.entries(all);
 print(`самые тёмные (яркость силуэта в стойке), топ ${top}`, sheets.sort((a, b) => a[1].яркость - b[1].яркость).slice(0, top).map(([id, s]) => `${id.padEnd(34)} яркость ${s.яркость} насыщ ${s.насыщенность}`));

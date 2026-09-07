@@ -244,25 +244,42 @@ export function drawHeroProjectile(c: CanvasRenderingContext2D, x: number, y: nu
     dot(c, x + ux * along + nx * across, y + uy * along + ny * across, size, px);
   };
   switch (art) {
-    case "arrow":
-      // Древко назад, наконечник вперёд, оперение по бокам.
-      at(px * 2, 0, px * 2, core);
-      at(0, 0, px, color);
+    case "arrow": {
+      // Стрела как в Dota, а не пять точек в кучке (владелец 2026-09-07: «стреляет белым кружочком»):
+      // древко в 7 арт-пикселей, светлый наконечник из трёх ступеней и оперение с хвоста. На длину
+      // 12 арт-пикселей читается стрелой даже на скорости.
+      for (let i = -7; i <= 1; i++) at(px * i, 0, px, color);
+      at(px * 3, 0, px, core);
+      at(px * 2, px, px, core);
+      at(px * 2, -px, px, core);
+      at(px * 2, 0, px, core);
+      at(-px * 6, px, px, core);
+      at(-px * 7, px * 2, px, core);
+      at(-px * 6, -px, px, core);
+      at(-px * 7, -px * 2, px, core);
+      break;
+    }
+    case "knife": {
+      // Метательный клинок: лезвие в 5 арт-пикселей с острым светлым кончиком, гарда и рукоять.
+      for (let i = -1; i <= 3; i++) at(px * i, 0, px, core);
+      at(px * 4, 0, px, core);
+      at(px * 2, px, px, color);
+      at(px * 2, -px, px, color);
+      at(-px * 2, px, px, color);
+      at(-px * 2, -px, px, color);
       at(-px * 2, 0, px, color);
-      at(-px * 3, px, px, color);
-      at(-px * 3, -px, px, color);
+      at(-px * 3, 0, px, color);
+      at(-px * 4, 0, px, color);
       break;
-    case "knife":
-      // Клинок вдоль полёта и короткая гарда поперёк.
-      at(px, 0, px * 2, core);
-      at(-px, 0, px, color);
-      at(-px, px, px, color);
-      at(-px, -px, px, color);
+    }
+    case "bullet": {
+      // Пуля: короткое яркое ядро и дымный след из цвета героя.
+      at(px * 2, 0, px * 2, core);
+      at(0, 0, px * 2, core);
+      at(-px * 2, 0, px, color);
+      at(-px * 4, 0, px, color);
       break;
-    case "bullet":
-      at(px, 0, px * 2, core);
-      at(-px, 0, px, color);
-      break;
+    }
     default:
       // Сгусток: светлое ядро и ореол.
       at(0, 0, px * 2, core);

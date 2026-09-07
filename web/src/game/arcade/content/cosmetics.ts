@@ -259,12 +259,11 @@ export function skinnedStyle(
 export const DUPLICATE_SHARDS: Record<Rarity, number> = { standard: 5, refined: 12, exotic: 30, arcana: 80 };
 /** Цена конкретного предмета за осколки (трата дублей): ~4–6 дублей своей редкости. */
 const SHARD_PRICE_FULL: Record<Rarity, number> = { standard: 20, refined: 50, exotic: 120, arcana: 320 };
-/** В dev-сборке косметика бесплатна: владелец гоняет `make dev-all` и должен видеть все скины сразу,
- *  не фармя осколки (просьба 2026-09-06). В прод-сборке цены обычные. */
-export const SHARD_PRICE: Record<Rarity, number> =
-  typeof window !== "undefined" && import.meta.env?.DEV === true
-    ? { standard: 0, refined: 0, exotic: 0, arcana: 0 }
-    : SHARD_PRICE_FULL;
+/** Косметика бесплатна во всех сборках (владелец 2026-09-07: «сделай всю косметику пока полностью
+ *  бесплатной, чтобы можно было выбирать и в prod»). Полные цены остаются в SHARD_PRICE_FULL на день,
+ *  когда экономику осколков включат обратно. */
+export const SHARD_PRICE: Record<Rarity, number> = { standard: 0, refined: 0, exotic: 0, arcana: 0 };
+void SHARD_PRICE_FULL;
 
 export interface CosmeticDrop {
   id: string;

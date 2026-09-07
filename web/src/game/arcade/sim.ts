@@ -43,6 +43,10 @@ import {
   type Spot,
   ATTACK_MASK,
   AUTOATTACK_ACT,
+  BAG_DROP_ACT,
+  BAG_EQUIP_ACT,
+  BUILD_ACT,
+  PICKUP_ACT,
   AUTOCAST_ACT,
   SHOP_ACT,
   type Pet,
@@ -99,6 +103,11 @@ export class ArcadeSim {
   chest: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   groundLoot: { x: number; y: number; item: GearItem; until: number }[] = [];
   lootOpen: GearItem | null = null;
+  /** Добыча в шаге от героя: сундук или предмет на земле. Подбирается по PICKUP_ACT, не касанием
+   *  (владелец 2026-09-07). HUD показывает по этому полю подсказку «подобрать». */
+  nearLoot: { kind: "chest" | "ground"; item: GearItem | null } | null = null;
+  /** Экран сборки (экипировка, сумка, взятые умения): открыт по BUILD_ACT, мир стоит. */
+  buildOpen = false;
   /** Всё подобранное за забег — в инвентарь по итогу. */
   loot: GearItem[] = [];
   private nextChestAt = ARCADE.loot.chestFirstAt;
@@ -231,7 +240,16 @@ export class ArcadeSim {
       this.lootAction(input.act);
       return;
     }
+    if (this.buildOpen) {
+      this.buildAction(input.act);
+      return;
+    }
+    if (input.act === BUILD_ACT) {
+      this.buildOpen = true;
+      return;
+    }
     const p = this.player;
+    if (input.act === PICKUP_ACT) this.pickupNear();
     if (input.act >= AUTOCAST_ACT && input.act < AUTOCAST_ACT + ABILITY_KEYS.length) {
       const key = ABILITY_KEYS[input.act - AUTOCAST_ACT];
       p.autoCast[key] = !p.autoCast[key];
@@ -1216,15 +1234,17 @@ export class ArcadeSim {
     }
     if (this.shopkeeper.alive && !this.shopOpen && len(this.shopkeeper.x - p.x, this.shopkeeper.y - p.y) < 44) this.openShop();
     if (this.neutralToken.alive && !this.neutralOpen && len(this.neutralToken.x - p.x, this.neutralToken.y - p.y) < 36) this.openNeutral();
-    if (this.chest.alive && !this.lootOpen && len(this.chest.x - p.x, this.chest.y - p.y) < 40) {
-      this.chest.alive = false;
-      this.lootOpen = this.rollLoot(this.rollRarity());
-      this.pushFx("levelup", this.chest.x, this.chest.y, 0, 0, 24);
-    }
-    if (!this.lootOpen) {
+    // Добыча не подбирается касанием — только помечается как «рядом» (PICKUP_ACT → pickupNear).
+    this.nearLoot = null;
+    if (this.chest.alive && len(this.chest.x - p.x, this.chest.y - p.y) < 44) this.nearLoot = { kind: "chest", item: null };
+    else {
+      let best: { x: number; y: number; item: GearItem; until: number } | null = null, bd = 34;
       for (const g of this.groundLoot) {
-        if (g.until > 0 && len(g.x - p.x, g.y - p.y) < 30) { g.until = -1; this.lootOpen = g.item; break; }
+        if (g.until <= 0) continue;
+        const d = len(g.x - p.x, g.y - p.y);
+        if (d < bd) { bd = d; best = g; }
       }
+      if (best) this.nearLoot = { kind: "ground", item: best.item };
     }
     if (this.aegisDrop && len(this.aegisDrop.x - p.x, this.aegisDrop.y - p.y) < 40) {
       p.aegis = true;
@@ -1768,11 +1788,64 @@ export class ArcadeSim {
     this.groundLoot.push({ x, y, item, until: this.tick + ARCADE.loot.lootLifetime });
   }
 
-  /** Экран подбора: 1 — надеть (старое в сумку), 2 — в сумку, 5 — оставить. Сумка полна — «в сумку» не срабатывает. */
+  /** Подобрать то, что рядом (PICKUP_ACT): сундук вскрывается и даёт предмет, предмет с земли открывает экран подбора. */
+  private pickupNear(): void {
+    const near = this.nearLoot;
+    if (!near || this.lootOpen) return;
+    if (near.kind === "chest") {
+      if (!this.chest.alive) return;
+      this.chest.alive = false;
+      this.lootOpen = this.rollLoot(this.rollRarity());
+      this.pushFx("levelup", this.chest.x, this.chest.y, 0, 0, 24);
+    } else {
+      const g = this.groundLoot.find((x) => x.item === near.item && x.until > 0);
+      if (!g) return;
+      g.until = -1;
+      this.lootOpen = g.item;
+    }
+    this.nearLoot = null;
+  }
+
+  /** Выбросить предмет из сумки на землю к ногам: лежит `lootLifetime`, можно подобрать обратно.
+   *  Из списка «подобранное за забег» уходит — в инвентарь по итогу выброшенное не попадает. */
+  private dropFromBag(i: number): boolean {
+    const p = this.player;
+    if (i < 0 || i >= p.bag.length) return false;
+    const [item] = p.bag.splice(i, 1) as GearItem[];
+    this.loot = this.loot.filter((x) => x.uid !== item.uid);
+    // Раскладываем вокруг героя, чтобы несколько выброшенных не легли в одну точку.
+    const a = (this.lootSeq++ % 8) * Math.PI / 4;
+    this.dropLoot(p.x + Math.round(Math.cos(a) * 36), p.y + Math.round(Math.sin(a) * 36), item);
+    return true;
+  }
+
+  /** Надеть предмет из сумки: снятое — на его место в сумке. */
+  private equipFromBag(i: number): boolean {
+    const p = this.player;
+    if (i < 0 || i >= p.bag.length) return false;
+    const item = p.bag[i] as GearItem;
+    const old = p.gear[item.slot];
+    p.gear[item.slot] = item;
+    if (old) p.bag[i] = old; else p.bag.splice(i, 1);
+    this.recomputeStats();
+    this.pushFx("levelup", p.x, p.y, 0, 0, 30);
+    return true;
+  }
+
+  /** Экран сборки: BUILD_ACT — закрыть, BAG_EQUIP_ACT+i — надеть из сумки, BAG_DROP_ACT+i — выбросить. */
+  private buildAction(act: number): void {
+    if (act === BUILD_ACT || act === 5) { this.buildOpen = false; return; }
+    if (act >= BAG_EQUIP_ACT && act < BAG_EQUIP_ACT + ARCADE.loot.bagCap) this.equipFromBag(act - BAG_EQUIP_ACT);
+    else if (act >= BAG_DROP_ACT && act < BAG_DROP_ACT + ARCADE.loot.bagCap) this.dropFromBag(act - BAG_DROP_ACT);
+  }
+
+  /** Экран подбора: 1 — надеть (старое в сумку), 2 — в сумку, 5 — оставить (предмет ложится обратно на землю),
+   *  BAG_DROP_ACT+i — выбросить из сумки, чтобы освободить место. Сумка полна — «в сумку» не срабатывает. */
   private lootAction(act: number): void {
     const p = this.player;
     const item = this.lootOpen;
     if (!item) return;
+    if (act >= BAG_DROP_ACT && act < BAG_DROP_ACT + ARCADE.loot.bagCap) { this.dropFromBag(act - BAG_DROP_ACT); return; }
     if (act === 1) {
       const old = p.gear[item.slot];
       p.gear[item.slot] = item;
@@ -1788,6 +1861,9 @@ export class ArcadeSim {
       this.loot.push(item);
       this.lootOpen = null;
     } else if (act === 5) {
+      // «Оставить» — предмет остаётся лежать у ног, а не исчезает (владелец 2026-09-07: «могу только выйти,
+      // и он просто удалится»). Подобрать можно снова, пока не истёк срок.
+      this.dropLoot(p.x, p.y, item);
       this.lootOpen = null;
     }
   }

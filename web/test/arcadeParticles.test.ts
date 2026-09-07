@@ -77,9 +77,24 @@ describe("снаряд автоатаки по герою (владелец 2026
   it("клинок и пуля рисуются своими наборами квадратов", () => {
     const knife = stub(); drawHeroProjectile(knife.c, 0, 0, 100, 0, "knife", "tint", "core", 2);
     const bullet = stub(); drawHeroProjectile(bullet.c, 0, 0, 100, 0, "bullet", "tint", "core", 2);
-    expect(knife.rects.length).toBe(4);
-    expect(bullet.rects.length).toBe(2);
-    expect(knife.rects.some((r) => r.fill === "core")).toBe(true);
+    const spanX = (rs: typeof knife.rects) => Math.max(...rs.map((r) => r.x)) - Math.min(...rs.map((r) => r.x));
+    // Клинок — лезвие с кончиком и рукоятью, длиннее пули; у обоих есть светлое ядро и цвет героя.
+    expect(knife.rects.length).toBeGreaterThan(bullet.rects.length);
+    expect(spanX(knife.rects)).toBeGreaterThan(spanX(bullet.rects));
+    for (const s of [knife, bullet]) {
+      expect(s.rects.some((r) => r.fill === "core")).toBe(true);
+      expect(s.rects.some((r) => r.fill === "tint")).toBe(true);
+    }
+  });
+  it("стрела читается стрелой: древко не короче 10 арт-пикселей, наконечник и оперение на концах", () => {
+    // Пять точек в кучке смотрелись белым кружочком (владелец 2026-09-07: «стреляет кружочком вместо стрел»).
+    const arrow = stub(); drawHeroProjectile(arrow.c, 0, 0, 100, 0, "arrow", "tint", "core", 2);
+    const xs = arrow.rects.map((r) => r.x);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThanOrEqual(10 * 2);
+    const head = arrow.rects.filter((r) => r.x === Math.max(...xs));
+    const tail = arrow.rects.filter((r) => r.x === Math.min(...xs));
+    expect(head.every((r) => r.fill === "core")).toBe(true);
+    expect(tail.length).toBeGreaterThanOrEqual(2);
   });
 });
 
