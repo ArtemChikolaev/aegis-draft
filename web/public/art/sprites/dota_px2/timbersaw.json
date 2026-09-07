@@ -38,5 +38,6 @@
   "source": "shredder.glb",
   "orientation": "none",
   "pitch": 45.0,
-  "pixel": true
+  "pixel": true,
+  "margin": 1.4
 }

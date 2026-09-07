@@ -232,6 +232,8 @@ export interface DotaMeta {
   world: number;
   anchor: { x: number; y: number };
   anims: Record<string, { row: number; frames: number }>;
+  /** Запас кадра вокруг силуэта (render_dota_sprites.py --margin); нет в мете — старые листы с 1.12. */
+  margin?: number;
 }
 
 export interface DotaSheet {

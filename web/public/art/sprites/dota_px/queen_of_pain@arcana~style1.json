@@ -30,5 +30,6 @@
   "source": "queenofpain_arcana_base_remodel.glb",
   "orientation": "none",
   "pitch": 45.0,
-  "pixel": true
+  "pixel": true,
+  "margin": 1.4
 }

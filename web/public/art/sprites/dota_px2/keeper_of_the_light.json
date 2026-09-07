@@ -34,5 +34,6 @@
   "source": "keeper_of_the_light.glb",
   "orientation": "none",
   "pitch": 45.0,
-  "pixel": true
+  "pixel": true,
+  "margin": 1.4
 }

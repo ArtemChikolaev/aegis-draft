@@ -101,7 +101,9 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
       // Ходьба разворачивает модель кругом, стойка и удар — лицом к камере.
       const dir = anim === "walk" ? Math.floor(((loop - IDLE_S) / WALK_S) * s.meta.dirs) % s.meta.dirs : 0;
       const frame = still ? 0 : Math.floor(el * s.meta.fps);
-      const mult = previewScale(size, s.meta.world, dpr);
+      // Масштаб — по росту героя, а не по кадру: у листов с запасом 1.4 кадр на четверть шире, и без
+      // поправки герой в витрине мельчал бы вместе с ростом рамки.
+      const mult = previewScale(size, s.meta.world * (1.12 / (s.meta.margin ?? 1.12)), dpr);
       // Эффекты в превью (владелец 2026-09-07: «никак не отображаются в превью персонажа»): те же
       // функции, что в бою. Радиус героя и высота силуэта — от размера превью, тик — от часов страницы.
       const fx = effects;

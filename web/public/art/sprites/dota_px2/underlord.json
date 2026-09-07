@@ -34,5 +34,6 @@
   "source": "abyssal_underlord_v2.glb",
   "orientation": "none",
   "pitch": 45.0,
-  "pixel": true
+  "pixel": true,
+  "margin": 1.4
 }

@@ -932,6 +932,9 @@ def main():
         "anchor": {"x": 0.5, "y": round(anchor_y, 3)},
         "anims": {k: {"row": v["row"], "frames": v["frames"]} for k, v in meta_anims.items()},
         "source": os.path.basename(a.glb), "orientation": mode, "pitch": a.pitch, "pixel": bool(a.pixel),
+        # Запас кадра вокруг силуэта: превью гардероба делит на него, чтобы герой в витрине не мельчал
+        # вместе с ростом рамки (кадр 160 с запасом 1.4 против 128 с 1.12).
+        "margin": a.margin,
     }
     with open(os.path.join(out_dir, f"{a.name}.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False, indent=2)
