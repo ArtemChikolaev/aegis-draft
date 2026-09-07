@@ -258,20 +258,36 @@ export function drawAuraEffect(c: CanvasRenderingContext2D, geo: AuraGeo, kind: 
           dot(c, x, y, px * 3, px);
         }
       } else {
-        // Корона: центральный шип и по два с каждой стороны, веером; острия светятся.
-        const spikes = [[0, 7], [-2.2, 5], [2.2, 5], [-4, 3], [4, 3]];
+        // Голова — верх контура в центральной колонке силуэта, а не верх рамки: в стойке PA руки с
+        // клинками подняты выше макушки, и корона по `geo.top` висела над кистями (владелец: «шлем багованый»).
+        const w = Math.max(px * 4, geo.right - geo.left);
+        let headTop = Infinity, headX = cx, cnt = 0;
+        for (let i = 0; i < n; i++) { const pt = geo.outline[i]; if (Math.abs(pt.x - cx) < w * 0.16 && pt.y < headTop) headTop = pt.y; }
+        if (!Number.isFinite(headTop)) headTop = geo.top;
+        for (let i = 0; i < n; i++) { const pt = geo.outline[i]; if (Math.abs(pt.x - cx) < w * 0.16 && pt.y < headTop + px * 3) { headX += pt.x; cnt++; } }
+        headX = cnt ? (headX - cx) / cnt : cx;
+        // Капюшон: тёмная «шапка» по точкам контура вокруг макушки, поверх спрайта.
+        c.globalAlpha = 1;
+        c.fillStyle = pal.veil;
+        for (let i = 0; i < n; i++) {
+          const pt = geo.outline[i];
+          if (Math.abs(pt.x - headX) > px * 5 || pt.y > headTop + px * 3.5) continue;
+          dot(c, pt.x, pt.y, px * 2, px); dot(c, pt.x, pt.y - px, px * 2, px);
+        }
+        // Корона: центральный шип и по два с каждой стороны, веером, растут прямо из капюшона; острия светятся.
+        const spikes = [[0, 6], [-2, 4], [2, 4], [-3.6, 2], [3.6, 2]];
         const flick = hash(tick >> 3, seed + 9) * 0.5;
         for (const [dx, len] of spikes) {
           for (let j = 0; j <= len; j++) {
             const k = j / len;
             c.globalAlpha = 1;
             c.fillStyle = j === len ? pal.veilGlow : pal.veil;
-            dot(c, cx + dx * px * (0.6 + k * 0.7), geo.top + px * 1.5 - j * px * 1.1, px, px);
+            dot(c, headX + dx * px * (0.6 + k * 0.7), headTop + px * 0.5 - j * px * 1.1, px, px);
           }
         }
         c.globalAlpha = 0.6 + flick;
         c.fillStyle = pal.veilGlow;
-        dot(c, cx - px * 1.5, geo.top + px * 3, px, px); dot(c, cx + px * 1.5, geo.top + px * 3, px, px);
+        dot(c, headX - px * 1.5, headTop + px * 3.5, px, px); dot(c, headX + px * 1.5, headTop + px * 3.5, px, px);
       }
       c.globalAlpha = 1;
       break;

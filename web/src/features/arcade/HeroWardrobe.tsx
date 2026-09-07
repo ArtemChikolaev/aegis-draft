@@ -19,7 +19,7 @@ import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, draw
 const EFFECT_SLOTS: readonly CosmeticSlot[] = ["frame", "aura", "trail", "death", "tint"];
 
 /** Надетые эффекты для превью: варианты по слотам (из COSMETIC_BY_ID). */
-export interface PreviewEffects { frame?: GroundEffect; aura?: AuraEffect; trail?: TrailEffect; death?: DeathEffect }
+export interface PreviewEffects { frame?: GroundEffect; aura?: AuraEffect; trail?: TrailEffect; death?: DeathEffect; /** Эффект самого скина (cosmetics `fx.aura`) — рисуется всегда, под надетым свечением, как в бою. */ skinAura?: AuraEffect }
 
 /** Цикл превью: секунды на стойку, ходьбу (с разворотом) и удар. */
 const IDLE_S = 1.6;
@@ -124,7 +124,7 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
       }
       if (fx?.frame) drawGroundEffect(c, hx, hy, R, fx.frame, tick, px, pal, 0);
       let geo: AuraGeo | null = null;
-      if (fx?.aura) {
+      if (fx?.aura || fx?.skinAura) {
         // Геометрия контура кадра в координатах превью — та же, что в бою, только масштаб превью.
         const g = frameGeometry(s, anim, dir, frame);
         const scale = (s.meta.world / s.meta.frame) * mult;
@@ -135,10 +135,12 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
           outline: g.outline.map((pt) => ({ x: ox + (pt.x + 0.5) * scale, y: oy + (pt.y + 0.5) * scale })),
           silhouette: (color, alpha, dx, dy) => { drawDotaFrame(c, sheet, anim, dir, frame, hx + dx, hy + dy, alpha, mult, color); },
         } : auraGeoFromBox(hx, hy, hh);
-        drawAuraEffect(c, geo, fx.aura, tick, 7, px, pal, 0, "back");
+        if (fx.skinAura) drawAuraEffect(c, geo, fx.skinAura, tick, 11, px, pal, 0, "back");
+        if (fx.aura && fx.aura !== fx.skinAura) drawAuraEffect(c, geo, fx.aura, tick, 7, px, pal, 0, "back");
       }
       drawDotaFrame(c, s, anim, dir, frame, hx, hy, 1, mult);
-      if (fx?.aura && geo) drawAuraEffect(c, geo, fx.aura, tick, 7, px, pal, 0, "front");
+      if (geo && fx?.skinAura) drawAuraEffect(c, geo, fx.skinAura, tick, 11, px, pal, 0, "front");
+      if (geo && fx?.aura && fx.aura !== fx.skinAura) drawAuraEffect(c, geo, fx.aura, tick, 7, px, pal, 0, "front");
       if (fx?.death && !still) {
         // Эффект смерти врагов: раз в две секунды вспыхивает сбоку от героя.
         const k = (el % 2) / 0.9;
@@ -147,7 +149,7 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [sheet, size, gem, glow, still, effects?.frame, effects?.aura, effects?.trail, effects?.death]);
+  }, [sheet, size, gem, glow, still, effects?.frame, effects?.aura, effects?.skinAura, effects?.trail, effects?.death]);
   return (
     <span className="arcade-wardrobe__slot" style={{ width: size, height: size }}>
       <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />
@@ -188,7 +190,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   // (как в Dota: призматический самоцвет красит эффекты, и облику без них он не нужен).
   const arcana = sel.def?.rarity === "arcana";
   const effectVariant = (slot: CosmeticSlot) => { const id = cosmetics.equipped[slot]; return id ? COSMETIC_BY_ID[id]?.variant : undefined; };
-  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: (effectVariant("aura") ?? sel.def?.fx?.aura) as AuraEffect | undefined, trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
+  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: effectVariant("aura") as AuraEffect | undefined, skinAura: sel.def?.fx?.aura as AuraEffect | undefined, trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
   const glow = useSheetGlow(previewSheet, arcana);
   const styleOptions = (sel.def?.styles ?? []).filter((st) => st.hue === undefined || !!glow);
   return (

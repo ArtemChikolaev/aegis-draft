@@ -396,7 +396,7 @@ export function gemSheet(sheet: DotaSheet, gemHue: number | null): DotaSheet {
     if (gemHue !== null) {
       // Самоцвет должен читаться (владелец 2026-09-07: «красный гем очень блеклый»): тусклые пиксели
       // свечения (v ≈ 0.5 у тёмных аркан TB) при перекраске подтягиваем по насыщенности и яркости.
-      const [r, g, b] = hsvToRgb(gemHue, Math.max(s, 0.75), Math.max(v, 0.85));
+      const [r, g, b] = hsvToRgb(gemHue, Math.max(s, 0.45), Math.max(v, 0.6));
       out[i] = Math.round(r * 255); out[i + 1] = Math.round(g * 255); out[i + 2] = Math.round(b * 255);
     }
   }

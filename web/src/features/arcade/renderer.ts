@@ -107,7 +107,11 @@ export class ArcadeRenderer {
     this.cosmetic = next;
     this.skinGem = gem;
     this.skinGlow = glow;
+    const skinDef = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
+    this.skinFx = skinDef?.fx?.aura ? { hero: skinDef.hero, aura: skinDef.fx.aura } : null;
   }
+  /** Эффект самого скина (cosmetics `fx.aura`, замена частиц Dota) — только у героя, которому скин принадлежит. */
+  private skinFx: { hero?: string; aura: string } | null = null;
 
   /** Лист героя с учётом скина (`<hero>@<skin>`), с падением на базовый лист, пока скин не загрузился или не для этого героя. */
   /** Лист героя: альтернативная форма (Metamorphosis) важнее скина, скин важнее базовой модели. */
@@ -775,7 +779,7 @@ export class ArcadeRenderer {
 
   /** Свечение героя (слот `aura`) по контуру силуэта: слой `back` до спрайта, `front` после; вспышка по T разжигает его. */
   private drawAura(sim: ArcadeSim, geo: AuraGeo, now: number, pal: Palette, layer: "back" | "front"): void {
-    const skinFx = (this.cosmetic.skin ? COSMETIC_BY_ID[this.cosmetic.skin]?.fx?.aura : undefined) as AuraEffect | undefined;
+    const skinFx = this.skinFx && (!this.skinFx.hero || this.skinFx.hero === sim.hero.id) ? (this.skinFx.aura as AuraEffect) : undefined;
     const kind = this.cosmetic.aura as AuraEffect | undefined;
     if (!kind && !skinFx) return;
     const flareK = now < this.flareUntil ? Math.sin(((this.flareUntil - now) / 1200) * Math.PI) : 0;
