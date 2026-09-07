@@ -16,11 +16,11 @@
     },
     "walk": {
       "row": 8,
-      "frames": 10
+      "frames": 9
     },
     "idle": {
       "row": 16,
-      "frames": 11
+      "frames": 12
     },
     "attack": {
       "row": 24,

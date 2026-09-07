@@ -652,7 +652,11 @@ def main():
     os.makedirs(tmp, exist_ok=True)
 
     def use_action(act):
-        for arm in armatures:
+        # Клип ставим ТОЛЬКО скелету основной модели: части едут за телом через Copy Transforms. Если
+        # клип ставить и частям, кость части без пары в теле (`root` у панциря Tidehunter при `root1`
+        # у тела) получает от клипа своё root motion и уезжает мимо гашения (бег Tidehunter уплывал
+        # по диагонали, замер 2026-09-07).
+        for arm in (main_arms or armatures):
             if arm.animation_data is None:
                 arm.animation_data_create()
             arm.animation_data.action = act
@@ -800,10 +804,16 @@ def main():
         cands.sort(reverse=True)
         if os.environ.get("SPRITE_DEBUG"):
             print(f"weight_bone: {[(n, round(w, 1)) for w, n in cands[:5]]}")
-        return cands[0][1]
+        # Предпочитаем туловище: по чистому весу чаще всего выигрывает голова (плотная сетка), а при
+        # смерти она уходит на пол вперёд, и якорь на голове укладывал тело за нижний край кадра
+        # (аркана Spectre — 11 пустых кадров из 12 в смерти, замер 2026-09-07). Таз/позвоночник
+        # остаётся в середине тела в любой позе.
+        trunk = [(w, n) for w, n in cands if re.search(r"(spine|pelvis|hip|torso|body|waist|chest|root)", n, re.I) and w >= cands[0][0] * 0.05]
+        return (trunk or cands)[0][1]
     track_bone = None if a.no_root_lock else weight_bone()
+    root_bone = next((pb.name for pb in main_arm.pose.bones if pb.parent is None), None) if main_arm is not None else None
     if track_bone:
-        print(f"rootlock: несущая кость {track_bone}")
+        print(f"rootlock: несущая кость {track_bone}, корень {root_bone}")
 
     rows = []  # (ours, dir, [frame paths])
     first_row = {}
@@ -832,6 +842,21 @@ def main():
             n = max(2, min(a.max_frames, round(seconds * fps)))
             sample_frames = [f0 + (f1 - f0) * i / n for i in range(n)]
             track = track_bone
+            track_ref = ref_heads.get(track) if track else None
+            clip_rule = False
+            if track and ours in ("death", "cast") and root_bone:
+                # Смерть и каст — по СТАРОМУ правилу: корневая кость относительно первого кадра клипа,
+                # смещение больше половины охвата игнорируется. Якорь на туловище относительно стойки
+                # здесь вредит: при падении таз уходит вперёд и труп утаскивает за нижний край кадра
+                # (аркана Spectre), а без гашения вовсе тело уезжает своим root motion (провал смерти
+                # у 20 листов вырос вдвое). Прыжковые касты (Monkey King, Meepo, Winter Wyvern) —
+                # дуга через кадр, её и старое правило не трогало.
+                track = root_bone
+                scene.frame_set(int(math.floor(f0)), subframe=f0 - math.floor(f0))
+                rig.fix.location = base_loc
+                bpy.context.view_layer.update()
+                track_ref = bone_heads().get(track)
+                clip_rule = True
         else:
             n = 1
             sample_frames = [scene.frame_current]
@@ -844,16 +869,27 @@ def main():
                 rig.fix.location = base_loc
                 if track:
                     # Гасим горизонтальное смещение несущей кости относительно позы кадрирования —
-                    # бег «на месте», каст и удар не уезжают; вертикаль оставляем (прыжки, паденье).
+                    # бег «на месте», стойка и удар не уезжают; вертикаль оставляем (прыжки, паденье).
                     # Целиком, без порогов и обрезки: любой порог хоть раз оставлял героя за кадром
                     # (история в git: пустые кадры бега у 41 листа, каст Meepo, персона Mirana).
                     bpy.context.view_layer.update()
                     cur = bone_heads().get(track)
-                    ref = ref_heads.get(track)
+                    ref = track_ref
                     if cur is not None and ref is not None:
-                        rig.fix.location = base_loc - __import__("mathutils").Vector((cur.x - ref.x, cur.y - ref.y, 0.0))
+                        dx, dy = cur.x - ref.x, cur.y - ref.y
+                        if clip_rule and (abs(dx) >= extent * 0.5 or abs(dy) >= extent * 0.5):
+                            dx = dy = 0.0
+                        rig.fix.location = base_loc - __import__("mathutils").Vector((dx, dy, 0.0))
                         if os.environ.get("SPRITE_DEBUG"):
-                            print(f"rootlock {ours} d{d} f{i}: {track} ref {tuple(round(v,2) for v in ref)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
+                            bpy.context.view_layer.update()
+                            dg = bpy.context.evaluated_depsgraph_get()
+                            cs = []
+                            for o in base_meshes[:3]:
+                                if o.name in bpy.data.objects and len(o.data.vertices) > 100:
+                                    ev = o.evaluated_get(dg)
+                                    pts = [ev.matrix_world @ ev.data.vertices[k].co for k in range(0, len(ev.data.vertices), 50)]
+                                    cs.append(tuple(round(sum(p[j] for p in pts) / len(pts), 2) for j in range(3)))
+                            print(f"rootlock {ours} d{d} f{i}: {track} ref {tuple(round(v,2) for v in ref)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)} mesh {cs}")
                 bpy.context.view_layer.update()
                 path = os.path.join(tmp, f"{a.name}_{ours}_{d}_{i:02d}.png")
                 render_to(path)

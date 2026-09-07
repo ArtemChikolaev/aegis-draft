@@ -12,7 +12,7 @@
   "anims": {
     "cast": {
       "row": 0,
-      "frames": 5
+      "frames": 8
     },
     "walk": {
       "row": 8,
