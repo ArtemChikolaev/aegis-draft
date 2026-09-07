@@ -9,7 +9,7 @@
 .arcade-heroes__pick[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); }
 .arcade-heroes__pick small { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .arcade-heroes__skin { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--surface); }
-.arcade-heroes__skin[data-rarity="arcana"] { color: var(--accent-strong); border-color: var(--accent-strong); }
+.arcade-heroes__skin[data-rarity="arcana"] { color: var(--card-tier-arcana); border-color: var(--card-tier-arcana); }
 .arcade-heroes__skin[data-rarity="exotic"] { color: var(--text); border-color: var(--accent-strong); }
 .arcade-gear { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
 .arcade-gear__slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
@@ -18,7 +18,7 @@
 .arcade-gear__slot[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); }
 .arcade-gear__slot[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-gear__slot[data-rarity="exotic"] { border-color: var(--role-support); }
-.arcade-gear__slot[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-gear__slot[data-rarity="arcana"] { border-color: var(--card-tier-arcana); }
 .arcade-gear__empty { color: var(--muted); }
 .arcade-gear__list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; max-height: 260px; overflow-y: auto; }
 .arcade-gear__list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; }
@@ -26,6 +26,18 @@
 .arcade-gear__list li strong em { font-style: normal; font-weight: 600; color: var(--muted); }
 .arcade-gear__list li span { display: block; color: var(--muted); font-size: 11px; }
 .arcade-hud__gear { display: flex; gap: 4px; align-items: center; }
+/* Баффы рун (T13.32): плитка = иконка модели руны + имя + остаток; полоска тает по времени. Цвет — токен руны. */
+.arcade-hud__buffs { display: flex; flex-wrap: wrap; gap: 6px; }
+.arcade-hud__buff { --buff: var(--accent); display: grid; grid-template-columns: 26px auto; grid-template-rows: auto auto; column-gap: 8px; align-items: center; min-width: 118px; padding: 4px 10px 4px 6px; border: 1px solid var(--buff); border-radius: 10px; background: color-mix(in srgb, var(--buff) 18%, var(--surface-invert)); box-shadow: 0 0 12px 0 color-mix(in srgb, var(--buff) 45%, transparent); text-shadow: 0 1px 2px var(--arcade-text-shadow); animation: arcade-buff-in .35s cubic-bezier(.2, 1.4, .4, 1); }
+.arcade-hud__buff canvas { grid-row: 1 / 3; width: 26px; height: 26px; image-rendering: pixelated; }
+.arcade-hud__buff b { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--buff); white-space: nowrap; }
+.arcade-hud__buff b span { margin-left: 6px; color: var(--on-invert); font-size: 12px; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.arcade-hud__buff i { display: block; height: 3px; margin-top: 3px; border-radius: 2px; background: var(--buff); transform-origin: left; }
+.arcade-hud__buff--dd { --buff: var(--arcade-rune-dd); }
+.arcade-hud__buff--shield { --buff: var(--arcade-rune-shield); }
+.arcade-hud__buff--arcane { --buff: var(--arcade-rune-arcane); }
+.arcade-hud__buff--illusion { --buff: var(--arcade-rune-illusion); }
+@keyframes arcade-buff-in { from { transform: scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
 .arcade-hud__slot-empty { display: block; width: 14px; height: 14px; border: 1px dashed var(--line-invert-strong); border-radius: 4px; }
 .arcade-hud__bag { margin-left: 6px; font: 800 10px var(--font-display); letter-spacing: .06em; text-transform: uppercase; opacity: .85; }
 .arcade-offer--static { cursor: default; }
@@ -38,7 +50,7 @@
 .arcade-cosmetics__options em { font-size: 11px; color: var(--muted); }
 .arcade-rank__tier[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-rank__tier[data-rarity="exotic"] { border-color: var(--role-support); }
-.arcade-rank__tier[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-rank__tier[data-rarity="arcana"] { border-color: var(--card-tier-arcana); }
 .arcade-drops { display: grid; gap: 6px; }
 .arcade-cosmetics__buy { opacity: .75; border-style: dashed; }
 .arcade-cosmetics__buy:disabled { opacity: .35; }
@@ -105,7 +117,7 @@
 .arcade-hud__item--neutral { border-style: dashed; font: 800 12px var(--font-display); }
 .arcade-hud__item[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-hud__item[data-rarity="exotic"] { border-color: var(--role-support); }
-.arcade-hud__item[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-hud__item[data-rarity="arcana"] { border-color: var(--card-tier-arcana); }
 .arcade-shop__hint { margin: 0; color: var(--muted-invert); font-size: 13px; }
 .arcade-shop__actions { justify-content: center; }
 .arcade-offer:disabled { opacity: .45; transform: none; }
@@ -153,9 +165,9 @@
 .arcade-offer p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
 .arcade-offer[data-rarity="refined"] { border-color: var(--rarity-refined, var(--blue)); }
 .arcade-offer[data-rarity="exotic"] { border-color: var(--rarity-exotic, var(--role-support)); }
-.arcade-offer[data-rarity="arcana"] { border-color: var(--rarity-arcana, var(--gold)); box-shadow: 0 0 0 1px var(--rarity-arcana, var(--gold)); }
-.arcade-offer[data-rarity="legendary"] { border-color: var(--rarity-arcana, var(--gold)); box-shadow: 0 0 0 2px var(--rarity-arcana, var(--gold)), 0 0 24px 0 var(--rarity-arcana, var(--gold)); background: linear-gradient(180deg, color-mix(in srgb, var(--rarity-arcana, var(--gold)) 14%, var(--surface-solid)), var(--surface-solid)); }
-.arcade-offer[data-rarity="legendary"] .arcade-offer__tag { color: var(--rarity-arcana, var(--gold)); font-weight: 800; }
+.arcade-offer[data-rarity="arcana"] { border-color: var(--card-tier-arcana); box-shadow: 0 0 0 1px var(--card-tier-arcana); }
+.arcade-offer[data-rarity="legendary"] { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 0 24px 0 var(--gold); background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 14%, var(--surface-solid)), var(--surface-solid)); }
+.arcade-offer[data-rarity="legendary"] .arcade-offer__tag { color: var(--gold); font-weight: 800; }
 .arcade-offer[data-kind="talent"] { background: var(--surface-soft); }
 
 @media (max-width: 680px) { /* bp.md */
@@ -204,7 +216,7 @@
 /* Список эффектов предмета/нейтралки; extra — открытые редкостью или зачарованием */
 .arcade-stats { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 0; padding: 0; list-style: none; }
 .arcade-stats li { padding: 2px 8px; border-radius: 999px; background: var(--surface-soft, var(--surface)); font-size: 12px; font-weight: 600; }
-.arcade-stats li[data-extra] { background: color-mix(in srgb, var(--rarity-arcana, var(--gold)) 18%, var(--surface)); color: var(--text); }
+.arcade-stats li[data-extra] { background: color-mix(in srgb, var(--gold) 18%, var(--surface)); color: var(--text); }
 .arcade-offer__more { color: var(--muted); font-size: 11px; }
 
 /* Реролл/изгнание на экране прокачки (DMD: reroll + banish) */
@@ -220,7 +232,7 @@
 .arcade-wardrobe__stage { display: grid; justify-items: center; gap: 6px; padding: 12px; border: 1px solid var(--line-invert); border-radius: 14px; background: var(--surface-invert-soft); }
 .arcade-wardrobe__stage strong { font: 800 15px var(--font-display); text-align: center; }
 .arcade-wardrobe__stage small[data-rarity] { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
-.arcade-wardrobe__stage small[data-rarity="arcana"] { color: var(--gold); opacity: 1; }
+.arcade-wardrobe__stage small[data-rarity="arcana"] { color: var(--card-tier-arcana); opacity: 1; }
 .arcade-wardrobe__stage small[data-rarity="exotic"] { color: var(--role-support); opacity: 1; }
 .arcade-wardrobe__slot { position: relative; display: inline-flex; align-items: center; justify-content: center; }
 .arcade-wardrobe__canvas { image-rendering: pixelated; }
@@ -235,7 +247,7 @@
 .arcade-wardrobe__look[data-active] { border-color: var(--accent-strong); box-shadow: inset 0 0 0 1px var(--accent-strong); }
 .arcade-wardrobe__look[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-wardrobe__look[data-rarity="exotic"] { border-color: var(--role-support); }
-.arcade-wardrobe__look[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-wardrobe__look[data-rarity="arcana"] { border-color: var(--card-tier-arcana); }
 .arcade-wardrobe__look:not([data-owned]) .arcade-wardrobe__canvas { opacity: .5; filter: grayscale(1); }
 .arcade-wardrobe__look span { font-size: 10px; line-height: 1.25; text-align: center; }
 .arcade-wardrobe__look b { font: 800 9px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
@@ -264,7 +276,7 @@
 .arcade-hud__pickup span { color: var(--muted-invert); font-weight: 500; }
 .arcade-hud__pickup span[data-rarity="refined"] { color: var(--blue); }
 .arcade-hud__pickup span[data-rarity="exotic"] { color: var(--role-support); }
-.arcade-hud__pickup span[data-rarity="arcana"] { color: var(--gold); }
+.arcade-hud__pickup span[data-rarity="arcana"] { color: var(--card-tier-arcana); }
 .arcade-hud__pickup small { padding: 1px 6px; border: 1px solid var(--line-invert-strong); border-radius: 6px; font: 800 10px var(--font-display); color: var(--muted-invert); }
 @keyframes arcade-pickup-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-strong) 45%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
 .arcade-build { width: min(960px, 100%); }
@@ -281,13 +293,13 @@
 .arcade-build__skill[data-talent] { border-style: dashed; }
 .arcade-build__skill[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-build__skill[data-rarity="exotic"] { border-color: var(--role-support); }
-.arcade-build__skill[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-build__skill[data-rarity="arcana"] { border-color: var(--card-tier-arcana); }
 .arcade-bag { display: grid; gap: 6px; width: 100%; }
 .arcade-bag__list { display: grid; gap: 4px; width: 100%; }
 .arcade-bag__row { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line-invert-strong); border-radius: 10px; background: var(--surface-invert); color: var(--on-invert); text-align: left; }
 .arcade-bag__row[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-bag__row[data-rarity="exotic"] { border-color: var(--role-support); }
-.arcade-bag__row[data-rarity="arcana"] { border-color: var(--gold); }
+.arcade-bag__row[data-rarity="arcana"] { border-color: var(--card-tier-arcana); }
 .arcade-bag__name { display: grid; gap: 1px; min-width: 0; }
 .arcade-bag__name b { font: 700 13px var(--font-display); }
 .arcade-bag__name small { color: var(--muted-invert); font-size: 11px; line-height: 1.3; }

@@ -7,21 +7,22 @@ import { bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActV
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
-import { ARCADE, DT, TICK_HZ } from "../../game/arcade/config.ts";
+import { ARCADE, DT, TICK_HZ, sec } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/content/schools.ts";
 import type { PlayerStats } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
-import { preloadArcadeArt } from "./sprites.ts";
+import { dotaSheet, dotaSheetState, preloadArcadeArt } from "./sprites.ts";
+import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { COSMETICS, COSMETIC_BY_ID, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
-import type { AbilityKey, Offer } from "../../game/arcade/types.ts";
+import type { AbilityKey, Offer, RuneKind } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { sfxDebug, sfxSample } from "../../ui/sound.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -444,9 +445,6 @@ function ArcadeStage() {
                 {replayLog && <Chip>{t("arcade.hud.replay")}</Chip>}
                 {isArcadeDailySeed(seed) && <Chip>{t("arcade.hud.daily")}</Chip>}
                 {p.aegis && <Chip>{t("arcade.hud.aegis")}</Chip>}
-                {sim.tick < p.ddUntil && <Chip data-testid="arcade-rune-dd">{t("arcade.rune.dd")} {formatClock(p.ddUntil - sim.tick)}</Chip>}
-                {sim.tick < p.shieldUntil && p.shieldHp > 0 && <Chip data-testid="arcade-rune-shield">{t("arcade.rune.shield")} {Math.ceil(p.shieldHp)}</Chip>}
-                {sim.tick < p.arcaneUntil && <Chip data-testid="arcade-rune-arcane">{t("arcade.rune.arcane")} {formatClock(p.arcaneUntil - sim.tick)}</Chip>}
                 {sim.hero.signature && (sim.hero.signature.kind === "souls" || sim.hero.signature.kind === "swipes") && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
@@ -458,6 +456,7 @@ function ArcadeStage() {
               {GEAR_SLOTS.map((slot) => { const g = p.gear[slot] as GearItem | undefined; return <span key={slot} className="arcade-hud__item" data-rarity={g?.rarity} title={g ? t(`arcade.gearName.${g.base}` as MessageKey) : t(`arcade.gear.slot.${slot}` as MessageKey)}>{g ? <ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" /> : <i className="arcade-hud__slot-empty" />}</span>; })}
               {p.bag.length > 0 && <span className="arcade-hud__bag">{t("arcade.gear.bag", { n: p.bag.length, max: ARCADE.loot.bagCap })}</span>}
             </div>
+            <BuffBar sim={sim} />
             {boss && (
               <div className="arcade-hud__boss">
                 <span>{t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
@@ -995,7 +994,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
     <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity={offer.rarity} data-testid={`arcade-offer-${index}`} onClick={onPick}>
       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {def.requiresSchools ? t("arcade.offer.hybrid", { a: t(`arcade.school.${def.requiresSchools[0]}` as MessageKey), b: t(`arcade.school.${def.requiresSchools[1]}` as MessageKey) }) : <>{t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</>}</span>
       <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
-      <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)} · {t("arcade.offer.rank", { rank, max: cap })}{cap > def.maxRank && <> · {t("arcade.offer.capUp", { n: cap - def.maxRank })}</>}</small>
+      <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)}{offer.rarity !== "standard" && <> · {t("arcade.offer.mult", { m: ARCADE.rarity.mult[offer.rarity] })}</>} · {t("arcade.offer.rank", { rank, max: cap })}{cap > def.maxRank && <> · {t("arcade.offer.capUp", { n: cap - def.maxRank })}</>}</small>
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
       {after.length > 0 && (
         <ul className="arcade-figures" data-testid="arcade-offer-figures">
@@ -1062,4 +1061,54 @@ function GearCard({ item, title, compact = false }: { item: GearItem | null; tit
 function affixLabel(t: (k: MessageKey, v?: Record<string, string | number>) => string, stat: string, value: number): string {
   const pct = ["attackSpeed", "crit", "lifesteal", "cooldown", "moveSpeed", "xpMult"].includes(stat);
   return `+${pct ? Math.round(value * 100) + "%" : value} ${t(`arcade.affix.${stat}` as MessageKey)}`;
+}
+
+/** Панель баффов рун (T13.32, владелец: «нет индикации, сколько действует руна»): иконка модели руны,
+ *  имя, остаток времени и тающая полоска; щит показывает ещё и запас, иллюзии — их число. */
+function BuffBar({ sim }: { sim: ArcadeSim }) {
+  const { t } = useI18n();
+  const p = sim.player;
+  const ill = sim.pets.filter((x) => x.kind === "illusion" && x.until !== undefined);
+  const illUntil = ill.reduce((m, x) => Math.max(m, x.until ?? 0), 0);
+  const rows: { kind: RuneKind; until: number; total: number; extra?: string }[] = [];
+  if (sim.tick < p.ddUntil) rows.push({ kind: "dd", until: p.ddUntil, total: sec(ARCADE.rune.dd.seconds) });
+  if (sim.tick < p.shieldUntil && p.shieldHp > 0) rows.push({ kind: "shield", until: p.shieldUntil, total: sec(ARCADE.rune.shield.seconds), extra: `${Math.ceil(p.shieldHp)} HP` });
+  if (sim.tick < p.arcaneUntil) rows.push({ kind: "arcane", until: p.arcaneUntil, total: sec(ARCADE.rune.arcane.seconds) });
+  if (ill.length > 0 && illUntil > sim.tick) rows.push({ kind: "illusion", until: illUntil, total: sec(ARCADE.rune.illusion.seconds), extra: `×${ill.length}` });
+  if (rows.length === 0) return null;
+  return (
+    <div className="arcade-hud__buffs" data-testid="arcade-buffs">
+      {rows.map((r) => (
+        <span key={r.kind} className={`arcade-hud__buff arcade-hud__buff--${r.kind}`} data-testid={`arcade-rune-${r.kind}`}>
+          <RuneIcon kind={r.kind} />
+          <b>{t(`arcade.rune.${r.kind}` as MessageKey)}<span>{formatClock(r.until - sim.tick)}{r.extra ? ` · ${r.extra}` : ""}</span></b>
+          <i style={{ transform: `scaleX(${Math.max(0, Math.min(1, (r.until - sim.tick) / r.total))})` }} />
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Первый кадр листа руны (`rune_<вид>`) в маленьком canvas; пока лист грузится — перерисовка по таймеру. */
+function RuneIcon({ kind }: { kind: RuneKind }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let alive = true;
+    let timer = 0;
+    const draw = () => {
+      if (!alive || !ref.current) return;
+      const name = `rune_${kind}`;
+      const ds = dotaSheet(name);
+      if (!ds) { if (dotaSheetState(name) === "loading") timer = window.setTimeout(draw, 150); return; }
+      const g = ref.current.getContext("2d");
+      if (!g) return;
+      const n = ref.current.width;
+      g.imageSmoothingEnabled = false;
+      g.clearRect(0, 0, n, n);
+      g.drawImage(ds.img, 0, 0, ds.meta.frame, ds.meta.frame, 0, 0, n, n);
+    };
+    draw();
+    return () => { alive = false; window.clearTimeout(timer); };
+  }, [kind]);
+  return <canvas ref={ref} width={52} height={52} aria-hidden="true" />;
 }

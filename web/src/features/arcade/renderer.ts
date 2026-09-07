@@ -4,7 +4,7 @@
 // Тригонометрия здесь разрешена: рендер не участвует в детерминизме.
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
-import type { AbilityKey, Enemy, Fx } from "../../game/arcade/types.ts";
+import type { AbilityKey, Enemy, Fx, RuneKind } from "../../game/arcade/types.ts";
 import type { AbilityDef } from "../../game/arcade/content/heroes.ts";
 
 /** Порядок слотов умений — тот же, что в симе (там он приватный). */
@@ -28,11 +28,16 @@ import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "groundNight", "fog", "river", "pit",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 type Palette = Record<PaletteKey, string>;
+
+/** Цвет руны по виду — токены `--arcade-rune-*`, те же, что у плиток баффов в HUD (arcade.css). */
+function runeColor(pal: Palette, kind: RuneKind): string {
+  return kind === "dd" ? pal.runeDd : kind === "shield" ? pal.runeShield : kind === "arcane" ? pal.runeArcane : pal.runeIllusion;
+}
 
 const TONE_KEY: Record<Enemy["kind"]["tone"], PaletteKey> = { grunt: "grunt", brute: "brute", swift: "swift", elite: "elite", boss: "boss", creep: "creep" };
 
@@ -424,12 +429,12 @@ export class ArcadeRenderer {
       const r = sim.rune;
       const ds = dotaSheet(`rune_${sim.runeKind}`);
       c.globalAlpha = 0.35 + 0.25 * pulse;
-      c.fillStyle = sim.runeKind === "dd" ? pal.fire : sim.runeKind === "shield" ? pal.heal : sim.runeKind === "arcane" ? pal.lightning : pal.text;
+      c.fillStyle = runeColor(pal, sim.runeKind);
       c.beginPath(); c.ellipse(r.x, r.y + 6, 16, 7, 0, 0, Math.PI * 2); c.fill();
       c.globalAlpha = 1;
       const bob = Math.round(Math.sin(sim.tick / 12) * 3);
       if (!ds || !drawDotaFrame(c, ds, "idle", 0, 0, r.x, r.y + 8 + bob)) {
-        c.fillStyle = sim.runeKind === "dd" ? pal.fire : sim.runeKind === "shield" ? pal.heal : sim.runeKind === "arcane" ? pal.lightning : pal.text;
+        c.fillStyle = runeColor(pal, sim.runeKind);
         c.beginPath(); c.arc(r.x, r.y + bob, 11, 0, Math.PI * 2); c.fill();
         c.fillStyle = pal.player; c.font = "800 11px var(--font-display, sans-serif)"; c.textAlign = "center";
         this.text(c, sim.runeKind === "dd" ? "DD" : sim.runeKind === "shield" ? "S" : sim.runeKind === "arcane" ? "A" : "I", r.x, r.y + bob + 4);
@@ -458,7 +463,7 @@ export class ArcadeRenderer {
     }
     for (const g of sim.groundLoot) {
       if (g.until <= 0) continue;
-      const color = g.item.rarity === "arcana" ? pal.aegis : g.item.rarity === "exotic" ? pal.lightning : g.item.rarity === "refined" ? pal.frost : pal.text;
+      const color = g.item.rarity === "arcana" ? pal.arcana : g.item.rarity === "exotic" ? pal.lightning : g.item.rarity === "refined" ? pal.frost : pal.text;
       c.strokeStyle = color; c.lineWidth = 2; c.globalAlpha = 0.5 + 0.4 * pulse;
       c.beginPath(); c.ellipse(g.x, g.y + 8, 16, 7, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
       const img = this.icon(gearArt(g.item));
