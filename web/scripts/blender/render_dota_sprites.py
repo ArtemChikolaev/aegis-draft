@@ -33,6 +33,8 @@ def parse_args():
     p.add_argument("--pitch", type=float, default=45.0, help="высота камеры над горизонтом, градусов (90 = строго сверху; 45 читается как RTS/DMD)")
     p.add_argument("--drop-mat", default="", help="регулярка по имени материала: грани с таким материалом убираются (меш без граней — целиком). Для шейдерных материалов без цвета — огненный «хвост» арканы Jugg (`juggernaut_arcana_mask_tail`: additive-fire, в Workbench чёрное знамя)")
     p.add_argument("--drop-vgroup", default="", help="регулярка по имени кости (группы вершин): грани, чьи вершины держит в основном такая кость, убираются — укоротить цепочку ткани/гривы без физики (грива арканы Jugg: `chain_[3-9]` оставляет половину)")
+    p.add_argument("--glow-mat", default="", help="свечение материала целиком, без маски: «<regex по имени материала>=R,G,B[,сила 0–1];…». Светлые места текстуры тянутся к цвету (клинки Terrorblade: в Dota их красит градиент weapon_grad, detailmask там = 1 всюду и как маска не годится)")
+    p.add_argument("--white-to", default="", help="только --pixel: почти белые непрозрачные пиксели color-текстуры (min(RGB) > порог) перекрасить в «R,G,B[,порог]». Аркана PA «Manifold Paradox»: платье в текстуре белое, в Dota его гасит шейдер ткани, светятся только прозрачные линии узора (--glow-from-alpha) — без этого платье выходило светлым «голым» телом")
     p.add_argument("--hide-base", action="store_true", help="скрыть меши основной модели и оставить только части: скелет и анимации берём у героя, а вид — у арканы (её собственный item-glb часто без клипов ходьбы, и герой «скользил»)")
     p.add_argument("--parts", default="", help="доп. glb через запятую (штаны/маска/оружие героя Dota): их меши пришиваются к скелету основной модели по именам костей")
     p.add_argument("--no-root-lock", action="store_true", help="не гасить смещение корневой кости (root motion) в анимациях")
@@ -50,6 +52,7 @@ def parse_args():
     p.add_argument("--style-dir", default="", help="папка с PNG стиля (рекурсивно), распакованными из vpk")
     p.add_argument("--glow-from-alpha", default="", help="только --pixel: прозрачные области color-текстуры (alpha < 0.5) закрасить этим цветом «R,G,B» (0–1). У арканы PA «Manifold Paradox» узор свечения лежит именно в альфе цвета, а Workbench альфу не видит — платье выходило сплошь чёрным")
     p.add_argument("--glow-mask-dir", default="", help="только --pixel: папка с масками свечения из vpk (`*_detailmask_*` — альфа = selfillum, `*_selfillummask_*` — яркость); где маска > 0.3, цвет текстуры поднимается к --glow-color. Пайплайн достаёт их по --glow-mask <папка материалов в vpk>. В Dota это свечение считает шейдер (selfillum), Workbench его не знает — грудь арканы Terrorblade выходила чёрной дырой")
+    p.add_argument("--glow-grow", type=int, default=0, help="расширить маску свечения на N текселей (max-фильтр): точечный selfillum (ядро груди Terrorblade — 0.7% текстуры) в 160-px кадре иначе не виден")
     p.add_argument("--glow-color", default="0.35,1.0,0.9", help="цвет свечения для --glow-mask-dir / R,G,B в 0–1")
     p.add_argument("--mat-map", default="", help="починка материалов, которых нет в vpk (ремодель арканы QoP ссылается на materials/models/heroes_staging/…): «<ключ>=<имя текстуры>,…», ключ — номер примитива меша без материалов (0,1,…) или имя материала-заглушки (alexgrey); текстура ищется в --fix-tex-dir как <имя>[_<стиль>]_color*.png")
     p.add_argument("--fix-tex-dir", default="", help="папка с PNG для --mat-map (пайплайн достаёт их из vpk по --fix-tex)")
@@ -559,6 +562,23 @@ def main():
         styles = style_index(a.style_dir) if a.style and a.style_dir else {}
         if a.mat_map:
             fix_materials(objs, os.path.abspath(a.glb), a.mat_map, a.fix_tex_dir, a.style)
+        def white_to(img, spec):
+            # Белые (min RGB > порог) непрозрачные пиксели → цвет ткани; делаем ДО glow_from_alpha,
+            # чтобы закрашенные линии узора не попали под перекраску.
+            import numpy as np
+            vals = [float(v) for v in spec.split(",")]
+            col, thr = np.array(vals[:3], dtype=np.float32), (vals[3] if len(vals) > 3 else 0.8)
+            w, h = img.size
+            if w == 0 or h == 0:
+                return
+            px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
+            white = (px[:, :3].min(axis=1) > thr) & (px[:, 3] >= 0.5)
+            if not white.any():
+                return
+            px[white, :3] = col
+            img.pixels.foreach_set(px.reshape(-1))
+            img.update()
+            print(f"white-to: {img.name} перекрашено {white.mean() * 100:.1f}% текстуры")
         def glow_from_alpha(img, rgb_str):
             # Узор свечения в альфе цвета (аркана PA): прозрачные пиксели красим цветом свечения, альфу
             # снимаем — Workbench рисует RGB как есть, и узор становится видимым, как в Dota.
@@ -599,6 +619,15 @@ def main():
                 xs = (np.arange(w) * mimg.size[0] // max(1, w)).clip(0, mimg.size[0] - 1)
                 mask = mask[ys][:, xs]
             share = float((mask > 0.3).mean())
+            if a.glow_grow > 0 and 0.0005 <= share <= 0.35:
+                g = a.glow_grow
+                grown = mask.copy()
+                for dy in range(-g, g + 1):
+                    for dx in range(-g, g + 1):
+                        if dy * dy + dx * dx > g * g:
+                            continue
+                        grown = np.maximum(grown, np.roll(np.roll(mask, dy, axis=0), dx, axis=1))
+                mask = grown
             if share < 0.0005 or share > 0.35:
                 # Пустая маска — нечего светить; маска почти на всю текстуру — это не selfillum (у оружия
                 # Terrorblade альфа detailmask = 1 везде, и клинок красился целиком).
@@ -611,12 +640,35 @@ def main():
             img.pixels.foreach_set(px.reshape(-1))
             img.update()
             print(f"glow-mask: {img.name} ← {os.path.basename(path)} ({share * 100:.1f}% текстуры)")
+        import numpy as np
+        glow_mats = []
+        for spec in [x for x in a.glow_mat.split(";") if x.strip()]:
+            rx, _, rgb = spec.partition("=")
+            vals = [float(v) for v in rgb.split(",")]
+            glow_mats.append((re.compile(rx), np.array(vals[:3], dtype=np.float32), vals[3] if len(vals) > 3 else 0.7))
+        def glow_whole(img, col, strength):
+            # Весь материал светится (--glow-mat): яркость текстуры нормируем и тянем цвет к свечению —
+            # светлые грани клинка становятся цветом, тёмная сталь остаётся.
+            w, h = img.size
+            if w == 0 or h == 0:
+                return
+            px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
+            lum = px[:, :3].mean(axis=1)
+            top = float(np.percentile(lum, 97)) or 1.0
+            k = np.clip(lum / top, 0.0, 1.0)[:, None] * strength
+            px[:, :3] = px[:, :3] * (1 - k) + col[None, :] * k
+            img.pixels.foreach_set(px.reshape(-1))
+            img.update()
+            print(f"glow-mat: {img.name} → {col.round(2).tolist()} (сила {strength})")
         swapped = 0
         exposed = set()
         for m in bpy.data.materials:
             if not m.use_nodes:
                 continue
             node = base_color_image(m.node_tree)
+            for rx, col, strength in glow_mats:
+                if node and rx.search(m.name) and node.image.name not in exposed:
+                    glow_whole(node.image, col, strength)
             if node and styles:
                 # Стиль арканы — та же модель с другим набором текстур (Dota хранит их отдельным
                 # материалом `arcana_style1`, в glb приезжает только базовый).
@@ -632,6 +684,8 @@ def main():
                     # иначе закрашенная альфа поднимает среднее, и чёрное тело PA остаётся чёрным.
                     if a.autoexpose > 0:
                         auto_expose(node.image, a.autoexpose, a.expose_target)
+                    if a.white_to:
+                        white_to(node.image, a.white_to)
                     if a.glow_from_alpha:
                         glow_from_alpha(node.image, a.glow_from_alpha)
                     if glow_masks:
