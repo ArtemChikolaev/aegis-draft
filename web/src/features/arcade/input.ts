@@ -23,6 +23,8 @@ export class ArcadeInputController {
   /** Подобрать добычу (G / Enter) и экран сборки (Tab / I): экран решает, слать ли `act` в сим. */
   onPickup: (() => void) | null = null;
   onBuild: (() => void) | null = null;
+  /** Вспышка свечения (T): чисто визуальная, в сим не идёт. */
+  onFlare: (() => void) | null = null;
 
   constructor(private readonly surface: HTMLElement) {
     window.addEventListener("keydown", this.onKeyDown);
@@ -86,7 +88,8 @@ export class ArcadeInputController {
     if (cast) { this.castMask |= cast; e.preventDefault(); return; }
     if (e.code === "Escape" || e.code === "Space") { this.onPause?.(); e.preventDefault(); return; }
     if (e.code === "KeyG" || e.code === "Enter") { this.onPickup?.(); e.preventDefault(); return; }
-    if (e.code === "Tab" || e.code === "KeyI") { this.onBuild?.(); e.preventDefault(); }
+    if (e.code === "Tab" || e.code === "KeyI") { this.onBuild?.(); e.preventDefault(); return; }
+    if (e.code === "KeyT") { this.onFlare?.(); e.preventDefault(); }
   };
   private onKeyUp = (e: KeyboardEvent) => { this.keys.delete(e.code); };
   private onBlur = () => { this.keys.clear(); this.stick = null; };

@@ -13,9 +13,13 @@ import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
 import { dotaSheet, dotaSheetState, drawDotaFrame, gemSheet, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
+import { drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, readEffectPalette, type AuraEffect, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
-const EFFECT_SLOTS: readonly CosmeticSlot[] = ["frame", "trail", "death", "tint"];
+const EFFECT_SLOTS: readonly CosmeticSlot[] = ["frame", "aura", "trail", "death", "tint"];
+
+/** Надетые эффекты для превью: варианты по слотам (из COSMETIC_BY_ID). */
+export interface PreviewEffects { frame?: GroundEffect; aura?: AuraEffect; trail?: TrailEffect; death?: DeathEffect }
 
 /** Цикл превью: секунды на стойку, ходьбу (с разворотом) и удар. */
 const IDLE_S = 1.6;
@@ -62,7 +66,7 @@ function useSheetGlow(sheet: string, enabled: boolean): SheetGlow | null | undef
   return glow;
 }
 
-function LookPreview({ sheet, size, gem = null, glow = false, still = false }: { sheet: string; size: number; gem?: number | null; glow?: boolean; still?: boolean }) {
+function LookPreview({ sheet, size, gem = null, glow = false, still = false, effects }: { sheet: string; size: number; gem?: number | null; glow?: boolean; still?: boolean; effects?: PreviewEffects }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const { t } = useI18n();
   const [missing, setMissing] = useState(false);
@@ -79,6 +83,8 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false }: {
     if (!c) return;
     const t0 = performance.now();
     let raf = 0;
+    const pal = readEffectPalette();
+    const trailPts: { x: number; y: number; t: number }[] = [];
     const draw = () => {
       raf = requestAnimationFrame(draw);
       const bare = sheet.split("~")[0];
@@ -96,11 +102,36 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false }: {
       const dir = anim === "walk" ? Math.floor(((loop - IDLE_S) / WALK_S) * s.meta.dirs) % s.meta.dirs : 0;
       const frame = still ? 0 : Math.floor(el * s.meta.fps);
       const mult = previewScale(size, s.meta.world, dpr);
-      drawDotaFrame(c, s, anim, dir, frame, size / 2, size * 0.9, 1, mult);
+      // Эффекты в превью (владелец 2026-09-07: «никак не отображаются в превью персонажа»): те же
+      // функции, что в бою. Радиус героя и высота силуэта — от размера превью, тик — от часов страницы.
+      const fx = effects;
+      const tick = Math.floor(el * 60);
+      // Зерно эффектов — два арт-пикселя, как в бою (artPx = 2 · фактор), радиус кольца — как у героя в бою
+      // относительно роста (R ≈ 0.17 роста).
+      const px = Math.max(1, Math.round(mult * 2));
+      const R = size * 0.11, hx = size / 2, hy = size * 0.9, hh = size * 0.62;
+      if (fx?.trail && !still) {
+        // След: герой в превью стоит, поэтому точки идут по дуге за ним, как будто он только что подошёл.
+        const now = performance.now();
+        const a = el * 1.6;
+        const tx = hx + Math.cos(a) * size * 0.22, ty = hy + Math.sin(a) * size * 0.08;
+        const last = trailPts[trailPts.length - 1];
+        if (!last || Math.hypot(last.x - tx, last.y - ty) > 4) trailPts.push({ x: tx, y: ty, t: now });
+        while (trailPts.length && now - trailPts[0].t > 520) trailPts.shift();
+        drawTrailEffect(c, trailPts, now, fx.trail, px, pal);
+      }
+      if (fx?.frame) drawGroundEffect(c, hx, hy, R, fx.frame, tick, px, pal, 0);
+      drawDotaFrame(c, s, anim, dir, frame, hx, hy, 1, mult);
+      if (fx?.aura) drawAuraEffect(c, hx, hy, hh, fx.aura, tick, 7, px, pal, 0);
+      if (fx?.death && !still) {
+        // Эффект смерти врагов: раз в две секунды вспыхивает сбоку от героя.
+        const k = (el % 2) / 0.9;
+        if (k < 1) drawDeathEffect(c, hx + size * 0.32, hy - size * 0.1, size * 0.06, k, fx.death, Math.floor(el / 2), px, pal);
+      }
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [sheet, size, gem, glow, still]);
+  }, [sheet, size, gem, glow, still, effects?.frame, effects?.aura, effects?.trail, effects?.death]);
   return (
     <span className="arcade-wardrobe__slot" style={{ width: size, height: size }}>
       <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />
@@ -140,6 +171,8 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   // Аркана рисуется со свечением; самоцветы показываем только если у листа это свечение есть
   // (как в Dota: призматический самоцвет красит эффекты, и облику без них он не нужен).
   const arcana = sel.def?.rarity === "arcana";
+  const effectVariant = (slot: CosmeticSlot) => { const id = cosmetics.equipped[slot]; return id ? COSMETIC_BY_ID[id]?.variant : undefined; };
+  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: effectVariant("aura") as AuraEffect | undefined, trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
   const glow = useSheetGlow(previewSheet, arcana);
   const styleOptions = (sel.def?.styles ?? []).filter((st) => st.hue === undefined || !!glow);
   return (
@@ -153,7 +186,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
     >
       <div className="arcade-wardrobe" data-testid="arcade-wardrobe">
         <div className="arcade-wardrobe__stage">
-          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? "own"}`} sheet={previewSheet} size={220} gem={selStyle?.hue ?? null} glow={arcana} />
+          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? "own"}`} sheet={previewSheet} size={220} gem={selStyle?.hue ?? null} glow={arcana} effects={previewEffects} />
           <strong data-testid="arcade-wardrobe-name">
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
           </strong>
@@ -211,6 +244,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
           })}
         </div>
         <div className="arcade-wardrobe__effects">
+          {cosmetics.equipped.aura && <small className="arcade-wardrobe__hint">{t("arcade.wardrobe.flareHint")}</small>}
           {EFFECT_SLOTS.map((slot) => {
             const all = COSMETICS.filter((c) => c.slot === slot);
             return (

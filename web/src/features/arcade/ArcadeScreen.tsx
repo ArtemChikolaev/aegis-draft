@@ -302,6 +302,7 @@ function ArcadeStage() {
     };
     // Подбор (G / Enter) и экран сборки (Tab / I) — через `act` в сим: попадают в input-лог, реплей повторяет.
     controller.onPickup = () => { const cur = getArcadeSim(); if (cur && cur.nearLoot && !cur.lootOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
+    controller.onFlare = () => { if (useArcade.getState().status === "running") renderer.flare(performance.now()); };
     controller.onBuild = () => { const cur = getArcadeSim(); if (cur && !cur.pending && !cur.shopOpen && !cur.neutralOpen && !cur.lootOpen && useArcade.getState().status === "running") controller.queueAct(BUILD_ACT); };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
     ro.observe(stage);

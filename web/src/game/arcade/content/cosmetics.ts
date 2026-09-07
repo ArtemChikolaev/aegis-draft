@@ -4,7 +4,9 @@
 import { Rng } from "../../rng.ts";
 import type { ArcadeOutcome, Rarity } from "../types.ts";
 
-export type CosmeticSlot = "frame" | "trail" | "death" | "tint" | "skin";
+/** Слоты: `frame` — наземный эффект у ног, `aura` — свечение героя, `trail` — след, `death` — эффект
+ *  смерти врагов, `tint` — оттенок умений, `skin` — облик. Эффекты рисует features/arcade/effects.ts. */
+export type CosmeticSlot = "frame" | "aura" | "trail" | "death" | "tint" | "skin";
 
 export interface CosmeticDef {
   id: string;
@@ -47,10 +49,17 @@ export const GEMS: readonly StyleDef[] = [
 ];
 
 export const COSMETICS: readonly CosmeticDef[] = [
-  { id: "frame_bronze", slot: "frame", rarity: "standard", variant: "bronze" },
-  { id: "frame_silver", slot: "frame", rarity: "refined", variant: "silver" },
+  // Наземные эффекты (владелец 2026-09-07: «свечение под персонажем, как в Dota»): id прежние — они
+  // лежат в сохранениях игроков, — а вид новый: кольцо углей, льда, золота Aegis и пустотный вихрь.
+  { id: "frame_bronze", slot: "frame", rarity: "standard", variant: "ember" },
+  { id: "frame_silver", slot: "frame", rarity: "refined", variant: "frost" },
   { id: "frame_gold", slot: "frame", rarity: "exotic", variant: "gold" },
-  { id: "frame_immortal", slot: "frame", rarity: "arcana", variant: "immortal" },
+  { id: "frame_immortal", slot: "frame", rarity: "arcana", variant: "void" },
+  // Свечение героя: языки пламени, иней, молнии, золотая пыльца с нимбом. Клавиша T — вспышка.
+  { id: "aura_fire", slot: "aura", rarity: "standard", variant: "fire" },
+  { id: "aura_frost", slot: "aura", rarity: "refined", variant: "frost" },
+  { id: "aura_arc", slot: "aura", rarity: "exotic", variant: "lightning" },
+  { id: "aura_aegis", slot: "aura", rarity: "arcana", variant: "aegis" },
   { id: "trail_ember", slot: "trail", rarity: "standard", variant: "fire" },
   { id: "trail_frost", slot: "trail", rarity: "refined", variant: "frost" },
   { id: "trail_arc", slot: "trail", rarity: "exotic", variant: "lightning" },
@@ -88,10 +97,8 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_skywrath_arcana", slot: "skin", rarity: "arcana", variant: "skywrath_mage@arcana", hero: "skywrath_mage" },
   { id: "skin_spectre_arcana", slot: "skin", rarity: "arcana", variant: "spectre@arcana", hero: "spectre" },
   { id: "skin_vs_arcana", slot: "skin", rarity: "arcana", variant: "vengeful_spirit@arcana", hero: "vengeful_spirit" },
-  // Аркана Drow: лист собирается на БАЗОВОМ теле `drow_base` с косметикой арканы поверх — так фигура
-  // стоит прямо, плащ и арбалет на месте (владелец: «скин drow, который был с арбалетом, нужно
-  // вернуть»). С «правильным» телом `drow_arcana.vmdl_c` косметика деформируется мимо него, и лист
-  // выходит размазнёй; модель зафиксирована в манифестах, подробности — BACKLOG T13.28.
+  // Аркана Drow — на теле арканы `drow_arcana.vmdl_c` с её частями; «размазня» была в клипах частей,
+  // а не в модели (T13.30).
   { id: "skin_drow_arcana", slot: "skin", rarity: "arcana", variant: "drow_ranger@arcana", hero: "drow_ranger" },
   // Сеты Dota (T13.27, вопрос владельца «можно ли конкретные предметы из сетов»): сет — это части
   // `models/items/<hero>/<set>_{head,arms,legs,back,weapon}`, которые пришиваются к скелету базового
@@ -220,7 +227,7 @@ for (const c of COSMETICS) if (SHEET_STYLE_SKINS.has(c.id)) (c as { styles?: rea
 for (const c of COSMETICS) if (c.slot === "skin" && c.rarity === "arcana" && !c.styles) (c as { styles?: readonly StyleDef[] }).styles = GEMS;
 
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));
-export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["skin", "frame", "trail", "death", "tint"];
+export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["skin", "frame", "aura", "trail", "death", "tint"];
 
 /** Имя листа/озвучки героя с учётом надетого скина: `<hero>@<skin>`, если скин этого героя надет, иначе id героя.
  *  Стиль сюда НЕ входит: озвучка у стилей общая со скином. */

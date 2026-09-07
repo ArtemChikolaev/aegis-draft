@@ -17,6 +17,7 @@ import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
+import { drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, gemSheet, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
@@ -56,6 +57,13 @@ export class ArcadeRenderer {
   private skinGem: number | null = null;
   private skinGlow = false;
   private trail: { x: number; y: number; t: number }[] = [];
+  /** Вспышка свечения по клавише T (владелец 2026-09-07: «чтобы из тебя шёл огонь, когда ты хочешь»): до какого момента. */
+  private flareUntil = 0;
+
+  /** Разжечь надетое свечение и наземный эффект на ~1.2 с. Чисто визуально, в сим не идёт. */
+  flare(now: number): void {
+    this.flareUntil = now + 1200;
+  }
   /** Ландшафт текущего забега (сид + акт) и слежение за движением героя для анимации ходьбы. */
   private terrain: Terrain | null = null;
   private terrainKey = "";
@@ -637,12 +645,11 @@ export class ArcadeRenderer {
     // сиянием. Рисуется ЗДЕСЬ, вместе с кольцом выбора и до спрайта: это наклейка на земле. Когда
     // она шла после спрайта, кольцо ложилось поверх ног (владелец 2026-09-06: «круг опять
     // просвечивает через модельку»).
-    const frameRing = this.cosmetic.frame;
+    const frameRing = this.cosmetic.frame as GroundEffect | undefined;
+    const flareK = now < this.flareUntil ? Math.sin(((this.flareUntil - now) / 1200) * Math.PI) : 0;
     if (frameRing) {
-      c.strokeStyle = frameRing === "bronze" ? pal.grunt : frameRing === "silver" ? pal.text : frameRing === "gold" ? pal.aegis : pal.lightning;
-      c.lineWidth = 2; c.globalAlpha = heroAlpha * (frameRing === "immortal" ? 0.5 + 0.5 * Math.abs(Math.sin(now / 300)) : 0.9);
-      c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.3, R * 0.55, 0, 0, Math.PI * 2); c.stroke();
-      if (frameRing === "gold" || frameRing === "immortal") { c.beginPath(); c.ellipse(p.x, p.y + R * 0.75, R * 1.5, R * 0.65, 0, 0, Math.PI * 2); c.stroke(); }
+      c.globalAlpha = heroAlpha;
+      drawGroundEffect(c, p.x, p.y + R * 0.75, R, frameRing, sim.tick, this.artPx(), pal, flareK);
       c.globalAlpha = heroAlpha;
     }
     // Ходьба: движение определяем по смещению между кадрами (сим ввод не отдаёт).
@@ -690,25 +697,25 @@ export class ArcadeRenderer {
       drawRig(c, p.x, p.y + R * 0.75, rig, { facing: lookX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
     }
     c.globalAlpha = 1;
-
+    // Свечение героя (косметика) — поверх спрайта по высоте силуэта: у листа Dota это `world`, у остальных ~3 радиуса.
+    this.drawAura(sim, p.x, p.y + R * 0.75, heroDota ? heroDota.meta.world * 0.62 : R * 3, now, pal);
   }
 
   private drawTrail(x: number, y: number, now: number, pal: Palette): void {
-    const kind = this.cosmetic.trail;
+    const kind = this.cosmetic.trail as TrailEffect | undefined;
     if (!kind) { this.trail.length = 0; return; }
     const last = this.trail[this.trail.length - 1];
     if (!last || Math.hypot(last.x - x, last.y - y) > 6) this.trail.push({ x, y, t: now });
-    while (this.trail.length && now - this.trail[0].t > 500) this.trail.shift();
-    const c = this.ctx;
-    const color = kind === "fire" ? pal.fire : kind === "frost" ? pal.frost : kind === "lightning" ? pal.lightning : pal.aegis;
-    c.fillStyle = color;
-    for (const pt of this.trail) {
-      const k = 1 - (now - pt.t) / 500;
-      c.globalAlpha = k * 0.5;
-      const r = kind === "aegis" ? 3 + 3 * k : 2 + 4 * k;
-      c.beginPath(); c.arc(pt.x + (kind === "lightning" ? (Math.random() - 0.5) * 8 : 0), pt.y, r, 0, Math.PI * 2); c.fill();
-    }
-    c.globalAlpha = 1;
+    while (this.trail.length && now - this.trail[0].t > 520) this.trail.shift();
+    drawTrailEffect(this.ctx, this.trail, now, kind, this.artPx(), pal);
+  }
+
+  /** Свечение героя (слот `aura`) — поверх спрайта, по высоте силуэта; вспышка по T разжигает его. */
+  private drawAura(sim: ArcadeSim, x: number, y: number, h: number, now: number, pal: Palette): void {
+    const kind = this.cosmetic.aura as AuraEffect | undefined;
+    if (!kind) return;
+    const flareK = now < this.flareUntil ? Math.sin(((this.flareUntil - now) / 1200) * Math.PI) : 0;
+    drawAuraEffect(this.ctx, x, y, h, kind, sim.tick, 7, this.artPx(), pal, flareK);
   }
 
   /** Эффекты, которые лежат НА ЗЕМЛЕ: кольца, круги зон, оседающие тела. Рисуются до сущностей —
@@ -758,10 +765,8 @@ export class ArcadeRenderer {
           break;
         }
         case "die": {
-          const death = this.cosmetic.death;
-          c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = death === "nova" ? pal.lightning : pal.text; c.lineWidth = death ? 2 : 1.5;
-          const rr = f.x2 + k * f.x2 * (death === "ring" ? 3 : death === "nova" ? 4 : 1.6);
-          c.beginPath(); c.arc(f.x, f.y, rr, 0, Math.PI * 2); c.stroke();
+          const death = (this.cosmetic.death as DeathEffect | undefined) ?? null;
+          drawDeathEffect(c, f.x, f.y, f.x2, k, death, f.born, this.artPx(), pal);
           // Смерть: у LPC-персонажей — кадры «hurt» (падение), у остальных — оседающий силуэт.
           const kindId = KIND_BY_INDEX[f.y2];
           const look = kindId ? enemyLook(kindId) : null;
@@ -775,10 +780,6 @@ export class ArcadeRenderer {
           } else {
             c.globalAlpha = (1 - k) * 0.6; c.fillStyle = pal.limb;
             c.beginPath(); c.ellipse(f.x, f.y + f.x2 * 0.5, f.x2 * (1 + k * 0.6), Math.max(1, f.x2 * (0.6 - k * 0.5)), 0, 0, Math.PI * 2); c.fill();
-          }
-          if (death === "shatter") {
-            c.fillStyle = pal.frost;
-            for (let i = 0; i < 6; i++) { const a = i * 1.047 + k; c.beginPath(); c.arc(f.x + Math.cos(a) * rr, f.y + Math.sin(a) * rr, 2, 0, Math.PI * 2); c.fill(); }
           }
           break;
         }
