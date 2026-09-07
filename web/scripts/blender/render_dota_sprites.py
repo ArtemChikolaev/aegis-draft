@@ -46,6 +46,11 @@ def parse_args():
     p.add_argument("--expose-target", type=float, default=0.4)
     p.add_argument("--style", default="", help="стиль арканы Dota (style1/style2): color-текстуры материалов подменяются одноимёнными из --style-dir; см. dota_style_textures.sh")
     p.add_argument("--style-dir", default="", help="папка с PNG стиля (рекурсивно), распакованными из vpk")
+    p.add_argument("--glow-from-alpha", default="", help="только --pixel: прозрачные области color-текстуры (alpha < 0.5) закрасить этим цветом «R,G,B» (0–1). У арканы PA «Manifold Paradox» узор свечения лежит именно в альфе цвета, а Workbench альфу не видит — платье выходило сплошь чёрным")
+    p.add_argument("--glow-mask-dir", default="", help="только --pixel: папка с масками свечения из vpk (`*_detailmask_*` — альфа = selfillum, `*_selfillummask_*` — яркость); где маска > 0.3, цвет текстуры поднимается к --glow-color. Пайплайн достаёт их по --glow-mask <папка материалов в vpk>. В Dota это свечение считает шейдер (selfillum), Workbench его не знает — грудь арканы Terrorblade выходила чёрной дырой")
+    p.add_argument("--glow-color", default="0.35,1.0,0.9", help="цвет свечения для --glow-mask-dir / R,G,B в 0–1")
+    p.add_argument("--mat-map", default="", help="починка материалов, которых нет в vpk (ремодель арканы QoP ссылается на materials/models/heroes_staging/…): «<ключ>=<имя текстуры>,…», ключ — номер примитива меша без материалов (0,1,…) или имя материала-заглушки (alexgrey); текстура ищется в --fix-tex-dir как <имя>[_<стиль>]_color*.png")
+    p.add_argument("--fix-tex-dir", default="", help="папка с PNG для --mat-map (пайплайн достаёт их из vpk по --fix-tex)")
     return p.parse_args(argv)
 
 
@@ -80,6 +85,84 @@ def style_texture(idx, image_name, style):
             return path
     return None
 
+def fix_materials(objs, glb_path, mapping, texdir, style):
+    """Материалы, которых в vpk нет. Ремодель арканы QoP ссылается на `materials/models/heroes_staging/…`
+    (в игре их подменяет предмет), VRF их не находит и пишет меш вообще без материалов: Blender
+    сливает все примитивы в один серый меш. Настоящие текстуры лежат рядом
+    (`materials/models/items/queenofpain/queenofpain_arcana/*_color`), поэтому:
+      * меш без материалов режем по примитивам glb (порядок граней = порядок примитивов, число
+        треугольников — из accessor'а индексов) и вешаем материал на каждый;
+      * материалы-заглушки (alexgrey, чужой ember_sindur_sensei_weapon) подменяем по имени.
+    Ключ карты — номер примитива или имя материала, значение — имя текстуры в --fix-tex-dir."""
+    import struct
+    idx = style_index(texdir) if texdir else {}
+    def find_png(name):
+        for cand in ([f"{name}_{style}_color"] if style else []) + [f"{name}_color"]:
+            for key, path in idx.items():
+                if key.startswith(cand + "_") or key == cand:
+                    return path
+        return None
+    def make_material(name):
+        png = find_png(name)
+        if not png:
+            print(f"WARN: mat-map: текстура для {name} не найдена в {texdir}")
+            return None
+        m = bpy.data.materials.new(f"fix_{name}")
+        m.use_nodes = True
+        tex = m.node_tree.nodes.new("ShaderNodeTexImage")
+        tex.image = bpy.data.images.load(png, check_existing=True)
+        bsdf = next((n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+        if bsdf:
+            m.node_tree.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+        m.node_tree.nodes.active = tex
+        return m
+    pairs = [p.split("=", 1) for p in mapping.split(",") if "=" in p]
+    by_index = {int(k): v for k, v in pairs if k.strip().isdigit()}
+    by_name = {k.lower(): v for k, v in pairs if not k.strip().isdigit()}
+    # Число треугольников на примитив — из JSON-чанка glb.
+    prim_tris = {}
+    try:
+        with open(glb_path, "rb") as f:
+            head = f.read(20)
+            ln = struct.unpack("<I", head[12:16])[0]
+            j = json.loads(f.read(ln))
+        acc = j.get("accessors", [])
+        for mesh in j.get("meshes", []):
+            prim_tris[mesh["name"].rsplit(".", 1)[-1]] = [acc[p["indices"]]["count"] // 3 for p in mesh["primitives"]]
+    except Exception as e:
+        print(f"WARN: mat-map: glb не разобран ({e})")
+    fixed = 0
+    for o in objs:
+        if o.type != "MESH":
+            continue
+        me = o.data
+        if by_index and not any(me.materials):
+            tris = None
+            for key, counts in prim_tris.items():
+                if o.name.endswith(key) and sum(counts) == len(me.polygons):
+                    tris = counts
+            if not tris:
+                continue
+            me.materials.clear()
+            start = 0
+            for pi, cnt in enumerate(tris):
+                m = make_material(by_index[pi]) if pi in by_index else None
+                me.materials.append(m)
+                for p in me.polygons[start:start + cnt]:
+                    p.material_index = pi
+                start += cnt
+                fixed += 1 if m else 0
+        elif by_name:
+            for si, m in enumerate(me.materials):
+                base = m.name.lower().split(".")[0] if m else ""
+                if base in by_name:
+                    nm = make_material(by_name[base])
+                    if nm:
+                        me.materials[si] = nm
+                        fixed += 1
+    print(f"mat-map: назначено материалов {fixed}")
+
+
 def reset_scene():
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
@@ -98,7 +181,8 @@ def pick_action(actions, key, strict=False):
     if exact:
         return exact[0]
     # Совсем не про движение — эти в кандидаты не идут никогда.
-    hard = ("portrait", "loadout", "lookframe", "_faces_dup", "_cc_20", "basher", "ward", "pact", "effigy", "channel", "debut")
+    hard = ("portrait", "loadout", "lookframe", "_faces_dup", "_cc_20", "basher", "ward", "pact", "effigy", "channel", "debut",
+            "mvp", "screen", "_dig", "burrow")  # «cast_dig» Meepo уводит модель под пол — ряд каста пустой
     # Вариации той же анимации: годятся, но только если ничего лучше нет.
     soft = ("haste", "injured", "showoff", "_alt", "versus", "turns", "taunt", "spawn", "agg", "green", "copy", "slide", "gesture", "sidestep", "loop_end", "_end", "_to_", "stop", "start", "heavy", "rare", "custom")
     def score(a):
@@ -114,7 +198,10 @@ def pick_action(actions, key, strict=False):
         skip = ("bindpose", "idle", "run", "walk", "attack", "death", "loadout", "portrait", "turn", "spawn", "stun",
                 "flail", "victory", "defeat", "taunt", "teleport", "capture", "cloth", "gesture", "look",
                 "injured", "haste", "_alt", "rare", "effigy", "debut", "workshop", "_mm", "bp_", "loop",
-                "sleep", "hover", "blend", "transition", "slide", "shape", "physics", "dropped", "_fx")
+                "sleep", "hover", "blend", "transition", "slide", "shape", "physics", "dropped", "_fx",
+                # Экраны и уход под землю: «mvp_screen» у персоны Dragon Knight и «cast_dig» у Meepo давали
+                # пустой ряд каста (модель вне кадра / под полом) — замер 2026-09-07.
+                "mvp", "screen", "dig", "burrow", "underground", "lookframe", "turn")
         alt = [a for a in actions if not any(t in a.name.lower() for t in skip)]
         alt.sort(key=lambda a: (a.name.lower().startswith("@"), len(a.name)))
         if alt:
@@ -274,6 +361,11 @@ def main():
     objs = import_glb(os.path.abspath(a.glb))
     if not objs:
         raise SystemExit("import failed: no objects")
+    # Клипы берём ТОЛЬКО из основной модели. Части приносят свои («cloth_IDLE», «cloth_DEATH» у плаща
+    # арканы Drow), и выбор по подстроке отдавал предпочтение им как более коротким именам: клип
+    # плаща двигает только кости ткани, тело стоит в bind-позе — та самая «размазня», из-за которой
+    # аркану откатили на базовое тело (T13.28).
+    main_actions = list(bpy.data.actions)
     main_arms = [o for o in objs if o.type == "ARMATURE"]
     def drop_junk(lst):
         # VRF кладёт в каждый glb служебную «Icosphere» без весов (маркер origin) — в кадре это шар у ног.
@@ -291,10 +383,19 @@ def main():
         # Стиль у нас — подмена текстур базового меша (--style), поэтому лишние копии просто убираем.
         order = [o.name for o in lst]
         groups = {}
+        def geo_key(o):
+            # Сравниваем САМУ геометрию, а не только число вершин и габарит: у симметричных частей
+            # (левый/правый наруч, две ноги арканы Drow) те и другие совпадают, и одна из пары
+            # улетала как «дубль» — герой рисовался без руки (владелец 2026-09-07: «модель не до
+            # конца прорисована»).
+            import numpy as np
+            co = np.empty(len(o.data.vertices) * 3, dtype=np.float32)
+            o.data.vertices.foreach_get("co", co)
+            return hash(np.round(co, 3).tobytes())
         for o in lst:
             if o.type != "MESH":
                 continue
-            groups.setdefault((len(o.data.vertices), tuple(round(v, 3) for v in o.dimensions)), []).append(o)
+            groups.setdefault((len(o.data.vertices), tuple(round(v, 3) for v in o.dimensions), geo_key(o)), []).append(o)
         dead = set()
         for same in groups.values():
             if len(same) < 2:
@@ -397,8 +498,23 @@ def main():
             # блёклым пятном (фидбэк владельца 2026-09-06). Разделяет их верхний процентиль: у арканы
             # p99 = 0.85 (светлые детали есть), у Shadow Fiend — 0.30 (текстура тёмная целиком).
             p99 = float(np.percentile(vis, 99))
-            if p99 >= 0.6:
-                print(f"autoexpose: {img.name} пропущен — светлые детали есть (p99 {p99:.2f})")
+            if p99 >= 0.4:
+                # Тёмная текстура со светлыми деталями (арканы PA и Terrorblade, плащ арканы Drow).
+                # Полный подъём до цели вытягивал филигрань в блёклое пятно, а полный пропуск
+                # оставлял тело сплошь чёрным (владелец 2026-09-07: «аркана PA не прорисовалась»,
+                # «Terrorblade весь чёрный внутри»). Поэтому мягкая гамма к 0.3 от среднего, не
+                # ниже 0.5: тени приподнимаются в читаемый тёмный тон, света почти не трогаются.
+                gamma = max(0.5, min(1.0, math.log(0.3) / math.log(mean)))
+                if gamma >= 0.97:
+                    return
+                px[:, :3] = np.clip(rgb, 0.0, 1.0) ** gamma
+                img.pixels.foreach_set(px.reshape(-1))
+                img.update()
+                try:
+                    img.gl_free()
+                except Exception:
+                    pass
+                print(f"autoexpose: {img.name} mean {mean:.3f}, светлые детали (p99 {p99:.2f}) → мягкая gamma {gamma:.2f}")
                 return
             gamma = math.log(target) / math.log(mean)
             px[:, :3] = np.clip(rgb, 0.0, 1.0) ** gamma
@@ -410,6 +526,60 @@ def main():
                 pass
             print(f"autoexpose: {img.name} mean {mean:.3f} → gamma {gamma:.2f}")
         styles = style_index(a.style_dir) if a.style and a.style_dir else {}
+        if a.mat_map:
+            fix_materials(objs, os.path.abspath(a.glb), a.mat_map, a.fix_tex_dir, a.style)
+        def glow_from_alpha(img, rgb_str):
+            # Узор свечения в альфе цвета (аркана PA): прозрачные пиксели красим цветом свечения, альфу
+            # снимаем — Workbench рисует RGB как есть, и узор становится видимым, как в Dota.
+            import numpy as np
+            col = [float(v) for v in rgb_str.split(",")]
+            w, h = img.size
+            if w == 0 or h == 0 or len(col) != 3:
+                return
+            px = np.array(img.pixels[:], dtype=np.float32).reshape(-1, 4)
+            hole = px[:, 3] < 0.5
+            if not hole.any():
+                return
+            px[hole, :3] = np.array(col, dtype=np.float32)
+            px[:, 3] = 1.0
+            img.pixels.foreach_set(px.reshape(-1))
+            img.update()
+            print(f"glow-from-alpha: {img.name} закрашено {hole.mean() * 100:.1f}% текстуры")
+        glow_masks = style_index(a.glow_mask_dir) if a.glow_mask_dir else {}
+        def glow_from_mask(img):
+            # Маска selfillum к color-текстуре: `<part>_detailmask_*` (альфа) или `<part>_selfillummask_*`
+            # (яркость) с тем же префиксом до слова color. Где маска > 0.3 — подсвечиваем цветом свечения.
+            import numpy as np
+            pref = _color_prefix(img.name)
+            if not pref:
+                return
+            stem = "_".join(pref[:-1])
+            path = next((p for k, p in glow_masks.items() if k.startswith(stem + "_detailmask") or k.startswith(stem + "_selfillummask")), None)
+            if not path:
+                return
+            mimg = bpy.data.images.load(path, check_existing=True)
+            if mimg.size[0] == 0:
+                return
+            mpx = np.array(mimg.pixels[:], dtype=np.float32).reshape(mimg.size[1], mimg.size[0], 4)
+            mask = mpx[:, :, 3] if "detailmask" in os.path.basename(path).lower() else mpx[:, :, :3].mean(axis=2)
+            w, h = img.size
+            if (mimg.size[0], mimg.size[1]) != (w, h):
+                ys = (np.arange(h) * mimg.size[1] // max(1, h)).clip(0, mimg.size[1] - 1)
+                xs = (np.arange(w) * mimg.size[0] // max(1, w)).clip(0, mimg.size[0] - 1)
+                mask = mask[ys][:, xs]
+            share = float((mask > 0.3).mean())
+            if share < 0.0005 or share > 0.35:
+                # Пустая маска — нечего светить; маска почти на всю текстуру — это не selfillum (у оружия
+                # Terrorblade альфа detailmask = 1 везде, и клинок красился целиком).
+                print(f"glow-mask: {img.name} — маска {'пуста' if share < 0.0005 else 'на всю текстуру, не selfillum'} ({share * 100:.1f}%)")
+                return
+            col = np.array([float(v) for v in a.glow_color.split(",")], dtype=np.float32)
+            px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
+            k = np.clip((mask - 0.3) / 0.5, 0.0, 1.0)[:, :, None]
+            px[:, :, :3] = np.maximum(px[:, :, :3], col[None, None, :] * k)
+            img.pixels.foreach_set(px.reshape(-1))
+            img.update()
+            print(f"glow-mask: {img.name} ← {os.path.basename(path)} ({share * 100:.1f}% текстуры)")
         swapped = 0
         exposed = set()
         for m in bpy.data.materials:
@@ -425,9 +595,16 @@ def main():
                     swapped += 1
             if node:
                 m.node_tree.nodes.active = node
-                if a.autoexpose > 0 and node.image.name not in exposed:
+                if node.image.name not in exposed:
                     exposed.add(node.image.name)
-                    auto_expose(node.image, a.autoexpose, a.expose_target)
+                    # Сначала экспозиция (по средней яркости исходной текстуры), потом узор свечения:
+                    # иначе закрашенная альфа поднимает среднее, и чёрное тело PA остаётся чёрным.
+                    if a.autoexpose > 0:
+                        auto_expose(node.image, a.autoexpose, a.expose_target)
+                    if a.glow_from_alpha:
+                        glow_from_alpha(node.image, a.glow_from_alpha)
+                    if glow_masks:
+                        glow_from_mask(node.image)
             else:
                 print(f"WARN: у материала {m.name} нет текстуры цвета — Workbench нарисует его серым")
         if a.style:
@@ -435,7 +612,7 @@ def main():
     setup_render(a.frame, a.samples, a.pixel, a.outline, a.light)
     rig = Rig(objs)
     armatures = [o for o in objs if o.type == "ARMATURE"]
-    actions = list(bpy.data.actions)
+    actions = main_actions if main_actions else list(bpy.data.actions)
     anim_map = []
     for pair in a.anims.split(","):
         if "=" not in pair:
@@ -544,38 +721,117 @@ def main():
         rig.fix.location.y -= cy
     bpy.context.view_layer.update()
     base_loc = rig.fix.location.copy()
-    def root_world():
-        # Мировая позиция корневой кости (без потомков) — источник root motion в анимациях.
-        for arm in armatures:
-            for pb in arm.pose.bones:
-                if pb.parent is None:
-                    return arm.matrix_world @ pb.head
-        return None
-    root0 = root_world()
+    main_arm = main_arms[0] if main_arms else (armatures[0] if armatures else None)
+    def bone_heads():
+        # Мировые позиции голов всех костей ОСНОВНОГО скелета (части не в счёт: у плаща своих сорок).
+        if main_arm is None:
+            return {}
+        return {pb.name: (main_arm.matrix_world @ pb.head).copy() for pb in main_arm.pose.bones}
+    # Опора гашения root motion — поза КАДРИРОВАНИЯ (тот же кадр, по которому считался охват), а не
+    # первый кадр каждого клипа: иначе постоянный сдвиг клипа относительно стойки остаётся и модель
+    # рисуется смещённой (каст Meepo и персоны Dragon Knight — пустые ряды).
+    ref_heads = bone_heads()
     extent = a.ortho if a.ortho > 0 else max(height, width, depth) * a.margin
     print(f"orientation: {mode}; height {height:.2f}, width {width:.2f}, depth {depth:.2f} → ortho {extent:.2f}")
     rig.place(a.pitch, extent, height / 2)
 
     # --- Рендер листа ---
     fps = a.fps
+    LOOP_ROWS = ("walk", "run", "idle", "spin", "fly")
+
+    def loop_period(act, arm, f0, f1, src_fps, max_s=2.5):
+        """Период зацикленного клипа в кадрах — автокорреляция позы (кватернионы всех костей, без
+        смещения корня): для каждого сдвига L среднее расстояние между позой в t и в t+L; период —
+        первый локальный минимум по L, заметно ниже среднего уровня. Сравнение с первым кадром не
+        годится: клип бега Razor начинается с перехода из стойки и «возвращается» к нему только
+        через 5 с. Сдвиги ищем в [0.2 с, max_s]; длиннее — это не цикл шага, а вариации (None)."""
+        import numpy as np
+        use_action(act)
+        step = max(1.0 / 30.0, 0.5 / a.fps)  # шаг выборки, с
+        n = int(min((f1 - f0) / src_fps, 10.0) / step)
+        if n < 8:
+            return None
+        def pose_vec():
+            v = []
+            for pb in arm.pose.bones:
+                q = pb.matrix_basis.to_quaternion()
+                v.extend((q.w, q.x, q.y, q.z))
+            return np.array(v, dtype=np.float32)
+        P = []
+        for i in range(n):
+            fr = f0 + step * src_fps * i
+            scene.frame_set(int(math.floor(fr)), subframe=fr - math.floor(fr))
+            bpy.context.view_layer.update()
+            P.append(pose_vec())
+        P = np.stack(P)
+        lmin, lmax = max(1, int(round(0.2 / step))), min(n - 4, int(round(max_s / step)))
+        if lmax <= lmin:
+            return None
+        ac = np.array([float(np.linalg.norm(P[l:] - P[:-l], axis=1).mean()) for l in range(lmin, lmax + 1)])
+        level = float(ac.mean())
+        if level <= 1e-6:
+            return None
+        for i in range(1, len(ac) - 1):
+            if ac[i] <= ac[i - 1] and ac[i] <= ac[i + 1] and ac[i] < 0.5 * level:
+                return (lmin + i) * step * src_fps
+        return None
+
+    def weight_bone():
+        """Несущая кость для гашения root motion — та, на которой висит больше всего веса вершин
+        основной модели (таз/позвоночник). Корень не годится: у Vengeful Spirit и персоны Mirana он
+        стоит на месте, а тело едет с дочерней костью (провал силуэта 99% в беге, замер 2026-09-07).
+        Кость «по самому большому смещению» тоже нет: при ударе больше всех едет локоть, при касте —
+        служебная «portrait», и тело дёргалось в противофазе. Таз едет вместе с корнем при беге и
+        почти не двигается при взмахах — ровно то, что надо держать в центре кадра."""
+        if main_arm is None or not ref_heads:
+            return None
+        acc = {}
+        for o in base_meshes:
+            if o.name not in bpy.data.objects:
+                continue
+            names = [g.name for g in o.vertex_groups]
+            for v in o.data.vertices:
+                for g in v.groups:
+                    if g.group < len(names):
+                        acc[names[g.group]] = acc.get(names[g.group], 0.0) + g.weight
+        cands = [(w, n) for n, w in acc.items() if n in ref_heads]
+        if not cands:
+            return None
+        cands.sort(reverse=True)
+        if os.environ.get("SPRITE_DEBUG"):
+            print(f"weight_bone: {[(n, round(w, 1)) for w, n in cands[:5]]}")
+        return cands[0][1]
+    track_bone = None if a.no_root_lock else weight_bone()
+    if track_bone:
+        print(f"rootlock: несущая кость {track_bone}")
+
     rows = []  # (ours, dir, [frame paths])
     first_row = {}
     for ours, act, span in anim_map:
-        # Опору для гашения root motion берём У КАЖДОГО клипа свою: общая опора от клипа кадрирования
-        # сдвигала другие клипы (у Monkey King ряд idle уезжал за кадр и оставалось 66 пикселей).
-        clip_root0 = root0
+        track = None
         if act is not None:
             use_action(act)
             scene.frame_set(int(act.frame_range[0]))
             bpy.context.view_layer.update()
             rig.fix.location = base_loc
             bpy.context.view_layer.update()
-            clip_root0 = root_world() or root0
             f0, f1 = act.frame_range
             f0, f1 = f0 + (f1 - f0) * span[0], f0 + (f1 - f0) * span[1]
             seconds = max(0.05, (f1 - f0) / src_fps)
+            window = a.max_frames / fps
+            if ours in LOOP_ROWS and seconds > window + 0.05:
+                # Зацикленный клип длиннее окна листа. Раньше 12 кадров растягивались на ВЕСЬ клип:
+                # у Muerta «run» длится 7 с, шаг выборки выходил 0.58 с при цикле шага ~0.5 с, и
+                # кадры чередовали две позы — «муэрта вся дёргается когда бегает» (владелец
+                # 2026-09-07). Берём один период цикла (по расстоянию позы от первого кадра), а если
+                # период не нашёлся — первое окно клипа.
+                per = loop_period(act, armatures[0], f0, f1, src_fps) if armatures else None
+                f1 = f0 + (per if per else window * src_fps)
+                seconds = (f1 - f0) / src_fps
+                print(f"loop {ours}: клип {act.name} {(act.frame_range[1] - act.frame_range[0]) / src_fps:.1f} с → {'период' if per else 'окно'} {seconds:.2f} с")
             n = max(2, min(a.max_frames, round(seconds * fps)))
             sample_frames = [f0 + (f1 - f0) * i / n for i in range(n)]
+            track = track_bone
         else:
             n = 1
             sample_frames = [scene.frame_current]
@@ -585,42 +841,20 @@ def main():
             paths = []
             for i, fr in enumerate(sample_frames):
                 scene.frame_set(int(math.floor(fr)), subframe=fr - math.floor(fr))
-                if not a.no_root_lock and clip_root0 is not None:
-                    # Гасим горизонтальное смещение корня (бег «на месте»); вертикаль оставляем (прыжки).
-                    rig.fix.location = base_loc
+                rig.fix.location = base_loc
+                if track:
+                    # Гасим горизонтальное смещение несущей кости относительно позы кадрирования —
+                    # бег «на месте», каст и удар не уезжают; вертикаль оставляем (прыжки, паденье).
+                    # Целиком, без порогов и обрезки: любой порог хоть раз оставлял героя за кадром
+                    # (история в git: пустые кадры бега у 41 листа, каст Meepo, персона Mirana).
                     bpy.context.view_layer.update()
-                    cur = root_world()
-                    if cur is not None:
-                        dx, dy = cur.x - clip_root0.x, cur.y - clip_root0.y
-                        # Смещение относительное (от первого кадра клипа), так что постоянный сдвиг
-                        # корня сокращается сам и гасить нужно только то, что накопилось внутри
-                        # клипа. Дальше поведение зависит от ряда — и это две разные ситуации:
-                        #
-                        # Бег/ходьба: корень ЕДЕТ по делу, и гасить надо всё. Раньше тут стояло
-                        # «если смещение больше половины охвата — не компенсировать вовсе», и это
-                        # давало ровно обратный эффект: в длинном клипе бега компенсация
-                        # выключалась, и герой выбегал за кадр (владелец 2026-09-06: «джагер во
-                        # время бега опять пропадает» — 18 пустых кадров из 64, таких листов было
-                        # 41 из 293). Порога в полкадра тоже мало: Meepo, axe@blackthorn и
-                        # bristleback@wrathrunner доезжали до края и обрезались. Поэтому здесь
-                        # смещение ОБРЕЗАЕТСЯ по щедрому пределу — Meepo при 3.0 стоит в центре все
-                        # 10 кадров, а персонам Dragon Knight и Mirana предел не срабатывает вовсе.
-                        #
-                        # Клипы на месте (стойка, каст, удар, смерть): корню ехать незачем, большое
-                        # смещение — само по себе признак мусора, и меши за ним не идут. Обрезать
-                        # его НЕЛЬЗЯ: обрезка всё равно сдвигает сборку на предел, и у Meepo каст
-                        # уезжал из кадра (30 пустых кадров из 40 при любом пределе). Здесь как
-                        # раньше: смещение сверх предела просто игнорируется целиком.
-                        if ours in ("walk", "run"):
-                            lim = extent * 3.0
-                            dx = max(-lim, min(lim, dx))
-                            dy = max(-lim, min(lim, dy))
-                        elif abs(dx) >= extent * 0.5 or abs(dy) >= extent * 0.5:
-                            dx = dy = 0.0
-                        rig.fix.location = base_loc - __import__("mathutils").Vector((dx, dy, 0.0))
-                        bpy.context.view_layer.update()
+                    cur = bone_heads().get(track)
+                    ref = ref_heads.get(track)
+                    if cur is not None and ref is not None:
+                        rig.fix.location = base_loc - __import__("mathutils").Vector((cur.x - ref.x, cur.y - ref.y, 0.0))
                         if os.environ.get("SPRITE_DEBUG"):
-                            print(f"rootlock {ours} d{d} f{i}: root0 {tuple(round(v,2) for v in clip_root0)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
+                            print(f"rootlock {ours} d{d} f{i}: {track} ref {tuple(round(v,2) for v in ref)} cur {tuple(round(v,2) for v in cur)} fix {tuple(round(v,2) for v in rig.fix.location)}")
+                bpy.context.view_layer.update()
                 path = os.path.join(tmp, f"{a.name}_{ours}_{d}_{i:02d}.png")
                 render_to(path)
                 paths.append(path)

@@ -240,31 +240,187 @@ export interface DotaSheet {
   meta: DotaMeta;
 }
 
-/**
- * Лист с повёрнутым тоном — самоцвет арканы (в Dota Ethereal Gem меняет цвет параметром материала,
- * у нас — фильтром поверх готового листа). Считается один раз на пару «лист + градусы» и кэшируется:
- * лист большой, но это одна отрисовка, а в кадре мы уже блиттим готовый канвас.
- */
-const hueSheets = new Map<string, DotaSheet>();
-export function hueSheet(sheet: DotaSheet, deg: number): DotaSheet {
-  if (!deg || typeof document === "undefined") return sheet;
-  const key = `${sheet.meta.name}#${deg}`;
-  const cached = hueSheets.get(key);
+/* ─── Свечение арканы и самоцветы ───
+   В Dota призматический самоцвет перекрашивает не текстуру, а СВЕЧЕНИЕ арканы — ambient-частицы и
+   светящиеся линии (у Terrorblade бирюзовые руны становятся пурпурными, у Juggernaut — огонь клинка).
+   Поворот тона всего листа (первая версия) красил заодно кожу и одежду — владелец 2026-09-07: «сделал
+   не то, что нужно». Теперь: на листе ищутся «акцентные» пиксели — яркие, насыщенные и в тоне
+   доминирующего акцента (это и есть свечение, у арканы без него самоцветов нет, как в Dota), — они
+   получают тон самоцвета, а вокруг них ложится ореол в цвете свечения. Считается один раз на пару
+   «лист + самоцвет» и кэшируется; лист большой, но это одна проходка по пикселям. */
+
+/** Пороги акцента: насыщенность и яркость (HSV), допуск по тону от доминирующего акцента. */
+const GLOW_SAT = 0.3;
+const GLOW_VAL = 0.45;
+const GLOW_HUE_TOL = 40;
+/** Доля акцентных пикселей среди непрозрачных, ниже которой лист считается без свечения. */
+const GLOW_MIN_SHARE = 0.002;
+
+export interface SheetGlow {
+  /** Доминирующий тон свечения, градусы. */
+  hue: number;
+  /** Доля акцентных пикселей среди непрозрачных. */
+  share: number;
+}
+
+function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d > 0) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return [h, max > 0 ? d / max : 0, max];
+}
+
+function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
+  const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [r + m, g + m, b + m];
+}
+
+function hueDist(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+interface GlowScan { glow: SheetGlow | null; data: ImageData | null; w: number; h: number }
+const glowScans = new Map<string, GlowScan>();
+
+function scanGlow(sheet: DotaSheet): GlowScan {
+  const key = sheet.meta.name;
+  const cached = glowScans.get(key);
   if (cached) return cached;
   const src = sheet.img;
   const w = src instanceof HTMLCanvasElement ? src.width : src.naturalWidth;
   const h = src instanceof HTMLCanvasElement ? src.height : src.naturalHeight;
-  if (!w || !h) return sheet;
+  const none: GlowScan = { glow: null, data: null, w, h };
+  if (!w || !h || typeof document === "undefined") return none;
+  const cv = document.createElement("canvas");
+  cv.width = w;
+  cv.height = h;
+  const c = cv.getContext("2d", { willReadFrequently: true });
+  if (!c) return none;
+  c.drawImage(src, 0, 0);
+  const data = c.getImageData(0, 0, w, h);
+  const px = data.data;
+  // Доминирующий тон: гистограмма тона ярких насыщенных пикселей (вес — насыщенность × яркость),
+  // берём самый тяжёлый сектор и уточняем круговым средним в ±30° от него. Круговое среднее по всем
+  // сразу у двухцветных аркан (синий + оранжевый у Vengeful Spirit) ложилось между кластерами и не
+  // совпадало ни с одним.
+  const bins = new Float32Array(36);
+  let opaque = 0, strong = 0;
+  const hs: number[] = [], ws: number[] = [];
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] < 128) continue;
+    opaque++;
+    const [hh, s, v] = rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
+    if (s < 0.4 || v < 0.5) continue;
+    strong++;
+    const wgt = s * v;
+    bins[Math.floor(hh / 10) % 36] += wgt;
+    hs.push(hh); ws.push(wgt);
+  }
+  if (!opaque || strong / opaque < GLOW_MIN_SHARE) { glowScans.set(key, none); return none; }
+  let peak = 0;
+  for (let b = 1; b < 36; b++) if (bins[b] > bins[peak]) peak = b;
+  const center = peak * 10 + 5;
+  let sx = 0, sy = 0;
+  for (let k = 0; k < hs.length; k++) {
+    if (hueDist(hs[k], center) > 30) continue;
+    const rad = (hs[k] * Math.PI) / 180;
+    sx += Math.cos(rad) * ws[k];
+    sy += Math.sin(rad) * ws[k];
+  }
+  let hue = (Math.atan2(sy, sx) * 180) / Math.PI;
+  if (hue < 0) hue += 360;
+  let accent = 0;
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] < 128) continue;
+    const [hh, s, v] = rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
+    if (s >= GLOW_SAT && v >= GLOW_VAL && hueDist(hh, hue) <= GLOW_HUE_TOL) accent++;
+  }
+  const share = accent / opaque;
+  const out: GlowScan = share >= GLOW_MIN_SHARE ? { glow: { hue, share }, data, w, h } : none;
+  glowScans.set(key, out);
+  return out;
+}
+
+/** Свечение листа (доминирующий тон акцента) или null, если светящихся деталей нет — тогда и самоцветов у облика нет. */
+export function sheetGlow(sheet: DotaSheet): SheetGlow | null {
+  return scanGlow(sheet).glow;
+}
+
+const gemSheets = new Map<string, DotaSheet>();
+
+/**
+ * Лист арканы со свечением: акцентные пиксели перекрашены в тон самоцвета (`gemHue`, null — родной
+ * тон), вокруг них — ореол в цвете свечения (полупрозрачный снаружи силуэта, подсветка внутри).
+ * Лист без свечения возвращается как есть.
+ */
+export function gemSheet(sheet: DotaSheet, gemHue: number | null): DotaSheet {
+  if (typeof document === "undefined") return sheet;
+  const scan = scanGlow(sheet);
+  if (!scan.glow || !scan.data) return sheet;
+  const key = `${sheet.meta.name}#${gemHue ?? "own"}`;
+  const cached = gemSheets.get(key);
+  if (cached) return cached;
+  const { w, h } = scan;
+  const src = scan.data.data;
+  const out = new Uint8ClampedArray(src);
+  const mask = new Uint8Array(w * h);
+  const hue = scan.glow.hue;
+  // 1. Акцентные пиксели: отметить и, если выбран самоцвет, перекрасить (тон меняем, S и V оставляем).
+  for (let p = 0, i = 0; i < src.length; i += 4, p++) {
+    if (src[i + 3] < 128) continue;
+    const [hh, s, v] = rgbToHsv(src[i] / 255, src[i + 1] / 255, src[i + 2] / 255);
+    if (s < GLOW_SAT || v < GLOW_VAL || hueDist(hh, hue) > GLOW_HUE_TOL) continue;
+    const t = Math.min(1, (s - GLOW_SAT) / 0.35) * Math.min(1, (v - GLOW_VAL) / 0.35);
+    mask[p] = 1 + Math.round(t * 254);
+    if (gemHue !== null) {
+      const [r, g, b] = hsvToRgb(gemHue, s, v);
+      out[i] = Math.round(r * 255); out[i + 1] = Math.round(g * 255); out[i + 2] = Math.round(b * 255);
+    }
+  }
+  // 2. Ореол: соседи акцентных пикселей (4-связность, один арт-пиксель) получают свет в цвете свечения —
+  //    снаружи силуэта полупрозрачный пиксель, внутри — подсветка поверх текстуры.
+  const [gr, gg, gb] = hsvToRgb(gemHue ?? hue, 0.85, 1);
+  const glowR = Math.round(gr * 255), glowG = Math.round(gg * 255), glowB = Math.round(gb * 255);
+  const halo = new Uint8Array(w * h);
+  for (let p = 0; p < mask.length; p++) {
+    const m = mask[p];
+    if (!m) continue;
+    const x = p % w, y = (p / w) | 0;
+    if (x > 0 && !mask[p - 1]) halo[p - 1] = Math.max(halo[p - 1], m);
+    if (x < w - 1 && !mask[p + 1]) halo[p + 1] = Math.max(halo[p + 1], m);
+    if (y > 0 && !mask[p - w]) halo[p - w] = Math.max(halo[p - w], m);
+    if (y < h - 1 && !mask[p + w]) halo[p + w] = Math.max(halo[p + w], m);
+  }
+  for (let p = 0, i = 0; p < halo.length; p++, i += 4) {
+    const hm = halo[p];
+    if (!hm) continue;
+    const t = hm / 255;
+    if (src[i + 3] < 128) {
+      out[i] = glowR; out[i + 1] = glowG; out[i + 2] = glowB; out[i + 3] = Math.round(110 * t);
+    } else {
+      const k = 0.35 * t;
+      out[i] = Math.round(out[i] + (glowR - out[i]) * k);
+      out[i + 1] = Math.round(out[i + 1] + (glowG - out[i + 1]) * k);
+      out[i + 2] = Math.round(out[i + 2] + (glowB - out[i + 2]) * k);
+    }
+  }
   const cv = document.createElement("canvas");
   cv.width = w;
   cv.height = h;
   const c = cv.getContext("2d");
   if (!c) return sheet;
-  c.filter = `hue-rotate(${deg}deg)`;
-  c.drawImage(src, 0, 0);
-  const out: DotaSheet = { img: cv, meta: sheet.meta };
-  hueSheets.set(key, out);
-  return out;
+  c.putImageData(new ImageData(out, w, h), 0, 0);
+  const res: DotaSheet = { img: cv, meta: sheet.meta };
+  gemSheets.set(key, res);
+  return res;
 }
 
 const dotaSheets = new Map<string, DotaSheet | null | "loading">();

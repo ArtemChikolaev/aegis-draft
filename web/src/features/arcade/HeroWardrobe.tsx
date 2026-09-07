@@ -12,7 +12,7 @@ import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, type CosmeticDef, type Cosmetic
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { dotaSheet, dotaSheetState, drawDotaFrame, hueSheet, setPixelSheets } from "./sprites.ts";
+import { dotaSheet, dotaSheetState, drawDotaFrame, gemSheet, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
 const EFFECT_SLOTS: readonly CosmeticSlot[] = ["frame", "trail", "death", "tint"];
@@ -39,7 +39,30 @@ export function previewScale(size: number, world: number, dpr: number): number {
   return ideal * dpr >= 1 ? Math.round(ideal * dpr) / dpr : ideal;
 }
 
-function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; size: number; hue?: number; still?: boolean }) {
+/**
+ * Свечение листа облика (для показа самоцветов): undefined — лист ещё грузится, null — свечения нет.
+ * Листы грузятся лениво и без событий, поэтому опрашиваем раз в 100 мс, пока не готов.
+ */
+function useSheetGlow(sheet: string, enabled: boolean): SheetGlow | null | undefined {
+  const [glow, setGlow] = useState<SheetGlow | null | undefined>(undefined);
+  useEffect(() => {
+    if (!enabled) { setGlow(null); return; }
+    setGlow(undefined);
+    const bare = sheet.split("~")[0];
+    const probe = () => {
+      const s = dotaSheet(sheet) ?? dotaSheet(bare);
+      if (s) { setGlow(sheetGlow(s)); return true; }
+      if (dotaSheetState(sheet) === "missing" && dotaSheetState(bare) === "missing") { setGlow(null); return true; }
+      return false;
+    };
+    if (probe()) return;
+    const id = window.setInterval(() => { if (probe()) window.clearInterval(id); }, 100);
+    return () => window.clearInterval(id);
+  }, [sheet, enabled]);
+  return glow;
+}
+
+function LookPreview({ sheet, size, gem = null, glow = false, still = false }: { sheet: string; size: number; gem?: number | null; glow?: boolean; still?: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const { t } = useI18n();
   const [missing, setMissing] = useState(false);
@@ -61,7 +84,7 @@ function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; s
       const bare = sheet.split("~")[0];
       const raw = dotaSheet(sheet) ?? dotaSheet(bare);
       if (!raw && dotaSheetState(sheet) === "missing" && dotaSheetState(bare) === "missing") setMissing(true);
-      const s = raw && hue ? hueSheet(raw, hue) : raw;
+      const s = raw && glow ? gemSheet(raw, gem) : raw;
       c.imageSmoothingEnabled = false;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, size, size);
@@ -77,7 +100,7 @@ function LookPreview({ sheet, size, hue = 0, still = false }: { sheet: string; s
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [sheet, size, hue, still]);
+  }, [sheet, size, gem, glow, still]);
   return (
     <span className="arcade-wardrobe__slot" style={{ width: size, height: size }}>
       <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />
@@ -114,6 +137,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const previewSheet = selStyle?.sheet ? `${sel.sheet}~${selStyle.id}` : sel.sheet;
   const worn = (sel.def?.id ?? null) === (equippedSkin?.id ?? null);
   const price = sel.def ? SHARD_PRICE[sel.def.rarity] : 0;
+  // Аркана рисуется со свечением; самоцветы показываем только если у листа это свечение есть
+  // (как в Dota: призматический самоцвет красит эффекты, и облику без них он не нужен).
+  const arcana = sel.def?.rarity === "arcana";
+  const glow = useSheetGlow(previewSheet, arcana);
+  const styleOptions = (sel.def?.styles ?? []).filter((st) => st.hue === undefined || !!glow);
   return (
     <Modal
       title={info.name || def.picture}
@@ -125,7 +153,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
     >
       <div className="arcade-wardrobe" data-testid="arcade-wardrobe">
         <div className="arcade-wardrobe__stage">
-          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? 0}`} sheet={previewSheet} size={220} hue={selStyle?.hue ?? 0} />
+          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? "own"}`} sheet={previewSheet} size={220} gem={selStyle?.hue ?? null} glow={arcana} />
           <strong data-testid="arcade-wardrobe-name">
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
           </strong>
@@ -145,12 +173,12 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                   </Button>}
           </div>
           {!sel.owned && <em className="arcade-wardrobe__hint">{t("arcade.cosmetics.buyHint")}</em>}
-          {sel.def && sel.def.styles && sel.def.styles.length > 0 && (
+          {sel.def && styleOptions.length > 0 && (
             <div className="arcade-wardrobe__styles" data-testid="arcade-wardrobe-styles">
               <small>{t("arcade.wardrobe.styles")}</small>
               <div className="arcade-cosmetics__options">
                 <button type="button" className="arcade-rank__tier" data-active={!selStyle ? "true" : undefined} onClick={() => setStyle(sel.def!.id, null)}>{t("arcade.wardrobe.styleBase")}</button>
-                {sel.def.styles.map((st) => (
+                {styleOptions.map((st) => (
                   <button key={st.id} type="button" className="arcade-rank__tier" data-active={selStyle?.id === st.id ? "true" : undefined} data-testid={`arcade-wardrobe-style-${st.id}`} onClick={() => setStyle(sel.def!.id, st.id)}>
                     {st.hue !== undefined && <i className="arcade-wardrobe__gem" style={{ background: `hsl(${st.hue} 72% 56%)` }} />}
                     {t(`arcade.style.${st.id}` as MessageKey)}
@@ -174,7 +202,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                 data-testid={`arcade-wardrobe-look-${id}`}
                 onClick={() => setSelId(l.def?.id ?? null)}
               >
-                <LookPreview sheet={l.sheet} size={64} still />
+                <LookPreview sheet={l.sheet} size={64} glow={l.def?.rarity === "arcana"} still />
                 <span>{l.def ? t(`arcade.cosmetic.${l.def.id}` as MessageKey) : t("arcade.wardrobe.base")}</span>
                 {(l.def?.id ?? null) === (equippedSkin?.id ?? null) && <b>{t("arcade.wardrobe.wornMark")}</b>}
                 {!l.owned && <em>{SHARD_PRICE[l.def!.rarity]}</em>}

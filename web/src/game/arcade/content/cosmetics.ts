@@ -33,14 +33,17 @@ export interface StyleDef {
   hue?: number;
 }
 
-/** Палитра самоцветов: как Ethereal Gem, только оттенок задаём сами. Поворот тона, поэтому у разных
- *  аркан один и тот же самоцвет даёт разные цвета — игрок видит результат в превью гардероба. */
+/** Призматические самоцветы Dota (Prismatic Gem): тон, в который перекрашивается СВЕЧЕНИЕ арканы —
+ *  светящиеся линии и ореол, не кожа и не одежда (`gemSheet` в features/arcade/sprites.ts). Пять
+ *  цветов из палитры Dota: Golden, Emerald, Cerulean Blue, Brilliant Purple, Ruby. Самоцвет виден
+ *  только у арканы со свечением — у облика без светящихся деталей гардероб их не показывает, как и
+ *  Dota не даёт гнёзд предметам без эффектов. */
 export const GEMS: readonly StyleDef[] = [
   { id: "gem1", hue: 45 },
-  { id: "gem2", hue: 100 },
-  { id: "gem3", hue: 160 },
-  { id: "gem4", hue: 215 },
-  { id: "gem5", hue: 285 },
+  { id: "gem2", hue: 140 },
+  { id: "gem3", hue: 215 },
+  { id: "gem4", hue: 280 },
+  { id: "gem5", hue: 350 },
 ];
 
 export const COSMETICS: readonly CosmeticDef[] = [
@@ -211,7 +214,8 @@ const SHEET_STYLE_SKINS = new Set([
 ]);
 for (const c of COSMETICS) if (SHEET_STYLE_SKINS.has(c.id)) (c as { styles?: readonly StyleDef[] }).styles = [{ id: "style1", sheet: true }, ...GEMS];
 
-// Самоцветы — у всех аркан (владелец 2026-09-06: «у Terrorblade куча гемов, аркана может быть любого цвета»).
+// Самоцветы — у аркан (владелец 2026-09-06: «у Terrorblade куча гемов, аркана может быть любого цвета»),
+// но видны только там, где у листа есть свечение (`sheetGlow`); владелец 2026-09-07: «гемы есть не у всех».
 // Персоны и сеты цвет не меняют: у них в Dota гнезда под самоцвет нет.
 for (const c of COSMETICS) if (c.slot === "skin" && c.rarity === "arcana" && !c.styles) (c as { styles?: readonly StyleDef[] }).styles = GEMS;
 
