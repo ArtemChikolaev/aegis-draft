@@ -17,9 +17,9 @@ import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
-import { drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
+import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, gemSheet, heroLook, setPixelSheets, spriteVersion, type CharAnim } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, heroLook, setPixelSheets, spriteVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { itemArtSources } from "../../ui/artSource.ts";
@@ -688,7 +688,11 @@ export class ArcadeRenderer {
         : anim === "attack" ? Math.floor((spinning ? (now / 420) % 1 : atkT) * frames)
         : anim === "walk" ? Math.floor(this.walkPhase * 1.6)
         : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
-      drawDotaFrame(c, heroDota, anim, dotaDir(lookX, lookY, heroDota.meta.dirs), frame, p.x, p.y + R * 0.75);
+      const hdir = dotaDir(lookX, lookY, heroDota.meta.dirs);
+      const geo = this.auraGeo(heroDota, anim, hdir, frame, p.x, p.y + R * 0.75);
+      this.drawAura(sim, geo, now, pal, "back");
+      drawDotaFrame(c, heroDota, anim, hdir, frame, p.x, p.y + R * 0.75);
+      this.drawAura(sim, geo, now, pal, "front");
     } else if (heroSheet) {
       const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 420) % 1 : atkT) * FRAMES[heroAnim]);
       drawCharFrame(c, heroSheet, frame, dirOf(lookX, lookY), p.x, p.y + R * 0.75, look.scale);
@@ -697,8 +701,27 @@ export class ArcadeRenderer {
       drawRig(c, p.x, p.y + R * 0.75, rig, { facing: lookX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
     }
     c.globalAlpha = 1;
-    // Свечение героя (косметика) — поверх спрайта по высоте силуэта: у листа Dota это `world`, у остальных ~3 радиуса.
-    this.drawAura(sim, p.x, p.y + R * 0.75, heroDota ? heroDota.meta.world * 0.62 : R * 3, now, pal);
+    if (!heroDota) {
+      // Без листа Dota (LPC/риг) геометрии контура нет — свечение по коробке.
+      const geo = auraGeoFromBox(p.x, p.y + R * 0.75, R * 3);
+      this.drawAura(sim, geo, now, pal, "back");
+      this.drawAura(sim, geo, now, pal, "front");
+    }
+  }
+
+  /** Геометрия силуэта кадра героя в мировых координатах (для свечения по контуру). */
+  private auraGeo(sheet: DotaSheet, anim: string, dir: number, frame: number, x: number, y: number): AuraGeo {
+    const m = sheet.meta;
+    const g = frameGeometry(sheet, anim, dir, frame);
+    const scale = m.world / m.frame;
+    const ox = x - m.frame * scale * m.anchor.x, oy = y - m.frame * scale * m.anchor.y;
+    if (!g) return auraGeoFromBox(x, y, m.world * 0.6);
+    const c = this.ctx;
+    return {
+      left: ox + g.x0 * scale, top: oy + g.y0 * scale, right: ox + (g.x1 + 1) * scale, bottom: oy + (g.y1 + 1) * scale,
+      outline: g.outline.map((pt) => ({ x: ox + (pt.x + 0.5) * scale, y: oy + (pt.y + 0.5) * scale })),
+      silhouette: (color, alpha, dx, dy) => { drawDotaFrame(c, sheet, anim, dir, frame, x + dx, y + dy, alpha, 1, color); },
+    };
   }
 
   private drawTrail(x: number, y: number, now: number, pal: Palette): void {
@@ -710,12 +733,13 @@ export class ArcadeRenderer {
     drawTrailEffect(this.ctx, this.trail, now, kind, this.artPx(), pal);
   }
 
-  /** Свечение героя (слот `aura`) — поверх спрайта, по высоте силуэта; вспышка по T разжигает его. */
-  private drawAura(sim: ArcadeSim, x: number, y: number, h: number, now: number, pal: Palette): void {
+  /** Свечение героя (слот `aura`) по контуру силуэта: слой `back` до спрайта, `front` после; вспышка по T разжигает его. */
+  private drawAura(sim: ArcadeSim, geo: AuraGeo, now: number, pal: Palette, layer: "back" | "front"): void {
     const kind = this.cosmetic.aura as AuraEffect | undefined;
     if (!kind) return;
     const flareK = now < this.flareUntil ? Math.sin(((this.flareUntil - now) / 1200) * Math.PI) : 0;
-    drawAuraEffect(this.ctx, x, y, h, kind, sim.tick, 7, this.artPx(), pal, flareK);
+    drawAuraEffect(this.ctx, geo, kind, sim.tick, 7, this.artPx(), pal, flareK, layer);
+    this.ctx.globalAlpha = 1;
   }
 
   /** Эффекты, которые лежат НА ЗЕМЛЕ: кольца, круги зон, оседающие тела. Рисуются до сущностей —

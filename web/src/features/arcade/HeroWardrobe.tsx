@@ -12,8 +12,8 @@ import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, type CosmeticDef, type Cosmetic
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { dotaSheet, dotaSheetState, drawDotaFrame, gemSheet, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
-import { drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, readEffectPalette, type AuraEffect, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
+import { dotaSheet, dotaSheetState, drawDotaFrame, frameGeometry, gemSheet, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
+import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, readEffectPalette, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
 const EFFECT_SLOTS: readonly CosmeticSlot[] = ["frame", "aura", "trail", "death", "tint"];
@@ -123,8 +123,22 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
         drawTrailEffect(c, trailPts, now, fx.trail, px, pal);
       }
       if (fx?.frame) drawGroundEffect(c, hx, hy, R, fx.frame, tick, px, pal, 0);
+      let geo: AuraGeo | null = null;
+      if (fx?.aura) {
+        // Геометрия контура кадра в координатах превью — та же, что в бою, только масштаб превью.
+        const g = frameGeometry(s, anim, dir, frame);
+        const scale = (s.meta.world / s.meta.frame) * mult;
+        const ox = hx - s.meta.frame * scale * s.meta.anchor.x, oy = hy - s.meta.frame * scale * s.meta.anchor.y;
+        const sheet = s;
+        geo = g ? {
+          left: ox + g.x0 * scale, top: oy + g.y0 * scale, right: ox + (g.x1 + 1) * scale, bottom: oy + (g.y1 + 1) * scale,
+          outline: g.outline.map((pt) => ({ x: ox + (pt.x + 0.5) * scale, y: oy + (pt.y + 0.5) * scale })),
+          silhouette: (color, alpha, dx, dy) => { drawDotaFrame(c, sheet, anim, dir, frame, hx + dx, hy + dy, alpha, mult, color); },
+        } : auraGeoFromBox(hx, hy, hh);
+        drawAuraEffect(c, geo, fx.aura, tick, 7, px, pal, 0, "back");
+      }
       drawDotaFrame(c, s, anim, dir, frame, hx, hy, 1, mult);
-      if (fx?.aura) drawAuraEffect(c, hx, hy, hh, fx.aura, tick, 7, px, pal, 0);
+      if (fx?.aura && geo) drawAuraEffect(c, geo, fx.aura, tick, 7, px, pal, 0, "front");
       if (fx?.death && !still) {
         // Эффект смерти врагов: раз в две секунды вспыхивает сбоку от героя.
         const k = (el % 2) / 0.9;

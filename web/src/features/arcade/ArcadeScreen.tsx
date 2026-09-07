@@ -8,7 +8,8 @@ import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { ARCADE, DT, TICK_HZ } from "../../game/arcade/config.ts";
-import { SCHOOL_ART, UPGRADE_BY_ID } from "../../game/arcade/content/schools.ts";
+import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/content/schools.ts";
+import type { PlayerStats } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
@@ -616,6 +617,25 @@ function ArcadeStage() {
                 </div>
               </section>
               <section className="arcade-build__section">
+                <small className="arcade-build__label">{t("arcade.build.stats")}</small>
+                <ul className="arcade-stats arcade-build__stats" data-testid="arcade-build-stats">
+                  {([
+                    ["hp", `${Math.ceil(sim.player.hp)} / ${sim.player.stats.maxHp}`],
+                    ["regen", sim.player.stats.regen.toFixed(1)],
+                    ["armor", String(Math.round(sim.player.stats.armor))],
+                    ["damage", String(Math.round(sim.player.stats.damage))],
+                    ["attackRate", (1 / sim.player.stats.attackInterval).toFixed(2)],
+                    ["crit", `${Math.round(sim.player.stats.critChance * 100)}% · ×${sim.player.stats.critMult.toFixed(1)}`],
+                    ["lifesteal", `${Math.round(sim.player.stats.lifesteal * 100)}%`],
+                    ["cooldown", `${Math.round(sim.player.stats.cooldown * 100)}%`],
+                    ["speed", String(Math.round(sim.player.stats.speed))],
+                    ["pickup", String(Math.round(sim.player.stats.pickup))],
+                    ["goldPerKill", String(sim.player.stats.goldPerKill)],
+                    ["xpMult", `${Math.round((1 + sim.player.stats.xpMult) * 100)}%`],
+                  ] as [string, string][]).map(([k, v]) => <li key={k}><span>{t(`arcade.stats.${k}` as MessageKey)}</span> <b>{v}</b></li>)}
+                </ul>
+              </section>
+              <section className="arcade-build__section">
                 <small className="arcade-build__label">{t("arcade.build.bag")} {sim.player.bag.length}/{ARCADE.loot.bagCap}</small>
                 {sim.player.bag.length === 0
                   ? <p className="arcade-shop__hint">{t("arcade.build.bagEmpty")}</p>
@@ -685,7 +705,7 @@ function ArcadeStage() {
                     <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={n.id} name={n.id} size="sm" /> {t("arcade.neutral.tier", { tier: n.tier })}</span>
                     <strong>{sim.neutralEnchants[i] ? `${t(`arcade.enchant.${sim.neutralEnchants[i]}` as MessageKey)} ` : ""}{t(`arcade.neutral.${n.id}` as MessageKey)}</strong>
                     <p>{t(`arcade.neutral.${n.id}.desc` as MessageKey)}</p>
-                    <StatList effects={[{ e: n.effect, m: 1 }, ...(sim.neutralEnchants[i] && NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]] ? [{ e: NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]].effect, m: n.tier, extra: true }] : [])]} />
+                    <StatList effects={[{ e: n.effect, m: 1 }, ...(sim.neutralEnchants[i] && NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]] ? [{ e: NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]].effect, m: n.tier, extra: true }] : [])]} now={sim.player.stats} />
                   </button>
                 ))}
               </div>
@@ -710,7 +730,7 @@ function ArcadeStage() {
                       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
                       <strong>{t(`arcade.item.${offer.id}` as MessageKey)}</strong>
                       <small>{t("arcade.shop.price", { gold: offer.price })}{sim.player.items.filter((it) => it.id === offer.id).length > 0 && <> · {t("arcade.shop.haveN", { n: sim.player.items.filter((it) => it.id === offer.id).length })}</>}</small>
-                      <StatList effects={itemEffectsAt(def, offer.rarity)} />
+                      <StatList effects={itemEffectsAt(def, offer.rarity)} now={sim.player.stats} />
                       {(offer.rarity === "standard" || offer.rarity === "refined") && def.extras && <small className="arcade-offer__more">{t("arcade.shop.moreAtExotic")}</small>}
                     </button>
                   );
@@ -851,34 +871,54 @@ function ArcadeStage() {
 }
 
 /** Строки эффектов предмета с учётом множителя редкости: «+4 регенерации/с», «+20% крит»… (владелец 2026-09-06: «не видно, что даёт качество»). */
-function statLines(t: (k: MessageKey, v?: Record<string, string | number>) => string, effects: { e: ItemEffect; m: number; extra?: boolean }[]): { text: string; extra: boolean }[] {
-  const out: { text: string; extra: boolean }[] = [];
+function statLines(t: (k: MessageKey, v?: Record<string, string | number>) => string, effects: { e: ItemEffect; m: number; extra?: boolean }[], now?: PlayerStats): { text: string; extra: boolean; after?: string }[] {
+  const out: { text: string; extra: boolean; after?: string }[] = [];
   const pct = (v: number) => `${v > 0 ? "+" : ""}${Math.round(v * 100)}%`;
   const num = (v: number, d = 0) => `${v > 0 ? "+" : ""}${d ? v.toFixed(d) : Math.round(v)}`;
+  // «Сейчас → после»: чтобы было видно, что предмет реально меняет (владелец 2026-09-07: «берёшь
+  // cooldown — а ничего не изменяется»). Скорость атаки и бега — множители к базе, показываем итог в %.
+  const p1 = (v: number) => `${Math.round(v * 100)}%`;
+  const nowAfter = (key: keyof PlayerStats | "attackSpeed" | "moveSpeed" | "crit", delta: number): string | undefined => {
+    if (!now) return undefined;
+    switch (key) {
+      case "regen": return `${now.regen.toFixed(1)} → ${(now.regen + delta).toFixed(1)}`;
+      case "armor": return `${Math.round(now.armor)} → ${Math.round(now.armor + delta)}`;
+      case "damage": return `${Math.round(now.damage)} → ${Math.round(now.damage + delta)}`;
+      case "maxHp": return `${Math.round(now.maxHp)} → ${Math.round(now.maxHp + delta)}`;
+      case "goldPerKill": return `${now.goldPerKill} → ${now.goldPerKill + delta}`;
+      case "lifesteal": return `${p1(now.lifesteal)} → ${p1(now.lifesteal + delta)}`;
+      case "crit": return `${p1(now.critChance)} → ${p1(now.critChance + delta)}`;
+      case "cooldown": return `−${p1(now.cooldown)} → −${p1(Math.min(0.75, now.cooldown + delta))}`;
+      case "xpMult": return `${p1(1 + now.xpMult)} → ${p1(1 + now.xpMult + delta)}`;
+      case "attackSpeed": return `${(1 / now.attackInterval).toFixed(2)} → ${(1 / (now.attackInterval / (1 + delta))).toFixed(2)} ${t("arcade.stats.attackRate")}`;
+      case "moveSpeed": return `${Math.round(now.speed)} → ${Math.round(now.speed * (1 + delta))}`;
+      default: return undefined;
+    }
+  };
   for (const { e, m, extra } of effects) {
-    const add = (key: MessageKey, v: Record<string, string | number>) => out.push({ text: t(key, v), extra: !!extra });
-    if (e.regen) add("arcade.stat.regen", { v: num(e.regen * m, 1) });
-    if (e.lifesteal) add("arcade.stat.lifesteal", { v: pct(e.lifesteal * m) });
-    if (e.armor) add("arcade.stat.armor", { v: num(e.armor * m) });
-    if (e.attackSpeed) add("arcade.stat.attackSpeed", { v: pct(e.attackSpeed * m) });
-    if (e.crit) add("arcade.stat.crit", { v: pct(e.crit * m) });
-    if (e.damage) add("arcade.stat.damage", { v: num(e.damage * m) });
-    if (e.moveSpeed) add("arcade.stat.moveSpeed", { v: pct(e.moveSpeed * m) });
-    if (e.maxHp) add("arcade.stat.maxHp", { v: num(e.maxHp * m) });
-    if (e.goldPerKill) add("arcade.stat.goldPerKill", { v: num(e.goldPerKill * m) });
-    if (e.xpMult) add("arcade.stat.xpMult", { v: pct(e.xpMult * m) });
+    const add = (key: MessageKey, v: Record<string, string | number>, stat?: Parameters<typeof nowAfter>[0], delta?: number) => out.push({ text: t(key, v), extra: !!extra, after: stat !== undefined && delta !== undefined ? nowAfter(stat, delta) : undefined });
+    if (e.regen) add("arcade.stat.regen", { v: num(e.regen * m, 1) }, "regen", e.regen * m);
+    if (e.lifesteal) add("arcade.stat.lifesteal", { v: pct(e.lifesteal * m) }, "lifesteal", e.lifesteal * m);
+    if (e.armor) add("arcade.stat.armor", { v: num(e.armor * m) }, "armor", e.armor * m);
+    if (e.attackSpeed) add("arcade.stat.attackSpeed", { v: pct(e.attackSpeed * m) }, "attackSpeed", e.attackSpeed * m);
+    if (e.crit) add("arcade.stat.crit", { v: pct(e.crit * m) }, "crit", e.crit * m);
+    if (e.damage) add("arcade.stat.damage", { v: num(e.damage * m) }, "damage", e.damage * m);
+    if (e.moveSpeed) add("arcade.stat.moveSpeed", { v: pct(e.moveSpeed * m) }, "moveSpeed", e.moveSpeed * m);
+    if (e.maxHp) add("arcade.stat.maxHp", { v: num(e.maxHp * m) }, "maxHp", e.maxHp * m);
+    if (e.goldPerKill) add("arcade.stat.goldPerKill", { v: num(e.goldPerKill * m) }, "goldPerKill", e.goldPerKill * m);
+    if (e.xpMult) add("arcade.stat.xpMult", { v: pct(e.xpMult * m) }, "xpMult", e.xpMult * m);
     if (e.cleave) add("arcade.stat.cleave", { v: (e.cleave * m).toFixed(1) });
-    if (e.cooldown) add("arcade.stat.cooldown", { v: `${Math.round(e.cooldown * m * 100)}%` });
+    if (e.cooldown) add("arcade.stat.cooldown", { v: `${Math.round(e.cooldown * m * 100)}%` }, "cooldown", e.cooldown * m);
     if (e.stunImmune) out.push({ text: t("arcade.stat.stunImmune"), extra: !!extra });
   }
   return out;
 }
 
-function StatList({ effects }: { effects: { e: ItemEffect; m: number; extra?: boolean }[] }) {
+function StatList({ effects, now }: { effects: { e: ItemEffect; m: number; extra?: boolean }[]; now?: PlayerStats }) {
   const { t } = useI18n();
   return (
     <ul className="arcade-stats">
-      {statLines(t, effects).map((l, i) => <li key={i} data-extra={l.extra ? "true" : undefined}>{l.text}</li>)}
+      {statLines(t, effects, now).map((l, i) => <li key={i} data-extra={l.extra ? "true" : undefined}>{l.text}{l.after && <em className="arcade-stats__after">{l.after}</em>}</li>)}
     </ul>
   );
 }
@@ -942,12 +982,32 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
       </button>
     );
   }
+  // Цифры «сейчас → после»: формулы школ в upgradeFigures (владелец 2026-09-07: «непонятно, как растёт урон»).
+  const curPower = sim?.player.upgrades[offer.id]?.power ?? 0;
+  const ctx = { power: (id: string) => sim?.player.upgrades[id]?.power ?? 0 };
+  const before = upgradeFigures(offer.id, rank - 1, curPower, ctx);
+  const after = upgradeFigures(offer.id, rank, curPower + ARCADE.rarity.mult[offer.rarity], ctx);
+  const fmt = (f: { value: number; unit?: string }) => f.unit === "pct" ? `${f.value >= 0 ? "+" : ""}${Math.round(f.value * 100)}%` : f.unit === "s" ? `${(Math.round(f.value * 10) / 10)} ${t("arcade.unit.s")}` : `${Math.round(f.value * 10) / 10}`;
   return (
     <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity={offer.rarity} data-testid={`arcade-offer-${index}`} onClick={onPick}>
       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {def.requiresSchools ? t("arcade.offer.hybrid", { a: t(`arcade.school.${def.requiresSchools[0]}` as MessageKey), b: t(`arcade.school.${def.requiresSchools[1]}` as MessageKey) }) : <>{t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</>}</span>
       <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)} · {t("arcade.offer.rank", { rank, max: cap })}{cap > def.maxRank && <> · {t("arcade.offer.capUp", { n: cap - def.maxRank })}</>}</small>
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
+      {after.length > 0 && (
+        <ul className="arcade-figures" data-testid="arcade-offer-figures">
+          {after.map((f, i) => {
+            const b = before[i];
+            const same = b && Math.abs(b.value - f.value) < 1e-9;
+            return (
+              <li key={f.key}>
+                <span>{t(`arcade.fig.${f.key}` as MessageKey)}</span>
+                {b && rank > 1 && !same ? <><s>{fmt(b)}</s> → <em>{fmt(f)}</em></> : <em>{fmt(f)}</em>}
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </button>
   );
 }

@@ -7,7 +7,7 @@
 // Слоты: `frame` — наземный эффект под ногами (кольцо огня/льда/золота/пустоты), `aura` — свечение
 // самого героя (языки пламени, ледяная крошка, молнии, золотая пыльца), `trail` — след за героем,
 // `death` — эффект смерти врагов, `tint` — оттенок умений (читает рендерер напрямую).
-import { drawBurning, drawChilled, drawFrostMist, drawPixelRing, drawSparks, type ParticlePalette } from "./particles.ts";
+import { drawFrostMist, drawPixelRing, type ParticlePalette } from "./particles.ts";
 
 export interface EffectPalette extends ParticlePalette { aegis: string; playerRing: string; heal: string; crit: string }
 
@@ -126,62 +126,160 @@ export function drawGroundEffect(c: CanvasRenderingContext2D, x: number, y: numb
 }
 
 /**
- * Свечение героя (слот `aura`): вокруг силуэта высотой `h` от ног (x, y). Рисуется ПОСЛЕ спрайта.
- * `flare` (0…1) — вспышка по кнопке (T): эффект разгорается втрое, как «покрасоваться» в Dota.
+ * Геометрия силуэта героя в мировых координатах — чтобы свечение шло ПО контуру и вокруг него, а не
+ * сыпалось внутри спрайта (владелец 2026-09-07: «эффект должен окружать персонажа, как гем
+ * Terrorblade или горящий Undying»; «корона не на месте»). `outline` — точки контура кадра
+ * (sprites.ts frameGeometry), `silhouette` рисует кадр сплошным цветом со сдвигом — из него
+ * складывается ореол за спиной героя.
  */
-export function drawAuraEffect(c: CanvasRenderingContext2D, x: number, y: number, h: number, kind: AuraEffect, tick: number, seed: number, px: number, pal: EffectPalette, flare = 0): void {
+export interface AuraGeo {
+  left: number; top: number; right: number; bottom: number;
+  outline: readonly { x: number; y: number }[];
+  silhouette?: (color: string, alpha: number, dx: number, dy: number) => void;
+}
+
+/** Геометрия по коробке (герой без листа Dota): контур — эллипс вокруг ног (x, y) высотой h. */
+export function auraGeoFromBox(x: number, y: number, h: number, w = h * 0.5): AuraGeo {
+  const outline: { x: number; y: number }[] = [];
+  for (let i = 0; i < 40; i++) {
+    const a = (i / 40) * Math.PI * 2;
+    outline.push({ x: x + Math.cos(a) * w * 0.5, y: y - h * 0.5 + Math.sin(a) * h * 0.5 });
+  }
+  return { left: x - w / 2, top: y - h, right: x + w / 2, bottom: y, outline };
+}
+
+/** Ореол за спрайтом: силуэт цветом свечения, сдвинутый в восемь сторон на `d` арт-пикселей. */
+function rim(geo: AuraGeo, color: string, alpha: number, d: number): void {
+  if (!geo.silhouette) return;
+  for (const [dx, dy] of [[d, 0], [-d, 0], [0, d], [0, -d], [d, d], [-d, -d], [d, -d], [-d, d]] as const) geo.silhouette(color, alpha, dx, dy);
+}
+
+/** Точка контура с индексом i (по кругу) — детерминированно, чтобы частица жила на своей точке. */
+function edgePoint(geo: AuraGeo, i: number): { x: number; y: number } {
+  const n = geo.outline.length || 1;
+  return geo.outline[((i % n) + n) % n] ?? { x: (geo.left + geo.right) / 2, y: geo.bottom };
+}
+
+/**
+ * Свечение героя (слот `aura`). Два слоя: `back` — до спрайта (ореол по контуру и крупные языки
+ * за спиной), `front` — после спрайта (редкие искры/кристаллы на самом контуре, чтобы герой
+ * оставался читаемым). `flare` (0…1) — вспышка по T: эффект разгорается втрое.
+ */
+export function drawAuraEffect(c: CanvasRenderingContext2D, geo: AuraGeo, kind: AuraEffect, tick: number, seed: number, px: number, pal: EffectPalette, flare: number, layer: "back" | "front"): void {
   const boost = 1 + flare * 2;
+  const h = Math.max(px * 4, geo.bottom - geo.top);
+  const cx = (geo.left + geo.right) / 2;
+  const n = geo.outline.length;
+  if (n === 0) return;
   switch (kind) {
     case "fire": {
-      // Языки пламени по силуэту: как горящий враг, но реже и полупрозрачнее, чтобы герой читался.
-      c.globalAlpha = 0.75;
-      drawBurning(c, x, y, h * (0.9 + flare * 0.6), tick, seed, px, pal);
-      if (flare > 0) { c.globalAlpha = flare; drawBurning(c, x, y, h * 1.4, tick + 17, seed + 1, px, pal); }
+      if (layer === "back") {
+        // Ореол: тёплый контур мерцает; за спиной — языки пламени от нижних двух третей контура вверх.
+        rim(geo, pal.fire, 0.28 + 0.12 * hash(tick >> 2, seed) + flare * 0.3, px);
+        rim(geo, pal.ember, 0.12 + flare * 0.2, px * 2);
+        const life = 36, count = Math.round(n * 0.7 * boost);
+        for (let i = 0; i < count; i++) {
+          const pt = edgePoint(geo, Math.floor(hash(seed, i + 100) * n));
+          if (pt.y < geo.top + h * 0.3) continue;
+          const t = (tick * 1.1 + hash(seed, i) * life) % life, k = t / life;
+          const out = (pt.x < cx ? -1 : 1) * k * px * 3;
+          c.globalAlpha = k < 0.75 ? 0.95 : 1 - (k - 0.75) / 0.25;
+          c.fillStyle = k < 0.3 ? pal.ember : k < 0.65 ? pal.fire : pal.smoke;
+          dot(c, pt.x + out + Math.sin(k * 8 + i) * px, pt.y - k * h * 0.55 * boost, px * (k < 0.5 ? 2 : 1), px);
+        }
+      } else {
+        // Перед героем — только редкие угольки, всплывающие с контура.
+        const life = 40, count = Math.round(6 * boost);
+        for (let i = 0; i < count; i++) {
+          const pt = edgePoint(geo, Math.floor(hash(seed, i + 300) * n));
+          const t = (tick + hash(seed, i + 7) * life) % life, k = t / life;
+          c.globalAlpha = (1 - k) * 0.9;
+          c.fillStyle = k < 0.4 ? pal.ember : pal.fire;
+          dot(c, pt.x + Math.sin(k * 9 + i) * px, pt.y - k * h * 0.35, px, px);
+        }
+      }
       c.globalAlpha = 1;
       break;
     }
     case "frost": {
-      drawChilled(c, x, y, h, tick, seed, px, pal);
-      // Иней, поднимающийся от ног, и облачко холода при вспышке.
-      const life = 60, n = Math.round(8 * boost);
-      for (let i = 0; i < n; i++) {
-        const t = (tick + hash(seed, i + 50) * life) % life, k = t / life;
-        c.globalAlpha = (1 - k) * 0.9;
-        c.fillStyle = i % 3 === 0 ? pal.text : pal.ice;
-        dot(c, x + (hash(seed, i + 60) - 0.5) * h * 0.5 * boost, y - k * h * 0.9, px, px);
+      if (layer === "back") {
+        rim(geo, pal.frost, 0.3 + flare * 0.3, px);
+        rim(geo, pal.ice, 0.1 + flare * 0.15, px * 2);
+        // Холодный пар стелется от ног и поднимается вдоль контура.
+        const life = 70, count = Math.round(n * 0.35 * boost);
+        for (let i = 0; i < count; i++) {
+          const pt = edgePoint(geo, Math.floor(hash(seed, i + 120) * n));
+          const t = (tick * 0.7 + hash(seed, i + 11) * life) % life, k = t / life;
+          c.globalAlpha = (k < 0.2 ? k / 0.2 : 1 - (k - 0.2) / 0.8) * 0.8;
+          c.fillStyle = i % 3 === 0 ? pal.text : pal.ice;
+          dot(c, pt.x + (pt.x < cx ? -1 : 1) * k * px * 4, pt.y - k * h * 0.3, px * 1.5, px);
+        }
+      } else {
+        // Кристаллы инея сидят на контуре нижней половины и изредка блестят.
+        const count = Math.round(10 * boost);
+        for (let i = 0; i < count; i++) {
+          const pt = edgePoint(geo, Math.floor(hash(seed, i + 200) * n));
+          if (pt.y < geo.top + h * 0.4) continue;
+          const glint = ((tick + i * 13) % 70) < 6;
+          c.globalAlpha = 0.95;
+          c.fillStyle = glint ? pal.text : i % 2 ? pal.ice : pal.frost;
+          dot(c, pt.x, pt.y, px, px); dot(c, pt.x, pt.y - px * 1.5, px, px);
+          if (glint) dot(c, pt.x + px, pt.y - px, px, px);
+        }
       }
       c.globalAlpha = 1;
       break;
     }
     case "lightning": {
-      // Искры по телу и короткие дуги, соединяющие две случайные точки силуэта раз в несколько тиков.
-      drawSparks(c, x, y - h * 0.45, h * 0.45 * boost, tick, px, pal, Math.round(5 * boost));
-      const step = tick >> 2;
-      if (hash(step, seed + 77) < 0.5 * boost) {
-        const ax = x + (hash(step, seed + 1) - 0.5) * h * 0.6, ay = y - hash(step, seed + 2) * h;
-        const bx = x + (hash(step, seed + 3) - 0.5) * h * 0.6, by = y - hash(step, seed + 4) * h;
-        const segs = 5;
-        c.fillStyle = pal.text;
-        for (let i = 0; i <= segs; i++) {
-          const k = i / segs;
-          const jitter = i === 0 || i === segs ? 0 : (hash(step, seed + 10 + i) - 0.5) * px * 4;
-          dot(c, ax + (bx - ax) * k + jitter, ay + (by - ay) * k + jitter, px, px);
+      if (layer === "back") {
+        // Контур вспыхивает фиолетовым, когда бьёт дуга.
+        const step = tick >> 2;
+        const strike = hash(step, seed + 77) < 0.5 * boost;
+        rim(geo, pal.lightning, (strike ? 0.45 : 0.18) + flare * 0.25, px);
+        if (strike) {
+          // Дуга между двумя точками контура — снаружи силуэта, ломаной.
+          const a = edgePoint(geo, Math.floor(hash(step, seed + 1) * n)), b = edgePoint(geo, Math.floor(hash(step, seed + 2) * n));
+          const segs = 6;
+          c.fillStyle = pal.text;
+          for (let i = 0; i <= segs; i++) {
+            const k = i / segs;
+            const j = i === 0 || i === segs ? 0 : (hash(step, seed + 10 + i) - 0.5) * px * 5;
+            dot(c, a.x + (b.x - a.x) * k + j, a.y + (b.y - a.y) * k + j, px, px);
+          }
+        }
+      } else {
+        // Искры на контуре: короткие штрихи, меняющие место каждые несколько тиков.
+        const step = tick >> 2, count = Math.round(6 * boost);
+        for (let i = 0; i < count; i++) {
+          if (hash(step, i + 41) > 0.55) continue;
+          const pt = edgePoint(geo, Math.floor(hash(step, i + 43) * n));
+          c.globalAlpha = 0.95; c.fillStyle = pal.lightning; dot(c, pt.x, pt.y, px * 2, px);
+          c.fillStyle = pal.text; dot(c, pt.x + px, pt.y - px, px, px);
         }
       }
+      c.globalAlpha = 1;
       break;
     }
     case "aegis": {
-      // Золотая пыльца поднимается по силуэту, над головой — пульсирующий нимб из точек.
-      const life = 54, n = Math.round(12 * boost);
-      for (let i = 0; i < n; i++) {
-        const t = (tick * 0.9 + hash(seed, i + 90) * life) % life, k = t / life;
-        c.globalAlpha = k < 0.15 ? k / 0.15 : 1 - k;
-        c.fillStyle = i % 3 === 0 ? pal.text : pal.aegis;
-        dot(c, x + (hash(seed, i + 91) - 0.5) * h * 0.55 + Math.sin(k * 6 + i) * px, y - k * h * 1.05, px * (k < 0.4 ? 2 : 1), px);
+      if (layer === "back") {
+        rim(geo, pal.aegis, 0.3 + 0.1 * Math.sin(tick / 9) + flare * 0.3, px);
+        // Золотая пыльца поднимается с контура и гаснет белым.
+        const life = 54, count = Math.round(n * 0.4 * boost);
+        for (let i = 0; i < count; i++) {
+          const pt = edgePoint(geo, Math.floor(hash(seed, i + 140) * n));
+          const t = (tick * 0.9 + hash(seed, i + 90) * life) % life, k = t / life;
+          c.globalAlpha = k < 0.15 ? k / 0.15 : 1 - k;
+          c.fillStyle = i % 3 === 0 ? pal.text : pal.aegis;
+          dot(c, pt.x + (pt.x < cx ? -1 : 1) * k * px * 3 + Math.sin(k * 6 + i) * px, pt.y - k * h * 0.4, px * (k < 0.4 ? 2 : 1), px);
+        }
+      } else {
+        // Нимб — на макушке силуэта, чуть выше верхней точки; пульсирует.
+        const hx = cx, hy = geo.top - px * 2 - h * 0.03, hr = h * 0.16 * boost;
+        c.globalAlpha = 0.75 + 0.25 * Math.sin(tick / 9);
+        pixelEllipse(c, hx, hy, hr, hr * 0.4, px, pal.aegis, 1.2);
+        c.globalAlpha = 0.5;
+        pixelEllipse(c, hx, hy, hr * 0.7, hr * 0.28, px, pal.text, 2);
       }
-      const hx = x, hy = y - h * 1.08, hr = h * 0.16 * boost;
-      c.globalAlpha = 0.7 + 0.3 * Math.sin(tick / 9);
-      pixelEllipse(c, hx, hy, hr, hr * 0.4, px, pal.aegis, 1.2);
       c.globalAlpha = 1;
       break;
     }

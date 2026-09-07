@@ -530,6 +530,60 @@ export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, ani
   return true;
 }
 
+/**
+ * Геометрия кадра листа: рамка силуэта и точки его контура в пикселях кадра. Нужна эффектам
+ * (features/arcade/effects.ts), чтобы пламя, иней и молнии шли ПО силуэту и вокруг него, а нимб
+ * садился на макушку (владелец 2026-09-07: «эффект должен окружать персонажа, а не быть в нём»,
+ * «корона не на месте»). Считается один раз на кадр и кэшируется — getImageData дорог.
+ */
+export interface FrameGeometry {
+  x0: number; y0: number; x1: number; y1: number;
+  /** Точки контура (пиксель непрозрачен, а сосед по 4-связности прозрачен), прорежены до ~64. */
+  outline: { x: number; y: number }[];
+}
+const frameGeo = new Map<string, FrameGeometry | null>();
+let geoScratch: HTMLCanvasElement | null = null;
+
+export function frameGeometry(sheet: DotaSheet, anim: string, dir: number, frame: number): FrameGeometry | null {
+  const m = sheet.meta;
+  const a = m.anims[anim] ?? (anim === "attack" || anim === "idle" ? m.anims.walk ?? m.anims.idle : anim === "walk" ? m.anims.idle : undefined);
+  if (!a || typeof document === "undefined") return null;
+  const row = a.row + (dir % m.dirs);
+  const f = a.frames > 0 ? ((frame % a.frames) + a.frames) % a.frames : 0;
+  const key = `${m.name}:${row}:${f}`;
+  const cached = frameGeo.get(key);
+  if (cached !== undefined) return cached;
+  const F = m.frame;
+  if (!geoScratch) geoScratch = document.createElement("canvas");
+  if (geoScratch.width < F) geoScratch.width = geoScratch.height = F;
+  const c = geoScratch.getContext("2d", { willReadFrequently: true });
+  if (!c) return null;
+  c.clearRect(0, 0, F, F);
+  c.drawImage(sheet.img, f * F, row * F, F, F, 0, 0, F, F);
+  const px = c.getImageData(0, 0, F, F).data;
+  const on = new Uint8Array(F * F);
+  let x0 = F, y0 = F, x1 = -1, y1 = -1;
+  for (let p = 0, i = 3; p < F * F; p++, i += 4) {
+    if (px[i] < 64) continue;
+    on[p] = 1;
+    const x = p % F, y = (p / F) | 0;
+    if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  if (x1 < 0) { frameGeo.set(key, null); return null; }
+  const edge: { x: number; y: number }[] = [];
+  for (let p = 0; p < F * F; p++) {
+    if (!on[p]) continue;
+    const x = p % F, y = (p / F) | 0;
+    if (x === 0 || y === 0 || x === F - 1 || y === F - 1 || !on[p - 1] || !on[p + 1] || !on[p - F] || !on[p + F]) edge.push({ x, y });
+  }
+  const step = Math.max(1, Math.floor(edge.length / 64));
+  const outline: { x: number; y: number }[] = [];
+  for (let i = 0; i < edge.length; i += step) outline.push(edge[i]);
+  const geo: FrameGeometry = { x0, y0, x1, y1, outline };
+  frameGeo.set(key, geo);
+  return geo;
+}
+
 /** Бесшовная текстура земли Dota (`dota/terrain/<name>.webp`), если положена. */
 export function dotaTerrain(name: string): HTMLImageElement | null {
   const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${name}.webp`, ROOT);

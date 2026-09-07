@@ -75,3 +75,56 @@ export const UPGRADE_BY_ID: Record<string, UpgradeDef> = Object.fromEntries(UPGR
 
 /** Таланты 10/15/20/25 — общая лестница героев (см. content/heroes.ts). */
 export { HERO_TALENTS as TALENTS } from "./heroes.ts";
+
+/**
+ * Числа карточки школы: что именно даёт апгрейд СЕЙЧАС и что даст следующий ранг (владелец
+ * 2026-09-07: «хочется наглядности, как растёт процент урона, а то ничего не понятно»). Формулы —
+ * зеркало sim.ts (burnMult, lightningMult, applyBurn/applyChill и др.); меняешь там — меняй здесь,
+ * тест `arcadeFigures.test.ts` держит их в согласии на ключевых точках.
+ * `power` — сумма множителей редкости взятых рангов (ARCADE.rarity.mult), `rank` — число рангов.
+ */
+export interface UpgradeFigure {
+  /** Ключ подписи `arcade.fig.<key>`. */
+  key: string;
+  value: number;
+  /** Проценты (value = доля), секунды или штуки. */
+  unit?: "pct" | "s" | "x";
+}
+
+export interface UpgradeCtx {
+  /** Мощь других апгрейдов игрока (для множителей огня/молний). */
+  power: (id: string) => number;
+}
+
+export function upgradeFigures(id: string, rank: number, power: number, ctx: UpgradeCtx): UpgradeFigure[] {
+  const burnMult = (1 + 0.25 * ctx.power("rad_inferno")) * (ctx.power("leg_rad_sun") > 0 ? 1.75 : 1);
+  const lightningMult = (1 + 0.2 * ctx.power("mae_mjollnir")) * (ctx.power("leg_mae_thunder") > 0 ? 1.5 : 1);
+  const p = power;
+  switch (id) {
+    case "rad_aura": return [{ key: "auraDps", value: 8 * p * burnMult }];
+    case "rad_strike": return [{ key: "burnDps", value: 6 * p * burnMult }, { key: "burnSec", value: 3, unit: "s" }];
+    case "rad_ring": return [{ key: "boltDmg", value: 18 * p * burnMult }, { key: "every", value: 3 / (1 + 0.15 * p), unit: "s" }];
+    case "rad_blast": return [{ key: "blastDmg", value: 25 * p * burnMult }];
+    case "rad_inferno": return [{ key: "fireDmg", value: 0.25 * p, unit: "pct" }, { key: "auraRadius", value: 110 * (1 + 0.1 * p) }];
+    case "ska_bite": return [{ key: "slow", value: Math.min(0.6, 0.3 + 0.05 * p), unit: "pct" }, { key: "slowSec", value: 2.5, unit: "s" }];
+    case "ska_snap": return [{ key: "freezeSec", value: 0.8 + 0.3 * p, unit: "s" }];
+    case "ska_shards": return [{ key: "shardDmg", value: 14 * p }, { key: "every", value: 2.2 / (1 + 0.1 * p), unit: "s" }];
+    case "ska_aura": return [{ key: "fieldSlow", value: Math.min(0.5, 0.15 * p), unit: "pct" }];
+    case "ska_shatter": return [{ key: "vsFrozen", value: 0.4 * p, unit: "pct" }, { key: "vsSlowed", value: 0.1 * p, unit: "pct" }];
+    case "mae_chain": return [{ key: "chainChance", value: 0.25 + 0.08 * p, unit: "pct" }, { key: "chainDmg", value: 20 * p * lightningMult }, { key: "chainTargets", value: 3 + Math.floor(ctx.power("mae_mjollnir") * 2) + (ctx.power("leg_mae_thunder") > 0 ? 4 : 0), unit: "x" }];
+    case "mae_static": return [{ key: "zapDmg", value: 24 * p * lightningMult }, { key: "zapTargets", value: 1 + Math.floor(p / 2), unit: "x" }, { key: "every", value: 1.6, unit: "s" }];
+    case "mae_overcharge": return [{ key: "attackSpeed", value: 0.12 * p, unit: "pct" }, { key: "moveSpeed", value: 0.04 * p, unit: "pct" }];
+    case "mae_clap": return [{ key: "clapDmg", value: 40 * p * lightningMult }, { key: "stunSec", value: 0.6, unit: "s" }];
+    case "mae_mjollnir": return [{ key: "lightningDmg", value: 0.2 * p, unit: "pct" }, { key: "chainTargetsBonus", value: Math.floor(p * 2), unit: "x" }];
+    case "beast_hawk": return [{ key: "xpRadius", value: 110 + 30 * rank }];
+    case "beast_wolf": return [{ key: "petDmg", value: 14 * rank }];
+    case "beast_bear": return [{ key: "petDmg", value: 30 * rank }];
+    case "beast_pack": return [{ key: "wolves", value: 1 + rank, unit: "x" }];
+    case "beast_roar": return [{ key: "petPower", value: 0.35 * rank, unit: "pct" }];
+    case "hyb_steam": return [{ key: "vsBurningChilled", value: 0.25 * p, unit: "pct" }];
+    case "hyb_superconductor": return [{ key: "vsFrozenZap", value: 0.35 * p, unit: "pct" }];
+    case "hyb_plasma": return [{ key: "plasmaDps", value: 5 * p }];
+    case "hyb_wild_hunt": return [{ key: "vsSlowedPets", value: 0.3 * p, unit: "pct" }];
+    default: return [];
+  }
+}
