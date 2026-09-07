@@ -352,8 +352,6 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-rune-shield: #7fd9ff;
   --arcade-rune-arcane: #c98bff;
   --arcade-rune-illusion: #ffd86b;
-  --arcade-veil: #1b4f52;      /* дым-плащ арканы PA (эффект скина `veil`) */
-  --arcade-veil-glow: #4fe3d3;
   --arcade-ground-night: #070a10;
   --arcade-fog: rgba(3, 5, 9, .96);
   --arcade-scrim: rgba(0, 0, 0, .55);        /* затемнение оверлеев и кулдауна на всегда-тёмной сцене */

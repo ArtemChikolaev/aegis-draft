@@ -179,7 +179,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
     { def: null, sheet: hero, owned: true },
     ...skins.map((c) => ({ def: c, sheet: c.variant, owned: cosmetics.owned.includes(c.id) })),
   ];
-  const equippedSkin = skins.find((c) => c.id === cosmetics.equipped.skin) ?? null;
+  const equippedSkin = skins.find((c) => c.id === cosmetics.skins[hero]) ?? null;
   const [selId, setSelId] = useState<string | null>(equippedSkin?.id ?? null);
   const sel = looks.find((l) => (l.def?.id ?? null) === selId) ?? looks[0];
   const selStyle: StyleDef | undefined = sel.def?.styles?.find((st) => st.id === cosmetics.styles[sel.def!.id]);

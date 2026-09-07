@@ -60,12 +60,30 @@ describe("гардероб: облик и стиль", () => {
   });
 
   it("покупка скина списывает осколки и его можно надеть", () => {
-    useArcade.setState({ cosmetics: { owned: [], equipped: {}, shards: 1000, styles: {} } });
+    useArcade.setState({ cosmetics: { owned: [], equipped: {}, shards: 1000, styles: {}, skins: {} } });
+    useArcade.getState().setHero("zeus");
     const skin = COSMETICS.find((c) => c.slot === "skin" && c.hero === "zeus")!;
     expect(useArcade.getState().buyCosmetic(skin.id)).toBe(true);
     useArcade.getState().equip("skin", skin.id);
     expect(useArcade.getState().cosmetics.equipped.skin).toBe(skin.id);
     expect(skinnedSheet("zeus", useArcade.getState().cosmetics.equipped, useArcade.getState().cosmetics.styles)).toBe(skin.variant);
+  });
+  it("скин у каждого героя свой: аркана второго героя не снимает аркану первого (владелец 2026-09-07)", () => {
+    useArcade.setState({ cosmetics: { owned: [], equipped: {}, shards: 1000, styles: {}, skins: {} } });
+    const zeus = COSMETICS.find((c) => c.slot === "skin" && c.hero === "zeus")!;
+    const tb = COSMETICS.find((c) => c.slot === "skin" && c.hero === "terrorblade")!;
+    useArcade.getState().setHero("zeus");
+    useArcade.getState().buyCosmetic(zeus.id); useArcade.getState().equip("skin", zeus.id);
+    useArcade.getState().setHero("terrorblade");
+    expect(useArcade.getState().cosmetics.equipped.skin).toBeUndefined();
+    useArcade.getState().buyCosmetic(tb.id); useArcade.getState().equip("skin", tb.id);
+    expect(useArcade.getState().cosmetics.equipped.skin).toBe(tb.id);
+    useArcade.getState().setHero("zeus");
+    expect(useArcade.getState().cosmetics.equipped.skin).toBe(zeus.id);
+    expect(useArcade.getState().cosmetics.skins).toEqual({ zeus: zeus.id, terrorblade: tb.id });
+    // Снятие — только у выбранного героя.
+    useArcade.getState().equip("skin", null);
+    expect(useArcade.getState().cosmetics.skins).toEqual({ terrorblade: tb.id });
   });
 });
 // Превью облика тянулось дробным масштабом (стенд 230 css на лист 128 арт-пикселей = 1.8), и

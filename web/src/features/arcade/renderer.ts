@@ -28,7 +28,7 @@ import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "veil", "veilGlow", "groundNight", "fog", "river", "pit",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];

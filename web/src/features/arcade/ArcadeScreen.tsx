@@ -111,7 +111,7 @@ function ArcadeSetup() {
                     // Бейдж скина на карточке героя (владелец: «косметика по герою»): надетый — по редкости, иначе — сколько доступно.
                     const skins = COSMETICS.filter((c) => c.slot === "skin" && c.hero === id);
                     if (skins.length === 0) return null;
-                    const on = wornSkin(id, cosmetics.equipped.skin);
+                    const on = wornSkin(id, cosmetics.skins[id]);
                     return on
                       ? <span className="arcade-heroes__skin" data-rarity={on.rarity} data-testid={`arcade-hero-skin-${id}`}>{t(on.rarity === "arcana" ? "arcade.rarity.arcana" : "arcade.cosmetics.persona")}</span>
                       : <span className="arcade-heroes__skin" data-testid={`arcade-hero-skins-${id}`}>{t("arcade.cosmetics.skinsCount", { n: skins.length })}</span>;

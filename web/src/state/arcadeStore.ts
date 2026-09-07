@@ -77,21 +77,37 @@ export function equippedGear(gear: GearState): GearItem[] {
 
 export interface CosmeticsState {
   owned: string[];
+  /** Надетое по слотам. `skin` здесь — производное: скин ВЫБРАННОГО героя из `skins` (владелец 2026-09-07:
+   *  «надеваю аркану на одном персонаже, а на другом она снимается»); правда о скинах — в `skins`. */
   equipped: Partial<Record<CosmeticSlot, string>>;
   shards: number;
   /** Выбранный стиль скина (аркана/самоцвет): id косметики → id стиля. Стиль бесплатен, он идёт со скином. */
   styles: Record<string, string>;
+  /** Скин у каждого героя свой: id героя → id косметики. */
+  skins: Record<string, string>;
+}
+
+/** `equipped.skin` = скин героя `hero` (или ничего): все читатели слота продолжают работать как с одним слотом. */
+function withHeroSkin(c: CosmeticsState, hero: string): CosmeticsState {
+  const equipped = { ...c.equipped };
+  const id = c.skins[hero];
+  if (id) equipped.skin = id; else delete equipped.skin;
+  return { ...c, equipped };
 }
 
 function readCosmetics(): CosmeticsState {
+  const empty: CosmeticsState = { owned: [], equipped: {}, shards: 0, styles: {}, skins: {} };
   try {
     const raw = readCached(COSMETICS_KEY);
-    const parsed = raw ? (JSON.parse(raw) as CosmeticsState) : null;
-    return parsed && Array.isArray(parsed.owned)
-      ? { owned: parsed.owned, equipped: parsed.equipped ?? {}, shards: parsed.shards ?? 0, styles: parsed.styles ?? {} }
-      : { owned: [], equipped: {}, shards: 0, styles: {} };
+    const parsed = raw ? (JSON.parse(raw) as Partial<CosmeticsState>) : null;
+    if (!parsed || !Array.isArray(parsed.owned)) return empty;
+    const equipped = parsed.equipped ?? {};
+    // Сейвы до 2026-09-07: один слот скина на всех — переносим его герою, которому он принадлежит.
+    const legacy = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
+    const skins = parsed.skins ?? (legacy?.hero ? { [legacy.hero]: legacy.id } : {});
+    return { owned: parsed.owned, equipped, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins };
   } catch {
-    return { owned: [], equipped: {}, shards: 0, styles: {} };
+    return empty;
   }
 }
 const HISTORY_CAP = 50;
@@ -179,7 +195,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   autoCast: readAutoCast(),
   replayLog: null,
   loadedReplay: null,
-  cosmetics: readCosmetics(),
+  cosmetics: withHeroSkin(readCosmetics(), "juggernaut"),
   lastDrops: [],
   gear: readGear(),
   lastLoot: [],
@@ -242,8 +258,13 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   equip(slot, id) {
     if (id !== null && (!COSMETIC_BY_ID[id] || COSMETIC_BY_ID[id].slot !== slot || !get().cosmetics.owned.includes(id))) return;
     const equipped = { ...get().cosmetics.equipped };
-    if (id === null) delete equipped[slot]; else equipped[slot] = id;
-    const cosmetics = { ...get().cosmetics, equipped };
+    const skins = { ...get().cosmetics.skins };
+    if (slot === "skin") {
+      // Скин — у героя, которому он принадлежит; снятие — у выбранного героя.
+      const hero = id === null ? get().hero : COSMETIC_BY_ID[id]?.hero ?? get().hero;
+      if (id === null) delete skins[hero]; else skins[hero] = id;
+    } else if (id === null) delete equipped[slot]; else equipped[slot] = id;
+    const cosmetics = withHeroSkin({ ...get().cosmetics, equipped, skins }, get().hero);
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });
   },
@@ -256,7 +277,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ act });
   },
   setHero(hero) {
-    if (hero in HEROES) set({ hero });
+    if (hero in HEROES) set({ hero, cosmetics: withHeroSkin(get().cosmetics, hero) });
   },
   setRank(rank) {
     set({ rank: Math.max(0, Math.min(MAX_RANK_STEP, Math.min(rank, maxUnlockedRank(get().history)))) });

@@ -89,7 +89,7 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_cm_persona", slot: "skin", rarity: "exotic", variant: "crystal_maiden@persona", hero: "crystal_maiden" },
   { id: "skin_dk_persona", slot: "skin", rarity: "exotic", variant: "dragon_knight@persona", hero: "dragon_knight" },
   { id: "skin_mirana_persona", slot: "skin", rarity: "exotic", variant: "mirana@persona", hero: "mirana" },
-  { id: "skin_pa_arcana", slot: "skin", rarity: "arcana", variant: "phantom_assassin@arcana", hero: "phantom_assassin", fx: { aura: "veil" } },
+  { id: "skin_pa_arcana", slot: "skin", rarity: "arcana", variant: "phantom_assassin@arcana", hero: "phantom_assassin" },
   { id: "skin_pa_persona", slot: "skin", rarity: "exotic", variant: "phantom_assassin@persona", hero: "phantom_assassin" },
   { id: "skin_zeus_arcana", slot: "skin", rarity: "arcana", variant: "zeus@arcana", hero: "zeus" },
   { id: "skin_wk_arcana", slot: "skin", rarity: "arcana", variant: "wraith_king@arcana", hero: "wraith_king" },
