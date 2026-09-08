@@ -71,7 +71,7 @@ def style_index(root):
 
 def _color_prefix(name):
     """Токены имени текстуры до слова `color` включительно: хвост (psd/png + хэш) у стиля свой."""
-    t = os.path.splitext(name)[0].lower().split("_")
+    t = [v for v in os.path.splitext(name)[0].lower().split("_") if v]
     return t[: t.index("color") + 1] if "color" in t else None
 
 
@@ -83,6 +83,9 @@ def style_texture(idx, image_name, style):
     base = _color_prefix(image_name)
     if not base:
         return None
+    # Source2Viewer отдаёт style0 как базовый (иммортал MK) либо оставляет стилевой материал на
+    # bodygroup. Токен стиля в имени заменяем, а не накладываем поверх второй.
+    base = [v for v in base if not re.fullmatch(r"style\d+", v)]
     want = {tuple(base[:i] + [style] + base[i:]) for i in range(len(base))}
     for key, path in idx.items():
         pref = _color_prefix(key)
@@ -414,7 +417,8 @@ def main():
         # Source2Viewer выгружает КАЖДУЮ группу тела моделью: у косметики аркан это три совпадающих
         # меша — `._dummy`, базовый и `<имя>_style1`. Все три лежат в одних координатах, и на спрайте
         # причёска/лук выходили утроенным месивом (владелец: «у drow ranger опять проблемы с арканой»).
-        # Стиль у нас — подмена текстур базового меша (--style), поэтому лишние копии просто убираем.
+        # Сохраняем bodygroup запрошенного стиля: у MK вместе с ним меняется
+        # материал лент. Остальным материалам стиль подставляется по текстурам.
         order = [o.name for o in lst]
         groups = {}
         def geo_key(o):
@@ -435,8 +439,12 @@ def main():
             if len(same) < 2:
                 continue
             def rank(o):
-                mesh = o.name.rsplit(".", 1)[-1].lower()
-                return (mesh.endswith("_dummy") or mesh == "_dummy", bool(re.search(r"_style\d+$", mesh)), len(mesh))
+                # Blender дописывает `.001`, когда имя объекта повторяется в разных glb, — этот
+                # суффикс не должен перебивать настоящее имя bodygroup.
+                mesh = re.sub(r"\.\d+$", "", o.name).rsplit(".", 1)[-1].lower()
+                style = re.search(r"_(style\d+)$", mesh)
+                preferred = style.group(1) == a.style if style else not re.fullmatch(r"style\d+", a.style)
+                return (mesh.endswith("_dummy") or mesh == "_dummy", not preferred, bool(style), len(mesh))
             same.sort(key=rank)
             for extra in same[1:]:
                 dead.add(extra.name)
@@ -605,7 +613,10 @@ def main():
             if not pref:
                 return
             stem = "_".join(pref[:-1])
-            path = next((p for k, p in glow_masks.items() if k.startswith(stem + "_detailmask") or k.startswith(stem + "_selfillummask")), None)
+            # У альтернативной раскраски маска selfillum часто общая с базовой (Spectre).
+            stems = [stem, "_".join(v for v in pref[:-1] if not re.fullmatch(r"alt|style\d+", v))]
+            path = next((p for s in stems for k, p in glow_masks.items()
+                         if re.sub(r"_+", "_", k).startswith((s + "_detailmask", s + "_selfillummask"))), None)
             if not path:
                 return
             mimg = bpy.data.images.load(path, check_existing=True)

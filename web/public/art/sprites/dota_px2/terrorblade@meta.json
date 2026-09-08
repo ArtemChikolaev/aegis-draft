@@ -35,5 +35,6 @@
   "orientation": "none",
   "pitch": 45.0,
   "pixel": true,
-  "margin": 1.4
+  "margin": 1.4,
+  "glow": 175.4
 }

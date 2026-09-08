@@ -12,7 +12,7 @@ import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, type CosmeticDef, type Cosmetic
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { dotaSheet, dotaSheetState, drawDotaFrame, frameGeometry, gemSheet, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
+import { dotaSheet, dotaSheetState, drawDotaFrame, frameGeometry, gemSheet, HERO_AURA, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, readEffectPalette, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
@@ -34,13 +34,18 @@ const LOOP_S = IDLE_S + WALK_S + ATTACK_S;
 /**
  * Масштаб превью облика. При увеличении держим ЦЕЛОЕ число физических пикселей на арт-пиксель:
  * при дробном (230 css / 128 арт = 1.8) nearest-neighbour тянет часть пикселей вдвое, часть нет,
- * и облик выходит кашей. Округляем, а не отсекаем вниз — у кадра есть поля вокруг силуэта, лишние
- * 10–15% срезают пустоту, а не героя. При уменьшении (миниатюры 48 px под лист 128) целых чисел
- * нет вовсе, поэтому там оставляем дробный масштаб: иначе миниатюра показывала бы кроп в упор.
+ * и облик выходит кашей. При уменьшении (миниатюры 48 px под лист 128) целых чисел нет вовсе,
+ * поэтому там оставляем дробный масштаб: иначе миниатюра показывала бы кроп в упор.
+ *
+ * `world` — рост героя (по нему выравниваем облики между собой), `frameFit` — во сколько раз
+ * помещается ВЕСЬ кадр листа: выше него подниматься нельзя, иначе поля кадра уезжают за холст и
+ * длинное оружие/крылья обрезаются рамкой (владелец 2026-09-08: «уже давно перестали туда влезать»).
+ * Раньше масштаб округлялся вверх «на поля», но у листов с `margin 1.4` кадр на четверть больше
+ * роста — герой рисовался на 280 px в холсте 220 px.
  */
-export function previewScale(size: number, world: number, dpr: number): number {
-  const ideal = (size * 1.02) / Math.max(1, world);
-  return ideal * dpr >= 1 ? Math.round(ideal * dpr) / dpr : ideal;
+export function previewScale(size: number, world: number, dpr: number, frameFit = Infinity): number {
+  const ideal = Math.min(size / Math.max(1, world), frameFit);
+  return ideal * dpr >= 1 ? Math.floor(ideal * dpr) / dpr : ideal;
 }
 
 /**
@@ -102,8 +107,8 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
       const dir = anim === "walk" ? Math.floor(((loop - IDLE_S) / WALK_S) * s.meta.dirs) % s.meta.dirs : 0;
       const frame = still ? 0 : Math.floor(el * s.meta.fps);
       // Масштаб — по росту героя, а не по кадру: у листов с запасом 1.4 кадр на четверть шире, и без
-      // поправки герой в витрине мельчал бы вместе с ростом рамки.
-      const mult = previewScale(size, s.meta.world * (1.12 / (s.meta.margin ?? 1.12)), dpr);
+      // поправки герой в витрине мельчал бы вместе с ростом рамки. Потолок — целый кадр в холсте.
+      const mult = previewScale(size, s.meta.world * (1.12 / (s.meta.margin ?? 1.12)), dpr, size / Math.max(1, s.meta.world));
       // Эффекты в превью (владелец 2026-09-07: «никак не отображаются в превью персонажа»): те же
       // функции, что в бою. Радиус героя и высота силуэта — от размера превью, тик — от часов страницы.
       const fx = effects;
@@ -111,7 +116,10 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
       // Зерно эффектов — два арт-пикселя, как в бою (artPx = 2 · фактор), радиус кольца — как у героя в бою
       // относительно роста (R ≈ 0.17 роста).
       const px = Math.max(1, Math.round(mult * 2));
-      const R = size * 0.11, hx = size / 2, hy = size * 0.9, hh = size * 0.62;
+      // Кадр листа целиком по центру холста: якорь (ноги) — там, где он лежит в кадре, а не «на 90%
+      // высоты», иначе верх кадра уезжает за холст и голова/крылья обрезаются.
+      const box = s.meta.world * mult;
+      const R = box * 0.11, hx = size / 2, hy = (size - box) / 2 + box * s.meta.anchor.y, hh = box * 0.62;
       if (fx?.trail && !still) {
         // След: герой в превью стоит, поэтому точки идут по дуге за ним, как будто он только что подошёл.
         const now = performance.now();
@@ -151,7 +159,7 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
     return () => cancelAnimationFrame(raf);
   }, [sheet, size, gem, glow, still, effects?.frame, effects?.aura, effects?.skinAura, effects?.trail, effects?.death]);
   return (
-    <span className="arcade-wardrobe__slot" style={{ width: size, height: size }}>
+    <span className="arcade-wardrobe__slot" style={{ width: size, maxWidth: "100%", aspectRatio: "1" }}>
       <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />
       {missing && <em className="arcade-wardrobe__pending">{t("arcade.wardrobe.pending")}</em>}
     </span>
@@ -190,7 +198,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   // (как в Dota: призматический самоцвет красит эффекты, и облику без них он не нужен).
   const arcana = sel.def?.rarity === "arcana";
   const effectVariant = (slot: CosmeticSlot) => { const id = cosmetics.equipped[slot]; return id ? COSMETIC_BY_ID[id]?.variant : undefined; };
-  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: effectVariant("aura") as AuraEffect | undefined, skinAura: sel.def?.fx?.aura as AuraEffect | undefined, trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
+  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: effectVariant("aura") as AuraEffect | undefined, skinAura: (sel.def?.fx?.aura as AuraEffect | undefined) ?? HERO_AURA[hero], trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
   const glow = useSheetGlow(previewSheet, arcana);
   const styleOptions = (sel.def?.styles ?? []).filter((st) => st.hue === undefined || !!glow);
   return (
@@ -204,7 +212,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
     >
       <div className="arcade-wardrobe" data-testid="arcade-wardrobe">
         <div className="arcade-wardrobe__stage">
-          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? "own"}`} sheet={previewSheet} size={220} gem={selStyle?.hue ?? null} glow={arcana} effects={previewEffects} />
+          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? "own"}`} sheet={previewSheet} size={320} gem={selStyle?.hue ?? null} glow={arcana} effects={previewEffects} />
           <strong data-testid="arcade-wardrobe-name">
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
           </strong>

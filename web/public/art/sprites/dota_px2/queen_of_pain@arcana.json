@@ -20,11 +20,11 @@
     },
     "idle": {
       "row": 16,
-      "frames": 12
+      "frames": 2
     },
     "attack": {
       "row": 24,
-      "frames": 6
+      "frames": 8
     }
   },
   "source": "queenofpain_arcana_base_remodel.glb",

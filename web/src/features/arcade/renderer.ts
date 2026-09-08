@@ -19,7 +19,7 @@ import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, heroLook, setPixelSheets, spriteVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, HERO_AURA, heroLook, setPixelSheets, spriteVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { itemArtSources } from "../../ui/artSource.ts";
@@ -116,13 +116,20 @@ export class ArcadeRenderer {
   /** Лист героя с учётом скина (`<hero>@<skin>`), с падением на базовый лист, пока скин не загрузился или не для этого героя. */
   /** Лист героя: альтернативная форма (Metamorphosis) важнее скина, скин важнее базовой модели. */
   private heroSheet(hero: string, form = false) {
-    if (form) { const ds = dotaSheet(`${hero}@meta`); if (ds) return ds; }
     const skin = this.cosmetic.skin;
-    if (skin && skin.startsWith(`${hero}@`)) {
-      const ds = dotaSheet(skin);
-      if (ds) return this.skinGlow ? gemSheet(ds, this.skinGem) : ds;
-      const bare = skin.split("~")[0];
-      if (bare !== skin) { const b = dotaSheet(bare); if (b) return this.skinGlow ? gemSheet(b, this.skinGem) : b; }
+    const mine = skin && skin.startsWith(`${hero}@`) ? skin.split("~")[0] : null;
+    const paint = (ds: DotaSheet) => (this.skinGlow ? gemSheet(ds, this.skinGem) : ds);
+    if (form) {
+      // Форма со скином: у арканы Terrorblade своя модель демона (`<hero>@<skin>@meta`). Самоцвет
+      // красит и её — владелец 2026-09-08: «метаморфоза серая, а должна краситься в цвет гема».
+      if (mine) { const ds = dotaSheet(`${mine}@meta`); if (ds) return paint(ds); }
+      const ds = dotaSheet(`${hero}@meta`);
+      if (ds) return mine ? paint(ds) : ds;
+    }
+    if (mine) {
+      const ds = dotaSheet(skin!);
+      if (ds) return paint(ds);
+      if (mine !== skin) { const b = dotaSheet(mine); if (b) return paint(b); }
     }
     return dotaSheet(hero);
   }
@@ -293,63 +300,34 @@ export class ArcadeRenderer {
   }
 
   /**
-   * Призыв на земле. Владелец 2026-09-06: «Terrorblade должен звать иллюзии, а он ставит на пол шарик».
-   * Сим остался прежним (один источник урона в точке), меняется только картинка: иллюзии рисуются
-   * листом самого героя вполупрозрачно, звери — своим листом (`wolf`, `bear`, `treant`, `hawk`).
-   * Умения без `summon` (варды, надгробие, ловушка) остаются кружком с кольцом радиуса.
+   * Зона умения на земле: лечащий тотем (`ward`) и зоны урона без модели призыва (Macropyre, Chakram).
+   * Существа сюда больше не попадают — с 2026-09-08 любой призыв живёт в `sim.pets` и рисуется в
+   * drawPets, потому что бегает за героем и бьёт сам (владелец: «такой концепции быть не должно»).
    */
   private drawWard(sim: ArcadeSim, pal: Palette): void {
     const p = sim.player;
     if (sim.tick >= p.wardUntil) return;
     const c = this.ctx;
     const pulse = 0.5 + 0.5 * Math.sin(sim.tick / 6);
-    // Ward-умения бывают двух видов: `damage_ward` (призыв, который бьёт) и `ward` (лечащий тотем).
-    // Оба ставят точку в wardX/wardY, поэтому и картинку ищем по обоим.
-    const key = ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "damage_ward")
-      ?? ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "ward");
+    // Точку в wardX/wardY ставят лечащий тотем (`ward`) и зона урона без модели призыва (`damage_ward`
+    // без `summon`): у остальных призыв стал сущностью сима и рисуется в drawPets.
+    const key = ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "ward")
+      ?? ABILITY_KEYS.find((k) => sim.hero.abilities[k].kind === "damage_ward" && !sim.hero.abilities[k].summon);
     const ab = key ? sim.hero.abilities[key] : sim.hero.abilities.w;
     c.strokeStyle = pal.ward;
     c.globalAlpha = 0.25 + 0.2 * pulse;
     c.lineWidth = 2;
     c.beginPath(); c.arc(p.wardX, p.wardY, ab.radius ?? 170, 0, Math.PI * 2); c.stroke();
     c.globalAlpha = 1;
-    const art = ab.summon;
-    if (!art) {
-      // Лечащая зона без модели — не «шарик на полу»: в Dota Shadow Wave, Purification и Cold
-      // Embrace светятся вокруг цели. Бьющий вард без листа пока остаётся кружком (T13.27).
-      if (ab.kind === "ward") drawHealAura(c, p.wardX, p.wardY, ab.radius ?? 170, sim.tick, this.artPx(), pal.heal, pal.text);
-      else drawWardTotem(c, p.wardX, p.wardY, sim.tick, this.artPx(), pal.ward, pal.text, pal.treeDark);
-      return;
-    }
-    const illusion = art.art === "illusion";
-    const ds = illusion ? this.heroSheet(sim.hero.id) : dotaSheet(art.art);
-    const n = art.count ?? 1;
-    // Цель зова: ближайший враг в радиусе — призыв повёрнут к нему и бьёт, иначе стоит лицом к игроку.
-    let tx = p.x, ty = p.y, attacking = false;
-    let best = Infinity;
-    for (const e of sim.enemies) {
-      if (!e.alive) continue;
-      const d = Math.hypot(e.x - p.wardX, e.y - p.wardY);
-      if (d < best && d <= (ab.radius ?? 200)) { best = d; tx = e.x; ty = e.y; attacking = true; }
-    }
-    for (let i = 0; i < n; i++) {
-      // Ставим призывы веером вокруг точки зова: иначе они слипаются в один силуэт и прячутся
-      // под самим героем (точку зова сим ставит ровно в игрока — трогать её нельзя, это сид и лог).
-      const ang = n === 1 ? Math.PI : (i / n) * Math.PI * 2 + Math.PI * 0.75;
-      const off = 30;
-      const x = p.wardX + Math.cos(ang) * off;
-      const y = p.wardY + Math.sin(ang) * off * 0.55;
-      if (!ds) {
-        c.fillStyle = pal.ward;
-        c.beginPath(); c.arc(x, y, 8, 0, Math.PI * 2); c.fill();
-        continue;
-      }
-      const anim = attacking ? "attack" : "idle";
-      const frames = ds.meta.anims[anim]?.frames ?? 1;
-      const frame = Math.floor(((sim.tick + i * 7) / 60) * ds.meta.fps) % Math.max(1, frames);
-      const dir = dotaDir(tx - x, ty - y, ds.meta.dirs);
-      // Иллюзия — тот же герой, только полупрозрачный и чуть мельче: тинт превращал её в зелёное пятно.
-      drawDotaFrame(c, ds, anim, dir, frame, x, y, illusion ? 0.62 : 1, illusion ? 0.86 : 1);
+    // Лечащая зона — не «шарик на полу»: в Dota Shadow Wave, Purification и Cold Embrace светятся
+    // вокруг цели. Зона урона без листа остаётся тотемом-кружком.
+    if (ab.kind === "ward") drawHealAura(c, p.wardX, p.wardY, ab.radius ?? 170, sim.tick, this.artPx(), pal.heal, pal.text);
+    else drawWardTotem(c, p.wardX, p.wardY, sim.tick, this.artPx(), pal.ward, pal.text, pal.treeDark);
+    // Модель тотема поверх ауры (Healing Ward у Juggernaut — `ward_healing`).
+    const ds = ab.summon ? dotaSheet(ab.summon.art) : null;
+    if (ds) {
+      const frames = ds.meta.anims.idle?.frames ?? 1;
+      drawDotaFrame(c, ds, "idle", 0, Math.floor((sim.tick / 60) * ds.meta.fps) % Math.max(1, frames), p.wardX, p.wardY, 1, 1);
     }
   }
 
@@ -488,21 +466,25 @@ export class ArcadeRenderer {
     }
   }
 
-  /** Питомцы «Зверинца»: листы dota_px/{hawk,wolf,bear}; без листа — цветной кружок с обводкой героя. */
+  /** Питомцы «Зверинца» и призывы умений: лист по виду (`wolf`, `spiderling`, `ward_serpent`…);
+   *  без листа — цветной кружок. Иллюзия — лист самого героя. */
   private drawPets(sim: ArcadeSim, pal: Palette): void {
     const c = this.ctx;
     const tick = sim.tick;
     for (const pet of sim.pets) {
       // Иллюзия — лист самого героя (в Метаморфозе — форма), полупрозрачная и чуть мельче.
       const illusion = pet.kind === "illusion";
-      const ds = illusion ? this.heroSheet(sim.hero.id, sim.formNow() !== null) : dotaSheet(pet.kind);
+      const ds = illusion ? this.heroSheet(sim.hero.id, sim.formNow() !== null) : dotaSheet(pet.art ?? pet.kind);
       const attacking = tick - pet.hitAt < 14;
       if (ds) {
-        const anim = attacking ? "attack" : "walk";
+        // Тотем не бегает — у него нет «walk», стоим в idle между выстрелами.
+        const anim = attacking ? "attack" : pet.homeX !== undefined ? "idle" : "walk";
         const frames = ds.meta.anims[anim]?.frames ?? ds.meta.anims.idle?.frames ?? 1;
         const frame = attacking ? Math.floor(((tick - pet.hitAt) / 14) * frames) : Math.floor((tick / 60) * ds.meta.fps);
-        const fading = illusion && pet.until !== undefined && pet.until - tick < 60 ? (pet.until - tick) / 60 : 1;
-        drawDotaFrame(c, ds, anim, dotaDir(pet.facingX, pet.facingY, ds.meta.dirs), frame, pet.x, pet.y + (pet.kind === "hawk" ? -18 : 6), illusion ? 0.62 * fading : 1, illusion ? 0.9 : 1);
+        // Призыв на исходе таймера тает — иначе он «моргает» из кадра (как и иллюзия).
+        const fading = pet.until !== undefined && pet.until - tick < 60 ? Math.max(0, pet.until - tick) / 60 : 1;
+        const flying = pet.kind === "hawk" || pet.art === "hawk";
+        drawDotaFrame(c, ds, anim, dotaDir(pet.facingX, pet.facingY, ds.meta.dirs), frame, pet.x, pet.y + (flying ? -18 : 6), (illusion ? 0.62 : 1) * fading, illusion ? 0.9 : 1);
       } else {
         c.fillStyle = pal.player; c.globalAlpha = 0.9;
         c.beginPath(); c.arc(pet.x, pet.y, pet.kind === "bear" ? 14 : 9, 0, Math.PI * 2); c.fill();
@@ -779,7 +761,9 @@ export class ArcadeRenderer {
 
   /** Свечение героя (слот `aura`) по контуру силуэта: слой `back` до спрайта, `front` после; вспышка по T разжигает его. */
   private drawAura(sim: ArcadeSim, geo: AuraGeo, now: number, pal: Palette, layer: "back" | "front"): void {
-    const skinFx = this.skinFx && (!this.skinFx.hero || this.skinFx.hero === sim.hero.id) ? (this.skinFx.aura as AuraEffect) : undefined;
+    // Своё свечение героя (Io) идёт как «эффект скина», если скин ничего своего не даёт.
+    const skinFx = (this.skinFx && (!this.skinFx.hero || this.skinFx.hero === sim.hero.id) ? (this.skinFx.aura as AuraEffect) : undefined)
+      ?? HERO_AURA[sim.hero.id];
     const kind = this.cosmetic.aura as AuraEffect | undefined;
     if (!kind && !skinFx) return;
     const flareK = now < this.flareUntil ? Math.sin(((this.flareUntil - now) / 1200) * Math.PI) : 0;

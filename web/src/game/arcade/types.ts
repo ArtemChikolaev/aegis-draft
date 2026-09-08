@@ -78,9 +78,9 @@ export interface EnemyKind {
 
 export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast";
 
-/** Питомец (школа «Зверинец»): позиция, цель, перезарядка удара; неуязвим, следует за героем. */
+/** Питомец (школа «Зверинец») или призыв умения: позиция, цель, перезарядка удара; неуязвим, следует за героем. */
 export interface Pet {
-  kind: "hawk" | "wolf" | "bear" | "illusion";
+  kind: "hawk" | "wolf" | "bear" | "illusion" | "summon";
   x: number;
   y: number;
   cd: number;
@@ -93,6 +93,11 @@ export interface Pet {
   /** Иллюзия: тик исчезновения и урон удара (доля урона героя или значение умения). */
   until?: number;
   dmg?: number;
+  /** Призыв умения (kind: "summon"): имя листа спрайтов и тела из content/pets.ts `SUMMONS`. */
+  art?: string;
+  /** Тотем: точка установки — он туда возвращается и не бежит за героем. */
+  homeX?: number;
+  homeY?: number;
 }
 
 /** Руны у реки, как в Dota (владелец 2026-09-07): двойной урон, щит, магия (короче перезарядки), иллюзии. */

@@ -103,15 +103,24 @@ const PAGE = `(async (b64, meta) => {
 const browser = await chromium.launch();
 const page = await browser.newPage();
 const all: Record<string, SheetStat> = {};
+const broken: string[] = [];
 for (const id of ids) {
   const meta = JSON.parse(readFileSync(`${ROOT}/${id}.json`, "utf8"));
-  all[id] = await page.evaluate(`${PAGE}(${JSON.stringify(readFileSync(`${ROOT}/${id}.webp`).toString("base64"))}, ${JSON.stringify(meta)})`) as SheetStat;
+  try {
+    all[id] = await page.evaluate(`${PAGE}(${JSON.stringify(readFileSync(`${ROOT}/${id}.webp`).toString("base64"))}, ${JSON.stringify(meta)})`) as SheetStat;
+  } catch (e) {
+    // Лист, который браузер не смог декодировать, — сам по себе находка: не роняем прогон по всем
+    // листам из-за одного (владелец 2026-09-08: «проверь прям каждого, пошагово»).
+    broken.push(`${id}: ${(e as Error).message.split("\n")[0]}`);
+    continue;
+  }
   if (only.length && !asJson) {
     const s = all[id];
     console.log(`${id.padEnd(34)} яркость ${s.яркость} насыщ ${s.насыщенность} пусто ${Math.round(s.пусто*100)}% · ${Object.entries(s.anims).map(([k, v]) => `${k}: кусков ${v.куски} рывок ${v.рывок}% строб ${v.строб} провал ${Math.round(v.провал*100)}% срез ${Math.round(v.срез*100)}%`).join(" · ")}`);
   }
 }
 await browser.close();
+if (broken.length) { console.error(`\n== листы, которые не открылись (${broken.length}):`); for (const b of broken) console.error("  " + b); }
 if (asJson) { console.log(JSON.stringify(all)); process.exit(0); }
 if (only.length) process.exit(0);
 

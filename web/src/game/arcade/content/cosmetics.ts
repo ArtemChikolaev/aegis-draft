@@ -109,6 +109,14 @@ export const COSMETICS: readonly CosmeticDef[] = [
   // Аркана Drow — на теле арканы `drow_arcana.vmdl_c` с её частями; «размазня» была в клипах частей,
   // а не в модели (T13.30).
   { id: "skin_drow_arcana", slot: "skin", rarity: "arcana", variant: "drow_ranger@arcana", hero: "drow_ranger" },
+  // Партия 4 (2026-09-08, владелец: «добавь арканы на всех оставшихся персонажей»): пять аркан Dota,
+  // которых у нас не было. Список сверен по `scripts/items/items_game.txt` (item_rarity = arcana), а не
+  // по памяти: у Invoker арканы нет вовсе (Magus Apex — immortal), больше аркан в игре не осталось.
+  { id: "skin_mk_arcana", slot: "skin", rarity: "arcana", variant: "monkey_king@arcana", hero: "monkey_king", styles: [{ id: "style1", sheet: true }, { id: "style2", sheet: true }, { id: "style3", sheet: true }, ...GEMS] },
+  { id: "skin_lina_arcana", slot: "skin", rarity: "arcana", variant: "lina@arcana", hero: "lina" },
+  { id: "skin_lc_arcana", slot: "skin", rarity: "arcana", variant: "legion_commander@arcana", hero: "legion_commander" },
+  { id: "skin_techies_arcana", slot: "skin", rarity: "arcana", variant: "techies@arcana", hero: "techies" },
+  { id: "skin_io_arcana", slot: "skin", rarity: "arcana", variant: "io@arcana", hero: "io" },
   // Сеты Dota (T13.27, вопрос владельца «можно ли конкретные предметы из сетов»): сет — это части
   // `models/items/<hero>/<set>_{head,arms,legs,back,weapon}`, которые пришиваются к скелету базового
   // героя ровно как части аркан. Лист — `<hero>@<set>`, редкость exotic (в Dota это не аркана).
@@ -124,6 +132,8 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_chen_eye_of_power", slot: "skin", rarity: "exotic", variant: "chen@eye_of_power", hero: "chen" },
   { id: "skin_ancient_apparition_frost_djin", slot: "skin", rarity: "exotic", variant: "ancient_apparition@frost_djin", hero: "ancient_apparition" },
   { id: "skin_monkey_king_fiery_vajrapani", slot: "skin", rarity: "exotic", variant: "monkey_king@fiery_vajrapani", hero: "monkey_king" },
+  { id: "skin_monkey_king_cult_of_the_demon_trickster", slot: "skin", rarity: "exotic", variant: "monkey_king@cult_of_the_demon_trickster", hero: "monkey_king", styles: [{ id: "style1", sheet: true }, { id: "style2", sheet: true }, { id: "style3", sheet: true }] },
+  { id: "skin_anti_mage_guilt_of_the_survivor", slot: "skin", rarity: "exotic", variant: "anti_mage@guilt_of_the_survivor", hero: "anti_mage" },
   { id: "skin_dark_willow_deathcap_fairy", slot: "skin", rarity: "exotic", variant: "dark_willow@deathcap_fairy", hero: "dark_willow" },
   // Io: его облики — цельные модели в `models/items/io/`, а не части по слотам, поэтому в
   // автоподбор сетов они не попали.
@@ -227,6 +237,9 @@ export const COSMETICS: readonly CosmeticDef[] = [
 const SHEET_STYLE_SKINS = new Set([
   "skin_jugg_arcana", "skin_drow_arcana", "skin_pudge_arcana",
   "skin_es_arcana", "skin_qop_arcana", "skin_wr_arcana", "skin_ogre_arcana",
+  // Voidstorm Asylum: у Razor второй набор текстур лежит в vpk с токеном `alt` (`--style alt`) —
+  // владелец 2026-09-08 «у арканы Разора… разных персон, одна зелёная, вторая фиолетовая».
+  "skin_razor_arcana", "skin_spectre_arcana",
 ]);
 for (const c of COSMETICS) if (SHEET_STYLE_SKINS.has(c.id)) (c as { styles?: readonly StyleDef[] }).styles = [{ id: "style1", sheet: true }, ...GEMS];
 

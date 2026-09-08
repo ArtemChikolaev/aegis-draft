@@ -40,19 +40,23 @@ function pickOffer(offers: Offer[], school: SchoolId | "any"): number {
 function botInput(sim: ArcadeSim): ArcadeInput {
   if (sim.pending) return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending, SCHOOL), act: 0 };
   if (sim.neutralOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: 1 };
-  // Добыча подбирается кнопкой (PICKUP_ACT), не касанием: бот жмёт её, как только сундук/предмет рядом.
-  if (sim.nearLoot && !sim.lootOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
-  if (sim.lootOpen) {
-    const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;
-    const better = !cur || gearScore(sim.lootOpen) > gearScore(cur);
-    return { mx: 0, my: 0, cast: 0, choose: -1, act: better ? 1 : sim.player.bag.length < 12 ? 2 : SHOP_ACT.close };
-  }
+  // ОТКРЫТЫЕ ОКНА — ПЕРВЫМИ. Пока висит лавка или добыча, мир стоит (`sim.step` возвращает управление,
+  // не двигая тик), и любое «не то» действие — вечный цикл в прогоне. Так и вышло: бот стоял на добыче,
+  // рядом открылась лавка, и он слал в неё PICKUP_ACT, которого `shopAction` не знает (2026-09-08,
+  // seed cmp-76 на Shadow Shaman: 22 минуты на одном тике).
   if (sim.shopOpen) {
     // Жадно: самый дорогой доступный предмет, потом закрыть.
     let best = -1, bestPrice = -1;
     sim.shopOffers.forEach((o, i) => { if (o.price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
     return { mx: 0, my: 0, cast: 0, choose: -1, act: best >= 0 ? best + 1 : SHOP_ACT.close };
   }
+  if (sim.lootOpen) {
+    const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;
+    const better = !cur || gearScore(sim.lootOpen) > gearScore(cur);
+    return { mx: 0, my: 0, cast: 0, choose: -1, act: better ? 1 : sim.player.bag.length < 12 ? 2 : SHOP_ACT.close };
+  }
+  // Добыча подбирается кнопкой (PICKUP_ACT), не касанием: бот жмёт её, как только сундук/предмет рядом.
+  if (sim.nearLoot) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
   const p = sim.player;
   const hpPct = p.hp / p.stats.maxHp;
   let cx = 0, cy = 0, danger = 0, near = 0;

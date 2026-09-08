@@ -207,6 +207,17 @@ export const HERO_PROJECTILE: Record<string, "arrow" | "knife" | "bullet"> = {
   sniper: "bullet", gyrocopter: "bullet", muerta: "bullet", snapfire: "bullet", tinker: "bullet",
 };
 
+/**
+ * Свечение, встроенное в самого героя, — для тех, у кого в Dota вид держится не на модели, а на
+ * частицах. Io (`models/heroes/wisp/wisp.vmdl_c`) — буквально шар: весь его ореол и «усики» живут в
+ * `particles/units/heroes/hero_wisp/*.vpcf`, и в 2D он выходил «непонятным шаром» (владелец
+ * 2026-09-08). Рисуется как слот `aura` (features/arcade/effects.ts), под надетым свечением игрока,
+ * и в бою, и в превью гардероба.
+ */
+export const HERO_AURA: Record<string, "fire" | "frost" | "lightning" | "aegis"> = {
+  io: "frost",
+};
+
 /** Внешний вид героя по киту и цвету оттенка (свой у каждого героя). */
 export function heroLook(kit: string, tint: string): CharSpec {
   switch (kit) {

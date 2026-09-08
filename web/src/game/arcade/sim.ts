@@ -9,7 +9,7 @@
 // ничего в сим не пишет. Level-up останавливает мир (`pending`) до `input.choose`.
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
-import { PETS, type PetKind } from "./content/pets.ts";
+import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
 import { RUNE_KINDS, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
@@ -74,6 +74,13 @@ const R_LEVELS = [6, 12, 18];
 const GRID = 72;
 /** Питомец подошёл к новой цели, а перезарядка ещё идёт: бьёт не позже чем через 0.2 с (тиков) — см. tickPets. */
 const PET_REARM = 12;
+/** Урон призыва умения в секунду на единицу `value` (см. spawnSummons). 4 — точный DPS прежней зоны
+ *  (`value` каждые 15 тиков). Бегающему призыву дают меньше: он не простаивает у точки каста и делит
+ *  урон между врагами — по `npm run sim:arcade --runs 120` на Broodmother/Lycan при 4.0 выходило
+ *  ~+5 п.п. к «дошёл до Рошана», при 2.6 ~−6 п.п., 3.2 попадает в базу. Вкопанному тотему поправка не
+ *  нужна: он стоит в той же точке и бьёт ту же ближайшую цель, что и прежняя зона, — ему 4. */
+const SUMMON_DPS = 3.2;
+const WARD_DPS = 4;
 
 function len(x: number, y: number): number {
   return Math.sqrt(x * x + y * y);
@@ -598,6 +605,13 @@ export class ArcadeSim {
           this.spawnIllusions(ab.summon.count ?? 1, ab.duration ?? 10, value);
           break;
         }
+        if (ab.summon && SUMMONS[ab.summon.art]) {
+          // Призыв существа — тоже сущность сима, а не картинка над зоной урона (владелец 2026-09-08:
+          // «паучки бруды стоят на месте и жгут круг; любой суммон бегает за хозяином и бьёт»).
+          this.spawnSummons(ab, value);
+          break;
+        }
+        // Умения без модели призыва (Macropyre, Chakram) остаются зоной урона в точке каста.
         p.wardUntil = this.tick + sec(ab.duration ?? 10);
         p.wardX = p.x; p.wardY = p.y;
         break;
@@ -773,8 +787,9 @@ export class ArcadeSim {
       for (const e of this.enemiesWithin(p.x, p.y, 210)) if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 0.6 : 1.2)));
       this.pushFx("nova", p.x, p.y, 210, 0, 14);
     }
-    // Nether Ward (Pugna): тотем бьёт ближайшего врага в радиусе.
-    const dwKey = ABILITY_KEYS.find((k) => H[k].kind === "damage_ward");
+    // Зона урона без модели призыва (Macropyre, Chakram): бьёт ближайшего врага в радиусе. Умения с
+    // моделью призыва сюда не попадают — у них урон наносят сами призывы (tickPets).
+    const dwKey = ABILITY_KEYS.find((k) => H[k].kind === "damage_ward" && !H[k].summon);
     if (dwKey && this.tick < p.wardUntil && this.tick % 15 === 0) {
       const t = this.nearestEnemy(p.wardX, p.wardY, H[dwKey].radius ?? 200);
       if (t) { this.damageEnemy(t, H[dwKey].value[p.abilities[dwKey]], "zap"); this.pushFx("zap", p.wardX, p.wardY - 30, t.x, t.y, 6); }
@@ -1658,6 +1673,32 @@ export class ArcadeSim {
     this.pushFx("levelup", p.x, p.y, 0, 0, 30);
   }
 
+  /**
+   * Призыв умения: `count` существ на `duration` секунд. Прежняя зона била `value` каждые 15 тиков
+   * (= 4·value в секунду) по ОДНОМУ ближайшему врагу у точки каста, поэтому урон за удар считается
+   * от того же `value`: `SUMMON_DPS·value·every/count`. Балансовые числа умений в content/heroes.ts
+   * не трогаем — они по-прежнему «сила умения», а не «урон одного паучка».
+   */
+  private spawnSummons(ab: AbilityDef, value: number): void {
+    const art = ab.summon?.art;
+    const body = art ? SUMMONS[art] : undefined;
+    if (!art || !body) return;
+    const p = this.player;
+    const count = ab.summon?.count ?? 1;
+    const dmg = ((body.stationary ? WARD_DPS : SUMMON_DPS) * value * body.every) / count;
+    const until = this.tick + sec(ab.duration ?? 10);
+    for (let i = 0; i < count; i++) {
+      const ang = (i / count) * Math.PI * 2 + Math.PI * 0.75;
+      const off = body.stationary ? 26 : 34;
+      const x = p.x + Math.cos(ang) * off, y = p.y + Math.sin(ang) * off * 0.6;
+      this.pets.push({
+        kind: "summon", art, x, y, cd: 0, facingX: p.facingX || 1, facingY: p.facingY,
+        hitAt: -999, inReach: false, until, dmg,
+        ...(body.stationary ? { homeX: x, homeY: y } : {}),
+      });
+    }
+  }
+
   /** Иллюзии героя: `count` копий на `seconds` секунд с уроном `dmg` за удар. Появляются за спиной героя. */
   private spawnIllusions(count: number, seconds: number, dmg: number): void {
     const p = this.player;
@@ -1687,28 +1728,39 @@ export class ArcadeSim {
     for (let i = 0; i < this.pets.length; i++) {
       const pet = this.pets[i];
       const base = PETS[pet.kind];
+      const body: SummonBody | undefined = pet.kind === "summon" ? SUMMONS[pet.art ?? ""] : undefined;
       // Иллюзия повторяет героя: его скорость, период удара и дальность (в Метаморфозе Terrorblade — дальний бой).
       const def = pet.kind === "illusion"
         ? { ...base, speed: p.stats.speed * 1.05, every: p.stats.attackInterval, reach: ranged ? Math.max(60, this.attackRange() - 20) : 34 }
+        : body ? { ...base, ...body }
         : base;
-      const rank = pet.kind === "illusion" ? 1 : this.player.upgrades[pet.kind === "hawk" ? "beast_hawk" : pet.kind === "wolf" ? "beast_wolf" : "beast_bear"]?.rank ?? 1;
+      const rank = pet.kind === "illusion" || pet.kind === "summon" ? 1
+        : this.player.upgrades[pet.kind === "hawk" ? "beast_hawk" : pet.kind === "wolf" ? "beast_wolf" : "beast_bear"]?.rank ?? 1;
       pet.cd = Math.max(0, pet.cd - 1);
       // Цель: ближайший враг в радиусе поиска; иначе — держаться рядом с героем (каждый со своим смещением).
       const target = def.seek > 0 ? this.nearestEnemy(pet.x, pet.y, def.seek) : null;
-      let tx: number, ty: number;
-      if (target) { tx = target.x; ty = target.y; }
-      else { const ang = (i * 2.4) % 6.283; tx = p.x + Math.cos(ang) * def.leash; ty = p.y + Math.sin(ang) * def.leash; }
-      const dx = tx - pet.x, dy = ty - pet.y, d = len(dx, dy) || 1;
-      const stop = target ? def.reach * 0.8 + target.kind.r : 8;
-      const far = len(pet.x - p.x, pet.y - p.y);
-      // Слишком далеко от героя — телепорт за спину (как Spirit Bear на привязи).
-      if (far > 520) { pet.x = p.x - p.facingX * 30; pet.y = p.y - p.facingY * 30; continue; }
-      if (d > stop) {
-        const sp = def.speed * (far > 300 ? 1.6 : 1) * DT;
-        pet.x += dx / d * Math.min(sp, d - stop); pet.y += dy / d * Math.min(sp, d - stop);
-        pet.facingX = dx / d; pet.facingY = dy / d;
+      // Тотем (Nether/Plague/Death/Serpent Ward, Psionic Trap, Tombstone) вкопан в землю, как в Dota:
+      // не бежит за героем, только поворачивается к цели.
+      const rooted = !!body?.stationary;
+      if (rooted) {
+        pet.x = pet.homeX ?? pet.x; pet.y = pet.homeY ?? pet.y;
+        if (target) { const ddx = target.x - pet.x, ddy = target.y - pet.y, dd = len(ddx, ddy) || 1; pet.facingX = ddx / dd; pet.facingY = ddy / dd; }
+      } else {
+        let tx: number, ty: number;
+        if (target) { tx = target.x; ty = target.y; }
+        else { const ang = (i * 2.4) % 6.283; tx = p.x + Math.cos(ang) * def.leash; ty = p.y + Math.sin(ang) * def.leash; }
+        const dx = tx - pet.x, dy = ty - pet.y, d = len(dx, dy) || 1;
+        const stop = target ? def.reach * 0.8 + target.kind.r : 8;
+        const far = len(pet.x - p.x, pet.y - p.y);
+        // Слишком далеко от героя — телепорт за спину (как Spirit Bear на привязи).
+        if (far > 520) { pet.x = p.x - p.facingX * 30; pet.y = p.y - p.facingY * 30; continue; }
+        if (d > stop) {
+          const sp = def.speed * (far > 300 ? 1.6 : 1) * DT;
+          pet.x += dx / d * Math.min(sp, d - stop); pet.y += dy / d * Math.min(sp, d - stop);
+          pet.facingX = dx / d; pet.facingY = dy / d;
+        }
+        if (pet.kind !== "hawk") [pet.x, pet.y] = this.obstacles.resolve(pet.x, pet.y, def.r);
       }
-      if (pet.kind !== "hawk") [pet.x, pet.y] = this.obstacles.resolve(pet.x, pet.y, def.r);
       // Удар. Перезарядка — восстановление после удара, а не таймер погони: дойдя до новой цели, готовый питомец бьёт
       // сразу, а с недоигранной перезарядкой — не позже чем через 0.2 с (фидбэк владельца 2026-09-06: волк/медведь бежали
       // рядом с жертвой 2–3 с и только потом кусали). Нижняя граница между двумя ударами — половина `every`, чтобы прыжки
@@ -1726,6 +1778,22 @@ export class ArcadeSim {
             this.spawnProjectile(pet.x, pet.y, (target.x - pet.x) / dd * 560, (target.y - pet.y) / dd * 560, 6, idmg, sec(1.2), 0, "arrow", false);
           } else {
             this.damageEnemy(target, idmg, "hit");
+            this.pushFx("slash", pet.x, pet.y, target.x, target.y, 10);
+          }
+          continue;
+        }
+        if (pet.kind === "summon") {
+          const sdmg = pet.dmg ?? 0;
+          if (body?.stationary) {
+            // Тотем бьёт мгновенно, как прежняя зона: снаряд с земли не догоняет бегущую цель, и
+            // Shadow Shaman терял 12 п.п. «дошёл до Рошана» (замер 2026-09-08).
+            this.damageEnemy(target, sdmg, "zap");
+            this.pushFx("zap", pet.x, pet.y - 20, target.x, target.y, 6);
+          } else if (body?.ranged) {
+            const dd = len(target.x - pet.x, target.y - pet.y) || 1;
+            this.spawnProjectile(pet.x, pet.y, (target.x - pet.x) / dd * 520, (target.y - pet.y) / dd * 520, 6, sdmg, sec(1.2), 0, "zap", false);
+          } else {
+            this.damageEnemy(target, sdmg, "hit");
             this.pushFx("slash", pet.x, pet.y, target.x, target.y, 10);
           }
           continue;
