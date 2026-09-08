@@ -1119,7 +1119,7 @@ const ru = {
   // Аркада (M13, PRD §5.15): режим, HUD, карточки уровня, школы и таланты Juggernaut.
   "start.modeArcade": "Аркада",
   "start.modeArcadeHint": "2D survivors-роглайк · один герой против леса",
-  "start.modeArcadeLong": "Другой жанр на той же сцене: герой Dota в реальном времени против волн нейтралов и крипов. Уровни как в Dota, до трёх школ предметов на билд, Рошан на 7:00 с Aegis. Срез 0 — Juggernaut в лесу Radiant.",
+  "start.modeArcadeLong": "Другой жанр на той же сцене: герой Dota в реальном времени против волн нейтралов и крипов. 126 героев, уровни и таланты как в Dota, до трёх школ предметов на билд, Рошан с Aegis и Древний в конце акта. Сложность — ранги Dota со звёздами: каждый ранг добавляет своё правило боя, а не только числа.",
   "arcade.eyebrow": "АРКАДА",
   "arcade.title": "Семь минут до Рошана",
   "arcade.lead": "Кайти, качайся, собери билд из школ — и встреть Рошана на 7:00. Aegis с него даёт второй шанс до финального свистка на 9:00.",
@@ -3954,7 +3954,7 @@ const en: Dictionary = {
   // Arcade (M13, PRD §5.15).
   "start.modeArcade": "Arcade",
   "start.modeArcadeHint": "2D survivors roguelike · one hero vs the jungle",
-  "start.modeArcadeLong": "A different genre on the same scene: a Dota hero in real time against waves of neutrals and creeps. Dota levelling, up to three item schools per build, Roshan at 7:00 with the Aegis. Slice 0 — Juggernaut in the Radiant jungle.",
+  "start.modeArcadeLong": "A different genre on the same scene: a Dota hero in real time against waves of neutrals and creeps. 126 heroes, Dota levelling and talents, up to three item schools per build, Roshan with the Aegis and the Ancient to close the act. Difficulty is Dota ranks with stars: every rank adds a rule of its own, not just bigger numbers.",
   "arcade.eyebrow": "ARCADE",
   "arcade.title": "Seven minutes to Roshan",
   "arcade.lead": "Kite, level, build from schools — and meet Roshan at 7:00. His Aegis buys a second life until the final whistle at 9:00.",
