@@ -1,13 +1,13 @@
 ---
 name: scoring-model
-description: Используй при работе с рейтингами и скорингом aegis-draft — модель OVR/IMP/ECO/REL, Peak (скользящее окно), team-success (Mixed Draft), Hero Synergy (games-driven: career pro-игры + назначение героев), Chemistry (co-games), генерация паков, подсчёт Team OVR. Активируется на изменение любой формулы рейтинга, весов, окон или логики генерации/счёта. Кодирует зафиксированные решения PRD §5.
+description: "При изменении OVR, Hero Synergy, Chemistry, рейтингов, генерации паков и draft-скоринга aegis-draft. Не для боевого баланса Аркады или косметических эффектов."
 ---
 
 # Scoring model — зафиксированные правила рейтингов
 
 Замеренный референс — [docs/reference-322-0.md](../../../docs/reference-322-0.md) (числа 322-0: распределение OVR, доля команды, синергия, химия, пороги). Сверка нашего датасета с ним — `node .claude/skills/scoring-model/tools/calibrate_ovr.mjs`; он предполагает, что данные собраны ТЕКУЩИМИ константами из `rating.Default()` — разошлись, вывод врёт.
 
-Модель рейтингов версионируется (`manifest.ratingModelVersion`). **Любое изменение формулы/весов/окна ⇒ бампни версию.** Решения ниже уже согласованы в PRD §5 — не переизобретай их.
+Модель рейтингов версионируется (`manifest.ratingModelVersion`). **Изменение рейтинговой формулы/весов/окна ⇒ бампни соответствующую версию модели.** Изменение draft-механики дополнительно сверяй с потребителями версии баланса; боевой баланс Аркады ведёт arcade-simulation, не ETL ratingModelVersion. Решения ниже уже согласованы в PRD §5 — не переизобретай их.
 
 ## Зафиксированные решения (не менять без согласования)
 1. **Роли — как в 322-0, без деления 4/5.** `role ∈ {safelane, mid, offlane, support}`, support ×2, слоты взаимозаменяемы. Причина: приоритет фарма ненадёжен (5-ка фармит, 4-ка варды). PRD §5.1.
@@ -23,7 +23,7 @@ description: Используй при работе с рейтингами и �
 7. **Mixed pack** — ровно 5 ролевых слотов, все кандидаты из разных команд; порядок выбора свободный среди незаполненных ролей. После пика роль блокируется, support доступен до заполнения обоих взаимозаменяемых support-слотов. Если валидный lineup собрать нельзя, fail-fast; не повторять команду и не сдвигать индексы fallback-ом.
 
 ## Правила реализации
-- **Где живёт логика:** детерминированные агрегаты и Base/Peak/team-success считает **Go-пайплайн** (`internal/rating`), пишет числа в data JSON. **Hero Synergy (games-driven назначение+сумма), Chemistry (co-games saturating) и итоговый Team OVR** считает **TS-фронт** (`web/src/game/*`), чтобы формула менялась без пересборки данных (см. [[data-contract]] инвариант 4). Разделяй **assignment/score** (по pro-window) и **отображение «N games»** (career pro all-time) — `heroStatsForAssignment` vs `heroStatsForDisplay`.
+- **Где живёт логика:** детерминированные агрегаты и Base/Peak/team-success считает **Go-пайплайн** (`internal/rating`), пишет числа в data JSON. **Hero Synergy (games-driven назначение+сумма), Chemistry (co-games saturating) и итоговый Team OVR** считает **TS-фронт** (`web/src/game/*`), чтобы формула менялась без пересборки данных (см. [data-contract](../data-contract/SKILL.md) инвариант 4). Разделяй **assignment/score** (по pro-window) и **отображение «N games»** (career pro all-time) — `heroStatsForAssignment` vs `heroStatsForDisplay`.
 - **Параметры окна/сглаживания** (`m`, μ, длина окна, `N_min`, веса ролей, веса престижа TI/Major) — в одном месте-конфиге, не размазаны по коду. Версионируй вместе с моделью.
 - **Малые выборки** — для **рейтингов** (OVR/Peak/team-success) всегда сглаживай/ставь порог; одна игра 100% winrate не должна давать пик. Для **Hero Synergy/Chemistry** малую выборку гасит **насыщение по играм** (мало pro-игр → вклад ≈0), не winrate-сглаживание.
 - **Когорта рейтинга явная** — role-relative percentile/normalization считается отдельно для одного event/window scope; API расчёта обязан требовать scope, чтобы события и окна не смешались молча.
@@ -39,4 +39,4 @@ description: Используй при работе с рейтингами и �
 - [ ] Параметры в конфиге, не хардкодом по файлам.
 
 ## Связано
-- Числа приходят из [[external-data-etl]], формат — [[data-contract]]. Перед «готово» → [[self-review-checklist]].
+- Числа приходят из [external-data-etl](../external-data-etl/SKILL.md), формат — [data-contract](../data-contract/SKILL.md). Перед «готово» → [self-review-checklist](../self-review-checklist/SKILL.md).

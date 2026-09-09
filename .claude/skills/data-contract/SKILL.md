@@ -1,23 +1,18 @@
 ---
 name: data-contract
-description: >-
-  Используй при ЛЮБОЙ правке модели данных aegis-draft — файлов schema/*.schema.json,
-  доменных типов Go (pipeline/internal/model), TS-типов (web/src/types) или сгенерированных
-  web/public/data/*.json. Держит единый контракт: schema = источник истины, единый accountId
-  во всех сущностях, версия в manifest, валидация обоих концов. Активируется на изменение
-  схемы, DTO, формата данных или добавление поля.
+description: "При изменении статического ETL-контракта aegis-draft: schema, Go model, TS data.ts, data JSON и manifest. Не для локальных типов Аркады или самостоятельного API DTO."
 ---
 
 # Data contract — schema это источник истины
 
-`schema/*.schema.json` (JSON Schema draft-07) — единственный источник правды о формате данных. **Go-пайплайн эмитит** по нему, **TS-фронт потребляет** по нему. Любое расхождение = баг «странного парсинга», который мы и чиним относительно 322-0.
+`schema/*.schema.json` (JSON Schema draft-07) — единственный источник правды о формате статических ETL-данных. Локальные типы Аркады и самостоятельные API DTO не требуют фиктивной схемы в schema/: их контракты ведутся в соответствующей подсистеме. **Go-пайплайн эмитит** по нему, **TS-фронт потребляет** по нему. Любое расхождение = баг «странного парсинга», который мы и чиним относительно 322-0.
 
 ## Инварианты (не нарушать)
 1. **Единый `accountId`** (OpenDota account_id) во ВСЕХ сущностях — паки, playerHeroStats, teammates, squadSynergy, eventHeroStats, players. Никаких `steamId` в одном файле и других id в другом (это дефект оригинала, §3.8 PRD).
 2. **`heroId`** — Valve hero_id везде. **`eventId`** — строковый slug. **`teamId`** — int.
-3. **Роли:** `role ∈ {safelane, mid, offlane, support}`, валидная пятёрка содержит support ×2, без деления 4/5 (см. [[scoring-model]]). `packs[].players` может содержать substitutes сверх пяти — не обрезать их на normalize.
+3. **Роли:** `role ∈ {safelane, mid, offlane, support}`, валидная пятёрка содержит support ×2, без деления 4/5 (см. [scoring-model](../scoring-model/SKILL.md)). `packs[].players` может содержать substitutes сверх пяти — не обрезать их на normalize.
 4. **Сырые `games`/`winrate`** храним в данных; сглаживание живёт на клиенте (модель сглаживания меняется без пересборки данных).
-4a. **Окно — свойство ПАКА, а не только события.** Пул строится по `packs[].formats`, и они у́же `events[].formats`: пайплайн срезает окна, где команда разовая (гейт присутствия, [[BACKLOG]] TDATA3 — одна и та же команда бывает постоянной в last_5y и разовой в last_1y). Инвариант «окна пака ⊆ окна события» проверяет `validate.Dataset`; на клиенте единственная точка проверки — `packInFormat` в `game/packs.ts`, фильтровать по `event.formats` напрямую нельзя.
+4a. **Окно — свойство ПАКА, а не только события.** Пул строится по `packs[].formats`, и они у́же `events[].formats`: пайплайн срезает окна, где команда разовая (гейт присутствия, [BACKLOG](../../../docs/BACKLOG.md) TDATA3 — одна и та же команда бывает постоянной в last_5y и разовой в last_1y). Инвариант «окна пака ⊆ окна события» проверяет `validate.Dataset`; на клиенте единственная точка проверки — `packInFormat` в `game/packs.ts`, фильтровать по `event.formats` напрямую нельзя.
 5. **Версии в `manifest.json`:** `schemaVersion` (формат) и `ratingModelVersion` (модель рейтингов).
 6. **`builtAt` — только свежесть, не идентичность контента.** Не привязывай к volatile-метаданным сейвы, replay и другие воспроизводимые артефакты. Для совместимости используй детерминированный `manifest.dataHash` игровых JSON; сам `manifest.json` в хеш не включай. Добавил/удалил data-файл → синхронно обнови фиксированный список хешируемых файлов в Go emit и mock-генераторе.
 
@@ -26,7 +21,7 @@ description: >-
 2. Обнови `schema/README.md` (таблица файлов), если добавился/удалился файл.
 3. Синхронизируй **оба конца**:
    - Go: доменные типы в `pipeline/internal/model` + эмиттер в `internal/emit`.
-   - TS: перегенерируй типы `web/src/types` из схемы (`json-schema-to-typescript`).
+   - TS: синхронизируй вручную `web/src/types/data.ts` со схемой. Генератор типов сейчас не настроен; не выдавай его за существующую команду.
 4. Если поменялся формат (не аддитивно) → **бампни `schemaVersion`** и мигрируй потребителей.
 5. **Провалидируй** сгенерированные `web/public/data/*.json` против схемы: `node .claude/skills/data-contract/tools/validate_data.mjs <dir>`.
 
@@ -39,10 +34,10 @@ description: >-
 
 ## Антипаттерны
 - Добавил поле в data JSON, не тронув схему → тихий рассинхрон.
-- Захардкодил формат в TS вместо генерации из схемы → разъедется с Go.
+- Изменил ручные TS-типы без синхронизации со схемой → разъедется с Go.
 - Разные id для одного игрока в разных файлах → битые synergy/chemistry.
 - Сравнил сейв с `builtAt` → no-op refresh уничтожит прогресс; сравнивай с `dataHash`.
 
 ## Связано
-- Внешний сбор данных → [[external-data-etl]]. Рейтинговые поля → [[scoring-model]].
-- Перед «готово» → [[self-review-checklist]].
+- Внешний сбор данных → [external-data-etl](../external-data-etl/SKILL.md). Рейтинговые поля → [scoring-model](../scoring-model/SKILL.md).
+- Перед «готово» → [self-review-checklist](../self-review-checklist/SKILL.md).

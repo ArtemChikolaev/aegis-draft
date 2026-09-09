@@ -36,3 +36,6 @@ web/playwright-report/
 
 # Черновики агентских QA-прогонов (playwright-скрипты в рабочем дереве web/)
 web/.tmp_*
+
+# Python skill validation
+__pycache__/

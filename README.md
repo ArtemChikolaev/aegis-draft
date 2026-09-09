@@ -95,9 +95,8 @@ docker compose -f infra/docker-compose.yml up --build
 ```
 
 ## Система скиллов и правил (для AI-агентов)
-Единый контракт `CLAUDE.md` (= `AGENTS.md`), процедуры-скиллы в `.claude/skills/` (авто-активация по `description`), зеркала для Cursor (`.cursor/rules/`) и Codex (`.codex/skills/`). Маршрутизация «задача → скилл» — [docs/ai/INDEX.md](docs/ai/INDEX.md), принципы — [docs/ai/PRINCIPLES.md](docs/ai/PRINCIPLES.md).
-- **Архитектурные/доменные:** `data-contract`, `external-data-etl`, `scoring-model`, `frontend-architecture`, `game-state-architecture`, `backend-architecture`, `game-feel-juice`.
-- **Процессные:** `discovery-before-code`, `plan-first-communication`, `reference-parity-audit`, `self-review-checklist`.
+Единый контракт `CLAUDE.md` (= `AGENTS.md`), процедуры-скиллы в `.claude/skills/` (авто-активация по `description`), адаптер Cursor (`.cursor/rules/`), ссылки для Codex (`.agents/skills/`) и адаптер совместимости (`.codex/skills/`). Маршрутизация «задача → скилл» — [docs/ai/INDEX.md](docs/ai/INDEX.md), принципы — [docs/ai/PRINCIPLES.md](docs/ai/PRINCIPLES.md).
+Полный каталог и сочетания скиллов, включая Аркаду, ассеты и сохранения, ведутся в INDEX. Проверка YAML, локальных ссылок и адаптеров запускается также в CI.
 
 Порт **5173** занимает разработчик; агенты поднимают свой сервер на **5273** (`.claude/launch.json`).
 

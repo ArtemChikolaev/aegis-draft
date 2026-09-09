@@ -102,4 +102,4 @@ window.aegisDebug.disableGameLog();
 
 ## Типы из контракта
 
-Генерировать TS-типы из `../schema/*.schema.json` (напр. `json-schema-to-typescript`) в `src/types/`, чтобы не расходиться с пайплайном.
+Источник формата — `../schema/*.schema.json`. Типы в `src/types/data.ts` сейчас синхронизируются вручную: настроенного генератора и команды генерации нет. При изменении статического ETL-контракта обновляй схему, Go-модель и TS-типы вместе; процедура — [data-contract](../.claude/skills/data-contract/SKILL.md).

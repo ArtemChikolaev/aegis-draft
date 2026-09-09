@@ -1,16 +1,11 @@
 ---
 name: frontend-architecture
-description: >-
-  Используй при ЛЮБОЙ правке UI во web/src — новый компонент/экран, стили, цвет, тема,
-  текст интерфейса. Держит design-system: цвета только через токены (design/tokens.css),
-  примитивы переиспользуются из ui/, экраны в features/, строки в i18n/core.ts.
-  Активируется на новый UI-элемент, правку стилей, добавление цвета/темы/строки.
-  Не используй для game-логики (web/src/game), данных (schema/) или Go-пайплайна.
+description: "При изменении UI aegis-draft: компоненты, раскладка, темы, стили и RU/EN-строки. Переиспользуй ui и токены. Не для чистой симуляции или рендера спрайт-листов."
 ---
 
 # Frontend architecture — design system, UIkit, features
 
-Слои `web/src`: `app/` (шелл + providers) · `design/` (tokens + base + theme) · `i18n/` (строки) · `ui/` (примитивы) · `features/` (экраны) · `game/ data/ state/ types/` (логика, не трогать из UI). Карта — [web/README.md](../../../web/README.md).
+Слои `web/src`: `app/` (шелл + providers) · `design/` (tokens + base + theme) · `i18n/` (строки) · `ui/` (примитивы) · `features/` (экраны) · `game/ data/ state/ types/` (логика; UI вызывает её интерфейсы, но не переносит бизнес-правила в компоненты). Карта — [web/README.md](../../../web/README.md).
 
 ## Правило 0 — переиспользуй примитив, не создавай новый
 Перед новым UI-элементом открой barrel **`web/src/ui/index.ts`**. Уже есть: `Button` (primary/primaryInvert/secondary/danger/leave/back), `Surface`, `Eyebrow`, `Banner`, `Chip`, `RoleTag`, `SoonBadge`, `StatTile`, `Select`, `Modal`, `OptionGroup`.
@@ -57,7 +52,7 @@ description: >-
 
 ## Темы
 - `ThemeProvider` (`design/theme`) ставит `data-theme` на `html`, хранит выбор, слушает систему. Компоненту НЕ надо знать тему — токены делают всё.
-- Проверяй новый UI на **реальных скринах обеих тем** (light + dark) и на **полном flow** (start → draft → result), а не на изолированном компоненте. Продуктовые/дизайн-правки — тоже на скринах, не «на глаз».
+- Проверяй новый UI на **реальных скринах обеих тем** (light + dark) и в **затронутом сценарии** с соседними переходами. Полный start → draft → result нужен, если изменение затрагивает весь путь; чистую раскладку другого режима не проверяй только в Classic. Продуктовые/дизайн-правки — тоже на скринах, не «на глаз».
 
 ## Визуальная айдентика
 Характер, палитра dark/light и тон — в [docs/design-language.md](../../../docs/design-language.md) (design-spec). Кратко: Dota tournament roguelike (не B2B/курсы); dark = pure black + редкий green art; light = ivory + orange + black inserts; цвет = арт/сигнал, не заливка. 322-0 — только UX-референс, не pixel-copy.
@@ -77,4 +72,4 @@ description: >-
 - Не размещать раскладку экрана в `ui/`, а примитив — в `features/`.
 
 ## Связано
-- Reuse вообще → [[discovery-before-code]]. Перед «готово» → [[self-review-checklist]]. Сравнение с 322-0 → [[reference-parity-audit]]. Данные в UI — через `DataSource` (см. [[data-contract]]).
+- Reuse вообще → [discovery-before-code](../discovery-before-code/SKILL.md). Перед «готово» → [self-review-checklist](../self-review-checklist/SKILL.md). Сравнение с 322-0 → [reference-parity-audit](../reference-parity-audit/SKILL.md). Данные в UI — через `DataSource` (см. [data-contract](../data-contract/SKILL.md)).
