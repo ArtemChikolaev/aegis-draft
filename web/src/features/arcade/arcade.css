@@ -317,3 +317,17 @@
 
 /* Проклятый сундук (T13.43): предупреждение в цвете яда, читается до кнопки. */
 .arcade-loot__cursed { color: var(--arcade-venom); font-weight: 700; }
+
+/* Наследие Aegis (T13.44): панель на экране настройки — три ветки с пипсами рангов. */
+.arcade-legacy { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; }
+.arcade-legacy__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.arcade-legacy__seals { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.arcade-legacy__rows { display: grid; gap: 6px; }
+.arcade-legacy__row { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 12px; }
+.arcade-legacy__row b { font-weight: 800; }
+.arcade-legacy__row span { color: var(--muted); }
+.arcade-legacy__pips { display: inline-flex; gap: 3px; }
+.arcade-legacy__pips em { width: 10px; height: 10px; border-radius: 3px; border: 1px solid var(--line); background: var(--surface); }
+.arcade-legacy__pips em[data-on] { background: var(--accent-strong); border-color: var(--accent-strong); }
+.arcade-result__seals { margin: 4px 0 0; font-weight: 800; color: var(--accent-strong); }
+@media (max-width: 640px) { .arcade-legacy__row { grid-template-columns: 1fr auto; } .arcade-legacy__row span { grid-column: 1 / -1; } }

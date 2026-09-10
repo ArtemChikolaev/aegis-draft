@@ -3,7 +3,8 @@
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
-import { bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActVictory, maxUnlockedRank, useArcade } from "../../state/arcadeStore.ts";
+import { bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActVictory, maxUnlockedRank, useArcade, type ArcadeProgress } from "../../state/arcadeStore.ts";
+import { LEGACY_BRANCHES, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
@@ -54,6 +55,8 @@ function ArcadeSetup() {
   const backNative = useTmaChrome((s) => s.backNative);
   const history = useArcade((s) => s.history);
   const progress = useArcade((s) => s.progress);
+  const legacySpend = useArcade((s) => s.legacySpend);
+  const legacyReset = useArcade((s) => s.legacyReset);
   const start = useArcade((s) => s.start);
   const rank = useArcade((s) => s.rank);
   const setRank = useArcade((s) => s.setRank);
@@ -205,6 +208,7 @@ function ArcadeSetup() {
             </ul>
             <p className="arcade-rank__unlock">{t("arcade.rank.unlock")}</p>
           </div>
+          <LegacyPanel progress={progress} onSpend={legacySpend} onReset={legacyReset} />
           <label className="arcade-setup__seed"><span className="arcade-setup__label">{t("common.seed")}</span><TextField value={seed} onChange={(e) => setSeed(e.target.value)} placeholder={t("arcade.seedRandom")} data-testid="arcade-seed" /></label>
           <Button variant="primary" data-testid="arcade-play" onClick={() => start(seed)}>{t("arcade.play")} →</Button>
           <Surface className="arcade-daily" data-testid="arcade-daily">
@@ -267,8 +271,11 @@ function ArcadeStage() {
   const cosmeticStyles = useArcade((s) => s.cosmetics.styles);
   const lastDrops = useArcade((s) => s.lastDrops);
   const lastLoot = useArcade((s) => s.lastLoot);
+  const lastSeals = useArcade((s) => s.lastSeals);
   // Экипировка на старте забега — часть кода реплея (детерминизм): снимок берём один раз при монтировании.
   const startGear = useRef<GearItem[]>(equippedGear(useArcade.getState().gear)).current;
+  /** Снимок пунктов наследия на старте: в код реплея, чтобы зритель видел ту же силу, а не свою. Дейлик — без. */
+  const startLegacy = useRef(isArcadeDailySeed(useArcade.getState().seed) ? undefined : { ...useArcade.getState().progress.legacy.spent }).current;
   const rendererRef = useRef<ArcadeRenderer | null>(null);
   useEffect(() => { rendererRef.current?.setCosmetics(equippedCosmetics, cosmeticStyles); }, [equippedCosmetics, cosmeticStyles]);
   const heroId = useArcade((s) => s.hero);
@@ -845,6 +852,7 @@ function ArcadeStage() {
                 {outcome.outpostCaptured && <div><dt>{t("arcade.over.outpost")}</dt><dd>{t("arcade.over.outpostYes")}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>
+              {lastSeals > 0 && <p className="arcade-result__seals" data-testid="arcade-seals-result">{t("arcade.legacy.earned", { n: lastSeals })}</p>}
               {lastLoot.length > 0 && (
                 <div className="arcade-drops" data-testid="arcade-loot-result">
                   <span className="arcade-setup__label">{t("arcade.loot.gained", { n: lastLoot.length })}</span>
@@ -875,9 +883,9 @@ function ArcadeStage() {
               <p className="arcade-overlay__seed">{t("common.seed")}: <code>{seed}</code></p>
               {sim && !replayLog && (
                 <div className="arcade-overlay__actions arcade-overlay__share">
-                  <Button variant="secondary" data-testid="arcade-copy-replay" onClick={() => { void copyText(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear })).then(() => setCopied("code")); }}>{copied === "code" ? t("arcade.replay.copied") : t("arcade.replay.copy")}</Button>
-                  <Button variant="secondary" onClick={() => { void copyText(replayUrl(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear }), window.location.origin, window.location.pathname)).then(() => setCopied("link")); }}>{copied === "link" ? t("link.copied") : t("link.copy")}</Button>
-                  <Button variant="secondary" data-testid="arcade-watch-replay" onClick={() => startReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: [...sim.log], gear: startGear })}>{t("arcade.replay.watch")}</Button>
+                  <Button variant="secondary" data-testid="arcade-copy-replay" onClick={() => { void copyText(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy })).then(() => setCopied("code")); }}>{copied === "code" ? t("arcade.replay.copied") : t("arcade.replay.copy")}</Button>
+                  <Button variant="secondary" onClick={() => { void copyText(replayUrl(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy }), window.location.origin, window.location.pathname)).then(() => setCopied("link")); }}>{copied === "link" ? t("link.copied") : t("link.copy")}</Button>
+                  <Button variant="secondary" data-testid="arcade-watch-replay" onClick={() => startReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: [...sim.log], gear: startGear, legacy: startLegacy })}>{t("arcade.replay.watch")}</Button>
                 </div>
               )}
               <div className="arcade-overlay__actions">
@@ -1098,6 +1106,39 @@ function affixLabel(t: (k: MessageKey, v?: Record<string, string | number>) => s
 
 /** Панель баффов рун (T13.32, владелец: «нет индикации, сколько действует руна»): иконка модели руны,
  *  имя, остаток времени и тающая полоска; щит показывает ещё и запас, иллюзии — их число. */
+/** Наследие Aegis (T13.44): печати за победы в полных актах → три ветки по четыре пункта на весь ростер. */
+function LegacyPanel({ progress, onSpend, onReset }: { progress: ArcadeProgress; onSpend: (b: LegacyBranch) => void; onReset: () => void }) {
+  const { t } = useI18n();
+  const L = progress.legacy;
+  const spentTotal = legacySpentTotal(L.spent);
+  const free = L.seals - spentTotal;
+  return (
+    <div className="arcade-legacy" data-testid="arcade-legacy">
+      <div className="arcade-legacy__head">
+        <span className="arcade-setup__label">{t("arcade.legacy.title")}</span>
+        <span className="arcade-legacy__seals" data-testid="arcade-legacy-seals">{t("arcade.legacy.seals", { free, total: L.seals })}</span>
+      </div>
+      <p className="arcade-rank__unlock">{t("arcade.legacy.hint")}</p>
+      <div className="arcade-legacy__rows">
+        {LEGACY_BRANCHES.map((b) => {
+          const rank = L.spent[b];
+          const pct = Math.round(LEGACY_PER_RANK[b] * rank * 1000) / 10;
+          const maxPct = Math.round(LEGACY_PER_RANK[b] * LEGACY_MAX_RANK * 1000) / 10;
+          return (
+            <div key={b} className="arcade-legacy__row" data-testid={`arcade-legacy-${b}`}>
+              <b>{t(`arcade.legacy.${b}` as MessageKey)}</b>
+              <span>{t(`arcade.legacy.${b}.desc` as MessageKey, { pct, max: maxPct })}</span>
+              <i className="arcade-legacy__pips" aria-label={`${rank}/${LEGACY_MAX_RANK}`}>{Array.from({ length: LEGACY_MAX_RANK }, (_, i) => <em key={i} data-on={i < rank ? "true" : undefined} />)}</i>
+              <Button variant="secondary" data-testid={`arcade-legacy-spend-${b}`} disabled={free <= 0 || rank >= LEGACY_MAX_RANK} onClick={() => onSpend(b)}>+1</Button>
+            </div>
+          );
+        })}
+      </div>
+      {spentTotal > 0 && <Button variant="leave" data-testid="arcade-legacy-reset" onClick={onReset}>{t("arcade.legacy.reset")}</Button>}
+    </div>
+  );
+}
+
 function BuffBar({ sim }: { sim: ArcadeSim }) {
   const { t } = useI18n();
   const p = sim.player;

@@ -19,6 +19,7 @@ import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type S
 import { type FormDef, HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
 import { gearEffect, rollGear, uniqueGear, type GearItem } from "./content/gear.ts";
+import { LEGACY_NONE, type LegacyBonus } from "./content/legacy.ts";
 import {
   IDLE_INPUT,
   sameInput,
@@ -148,6 +149,8 @@ export class ArcadeSim {
   private nextShrineAt: number;
   private nextTrollPackAt: number;
   readonly act: ActId;
+  /** Наследие Aegis (T13.44): снимок множителей на старте; в реплей входит, дейлик — LEGACY_NONE. */
+  readonly legacy: LegacyBonus;
   /** Препятствия карты (деревья/камни из общего генератора): герой и обычные враги их обходят, боссы/структуры — нет. */
   readonly obstacles: ObstacleGrid;
   private readonly roshanAt: number[];
@@ -191,6 +194,8 @@ export class ArcadeSim {
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
+    const L = options.legacy;
+    this.legacy = L && [L.hp, L.damage, L.pickup].every((v) => typeof v === "number" && v >= 1 && v <= 2) ? { hp: L.hp, damage: L.damage, pickup: L.pickup } : LEGACY_NONE;
     this.obstacles = new ObstacleGrid(generateMap(seed, this.act).obstacles);
     this.rng = new Rng(`arcade:${seed}:r${this.rank.step}:${this.hero.id}:${this.act}`);
     this.roshanAt = ARCADE.acts[this.act].roshanAt.map((t, i) => (i === 0 && this.rank.earlyRoshan ? t - sec(60) : t));
@@ -1241,7 +1246,8 @@ export class ArcadeSim {
 
   damageEnemy(e: Enemy, amount: number, fx: FxKind): void {
     if (!e.alive || amount <= 0) return;
-    let dmg = amount;
+    // Наследие: весь исходящий урон (удары, умения, DoT, питомцы) — ровно один раз, здесь.
+    let dmg = amount * this.legacy.damage;
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
     const vamp = this.hero.signature;
     if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
@@ -2548,6 +2554,9 @@ export class ArcadeSim {
     s.cooldown = Math.min(0.55, s.cooldown);
     s.attackInterval /= 1 + attackSpeed;
     s.speed *= 1 + moveSpeed;
+    // Наследие Aegis: к итоговым HP и радиусу сбора, один раз (урон — в damageEnemy).
+    s.maxHp = Math.round(s.maxHp * this.legacy.hp);
+    s.pickup *= this.legacy.pickup;
     const ratio = p.stats ? p.hp / p.stats.maxHp : 1;
     p.stats = s;
     p.hp = Math.min(s.maxHp, Math.max(p.hp, ratio * s.maxHp));

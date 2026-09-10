@@ -9,6 +9,7 @@ import type { AbilityKey, ActId, ArcadeOutcome, SchoolId } from "../game/arcade/
 import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
+import { LEGACY_MAX_RANK, LEGACY_NONE, LEGACY_ZERO, clampLegacy, legacyBonus, legacySpentTotal, type LegacyBranch, type LegacySpent } from "../game/arcade/content/legacy.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
 import { COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
 import { GEAR_SALVAGE, GEAR_SLOTS, type GearItem, type GearSlot } from "../game/arcade/content/gear.ts";
@@ -41,6 +42,8 @@ const GEAR_KEY = "aegis-draft.arcade.gear";
 const AUTOCAST_KEY = "aegis-draft.arcade.autocast";
 /** Постоянный прогресс (T13.37): открытия и lifetime-трофеи живут отдельно от ленты последних забегов. */
 const PROGRESS_KEY = "aegis-draft.arcade.progress";
+/** Ключей награждённых завершений наследия храним ограниченно: одинаковый seed/hero/act/rank награждается один раз. */
+const LEGACY_CLAIMED_CAP = 200;
 
 /** Автокаст по умениям — настройка игрока, живёт между забегами (владелец 2026-09-06:
  *  «умения не должны нажиматься сами, пока не включишь переключатель рядом»). По умолчанию всё выключено. */
@@ -156,11 +159,14 @@ function sanitizeProgress(p: Partial<ArcadeProgress>): ArcadeProgress {
     if (!h || typeof h !== "object") continue;
     perHero[hero] = { runs: num(h.runs), victories: num(h.victories), bestSeconds: num(h.bestSeconds), bestLevel: num(h.bestLevel) };
   }
+  const lg = p.legacy;
   return {
     v: 1,
     acts: (p.acts ?? []).filter((a): a is ActId => a === "full" || a === "dire" || a === "river"),
     runs: num(p.runs), victories: num(p.victories), fullVictories: num(p.fullVictories),
     bestRank: p.bestRank == null ? null : num(p.bestRank), bestSeconds: num(p.bestSeconds), perHero,
+    // Наследие (T13.44): профиль до него — нули; потраченное не может превышать заработанное.
+    legacy: { seals: Math.max(0, num(lg?.seals)), spent: clampLegacy(lg?.spent), claimed: Array.isArray(lg?.claimed) ? lg!.claimed.filter((k): k is string => typeof k === "string").slice(-LEGACY_CLAIMED_CAP) : [] },
   };
 }
 
@@ -176,6 +182,8 @@ interface ArcadeStore {
   history: ArcadeHistoryEntry[];
   /** Постоянные открытия и трофеи (T13.37): не зависят от обрезки `history`. */
   progress: ArcadeProgress;
+  /** Печатей наследия, начисленных последним завершением (для экрана итога). */
+  lastSeals: number;
   /** Авто-каст способностей (по умолчанию включён: тач без него неиграбелен). */
   autoCast: AutoCastState;
   /** Просмотр реплея: ввод берётся из лога, а не с клавиатуры; в историю не пишется. */
@@ -214,6 +222,9 @@ interface ArcadeStore {
   shopAct: (act: number) => void;
   /** Переключить автокаст умения (сохраняется между забегами; в сим уходит через input-лог). */
   toggleAutoCast: (key: AbilityKey | "attack") => void;
+  /** Наследие Aegis (T13.44): вложить печать в ветку / бесплатно сбросить все. */
+  legacySpend: (branch: LegacyBranch) => void;
+  legacyReset: () => void;
   /** Забег закончился внутри сима — зафиксировать результат и записать историю. */
   finish: () => void;
   quit: () => void;
@@ -232,6 +243,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   outcome: null,
   history: initialHistory,
   progress: readProgress(initialHistory),
+  lastSeals: 0,
   autoCast: readAutoCast(),
   replayLog: null,
   loadedReplay: null,
@@ -243,17 +255,18 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   start(seed) {
     const next = seed?.trim() || createRunSeed();
     const rank = Math.min(get().rank, maxUnlockedRank(get().progress));
-    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: equippedGear(get().gear) });
+    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: equippedGear(get().gear), legacy: legacyBonus(get().progress.legacy.spent) });
     set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [], lastLoot: [] });
   },
   startDaily() {
     const d = arcadeDaily();
-    // Дейлик — без экипировки: у всех одинаковые условия.
-    sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act });
+    // Дейлик — без экипировки и без наследия: у всех одинаковые условия.
+    sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act, legacy: LEGACY_NONE });
     set({ status: "running", seed: d.seed, rank: d.rank, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null });
   },
   startReplay(replay) {
-    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear });
+    // Реплей читает снимок наследия из кода, не текущую прокачку зрителя.
+    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO) });
     set({ status: "running", seed: replay.seed, rank: replay.rank, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
   },
   equipGear(slot, uid) {
@@ -343,6 +356,21 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act: 30 + index });
     set((s) => ({ serial: s.serial + 1 }));
   },
+  legacySpend(branch) {
+    const p = get().progress;
+    const free = p.legacy.seals - legacySpentTotal(p.legacy.spent);
+    if (free <= 0 || p.legacy.spent[branch] >= LEGACY_MAX_RANK) return;
+    const progress: ArcadeProgress = { ...p, legacy: { ...p.legacy, spent: { ...p.legacy.spent, [branch]: p.legacy.spent[branch] + 1 } } };
+    void writePersisted(PROGRESS_KEY, JSON.stringify(progress));
+    set({ progress });
+  },
+  legacyReset() {
+    const p = get().progress;
+    if (legacySpentTotal(p.legacy.spent) === 0) return;
+    const progress: ArcadeProgress = { ...p, legacy: { ...p.legacy, spent: { ...LEGACY_ZERO } } };
+    void writePersisted(PROGRESS_KEY, JSON.stringify(progress));
+    set({ progress });
+  },
   toggleAutoCast(key) {
     const autoCast: AutoCastState = { ...get().autoCast, [key]: !get().autoCast[key] };
     void writePersisted(AUTOCAST_KEY, JSON.stringify(autoCast));
@@ -365,6 +393,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
     // Прогресс — до обрезки ленты и один раз на завершение (повторный finish отсекает `status === "over"` выше).
     const progress = recordProgress(get().progress, entry);
+    const lastSeals = progress.legacy.seals - get().progress.legacy.seals;
     void writePersisted(PROGRESS_KEY, JSON.stringify(progress));
     // Дроп косметики: детерминирован сидом и исходом; дубликаты → осколки.
     const prev = get().cosmetics;
@@ -389,7 +418,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const gear: GearState = { items, equipped };
     void writePersisted(GEAR_KEY, JSON.stringify(gear));
     if (extraShards) { cosmetics.shards += extraShards; void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics)); }
-    set({ status: "over", outcome: o, history, progress, cosmetics, lastDrops: drops, gear, lastLoot: loot });
+    set({ status: "over", outcome: o, history, progress, lastSeals, cosmetics, lastDrops: drops, gear, lastLoot: loot });
   },
   quit() {
     sim = null;
@@ -434,10 +463,17 @@ export interface ArcadeProgress extends ArcadeTrophies {
   v: 1;
   /** Акты, взятые победой; разминка (`short`) сюда не входит — она ничего не открывает. */
   acts: ActId[];
+  /** Наследие Aegis (T13.44): заработанные печати, вложенные пункты и ключи уже награждённых завершений. */
+  legacy: { seals: number; spent: LegacySpent; claimed: string[] };
 }
 
 export function emptyProgress(): ArcadeProgress {
-  return { v: 1, acts: [], runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {} };
+  return { v: 1, acts: [], runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {}, legacy: { seals: 0, spent: { ...LEGACY_ZERO }, claimed: [] } };
+}
+
+/** Ключ завершения для однократной награды (дейлик содержит дату в сиде — не чаще раза в день). */
+export function legacyClaimKey(e: Pick<ArcadeHistoryEntry, "seed" | "hero" | "act" | "rank">): string {
+  return `${e.seed}|${e.hero ?? "juggernaut"}|${e.act ?? "short"}|${e.rank ?? 0}`;
 }
 
 /** Одно завершение забега поверх профиля. Разминка считается забегом и победой, но акт/ступень не открывает. */
@@ -445,10 +481,19 @@ export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): Arcade
   const hero = e.hero ?? "juggernaut";
   const prev = p.perHero[hero] ?? { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0 };
   const h = { runs: prev.runs + 1, victories: prev.victories, bestSeconds: Math.max(prev.bestSeconds, e.seconds), bestLevel: Math.max(prev.bestLevel, e.level) };
-  const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h } };
+  const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] } };
   if (e.outcome === "victory") {
     next.victories++; h.victories++;
     if (e.act && e.act !== "short") {
+      // Печать наследия: за победу в полном акте, +1 за первую полную победу этим героем; одна и та же
+      // комбинация seed/hero/act/rank — один раз (повтор пользовательского сида, реимпорт, повторный callback).
+      const key = legacyClaimKey(e);
+      const firstFull = !p.legacy.claimed.some((k) => k.split("|")[1] === hero);
+      if (!next.legacy.claimed.includes(key)) {
+        next.legacy.seals += 1 + (firstFull ? 1 : 0);
+        next.legacy.claimed.push(key);
+        if (next.legacy.claimed.length > LEGACY_CLAIMED_CAP) next.legacy.claimed.splice(0, next.legacy.claimed.length - LEGACY_CLAIMED_CAP);
+      }
       next.fullVictories++;
       next.bestRank = Math.max(next.bestRank ?? 0, e.rank ?? 0);
       if (!next.acts.includes(e.act)) next.acts.push(e.act);
