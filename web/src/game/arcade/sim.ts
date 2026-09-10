@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Camp, type CurseId, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type CurseId, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -130,6 +130,10 @@ export class ArcadeSim {
   grove: Grove | null = null;
   centaur: Enemy | null = null;
   private centaurSlain = false;
+  /** Курган и Тролль-Некромант (T13.46); ссылка снимается при смерти. */
+  barrow: Barrow | null = null;
+  necromancer: Enemy | null = null;
+  private necromancerSlain = false;
   /** Лотосовый пруд (T13.43): одно использование; открытый выбор ставит мир на паузу, как лавка. */
   pond: Pond | null = null;
   pondOpen = false;
@@ -224,6 +228,92 @@ export class ArcadeSim {
     this.outpost = this.placeOutpost(seed);
     this.pond = this.placePond(seed);
     this.grove = this.placeGrove(seed);
+    this.barrow = this.placeBarrow(seed);
+  }
+
+  /** Курган по seed: кольцо от старта, подальше от остальных мест, центр и два места идолов свободны. */
+  private placeBarrow(seed: string): Barrow {
+    const N = ARCADE.necro;
+    const rng = new Rng(`barrow:${seed}:${this.act}`);
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    let x = cx0, y = cy0 + N.distMin;
+    const others: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost, this.pond, this.grove]) if (o) others.push({ x: o.x, y: o.y });
+    for (let i = 0; i < 40; i++) {
+      const a = rng.float() * Math.PI * 2, d = N.distMin + rng.float() * (N.distMax - N.distMin);
+      x = clamp(cx0 + Math.cos(a) * d, 120, W.w - 120); y = clamp(cy0 + Math.sin(a) * d, 120, W.h - 120);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
+      if (others.some((o) => len(x - o.x, y - o.y) < N.minFromOthers)) continue;
+      if (this.obstacles.blocked(x, y, 40) || this.obstacles.blocked(x - N.idolRing, y + 30, 26) || this.obstacles.blocked(x + N.idolRing, y + 30, 26)) continue;
+      break;
+    }
+    [x, y] = this.obstacles.resolve(x, y, 40);
+    for (let i = 0; i < N.idols; i++) { const [ix, iy] = this.obstacles.resolve(x + (i === 0 ? -N.idolRing : N.idolRing), y + 30, 22); this.spawnEnemy(ENEMY_KINDS.bone_idol, ix, iy); }
+    this.necromancer = this.spawnEnemy(ENEMY_KINDS.troll_necromancer, x, y - 20);
+    return { x, y, engaged: false, idolsDown: 0, nextRaiseAt: 0 };
+  }
+
+  playerAtBarrow(): boolean {
+    return !!this.barrow && !!this.necromancer?.alive && this.barrow.engaged;
+  }
+
+  idolsAlive(): number {
+    let n = 0;
+    for (const e of this.enemies) if (e.alive && e.kind.id === "bone_idol") n++;
+    return n;
+  }
+
+  private updateBarrowEngage(): void {
+    const b = this.barrow;
+    if (!b || !this.necromancer?.alive) return;
+    const d = len(this.player.x - b.x, this.player.y - b.y);
+    if (!b.engaged && d <= ARCADE.necro.wakeRadius) b.engaged = true;
+    else if (b.engaged && d > ARCADE.necro.engageRadius) b.engaged = false;
+  }
+
+  /** Подъём павших (T13.46): пока герой у кургана и стоит хоть один идол — скелеты у случайного идола, с потолком живых. */
+  private tickBarrowRaise(): void {
+    const b = this.barrow, N = ARCADE.necro;
+    if (!b || !this.playerAtBarrow() || this.tick < b.nextRaiseAt) return;
+    const idols = this.enemies.filter((e) => e.alive && e.kind.id === "bone_idol");
+    if (idols.length === 0) return;
+    b.nextRaiseAt = this.tick + N.raiseEvery;
+    let risen = 0;
+    for (const e of this.enemies) if (e.alive && e.kind.id === "skeleton_warrior") risen++;
+    const n = Math.min(N.raiseBase + idols.length, Math.max(0, N.maxRisen - risen));
+    const idol = idols[this.rng.int(idols.length)];
+    for (let i = 0; i < n; i++) {
+      const a = this.rng.float() * Math.PI * 2, d = 24 + this.rng.float() * 40;
+      const [sx, sy] = this.obstacles.resolve(clamp(idol.x + Math.cos(a) * d, 8, ARCADE.world.w - 8), clamp(idol.y + Math.sin(a) * d, 8, ARCADE.world.h - 8), 12);
+      this.spawnEnemy(ENEMY_KINDS.skeleton_warrior, sx, sy);
+    }
+    this.pushFx("nova", idol.x, idol.y, 60, 0, 14);
+  }
+
+  /** Тролль-Некромант: держит дистанцию и стреляет; спит и лечится дома вне контакта; поводок; контроль ограничен. */
+  private moveNecromancer(e: Enemy, dx: number, dy: number, d: number): void {
+    const N = ARCADE.necro, b = this.barrow;
+    if (!b) return;
+    this.capControl(e, N.ccCap, N.ccResist);
+    e.shotCd = Math.max(0, e.shotCd - 1);
+    if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
+    const home = len(e.x - b.x, e.y - b.y);
+    if (!this.playerAtBarrow() || home > N.leash) {
+      if (home > 8) { e.x += (b.x - e.x) / home * e.kind.speed * DT; e.y += (b.y - e.y) / home * e.kind.speed * DT; }
+      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * N.regenPerSec);
+      return;
+    }
+    let speed = e.kind.speed;
+    if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
+    // Кайт: ближе keepMin — отходит от героя (но не дальше поводка), дальше keepMax — подходит.
+    if (d < N.keepMin && home < N.leash - 20) { e.x -= dx / d * speed * DT; e.y -= dy / d * speed * DT; }
+    else if (d > N.keepMax) { e.x += dx / d * speed * DT; e.y += dy / d * speed * DT; }
+    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    if (d < N.shot.range && e.shotCd === 0) {
+      e.shotCd = sec(N.shot.every);
+      this.spawnProjectile(e.x, e.y, dx / d * N.shot.speed, dy / d * N.shot.speed, 10, e.dmg * N.shot.dmgMult, sec(2.2), 0, "siege", true);
+    }
+    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
   }
 
   /** Роща по seed: кольцо от старта, подальше от лагеря/аванпоста/пруда; из 40 проб берём место с наибольшим числом камней рядом —
@@ -256,7 +346,9 @@ export class ArcadeSim {
   /** Спящий чемпион (T13.45): не цель для ударов, умений, снарядов и толпы, урона не берёт — мимо него можно пройти.
    *  Будится только входом в рощу (wakeRadius): автоатака по «ближайшему» иначе будила его случайно и ломала кайт (бот 23→13%). */
   isDormant(e: Enemy): boolean {
-    return e.kind.id === "centaur_warden" && !!this.grove && !this.grove.engaged;
+    if (e.kind.id === "centaur_warden") return !!this.grove && !this.grove.engaged;
+    if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") return !!this.barrow && !this.barrow.engaged && !!this.necromancer?.alive;
+    return false;
   }
 
   private updateGroveEngage(): void {
@@ -486,7 +578,7 @@ export class ArcadeSim {
   /** Живые тотемы лагеря (для HUD/рендера). */
   totemsAlive(): number {
     let n = 0;
-    for (const e of this.enemies) if (e.alive && e.kind.totem) n++;
+    for (const e of this.enemies) if (e.alive && e.kind.id === "corruption_totem") n++;
     return n;
   }
 
@@ -1415,6 +1507,8 @@ export class ArcadeSim {
     if (e.kind.id === "satyr_defiler" && this.camp) dmg *= Math.max(0, 1 - ARCADE.defiler.shieldPerTotem * this.totemsAlive());
     // Кентавр, оглушённый камнем, берёт больше (T13.45); спящий — не берёт ничего.
     if (e.kind.id === "centaur_warden") { if (this.isDormant(e)) return; if (this.tick < e.stunUntil) dmg *= ARCADE.centaur.stunnedDmgMult; }
+    // Некромант и идолы: спящие неуязвимы; без идолов некромант открыт (T13.46).
+    if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
     // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
     if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
     e.hp -= dmg;
@@ -1441,10 +1535,19 @@ export class ArcadeSim {
     }
     if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
     this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
-    if (e.kind.totem && this.camp && !this.camp.cleared) {
+    if (e.kind.id === "bone_idol" && this.barrow) { this.barrow.idolsDown++; this.pushFx("burst", e.x, e.y, 60, 0, 18); }
+    else if (e.kind.totem && this.camp && !this.camp.cleared) {
       this.camp.destroyed++;
       this.pushFx("burst", e.x, e.y, 70, 0, 18);
       this.tryClearCamp();
+    }
+    if (e === this.necromancer) {
+      this.necromancer = null; this.necromancerSlain = true;
+      this.shake = Math.max(this.shake, 12);
+      this.pushFx("nova", e.x, e.y, 150, 0, 24);
+      // Скелеты без хозяина рассыпаются.
+      for (const s of this.enemies) if (s.alive && s.kind.id === "skeleton_warrior") { s.alive = false; this.pushFx("die", s.x, s.y, s.kind.r, KIND_INDEX[s.kind.id] ?? 0, 14); }
+      this.openBarrowReward();
     }
     if (e === this.centaur) {
       // Награда Стража: защитная и мобильная экипировка на выбор — два exotic-предмета у ног (броня и сапоги).
@@ -1596,7 +1699,7 @@ export class ArcadeSim {
       campsCleared: this.camp?.cleared ? 1 : 0,
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
-      centaurSlain: this.centaurSlain,
+      centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain,
     };
   }
 
@@ -1659,6 +1762,8 @@ export class ArcadeSim {
     // злит оставшихся — охраны больше, она крепче и приходит чаще. Ушёл — охрана перестаёт прибывать.
     this.updateCampEngage();
     this.updateGroveEngage();
+    this.updateBarrowEngage();
+    this.tickBarrowRaise();
     const camp = this.camp;
     if (camp && !camp.cleared && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
       const C = ARCADE.camp;
@@ -1875,6 +1980,7 @@ export class ArcadeSim {
       if (e.kind.totem) continue; // тотем стоит, не бьёт и не толкается
       if (e.kind.id === "satyr_defiler") { this.moveDefiler(e, dx, dy, d); continue; }
       if (e.kind.id === "centaur_warden") { this.moveCentaurEntry(e, dx, dy, d); continue; }
+      if (e.kind.id === "troll_necromancer") { this.moveNecromancer(e, dx, dy, d); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -2455,7 +2561,7 @@ export class ArcadeSim {
       return;
     }
     if (!this.defiler?.alive || !this.playerAtCamp() || this.tick < camp.nextLineAt) return;
-    const alive = this.enemies.filter((e) => e.alive && e.kind.totem);
+    const alive = this.enemies.filter((e) => e.alive && e.kind.id === "corruption_totem");
     if (alive.length < 2) return;
     const a = alive.splice(this.rng.int(alive.length), 1)[0];
     const b = alive[this.rng.int(alive.length)];
@@ -2504,6 +2610,21 @@ export class ArcadeSim {
       e.contactCd = sec(ARCADE.boss.contactEvery);
       this.damagePlayer(e.dmg, 0, e.kind);
     }
+  }
+
+  /** Награда Некроманта (T13.46): три exotic-карты школы «Зверинец» — «улучшение Beast»; если школа недоступна, обычные exotic. */
+  private openBarrowReward(): void {
+    const offers: Offer[] = [];
+    for (let i = 0; i < 3; i++) {
+      const up = this.rollUpgradeOffer(offers.map((o) => (o.kind === "upgrade" ? o.id : "")), "beast") ?? this.rollUpgradeOffer(offers.map((o) => (o.kind === "upgrade" ? o.id : "")));
+      if (!up || up.kind !== "upgrade") break;
+      offers.push({ kind: "upgrade", id: up.id, rarity: "exotic" });
+    }
+    for (const k of ["q", "w", "e"] as const) if (offers.length < 3 && this.player.abilities[k] < 4) offers.push({ kind: "ability", key: k });
+    if (offers.length === 0) return;
+    if (this.pending) { this.campRewardQueued = offers; return; }
+    this.pending = offers;
+    this.pendingSource = "camp";
   }
 
   /** Лагерь очищен: три карты апгрейдов гарантированной редкости (мир стоит, как на уровне); реролла нет. */
@@ -2587,9 +2708,10 @@ export class ArcadeSim {
     this.pending = fresh ? [...rest.slice(0, index), fresh, ...rest.slice(index)] : rest;
   }
 
-  private rollUpgradeOffer(exclude: string[]): Offer | null {
+  private rollUpgradeOffer(exclude: string[], only?: SchoolId): Offer | null {
     const p = this.player;
-    const schools: readonly SchoolId[] = p.schools.length >= 3 ? p.schools : SCHOOLS;
+    let schools: readonly SchoolId[] = p.schools.length >= 3 ? p.schools : SCHOOLS;
+    if (only) { if (!schools.includes(only)) return null; schools = [only]; }
     const owned = (id: string) => (p.upgrades[id]?.rank ?? 0) > 0;
     const candidates = UPGRADES.filter((u) => !u.legendary && !this.banished.has(u.id) && schools.includes(u.school) && !exclude.includes(u.id) && (p.upgrades[u.id]?.rank ?? 0) < (p.upgrades[u.id]?.cap ?? u.maxRank) && (!u.requires || u.requires.some(owned)) && (!u.requiresSchools || u.requiresSchools.every((sc) => p.schools.includes(sc))));
     if (candidates.length === 0) return null;
@@ -2749,7 +2871,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

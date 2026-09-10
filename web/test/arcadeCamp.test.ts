@@ -7,7 +7,7 @@ import { IDLE_INPUT, type Enemy } from "../src/game/arcade/types.ts";
 // Три тотема порчи по seed; охрана прибывает, пока герой внутри; снёс все — награда; можно уйти без штрафа.
 const C = ARCADE.camp;
 
-const totems = (sim: ArcadeSim): Enemy[] => sim.enemies.filter((e) => e.alive && e.kind.totem);
+const totems = (sim: ArcadeSim): Enemy[] => sim.enemies.filter((e) => e.alive && e.kind.id === "corruption_totem");
 const guards = (sim: ArcadeSim): Enemy[] => sim.enemies.filter((e) => e.alive && !e.kind.totem);
 const idle = (sim: ArcadeSim, ticks: number) => { for (let i = 0; i < ticks && !sim.over; i++) { sim.player.hp = 1e6; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT); } };
 /** Убить обычных врагов, чтобы тесты про охрану считали только прибывших. */

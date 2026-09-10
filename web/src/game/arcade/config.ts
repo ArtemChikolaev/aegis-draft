@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.46.0";
+export const ARCADE_CONFIG_VERSION = "a0.47.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -82,6 +82,16 @@ export const ARCADE = {
     chargeRange: 380, chargeTelegraph: sec(0.8), chargeSpeed: 540, chargeLen: 440, chargeDmg: 70, chargeHitRadius: 34,
     rockStun: sec(2.5), stunnedDmgMult: 1.5, slamTelegraph: sec(0.6), slamRadius: 130, slamDmg: 48, chargeCooldown: sec(4.5), recovery: sec(1.0),
     ccCap: sec(0.5), ccResist: sec(3),
+  },
+  /** Тролль-Некромант (T13.46, этап 3 аудита): чемпион-призыватель у кургана. Два костяных идола; пока хоть один стоит,
+   *  раз в `raiseEvery` поднимает `raiseBase + idolsAlive` скелетов у случайного идола (не больше `maxRisen` живых).
+   *  Сам держит дистанцию `keepMin..keepMax` и стреляет (`shot`). Идолы снесены — призыва нет, он уязвим (×`exposedDmgMult`).
+   *  Спит/неуязвим до входа в `wakeRadius` (как Кентавр). Награда: три карты школы Зверинец редкости exotic
+   *  («улучшение Beast»), если школа недоступна — обычные exotic. */
+  necro: {
+    distMin: 620, distMax: 960, minFromOthers: 500, wakeRadius: 160, engageRadius: 460, leash: 300, regenPerSec: 0.02,
+    idols: 2, idolRing: 90, raiseEvery: sec(6), raiseBase: 2, maxRisen: 12, keepMin: 190, keepMax: 300, shot: { range: 340, every: 2.0, speed: 220, dmgMult: 1.4 },
+    exposedDmgMult: 1.3, ccCap: sec(0.5), ccResist: sec(3),
   },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {

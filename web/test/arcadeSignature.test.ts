@@ -6,7 +6,8 @@ import { HEROES } from "../src/game/arcade/content/heroes.ts";
 function warm(sim: ArcadeSim, ticks: number): void {
   for (let i = 0; i < ticks && !sim.over; i++) sim.step(IDLE_INPUT);
 }
-const alive = (sim: ArcadeSim) => sim.enemies.filter((e) => e.alive && !e.kind.elite && !e.kind.boss);
+// Места карты (тотемы, идолы, спящие чемпионы) в выборку жертв не берём: спящие неуязвимы, у тотемов нет наград пассивок.
+const alive = (sim: ArcadeSim) => sim.enemies.filter((e) => e.alive && !e.kind.elite && !e.kind.boss && !e.kind.totem && !sim.isDormant(e));
 
 describe("фирменные пассивки героев (T13.15)", () => {
   it("Shadow Fiend копит души за убийства, элита даёт 6, есть потолок", () => {

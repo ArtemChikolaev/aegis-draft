@@ -46,7 +46,8 @@ export type InputLogEntry = [step: number, mx: number, my: number, cast: number,
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
-  | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden";
+  | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
+  | "troll_necromancer" | "bone_idol" | "skeleton_warrior";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -275,6 +276,9 @@ export interface ArcadeEventCounters {
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
 export interface Grove { x: number; y: number; engaged: boolean; rocks: number }
 
+/** Курган Тролля-Некроманта (T13.46): дом чемпиона по seed; `engaged` — разбужен; `idolsDown` — снесено идолов; `nextRaiseAt` — следующий подъём. */
+export interface Barrow { x: number; y: number; engaged: boolean; idolsDown: number; nextRaiseAt: number }
+
 /** Лотосовый пруд (T13.43): одно использование на забег — лечение или снятие порчи. */
 export interface Pond { x: number; y: number; used: boolean }
 
@@ -455,4 +459,6 @@ export interface ArcadeOutcome {
   cursed: boolean;
   /** Кентавр-Страж рощи убит (T13.45). */
   centaurSlain: boolean;
+  /** Тролль-Некромант убит (T13.46). */
+  necromancerSlain: boolean;
 }

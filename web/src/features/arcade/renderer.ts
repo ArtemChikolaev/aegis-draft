@@ -426,8 +426,9 @@ export class ArcadeRenderer {
     if (camp && !camp.cleared) this.drawEdgeMarker(camp.x - camX, camp.y - camY, pal.venom, String(sim.totemsAlive()), pal, now);
     const o = sim.outpost;
     if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
-    // Роща — приглашение только после захвата аванпоста (обзор открывает крупную охоту), чтобы у края не было больше двух.
+    // Роща и курган — приглашения только после захвата аванпоста (обзор открывает крупную охоту), чтобы у края не было больше двух.
     if (o?.captured && sim.grove && sim.centaur?.alive) this.drawEdgeMarker(sim.grove.x - camX, sim.grove.y - camY, pal.crit, "", pal, now);
+    if (o?.captured && sim.barrow && sim.necromancer?.alive) this.drawEdgeMarker(sim.barrow.x - camX, sim.barrow.y - camY, pal.lightning, String(sim.idolsAlive()), pal, now);
     // Пруд приглашает сам, когда есть что снять; иначе — как остальные точки после захвата аванпоста.
     const pond = sim.pond;
     if (pond && !pond.used && (sim.player.curse || o?.captured)) this.drawEdgeMarker(pond.x - camX, pond.y - camY, pal.frost, sim.player.curse ? "✚" : "", pal, now);

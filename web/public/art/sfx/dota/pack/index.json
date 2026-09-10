@@ -1578,6 +1578,11 @@
     "ancient_death_1.m4a"
    ]
   },
+  "bone_idol": {
+   "death": [
+    "tormentor_death_1.m4a"
+   ]
+  },
   "centaur": {
    "attack": [
     "centaur_attack_1.m4a",
@@ -1749,6 +1754,18 @@
     "siege_creep_attack_2.m4a"
    ]
   },
+  "skeleton_warrior": {
+   "attack": [
+    "kobold_attack_1.m4a",
+    "kobold_attack_2.m4a"
+   ],
+   "death": [
+    "kobold_death_1.m4a",
+    "kobold_death_2.m4a",
+    "kobold_death_3.m4a",
+    "kobold_death_4.m4a"
+   ]
+  },
   "tormentor": {
    "attack": [
     "tormentor_attack_1.m4a",
@@ -1757,6 +1774,17 @@
    ],
    "death": [
     "tormentor_death_1.m4a"
+   ]
+  },
+  "troll_necromancer": {
+   "attack": [
+    "dark_troll_attack_1.m4a",
+    "dark_troll_attack_2.m4a",
+    "dark_troll_attack_3.m4a",
+    "dark_troll_attack_4.m4a"
+   ],
+   "death": [
+    "dark_troll_death_1.m4a"
    ]
   },
   "wildwing": {

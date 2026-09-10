@@ -172,6 +172,7 @@ export function enemyLook(kindId: string): EnemyLook {
     case "siege_creep": return { kind: "monster", name: "pumpking" };
     case "golem": return { kind: "char", spec: { body: "male", layers: ["FEET_plate_armor_shoes", "LEGS_plate_armor_pants", "TORSO_plate_armor_torso", "HEAD_plate_armor_helmet"], weapon: null, tint: "#8d8d86", tintBody: true, scale: 1.75 } };
     case "dark_troll": return { kind: "char", spec: { body: "skeleton", layers: [], weapon: "bow", tint: "#4f8a3f", tintBody: true, scale: 1.0 } };
+    case "skeleton_warrior": return { kind: "char", spec: { body: "skeleton", layers: [], weapon: "dagger", tint: "#d8d0c0", tintBody: true, scale: 0.9 } };
     case "hellbear": return { kind: "char", spec: { body: "male", layers: ["LEGS_pants_greenish", "TORSO_leather_armor_torso"], weapon: null, tint: "#5a3a22", tintBody: true, scale: 1.5 } };
     default: return { kind: "rig" };
   }
@@ -497,7 +498,7 @@ export function dotaSheet(name: string): DotaSheet | null {
  *  `centaur` — это и неутральный кентавр-крип, и Centaur Warrunner, и одна строка манифеста
  *  затирала другую, из-за чего крип бегал в модели героя. Вид врага в симе переименовать нельзя
  *  (он в реплеях и ленте fx), поэтому разводим только имена листов. */
-const ENEMY_SHEET: Record<string, string> = { centaur: "centaur_creep", corruption_totem: "ward_plague", satyr_defiler: "satyr", centaur_warden: "centaur_creep" };
+const ENEMY_SHEET: Record<string, string> = { centaur: "centaur_creep", corruption_totem: "ward_plague", satyr_defiler: "satyr", centaur_warden: "centaur_creep", troll_necromancer: "dark_troll", bone_idol: "ward_death" };
 export function enemySheet(kindId: string): DotaSheet | null {
   return dotaSheet(ENEMY_SHEET[kindId] ?? kindId);
 }
