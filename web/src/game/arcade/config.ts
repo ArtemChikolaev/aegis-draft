@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.53.0";
+export const ARCADE_CONFIG_VERSION = "a0.54.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -128,6 +128,16 @@ export const ARCADE = {
     fordDx: [700, 1100] as [number, number], wakeRadius: 170, engageRadius: 460, leash: 260, regenPerSec: 0.02,
     shieldSec: 3, openSec: 4, waveEvery: sec(2.6), waveSpeed: 240, waveLen: 780, waveW: 22, gapH: 110, waveDmg: 38, waveHitEvery: sec(0.5),
     keepMin: 140, keepMax: 220, runeSec: 45, ccCap: sec(0.5), ccResist: sec(3),
+  },
+  /** Охотник Dire (T13.55, аудит: «отмечает будущую позицию атаки и готовит короткую засаду; следить за меткой и звуком;
+   *  попадание нельзя получать из полной невидимости без предупреждения; награда — трофей охоты и выбор крит/защита»).
+   *  Только акт Dire. Охотится в `huntRadius` от логова: скрыт (не цель, неуязвим), раз в `every` ставит метку там, куда
+   *  герой придёт через `leadSec` по направлению движения, телеграф `telegraph` (метка + звук), прыжок: удар `strikeDmg`
+   *  в `strikeRadius`, затем `exposedSec` виден и уязвим (медленно преследует), потом снова скрывается. */
+  stalker: {
+    distMin: 620, distMax: 960, minFromOthers: 500, huntRadius: 560, leash: 700, regenPerSec: 0.02,
+    every: sec(4.5), leadSec: 1.0, telegraph: sec(1.0), strikeRadius: 70, strikeDmg: 58, strikeStun: 0.3, exposedSec: 2.5, chaseSpeed: 96,
+    ccCap: sec(0.5), ccResist: sec(3),
   },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {

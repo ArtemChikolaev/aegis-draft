@@ -69,7 +69,7 @@ describe("контракт охоты", () => {
     const entry: ArcadeHistoryEntry = { seed: "s", outcome: "dead", seconds: 100, level: 5, kills: 50, gold: 10, schools: [], configVersion: "a", at: 1, hero: "axe", act: "short", rank: 0, contract: true };
     const p = recordProgress(emptyProgress(), entry);
     expect(p.perHero.axe.marks).toEqual(["contract"]);
-    expect(MARK_IDS).toHaveLength(11);
+    expect(MARK_IDS).toHaveLength(12);
     expect(masteryTitle([...MARK_IDS])).toBe("legend");
   });
 });

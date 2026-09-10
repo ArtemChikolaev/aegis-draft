@@ -249,6 +249,7 @@ export class ArcadeRenderer {
       drawWeather(c, camX, camY, this.w, this.h, sim.tick, this.artPx(), pal, 90);
       this.drawNight(sim, pal);
     }
+    this.drawDen(sim, pal, now);
     this.ctx.restore();
     if (this.pixel >= 1 && this.pixelCanvas) {
       this.ctx = this.mainCtx;
@@ -436,6 +437,7 @@ export class ArcadeRenderer {
     if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
     if (o?.captured && sim.lair && sim.thunder?.alive) this.drawEdgeMarker(sim.lair.x - camX, sim.lair.y - camY, pal.lightning, "", pal, now);
     if (o?.captured && sim.ford && sim.warden?.alive) this.drawEdgeMarker(sim.ford.x - camX, sim.ford.y - camY, pal.river, "", pal, now);
+    if (o?.captured && sim.den && sim.stalker?.alive) this.drawEdgeMarker(sim.den.x - camX, sim.den.y - camY, pal.crit, "", pal, now);
     // Роща и курган — приглашения только после захвата аванпоста (обзор открывает крупную охоту), чтобы у края не было больше двух.
     if (o?.captured && sim.grove && sim.centaur?.alive) this.drawEdgeMarker(sim.grove.x - camX, sim.grove.y - camY, pal.crit, "", pal, now);
     if (o?.captured && sim.barrow && sim.necromancer?.alive) this.drawEdgeMarker(sim.barrow.x - camX, sim.barrow.y - camY, pal.lightning, String(sim.idolsAlive()), pal, now);
@@ -473,6 +475,23 @@ export class ArcadeRenderer {
       m.fillText(label, -Math.cos(a) * 18, -Math.sin(a) * 18);
     }
     m.restore();
+  }
+
+  /** Охотник Dire (T13.55): метка засады — кольцо и перекрестие наливаются к прыжку; поверх всего, чтобы читаться ночью. */
+  private drawDen(sim: ArcadeSim, pal: Palette, now: number): void {
+    const d = sim.den;
+    if (!d || d.markUntil <= 0 || !sim.stalker?.alive) return;
+    const c = this.ctx;
+    const S = ARCADE.stalker;
+    const k = 1 - Math.max(0, d.markUntil - sim.tick) / S.telegraph;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 60);
+    c.strokeStyle = pal.telegraph; c.lineWidth = 3; c.globalAlpha = 0.6 + 0.4 * pulse;
+    c.beginPath(); c.arc(d.markX, d.markY, S.strikeRadius, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = pal.telegraph; c.globalAlpha = 0.15 + 0.35 * k;
+    c.beginPath(); c.arc(d.markX, d.markY, S.strikeRadius * k, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = pal.text; c.lineWidth = 2; c.globalAlpha = 0.9;
+    c.beginPath(); c.moveTo(d.markX - 12, d.markY); c.lineTo(d.markX + 12, d.markY); c.moveTo(d.markX, d.markY - 12); c.lineTo(d.markX, d.markY + 12); c.stroke();
+    c.globalAlpha = 1;
   }
 
   /** Страж переправы (T13.54): волны через русло с островком-разрывом; щит стража — кольцо, пока фаза щита. */
@@ -731,6 +750,7 @@ export class ArcadeRenderer {
     const tick = sim.tick;
     for (const e of sim.enemies) {
       if (!e.alive) continue;
+      if (e.kind.id === "dire_stalker" && sim.stalkerHidden()) continue; // скрыт — предупреждает только метка
       const r = e.kind.r;
       const flash = tick - e.hitAt < 4;
       const tone = pal[TONE_KEY[e.kind.tone]];

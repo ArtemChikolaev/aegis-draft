@@ -47,7 +47,7 @@ export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
   | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
-  | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden";
+  | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -273,18 +273,23 @@ export interface ArcadeEventCounters {
   outposts: number;
   /** Выполненные контракты охоты (T13.50). */
   contracts: number;
+  /** Метки засады Охотника Dire (T13.55) — звук предупреждения. */
+  ambushes: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
 export interface Grove { x: number; y: number; engaged: boolean; rocks: number }
 
 /** Контракт охоты (T13.50): цель — чемпион, награда объявлена заранее. */
-export type ContractTarget = "defiler" | "centaur" | "necro" | "thunder" | "warden";
+export type ContractTarget = "defiler" | "centaur" | "necro" | "thunder" | "warden" | "stalker";
 export type ContractReward = "weapon" | "armor" | "school";
 export interface Contract { target: ContractTarget; reward: ContractReward; done: boolean }
 
 /** Курган Тролля-Некроманта (T13.46): дом чемпиона по seed; `engaged` — разбужен; `idolsDown` — снесено идолов; `nextRaiseAt` — следующий подъём. */
 export interface Barrow { x: number; y: number; engaged: boolean; idolsDown: number; nextRaiseAt: number }
+
+/** Логово Охотника Dire (T13.55, только Dire): дом, метка засады и фаза (скрыт / телеграф / открыт). */
+export interface Den { x: number; y: number; engaged: boolean; markX: number; markY: number; markUntil: number; exposedUntil: number; nextAt: number }
 
 /** Брод Стража переправы (T13.54, только River): дом, фазы щита и волны через русло. */
 export interface Ford { x: number; y: number; engaged: boolean; shieldUntil: number; openUntil: number; nextWaveAt: number; waves: { x: number; dir: 1 | -1; gapY: number; left: number }[]; waveHitAt: number }
@@ -494,4 +499,6 @@ export interface ArcadeOutcome {
   thunderSlain: boolean;
   /** Страж переправы убит (T13.54). */
   wardenSlain: boolean;
+  /** Охотник Dire убит (T13.55). */
+  stalkerSlain: boolean;
 }
