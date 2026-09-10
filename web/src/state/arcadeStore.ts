@@ -39,6 +39,8 @@ const HISTORY_KEY = "aegis-draft.arcade.history";
 const COSMETICS_KEY = "aegis-draft.arcade.cosmetics";
 const GEAR_KEY = "aegis-draft.arcade.gear";
 const AUTOCAST_KEY = "aegis-draft.arcade.autocast";
+/** Постоянный прогресс (T13.37): открытия и lifetime-трофеи живут отдельно от ленты последних забегов. */
+const PROGRESS_KEY = "aegis-draft.arcade.progress";
 
 /** Автокаст по умениям — настройка игрока, живёт между забегами (владелец 2026-09-06:
  *  «умения не должны нажиматься сами, пока не включишь переключатель рядом»). По умолчанию всё выключено. */
@@ -129,6 +131,39 @@ function readHistory(): ArcadeHistoryEntry[] {
   }
 }
 
+/**
+ * Прогресс читается из своего ключа; профиль без него (сейвы до T13.37) один раз сворачивается из
+ * доступной истории. Победы, уже вытесненные из ленты 50 записей, восстановить нельзя — только то,
+ * что осталось. Битая запись тоже сворачивается из истории, а не молча обнуляется.
+ */
+function readProgress(history: ArcadeHistoryEntry[]): ArcadeProgress {
+  try {
+    const raw = readCached(PROGRESS_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Partial<ArcadeProgress>) : null;
+    if (parsed && Array.isArray(parsed.acts) && parsed.perHero && typeof parsed.perHero === "object") return sanitizeProgress(parsed);
+  } catch {
+    /* сворачиваем из истории ниже */
+  }
+  return progressFromHistory(history);
+}
+
+const num = (v: unknown, fallback = 0): number => (typeof v === "number" && Number.isFinite(v) ? v : fallback);
+
+/** Запись из хранилища (в том числе будущей версии) приводится к известным полям; лишнее не ломает чтение. */
+function sanitizeProgress(p: Partial<ArcadeProgress>): ArcadeProgress {
+  const perHero: ArcadeProgress["perHero"] = {};
+  for (const [hero, h] of Object.entries(p.perHero ?? {})) {
+    if (!h || typeof h !== "object") continue;
+    perHero[hero] = { runs: num(h.runs), victories: num(h.victories), bestSeconds: num(h.bestSeconds), bestLevel: num(h.bestLevel) };
+  }
+  return {
+    v: 1,
+    acts: (p.acts ?? []).filter((a): a is ActId => a === "full" || a === "dire" || a === "river"),
+    runs: num(p.runs), victories: num(p.victories), fullVictories: num(p.fullVictories),
+    bestRank: p.bestRank == null ? null : num(p.bestRank), bestSeconds: num(p.bestSeconds), perHero,
+  };
+}
+
 interface ArcadeStore {
   status: ArcadeStatus;
   seed: string;
@@ -139,6 +174,8 @@ interface ArcadeStore {
   serial: number;
   outcome: ArcadeOutcome | null;
   history: ArcadeHistoryEntry[];
+  /** Постоянные открытия и трофеи (T13.37): не зависят от обрезки `history`. */
+  progress: ArcadeProgress;
   /** Авто-каст способностей (по умолчанию включён: тач без него неиграбелен). */
   autoCast: AutoCastState;
   /** Просмотр реплея: ввод берётся из лога, а не с клавиатуры; в историю не пишется. */
@@ -183,6 +220,8 @@ interface ArcadeStore {
   bump: () => void;
 }
 
+const initialHistory = readHistory();
+
 export const useArcade = create<ArcadeStore>((set, get) => ({
   status: "setup",
   seed: "",
@@ -191,7 +230,8 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   act: "full",
   serial: 0,
   outcome: null,
-  history: readHistory(),
+  history: initialHistory,
+  progress: readProgress(initialHistory),
   autoCast: readAutoCast(),
   replayLog: null,
   loadedReplay: null,
@@ -202,7 +242,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
 
   start(seed) {
     const next = seed?.trim() || createRunSeed();
-    const rank = Math.min(get().rank, maxUnlockedRank(get().history));
+    const rank = Math.min(get().rank, maxUnlockedRank(get().progress));
     sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: equippedGear(get().gear) });
     set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [], lastLoot: [] });
   },
@@ -272,15 +312,15 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ loadedReplay: replay });
   },
   setAct(act) {
-    if (act === "dire" && !hasFullActVictory(get().history)) return;
-    if (act === "river" && !hasActVictory(get().history, "dire")) return;
+    if (act === "dire" && !hasFullActVictory(get().progress)) return;
+    if (act === "river" && !hasActVictory(get().progress, "dire")) return;
     set({ act });
   },
   setHero(hero) {
     if (hero in HEROES) set({ hero, cosmetics: withHeroSkin(get().cosmetics, hero) });
   },
   setRank(rank) {
-    set({ rank: Math.max(0, Math.min(MAX_RANK_STEP, Math.min(rank, maxUnlockedRank(get().history)))) });
+    set({ rank: Math.max(0, Math.min(MAX_RANK_STEP, Math.min(rank, maxUnlockedRank(get().progress)))) });
   },
   pause() {
     if (get().status === "running") set({ status: "paused" });
@@ -323,6 +363,9 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
+    // Прогресс — до обрезки ленты и один раз на завершение (повторный finish отсекает `status === "over"` выше).
+    const progress = recordProgress(get().progress, entry);
+    void writePersisted(PROGRESS_KEY, JSON.stringify(progress));
     // Дроп косметики: детерминирован сидом и исходом; дубликаты → осколки.
     const prev = get().cosmetics;
     const drops = rollCosmeticDrops(sim.seed, o, prev.owned);
@@ -346,7 +389,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const gear: GearState = { items, equipped };
     void writePersisted(GEAR_KEY, JSON.stringify(gear));
     if (extraShards) { cosmetics.shards += extraShards; void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics)); }
-    set({ status: "over", outcome: o, history, cosmetics, lastDrops: drops, gear, lastLoot: loot });
+    set({ status: "over", outcome: o, history, progress, cosmetics, lastDrops: drops, gear, lastLoot: loot });
   },
   quit() {
     sim = null;
@@ -358,20 +401,18 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
 }));
 
 /** Победа в конкретном акте (акт 2 открывает победа в полном акте 1, акт 3 — победа в акте 2). */
-export function hasActVictory(history: ArcadeHistoryEntry[], act: ActId): boolean {
-  return history.some((e) => e.outcome === "victory" && e.act === act);
+export function hasActVictory(progress: ArcadeProgress, act: ActId): boolean {
+  return progress.acts.includes(act);
 }
 
-export function hasFullActVictory(history: ArcadeHistoryEntry[]): boolean {
-  return hasActVictory(history, "full");
+export function hasFullActVictory(progress: ArcadeProgress): boolean {
+  return hasActVictory(progress, "full");
 }
 
 /** Открытая ступень: победа на ступени N открывает N+1 (как у референса — сложность за победы). */
-export function maxUnlockedRank(history: ArcadeHistoryEntry[]): number {
-  let best = 0;
+export function maxUnlockedRank(progress: ArcadeProgress): number {
   // Ступень открывает только победа в полном акте: разминка до 9:00 — тренировка, не зачёт.
-  for (const e of history) if (e.outcome === "victory" && e.act && e.act !== "short") best = Math.max(best, (e.rank ?? 0) + 1);
-  return Math.min(MAX_RANK_STEP, best);
+  return progress.bestRank === null ? 0 : Math.min(MAX_RANK_STEP, progress.bestRank + 1);
 }
 
 export interface ArcadeTrophies {
@@ -385,22 +426,47 @@ export interface ArcadeTrophies {
   perHero: Record<string, { runs: number; victories: number; bestSeconds: number; bestLevel: number }>;
 }
 
-/** Витрина Аркады для Штаба и Карьеры (T13.5) — производная собственной истории режима. */
-export function arcadeTrophies(history: ArcadeHistoryEntry[]): ArcadeTrophies {
-  const out: ArcadeTrophies = { runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {} };
-  for (const e of history) {
-    const hero = e.hero ?? "juggernaut";
-    const h = out.perHero[hero] ?? (out.perHero[hero] = { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0 });
-    out.runs++; h.runs++;
-    h.bestSeconds = Math.max(h.bestSeconds, e.seconds);
-    h.bestLevel = Math.max(h.bestLevel, e.level);
-    out.bestSeconds = Math.max(out.bestSeconds, e.seconds);
-    if (e.outcome === "victory") {
-      out.victories++; h.victories++;
-      if (e.act && e.act !== "short") { out.fullVictories++; out.bestRank = Math.max(out.bestRank ?? 0, e.rank ?? 0); }
+/**
+ * Постоянный профиль Аркады (T13.37): витрина для Штаба/Карьеры плюс взятые акты. Считается
+ * накопительно по каждому завершению, поэтому не забывает победы, когда лента истории обрезается.
+ */
+export interface ArcadeProgress extends ArcadeTrophies {
+  v: 1;
+  /** Акты, взятые победой; разминка (`short`) сюда не входит — она ничего не открывает. */
+  acts: ActId[];
+}
+
+export function emptyProgress(): ArcadeProgress {
+  return { v: 1, acts: [], runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {} };
+}
+
+/** Одно завершение забега поверх профиля. Разминка считается забегом и победой, но акт/ступень не открывает. */
+export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): ArcadeProgress {
+  const hero = e.hero ?? "juggernaut";
+  const prev = p.perHero[hero] ?? { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0 };
+  const h = { runs: prev.runs + 1, victories: prev.victories, bestSeconds: Math.max(prev.bestSeconds, e.seconds), bestLevel: Math.max(prev.bestLevel, e.level) };
+  const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h } };
+  if (e.outcome === "victory") {
+    next.victories++; h.victories++;
+    if (e.act && e.act !== "short") {
+      next.fullVictories++;
+      next.bestRank = Math.max(next.bestRank ?? 0, e.rank ?? 0);
+      if (!next.acts.includes(e.act)) next.acts.push(e.act);
     }
   }
-  return out;
+  return next;
+}
+
+/** Свёртка истории в профиль — миграция сейвов до T13.37 и витрина по произвольной ленте (лента новейшими вперёд). */
+export function progressFromHistory(history: ArcadeHistoryEntry[]): ArcadeProgress {
+  let p = emptyProgress();
+  for (let i = history.length - 1; i >= 0; i--) p = recordProgress(p, history[i]);
+  return p;
+}
+
+/** Витрина Аркады для Штаба и Карьеры (T13.5): тот же профиль. */
+export function arcadeTrophies(progress: ArcadeProgress): ArcadeTrophies {
+  return progress;
 }
 
 /** Лучший результат в истории: сначала победы, потом по времени выживания. */

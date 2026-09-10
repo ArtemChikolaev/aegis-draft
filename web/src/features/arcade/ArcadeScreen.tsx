@@ -53,6 +53,7 @@ function ArcadeSetup() {
   const setMode = useRun((s) => s.setSelectedMode);
   const backNative = useTmaChrome((s) => s.backNative);
   const history = useArcade((s) => s.history);
+  const progress = useArcade((s) => s.progress);
   const start = useArcade((s) => s.start);
   const rank = useArcade((s) => s.rank);
   const setRank = useArcade((s) => s.setRank);
@@ -86,7 +87,7 @@ function ArcadeSetup() {
   }, [setLoadedReplay]);
   const pastedReplay = replayCode.trim() ? decodeReplay(replayCode) : null;
   const replayToWatch = pastedReplay ?? loadedReplay;
-  const unlocked = maxUnlockedRank(history);
+  const unlocked = maxUnlockedRank(progress);
   const current = rankOf(rank);
   return (
     <main className="arcade-setup">
@@ -165,7 +166,7 @@ function ArcadeSetup() {
         <Surface className="arcade-setup__run">
           <div className="arcade-act" data-testid="arcade-act">
             {(["full", "dire", "river", "short"] as const).map((id) => {
-              const locked = (id === "dire" && !hasFullActVictory(history)) || (id === "river" && !hasActVictory(history, "dire"));
+              const locked = (id === "dire" && !hasFullActVictory(progress)) || (id === "river" && !hasActVictory(progress, "dire"));
               return (
                 <button key={id} type="button" className="arcade-rank__tier" data-active={act === id ? "true" : undefined} data-locked={locked ? "true" : undefined} disabled={locked} title={locked ? t(id === "river" ? "arcade.act.riverLocked" : "arcade.act.direLocked") : undefined} data-testid={`arcade-act-${id}`} onClick={() => setAct(id)}>{t(`arcade.act.${id}` as MessageKey)}</button>
               );

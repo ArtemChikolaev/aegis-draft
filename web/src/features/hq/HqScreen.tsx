@@ -49,8 +49,7 @@ export function HqScreen() {
   const total = GROUPS.reduce((sum, group) => sum + group.ids.length, 0);
   const discovered = GROUPS.reduce((sum, group) => sum + group.ids.filter((id) => stats[id]).length, 0);
   const num = (value: number | null) => (value == null ? t("hq.none") : String(value));
-  const arcadeHistory = useArcade((state) => state.history);
-  const arcade = arcadeTrophies(arcadeHistory);
+  const arcade = arcadeTrophies(useArcade((state) => state.progress));
   const cosmetics = useArcade((state) => state.cosmetics);
   const heroOf = useHero();
 
