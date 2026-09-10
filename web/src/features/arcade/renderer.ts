@@ -233,6 +233,7 @@ export class ArcadeRenderer {
     this.drawCamp(sim, pal, now);
     this.drawOutpost(sim, pal, now);
     this.drawPond(sim, pal, now);
+    this.drawForge(sim, pal, now);
     this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
@@ -444,6 +445,7 @@ export class ArcadeRenderer {
     if (sim.chest.alive) this.drawEdgeMarker(sim.chest.x - camX, sim.chest.y - camY, pal.aegis, "", pal, now);
     if (sim.neutralToken.alive) this.drawEdgeMarker(sim.neutralToken.x - camX, sim.neutralToken.y - camY, pal.text, `T${sim.neutralToken.value}`, pal, now);
     if (sim.shrine.alive) this.drawEdgeMarker(sim.shrine.x - camX, sim.shrine.y - camY, pal.greed, "", pal, now);
+    if (sim.forgeReady()) this.drawEdgeMarker(sim.forge!.x - camX, sim.forge!.y - camY, pal.ember, "⚒", pal, now);
   }
 
   private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number): void {
@@ -492,6 +494,28 @@ export class ArcadeRenderer {
       c.strokeStyle = pal.frost; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = 0.35 + 0.3 * pulse;
       c.beginPath(); c.arc(pond.x, pond.y, ARCADE.pond.radius, 0, Math.PI * 2); c.stroke();
       c.setLineDash([]);
+    }
+    c.globalAlpha = 1;
+  }
+
+  /** Древняя кузня (T13.52): наковальня на каменной плите; остыла — угли светятся и кольцо пульсирует, использована — тусклая. */
+  private drawForge(sim: ArcadeSim, pal: Palette, now: number): void {
+    const f = sim.forge;
+    if (!f) return;
+    const c = this.ctx;
+    const ready = sim.forgeReady();
+    const pulse = 0.5 + 0.5 * Math.sin(now / 240);
+    c.fillStyle = pal.rock; c.globalAlpha = f.used ? 0.5 : 1;
+    c.fillRect(f.x - 22, f.y - 4, 44, 12);
+    c.fillStyle = pal.smoke; c.fillRect(f.x - 14, f.y - 18, 28, 14); c.fillRect(f.x - 20, f.y - 22, 40, 6);
+    if (ready) {
+      c.fillStyle = pal.ember; c.globalAlpha = 0.5 + 0.4 * pulse;
+      c.fillRect(f.x - 8, f.y - 30, 4, 4); c.fillRect(f.x + 4, f.y - 34 - Math.round(pulse * 3), 3, 3); c.fillRect(f.x - 2, f.y - 38 - Math.round(pulse * 5), 3, 3);
+      c.strokeStyle = pal.ember; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = 0.3 + 0.3 * pulse;
+      c.beginPath(); c.arc(f.x, f.y, ARCADE.forge.radius, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+    } else if (!f.used) {
+      c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
+      this.text(c, `${Math.floor(ARCADE.forge.fromTick[sim.act] / 3600)}:${String(Math.floor((ARCADE.forge.fromTick[sim.act] % 3600) / 60)).padStart(2, "0")}`, f.x, f.y - 30);
     }
     c.globalAlpha = 1;
   }

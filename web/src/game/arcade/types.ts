@@ -286,6 +286,9 @@ export interface Contract { target: ContractTarget; reward: ContractReward; done
 /** Курган Тролля-Некроманта (T13.46): дом чемпиона по seed; `engaged` — разбужен; `idolsDown` — снесено идолов; `nextRaiseAt` — следующий подъём. */
 export interface Barrow { x: number; y: number; engaged: boolean; idolsDown: number; nextRaiseAt: number }
 
+/** Древняя кузня (T13.52): одно использование на забег — закалить, перековать или переплавить надетый предмет. */
+export interface Forge { x: number; y: number; used: boolean }
+
 /** Лотосовый пруд (T13.43): одно использование на забег — лечение или снятие порчи. */
 export interface Pond { x: number; y: number; used: boolean }
 
@@ -479,4 +482,6 @@ export interface ArcadeOutcome {
   contractDone: boolean;
   /** Какая порча была принята последней (T13.51), для итога. */
   lastCurse: CurseId | null;
+  /** Кузня использована (T13.52). */
+  forged: boolean;
 }

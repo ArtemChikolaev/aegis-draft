@@ -98,6 +98,8 @@ export interface GearItem {
   rarity: Rarity;
   tier: 1 | 2 | 3;
   affixes: GearAffix[];
+  /** Закалено/перековано в кузне (T13.52) — подпись на карточке; сама кузня одноразовая. */
+  forged?: boolean;
   /** Уникальный предмет босса (фиксированные аффиксы + особое свойство). */
   unique?: "aegis_of_the_immortal" | "tormentors_shard" | "heart_of_the_ancient" | "divine_rapier" | "manta_of_illusions" | "giants_ring";
 }
@@ -114,6 +116,35 @@ export const UNIQUES: Record<NonNullable<GearItem["unique"]>, { base: string; ar
 
 function round(stat: AffixStat, v: number): number {
   return stat === "damage" || stat === "maxHp" || stat === "armor" || stat === "goldPerKill" ? Math.round(v) : Math.round(v * 1000) / 1000;
+}
+
+/** Потолок аффикса для тира и редкости (T13.52, кузня «закалить»). */
+export function affixMax(stat: AffixStat, tier: 1 | 2 | 3, rarity: Rarity): number {
+  return round(stat, AFFIX_BASE[stat][1] * TIER_MULT[tier] * RARITY_VALUE_MULT[rarity]);
+}
+
+/** Закалить: самый слабый (относительно потолка) аффикс поднимается до потолка. Возвращает новый предмет. */
+export function temperGear(item: GearItem): GearItem {
+  if (item.affixes.length === 0) return { ...item, forged: true };
+  let worst = 0, worstK = Infinity;
+  item.affixes.forEach((a, i) => { const k = a.value / (affixMax(a.stat, item.tier, item.rarity) || 1); if (k < worstK) { worstK = k; worst = i; } });
+  const affixes = item.affixes.map((a, i) => (i === worst ? { stat: a.stat, value: affixMax(a.stat, item.tier, item.rarity) } : { ...a }));
+  return { ...item, affixes, forged: true };
+}
+
+/** Перековать: гарантированный аффикс остаётся, опциональные перебрасываются в другие статы пула с новыми значениями. */
+export function reforgeGear(rng: Rng, item: GearItem): GearItem {
+  const pool = AFFIX_POOL[item.slot];
+  const keep = item.affixes.filter((a) => pool.guaranteed.includes(a.stat)).map((a) => ({ ...a }));
+  const optionalCount = item.affixes.length - keep.length;
+  const optional = [...pool.optional];
+  const affixes: GearAffix[] = [...keep];
+  for (let i = 0; i < optionalCount && optional.length > 0; i++) {
+    const stat = optional.splice(rng.int(optional.length), 1)[0];
+    const [lo, hi] = AFFIX_BASE[stat];
+    affixes.push({ stat, value: round(stat, (lo + rng.float() * (hi - lo)) * TIER_MULT[item.tier] * RARITY_VALUE_MULT[item.rarity]) });
+  }
+  return { ...item, affixes, forged: true };
 }
 
 /** Бросок предмета: слот случайный (или заданный), база по тиру, аффиксы по редкости. */

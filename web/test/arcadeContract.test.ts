@@ -5,7 +5,7 @@ import { IDLE_INPUT } from "../src/game/arcade/types.ts";
 import { MARK_IDS, emptyProgress, masteryTitle, recordProgress, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
 
 // Контракт охоты (T13.50): один из двух чемпионов с объявленной наградой; выполнение — награда сверх обычной; пропуск без штрафа.
-const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
+const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
 const untilOffer = (sim: ArcadeSim) => { let g = 0; while (!sim.contractOpen && g++ < ARCADE.contract.at[sim.act] + 60) step(sim, 1); expect(sim.contractOpen).toBe(true); };
 
 describe("контракт охоты", () => {

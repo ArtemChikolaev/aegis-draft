@@ -341,3 +341,8 @@
 /* Пресеты образа (T13.49): переключатель в гардеробе. */
 .arcade-wardrobe__toggle { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; font-size: 12px; }
 .arcade-wardrobe__toggle small { grid-column: 2; opacity: .7; }
+
+/* Кузня (T13.52): выбор надетой вещи — карточки-кнопки. */
+.arcade-forge__slot { padding: 0; border: 2px solid transparent; border-radius: 12px; background: none; cursor: pointer; text-align: left; }
+.arcade-forge__slot[data-active] { border-color: var(--accent-strong); }
+.arcade-forge__slot:disabled { opacity: .5; cursor: default; }

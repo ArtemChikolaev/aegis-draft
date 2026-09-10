@@ -6,7 +6,7 @@ import { IDLE_INPUT, PICKUP_ACT } from "../src/game/arcade/types.ts";
 // Порчи «Долг лавочнику» и «Кровавая охота» (T13.51): вторая и третья порчи поверх системы T13.43, не больше одной активной.
 const C = ARCADE.curse;
 const act = (n: number) => ({ ...IDLE_INPUT, act: n });
-const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen ? act(5) : IDLE_INPUT); } };
+const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen ? act(5) : IDLE_INPUT); } };
 /** Вскрыть проклятый сундук у ног с заданной порчей и взять предмет в сумку. */
 function takeCursed(sim: ArcadeSim, curse: "withering" | "debt" | "bloodhunt", expectCurse = curse) {
   sim.chest = { alive: true, x: sim.player.x + 20, y: sim.player.y, until: sim.tick + sec(60), value: 1 };

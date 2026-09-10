@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Forge, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -18,7 +18,7 @@ import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
 import { type FormDef, HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
-import { gearEffect, rollGear, uniqueGear, type GearItem } from "./content/gear.ts";
+import { GEAR_SLOTS, gearEffect, reforgeGear, rollGear, temperGear, uniqueGear, type GearItem, type GearSlot } from "./content/gear.ts";
 import { LEGACY_NONE, type LegacyBonus } from "./content/legacy.ts";
 import {
   IDLE_INPUT,
@@ -139,6 +139,12 @@ export class ArcadeSim {
   barrow: Barrow | null = null;
   necromancer: Enemy | null = null;
   private necromancerSlain = false;
+  /** Древняя кузня (T13.52): одно использование; выбор надетого предмета и действия, мир стоит. */
+  forge: Forge | null = null;
+  forgeOpen = false;
+  nearForge = false;
+  /** Выбранный в кузне слот (индекс GEAR_SLOTS) или −1. */
+  forgeSlot = -1;
   /** Лотосовый пруд (T13.43): одно использование; открытый выбор ставит мир на паузу, как лавка. */
   pond: Pond | null = null;
   pondOpen = false;
@@ -238,6 +244,78 @@ export class ArcadeSim {
     this.pond = this.placePond(seed);
     this.grove = this.placeGrove(seed);
     this.barrow = this.placeBarrow(seed);
+    this.forge = this.placeForge(seed);
+  }
+
+  /** Кузня по seed: кольцо от старта, подальше от остальных мест, не в реке/яме, не в дереве. */
+  private placeForge(seed: string): Forge {
+    const F = ARCADE.forge;
+    const rng = new Rng(`forge:${seed}:${this.act}`);
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    const others: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow]) if (o) others.push({ x: o.x, y: o.y });
+    let x = cx0 - F.distMin, y = cy0 - 40;
+    for (let i = 0; i < 40; i++) {
+      const a = rng.float() * Math.PI * 2, d = F.distMin + rng.float() * (F.distMax - F.distMin);
+      x = clamp(cx0 + Math.cos(a) * d, 80, W.w - 80); y = clamp(cy0 + Math.sin(a) * d, 80, W.h - 80);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 60 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 60)) continue;
+      if (others.some((o) => len(x - o.x, y - o.y) < F.minFromOthers)) continue;
+      if (this.obstacles.blocked(x, y, 36)) continue;
+      break;
+    }
+    [x, y] = this.obstacles.resolve(x, y, 36);
+    return { x, y, used: false };
+  }
+
+  /** Кузня готова: остыла по расписанию акта и ещё не использована. */
+  forgeReady(): boolean {
+    return !!this.forge && !this.forge.used && this.tick >= ARCADE.forge.fromTick[this.act];
+  }
+
+  forgePrice(kind: "temper" | "reforge" | "sacrifice"): number {
+    const c = ARCADE.forge[kind];
+    return Math.round(c.base + c.perMin * this.minutes);
+  }
+
+  /** Кузня: 10+i — выбрать надетый предмет слота i; 1 — закалить, 2 — перековать, 3 — переплавить в другой слот; 5 — уйти. */
+  private forgeAction(act: number): void {
+    const p = this.player, forge = this.forge;
+    if (!forge) { this.forgeOpen = false; return; }
+    if (act === 5) { this.forgeOpen = false; return; }
+    if (act >= 10 && act < 10 + GEAR_SLOTS.length) { this.forgeSlot = p.gear[GEAR_SLOTS[act - 10]] ? act - 10 : -1; return; }
+    if (this.forgeSlot < 0) return;
+    const slot = GEAR_SLOTS[this.forgeSlot];
+    const item = p.gear[slot] as GearItem | undefined;
+    if (!item) { this.forgeSlot = -1; return; }
+    const kind = act === 1 ? "temper" : act === 2 ? "reforge" : act === 3 ? "sacrifice" : null;
+    if (!kind) return;
+    const price = DEV_FREE_SHOP ? 0 : this.forgePrice(kind);
+    if (p.gold < price) return;
+    let next: GearItem;
+    let targetSlot: GearSlot = slot;
+    if (kind === "temper") next = temperGear(item);
+    else if (kind === "reforge") next = reforgeGear(this.rng, item);
+    else {
+      // Переплавить: предмет становится вещью другого слота той же редкости и тира — сначала пустого, иначе случайного другого.
+      const empty = GEAR_SLOTS.filter((s) => s !== slot && !p.gear[s]);
+      const pool = empty.length ? empty : GEAR_SLOTS.filter((s) => s !== slot);
+      targetSlot = pool[this.rng.int(pool.length)];
+      next = { ...rollGear(this.rng, item.tier, item.rarity, this.nextUid(), targetSlot), forged: true };
+      delete p.gear[slot];
+      const old = p.gear[targetSlot] as GearItem | undefined;
+      if (old && p.bag.length < ARCADE.loot.bagCap) p.bag.push(old);
+    }
+    p.gold -= price;
+    p.gear[targetSlot] = next;
+    // В «подобранное за забег» кладём результат: стартовые вещи стор сводит по uid, новые — по списку добычи.
+    this.loot = this.loot.filter((l) => l.uid !== item.uid && l.uid !== next.uid);
+    this.loot.push(next);
+    forge.used = true;
+    this.forgeOpen = false;
+    this.forgeSlot = -1;
+    this.recomputeStats();
+    this.pushFx("levelup", p.x, p.y, 0, 0, 30);
+    this.shake = Math.max(this.shake, 6);
   }
 
   /** Курган по seed: кольцо от старта, подальше от остальных мест, центр и два места идолов свободны. */
@@ -760,6 +838,10 @@ export class ArcadeSim {
     }
     if (this.contractOpen) {
       this.contractAction(input.act);
+      return;
+    }
+    if (this.forgeOpen) {
+      this.forgeAction(input.act);
       return;
     }
     if (this.buildOpen) {
@@ -1864,7 +1946,7 @@ export class ArcadeSim {
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
-      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse,
+      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false,
     };
   }
 
@@ -1889,6 +1971,7 @@ export class ArcadeSim {
     // Добыча не подбирается касанием — только помечается как «рядом» (PICKUP_ACT → pickupNear).
     this.nearLoot = null;
     this.nearPond = !!this.pond && !this.pond.used && len(this.pond.x - p.x, this.pond.y - p.y) < ARCADE.pond.radius;
+    this.nearForge = !!this.forge && !this.forge.used && len(this.forge.x - p.x, this.forge.y - p.y) < ARCADE.forge.radius;
     if (this.chest.alive && len(this.chest.x - p.x, this.chest.y - p.y) < 44) this.nearLoot = { kind: "chest", item: null };
     else {
       let best: { x: number; y: number; item: GearItem; until: number } | null = null, bd = 34;
@@ -2587,8 +2670,9 @@ export class ArcadeSim {
     const near = this.nearLoot;
     if (this.lootOpen) return;
     if (!near) {
-      // Кнопка подбора у пруда открывает выбор (добыча рядом важнее — она в приоритете).
+      // Кнопка подбора у пруда/кузни открывает выбор (добыча рядом важнее — она в приоритете).
       if (this.nearPond && this.pond && !this.pond.used) this.pondOpen = true;
+      else if (this.nearForge && this.forgeReady()) { this.forgeOpen = true; this.forgeSlot = -1; }
       return;
     }
     if (near.kind === "chest") {
@@ -3040,7 +3124,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft); mix(this.forge?.used ? 1 : 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

@@ -418,7 +418,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ autoCast });
   },
   shopAct(act) {
-    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen && !sim.contractOpen)) return;
+    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen && !sim.contractOpen && !sim.forgeOpen)) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act });
     set((s) => ({ serial: s.serial + 1 }));
   },
@@ -449,7 +449,9 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     // Добыча — в инвентарь (и при смерти тоже, как у референса); переполнение — старые standard в осколки.
     const loot = o.loot as GearItem[];
-    let items = [...get().gear.items.filter((i) => !loot.some((l) => l.uid === i.uid)), ...loot];
+    // Закалённая в кузне стартовая вещь (T13.52) живёт в инвентаре под тем же uid — берём версию из сима.
+    const worn = Object.values(sim.player.gear) as GearItem[];
+    let items = [...get().gear.items.filter((i) => !loot.some((l) => l.uid === i.uid)).map((i) => worn.find((w) => w.uid === i.uid && w.forged) ?? i), ...loot];
     let extraShards = 0;
     while (items.length > GEAR_CAP) {
       const idx = items.findIndex((i) => i.rarity === "standard" && !Object.values(get().gear.equipped).includes(i.uid));

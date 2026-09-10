@@ -8,7 +8,7 @@ import { LEGACY_BRANCHES, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, ty
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
-import { ARCADE, DT, TICK_HZ, sec } from "../../game/arcade/config.ts";
+import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/content/schools.ts";
 import type { PlayerStats } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
@@ -312,7 +312,7 @@ function ArcadeStage() {
       if (s.status === "running") s.pause(); else if (s.status === "paused") s.resume();
     };
     // Подбор (G / Enter) и экран сборки (Tab / I) — через `act` в сим: попадают в input-лог, реплей повторяет.
-    controller.onPickup = () => { const cur = getArcadeSim(); if (cur && (cur.nearLoot || cur.nearPond) && !cur.lootOpen && !cur.pondOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
+    controller.onPickup = () => { const cur = getArcadeSim(); if (cur && (cur.nearLoot || cur.nearPond || (cur.nearForge && cur.forgeReady())) && !cur.lootOpen && !cur.pondOpen && !cur.forgeOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
     controller.onFlare = () => { if (useArcade.getState().status === "running") renderer.flare(performance.now()); };
     controller.onBuild = () => { const cur = getArcadeSim(); if (cur && !cur.pending && !cur.shopOpen && !cur.neutralOpen && !cur.lootOpen && useArcade.getState().status === "running") controller.queueAct(BUILD_ACT); };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
@@ -328,6 +328,7 @@ function ArcadeStage() {
     let wasNeutral = false;
     let wasPond = false;
     let wasContract = false;
+    let wasForge = false;
     let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
@@ -402,8 +403,9 @@ function ArcadeStage() {
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
       if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen)) sim.step(replayInput(replayRef.current, sim.steps));
       if (sim.pending && !wasPending) { if (!handled.levelup) sfxArcade("levelup"); bump(); }
-      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond) || (sim.contractOpen && !wasContract)) { sfxBuy(); bump(); }
+      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond) || (sim.contractOpen && !wasContract) || (sim.forgeOpen && !wasForge)) { sfxBuy(); bump(); }
       wasContract = sim.contractOpen;
+      wasForge = sim.forgeOpen;
       wasNeutral = sim.neutralOpen;
       wasPond = sim.pondOpen;
       wasPending = sim.pending !== null;
@@ -484,6 +486,13 @@ function ArcadeStage() {
               </div>
             )}
             </div>
+            {!sim.nearLoot && !sim.nearPond && sim.nearForge && !sim.forgeOpen && !sim.lootOpen && !sim.buildOpen && status === "running" && (
+              <button type="button" className="arcade-hud__pickup" data-testid="arcade-forge-open" disabled={!sim.forgeReady()} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
+                <b>{t("arcade.forge.open")}</b>
+                <span>{sim.forgeReady() ? t("arcade.forge.openHint") : t("arcade.forge.cold", { time: formatClock(ARCADE.forge.fromTick[sim.act]) })}</span>
+                <small>G</small>
+              </button>
+            )}
             {!sim.nearLoot && sim.nearPond && !sim.pondOpen && !sim.lootOpen && !sim.buildOpen && status === "running" && (
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-pond-open" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
                 <b>{t("arcade.pond.open")}</b>
@@ -608,6 +617,31 @@ function ArcadeStage() {
                 <Button variant="leave" onClick={() => setConfirmQuit(true)}>{t("arcade.hud.quit")}</Button>
               </div>
             </Surface>
+          </div>
+        )}
+        {sim?.forgeOpen && status !== "over" && (
+          <div className="arcade-overlay" data-testid="arcade-forge">
+            <div className="arcade-levelup arcade-shop arcade-build">
+              <Eyebrow>{t("arcade.forge.title")}</Eyebrow>
+              <h2>{sim.forgeSlot < 0 ? t("arcade.forge.pickItem") : t("arcade.forge.pickAction")}</h2>
+              <p className="arcade-shop__hint">{t("arcade.forge.hint")}</p>
+              <div className="arcade-build__gear">
+                {GEAR_SLOTS.map((slot, i) => {
+                  const item = (sim.player.gear[slot] as GearItem | undefined) ?? null;
+                  return (
+                    <button key={slot} type="button" className="arcade-forge__slot" data-active={sim.forgeSlot === i ? "true" : undefined} disabled={!item} data-testid={`arcade-forge-slot-${slot}`} onClick={() => shopAct(10 + i)}>
+                      <GearCard item={item} title={t(`arcade.gear.slot.${slot}` as MessageKey)} compact />
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                {(["temper", "reforge", "sacrifice"] as const).map((k, i) => (
+                  <Button key={k} variant={i === 0 ? "primary" : "secondary"} data-testid={`arcade-forge-${k}`} disabled={sim.forgeSlot < 0 || sim.player.gold < (DEV_FREE_SHOP ? 0 : sim.forgePrice(k))} onClick={() => shopAct(i + 1)}>{t(`arcade.forge.${k}` as MessageKey)} · {DEV_FREE_SHOP ? 0 : sim.forgePrice(k)}</Button>
+                ))}
+                <Button variant="leave" data-testid="arcade-forge-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.forge.leave")}</Button>
+              </div>
+            </div>
           </div>
         )}
         {sim?.contractOpen && status !== "over" && (
@@ -873,6 +907,7 @@ function ArcadeStage() {
                 {outcome.centaurSlain && <div><dt>{t("arcade.over.centaur")}</dt><dd>{t("arcade.over.centaurYes")}</dd></div>}
                 {outcome.necromancerSlain && <div><dt>{t("arcade.over.necro")}</dt><dd>{t("arcade.over.necroYes")}</dd></div>}
                 {outcome.contractDone && <div><dt>{t("arcade.contract.title")}</dt><dd>{t("arcade.over.contractYes")}</dd></div>}
+                {outcome.forged && <div><dt>{t("arcade.forge.title")}</dt><dd>{t("arcade.over.forgedYes")}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>
               {lastSeals > 0 && <p className="arcade-result__seals" data-testid="arcade-seals-result">{t("arcade.legacy.earned", { n: lastSeals })}</p>}
@@ -1116,7 +1151,7 @@ function GearCard({ item, title, compact = false }: { item: GearItem | null; tit
     <div className="arcade-offer arcade-offer--static" data-kind="gear" data-rarity={item.rarity} data-compact={compact ? "true" : undefined}>
       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" /> {title}</span>
       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)}</strong>
-      <small>{t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier} · {t("arcade.loot.score", { n: gearScore(item) })}</small>
+      <small>{t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier} · {t("arcade.loot.score", { n: gearScore(item) })}{item.forged ? ` · ${t("arcade.forge.forgedMark")}` : ""}</small>
       <p>{item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ")}</p>
     </div>
   );

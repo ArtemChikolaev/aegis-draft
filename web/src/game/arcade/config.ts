@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.50.0";
+export const ARCADE_CONFIG_VERSION = "a0.51.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -104,6 +104,10 @@ export const ARCADE = {
    *  акта, если живы хотя бы два чемпиона (Сатир лагеря, Кентавр, Некромант). Принятый — у цели постоянный
    *  маркер у края экрана; убил — награда сверх обычной. Пропуск без штрафа. */
   contract: { at: { short: sec(3 * 60 + 30), full: sec(8 * 60 + 30), dire: sec(8 * 60 + 30), river: sec(8 * 60 + 30) } as Record<string, number> },
+  /** Древняя кузня (T13.52, аудит: «один раз выбирает: усилить аффикс, заменить аффикс или пожертвовать вещью ради
+   *  другого слота; деньги получают назначение в поздней части акта; нельзя бесконечно перековывать один предмет»).
+   *  Стоит по seed, остывает к `fromTick` акта (до этого не работает), одно использование на забег, цены растут с минутой. */
+  forge: { distMin: 500, distMax: 850, minFromOthers: 450, radius: 52, fromTick: { short: sec(4 * 60 + 30), full: sec(12 * 60), dire: sec(12 * 60), river: sec(12 * 60) } as Record<string, number>, temper: { base: 40, perMin: 6 }, reforge: { base: 30, perMin: 5 }, sacrifice: { base: 20, perMin: 4 } },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */
