@@ -231,6 +231,7 @@ export class ArcadeRenderer {
     this.drawShrine(sim, pal, now);
     this.drawSpots(sim, pal, now);
     this.drawCamp(sim, pal, now);
+    this.drawOutpost(sim, pal, now);
     this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
@@ -257,7 +258,7 @@ export class ArcadeRenderer {
       for (const l of this.labels) { m.font = l.font; m.fillStyle = l.fill; m.globalAlpha = l.alpha; m.textAlign = l.align; m.fillText(l.text, l.x, l.y); }
       m.globalAlpha = 1; m.restore();
     }
-    this.drawCampMarker(sim, pal, now, camX, camY);
+    this.drawMarkers(sim, pal, now, camX, camY);
     if (joystick) this.drawJoystick(joystick, pal);
   }
 
@@ -414,11 +415,26 @@ export class ArcadeRenderer {
     c.globalAlpha = 1;
   }
 
-  /** Лагерь вне кадра — стрелка у края экрана с числом живых тотемов (экранные координаты, после мирового прохода). */
-  private drawCampMarker(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
+  /**
+   * Приглашения у края экрана (экранные координаты, после мирового прохода). Всегда: лагерь (число тотемов) и
+   * незахваченный аванпост — не больше двух, как просит аудит. После захвата аванпоста — ещё маркеры всех живых
+   * точек с таймером (лавка, bounty, руна, сундук, токен, щедрость): «открывает ближайшие события».
+   */
+  private drawMarkers(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
     const camp = sim.camp;
-    if (!camp || camp.cleared) return;
-    const sx = camp.x - camX, sy = camp.y - camY;
+    if (camp && !camp.cleared) this.drawEdgeMarker(camp.x - camX, camp.y - camY, pal.venom, String(sim.totemsAlive()), pal, now);
+    const o = sim.outpost;
+    if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
+    if (!o?.captured) return;
+    if (sim.shopkeeper.alive) this.drawEdgeMarker(sim.shopkeeper.x - camX, sim.shopkeeper.y - camY, pal.shop, "$", pal, now);
+    if (sim.bounty.alive) this.drawEdgeMarker(sim.bounty.x - camX, sim.bounty.y - camY, pal.bounty, "$", pal, now);
+    if (sim.rune.alive) this.drawEdgeMarker(sim.rune.x - camX, sim.rune.y - camY, runeColor(pal, sim.runeKind), "", pal, now);
+    if (sim.chest.alive) this.drawEdgeMarker(sim.chest.x - camX, sim.chest.y - camY, pal.aegis, "", pal, now);
+    if (sim.neutralToken.alive) this.drawEdgeMarker(sim.neutralToken.x - camX, sim.neutralToken.y - camY, pal.text, `T${sim.neutralToken.value}`, pal, now);
+    if (sim.shrine.alive) this.drawEdgeMarker(sim.shrine.x - camX, sim.shrine.y - camY, pal.greed, "", pal, now);
+  }
+
+  private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number): void {
     const pad = 26;
     if (sx >= pad && sx <= this.w - pad && sy >= pad && sy <= this.h - pad) return;
     const m = this.mainCtx;
@@ -431,12 +447,43 @@ export class ArcadeRenderer {
     m.save();
     m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     m.translate(mx, my); m.rotate(a);
-    m.fillStyle = pal.venom; m.globalAlpha = 0.6 + 0.4 * pulse;
+    m.fillStyle = color; m.globalAlpha = 0.6 + 0.4 * pulse;
     m.beginPath(); m.moveTo(10, 0); m.lineTo(-6, -7); m.lineTo(-3, 0); m.lineTo(-6, 7); m.closePath(); m.fill();
     m.rotate(-a);
-    m.fillStyle = pal.text; m.font = "800 11px var(--font-display, sans-serif)"; m.textAlign = "center"; m.textBaseline = "middle";
-    m.fillText(String(sim.totemsAlive()), -Math.cos(a) * 18, -Math.sin(a) * 18);
+    if (label) {
+      m.fillStyle = pal.text; m.font = "800 11px var(--font-display, sans-serif)"; m.textAlign = "center"; m.textBaseline = "middle";
+      m.fillText(label, -Math.cos(a) * 18, -Math.sin(a) * 18);
+    }
     m.restore();
+  }
+
+  /** Аванпост (T13.42): каменный постамент с шестом и знаменем, кольцо зоны и дуга прогресса; захвачен — знамя Aegis и мягкое свечение. */
+  private drawOutpost(sim: ArcadeSim, pal: Palette, now: number): void {
+    const o = sim.outpost;
+    if (!o) return;
+    const c = this.ctx;
+    const O = ARCADE.outpost;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 300);
+    const active = sim.playerAtOutpost() && !o.captured;
+    // Зона захвата.
+    c.strokeStyle = o.captured ? pal.aegis : pal.text; c.lineWidth = 2; c.setLineDash(o.captured ? [] : [6, 6]); c.globalAlpha = o.captured ? 0.25 + 0.1 * pulse : active ? 0.7 : 0.3;
+    c.beginPath(); c.arc(o.x, o.y, O.radius, 0, Math.PI * 2); c.stroke();
+    c.setLineDash([]);
+    if (!o.captured && o.progress > 0) {
+      c.strokeStyle = pal.aegis; c.lineWidth = 5; c.globalAlpha = 0.9;
+      c.beginPath(); c.arc(o.x, o.y, O.radius, -Math.PI / 2, -Math.PI / 2 + (o.progress / o.need) * Math.PI * 2); c.stroke();
+    }
+    c.globalAlpha = 1;
+    // Постамент, шест, знамя.
+    c.fillStyle = pal.rock; c.fillRect(o.x - 16, o.y - 6, 32, 14);
+    c.fillStyle = pal.dirt; c.fillRect(o.x - 12, o.y - 12, 24, 8);
+    c.fillStyle = pal.text; c.fillRect(o.x - 2, o.y - 62, 4, 54);
+    const flag = o.captured ? pal.aegis : pal.telegraph;
+    const wave = Math.sin(now / 180) * 3;
+    c.fillStyle = flag; c.globalAlpha = 0.95;
+    c.beginPath(); c.moveTo(o.x + 2, o.y - 60); c.lineTo(o.x + 26 + wave, o.y - 52); c.lineTo(o.x + 2, o.y - 42); c.closePath(); c.fill();
+    if (o.captured) { c.fillStyle = pal.aegis; c.globalAlpha = 0.12 + 0.08 * pulse; c.beginPath(); c.ellipse(o.x, o.y + 4, 40, 16, 0, 0, Math.PI * 2); c.fill(); }
+    c.globalAlpha = 1;
   }
 
   private drawSpots(sim: ArcadeSim, pal: Palette, now: number): void {
@@ -938,7 +985,7 @@ export class ArcadeRenderer {
   private drawNight(sim: ArcadeSim, pal: Palette): void {
     const c = this.ctx;
     const p = sim.player;
-    const r = ARCADE.night.visibility;
+    const r = ARCADE.night.visibility * sim.visionMult();
     const grad = c.createRadialGradient(p.x, p.y, r * 0.55, p.x, p.y, r);
     grad.addColorStop(0, "transparent");
     grad.addColorStop(1, pal.fog);

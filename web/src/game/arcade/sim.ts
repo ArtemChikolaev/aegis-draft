@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Camp, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Camp, type Outpost, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -123,6 +123,8 @@ export class ArcadeSim {
   camp: Camp | null = null;
   /** Сатир-Осквернитель лагеря (T13.41); ссылка снимается при смерти (пул врагов переиспользует объекты). */
   defiler: Enemy | null = null;
+  /** Аванпост (T13.42): один на акт, по seed, на другой стороне от лагеря. */
+  outpost: Outpost | null = null;
   /** Чей сейчас `pending`: уровень или награда лагеря (у награды нет реролла, заголовок другой). */
   pendingSource: "level" | "camp" = "level";
   private campRewardQueued: Offer[] | null = null;
@@ -164,7 +166,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -202,6 +204,50 @@ export class ArcadeSim {
     if (Object.values(this.player.gear).some((g) => g.unique === "aegis_of_the_immortal")) this.player.aegis = true;
     this.recomputeStats();
     this.camp = this.placeCamp(seed);
+    this.outpost = this.placeOutpost(seed);
+  }
+
+  /** Аванпост по seed: кольцо от старта, подальше от лагеря (разные направления = выбор маршрута), не в реке/яме, не в дереве. */
+  private placeOutpost(seed: string): Outpost {
+    const O = ARCADE.outpost;
+    const rng = new Rng(`outpost:${seed}:${this.act}`);
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    let x = cx0 - O.distMin, y = cy0;
+    for (let i = 0; i < 24; i++) {
+      const a = rng.float() * Math.PI * 2, d = O.distMin + rng.float() * (O.distMax - O.distMin);
+      x = clamp(cx0 + Math.cos(a) * d, O.radius + 60, W.w - O.radius - 60);
+      y = clamp(cy0 + Math.sin(a) * d, O.radius + 60, W.h - O.radius - 60);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + O.radius || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + O.radius)) continue;
+      if (this.camp && len(x - this.camp.x, y - this.camp.y) < O.minFromCamp) continue;
+      if (this.obstacles.blocked(x, y, 40)) continue;
+      break;
+    }
+    [x, y] = this.obstacles.resolve(x, y, 40);
+    return { x, y, progress: 0, need: sec(O.captureSec), captured: false };
+  }
+
+  /** Герой в зоне аванпоста (захват идёт). */
+  playerAtOutpost(): boolean {
+    return !!this.outpost && len(this.player.x - this.outpost.x, this.player.y - this.outpost.y) <= ARCADE.outpost.radius;
+  }
+
+  /** Захват: копится только рядом, пауза снаружи без сброса; захвачен — золото, обзор и маркеры до конца акта. */
+  private tickOutpost(): void {
+    const o = this.outpost;
+    if (!o || o.captured || !this.playerAtOutpost()) return;
+    o.progress++;
+    if (o.progress < o.need) return;
+    o.captured = true;
+    this.events.outposts++;
+    this.player.gold += Math.round((ARCADE.bounty.base + ARCADE.bounty.perMin * this.minutes) * ARCADE.outpost.goldMult);
+    this.shake = Math.max(this.shake, 10);
+    this.pushFx("nova", o.x, o.y, ARCADE.outpost.radius + 60, 0, 40);
+    this.pushFx("levelup", this.player.x, this.player.y, 0, 0, 30);
+  }
+
+  /** Множитель ночного обзора: захваченный аванпост расширяет круг (рендер читает). */
+  visionMult(): number {
+    return this.outpost?.captured ? ARCADE.outpost.nightVisionMult : 1;
   }
 
   /**
@@ -344,6 +390,7 @@ export class ArcadeSim {
     this.moveProjectiles();
     this.collectShards();
     this.regenAndHazards();
+    this.tickOutpost();
     this.pruneFx();
     if (p.hp <= 0) this.onLethal();
     const A = ARCADE.acts[this.act];
@@ -1330,6 +1377,7 @@ export class ArcadeSim {
       outcome, tick: this.tick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
       upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id, act: this.act, neutral: p.neutral, loot: [...this.loot],
       campsCleared: this.camp?.cleared ? 1 : 0,
+      outpostCaptured: this.outpost?.captured ?? false,
     };
   }
 
@@ -2470,7 +2518,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

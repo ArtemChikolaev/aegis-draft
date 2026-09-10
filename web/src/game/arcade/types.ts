@@ -261,6 +261,17 @@ export interface ArcadeEventCounters {
   hurtBy: number;
   /** Очищенные лагеря (T13.40) — звук и juice награды. */
   camps: number;
+  /** Захваченные аванпосты (T13.42). */
+  outposts: number;
+}
+
+/** Аванпост (T13.42): точка захвата по seed; прогресс в тиках копится только рядом и не сбрасывается. */
+export interface Outpost {
+  x: number;
+  y: number;
+  progress: number;
+  need: number;
+  captured: boolean;
 }
 
 /** Заражённый лагерь (T13.40): позиция по seed, счёт снесённых тотемов, состояние очищения. */
@@ -419,4 +430,6 @@ export interface ArcadeOutcome {
   loot: GearLike[];
   /** Очищенные лагеря порчи (T13.40). */
   campsCleared: number;
+  /** Аванпост захвачен (T13.42). */
+  outpostCaptured: boolean;
 }

@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.42.0";
+export const ARCADE_CONFIG_VERSION = "a0.43.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -57,6 +57,12 @@ export const ARCADE = {
     lineEvery: sec(5), lineTelegraph: sec(1.2), lineActive: sec(1.0), lineWidth: 34, lineDmgMult: 1.8, lineHitEvery: sec(0.6),
     shieldPerTotem: 0.25, leash: 260, regenPerSec: 0.02, ccCap: sec(0.5), ccResist: sec(3),
   },
+  /** Аванпост / обзорная башня (T13.42, аудит: «удерживает область, накопив 20–30 с захвата; выход приостанавливает,
+   *  не обнуляет; открывает ближайшие события; особенно полезна ночью»). Стоит по seed на другой стороне от лагеря.
+   *  Пока герой в `radius`, копится захват до `captureSec`; захвачен — до конца акта маркеры всех активных точек
+   *  (лавка, руны, сундук, токен, щедрость) у края экрана, ночью обзор × `nightVisionMult`, сразу золото
+   *  bounty × `goldMult`. Спавн вокруг не меняется: держать область — значит держать её под давлением. */
+  outpost: { distMin: 650, distMax: 950, minFromCamp: 700, radius: 120, captureSec: 25, goldMult: 2, nightVisionMult: 1.35 },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */
