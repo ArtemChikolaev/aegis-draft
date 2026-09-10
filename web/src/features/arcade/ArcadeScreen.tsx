@@ -312,7 +312,7 @@ function ArcadeStage() {
       if (s.status === "running") s.pause(); else if (s.status === "paused") s.resume();
     };
     // Подбор (G / Enter) и экран сборки (Tab / I) — через `act` в сим: попадают в input-лог, реплей повторяет.
-    controller.onPickup = () => { const cur = getArcadeSim(); if (cur && (cur.nearLoot || cur.nearPond || (cur.nearForge && cur.forgeReady())) && !cur.lootOpen && !cur.pondOpen && !cur.forgeOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
+    controller.onPickup = () => { const cur = getArcadeSim(); if (cur && (cur.nearLoot || cur.nearPond || (cur.nearForge && cur.forgeReady()) || (cur.nearRift && cur.riftReady())) && !cur.lootOpen && !cur.pondOpen && !cur.forgeOpen && !cur.riftOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
     controller.onFlare = () => { if (useArcade.getState().status === "running") renderer.flare(performance.now()); };
     controller.onBuild = () => { const cur = getArcadeSim(); if (cur && !cur.pending && !cur.shopOpen && !cur.neutralOpen && !cur.lootOpen && useArcade.getState().status === "running") controller.queueAct(BUILD_ACT); };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
@@ -329,7 +329,8 @@ function ArcadeStage() {
     let wasPond = false;
     let wasContract = false;
     let wasForge = false;
-    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0 };
+    let wasRift = false;
+    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
     const voiceId = skinnedHero(heroDef.id, useArcade.getState().cosmetics.equipped);
@@ -398,15 +399,17 @@ function ArcadeStage() {
       if (ev.camps > seen.camps) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 8; }
       if (ev.outposts > seen.outposts) sfxArcade("levelup");
       if (ev.contracts > seen.contracts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 8; }
+      if (ev.rifts > seen.rifts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 10; }
       if (ev.ambushes > seen.ambushes) sfxArcade("crit"); // метка засады — звук-предупреждение
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
       if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen)) sim.step(replayInput(replayRef.current, sim.steps));
       if (sim.pending && !wasPending) { if (!handled.levelup) sfxArcade("levelup"); bump(); }
-      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond) || (sim.contractOpen && !wasContract) || (sim.forgeOpen && !wasForge)) { sfxBuy(); bump(); }
+      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond) || (sim.contractOpen && !wasContract) || (sim.forgeOpen && !wasForge) || (sim.riftOpen && !wasRift)) { sfxBuy(); bump(); }
       wasContract = sim.contractOpen;
       wasForge = sim.forgeOpen;
+      wasRift = sim.riftOpen;
       wasNeutral = sim.neutralOpen;
       wasPond = sim.pondOpen;
       wasPending = sim.pending !== null;
@@ -457,7 +460,7 @@ function ArcadeStage() {
           <div className="arcade-hud" aria-live="off">
             <div className="arcade-hud__upper">
             <div className="arcade-hud__top">
-              <span className="arcade-hud__clock" data-testid="arcade-clock">{formatClock(sim.tick)}</span>
+              <span className="arcade-hud__clock" data-testid="arcade-clock" data-paused={sim.riftActive() ? "true" : undefined}>{formatClock(sim.actTick)}</span>
               <span className="arcade-hud__stats">
                 <span>{t("arcade.hud.kills")} <b>{p.kills}</b></span>
                 <span>{t("arcade.hud.gold")} <b>{p.gold}</b></span>
@@ -469,6 +472,7 @@ function ArcadeStage() {
                 {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
                 {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}</Chip>}
                 {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}{sim.player.curse === "debt" ? ` · ${sim.player.debtLeft}` : ""}</Chip>}
+                {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
@@ -491,6 +495,13 @@ function ArcadeStage() {
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-forge-open" disabled={!sim.forgeReady()} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
                 <b>{t("arcade.forge.open")}</b>
                 <span>{sim.forgeReady() ? t("arcade.forge.openHint") : t("arcade.forge.cold", { time: formatClock(ARCADE.forge.fromTick[sim.act]) })}</span>
+                <small>G</small>
+              </button>
+            )}
+            {!sim.nearLoot && !sim.nearPond && !sim.nearForge && sim.nearRift && !sim.riftOpen && !sim.lootOpen && !sim.buildOpen && status === "running" && (
+              <button type="button" className="arcade-hud__pickup" data-testid="arcade-rift-open" disabled={!sim.riftReady()} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
+                <b>{t("arcade.rift.open")}</b>
+                <span>{sim.riftReady() ? t("arcade.rift.openHint", { sec: Math.round(ARCADE.rift.duration / 60) }) : t("arcade.rift.cold", { time: formatClock(ARCADE.rift.fromTick[sim.act]) })}</span>
                 <small>G</small>
               </button>
             )}
@@ -618,6 +629,21 @@ function ArcadeStage() {
                 <Button variant="leave" onClick={() => setConfirmQuit(true)}>{t("arcade.hud.quit")}</Button>
               </div>
             </Surface>
+          </div>
+        )}
+        {sim?.riftOpen && sim.rift && status !== "over" && (
+          <div className="arcade-overlay" data-testid="arcade-rift">
+            <div className="arcade-levelup arcade-shop">
+              <Eyebrow>{t("arcade.rift.title")}</Eyebrow>
+              <h2>{t("arcade.rift.pick")}</h2>
+              <p className="arcade-shop__hint">{t("arcade.rift.hint", { sec: Math.round(ARCADE.rift.duration / 60), rest: Math.round(ARCADE.rift.respite / 60) })}</p>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                {sim.rift.offered.map((r, i) => (
+                  <Button key={r} variant={i === 0 ? "primary" : "secondary"} data-testid={`arcade-rift-${i + 1}`} onClick={() => shopAct(i + 1)}>{t(`arcade.rift.rule.${r}` as MessageKey)} · {t(`arcade.rift.rule.${r}.desc` as MessageKey)}</Button>
+                ))}
+                <Button variant="leave" data-testid="arcade-rift-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.rift.leave")}</Button>
+              </div>
+            </div>
           </div>
         )}
         {sim?.forgeOpen && status !== "over" && (
@@ -912,6 +938,7 @@ function ArcadeStage() {
                 {outcome.stalkerSlain && <div><dt>{t("arcade.over.stalker")}</dt><dd>{t("arcade.over.stalkerYes")}</dd></div>}
                 {outcome.contractDone && <div><dt>{t("arcade.contract.title")}</dt><dd>{t("arcade.over.contractYes")}</dd></div>}
                 {outcome.forged && <div><dt>{t("arcade.forge.title")}</dt><dd>{t("arcade.over.forgedYes")}</dd></div>}
+                {outcome.riftDone && outcome.riftRule && <div><dt>{t("arcade.rift.title")}</dt><dd>{t("arcade.over.riftYes", { rule: t(`arcade.rift.rule.${outcome.riftRule}` as MessageKey) })}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>
               {lastSeals > 0 && <p className="arcade-result__seals" data-testid="arcade-seals-result">{t("arcade.legacy.earned", { n: lastSeals })}</p>}

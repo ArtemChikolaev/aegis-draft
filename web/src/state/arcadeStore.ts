@@ -44,12 +44,14 @@ export interface ArcadeHistoryEntry {
   thunder?: boolean;
   warden?: boolean;
   stalker?: boolean;
+  /** Разлом пройден (T13.58). */
+  rift?: boolean;
   /** Убийства по видам за забег (T13.56). */
   killsByKind?: Record<string, number>;
 }
 
 /** Отметки мастерства героя (T13.48): победы по актам, без единой смерти, лагерь, аванпост, чемпионы. */
-export const MARK_IDS = ["win_full", "win_dire", "win_river", "flawless", "camp", "outpost", "centaur", "necro", "contract", "thunder", "warden", "stalker"] as const;
+export const MARK_IDS = ["win_full", "win_dire", "win_river", "flawless", "camp", "outpost", "centaur", "necro", "contract", "thunder", "warden", "stalker", "rift"] as const;
 export type MarkId = (typeof MARK_IDS)[number];
 
 const HISTORY_KEY = "aegis-draft.arcade.history";
@@ -424,7 +426,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ autoCast });
   },
   shopAct(act) {
-    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen && !sim.contractOpen && !sim.forgeOpen)) return;
+    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen && !sim.contractOpen && !sim.forgeOpen && !sim.riftOpen)) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act });
     set((s) => ({ serial: s.serial + 1 }));
   },
@@ -435,7 +437,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
       schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,
-      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone, thunder: o.thunderSlain, warden: o.wardenSlain, stalker: o.stalkerSlain, killsByKind: o.killsByKind,
+      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone, thunder: o.thunderSlain, warden: o.wardenSlain, stalker: o.stalkerSlain, rift: o.riftDone, killsByKind: o.killsByKind,
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
@@ -546,7 +548,7 @@ export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): Arcade
   const prev = p.perHero[hero] ?? { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0, marks: [] };
   const h = { runs: prev.runs + 1, victories: prev.victories, bestSeconds: Math.max(prev.bestSeconds, e.seconds), bestLevel: Math.max(prev.bestLevel, e.level), marks: [...(prev.marks ?? [])] };
   const mark = (m: MarkId) => { if (!h.marks.includes(m)) h.marks.push(m); };
-  if (e.camp) mark("camp"); if (e.outpost) mark("outpost"); if (e.centaur) mark("centaur"); if (e.necro) mark("necro"); if (e.contract) mark("contract"); if (e.thunder) mark("thunder"); if (e.warden) mark("warden"); if (e.stalker) mark("stalker");
+  if (e.camp) mark("camp"); if (e.outpost) mark("outpost"); if (e.centaur) mark("centaur"); if (e.necro) mark("necro"); if (e.contract) mark("contract"); if (e.thunder) mark("thunder"); if (e.warden) mark("warden"); if (e.stalker) mark("stalker"); if (e.rift) mark("rift");
   const bestiary = { ...p.bestiary };
   for (const [k, n] of Object.entries(e.killsByKind ?? {})) if (n > 0) bestiary[k] = (bestiary[k] ?? 0) + n;
   const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] }, bestiary };

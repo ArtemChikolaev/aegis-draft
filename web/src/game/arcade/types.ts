@@ -275,6 +275,8 @@ export interface ArcadeEventCounters {
   contracts: number;
   /** Метки засады Охотника Dire (T13.55) — звук предупреждения. */
   ambushes: number;
+  /** Входы в разлом (T13.58) — звук и juice. */
+  rifts: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
@@ -299,6 +301,25 @@ export interface Lair { x: number; y: number; engaged: boolean; zones: { x: numb
 
 /** Древняя кузня (T13.52): одно использование на забег — закалить, перековать или переплавить надетый предмет. */
 export interface Forge { x: number; y: number; used: boolean }
+
+/** Правила разлома (T13.58): `surge` — больше и быстрее врагов; `brittle` — герой хрупок, враги тоже;
+ *  `gloom` — обзор как ночью и злее враги; `silence` — без умений, автоатака сильнее. */
+export type RiftRuleId = "surge" | "brittle" | "gloom" | "silence";
+export const RIFT_RULES: readonly RiftRuleId[] = ["surge", "brittle", "gloom", "silence"];
+
+/** Разлом (T13.58): место по seed; `offered` — два правила на выбор, `state` — ждёт/идёт/закрыт. */
+export interface Rift {
+  x: number;
+  y: number;
+  offered: RiftRuleId[];
+  rule: RiftRuleId | null;
+  state: "idle" | "active" | "done";
+  /** Тик мира, на котором испытание кончается (реальный тик, не часы акта). */
+  endsAt: number;
+  nextWaveAt: number;
+  kills: number;
+  won: boolean;
+}
 
 /** Лотосовый пруд (T13.43): одно использование на забег — лечение или снятие порчи. */
 export interface Pond { x: number; y: number; used: boolean }
@@ -503,4 +524,7 @@ export interface ArcadeOutcome {
   stalkerSlain: boolean;
   /** Убийства по видам врагов за забег (T13.56, бестиарий). */
   killsByKind: Record<string, number>;
+  /** Разлом пройден (T13.58) и по какому правилу. */
+  riftDone: boolean;
+  riftRule: RiftRuleId | null;
 }

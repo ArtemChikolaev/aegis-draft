@@ -53,6 +53,7 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   // Пруд (T13.43): бот лечится, если потрёпан, снимает порчу, если есть, иначе уходит — окно нельзя оставлять открытым.
   if (sim.pondOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: sim.player.curse ? 2 : sim.player.hp < sim.player.stats.maxHp * 0.5 ? 1 : SHOP_ACT.close };
   if (sim.forgeOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close }; // бот кузней не пользуется
+  if (sim.riftOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close }; // в разлом бот не идёт (T13.58)
   if (sim.contractOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close }; // бот к чемпионам не ходит — контракт пропускает
   if (sim.lootOpen) {
     const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;

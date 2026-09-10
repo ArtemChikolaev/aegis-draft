@@ -39,6 +39,9 @@ import {
   type PlayerStats,
   type Projectile,
   type Rarity,
+  type Rift,
+  type RiftRuleId,
+  RIFT_RULES,
   type SchoolId,
   type Shard,
   type Shrine,
@@ -160,6 +163,14 @@ export class ArcadeSim {
   forge: Forge | null = null;
   forgeOpen = false;
   nearForge = false;
+  /** Разлом (T13.58): место, окно выбора правила, «рядом», тики стоящих часов акта и передышка после выхода. */
+  rift: Rift | null = null;
+  riftOpen = false;
+  nearRift = false;
+  /** Сколько тиков мира прошло в разломе — на столько часы акта (`actTick`) отстают от `tick`. */
+  pausedTicks = 0;
+  /** До этого тика обычный спавн и волны молчат (передышка после разлома). */
+  respiteUntil = 0;
   /** Выбранный в кузне слот (индекс GEAR_SLOTS) или −1. */
   forgeSlot = -1;
   /** Лотосовый пруд (T13.43): одно использование; открытый выбор ставит мир на паузу, как лавка. */
@@ -217,7 +228,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -262,6 +273,7 @@ export class ArcadeSim {
     this.grove = this.placeGrove(seed);
     this.barrow = this.placeBarrow(seed);
     this.forge = this.placeForge(seed);
+    this.rift = this.placeRift(seed);
     this.lair = this.placeLair(seed);
     if (this.pit) this.ford = this.placeFord(seed);
     if (this.night) this.den = this.placeDen(seed);
@@ -489,9 +501,128 @@ export class ArcadeSim {
     return { x, y, used: false };
   }
 
+  // ---------- разлом (T13.58) ----------
+
+  private placeRift(seed: string): Rift {
+    const R = ARCADE.rift;
+    const rng = new Rng(`rift:${seed}:${this.act}`);
+    const others: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge]) if (o) others.push({ x: o.x, y: o.y });
+    const [x, y] = this.pickSpot(rng, R.distMin, R.distMax, 80, R.minFromOthers, others, 36);
+    // Два правила из четырёх — по seed, чтобы выбор был частью сида, а не текущего состояния.
+    const pool = [...RIFT_RULES];
+    const a = pool.splice(rng.int(pool.length), 1)[0];
+    const b = pool.splice(rng.int(pool.length), 1)[0];
+    return { x, y, offered: [a, b], rule: null, state: "idle", endsAt: 0, nextWaveAt: 0, kills: 0, won: false };
+  }
+
+  /** Разлом открыт: по расписанию акта и ещё не пройден/не провален. */
+  riftReady(): boolean {
+    return !!this.rift && this.rift.state === "idle" && this.actTick >= ARCADE.rift.fromTick[this.act];
+  }
+
+  riftActive(): boolean {
+    return this.rift?.state === "active";
+  }
+
+  /** Сколько тиков испытания осталось (0 вне разлома). */
+  riftLeft(): number {
+    return this.rift?.state === "active" ? Math.max(0, this.rift.endsAt - this.tick) : 0;
+  }
+
+  private riftRule(): RiftRuleId | null {
+    return this.rift?.state === "active" ? this.rift.rule : null;
+  }
+
+  riftSpeedMult(): number {
+    return this.riftRule() === "surge" ? ARCADE.rift.rules.surge.speedMult : 1;
+  }
+
+  riftTakenMult(): number {
+    return this.riftRule() === "brittle" ? ARCADE.rift.rules.brittle.takenMult : 1;
+  }
+
+  riftAttackMult(): number {
+    return this.riftRule() === "silence" ? ARCADE.rift.rules.silence.attackMult : 1;
+  }
+
+  riftSilenced(): boolean {
+    return this.riftRule() === "silence";
+  }
+
+  /** Множитель обзора «Мглы» для рендера (1 — обычный обзор). */
+  riftVisionMult(): number {
+    return this.riftRule() === "gloom" ? ARCADE.rift.rules.gloom.visionMult : 1;
+  }
+
+  private riftAction(act: number): void {
+    const rift = this.rift;
+    if (!rift || rift.state !== "idle") { this.riftOpen = false; return; }
+    if (act === SHOP_ACT.close) { this.riftOpen = false; return; }
+    if (act === 1 || act === 2) this.enterRift(rift.offered[act - 1]);
+  }
+
+  /** Рядовые враги втягиваются в разлом без награды: боссы, тотемы, строения и чемпионы остаются. */
+  private riftPurge(): void {
+    const special = new Set<Enemy | null>([this.roshan, this.ancient, this.defiler, this.centaur, this.necromancer, this.thunder, this.warden, this.stalker, this.hunter]);
+    for (const e of this.enemies) {
+      if (!e.alive || e.kind.boss || e.kind.structure || e.kind.totem || e.kind.id === "tormentor" || special.has(e)) continue;
+      e.alive = false;
+    }
+  }
+
+  private enterRift(rule: RiftRuleId): void {
+    const rift = this.rift;
+    if (!rift || rift.state !== "idle") return;
+    rift.state = "active"; rift.rule = rule; rift.endsAt = this.tick + ARCADE.rift.duration; rift.nextWaveAt = this.tick + sec(1); rift.kills = 0;
+    this.riftOpen = false;
+    this.riftPurge();
+    this.events.rifts++;
+    this.pushFx("levelup", rift.x, rift.y, 0, 0, 30);
+    this.shake = Math.max(this.shake, 10);
+  }
+
+  private endRift(won: boolean): void {
+    const rift = this.rift;
+    if (!rift || rift.state !== "active") return;
+    rift.state = "done"; rift.won = won;
+    this.riftPurge();
+    this.respiteUntil = this.tick + ARCADE.rift.respite;
+    this.pushFx("nova", rift.x, rift.y, ARCADE.rift.arena, 0, 12);
+    if (!won) return;
+    const up = this.rollUpgradeOffer([]);
+    if (up && up.kind === "upgrade") {
+      const offers: Offer[] = [{ kind: "upgrade", id: up.id, rarity: ARCADE.rift.rewardRarity }];
+      if (this.pending) this.campRewardQueued = [...(this.campRewardQueued ?? []), ...offers];
+      else { this.pending = offers; this.pendingSource = "camp"; }
+    } else this.gainGold(Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * this.minutes));
+  }
+
+  /** Испытание: выход за арену — провал; время вышло — награда; между ними разлом зовёт лес из текущего пула. */
+  private tickRift(): void {
+    const rift = this.rift, R = ARCADE.rift, p = this.player;
+    if (!rift || rift.state !== "active") return;
+    if (len(p.x - rift.x, p.y - rift.y) > R.arena + ARCADE.player.r) { this.endRift(false); return; }
+    if (this.tick >= rift.endsAt) { this.endRift(true); return; }
+    const rule = rift.rule!, rules = R.rules;
+    const min = this.minutes;
+    const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * this.rank.spawnMult * R.spawnMult * (rule === "surge" ? rules.surge.spawnMult : 1);
+    this.spawnAcc += rate * DT;
+    const pool = spawnPool(min, this.act);
+    const alive = this.aliveEnemies();
+    let n = 0;
+    while (this.spawnAcc >= 1) { this.spawnAcc -= 1; if (alive + n < R.cap) n++; }
+    if (this.tick >= rift.nextWaveAt) { rift.nextWaveAt = this.tick + R.waveEvery; n += R.waveSize; }
+    for (let i = 0; i < n; i++) {
+      const e = this.spawnEnemy(weightedPick(this.rng, pool), ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMax));
+      if (rule === "brittle") { e.hp *= rules.brittle.hpMult; e.maxHp *= rules.brittle.hpMult; }
+      if (rule === "gloom") e.dmg *= rules.gloom.dmgMult;
+    }
+  }
+
   /** Кузня готова: остыла по расписанию акта и ещё не использована. */
   forgeReady(): boolean {
-    return !!this.forge && !this.forge.used && this.tick >= ARCADE.forge.fromTick[this.act];
+    return !!this.forge && !this.forge.used && this.actTick >= ARCADE.forge.fromTick[this.act];
   }
 
   forgePrice(kind: "temper" | "reforge" | "sacrifice"): number {
@@ -595,7 +726,7 @@ export class ArcadeSim {
   }
 
   private tickContractOffer(): void {
-    if (this.contractOffered || this.tick < ARCADE.contract.at[this.act]) return;
+    if (this.contractOffered || this.actTick < ARCADE.contract.at[this.act]) return;
     this.contractOffered = true;
     const pool = this.contractTargets();
     if (pool.length < 2) return;
@@ -1013,12 +1144,17 @@ export class ArcadeSim {
     return this.pit && len(this.player.x - P.x, this.player.y - P.y) <= P.radius + 40;
   }
 
+  /** Часы акта: расписание (Рошан, волны, лавка, финал), сложность и цены идут по ним; в разломе они стоят (T13.58). */
+  get actTick(): number {
+    return this.tick - this.pausedTicks;
+  }
+
   get seconds(): number {
-    return this.tick / TICK_HZ;
+    return this.actTick / TICK_HZ;
   }
 
   get minutes(): number {
-    return this.tick / TICK_HZ / 60;
+    return this.actTick / TICK_HZ / 60;
   }
 
   aliveEnemies(): number {
@@ -1065,6 +1201,10 @@ export class ArcadeSim {
       this.forgeAction(input.act);
       return;
     }
+    if (this.riftOpen) {
+      this.riftAction(input.act);
+      return;
+    }
     if (this.buildOpen) {
       this.buildAction(input.act);
       return;
@@ -1086,7 +1226,8 @@ export class ArcadeSim {
     this.tickCooldowns();
     this.prevPx = p.x; this.prevPy = p.y;
     this.movePlayer(input);
-    this.spawnTick();
+    // В разломе (T13.58) мир снаружи стоит вместе с часами акта: спавн ведёт сам разлом.
+    if (this.rift?.state === "active") { this.pausedTicks++; this.tickRift(); } else this.spawnTick();
     this.rebuildGrid();
     this.moveEnemies();
     this.tickRupture();
@@ -1101,7 +1242,7 @@ export class ArcadeSim {
     this.pruneFx();
     if (p.hp <= 0) this.onLethal();
     const A = ARCADE.acts[this.act];
-    if (A.endAt > 0 && this.tick >= A.endAt && this.roshanKilled && !this.over) this.finish("victory");
+    if (A.endAt > 0 && this.actTick >= A.endAt && this.roshanKilled && !this.over) this.finish("victory");
   }
 
   // ---------- игрок ----------
@@ -1192,8 +1333,8 @@ export class ArcadeSim {
         }
       }
     }
-    // --- способности: ручной каст или авто-каст по виду ---
-    if (!stunned) {
+    // --- способности: ручной каст или авто-каст по виду (в разломе «Безмолвие» их нет, T13.58) ---
+    if (!stunned && !this.riftSilenced()) {
       const masks: Record<AbilityKey, number> = { q: 1, w: 2, e: 4, r: 8 };
       for (const key of ABILITY_KEYS) {
         const ab = this.hero.abilities[key];
@@ -1703,7 +1844,7 @@ export class ArcadeSim {
 
   private onAttackHit(e: Enemy, scale = 1): void {
     const p = this.player;
-    let dmg = p.stats.damage * scale * (this.tick < p.ddUntil ? ARCADE.rune.dd.mult : 1);
+    let dmg = p.stats.damage * scale * (this.tick < p.ddUntil ? ARCADE.rune.dd.mult : 1) * this.riftAttackMult();
     let kind: FxKind = "hit";
     if (this.rng.float() < p.stats.critChance) { dmg *= p.stats.critMult; kind = "crit"; }
     this.events.hits++;
@@ -1977,6 +2118,7 @@ export class ArcadeSim {
     e.alive = false;
     const p = this.player;
     p.kills++;
+    if (this.rift?.state === "active") this.rift.kills++;
     this.events.kills++;
     this.killsByKind[e.kind.id] = (this.killsByKind[e.kind.id] ?? 0) + 1;
     const sig = this.hero.signature;
@@ -2125,7 +2267,7 @@ export class ArcadeSim {
     // Kraken Shell: плоское снижение поверх брони, но удар всегда проходит хотя бы на 1 — иначе
     // мелкие враги перестают быть угрозой совсем и забег превращается в прогулку.
     const flat = sig?.kind === "tough" ? sig.value * this.sigScale() : 0;
-    let taken = Math.max(1, amount * (1 - reduction) - flat);
+    let taken = Math.max(1, amount * this.riftTakenMult() * (1 - reduction) - flat);
     // Руна щита: запас принимает урон первым, пока не кончится он или срок.
     if (this.tick < p.shieldUntil && p.shieldHp > 0) { const ab = Math.min(p.shieldHp, taken); p.shieldHp -= ab; taken -= ab; if (taken <= 0) return; }
     p.hp -= taken;
@@ -2203,13 +2345,14 @@ export class ArcadeSim {
   private finish(outcome: "dead" | "victory"): void {
     const p = this.player;
     this.over = {
-      outcome, tick: this.tick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
+      outcome, tick: this.actTick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
       upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id, act: this.act, neutral: p.neutral, loot: [...this.loot],
       campsCleared: this.camp?.cleared ? 1 : 0,
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
       contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
+      riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null,
     };
   }
 
@@ -2235,6 +2378,7 @@ export class ArcadeSim {
     this.nearLoot = null;
     this.nearPond = !!this.pond && !this.pond.used && len(this.pond.x - p.x, this.pond.y - p.y) < ARCADE.pond.radius;
     this.nearForge = !!this.forge && !this.forge.used && len(this.forge.x - p.x, this.forge.y - p.y) < ARCADE.forge.radius;
+    this.nearRift = !!this.rift && this.rift.state === "idle" && len(this.rift.x - p.x, this.rift.y - p.y) < ARCADE.rift.radius;
     if (this.chest.alive && len(this.chest.x - p.x, this.chest.y - p.y) < 44) this.nearLoot = { kind: "chest", item: null };
     else {
       let best: { x: number; y: number; item: GearItem; until: number } | null = null, bd = 34;
@@ -2258,7 +2402,7 @@ export class ArcadeSim {
     const p = this.player;
     const A = ARCADE.acts[this.act];
     // Рошан по расписанию акта; пока жив — тишина. Второй — сильнее (респавн).
-    if (this.roshanIdx < this.roshanAt.length && this.tick === this.roshanAt[this.roshanIdx]) {
+    if (this.roshanIdx < this.roshanAt.length && this.actTick === this.roshanAt[this.roshanIdx]) {
       const r = this.pit ? this.spawnEnemy(ENEMY_KINDS.roshan, ARCADE.pit.x, ARCADE.pit.y) : this.spawnEnemy(ENEMY_KINDS.roshan, ...this.ringPoint(420, 480));
       if (this.roshanIdx > 0) { r.hp *= ARCADE.secondRoshan.hpMult; r.maxHp *= ARCADE.secondRoshan.hpMult; r.dmg *= ARCADE.secondRoshan.dmgMult; }
       this.roshanIdx++;
@@ -2296,18 +2440,18 @@ export class ArcadeSim {
     }
     this.tickCampLine();
     // Tormentor и Древний — не глушат обычный спавн.
-    if (!this.tormentorSpawned && A.tormentorAt > 0 && this.tick >= A.tormentorAt) {
+    if (!this.tormentorSpawned && A.tormentorAt > 0 && this.actTick >= A.tormentorAt) {
       this.tormentorSpawned = true;
       this.spawnEnemy(ENEMY_KINDS.tormentor, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40));
     }
-    if (!this.ancient && A.ancientAt > 0 && this.tick >= A.ancientAt) {
+    if (!this.ancient && A.ancientAt > 0 && this.actTick >= A.ancientAt) {
       this.ancient = this.spawnEnemy(ENEMY_KINDS.ancient, ...this.ringPoint(520, 580));
       this.nextMegaAt = this.tick;
       this.shake = 16;
     }
     if (this.ancient?.alive && this.tick >= this.nextMegaAt) {
       this.nextMegaAt = this.tick + ARCADE.ancient.megaEvery;
-      const late = A.ancientDeadline > 0 && this.tick >= A.ancientDeadline ? ARCADE.ancient.lateMult : 1;
+      const late = A.ancientDeadline > 0 && this.actTick >= A.ancientDeadline ? ARCADE.ancient.lateMult : 1;
       const size = ARCADE.ancient.megaSize * late;
       for (let i = 0; i < size; i++) {
         const m = this.spawnEnemy(ENEMY_KINDS.lane_creep, this.ancient.x + (this.rng.float() - 0.5) * 200, this.ancient.y + (this.rng.float() - 0.5) * 200);
@@ -2315,6 +2459,8 @@ export class ArcadeSim {
       }
       if (late > 1) this.spawnEnemy(ENEMY_KINDS.siege_creep, this.ancient.x, this.ancient.y);
     }
+    // Передышка после разлома (T13.58): обычный лес и волны молчат, расписание боссов выше — нет.
+    if (this.tick < this.respiteUntil) return;
     const min = this.minutes;
     const greedy = this.tick < this.greedUntil;
     const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
@@ -2335,7 +2481,7 @@ export class ArcadeSim {
       for (let i = 0; i < size; i++) this.spawnEnemy(ENEMY_KINDS.lane_creep, ox + (this.rng.float() - 0.5) * 120, oy + (this.rng.float() - 0.5) * 120);
       if (waveNo % (this.rank.siegeOften ? 3 : ARCADE.waves.siegeEvery) === 0) this.spawnEnemy(ENEMY_KINDS.siege_creep, ox, oy);
     }
-    if (this.golemIdx < ARCADE.waves.golemAt.length && this.tick >= ARCADE.waves.golemAt[this.golemIdx]) {
+    if (this.golemIdx < ARCADE.waves.golemAt.length && this.actTick >= ARCADE.waves.golemAt[this.golemIdx]) {
       this.golemIdx++;
       this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
       if (this.rank.doubleGolems) this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
@@ -2509,7 +2655,7 @@ export class ArcadeSim {
         continue;
       }
       if (frozen && !e.kind.unstoppable) continue;
-      let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1);
+      let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1) * this.riftSpeedMult();
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
       const ranged = e.kind.ranged;
       if (ranged && d < ranged.range) {
@@ -2923,7 +3069,7 @@ export class ArcadeSim {
   }
 
   private lootTier(): 1 | 2 | 3 {
-    return this.tick >= ARCADE.loot.tier3At ? 3 : this.tick >= ARCADE.loot.tier2At ? 2 : 1;
+    return this.actTick >= ARCADE.loot.tier3At ? 3 : this.actTick >= ARCADE.loot.tier2At ? 2 : 1;
   }
 
   private rollLoot(rarity: Rarity): GearItem {
@@ -2942,6 +3088,7 @@ export class ArcadeSim {
       // Кнопка подбора у пруда/кузни открывает выбор (добыча рядом важнее — она в приоритете).
       if (this.nearPond && this.pond && !this.pond.used) this.pondOpen = true;
       else if (this.nearForge && this.forgeReady()) { this.forgeOpen = true; this.forgeSlot = -1; }
+      else if (this.nearRift && this.riftReady()) this.riftOpen = true;
       return;
     }
     if (near.kind === "chest") {

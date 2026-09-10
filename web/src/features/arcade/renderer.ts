@@ -234,6 +234,7 @@ export class ArcadeRenderer {
     this.drawOutpost(sim, pal, now);
     this.drawPond(sim, pal, now);
     this.drawForge(sim, pal, now);
+    this.drawRift(sim, pal, now);
     this.drawLair(sim, pal, now);
     this.drawFord(sim, pal, now);
     this.drawLoot(sim, pal, now);
@@ -242,13 +243,14 @@ export class ArcadeRenderer {
     this.drawProjectiles(sim, pal);
     this.drawPlayer(sim, pal, now);
     this.drawFx(sim, pal, "top");
-    if (sim.night) {
+    if (sim.night || sim.riftVisionMult() < 1) {
       // Пепел в воздухе (T13.22): рисуем ДО тумана, иначе дальние искры светятся сквозь темноту.
       const camX = Math.max(0, Math.min(sim.player.x - this.w / 2, ARCADE.world.w - this.w));
       const camY = Math.max(0, Math.min(sim.player.y - this.h / 2, ARCADE.world.h - this.h));
-      drawWeather(c, camX, camY, this.w, this.h, sim.tick, this.artPx(), pal, 90);
+      if (sim.night) drawWeather(c, camX, camY, this.w, this.h, sim.tick, this.artPx(), pal, 90);
       this.drawNight(sim, pal);
     }
+    this.drawRiftArena(sim, pal, now);
     this.drawDen(sim, pal, now);
     this.ctx.restore();
     if (this.pixel >= 1 && this.pixelCanvas) {
@@ -452,6 +454,7 @@ export class ArcadeRenderer {
     if (sim.neutralToken.alive) this.drawEdgeMarker(sim.neutralToken.x - camX, sim.neutralToken.y - camY, pal.text, `T${sim.neutralToken.value}`, pal, now);
     if (sim.shrine.alive) this.drawEdgeMarker(sim.shrine.x - camX, sim.shrine.y - camY, pal.greed, "", pal, now);
     if (sim.forgeReady()) this.drawEdgeMarker(sim.forge!.x - camX, sim.forge!.y - camY, pal.ember, "⚒", pal, now);
+    if (sim.riftReady()) this.drawEdgeMarker(sim.rift!.x - camX, sim.rift!.y - camY, pal.aegis, "◇", pal, now);
   }
 
   private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number): void {
@@ -589,6 +592,51 @@ export class ArcadeRenderer {
       c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
       this.text(c, `${Math.floor(ARCADE.forge.fromTick[sim.act] / 3600)}:${String(Math.floor((ARCADE.forge.fromTick[sim.act] % 3600) / 60)).padStart(2, "0")}`, f.x, f.y - 30);
     }
+    c.globalAlpha = 1;
+  }
+
+  /** Разлом (T13.58): тёмный овал с вращающимися дугами; открыт — пульсирует и показывает кольцо входа, идёт — кольцо арены
+   *  и затемнение снаружи (граница провала читается), закрыт — тусклый. До открытия — время по часам акта. */
+  private drawRift(sim: ArcadeSim, pal: Palette, now: number): void {
+    const r = sim.rift;
+    if (!r) return;
+    const c = this.ctx, R = ARCADE.rift;
+    const active = r.state === "active", ready = sim.riftReady(), done = r.state === "done";
+    const pulse = 0.5 + 0.5 * Math.sin(now / 200);
+    c.globalAlpha = done ? 0.35 : 1;
+    c.fillStyle = pal.fog;
+    c.beginPath(); c.ellipse(r.x, r.y, 26, 12, 0, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = pal.aegis; c.lineWidth = 2;
+    for (let i = 0; i < 3; i++) {
+      const a0 = now / 700 + (i * Math.PI * 2) / 3;
+      c.globalAlpha = (done ? 0.25 : ready || active ? 0.6 + 0.3 * pulse : 0.4);
+      c.beginPath(); c.ellipse(r.x, r.y, 30 + i * 4, 14 + i * 2, 0, a0, a0 + 1.4); c.stroke();
+    }
+    if (active) {
+      // Арена и отсчёт — поверх тумана, см. drawRiftArena: под «Мглой» граница провала обязана читаться.
+    } else if (ready) {
+      c.strokeStyle = pal.aegis; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = 0.3 + 0.3 * pulse;
+      c.beginPath(); c.arc(r.x, r.y, R.radius, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+    } else if (!done) {
+      c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
+      this.text(c, formatClock(R.fromTick[sim.act]), r.x, r.y - 26);
+    }
+    c.globalAlpha = 1;
+  }
+
+  /** Арена разлома поверх ночи/«Мглы»: снаружи темнее (evenodd по кадру), граница — пунктир, у входа — отсчёт. */
+  private drawRiftArena(sim: ArcadeSim, pal: Palette, now: number): void {
+    const r = sim.rift;
+    if (!r || r.state !== "active") return;
+    const c = this.ctx, R = ARCADE.rift;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 200);
+    const camX = Math.max(0, Math.min(sim.player.x - this.w / 2, ARCADE.world.w - this.w)), camY = Math.max(0, Math.min(sim.player.y - this.h / 2, ARCADE.world.h - this.h));
+    c.globalAlpha = 0.28; c.fillStyle = pal.fog;
+    c.beginPath(); c.rect(camX - 20, camY - 20, this.w + 40, this.h + 40); c.arc(r.x, r.y, R.arena, 0, Math.PI * 2, true); c.fill("evenodd");
+    c.globalAlpha = 0.6 + 0.3 * pulse; c.strokeStyle = pal.aegis; c.lineWidth = 3; c.setLineDash([12, 8]);
+    c.beginPath(); c.arc(r.x, r.y, R.arena, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+    c.globalAlpha = 0.9; c.fillStyle = pal.text; c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center";
+    this.text(c, formatClock(sim.riftLeft()), r.x, r.y - 26);
     c.globalAlpha = 1;
   }
 
@@ -1157,7 +1205,8 @@ export class ArcadeRenderer {
   private drawNight(sim: ArcadeSim, pal: Palette): void {
     const c = this.ctx;
     const p = sim.player;
-    const r = ARCADE.night.visibility * sim.visionMult();
+    // «Мгла» разлома (T13.58) сжимает обзор и днём.
+    const r = ARCADE.night.visibility * sim.visionMult() * sim.riftVisionMult();
     const grad = c.createRadialGradient(p.x, p.y, r * 0.55, p.x, p.y, r);
     grad.addColorStop(0, "transparent");
     grad.addColorStop(1, pal.fog);
