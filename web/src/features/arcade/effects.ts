@@ -19,6 +19,7 @@ export function readEffectPalette(): EffectPalette {
     fire: get("fire", "#ff9a45"), ember: get("ember", "#ffd27a"), smoke: get("smoke", "#5a4a44"), frost: get("frost", "#8bd8ff"),
     ice: get("ice", "#e6f7ff"), lightning: get("lightning", "#d7bcff"), text: get("text", "#fff"), aegis: get("aegis", "#ffd48a"),
     playerRing: get("player-ring", "#ffd48a"), heal: get("heal", "#9ce77e"), crit: get("crit", "#ff6b6b"),
+    venom: get("venom", "#7be04a"), venomDark: get("venom-dark", "#2f7d3a"),
   };
 }
 

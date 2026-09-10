@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.39.0";
+export const ARCADE_CONFIG_VERSION = "a0.40.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -37,6 +37,9 @@ export const ARCADE = {
   secondRoshan: { hpMult: 1.4, dmgMult: 1.25 },
   ancient: { megaEvery: sec(15), megaSize: 8, megaHpMult: 2, lateMult: 2, spawnMult: 1.3 },
   tormentor: { reflectCap: 30 },
+  /** Яд (T13.39, аудит 2026-09-08): самостоятельный статус, не горение. До `maxStacks` стаков с ОБЩИМ
+   *  обновляемым таймером; каждый тик (`tickEvery`) снимает `dps × стаки × tickShare`. Истёк — стаки сгорают. */
+  poison: { maxStacks: 5, seconds: 4, tickEvery: 12, tickShare: 0.2 },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */
     base: 1.7,

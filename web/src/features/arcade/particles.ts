@@ -3,7 +3,7 @@
 // Случайность — хеш (семя, индекс), а фаза — от тика, поэтому частицы плавно живут, а не мерцают хаосом на каждом кадре.
 // `px` — размер арт-пикселя в мировых единицах (фактор пиксельного режима): все квадраты кратны ему и прилипают к сетке.
 
-export interface ParticlePalette { fire: string; ember: string; smoke: string; frost: string; ice: string; lightning: string; text: string }
+export interface ParticlePalette { fire: string; ember: string; smoke: string; frost: string; ice: string; lightning: string; text: string; venom: string; venomDark: string }
 
 function hash(a: number, b: number): number {
   let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0;
@@ -46,6 +46,40 @@ export function drawChilled(c: CanvasRenderingContext2D, x: number, y: number, h
     c.globalAlpha = glint ? 1 : 0.9;
     c.fillStyle = glint ? pal.text : i % 2 ? pal.ice : pal.frost;
     dot(c, x + Math.cos(a) * rr, y - h * 0.45 + Math.sin(a) * rr * 0.5, px * (glint ? 3 : 2), px);
+  }
+  c.globalAlpha = 1;
+}
+
+/** Отравленный враг (T13.39): зелёные пузыри медленно всплывают вдоль корпуса и лопаются у макушки, тёмные капли стекают
+ *  к ногам; над головой — пипсы по числу стаков. Форма (пузыри вверх + капли вниз) отличает яд от языков пламени. */
+export function drawPoisoned(c: CanvasRenderingContext2D, x: number, y: number, h: number, tick: number, seed: number, px: number, pal: ParticlePalette, stacks: number): void {
+  const life = 56;
+  const n = 4 + Math.min(5, stacks) * 2;
+  for (let i = 0; i < n; i++) {
+    const t = (tick * 0.6 + hash(seed, i + 61) * life) % life;
+    const k = t / life;
+    const ox = (hash(seed, i + 71) - 0.5) * h * 0.5 + Math.sin(k * 5 + i) * px;
+    const py = y - h * 0.2 - k * h * 0.75;
+    const pop = k > 0.85;
+    c.globalAlpha = pop ? (1 - k) / 0.15 : 0.9;
+    c.fillStyle = pop ? pal.text : i % 3 === 0 ? pal.venomDark : pal.venom;
+    dot(c, x + ox, py, px * (pop ? 1 : k < 0.5 ? 2 : 3), px);
+  }
+  // Капли: короткий путь вниз от середины корпуса к ногам.
+  for (let i = 0; i < 3; i++) {
+    const t = (tick * 0.8 + hash(seed, i + 91) * 40) % 40;
+    const k = t / 40;
+    c.globalAlpha = 0.85;
+    c.fillStyle = pal.venomDark;
+    dot(c, x + (hash(seed, i + 97) - 0.5) * h * 0.4, y - h * 0.5 + k * h * 0.5, px * 2, px);
+  }
+  // Пипсы стаков над макушкой: читаются без цвета — по количеству.
+  const w = px * 3, gap = px * 2;
+  const x0 = x - ((stacks - 1) * (w + gap)) / 2;
+  c.globalAlpha = 1;
+  for (let i = 0; i < stacks; i++) {
+    c.fillStyle = pal.venom;
+    dot(c, x0 + i * (w + gap), y - h * 1.12, w, px);
   }
   c.globalAlpha = 1;
 }

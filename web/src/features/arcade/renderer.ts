@@ -16,7 +16,7 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
+import { drawAsh, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, HERO_AURA, heroLook, setPixelSheets, spriteVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
@@ -27,7 +27,7 @@ import { tileImage } from "./sprites.ts";
 import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
-  "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice",
+  "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice", "venom", "venomDark",
   "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
@@ -544,7 +544,7 @@ export class ArcadeRenderer {
         }
         if (!drawn) drawRig(c, e.x, e.y + r * 0.6, enemyRig(e.kind.id, tone, pal.limb), {
           facing, walkPhase: (tick / 60) * 7 * speedK + e.id * 1.7, moving, attackT,
-          hit: flash, statusTint: tick < e.freezeUntil ? pal.frost : tick < e.burnUntil ? pal.fire : tick < e.chillUntil ? pal.frost : null,
+          hit: flash, statusTint: tick < e.freezeUntil ? pal.frost : tick < e.burnUntil ? pal.fire : tick < e.poisonUntil ? pal.venom : tick < e.chillUntil ? pal.frost : null,
         });
         // Статус поверх спрайта — пиксельные частицы (particles.ts): горение — языки пламени, холод — ледяная крошка;
         // заморозка — ещё и кольцо у ног. Спрайт не перекрашиваем.
@@ -552,6 +552,7 @@ export class ArcadeRenderer {
           const apx = this.artPx();
           const h = ds ? ds.meta.world * 0.7 : r * 3; // видимый рост силуэта (кадр Dota занят моделью примерно на 70%)
           if (tick < e.burnUntil) drawBurning(c, e.x, e.y + r * 0.6, h, tick, e.id, apx, pal);
+          if (tick < e.poisonUntil) drawPoisoned(c, e.x, e.y + r * 0.6, h, tick, e.id, apx, pal, e.poisonStacks);
           if (tick < e.freezeUntil || tick < e.chillUntil) drawChilled(c, e.x, e.y + r * 0.6, h, tick, e.id, apx, pal);
           if (tick < e.freezeUntil) {
             c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.8;

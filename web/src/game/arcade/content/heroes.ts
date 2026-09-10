@@ -67,7 +67,7 @@ export type AbilityKind =
   // Виды для собственных китов шаблонных героев (владелец 2026-09-06: «каждый герой уникален»).
   | "dash" | "line_burst" | "meteor" | "armor_buff" | "rage" | "frenzy" | "haste" | "damage_ward" | "life_drain"
   | "gust" | "multishot" | "remnant" | "mass_freeze" | "requiem" | "goo" | "ravage" | "edict" | "death_pact"
-  | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "mana_break" | "coup" | "mana_void"
+  | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "venom" | "mana_break" | "coup" | "mana_void"
   | "reincarnation" | "rupture" | "corrosive" | "berserk_blood" | "metamorphosis";
 
 /** Альтернативная форма (Metamorphosis у Terrorblade, Elder Dragon Form у Dragon Knight, True Form у Lone Druid):
@@ -98,6 +98,9 @@ export interface AbilityDef {
   /** Вторичное число по уровню (число целей/ударов, длительность стана и т.п.). */
   count?: number[];
   passive?: boolean;
+  /** Яд с попадания зоны (T13.39): dps одного стака = `value[lvl] × poison`; стаки копятся на цели до ARCADE.poison.maxStacks.
+   *  Читают обработчики line_burst/meteor, nova и goo. Пассивка на удар — отдельный kind "venom". */
+  poison?: number;
   /** Вид призыва у kind: "damage_ward" — чисто визуальный (владелец 2026-09-06: «Terrorblade
    *  должен звать иллюзии, а он ставит на пол шарик»). Урон и радиус не меняются: сим по-прежнему
    *  считает один источник, рисуем то, что призывает герой в Dota. */
@@ -352,10 +355,10 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "edict", value: [0, 60, 90, 120], cooldown: 50, duration: 12, radius: 320 },              // Eye of the Storm
   }, { kind: "swipes", value: 4, cap: 12 }),
   venomancer: hero("venomancer", 40, "venomancer", true, { maxHp: 520, armor: 2, damage: 20, speed: 160 }, {
-    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4] }, // Venomous Gale
-    w: { kind: "searing", value: [0, 8, 12, 16, 20], cooldown: 0, passive: true },                       // Poison Sting
+    q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], poison: 0.1 }, // Venomous Gale — яд
+    w: { kind: "venom", value: [0, 8, 12, 16, 20], cooldown: 0, passive: true },                         // Poison Sting — стак яда с удара
     e: { kind: "damage_ward", value: [0, 24, 34, 44, 54], cooldown: 12, duration: 10, radius: 300, summon: { art: "ward_plague", count: 2 } }, // Plague Ward
-    r: { kind: "nova", value: [0, 220, 340, 460], cooldown: 55, radius: 380, duration: 3 },              // Poison Nova
+    r: { kind: "nova", value: [0, 220, 340, 460], cooldown: 55, radius: 380, duration: 3, poison: 0.06 }, // Poison Nova — яд всем вокруг
   }, { kind: "aura_burn", value: 9, radius: 160 }),
   witch_doctor: hero("witch_doctor", 30, "witch_doctor", true, { maxHp: 560, armor: 2, damage: 24, speed: 162 }, {
     q: { kind: "lightning_bolt", value: [0, 90, 135, 180, 225], cooldown: 6, radius: 320, duration: 1.2 }, // Paralyzing Cask
@@ -395,8 +398,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 110, count: [0, 5, 5, 5] }, // Sonic Wave
   }, { kind: "fiery_soul", value: 0.28, duration: 5 }),
   viper: hero("viper", 47, "viper", true, { maxHp: 640, armor: 3, damage: 24, speed: 158, regen: 2 }, {
-    q: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Poison Attack
-    w: { kind: "nova", value: [0, 90, 135, 180, 230], cooldown: 7, radius: 300, duration: 2.5 },          // Nethertoxin
+    q: { kind: "venom", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                        // Poison Attack — стак яда с удара
+    w: { kind: "nova", value: [0, 90, 135, 180, 230], cooldown: 7, radius: 300, duration: 2.5, poison: 0.1 }, // Nethertoxin — яд
     e: SIG,                                                                                              // Corrosive Skin
     r: { kind: "assassinate", value: [0, 380, 600, 820], cooldown: 50, radius: 340 },                    // Viper Strike
   }, { kind: "quill", value: 18, radius: 140 }),
@@ -481,7 +484,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "line_burst", value: [0, 360, 540, 720], cooldown: 40, radius: 140, count: [0, 1, 1, 1], duration: 0.5 }, // Mystic Flare
   }, { kind: "multicast", value: 0.3 }),
   dazzle: hero("dazzle", 50, "dazzle", true, { maxHp: 640, armor: 4, damage: 27, speed: 164, regen: 3 }, {
-    q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 6, radius: 85, count: [0, 3, 3, 3, 3] }, // Poison Touch
+    q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 6, radius: 85, count: [0, 3, 3, 3, 3], poison: 0.1 }, // Poison Touch — яд
     w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 20, duration: 4 },                        // Shallow Grave
     e: { kind: "life_drain", value: [0, 40, 55, 70, 85], cooldown: 9, radius: 320, duration: 4 },         // Shadow Wave
     r: { kind: "arcane_aura", value: [0, 0.1, 0.18, 0.25], cooldown: 0, passive: true },                 // Bad Juju
@@ -738,7 +741,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "nova", value: [0, 240, 360, 480], cooldown: 70, radius: 340, duration: 3 },              // Epicenter
   }, { kind: "aftershock", value: 34, radius: 160 }),
   shadow_demon: hero("shadow_demon", 79, "shadow_demon", true, { maxHp: 560, armor: 2, damage: 24, speed: 162 }, {
-    q: { kind: "line_burst", value: [0, 70, 105, 140, 170], cooldown: 6, radius: 60, count: [0, 4, 4, 4, 4] }, // Shadow Poison
+    q: { kind: "line_burst", value: [0, 70, 105, 140, 170], cooldown: 6, radius: 60, count: [0, 4, 4, 4, 4], poison: 0.12 }, // Shadow Poison — стаки яда, как в Dota
     w: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 320, duration: 8 },  // Disseminate
     e: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 10, radius: 320, duration: 2.5 },     // Disruption
     r: { kind: "goo", value: [0, 200, 310, 420], cooldown: 50, radius: 340, duration: 5 },               // Demonic Purge

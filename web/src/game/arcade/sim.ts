@@ -446,7 +446,7 @@ export class ArcadeSim {
         break;
       case "nova": {
         const center = this.nearestEnemy(p.x, p.y, 300) ?? p;
-        for (const e of this.enemiesWithin(center.x, center.y, radius)) { this.damageEnemy(e, value, "burst"); this.applyChill(e, 0.5, ab.duration ?? 3); }
+        for (const e of this.enemiesWithin(center.x, center.y, radius)) { this.damageEnemy(e, value, "burst"); this.applyChill(e, 0.5, ab.duration ?? 3); if (ab.poison) this.applyPoison(e, value * ab.poison); }
         this.pushFx("nova", center.x, center.y, radius, 0, 16);
         break;
       }
@@ -565,6 +565,7 @@ export class ArcadeSim {
             this.damageEnemy(e, value, "burst");
             if (ab.duration && !e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(ab.duration)));
             if (ab.kind === "meteor") this.applyBurn(e, value * 0.25, 3);
+            if (ab.poison) this.applyPoison(e, value * ab.poison);
           }
           this.pushFx("nova", cx, cy, radius, 0, 12);
         }
@@ -677,6 +678,7 @@ export class ArcadeSim {
         if (!target) { cast = false; break; }
         this.damageEnemy(target, value, "burst");
         this.applyChill(target, 0.5, ab.duration ?? 3);
+        if (ab.poison) this.applyPoison(target, value * ab.poison);
         this.pushFx("zap", p.x, p.y, target.x, target.y, 8);
         break;
       }
@@ -912,6 +914,7 @@ export class ArcadeSim {
       const lvl = p.abilities[key];
       if (!ab.passive || lvl === 0) continue;
       if (ab.kind === "searing") { dmg += ab.value[lvl]; this.applyBurn(e, ab.value[lvl] * 0.5, 2); }
+      else if (ab.kind === "venom") { dmg += ab.value[lvl]; this.applyPoison(e, ab.value[lvl] * 0.5); } // один стак = прежнее горение Poison Attack, дальше — сильнее
       else if (ab.kind === "mana_break") { dmg += ab.value[lvl]; this.applyChill(e, 0.25, 0.6, false); }
       else if (ab.kind === "frost_arrows") this.applyChill(e, ab.value[lvl], 2, false);
     }
@@ -1043,6 +1046,18 @@ export class ArcadeSim {
       e.chillStacks++;
       if (e.chillStacks >= 3) { e.chillStacks = 0; e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(0.8 + 0.3 * snap))); }
     }
+  }
+
+  /**
+   * Яд (T13.39): отдельный статус, не горение. Стак добавляется до потолка, таймер общий и обновляется каждым
+   * попаданием; dps стака — сильнейший из активных источников. Истёкший яд теряет все стаки.
+   */
+  applyPoison(e: Enemy, dpsPerStack: number, seconds = ARCADE.poison.seconds): void {
+    if (e.kind.unstoppable || dpsPerStack <= 0) return;
+    const active = e.poisonUntil > this.tick;
+    e.poisonStacks = Math.min(ARCADE.poison.maxStacks, (active ? e.poisonStacks : 0) + 1);
+    e.poisonDps = Math.max(active ? e.poisonDps : 0, dpsPerStack);
+    e.poisonUntil = Math.max(e.poisonUntil, this.tick + sec(this.statusSec(seconds)));
   }
 
   /** Множитель фирменной пассивки от её пассивного слота (kind "signature"); без слота или на 0-м уровне — 1. */
@@ -1491,6 +1506,9 @@ export class ArcadeSim {
       e.shotCd = Math.max(0, e.shotCd - 1);
       // Горение тикает независимо от движения.
       if (this.tick < e.burnUntil && this.tick % 12 === 0) this.damageEnemy(e, e.burnDps * 0.2, "burst");
+      if (!e.alive) continue;
+      // Яд тикает так же независимо; урон растёт со стаками (T13.39).
+      if (this.tick < e.poisonUntil && this.tick % ARCADE.poison.tickEvery === 0) this.damageEnemy(e, e.poisonDps * e.poisonStacks * ARCADE.poison.tickShare, "burst");
       if (!e.alive) continue;
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
@@ -2288,7 +2306,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, poisonUntil: 0, poisonStacks: 0, poisonDps: 0,
   };
 }
 

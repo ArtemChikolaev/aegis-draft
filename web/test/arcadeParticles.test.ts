@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { drawAsh, drawBurning, drawChilled, drawDust, drawEmberRing, drawHealAura, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWardTotem, drawWeather } from "../src/features/arcade/particles.ts";
+import { drawAsh, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawHealAura, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawWardTotem, drawWeather } from "../src/features/arcade/particles.ts";
 
 // Заглушка 2D-контекста: собираем прямоугольники, чтобы проверить количество, размер и привязку к сетке арт-пикселя.
 function stub() {
@@ -7,7 +7,7 @@ function stub() {
   const c = { globalAlpha: 1, fillStyle: "", fillRect(x: number, y: number, w: number, h: number) { rects.push({ x, y, w, h, alpha: this.globalAlpha, fill: String(this.fillStyle) }); }, beginPath() {}, ellipse() {}, fill() {} };
   return { c: c as unknown as CanvasRenderingContext2D, rects };
 }
-const pal = { fire: "fire", ember: "ember", smoke: "smoke", frost: "frost", ice: "ice", lightning: "lightning", text: "text" };
+const pal = { fire: "fire", ember: "ember", smoke: "smoke", frost: "frost", ice: "ice", lightning: "lightning", text: "text", venom: "venom", venomDark: "venomDark" };
 
 describe("пиксельные частицы эффектов (particles.ts)", () => {
   it("горение: несколько квадратов кратных зерну, над ногами врага, огненных цветов; детерминировано от тика", () => {
@@ -23,6 +23,21 @@ describe("пиксельные частицы эффектов (particles.ts)", 
       expect(r.alpha).toBeGreaterThan(0);
     }
     const c2 = stub(); drawBurning(c2.c, 100, 100, 60, 501, 7, 2, pal);
+    expect(c2.rects).not.toEqual(a.rects);
+    expect((a.c as unknown as { globalAlpha: number }).globalAlpha).toBe(1);
+  });
+
+  it("яд: пузыри и капли в цветах яда, число пипсов над головой = стаки, детерминировано от тика", () => {
+    const a = stub(); drawPoisoned(a.c, 100, 100, 60, 500, 7, 2, pal, 3);
+    const b = stub(); drawPoisoned(b.c, 100, 100, 60, 500, 7, 2, pal, 3);
+    expect(a.rects).toEqual(b.rects);
+    for (const r of a.rects) { expect(r.w % 2).toBe(0); expect(["venom", "venomDark", "text"]).toContain(r.fill); }
+    const pips = (rects: typeof a.rects) => rects.filter((r) => r.y < 100 - 60 * 1.05 && r.fill === "venom").length;
+    expect(pips(a.rects)).toBe(3);
+    const five = stub(); drawPoisoned(five.c, 100, 100, 60, 500, 7, 2, pal, 5);
+    expect(pips(five.rects)).toBe(5);
+    expect(five.rects.length).toBeGreaterThan(a.rects.length); // больше стаков — гуще пузыри
+    const c2 = stub(); drawPoisoned(c2.c, 100, 100, 60, 501, 7, 2, pal, 3);
     expect(c2.rects).not.toEqual(a.rects);
     expect((a.c as unknown as { globalAlpha: number }).globalAlpha).toBe(1);
   });

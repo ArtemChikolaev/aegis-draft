@@ -162,6 +162,10 @@ export interface Enemy {
   /** Corrosive Haze (Slardar): до какого тика цель получает на ampMult больше урона. */
   ampUntil: number;
   ampMult: number;
+  /** Яд (T13.39): стаки с общим таймером; урон за тик = poisonDps × стаки × tickShare (ARCADE.poison). */
+  poisonUntil: number;
+  poisonStacks: number;
+  poisonDps: number;
 }
 
 export interface Projectile {

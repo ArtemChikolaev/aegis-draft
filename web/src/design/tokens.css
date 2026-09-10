@@ -332,6 +332,8 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-smoke: #5a4a44;     /* гаснущие частицы огня */
   --arcade-ice: #e6f7ff;       /* светлая ледяная крошка */
   --arcade-frost: #8bd8ff;
+  --arcade-venom: #7be04a;     /* яд: пузыри/капли на отравленном враге (particles.ts) */
+  --arcade-venom-dark: #2f7d3a; /* тёмная капля яда */
   --arcade-lightning: #d7bcff;
   --arcade-hp: #5bd98c;
   --arcade-hp-bg: rgba(255, 255, 255, .14);
