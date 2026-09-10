@@ -304,7 +304,7 @@ function ArcadeStage() {
       if (s.status === "running") s.pause(); else if (s.status === "paused") s.resume();
     };
     // Подбор (G / Enter) и экран сборки (Tab / I) — через `act` в сим: попадают в input-лог, реплей повторяет.
-    controller.onPickup = () => { const cur = getArcadeSim(); if (cur && cur.nearLoot && !cur.lootOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
+    controller.onPickup = () => { const cur = getArcadeSim(); if (cur && (cur.nearLoot || cur.nearPond) && !cur.lootOpen && !cur.pondOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
     controller.onFlare = () => { if (useArcade.getState().status === "running") renderer.flare(performance.now()); };
     controller.onBuild = () => { const cur = getArcadeSim(); if (cur && !cur.pending && !cur.shopOpen && !cur.neutralOpen && !cur.lootOpen && useArcade.getState().status === "running") controller.queueAct(BUILD_ACT); };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
@@ -318,6 +318,7 @@ function ArcadeStage() {
     let wasShop = false;
     let wasBoss = false;
     let wasNeutral = false;
+    let wasPond = false;
     let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
@@ -391,8 +392,9 @@ function ArcadeStage() {
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
       if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen)) sim.step(replayInput(replayRef.current, sim.steps));
       if (sim.pending && !wasPending) { if (!handled.levelup) sfxArcade("levelup"); bump(); }
-      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral)) { sfxBuy(); bump(); }
+      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond)) { sfxBuy(); bump(); }
       wasNeutral = sim.neutralOpen;
+      wasPond = sim.pondOpen;
       wasPending = sim.pending !== null;
       wasShop = sim.shopOpen;
       if (sim.over) { finish(); }
@@ -451,6 +453,7 @@ function ArcadeStage() {
                 {sim.hero.signature && (sim.hero.signature.kind === "souls" || sim.hero.signature.kind === "swipes") && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
+                {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
@@ -469,6 +472,13 @@ function ArcadeStage() {
               </div>
             )}
             </div>
+            {!sim.nearLoot && sim.nearPond && !sim.pondOpen && !sim.lootOpen && !sim.buildOpen && status === "running" && (
+              <button type="button" className="arcade-hud__pickup" data-testid="arcade-pond-open" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
+                <b>{t("arcade.pond.open")}</b>
+                <span>{t(sim.player.curse ? "arcade.pond.openCursed" : "arcade.pond.openHint")}</span>
+                <small>G</small>
+              </button>
+            )}
             {sim.nearLoot && !sim.lootOpen && !sim.buildOpen && status === "running" && (
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-pickup" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
                 {sim.nearLoot.item && <ItemIcon pixel={PX} slug={gearArt(sim.nearLoot.item as GearItem)} name={sim.nearLoot.item.base} size="sm" />}
@@ -588,12 +598,27 @@ function ArcadeStage() {
             </Surface>
           </div>
         )}
+        {sim?.pondOpen && status !== "over" && (
+          <div className="arcade-overlay" data-testid="arcade-pond">
+            <div className="arcade-levelup arcade-shop">
+              <Eyebrow>{t("arcade.pond.title")}</Eyebrow>
+              <h2>{t("arcade.pond.pick")}</h2>
+              <p className="arcade-shop__hint">{t("arcade.pond.hint")}</p>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                <Button variant="primary" data-testid="arcade-pond-heal" onClick={() => shopAct(1)}>{t("arcade.pond.heal", { pct: Math.round(ARCADE.pond.healFrac * 100) })}</Button>
+                <Button variant="secondary" data-testid="arcade-pond-cleanse" disabled={!sim.player.curse} onClick={() => shopAct(2)}>{sim.player.curse ? t("arcade.pond.cleanse", { curse: t(`arcade.curse.${sim.player.curse}` as MessageKey) }) : t("arcade.pond.cleanseNone")}</Button>
+                <Button variant="leave" data-testid="arcade-pond-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.pond.leave")}</Button>
+              </div>
+            </div>
+          </div>
+        )}
         {sim?.lootOpen && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-loot">
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.loot.title")}</Eyebrow>
               <h2>{t(`arcade.gearName.${sim.lootOpen.base}` as MessageKey)}</h2>
               <p className="arcade-shop__hint">{t(`arcade.gear.slot.${sim.lootOpen.slot}` as MessageKey)} · {t(`arcade.rarity.${sim.lootOpen.rarity}` as MessageKey)} · T{sim.lootOpen.tier}{sim.lootOpen.unique ? ` · ${t("arcade.loot.unique")}` : ""}</p>
+              {sim.lootCursed && <p className="arcade-shop__hint arcade-loot__cursed" data-testid="arcade-loot-cursed">{t("arcade.loot.cursed")}</p>}
               <div className="arcade-offers arcade-loot__compare">
                 <GearCard item={sim.lootOpen} title={t("arcade.loot.found")} />
                 <GearCard item={(sim.player.gear[sim.lootOpen.slot] as GearItem | undefined) ?? null} title={t("arcade.loot.current")} />
@@ -818,6 +843,7 @@ function ArcadeStage() {
                 {outcome.greedStacks > 0 && <div><dt>{t("arcade.hud.greed")}</dt><dd>×{outcome.greedStacks}</dd></div>}
                 {outcome.campsCleared > 0 && <div><dt>{t("arcade.over.camp")}</dt><dd>{t("arcade.over.campYes")}</dd></div>}
                 {outcome.outpostCaptured && <div><dt>{t("arcade.over.outpost")}</dt><dd>{t("arcade.over.outpostYes")}</dd></div>}
+                {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>
               {lastLoot.length > 0 && (
                 <div className="arcade-drops" data-testid="arcade-loot-result">

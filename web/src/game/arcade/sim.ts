@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Camp, type Outpost, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Camp, type CurseId, type Outpost, type Pond, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -125,6 +125,14 @@ export class ArcadeSim {
   defiler: Enemy | null = null;
   /** Аванпост (T13.42): один на акт, по seed, на другой стороне от лагеря. */
   outpost: Outpost | null = null;
+  /** Лотосовый пруд (T13.43): одно использование; открытый выбор ставит мир на паузу, как лавка. */
+  pond: Pond | null = null;
+  pondOpen = false;
+  nearPond = false;
+  /** Открытая добыча — из проклятого сундука: принять = взять порчу. */
+  lootCursed = false;
+  private cursesTaken = 0;
+  private chestNo = 0;
   /** Чей сейчас `pending`: уровень или награда лагеря (у награды нет реролла, заголовок другой). */
   pendingSource: "level" | "camp" = "level";
   private campRewardQueued: Offer[] | null = null;
@@ -195,7 +203,7 @@ export class ArcadeSim {
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
-      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
+      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
@@ -205,6 +213,56 @@ export class ArcadeSim {
     this.recomputeStats();
     this.camp = this.placeCamp(seed);
     this.outpost = this.placeOutpost(seed);
+    this.pond = this.placePond(seed);
+  }
+
+  /** Пруд по seed: кольцо от старта, не ближе minFromOthers к лагерю и аванпосту, не в реке/яме, не в дереве. */
+  private placePond(seed: string): Pond {
+    const P = ARCADE.pond;
+    const rng = new Rng(`pond:${seed}:${this.act}`);
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    let x = cx0, y = cy0 - P.distMin;
+    for (let i = 0; i < 24; i++) {
+      const a = rng.float() * Math.PI * 2, d = P.distMin + rng.float() * (P.distMax - P.distMin);
+      x = clamp(cx0 + Math.cos(a) * d, 80, W.w - 80);
+      y = clamp(cy0 + Math.sin(a) * d, 80, W.h - 80);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 60 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 60)) continue;
+      if (this.camp && len(x - this.camp.x, y - this.camp.y) < P.minFromOthers) continue;
+      if (this.outpost && len(x - this.outpost.x, y - this.outpost.y) < P.minFromOthers) continue;
+      if (this.obstacles.blocked(x, y, 36)) continue;
+      break;
+    }
+    [x, y] = this.obstacles.resolve(x, y, 36);
+    return { x, y, used: false };
+  }
+
+  /** Порча принята (T13.43): по кнопке, после показанного условия. */
+  private applyCurse(id: CurseId): void {
+    this.player.curse = id;
+    this.cursesTaken++;
+    this.pushFx("burst", this.player.x, this.player.y, 60, 0, 20);
+  }
+
+  /** Выбор у пруда: 1 — лечение, 2 — снять порчу, 5 — уйти (пруд остаётся). Лечение не режется Увяданием: пруд и есть очищение. */
+  private pondAction(act: number): void {
+    const p = this.player, pond = this.pond;
+    if (!pond) { this.pondOpen = false; return; }
+    if (act === 1) {
+      const before = p.hp;
+      p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * ARCADE.pond.healFrac);
+      this.pushFx("heal", p.x, p.y - 30, 0, 0, 30, Math.round(p.hp - before));
+      pond.used = true; this.pondOpen = false;
+    } else if (act === 2) {
+      if (!p.curse) return;
+      p.curse = null;
+      this.pushFx("revive", p.x, p.y, 0, 0, 30);
+      pond.used = true; this.pondOpen = false;
+    } else if (act === 5) this.pondOpen = false;
+  }
+
+  private rarityUp(r: Rarity): Rarity {
+    const order: Rarity[] = ["standard", "refined", "exotic", "arcana"];
+    return order[Math.min(order.length - 1, order.indexOf(r) + ARCADE.curse.lootRarityUp)];
   }
 
   /** Аванпост по seed: кольцо от старта, подальше от лагеря (разные направления = выбор маршрута), не в реке/яме, не в дереве. */
@@ -357,6 +415,10 @@ export class ArcadeSim {
     }
     if (this.lootOpen) {
       this.lootAction(input.act);
+      return;
+    }
+    if (this.pondOpen) {
+      this.pondAction(input.act);
       return;
     }
     if (this.buildOpen) {
@@ -1327,6 +1389,7 @@ export class ArcadeSim {
   private heal(amount: number): void {
     const p = this.player;
     const before = p.hp;
+    if (p.curse === "withering") amount *= ARCADE.curse.withering.healMult;
     p.hp = Math.min(p.stats.maxHp, p.hp + amount);
     if (p.hp - before >= 1) this.pushFx("heal", p.x, p.y - 30, 0, 0, 30, Math.round(p.hp - before));
   }
@@ -1378,12 +1441,13 @@ export class ArcadeSim {
       upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id, act: this.act, neutral: p.neutral, loot: [...this.loot],
       campsCleared: this.camp?.cleared ? 1 : 0,
       outpostCaptured: this.outpost?.captured ?? false,
+      cursesTaken: this.cursesTaken, cursed: p.curse !== null,
     };
   }
 
   private regenAndHazards(): void {
     const p = this.player;
-    if (this.tick % 6 === 0 && p.hp < p.stats.maxHp) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen * 0.1);
+    if (this.tick % 6 === 0 && p.hp < p.stats.maxHp) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen * 0.1 * (p.curse === "withering" ? ARCADE.curse.withering.healMult : 1));
     if (this.shrine.alive && len(this.shrine.x - p.x, this.shrine.y - p.y) < 34) {
       this.shrine.alive = false;
       this.greedUntil = this.tick + ARCADE.greed.duration;
@@ -1401,6 +1465,7 @@ export class ArcadeSim {
     if (this.neutralToken.alive && !this.neutralOpen && len(this.neutralToken.x - p.x, this.neutralToken.y - p.y) < 36) this.openNeutral();
     // Добыча не подбирается касанием — только помечается как «рядом» (PICKUP_ACT → pickupNear).
     this.nearLoot = null;
+    this.nearPond = !!this.pond && !this.pond.used && len(this.pond.x - p.x, this.pond.y - p.y) < ARCADE.pond.radius;
     if (this.chest.alive && len(this.chest.x - p.x, this.chest.y - p.y) < 44) this.nearLoot = { kind: "chest", item: null };
     else {
       let best: { x: number; y: number; item: GearItem; until: number } | null = null, bd = 34;
@@ -1543,7 +1608,9 @@ export class ArcadeSim {
     if (this.tick >= this.nextChestAt && !this.chest.alive) {
       this.nextChestAt = this.tick + ARCADE.loot.chestEvery;
       const [cx, cy] = this.ringPoint(ARCADE.loot.distMin, ARCADE.loot.distMax);
-      this.chest = { alive: true, x: cx, y: cy, until: this.tick + ARCADE.loot.chestLifetime, value: 0 };
+      // Проклятый сундук (T13.43): не первый, с шансом, и только пока пруд не использован — иначе порчу нечем снять.
+      const cursed = this.chestNo++ > 0 && !!this.pond && !this.pond.used && this.rng.float() < ARCADE.curse.chestChance;
+      this.chest = { alive: true, x: cx, y: cy, until: this.tick + ARCADE.loot.chestLifetime, value: cursed ? 1 : 0 };
     }
     if (this.chest.alive && this.tick >= this.chest.until) this.chest.alive = false;
     for (const g of this.groundLoot) if (this.tick >= g.until) g.until = -1;
@@ -2087,11 +2154,18 @@ export class ArcadeSim {
   /** Подобрать то, что рядом (PICKUP_ACT): сундук вскрывается и даёт предмет, предмет с земли открывает экран подбора. */
   private pickupNear(): void {
     const near = this.nearLoot;
-    if (!near || this.lootOpen) return;
+    if (this.lootOpen) return;
+    if (!near) {
+      // Кнопка подбора у пруда открывает выбор (добыча рядом важнее — она в приоритете).
+      if (this.nearPond && this.pond && !this.pond.used) this.pondOpen = true;
+      return;
+    }
     if (near.kind === "chest") {
       if (!this.chest.alive) return;
       this.chest.alive = false;
-      this.lootOpen = this.rollLoot(this.rollRarity());
+      const cursed = this.chest.value === 1;
+      this.lootCursed = cursed;
+      this.lootOpen = this.rollLoot(cursed ? this.rarityUp(this.rollRarity()) : this.rollRarity());
       this.pushFx("levelup", this.chest.x, this.chest.y, 0, 0, 24);
     } else {
       const g = this.groundLoot.find((x) => x.item === near.item && x.until > 0);
@@ -2142,6 +2216,10 @@ export class ArcadeSim {
     const item = this.lootOpen;
     if (!item) return;
     if (act >= BAG_DROP_ACT && act < BAG_DROP_ACT + ARCADE.loot.bagCap) { this.dropFromBag(act - BAG_DROP_ACT); return; }
+    // Проклятый сундук: взять предмет (надеть или в сумку) = принять порчу; оставить у ног — без порчи, и предмет
+    // на земле уже чистый (порча — цена вскрытия, а не сам предмет).
+    if ((act === 1 || (act === 2 && p.bag.length < ARCADE.loot.bagCap)) && this.lootCursed) this.applyCurse("withering");
+    if (act === 1 || act === 2 || act === 5) this.lootCursed = false;
     if (act === 1) {
       const old = p.gear[item.slot];
       p.gear[item.slot] = item;
@@ -2518,7 +2596,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

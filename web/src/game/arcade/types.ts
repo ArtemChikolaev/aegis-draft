@@ -265,6 +265,12 @@ export interface ArcadeEventCounters {
   outposts: number;
 }
 
+/** Лотосовый пруд (T13.43): одно использование на забег — лечение или снятие порчи. */
+export interface Pond { x: number; y: number; used: boolean }
+
+/** Порчи забега (T13.43). `withering` — лечение и регенерация ослаблены до снятия у пруда. */
+export type CurseId = "withering";
+
 /** Аванпост (T13.42): точка захвата по seed; прогресс в тиках копится только рядом и не сбрасывается. */
 export interface Outpost {
   x: number;
@@ -401,6 +407,8 @@ export interface Player {
   neutral: string | null;
   /** Зачарование надетой нейтралки (content/neutrals.ts NEUTRAL_ENCHANTS) или null. */
   neutralEnchant: string | null;
+  /** Активная порча забега (T13.43); null — чист. */
+  curse: CurseId | null;
   /** Экипировка (T13.14): надетое по слотам и сумка забега. Типы — content/gear.ts (без импорта: цикл). */
   gear: Record<string, GearLike>;
   bag: GearLike[];
@@ -432,4 +440,7 @@ export interface ArcadeOutcome {
   campsCleared: number;
   /** Аванпост захвачен (T13.42). */
   outpostCaptured: boolean;
+  /** Принятых порч за забег и осталась ли порча к концу (T13.43). */
+  cursesTaken: number;
+  cursed: boolean;
 }

@@ -314,3 +314,6 @@
 .arcade-build__stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 4px; }
 .arcade-build__stats li { display: flex; justify-content: space-between; gap: 8px; background: var(--surface-invert); color: var(--on-invert); border: 1px solid var(--line-invert-strong); border-radius: 8px; }
 .arcade-build__stats li span { color: var(--muted-invert); font-weight: 500; }
+
+/* Проклятый сундук (T13.43): предупреждение в цвете яда, читается до кнопки. */
+.arcade-loot__cursed { color: var(--arcade-venom); font-weight: 700; }

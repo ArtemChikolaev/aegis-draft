@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.43.0";
+export const ARCADE_CONFIG_VERSION = "a0.44.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -63,6 +63,14 @@ export const ARCADE = {
    *  (лавка, руны, сундук, токен, щедрость) у края экрана, ночью обзор × `nightVisionMult`, сразу золото
    *  bounty × `goldMult`. Спавн вокруг не меняется: держать область — значит держать её под давлением. */
   outpost: { distMin: 650, distMax: 950, minFromCamp: 700, radius: 120, captureSec: 25, goldMult: 2, nightVisionMult: 1.35 },
+  /** Лотосовый пруд (T13.43, аудит: «восстановление HP или снятие одной порчи, одно использование на забег»).
+   *  Стоит по seed на кольце от старта, подальше от лагеря и аванпоста. Активируется кнопкой подбора рядом. */
+  pond: { distMin: 480, distMax: 820, minFromOthers: 450, radius: 48, healFrac: 0.5 },
+  /** Порчи забега (T13.43): принимаются по кнопке, до принятия видны награда, штраф и способ снятия.
+   *  Проклятый сундук — каждый сундук после первого с шансом `chestChance`, только пока пруд не использован
+   *  (нельзя выдать порчу, которую нечем снять): добыча на `lootRarityUp` ступень редкости выше, принял (надел
+   *  или в сумку) — «Увядание»: лечение и регенерация × `withering.healMult` до снятия у пруда. */
+  curse: { chestChance: 0.5, lootRarityUp: 1, withering: { healMult: 0.35 } },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */

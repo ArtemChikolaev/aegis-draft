@@ -50,6 +50,8 @@ function botInput(sim: ArcadeSim): ArcadeInput {
     sim.shopOffers.forEach((o, i) => { if (o.price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
     return { mx: 0, my: 0, cast: 0, choose: -1, act: best >= 0 ? best + 1 : SHOP_ACT.close };
   }
+  // Пруд (T13.43): бот лечится, если потрёпан, снимает порчу, если есть, иначе уходит — окно нельзя оставлять открытым.
+  if (sim.pondOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: sim.player.curse ? 2 : sim.player.hp < sim.player.stats.maxHp * 0.5 ? 1 : SHOP_ACT.close };
   if (sim.lootOpen) {
     const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;
     const better = !cur || gearScore(sim.lootOpen) > gearScore(cur);

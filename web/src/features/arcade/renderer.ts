@@ -232,6 +232,7 @@ export class ArcadeRenderer {
     this.drawSpots(sim, pal, now);
     this.drawCamp(sim, pal, now);
     this.drawOutpost(sim, pal, now);
+    this.drawPond(sim, pal, now);
     this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
@@ -425,6 +426,9 @@ export class ArcadeRenderer {
     if (camp && !camp.cleared) this.drawEdgeMarker(camp.x - camX, camp.y - camY, pal.venom, String(sim.totemsAlive()), pal, now);
     const o = sim.outpost;
     if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
+    // Пруд приглашает сам, когда есть что снять; иначе — как остальные точки после захвата аванпоста.
+    const pond = sim.pond;
+    if (pond && !pond.used && (sim.player.curse || o?.captured)) this.drawEdgeMarker(pond.x - camX, pond.y - camY, pal.frost, sim.player.curse ? "✚" : "", pal, now);
     if (!o?.captured) return;
     if (sim.shopkeeper.alive) this.drawEdgeMarker(sim.shopkeeper.x - camX, sim.shopkeeper.y - camY, pal.shop, "$", pal, now);
     if (sim.bounty.alive) this.drawEdgeMarker(sim.bounty.x - camX, sim.bounty.y - camY, pal.bounty, "$", pal, now);
@@ -455,6 +459,33 @@ export class ArcadeRenderer {
       m.fillText(label, -Math.cos(a) * 18, -Math.sin(a) * 18);
     }
     m.restore();
+  }
+
+  /** Лотосовый пруд (T13.43): водная гладь с лотосами и пунктирным кольцом; использован — тусклый, без кольца. */
+  private drawPond(sim: ArcadeSim, pal: Palette, now: number): void {
+    const pond = sim.pond;
+    if (!pond) return;
+    const c = this.ctx;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 320);
+    c.fillStyle = pal.river; c.globalAlpha = pond.used ? 0.45 : 0.85;
+    c.beginPath(); c.ellipse(pond.x, pond.y, 46, 24, 0, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.ice; c.globalAlpha = pond.used ? 0.2 : 0.35 + 0.15 * pulse;
+    c.beginPath(); c.ellipse(pond.x - 10, pond.y - 6, 20, 8, 0, 0, Math.PI * 2); c.fill();
+    if (!pond.used) {
+      // Лотосы: три цветка, чуть покачиваются.
+      for (let i = 0; i < 3; i++) {
+        const a = (i / 3) * Math.PI * 2 + now / 2600;
+        const lx = pond.x + Math.cos(a) * 22, ly = pond.y + Math.sin(a) * 10;
+        c.fillStyle = pal.heal; c.globalAlpha = 0.9;
+        c.beginPath(); c.ellipse(lx, ly, 7, 4, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = pal.text; c.globalAlpha = 1;
+        c.beginPath(); c.moveTo(lx, ly - 7); c.lineTo(lx + 4, ly - 1); c.lineTo(lx - 4, ly - 1); c.closePath(); c.fill();
+      }
+      c.strokeStyle = pal.frost; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = 0.35 + 0.3 * pulse;
+      c.beginPath(); c.arc(pond.x, pond.y, ARCADE.pond.radius, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+    }
+    c.globalAlpha = 1;
   }
 
   /** Аванпост (T13.42): каменный постамент с шестом и знаменем, кольцо зоны и дуга прогресса; захвачен — знамя Aegis и мягкое свечение. */
@@ -548,8 +579,17 @@ export class ArcadeRenderer {
       const { x, y } = sim.chest;
       if (ch) { c.imageSmoothingEnabled = false; c.drawImage(ch, 0, 0, 32, 32, x - 24, y - 30, 48, 48); c.imageSmoothingEnabled = true; }
       else { c.fillStyle = pal.aegis; c.fillRect(x - 14, y - 12, 28, 22); }
-      c.strokeStyle = pal.aegis; c.globalAlpha = 0.35 + 0.35 * pulse; c.lineWidth = 2;
-      c.beginPath(); c.ellipse(x, y + 10, 30 + pulse * 4, 12, 0, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+      // Проклятый сундук (T13.43): ядовитое свечение вместо золотого и капли над крышкой — видно до вскрытия.
+      const cursed = sim.chest.value === 1;
+      c.strokeStyle = cursed ? pal.venom : pal.aegis; c.globalAlpha = 0.35 + 0.35 * pulse; c.lineWidth = 2;
+      c.beginPath(); c.ellipse(x, y + 10, 30 + pulse * 4, 12, 0, 0, Math.PI * 2); c.stroke();
+      if (cursed) {
+        c.fillStyle = pal.venomDark; c.globalAlpha = 0.3 + 0.2 * pulse;
+        c.beginPath(); c.ellipse(x, y + 10, 26, 10, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = pal.venom; c.globalAlpha = 0.9;
+        for (let i = 0; i < 3; i++) c.fillRect(x - 10 + i * 9, y - 40 - Math.round(pulse * 4 * ((i + 1) % 2)), 4, 4);
+      }
+      c.globalAlpha = 1;
     }
     for (const g of sim.groundLoot) {
       if (g.until <= 0) continue;
