@@ -422,6 +422,8 @@ export class ArcadeRenderer {
    * точек с таймером (лавка, bounty, руна, сундук, токен, щедрость): «открывает ближайшие события».
    */
   private drawMarkers(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
+    // Охотник Кровавой охоты (T13.51) — всегда: он идёт за тобой.
+    if (sim.hunter?.alive) this.drawEdgeMarker(sim.hunter.x - camX, sim.hunter.y - camY, pal.telegraph, "☠", pal, now);
     // Цель контракта — всегда, с восклицательным знаком: это выбранное приглашение.
     const ch = sim.contractHome();
     if (ch) this.drawEdgeMarker(ch.x - camX, ch.y - camY, pal.aegis, "!", pal, now);

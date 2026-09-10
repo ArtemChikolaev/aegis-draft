@@ -444,7 +444,7 @@ function ArcadeStage() {
   const cast = useCallback((key: AbilityKey) => controllerRef.current?.cast(ABILITY_MASK[key]), []);
   const sim = getArcadeSim();
   const p = sim?.player;
-  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : null;
+  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : sim?.hunter?.alive ? sim.hunter : null;
 
   return (
     <main className="arcade" data-testid="arcade-stage">
@@ -465,7 +465,7 @@ function ArcadeStage() {
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
                 {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}</Chip>}
-                {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}</Chip>}
+                {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}{sim.player.curse === "debt" ? ` · ${sim.player.debtLeft}` : ""}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
@@ -645,7 +645,7 @@ function ArcadeStage() {
               <Eyebrow>{t("arcade.loot.title")}</Eyebrow>
               <h2>{t(`arcade.gearName.${sim.lootOpen.base}` as MessageKey)}</h2>
               <p className="arcade-shop__hint">{t(`arcade.gear.slot.${sim.lootOpen.slot}` as MessageKey)} · {t(`arcade.rarity.${sim.lootOpen.rarity}` as MessageKey)} · T{sim.lootOpen.tier}{sim.lootOpen.unique ? ` · ${t("arcade.loot.unique")}` : ""}</p>
-              {sim.lootCursed && <p className="arcade-shop__hint arcade-loot__cursed" data-testid="arcade-loot-cursed">{t("arcade.loot.cursed")}</p>}
+              {sim.lootCursed && <p className="arcade-shop__hint arcade-loot__cursed" data-testid="arcade-loot-cursed">{t(`arcade.loot.cursed.${sim.lootCurse}` as MessageKey, { debt: Math.round(ARCADE.curse.debt.base + ARCADE.curse.debt.perMin * sim.tick / 3600), pct: Math.round(ARCADE.curse.debt.share * 100) })}</p>}
               <div className="arcade-offers arcade-loot__compare">
                 <GearCard item={sim.lootOpen} title={t("arcade.loot.found")} />
                 <GearCard item={(sim.player.gear[sim.lootOpen.slot] as GearItem | undefined) ?? null} title={t("arcade.loot.current")} />

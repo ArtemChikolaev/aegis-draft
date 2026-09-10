@@ -70,7 +70,7 @@ describe("лотосовый пруд и порча", () => {
     expect(sim.player.curse).toBeNull();
     // Второй проклятый сундук — принимаем.
     sim.chest = { alive: true, x: sim.player.x + 20, y: sim.player.y, until: sim.tick + sec(60), value: 1 };
-    step(sim, 1); sim.step(act(PICKUP_ACT)); sim.step(act(1));
+    step(sim, 1); sim.step(act(PICKUP_ACT)); sim.lootCurse = "withering"; sim.step(act(1)); // T13.51: вид порчи случаен — тест про Увядание
     expect(sim.player.curse).toBe("withering");
     // Лечение и регенерация ослаблены.
     const p = sim.player;

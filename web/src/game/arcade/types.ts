@@ -290,7 +290,7 @@ export interface Barrow { x: number; y: number; engaged: boolean; idolsDown: num
 export interface Pond { x: number; y: number; used: boolean }
 
 /** Порчи забега (T13.43). `withering` — лечение и регенерация ослаблены до снятия у пруда. */
-export type CurseId = "withering";
+export type CurseId = "withering" | "debt" | "bloodhunt";
 
 /** Аванпост (T13.42): точка захвата по seed; прогресс в тиках копится только рядом и не сбрасывается. */
 export interface Outpost {
@@ -430,6 +430,8 @@ export interface Player {
   neutralEnchant: string | null;
   /** Активная порча забега (T13.43); null — чист. */
   curse: CurseId | null;
+  /** Остаток долга лавочнику (T13.51) при порче `debt`. */
+  debtLeft: number;
   /** Экипировка (T13.14): надетое по слотам и сумка забега. Типы — content/gear.ts (без импорта: цикл). */
   gear: Record<string, GearLike>;
   bag: GearLike[];
@@ -475,4 +477,6 @@ export interface ArcadeOutcome {
   revived: boolean;
   /** Контракт охоты выполнен (T13.50). */
   contractDone: boolean;
+  /** Какая порча была принята последней (T13.51), для итога. */
+  lastCurse: CurseId | null;
 }

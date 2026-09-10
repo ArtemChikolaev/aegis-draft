@@ -143,9 +143,13 @@ export class ArcadeSim {
   pond: Pond | null = null;
   pondOpen = false;
   nearPond = false;
-  /** Открытая добыча — из проклятого сундука: принять = взять порчу. */
+  /** Открытая добыча — из проклятого сундука: принять = взять порчу (какую — решено при вскрытии, показано до кнопки). */
   lootCursed = false;
+  lootCurse: CurseId = "withering";
   private cursesTaken = 0;
+  private lastCurse: CurseId | null = null;
+  /** Кровавая охота (T13.51): чемпион-охотник; преследует героя, пока жив; ссылка снимается при смерти. */
+  hunter: Enemy | null = null;
   private chestNo = 0;
   /** Чей сейчас `pending`: уровень или награда лагеря (у награды нет реролла, заголовок другой). */
   pendingSource: "level" | "camp" = "level";
@@ -221,7 +225,7 @@ export class ArcadeSim {
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
-      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
+      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
@@ -356,7 +360,8 @@ export class ArcadeSim {
     e.shotCd = Math.max(0, e.shotCd - 1);
     if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
     const home = len(e.x - b.x, e.y - b.y);
-    if (!this.playerAtBarrow() || home > N.leash) {
+    const hunting = e === this.hunter;
+    if (!hunting && (!this.playerAtBarrow() || home > N.leash)) {
       if (home > 8) { e.x += (b.x - e.x) / home * e.kind.speed * DT; e.y += (b.y - e.y) / home * e.kind.speed * DT; }
       if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * N.regenPerSec);
       return;
@@ -364,7 +369,7 @@ export class ArcadeSim {
     let speed = e.kind.speed;
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     // Кайт: ближе keepMin — отходит от героя (но не дальше поводка), дальше keepMax — подходит.
-    if (d < N.keepMin && home < N.leash - 20) { e.x -= dx / d * speed * DT; e.y -= dy / d * speed * DT; }
+    if (d < N.keepMin && (hunting || home < N.leash - 20)) { e.x -= dx / d * speed * DT; e.y -= dy / d * speed * DT; }
     else if (d > N.keepMax) { e.x += dx / d * speed * DT; e.y += dy / d * speed * DT; }
     [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
     if (d < N.shot.range && e.shotCd === 0) {
@@ -404,6 +409,7 @@ export class ArcadeSim {
   /** Спящий чемпион (T13.45): не цель для ударов, умений, снарядов и толпы, урона не берёт — мимо него можно пройти.
    *  Будится только входом в рощу (wakeRadius): автоатака по «ближайшему» иначе будила его случайно и ломала кайт (бот 23→13%). */
   isDormant(e: Enemy): boolean {
+    if (e === this.hunter) return false;
     if (e.kind.id === "centaur_warden") return !!this.grove && !this.grove.engaged;
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") return !!this.barrow && !this.barrow.engaged && !!this.necromancer?.alive;
     return false;
@@ -488,7 +494,8 @@ export class ArcadeSim {
     if (stunned) return;
     if (e.slamCd > C.chargeCooldown - C.recovery) return;
     const home = len(e.x - g.x, e.y - g.y);
-    if (!this.playerAtGrove() || home > C.leash) {
+    const hunting = e === this.hunter;
+    if (!hunting && (!this.playerAtGrove() || home > C.leash)) {
       if (home > 8) { e.x += (g.x - e.x) / home * e.kind.speed * DT; e.y += (g.y - e.y) / home * e.kind.speed * DT; }
       if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * C.regenPerSec);
       return;
@@ -499,7 +506,7 @@ export class ArcadeSim {
       e.chargeLeft = -1;
       return;
     }
-    let speed = e.kind.speed;
+    let speed = e.kind.speed * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1);
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
     [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
@@ -531,9 +538,46 @@ export class ArcadeSim {
 
   /** Порча принята (T13.43): по кнопке, после показанного условия. */
   private applyCurse(id: CurseId): void {
-    this.player.curse = id;
+    const p = this.player;
+    p.curse = id;
+    this.lastCurse = id;
     this.cursesTaken++;
-    this.pushFx("burst", this.player.x, this.player.y, 60, 0, 20);
+    if (id === "debt") p.debtLeft = Math.round(ARCADE.curse.debt.base + ARCADE.curse.debt.perMin * this.minutes);
+    if (id === "bloodhunt") {
+      // Ближайший живой чемпион (Кентавр/Некромант) покидает дом: его зона разбужена и не отпускает.
+      const cands = [this.centaur, this.necromancer].filter((e): e is Enemy => !!e?.alive);
+      cands.sort((a, b) => len(a.x - p.x, a.y - p.y) - len(b.x - p.x, b.y - p.y));
+      this.hunter = cands[0] ?? null;
+      if (this.hunter === this.centaur && this.grove) this.grove.engaged = true;
+      if (this.hunter === this.necromancer && this.barrow) this.barrow.engaged = true;
+      if (!this.hunter) { p.curse = "withering"; this.lastCurse = "withering"; }
+    }
+    this.pushFx("burst", p.x, p.y, 60, 0, 20);
+  }
+
+  /** Снять порчу (пруд): охотник возвращается домой, долг прощён. */
+  private liftCurse(): void {
+    const p = this.player;
+    p.curse = null; p.debtLeft = 0; this.hunter = null;
+  }
+
+  /** Доход героя проходит через долг (T13.51): доля уходит лавочнику, пока долг не погашен; погасил — порча снята. */
+  private gainGold(amount: number): void {
+    const p = this.player;
+    if (amount <= 0) return;
+    if (p.curse === "debt" && p.debtLeft > 0) {
+      const pay = Math.min(p.debtLeft, Math.ceil(amount * ARCADE.curse.debt.share));
+      p.debtLeft -= pay; amount -= pay;
+      if (p.debtLeft <= 0) { this.liftCurse(); this.pushFx("levelup", p.x, p.y, 0, 0, 24); }
+    }
+    p.gold += amount;
+  }
+
+  /** Какая порча ждёт в проклятом сундуке: Кровавая охота — только при живом чемпионе и без контракта («свободный слот большой угрозы»). */
+  private rollCurse(): CurseId {
+    const pool: CurseId[] = ["withering", "debt"];
+    if ((this.centaur?.alive || this.necromancer?.alive) && !(this.contract && !this.contract.done)) pool.push("bloodhunt");
+    return pool[this.rng.int(pool.length)];
   }
 
   /** Выбор у пруда: 1 — лечение, 2 — снять порчу, 5 — уйти (пруд остаётся). Лечение не режется Увяданием: пруд и есть очищение. */
@@ -547,7 +591,7 @@ export class ArcadeSim {
       pond.used = true; this.pondOpen = false;
     } else if (act === 2) {
       if (!p.curse) return;
-      p.curse = null;
+      this.liftCurse();
       this.pushFx("revive", p.x, p.y, 0, 0, 30);
       pond.used = true; this.pondOpen = false;
     } else if (act === 5) this.pondOpen = false;
@@ -590,7 +634,7 @@ export class ArcadeSim {
     if (o.progress < o.need) return;
     o.captured = true;
     this.events.outposts++;
-    this.player.gold += Math.round((ARCADE.bounty.base + ARCADE.bounty.perMin * this.minutes) * ARCADE.outpost.goldMult);
+    this.gainGold(Math.round((ARCADE.bounty.base + ARCADE.bounty.perMin * this.minutes) * ARCADE.outpost.goldMult));
     this.shake = Math.max(this.shake, 10);
     this.pushFx("nova", o.x, o.y, ARCADE.outpost.radius + 60, 0, 40);
     this.pushFx("levelup", this.player.x, this.player.y, 0, 0, 30);
@@ -1645,6 +1689,7 @@ export class ArcadeSim {
       this.pushFx("burst", e.x, e.y, 70, 0, 18);
       this.tryClearCamp();
     }
+    if (e === this.hunter) { this.hunter = null; if (this.player.curse === "bloodhunt") { this.liftCurse(); this.pushFx("levelup", this.player.x, this.player.y, 0, 0, 24); } }
     if (e === this.necromancer) {
       this.necromancer = null; this.necromancerSlain = true;
       this.shake = Math.max(this.shake, 12);
@@ -1679,7 +1724,7 @@ export class ArcadeSim {
     }
     // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
     if (this.tick < e.burnUntil) this.pushFx("ash", e.x, e.y, e.kind.r, 0, 44);
-    p.gold += e.kind.gold + p.stats.goldPerKill;
+    this.gainGold(e.kind.gold + p.stats.goldPerKill);
     this.dropShard(e.x, e.y, e.kind.xp);
     const blast = this.upgradePower("rad_blast");
     if (blast > 0 && this.tick < e.burnUntil) {
@@ -1819,7 +1864,7 @@ export class ArcadeSim {
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
-      contractDone: this.contract?.done ?? false,
+      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse,
     };
   }
 
@@ -1835,7 +1880,7 @@ export class ArcadeSim {
     }
     if (this.bounty.alive && len(this.bounty.x - p.x, this.bounty.y - p.y) < 34) {
       this.bounty.alive = false;
-      p.gold += this.bounty.value;
+      this.gainGold(this.bounty.value);
       this.pushFx("heal", p.x, p.y - 30, 0, 0, 40, this.bounty.value);
     }
     if (this.rune.alive && len(this.rune.x - p.x, this.rune.y - p.y) < 34) { this.rune.alive = false; this.applyRune(this.runeKind); }
@@ -1991,7 +2036,7 @@ export class ArcadeSim {
       this.nextChestAt = this.tick + ARCADE.loot.chestEvery;
       const [cx, cy] = this.ringPoint(ARCADE.loot.distMin, ARCADE.loot.distMax);
       // Проклятый сундук (T13.43): не первый, с шансом, и только пока пруд не использован — иначе порчу нечем снять.
-      const cursed = this.chestNo++ > 0 && !!this.pond && !this.pond.used && this.rng.float() < ARCADE.curse.chestChance;
+      const cursed = this.chestNo++ > 0 && !!this.pond && !this.pond.used && !this.player.curse && this.rng.float() < ARCADE.curse.chestChance;
       this.chest = { alive: true, x: cx, y: cy, until: this.tick + ARCADE.loot.chestLifetime, value: cursed ? 1 : 0 };
     }
     if (this.chest.alive && this.tick >= this.chest.until) this.chest.alive = false;
@@ -2551,6 +2596,7 @@ export class ArcadeSim {
       this.chest.alive = false;
       const cursed = this.chest.value === 1;
       this.lootCursed = cursed;
+      if (cursed) this.lootCurse = this.rollCurse();
       this.lootOpen = this.rollLoot(cursed ? this.rarityUp(this.rollRarity()) : this.rollRarity());
       this.pushFx("levelup", this.chest.x, this.chest.y, 0, 0, 24);
     } else {
@@ -2604,7 +2650,7 @@ export class ArcadeSim {
     if (act >= BAG_DROP_ACT && act < BAG_DROP_ACT + ARCADE.loot.bagCap) { this.dropFromBag(act - BAG_DROP_ACT); return; }
     // Проклятый сундук: взять предмет (надеть или в сумку) = принять порчу; оставить у ног — без порчи, и предмет
     // на земле уже чистый (порча — цена вскрытия, а не сам предмет).
-    if ((act === 1 || (act === 2 && p.bag.length < ARCADE.loot.bagCap)) && this.lootCursed) this.applyCurse("withering");
+    if ((act === 1 || (act === 2 && p.bag.length < ARCADE.loot.bagCap)) && this.lootCursed) this.applyCurse(this.lootCurse);
     if (act === 1 || act === 2 || act === 5) this.lootCursed = false;
     if (act === 1) {
       const old = p.gear[item.slot];
@@ -2994,7 +3040,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

@@ -55,6 +55,8 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   if (sim.contractOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close }; // бот к чемпионам не ходит — контракт пропускает
   if (sim.lootOpen) {
     const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;
+    // Проклятая добыча (T13.43/T13.51): осторожный игрок берёт её только при заметном выигрыше — иначе оставляет у ног.
+    if (sim.lootCursed && !(cur && gearScore(sim.lootOpen) > gearScore(cur) * 1.6) && !(!cur && gearScore(sim.lootOpen) > 30)) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close };
     const better = !cur || gearScore(sim.lootOpen) > gearScore(cur);
     return { mx: 0, my: 0, cast: 0, choose: -1, act: better ? 1 : sim.player.bag.length < 12 ? 2 : SHOP_ACT.close };
   }
