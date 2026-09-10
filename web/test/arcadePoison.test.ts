@@ -10,8 +10,8 @@ import { IDLE_INPUT, type Enemy } from "../src/game/arcade/types.ts";
 const P = ARCADE.poison;
 
 function target(sim: ArcadeSim): Enemy {
-  for (let i = 0; i < sec(20) && !sim.enemies.some((e) => e.alive && !e.kind.elite); i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(IDLE_INPUT); }
-  const e = sim.enemies.find((x) => x.alive && !x.kind.elite)!;
+  for (let i = 0; i < sec(20) && !sim.enemies.some((e) => e.alive && !e.kind.elite && !e.kind.totem); i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(IDLE_INPUT); }
+  const e = sim.enemies.find((x) => x.alive && !x.kind.elite && !x.kind.totem)!;
   expect(e).toBeTruthy();
   e.hp = e.maxHp = 1e6; // чтобы цель не умерла посреди замера
   return e;

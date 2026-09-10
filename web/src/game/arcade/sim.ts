@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Camp, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -119,6 +119,11 @@ export class ArcadeSim {
   nearLoot: { kind: "chest" | "ground"; item: GearItem | null } | null = null;
   /** Экран сборки (экипировка, сумка, взятые умения): открыт по BUILD_ACT, мир стоит. */
   buildOpen = false;
+  /** Заражённый лагерь (T13.40): один на акт, стоит на карте по seed до конца забега. */
+  camp: Camp | null = null;
+  /** Чей сейчас `pending`: уровень или награда лагеря (у награды нет реролла, заголовок другой). */
+  pendingSource: "level" | "camp" = "level";
+  private campRewardQueued: Offer[] | null = null;
   /** Всё подобранное за забег — в инвентарь по итогу. */
   loot: GearItem[] = [];
   private nextChestAt = ARCADE.loot.chestFirstAt;
@@ -157,7 +162,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -194,6 +199,50 @@ export class ArcadeSim {
     // Уникальный Aegis of the Immortal: одно воскрешение уже на старте.
     if (Object.values(this.player.gear).some((g) => g.unique === "aegis_of_the_immortal")) this.player.aegis = true;
     this.recomputeStats();
+    this.camp = this.placeCamp(seed);
+  }
+
+  /**
+   * Лагерь по seed: отдельный Rng (как у карты), чтобы не сдвигать поток забега. Точка на кольце вокруг старта,
+   * не в реке/яме, центр и три места тотемов свободны от деревьев/камней — иначе тотем не достать мили-героем.
+   * Не нашли за 24 попытки — берём последнюю, вытолкнув из препятствий.
+   */
+  private placeCamp(seed: string): Camp {
+    const C = ARCADE.camp;
+    const rng = new Rng(`camp:${seed}:${this.act}`);
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    let x = cx0 + C.distMin, y = cy0;
+    for (let i = 0; i < 24; i++) {
+      const a = rng.float() * Math.PI * 2, d = C.distMin + rng.float() * (C.distMax - C.distMin);
+      x = clamp(cx0 + Math.cos(a) * d, C.radius + 60, W.w - C.radius - 60);
+      y = clamp(cy0 + Math.sin(a) * d, C.radius + 60, W.h - C.radius - 60);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + C.radius || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + C.radius)) continue;
+      if (this.obstacles.blocked(x, y, 40)) continue;
+      let free = true;
+      for (let t = 0; t < C.totems; t++) { const [tx, ty] = this.totemPoint(x, y, t); if (this.obstacles.blocked(tx, ty, 30)) { free = false; break; } }
+      if (free) break;
+    }
+    [x, y] = this.obstacles.resolve(x, y, 40);
+    const camp: Camp = { x, y, totems: C.totems, destroyed: 0, cleared: false, nextGuardAt: 0 };
+    for (let t = 0; t < C.totems; t++) { const [tx, ty] = this.obstacles.resolve(...this.totemPoint(x, y, t), 24); this.spawnEnemy(ENEMY_KINDS.corruption_totem, tx, ty); }
+    return camp;
+  }
+
+  private totemPoint(cx: number, cy: number, i: number): [number, number] {
+    const a = -Math.PI / 2 + (i / ARCADE.camp.totems) * Math.PI * 2;
+    return [cx + Math.cos(a) * ARCADE.camp.totemRing, cy + Math.sin(a) * ARCADE.camp.totemRing];
+  }
+
+  /** Живые тотемы лагеря (для HUD/рендера). */
+  totemsAlive(): number {
+    let n = 0;
+    for (const e of this.enemies) if (e.alive && e.kind.totem) n++;
+    return n;
+  }
+
+  /** Герой в зоне лагеря: охрана прибывает, HUD показывает счёт тотемов. */
+  playerAtCamp(): boolean {
+    return !!this.camp && len(this.player.x - this.camp.x, this.player.y - this.camp.y) <= ARCADE.camp.engageRadius;
   }
 
   /** Ночной акт: рендер ограничивает обзор, сим — нет (враги идут как обычно). */
@@ -1121,6 +1170,11 @@ export class ArcadeSim {
     }
     if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
     this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
+    if (e.kind.totem && this.camp && !this.camp.cleared) {
+      this.camp.destroyed++;
+      this.pushFx("burst", e.x, e.y, 70, 0, 18);
+      if (this.camp.destroyed >= this.camp.totems) this.clearCamp();
+    }
     // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
     if (this.tick < e.burnUntil) this.pushFx("ash", e.x, e.y, e.kind.r, 0, 44);
     p.gold += e.kind.gold + p.stats.goldPerKill;
@@ -1258,6 +1312,7 @@ export class ArcadeSim {
     this.over = {
       outcome, tick: this.tick, level: p.level, kills: p.kills, gold: p.gold, schools: [...p.schools],
       upgrades: Object.keys(p.upgrades), roshanKilled: this.roshanKilled, rank: this.rank.step, greedStacks: this.greedStacks, items: p.items.map((i) => i.id), hero: this.hero.id, act: this.act, neutral: p.neutral, loot: [...this.loot],
+      campsCleared: this.camp?.cleared ? 1 : 0,
     };
   }
 
@@ -1315,6 +1370,23 @@ export class ArcadeSim {
     }
     // Акт 3: пока ты не в яме, лес живёт своей жизнью — Рошан ждёт тебя, спавн идёт.
     if (this.roshan?.alive && (!this.pit || this.playerInPit())) return;
+    // Заражённый лагерь (T13.40): пока герой внутри и тотемы стоят, порча зовёт охрану; каждый снесённый тотем
+    // злит оставшихся — охраны больше, она крепче и приходит чаще. Ушёл — охрана перестаёт прибывать.
+    const camp = this.camp;
+    if (camp && !camp.cleared && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
+      const C = ARCADE.camp;
+      camp.nextGuardAt = this.tick + Math.round(C.guardEvery / (1 + 0.25 * camp.destroyed));
+      const n = C.guardBase + C.guardPerDestroyed * camp.destroyed;
+      const heavy = this.act === "dire" || this.act === "river";
+      for (let i = 0; i < n; i++) {
+        const kind = heavy && i % 2 === 1 ? ENEMY_KINDS.hellbear : ENEMY_KINDS.satyr;
+        const a = this.rng.float() * Math.PI * 2, d = C.guardRingMin + this.rng.float() * (C.guardRingMax - C.guardRingMin);
+        const [gx, gy] = this.obstacles.resolve(clamp(camp.x + Math.cos(a) * d, 8, ARCADE.world.w - 8), clamp(camp.y + Math.sin(a) * d, 8, ARCADE.world.h - 8), 24);
+        const g = this.spawnEnemy(kind, gx, gy);
+        const mult = 1 + C.guardHpPerDestroyed * camp.destroyed;
+        g.hp *= mult; g.maxHp *= mult;
+      }
+    }
     // Tormentor и Древний — не глушат обычный спавн.
     if (!this.tormentorSpawned && A.tormentorAt > 0 && this.tick >= A.tormentorAt) {
       this.tormentorSpawned = true;
@@ -1510,6 +1582,7 @@ export class ArcadeSim {
       // Яд тикает так же независимо; урон растёт со стаками (T13.39).
       if (this.tick < e.poisonUntil && this.tick % ARCADE.poison.tickEvery === 0) this.damageEnemy(e, e.poisonDps * e.poisonStacks * ARCADE.poison.tickShare, "burst");
       if (!e.alive) continue;
+      if (e.kind.totem) continue; // тотем стоит, не бьёт и не толкается
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -2052,6 +2125,28 @@ export class ArcadeSim {
     }
   }
 
+  /** Лагерь очищен: три карты апгрейдов гарантированной редкости (мир стоит, как на уровне); реролла нет. */
+  private clearCamp(): void {
+    if (!this.camp) return;
+    this.camp.cleared = true;
+    this.events.camps++;
+    this.shake = Math.max(this.shake, 14);
+    this.pushFx("nova", this.camp.x, this.camp.y, ARCADE.camp.radius + 40, 0, 36);
+    const offers: Offer[] = [];
+    for (let i = 0; i < 3; i++) {
+      const up = this.rollUpgradeOffer(offers.map((o) => (o.kind === "upgrade" ? o.id : "")));
+      if (!up || up.kind !== "upgrade") break;
+      offers.push({ kind: "upgrade", id: up.id, rarity: ARCADE.camp.rewardRarity });
+    }
+    // Пул школ исчерпан (все на потолке) — предлагаем очки способностей, чтобы награда не пропала.
+    for (const k of ["q", "w", "e"] as const) if (offers.length < 3 && this.player.abilities[k] < 4) offers.push({ kind: "ability", key: k });
+    if (offers.length === 0) return;
+    // Уже висит выбор уровня — награда подождёт: pending один.
+    if (this.pending) { this.campRewardQueued = offers; return; }
+    this.pending = offers;
+    this.pendingSource = "camp";
+  }
+
   // ---------- уровни: карточки ----------
 
   private rollOffers(): Offer[] {
@@ -2094,7 +2189,7 @@ export class ArcadeSim {
   private rerollPending(): void {
     const p = this.player;
     const price = DEV_FREE_SHOP ? 0 : this.levelRerollPrice();
-    if (!this.pending || p.gold < price) return;
+    if (!this.pending || p.gold < price || this.pendingSource === "camp") return;
     p.gold -= price;
     this.levelRerolls++;
     this.pending = this.rollOffers();
@@ -2150,6 +2245,8 @@ export class ArcadeSim {
       if (def.id === "leg_rad_phoenix") p.aegis = true; // Феникс: одно возрождение, как Aegis
     }
     this.pending = null;
+    this.pendingSource = "level";
+    if (this.campRewardQueued) { this.pending = this.campRewardQueued; this.campRewardQueued = null; this.pendingSource = "camp"; }
     this.recomputeStats();
     this.syncPets();
     // Уровень мог набежать «через» (несколько шардов разом) — следующий выбор на следующем тике.
@@ -2268,7 +2365,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

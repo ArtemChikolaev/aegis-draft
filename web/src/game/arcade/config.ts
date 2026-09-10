@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.40.0";
+export const ARCADE_CONFIG_VERSION = "a0.41.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -40,6 +40,12 @@ export const ARCADE = {
   /** Яд (T13.39, аудит 2026-09-08): самостоятельный статус, не горение. До `maxStacks` стаков с ОБЩИМ
    *  обновляемым таймером; каждый тик (`tickEvery`) снимает `dps × стаки × tickShare`. Истёк — стаки сгорают. */
   poison: { maxStacks: 5, seconds: 4, tickEvery: 12, tickShare: 0.2 },
+  /** Заражённый лагерь (T13.40, аудит 2026-09-08, первая «цель карты»): три тотема порчи стоят на карте по seed
+   *  на `distMin..distMax` от старта. Пока герой в `engageRadius`, каждые `guardEvery` тиков прибывает охрана
+   *  (`guardBase` + `guardPerDestroyed` за каждый снесённый тотем; HP охраны ×(1 + guardHpPerDestroyed × снесённых)).
+   *  Снёс все три — выбор из трёх апгрейдов редкости `rewardRarity`. Можно уйти в любой момент: награда только за
+   *  завершение, штрафа нет. */
+  camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */
     base: 1.7,

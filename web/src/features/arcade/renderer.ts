@@ -230,6 +230,7 @@ export class ArcadeRenderer {
     this.drawAegis(sim, pal, now);
     this.drawShrine(sim, pal, now);
     this.drawSpots(sim, pal, now);
+    this.drawCamp(sim, pal, now);
     this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
@@ -256,6 +257,7 @@ export class ArcadeRenderer {
       for (const l of this.labels) { m.font = l.font; m.fillStyle = l.fill; m.globalAlpha = l.alpha; m.textAlign = l.align; m.fillText(l.text, l.x, l.y); }
       m.globalAlpha = 1; m.restore();
     }
+    this.drawCampMarker(sim, pal, now, camX, camY);
     if (joystick) this.drawJoystick(joystick, pal);
   }
 
@@ -376,6 +378,48 @@ export class ArcadeRenderer {
     c.fillStyle = pal.greed;
     c.beginPath(); c.moveTo(s.x, s.y - 18); c.lineTo(s.x + 13, s.y); c.lineTo(s.x, s.y + 18); c.lineTo(s.x - 13, s.y); c.closePath(); c.fill();
     c.globalAlpha = 1;
+  }
+
+  /** Заражённый лагерь (T13.40): пунктирное кольцо порчи вокруг лагеря и лужи под живыми тотемами. Очищен — ничего. */
+  private drawCamp(sim: ArcadeSim, pal: Palette, now: number): void {
+    const camp = sim.camp;
+    if (!camp || camp.cleared) return;
+    const c = this.ctx;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+    c.strokeStyle = pal.venom; c.lineWidth = 2; c.setLineDash([10, 8]); c.globalAlpha = 0.3 + 0.25 * pulse;
+    c.beginPath(); c.arc(camp.x, camp.y, ARCADE.camp.radius + pulse * 4, 0, Math.PI * 2); c.stroke();
+    c.setLineDash([]);
+    for (const e of sim.enemies) {
+      if (!e.alive || !e.kind.totem) continue;
+      c.fillStyle = pal.venomDark; c.globalAlpha = 0.35 + 0.15 * pulse;
+      c.beginPath(); c.ellipse(e.x, e.y + 8, 30 + pulse * 3, 12, 0, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+
+  /** Лагерь вне кадра — стрелка у края экрана с числом живых тотемов (экранные координаты, после мирового прохода). */
+  private drawCampMarker(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
+    const camp = sim.camp;
+    if (!camp || camp.cleared) return;
+    const sx = camp.x - camX, sy = camp.y - camY;
+    const pad = 26;
+    if (sx >= pad && sx <= this.w - pad && sy >= pad && sy <= this.h - pad) return;
+    const m = this.mainCtx;
+    const cx = this.w / 2, cy = this.h / 2;
+    const dx = sx - cx, dy = sy - cy;
+    const k = Math.min((this.w / 2 - pad) / Math.abs(dx || 1e-6), (this.h / 2 - pad) / Math.abs(dy || 1e-6));
+    const mx = cx + dx * k, my = cy + dy * k;
+    const a = Math.atan2(dy, dx);
+    const pulse = 0.5 + 0.5 * Math.sin(now / 240);
+    m.save();
+    m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    m.translate(mx, my); m.rotate(a);
+    m.fillStyle = pal.venom; m.globalAlpha = 0.6 + 0.4 * pulse;
+    m.beginPath(); m.moveTo(10, 0); m.lineTo(-6, -7); m.lineTo(-3, 0); m.lineTo(-6, 7); m.closePath(); m.fill();
+    m.rotate(-a);
+    m.fillStyle = pal.text; m.font = "800 11px var(--font-display, sans-serif)"; m.textAlign = "center"; m.textBaseline = "middle";
+    m.fillText(String(sim.totemsAlive()), -Math.cos(a) * 18, -Math.sin(a) * 18);
+    m.restore();
   }
 
   private drawSpots(sim: ArcadeSim, pal: Palette, now: number): void {

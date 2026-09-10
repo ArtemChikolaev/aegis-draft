@@ -1588,6 +1588,11 @@
     "centaur_death_2.m4a"
    ]
   },
+  "corruption_totem": {
+   "death": [
+    "tormentor_death_1.m4a"
+   ]
+  },
   "dark_troll": {
    "attack": [
     "dark_troll_attack_1.m4a",

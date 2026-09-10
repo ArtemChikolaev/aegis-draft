@@ -318,7 +318,7 @@ function ArcadeStage() {
     let wasShop = false;
     let wasBoss = false;
     let wasNeutral = false;
-    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0 };
+    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
     const voiceId = skinnedHero(heroDef.id, useArcade.getState().cosmetics.equipped);
@@ -384,6 +384,7 @@ function ArcadeStage() {
       else if (ev.casts > seen.casts) sfxArcade("cast");
       if (ev.hurt > seen.hurt) { if (!handled.hurt) sfxArcade("hurt"); hurtUntil = now + 140; }
       if (ev.pickups > seen.pickups) sfxArcade("pickup");
+      if (ev.camps > seen.camps) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 8; }
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
@@ -448,6 +449,7 @@ function ArcadeStage() {
                 {p.aegis && <Chip>{t("arcade.hud.aegis")}</Chip>}
                 {sim.hero.signature && (sim.hero.signature.kind === "souls" || sim.hero.signature.kind === "swipes") && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
+                {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
               <Button variant="secondary" className="arcade-hud__build" data-testid="arcade-build-open" onClick={() => controllerRef.current?.onBuild?.()}>{t("arcade.build.open")}</Button>
@@ -779,9 +781,9 @@ function ArcadeStage() {
         {sim?.pending && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-levelup">
             <div className="arcade-levelup">
-              <Eyebrow>{t("arcade.levelUp", { n: sim.player.level })}</Eyebrow>
-              <h2>{t("arcade.pick")}</h2>
-              <p className="arcade-shop__hint">{t("arcade.pickHint")}</p>
+              <Eyebrow>{sim.pendingSource === "camp" ? t("arcade.camp.title") : t("arcade.levelUp", { n: sim.player.level })}</Eyebrow>
+              <h2>{sim.pendingSource === "camp" ? t("arcade.camp.pick") : t("arcade.pick")}</h2>
+              <p className="arcade-shop__hint">{sim.pendingSource === "camp" ? t("arcade.camp.hint") : t("arcade.pickHint")}</p>
               <div className="arcade-offers">
                 {sim.pending.map((offer, i) => (
                   <div key={i} className="arcade-offer-wrap">
@@ -793,7 +795,7 @@ function ArcadeStage() {
                 ))}
               </div>
               <div className="arcade-overlay__actions arcade-shop__actions">
-                <Button variant="secondary" data-testid="arcade-levelup-reroll" disabled={sim.player.gold < sim.levelRerollPrice()} onClick={() => levelReroll()}>{t("arcade.levelup.reroll", { gold: sim.levelRerollPrice() })}</Button>
+                {sim.pendingSource !== "camp" && <Button variant="secondary" data-testid="arcade-levelup-reroll" disabled={sim.player.gold < sim.levelRerollPrice()} onClick={() => levelReroll()}>{t("arcade.levelup.reroll", { gold: sim.levelRerollPrice() })}</Button>}
               </div>
             </div>
           </div>
@@ -812,6 +814,7 @@ function ArcadeStage() {
                 <div><dt>{t("arcade.rank")}</dt><dd>{t(`arcade.tier.${rankOf(outcome.rank).tier}` as MessageKey)} {"★".repeat(rankOf(outcome.rank).stars)}</dd></div>
                 <div><dt>{t("arcade.actLabel")}</dt><dd>{t(`arcade.act.${outcome.act}` as MessageKey)}</dd></div>
                 {outcome.greedStacks > 0 && <div><dt>{t("arcade.hud.greed")}</dt><dd>×{outcome.greedStacks}</dd></div>}
+                {outcome.campsCleared > 0 && <div><dt>{t("arcade.over.camp")}</dt><dd>{t("arcade.over.campYes")}</dd></div>}
               </dl>
               {lastLoot.length > 0 && (
                 <div className="arcade-drops" data-testid="arcade-loot-result">

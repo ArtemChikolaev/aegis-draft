@@ -46,7 +46,7 @@ export type InputLogEntry = [step: number, mx: number, my: number, cast: number,
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
-  | "dark_troll" | "hellbear";
+  | "dark_troll" | "hellbear" | "corruption_totem";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -65,6 +65,8 @@ export interface EnemyKind {
   reflect?: number;
   /** Не берут статусы: горение, заморозка, стан, замедление. */
   unstoppable?: boolean;
+  /** Тотем лагеря (T13.40): стоит на месте, не бьёт и не толкается; цель для ударов, смерть двигает лагерь к очищению. */
+  totem?: boolean;
   /** Стреляет снарядом с дистанции (осадный крип). */
   ranged?: { range: number; every: number; speed: number };
   /** С какой минуты появляется в обычном спавне и вес в пуле. */
@@ -255,6 +257,19 @@ export interface ArcadeEventCounters {
   castE: number;
   castR: number;
   hurtBy: number;
+  /** Очищенные лагеря (T13.40) — звук и juice награды. */
+  camps: number;
+}
+
+/** Заражённый лагерь (T13.40): позиция по seed, счёт снесённых тотемов, состояние очищения. */
+export interface Camp {
+  x: number;
+  y: number;
+  totems: number;
+  destroyed: number;
+  cleared: boolean;
+  /** Тик следующей охраны, пока герой в лагере. */
+  nextGuardAt: number;
 }
 
 export interface Fx {
@@ -393,4 +408,6 @@ export interface ArcadeOutcome {
   neutral: string | null;
   /** Добыча забега: всё подобранное (надетое новое + сумка) — уходит в инвентарь. */
   loot: GearLike[];
+  /** Очищенные лагеря порчи (T13.40). */
+  campsCleared: number;
 }
