@@ -29,6 +29,8 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   corruption_totem: { id: "corruption_totem", hp: 210, speed: 0, dmg: 0, r: 16, xp: 14, gold: 10, unstoppable: true, totem: true, fromMin: 99, weight: 0, tone: "elite" },
   // Сатир-Осквернитель (T13.41): чемпион лагеря — щит от тотемов, «порыв» по телеграфу, полосы порчи. Поведение — sim.moveDefiler.
   satyr_defiler: { id: "satyr_defiler", hp: 1500, speed: 78, dmg: 22, r: 20, xp: 80, gold: 40, elite: true, fromMin: 99, weight: 0, tone: "elite" },
+  // Кентавр-Страж рощи (T13.45): чемпион с телеграфированным рывком; врезается в камень — оглушён. Поведение — sim.moveCentaur.
+  centaur_warden: { id: "centaur_warden", hp: 1300, speed: 74, dmg: 24, r: 22, xp: 80, gold: 40, elite: true, fromMin: 99, weight: 0, tone: "elite" },
   ancient: {
     id: "ancient", hp: 9000, speed: 0, dmg: 55, r: 58, xp: 300, gold: 200, structure: true, unstoppable: true, fromMin: 99, weight: 0, tone: "boss",
     ranged: { range: 560, every: 1.0, speed: 280 },

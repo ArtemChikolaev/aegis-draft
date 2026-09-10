@@ -2,7 +2,7 @@
 // масс врагов + сбор ближайшего XP-шарда + жадный выбор карточек одной школы. Печатает кривые
 // выживаемости по сидам: доля доживших до Рошана, убивших его, победивших; p25/p50/p75 времени.
 // Запуск: `npm run sim:arcade -- --runs 200 --seed base --school radiance`.
-import { ArcadeSim } from "../src/game/arcade/sim.ts";
+import { ArcadeSim, KIND_BY_INDEX } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
 import { PICKUP_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
@@ -138,7 +138,9 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1, act: 0 };
 }
 
-interface RunResult { seconds: number; level: number; kills: number; roshan: boolean; reachedRoshan: boolean; outcome: string; schools: string[]; roshanHp: number }
+interface RunResult { seconds: number; level: number; kills: number; roshan: boolean; reachedRoshan: boolean; outcome: string; schools: string[]; roshanHp: number
+  killer: string;
+}
 const VERBOSE = args.has("verbose");
 /** Гистерезис отхода от босса: ушёл при <30% HP, вернулся при >55%. */
 let retreating = false;
@@ -160,7 +162,7 @@ for (let i = 0; i < RUNS; i++) {
   }
   const o = sim.over ?? { outcome: "timeout", tick: sim.tick, level: sim.player.level, kills: sim.player.kills, gold: sim.player.gold, roshanKilled: sim.roshanKilled, schools: sim.player.schools };
   const roshanHp = sim.roshan ? Math.max(0, sim.roshan.hp / sim.roshan.maxHp) : 1;
-  results.push({ seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp });
+  results.push({ seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "" });
   if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
 }
 const elapsed = (performance.now() - t0) / 1000;
@@ -173,3 +175,7 @@ console.log(`death time p25/p50/p75: ${q(secs, 0.25).toFixed(0)}s / ${q(secs, 0.
 const byMinute = new Map<number, number>();
 for (const r of results) if (r.outcome === "dead") byMinute.set(Math.floor(r.seconds / 60), (byMinute.get(Math.floor(r.seconds / 60)) ?? 0) + 1);
 console.log("deaths by minute:", [...byMinute.entries()].sort((a, b) => a[0] - b[0]).map(([m, n]) => `${m}:${n}`).join(" "));
+// Кто нанёс последний урон (T13.45): чемпионы и лагерь не должны становиться главной причиной ранних смертей.
+const byKiller = new Map<string, number>();
+for (const r of results) if (r.outcome === "dead") byKiller.set(r.killer, (byKiller.get(r.killer) ?? 0) + 1);
+console.log("deaths by killer:", [...byKiller.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`).join(" "));

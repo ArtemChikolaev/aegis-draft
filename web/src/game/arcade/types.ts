@@ -46,7 +46,7 @@ export type InputLogEntry = [step: number, mx: number, my: number, cast: number,
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
-  | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler";
+  | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -166,6 +166,11 @@ export interface Enemy {
   ampMult: number;
   /** Осквернитель (T13.41): после окна контроля — иммунитет к повторному до этого тика. */
   ccResistUntil: number;
+  /** Кентавр (T13.45): рывок — направление и оставшийся путь (−1 = телеграф рывка идёт); попал ли уже в героя. */
+  chargeDx: number;
+  chargeDy: number;
+  chargeLeft: number;
+  chargeHit: boolean;
   /** Яд (T13.39): стаки с общим таймером; урон за тик = poisonDps × стаки × tickShare (ARCADE.poison). */
   poisonUntil: number;
   poisonStacks: number;
@@ -266,6 +271,9 @@ export interface ArcadeEventCounters {
   /** Захваченные аванпосты (T13.42). */
   outposts: number;
 }
+
+/** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
+export interface Grove { x: number; y: number; engaged: boolean; rocks: number }
 
 /** Лотосовый пруд (T13.43): одно использование на забег — лечение или снятие порчи. */
 export interface Pond { x: number; y: number; used: boolean }
@@ -445,4 +453,6 @@ export interface ArcadeOutcome {
   /** Принятых порч за забег и осталась ли порча к концу (T13.43). */
   cursesTaken: number;
   cursed: boolean;
+  /** Кентавр-Страж рощи убит (T13.45). */
+  centaurSlain: boolean;
 }

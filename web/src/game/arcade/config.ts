@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.45.0";
+export const ARCADE_CONFIG_VERSION = "a0.46.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -71,6 +71,18 @@ export const ARCADE = {
    *  (нельзя выдать порчу, которую нечем снять): добыча на `lootRarityUp` ступень редкости выше, принял (надел
    *  или в сумку) — «Увядание»: лечение и регенерация × `withering.healMult` до снятия у пруда. */
   curse: { chestChance: 0.5, lootRarityUp: 1, withering: { healMult: 0.35 } },
+  /** Кентавр-Страж рощи (T13.45, этап 3 аудита): чемпион с рывком. Спит в роще (по seed, рядом с камнями), пока
+   *  герой не войдёт в `wakeRadius` или не ударит. В `chargeRange` — телеграф `chargeTelegraph` (стрелка на позицию
+   *  героя), затем рывок `chargeSpeed` на `chargeLen`: попал в героя — `chargeDmg`; врезался в камень — оглушён на
+   *  `rockStun` и берёт ×`stunnedDmgMult` урона; добежал — «широкий удар» `slamRadius`/`slamDmg` после `slamTelegraph`.
+   *  После — `recovery` окно. Поводок `leash` от рощи, сон/регенерация вне контакта; контроль как у Сатира. Награда:
+   *  два предмета exotic на выбор — броня и сапоги (защита/мобильность). */
+  centaur: {
+    distMin: 600, distMax: 950, minFromOthers: 500, wakeRadius: 140, engageRadius: 420, leash: 260, regenPerSec: 0.02,
+    chargeRange: 380, chargeTelegraph: sec(0.8), chargeSpeed: 540, chargeLen: 440, chargeDmg: 70, chargeHitRadius: 34,
+    rockStun: sec(2.5), stunnedDmgMult: 1.5, slamTelegraph: sec(0.6), slamRadius: 130, slamDmg: 48, chargeCooldown: sec(4.5), recovery: sec(1.0),
+    ccCap: sec(0.5), ccResist: sec(3),
+  },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */

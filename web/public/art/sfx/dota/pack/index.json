@@ -1588,6 +1588,16 @@
     "centaur_death_2.m4a"
    ]
   },
+  "centaur_warden": {
+   "attack": [
+    "centaur_attack_1.m4a",
+    "centaur_attack_2.m4a"
+   ],
+   "death": [
+    "centaur_death_1.m4a",
+    "centaur_death_2.m4a"
+   ]
+  },
   "corruption_totem": {
    "death": [
     "tormentor_death_1.m4a"

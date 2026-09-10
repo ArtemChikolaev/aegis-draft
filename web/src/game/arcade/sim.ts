@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Camp, type CurseId, type Outpost, type Pond, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Camp, type CurseId, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -126,6 +126,10 @@ export class ArcadeSim {
   defiler: Enemy | null = null;
   /** Аванпост (T13.42): один на акт, по seed, на другой стороне от лагеря. */
   outpost: Outpost | null = null;
+  /** Роща и Кентавр-Страж (T13.45); ссылка снимается при смерти (пул врагов переиспользует объекты). */
+  grove: Grove | null = null;
+  centaur: Enemy | null = null;
+  private centaurSlain = false;
   /** Лотосовый пруд (T13.43): одно использование; открытый выбор ставит мир на паузу, как лавка. */
   pond: Pond | null = null;
   pondOpen = false;
@@ -219,6 +223,140 @@ export class ArcadeSim {
     this.camp = this.placeCamp(seed);
     this.outpost = this.placeOutpost(seed);
     this.pond = this.placePond(seed);
+    this.grove = this.placeGrove(seed);
+  }
+
+  /** Роща по seed: кольцо от старта, подальше от лагеря/аванпоста/пруда; из 40 проб берём место с наибольшим числом камней рядом —
+   *  без камня рывок нечем прервать. */
+  private placeGrove(seed: string): Grove {
+    const C = ARCADE.centaur;
+    const rng = new Rng(`grove:${seed}:${this.act}`);
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    const rocksNear = (x: number, y: number) => { let n = 0; for (const o of this.obstacles.obstacles) if (o.kind === "rock" && len(o.x - x, o.y - y) < 240) n++; return n; };
+    let best: Grove | null = null;
+    for (let i = 0; i < 40; i++) {
+      const a = rng.float() * Math.PI * 2, d = C.distMin + rng.float() * (C.distMax - C.distMin);
+      const x = clamp(cx0 + Math.cos(a) * d, 120, W.w - 120), y = clamp(cy0 + Math.sin(a) * d, 120, W.h - 120);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
+      if ((this.camp && len(x - this.camp.x, y - this.camp.y) < C.minFromOthers) || (this.outpost && len(x - this.outpost.x, y - this.outpost.y) < C.minFromOthers) || (this.pond && len(x - this.pond.x, y - this.pond.y) < C.minFromOthers)) continue;
+      if (this.obstacles.blocked(x, y, 40)) continue;
+      const g: Grove = { x, y, engaged: false, rocks: rocksNear(x, y) };
+      if (!best || g.rocks > best.rocks) best = g;
+      if (best.rocks >= 3) break;
+    }
+    if (!best) { const [x, y] = this.obstacles.resolve(cx0 + C.distMin, cy0, 40); best = { x, y, engaged: false, rocks: rocksNear(x, y) }; }
+    this.centaur = this.spawnEnemy(ENEMY_KINDS.centaur_warden, best.x, best.y);
+    return best;
+  }
+
+  playerAtGrove(): boolean {
+    return !!this.grove && !!this.centaur?.alive && this.grove.engaged;
+  }
+
+  /** Спящий чемпион (T13.45): не цель для ударов, умений, снарядов и толпы, урона не берёт — мимо него можно пройти.
+   *  Будится только входом в рощу (wakeRadius): автоатака по «ближайшему» иначе будила его случайно и ломала кайт (бот 23→13%). */
+  isDormant(e: Enemy): boolean {
+    return e.kind.id === "centaur_warden" && !!this.grove && !this.grove.engaged;
+  }
+
+  private updateGroveEngage(): void {
+    const g = this.grove;
+    if (!g || !this.centaur?.alive) return;
+    const d = len(this.player.x - g.x, this.player.y - g.y);
+    if (!g.engaged && d <= ARCADE.centaur.wakeRadius) g.engaged = true;
+    else if (g.engaged && d > ARCADE.centaur.engageRadius) g.engaged = false;
+  }
+
+  /** Контроль чемпиона: не дольше cap, после — resist иммунитета к повторному (Сатир и Кентавр). */
+  private capControl(e: Enemy, cap: number, resist: number): void {
+    if (this.tick < e.ccResistUntil) { e.stunUntil = 0; e.freezeUntil = 0; return; }
+    const until = this.tick + cap;
+    if (e.stunUntil > until) e.stunUntil = until;
+    if (e.freezeUntil > until) e.freezeUntil = until;
+    const end = Math.max(e.stunUntil, e.freezeUntil);
+    if (end > this.tick) e.ccResistUntil = end + resist;
+  }
+
+  private moveCentaurEntry(e: Enemy, dx: number, dy: number, d: number): void {
+    // Контроль ограничен в любом состоянии, кроме самого рывка (он короче окна).
+    if (e.chargeLeft <= 0) this.capControl(e, ARCADE.centaur.ccCap, ARCADE.centaur.ccResist);
+    // Телеграф рывка тикает здесь: на нуле — старт рывка (chargeLeft = −1 отличает его от телеграфа удара).
+    if (e.chargeLeft === -1 && e.slamT > 0) {
+      e.slamT--;
+      if (e.slamT === 0) { e.chargeLeft = ARCADE.centaur.chargeLen; e.chargeHit = false; this.pushFx("slash", e.x, e.y, e.x + e.chargeDx * 60, e.y + e.chargeDy * 60, 10); }
+      return;
+    }
+    this.moveCentaur(e, dx, dy, d);
+  }
+
+  /**
+   * Кентавр-Страж рощи (T13.45): спит дома, пока рощу не разбудили; в бою — телеграф рывка на позицию героя, рывок по
+   * прямой: попал — урон, врезался в камень — сам оглушён (окно ×1.5 урона), добежал — широкий удар с телеграфом.
+   * Пауза после каждого паттерна; поводок; контроль ограничен.
+   */
+  private moveCentaur(e: Enemy, dx: number, dy: number, d: number): void {
+    const C = ARCADE.centaur, g = this.grove;
+    if (!g) return;
+    e.slamCd = Math.max(0, e.slamCd - 1);
+    const p = this.player;
+    const stunned = this.tick < e.stunUntil || this.tick < e.freezeUntil;
+    if (e.chargeLeft > 0) {
+      const stepLen = Math.min(e.chargeLeft, C.chargeSpeed * DT);
+      e.x += e.chargeDx * stepLen; e.y += e.chargeDy * stepLen; e.chargeLeft -= stepLen;
+      if (!e.chargeHit && len(p.x - e.x, p.y - e.y) <= C.chargeHitRadius + ARCADE.player.r) {
+        e.chargeHit = true;
+        this.damagePlayer(e.dmg / e.kind.dmg * C.chargeDmg, 0, e.kind);
+        this.shake = Math.max(this.shake, 8);
+      }
+      for (const o of this.obstacles.near(e.x, e.y)) {
+        if (o.kind !== "rock" || len(o.x - e.x, o.y - e.y) > o.r + e.kind.r * 0.7) continue;
+        // Врезался: отскок от камня, оглушение, окно наказания.
+        e.chargeLeft = 0;
+        const bx = e.x - o.x, by = e.y - o.y, bl = len(bx, by) || 1;
+        e.x = o.x + bx / bl * (o.r + e.kind.r); e.y = o.y + by / bl * (o.r + e.kind.r);
+        e.stunUntil = Math.max(e.stunUntil, this.tick + C.rockStun);
+        e.ccResistUntil = e.stunUntil + C.ccResist;
+        e.slamCd = C.chargeCooldown;
+        this.shake = Math.max(this.shake, 10);
+        this.pushFx("burst", e.x, e.y, 60, 0, 16);
+        return;
+      }
+      if (e.chargeLeft <= 0) { e.slamT = C.slamTelegraph; e.slamX = e.x; e.slamY = e.y; e.chargeLeft = 0; }
+      e.x = clamp(e.x, 8, ARCADE.world.w - 8); e.y = clamp(e.y, 8, ARCADE.world.h - 8);
+      return;
+    }
+    if (e.slamT > 0) {
+      e.slamT--;
+      if (e.slamT === 0) {
+        if (len(p.x - e.slamX, p.y - e.slamY) <= C.slamRadius + ARCADE.player.r) this.damagePlayer(e.dmg / e.kind.dmg * C.slamDmg, 0.3, e.kind);
+        this.shake = Math.max(this.shake, 8);
+        this.pushFx("nova", e.slamX, e.slamY, C.slamRadius, 0, 16);
+        e.slamCd = C.chargeCooldown;
+      }
+      return;
+    }
+    if (stunned) return;
+    if (e.slamCd > C.chargeCooldown - C.recovery) return;
+    const home = len(e.x - g.x, e.y - g.y);
+    if (!this.playerAtGrove() || home > C.leash) {
+      if (home > 8) { e.x += (g.x - e.x) / home * e.kind.speed * DT; e.y += (g.y - e.y) / home * e.kind.speed * DT; }
+      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * C.regenPerSec);
+      return;
+    }
+    if (e.slamCd === 0 && d <= C.chargeRange + ARCADE.player.r && d > e.kind.r + ARCADE.player.r + 6) {
+      e.slamT = C.chargeTelegraph; e.slamX = p.x; e.slamY = p.y;
+      e.chargeDx = dx / d; e.chargeDy = dy / d;
+      e.chargeLeft = -1;
+      return;
+    }
+    let speed = e.kind.speed;
+    if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
+    e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
+    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
+      e.contactCd = sec(ARCADE.boss.contactEvery);
+      this.damagePlayer(e.dmg, 0, e.kind);
+    }
   }
 
   /** Пруд по seed: кольцо от старта, не ближе minFromOthers к лагерю и аванпосту, не в реке/яме, не в дереве. */
@@ -1275,6 +1413,8 @@ export class ArcadeSim {
     if (plasma > 0 && fx === "zap" && this.tick >= e.burnUntil) this.applyBurn(e, 5 * plasma, 2);
     // Осквернитель под щитом тотемов: с тремя живыми берёт четверть урона, без тотемов — весь (T13.41).
     if (e.kind.id === "satyr_defiler" && this.camp) dmg *= Math.max(0, 1 - ARCADE.defiler.shieldPerTotem * this.totemsAlive());
+    // Кентавр, оглушённый камнем, берёт больше (T13.45); спящий — не берёт ничего.
+    if (e.kind.id === "centaur_warden") { if (this.isDormant(e)) return; if (this.tick < e.stunUntil) dmg *= ARCADE.centaur.stunnedDmgMult; }
     // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
     if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
     e.hp -= dmg;
@@ -1305,6 +1445,14 @@ export class ArcadeSim {
       this.camp.destroyed++;
       this.pushFx("burst", e.x, e.y, 70, 0, 18);
       this.tryClearCamp();
+    }
+    if (e === this.centaur) {
+      // Награда Стража: защитная и мобильная экипировка на выбор — два exotic-предмета у ног (броня и сапоги).
+      this.centaur = null; this.centaurSlain = true;
+      this.shake = Math.max(this.shake, 12);
+      this.pushFx("nova", e.x, e.y, 150, 0, 24);
+      this.dropLoot(e.x - 26, e.y + 10, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "armor"));
+      this.dropLoot(e.x + 26, e.y + 10, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "boots"));
     }
     if (e === this.defiler) { this.defiler = null; this.shake = Math.max(this.shake, 12); this.pushFx("nova", e.x, e.y, 150, 0, 24); this.tryClearCamp(); }
     // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
@@ -1342,7 +1490,7 @@ export class ArcadeSim {
     }
     else if (e.kind.id === "tormentor") this.dropLoot(e.x, e.y, uniqueGear("tormentors_shard", this.nextUid(), this.lootTier()));
     else if (e.kind.structure) this.loot.push(uniqueGear("heart_of_the_ancient", this.nextUid(), 3));
-    else if (e.kind.elite) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
+    else if (e.kind.elite && e.kind.id !== "centaur_warden") this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
     else if (this.rng.float() < ARCADE.loot.commonChance) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
     if (e.kind.id === "tormentor") {
       // Награда за Tormentor: щедрость без платы — 60 с двойного опыта.
@@ -1448,6 +1596,7 @@ export class ArcadeSim {
       campsCleared: this.camp?.cleared ? 1 : 0,
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
+      centaurSlain: this.centaurSlain,
     };
   }
 
@@ -1509,6 +1658,7 @@ export class ArcadeSim {
     // Заражённый лагерь (T13.40): пока герой внутри и тотемы стоят, порча зовёт охрану; каждый снесённый тотем
     // злит оставшихся — охраны больше, она крепче и приходит чаще. Ушёл — охрана перестаёт прибывать.
     this.updateCampEngage();
+    this.updateGroveEngage();
     const camp = this.camp;
     if (camp && !camp.cleared && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
       const C = ARCADE.camp;
@@ -1663,7 +1813,7 @@ export class ArcadeSim {
   private rebuildGrid(): void {
     this.grid.clear();
     for (const e of this.enemies) {
-      if (!e.alive) continue;
+      if (!e.alive || this.isDormant(e)) continue;
       const key = cellKey(e.x, e.y);
       const cell = this.grid.get(key);
       if (cell) cell.push(e); else this.grid.set(key, [e]);
@@ -1724,6 +1874,7 @@ export class ArcadeSim {
       if (!e.alive) continue;
       if (e.kind.totem) continue; // тотем стоит, не бьёт и не толкается
       if (e.kind.id === "satyr_defiler") { this.moveDefiler(e, dx, dy, d); continue; }
+      if (e.kind.id === "centaur_warden") { this.moveCentaurEntry(e, dx, dy, d); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -2321,14 +2472,7 @@ export class ArcadeSim {
     const D = ARCADE.defiler, camp = this.camp;
     if (!camp) return;
     e.slamCd = Math.max(0, e.slamCd - 1);
-    if (this.tick < e.ccResistUntil) { e.stunUntil = 0; e.freezeUntil = 0; }
-    else {
-      const cap = this.tick + D.ccCap;
-      if (e.stunUntil > cap) e.stunUntil = cap;
-      if (e.freezeUntil > cap) e.freezeUntil = cap;
-      const until = Math.max(e.stunUntil, e.freezeUntil);
-      if (until > this.tick) e.ccResistUntil = until + D.ccResist;
-    }
+    this.capControl(e, D.ccCap, D.ccResist);
     const frozen = this.tick < e.freezeUntil || this.tick < e.stunUntil;
     const p = this.player;
     if (e.slamT > 0) {
@@ -2567,7 +2711,7 @@ export class ArcadeSim {
   nearestEnemy(x: number, y: number, radius: number): Enemy | null {
     let best: Enemy | null = null, bestD = radius;
     for (const e of this.enemies) {
-      if (!e.alive) continue;
+      if (!e.alive || this.isDormant(e)) continue;
       const d = len(e.x - x, e.y - y) - e.kind.r;
       if (d < bestD) { bestD = d; best = e; }
     }
@@ -2576,13 +2720,13 @@ export class ArcadeSim {
 
   enemiesWithin(x: number, y: number, radius: number): Enemy[] {
     const out: Enemy[] = [];
-    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r) out.push(e);
+    for (const e of this.enemies) if (e.alive && !this.isDormant(e) && len(e.x - x, e.y - y) <= radius + e.kind.r) out.push(e);
     return out;
   }
 
   countEnemiesWithin(x: number, y: number, radius: number): number {
     let n = 0;
-    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r) n++;
+    for (const e of this.enemies) if (e.alive && !this.isDormant(e) && len(e.x - x, e.y - y) <= radius + e.kind.r) n++;
     return n;
   }
 
@@ -2605,7 +2749,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }
@@ -2643,7 +2787,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, poisonUntil: 0, poisonStacks: 0, poisonDps: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0,
   };
 }
 

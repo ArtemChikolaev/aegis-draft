@@ -426,6 +426,8 @@ export class ArcadeRenderer {
     if (camp && !camp.cleared) this.drawEdgeMarker(camp.x - camX, camp.y - camY, pal.venom, String(sim.totemsAlive()), pal, now);
     const o = sim.outpost;
     if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
+    // Роща — приглашение только после захвата аванпоста (обзор открывает крупную охоту), чтобы у края не было больше двух.
+    if (o?.captured && sim.grove && sim.centaur?.alive) this.drawEdgeMarker(sim.grove.x - camX, sim.grove.y - camY, pal.crit, "", pal, now);
     // Пруд приглашает сам, когда есть что снять; иначе — как остальные точки после захвата аванпоста.
     const pond = sim.pond;
     if (pond && !pond.used && (sim.player.curse || o?.captured)) this.drawEdgeMarker(pond.x - camX, pond.y - camY, pal.frost, sim.player.curse ? "✚" : "", pal, now);
@@ -649,6 +651,7 @@ export class ArcadeRenderer {
       const r = e.kind.r;
       const flash = tick - e.hitAt < 4;
       const tone = pal[TONE_KEY[e.kind.tone]];
+      const dormant = sim.isDormant(e);
       const staticSheet = e.kind.structure || e.kind.id === "tormentor" ? enemySheet(e.kind.id) : null;
       if (staticSheet) {
         // Древний/Tormentor из модели Dota — один кадр idle; размер от радиуса, как у остальных.
@@ -677,7 +680,8 @@ export class ArcadeRenderer {
           const anim = attackT >= 0 ? "attack" : moving ? "walk" : "idle";
           const frames = ds.meta.anims[anim]?.frames ?? ds.meta.anims.walk?.frames ?? 1;
           const frame = attackT >= 0 ? Math.floor(attackT * frames) : Math.floor((tick / 60) * ds.meta.fps * (moving ? speedK : 0.6) + e.id);
-          drawn = drawDotaFrame(c, ds, anim, dotaDir(sim.player.x - e.x, sim.player.y - e.y, ds.meta.dirs), frame, e.x, e.y + r * 0.6, flash ? 0.55 : 1, (e.kind.r * 2) / ds.meta.world > 1.2 ? (e.kind.r * 2) / ds.meta.world : 1);
+          drawn = drawDotaFrame(c, ds, anim, dotaDir(sim.player.x - e.x, sim.player.y - e.y, ds.meta.dirs), frame, e.x, e.y + r * 0.6, flash ? 0.55 : dormant ? 0.7 : 1, (e.kind.r * 2) / ds.meta.world > 1.2 ? (e.kind.r * 2) / ds.meta.world : 1);
+          if (dormant) { c.fillStyle = pal.text; c.globalAlpha = 0.6 + 0.3 * Math.sin(tick / 20); c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center"; this.text(c, "z", e.x + 14, e.y - r * 1.8 - Math.round((tick / 30) % 6)); c.globalAlpha = 1; }
         }
         if (!drawn && look.kind === "char") {
           const anim: CharAnim = attackT >= 0 ? attackAnim(look.spec) : "walk";
@@ -717,6 +721,31 @@ export class ArcadeRenderer {
         c.fillStyle = pal.hp; c.fillRect(e.x - w / 2, e.y - r - 16, w * Math.max(0, e.hp / e.maxHp), 5);
       }
       const defiler = e.kind.id === "satyr_defiler";
+      const warden = e.kind.id === "centaur_warden";
+      if (warden && e.slamT > 0 && e.chargeLeft === -1) {
+        // Телеграф рывка: пунктирная стрелка от кентавра, пятно удара бежит к цели по мере налива.
+        const k = 1 - e.slamT / ARCADE.centaur.chargeTelegraph;
+        const L = ARCADE.centaur.chargeLen;
+        c.strokeStyle = pal.telegraph; c.lineWidth = 3 + 3 * k; c.globalAlpha = 0.5 + 0.4 * k; c.setLineDash([12, 8]);
+        c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(e.x + e.chargeDx * L, e.y + e.chargeDy * L); c.stroke();
+        c.setLineDash([]);
+        c.fillStyle = pal.telegraph; c.globalAlpha = 0.25 + 0.3 * k;
+        c.beginPath(); c.arc(e.x + e.chargeDx * L * k, e.y + e.chargeDy * L * k, ARCADE.centaur.chargeHitRadius, 0, Math.PI * 2); c.fill();
+        c.globalAlpha = 1;
+      } else if (warden && e.slamT > 0) {
+        const k = 1 - e.slamT / ARCADE.centaur.slamTelegraph;
+        c.strokeStyle = pal.telegraph; c.lineWidth = 3; c.globalAlpha = 0.9;
+        c.beginPath(); c.arc(e.slamX, e.slamY, ARCADE.centaur.slamRadius, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = pal.telegraph; c.globalAlpha = 0.18 + 0.3 * k;
+        c.beginPath(); c.arc(e.slamX, e.slamY, ARCADE.centaur.slamRadius * k, 0, Math.PI * 2); c.fill();
+        c.globalAlpha = 1;
+      }
+      if (warden && tick < e.stunUntil) {
+        // Оглушён камнем: звёзды над головой — окно наказания.
+        c.fillStyle = pal.crit; c.globalAlpha = 0.95;
+        for (let i = 0; i < 3; i++) { const a = tick / 8 + (i / 3) * Math.PI * 2; c.beginPath(); c.arc(e.x + Math.cos(a) * 18, e.y - r * 1.6 + Math.sin(a) * 5, 3, 0, Math.PI * 2); c.fill(); }
+        c.globalAlpha = 1;
+      }
       if ((e.kind.boss || defiler) && e.slamT > 0) {
         const tele = defiler ? ARCADE.defiler.galeTelegraph : ARCADE.boss.slamTelegraph;
         const rad = defiler ? ARCADE.defiler.galeRadius : ARCADE.boss.slamRadius;

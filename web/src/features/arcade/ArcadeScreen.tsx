@@ -440,7 +440,7 @@ function ArcadeStage() {
   const cast = useCallback((key: AbilityKey) => controllerRef.current?.cast(ABILITY_MASK[key]), []);
   const sim = getArcadeSim();
   const p = sim?.player;
-  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : null;
+  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : null;
 
   return (
     <main className="arcade" data-testid="arcade-stage">
@@ -474,7 +474,7 @@ function ArcadeStage() {
             <BuffBar sim={sim} />
             {boss && (
               <div className="arcade-hud__boss">
-                <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
+                <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : boss.kind.id === "centaur_warden" ? t(sim!.tick < boss.stunUntil ? "arcade.hud.centaurStunned" : "arcade.hud.centaur") : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
                 <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, boss.hp / boss.maxHp) * 100}%` }} /></div>
               </div>
             )}
@@ -850,6 +850,7 @@ function ArcadeStage() {
                 {outcome.greedStacks > 0 && <div><dt>{t("arcade.hud.greed")}</dt><dd>×{outcome.greedStacks}</dd></div>}
                 {outcome.campsCleared > 0 && <div><dt>{t("arcade.over.camp")}</dt><dd>{t("arcade.over.campYes")}</dd></div>}
                 {outcome.outpostCaptured && <div><dt>{t("arcade.over.outpost")}</dt><dd>{t("arcade.over.outpostYes")}</dd></div>}
+                {outcome.centaurSlain && <div><dt>{t("arcade.over.centaur")}</dt><dd>{t("arcade.over.centaurYes")}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>
               {lastSeals > 0 && <p className="arcade-result__seals" data-testid="arcade-seals-result">{t("arcade.legacy.earned", { n: lastSeals })}</p>}
