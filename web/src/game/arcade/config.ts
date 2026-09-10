@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.41.0";
+export const ARCADE_CONFIG_VERSION = "a0.42.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -43,9 +43,21 @@ export const ARCADE = {
   /** Заражённый лагерь (T13.40, аудит 2026-09-08, первая «цель карты»): три тотема порчи стоят на карте по seed
    *  на `distMin..distMax` от старта. Пока герой в `engageRadius`, каждые `guardEvery` тиков прибывает охрана
    *  (`guardBase` + `guardPerDestroyed` за каждый снесённый тотем; HP охраны ×(1 + guardHpPerDestroyed × снесённых)).
+   *  Лагерь спит, пока герой не войдёт в `wakeRadius` или не ударит тотем/Сатира; разбуженный отпускает за `engageRadius`.
    *  Снёс все три — выбор из трёх апгрейдов редкости `rewardRarity`. Можно уйти в любой момент: награда только за
    *  завершение, штрафа нет. */
-  camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
+  /** Сатир-Осквернитель (T13.41): чемпион лагеря. Спит в центре, пока герой не войдёт; тотемы дают ему щит
+   *  (`shieldPerTotem` за живой тотем — с тремя берёт лишь четверть урона), между парами живых тотемов раз в
+   *  `lineEvery` тянется полоса порчи: пунктир-телеграф `lineTelegraph`, затем `lineActive` бьёт стоящего на ней.
+   *  Паттерн «порыв» — как удар Рошана: телеграф → взрыв → окно восстановления для мили. Уходит за `leash` от
+   *  лагеря — возвращается домой и лечится: отступить можно всегда. Контроль работает, но не дольше `ccCap`,
+   *  после — `ccResist` иммунитета к повторному (аудит: не выключать контроль совсем). */
+  defiler: {
+    chaseFrom: 240, chaseSpeed: 138, galeRange: 110, galeTelegraph: sec(1.0), galeRadius: 96, galeDmg: 64, galeStun: 0.45, galeCooldown: sec(3.4), galeRecovery: sec(1.2),
+    lineEvery: sec(5), lineTelegraph: sec(1.2), lineActive: sec(1.0), lineWidth: 34, lineDmgMult: 1.8, lineHitEvery: sec(0.6),
+    shieldPerTotem: 0.25, leash: 260, regenPerSec: 0.02, ccCap: sec(0.5), ccResist: sec(3),
+  },
+  camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */
     base: 1.7,

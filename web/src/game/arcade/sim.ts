@@ -121,6 +121,8 @@ export class ArcadeSim {
   buildOpen = false;
   /** Заражённый лагерь (T13.40): один на акт, стоит на карте по seed до конца забега. */
   camp: Camp | null = null;
+  /** Сатир-Осквернитель лагеря (T13.41); ссылка снимается при смерти (пул врагов переиспользует объекты). */
+  defiler: Enemy | null = null;
   /** Чей сейчас `pending`: уровень или награда лагеря (у награды нет реролла, заголовок другой). */
   pendingSource: "level" | "camp" = "level";
   private campRewardQueued: Offer[] | null = null;
@@ -223,8 +225,9 @@ export class ArcadeSim {
       if (free) break;
     }
     [x, y] = this.obstacles.resolve(x, y, 40);
-    const camp: Camp = { x, y, totems: C.totems, destroyed: 0, cleared: false, nextGuardAt: 0 };
+    const camp: Camp = { x, y, totems: C.totems, destroyed: 0, cleared: false, engaged: false, nextGuardAt: 0, line: null, nextLineAt: 0, lineHitAt: 0 };
     for (let t = 0; t < C.totems; t++) { const [tx, ty] = this.obstacles.resolve(...this.totemPoint(x, y, t), 24); this.spawnEnemy(ENEMY_KINDS.corruption_totem, tx, ty); }
+    this.defiler = this.spawnEnemy(ENEMY_KINDS.satyr_defiler, x, y);
     return camp;
   }
 
@@ -240,9 +243,18 @@ export class ArcadeSim {
     return n;
   }
 
-  /** Герой в зоне лагеря: охрана прибывает, HUD показывает счёт тотемов. */
+  /** Лагерь разбужен героем: охрана прибывает, Сатир гонит, HUD показывает счёт тотемов. Обновляется в spawnTick и при ударе по лагерю. */
   playerAtCamp(): boolean {
-    return !!this.camp && len(this.player.x - this.camp.x, this.player.y - this.camp.y) <= ARCADE.camp.engageRadius;
+    return !!this.camp && !this.camp.cleared && this.camp.engaged;
+  }
+
+  /** Гистерезис агро: будим во внутреннем кольце, отпускаем за внешним (как нейтральный лагерь Dota). */
+  private updateCampEngage(): void {
+    const camp = this.camp;
+    if (!camp || camp.cleared) return;
+    const d = len(this.player.x - camp.x, this.player.y - camp.y);
+    if (!camp.engaged && d <= ARCADE.camp.wakeRadius) camp.engaged = true;
+    else if (camp.engaged && d > ARCADE.camp.engageRadius) camp.engaged = false;
   }
 
   /** Ночной акт: рендер ограничивает обзор, сим — нет (враги идут как обычно). */
@@ -1146,6 +1158,10 @@ export class ArcadeSim {
     if (cond > 0 && fx === "zap" && this.tick < e.freezeUntil) dmg *= 1 + 0.35 * cond;
     const plasma = this.upgradePower("hyb_plasma");
     if (plasma > 0 && fx === "zap" && this.tick >= e.burnUntil) this.applyBurn(e, 5 * plasma, 2);
+    // Осквернитель под щитом тотемов: с тремя живыми берёт четверть урона, без тотемов — весь (T13.41).
+    if (e.kind.id === "satyr_defiler" && this.camp) dmg *= Math.max(0, 1 - ARCADE.defiler.shieldPerTotem * this.totemsAlive());
+    // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
+    if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
     e.hp -= dmg;
     e.hitAt = this.tick;
     if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect));
@@ -1173,8 +1189,9 @@ export class ArcadeSim {
     if (e.kind.totem && this.camp && !this.camp.cleared) {
       this.camp.destroyed++;
       this.pushFx("burst", e.x, e.y, 70, 0, 18);
-      if (this.camp.destroyed >= this.camp.totems) this.clearCamp();
+      this.tryClearCamp();
     }
+    if (e === this.defiler) { this.defiler = null; this.shake = Math.max(this.shake, 12); this.pushFx("nova", e.x, e.y, 150, 0, 24); this.tryClearCamp(); }
     // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
     if (this.tick < e.burnUntil) this.pushFx("ash", e.x, e.y, e.kind.r, 0, 44);
     p.gold += e.kind.gold + p.stats.goldPerKill;
@@ -1372,6 +1389,7 @@ export class ArcadeSim {
     if (this.roshan?.alive && (!this.pit || this.playerInPit())) return;
     // Заражённый лагерь (T13.40): пока герой внутри и тотемы стоят, порча зовёт охрану; каждый снесённый тотем
     // злит оставшихся — охраны больше, она крепче и приходит чаще. Ушёл — охрана перестаёт прибывать.
+    this.updateCampEngage();
     const camp = this.camp;
     if (camp && !camp.cleared && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
       const C = ARCADE.camp;
@@ -1387,6 +1405,7 @@ export class ArcadeSim {
         g.hp *= mult; g.maxHp *= mult;
       }
     }
+    this.tickCampLine();
     // Tormentor и Древний — не глушат обычный спавн.
     if (!this.tormentorSpawned && A.tormentorAt > 0 && this.tick >= A.tormentorAt) {
       this.tormentorSpawned = true;
@@ -1583,6 +1602,7 @@ export class ArcadeSim {
       if (this.tick < e.poisonUntil && this.tick % ARCADE.poison.tickEvery === 0) this.damageEnemy(e, e.poisonDps * e.poisonStacks * ARCADE.poison.tickShare, "burst");
       if (!e.alive) continue;
       if (e.kind.totem) continue; // тотем стоит, не бьёт и не толкается
+      if (e.kind.id === "satyr_defiler") { this.moveDefiler(e, dx, dy, d); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -2125,6 +2145,91 @@ export class ArcadeSim {
     }
   }
 
+  /** Лагерь очищен, когда снесены все тотемы И убит Осквернитель (T13.41) — в любом порядке. */
+  private tryClearCamp(): void {
+    if (!this.camp || this.camp.cleared || this.camp.destroyed < this.camp.totems || this.defiler?.alive) return;
+    this.clearCamp();
+  }
+
+  /** Полоса порчи между двумя живыми тотемами (T13.41): пока герой в лагере, Осквернитель жив и тотемов ≥ 2. */
+  private tickCampLine(): void {
+    const camp = this.camp;
+    if (!camp || camp.cleared) return;
+    const D = ARCADE.defiler;
+    const p = this.player;
+    if (camp.line && this.tick >= camp.line.activeUntil) camp.line = null;
+    if (camp.line) {
+      const L = camp.line;
+      if (this.tick >= L.telegraphUntil && this.tick >= camp.lineHitAt) {
+        // Расстояние от героя до отрезка тотем–тотем.
+        const vx = L.bx - L.ax, vy = L.by - L.ay, wx = p.x - L.ax, wy = p.y - L.ay;
+        const t = Math.max(0, Math.min(1, (vx * wx + vy * wy) / ((vx * vx + vy * vy) || 1)));
+        if (len(p.x - (L.ax + vx * t), p.y - (L.ay + vy * t)) <= D.lineWidth / 2 + ARCADE.player.r) {
+          camp.lineHitAt = this.tick + D.lineHitEvery;
+          this.damagePlayer((this.defiler?.dmg ?? ENEMY_KINDS.satyr_defiler.dmg) * D.lineDmgMult, 0, ENEMY_KINDS.satyr_defiler);
+        }
+      }
+      return;
+    }
+    if (!this.defiler?.alive || !this.playerAtCamp() || this.tick < camp.nextLineAt) return;
+    const alive = this.enemies.filter((e) => e.alive && e.kind.totem);
+    if (alive.length < 2) return;
+    const a = alive.splice(this.rng.int(alive.length), 1)[0];
+    const b = alive[this.rng.int(alive.length)];
+    camp.line = { ax: a.x, ay: a.y, bx: b.x, by: b.y, telegraphUntil: this.tick + D.lineTelegraph, activeUntil: this.tick + D.lineTelegraph + D.lineActive };
+    camp.nextLineAt = camp.line.activeUntil + D.lineEvery;
+  }
+
+  /**
+   * Осквернитель: спит дома, пока герой вне лагеря, и лечится; в лагере гонит героя (быстрее, если тот далеко),
+   * бьёт «порывом» по телеграфу и стоит после него — окно для мили. За поводком возвращается домой. Контроль
+   * держится не дольше ccCap, потом ccResist иммунитета: не выключаем контроль, но не даём заперманентить.
+   */
+  private moveDefiler(e: Enemy, dx: number, dy: number, d: number): void {
+    const D = ARCADE.defiler, camp = this.camp;
+    if (!camp) return;
+    e.slamCd = Math.max(0, e.slamCd - 1);
+    if (this.tick < e.ccResistUntil) { e.stunUntil = 0; e.freezeUntil = 0; }
+    else {
+      const cap = this.tick + D.ccCap;
+      if (e.stunUntil > cap) e.stunUntil = cap;
+      if (e.freezeUntil > cap) e.freezeUntil = cap;
+      const until = Math.max(e.stunUntil, e.freezeUntil);
+      if (until > this.tick) e.ccResistUntil = until + D.ccResist;
+    }
+    const frozen = this.tick < e.freezeUntil || this.tick < e.stunUntil;
+    const p = this.player;
+    if (e.slamT > 0) {
+      e.slamT--;
+      if (e.slamT === 0) {
+        if (len(p.x - e.slamX, p.y - e.slamY) <= D.galeRadius + ARCADE.player.r) this.damagePlayer(D.galeDmg * (e.dmg / e.kind.dmg), D.galeStun, e.kind);
+        this.shake = Math.max(this.shake, 8);
+        this.pushFx("nova", e.slamX, e.slamY, D.galeRadius, 0, 16);
+        e.slamCd = D.galeCooldown;
+      }
+      return;
+    }
+    if (e.slamCd > D.galeCooldown - D.galeRecovery) return;
+    if (frozen) return;
+    const home = len(e.x - camp.x, e.y - camp.y);
+    // Сон / поводок: герой вне лагеря или сатир ушёл слишком далеко — домой и лечиться.
+    if (!this.playerAtCamp() || home > ARCADE.camp.radius + D.leash) {
+      if (home > 8) { e.x += (camp.x - e.x) / home * e.kind.speed * DT; e.y += (camp.y - e.y) / home * e.kind.speed * DT; }
+      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * D.regenPerSec);
+      return;
+    }
+    if (d <= D.galeRange + ARCADE.player.r && e.slamCd === 0) { e.slamT = D.galeTelegraph; e.slamX = p.x; e.slamY = p.y; return; }
+    let speed = d > D.chaseFrom ? D.chaseSpeed : e.kind.speed;
+    if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
+    e.x += dx / d * speed * DT;
+    e.y += dy / d * speed * DT;
+    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
+      e.contactCd = sec(ARCADE.boss.contactEvery);
+      this.damagePlayer(e.dmg, 0, e.kind);
+    }
+  }
+
   /** Лагерь очищен: три карты апгрейдов гарантированной редкости (мир стоит, как на уровне); реролла нет. */
   private clearCamp(): void {
     if (!this.camp) return;
@@ -2365,7 +2470,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }
@@ -2403,7 +2508,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, poisonUntil: 0, poisonStacks: 0, poisonDps: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, poisonUntil: 0, poisonStacks: 0, poisonDps: 0,
   };
 }
 

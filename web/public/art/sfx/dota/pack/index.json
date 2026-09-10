@@ -1713,6 +1713,23 @@
     "satyr_death_4.m4a"
    ]
   },
+  "satyr_defiler": {
+   "aggro": [
+    "satyr_aggro_1.m4a"
+   ],
+   "attack": [
+    "satyr_attack_1.m4a",
+    "satyr_attack_2.m4a",
+    "satyr_attack_3.m4a",
+    "satyr_attack_4.m4a"
+   ],
+   "death": [
+    "satyr_death_1.m4a",
+    "satyr_death_2.m4a",
+    "satyr_death_3.m4a",
+    "satyr_death_4.m4a"
+   ]
+  },
   "siege_creep": {
    "aggro": [
     "siege_creep_aggro_1.m4a"

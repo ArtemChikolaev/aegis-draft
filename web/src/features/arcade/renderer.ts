@@ -394,6 +394,23 @@ export class ArcadeRenderer {
       c.fillStyle = pal.venomDark; c.globalAlpha = 0.35 + 0.15 * pulse;
       c.beginPath(); c.ellipse(e.x, e.y + 8, 30 + pulse * 3, 12, 0, 0, Math.PI * 2); c.fill();
     }
+    // Полоса порчи между тотемами (T13.41): телеграф — пунктир, активная — широкая полоса с тёмным ядром.
+    const L = camp.line;
+    if (L) {
+      const active = sim.tick >= L.telegraphUntil;
+      if (active) {
+        c.strokeStyle = pal.venom; c.lineWidth = ARCADE.defiler.lineWidth; c.globalAlpha = 0.5 + 0.2 * pulse; c.lineCap = "round";
+        c.beginPath(); c.moveTo(L.ax, L.ay); c.lineTo(L.bx, L.by); c.stroke();
+        c.strokeStyle = pal.venomDark; c.lineWidth = ARCADE.defiler.lineWidth * 0.4; c.globalAlpha = 0.8;
+        c.beginPath(); c.moveTo(L.ax, L.ay); c.lineTo(L.bx, L.by); c.stroke();
+        c.lineCap = "butt";
+      } else {
+        const k = 1 - (L.telegraphUntil - sim.tick) / ARCADE.defiler.lineTelegraph;
+        c.strokeStyle = pal.telegraph; c.lineWidth = 2 + 2 * k; c.setLineDash([8, 6]); c.globalAlpha = 0.5 + 0.4 * k;
+        c.beginPath(); c.moveTo(L.ax, L.ay); c.lineTo(L.bx, L.by); c.stroke();
+        c.setLineDash([]);
+      }
+    }
     c.globalAlpha = 1;
   }
 
@@ -612,12 +629,26 @@ export class ArcadeRenderer {
         c.fillStyle = pal.hpBg; c.fillRect(e.x - w / 2, e.y - r - 16, w, 5);
         c.fillStyle = pal.hp; c.fillRect(e.x - w / 2, e.y - r - 16, w * Math.max(0, e.hp / e.maxHp), 5);
       }
-      if (e.kind.boss && e.slamT > 0) {
-        const k = 1 - e.slamT / ARCADE.boss.slamTelegraph;
+      const defiler = e.kind.id === "satyr_defiler";
+      if ((e.kind.boss || defiler) && e.slamT > 0) {
+        const tele = defiler ? ARCADE.defiler.galeTelegraph : ARCADE.boss.slamTelegraph;
+        const rad = defiler ? ARCADE.defiler.galeRadius : ARCADE.boss.slamRadius;
+        const k = 1 - e.slamT / tele;
         c.strokeStyle = pal.telegraph; c.lineWidth = 3; c.globalAlpha = 0.9;
-        c.beginPath(); c.arc(e.slamX, e.slamY, ARCADE.boss.slamRadius, 0, Math.PI * 2); c.stroke();
+        c.beginPath(); c.arc(e.slamX, e.slamY, rad, 0, Math.PI * 2); c.stroke();
         c.fillStyle = pal.telegraph; c.globalAlpha = 0.18 + 0.3 * k;
-        c.beginPath(); c.arc(e.slamX, e.slamY, ARCADE.boss.slamRadius * k, 0, Math.PI * 2); c.fill();
+        c.beginPath(); c.arc(e.slamX, e.slamY, rad * k, 0, Math.PI * 2); c.fill();
+        c.globalAlpha = 1;
+      }
+      if (defiler) {
+        // Щит тотемов: дуги вокруг сатира по числу живых тотемов; спит — тусклее.
+        const shield = sim.totemsAlive();
+        const asleep = !sim.playerAtCamp();
+        c.strokeStyle = pal.venom; c.lineWidth = 3; c.globalAlpha = asleep ? 0.35 : 0.85;
+        for (let i = 0; i < shield; i++) {
+          const a0 = -Math.PI / 2 + (i / 3) * Math.PI * 2 + 0.25, a1 = a0 + (Math.PI * 2) / 3 - 0.5;
+          c.beginPath(); c.arc(e.x, e.y + r * 0.2, r + 12, a0, a1); c.stroke();
+        }
         c.globalAlpha = 1;
       }
     }

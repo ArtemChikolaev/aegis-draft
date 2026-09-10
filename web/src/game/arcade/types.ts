@@ -46,7 +46,7 @@ export type InputLogEntry = [step: number, mx: number, my: number, cast: number,
 export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
-  | "dark_troll" | "hellbear" | "corruption_totem";
+  | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -164,6 +164,8 @@ export interface Enemy {
   /** Corrosive Haze (Slardar): до какого тика цель получает на ampMult больше урона. */
   ampUntil: number;
   ampMult: number;
+  /** Осквернитель (T13.41): после окна контроля — иммунитет к повторному до этого тика. */
+  ccResistUntil: number;
   /** Яд (T13.39): стаки с общим таймером; урон за тик = poisonDps × стаки × tickShare (ARCADE.poison). */
   poisonUntil: number;
   poisonStacks: number;
@@ -268,8 +270,15 @@ export interface Camp {
   totems: number;
   destroyed: number;
   cleared: boolean;
+  /** Лагерь разбужен (T13.41): герой вошёл во внутреннее кольцо или ударил тотем/Сатира; отпускает за engageRadius.
+   *  Без этого кайтящий герой будил лагерь с 460 px и влетал в Сатира на первой минуте (бот: победы 27→15%). */
+  engaged: boolean;
   /** Тик следующей охраны, пока герой в лагере. */
   nextGuardAt: number;
+  /** Полоса порчи между двумя тотемами (T13.41): телеграф до `telegraphUntil`, бьёт до `activeUntil`. */
+  line: { ax: number; ay: number; bx: number; by: number; telegraphUntil: number; activeUntil: number } | null;
+  nextLineAt: number;
+  lineHitAt: number;
 }
 
 export interface Fx {

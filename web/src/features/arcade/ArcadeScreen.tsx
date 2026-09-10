@@ -430,7 +430,7 @@ function ArcadeStage() {
   const cast = useCallback((key: AbilityKey) => controllerRef.current?.cast(ABILITY_MASK[key]), []);
   const sim = getArcadeSim();
   const p = sim?.player;
-  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : null;
+  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : null;
 
   return (
     <main className="arcade" data-testid="arcade-stage">
@@ -462,7 +462,7 @@ function ArcadeStage() {
             <BuffBar sim={sim} />
             {boss && (
               <div className="arcade-hud__boss">
-                <span>{t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
+                <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
                 <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, boss.hp / boss.maxHp) * 100}%` }} /></div>
               </div>
             )}

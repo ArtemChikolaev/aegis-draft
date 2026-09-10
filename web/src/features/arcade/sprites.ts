@@ -497,7 +497,7 @@ export function dotaSheet(name: string): DotaSheet | null {
  *  `centaur` — это и неутральный кентавр-крип, и Centaur Warrunner, и одна строка манифеста
  *  затирала другую, из-за чего крип бегал в модели героя. Вид врага в симе переименовать нельзя
  *  (он в реплеях и ленте fx), поэтому разводим только имена листов. */
-const ENEMY_SHEET: Record<string, string> = { centaur: "centaur_creep", corruption_totem: "ward_plague" };
+const ENEMY_SHEET: Record<string, string> = { centaur: "centaur_creep", corruption_totem: "ward_plague", satyr_defiler: "satyr" };
 export function enemySheet(kindId: string): DotaSheet | null {
   return dotaSheet(ENEMY_SHEET[kindId] ?? kindId);
 }

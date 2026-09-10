@@ -11,7 +11,7 @@ const totems = (sim: ArcadeSim): Enemy[] => sim.enemies.filter((e) => e.alive &&
 const guards = (sim: ArcadeSim): Enemy[] => sim.enemies.filter((e) => e.alive && !e.kind.totem);
 const idle = (sim: ArcadeSim, ticks: number) => { for (let i = 0; i < ticks && !sim.over; i++) { sim.player.hp = 1e6; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT); } };
 /** Убить обычных врагов, чтобы тесты про охрану считали только прибывших. */
-const wipe = (sim: ArcadeSim) => { for (const e of guards(sim)) e.alive = false; };
+const wipe = (sim: ArcadeSim) => { for (const e of guards(sim)) e.alive = false; sim.defiler = null; };
 
 describe("заражённый лагерь", () => {
   it("стоит по seed на кольце от старта, три тотема свободны от препятствий, детерминирован", () => {
@@ -36,6 +36,7 @@ describe("заражённый лагерь", () => {
     const [x0, y0] = [t.x, t.y];
     sim.player.x = t.x + 20; sim.player.y = t.y; // вплотную
     sim.camp!.nextGuardAt = 1e9; // охрану проверяет следующий тест — здесь только сам тотем
+    sim.defiler!.alive = false; sim.defiler = null; // Осквернитель — в своём тесте (ссылку снимаем, как killEnemy: пул переиспользует объект)
     const hurt0 = sim.events.hurt;
     idle(sim, sec(2));
     expect([t.x, t.y]).toEqual([x0, y0]);
@@ -83,6 +84,9 @@ describe("заражённый лагерь", () => {
     idle(sim, sec(5));
     const camp = sim.camp!;
     for (const t of totems(sim)) sim.damageEnemy(t, 1e9, "hit");
+    expect(camp.cleared).toBe(false); // тотемы снесены, но Осквернитель жив
+    sim.damageEnemy(sim.defiler!, 1e9, "hit");
+    expect(sim.defiler).toBeNull();
     expect(camp.cleared).toBe(true);
     expect(sim.events.camps).toBe(1);
     expect(sim.pendingSource).toBe("camp");
@@ -112,6 +116,7 @@ describe("заражённый лагерь", () => {
     expect(sim.pending).not.toBeNull();
     expect(sim.pendingSource).toBe("level");
     for (const t of totems(sim)) sim.damageEnemy(t, 1e9, "hit");
+    sim.damageEnemy(sim.defiler!, 1e9, "hit");
     expect(sim.camp!.cleared).toBe(true);
     expect(sim.pendingSource).toBe("level"); // уровень первый
     sim.step({ ...IDLE_INPUT, choose: 0 });
