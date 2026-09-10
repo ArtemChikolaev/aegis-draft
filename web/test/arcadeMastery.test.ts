@@ -18,13 +18,14 @@ describe("мастерство героя", () => {
     expect(p.perHero.juggernaut.marks).toEqual(["camp", "centaur", "outpost", "win_full", "necro", "win_dire", "flawless"]);
     p = recordProgress(p, entry({ outcome: "victory", act: "short", revived: false, seed: "c" })); // разминка отметок не даёт
     expect(p.perHero.juggernaut.marks).toHaveLength(7);
-    expect(masteryTitle(p.perHero.juggernaut.marks)).toBe("legend");
+    expect(masteryTitle(p.perHero.juggernaut.marks)).toBe("master"); // легенда — с 8 отметок из 9 (T13.50 добавил контракт)
+    expect(masteryTitle([...p.perHero.juggernaut.marks, "contract"])).toBe("legend");
     expect(masteryTitle([])).toBe("novice"); expect(masteryTitle(["camp"])).toBe("veteran"); expect(masteryTitle(["camp", "necro", "outpost", "centaur"])).toBe("master");
     expect(anyHeroHasMark(p, "necro")).toBe(true); expect(anyHeroHasMark(p, "win_river")).toBe(false);
     // Свёртка старой истории без полей отметок — только победы по актам; профиль без marks читается пустым списком.
     const old = progressFromHistory([entry({ outcome: "victory", act: "full" })]);
     expect(old.perHero.juggernaut.marks).toEqual(["win_full", "flawless"]);
-    expect(MARK_IDS).toHaveLength(8);
+    expect(MARK_IDS).toHaveLength(9);
   });
 
   it("трофеи за отметки не выпадают и не покупаются, а выдаются один раз при появлении отметки у любого героя", () => {

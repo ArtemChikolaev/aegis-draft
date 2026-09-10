@@ -14,7 +14,7 @@ import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { HQ_STAKE_ORDER, collectionStats, hqTrophies, useCareer, type CardCollectionStat } from "../../state/careerStore.ts";
 import { usePlaybook } from "../../state/playbookStore.ts";
-import { arcadeTrophies, useArcade } from "../../state/arcadeStore.ts";
+import { MARK_IDS, arcadeTrophies, useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, HERO_IDS } from "../../game/arcade/content/heroes.ts";
 import { rankOf } from "../../game/arcade/content/ranks.ts";
 import { COSMETICS } from "../../game/arcade/content/cosmetics.ts";
@@ -89,7 +89,7 @@ export function HqScreen() {
             return (
               <li key={id} data-played={h ? "true" : undefined}>
                 <strong>{heroOf(HEROES[id].dotaId).name}</strong>
-                <span>{h ? `${t("hq.arcadeHeroLine", { runs: h.runs, wins: h.victories, time: formatClock(h.bestSeconds * TICK_HZ), lvl: h.bestLevel })} · ${t("arcade.mastery.short", { n: h.marks.length })}` : t("hq.arcadeHeroNone")}</span>
+                <span>{h ? `${t("hq.arcadeHeroLine", { runs: h.runs, wins: h.victories, time: formatClock(h.bestSeconds * TICK_HZ), lvl: h.bestLevel })} · ${t("arcade.mastery.short", { n: h.marks.length, max: MARK_IDS.length })}` : t("hq.arcadeHeroNone")}</span>
               </li>
             );
           })}

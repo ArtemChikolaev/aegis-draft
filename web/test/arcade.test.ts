@@ -14,6 +14,8 @@ function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
   if (sim.shopOpen) return { ...IDLE_INPUT, act: SHOP_ACT.close };
   if (sim.neutralOpen) return { ...IDLE_INPUT, act: 1 };
   if (sim.lootOpen) return { ...IDLE_INPUT, act: 1 };
+  // Пруд (T13.43) и контракт охоты (T13.50) тоже ставят мир на паузу — закрываем, иначе цикл «до тика N» бесконечен.
+  if (sim.pondOpen || sim.contractOpen) return { ...IDLE_INPUT, act: SHOP_ACT.close };
   const phase = Math.floor(tick / 90) % 4;
   const dirs = [[16, 0], [0, 16], [-16, 0], [0, -16]];
   return { mx: dirs[phase][0], my: dirs[phase][1], cast: 0, choose: -1, act: 0 };

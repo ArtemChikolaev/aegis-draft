@@ -9,7 +9,7 @@ function runToRune(sim: ArcadeSim): void {
   let guard = 0;
   while (!sim.rune.alive && guard++ < sec(400) && !sim.over) {
     sim.player.hp = 1e6;
-    sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT);
+    sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT);
   }
   expect(sim.rune.alive).toBe(true);
 }

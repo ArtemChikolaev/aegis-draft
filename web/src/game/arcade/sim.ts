@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type CurseId, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -130,6 +130,11 @@ export class ArcadeSim {
   grove: Grove | null = null;
   centaur: Enemy | null = null;
   private centaurSlain = false;
+  /** Контракт охоты (T13.50): предложение (два варианта, мир стоит) и принятый контракт. */
+  contractOpen = false;
+  contractOffers: { target: ContractTarget; reward: ContractReward }[] = [];
+  contract: Contract | null = null;
+  private contractOffered = false;
   /** Курган и Тролль-Некромант (T13.46); ссылка снимается при смерти. */
   barrow: Barrow | null = null;
   necromancer: Enemy | null = null;
@@ -185,7 +190,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -269,6 +274,59 @@ export class ArcadeSim {
     const d = len(this.player.x - b.x, this.player.y - b.y);
     if (!b.engaged && d <= ARCADE.necro.wakeRadius) b.engaged = true;
     else if (b.engaged && d > ARCADE.necro.engageRadius) b.engaged = false;
+  }
+
+  /** Живые цели для контракта (T13.50): Сатир лагеря (пока лагерь не очищен), Кентавр, Некромант. */
+  private contractTargets(): ContractTarget[] {
+    const out: ContractTarget[] = [];
+    if (this.camp && !this.camp.cleared && this.defiler?.alive) out.push("defiler");
+    if (this.centaur?.alive) out.push("centaur");
+    if (this.necromancer?.alive) out.push("necro");
+    return out;
+  }
+
+  /** Дом цели контракта — для маркера у края экрана. */
+  contractHome(): { x: number; y: number } | null {
+    const c = this.contract;
+    if (!c || c.done) return null;
+    if (c.target === "defiler") return this.camp && !this.camp.cleared ? this.camp : null;
+    if (c.target === "centaur") return this.centaur?.alive && this.grove ? this.grove : null;
+    return this.necromancer?.alive && this.barrow ? this.barrow : null;
+  }
+
+  private tickContractOffer(): void {
+    if (this.contractOffered || this.tick < ARCADE.contract.at[this.act]) return;
+    this.contractOffered = true;
+    const pool = this.contractTargets();
+    if (pool.length < 2) return;
+    const rewards: ContractReward[] = ["weapon", "armor", "school"];
+    const a = pool.splice(this.rng.int(pool.length), 1)[0], b = pool[this.rng.int(pool.length)];
+    const ra = rewards.splice(this.rng.int(rewards.length), 1)[0], rb = rewards[this.rng.int(rewards.length)];
+    this.contractOffers = [{ target: a, reward: ra }, { target: b, reward: rb }];
+    this.contractOpen = true;
+  }
+
+  private contractAction(act: number): void {
+    if (act === 1 || act === 2) {
+      const o = this.contractOffers[act - 1];
+      if (o) this.contract = { target: o.target, reward: o.reward, done: false };
+      this.contractOpen = false;
+    } else if (act === 5) this.contractOpen = false;
+  }
+
+  /** Цель контракта убита: награда сверх обычной — оружие/броня exotic у ног или карта школы exotic. */
+  private completeContract(target: ContractTarget, x: number, y: number): void {
+    const c = this.contract;
+    if (!c || c.done || c.target !== target) return;
+    c.done = true;
+    this.events.contracts++;
+    this.pushFx("levelup", this.player.x, this.player.y, 0, 0, 30);
+    if (c.reward === "weapon") this.dropLoot(x, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "weapon"));
+    else if (c.reward === "armor") { this.dropLoot(x - 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "armor")); this.dropLoot(x + 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "helm")); }
+    else {
+      const up = this.rollUpgradeOffer([]);
+      if (up && up.kind === "upgrade") { const offers: Offer[] = [{ kind: "upgrade", id: up.id, rarity: "exotic" }]; if (this.pending) this.campRewardQueued = [...(this.campRewardQueued ?? []), ...offers]; else { this.pending = offers; this.pendingSource = "camp"; } }
+    }
   }
 
   /** Подъём павших (T13.46): пока герой у кургана и стоит хоть один идол — скелеты у случайного идола, с потолком живых. */
@@ -654,6 +712,10 @@ export class ArcadeSim {
     }
     if (this.pondOpen) {
       this.pondAction(input.act);
+      return;
+    }
+    if (this.contractOpen) {
+      this.contractAction(input.act);
       return;
     }
     if (this.buildOpen) {
@@ -1590,10 +1652,12 @@ export class ArcadeSim {
       // Скелеты без хозяина рассыпаются.
       for (const s of this.enemies) if (s.alive && s.kind.id === "skeleton_warrior") { s.alive = false; this.pushFx("die", s.x, s.y, s.kind.r, KIND_INDEX[s.kind.id] ?? 0, 14); }
       this.openBarrowReward();
+      this.completeContract("necro", e.x, e.y); // после награды самого чемпиона: карта контракта встаёт в очередь
     }
     if (e === this.centaur) {
       // Награда Стража: защитная и мобильная экипировка на выбор — два exotic-предмета у ног (броня и сапоги).
       this.centaur = null; this.centaurSlain = true;
+      this.completeContract("centaur", e.x, e.y);
       this.shake = Math.max(this.shake, 12);
       this.pushFx("nova", e.x, e.y, 150, 0, 24);
       this.dropLoot(e.x - 26, e.y + 10, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "armor"));
@@ -1755,6 +1819,7 @@ export class ArcadeSim {
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
+      contractDone: this.contract?.done ?? false,
     };
   }
 
@@ -1815,6 +1880,7 @@ export class ArcadeSim {
     if (this.roshan?.alive && (!this.pit || this.playerInPit())) return;
     // Заражённый лагерь (T13.40): пока герой внутри и тотемы стоят, порча зовёт охрану; каждый снесённый тотем
     // злит оставшихся — охраны больше, она крепче и приходит чаще. Ушёл — охрана перестаёт прибывать.
+    this.tickContractOffer();
     this.updateCampEngage();
     this.updateGroveEngage();
     this.updateBarrowEngage();
@@ -2699,11 +2765,11 @@ export class ArcadeSim {
     }
     // Пул школ исчерпан (все на потолке) — предлагаем очки способностей, чтобы награда не пропала.
     for (const k of ["q", "w", "e"] as const) if (offers.length < 3 && this.player.abilities[k] < 4) offers.push({ kind: "ability", key: k });
-    if (offers.length === 0) return;
+    if (offers.length === 0) { this.completeContract("defiler", this.camp.x, this.camp.y); return; }
     // Уже висит выбор уровня — награда подождёт: pending один.
-    if (this.pending) { this.campRewardQueued = offers; return; }
-    this.pending = offers;
-    this.pendingSource = "camp";
+    if (this.pending) this.campRewardQueued = offers;
+    else { this.pending = offers; this.pendingSource = "camp"; }
+    this.completeContract("defiler", this.camp.x, this.camp.y);
   }
 
   // ---------- уровни: карточки ----------
@@ -2928,7 +2994,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

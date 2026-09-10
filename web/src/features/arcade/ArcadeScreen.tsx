@@ -327,7 +327,8 @@ function ArcadeStage() {
     let wasBoss = false;
     let wasNeutral = false;
     let wasPond = false;
-    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0 };
+    let wasContract = false;
+    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
     const voiceId = skinnedHero(heroDef.id, useArcade.getState().cosmetics.equipped);
@@ -395,12 +396,14 @@ function ArcadeStage() {
       if (ev.pickups > seen.pickups) sfxArcade("pickup");
       if (ev.camps > seen.camps) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 8; }
       if (ev.outposts > seen.outposts) sfxArcade("levelup");
+      if (ev.contracts > seen.contracts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 8; }
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
       if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen)) sim.step(replayInput(replayRef.current, sim.steps));
       if (sim.pending && !wasPending) { if (!handled.levelup) sfxArcade("levelup"); bump(); }
-      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond)) { sfxBuy(); bump(); }
+      if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond) || (sim.contractOpen && !wasContract)) { sfxBuy(); bump(); }
+      wasContract = sim.contractOpen;
       wasNeutral = sim.neutralOpen;
       wasPond = sim.pondOpen;
       wasPending = sim.pending !== null;
@@ -461,6 +464,7 @@ function ArcadeStage() {
                 {sim.hero.signature && (sim.hero.signature.kind === "souls" || sim.hero.signature.kind === "swipes") && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
+                {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}</Chip>}
                 {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
@@ -604,6 +608,21 @@ function ArcadeStage() {
                 <Button variant="leave" onClick={() => setConfirmQuit(true)}>{t("arcade.hud.quit")}</Button>
               </div>
             </Surface>
+          </div>
+        )}
+        {sim?.contractOpen && status !== "over" && (
+          <div className="arcade-overlay" data-testid="arcade-contract">
+            <div className="arcade-levelup arcade-shop">
+              <Eyebrow>{t("arcade.contract.title")}</Eyebrow>
+              <h2>{t("arcade.contract.pick")}</h2>
+              <p className="arcade-shop__hint">{t("arcade.contract.hint")}</p>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                {sim.contractOffers.map((o, i) => (
+                  <Button key={o.target} variant={i === 0 ? "primary" : "secondary"} data-testid={`arcade-contract-${i + 1}`} onClick={() => shopAct(i + 1)}>{t(`arcade.contract.target.${o.target}` as MessageKey)} → {t(`arcade.contract.reward.${o.reward}` as MessageKey)}</Button>
+                ))}
+                <Button variant="leave" data-testid="arcade-contract-skip" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.contract.skip")}</Button>
+              </div>
+            </div>
           </div>
         )}
         {sim?.pondOpen && status !== "over" && (
@@ -853,6 +872,7 @@ function ArcadeStage() {
                 {outcome.outpostCaptured && <div><dt>{t("arcade.over.outpost")}</dt><dd>{t("arcade.over.outpostYes")}</dd></div>}
                 {outcome.centaurSlain && <div><dt>{t("arcade.over.centaur")}</dt><dd>{t("arcade.over.centaurYes")}</dd></div>}
                 {outcome.necromancerSlain && <div><dt>{t("arcade.over.necro")}</dt><dd>{t("arcade.over.necroYes")}</dd></div>}
+                {outcome.contractDone && <div><dt>{t("arcade.contract.title")}</dt><dd>{t("arcade.over.contractYes")}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>
               {lastSeals > 0 && <p className="arcade-result__seals" data-testid="arcade-seals-result">{t("arcade.legacy.earned", { n: lastSeals })}</p>}

@@ -40,10 +40,11 @@ export interface ArcadeHistoryEntry {
   centaur?: boolean;
   necro?: boolean;
   revived?: boolean;
+  contract?: boolean;
 }
 
 /** Отметки мастерства героя (T13.48): победы по актам, без единой смерти, лагерь, аванпост, чемпионы. */
-export const MARK_IDS = ["win_full", "win_dire", "win_river", "flawless", "camp", "outpost", "centaur", "necro"] as const;
+export const MARK_IDS = ["win_full", "win_dire", "win_river", "flawless", "camp", "outpost", "centaur", "necro", "contract"] as const;
 export type MarkId = (typeof MARK_IDS)[number];
 
 const HISTORY_KEY = "aegis-draft.arcade.history";
@@ -417,7 +418,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ autoCast });
   },
   shopAct(act) {
-    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen)) return;
+    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen && !sim.contractOpen)) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act });
     set((s) => ({ serial: s.serial + 1 }));
   },
@@ -428,7 +429,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
       schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,
-      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived,
+      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone,
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
@@ -500,7 +501,7 @@ export interface ArcadeTrophies {
 
 /** Звание героя по числу отметок: показывается рядом с именем на экране настройки. */
 export function masteryTitle(marks: readonly MarkId[]): "novice" | "veteran" | "master" | "legend" {
-  return marks.length >= 7 ? "legend" : marks.length >= 4 ? "master" : marks.length >= 1 ? "veteran" : "novice";
+  return marks.length >= 8 ? "legend" : marks.length >= 4 ? "master" : marks.length >= 1 ? "veteran" : "novice";
 }
 
 /** Есть ли отметка хотя бы у одного героя (награды-трофеи общие). */
@@ -535,7 +536,7 @@ export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): Arcade
   const prev = p.perHero[hero] ?? { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0, marks: [] };
   const h = { runs: prev.runs + 1, victories: prev.victories, bestSeconds: Math.max(prev.bestSeconds, e.seconds), bestLevel: Math.max(prev.bestLevel, e.level), marks: [...(prev.marks ?? [])] };
   const mark = (m: MarkId) => { if (!h.marks.includes(m)) h.marks.push(m); };
-  if (e.camp) mark("camp"); if (e.outpost) mark("outpost"); if (e.centaur) mark("centaur"); if (e.necro) mark("necro");
+  if (e.camp) mark("camp"); if (e.outpost) mark("outpost"); if (e.centaur) mark("centaur"); if (e.necro) mark("necro"); if (e.contract) mark("contract");
   const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] } };
   if (e.outcome === "victory") {
     next.victories++; h.victories++;

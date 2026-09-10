@@ -271,10 +271,17 @@ export interface ArcadeEventCounters {
   camps: number;
   /** Захваченные аванпосты (T13.42). */
   outposts: number;
+  /** Выполненные контракты охоты (T13.50). */
+  contracts: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
 export interface Grove { x: number; y: number; engaged: boolean; rocks: number }
+
+/** Контракт охоты (T13.50): цель — чемпион, награда объявлена заранее. */
+export type ContractTarget = "defiler" | "centaur" | "necro";
+export type ContractReward = "weapon" | "armor" | "school";
+export interface Contract { target: ContractTarget; reward: ContractReward; done: boolean }
 
 /** Курган Тролля-Некроманта (T13.46): дом чемпиона по seed; `engaged` — разбужен; `idolsDown` — снесено идолов; `nextRaiseAt` — следующий подъём. */
 export interface Barrow { x: number; y: number; engaged: boolean; idolsDown: number; nextRaiseAt: number }
@@ -466,4 +473,6 @@ export interface ArcadeOutcome {
   necromancerSlain: boolean;
   /** Воскрешение (Aegis/Феникс) было потрачено (T13.48: отметка «без единой смерти»). */
   revived: boolean;
+  /** Контракт охоты выполнен (T13.50). */
+  contractDone: boolean;
 }
