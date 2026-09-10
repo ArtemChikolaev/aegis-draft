@@ -79,7 +79,7 @@ export interface EnemyKind {
   tone: "grunt" | "brute" | "swift" | "elite" | "boss" | "creep";
 }
 
-export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast";
+export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast" | "venom";
 
 /** Питомец (школа «Зверинец») или призыв умения: позиция, цель, перезарядка удара; неуязвим, следует за героем. */
 export interface Pet {
@@ -431,6 +431,9 @@ export interface Player {
   ringAt: number;
   shardsAt: number;
   staticAt: number;
+  /** Таймеры школы Venom (T13.47): облако и клыки. */
+  cloudAt: number;
+  fangsAt: number;
 }
 
 export interface ArcadeOutcome {

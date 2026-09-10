@@ -3,7 +3,7 @@
 // Тексты — в i18n (`arcade.up.<id>` / `arcade.up.<id>.desc`), иконки — `art/items`.
 import type { SchoolId, UpgradeDef } from "../types.ts";
 
-export const SCHOOLS: readonly SchoolId[] = ["radiance", "skadi", "maelstrom", "beast"];
+export const SCHOOLS: readonly SchoolId[] = ["radiance", "skadi", "maelstrom", "beast", "venom"];
 
 /** Иконка школы — внутреннее имя предмета Dota (см. ui/artSource itemArtSources). */
 /** Иконки — настоящие предметы-тёзки школ (Eye of Skadi, Maelstrom); зеркалятся `npm run gen:art`. */
@@ -12,6 +12,7 @@ export const SCHOOL_ART: Record<SchoolId, string> = {
   skadi: "skadi",
   maelstrom: "maelstrom",
   beast: "helm_of_the_dominator",
+  venom: "orb_of_venom",
 };
 
 // Дерево как у богов DMD: сначала ИСТОЧНИК статуса (аура/удар/залп), потом модификаторы к нему (`requires`) —
@@ -39,11 +40,24 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "beast_bear", school: "beast", type: "attack", maxRank: 3 },
   { id: "beast_pack", school: "beast", type: "power", maxRank: 2, requires: ["beast_wolf"] },
   { id: "beast_roar", school: "beast", type: "passive", maxRank: 3, requires: ["beast_wolf", "beast_bear"] },
+  // Venom (T13.47, этап 3 аудита): пятая школа поверх статуса яда (T13.39). Источники — жало (удар) и облако (залп);
+  // модификаторы — распространение при смерти, вирулентность (сила и длительность стаков), клыки (запасной источник
+  // для медленных героев: стак ближайшему по таймеру). Развилки-легендарки: Пандемия переносит стаки, Дистилляция
+  // тратит полный стек на взрыв. Механика — sim.ts по id.
+  { id: "ven_sting", school: "venom", type: "attack", maxRank: 3 },
+  { id: "ven_cloud", school: "venom", type: "strike", maxRank: 3 },
+  { id: "ven_spread", school: "venom", type: "passive", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs"] },
+  { id: "ven_virulence", school: "venom", type: "power", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs"] },
+  { id: "ven_fangs", school: "venom", type: "cast", maxRank: 2 },
   // Гибриды двух школ (T13.21): открываются, когда обе школы уже в билде — ещё один слой путей.
   { id: "hyb_steam", school: "radiance", type: "passive", maxRank: 2, requiresSchools: ["radiance", "skadi"] },
   { id: "hyb_superconductor", school: "skadi", type: "passive", maxRank: 2, requiresSchools: ["skadi", "maelstrom"] },
   { id: "hyb_plasma", school: "maelstrom", type: "passive", maxRank: 2, requiresSchools: ["radiance", "maelstrom"] },
   { id: "hyb_wild_hunt", school: "beast", type: "passive", maxRank: 2, requiresSchools: ["beast", "skadi"] },
+  // Гибриды яда (T13.47): холод продлевает стаки, питомцы переносят яд, огонь взрывает полный стек.
+  { id: "hyb_venom_frost", school: "venom", type: "passive", maxRank: 2, requiresSchools: ["venom", "skadi"] },
+  { id: "hyb_venom_beast", school: "venom", type: "passive", maxRank: 2, requiresSchools: ["venom", "beast"] },
+  { id: "hyb_venom_fire", school: "venom", type: "passive", maxRank: 2, requiresSchools: ["venom", "radiance"] },
   // Легендарные (T13.18, владелец: «разбить на тиры, чтобы выпадали мега-сильные пассивки»): один ранг,
   // предлагаются редко (шанс растёт с минутами) и гарантированно на 12/18/24 уровнях. Механика — sim.ts по id.
   { id: "leg_heart", school: "radiance", type: "power", maxRank: 1, legendary: true, neutral: true, art: "heart" },
@@ -65,6 +79,8 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "leg_bloodstone", school: "skadi", type: "cast", maxRank: 1, legendary: true, neutral: true, art: "bloodstone" },
   { id: "leg_beast_alpha", school: "beast", type: "power", maxRank: 1, legendary: true, art: "helm_of_the_dominator" },
   { id: "leg_beast_kennel", school: "beast", type: "strike", maxRank: 1, legendary: true, art: "necronomicon" },
+  { id: "leg_ven_pandemic", school: "venom", type: "passive", maxRank: 1, legendary: true, art: "orb_of_venom" },
+  { id: "leg_ven_distill", school: "venom", type: "power", maxRank: 1, legendary: true, art: "orb_of_venom" },
 ];
 
 export const LEGENDARY_UPGRADES: readonly UpgradeDef[] = UPGRADES.filter((u) => u.legendary);
@@ -99,6 +115,7 @@ export interface UpgradeCtx {
 export function upgradeFigures(id: string, rank: number, power: number, ctx: UpgradeCtx): UpgradeFigure[] {
   const burnMult = (1 + 0.25 * ctx.power("rad_inferno")) * (ctx.power("leg_rad_sun") > 0 ? 1.75 : 1);
   const lightningMult = (1 + 0.2 * ctx.power("mae_mjollnir")) * (ctx.power("leg_mae_thunder") > 0 ? 1.5 : 1);
+  const venomMult = 1 + 0.25 * ctx.power("ven_virulence");
   const p = power;
   switch (id) {
     case "rad_aura": return [{ key: "auraDps", value: 8 * p * burnMult }];
@@ -125,6 +142,14 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "hyb_superconductor": return [{ key: "vsFrozenZap", value: 0.35 * p, unit: "pct" }];
     case "hyb_plasma": return [{ key: "plasmaDps", value: 5 * p }];
     case "hyb_wild_hunt": return [{ key: "vsSlowedPets", value: 0.3 * p, unit: "pct" }];
+    case "ven_sting": return [{ key: "poisonDps", value: 4 * p * venomMult }];
+    case "ven_cloud": return [{ key: "poisonDps", value: 5 * p * venomMult }, { key: "auraRadius", value: 90 }, { key: "every", value: 2.4 / (1 + 0.1 * p), unit: "s" }];
+    case "ven_spread": return [{ key: "spreadStacks", value: Math.min(5, 1 + rank), unit: "x" }, { key: "spreadTargets", value: 2 + rank, unit: "x" }];
+    case "ven_virulence": return [{ key: "poisonDmg", value: 0.25 * p, unit: "pct" }, { key: "poisonSec", value: 0.5 * p, unit: "s" }];
+    case "ven_fangs": return [{ key: "poisonDps", value: 4 * p * venomMult }, { key: "every", value: 1.5, unit: "s" }];
+    case "hyb_venom_frost": return [{ key: "poisonSec", value: 0.6 * p, unit: "s" }];
+    case "hyb_venom_beast": return [{ key: "poisonDps", value: 3 * p * venomMult }];
+    case "hyb_venom_fire": return [{ key: "blastDmg", value: 30 * p }];
     default: return [];
   }
 }

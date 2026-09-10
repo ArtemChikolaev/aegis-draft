@@ -216,7 +216,7 @@ export class ArcadeSim {
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
       spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
-      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0,
+      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
@@ -1340,6 +1340,8 @@ export class ArcadeSim {
     if (burn > 0) this.applyBurn(e, 6 * burn * this.burnMult(), 3);
     const chill = this.upgradePower("ska_bite");
     if (chill > 0) this.applyChill(e, Math.min(0.6, 0.3 + 0.05 * chill), 2.5);
+    const sting = this.upgradePower("ven_sting");
+    if (sting > 0) this.applyPoison(e, 4 * sting);
     const chain = this.upgradePower("mae_chain");
     if (chain > 0 && this.rng.float() < 0.25 + 0.08 * chain) this.chainLightning(e, 20 * chain * this.lightningMult(), 3 + Math.floor(this.upgradePower("mae_mjollnir") * 2) + (this.upgradePower("leg_mae_thunder") > 0 ? 4 : 0) + Math.floor(this.upgradePower("hyb_superconductor") * 2));
   }
@@ -1398,6 +1400,23 @@ export class ArcadeSim {
     if (slowField > 0 && this.tick % 10 === 0) {
       for (const e of this.enemiesWithin(p.x, p.y, 120)) this.applyChill(e, Math.min(0.5, 0.15 * slowField), 0.4, false);
     }
+    // Venom cloud — облако яда на ближайшей группе: стак всем внутри (T13.47).
+    const cloud = this.upgradePower("ven_cloud");
+    if (cloud > 0 && this.tick >= p.cloudAt) {
+      p.cloudAt = this.tick + Math.floor(sec(2.4) / (1 + 0.1 * cloud));
+      const center = this.nearestEnemy(p.x, p.y, 300);
+      if (center) {
+        for (const e of this.enemiesWithin(center.x, center.y, 90)) this.applyPoison(e, 5 * cloud);
+        this.pushFx("nova", center.x, center.y, 90, 0, 14);
+      }
+    }
+    // Venom fangs — стак ближайшему по таймеру: запасной источник для медленных героев.
+    const fangs = this.upgradePower("ven_fangs");
+    if (fangs > 0 && this.tick >= p.fangsAt) {
+      p.fangsAt = this.tick + sec(1.5);
+      const target = this.nearestEnemy(p.x, p.y, 260);
+      if (target) { this.applyPoison(target, 4 * fangs); this.pushFx("zap", p.x, p.y, target.x, target.y, 6); }
+    }
     // Maelstrom static — разряд по случайному врагу.
     const stat = this.upgradePower("mae_static");
     if (stat > 0 && this.tick >= p.staticAt) {
@@ -1443,6 +1462,9 @@ export class ArcadeSim {
 
   private applyChill(e: Enemy, slow: number, seconds: number, stack = true): void {
     if (e.kind.unstoppable) return;
+    // Яд + холод (T13.47): охлаждение продлевает жизнь стаков.
+    const frost = this.upgradePower("hyb_venom_frost");
+    if (frost > 0 && this.tick < e.poisonUntil) e.poisonUntil += sec(0.6 * frost);
     e.chillSlow = Math.max(e.chillUntil > this.tick ? e.chillSlow : 0, slow);
     e.chillUntil = Math.max(e.chillUntil, this.tick + sec(this.statusSec(seconds)));
     if (!stack) return;
@@ -1458,11 +1480,31 @@ export class ArcadeSim {
    * попаданием; dps стака — сильнейший из активных источников. Истёкший яд теряет все стаки.
    */
   applyPoison(e: Enemy, dpsPerStack: number, seconds = ARCADE.poison.seconds): void {
-    if (e.kind.unstoppable || dpsPerStack <= 0) return;
+    if (e.kind.unstoppable || dpsPerStack <= 0 || !e.alive) return;
     const active = e.poisonUntil > this.tick;
+    // Полный стек и ещё один стак (T13.47): Дистилляция тратит стаки на взрыв; яд+огонь — ограниченный взрыв.
+    if (active && e.poisonStacks >= ARCADE.poison.maxStacks) {
+      const fire = this.upgradePower("hyb_venom_fire");
+      if (fire > 0 && this.tick < e.burnUntil) { this.damageEnemy(e, 30 * fire, "burst"); for (const o of this.enemiesWithin(e.x, e.y, 60)) if (o !== e) this.damageEnemy(o, 15 * fire, "burst"); this.pushFx("burst", e.x, e.y, 60, 0, 12); }
+      if (this.upgradePower("leg_ven_distill") > 0) {
+        const dmg = e.poisonDps * e.poisonStacks * this.venomMult() * 6;
+        e.poisonStacks = 0; e.poisonUntil = 0; e.poisonDps = 0;
+        this.damageEnemy(e, dmg, "burst");
+        for (const o of this.enemiesWithin(e.x, e.y, 70)) if (o !== e && o.alive) this.damageEnemy(o, dmg * 0.5, "burst");
+        this.pushFx("nova", e.x, e.y, 70, 0, 14);
+        return;
+      }
+      if (!e.alive) return;
+    }
     e.poisonStacks = Math.min(ARCADE.poison.maxStacks, (active ? e.poisonStacks : 0) + 1);
     e.poisonDps = Math.max(active ? e.poisonDps : 0, dpsPerStack);
-    e.poisonUntil = Math.max(e.poisonUntil, this.tick + sec(this.statusSec(seconds)));
+    const extra = 0.5 * this.upgradePower("ven_virulence") + (this.upgradePower("leg_ven_pandemic") > 0 ? 2 : 0);
+    e.poisonUntil = Math.max(e.poisonUntil, this.tick + sec(this.statusSec(seconds + extra)));
+  }
+
+  /** Множитель урона яда от Вирулентности (как burnMult у огня). */
+  private venomMult(): number {
+    return 1 + 0.25 * this.upgradePower("ven_virulence");
   }
 
   /** Множитель фирменной пассивки от её пассивного слота (kind "signature"); без слота или на 0-м уровне — 1. */
@@ -1558,6 +1600,19 @@ export class ArcadeSim {
       this.dropLoot(e.x + 26, e.y + 10, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "boots"));
     }
     if (e === this.defiler) { this.defiler = null; this.shake = Math.max(this.shake, 12); this.pushFx("nova", e.x, e.y, 150, 0, 24); this.tryClearCamp(); }
+    // Распространение яда при смерти (T13.47): часть стаков соседям; Пандемия — все стаки всем рядом. Только на смерти,
+    // и applyPoison сам никого не убивает → рекурсии нет.
+    if (this.tick < e.poisonUntil && e.poisonStacks > 0) {
+      const spread = this.upgradePower("ven_spread"), pandemic = this.upgradePower("leg_ven_pandemic") > 0;
+      if (spread > 0 || pandemic) {
+        const rankSpread = this.player.upgrades["ven_spread"]?.rank ?? 0;
+        const stacks = pandemic ? e.poisonStacks : Math.min(e.poisonStacks, 1 + rankSpread);
+        const radius = pandemic ? 160 : 90, limit = pandemic ? 99 : 2 + rankSpread;
+        const near = this.enemiesWithin(e.x, e.y, radius).filter((o) => o !== e && o.alive).sort((a, b) => len(a.x - e.x, a.y - e.y) - len(b.x - e.x, b.y - e.y)).slice(0, limit);
+        for (const o of near) for (let i = 0; i < stacks; i++) this.applyPoison(o, e.poisonDps);
+        if (near.length) this.pushFx("nova", e.x, e.y, radius, 0, 10);
+      }
+    }
     // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
     if (this.tick < e.burnUntil) this.pushFx("ash", e.x, e.y, e.kind.r, 0, 44);
     p.gold += e.kind.gold + p.stats.goldPerKill;
@@ -1975,7 +2030,7 @@ export class ArcadeSim {
       if (this.tick < e.burnUntil && this.tick % 12 === 0) this.damageEnemy(e, e.burnDps * 0.2, "burst");
       if (!e.alive) continue;
       // Яд тикает так же независимо; урон растёт со стаками (T13.39).
-      if (this.tick < e.poisonUntil && this.tick % ARCADE.poison.tickEvery === 0) this.damageEnemy(e, e.poisonDps * e.poisonStacks * ARCADE.poison.tickShare, "burst");
+      if (this.tick < e.poisonUntil && this.tick % ARCADE.poison.tickEvery === 0) this.damageEnemy(e, e.poisonDps * e.poisonStacks * ARCADE.poison.tickShare * this.venomMult(), "burst");
       if (!e.alive) continue;
       if (e.kind.totem) continue; // тотем стоит, не бьёт и не толкается
       if (e.kind.id === "satyr_defiler") { this.moveDefiler(e, dx, dy, d); continue; }
@@ -2291,6 +2346,8 @@ export class ArcadeSim {
         const hunt = this.upgradePower("hyb_wild_hunt");
         if (hunt > 0 && (this.tick < target.chillUntil || this.tick < target.stunUntil)) dmg *= 1 + 0.3 * hunt; // Дикая охота
         this.damageEnemy(target, dmg, "hit");
+        const venomPets = this.upgradePower("hyb_venom_beast");
+        if (venomPets > 0) this.applyPoison(target, 3 * venomPets); // Яд + Зверинец: питомцы переносят яд
         if (def.slow) this.applyChill(target, def.slow, 1, false);
         if (def.stun && !target.kind.unstoppable && this.rng.float() < def.stun) target.stunUntil = Math.max(target.stunUntil, this.tick + sec(0.3));
       }
