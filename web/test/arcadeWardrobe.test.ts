@@ -104,3 +104,19 @@ describe("масштаб превью облика", () => {
   });
 });
 
+
+// Превью (T13.57): ручной выбор анимации — чистая функция без canvas.
+describe("превью гардероба: выбор анимации", () => {
+  it("auto повторяет прежний цикл стойка → ходьба по кругу → удар; принудительные — фиксируют анимацию, ходьба крутит модель", async () => {
+    const { pickPreviewAnim } = await import("../src/features/arcade/HeroWardrobe.tsx");
+    expect(pickPreviewAnim(0.5, 8, false, "auto")).toEqual({ anim: "idle", dir: 0 });
+    expect(pickPreviewAnim(1.6 + 0.8, 8, false, "auto").anim).toBe("walk");
+    expect(pickPreviewAnim(1.6 + 3.2 + 0.3, 8, false, "auto")).toEqual({ anim: "attack", dir: 0 });
+    expect(pickPreviewAnim(99, 8, true, "walk")).toEqual({ anim: "idle", dir: 0 }); // still — всегда стойка
+    expect(pickPreviewAnim(7, 8, false, "attack")).toEqual({ anim: "attack", dir: 0 });
+    expect(pickPreviewAnim(0.4, 8, false, "idle")).toEqual({ anim: "idle", dir: 0 });
+    const dirs = new Set(Array.from({ length: 16 }, (_, i) => pickPreviewAnim(i * 0.2, 8, false, "walk").dir));
+    expect(dirs.size).toBeGreaterThan(4);
+    expect(pickPreviewAnim(3.2, 8, false, "walk").dir).toBe(0); // полный круг — снова к камере
+  });
+});

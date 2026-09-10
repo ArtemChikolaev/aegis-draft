@@ -27,6 +27,22 @@ const WALK_S = 3.2;
 const ATTACK_S = 1.2;
 const LOOP_S = IDLE_S + WALK_S + ATTACK_S;
 
+/** Ручной выбор анимации в превью (T13.57): «auto» — прежний цикл стойка → ходьба по кругу → удар. */
+export type PreviewAnim = "auto" | "idle" | "walk" | "attack";
+export type PreviewBg = "none" | "radiant" | "dire";
+
+/** Какая анимация и направление в превью на секунде `el` цикла: чистая функция, чтобы тестировать без canvas. */
+export function pickPreviewAnim(el: number, dirs: number, still: boolean, forced: PreviewAnim = "auto"): { anim: "idle" | "walk" | "attack"; dir: number } {
+  if (still) return { anim: "idle", dir: 0 };
+  if (forced === "walk") return { anim: "walk", dir: Math.floor((el / WALK_S) * dirs) % dirs };
+  if (forced === "idle" || forced === "attack") return { anim: forced, dir: 0 };
+  const loop = el % LOOP_S;
+  const anim = loop < IDLE_S ? "idle" : loop < IDLE_S + WALK_S ? "walk" : "attack";
+  // Ходьба разворачивает модель кругом, стойка и удар — лицом к камере.
+  const dir = anim === "walk" ? Math.floor(((loop - IDLE_S) / WALK_S) * dirs) % dirs : 0;
+  return { anim, dir };
+}
+
 /**
  * Анимированное превью облика: тот же лист `dota_px*`, что рисует бой, кадры крутятся по часам
  * страницы (не по симу — это витрина, а не забег). `static` — одна поза для карточки списка.
@@ -71,7 +87,7 @@ function useSheetGlow(sheet: string, enabled: boolean): SheetGlow | null | undef
   return glow;
 }
 
-function LookPreview({ sheet, size, gem = null, glow = false, still = false, effects }: { sheet: string; size: number; gem?: number | null; glow?: boolean; still?: boolean; effects?: PreviewEffects }) {
+function LookPreview({ sheet, size, gem = null, glow = false, still = false, effects, anim: forcedAnim = "auto", bg = "none", lifeSize = false }: { sheet: string; size: number; gem?: number | null; glow?: boolean; still?: boolean; effects?: PreviewEffects; anim?: PreviewAnim; bg?: PreviewBg; lifeSize?: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const { t } = useI18n();
   const [missing, setMissing] = useState(false);
@@ -99,16 +115,26 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
       c.imageSmoothingEnabled = false;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, size, size);
+      // Фон Radiant/Dire (T13.57): пятно земли в тонах акта, чтобы оценить читаемость облика днём и ночью.
+      if (bg !== "none") {
+        const style = getComputedStyle(document.documentElement);
+        const tok = (k: string, fb: string) => style.getPropertyValue(k).trim() || fb;
+        c.fillStyle = bg === "dire" ? tok("--arcade-ground-night", "#0a0f12") : tok("--arcade-ground", "#0f1a12");
+        c.fillRect(0, 0, size, size);
+        c.fillStyle = bg === "dire" ? tok("--arcade-grass-night-a", "#0c1418") : tok("--arcade-grass-a", "#17301c");
+        c.beginPath(); c.ellipse(size / 2, size * 0.78, size * 0.42, size * 0.14, 0, 0, Math.PI * 2); c.fill();
+        c.fillStyle = bg === "dire" ? tok("--arcade-dirt-night", "#1c1714") : tok("--arcade-dirt", "#3a2e1e");
+        c.beginPath(); c.ellipse(size / 2, size * 0.8, size * 0.22, size * 0.07, 0, 0, Math.PI * 2); c.fill();
+      }
       if (!s) return;
       const el = (performance.now() - t0) / 1000;
-      const loop = el % LOOP_S;
-      const anim = still || loop < IDLE_S ? "idle" : loop < IDLE_S + WALK_S ? "walk" : "attack";
-      // Ходьба разворачивает модель кругом, стойка и удар — лицом к камере.
-      const dir = anim === "walk" ? Math.floor(((loop - IDLE_S) / WALK_S) * s.meta.dirs) % s.meta.dirs : 0;
+      const picked = pickPreviewAnim(el, s.meta.dirs, still, forcedAnim);
+      const anim = picked.anim, dir = picked.dir;
       const frame = still ? 0 : Math.floor(el * s.meta.fps);
       // Масштаб — по росту героя, а не по кадру: у листов с запасом 1.4 кадр на четверть шире, и без
       // поправки герой в витрине мельчал бы вместе с ростом рамки. Потолок — целый кадр в холсте.
-      const mult = previewScale(size, s.meta.world * (1.12 / (s.meta.margin ?? 1.12)), dpr, size / Math.max(1, s.meta.world));
+      // «Реальный размер» (T13.57): тот же множитель, что в бою, — герой ровно такой, как на поле.
+      const mult = lifeSize ? Math.max(1, Math.round(pixelScale())) : previewScale(size, s.meta.world * (1.12 / (s.meta.margin ?? 1.12)), dpr, size / Math.max(1, s.meta.world));
       // Эффекты в превью (владелец 2026-09-07: «никак не отображаются в превью персонажа»): те же
       // функции, что в бою. Радиус героя и высота силуэта — от размера превью, тик — от часов страницы.
       const fx = effects;
@@ -157,7 +183,7 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [sheet, size, gem, glow, still, effects?.frame, effects?.aura, effects?.skinAura, effects?.trail, effects?.death]);
+  }, [sheet, size, gem, glow, still, effects?.frame, effects?.aura, effects?.skinAura, effects?.trail, effects?.death, forcedAnim, bg, lifeSize]);
   return (
     <span className="arcade-wardrobe__slot" style={{ width: size, maxWidth: "100%", aspectRatio: "1" }}>
       <canvas ref={ref} className="arcade-wardrobe__canvas" style={{ width: size, height: size }} aria-hidden />
@@ -193,6 +219,13 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const sel = looks.find((l) => (l.def?.id ?? null) === selId) ?? looks[0];
   const selStyle: StyleDef | undefined = sel.def?.styles?.find((st) => st.id === cosmetics.styles[sel.def!.id]);
   const previewSheet = selStyle?.sheet ? `${sel.sheet}~${selStyle.id}` : sel.sheet;
+  // Превью (T13.57): ручной выбор анимации/формы, фон акта, реальный размер, сравнение с базовым обликом.
+  const [previewAnim, setPreviewAnim] = useState<PreviewAnim | "form">("auto");
+  const [previewBg, setPreviewBg] = useState<PreviewBg>("none");
+  const [lifeSize, setLifeSize] = useState(false);
+  const [compare, setCompare] = useState(false);
+  const hasForm = Object.values(HEROES[hero].abilities).some((a) => a.kind === "metamorphosis");
+  const formSheet = dotaSheetState(`${previewSheet}@meta`) !== "missing" ? `${previewSheet}@meta` : `${hero}@meta`;
   const worn = (sel.def?.id ?? null) === (equippedSkin?.id ?? null);
   const price = sel.def ? SHARD_PRICE[sel.def.rarity] : 0;
   // Аркана рисуется со свечением; самоцветы показываем только если у листа это свечение есть
@@ -213,7 +246,27 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
     >
       <div className="arcade-wardrobe" data-testid="arcade-wardrobe">
         <div className="arcade-wardrobe__stage">
-          <LookPreview key={`${previewSheet}#${selStyle?.hue ?? "own"}`} sheet={previewSheet} size={320} gem={selStyle?.hue ?? null} glow={arcana} effects={previewEffects} />
+          <div className="arcade-wardrobe__stages">
+            <LookPreview key={`${previewSheet}#${selStyle?.hue ?? "own"}#${previewAnim}#${previewBg}#${lifeSize}`} sheet={previewAnim === "form" ? formSheet : previewSheet} size={compare ? 220 : 320} gem={selStyle?.hue ?? null} glow={arcana} effects={previewEffects} anim={previewAnim === "form" ? "idle" : previewAnim} bg={previewBg} lifeSize={lifeSize} />
+            {compare && sel.def && (
+              <span className="arcade-wardrobe__compare" data-testid="arcade-wardrobe-compare">
+                <LookPreview key={`base#${previewAnim}#${previewBg}#${lifeSize}`} sheet={previewAnim === "form" ? `${hero}@meta` : hero} size={220} effects={{ skinAura: HERO_AURA[hero] }} anim={previewAnim === "form" ? "idle" : previewAnim} bg={previewBg} lifeSize={lifeSize} />
+                <small>{t("arcade.wardrobe.base")}</small>
+              </span>
+            )}
+          </div>
+          <div className="arcade-wardrobe__controls" data-testid="arcade-wardrobe-controls">
+            {(["auto", "idle", "walk", "attack", ...(hasForm ? (["form"] as const) : [])] as (PreviewAnim | "form")[]).map((a) => (
+              <button key={a} type="button" className="arcade-rank__tier" data-active={previewAnim === a ? "true" : undefined} data-testid={`arcade-wardrobe-anim-${a}`} onClick={() => setPreviewAnim(a)}>{t(`arcade.wardrobe.anim.${a}` as MessageKey)}</button>
+            ))}
+            <span className="arcade-wardrobe__sep" />
+            {(["none", "radiant", "dire"] as const).map((b) => (
+              <button key={b} type="button" className="arcade-rank__tier" data-active={previewBg === b ? "true" : undefined} data-testid={`arcade-wardrobe-bg-${b}`} onClick={() => setPreviewBg(b)}>{t(`arcade.wardrobe.bg.${b}` as MessageKey)}</button>
+            ))}
+            <span className="arcade-wardrobe__sep" />
+            <button type="button" className="arcade-rank__tier" data-active={lifeSize ? "true" : undefined} data-testid="arcade-wardrobe-lifesize" onClick={() => setLifeSize((v) => !v)}>{t("arcade.wardrobe.lifeSize")}</button>
+            <button type="button" className="arcade-rank__tier" data-active={compare ? "true" : undefined} disabled={!sel.def} data-testid="arcade-wardrobe-compare-toggle" onClick={() => setCompare((v) => !v)}>{t("arcade.wardrobe.compare")}</button>
+          </div>
           <strong data-testid="arcade-wardrobe-name">
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
           </strong>

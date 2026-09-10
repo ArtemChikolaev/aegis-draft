@@ -349,3 +349,11 @@
 @media (max-width: 640px) { .arcade-forge__gear { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .arcade-forge__slot[data-active] { border-color: var(--accent-strong); }
 .arcade-forge__slot:disabled { opacity: .5; cursor: default; }
+
+/* Превью гардероба (T13.57): два холста рядом при сравнении, ряд переключателей. */
+.arcade-wardrobe__stages { display: flex; gap: 12px; align-items: flex-end; justify-content: center; flex-wrap: wrap; }
+.arcade-wardrobe__compare { display: grid; justify-items: center; gap: 2px; }
+.arcade-wardrobe__compare small { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
+.arcade-wardrobe__controls { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.arcade-wardrobe__controls .arcade-rank__tier { padding: 4px 10px; font-size: 11px; }
+.arcade-wardrobe__sep { width: 1px; align-self: stretch; background: var(--line-invert); margin: 0 4px; }
