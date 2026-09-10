@@ -92,26 +92,34 @@ export function equippedGear(gear: GearState): GearItem[] {
 
 export interface CosmeticsState {
   owned: string[];
-  /** Надетое по слотам. `skin` здесь — производное: скин ВЫБРАННОГО героя из `skins` (владелец 2026-09-07:
-   *  «надеваю аркану на одном персонаже, а на другом она снимается»); правда о скинах — в `skins`. */
+  /** Надетое по слотам для ВЫБРАННОГО героя — производное: `shared` + пресет героя (если включён) + его скин из `skins`
+   *  (владелец 2026-09-07: «надеваю аркану на одном персонаже, а на другом она снимается»). Читатели работают с ним как с одним слотом. */
   equipped: Partial<Record<CosmeticSlot, string>>;
+  /** Общий образ (эффекты для всех героев) — правда для слотов кроме `skin`. */
+  shared: Partial<Record<CosmeticSlot, string>>;
   shards: number;
   /** Выбранный стиль скина (аркана/самоцвет): id косметики → id стиля. Стиль бесплатен, он идёт со скином. */
   styles: Record<string, string>;
   /** Скин у каждого героя свой: id героя → id косметики. */
   skins: Record<string, string>;
+  /** Пресеты образа (T13.49): полный набор эффектов героя — id героя → слоты; действует вместо `shared`, когда
+   *  `perHeroLook` включён и пресет есть (пустой слот = снято). Скин всегда на героя (`skins`). */
+  perHero: Record<string, Partial<Record<CosmeticSlot, string>>>;
+  perHeroLook: boolean;
 }
 
 /** `equipped.skin` = скин героя `hero` (или ничего): все читатели слота продолжают работать как с одним слотом. */
 function withHeroSkin(c: CosmeticsState, hero: string): CosmeticsState {
-  const equipped = { ...c.equipped };
+  // Пресеты включены — образ героя целиком его (пустой слот в пресете = снято), без пресета — общий; скин — всегда героя (T13.49).
+  const equipped: Partial<Record<CosmeticSlot, string>> = { ...(c.perHeroLook ? c.perHero[hero] ?? c.shared : c.shared) };
+  delete equipped.skin;
   const id = c.skins[hero];
-  if (id) equipped.skin = id; else delete equipped.skin;
+  if (id) equipped.skin = id;
   return { ...c, equipped };
 }
 
 function readCosmetics(): CosmeticsState {
-  const empty: CosmeticsState = { owned: [], equipped: {}, shards: 0, styles: {}, skins: {} };
+  const empty: CosmeticsState = { owned: [], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false };
   try {
     const raw = readCached(COSMETICS_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<CosmeticsState>) : null;
@@ -120,7 +128,10 @@ function readCosmetics(): CosmeticsState {
     // Сейвы до 2026-09-07: один слот скина на всех — переносим его герою, которому он принадлежит.
     const legacy = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
     const skins = parsed.skins ?? (legacy?.hero ? { [legacy.hero]: legacy.id } : {});
-    return { owned: parsed.owned, equipped, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins };
+    // Сейвы до T13.49: общий образ лежал в `equipped` — берём его как `shared` (без скина).
+    const shared = { ...(parsed.shared ?? equipped) }; delete shared.skin;
+    const perHero = parsed.perHero && typeof parsed.perHero === "object" ? parsed.perHero : {};
+    return { owned: parsed.owned, equipped, shared, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins, perHero, perHeroLook: parsed.perHeroLook === true };
   } catch {
     return empty;
   }
@@ -212,6 +223,8 @@ interface ArcadeStore {
   startReplay: (replay: ArcadeReplay) => void;
   setLoadedReplay: (replay: ArcadeReplay | null) => void;
   equip: (slot: CosmeticSlot, id: string | null) => void;
+  /** Пресеты образа (T13.49): свой набор эффектов у каждого героя вместо общего. */
+  setPerHeroLook: (on: boolean) => void;
   /** Выбрать стиль скина (аркана с самоцветом/стилем). null — базовый стиль. */
   setStyle: (cosmeticId: string, styleId: string | null) => void;
   equipGear: (slot: GearSlot, uid: string | null) => void;
@@ -320,14 +333,31 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   },
   equip(slot, id) {
     if (id !== null && (!COSMETIC_BY_ID[id] || COSMETIC_BY_ID[id].slot !== slot || !get().cosmetics.owned.includes(id))) return;
-    const equipped = { ...get().cosmetics.equipped };
-    const skins = { ...get().cosmetics.skins };
+    const c = get().cosmetics;
+    const shared = { ...c.shared };
+    const skins = { ...c.skins };
+    const perHero = { ...c.perHero };
     if (slot === "skin") {
       // Скин — у героя, которому он принадлежит; снятие — у выбранного героя.
       const hero = id === null ? get().hero : COSMETIC_BY_ID[id]?.hero ?? get().hero;
       if (id === null) delete skins[hero]; else skins[hero] = id;
-    } else if (id === null) delete equipped[slot]; else equipped[slot] = id;
-    const cosmetics = withHeroSkin({ ...get().cosmetics, equipped, skins }, get().hero);
+    } else if (c.perHeroLook) {
+      // Пресет героя (T13.49): эффект пишется только выбранному герою.
+      const mine = { ...(perHero[get().hero] ?? {}) };
+      if (id === null) delete mine[slot]; else mine[slot] = id;
+      perHero[get().hero] = mine;
+    } else if (id === null) delete shared[slot]; else shared[slot] = id;
+    const cosmetics = withHeroSkin({ ...c, shared, skins, perHero }, get().hero);
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
+  },
+  setPerHeroLook(on) {
+    const c = get().cosmetics;
+    if (c.perHeroLook === on) return;
+    const perHero = { ...c.perHero };
+    // Включили — герой стартует с текущего общего образа, чтобы картинка не прыгала; выключили — пресеты остаются в сейве.
+    if (on && !perHero[get().hero]) perHero[get().hero] = { ...c.shared };
+    const cosmetics = withHeroSkin({ ...c, perHero, perHeroLook: on }, get().hero);
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });
   },

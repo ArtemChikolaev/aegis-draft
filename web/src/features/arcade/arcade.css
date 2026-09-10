@@ -337,3 +337,7 @@
 .arcade-mastery__marks { display: flex; flex-wrap: wrap; gap: 4px; }
 .arcade-mastery__mark { font-size: 11px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
 .arcade-mastery__mark[data-on] { color: var(--text); border-color: var(--accent-strong); background: var(--accent-soft); }
+
+/* Пресеты образа (T13.49): переключатель в гардеробе. */
+.arcade-wardrobe__toggle { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; font-size: 12px; }
+.arcade-wardrobe__toggle small { grid-column: 2; opacity: .7; }

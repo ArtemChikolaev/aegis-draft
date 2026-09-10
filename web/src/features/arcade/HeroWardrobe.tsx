@@ -179,6 +179,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const equip = useArcade((s) => s.equip);
   const setStyle = useArcade((s) => s.setStyle);
   const buyCosmetic = useArcade((s) => s.buyCosmetic);
+  const setPerHeroLook = useArcade((s) => s.setPerHeroLook);
   const heroOf = useHero();
   const def = HEROES[hero];
   const info = heroOf(def.dotaId);
@@ -270,6 +271,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
           })}
         </div>
         <div className="arcade-wardrobe__effects">
+          <label className="arcade-wardrobe__toggle" data-testid="arcade-wardrobe-perhero">
+            <input type="checkbox" checked={cosmetics.perHeroLook} onChange={(e) => setPerHeroLook(e.target.checked)} />
+            <span>{t("arcade.wardrobe.perHero")}</span>
+            <small>{t(cosmetics.perHeroLook ? "arcade.wardrobe.perHeroOn" : "arcade.wardrobe.perHeroOff")}</small>
+          </label>
           {cosmetics.equipped.aura && <small className="arcade-wardrobe__hint">{t("arcade.wardrobe.flareHint")}</small>}
           {EFFECT_SLOTS.map((slot) => {
             const all = COSMETICS.filter((c) => c.slot === slot);
