@@ -331,3 +331,9 @@
 .arcade-legacy__pips em[data-on] { background: var(--accent-strong); border-color: var(--accent-strong); }
 .arcade-result__seals { margin: 4px 0 0; font-weight: 800; color: var(--accent-strong); }
 @media (max-width: 640px) { .arcade-legacy__row { grid-template-columns: 1fr auto; } .arcade-legacy__row span { grid-column: 1 / -1; } }
+
+/* Мастерство героя (T13.48): отметки под китом героя. */
+.arcade-mastery { display: grid; gap: 6px; }
+.arcade-mastery__marks { display: flex; flex-wrap: wrap; gap: 4px; }
+.arcade-mastery__mark { font-size: 11px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); }
+.arcade-mastery__mark[data-on] { color: var(--text); border-color: var(--accent-strong); background: var(--accent-soft); }

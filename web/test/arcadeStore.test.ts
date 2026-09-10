@@ -36,7 +36,7 @@ describe("arcadeStore: витрина и открытие рангов", () => {
     expect(tr.fullVictories).toBe(1);
     expect(tr.bestRank).toBe(2);
     expect(tr.bestSeconds).toBe(1230);
-    expect(tr.perHero.zeus).toEqual({ runs: 2, victories: 1, bestSeconds: 1230, bestLevel: 22 });
+    expect(tr.perHero.zeus).toEqual({ runs: 2, victories: 1, bestSeconds: 1230, bestLevel: 22, marks: ["win_full", "flawless"] });
     expect(tr.perHero.axe?.victories).toBe(1);
     expect(bestArcadeEntry(history)?.rank).toBe(2);
   });

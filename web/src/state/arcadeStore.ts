@@ -11,7 +11,7 @@ import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
 import { LEGACY_MAX_RANK, LEGACY_NONE, LEGACY_ZERO, clampLegacy, legacyBonus, legacySpentTotal, type LegacyBranch, type LegacySpent } from "../game/arcade/content/legacy.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
-import { COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
 import { GEAR_SALVAGE, GEAR_SLOTS, type GearItem, type GearSlot } from "../game/arcade/content/gear.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readCached, writePersisted } from "./persist.ts";
@@ -34,7 +34,17 @@ export interface ArcadeHistoryEntry {
   items?: string[];
   hero?: string;
   act?: ActId;
+  /** Отметки мастерства за забег (T13.48): что случилось, независимо от исхода. */
+  camp?: boolean;
+  outpost?: boolean;
+  centaur?: boolean;
+  necro?: boolean;
+  revived?: boolean;
 }
+
+/** Отметки мастерства героя (T13.48): победы по актам, без единой смерти, лагерь, аванпост, чемпионы. */
+export const MARK_IDS = ["win_full", "win_dire", "win_river", "flawless", "camp", "outpost", "centaur", "necro"] as const;
+export type MarkId = (typeof MARK_IDS)[number];
 
 const HISTORY_KEY = "aegis-draft.arcade.history";
 const COSMETICS_KEY = "aegis-draft.arcade.cosmetics";
@@ -157,7 +167,7 @@ function sanitizeProgress(p: Partial<ArcadeProgress>): ArcadeProgress {
   const perHero: ArcadeProgress["perHero"] = {};
   for (const [hero, h] of Object.entries(p.perHero ?? {})) {
     if (!h || typeof h !== "object") continue;
-    perHero[hero] = { runs: num(h.runs), victories: num(h.victories), bestSeconds: num(h.bestSeconds), bestLevel: num(h.bestLevel) };
+    perHero[hero] = { runs: num(h.runs), victories: num(h.victories), bestSeconds: num(h.bestSeconds), bestLevel: num(h.bestLevel), marks: Array.isArray(h.marks) ? h.marks.filter((m): m is MarkId => (MARK_IDS as readonly string[]).includes(m)) : [] };
   }
   const lg = p.legacy;
   return {
@@ -293,7 +303,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   buyCosmetic(id) {
     const def = COSMETIC_BY_ID[id];
     const c = get().cosmetics;
-    if (!def || c.owned.includes(id) || c.shards < SHARD_PRICE[def.rarity]) return false;
+    if (!def || def.unlock || c.owned.includes(id) || c.shards < SHARD_PRICE[def.rarity]) return false;
     const cosmetics: CosmeticsState = { ...c, owned: [...c.owned, id], shards: c.shards - SHARD_PRICE[def.rarity] };
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });
@@ -388,6 +398,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
       schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,
+      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived,
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
@@ -401,6 +412,8 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const owned = [...prev.owned];
     let shards = prev.shards;
     for (const d of drops) { if (d.duplicate) shards += d.shards; else owned.push(d.id); }
+    // Трофеи за отметки (T13.48): выдаются один раз, когда отметка появилась у любого героя; показываются как дроп.
+    for (const c of COSMETICS) if (c.unlock && !owned.includes(c.id) && anyHeroHasMark(progress, c.unlock.mark)) { owned.push(c.id); drops.push({ id: c.id, duplicate: false, shards: 0 }); }
     const cosmetics: CosmeticsState = { ...prev, owned, shards };
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     // Добыча — в инвентарь (и при смерти тоже, как у референса); переполнение — старые standard в осколки.
@@ -452,7 +465,17 @@ export interface ArcadeTrophies {
   bestRank: number | null;
   /** Лучшее время выживания в секундах (по любому акту). */
   bestSeconds: number;
-  perHero: Record<string, { runs: number; victories: number; bestSeconds: number; bestLevel: number }>;
+  perHero: Record<string, { runs: number; victories: number; bestSeconds: number; bestLevel: number; marks: MarkId[] }>;
+}
+
+/** Звание героя по числу отметок: показывается рядом с именем на экране настройки. */
+export function masteryTitle(marks: readonly MarkId[]): "novice" | "veteran" | "master" | "legend" {
+  return marks.length >= 7 ? "legend" : marks.length >= 4 ? "master" : marks.length >= 1 ? "veteran" : "novice";
+}
+
+/** Есть ли отметка хотя бы у одного героя (награды-трофеи общие). */
+export function anyHeroHasMark(progress: ArcadeProgress, mark: string): boolean {
+  return Object.values(progress.perHero).some((h) => h.marks.includes(mark as MarkId));
 }
 
 /**
@@ -479,12 +502,16 @@ export function legacyClaimKey(e: Pick<ArcadeHistoryEntry, "seed" | "hero" | "ac
 /** Одно завершение забега поверх профиля. Разминка считается забегом и победой, но акт/ступень не открывает. */
 export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): ArcadeProgress {
   const hero = e.hero ?? "juggernaut";
-  const prev = p.perHero[hero] ?? { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0 };
-  const h = { runs: prev.runs + 1, victories: prev.victories, bestSeconds: Math.max(prev.bestSeconds, e.seconds), bestLevel: Math.max(prev.bestLevel, e.level) };
+  const prev = p.perHero[hero] ?? { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0, marks: [] };
+  const h = { runs: prev.runs + 1, victories: prev.victories, bestSeconds: Math.max(prev.bestSeconds, e.seconds), bestLevel: Math.max(prev.bestLevel, e.level), marks: [...(prev.marks ?? [])] };
+  const mark = (m: MarkId) => { if (!h.marks.includes(m)) h.marks.push(m); };
+  if (e.camp) mark("camp"); if (e.outpost) mark("outpost"); if (e.centaur) mark("centaur"); if (e.necro) mark("necro");
   const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] } };
   if (e.outcome === "victory") {
     next.victories++; h.victories++;
     if (e.act && e.act !== "short") {
+      mark(`win_${e.act}` as MarkId);
+      if (!e.revived) mark("flawless");
       // Печать наследия: за победу в полном акте, +1 за первую полную победу этим героем; одна и та же
       // комбинация seed/hero/act/rank — один раз (повтор пользовательского сида, реимпорт, повторный callback).
       const key = legacyClaimKey(e);

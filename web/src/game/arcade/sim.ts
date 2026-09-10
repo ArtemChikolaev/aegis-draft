@@ -1754,7 +1754,7 @@ export class ArcadeSim {
       campsCleared: this.camp?.cleared ? 1 : 0,
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
-      centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain,
+      centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
     };
   }
 

@@ -18,6 +18,8 @@ export interface CosmeticDef {
   hero?: string;
   /** Стили облика — «стили» и самоцветы Dota. См. StyleDef. */
   styles?: readonly StyleDef[];
+  /** Награда за отметку мастерства (T13.48): не выпадает и не покупается — выдаётся, когда у любого героя есть эта отметка. */
+  unlock?: { mark: string };
   /** Встроенные эффекты скина — замена частиц Dota, которых в спрайте нет (дым-плащ и капюшон арканы PA
    *  живут в `pa_arcana_*.vpcf`, в модели их геометрии нет). Вид — как у слота `aura` (features/arcade/effects.ts),
    *  рисуется всегда, поверх него — надетое свечение игрока. */
@@ -76,6 +78,10 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "death_ring", slot: "death", rarity: "standard", variant: "ring" },
   { id: "death_shatter", slot: "death", rarity: "refined", variant: "shatter" },
   { id: "death_nova", slot: "death", rarity: "exotic", variant: "nova" },
+  // Трофеи за отметки мастерства (T13.48, аудит: «след спор за очищение лагеря, обломки за Осквернителя/Некроманта»).
+  { id: "trail_spores", slot: "trail", rarity: "exotic", variant: "spores", unlock: { mark: "camp" } },
+  { id: "death_bones", slot: "death", rarity: "exotic", variant: "bones", unlock: { mark: "necro" } },
+  { id: "trail_hoofprints", slot: "trail", rarity: "exotic", variant: "hoofprints", unlock: { mark: "centaur" } },
   { id: "tint_radiance", slot: "tint", rarity: "standard", variant: "fire" },
   { id: "tint_skadi", slot: "tint", rarity: "refined", variant: "frost" },
   { id: "tint_arcane", slot: "tint", rarity: "exotic", variant: "lightning" },
@@ -315,7 +321,7 @@ export function rollCosmeticDrops(seed: string, outcome: ArcadeOutcome, owned: r
     let roll = rng.float() * (weights.standard + weights.refined + weights.exotic + weights.arcana);
     let rarity: Rarity = "standard";
     for (const r of ["standard", "refined", "exotic", "arcana"] as const) { roll -= weights[r]; if (roll <= 0) { rarity = r; break; } }
-    const pool = COSMETICS.filter((c) => c.rarity === rarity);
+    const pool = COSMETICS.filter((c) => c.rarity === rarity && !c.unlock);
     const def = pool[rng.int(pool.length)];
     const duplicate = have.has(def.id);
     have.add(def.id);

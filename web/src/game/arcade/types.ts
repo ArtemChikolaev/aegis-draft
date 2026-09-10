@@ -464,4 +464,6 @@ export interface ArcadeOutcome {
   centaurSlain: boolean;
   /** Тролль-Некромант убит (T13.46). */
   necromancerSlain: boolean;
+  /** Воскрешение (Aegis/Феникс) было потрачено (T13.48: отметка «без единой смерти»). */
+  revived: boolean;
 }

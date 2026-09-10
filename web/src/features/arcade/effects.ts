@@ -46,8 +46,8 @@ function pixelEllipse(c: CanvasRenderingContext2D, x: number, y: number, rx: num
 
 export type GroundEffect = "ember" | "frost" | "gold" | "void";
 export type AuraEffect = "fire" | "frost" | "lightning" | "aegis";
-export type TrailEffect = "fire" | "frost" | "lightning" | "aegis" | "blood" | "leaves" | "void" | "spectral";
-export type DeathEffect = "ring" | "shatter" | "nova";
+export type TrailEffect = "fire" | "frost" | "lightning" | "aegis" | "blood" | "leaves" | "void" | "spectral" | "spores" | "hoofprints";
+export type DeathEffect = "ring" | "shatter" | "nova" | "bones";
 
 /**
  * Наземный эффект под героем (слот `frame`): кольцо у ног радиуса `R` (радиус коллизии героя).
@@ -367,6 +367,26 @@ export function drawTrailEffect(c: CanvasRenderingContext2D, pts: readonly { x: 
         }
         break;
       }
+      case "spores": {
+        // Споры (трофей за лагерь): зелёные пузырьки медленно всплывают и лопаются, тёмные споры оседают.
+        for (let j = 0; j < 3; j++) {
+          const rise = (1 - k) * 30 + j * px * 3;
+          const pop = k < 0.2;
+          c.globalAlpha = (pop ? k / 0.2 : 0.9) * (0.6 + 0.4 * k);
+          c.fillStyle = pop ? pal.text : j === 2 ? pal.venomDark : pal.venom;
+          dot(c, pt.x + (hash(seed, 50 + j) - 0.5) * px * 8 + Math.sin(now / 160 + j) * px, pt.y - rise, px * (pop ? 1 : 2), px);
+        }
+        break;
+      }
+      case "hoofprints": {
+        // Копыта (трофей за Стража рощи): пара отпечатков на точку, вдавленных в землю, медленно затираются.
+        c.globalAlpha = 0.7 * k;
+        c.fillStyle = pal.smoke;
+        dot(c, pt.x - px * 3, pt.y + px, px * 2, px); dot(c, pt.x + px * 3, pt.y - px, px * 2, px);
+        c.fillStyle = pal.ember; c.globalAlpha = 0.25 * k;
+        dot(c, pt.x - px * 3, pt.y, px, px); dot(c, pt.x + px * 3, pt.y - px * 2, px, px);
+        break;
+      }
       case "void": {
         // Дым пустоты: тёмно-фиолетовые клубы расширяются и тают, внутри редкие искры.
         for (let j = 0; j < 3; j++) {
@@ -395,6 +415,19 @@ export function drawDeathEffect(c: CanvasRenderingContext2D, x: number, y: numbe
   c.globalAlpha = (1 - k) * 0.7; c.strokeStyle = pal.text; c.lineWidth = kind ? 2 : 1.5;
   const rr = r + k * r * (kind === "ring" ? 3 : 1.6);
   c.beginPath(); c.arc(x, y, rr, 0, Math.PI * 2); c.stroke();
+  if (kind === "bones") {
+    // Кости (трофей за Некроманта): обломки разлетаются дугой и падают, светлая кость с тёмным сколом.
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2 + hash(seed, i + 20) * 0.7;
+      const d = r * (0.5 + k * 2.6);
+      c.globalAlpha = 1 - k;
+      const sx = x + Math.cos(a) * d, sy = y + Math.sin(a) * d * 0.6 - Math.sin(k * Math.PI) * r * 1.4;
+      c.fillStyle = pal.text; dot(c, sx, sy, px * 2, px); dot(c, sx + px * 2, sy + px, px * 2, px);
+      c.fillStyle = pal.venomDark; dot(c, sx + px, sy, px, px);
+    }
+    c.globalAlpha = 1;
+    return;
+  }
   if (kind === "shatter") {
     // Осколки льда разлетаются и падают, кристаллы из двух точек.
     for (let i = 0; i < 8; i++) {

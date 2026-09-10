@@ -3,7 +3,7 @@
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
-import { bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActVictory, maxUnlockedRank, useArcade, type ArcadeProgress } from "../../state/arcadeStore.ts";
+import { MARK_IDS, bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
 import { LEGACY_BRANCHES, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -165,6 +165,7 @@ function ArcadeSetup() {
             ))}
             {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey)}</small></li>}
           </ul>
+          <MasteryPanel marks={progress.perHero[heroId]?.marks ?? []} />
         </Surface>
         <Surface className="arcade-setup__run">
           <div className="arcade-act" data-testid="arcade-act">
@@ -1108,6 +1109,19 @@ function affixLabel(t: (k: MessageKey, v?: Record<string, string | number>) => s
 
 /** Панель баффов рун (T13.32, владелец: «нет индикации, сколько действует руна»): иконка модели руны,
  *  имя, остаток времени и тающая полоска; щит показывает ещё и запас, иллюзии — их число. */
+/** Мастерство героя (T13.48): отметки за события забега — звание и трофеи после потолка Наследия. */
+function MasteryPanel({ marks }: { marks: readonly MarkId[] }) {
+  const { t } = useI18n();
+  return (
+    <div className="arcade-mastery" data-testid="arcade-mastery">
+      <span className="arcade-setup__label">{t("arcade.mastery.title")} · {t(`arcade.mastery.${masteryTitle(marks)}` as MessageKey)} · {marks.length}/{MARK_IDS.length}</span>
+      <div className="arcade-mastery__marks">
+        {MARK_IDS.map((m) => <span key={m} className="arcade-mastery__mark" data-on={marks.includes(m) ? "true" : undefined} title={t(`arcade.mark.${m}.desc` as MessageKey)} data-testid={`arcade-mark-${m}`}>{marks.includes(m) ? "✓" : "○"} {t(`arcade.mark.${m}` as MessageKey)}</span>)}
+      </div>
+    </div>
+  );
+}
+
 /** Наследие Aegis (T13.44): печати за победы в полных актах → три ветки по четыре пункта на весь ростер. */
 function LegacyPanel({ progress, onSpend, onReset }: { progress: ArcadeProgress; onSpend: (b: LegacyBranch) => void; onReset: () => void }) {
   const { t } = useI18n();

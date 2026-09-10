@@ -89,7 +89,7 @@ export function HqScreen() {
             return (
               <li key={id} data-played={h ? "true" : undefined}>
                 <strong>{heroOf(HEROES[id].dotaId).name}</strong>
-                <span>{h ? t("hq.arcadeHeroLine", { runs: h.runs, wins: h.victories, time: formatClock(h.bestSeconds * TICK_HZ), lvl: h.bestLevel }) : t("hq.arcadeHeroNone")}</span>
+                <span>{h ? `${t("hq.arcadeHeroLine", { runs: h.runs, wins: h.victories, time: formatClock(h.bestSeconds * TICK_HZ), lvl: h.bestLevel })} · ${t("arcade.mastery.short", { n: h.marks.length })}` : t("hq.arcadeHeroNone")}</span>
               </li>
             );
           })}

@@ -285,8 +285,8 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                         {t(`arcade.cosmetic.${c.id}` as MessageKey)}
                       </button>
                     ) : (
-                      <button key={c.id} type="button" className="arcade-rank__tier arcade-cosmetics__buy" data-rarity={c.rarity} data-testid={`arcade-cosmetic-buy-${c.id}`} disabled={cosmetics.shards < SHARD_PRICE[c.rarity]} title={t("arcade.cosmetics.buyHint")} onClick={() => { if (buyCosmetic(c.id)) equip(slot, c.id); }}>
-                        {t(`arcade.cosmetic.${c.id}` as MessageKey)} · {SHARD_PRICE[c.rarity]}
+                      <button key={c.id} type="button" className="arcade-rank__tier arcade-cosmetics__buy" data-rarity={c.rarity} data-testid={`arcade-cosmetic-buy-${c.id}`} disabled={!!c.unlock || cosmetics.shards < SHARD_PRICE[c.rarity]} title={c.unlock ? t("arcade.cosmetics.unlockHint", { mark: t(`arcade.mark.${c.unlock.mark}` as MessageKey) }) : t("arcade.cosmetics.buyHint")} onClick={() => { if (buyCosmetic(c.id)) equip(slot, c.id); }}>
+                        {t(`arcade.cosmetic.${c.id}` as MessageKey)} · {c.unlock ? t("arcade.cosmetics.unlockShort") : SHARD_PRICE[c.rarity]}
                       </button>
                     );
                   })}
