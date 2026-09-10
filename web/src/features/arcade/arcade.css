@@ -343,6 +343,9 @@
 .arcade-wardrobe__toggle small { grid-column: 2; opacity: .7; }
 
 /* Кузня (T13.52): выбор надетой вещи — карточки-кнопки. */
-.arcade-forge__slot { padding: 0; border: 2px solid transparent; border-radius: 12px; background: none; cursor: pointer; text-align: left; }
+.arcade-forge__gear { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+.arcade-forge__slot { display: block; width: 100%; padding: 0; border: 2px solid transparent; border-radius: 12px; background: none; cursor: pointer; text-align: left; }
+.arcade-forge__slot .arcade-offer { min-height: 0; }
+@media (max-width: 640px) { .arcade-forge__gear { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .arcade-forge__slot[data-active] { border-color: var(--accent-strong); }
 .arcade-forge__slot:disabled { opacity: .5; cursor: default; }

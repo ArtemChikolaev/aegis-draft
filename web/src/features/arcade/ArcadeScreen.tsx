@@ -625,7 +625,7 @@ function ArcadeStage() {
               <Eyebrow>{t("arcade.forge.title")}</Eyebrow>
               <h2>{sim.forgeSlot < 0 ? t("arcade.forge.pickItem") : t("arcade.forge.pickAction")}</h2>
               <p className="arcade-shop__hint">{t("arcade.forge.hint")}</p>
-              <div className="arcade-build__gear">
+              <div className="arcade-forge__gear">
                 {GEAR_SLOTS.map((slot, i) => {
                   const item = (sim.player.gear[slot] as GearItem | undefined) ?? null;
                   return (
