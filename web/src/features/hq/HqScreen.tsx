@@ -15,6 +15,8 @@ import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { HQ_STAKE_ORDER, collectionStats, hqTrophies, useCareer, type CardCollectionStat } from "../../state/careerStore.ts";
 import { usePlaybook } from "../../state/playbookStore.ts";
 import { MARK_IDS, arcadeTrophies, useArcade } from "../../state/arcadeStore.ts";
+import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
+import type { EnemyKindId } from "../../game/arcade/types.ts";
 import { HEROES, HERO_IDS } from "../../game/arcade/content/heroes.ts";
 import { rankOf } from "../../game/arcade/content/ranks.ts";
 import { COSMETICS } from "../../game/arcade/content/cosmetics.ts";
@@ -83,6 +85,20 @@ export function HqScreen() {
           <StatTile label={t("hq.arcadeBestTime")} value={arcade.runs === 0 ? t("hq.none") : formatClock(arcade.bestSeconds * TICK_HZ)} kind="chemistry" />
           <StatTile label={t("arcade.cosmetics.title")} value={`${cosmetics.owned.length}/${COSMETICS.length}`} sublabel={t("arcade.cosmetics.shards", { n: cosmetics.shards })} kind="base" />
         </div>
+        <h3 className="hq__sub">{t("hq.bestiary")}</h3>
+        <p className="hq__hint">{t("hq.bestiaryHint")}</p>
+        <ul className="hq__bestiary" data-testid="hq-bestiary">
+          {(Object.keys(ENEMY_KINDS) as EnemyKindId[]).map((id) => {
+            const n = arcade.bestiary[id] ?? 0;
+            const def = ENEMY_KINDS[id];
+            return (
+              <li key={id} data-met={n > 0 ? "true" : undefined} data-champion={def.elite || def.boss || def.structure ? "true" : undefined}>
+                <strong>{n > 0 ? t(`arcade.enemy.${id}` as MessageKey) : "???"}</strong>
+                <span>{n > 0 ? `${t("hq.bestiaryKills", { n })} · ${t(`arcade.enemy.${id}.desc` as MessageKey)}` : t("hq.bestiaryUnknown")}</span>
+              </li>
+            );
+          })}
+        </ul>
         <ul className="hq__heroes">
           {HERO_IDS.map((id) => {
             const h = arcade.perHero[id];

@@ -501,4 +501,6 @@ export interface ArcadeOutcome {
   wardenSlain: boolean;
   /** Охотник Dire убит (T13.55). */
   stalkerSlain: boolean;
+  /** Убийства по видам врагов за забег (T13.56, бестиарий). */
+  killsByKind: Record<string, number>;
 }

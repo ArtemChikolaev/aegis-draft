@@ -139,6 +139,8 @@ export class ArcadeSim {
   barrow: Barrow | null = null;
   necromancer: Enemy | null = null;
   private necromancerSlain = false;
+  /** Убийства по видам за забег (T13.56): бестиарий в Штабе. */
+  readonly killsByKind: Record<string, number> = {};
   /** Позиция героя на прошлом тике — скорость для метки засады (T13.55): стоящий получает метку под ноги. */
   private prevPx = 0;
   private prevPy = 0;
@@ -1976,6 +1978,7 @@ export class ArcadeSim {
     const p = this.player;
     p.kills++;
     this.events.kills++;
+    this.killsByKind[e.kind.id] = (this.killsByKind[e.kind.id] ?? 0) + 1;
     const sig = this.hero.signature;
     if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (e.kind.elite || e.kind.boss ? 6 : 1));
     if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1));
@@ -2206,7 +2209,7 @@ export class ArcadeSim {
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
-      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain,
+      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
     };
   }
 

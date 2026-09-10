@@ -44,6 +44,8 @@ export interface ArcadeHistoryEntry {
   thunder?: boolean;
   warden?: boolean;
   stalker?: boolean;
+  /** Убийства по видам за забег (T13.56). */
+  killsByKind?: Record<string, number>;
 }
 
 /** Отметки мастерства героя (T13.48): победы по актам, без единой смерти, лагерь, аванпост, чемпионы. */
@@ -192,6 +194,7 @@ function sanitizeProgress(p: Partial<ArcadeProgress>): ArcadeProgress {
     bestRank: p.bestRank == null ? null : num(p.bestRank), bestSeconds: num(p.bestSeconds), perHero,
     // Наследие (T13.44): профиль до него — нули; потраченное не может превышать заработанное.
     legacy: { seals: Math.max(0, num(lg?.seals)), spent: clampLegacy(lg?.spent), claimed: Array.isArray(lg?.claimed) ? lg!.claimed.filter((k): k is string => typeof k === "string").slice(-LEGACY_CLAIMED_CAP) : [] },
+    bestiary: Object.fromEntries(Object.entries(p.bestiary && typeof p.bestiary === "object" ? p.bestiary : {}).filter(([, v]) => typeof v === "number" && v > 0).map(([k, v]) => [k, Math.floor(v as number)])),
   };
 }
 
@@ -432,7 +435,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
       schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,
-      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone, thunder: o.thunderSlain, warden: o.wardenSlain, stalker: o.stalkerSlain,
+      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone, thunder: o.thunderSlain, warden: o.wardenSlain, stalker: o.stalkerSlain, killsByKind: o.killsByKind,
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
@@ -524,10 +527,12 @@ export interface ArcadeProgress extends ArcadeTrophies {
   acts: ActId[];
   /** Наследие Aegis (T13.44): заработанные печати, вложенные пункты и ключи уже награждённых завершений. */
   legacy: { seals: number; spent: LegacySpent; claimed: string[] };
+  /** Бестиарий (T13.56): суммарные убийства по видам врагов за все забеги. */
+  bestiary: Record<string, number>;
 }
 
 export function emptyProgress(): ArcadeProgress {
-  return { v: 1, acts: [], runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {}, legacy: { seals: 0, spent: { ...LEGACY_ZERO }, claimed: [] } };
+  return { v: 1, acts: [], runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {}, legacy: { seals: 0, spent: { ...LEGACY_ZERO }, claimed: [] }, bestiary: {} };
 }
 
 /** Ключ завершения для однократной награды (дейлик содержит дату в сиде — не чаще раза в день). */
@@ -542,7 +547,9 @@ export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): Arcade
   const h = { runs: prev.runs + 1, victories: prev.victories, bestSeconds: Math.max(prev.bestSeconds, e.seconds), bestLevel: Math.max(prev.bestLevel, e.level), marks: [...(prev.marks ?? [])] };
   const mark = (m: MarkId) => { if (!h.marks.includes(m)) h.marks.push(m); };
   if (e.camp) mark("camp"); if (e.outpost) mark("outpost"); if (e.centaur) mark("centaur"); if (e.necro) mark("necro"); if (e.contract) mark("contract"); if (e.thunder) mark("thunder"); if (e.warden) mark("warden"); if (e.stalker) mark("stalker");
-  const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] } };
+  const bestiary = { ...p.bestiary };
+  for (const [k, n] of Object.entries(e.killsByKind ?? {})) if (n > 0) bestiary[k] = (bestiary[k] ?? 0) + n;
+  const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] }, bestiary };
   if (e.outcome === "victory") {
     next.victories++; h.victories++;
     if (e.act && e.act !== "short") {
@@ -573,7 +580,7 @@ export function progressFromHistory(history: ArcadeHistoryEntry[]): ArcadeProgre
 }
 
 /** Витрина Аркады для Штаба и Карьеры (T13.5): тот же профиль. */
-export function arcadeTrophies(progress: ArcadeProgress): ArcadeTrophies {
+export function arcadeTrophies(progress: ArcadeProgress): ArcadeProgress {
   return progress;
 }
 

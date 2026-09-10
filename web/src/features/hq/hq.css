@@ -40,3 +40,10 @@
   .hq__stakes li { grid-template-columns: 1fr; gap: 4px; }
   .hq__cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Бестиарий Аркады (T13.56). */
+.hq__sub { margin: 14px 0 4px; font-size: 14px; }
+.hq__bestiary { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; padding: 0; margin: 0 0 12px; list-style: none; }
+.hq__bestiary li { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; color: var(--muted); }
+.hq__bestiary li[data-met] { color: var(--text); }
+.hq__bestiary li[data-champion][data-met] { border-color: var(--accent-strong); }
