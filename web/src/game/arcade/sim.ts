@@ -255,20 +255,9 @@ export class ArcadeSim {
   /** Логово по seed: кольцо от старта, подальше от остальных мест, свободный центр. */
   private placeLair(seed: string): Lair {
     const T = ARCADE.thunder;
-    const rng = new Rng(`lair:${seed}:${this.act}`);
-    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
     const others: { x: number; y: number }[] = [];
     for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge]) if (o) others.push({ x: o.x, y: o.y });
-    let x = cx0 + 60, y = cy0 - T.distMin;
-    for (let i = 0; i < 40; i++) {
-      const a = rng.float() * Math.PI * 2, d = T.distMin + rng.float() * (T.distMax - T.distMin);
-      x = clamp(cx0 + Math.cos(a) * d, 120, W.w - 120); y = clamp(cy0 + Math.sin(a) * d, 120, W.h - 120);
-      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
-      if (others.some((o) => len(x - o.x, y - o.y) < T.minFromOthers)) continue;
-      if (this.obstacles.blocked(x, y, 44)) continue;
-      break;
-    }
-    [x, y] = this.obstacles.resolve(x, y, 44);
+    const [x, y] = this.pickSpot(new Rng(`lair:${seed}:${this.act}`), T.distMin, T.distMax, 120, T.minFromOthers, others, 44);
     this.thunder = this.spawnEnemy(ENEMY_KINDS.thunder_golem, x, y);
     return { x, y, engaged: false, zones: [], telegraphUntil: 0, activeUntil: 0, nextAt: 0, chainHitAt: 0 };
   }
@@ -335,20 +324,9 @@ export class ArcadeSim {
   /** Кузня по seed: кольцо от старта, подальше от остальных мест, не в реке/яме, не в дереве. */
   private placeForge(seed: string): Forge {
     const F = ARCADE.forge;
-    const rng = new Rng(`forge:${seed}:${this.act}`);
-    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
     const others: { x: number; y: number }[] = [];
     for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow]) if (o) others.push({ x: o.x, y: o.y });
-    let x = cx0 - F.distMin, y = cy0 - 40;
-    for (let i = 0; i < 40; i++) {
-      const a = rng.float() * Math.PI * 2, d = F.distMin + rng.float() * (F.distMax - F.distMin);
-      x = clamp(cx0 + Math.cos(a) * d, 80, W.w - 80); y = clamp(cy0 + Math.sin(a) * d, 80, W.h - 80);
-      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 60 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 60)) continue;
-      if (others.some((o) => len(x - o.x, y - o.y) < F.minFromOthers)) continue;
-      if (this.obstacles.blocked(x, y, 36)) continue;
-      break;
-    }
-    [x, y] = this.obstacles.resolve(x, y, 36);
+    const [x, y] = this.pickSpot(new Rng(`forge:${seed}:${this.act}`), F.distMin, F.distMax, 80, F.minFromOthers, others, 36);
     return { x, y, used: false };
   }
 
@@ -407,19 +385,9 @@ export class ArcadeSim {
   private placeBarrow(seed: string): Barrow {
     const N = ARCADE.necro;
     const rng = new Rng(`barrow:${seed}:${this.act}`);
-    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
-    let x = cx0, y = cy0 + N.distMin;
     const others: { x: number; y: number }[] = [];
     for (const o of [this.camp, this.outpost, this.pond, this.grove]) if (o) others.push({ x: o.x, y: o.y });
-    for (let i = 0; i < 40; i++) {
-      const a = rng.float() * Math.PI * 2, d = N.distMin + rng.float() * (N.distMax - N.distMin);
-      x = clamp(cx0 + Math.cos(a) * d, 120, W.w - 120); y = clamp(cy0 + Math.sin(a) * d, 120, W.h - 120);
-      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
-      if (others.some((o) => len(x - o.x, y - o.y) < N.minFromOthers)) continue;
-      if (this.obstacles.blocked(x, y, 40) || this.obstacles.blocked(x - N.idolRing, y + 30, 26) || this.obstacles.blocked(x + N.idolRing, y + 30, 26)) continue;
-      break;
-    }
-    [x, y] = this.obstacles.resolve(x, y, 40);
+    const [x, y] = this.pickSpot(rng, N.distMin, N.distMax, 120, N.minFromOthers, others, 40);
     for (let i = 0; i < N.idols; i++) { const [ix, iy] = this.obstacles.resolve(x + (i === 0 ? -N.idolRing : N.idolRing), y + 30, 22); this.spawnEnemy(ENEMY_KINDS.bone_idol, ix, iy); }
     this.necromancer = this.spawnEnemy(ENEMY_KINDS.troll_necromancer, x, y - 20);
     return { x, y, engaged: false, idolsDown: 0, nextRaiseAt: 0 };
@@ -685,20 +653,9 @@ export class ArcadeSim {
   /** Пруд по seed: кольцо от старта, не ближе minFromOthers к лагерю и аванпосту, не в реке/яме, не в дереве. */
   private placePond(seed: string): Pond {
     const P = ARCADE.pond;
-    const rng = new Rng(`pond:${seed}:${this.act}`);
-    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
-    let x = cx0, y = cy0 - P.distMin;
-    for (let i = 0; i < 24; i++) {
-      const a = rng.float() * Math.PI * 2, d = P.distMin + rng.float() * (P.distMax - P.distMin);
-      x = clamp(cx0 + Math.cos(a) * d, 80, W.w - 80);
-      y = clamp(cy0 + Math.sin(a) * d, 80, W.h - 80);
-      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 60 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 60)) continue;
-      if (this.camp && len(x - this.camp.x, y - this.camp.y) < P.minFromOthers) continue;
-      if (this.outpost && len(x - this.outpost.x, y - this.outpost.y) < P.minFromOthers) continue;
-      if (this.obstacles.blocked(x, y, 36)) continue;
-      break;
-    }
-    [x, y] = this.obstacles.resolve(x, y, 36);
+    const others: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost]) if (o) others.push({ x: o.x, y: o.y });
+    const [x, y] = this.pickSpot(new Rng(`pond:${seed}:${this.act}`), P.distMin, P.distMax, 80, P.minFromOthers, others, 36);
     return { x, y, used: false };
   }
 
@@ -770,21 +727,29 @@ export class ArcadeSim {
   }
 
   /** Аванпост по seed: кольцо от старта, подальше от лагеря (разные направления = выбор маршрута), не в реке/яме, не в дереве. */
+  /**
+   * Точка места по seed (T13.53): пробы на кольце от старта; годная — не в реке/яме, не ближе `minFromOthers` к другим местам,
+   * не в дереве. Ни одна не годится — берём пробу с наибольшим расстоянием до других мест, а не последнюю попавшуюся
+   * (так логово Гром-голема встало в 53 px от лагеря).
+   */
+  private pickSpot(rng: Rng, distMin: number, distMax: number, margin: number, minFromOthers: number, others: readonly { x: number; y: number }[], blockR: number, tries = 40): [number, number] {
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    let best: [number, number] | null = null, bestScore = -Infinity;
+    for (let i = 0; i < tries; i++) {
+      const a = rng.float() * Math.PI * 2, d = distMin + rng.float() * (distMax - distMin);
+      const x = clamp(cx0 + Math.cos(a) * d, margin, W.w - margin), y = clamp(cy0 + Math.sin(a) * d, margin, W.h - margin);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
+      if (this.obstacles.blocked(x, y, blockR)) continue;
+      const nearest = others.reduce((m, o) => Math.min(m, len(x - o.x, y - o.y)), Infinity);
+      if (nearest >= minFromOthers) return this.obstacles.resolve(x, y, blockR);
+      if (nearest > bestScore) { bestScore = nearest; best = [x, y]; }
+    }
+    return this.obstacles.resolve(...(best ?? [cx0 + distMin, cy0]), blockR);
+  }
+
   private placeOutpost(seed: string): Outpost {
     const O = ARCADE.outpost;
-    const rng = new Rng(`outpost:${seed}:${this.act}`);
-    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
-    let x = cx0 - O.distMin, y = cy0;
-    for (let i = 0; i < 24; i++) {
-      const a = rng.float() * Math.PI * 2, d = O.distMin + rng.float() * (O.distMax - O.distMin);
-      x = clamp(cx0 + Math.cos(a) * d, O.radius + 60, W.w - O.radius - 60);
-      y = clamp(cy0 + Math.sin(a) * d, O.radius + 60, W.h - O.radius - 60);
-      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + O.radius || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + O.radius)) continue;
-      if (this.camp && len(x - this.camp.x, y - this.camp.y) < O.minFromCamp) continue;
-      if (this.obstacles.blocked(x, y, 40)) continue;
-      break;
-    }
-    [x, y] = this.obstacles.resolve(x, y, 40);
+    const [x, y] = this.pickSpot(new Rng(`outpost:${seed}:${this.act}`), O.distMin, O.distMax, O.radius + 60, O.minFromCamp, this.camp ? [this.camp] : [], 40);
     return { x, y, progress: 0, need: sec(O.captureSec), captured: false };
   }
 
