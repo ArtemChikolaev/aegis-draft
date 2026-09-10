@@ -235,6 +235,7 @@ export class ArcadeRenderer {
     this.drawPond(sim, pal, now);
     this.drawForge(sim, pal, now);
     this.drawLair(sim, pal, now);
+    this.drawFord(sim, pal, now);
     this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
@@ -434,6 +435,7 @@ export class ArcadeRenderer {
     const o = sim.outpost;
     if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
     if (o?.captured && sim.lair && sim.thunder?.alive) this.drawEdgeMarker(sim.lair.x - camX, sim.lair.y - camY, pal.lightning, "", pal, now);
+    if (o?.captured && sim.ford && sim.warden?.alive) this.drawEdgeMarker(sim.ford.x - camX, sim.ford.y - camY, pal.river, "", pal, now);
     // Роща и курган — приглашения только после захвата аванпоста (обзор открывает крупную охоту), чтобы у края не было больше двух.
     if (o?.captured && sim.grove && sim.centaur?.alive) this.drawEdgeMarker(sim.grove.x - camX, sim.grove.y - camY, pal.crit, "", pal, now);
     if (o?.captured && sim.barrow && sim.necromancer?.alive) this.drawEdgeMarker(sim.barrow.x - camX, sim.barrow.y - camY, pal.lightning, String(sim.idolsAlive()), pal, now);
@@ -471,6 +473,31 @@ export class ArcadeRenderer {
       m.fillText(label, -Math.cos(a) * 18, -Math.sin(a) * 18);
     }
     m.restore();
+  }
+
+  /** Страж переправы (T13.54): волны через русло с островком-разрывом; щит стража — кольцо, пока фаза щита. */
+  private drawFord(sim: ArcadeSim, pal: Palette, now: number): void {
+    const f = sim.ford;
+    if (!f) return;
+    const c = this.ctx;
+    const R = ARCADE.river, Wd = ARCADE.warden;
+    for (const w of f.waves) {
+      c.fillStyle = pal.ice; c.globalAlpha = 0.75;
+      c.fillRect(w.x - Wd.waveW / 2, R.y - R.halfWidth, Wd.waveW, w.gapY - Wd.gapH / 2 - (R.y - R.halfWidth));
+      c.fillRect(w.x - Wd.waveW / 2, w.gapY + Wd.gapH / 2, Wd.waveW, R.y + R.halfWidth - (w.gapY + Wd.gapH / 2));
+      c.fillStyle = pal.text; c.globalAlpha = 0.9;
+      c.fillRect(w.x - 2, R.y - R.halfWidth, 4, w.gapY - Wd.gapH / 2 - (R.y - R.halfWidth));
+      c.fillRect(w.x - 2, w.gapY + Wd.gapH / 2, 4, R.y + R.halfWidth - (w.gapY + Wd.gapH / 2));
+    }
+    const wd = sim.warden;
+    if (wd?.alive && sim.wardenShielded()) {
+      const pulse = 0.5 + 0.5 * Math.sin(now / 120);
+      c.strokeStyle = pal.frost; c.lineWidth = 3; c.globalAlpha = 0.6 + 0.3 * pulse;
+      c.beginPath(); c.arc(wd.x, wd.y, wd.kind.r + 14, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = pal.frost; c.globalAlpha = 0.12 + 0.08 * pulse;
+      c.beginPath(); c.arc(wd.x, wd.y, wd.kind.r + 14, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
   }
 
   /** Гром-голем (T13.53): заряженные зоны — кольцо молнии наливается на телеграфе, в активной фазе зоны и цепь между ними. */

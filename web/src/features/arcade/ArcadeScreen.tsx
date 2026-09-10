@@ -446,7 +446,7 @@ function ArcadeStage() {
   const cast = useCallback((key: AbilityKey) => controllerRef.current?.cast(ABILITY_MASK[key]), []);
   const sim = getArcadeSim();
   const p = sim?.player;
-  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : sim?.thunder?.alive && sim.playerAtLair() ? sim.thunder : sim?.hunter?.alive ? sim.hunter : null;
+  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : sim?.thunder?.alive && sim.playerAtLair() ? sim.thunder : sim?.warden?.alive && sim.playerAtFord() ? sim.warden : sim?.hunter?.alive ? sim.hunter : null;
 
   return (
     <main className="arcade" data-testid="arcade-stage">
@@ -481,7 +481,7 @@ function ArcadeStage() {
             <BuffBar sim={sim} />
             {boss && (
               <div className="arcade-hud__boss">
-                <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : boss.kind.id === "centaur_warden" ? t(sim!.tick < boss.stunUntil ? "arcade.hud.centaurStunned" : "arcade.hud.centaur") : boss.kind.id === "troll_necromancer" ? t(sim!.idolsAlive() > 0 ? "arcade.hud.necro" : "arcade.hud.necroExposed", { n: sim!.idolsAlive(), total: ARCADE.necro.idols }) : boss.kind.id === "thunder_golem" ? t("arcade.hud.thunder") : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
+                <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : boss.kind.id === "centaur_warden" ? t(sim!.tick < boss.stunUntil ? "arcade.hud.centaurStunned" : "arcade.hud.centaur") : boss.kind.id === "troll_necromancer" ? t(sim!.idolsAlive() > 0 ? "arcade.hud.necro" : "arcade.hud.necroExposed", { n: sim!.idolsAlive(), total: ARCADE.necro.idols }) : boss.kind.id === "thunder_golem" ? t("arcade.hud.thunder") : boss.kind.id === "river_warden" ? t(sim!.wardenShielded() ? "arcade.hud.wardenShield" : "arcade.hud.wardenOpen") : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
                 <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, boss.hp / boss.maxHp) * 100}%` }} /></div>
               </div>
             )}
@@ -907,6 +907,7 @@ function ArcadeStage() {
                 {outcome.centaurSlain && <div><dt>{t("arcade.over.centaur")}</dt><dd>{t("arcade.over.centaurYes")}</dd></div>}
                 {outcome.necromancerSlain && <div><dt>{t("arcade.over.necro")}</dt><dd>{t("arcade.over.necroYes")}</dd></div>}
                 {outcome.thunderSlain && <div><dt>{t("arcade.over.thunder")}</dt><dd>{t("arcade.over.thunderYes")}</dd></div>}
+                {outcome.wardenSlain && <div><dt>{t("arcade.over.warden")}</dt><dd>{t("arcade.over.wardenYes")}</dd></div>}
                 {outcome.contractDone && <div><dt>{t("arcade.contract.title")}</dt><dd>{t("arcade.over.contractYes")}</dd></div>}
                 {outcome.forged && <div><dt>{t("arcade.forge.title")}</dt><dd>{t("arcade.over.forgedYes")}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}

@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -139,6 +139,10 @@ export class ArcadeSim {
   barrow: Barrow | null = null;
   necromancer: Enemy | null = null;
   private necromancerSlain = false;
+  /** Брод и Страж переправы (T13.54, только River); ссылка снимается при смерти. */
+  ford: Ford | null = null;
+  warden: Enemy | null = null;
+  private wardenSlain = false;
   /** Логово и Гром-голем (T13.53); ссылка снимается при смерти. */
   lair: Lair | null = null;
   thunder: Enemy | null = null;
@@ -250,6 +254,75 @@ export class ArcadeSim {
     this.barrow = this.placeBarrow(seed);
     this.forge = this.placeForge(seed);
     this.lair = this.placeLair(seed);
+    if (this.pit) this.ford = this.placeFord(seed);
+  }
+
+  /** Брод в русле на fordDx от ямы, сторона по seed; стоит в воде — препятствий там нет (карта чистит русло). */
+  private placeFord(seed: string): Ford {
+    const Wd = ARCADE.warden;
+    const rng = new Rng(`ford:${seed}:${this.act}`);
+    const side = rng.float() < 0.5 ? -1 : 1;
+    const x = clamp(ARCADE.pit.x + side * (Wd.fordDx[0] + rng.float() * (Wd.fordDx[1] - Wd.fordDx[0])), 120, ARCADE.world.w - 120);
+    const y = ARCADE.river.y;
+    this.warden = this.spawnEnemy(ENEMY_KINDS.river_warden, x, y);
+    return { x, y, engaged: false, shieldUntil: 0, openUntil: 0, nextWaveAt: 0, waves: [], waveHitAt: 0 };
+  }
+
+  playerAtFord(): boolean {
+    return !!this.ford && !!this.warden?.alive && this.ford.engaged;
+  }
+
+  /** Страж под щитом: урона не берёт (фаза видна кольцом). */
+  wardenShielded(): boolean {
+    return !!this.ford && !!this.warden?.alive && this.tick < this.ford.shieldUntil;
+  }
+
+  private updateFordEngage(): void {
+    const f = this.ford;
+    if (!f || !this.warden?.alive) return;
+    const d = len(this.player.x - f.x, this.player.y - f.y);
+    if (!f.engaged && d <= ARCADE.warden.wakeRadius) f.engaged = true;
+    else if (f.engaged && d > ARCADE.warden.engageRadius) f.engaged = false;
+  }
+
+  /** Страж переправы: щит/открыт по фазам, волны через русло с островком, держит дистанцию в воде. */
+  private moveWarden(e: Enemy, dx: number, dy: number, d: number): void {
+    const Wd = ARCADE.warden, f = this.ford;
+    if (!f) return;
+    this.capControl(e, Wd.ccCap, Wd.ccResist);
+    const p = this.player, R = ARCADE.river;
+    const hunting = e === this.hunter;
+    // Волны идут независимо от движения стража.
+    for (const w of f.waves) {
+      w.x += w.dir * Wd.waveSpeed * DT; w.left -= Wd.waveSpeed * DT;
+      if (this.tick >= f.waveHitAt && Math.abs(p.x - w.x) <= Wd.waveW / 2 + ARCADE.player.r && Math.abs(p.y - R.y) <= R.halfWidth && Math.abs(p.y - w.gapY) > Wd.gapH / 2) {
+        f.waveHitAt = this.tick + Wd.waveHitEvery;
+        this.damagePlayer(e.dmg / e.kind.dmg * Wd.waveDmg, 0, e.kind);
+      }
+    }
+    f.waves = f.waves.filter((w) => w.left > 0);
+    if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
+    const home = len(e.x - f.x, e.y - f.y);
+    if (!hunting && (!this.playerAtFord() || home > Wd.leash)) {
+      if (home > 8) { e.x += (f.x - e.x) / home * e.kind.speed * DT; e.y += (f.y - e.y) / home * e.kind.speed * DT; }
+      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * Wd.regenPerSec);
+      f.shieldUntil = 0; f.openUntil = 0;
+      return;
+    }
+    // Фазы: щит → открыт → щит…; первая фаза — щит.
+    if (this.tick === f.shieldUntil) f.openUntil = this.tick + sec(Wd.openSec); // щит спал — окно
+    else if (this.tick >= f.openUntil && this.tick >= f.shieldUntil) f.shieldUntil = this.tick + sec(Wd.shieldSec); // окно кончилось — щит
+    if (this.tick >= f.nextWaveAt) {
+      f.nextWaveAt = this.tick + Wd.waveEvery;
+      const dir: 1 | -1 = this.rng.float() < 0.5 ? -1 : 1;
+      f.waves.push({ x: e.x - dir * Wd.waveLen / 2, dir, gapY: R.y + (this.rng.float() * 2 - 1) * (R.halfWidth - Wd.gapH / 2), left: Wd.waveLen });
+    }
+    let speed = e.kind.speed * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1);
+    if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
+    if (d < Wd.keepMin && (hunting || home < Wd.leash - 20)) { e.x -= dx / d * speed * DT; e.y -= dy / d * speed * DT; }
+    else if (d > Wd.keepMax) { e.x += dx / d * speed * DT; e.y += dy / d * speed * DT; }
+    if (!hunting) e.y = clamp(e.y, R.y - R.halfWidth + 20, R.y + R.halfWidth - 20); // не выходит из воды
+    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
   }
 
   /** Логово по seed: кольцо от старта, подальше от остальных мест, свободный центр. */
@@ -418,6 +491,7 @@ export class ArcadeSim {
     if (this.centaur?.alive) out.push("centaur");
     if (this.necromancer?.alive) out.push("necro");
     if (this.thunder?.alive) out.push("thunder");
+    if (this.warden?.alive) out.push("warden");
     return out;
   }
 
@@ -428,6 +502,7 @@ export class ArcadeSim {
     if (c.target === "defiler") return this.camp && !this.camp.cleared ? this.camp : null;
     if (c.target === "centaur") return this.centaur?.alive && this.grove ? this.grove : null;
     if (c.target === "thunder") return this.thunder?.alive && this.lair ? this.lair : null;
+    if (c.target === "warden") return this.warden?.alive && this.ford ? this.ford : null;
     return this.necromancer?.alive && this.barrow ? this.barrow : null;
   }
 
@@ -546,6 +621,7 @@ export class ArcadeSim {
     if (e.kind.id === "centaur_warden") return !!this.grove && !this.grove.engaged;
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") return !!this.barrow && !this.barrow.engaged && !!this.necromancer?.alive;
     if (e.kind.id === "thunder_golem") return !!this.lair && !this.lair.engaged;
+    if (e.kind.id === "river_warden") return !!this.ford && !this.ford.engaged;
     return false;
   }
 
@@ -668,12 +744,13 @@ export class ArcadeSim {
     if (id === "debt") p.debtLeft = Math.round(ARCADE.curse.debt.base + ARCADE.curse.debt.perMin * this.minutes);
     if (id === "bloodhunt") {
       // Ближайший живой чемпион (Кентавр/Некромант) покидает дом: его зона разбужена и не отпускает.
-      const cands = [this.centaur, this.necromancer, this.thunder].filter((e): e is Enemy => !!e?.alive);
+      const cands = [this.centaur, this.necromancer, this.thunder, this.warden].filter((e): e is Enemy => !!e?.alive);
       cands.sort((a, b) => len(a.x - p.x, a.y - p.y) - len(b.x - p.x, b.y - p.y));
       this.hunter = cands[0] ?? null;
       if (this.hunter === this.centaur && this.grove) this.grove.engaged = true;
       if (this.hunter === this.necromancer && this.barrow) this.barrow.engaged = true;
       if (this.hunter === this.thunder && this.lair) this.lair.engaged = true;
+      if (this.hunter === this.warden && this.ford) this.ford.engaged = true;
       if (!this.hunter) { p.curse = "withering"; this.lastCurse = "withering"; }
     }
     this.pushFx("burst", p.x, p.y, 60, 0, 20);
@@ -700,7 +777,7 @@ export class ArcadeSim {
   /** Какая порча ждёт в проклятом сундуке: Кровавая охота — только при живом чемпионе и без контракта («свободный слот большой угрозы»). */
   private rollCurse(): CurseId {
     const pool: CurseId[] = ["withering", "debt"];
-    if ((this.centaur?.alive || this.necromancer?.alive || this.thunder?.alive) && !(this.contract && !this.contract.done)) pool.push("bloodhunt");
+    if ((this.centaur?.alive || this.necromancer?.alive || this.thunder?.alive || this.warden?.alive) && !(this.contract && !this.contract.done)) pool.push("bloodhunt");
     return pool[this.rng.int(pool.length)];
   }
 
@@ -1793,6 +1870,7 @@ export class ArcadeSim {
     if (e.kind.id === "centaur_warden") { if (this.isDormant(e)) return; if (this.tick < e.stunUntil) dmg *= ARCADE.centaur.stunnedDmgMult; }
     // Некромант и идолы: спящие неуязвимы; без идолов некромант открыт (T13.46).
     if (e.kind.id === "thunder_golem" && this.isDormant(e)) return;
+    if (e.kind.id === "river_warden" && (this.isDormant(e) || this.wardenShielded())) return; // щит: не пробивать, ждать окна
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
     // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
     if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
@@ -1835,6 +1913,18 @@ export class ArcadeSim {
       for (const s of this.enemies) if (s.alive && s.kind.id === "skeleton_warrior") { s.alive = false; this.pushFx("die", s.x, s.y, s.kind.r, KIND_INDEX[s.kind.id] ?? 0, 14); }
       this.openBarrowReward();
       this.completeContract("necro", e.x, e.y); // после награды самого чемпиона: карта контракта встаёт в очередь
+    }
+    if (e === this.warden) {
+      // Награда Стража переправы — руническая: DD, щит и магия на runeSec с, плюс амулет exotic.
+      this.warden = null; this.wardenSlain = true;
+      if (this.ford) this.ford.waves = [];
+      this.shake = Math.max(this.shake, 12);
+      this.pushFx("nova", e.x, e.y, 150, 0, 24);
+      const p = this.player, until = this.tick + sec(ARCADE.warden.runeSec);
+      p.ddUntil = Math.max(p.ddUntil, until); p.arcaneUntil = Math.max(p.arcaneUntil, until);
+      p.shieldHp = Math.max(p.shieldHp, Math.round(p.stats.maxHp * ARCADE.rune.shield.frac)); p.shieldUntil = Math.max(p.shieldUntil, until);
+      this.dropLoot(e.x, e.y + 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "amulet"));
+      this.completeContract("warden", e.x, e.y);
     }
     if (e === this.thunder) {
       // Награда Гром-голема: «гибрид молнии» — Сверхпроводник/Плазма exotic, если их школы уже в билде, иначе карта Maelstrom exotic.
@@ -1907,7 +1997,7 @@ export class ArcadeSim {
     }
     else if (e.kind.id === "tormentor") this.dropLoot(e.x, e.y, uniqueGear("tormentors_shard", this.nextUid(), this.lootTier()));
     else if (e.kind.structure) this.loot.push(uniqueGear("heart_of_the_ancient", this.nextUid(), 3));
-    else if (e.kind.elite && e.kind.id !== "centaur_warden") this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
+    else if (e.kind.elite && e.kind.id !== "centaur_warden" && e.kind.id !== "river_warden") this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity())); // у Стражей своя награда
     else if (this.rng.float() < ARCADE.loot.commonChance) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
     if (e.kind.id === "tormentor") {
       // Награда за Tormentor: щедрость без платы — 60 с двойного опыта.
@@ -2014,7 +2104,7 @@ export class ArcadeSim {
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
-      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain,
+      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain,
     };
   }
 
@@ -2081,6 +2171,7 @@ export class ArcadeSim {
     this.updateGroveEngage();
     this.updateBarrowEngage();
     this.updateLairEngage();
+    this.updateFordEngage();
     this.tickBarrowRaise();
     const camp = this.camp;
     if (camp && !camp.cleared && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
@@ -2300,6 +2391,7 @@ export class ArcadeSim {
       if (e.kind.id === "centaur_warden") { this.moveCentaurEntry(e, dx, dy, d); continue; }
       if (e.kind.id === "troll_necromancer") { this.moveNecromancer(e, dx, dy, d); continue; }
       if (e.kind.id === "thunder_golem") { this.moveThunder(e, dx, dy, d); continue; }
+      if (e.kind.id === "river_warden") { this.moveWarden(e, dx, dy, d); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -3194,7 +3286,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft); mix(this.forge?.used ? 1 : 0); mix(this.lair?.zones.length ?? 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft); mix(this.forge?.used ? 1 : 0); mix(this.lair?.zones.length ?? 0); mix(this.ford?.waves.length ?? 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

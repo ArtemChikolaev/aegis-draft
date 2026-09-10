@@ -1697,6 +1697,17 @@
     "ogre_death_4.m4a"
    ]
   },
+  "river_warden": {
+   "attack": [
+    "hellbear_attack_1.m4a",
+    "hellbear_attack_2.m4a",
+    "hellbear_attack_3.m4a"
+   ],
+   "death": [
+    "hellbear_death_1.m4a",
+    "hellbear_death_2.m4a"
+   ]
+  },
   "roshan": {
    "aggro": [
     "roshan_aggro_1.m4a",

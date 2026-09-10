@@ -25,7 +25,7 @@ describe("мастерство героя", () => {
     // Свёртка старой истории без полей отметок — только победы по актам; профиль без marks читается пустым списком.
     const old = progressFromHistory([entry({ outcome: "victory", act: "full" })]);
     expect(old.perHero.juggernaut.marks).toEqual(["win_full", "flawless"]);
-    expect(MARK_IDS).toHaveLength(10);
+    expect(MARK_IDS).toHaveLength(11);
   });
 
   it("трофеи за отметки не выпадают и не покупаются, а выдаются один раз при появлении отметки у любого героя", () => {

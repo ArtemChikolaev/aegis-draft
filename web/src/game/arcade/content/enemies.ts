@@ -37,6 +37,8 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   skeleton_warrior: { id: "skeleton_warrior", hp: 36, speed: 98, dmg: 9, r: 11, xp: 1, gold: 0, fromMin: 99, weight: 0, tone: "creep" },
   // Гром-голем (T13.53): чемпион с зонами и цепью молний; спит в логове. Поведение — sim.moveThunder.
   thunder_golem: { id: "thunder_golem", hp: 1400, speed: 66, dmg: 26, r: 24, xp: 85, gold: 42, elite: true, fromMin: 99, weight: 0, tone: "elite" },
+  // Страж переправы (T13.54, только River): щит по фазам и волны через русло. Поведение — sim.moveWarden.
+  river_warden: { id: "river_warden", hp: 1300, speed: 90, dmg: 22, r: 22, xp: 85, gold: 42, elite: true, fromMin: 99, weight: 0, tone: "elite", acts: ["river"] },
   ancient: {
     id: "ancient", hp: 9000, speed: 0, dmg: 55, r: 58, xp: 300, gold: 200, structure: true, unstoppable: true, fromMin: 99, weight: 0, tone: "boss",
     ranged: { range: 560, every: 1.0, speed: 280 },

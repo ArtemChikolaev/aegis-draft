@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.52.0";
+export const ARCADE_CONFIG_VERSION = "a0.53.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -117,6 +117,17 @@ export const ARCADE = {
     distMin: 640, distMax: 980, minFromOthers: 500, wakeRadius: 170, engageRadius: 480, leash: 300, regenPerSec: 0.02,
     every: sec(6.5), zones: 3, zoneDist: 115, zoneRadius: 80, telegraph: sec(1.2), strikeDmg: 55, chainDmg: 42, chainWidth: 26, active: sec(0.6), chainHitEvery: sec(0.5),
     chaseFrom: 260, chaseSpeed: 118, ccCap: sec(0.5), ccResist: sec(3),
+  },
+  /** Страж переправы (T13.54, аудит: «попеременно перекрывает части моста щитами/волнами; перемещаться между
+   *  островками, не пытаться пробить временный щит; награда — руническая»). Только акт River: брод в русле реки на
+   *  `fordDx` от ямы. Спит до входа. В бою чередует фазы: `shieldSec` под щитом (урона не берёт), затем `openSec`
+   *  открыт; каждые `waveEvery` пускает волну через русло — вертикальная полоса высотой в русло с «островком»
+   *  (разрывом `gapH`) на случайной высоте, идёт `waveSpeed` px/с на `waveLen` px; попал под волну — `waveDmg`.
+   *  Награда: руны DD/щита/магии на `runeSec` с и амулет exotic. */
+  warden: {
+    fordDx: [700, 1100] as [number, number], wakeRadius: 170, engageRadius: 460, leash: 260, regenPerSec: 0.02,
+    shieldSec: 3, openSec: 4, waveEvery: sec(2.6), waveSpeed: 240, waveLen: 780, waveW: 22, gapH: 110, waveDmg: 38, waveHitEvery: sec(0.5),
+    keepMin: 140, keepMax: 220, runeSec: 45, ccCap: sec(0.5), ccResist: sec(3),
   },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
