@@ -1036,9 +1036,9 @@
       "winrate": 0.6061
     },
     "last_5y": {
-      "successScore": 46.14,
-      "games": 926,
-      "winrate": 0.5983
+      "successScore": 46.08,
+      "games": 924,
+      "winrate": 0.5974
     },
     "valve_legacy": {
       "successScore": 56.8,
@@ -1343,9 +1343,9 @@
       "winrate": 0.5619
     },
     "last_2y": {
-      "successScore": 42.3,
-      "games": 491,
-      "winrate": 0.5906
+      "successScore": 41.97,
+      "games": 486,
+      "winrate": 0.5885
     },
     "last_5y": {
       "successScore": 42.87,
@@ -1411,9 +1411,9 @@
       "winrate": 0.5871
     },
     "last_5y": {
-      "successScore": 43.99,
-      "games": 876,
-      "winrate": 0.5753
+      "successScore": 44.1,
+      "games": 874,
+      "winrate": 0.5767
     },
     "valve_legacy": {
       "successScore": 58.38,
@@ -1478,9 +1478,9 @@
   },
   "8597976": {
     "last_2y": {
-      "successScore": 25.52,
-      "games": 71,
-      "winrate": 0.338
+      "successScore": 25.13,
+      "games": 68,
+      "winrate": 0.3382
     },
     "last_5y": {
       "successScore": 32.94,
@@ -1565,9 +1565,9 @@
   },
   "8728920": {
     "last_2y": {
-      "successScore": 28.69,
-      "games": 35,
-      "winrate": 0.3714
+      "successScore": 29.3,
+      "games": 33,
+      "winrate": 0.3939
     },
     "last_5y": {
       "successScore": 31.96,
@@ -1612,11 +1612,6 @@
     }
   },
   "9080405": {
-    "last_2y": {
-      "successScore": 41.67,
-      "games": 2,
-      "winrate": 0
-    },
     "last_5y": {
       "successScore": 34.26,
       "games": 23,
@@ -1661,9 +1656,9 @@
       "winrate": 0.6117
     },
     "last_2y": {
-      "successScore": 43.44,
-      "games": 481,
-      "winrate": 0.6029
+      "successScore": 43.26,
+      "games": 479,
+      "winrate": 0.6013
     },
     "last_5y": {
       "successScore": 45.03,
@@ -1707,9 +1702,9 @@
       "winrate": 0.4571
     },
     "last_2y": {
-      "successScore": 35.32,
-      "games": 87,
-      "winrate": 0.4943
+      "successScore": 34.62,
+      "games": 83,
+      "winrate": 0.494
     },
     "last_5y": {
       "successScore": 37.39,
