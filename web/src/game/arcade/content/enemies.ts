@@ -35,6 +35,8 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   troll_necromancer: { id: "troll_necromancer", hp: 1200, speed: 84, dmg: 18, r: 18, xp: 80, gold: 40, elite: true, fromMin: 99, weight: 0, tone: "elite" },
   bone_idol: { id: "bone_idol", hp: 170, speed: 0, dmg: 0, r: 14, xp: 12, gold: 8, unstoppable: true, totem: true, fromMin: 99, weight: 0, tone: "elite" },
   skeleton_warrior: { id: "skeleton_warrior", hp: 36, speed: 98, dmg: 9, r: 11, xp: 1, gold: 0, fromMin: 99, weight: 0, tone: "creep" },
+  // Гром-голем (T13.53): чемпион с зонами и цепью молний; спит в логове. Поведение — sim.moveThunder.
+  thunder_golem: { id: "thunder_golem", hp: 1400, speed: 66, dmg: 26, r: 24, xp: 85, gold: 42, elite: true, fromMin: 99, weight: 0, tone: "elite" },
   ancient: {
     id: "ancient", hp: 9000, speed: 0, dmg: 55, r: 58, xp: 300, gold: 200, structure: true, unstoppable: true, fromMin: 99, weight: 0, tone: "boss",
     ranged: { range: 560, every: 1.0, speed: 280 },

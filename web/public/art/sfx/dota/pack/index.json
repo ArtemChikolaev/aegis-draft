@@ -1766,6 +1766,18 @@
     "kobold_death_4.m4a"
    ]
   },
+  "thunder_golem": {
+   "attack": [
+    "golem_attack_1.m4a",
+    "golem_attack_2.m4a",
+    "golem_attack_3.m4a"
+   ],
+   "death": [
+    "golem_death_1.m4a",
+    "golem_death_2.m4a",
+    "golem_death_3.m4a"
+   ]
+  },
   "tormentor": {
    "attack": [
     "tormentor_attack_1.m4a",

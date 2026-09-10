@@ -61,7 +61,7 @@ describe("порчи: долг и кровавая охота", () => {
     // Без живых чемпионов Кровавая охота в пуле не появляется, а форс превращается в увядание.
     const sim2 = new ArcadeSim("curse-4");
     step(sim2, 5);
-    sim2.centaur!.alive = false; sim2.centaur = null; sim2.necromancer!.alive = false; sim2.necromancer = null;
+    sim2.centaur!.alive = false; sim2.centaur = null; sim2.necromancer!.alive = false; sim2.necromancer = null; sim2.thunder!.alive = false; sim2.thunder = null;
     for (let i = 0; i < 30; i++) expect((sim2 as unknown as { rollCurse(): string }).rollCurse()).not.toBe("bloodhunt");
     takeCursed(sim2, "bloodhunt", "withering"); // форс без чемпионов → увядание
   });

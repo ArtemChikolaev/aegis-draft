@@ -234,6 +234,7 @@ export class ArcadeRenderer {
     this.drawOutpost(sim, pal, now);
     this.drawPond(sim, pal, now);
     this.drawForge(sim, pal, now);
+    this.drawLair(sim, pal, now);
     this.drawLoot(sim, pal, now);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
@@ -432,6 +433,7 @@ export class ArcadeRenderer {
     if (camp && !camp.cleared) this.drawEdgeMarker(camp.x - camX, camp.y - camY, pal.venom, String(sim.totemsAlive()), pal, now);
     const o = sim.outpost;
     if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
+    if (o?.captured && sim.lair && sim.thunder?.alive) this.drawEdgeMarker(sim.lair.x - camX, sim.lair.y - camY, pal.lightning, "", pal, now);
     // Роща и курган — приглашения только после захвата аванпоста (обзор открывает крупную охоту), чтобы у края не было больше двух.
     if (o?.captured && sim.grove && sim.centaur?.alive) this.drawEdgeMarker(sim.grove.x - camX, sim.grove.y - camY, pal.crit, "", pal, now);
     if (o?.captured && sim.barrow && sim.necromancer?.alive) this.drawEdgeMarker(sim.barrow.x - camX, sim.barrow.y - camY, pal.lightning, String(sim.idolsAlive()), pal, now);
@@ -469,6 +471,30 @@ export class ArcadeRenderer {
       m.fillText(label, -Math.cos(a) * 18, -Math.sin(a) * 18);
     }
     m.restore();
+  }
+
+  /** Гром-голем (T13.53): заряженные зоны — кольцо молнии наливается на телеграфе, в активной фазе зоны и цепь между ними. */
+  private drawLair(sim: ArcadeSim, pal: Palette, now: number): void {
+    const l = sim.lair;
+    if (!l || l.zones.length === 0) return;
+    const c = this.ctx;
+    const T = ARCADE.thunder;
+    const active = sim.tick > l.telegraphUntil;
+    const k = active ? 1 : 1 - (l.telegraphUntil - sim.tick) / T.telegraph;
+    for (const z of l.zones) {
+      c.strokeStyle = active ? pal.lightning : pal.telegraph; c.lineWidth = 3; c.globalAlpha = 0.9;
+      c.beginPath(); c.arc(z.x, z.y, T.zoneRadius, 0, Math.PI * 2); c.stroke();
+      c.fillStyle = active ? pal.lightning : pal.telegraph; c.globalAlpha = active ? 0.35 : 0.15 + 0.3 * k;
+      c.beginPath(); c.arc(z.x, z.y, T.zoneRadius * k, 0, Math.PI * 2); c.fill();
+    }
+    if (active) {
+      c.strokeStyle = pal.lightning; c.lineWidth = T.chainWidth; c.globalAlpha = 0.45; c.lineCap = "round";
+      c.beginPath(); c.moveTo(l.zones[0].x, l.zones[0].y); for (const z of l.zones.slice(1)) c.lineTo(z.x, z.y); c.stroke();
+      c.strokeStyle = pal.text; c.lineWidth = 2; c.globalAlpha = 0.9;
+      c.beginPath(); c.moveTo(l.zones[0].x, l.zones[0].y); for (const z of l.zones.slice(1)) c.lineTo(z.x + Math.sin(now / 20) * 4, z.y + Math.cos(now / 23) * 4); c.stroke();
+      c.lineCap = "butt";
+    }
+    c.globalAlpha = 1;
   }
 
   /** Лотосовый пруд (T13.43): водная гладь с лотосами и пунктирным кольцом; использован — тусклый, без кольца. */

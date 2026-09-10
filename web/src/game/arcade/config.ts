@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.51.0";
+export const ARCADE_CONFIG_VERSION = "a0.52.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -108,6 +108,16 @@ export const ARCADE = {
    *  другого слота; деньги получают назначение в поздней части акта; нельзя бесконечно перековывать один предмет»).
    *  Стоит по seed, остывает к `fromTick` акта (до этого не работает), одно использование на забег, цены растут с минутой. */
   forge: { distMin: 500, distMax: 850, minFromOthers: 450, radius: 52, fromTick: { short: sec(4 * 60 + 30), full: sec(12 * 60), dire: sec(12 * 60), river: sec(12 * 60) } as Record<string, number>, temper: { base: 40, perMin: 6 }, reforge: { base: 30, perMin: 5 }, sacrifice: { base: 20, perMin: 4 } },
+  /** Гром-голем (T13.53, «Громозавр» аудита: «заряжает несколько отмеченных областей, затем цепь молний; читать порядок
+   *  зон; безопасный сектор остаётся даже у стены; награда — гибрид молнии»). Логово по seed; спит до входа. В бою раз в
+   *  `every` ставит `zones` зон вокруг героя на `zoneDist` в трёх из четырёх сторон (четвёртая — безопасный сектор), телеграф
+   *  `telegraph`, затем удар `strikeDmg` по стоящим в зонах и на `active` тиков цепь молний между зонами (`chainDmg`,
+   *  ширина `chainWidth`). Модель — голем (лист `golem`), у Dota нет модели громозавра в нашем наборе. */
+  thunder: {
+    distMin: 640, distMax: 980, minFromOthers: 500, wakeRadius: 170, engageRadius: 480, leash: 300, regenPerSec: 0.02,
+    every: sec(6.5), zones: 3, zoneDist: 115, zoneRadius: 80, telegraph: sec(1.2), strikeDmg: 55, chainDmg: 42, chainWidth: 26, active: sec(0.6), chainHitEvery: sec(0.5),
+    chaseFrom: 260, chaseSpeed: 118, ccCap: sec(0.5), ccResist: sec(3),
+  },
   camp: { distMin: 720, distMax: 1000, radius: 130, totemRing: 78, totems: 3, wakeRadius: 200, engageRadius: 460, guardEvery: sec(4), guardBase: 2, guardPerDestroyed: 1, guardHpPerDestroyed: 0.35, guardRingMin: 190, guardRingMax: 260, rewardRarity: "exotic" as const },
   spawn: {
     /** Врагов в секунду: base + perMin × минута. */

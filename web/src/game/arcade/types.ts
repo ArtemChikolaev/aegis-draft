@@ -47,7 +47,7 @@ export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
   | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
-  | "troll_necromancer" | "bone_idol" | "skeleton_warrior";
+  | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -279,12 +279,15 @@ export interface ArcadeEventCounters {
 export interface Grove { x: number; y: number; engaged: boolean; rocks: number }
 
 /** Контракт охоты (T13.50): цель — чемпион, награда объявлена заранее. */
-export type ContractTarget = "defiler" | "centaur" | "necro";
+export type ContractTarget = "defiler" | "centaur" | "necro" | "thunder";
 export type ContractReward = "weapon" | "armor" | "school";
 export interface Contract { target: ContractTarget; reward: ContractReward; done: boolean }
 
 /** Курган Тролля-Некроманта (T13.46): дом чемпиона по seed; `engaged` — разбужен; `idolsDown` — снесено идолов; `nextRaiseAt` — следующий подъём. */
 export interface Barrow { x: number; y: number; engaged: boolean; idolsDown: number; nextRaiseAt: number }
+
+/** Логово Гром-голема (T13.53): дом по seed, зоны текущего паттерна и его фазы. */
+export interface Lair { x: number; y: number; engaged: boolean; zones: { x: number; y: number }[]; telegraphUntil: number; activeUntil: number; nextAt: number; chainHitAt: number }
 
 /** Древняя кузня (T13.52): одно использование на забег — закалить, перековать или переплавить надетый предмет. */
 export interface Forge { x: number; y: number; used: boolean }
@@ -484,4 +487,6 @@ export interface ArcadeOutcome {
   lastCurse: CurseId | null;
   /** Кузня использована (T13.52). */
   forged: boolean;
+  /** Гром-голем убит (T13.53). */
+  thunderSlain: boolean;
 }

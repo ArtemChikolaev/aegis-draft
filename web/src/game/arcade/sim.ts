@@ -10,7 +10,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Forge, type Grove, type Outpost, type Pond, type RuneKind } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -139,6 +139,10 @@ export class ArcadeSim {
   barrow: Barrow | null = null;
   necromancer: Enemy | null = null;
   private necromancerSlain = false;
+  /** Логово и Гром-голем (T13.53); ссылка снимается при смерти. */
+  lair: Lair | null = null;
+  thunder: Enemy | null = null;
+  private thunderSlain = false;
   /** Древняя кузня (T13.52): одно использование; выбор надетого предмета и действия, мир стоит. */
   forge: Forge | null = null;
   forgeOpen = false;
@@ -245,6 +249,87 @@ export class ArcadeSim {
     this.grove = this.placeGrove(seed);
     this.barrow = this.placeBarrow(seed);
     this.forge = this.placeForge(seed);
+    this.lair = this.placeLair(seed);
+  }
+
+  /** Логово по seed: кольцо от старта, подальше от остальных мест, свободный центр. */
+  private placeLair(seed: string): Lair {
+    const T = ARCADE.thunder;
+    const rng = new Rng(`lair:${seed}:${this.act}`);
+    const W = ARCADE.world, cx0 = W.w / 2, cy0 = W.h / 2;
+    const others: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge]) if (o) others.push({ x: o.x, y: o.y });
+    let x = cx0 + 60, y = cy0 - T.distMin;
+    for (let i = 0; i < 40; i++) {
+      const a = rng.float() * Math.PI * 2, d = T.distMin + rng.float() * (T.distMax - T.distMin);
+      x = clamp(cx0 + Math.cos(a) * d, 120, W.w - 120); y = clamp(cy0 + Math.sin(a) * d, 120, W.h - 120);
+      if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
+      if (others.some((o) => len(x - o.x, y - o.y) < T.minFromOthers)) continue;
+      if (this.obstacles.blocked(x, y, 44)) continue;
+      break;
+    }
+    [x, y] = this.obstacles.resolve(x, y, 44);
+    this.thunder = this.spawnEnemy(ENEMY_KINDS.thunder_golem, x, y);
+    return { x, y, engaged: false, zones: [], telegraphUntil: 0, activeUntil: 0, nextAt: 0, chainHitAt: 0 };
+  }
+
+  playerAtLair(): boolean {
+    return !!this.lair && !!this.thunder?.alive && this.lair.engaged;
+  }
+
+  private updateLairEngage(): void {
+    const l = this.lair;
+    if (!l || !this.thunder?.alive) return;
+    const d = len(this.player.x - l.x, this.player.y - l.y);
+    if (!l.engaged && d <= ARCADE.thunder.wakeRadius) l.engaged = true;
+    else if (l.engaged && d > ARCADE.thunder.engageRadius) l.engaged = false;
+  }
+
+  /** Гром-голем: медленная погоня, раз в `every` — три заряженные зоны вокруг героя с безопасной четвёртой стороной, затем удар и цепь. */
+  private moveThunder(e: Enemy, dx: number, dy: number, d: number): void {
+    const T = ARCADE.thunder, l = this.lair;
+    if (!l) return;
+    this.capControl(e, T.ccCap, T.ccResist);
+    const p = this.player;
+    const hunting = e === this.hunter;
+    // Фазы паттерна идут независимо от движения.
+    if (l.zones.length > 0) {
+      if (this.tick === l.telegraphUntil) {
+        for (const z of l.zones) if (len(p.x - z.x, p.y - z.y) <= T.zoneRadius + ARCADE.player.r) { this.damagePlayer(e.dmg / e.kind.dmg * T.strikeDmg, 0.2, e.kind); break; }
+        for (const z of l.zones) this.pushFx("zap", z.x, z.y - 140, z.x, z.y, 10);
+        this.shake = Math.max(this.shake, 8);
+      }
+      if (this.tick > l.telegraphUntil && this.tick < l.activeUntil && this.tick >= l.chainHitAt) {
+        // Цепь между соседними зонами: попал на отрезок — урон.
+        for (let i = 0; i + 1 < l.zones.length; i++) {
+          const a = l.zones[i], b = l.zones[i + 1];
+          const vx = b.x - a.x, vy = b.y - a.y, wx = p.x - a.x, wy = p.y - a.y;
+          const t = Math.max(0, Math.min(1, (vx * wx + vy * wy) / ((vx * vx + vy * vy) || 1)));
+          if (len(p.x - (a.x + vx * t), p.y - (a.y + vy * t)) <= T.chainWidth / 2 + ARCADE.player.r) { l.chainHitAt = this.tick + T.chainHitEvery; this.damagePlayer(e.dmg / e.kind.dmg * T.chainDmg, 0, e.kind); break; }
+        }
+      }
+      if (this.tick >= l.activeUntil) l.zones = [];
+    }
+    if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
+    const home = len(e.x - l.x, e.y - l.y);
+    if (!hunting && (!this.playerAtLair() || home > T.leash)) {
+      if (home > 8) { e.x += (l.x - e.x) / home * e.kind.speed * DT; e.y += (l.y - e.y) / home * e.kind.speed * DT; }
+      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * T.regenPerSec);
+      return;
+    }
+    if (l.zones.length === 0 && this.tick >= l.nextAt && d <= 360) {
+      // Три зоны из четырёх сторон вокруг героя; пропущенная сторона — безопасный сектор, и она случайна.
+      const sides: [number, number][] = [[1, 0], [0, 1], [-1, 0], [0, -1]];
+      sides.splice(this.rng.int(4), 1);
+      l.zones = sides.map(([sx, sy]) => ({ x: clamp(p.x + sx * T.zoneDist, 20, ARCADE.world.w - 20), y: clamp(p.y + sy * T.zoneDist, 20, ARCADE.world.h - 20) }));
+      l.telegraphUntil = this.tick + T.telegraph; l.activeUntil = l.telegraphUntil + T.active; l.chainHitAt = 0;
+      l.nextAt = l.activeUntil + T.every;
+    }
+    let speed = (d > T.chaseFrom ? T.chaseSpeed : e.kind.speed) * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1);
+    if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
+    e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
+    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
   }
 
   /** Кузня по seed: кольцо от старта, подальше от остальных мест, не в реке/яме, не в дереве. */
@@ -364,6 +449,7 @@ export class ArcadeSim {
     if (this.camp && !this.camp.cleared && this.defiler?.alive) out.push("defiler");
     if (this.centaur?.alive) out.push("centaur");
     if (this.necromancer?.alive) out.push("necro");
+    if (this.thunder?.alive) out.push("thunder");
     return out;
   }
 
@@ -373,6 +459,7 @@ export class ArcadeSim {
     if (!c || c.done) return null;
     if (c.target === "defiler") return this.camp && !this.camp.cleared ? this.camp : null;
     if (c.target === "centaur") return this.centaur?.alive && this.grove ? this.grove : null;
+    if (c.target === "thunder") return this.thunder?.alive && this.lair ? this.lair : null;
     return this.necromancer?.alive && this.barrow ? this.barrow : null;
   }
 
@@ -490,6 +577,7 @@ export class ArcadeSim {
     if (e === this.hunter) return false;
     if (e.kind.id === "centaur_warden") return !!this.grove && !this.grove.engaged;
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") return !!this.barrow && !this.barrow.engaged && !!this.necromancer?.alive;
+    if (e.kind.id === "thunder_golem") return !!this.lair && !this.lair.engaged;
     return false;
   }
 
@@ -623,11 +711,12 @@ export class ArcadeSim {
     if (id === "debt") p.debtLeft = Math.round(ARCADE.curse.debt.base + ARCADE.curse.debt.perMin * this.minutes);
     if (id === "bloodhunt") {
       // Ближайший живой чемпион (Кентавр/Некромант) покидает дом: его зона разбужена и не отпускает.
-      const cands = [this.centaur, this.necromancer].filter((e): e is Enemy => !!e?.alive);
+      const cands = [this.centaur, this.necromancer, this.thunder].filter((e): e is Enemy => !!e?.alive);
       cands.sort((a, b) => len(a.x - p.x, a.y - p.y) - len(b.x - p.x, b.y - p.y));
       this.hunter = cands[0] ?? null;
       if (this.hunter === this.centaur && this.grove) this.grove.engaged = true;
       if (this.hunter === this.necromancer && this.barrow) this.barrow.engaged = true;
+      if (this.hunter === this.thunder && this.lair) this.lair.engaged = true;
       if (!this.hunter) { p.curse = "withering"; this.lastCurse = "withering"; }
     }
     this.pushFx("burst", p.x, p.y, 60, 0, 20);
@@ -654,7 +743,7 @@ export class ArcadeSim {
   /** Какая порча ждёт в проклятом сундуке: Кровавая охота — только при живом чемпионе и без контракта («свободный слот большой угрозы»). */
   private rollCurse(): CurseId {
     const pool: CurseId[] = ["withering", "debt"];
-    if ((this.centaur?.alive || this.necromancer?.alive) && !(this.contract && !this.contract.done)) pool.push("bloodhunt");
+    if ((this.centaur?.alive || this.necromancer?.alive || this.thunder?.alive) && !(this.contract && !this.contract.done)) pool.push("bloodhunt");
     return pool[this.rng.int(pool.length)];
   }
 
@@ -1738,6 +1827,7 @@ export class ArcadeSim {
     // Кентавр, оглушённый камнем, берёт больше (T13.45); спящий — не берёт ничего.
     if (e.kind.id === "centaur_warden") { if (this.isDormant(e)) return; if (this.tick < e.stunUntil) dmg *= ARCADE.centaur.stunnedDmgMult; }
     // Некромант и идолы: спящие неуязвимы; без идолов некромант открыт (T13.46).
+    if (e.kind.id === "thunder_golem" && this.isDormant(e)) return;
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
     // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
     if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
@@ -1780,6 +1870,19 @@ export class ArcadeSim {
       for (const s of this.enemies) if (s.alive && s.kind.id === "skeleton_warrior") { s.alive = false; this.pushFx("die", s.x, s.y, s.kind.r, KIND_INDEX[s.kind.id] ?? 0, 14); }
       this.openBarrowReward();
       this.completeContract("necro", e.x, e.y); // после награды самого чемпиона: карта контракта встаёт в очередь
+    }
+    if (e === this.thunder) {
+      // Награда Гром-голема: «гибрид молнии» — Сверхпроводник/Плазма exotic, если их школы уже в билде, иначе карта Maelstrom exotic.
+      this.thunder = null; this.thunderSlain = true;
+      if (this.lair) this.lair.zones = [];
+      this.shake = Math.max(this.shake, 12);
+      this.pushFx("nova", e.x, e.y, 150, 0, 24);
+      const hy = ["hyb_superconductor", "hyb_plasma"].filter((id) => { const def = UPGRADE_BY_ID[id]; return def.requiresSchools!.every((sc) => this.player.schools.includes(sc)) && (this.player.upgrades[id]?.rank ?? 0) < (this.player.upgrades[id]?.cap ?? def.maxRank); });
+      const offers: Offer[] = [];
+      if (hy.length) for (const id of hy) offers.push({ kind: "upgrade", id, rarity: "exotic" });
+      else { const up = this.rollUpgradeOffer([], "maelstrom") ?? this.rollUpgradeOffer([]); if (up && up.kind === "upgrade") offers.push({ kind: "upgrade", id: up.id, rarity: "exotic" }); }
+      if (offers.length) { if (this.pending) this.campRewardQueued = [...(this.campRewardQueued ?? []), ...offers]; else { this.pending = offers; this.pendingSource = "camp"; } }
+      this.completeContract("thunder", e.x, e.y);
     }
     if (e === this.centaur) {
       // Награда Стража: защитная и мобильная экипировка на выбор — два exotic-предмета у ног (броня и сапоги).
@@ -1946,7 +2049,7 @@ export class ArcadeSim {
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
-      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false,
+      contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain,
     };
   }
 
@@ -2012,6 +2115,7 @@ export class ArcadeSim {
     this.updateCampEngage();
     this.updateGroveEngage();
     this.updateBarrowEngage();
+    this.updateLairEngage();
     this.tickBarrowRaise();
     const camp = this.camp;
     if (camp && !camp.cleared && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
@@ -2230,6 +2334,7 @@ export class ArcadeSim {
       if (e.kind.id === "satyr_defiler") { this.moveDefiler(e, dx, dy, d); continue; }
       if (e.kind.id === "centaur_warden") { this.moveCentaurEntry(e, dx, dy, d); continue; }
       if (e.kind.id === "troll_necromancer") { this.moveNecromancer(e, dx, dy, d); continue; }
+      if (e.kind.id === "thunder_golem") { this.moveThunder(e, dx, dy, d); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -3124,7 +3229,7 @@ export class ArcadeSim {
       h ^= v >>> 16; h = Math.imul(h, 16777619);
     };
     const p = this.player;
-    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft); mix(this.forge?.used ? 1 : 0);
+    mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft); mix(this.forge?.used ? 1 : 0); mix(this.lair?.zones.length ?? 0);
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

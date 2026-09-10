@@ -24,7 +24,7 @@ describe("контракт охоты", () => {
     expect(sim.contractHome()).toBeNull();
     // Меньше двух чемпионов — предложения нет.
     const sim2 = new ArcadeSim("contract-2", { act: "short" });
-    sim2.centaur!.alive = false; sim2.centaur = null; sim2.necromancer!.alive = false; sim2.necromancer = null;
+    sim2.centaur!.alive = false; sim2.centaur = null; sim2.necromancer!.alive = false; sim2.necromancer = null; sim2.thunder!.alive = false; sim2.thunder = null;
     step(sim2, ARCADE.contract.at.short + 30);
     expect(sim2.contractOpen).toBe(false);
   });
@@ -69,7 +69,7 @@ describe("контракт охоты", () => {
     const entry: ArcadeHistoryEntry = { seed: "s", outcome: "dead", seconds: 100, level: 5, kills: 50, gold: 10, schools: [], configVersion: "a", at: 1, hero: "axe", act: "short", rank: 0, contract: true };
     const p = recordProgress(emptyProgress(), entry);
     expect(p.perHero.axe.marks).toEqual(["contract"]);
-    expect(MARK_IDS).toHaveLength(9);
+    expect(MARK_IDS).toHaveLength(10);
     expect(masteryTitle([...MARK_IDS])).toBe("legend");
   });
 });
