@@ -1,0 +1,39 @@
+{
+  "name": "shadow_shaman@eyedancer_wrath",
+  "frame": 80,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.736
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 10
+    },
+    "walk": {
+      "row": 8,
+      "frames": 8
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 10
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "shadowshaman.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4
+}

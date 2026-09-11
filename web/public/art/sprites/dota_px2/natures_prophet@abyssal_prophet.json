@@ -1,0 +1,39 @@
+{
+  "name": "natures_prophet@abyssal_prophet",
+  "frame": 160,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.684
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 8
+    },
+    "walk": {
+      "row": 8,
+      "frames": 8
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 8
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "furion.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4
+}

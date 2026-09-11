@@ -1,0 +1,43 @@
+{
+  "name": "riki@frosty_blow",
+  "frame": 80,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.698
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 7
+    },
+    "walk": {
+      "row": 8,
+      "frames": 8
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 5
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    },
+    "spin": {
+      "row": 40,
+      "frames": 5
+    }
+  },
+  "source": "rikimaru.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4
+}
