@@ -1458,7 +1458,7 @@ export class ArcadeSim {
     // --- автоатака: мили — удар + клив, дальний бой — снаряд ---
     const wantsAttack = p.autoAttack || (input.cast & ATTACK_MASK) !== 0;
     if (wantsAttack && !stunned && p.attackCd === 0 && this.tick >= p.spinUntil && p.burstLeft === 0 && this.tick >= p.fieldUntil) {
-      const target = this.nearestEnemy(p.x, p.y, this.attackRange());
+      const target = this.focusTotem() ?? this.nearestEnemy(p.x, p.y, this.attackRange());
       if (target) {
         // Спрайт разворачивается к цели на время удара, ноги продолжают бежать куда жмут (см. renderer).
         { const ax = target.x - p.x, ay = target.y - p.y, al = len(ax, ay) || 1; p.aimX = ax / al; p.aimY = ay / al; p.aimUntil = this.tick + sec(0.45); }
@@ -2574,7 +2574,9 @@ export class ArcadeSim {
     this.updateDenEngage();
     this.tickBarrowRaise();
     const camp = this.camp;
-    if (camp && !camp.cleared && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
+    // Охрану зовут тотемы: снесены все — остаётся дуэль с Сатиром (2026-09-11: с охраной 5×каждые 4 с после третьего
+    // тотема бот убегал из лагеря и Сатир оставался на 100% в 10 забегах из 10 со всеми снесёнными тотемами).
+    if (camp && !camp.cleared && this.totemsAlive() > 0 && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
       const C = ARCADE.camp;
       camp.nextGuardAt = this.tick + Math.round(C.guardEvery / (1 + 0.25 * camp.destroyed));
       const n = C.guardBase + C.guardPerDestroyed * camp.destroyed;
@@ -3137,12 +3139,16 @@ export class ArcadeSim {
     }
   }
 
-  private gainXp(raw: number): void {
+  /** `carried` — остаток опыта после уровня, множители к нему уже применены. Иначе каждый уровень «через» умножал
+   *  остаток заново, и при большом запасе опыт рос экспоненциально (бот 2026-09-11: уровень 1224, xp 1e24). */
+  private gainXp(raw: number, carried = false): void {
     const p = this.player;
     let xp = raw;
-    if (this.tick < this.greedUntil) xp *= ARCADE.greed.xpMult;
-    if (this.rank.lessXp) xp *= 0.8;
-    xp *= 1 + p.stats.xpMult;
+    if (!carried) {
+      if (this.tick < this.greedUntil) xp *= ARCADE.greed.xpMult;
+      if (this.rank.lessXp) xp *= 0.8;
+      xp *= 1 + p.stats.xpMult;
+    }
     p.xp += xp;
     if (p.xp >= p.xpNext && !this.pending) {
       p.xp -= p.xpNext;
@@ -3423,7 +3429,9 @@ export class ArcadeSim {
     // Сон / поводок: герой вне лагеря или сатир ушёл слишком далеко — домой и лечиться.
     if (!this.playerAtCamp() || home > ARCADE.camp.radius + D.leash) {
       if (home > 8) { e.x += (camp.x - e.x) / home * e.kind.speed * DT; e.y += (camp.y - e.y) / home * e.kind.speed * DT; }
-      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * D.regenPerSec);
+      // Лечится только когда лагерь отпущен (герой за engageRadius): кайт охраны у кромки лагеря больше не сбрасывает
+      // Сатира в полный HP — с этим бот после сноса всех тотемов оставлял его на 100% в 10 из 10 забегов (2026-09-11).
+      if (!camp.engaged && this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * D.regenPerSec);
       return;
     }
     if (d <= D.galeRange + ARCADE.player.r && e.slamCd === 0) { e.slamT = D.galeTelegraph; e.slamX = p.x; e.slamY = p.y; return; }
@@ -3579,7 +3587,7 @@ export class ArcadeSim {
     this.recomputeStats();
     this.syncPets();
     // Уровень мог набежать «через» (несколько шардов разом) — следующий выбор на следующем тике.
-    if (p.xp >= p.xpNext) { const carry = p.xp; p.xp = 0; this.gainXp(carry); }
+    if (p.xp >= p.xpNext) { const carry = p.xp; p.xp = 0; this.gainXp(carry, true); }
   }
 
   private recomputeStats(): void {
@@ -3656,6 +3664,28 @@ export class ArcadeSim {
   }
 
   // ---------- запросы ----------
+
+  /** Цель места приоритетнее толпы (2026-09-11, стоимость лагеря на Herald): пока лагерь/курган разбужен, автоатака
+   *  бьёт ближайший тотем/идол в дальности удара, а не ближайшего охранника. Иначе тотемы (210 HP) умирали только от
+   *  AoE и вплотную: бот 24 забега — тотемов 0/3 в 14 из 24, Сатир ни разу не задет, лагерь = смерть от обычного леса. */
+  focusTotem(): Enemy | null {
+    const p = this.player;
+    const campOn = !!this.camp && !this.camp.cleared && this.camp.engaged;
+    // Тотемов не осталось — цель лагеря сам Сатир (иначе автоатака уходит в охрану, а он уходит домой).
+    if (campOn && this.totemsAlive() === 0 && this.defiler?.alive && !this.isDormant(this.defiler) && len(this.defiler.x - p.x, this.defiler.y - p.y) - this.defiler.kind.r < this.attackRange()) return this.defiler;
+    const barrowOn = !!this.barrow && this.barrow.engaged && !!this.necromancer?.alive;
+    if (!campOn && !barrowOn) return null;
+    const range = this.attackRange();
+    let best: Enemy | null = null, bestD = range;
+    for (const e of this.enemies) {
+      if (!e.alive || !e.kind.totem || this.isDormant(e)) continue;
+      if (e.kind.id === "corruption_totem" && !campOn) continue;
+      if (e.kind.id === "bone_idol" && !barrowOn) continue;
+      const d = len(e.x - p.x, e.y - p.y) - e.kind.r;
+      if (d < bestD) { bestD = d; best = e; }
+    }
+    return best;
+  }
 
   nearestEnemy(x: number, y: number, radius: number): Enemy | null {
     let best: Enemy | null = null, bestD = radius;

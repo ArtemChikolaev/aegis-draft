@@ -12,6 +12,8 @@ import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
 const args = new Map<string, string>();
 for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i].replace(/^--/, ""), process.argv[i + 1] ?? "");
 const RUNS = Number(args.get("runs") ?? 100);
+/** `--only N` — прогнать один сид базы (отладка конкретного забега). */
+const ONLY = args.has("only") ? Number(args.get("only")) : -1;
 const BASE = args.get("seed") ?? "sim";
 const SCHOOL = (args.get("school") ?? "any") as SchoolId | "any";
 const RANK = Number(args.get("rank") ?? 0);
@@ -193,7 +195,13 @@ function placeGoal(sim: ArcadeSim): { x: number; y: number; w: number; hard: boo
   if (PLACES.has("pond") && sim.pond && !sim.pond.used && (p.curse || p.hp < p.stats.maxHp * 0.5)) return { x: sim.pond.x, y: sim.pond.y, w: 1.6, hard: false };
   if (PLACES.has("forge") && sim.forgeReady() && p.gold >= sim.forgePrice("temper") && GEAR_SLOTS.some((s) => !!p.gear[s])) return { x: sim.forge!.x, y: sim.forge!.y, w: 1.4, hard: false };
   // Лагерь — не раньше 8-го уровня: с 1-го уровня это гарантированная смерть (4% очищений, 4% побед на n=24), а игрок туда так рано не идёт.
-  if (PLACES.has("camp") && sim.camp && !sim.camp.cleared && p.level >= 8) return { x: sim.camp.x, y: sim.camp.y, w: 1.2, hard: false };
+  if (PLACES.has("camp") && sim.camp && !sim.camp.cleared && p.level >= 8) {
+    // К ближайшему живому тотему (не к центру): вплотную к цели автоатака бьёт её, а не охрану; без тотемов — к Сатиру.
+    let tx = sim.camp.x, ty = sim.camp.y, td = Infinity;
+    for (const e of sim.enemies) if (e.alive && e.kind.id === "corruption_totem") { const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < td) { td = d; tx = e.x; ty = e.y; } }
+    if (td === Infinity && sim.defiler?.alive) { tx = sim.defiler.x; ty = sim.defiler.y; }
+    return { x: tx, y: ty, w: 1.4, hard: false };
+  }
   return null;
 }
 const VERBOSE = args.has("verbose");
@@ -203,11 +211,14 @@ let retreating = false;
 const results: RunResult[] = [];
 const t0 = performance.now();
 for (let i = 0; i < RUNS; i++) {
+  if (ONLY >= 0 && i !== ONLY) continue;
   const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}) });
   const trace = args.get("trace") !== undefined && Number(args.get("trace")) === i;
-  let lastHp = 0;
+  let lastHp = 0, lastLevel = sim.player.level;
   while (!sim.over && sim.tick < MAX_TICKS) {
     sim.step(botInput(sim));
+    if (trace && sim.player.level - lastLevel >= 3) { console.log(`${(sim.tick / TICK_HZ).toFixed(1)}s level ${lastLevel}→${sim.player.level} xp=${sim.player.xp.toFixed(0)}/${sim.player.xpNext} pending=${sim.pending?.length ?? 0}/${sim.pendingSource} camp=${sim.camp?.destroyed}/${sim.camp?.totems}${sim.camp?.cleared ? "✓" : ""}`); }
+    lastLevel = sim.player.level;
     if (trace && sim.roshan?.alive && sim.tick % TICK_HZ === 0) {
       const r = sim.roshan, p = sim.player;
       const d = Math.sqrt((r.x - p.x) ** 2 + (r.y - p.y) ** 2);
@@ -219,7 +230,7 @@ for (let i = 0; i < RUNS; i++) {
   const roshanHp = sim.roshan ? Math.max(0, sim.roshan.hp / sim.roshan.maxHp) : 1;
   const places: Record<PlaceId, boolean> = { rift: sim.rift?.won ?? false, caravan: sim.caravan?.state === "arrived", pond: sim.pond?.used ?? false, forge: sim.forge?.used ?? false, camp: sim.camp?.cleared ?? false };
   results.push({ seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "", places });
-  if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
+  if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} camp ${sim.camp ? `${sim.camp.destroyed}/${sim.camp.totems}${sim.camp.cleared ? "✓" : ""} defiler ${sim.defiler ? `${Math.round(sim.defiler.hp / sim.defiler.maxHp * 100)}%` : "dead"}` : "—"} killer ${o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "-"} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
 }
 const elapsed = (performance.now() - t0) / 1000;
 const q = (arr: number[], k: number) => { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(k * s.length))]; };

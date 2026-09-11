@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, type Enemy } from "../src/game/arcade/types.ts";
+import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 
 // Заражённый лагерь (T13.40, этап 1 аудита 2026-09-08): первая «цель карты» с маршрутом и выбором.
 // Три тотема порчи по seed; охрана прибывает, пока герой внутри; снёс все — награда; можно уйти без штрафа.
@@ -53,6 +54,43 @@ describe("заражённый лагерь", () => {
     expect(sim.camp!.cleared).toBe(false);
   });
 
+  it("пока лагерь разбужен, автоатака бьёт тотем в дальности, а не ближайшего охранника; спящий лагерь — как раньше", () => {
+    const sim = new ArcadeSim("camp-3b", { hero: "sniper" }); // дальник: стрела летит в цель, клив мили задел бы кобольда рядом
+    sim.camp!.nextGuardAt = 1e9; wipe(sim);
+    const t = totems(sim)[0];
+    sim.player.x = t.x + 40; sim.player.y = t.y; sim.player.autoAttack = true; sim.player.autoCast = { q: false, w: false, e: false, r: false }; // только автоатака
+    const k = (sim as unknown as { spawnEnemy(kind: unknown, x: number, y: number): Enemy }).spawnEnemy(ENEMY_KINDS.kobold, t.x + 40, t.y + 30); // ближе тотема, в стороне от линии стрелы
+    k.stunUntil = 1e9; // стоит на месте
+    k.hp = 1e6; k.maxHp = 1e6;
+    sim.camp!.engaged = true;
+    expect(sim.focusTotem()).toBe(t);
+    const th = t.hp, kh = k.hp;
+    idle(sim, 30);
+    expect(t.hp).toBeLessThan(th);
+    expect(k.hp).toBe(kh);
+    // Лагерь не разбужен (герой дальше wakeRadius от центра, тотем ещё в дальности стрелка) — обычная ближайшая цель.
+    sim.player.x = sim.camp!.x + C.wakeRadius + 100; sim.player.y = sim.camp!.y; k.x = sim.player.x; k.y = sim.player.y + 30;
+    sim.camp!.engaged = false;
+    expect(sim.focusTotem()).toBeNull();
+    const th2 = t.hp;
+    idle(sim, 30);
+    expect(sim.camp!.engaged).toBe(false);
+    expect(k.hp).toBeLessThan(kh);
+    expect(t.hp).toBe(th2);
+    // Тотемов нет — цель лагеря сам Сатир, если он в дальности; лечится он только когда лагерь отпущен.
+    const s2 = new ArcadeSim("camp-3c");
+    s2.camp!.nextGuardAt = 1e9; for (const e of guards(s2)) if (e !== s2.defiler) e.alive = false;
+    for (const tt of totems(s2)) { tt.alive = false; } s2.camp!.destroyed = s2.camp!.totems;
+    const d = s2.defiler!; d.hp = d.maxHp * 0.5;
+    s2.player.x = d.x + 40; s2.player.y = d.y; s2.camp!.engaged = true;
+    expect(s2.focusTotem()).toBe(d);
+    s2.player.x = s2.camp!.x + ARCADE.camp.radius + 60; s2.player.y = s2.camp!.y; // вне лагеря, но в engageRadius
+    idle(s2, sec(3));
+    expect(d.hp).toBeCloseTo(d.maxHp * 0.5, 0);
+    s2.player.x = s2.camp!.x + ARCADE.camp.engageRadius + 100; idle(s2, sec(3)); // отпущен — лечится
+    expect(d.hp).toBeGreaterThan(d.maxHp * 0.5);
+  });
+
   it("охрана прибывает только пока герой в лагере; каждый снесённый тотем усиливает её; уход останавливает", () => {
     const sim = new ArcadeSim("camp-4");
     const camp = sim.camp!;
@@ -77,6 +115,19 @@ describe("заражённый лагерь", () => {
     wipe(sim);
     idle(sim, C.guardEvery * 2);
     expect(guards(sim).filter((e) => e.kind.id === "satyr" && Math.hypot(e.x - camp.x, e.y - camp.y) <= C.guardRingMax + 40)).toHaveLength(0);
+  });
+
+  it("снесены все тотемы — охрана больше не прибывает: остаётся дуэль с Сатиром", () => {
+    const sim = new ArcadeSim("camp-4b");
+    const camp = sim.camp!;
+    idle(sim, sec(8)); wipe(sim);
+    for (const tt of totems(sim)) tt.alive = false;
+    camp.destroyed = camp.totems;
+    sim.player.x = camp.x; sim.player.y = camp.y; camp.engaged = true; camp.nextGuardAt = sim.tick;
+    wipe(sim);
+    idle(sim, sec(9));
+    expect(guards(sim).filter((e) => e.kind.id === "satyr")).toHaveLength(0);
+    expect(sim.camp!.cleared).toBe(false); // Сатир (ссылка снята wipe) в этом тесте не считается — очищение проверяет следующий
   });
 
   it("снос всех тотемов = очищение: награда из трёх карт редкости exotic без реролла, мир стоит до выбора", () => {

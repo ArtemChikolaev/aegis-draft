@@ -53,3 +53,23 @@ describe("прокачка: реролл и изгнание (T13.21), гибр�
     expect(ids2.has("hyb_plasma")).toBe(false);
   });
 });
+
+// Остаток опыта после уровня не умножается заново (2026-09-11: с жадностью и xpMult бот доходил до уровня 1224).
+describe("перенос опыта через уровень", () => {
+  it("суммарно потрачено ровно столько, сколько дали с множителями один раз", async () => {
+    const { ArcadeSim, xpToNext } = await import("../src/game/arcade/sim.ts");
+    const { ARCADE } = await import("../src/game/arcade/config.ts");
+    const { IDLE_INPUT } = await import("../src/game/arcade/types.ts");
+    const sim = new ArcadeSim("carry-1");
+    sim.greedUntil = 1e9; // множитель жадности активен при каждом начислении
+    const raw = 20000;
+    (sim as unknown as { gainXp(n: number): void }).gainXp(raw);
+    let guard = 0;
+    while (sim.pending && guard++ < 200) sim.step({ ...IDLE_INPUT, choose: 0 });
+    const p = sim.player;
+    let spent = 0;
+    for (let l = 1; l < p.level; l++) spent += xpToNext(l);
+    expect(spent + p.xp).toBeCloseTo(raw * ARCADE.greed.xpMult, 3);
+    expect(p.level).toBeLessThan(60);
+  });
+});
