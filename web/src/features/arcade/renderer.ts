@@ -276,6 +276,7 @@ export class ArcadeRenderer {
     if (!this.terrain || this.terrainKey !== key) { this.terrain = new Terrain(sim.seed, sim.act); this.terrainKey = key; }
     const night = sim.night;
     this.terrain.spriteVersion = spriteVersion();
+    this.terrain.riverHalfWidth = sim.riverHalfWidth(); // прилив: вода расширяется в самой терре, не только заливкой поверх
     this.terrain.draw(c, camX, camY, this.w, this.h, night
       ? { grassA: pal.grassNightA, grassB: pal.grassNightB, dirt: pal.dirtNight, rock: pal.rock, tree: pal.treeNight, treeDark: pal.treeNightDark, tuft: pal.treeNight }
       : { grassA: pal.grassA, grassB: pal.grassB, dirt: pal.dirt, rock: pal.rock, tree: pal.tree, treeDark: pal.treeDark, tuft: pal.tuft });
@@ -290,7 +291,8 @@ export class ArcadeRenderer {
     const R = ARCADE.river, P = ARCADE.pit, T = ARCADE.tide;
     const tide = sim.tidePhase();
     const hw = sim.riverHalfWidth();
-    c.fillStyle = pal.river; c.globalAlpha = 0.85;
+    // Заливка поверх тайлов теперь тонировка: воду рисует терра (T13.61), здесь — цвет акта и телеграф прилива.
+    c.fillStyle = pal.river; c.globalAlpha = 0.55;
     c.fillRect(0, R.y - hw, ARCADE.world.w, hw * 2);
     if (tide.phase === "warn") {
       const wide = R.halfWidth * T.halfWidthMult, k = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(sim.tick / 4));

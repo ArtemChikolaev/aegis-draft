@@ -11,6 +11,19 @@ import { pixelScale } from "./pixelMode.ts";
 
 export const CHUNK = 512;
 
+/** Тайл в русле при текущей полуширине (T13.61: прилив расширяет воду и в самой терре). Чистая функция для тестов. */
+export function inRiverBand(wy: number, halfWidth: number): boolean {
+  return Math.abs(wy - ARCADE.river.y) < halfWidth;
+}
+
+/** Ключ чанка: только чанки, пересекающие максимальную полосу прилива, зависят от полуширины — остальным перерисовка не нужна. */
+export function chunkKey(cx: number, cy: number, act: ActId, halfWidth: number): string {
+  const maxHw = ARCADE.river.halfWidth * ARCADE.tide.halfWidthMult;
+  const y0 = cy * CHUNK, y1 = y0 + CHUNK;
+  const touches = act === "river" && y1 > ARCADE.river.y - maxHw && y0 < ARCADE.river.y + maxHw;
+  return touches ? `${cx}:${cy}:w${Math.round(halfWidth)}` : `${cx}:${cy}`;
+}
+
 export interface TerrainPalette {
   grassA: string;
   grassB: string;
@@ -31,6 +44,8 @@ export class Terrain {
   private paletteKey = "";
   /** Версия загрузки спрайтов: выросла — тайлы могли подгрузиться, кэш чанков сбрасываем. */
   spriteVersion = 0;
+  /** Текущая полуширина русла (River, прилив T13.61): рендер выставляет из `sim.riverHalfWidth()` перед `draw`. */
+  riverHalfWidth: number = ARCADE.river.halfWidth;
 
   constructor(seed: string, readonly act: ActId) {
     // Карта — из общего генератора (game/arcade/mapgen.ts): те же деревья и камни, что сим считает препятствиями.
@@ -55,7 +70,7 @@ export class Terrain {
   }
 
   private chunk(cx: number, cy: number, pal: TerrainPalette): HTMLCanvasElement {
-    const key = `${cx}:${cy}`;
+    const key = chunkKey(cx, cy, this.act, this.riverHalfWidth);
     const cached = this.cache.get(key);
     if (cached) return cached;
     const canvas = document.createElement("canvas");
@@ -126,7 +141,7 @@ export class Terrain {
       // В пиксельном режиме чанк уменьшается вдвое — край троп нужен шире, иначе тайлы читаются квадратами.
       const soft = pixelSheetsOn() ? 2.2 : 1;
       if (dDirt) layer(dDirt, (gx, gy) => this.tileAt(gx, gy) === 2, 7 * soft);
-      if (dWater && this.act === "river") layer(dWater, (_gx, gy) => Math.abs(gy * TILE + TILE / 2 - ARCADE.river.y) < ARCADE.river.halfWidth, 4 * soft);
+      if (dWater && this.act === "river") layer(dWater, (_gx, gy) => inRiverBand(gy * TILE + TILE / 2, this.riverHalfWidth), 4 * soft);
       if (night) { c.fillStyle = pal.grassA; c.globalAlpha = 0.5; c.fillRect(0, 0, CHUNK, CHUNK); c.globalAlpha = 1; }
       this.paintDecor(c, ox, oy, pal, treetop, rock, night);
       return;
@@ -136,7 +151,7 @@ export class Terrain {
       const v = this.tileAt(gx, gy);
       const px = tx * TILE, py = ty * TILE;
       const wy = gy * TILE + TILE / 2;
-      const inRiver = this.act === "river" && Math.abs(wy - ARCADE.river.y) < ARCADE.river.halfWidth;
+      const inRiver = this.act === "river" && inRiverBand(wy, this.riverHalfWidth);
       if (grass && dirt) {
         // LPC-автотайл 3×6 (32 px): центр (32,96), кромки вокруг; варианты травы — нижний ряд.
         const h = ((gx * 73856093) ^ (gy * 19349663)) >>> 0;
