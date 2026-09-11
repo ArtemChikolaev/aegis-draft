@@ -4,7 +4,7 @@
 // Тригонометрия здесь разрешена: рендер не участвует в детерминизме.
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
-import type { AbilityKey, Enemy, Fx, RuneKind } from "../../game/arcade/types.ts";
+import type { AbilityKey, Enemy, Fx, Invitation, RuneKind } from "../../game/arcade/types.ts";
 import type { AbilityDef } from "../../game/arcade/content/heroes.ts";
 
 /** Порядок слотов умений — тот же, что в симе (там он приватный). */
@@ -428,36 +428,13 @@ export class ArcadeRenderer {
    * незахваченный аванпост — не больше двух, как просит аудит. После захвата аванпоста — ещё маркеры всех живых
    * точек с таймером (лавка, bounty, руна, сундук, токен, щедрость): «открывает ближайшие события».
    */
+  /** Маркеры у края: состав и лимит решает сим (`invitations`, T13.60), здесь — только цвет по виду. */
   private drawMarkers(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
-    // Охотник Кровавой охоты (T13.51) — всегда: он идёт за тобой.
-    if (sim.hunter?.alive) this.drawEdgeMarker(sim.hunter.x - camX, sim.hunter.y - camY, pal.telegraph, "☠", pal, now);
-    // Цель контракта — всегда, с восклицательным знаком: это выбранное приглашение.
-    const ch = sim.contractHome();
-    if (ch) this.drawEdgeMarker(ch.x - camX, ch.y - camY, pal.aegis, "!", pal, now);
-    const camp = sim.camp;
-    if (camp && !camp.cleared) this.drawEdgeMarker(camp.x - camX, camp.y - camY, pal.venom, String(sim.totemsAlive()), pal, now);
-    const o = sim.outpost;
-    if (o && !o.captured) this.drawEdgeMarker(o.x - camX, o.y - camY, pal.aegis, o.progress > 0 ? `${Math.floor((o.progress / o.need) * 100)}%` : "", pal, now);
-    if (o?.captured && sim.lair && sim.thunder?.alive) this.drawEdgeMarker(sim.lair.x - camX, sim.lair.y - camY, pal.lightning, "", pal, now);
-    if (o?.captured && sim.ford && sim.warden?.alive) this.drawEdgeMarker(sim.ford.x - camX, sim.ford.y - camY, pal.river, "", pal, now);
-    if (o?.captured && sim.den && sim.stalker?.alive) this.drawEdgeMarker(sim.den.x - camX, sim.den.y - camY, pal.crit, "", pal, now);
-    // Роща и курган — приглашения только после захвата аванпоста (обзор открывает крупную охоту), чтобы у края не было больше двух.
-    if (o?.captured && sim.grove && sim.centaur?.alive) this.drawEdgeMarker(sim.grove.x - camX, sim.grove.y - camY, pal.crit, "", pal, now);
-    if (o?.captured && sim.barrow && sim.necromancer?.alive) this.drawEdgeMarker(sim.barrow.x - camX, sim.barrow.y - camY, pal.lightning, String(sim.idolsAlive()), pal, now);
-    // Пруд приглашает сам, когда есть что снять; иначе — как остальные точки после захвата аванпоста.
-    const pond = sim.pond;
-    if (pond && !pond.used && (sim.player.curse || o?.captured)) this.drawEdgeMarker(pond.x - camX, pond.y - camY, pal.frost, sim.player.curse ? "✚" : "", pal, now);
-    if (!o?.captured) return;
-    if (sim.shopkeeper.alive) this.drawEdgeMarker(sim.shopkeeper.x - camX, sim.shopkeeper.y - camY, pal.shop, "$", pal, now);
-    if (sim.bounty.alive) this.drawEdgeMarker(sim.bounty.x - camX, sim.bounty.y - camY, pal.bounty, "$", pal, now);
-    if (sim.rune.alive) this.drawEdgeMarker(sim.rune.x - camX, sim.rune.y - camY, runeColor(pal, sim.runeKind), "", pal, now);
-    if (sim.chest.alive) this.drawEdgeMarker(sim.chest.x - camX, sim.chest.y - camY, pal.aegis, "", pal, now);
-    if (sim.neutralToken.alive) this.drawEdgeMarker(sim.neutralToken.x - camX, sim.neutralToken.y - camY, pal.text, `T${sim.neutralToken.value}`, pal, now);
-    if (sim.shrine.alive) this.drawEdgeMarker(sim.shrine.x - camX, sim.shrine.y - camY, pal.greed, "", pal, now);
-    if (sim.forgeReady()) this.drawEdgeMarker(sim.forge!.x - camX, sim.forge!.y - camY, pal.ember, "⚒", pal, now);
-    if (sim.riftReady()) this.drawEdgeMarker(sim.rift!.x - camX, sim.rift!.y - camY, pal.aegis, "◇", pal, now);
-    const cv = sim.caravan;
-    if (cv && (cv.state === "waiting" || cv.state === "moving")) this.drawEdgeMarker(cv.x - camX, cv.y - camY, pal.shop, "$", pal, now);
+    const color: Record<Invitation["kind"], string> = {
+      hunter: pal.telegraph, contract: pal.aegis, camp: pal.venom, outpost: pal.aegis, pond: pal.frost, caravan: pal.shop, rift: pal.aegis, forge: pal.ember,
+      grove: pal.crit, barrow: pal.lightning, lair: pal.lightning, ford: pal.river, den: pal.crit, shop: pal.shop, bounty: pal.bounty, rune: runeColor(pal, sim.runeKind), chest: pal.aegis, token: pal.text, shrine: pal.greed,
+    };
+    for (const inv of sim.invitations()) this.drawEdgeMarker(inv.x - camX, inv.y - camY, color[inv.kind], inv.label, pal, now);
   }
 
   private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number): void {

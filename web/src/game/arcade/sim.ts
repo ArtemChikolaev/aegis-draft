@@ -39,6 +39,7 @@ import {
   type PlayerStats,
   type Projectile,
   type Caravan,
+  type Invitation,
   type Rarity,
   type Rift,
   type RiftRuleId,
@@ -622,6 +623,47 @@ export class ArcadeSim {
       if (rule === "brittle") { e.hp *= rules.brittle.hpMult; e.maxHp *= rules.brittle.hpMult; }
       if (rule === "gloom") e.dmg *= rules.gloom.dmgMult;
     }
+  }
+
+  // ---------- приглашения у края экрана (T13.60) ----------
+
+  /** Что показывать маркерами у края: угрозы и выбранные цели — всегда; необязательные места — по приоритету,
+   *  не больше `ARCADE.invitations.max`, пока обзор с аванпоста не открыл всё. Приоритет: срочное (караван ждёт,
+   *  торговец уходит) → пруд при порче → базовые цели (лагерь, аванпост) → разлом → кузня. */
+  invitations(): Invitation[] {
+    const out: Invitation[] = [];
+    const captured = this.outpost?.captured === true;
+    if (this.hunter?.alive) out.push({ kind: "hunter", x: this.hunter.x, y: this.hunter.y, label: "☠", committed: true });
+    const ch = this.contractHome();
+    if (ch) out.push({ kind: "contract", x: ch.x, y: ch.y, label: "!", committed: true });
+    const camp = this.camp, o = this.outpost;
+    if (camp && !camp.cleared && camp.engaged) out.push({ kind: "camp", x: camp.x, y: camp.y, label: String(this.totemsAlive()), committed: true });
+    if (o && !o.captured && o.progress > 0) out.push({ kind: "outpost", x: o.x, y: o.y, label: `${Math.floor((o.progress / o.need) * 100)}%`, committed: true });
+    const cv = this.caravan;
+    if (cv && cv.state === "moving") out.push({ kind: "caravan", x: cv.x, y: cv.y, label: "$", committed: true });
+    const optional: Invitation[] = [];
+    if (cv && cv.state === "waiting") optional.push({ kind: "caravan", x: cv.x, y: cv.y, label: "$", committed: false });
+    if (this.shopkeeper.alive) optional.push({ kind: "shop", x: this.shopkeeper.x, y: this.shopkeeper.y, label: "$", committed: false });
+    if (this.pond && !this.pond.used && this.player.curse) optional.push({ kind: "pond", x: this.pond.x, y: this.pond.y, label: "✚", committed: false });
+    if (camp && !camp.cleared && !camp.engaged) optional.push({ kind: "camp", x: camp.x, y: camp.y, label: String(this.totemsAlive()), committed: false });
+    if (o && !o.captured && o.progress === 0) optional.push({ kind: "outpost", x: o.x, y: o.y, label: "", committed: false });
+    if (this.riftReady()) optional.push({ kind: "rift", x: this.rift!.x, y: this.rift!.y, label: "◇", committed: false });
+    if (this.forgeReady()) optional.push({ kind: "forge", x: this.forge!.x, y: this.forge!.y, label: "⚒", committed: false });
+    if (captured) {
+      if (this.lair && this.thunder?.alive) optional.push({ kind: "lair", x: this.lair.x, y: this.lair.y, label: "", committed: false });
+      if (this.ford && this.warden?.alive) optional.push({ kind: "ford", x: this.ford.x, y: this.ford.y, label: "", committed: false });
+      if (this.den && this.stalker?.alive) optional.push({ kind: "den", x: this.den.x, y: this.den.y, label: "", committed: false });
+      if (this.grove && this.centaur?.alive) optional.push({ kind: "grove", x: this.grove.x, y: this.grove.y, label: "", committed: false });
+      if (this.barrow && this.necromancer?.alive) optional.push({ kind: "barrow", x: this.barrow.x, y: this.barrow.y, label: String(this.idolsAlive()), committed: false });
+      if (this.pond && !this.pond.used && !this.player.curse) optional.push({ kind: "pond", x: this.pond.x, y: this.pond.y, label: "", committed: false });
+      if (this.bounty.alive) optional.push({ kind: "bounty", x: this.bounty.x, y: this.bounty.y, label: "$", committed: false });
+      if (this.rune.alive) optional.push({ kind: "rune", x: this.rune.x, y: this.rune.y, label: "", committed: false });
+      if (this.chest.alive) optional.push({ kind: "chest", x: this.chest.x, y: this.chest.y, label: "", committed: false });
+      if (this.neutralToken.alive) optional.push({ kind: "token", x: this.neutralToken.x, y: this.neutralToken.y, label: `T${this.neutralToken.value}`, committed: false });
+      if (this.shrine.alive) optional.push({ kind: "shrine", x: this.shrine.x, y: this.shrine.y, label: "", committed: false });
+      return [...out, ...optional];
+    }
+    return [...out, ...optional.slice(0, ARCADE.invitations.max)];
   }
 
   // ---------- караван лавочника (T13.59) ----------

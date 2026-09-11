@@ -289,6 +289,11 @@ export type ContractTarget = "defiler" | "centaur" | "necro" | "thunder" | "ward
 export type ContractReward = "weapon" | "armor" | "school";
 export interface Contract { target: ContractTarget; reward: ContractReward; done: boolean }
 
+/** Маркер у края экрана (T13.60). `committed` — угроза или уже выбранная цель: показывается всегда и в лимит
+ *  приглашений не входит; остальное — приглашение к необязательному событию. */
+export type InvitationKind = "hunter" | "contract" | "camp" | "outpost" | "pond" | "caravan" | "rift" | "forge" | "grove" | "barrow" | "lair" | "ford" | "den" | "shop" | "bounty" | "rune" | "chest" | "token" | "shrine";
+export interface Invitation { kind: InvitationKind; x: number; y: number; label: string; committed: boolean }
+
 /** Караван лавочника (T13.59): путь по seed от `sx,sy` к `ex,ey`; `hidden` до часов акта, `waiting` без героя рядом,
  *  `moving` под сопровождением, `arrived` — лавка на месте цели, `gone` — не дождался. */
 export interface Caravan {

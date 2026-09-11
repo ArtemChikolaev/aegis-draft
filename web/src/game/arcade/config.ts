@@ -118,6 +118,9 @@ export const ARCADE = {
    *  `escortRadius`, в пути каждые `raidEvery` тиков зовёт налётчиков из текущего пула. Доехал — на месте цели
    *  встаёт лавка (обычный торговец на `shop.lifetime`). Полосы HP у каравана нет. Числа стартовые. */
   caravan: { at: { short: sec(4 * 60), full: sec(9 * 60), dire: sec(9 * 60), river: sec(9 * 60) } as Record<string, number>, window: sec(150), distMin: 420, distMax: 720, minFromOthers: 300, length: 520, speed: 62, escortRadius: 150, raidEvery: sec(6), raidSize: 3, raidRingMin: 220, raidRingMax: 300 },
+  /** Приглашения у края экрана (T13.60): пока аванпост не захвачен, необязательных подсказок не больше `max`
+   *  (порядок приоритета — в `ArcadeSim.invitations`); угрозы и выбранные цели показываются всегда. */
+  invitations: { max: 2 },
   forge: { distMin: 500, distMax: 850, minFromOthers: 450, radius: 52, fromTick: { short: sec(4 * 60 + 30), full: sec(12 * 60), dire: sec(12 * 60), river: sec(12 * 60) } as Record<string, number>, temper: { base: 40, perMin: 6 }, reforge: { base: 30, perMin: 5 }, sacrifice: { base: 20, perMin: 4 } },
   /** Гром-голем (T13.53, «Громозавр» аудита: «заряжает несколько отмеченных областей, затем цепь молний; читать порядок
    *  зон; безопасный сектор остаётся даже у стены; награда — гибрид молнии»). Логово по seed; спит до входа. В бою раз в
