@@ -1,7 +1,7 @@
 // Headless-симулятор Arcade (BACKLOG T13.6): бот-политика поверх чистого сима — кайт от центра
 // масс врагов + сбор ближайшего XP-шарда + жадный выбор карточек одной школы. Печатает кривые
 // выживаемости по сидам: доля доживших до Рошана, убивших его, победивших; p25/p50/p75 времени.
-// Запуск: `npm run sim:arcade -- --runs 200 --seed base --school radiance`.
+// Запуск: `npm run sim:arcade -- --runs 200 --seed base --school radiance [--trait berserk]`.
 import { ArcadeSim, KIND_BY_INDEX } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
@@ -17,6 +17,8 @@ const SCHOOL = (args.get("school") ?? "any") as SchoolId | "any";
 const RANK = Number(args.get("rank") ?? 0);
 const HERO = args.get("hero") ?? "juggernaut";
 const ACT = (args.get("act") ?? "full") as "short" | "full" | "dire" | "river";
+/** Стартовая особенность (T13.62): `--trait berserk|bulwark|swift|scavenger`; без флага — базовая. */
+const TRAIT = args.get("trait");
 const MAX_TICKS = TICK_HZ * 60 * 26;
 
 /** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */
@@ -153,7 +155,7 @@ let retreating = false;
 const results: RunResult[] = [];
 const t0 = performance.now();
 for (let i = 0; i < RUNS; i++) {
-  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT });
+  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}) });
   const trace = args.get("trace") !== undefined && Number(args.get("trace")) === i;
   let lastHp = 0;
   while (!sim.over && sim.tick < MAX_TICKS) {
