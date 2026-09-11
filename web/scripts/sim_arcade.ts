@@ -4,13 +4,19 @@
 // Запуск: `npm run sim:arcade -- --runs 200 --seed base --school radiance [--trait berserk] [--places rift,caravan,pond,forge,camp|all]`.
 import { ArcadeSim, KIND_BY_INDEX } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
+import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
 import { PICKUP_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { GEAR_SLOTS, gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
 import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
 
 const args = new Map<string, string>();
-for (let i = 2; i < process.argv.length; i += 2) args.set(process.argv[i].replace(/^--/, ""), process.argv[i + 1] ?? "");
+// Флаг без значения (`--verbose`) не съедает следующий `--ключ`: раньше `--verbose --enemy x=1` терял `--enemy` молча.
+for (let i = 2; i < process.argv.length; i++) {
+  const key = process.argv[i].replace(/^--/, "");
+  const next = process.argv[i + 1];
+  if (next !== undefined && !next.startsWith("--")) { args.set(key, next); i++; } else args.set(key, "");
+}
 const RUNS = Number(args.get("runs") ?? 100);
 /** `--only N` — прогнать один сид базы (отладка конкретного забега). */
 const ONLY = args.has("only") ? Number(args.get("only")) : -1;
@@ -27,6 +33,11 @@ const PLACE_IDS = ["rift", "caravan", "pond", "forge", "camp"] as const;
 type PlaceId = (typeof PLACE_IDS)[number];
 const PLACES = new Set<PlaceId>((args.get("places") ?? "") === "all" ? PLACE_IDS : ((args.get("places") ?? "").split(",").filter((p): p is PlaceId => (PLACE_IDS as readonly string[]).includes(p))));
 const MAX_TICKS = TICK_HZ * 60 * 26;
+/** Калибровка без правки конфига (2026-09-11): `--set defiler.shieldPerTotem=0.15,camp.guardBase=1` меняет числа ARCADE
+ *  по пути, `--enemy satyr_defiler.hp=1200` — поля видов врагов. Только для A/B; в игру попадает правка config/enemies. */
+const setPath = (root: Record<string, unknown>, path: string, value: number) => { const keys = path.split("."); let o = root; for (const k of keys.slice(0, -1)) o = o[k] as Record<string, unknown>; if (typeof o[keys[keys.length - 1]] !== "number") throw new Error(`нет числового поля ${path}`); o[keys[keys.length - 1]] = value; };
+for (const kv of (args.get("set") ?? "").split(",").filter(Boolean)) { const [k, v] = kv.split("="); setPath(ARCADE as unknown as Record<string, unknown>, k, Number(v)); }
+for (const kv of (args.get("enemy") ?? "").split(",").filter(Boolean)) { const [k, v] = kv.split("="); setPath(ENEMY_KINDS as unknown as Record<string, unknown>, k, Number(v)); }
 
 /** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */
 function pickOffer(offers: Offer[], school: SchoolId | "any"): number {
