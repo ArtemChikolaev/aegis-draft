@@ -215,8 +215,8 @@ export const HERO_PROJECTILE: Record<string, "arrow" | "knife" | "bullet"> = {
  * 2026-09-08). Рисуется как слот `aura` (features/arcade/effects.ts), под надетым свечением игрока,
  * и в бою, и в превью гардероба.
  */
-export const HERO_AURA: Record<string, "fire" | "frost" | "lightning" | "aegis"> = {
-  io: "frost",
+export const HERO_AURA: Record<string, "fire" | "frost" | "lightning" | "aegis" | "wisp"> = {
+  io: "wisp", // шар света с усиками (частицы Dota), см. effects.ts case "wisp"
 };
 
 /** Внешний вид героя по киту и цвету оттенка (свой у каждого героя). */

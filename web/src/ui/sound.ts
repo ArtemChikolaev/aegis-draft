@@ -322,6 +322,51 @@ export function sampleDuration(url: string): number {
   return buf && !(buf instanceof Promise) ? buf.duration : 0;
 }
 
+/**
+ * Подготовка клипа к бесшовной петле (T13.29, писк в Blade Fury у владельца): у декодированного AAC по краям
+ * лежит тишина/мусор кодека (priming/padding), и `loop = true` на сыром буфере даёт на каждом обороте щелчок
+ * или свист. Режем края по порогу тишины до ближайших нулевых переходов и сводим шов равномощным кроссфейдом:
+ * хвост клипа плавно перетекает в его же начало. Чистая функция — проверяется тестом без AudioContext.
+ */
+export function makeLoopReady(channels: readonly Float32Array[], sampleRate: number, fadeSec = 0.04, silence = 0.002): Float32Array[] {
+  if (!channels.length || channels[0].length < sampleRate * 0.1) return channels.map((ch) => Float32Array.from(ch));
+  const n = channels[0].length;
+  const amp = (i: number) => { let m = 0; for (const ch of channels) m = Math.max(m, Math.abs(ch[i])); return m; };
+  let s = 0, e = n - 1;
+  while (s < n && amp(s) < silence) s++;
+  while (e > s && amp(e) < silence) e--;
+  const ch0 = channels[0];
+  // К ближайшему восходящему нулевому переходу: старт — вперёд, конец — назад (в пределах 20 мс), чтобы края петли начинались с нуля.
+  const win = Math.floor(sampleRate * 0.02);
+  for (let i = s; i < Math.min(n - 1, s + win); i++) if (ch0[i] <= 0 && ch0[i + 1] >= 0) { s = i + 1; break; }
+  for (let i = e; i > Math.max(s + 1, e - win); i--) if (ch0[i - 1] <= 0 && ch0[i] >= 0) { e = i - 1; break; }
+  const len = e - s + 1;
+  const fade = Math.min(Math.floor(fadeSec * sampleRate), Math.floor(len / 4));
+  const cut = channels.map((ch) => ch.slice(s, e + 1));
+  // Кроссфейд шва: последние `fade` сэмплов = tail·cos + head·sin, а первые `fade` сэмплов головы, уже
+  // «прозвучавшие» в хвосте, отбрасываются — на обороте сигнал переходит с head[fade−1] на head[fade] без скачка.
+  for (const ch of cut) {
+    for (let i = 0; i < fade; i++) {
+      const k = i / fade, a = Math.cos(k * Math.PI / 2), b = Math.sin(k * Math.PI / 2);
+      ch[len - fade + i] = ch[len - fade + i] * a + ch[i] * b;
+    }
+  }
+  return cut.map((ch) => Float32Array.from(ch.subarray(fade)));
+}
+
+const loopReady = new WeakMap<AudioBuffer, AudioBuffer>();
+function loopBuffer(audio: AudioContext, buf: AudioBuffer): AudioBuffer {
+  const cached = loopReady.get(buf);
+  if (cached) return cached;
+  const channels: Float32Array[] = [];
+  for (let c = 0; c < buf.numberOfChannels; c++) channels.push(buf.getChannelData(c));
+  const ready = makeLoopReady(channels, buf.sampleRate);
+  const out = audio.createBuffer(ready.length, ready[0].length, buf.sampleRate);
+  ready.forEach((ch, c) => out.copyToChannel(Float32Array.from(ch), c));
+  loopReady.set(buf, out);
+  return out;
+}
+
 /** Зацикленный сэмпл (Blade Fury): вернёт stop() с коротким затуханием; null, если буфер не готов. */
 export function sfxLoop(url: string, gain = 0.3): (() => void) | null {
   if (!soundEnabled()) return () => {};
@@ -330,8 +375,10 @@ export function sfxLoop(url: string, gain = 0.3): (() => void) | null {
   const buf = samples.get(url);
   if (buf === undefined) { preloadSample(url); return null; }
   if (!buf || buf instanceof Promise) return null;
+  if (audio.state !== "running") { void audio.resume().catch(() => {}); logSfx(url, "suspended", gain); return null; }
+  logSfx(url, "played", gain);
   const src = audio.createBufferSource();
-  src.buffer = buf; src.loop = true;
+  src.buffer = loopBuffer(audio, buf); src.loop = true;
   const g = audio.createGain();
   g.gain.value = gain;
   src.connect(g); g.connect(master);

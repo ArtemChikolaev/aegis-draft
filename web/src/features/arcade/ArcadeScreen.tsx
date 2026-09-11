@@ -1,7 +1,7 @@
 // Arcade (PRD §5.15): экран режима — настройка → сцена (canvas + HUD) → итог. Сим тикает в rAF-цикле
 // сцены с фиксированным шагом (config.TICK_HZ), React рисует только HUD и оверлеи; сам мир — в
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { MARK_IDS, bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
 import { LEGACY_BRANCHES, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
@@ -38,6 +38,7 @@ import { HeroWardrobe, wornSkin } from "./HeroWardrobe.tsx";
 /** Пиксельный режим статичен на загрузку страницы (query-параметр) — иконки предметов и умений берём из px-наборов. */
 const PX = pixelScale() >= 1;
 const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
+import { groupHeroes, recentHeroes } from "./heroPicker.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
 
@@ -79,6 +80,11 @@ function ArcadeSetup() {
   const [gearSlot, setGearSlot] = useState<GearSlot | null>(null);
   /** Гардероб (владелец 2026-09-06): открывается тычком по уже выбранному герою и кнопкой «Внешний вид». */
   const [wardrobe, setWardrobe] = useState<HeroId | null>(null);
+  // Избранные и недавние герои (владелец 2026-09-12): чтобы не искать в списке из 126 каждый раз.
+  const favorites = useArcade((s) => s.favorites);
+  const toggleFavorite = useArcade((s) => s.toggleFavorite);
+  const [heroQuery, setHeroQuery] = useState("");
+  const heroGroups = useMemo(() => groupHeroes(HERO_IDS, favorites, recentHeroes(history, HERO_IDS), heroQuery, (id) => heroOf(HEROES[id].dotaId).name), [favorites, history, heroQuery]);
   const [seed, setSeed] = useState("");
   const [replayCode, setReplayCode] = useState("");
   const daily = arcadeDaily();
@@ -106,26 +112,39 @@ function ArcadeSetup() {
       <div className="arcade-setup__grid">
         <Surface className="arcade-setup__hero" data-testid="arcade-hero">
           <span className="arcade-setup__label">{t("arcade.hero")}</span>
+          <div className="arcade-heroes__tools">
+            <input className="arcade-heroes__search" type="search" value={heroQuery} onChange={(e) => setHeroQuery(e.target.value)} placeholder={t("arcade.heroes.search")} aria-label={t("arcade.heroes.search")} data-testid="arcade-hero-search" />
+            <small>{t("arcade.heroes.favHint")}</small>
+          </div>
           <div className="arcade-heroes" data-testid="arcade-heroes">
-            {HERO_IDS.map((id) => {
-              const def = HEROES[id];
-              const info = heroOf(def.dotaId);
-              return (
-                <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { if (id === heroId) { setWardrobe(id); return; } setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); void preloadArcadeArt(id, Object.keys(ENEMY_KINDS), "short"); }}>
-                  <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
-                  <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
-                  {(() => {
-                    // Бейдж скина на карточке героя (владелец: «косметика по герою»): надетый — по редкости, иначе — сколько доступно.
-                    const skins = COSMETICS.filter((c) => c.slot === "skin" && c.hero === id);
-                    if (skins.length === 0) return null;
-                    const on = wornSkin(id, cosmetics.skins[id]);
-                    return on
-                      ? <span className="arcade-heroes__skin" data-rarity={on.rarity} data-testid={`arcade-hero-skin-${id}`}>{t(on.rarity === "arcana" ? "arcade.rarity.arcana" : "arcade.cosmetics.persona")}</span>
-                      : <span className="arcade-heroes__skin" data-testid={`arcade-hero-skins-${id}`}>{t("arcade.cosmetics.skinsCount", { n: skins.length })}</span>;
-                  })()}
-                </button>
-              );
-            })}
+            {(([["favorites", heroGroups.favorites], ["recent", heroGroups.recent], ["rest", heroGroups.rest]] as const).filter(([, ids]) => ids.length > 0)).map(([group, ids]) => (
+              <Fragment key={group}>
+                {(group !== "rest" || heroGroups.favorites.length > 0 || heroGroups.recent.length > 0) && <span className="arcade-heroes__group" data-testid={`arcade-heroes-group-${group}`}>{t(`arcade.heroes.${group}` as MessageKey)}</span>}
+                {ids.map((id) => {
+                  const fav = favorites.includes(id);
+                  const def = HEROES[id];
+                  const info = heroOf(def.dotaId);
+                  return (
+                    <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { if (id === heroId) { setWardrobe(id); return; } setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); void preloadArcadeArt(id, Object.keys(ENEMY_KINDS), "short"); }}>
+                      <span role="button" tabIndex={0} className="arcade-heroes__star" data-on={fav ? "true" : undefined} aria-label={t(fav ? "arcade.heroes.unfav" : "arcade.heroes.fav")} title={t(fav ? "arcade.heroes.unfav" : "arcade.heroes.fav")} data-testid={`arcade-hero-fav-${id}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(id); }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleFavorite(id); } }}>{fav ? "★" : "☆"}</span>
+                      <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
+                      <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
+                      {(() => {
+                        // Бейдж скина на карточке героя (владелец: «косметика по герою»): надетый — по редкости, иначе — сколько доступно.
+                        const skins = COSMETICS.filter((c) => c.slot === "skin" && c.hero === id);
+                        if (skins.length === 0) return null;
+                        const on = wornSkin(id, cosmetics.skins[id]);
+                        return on
+                          ? <span className="arcade-heroes__skin" data-rarity={on.rarity} data-testid={`arcade-hero-skin-${id}`}>{t(on.rarity === "arcana" ? "arcade.rarity.arcana" : "arcade.cosmetics.persona")}</span>
+                          : <span className="arcade-heroes__skin" data-testid={`arcade-hero-skins-${id}`}>{t("arcade.cosmetics.skinsCount", { n: skins.length })}</span>;
+                      })()}
+                    </button>
+
+                  );
+                })}
+              </Fragment>
+            ))}
+            {heroGroups.favorites.length + heroGroups.recent.length + heroGroups.rest.length === 0 && <span className="arcade-heroes__empty">{t("arcade.heroes.none")}</span>}
           </div>
           <div className="arcade-gear" data-testid="arcade-gear">
             <span className="arcade-setup__label">{t("arcade.gear.title")} · {t("arcade.gear.count", { n: gear.items.length })}</span>

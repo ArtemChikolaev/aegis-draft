@@ -5,7 +5,16 @@
 .arcade-setup__hero, .arcade-setup__run { display: grid; gap: 14px; padding: 22px; align-content: start; }
 .arcade-setup__label { font: 800 11px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
 .arcade-heroes { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; max-height: 420px; overflow-y: auto; padding-right: 4px; }
-.arcade-heroes__pick { display: grid; gap: 4px; justify-items: center; padding: 8px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); }
+.arcade-heroes__pick { position: relative; display: grid; gap: 4px; justify-items: center; padding: 8px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); }
+/* Избранные герои (2026-09-12): звезда в углу карточки, заголовки групп на всю ширину сетки, поиск над сеткой. */
+.arcade-heroes__star { position: absolute; top: 2px; right: 4px; font-size: 14px; line-height: 1; color: var(--muted); cursor: pointer; padding: 2px 4px; border-radius: 999px; }
+.arcade-heroes__star[data-on] { color: var(--accent-strong); }
+.arcade-heroes__star:hover, .arcade-heroes__star:focus-visible { color: var(--accent-strong); background: var(--accent-soft); outline: none; }
+.arcade-heroes__group { grid-column: 1 / -1; font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-top: 4px; }
+.arcade-heroes__empty { grid-column: 1 / -1; color: var(--muted); font-size: 12px; padding: 12px 0; }
+.arcade-heroes__tools { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+.arcade-heroes__tools small { color: var(--muted); font-size: 11px; }
+.arcade-heroes__search { flex: 1; min-width: 0; padding: 6px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text); font: inherit; font-size: 13px; }
 .arcade-heroes__pick[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); }
 .arcade-heroes__pick small { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .arcade-heroes__skin { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--surface); }

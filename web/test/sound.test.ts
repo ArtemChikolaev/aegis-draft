@@ -96,3 +96,28 @@ describe("звук героев Аркады", () => {
     }
   });
 });
+
+// Бесшовная петля (T13.29): края клипа режутся по тишине и нулевым переходам, шов сводится кроссфейдом.
+describe("makeLoopReady", () => {
+  it("срезает тишину по краям, стык петли без скачка, длина не растёт", async () => {
+    const { makeLoopReady } = await import("../src/ui/sound.ts");
+    const sr = 48000, n = Math.round(sr * 1.118), pad = 1100;
+    const raw = new Float32Array(n);
+    // Синус 125 Гц с фазой, чтобы конец клипа НЕ совпадал с началом (как у реального клипа), плюс тишина по краям.
+    for (let i = pad; i < n - pad; i++) raw[i] = 0.6 * Math.sin(2 * Math.PI * 125 * (i - pad) / sr + 0.9);
+    const [out] = makeLoopReady([raw], sr);
+    expect(out.length).toBeLessThan(n - pad);
+    expect(Math.abs(out[0])).toBeLessThan(0.02);
+    expect(Math.abs(out[out.length - 1])).toBeLessThan(0.02);
+    const rawJump = Math.abs(raw[n - pad - 1] - raw[pad]);
+    const seamJump = Math.abs(out[out.length - 1] - out[0]);
+    expect(seamJump).toBeLessThan(0.03);
+    expect(seamJump).toBeLessThan(rawJump / 5 + 0.03);
+    // Энергия клипа сохранена (обрезка и кроссфейд не глушат сигнал).
+    const rms = (a: Float32Array) => Math.sqrt(a.reduce((acc, v) => acc + v * v, 0) / a.length);
+    expect(rms(out)).toBeGreaterThan(rms(raw.subarray(pad, n - pad)) * 0.9);
+    // Короткий буфер — как есть.
+    const short = new Float32Array(1000).fill(0.1);
+    expect(makeLoopReady([short], sr)[0].length).toBe(1000);
+  });
+});

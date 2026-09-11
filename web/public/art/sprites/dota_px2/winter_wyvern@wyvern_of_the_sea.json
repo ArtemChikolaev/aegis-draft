@@ -1,40 +1,39 @@
 {
-  "name": "io",
-  "frame": 128,
+  "name": "winter_wyvern@wyvern_of_the_sea",
+  "frame": 160,
   "dirs": 8,
   "fps": 12,
-  "world": 64,
+  "world": 160,
   "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
   "anchor": {
     "x": 0.5,
-    "y": 0.816
+    "y": 0.685
   },
   "anims": {
     "cast": {
       "row": 0,
-      "frames": 2
+      "frames": 12
     },
     "walk": {
       "row": 8,
-      "frames": 2
+      "frames": 12
     },
     "idle": {
       "row": 16,
-      "frames": 2
+      "frames": 12
     },
     "attack": {
       "row": 24,
-      "frames": 2
+      "frames": 9
     },
     "death": {
       "row": 32,
-      "frames": 2
+      "frames": 12
     }
   },
-  "source": "wisp.glb",
+  "source": "winterwyvern.glb",
   "orientation": "none",
   "pitch": 45.0,
   "pixel": true,
-  "margin": 1.12,
-  "glow": 170.8
+  "margin": 1.4
 }

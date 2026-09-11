@@ -45,7 +45,7 @@ function pixelEllipse(c: CanvasRenderingContext2D, x: number, y: number, rx: num
 }
 
 export type GroundEffect = "ember" | "frost" | "gold" | "void";
-export type AuraEffect = "fire" | "frost" | "lightning" | "aegis";
+export type AuraEffect = "fire" | "frost" | "lightning" | "aegis" | "wisp";
 export type TrailEffect = "fire" | "frost" | "lightning" | "aegis" | "blood" | "leaves" | "void" | "spectral" | "spores" | "hoofprints";
 export type DeathEffect = "ring" | "shatter" | "nova" | "bones";
 
@@ -256,6 +256,39 @@ export function drawAuraEffect(c: CanvasRenderingContext2D, geo: AuraGeo, kind: 
           const pt = edgePoint(geo, Math.floor(hash(step, i + 43) * n));
           c.globalAlpha = 0.95; c.fillStyle = pal.lightning; dot(c, pt.x, pt.y, px * 2, px);
           c.fillStyle = pal.text; dot(c, pt.x + px, pt.y - px, px, px);
+        }
+      }
+      c.globalAlpha = 1;
+      break;
+    }
+    case "wisp": {
+      // Io (владелец 2026-09-12: «не так выглядит»): в Dota это шар света с усиками-частицами, в меше их нет.
+      // Сзади — мягкое сияние в два кольца и 5 усиков, медленно вращающихся вокруг ядра; спереди — искры.
+      const r = Math.max(px * 6, h * 0.55);
+      const ccx = cx, ccy = (geo.top + geo.bottom) / 2;
+      if (layer === "back") {
+        c.globalAlpha = 0.4 + 0.1 * Math.sin(tick / 7) + flare * 0.2;
+        pixelEllipse(c, ccx, ccy, r * 1.45, r * 1.45, px, pal.frost, 1.4);
+        c.globalAlpha = 0.65 + 0.15 * Math.sin(tick / 5);
+        pixelEllipse(c, ccx, ccy, r * 1.05, r * 1.05, px, pal.ice, 1.1);
+        const arms = 5;
+        for (let a = 0; a < arms; a++) {
+          const base = (a / arms) * Math.PI * 2 + tick / 90 + hash(seed, a) * 0.6;
+          const len = r * (2.2 + 0.6 * Math.sin(tick / 23 + a * 1.7)) * boost;
+          for (let s2 = 0; s2 < 9; s2++) {
+            const k = (s2 + 1) / 9;
+            const ang = base + Math.sin(tick / 17 + a + k * 4) * 0.4 * k;
+            c.globalAlpha = 1 - k * 0.7;
+            c.fillStyle = k < 0.4 ? pal.text : k < 0.75 ? pal.ice : pal.frost;
+            dot(c, ccx + Math.cos(ang) * len * k, ccy + Math.sin(ang) * len * k * 0.8, px * (k < 0.6 ? 2 : 1), px);
+          }
+        }
+      } else {
+        const step = tick >> 2, count = Math.round(4 * boost);
+        for (let i = 0; i < count; i++) {
+          if (hash(step, i + 51) > 0.6) continue;
+          const ang = hash(step, i + 53) * Math.PI * 2, d = r * (0.5 + hash(step, i + 55) * 0.6);
+          c.globalAlpha = 0.9; c.fillStyle = pal.text; dot(c, ccx + Math.cos(ang) * d, ccy + Math.sin(ang) * d * 0.8, px, px);
         }
       }
       c.globalAlpha = 1;

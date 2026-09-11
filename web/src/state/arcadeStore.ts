@@ -2,6 +2,7 @@
 // local-first история результатов. Сам сим живёт вне React (модульная переменная): 60 тиков в
 // секунду через zustand — лишняя работа, HUD читает состояние по `serial`, который бампает цикл
 // экрана ~10 раз в секунду. Посреди забега сейва нет (как у референса): пауза — по visibilitychange.
+import { toggleFavorite } from "../features/arcade/heroPicker.ts";
 import { traitUnlocked, type TraitId } from "../game/arcade/content/traits.ts";
 import { create } from "zustand";
 import { ArcadeSim } from "../game/arcade/sim.ts";
@@ -61,6 +62,8 @@ const HISTORY_KEY = "aegis-draft.arcade.history";
 const COSMETICS_KEY = "aegis-draft.arcade.cosmetics";
 const GEAR_KEY = "aegis-draft.arcade.gear";
 const AUTOCAST_KEY = "aegis-draft.arcade.autocast";
+/** Избранные герои экрана подготовки (2026-09-12), per-device как автокаст. */
+const FAVORITES_KEY = "aegis-draft.arcade.favorites";
 /** Постоянный прогресс (T13.37): открытия и lifetime-трофеи живут отдельно от ленты последних забегов. */
 const PROGRESS_KEY = "aegis-draft.arcade.progress";
 /** Ключей награждённых завершений наследия храним ограниченно: одинаковый seed/hero/act/rank награждается один раз. */
@@ -71,6 +74,14 @@ const LEGACY_CLAIMED_CAP = 200;
 export type AutoCastState = Record<AbilityKey, boolean> & { attack: boolean };
 // Автоатака по умолчанию включена (без неё герой просто стоит), умения — выключены.
 const AUTOCAST_OFF: AutoCastState = { q: false, w: false, e: false, r: false, attack: true };
+function readFavorites(): HeroId[] {
+  try {
+    const parsed = JSON.parse(readCached(FAVORITES_KEY) ?? "null") as unknown;
+    return Array.isArray(parsed) ? parsed.filter((h): h is HeroId => typeof h === "string" && h in HEROES) : [];
+  } catch {
+    return [];
+  }
+}
 function readAutoCast(): AutoCastState {
   try {
     const parsed = JSON.parse(readCached(AUTOCAST_KEY) ?? "null") as Partial<AutoCastState> | null;
@@ -219,6 +230,8 @@ interface ArcadeStore {
   lastSeals: number;
   /** Авто-каст способностей (по умолчанию включён: тач без него неиграбелен). */
   autoCast: AutoCastState;
+  /** Избранные герои (порядок добавления), см. features/arcade/heroPicker.ts. */
+  favorites: HeroId[];
   /** Просмотр реплея: ввод берётся из лога, а не с клавиатуры; в историю не пишется. */
   replayLog: InputLogEntry[] | null;
   /** Реплей, готовый к просмотру (из кода/ссылки). */
@@ -260,6 +273,7 @@ interface ArcadeStore {
   shopAct: (act: number) => void;
   /** Переключить автокаст умения (сохраняется между забегами; в сим уходит через input-лог). */
   toggleAutoCast: (key: AbilityKey | "attack") => void;
+  toggleFavorite: (hero: HeroId) => void;
   /** Наследие Aegis (T13.44): вложить печать в ветку / бесплатно сбросить все. */
   legacySpend: (branch: LegacyBranch) => void;
   legacyReset: () => void;
@@ -284,6 +298,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   progress: readProgress(initialHistory),
   lastSeals: 0,
   autoCast: readAutoCast(),
+  favorites: readFavorites(),
   replayLog: null,
   loadedReplay: null,
   cosmetics: withHeroSkin(readCosmetics(), "juggernaut"),
@@ -433,6 +448,12 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const progress: ArcadeProgress = { ...p, legacy: { ...p.legacy, spent: { ...LEGACY_ZERO } } };
     void writePersisted(PROGRESS_KEY, JSON.stringify(progress));
     set({ progress });
+  },
+  toggleFavorite(hero) {
+    if (!(hero in HEROES)) return;
+    const favorites = toggleFavorite(get().favorites, hero);
+    void writePersisted(FAVORITES_KEY, JSON.stringify(favorites));
+    set({ favorites });
   },
   toggleAutoCast(key) {
     const autoCast: AutoCastState = { ...get().autoCast, [key]: !get().autoCast[key] };

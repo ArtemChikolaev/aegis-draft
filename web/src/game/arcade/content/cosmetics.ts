@@ -236,6 +236,10 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_treant_fungal", slot: "skin", rarity: "exotic", variant: "treant@fungal", hero: "treant" },
   { id: "skin_underlord_abyss_tyrant", slot: "skin", rarity: "exotic", variant: "underlord@abyss_tyrant", hero: "underlord" },
   { id: "skin_undying_love", slot: "skin", rarity: "exotic", variant: "undying@love", hero: "undying" },
+  { id: "skin_sniper_odogaron", slot: "skin", rarity: "exotic", variant: "sniper@odogaron", hero: "sniper" },
+  { id: "skin_winter_wyvern_wyvern_of_the_sea", slot: "skin", rarity: "exotic", variant: "winter_wyvern@wyvern_of_the_sea", hero: "winter_wyvern" },
+  { id: "skin_visage_soul_reaper", slot: "skin", rarity: "exotic", variant: "visage@soul_reaper", hero: "visage" },
+  { id: "skin_lifestealer_helmet", slot: "skin", rarity: "exotic", variant: "lifestealer@helmet", hero: "lifestealer" },
 ];
 
 /** Арканы, у которых в Dota есть настоящий стиль (свой набор текстур): лист `<variant>~style1`
