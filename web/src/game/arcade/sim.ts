@@ -13,6 +13,7 @@ import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts"
 import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
+import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
@@ -175,6 +176,8 @@ export class ArcadeSim {
   respiteUntil = 0;
   /** Караван лавочника (T13.59). */
   caravan: Caravan | null = null;
+  /** Стартовая особенность (T13.62): множители базы с плюсом и минусом. */
+  readonly trait: TraitDef | null;
   /** Выбранный в кузне слот (индекс GEAR_SLOTS) или −1. */
   forgeSlot = -1;
   /** Лотосовый пруд (T13.43): одно использование; открытый выбор ставит мир на паузу, как лавка. */
@@ -249,6 +252,7 @@ export class ArcadeSim {
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
+    this.trait = isTraitId(options.trait) ? TRAITS[options.trait] : null;
     const L = options.legacy;
     this.legacy = L && [L.hp, L.damage, L.pickup].every((v) => typeof v === "number" && v >= 1 && v <= 2) ? { hp: L.hp, damage: L.damage, pickup: L.pickup } : LEGACY_NONE;
     this.obstacles = new ObstacleGrid(generateMap(seed, this.act).obstacles);
@@ -2498,7 +2502,7 @@ export class ArcadeSim {
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
       contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
-      riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null, caravanDone: this.caravan?.state === "arrived",
+      riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null, caravanDone: this.caravan?.state === "arrived", trait: this.trait?.id ?? null,
     };
   }
 
@@ -3576,6 +3580,7 @@ export class ArcadeSim {
     const p = this.player;
     const s = baseStats();
     Object.assign(s, this.hero.base);
+    applyTrait(s, this.trait); // особенность — поверх базы героя, до пассивок/апгрейдов/экипировки
     const over = this.upgradePower("mae_overcharge");
     let attackSpeed = 0.12 * over, moveSpeed = 0.04 * over;
     // Пассивки героя.

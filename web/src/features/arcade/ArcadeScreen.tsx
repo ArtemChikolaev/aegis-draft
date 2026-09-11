@@ -20,6 +20,7 @@ import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
+import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
 import { COSMETICS, COSMETIC_BY_ID, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
@@ -62,6 +63,8 @@ function ArcadeSetup() {
   const setRank = useArcade((s) => s.setRank);
   const heroId = useArcade((s) => s.hero);
   const setHero = useArcade((s) => s.setHero);
+  const trait = useArcade((s) => s.trait);
+  const setTrait = useArcade((s) => s.setTrait);
   const act = useArcade((s) => s.act);
   const setAct = useArcade((s) => s.setAct);
   const heroOf = useHero();
@@ -165,6 +168,18 @@ function ArcadeSetup() {
             ))}
             {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey)}</small></li>}
           </ul>
+          <div className="arcade-trait" data-testid="arcade-trait">
+            <span className="arcade-setup__label">{t("arcade.trait.title")}</span>
+            <div className="arcade-trait__row">
+              <button type="button" className="arcade-rank__tier" data-active={trait === null ? "true" : undefined} data-testid="arcade-trait-base" onClick={() => setTrait(null)} title={t("arcade.trait.base.desc")}>{t("arcade.trait.base")}</button>
+              {TRAIT_IDS.map((id) => {
+                const marks = progress.perHero[heroId]?.marks.length ?? 0;
+                const locked = !traitUnlocked(id, marks);
+                return <button key={id} type="button" className="arcade-rank__tier" data-active={trait === id ? "true" : undefined} data-locked={locked ? "true" : undefined} disabled={locked} data-testid={`arcade-trait-${id}`} title={locked ? t("arcade.trait.locked", { n: TRAITS[id].unlockMarks }) : t(`arcade.trait.${id}.desc` as MessageKey)} onClick={() => setTrait(id)}>{t(`arcade.trait.${id}` as MessageKey)}</button>;
+              })}
+            </div>
+            <small className="arcade-trait__desc">{trait ? t(`arcade.trait.${trait}.desc` as MessageKey) : t("arcade.trait.base.desc")}</small>
+          </div>
           <MasteryPanel marks={progress.perHero[heroId]?.marks ?? []} />
         </Surface>
         <Surface className="arcade-setup__run">
@@ -941,6 +956,7 @@ function ArcadeStage() {
                 {outcome.stalkerSlain && <div><dt>{t("arcade.over.stalker")}</dt><dd>{t("arcade.over.stalkerYes")}</dd></div>}
                 {outcome.contractDone && <div><dt>{t("arcade.contract.title")}</dt><dd>{t("arcade.over.contractYes")}</dd></div>}
                 {outcome.forged && <div><dt>{t("arcade.forge.title")}</dt><dd>{t("arcade.over.forgedYes")}</dd></div>}
+                {outcome.trait && <div><dt>{t("arcade.trait.title")}</dt><dd>{t(`arcade.trait.${outcome.trait}` as MessageKey)}</dd></div>}
                 {outcome.caravanDone && <div><dt>{t("arcade.caravan.title")}</dt><dd>{t("arcade.over.caravanYes")}</dd></div>}
                 {outcome.riftDone && outcome.riftRule && <div><dt>{t("arcade.rift.title")}</dt><dd>{t("arcade.over.riftYes", { rule: t(`arcade.rift.rule.${outcome.riftRule}` as MessageKey) })}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
@@ -976,8 +992,8 @@ function ArcadeStage() {
               <p className="arcade-overlay__seed">{t("common.seed")}: <code>{seed}</code></p>
               {sim && !replayLog && (
                 <div className="arcade-overlay__actions arcade-overlay__share">
-                  <Button variant="secondary" data-testid="arcade-copy-replay" onClick={() => { void copyText(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy })).then(() => setCopied("code")); }}>{copied === "code" ? t("arcade.replay.copied") : t("arcade.replay.copy")}</Button>
-                  <Button variant="secondary" onClick={() => { void copyText(replayUrl(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy }), window.location.origin, window.location.pathname)).then(() => setCopied("link")); }}>{copied === "link" ? t("link.copied") : t("link.copy")}</Button>
+                  <Button variant="secondary" data-testid="arcade-copy-replay" onClick={() => { void copyText(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy, trait: sim.trait?.id })).then(() => setCopied("code")); }}>{copied === "code" ? t("arcade.replay.copied") : t("arcade.replay.copy")}</Button>
+                  <Button variant="secondary" onClick={() => { void copyText(replayUrl(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy, trait: sim.trait?.id }), window.location.origin, window.location.pathname)).then(() => setCopied("link")); }}>{copied === "link" ? t("link.copied") : t("link.copy")}</Button>
                   <Button variant="secondary" data-testid="arcade-watch-replay" onClick={() => startReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: [...sim.log], gear: startGear, legacy: startLegacy })}>{t("arcade.replay.watch")}</Button>
                 </div>
               )}

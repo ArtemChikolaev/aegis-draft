@@ -235,6 +235,8 @@ export interface ArcadeOptions {
   gear?: GearLike[];
   /** Снимок «Наследия Aegis» (T13.44): множители hp/damage/pickup; дейлик и старые реплеи — без него. */
   legacy?: { hp: number; damage: number; pickup: number };
+  /** Стартовая особенность (T13.62, content/traits.ts); нет или чужой id — без особенности. */
+  trait?: string;
 }
 
 /** `dire` — акт 2: ночь (обзор ограничен) и лес Dire (враги крепче и быстрее). `river` — акт 3: река с рунами
@@ -552,4 +554,6 @@ export interface ArcadeOutcome {
   riftRule: RiftRuleId | null;
   /** Караван доведён до цели (T13.59). */
   caravanDone: boolean;
+  /** Стартовая особенность забега (T13.62). */
+  trait: string | null;
 }

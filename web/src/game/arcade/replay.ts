@@ -9,6 +9,7 @@ import { MAX_RANK_STEP } from "./content/ranks.ts";
 import type { ActId, InputLogEntry } from "./types.ts";
 import type { GearItem } from "./content/gear.ts";
 import { LEGACY_BRANCHES, clampLegacy, legacySpentTotal, type LegacySpent } from "./content/legacy.ts";
+import { isTraitId, type TraitId } from "./content/traits.ts";
 
 export interface ArcadeReplay {
   seed: string;
@@ -21,6 +22,8 @@ export interface ArcadeReplay {
   gear: GearItem[];
   /** Пункты «Наследия Aegis» на старте (T13.44): реплей не читает текущую прокачку зрителя. Нет поля — без наследия. */
   legacy?: LegacySpent;
+  /** Стартовая особенность (T13.62) — десятая часть кода; без неё старые коды не меняются. */
+  trait?: TraitId;
 }
 
 const PREFIX = "A1";
@@ -82,7 +85,9 @@ export function encodeReplay(replay: ArcadeReplay): string {
   const parts = [PREFIX, encodeSeed(replay.seed), replay.hero, replay.rank, replay.act, replay.version, toBase64Url(packLog(replay.log)), gear];
   // Наследие — девятой частью `v.m.r`, только если оно есть: старые коды и коды без наследия не меняются.
   const legacy = replay.legacy ? clampLegacy(replay.legacy) : null;
-  if (legacy && legacySpentTotal(legacy) > 0) parts.push(LEGACY_BRANCHES.map((b) => legacy[b]).join("."));
+  const trait = replay.trait && isTraitId(replay.trait) ? replay.trait : null;
+  if ((legacy && legacySpentTotal(legacy) > 0) || trait) parts.push(legacy ? LEGACY_BRANCHES.map((b) => legacy[b]).join(".") : "0.0.0");
+  if (trait) parts.push(trait);
   return parts.join(SEP);
 }
 
@@ -90,8 +95,8 @@ export function encodeReplay(replay: ArcadeReplay): string {
 export function decodeReplay(text: string): ArcadeReplay | null {
   const raw = text.trim().replace(/^.*#arcade=/, "");
   const parts = raw.split(SEP);
-  if (parts.length < 7 || parts.length > 9 || parts[0] !== PREFIX) return null;
-  const [, seedRaw, hero, rankRaw, act, version, logRaw, gearRaw, legacyRaw] = parts;
+  if (parts.length < 7 || parts.length > 10 || parts[0] !== PREFIX) return null;
+  const [, seedRaw, hero, rankRaw, act, version, logRaw, gearRaw, legacyRaw, traitRaw] = parts;
   if (!HERO_IDS.includes(hero as HeroId)) return null;
   const rank = Number(rankRaw);
   if (!Number.isInteger(rank) || rank < 0 || rank > MAX_RANK_STEP) return null;
@@ -114,9 +119,11 @@ export function decodeReplay(text: string): ArcadeReplay | null {
   if (legacyRaw !== undefined) {
     const nums = legacyRaw.split(".").map(Number);
     if (nums.length !== LEGACY_BRANCHES.length || nums.some((n) => !Number.isInteger(n) || n < 0)) return null;
-    legacy = clampLegacy({ vitality: nums[0], might: nums[1], reach: nums[2] });
+    const parsed = clampLegacy({ vitality: nums[0], might: nums[1], reach: nums[2] });
+    if (legacySpentTotal(parsed) > 0) legacy = parsed; // «0.0.0» — заглушка перед особенностью, не наследие
   }
-  return { seed, hero: hero as HeroId, rank, act, version, log, gear, ...(legacy ? { legacy } : {}) };
+  if (traitRaw !== undefined && !isTraitId(traitRaw)) return null;
+  return { seed, hero: hero as HeroId, rank, act, version, log, gear, ...(legacy ? { legacy } : {}), ...(traitRaw ? { trait: traitRaw } : {}) };
 }
 
 export function replayUrl(code: string, origin: string, pathname: string): string {

@@ -2,6 +2,7 @@
 // local-first история результатов. Сам сим живёт вне React (модульная переменная): 60 тиков в
 // секунду через zustand — лишняя работа, HUD читает состояние по `serial`, который бампает цикл
 // экрана ~10 раз в секунду. Посреди забега сейва нет (как у референса): пауза — по visibilitychange.
+import { traitUnlocked, type TraitId } from "../game/arcade/content/traits.ts";
 import { create } from "zustand";
 import { ArcadeSim } from "../game/arcade/sim.ts";
 import { ARCADE_CONFIG_VERSION } from "../game/arcade/config.ts";
@@ -46,6 +47,8 @@ export interface ArcadeHistoryEntry {
   stalker?: boolean;
   /** Разлом пройден (T13.58). */
   rift?: boolean;
+  /** Стартовая особенность забега (T13.62). */
+  trait?: string;
   /** Убийства по видам за забег (T13.56). */
   killsByKind?: Record<string, number>;
 }
@@ -243,6 +246,9 @@ interface ArcadeStore {
   buyCosmetic: (id: string) => boolean;
   setRank: (rank: number) => void;
   setHero: (hero: HeroId) => void;
+  /** Стартовая особенность (T13.62): null — базовая; закрытая для героя — игнорируется. */
+  trait: TraitId | null;
+  setTrait: (trait: TraitId | null) => void;
   setAct: (act: ActId) => void;
   pause: () => void;
   resume: () => void;
@@ -271,6 +277,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   rank: 0,
   hero: "juggernaut",
   act: "full",
+  trait: null,
   serial: 0,
   outcome: null,
   history: initialHistory,
@@ -287,7 +294,8 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   start(seed) {
     const next = seed?.trim() || createRunSeed();
     const rank = Math.min(get().rank, maxUnlockedRank(get().progress));
-    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: equippedGear(get().gear), legacy: legacyBonus(get().progress.legacy.spent) });
+    const trait = get().trait && traitUnlocked(get().trait!, get().progress.perHero[get().hero]?.marks.length ?? 0) ? get().trait! : undefined;
+    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: equippedGear(get().gear), legacy: legacyBonus(get().progress.legacy.spent), trait });
     set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [], lastLoot: [] });
   },
   startDaily() {
@@ -298,7 +306,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   },
   startReplay(replay) {
     // Реплей читает снимок наследия из кода, не текущую прокачку зрителя.
-    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO) });
+    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO), trait: replay.trait });
     set({ status: "running", seed: replay.seed, rank: replay.rank, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
   },
   equipGear(slot, uid) {
@@ -379,7 +387,13 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ act });
   },
   setHero(hero) {
-    if (hero in HEROES) set({ hero, cosmetics: withHeroSkin(get().cosmetics, hero) });
+    if (!(hero in HEROES)) return;
+    const marks = get().progress.perHero[hero]?.marks.length ?? 0;
+    set({ hero, cosmetics: withHeroSkin(get().cosmetics, hero), trait: get().trait && traitUnlocked(get().trait!, marks) ? get().trait : null });
+  },
+  setTrait(trait) {
+    if (trait === null) { set({ trait: null }); return; }
+    if (traitUnlocked(trait, get().progress.perHero[get().hero]?.marks.length ?? 0)) set({ trait });
   },
   setRank(rank) {
     set({ rank: Math.max(0, Math.min(MAX_RANK_STEP, Math.min(rank, maxUnlockedRank(get().progress)))) });
@@ -437,7 +451,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const entry: ArcadeHistoryEntry = {
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
       schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,
-      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone, thunder: o.thunderSlain, warden: o.wardenSlain, stalker: o.stalkerSlain, rift: o.riftDone, killsByKind: o.killsByKind,
+      camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone, thunder: o.thunderSlain, warden: o.wardenSlain, stalker: o.stalkerSlain, rift: o.riftDone, killsByKind: o.killsByKind, ...(o.trait ? { trait: o.trait } : {}),
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));

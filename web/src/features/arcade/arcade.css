@@ -357,3 +357,9 @@
 .arcade-wardrobe__controls { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
 .arcade-wardrobe__controls .arcade-rank__tier { padding: 4px 10px; font-size: 11px; }
 .arcade-wardrobe__sep { width: 1px; align-self: stretch; background: var(--line-invert); margin: 0 4px; }
+
+/* Стартовая особенность (T13.62): ряд кнопок как у актов; закрытые — тусклые с подсказкой. */
+.arcade-trait { display: grid; gap: 6px; margin-top: 10px; }
+.arcade-trait__row { display: flex; flex-wrap: wrap; gap: 6px; }
+.arcade-trait__row .arcade-rank__tier[data-locked="true"] { opacity: 0.45; }
+.arcade-trait__desc { color: var(--text-muted, inherit); font-size: 12px; }
