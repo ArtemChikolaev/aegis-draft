@@ -38,6 +38,7 @@ import {
   type Player,
   type PlayerStats,
   type Projectile,
+  type Caravan,
   type Rarity,
   type Rift,
   type RiftRuleId,
@@ -171,6 +172,8 @@ export class ArcadeSim {
   pausedTicks = 0;
   /** До этого тика обычный спавн и волны молчат (передышка после разлома). */
   respiteUntil = 0;
+  /** Караван лавочника (T13.59). */
+  caravan: Caravan | null = null;
   /** Выбранный в кузне слот (индекс GEAR_SLOTS) или −1. */
   forgeSlot = -1;
   /** Лотосовый пруд (T13.43): одно использование; открытый выбор ставит мир на паузу, как лавка. */
@@ -228,7 +231,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -274,6 +277,7 @@ export class ArcadeSim {
     this.barrow = this.placeBarrow(seed);
     this.forge = this.placeForge(seed);
     this.rift = this.placeRift(seed);
+    this.caravan = this.placeCaravan(seed);
     this.lair = this.placeLair(seed);
     if (this.pit) this.ford = this.placeFord(seed);
     if (this.night) this.den = this.placeDen(seed);
@@ -617,6 +621,78 @@ export class ArcadeSim {
       const e = this.spawnEnemy(weightedPick(this.rng, pool), ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMax));
       if (rule === "brittle") { e.hp *= rules.brittle.hpMult; e.maxHp *= rules.brittle.hpMult; }
       if (rule === "gloom") e.dmg *= rules.gloom.dmgMult;
+    }
+  }
+
+  // ---------- караван лавочника (T13.59) ----------
+
+  private placeCaravan(seed: string): Caravan {
+    const C = ARCADE.caravan, W = ARCADE.world;
+    const rng = new Rng(`caravan:${seed}:${this.act}`);
+    const others: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge, this.rift]) if (o) others.push({ x: o.x, y: o.y });
+    const [sx, sy] = this.pickSpot(rng, C.distMin, C.distMax, 100, C.minFromOthers, others, 30);
+    // Цель — по прямой на `length`; из 12 направлений берём то, где середина и конец дальше всего от других мест и в мире.
+    let best: [number, number] = [sx, sy], bestScore = -Infinity;
+    for (let i = 0; i < 12; i++) {
+      const a = rng.float() * Math.PI * 2;
+      const ex = clamp(sx + Math.cos(a) * C.length, 100, W.w - 100), ey = clamp(sy + Math.sin(a) * C.length, 100, W.h - 100);
+      if (this.pit && Math.abs(ey - ARCADE.river.y) < ARCADE.river.halfWidth + 60) continue;
+      const mx = (sx + ex) / 2, my = (sy + ey) / 2;
+      const nearest = others.reduce((m, o) => Math.min(m, len(ex - o.x, ey - o.y), len(mx - o.x, my - o.y)), Infinity);
+      const score = Math.min(nearest, len(ex - sx, ey - sy) * 2);
+      if (score > bestScore) { bestScore = score; best = [ex, ey]; }
+    }
+    const [ex, ey] = this.obstacles.resolve(best[0], best[1], 30);
+    return { sx, sy, ex, ey, x: sx, y: sy, state: "hidden", leaveAt: 0, nextRaidAt: 0, raids: 0 };
+  }
+
+  /** Герой сопровождает: рядом с повозкой. */
+  playerEscorting(): boolean {
+    const c = this.caravan;
+    return !!c && (c.state === "waiting" || c.state === "moving") && len(this.player.x - c.x, this.player.y - c.y) <= ARCADE.caravan.escortRadius;
+  }
+
+  /** Доля пути каравана 0..1. */
+  caravanProgress(): number {
+    const c = this.caravan;
+    if (!c) return 0;
+    const total = len(c.ex - c.sx, c.ey - c.sy) || 1;
+    return c.state === "arrived" ? 1 : clamp(1 - len(c.ex - c.x, c.ey - c.y) / total, 0, 1);
+  }
+
+  private tickCaravan(): void {
+    const c = this.caravan, C = ARCADE.caravan;
+    if (!c || c.state === "arrived" || c.state === "gone") return;
+    if (c.state === "hidden") {
+      if (this.actTick < C.at[this.act]) return;
+      c.state = "waiting"; c.leaveAt = this.tick + C.window;
+      return;
+    }
+    if (this.tick >= c.leaveAt) { c.state = "gone"; return; }
+    if (!this.playerEscorting()) { c.state = "waiting"; return; }
+    c.state = "moving";
+    const d = len(c.ex - c.x, c.ey - c.y);
+    const stepLen = C.speed * DT;
+    if (d <= stepLen) {
+      c.x = c.ex; c.y = c.ey; c.state = "arrived";
+      // Доехал — лавка на месте цели (обычный торговец: касание открывает, закрытие убирает).
+      this.shopkeeper = { alive: true, x: c.ex, y: c.ey, until: this.tick + ARCADE.shop.lifetime, value: 0 };
+      this.events.caravans++;
+      this.pushFx("levelup", c.ex, c.ey, 0, 0, 30);
+      return;
+    }
+    c.x += (c.ex - c.x) / d * stepLen; c.y += (c.ey - c.y) / d * stepLen;
+    // Налёт: пока повозка едет, лес выходит на дорогу вокруг неё.
+    if (this.tick >= c.nextRaidAt) {
+      c.nextRaidAt = this.tick + C.raidEvery;
+      c.raids++;
+      const pool = spawnPool(this.minutes, this.act);
+      for (let i = 0; i < C.raidSize; i++) {
+        const a = this.rng.float() * Math.PI * 2, r = C.raidRingMin + this.rng.float() * (C.raidRingMax - C.raidRingMin);
+        const [x, y] = this.obstacles.resolve(clamp(c.x + Math.cos(a) * r, 8, ARCADE.world.w - 8), clamp(c.y + Math.sin(a) * r, 8, ARCADE.world.h - 8), 24);
+        this.spawnEnemy(weightedPick(this.rng, pool), x, y);
+      }
     }
   }
 
@@ -1227,7 +1303,7 @@ export class ArcadeSim {
     this.prevPx = p.x; this.prevPy = p.y;
     this.movePlayer(input);
     // В разломе (T13.58) мир снаружи стоит вместе с часами акта: спавн ведёт сам разлом.
-    if (this.rift?.state === "active") { this.pausedTicks++; this.tickRift(); } else this.spawnTick();
+    if (this.rift?.state === "active") { this.pausedTicks++; this.tickRift(); } else { this.spawnTick(); this.tickCaravan(); }
     this.rebuildGrid();
     this.moveEnemies();
     this.tickRupture();
@@ -2352,7 +2428,7 @@ export class ArcadeSim {
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
       contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
-      riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null,
+      riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null, caravanDone: this.caravan?.state === "arrived",
     };
   }
 

@@ -235,6 +235,7 @@ export class ArcadeRenderer {
     this.drawPond(sim, pal, now);
     this.drawForge(sim, pal, now);
     this.drawRift(sim, pal, now);
+    this.drawCaravan(sim, pal, now);
     this.drawLair(sim, pal, now);
     this.drawFord(sim, pal, now);
     this.drawLoot(sim, pal, now);
@@ -455,6 +456,8 @@ export class ArcadeRenderer {
     if (sim.shrine.alive) this.drawEdgeMarker(sim.shrine.x - camX, sim.shrine.y - camY, pal.greed, "", pal, now);
     if (sim.forgeReady()) this.drawEdgeMarker(sim.forge!.x - camX, sim.forge!.y - camY, pal.ember, "⚒", pal, now);
     if (sim.riftReady()) this.drawEdgeMarker(sim.rift!.x - camX, sim.rift!.y - camY, pal.aegis, "◇", pal, now);
+    const cv = sim.caravan;
+    if (cv && (cv.state === "waiting" || cv.state === "moving")) this.drawEdgeMarker(cv.x - camX, cv.y - camY, pal.shop, "$", pal, now);
   }
 
   private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number): void {
@@ -621,6 +624,31 @@ export class ArcadeRenderer {
       c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
       this.text(c, formatClock(R.fromTick[sim.act]), r.x, r.y - 26);
     }
+    c.globalAlpha = 1;
+  }
+
+  /** Караван лавочника (T13.59): повозка с колёсами, пунктир до цели с флажком, кольцо сопровождения; ждёт — тусклее. */
+  private drawCaravan(sim: ArcadeSim, pal: Palette, now: number): void {
+    const c0 = sim.caravan;
+    if (!c0 || c0.state === "hidden" || c0.state === "gone") return;
+    const c = this.ctx, C = ARCADE.caravan;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 220);
+    const active = c0.state === "waiting" || c0.state === "moving";
+    if (active) {
+      c.strokeStyle = pal.shop; c.lineWidth = 2; c.setLineDash([8, 8]); c.globalAlpha = 0.5;
+      c.beginPath(); c.moveTo(c0.x, c0.y); c.lineTo(c0.ex, c0.ey); c.stroke(); c.setLineDash([]);
+      c.globalAlpha = 0.9; c.fillStyle = pal.shop;
+      c.fillRect(c0.ex - 1, c0.ey - 26, 2, 26); c.beginPath(); c.moveTo(c0.ex + 1, c0.ey - 26); c.lineTo(c0.ex + 16, c0.ey - 21); c.lineTo(c0.ex + 1, c0.ey - 16); c.closePath(); c.fill();
+      c.strokeStyle = pal.shop; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = c0.state === "moving" ? 0.5 + 0.3 * pulse : 0.3;
+      c.beginPath(); c.arc(c0.x, c0.y, C.escortRadius, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+    }
+    const bob = c0.state === "moving" ? Math.round(Math.sin(now / 90) * 2) : 0;
+    c.globalAlpha = c0.state === "arrived" ? 0.5 : 1;
+    c.fillStyle = pal.rock; c.beginPath(); c.arc(c0.x - 12, c0.y + 8, 6, 0, Math.PI * 2); c.arc(c0.x + 12, c0.y + 8, 6, 0, Math.PI * 2); c.fill();
+    c.fillStyle = pal.smoke; c.fillRect(c0.x - 18, c0.y - 10 + bob, 36, 16);
+    c.fillStyle = pal.shop; c.fillRect(c0.x - 14, c0.y - 20 + bob, 28, 10);
+    c.fillStyle = pal.text; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
+    if (active) this.text(c, c0.state === "moving" ? `${Math.round(sim.caravanProgress() * 100)}%` : "…", c0.x, c0.y - 28 + bob);
     c.globalAlpha = 1;
   }
 

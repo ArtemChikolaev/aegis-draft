@@ -330,7 +330,7 @@ function ArcadeStage() {
     let wasContract = false;
     let wasForge = false;
     let wasRift = false;
-    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0 };
+    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
     const voiceId = skinnedHero(heroDef.id, useArcade.getState().cosmetics.equipped);
@@ -400,6 +400,7 @@ function ArcadeStage() {
       if (ev.outposts > seen.outposts) sfxArcade("levelup");
       if (ev.contracts > seen.contracts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 8; }
       if (ev.rifts > seen.rifts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 10; }
+      if (ev.caravans > seen.caravans) { sfxBuy(); bump(); }
       if (ev.ambushes > seen.ambushes) sfxArcade("crit"); // метка засады — звук-предупреждение
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
@@ -472,6 +473,7 @@ function ArcadeStage() {
                 {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
                 {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}</Chip>}
                 {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}{sim.player.curse === "debt" ? ` · ${sim.player.debtLeft}` : ""}</Chip>}
+                {sim.caravan && (sim.caravan.state === "moving" || (sim.caravan.state === "waiting" && sim.playerEscorting())) && <Chip data-testid="arcade-caravan-chip">{t("arcade.hud.caravan", { pct: Math.round(sim.caravanProgress() * 100) })}</Chip>}
                 {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
@@ -938,6 +940,7 @@ function ArcadeStage() {
                 {outcome.stalkerSlain && <div><dt>{t("arcade.over.stalker")}</dt><dd>{t("arcade.over.stalkerYes")}</dd></div>}
                 {outcome.contractDone && <div><dt>{t("arcade.contract.title")}</dt><dd>{t("arcade.over.contractYes")}</dd></div>}
                 {outcome.forged && <div><dt>{t("arcade.forge.title")}</dt><dd>{t("arcade.over.forgedYes")}</dd></div>}
+                {outcome.caravanDone && <div><dt>{t("arcade.caravan.title")}</dt><dd>{t("arcade.over.caravanYes")}</dd></div>}
                 {outcome.riftDone && outcome.riftRule && <div><dt>{t("arcade.rift.title")}</dt><dd>{t("arcade.over.riftYes", { rule: t(`arcade.rift.rule.${outcome.riftRule}` as MessageKey) })}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>

@@ -277,6 +277,8 @@ export interface ArcadeEventCounters {
   ambushes: number;
   /** Входы в разлом (T13.58) — звук и juice. */
   rifts: number;
+  /** Доведённые караваны (T13.59). */
+  caravans: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
@@ -286,6 +288,22 @@ export interface Grove { x: number; y: number; engaged: boolean; rocks: number }
 export type ContractTarget = "defiler" | "centaur" | "necro" | "thunder" | "warden" | "stalker";
 export type ContractReward = "weapon" | "armor" | "school";
 export interface Contract { target: ContractTarget; reward: ContractReward; done: boolean }
+
+/** Караван лавочника (T13.59): путь по seed от `sx,sy` к `ex,ey`; `hidden` до часов акта, `waiting` без героя рядом,
+ *  `moving` под сопровождением, `arrived` — лавка на месте цели, `gone` — не дождался. */
+export interface Caravan {
+  sx: number;
+  sy: number;
+  ex: number;
+  ey: number;
+  x: number;
+  y: number;
+  state: "hidden" | "waiting" | "moving" | "arrived" | "gone";
+  /** Реальный тик, до которого караван ждёт сопровождения. */
+  leaveAt: number;
+  nextRaidAt: number;
+  raids: number;
+}
 
 /** Курган Тролля-Некроманта (T13.46): дом чемпиона по seed; `engaged` — разбужен; `idolsDown` — снесено идолов; `nextRaiseAt` — следующий подъём. */
 export interface Barrow { x: number; y: number; engaged: boolean; idolsDown: number; nextRaiseAt: number }
@@ -527,4 +545,6 @@ export interface ArcadeOutcome {
   /** Разлом пройден (T13.58) и по какому правилу. */
   riftDone: boolean;
   riftRule: RiftRuleId | null;
+  /** Караван доведён до цели (T13.59). */
+  caravanDone: boolean;
 }
