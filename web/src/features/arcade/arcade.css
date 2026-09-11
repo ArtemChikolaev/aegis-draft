@@ -363,3 +363,6 @@
 .arcade-trait__row { display: flex; flex-wrap: wrap; gap: 6px; }
 .arcade-trait__row .arcade-rank__tier[data-locked="true"] { opacity: 0.45; }
 .arcade-trait__desc { color: var(--text-muted, inherit); font-size: 12px; }
+
+/* Лавка каравана (T13.59): строка скидки. */
+.arcade-shop__discount { color: var(--role-support, inherit); font-weight: 700; }

@@ -858,6 +858,7 @@ function ArcadeStage() {
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.shop.title")}</Eyebrow>
               <h2>{t("arcade.shop.gold", { gold: sim.player.gold })}</h2>
+              {sim.shopPriceMult() < 1 && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-shop-discount">{t("arcade.shop.caravanDiscount", { pct: Math.round((1 - sim.shopPriceMult()) * 100) })}</p>}
               <p className="arcade-shop__hint">{t("arcade.shop.hint", { n: sim.player.items.length, max: ARCADE.shop.slots })}</p>
               <div className="arcade-offers">
                 {sim.shopOffers.map((offer, i) => {

@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.58.0";
+export const ARCADE_CONFIG_VERSION = "a0.59.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -120,8 +120,9 @@ export const ARCADE = {
     rules: { surge: { spawnMult: 1.5, speedMult: 1.2 }, brittle: { takenMult: 1.6, hpMult: 0.6 }, gloom: { visionMult: 0.55, dmgMult: 1.25 }, silence: { attackMult: 1.8 } } },
   /** Караван лавочника (T13.59): появляется по часам акта на `window`, ждёт героя; едет к цели только пока герой в
    *  `escortRadius`, в пути каждые `raidEvery` тиков зовёт налётчиков из текущего пула. Доехал — на месте цели
-   *  встаёт лавка (обычный торговец на `shop.lifetime`). Полосы HP у каравана нет. Числа стартовые. */
-  caravan: { at: { short: sec(4 * 60), full: sec(9 * 60), dire: sec(9 * 60), river: sec(9 * 60) } as Record<string, number>, window: sec(150), distMin: 420, distMax: 720, minFromOthers: 300, length: 520, speed: 62, escortRadius: 150, raidEvery: sec(6), raidSize: 3, raidRingMin: 220, raidRingMax: 300 },
+   *  встаёт лавка (обычный торговец на `shop.lifetime`) со скидкой `discount` на товары и реролл (владелец 2026-09-11).
+   *  Полосы HP у каравана нет. Числа стартовые. */
+  caravan: { at: { short: sec(4 * 60), full: sec(9 * 60), dire: sec(9 * 60), river: sec(9 * 60) } as Record<string, number>, window: sec(150), distMin: 420, distMax: 720, minFromOthers: 300, length: 520, speed: 62, escortRadius: 150, raidEvery: sec(6), raidSize: 3, raidRingMin: 220, raidRingMax: 300, discount: 0.7 },
   /** Приглашения у края экрана (T13.60): пока аванпост не захвачен, необязательных подсказок не больше `max`
    *  (порядок приоритета — в `ArcadeSim.invitations`); угрозы и выбранные цели показываются всегда. */
   invitations: { max: 2 },

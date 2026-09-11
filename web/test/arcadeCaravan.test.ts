@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT } from "../src/game/arcade/types.ts";
+import { ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT } from "../src/game/arcade/content/items.ts";
 
 // Караван лавочника (T13.59): ждёт героя, едет только под сопровождением, зовёт налёты, доехал — лавка на месте цели.
 const C = ARCADE.caravan;
@@ -75,6 +76,15 @@ describe("караван лавочника", () => {
     sim.step(IDLE_INPUT); sim.step(IDLE_INPUT);
     expect(sim.shopOpen).toBe(true);
     expect(sim.shopOffers.length).toBe(ARCADE.shop.offers);
+    // Лавка каравана — со скидкой на товары и реролл (владелец 2026-09-11); плановый торговец — по полной цене.
+    expect(sim.shopPriceMult()).toBe(C.discount);
+    for (const o of sim.shopOffers) expect(o.price).toBe(Math.round(ARCADE_ITEM_BY_ID[o.id].price * ITEM_PRICE_MULT[o.rarity] * C.discount));
+    expect(sim.shopRerollPrice()).toBe(Math.round(ARCADE.shop.rerollBase * C.discount));
+    const plain = new ArcadeSim("caravan-3", { act: "short" });
+    plain.shopkeeper = { alive: true, x: plain.player.x + 10, y: plain.player.y, until: 1e9, value: 0 };
+    plain.step(IDLE_INPUT); plain.step(IDLE_INPUT);
+    expect(plain.shopOpen).toBe(true); expect(plain.shopPriceMult()).toBe(1);
+    for (const o of plain.shopOffers) expect(o.price).toBe(Math.round(ARCADE_ITEM_BY_ID[o.id].price * ITEM_PRICE_MULT[o.rarity]));
     sim.step(act(5));
     expect(sim.shopOpen).toBe(false);
     expect(sim.shopkeeper.alive).toBe(false);

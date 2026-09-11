@@ -723,7 +723,7 @@ export class ArcadeSim {
     if (d <= stepLen) {
       c.x = c.ex; c.y = c.ey; c.state = "arrived";
       // Доехал — лавка на месте цели (обычный торговец: касание открывает, закрытие убирает).
-      this.shopkeeper = { alive: true, x: c.ex, y: c.ey, until: this.tick + ARCADE.shop.lifetime, value: 0 };
+      this.shopkeeper = { alive: true, x: c.ex, y: c.ey, until: this.tick + ARCADE.shop.lifetime, value: 1 }; // value 1 — лавка каравана, со скидкой
       this.events.caravans++;
       this.pushFx("levelup", c.ex, c.ey, 0, 0, 30);
       return;
@@ -3162,19 +3162,25 @@ export class ArcadeSim {
     this.shopOffers = this.rollShopOffers();
   }
 
+  /** Множитель цен текущей лавки: у торговца каравана (T13.59, `shopkeeper.value === 1`) — скидка. */
+  shopPriceMult(): number {
+    return this.shopkeeper.alive && this.shopkeeper.value === 1 ? ARCADE.caravan.discount : 1;
+  }
+
   private rollShopOffers(): ShopOffer[] {
     const offers: ShopOffer[] = [];
+    const mult = this.shopPriceMult();
     const pool = [...ARCADE_ITEMS];
     for (let i = 0; i < ARCADE.shop.offers && pool.length > 0; i++) {
       const def = pool.splice(this.rng.int(pool.length), 1)[0];
       const rarity = this.rollRarity();
-      offers.push({ id: def.id, rarity, price: DEV_FREE_SHOP ? 0 : Math.round(def.price * ITEM_PRICE_MULT[rarity]) });
+      offers.push({ id: def.id, rarity, price: DEV_FREE_SHOP ? 0 : Math.round(def.price * ITEM_PRICE_MULT[rarity] * mult) });
     }
     return offers;
   }
 
   shopRerollPrice(): number {
-    return ARCADE.shop.rerollBase + ARCADE.shop.rerollStep * this.shopRerolls;
+    return Math.round((ARCADE.shop.rerollBase + ARCADE.shop.rerollStep * this.shopRerolls) * this.shopPriceMult());
   }
 
   private shopAction(act: number): void {
