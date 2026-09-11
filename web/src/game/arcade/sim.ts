@@ -1246,6 +1246,33 @@ export class ArcadeSim {
     else if (camp.engaged && d > ARCADE.camp.engageRadius) camp.engaged = false;
   }
 
+  // ---------- прилив (T13.61) ----------
+
+  /** Фаза прилива по часам акта (чистая функция — состояние не нужно). Вне River всегда отлив. */
+  tidePhase(): { phase: "low" | "warn" | "high"; left: number } {
+    const T = ARCADE.tide;
+    if (!this.pit || this.actTick < T.firstAt) return { phase: "low", left: this.pit ? T.firstAt - this.actTick : 0 };
+    const low = sec(T.lowSec), warn = sec(T.warnSec), high = sec(T.highSec), period = low + warn + high;
+    // Цикл начинается с подъёма: первый прилив тоже телеграфирован.
+    const t = (this.actTick - T.firstAt) % period;
+    if (t < warn) return { phase: "warn", left: warn - t };
+    if (t < warn + high) return { phase: "high", left: warn + high - t };
+    return { phase: "low", left: period - t };
+  }
+
+  /** Текущая полуширина русла: в прилив шире. */
+  riverHalfWidth(): number {
+    return ARCADE.river.halfWidth * (this.tidePhase().phase === "high" ? ARCADE.tide.halfWidthMult : 1);
+  }
+
+  /** Точка в течении: в прилив, в воде, не на полосе брода и не в яме. */
+  inCurrent(x: number, y: number): boolean {
+    if (!this.pit || this.tidePhase().phase !== "high") return false;
+    if (Math.abs(y - ARCADE.river.y) >= this.riverHalfWidth()) return false;
+    if (this.ford && Math.abs(x - this.ford.x) < ARCADE.tide.safeHalfW) return false;
+    return len(x - ARCADE.pit.x, y - ARCADE.pit.y) > ARCADE.pit.radius;
+  }
+
   /** Ночной акт: рендер ограничивает обзор, сим — нет (враги идут как обычно). */
   get night(): boolean {
     return ARCADE.acts[this.act].night === true;
@@ -1381,6 +1408,7 @@ export class ArcadeSim {
     let speed = p.stats.speed;
     if (this.tick < p.spinUntil || this.tick < p.hasteUntil) speed *= 1.12;
     if (this.tick < p.fieldUntil) speed *= 0.5;
+    if (this.inCurrent(p.x, p.y)) speed *= 1 - ARCADE.tide.slow; // прилив: медленнее, но управление своё
     const ox = p.x, oy = p.y;
     p.x = clamp(p.x + dx * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
     p.y = clamp(p.y + dy * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
@@ -2775,6 +2803,7 @@ export class ArcadeSim {
       if (frozen && !e.kind.unstoppable) continue;
       let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1) * this.riftSpeedMult();
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
+      if (!e.kind.unstoppable && !e.kind.boss && this.inCurrent(e.x, e.y)) speed *= 1 - ARCADE.tide.slow;
       const ranged = e.kind.ranged;
       if (ranged && d < ranged.range) {
         if (e.shotCd === 0) {

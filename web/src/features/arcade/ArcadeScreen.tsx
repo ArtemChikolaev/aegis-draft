@@ -474,6 +474,7 @@ function ArcadeStage() {
                 {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}</Chip>}
                 {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}{sim.player.curse === "debt" ? ` · ${sim.player.debtLeft}` : ""}</Chip>}
                 {sim.caravan && (sim.caravan.state === "moving" || (sim.caravan.state === "waiting" && sim.playerEscorting())) && <Chip data-testid="arcade-caravan-chip">{t("arcade.hud.caravan", { pct: Math.round(sim.caravanProgress() * 100) })}</Chip>}
+                {sim.pit && sim.tidePhase().phase !== "low" && <Chip data-testid="arcade-tide-chip">{t(sim.tidePhase().phase === "high" ? "arcade.hud.tideHigh" : "arcade.hud.tideWarn", { time: formatClock(sim.tidePhase().left) })}</Chip>}
                 {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>

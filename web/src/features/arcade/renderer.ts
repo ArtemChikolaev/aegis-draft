@@ -223,7 +223,7 @@ export class ArcadeRenderer {
       this.ctx.translate(-this.camSnapX, -this.camSnapY);
     } else this.ctx.translate(-camX + this.shakeX, -camY + this.shakeY);
     this.drawGround(sim, camX, camY, pal);
-    if (sim.pit) this.drawRiverAndPit(pal);
+    if (sim.pit) this.drawRiverAndPit(sim, pal);
     this.drawShards(sim, pal);
     this.drawFx(sim, pal, "ground");
     this.drawWard(sim, pal);
@@ -284,11 +284,27 @@ export class ArcadeRenderer {
     c.strokeRect(0, 0, ARCADE.world.w, ARCADE.world.h);
   }
 
-  private drawRiverAndPit(pal: Palette): void {
+  /** Русло и яма; прилив (T13.61): в подъём — пульсирующий контур будущей ширины, в прилив — широкая вода и сухая полоса брода. */
+  private drawRiverAndPit(sim: ArcadeSim, pal: Palette): void {
     const c = this.ctx;
-    const R = ARCADE.river, P = ARCADE.pit;
+    const R = ARCADE.river, P = ARCADE.pit, T = ARCADE.tide;
+    const tide = sim.tidePhase();
+    const hw = sim.riverHalfWidth();
     c.fillStyle = pal.river; c.globalAlpha = 0.85;
-    c.fillRect(0, R.y - R.halfWidth, ARCADE.world.w, R.halfWidth * 2);
+    c.fillRect(0, R.y - hw, ARCADE.world.w, hw * 2);
+    if (tide.phase === "warn") {
+      const wide = R.halfWidth * T.halfWidthMult, k = 0.25 + 0.35 * (0.5 + 0.5 * Math.sin(sim.tick / 4));
+      c.globalAlpha = k; c.fillRect(0, R.y - wide, ARCADE.world.w, wide * 2);
+      c.strokeStyle = pal.text; c.lineWidth = 2; c.setLineDash([10, 8]); c.globalAlpha = 0.6;
+      c.beginPath(); c.moveTo(0, R.y - wide); c.lineTo(ARCADE.world.w, R.y - wide); c.moveTo(0, R.y + wide); c.lineTo(ARCADE.world.w, R.y + wide); c.stroke(); c.setLineDash([]);
+    }
+    if (tide.phase === "high" && sim.ford) {
+      // Полоса брода — сухая: светлее и с пунктирной кромкой, чтобы безопасный путь читался.
+      const fx = sim.ford.x, sw = T.safeHalfW;
+      c.globalAlpha = 0.35; c.fillStyle = pal.text; c.fillRect(fx - sw, R.y - hw, sw * 2, hw * 2);
+      c.strokeStyle = pal.text; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = 0.7;
+      c.beginPath(); c.moveTo(fx - sw, R.y - hw); c.lineTo(fx - sw, R.y + hw); c.moveTo(fx + sw, R.y - hw); c.lineTo(fx + sw, R.y + hw); c.stroke(); c.setLineDash([]);
+    }
     c.globalAlpha = 1;
     c.fillStyle = pal.pit;
     c.beginPath(); c.arc(P.x, P.y, P.radius, 0, Math.PI * 2); c.fill();
