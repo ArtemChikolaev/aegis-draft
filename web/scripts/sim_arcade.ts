@@ -1,12 +1,12 @@
 // Headless-симулятор Arcade (BACKLOG T13.6): бот-политика поверх чистого сима — кайт от центра
 // масс врагов + сбор ближайшего XP-шарда + жадный выбор карточек одной школы. Печатает кривые
 // выживаемости по сидам: доля доживших до Рошана, убивших его, победивших; p25/p50/p75 времени.
-// Запуск: `npm run sim:arcade -- --runs 200 --seed base --school radiance [--trait berserk]`.
+// Запуск: `npm run sim:arcade -- --runs 200 --seed base --school radiance [--trait berserk] [--places rift,caravan,pond,forge,camp|all]`.
 import { ArcadeSim, KIND_BY_INDEX } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
 import { PICKUP_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
-import { gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
+import { GEAR_SLOTS, gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
 import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
 
 const args = new Map<string, string>();
@@ -19,6 +19,11 @@ const HERO = args.get("hero") ?? "juggernaut";
 const ACT = (args.get("act") ?? "full") as "short" | "full" | "dire" | "river";
 /** Стартовая особенность (T13.62): `--trait berserk|bulwark|swift|scavenger`; без флага — базовая. */
 const TRAIT = args.get("trait");
+/** Места (T13.63): бот идёт к перечисленным целям карты и проходит их — так измеряется ценность награды, а не только
+ *  цена случайного контакта. Без флага — прежний «случайный игрок», который в места не ходит. */
+const PLACE_IDS = ["rift", "caravan", "pond", "forge", "camp"] as const;
+type PlaceId = (typeof PLACE_IDS)[number];
+const PLACES = new Set<PlaceId>((args.get("places") ?? "") === "all" ? PLACE_IDS : ((args.get("places") ?? "").split(",").filter((p): p is PlaceId => (PLACE_IDS as readonly string[]).includes(p))));
 const MAX_TICKS = TICK_HZ * 60 * 26;
 
 /** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */
@@ -54,8 +59,16 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   }
   // Пруд (T13.43): бот лечится, если потрёпан, снимает порчу, если есть, иначе уходит — окно нельзя оставлять открытым.
   if (sim.pondOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: sim.player.curse ? 2 : sim.player.hp < sim.player.stats.maxHp * 0.5 ? 1 : SHOP_ACT.close };
-  if (sim.forgeOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close }; // бот кузней не пользуется
-  if (sim.riftOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close }; // в разлом бот не идёт (T13.58)
+  if (sim.forgeOpen) {
+    // Кузня (--places forge): выбрать первый надетый слот и закалить; иначе уйти.
+    if (PLACES.has("forge")) {
+      if (sim.forgeSlot < 0) { const i = GEAR_SLOTS.findIndex((s) => !!sim.player.gear[s]); if (i >= 0) return { mx: 0, my: 0, cast: 0, choose: -1, act: 10 + i }; }
+      else if (sim.player.gold >= sim.forgePrice("temper")) return { mx: 0, my: 0, cast: 0, choose: -1, act: 1 };
+    }
+    return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close };
+  }
+  // Разлом (--places rift): первое правило; иначе окно закрывается (T13.58).
+  if (sim.riftOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: PLACES.has("rift") ? 1 : SHOP_ACT.close };
   if (sim.contractOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close }; // бот к чемпионам не ходит — контракт пропускает
   if (sim.lootOpen) {
     const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;
@@ -66,6 +79,10 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   }
   // Добыча подбирается кнопкой (PICKUP_ACT), не касанием: бот жмёт её, как только сундук/предмет рядом.
   if (sim.nearLoot) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
+  // Места: кнопка у входа, когда цель выбрана и рядом.
+  if (PLACES.has("rift") && sim.nearRift && sim.riftReady()) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
+  if (PLACES.has("pond") && sim.nearPond && sim.pond && !sim.pond.used && (sim.player.curse || sim.player.hp < sim.player.stats.maxHp * 0.5)) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
+  if (PLACES.has("forge") && sim.nearForge && sim.forgeReady() && sim.player.gold >= sim.forgePrice("temper") && GEAR_SLOTS.some((s) => !!sim.player.gear[s])) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
   const p = sim.player;
   const hpPct = p.hp / p.stats.maxHp;
   let cx = 0, cy = 0, danger = 0, near = 0;
@@ -112,6 +129,12 @@ function botInput(sim: ArcadeSim): ArcadeInput {
     if (l < 0.05) return { mx: 0, my: 0, cast: 0, choose: -1, act: 0 };
     return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1, act: 0 };
   }
+  // Цель карты (--places): одна активная, тянет сильнее шардов; внутри разлома держимся у центра арены.
+  const goal = placeGoal(sim);
+  if (goal) {
+    const dx = goal.x - p.x, dy = goal.y - p.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+    if (goal.hard || !flee) { fx += dx / d * goal.w; fy += dy / d * goal.w; }
+  }
   // Торговец и bounty-руна: идём, если не бежим.
   if (!flee) {
     for (const spot of [sim.shopkeeper, sim.bounty, sim.neutralToken, sim.chest, sim.rune]) {
@@ -147,6 +170,31 @@ function botInput(sim: ArcadeSim): ArcadeInput {
 
 interface RunResult { seconds: number; level: number; kills: number; roshan: boolean; reachedRoshan: boolean; outcome: string; schools: string[]; roshanHp: number
   killer: string;
+  places: Record<PlaceId, boolean>;
+}
+
+/** Куда идти ради места: разлом (открыт → к входу; идёт → к центру арены), караван (ждёт/едет → к повозке),
+ *  пруд (порча или мало HP), кузня (готова, есть золото и вещь), лагерь (не очищен → к центру, бот бьёт тотемы
+ *  автоатакой и держит охрану кайтом). `hard` — тяга даже при бегстве (арена разлома, повозка). */
+function placeGoal(sim: ArcadeSim): { x: number; y: number; w: number; hard: boolean } | null {
+  const p = sim.player;
+  if (PLACES.has("rift") && sim.rift) {
+    if (sim.rift.state === "active") {
+      const d = Math.hypot(sim.rift.x - p.x, sim.rift.y - p.y);
+      return d > ARCADE.rift.arena - 120 ? { x: sim.rift.x, y: sim.rift.y, w: 4, hard: true } : null;
+    }
+    if (sim.riftReady()) return { x: sim.rift.x, y: sim.rift.y, w: 1.6, hard: false };
+  }
+  const cv = sim.caravan;
+  if (PLACES.has("caravan") && cv && (cv.state === "waiting" || cv.state === "moving")) {
+    const d = Math.hypot(cv.x - p.x, cv.y - p.y);
+    return d > 90 ? { x: cv.x, y: cv.y, w: d > ARCADE.caravan.escortRadius - 20 ? 3 : 1.2, hard: d > ARCADE.caravan.escortRadius - 20 && cv.state === "moving" } : null;
+  }
+  if (PLACES.has("pond") && sim.pond && !sim.pond.used && (p.curse || p.hp < p.stats.maxHp * 0.5)) return { x: sim.pond.x, y: sim.pond.y, w: 1.6, hard: false };
+  if (PLACES.has("forge") && sim.forgeReady() && p.gold >= sim.forgePrice("temper") && GEAR_SLOTS.some((s) => !!p.gear[s])) return { x: sim.forge!.x, y: sim.forge!.y, w: 1.4, hard: false };
+  // Лагерь — не раньше 8-го уровня: с 1-го уровня это гарантированная смерть (4% очищений, 4% побед на n=24), а игрок туда так рано не идёт.
+  if (PLACES.has("camp") && sim.camp && !sim.camp.cleared && p.level >= 8) return { x: sim.camp.x, y: sim.camp.y, w: 1.2, hard: false };
+  return null;
 }
 const VERBOSE = args.has("verbose");
 /** Гистерезис отхода от босса: ушёл при <30% HP, вернулся при >55%. */
@@ -163,13 +211,14 @@ for (let i = 0; i < RUNS; i++) {
     if (trace && sim.roshan?.alive && sim.tick % TICK_HZ === 0) {
       const r = sim.roshan, p = sim.player;
       const d = Math.sqrt((r.x - p.x) ** 2 + (r.y - p.y) ** 2);
-      console.log(`${(sim.tick / TICK_HZ).toFixed(0)}s d=${d.toFixed(0)} slamT=${r.slamT} slamCd=${r.slamCd} roshHp=${r.hp.toFixed(0)} Δ=${(lastHp - r.hp).toFixed(0)} php=${p.hp.toFixed(0)} atkCd=${p.attackCd} spin=${sim.tick < p.spinUntil} omni=${p.omniLeft} stun=${sim.tick < p.stunUntil}`);
+      console.log(`${(sim.tick / TICK_HZ).toFixed(0)}s d=${d.toFixed(0)} slamT=${r.slamT} slamCd=${r.slamCd} roshHp=${r.hp.toFixed(0)} Δ=${(lastHp - r.hp).toFixed(0)} php=${p.hp.toFixed(0)} atkCd=${p.attackCd} spin=${sim.tick < p.spinUntil} burst=${p.burstLeft} stun=${sim.tick < p.stunUntil}`);
       lastHp = r.hp;
     }
   }
   const o = sim.over ?? { outcome: "timeout", tick: sim.tick, level: sim.player.level, kills: sim.player.kills, gold: sim.player.gold, roshanKilled: sim.roshanKilled, schools: sim.player.schools };
   const roshanHp = sim.roshan ? Math.max(0, sim.roshan.hp / sim.roshan.maxHp) : 1;
-  results.push({ seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "" });
+  const places: Record<PlaceId, boolean> = { rift: sim.rift?.won ?? false, caravan: sim.caravan?.state === "arrived", pond: sim.pond?.used ?? false, forge: sim.forge?.used ?? false, camp: sim.camp?.cleared ?? false };
+  results.push({ seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "", places });
   if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
 }
 const elapsed = (performance.now() - t0) / 1000;
@@ -186,3 +235,4 @@ console.log("deaths by minute:", [...byMinute.entries()].sort((a, b) => a[0] - b
 const byKiller = new Map<string, number>();
 for (const r of results) if (r.outcome === "dead") byKiller.set(r.killer, (byKiller.get(r.killer) ?? 0) + 1);
 console.log("deaths by killer:", [...byKiller.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`).join(" "));
+if (PLACES.size > 0) console.log("places done:", [...PLACES].map((pl) => `${pl}:${pct((r) => r.places[pl])}`).join(" "), `· victory with rift ${pct((r) => r.places.rift && r.outcome === "victory")} of ${pct((r) => r.places.rift)}`);
