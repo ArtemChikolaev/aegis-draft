@@ -25,7 +25,6 @@ const expectedKeys = [
   ...Object.values(TALENTS).flat().map((id) => `arcade.t.${id}`),
   ...ARCADE_ITEMS.flatMap((i) => [`arcade.item.${i.id}`, `arcade.item.${i.id}.desc`]),
   ...[...new Set(HERO_IDS.map((h) => HEROES[h].kit))].flatMap((kit) => ["q", "w", "e", "r"].flatMap((k) => [`arcade.ab.${kit}.${k}`, `arcade.ab.${kit}.${k}.desc`])),
-  ...[...new Set(HERO_IDS.filter((h) => HEROES[h].kit !== h).map((h) => HEROES[h].kit))].map((a) => `arcade.arch.${a}`),
   ...COSMETICS.map((c) => `arcade.cosmetic.${c.id}`),
   ...NEUTRALS.flatMap((n) => [`arcade.neutral.${n.id}`, `arcade.neutral.${n.id}.desc`]),
   ...GEAR_BASES.map((b) => `arcade.gearName.${b.id}`),

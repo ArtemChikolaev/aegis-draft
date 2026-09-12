@@ -20,6 +20,8 @@ for (let i = 2; i < process.argv.length; i++) {
 const RUNS = Number(args.get("runs") ?? 100);
 /** `--only N` — прогнать один сид базы (отладка конкретного забега). */
 const ONLY = args.has("only") ? Number(args.get("only")) : -1;
+/** `--trace N` — подробная трасса одного сида. */
+const TRACE = args.has("trace") ? Number(args.get("trace") || 0) : -1;
 const BASE = args.get("seed") ?? "sim";
 const SCHOOL = (args.get("school") ?? "any") as SchoolId | "any";
 const RANK = Number(args.get("rank") ?? 0);
@@ -75,8 +77,8 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   if (sim.forgeOpen) {
     // Кузня (--places forge): выбрать первый надетый слот и закалить; иначе уйти.
     if (PLACES.has("forge")) {
-      if (sim.forgeSlot < 0) { const i = GEAR_SLOTS.findIndex((s) => !!sim.player.gear[s]); if (i >= 0) return { mx: 0, my: 0, cast: 0, choose: -1, act: 10 + i }; }
-      else if (sim.player.gold >= sim.forgePrice("temper")) return { mx: 0, my: 0, cast: 0, choose: -1, act: 1 };
+      if (sim.forgeSlot < 0) { const i = GEAR_SLOTS.findIndex((s) => !!sim.player.gear[s]); if (i >= 0) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.sellBase + i }; }
+      else if (sim.player.gold >= sim.forgePrice("temper")) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.buy1 };
     }
     return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close };
   }
@@ -224,7 +226,7 @@ const t0 = performance.now();
 for (let i = 0; i < RUNS; i++) {
   if (ONLY >= 0 && i !== ONLY) continue;
   const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}) });
-  const trace = args.get("trace") !== undefined && Number(args.get("trace")) === i;
+  const trace = i === TRACE;
   let lastHp = 0, lastLevel = sim.player.level;
   while (!sim.over && sim.tick < MAX_TICKS) {
     sim.step(botInput(sim));

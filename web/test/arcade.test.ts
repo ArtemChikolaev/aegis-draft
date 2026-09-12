@@ -4,7 +4,7 @@ import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, type ArcadeInput } from "../src/game/arcade/types.ts";
 import { rankOf, rankStep } from "../src/game/arcade/content/ranks.ts";
 import { SHOP_ACT } from "../src/game/arcade/types.ts";
-import { HERO_IDS } from "../src/game/arcade/content/heroes.ts";
+import { HEROES, HERO_IDS } from "../src/game/arcade/content/heroes.ts";
 import { spawnPool } from "../src/game/arcade/content/enemies.ts";
 
 /** Скриптованный ввод: кайт по квадрату + всегда берём первую карточку уровня. */
@@ -28,6 +28,11 @@ function run(seed: string, ticks: number): ArcadeSim {
 }
 
 describe("arcade sim", () => {
+  it("ростер: HERO_IDS и HEROES — одно множество (порядок HERO_IDS рукописный и задаёт героя дня)", () => {
+    expect(new Set(HERO_IDS)).toEqual(new Set(Object.keys(HEROES)));
+    expect(new Set(HERO_IDS).size).toBe(HERO_IDS.length);
+  });
+
   it("тот же сид и ввод — тот же дайджест (бит-в-бит)", () => {
     const a = run("det-1", sec(120));
     const b = run("det-1", sec(120));
@@ -155,7 +160,7 @@ describe("arcade sim", () => {
       // Бессмертие в тесте — вне лога, поэтому сравниваем только тик и убийства ≥ (реплей мог умереть раньше).
       expect(replayed.tick, hero).toBeLessThanOrEqual(a.tick);
     }
-  }, 60_000); // 24 героя × 3 симуляции по 90 с: ~2.5 с на M-серии, на раннере CI укладывалось не всегда в дефолтные 5 с (упало 2026-09-06).
+  }, 60_000); // 126 героев × (2 сима + реплей) по 90 с: ~2.5 с на M-серии, на раннере CI укладывалось не всегда в дефолтные 5 с (упало 2026-09-06).
 
   it("полный акт: второй Рошан на 14:00 сильнее, Древний на 20:00, его смерть — победа", () => {
     const sim = new ArcadeSim("full-1", { act: "full" });

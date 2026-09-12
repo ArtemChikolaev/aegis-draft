@@ -27,7 +27,7 @@ const url = (group: string, file: string) => `${ROOT}${group}/${file}`;
 const pick = (pool: string[] | undefined, salt: number) => (pool && pool.length ? pool[salt % pool.length] : null);
 
 /** Предзагрузка: умения героя, все враги, UI и эффекты — ~150 клипов по ~10 КБ, только при входе в забег. */
-export function preloadSoundscape(hero: string): void {
+function preloadSoundscape(hero: string): void {
   load();
   const run = () => {
     if (!pack) return;
@@ -93,7 +93,8 @@ export class Soundscape {
     // Смерти врагов — из ленты fx (вид и позиция).
     for (const f of sim.fx) {
       if (f.born <= this.lastBorn || f.kind !== "die") continue;
-      const id = KIND_IDS[f.value] ?? "_generic";
+      // Индекс вида лежит в `y2` (см. pushFx("die", …) в симе), `value` у смерти всегда 0 — раньше все умирали кобольдом.
+      const id = KIND_IDS[f.y2] ?? "_generic";
       const g = falloff(sim, f.x, f.y);
       if (g <= 0) continue;
       const pool = pack.enemies[id]?.death ?? pack.enemies._generic?.death;

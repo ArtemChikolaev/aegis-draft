@@ -7,7 +7,7 @@
 // Слоты: `frame` — наземный эффект под ногами (кольцо огня/льда/золота/пустоты), `aura` — свечение
 // самого героя (языки пламени, ледяная крошка, молнии, золотая пыльца), `trail` — след за героем,
 // `death` — эффект смерти врагов, `tint` — оттенок умений (читает рендерер напрямую).
-import { drawFrostMist, drawPixelRing, type ParticlePalette } from "./particles.ts";
+import { drawFrostMist, drawPixelRing, dot, hash, type ParticlePalette } from "./particles.ts";
 
 export interface EffectPalette extends ParticlePalette { aegis: string; playerRing: string; heal: string; crit: string }
 
@@ -23,16 +23,6 @@ export function readEffectPalette(): EffectPalette {
   };
 }
 
-function hash(a: number, b: number): number {
-  let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0;
-  h = Math.imul(h ^ (h >>> 13), 1274126177);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-
-function dot(c: CanvasRenderingContext2D, x: number, y: number, size: number, px: number): void {
-  const s = Math.max(px, Math.round(size / px) * px);
-  c.fillRect(Math.round(x / px) * px - s / 2, Math.round(y / px) * px - s / 2, s, s);
-}
 
 /** Пиксельное кольцо-эллипс у ног: точки по окружности с шагом в арт-пиксель. */
 function pixelEllipse(c: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, px: number, fill: string, gap = 1): void {

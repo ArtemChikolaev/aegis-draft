@@ -342,6 +342,7 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-ward: #9ce77e;
   --arcade-heal: #9ce77e;
   --arcade-crit: #ffc66b;
+  --arcade-crit-text: #ff4a4a; /* цифра крита — красная, как в Dota */
   --arcade-aegis: #ffd48a;
   --arcade-joystick: #f7f7f5;
   --arcade-greed: #ffc66b;

@@ -22,46 +22,46 @@ export function generateMap(seed: string, act: ActId): ArcadeMap {
   const rows = Math.ceil(ARCADE.world.h / TILE);
   const tiles = new Uint8Array(cols * rows);
   const decor: Decor[] = [];
-    for (let i = 0; i < tiles.length; i++) tiles[i] = rng.float() < 0.3 ? 1 : 0;
-    // Тропы: несколько случайных блужданий шириной 1–2 тайла.
-    for (let p = 0; p < 4; p++) {
-      let x = rng.int(cols), y = rng.int(rows);
-      let dx = rng.float() < 0.5 ? 1 : -1, dy = rng.float() < 0.5 ? 1 : -1;
-      for (let step = 0; step < 70; step++) {
-        tiles[y * cols + x] = 2;
-        if (rng.float() < 0.5 && x + dx >= 0 && x + dx < cols) x += dx; else if (y + dy >= 0 && y + dy < rows) y += dy;
-        if (rng.float() < 0.08) dx = -dx;
-        if (rng.float() < 0.08) dy = -dy;
-      }
+  for (let i = 0; i < tiles.length; i++) tiles[i] = rng.float() < 0.3 ? 1 : 0;
+  // Тропы: несколько случайных блужданий шириной 1–2 тайла.
+  for (let p = 0; p < 4; p++) {
+    let x = rng.int(cols), y = rng.int(rows);
+    let dx = rng.float() < 0.5 ? 1 : -1, dy = rng.float() < 0.5 ? 1 : -1;
+    for (let step = 0; step < 70; step++) {
+      tiles[y * cols + x] = 2;
+      if (rng.float() < 0.5 && x + dx >= 0 && x + dx < cols) x += dx; else if (y + dy >= 0 && y + dy < rows) y += dy;
+      if (rng.float() < 0.08) dx = -dx;
+      if (rng.float() < 0.08) dy = -dy;
     }
-    // Поляны земли — блобы.
-    for (let b = 0; b < 8; b++) {
-      const cx = rng.int(cols), cy = rng.int(rows), r = 1 + rng.int(2);
-      for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
-        if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
-        if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r && rng.float() < 0.85) tiles[y * cols + x] = 2;
-      }
+  }
+  // Поляны земли — блобы.
+  for (let b = 0; b < 8; b++) {
+    const cx = rng.int(cols), cy = rng.int(rows), r = 1 + rng.int(2);
+    for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
+      if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
+      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r && rng.float() < 0.85) tiles[y * cols + x] = 2;
     }
-    // Декор: рощи деревьев по кластерам, камни, пучки травы, цветы. Центр (старт) и река/яма чисты.
-    const clear = (x: number, y: number) => {
-      const dc = Math.hypot(x - ARCADE.world.w / 2, y - ARCADE.world.h / 2);
-      if (dc < 360) return true;
-      if (act === "river" && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 40 || Math.hypot(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.radius + 60)) return true;
-      return false;
-    };
-    for (let g = 0; g < 26; g++) {
-      const cx = rng.float() * ARCADE.world.w, cy = rng.float() * ARCADE.world.h;
-      const n = 3 + rng.int(6);
-      for (let i = 0; i < n; i++) {
-        const x = cx + (rng.float() - 0.5) * 260, y = cy + (rng.float() - 0.5) * 260;
-        if (x < 30 || y < 30 || x > ARCADE.world.w - 30 || y > ARCADE.world.h - 30 || clear(x, y)) continue;
-        decor.push({ x, y, kind: "tree", s: 26 + rng.float() * 18 });
-      }
+  }
+  // Декор: рощи деревьев по кластерам, камни, пучки травы, цветы. Центр (старт) и река/яма чисты.
+  const clear = (x: number, y: number) => {
+    const dc = Math.hypot(x - ARCADE.world.w / 2, y - ARCADE.world.h / 2);
+    if (dc < 360) return true;
+    if (act === "river" && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 40 || Math.hypot(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.radius + 60)) return true;
+    return false;
+  };
+  for (let g = 0; g < 26; g++) {
+    const cx = rng.float() * ARCADE.world.w, cy = rng.float() * ARCADE.world.h;
+    const n = 3 + rng.int(6);
+    for (let i = 0; i < n; i++) {
+      const x = cx + (rng.float() - 0.5) * 260, y = cy + (rng.float() - 0.5) * 260;
+      if (x < 30 || y < 30 || x > ARCADE.world.w - 30 || y > ARCADE.world.h - 30 || clear(x, y)) continue;
+      decor.push({ x, y, kind: "tree", s: 26 + rng.float() * 18 });
     }
-    for (let i = 0; i < 70; i++) { const x = rng.float() * ARCADE.world.w, y = rng.float() * ARCADE.world.h; if (!clear(x, y)) decor.push({ x, y, kind: "rock", s: 6 + rng.float() * 9 }); }
-    for (let i = 0; i < 700; i++) { const x = rng.float() * ARCADE.world.w, y = rng.float() * ARCADE.world.h; decor.push({ x, y, kind: rng.float() < 0.25 ? "flower" : "tuft", s: 3 + rng.float() * 4 }); }
-    // Деревья рисуем позже пучков — сортировка по y даёт правильное перекрытие крон.
-    decor.sort((a, b) => a.y - b.y);
+  }
+  for (let i = 0; i < 70; i++) { const x = rng.float() * ARCADE.world.w, y = rng.float() * ARCADE.world.h; if (!clear(x, y)) decor.push({ x, y, kind: "rock", s: 6 + rng.float() * 9 }); }
+  for (let i = 0; i < 700; i++) { const x = rng.float() * ARCADE.world.w, y = rng.float() * ARCADE.world.h; decor.push({ x, y, kind: rng.float() < 0.25 ? "flower" : "tuft", s: 3 + rng.float() * 4 }); }
+  // Деревья рисуем позже пучков — сортировка по y даёт правильное перекрытие крон.
+  decor.sort((a, b) => a.y - b.y);
   const obstacles: Obstacle[] = decor.filter((d) => d.kind === "tree" || d.kind === "rock").map((d) => ({ x: d.x, y: d.y, r: obstacleRadius(d), kind: d.kind as "tree" | "rock" }));
   return { cols, rows, tiles, decor, obstacles };
 }

@@ -37,7 +37,7 @@ export interface MonsterSpec {
   scale: number;
 }
 
-export const MONSTER_SPECS: Record<string, MonsterSpec> = {
+const MONSTER_SPECS: Record<string, MonsterSpec> = {
   bat: { file: "bat", fw: 32, fh: 32, scale: 1.8 },
   slime: { file: "slime", fw: 32, fh: 32, scale: 1.4 },
   snake: { file: "snake", fw: 32, fh: 32, scale: 1.3 },
@@ -121,7 +121,7 @@ export function charSheet(key: string, spec: CharSpec, anim: CharAnim): HTMLCanv
   return canvas;
 }
 
-export function monsterSheet(name: string): HTMLImageElement | null {
+function monsterSheet(name: string): HTMLImageElement | null {
   const spec = MONSTER_SPECS[name];
   if (!spec) return null;
   const el = img(`monsters/${spec.file}.png`);

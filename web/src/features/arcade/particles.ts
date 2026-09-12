@@ -5,13 +5,13 @@
 
 export interface ParticlePalette { fire: string; ember: string; smoke: string; frost: string; ice: string; lightning: string; text: string; venom: string; venomDark: string }
 
-function hash(a: number, b: number): number {
+export function hash(a: number, b: number): number {
   let h = (Math.imul(a | 0, 374761393) + Math.imul(b | 0, 668265263)) | 0;
   h = Math.imul(h ^ (h >>> 13), 1274126177);
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-function dot(c: CanvasRenderingContext2D, x: number, y: number, size: number, px: number): void {
+export function dot(c: CanvasRenderingContext2D, x: number, y: number, size: number, px: number): void {
   const s = Math.max(px, Math.round(size / px) * px);
   c.fillRect(Math.round(x / px) * px - s / 2, Math.round(y / px) * px - s / 2, s, s);
 }

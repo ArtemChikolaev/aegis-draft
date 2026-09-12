@@ -4,7 +4,7 @@
 // версия баланса содержит точки, base64url тильды не содержит, в сиде она экранируется); лог пакуется
 // байтами (дельта шага varint, mx/my со сдвигом +16, cast, choose+1, act) — ~4 байта на запись.
 import { ARCADE_CONFIG_VERSION } from "./config.ts";
-import { HEROES, HERO_IDS, type HeroId } from "./content/heroes.ts";
+import { HERO_IDS, type HeroId } from "./content/heroes.ts";
 import { MAX_RANK_STEP } from "./content/ranks.ts";
 import type { ActId, InputLogEntry } from "./types.ts";
 import type { GearItem } from "./content/gear.ts";
@@ -147,7 +147,6 @@ export function arcadeDaily(now: Date = new Date()): { seed: string; hero: HeroI
   let h = 0;
   for (let i = 0; i < dateKey.length; i++) h = (h * 31 + dateKey.charCodeAt(i)) >>> 0;
   const hero = HERO_IDS[h % HERO_IDS.length];
-  void HEROES;
   return { seed: `${ARCADE_DAILY_PREFIX}${dateKey}`, hero, rank: 0, act: "full", dateKey };
 }
 

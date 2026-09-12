@@ -4,14 +4,14 @@
 // Тригонометрия здесь разрешена: рендер не участвует в детерминизме.
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
-import type { AbilityKey, Enemy, Fx, Invitation, RuneKind } from "../../game/arcade/types.ts";
+import type { AbilityKey, Enemy, Invitation, RuneKind } from "../../game/arcade/types.ts";
 import type { AbilityDef } from "../../game/arcade/content/heroes.ts";
 
 /** Порядок слотов умений — тот же, что в симе (там он приватный). */
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 /** Умения, которые держат зону в `zoneUntil`: мина на месте (`remnant`), осколки (`shrapnel`) и разряды вокруг героя (`edict`). */
 const ZONE_KINDS = new Set(["remnant", "shrapnel", "edict"]);
-import { heroArtSources } from "../../ui/artSource.ts";
+import { heroArtSources, itemArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
@@ -19,19 +19,19 @@ import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawAsh, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, HERO_AURA, heroLook, setPixelSheets, spriteVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, tileImage, HERO_AURA, heroLook, setPixelSheets, spriteVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
-import { itemArtSources } from "../../ui/artSource.ts";
-import { tileImage } from "./sprites.ts";
 import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice", "venom", "venomDark",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
+  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "critText", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
+/** Цвет маркера у края по виду приглашения (руна — по своему виду через `runeColor`). */
+const MARKER_TONE: Record<Exclude<Invitation["kind"], "rune">, PaletteKey> = { hunter: "telegraph", contract: "aegis", camp: "venom", outpost: "aegis", pond: "frost", caravan: "shop", rift: "aegis", forge: "ember", grove: "crit", barrow: "lightning", lair: "lightning", ford: "river", den: "crit", shop: "shop", bounty: "bounty", chest: "aegis", token: "text", shrine: "greed" };
 type Palette = Record<PaletteKey, string>;
 
 /** Цвет руны по виду — токены `--arcade-rune-*`, те же, что у плиток баффов в HUD (arcade.css). */
@@ -146,6 +146,13 @@ export class ArcadeRenderer {
   private mainCtx: CanvasRenderingContext2D;
   /** Надписи (урон, SHOP, T1, $) в пиксельном режиме рисуются поверх буфера на полном разрешении — иначе текст мылится. */
   private labels: { text: string; x: number; y: number; font: string; fill: string; alpha: number; align: CanvasTextAlign }[] = [];
+  /** Семейство шрифта для canvas: `ctx.font` не понимает `var(--font-display)` — с ним каждая надпись молча
+   *  падала в 10px sans-serif. Читаем токен один раз при создании. */
+  private readonly fontFamily = resolveFontFamily();
+
+  private font(weight: number, px: number): string {
+    return `${weight} ${px}px ${this.fontFamily}`;
+  }
   private camSnapX = 0;
   private camSnapY = 0;
 
@@ -164,12 +171,17 @@ export class ArcadeRenderer {
     this.mainCtx = ctx;
     this.pixel = pixelScale();
     setPixelSheets(this.pixel >= 1, densePixel(this.pixel));
+    this.setPortrait(heroPicture);
+  }
+
+  /** Портрет для rig-заглушки: приходит позже, когда датасет героев догрузился — рендерер не пересоздаём. */
+  setPortrait(heroPicture: string): void {
     const [src] = heroArtSources(heroPicture);
-    if (src) {
-      this.portrait = new Image();
-      this.portrait.onload = () => { this.portraitReady = true; };
-      this.portrait.src = src;
-    }
+    if (!src || this.portrait?.src.endsWith(src)) return;
+    this.portraitReady = false;
+    this.portrait = new Image();
+    this.portrait.onload = () => { this.portraitReady = true; };
+    this.portrait.src = src;
   }
 
   /** Подогнать буфер под CSS-размер и DPR (зовётся из ResizeObserver). */
@@ -448,11 +460,7 @@ export class ArcadeRenderer {
    */
   /** Маркеры у края: состав и лимит решает сим (`invitations`, T13.60), здесь — только цвет по виду. */
   private drawMarkers(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
-    const color: Record<Invitation["kind"], string> = {
-      hunter: pal.telegraph, contract: pal.aegis, camp: pal.venom, outpost: pal.aegis, pond: pal.frost, caravan: pal.shop, rift: pal.aegis, forge: pal.ember,
-      grove: pal.crit, barrow: pal.lightning, lair: pal.lightning, ford: pal.river, den: pal.crit, shop: pal.shop, bounty: pal.bounty, rune: runeColor(pal, sim.runeKind), chest: pal.aegis, token: pal.text, shrine: pal.greed,
-    };
-    for (const inv of sim.invitations()) this.drawEdgeMarker(inv.x - camX, inv.y - camY, color[inv.kind], inv.label, pal, now);
+    for (const inv of sim.invitations()) this.drawEdgeMarker(inv.x - camX, inv.y - camY, inv.kind === "rune" ? runeColor(pal, sim.runeKind) : pal[MARKER_TONE[inv.kind]], inv.label, pal, now);
   }
 
   private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number): void {
@@ -472,7 +480,7 @@ export class ArcadeRenderer {
     m.beginPath(); m.moveTo(10, 0); m.lineTo(-6, -7); m.lineTo(-3, 0); m.lineTo(-6, 7); m.closePath(); m.fill();
     m.rotate(-a);
     if (label) {
-      m.fillStyle = pal.text; m.font = "800 11px var(--font-display, sans-serif)"; m.textAlign = "center"; m.textBaseline = "middle";
+      m.fillStyle = pal.text; m.font = this.font(800, 11); m.textAlign = "center"; m.textBaseline = "middle";
       m.fillText(label, -Math.cos(a) * 18, -Math.sin(a) * 18);
     }
     m.restore();
@@ -536,9 +544,9 @@ export class ArcadeRenderer {
     }
     if (active) {
       c.strokeStyle = pal.lightning; c.lineWidth = T.chainWidth; c.globalAlpha = 0.45; c.lineCap = "round";
-      c.beginPath(); c.moveTo(l.zones[0].x, l.zones[0].y); for (const z of l.zones.slice(1)) c.lineTo(z.x, z.y); c.stroke();
+      c.beginPath(); c.moveTo(l.zones[0].x, l.zones[0].y); for (let i = 1; i < l.zones.length; i++) c.lineTo(l.zones[i].x, l.zones[i].y); c.stroke();
       c.strokeStyle = pal.text; c.lineWidth = 2; c.globalAlpha = 0.9;
-      c.beginPath(); c.moveTo(l.zones[0].x, l.zones[0].y); for (const z of l.zones.slice(1)) c.lineTo(z.x + Math.sin(now / 20) * 4, z.y + Math.cos(now / 23) * 4); c.stroke();
+      c.beginPath(); c.moveTo(l.zones[0].x, l.zones[0].y); for (let i = 1; i < l.zones.length; i++) c.lineTo(l.zones[i].x + Math.sin(now / 20) * 4, l.zones[i].y + Math.cos(now / 23) * 4); c.stroke();
       c.lineCap = "butt";
     }
     c.globalAlpha = 1;
@@ -587,8 +595,8 @@ export class ArcadeRenderer {
       c.strokeStyle = pal.ember; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = 0.3 + 0.3 * pulse;
       c.beginPath(); c.arc(f.x, f.y, ARCADE.forge.radius, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
     } else if (!f.used) {
-      c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
-      this.text(c, `${Math.floor(ARCADE.forge.fromTick[sim.act] / 3600)}:${String(Math.floor((ARCADE.forge.fromTick[sim.act] % 3600) / 60)).padStart(2, "0")}`, f.x, f.y - 30);
+      c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = this.font(800, 10); c.textAlign = "center";
+      this.text(c, formatClock(ARCADE.forge.fromTick[sim.act]), f.x, f.y - 30);
     }
     c.globalAlpha = 1;
   }
@@ -616,7 +624,7 @@ export class ArcadeRenderer {
       c.strokeStyle = pal.aegis; c.lineWidth = 2; c.setLineDash([6, 6]); c.globalAlpha = 0.3 + 0.3 * pulse;
       c.beginPath(); c.arc(r.x, r.y, R.radius, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
     } else if (!done) {
-      c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
+      c.fillStyle = pal.text; c.globalAlpha = 0.6; c.font = this.font(800, 10); c.textAlign = "center";
       this.text(c, formatClock(R.fromTick[sim.act]), r.x, r.y - 26);
     }
     c.globalAlpha = 1;
@@ -642,7 +650,7 @@ export class ArcadeRenderer {
     c.fillStyle = pal.rock; c.beginPath(); c.arc(c0.x - 12, c0.y + 8, 6, 0, Math.PI * 2); c.arc(c0.x + 12, c0.y + 8, 6, 0, Math.PI * 2); c.fill();
     c.fillStyle = pal.smoke; c.fillRect(c0.x - 18, c0.y - 10 + bob, 36, 16);
     c.fillStyle = pal.shop; c.fillRect(c0.x - 14, c0.y - 20 + bob, 28, 10);
-    c.fillStyle = pal.text; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
+    c.fillStyle = pal.text; c.font = this.font(800, 10); c.textAlign = "center";
     if (active) this.text(c, c0.state === "moving" ? `${Math.round(sim.caravanProgress() * 100)}%` : "…", c0.x, c0.y - 28 + bob);
     c.globalAlpha = 1;
   }
@@ -658,7 +666,7 @@ export class ArcadeRenderer {
     c.beginPath(); c.rect(camX - 20, camY - 20, this.w + 40, this.h + 40); c.arc(r.x, r.y, R.arena, 0, Math.PI * 2, true); c.fill("evenodd");
     c.globalAlpha = 0.6 + 0.3 * pulse; c.strokeStyle = pal.aegis; c.lineWidth = 3; c.setLineDash([12, 8]);
     c.beginPath(); c.arc(r.x, r.y, R.arena, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
-    c.globalAlpha = 0.9; c.fillStyle = pal.text; c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center";
+    c.globalAlpha = 0.9; c.fillStyle = pal.text; c.font = this.font(800, 12); c.textAlign = "center";
     this.text(c, formatClock(sim.riftLeft()), r.x, r.y - 26);
     c.globalAlpha = 1;
   }
@@ -702,7 +710,7 @@ export class ArcadeRenderer {
       c.strokeStyle = pal.text; c.lineWidth = 2; c.globalAlpha = 0.6;
       c.beginPath(); c.arc(s.x, s.y, 40, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
-      c.fillStyle = pal.text; c.font = "800 11px var(--font-display, sans-serif)"; c.textAlign = "center";
+      c.fillStyle = pal.text; c.font = this.font(800, 11); c.textAlign = "center";
       this.text(c, "SHOP", s.x, s.y - 26);
     }
     if (sim.neutralToken.alive) {
@@ -710,14 +718,14 @@ export class ArcadeRenderer {
       c.strokeStyle = pal.text; c.lineWidth = 2; c.setLineDash([3, 3]); c.globalAlpha = 0.9;
       c.beginPath(); c.moveTo(n.x, n.y - 14 - pulse * 2); c.lineTo(n.x + 12, n.y); c.lineTo(n.x, n.y + 14 + pulse * 2); c.lineTo(n.x - 12, n.y); c.closePath(); c.stroke();
       c.setLineDash([]); c.globalAlpha = 1;
-      c.fillStyle = pal.text; c.font = "800 10px var(--font-display, sans-serif)"; c.textAlign = "center";
+      c.fillStyle = pal.text; c.font = this.font(800, 10); c.textAlign = "center";
       this.text(c, `T${n.value}`, n.x, n.y - 20);
     }
     if (sim.bounty.alive) {
       const b = sim.bounty;
       c.fillStyle = pal.bounty;
       c.beginPath(); c.arc(b.x, b.y, 12 + pulse * 2, 0, Math.PI * 2); c.fill();
-      c.fillStyle = pal.player; c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center";
+      c.fillStyle = pal.player; c.font = this.font(800, 12); c.textAlign = "center";
       this.text(c, "$", b.x, b.y + 4);
     }
     if (sim.rune.alive) {
@@ -732,7 +740,7 @@ export class ArcadeRenderer {
       if (!ds || !drawDotaFrame(c, ds, "idle", 0, 0, r.x, r.y + 8 + bob)) {
         c.fillStyle = runeColor(pal, sim.runeKind);
         c.beginPath(); c.arc(r.x, r.y + bob, 11, 0, Math.PI * 2); c.fill();
-        c.fillStyle = pal.player; c.font = "800 11px var(--font-display, sans-serif)"; c.textAlign = "center";
+        c.fillStyle = pal.player; c.font = this.font(800, 11); c.textAlign = "center";
         this.text(c, sim.runeKind === "dd" ? "DD" : sim.runeKind === "shield" ? "S" : sim.runeKind === "arcane" ? "A" : "I", r.x, r.y + bob + 4);
       }
     }
@@ -855,7 +863,7 @@ export class ArcadeRenderer {
           const frames = ds.meta.anims[anim]?.frames ?? ds.meta.anims.walk?.frames ?? 1;
           const frame = attackT >= 0 ? Math.floor(attackT * frames) : Math.floor((tick / 60) * ds.meta.fps * (moving ? speedK : 0.6) + e.id);
           drawn = drawDotaFrame(c, ds, anim, dotaDir(sim.player.x - e.x, sim.player.y - e.y, ds.meta.dirs), frame, e.x, e.y + r * 0.6, flash ? 0.55 : dormant ? 0.7 : 1, (e.kind.r * 2) / ds.meta.world > 1.2 ? (e.kind.r * 2) / ds.meta.world : 1);
-          if (dormant) { c.fillStyle = pal.text; c.globalAlpha = 0.6 + 0.3 * Math.sin(tick / 20); c.font = "800 12px var(--font-display, sans-serif)"; c.textAlign = "center"; this.text(c, "z", e.x + 14, e.y - r * 1.8 - Math.round((tick / 30) % 6)); c.globalAlpha = 1; }
+          if (dormant) { c.fillStyle = pal.text; c.globalAlpha = 0.6 + 0.3 * Math.sin(tick / 20); c.font = this.font(800, 12); c.textAlign = "center"; this.text(c, "z", e.x + 14, e.y - r * 1.8 - Math.round((tick / 30) % 6)); c.globalAlpha = 1; }
         }
         if (!drawn && look.kind === "char") {
           const anim: CharAnim = attackT >= 0 ? attackAnim(look.spec) : "walk";
@@ -1063,7 +1071,7 @@ export class ArcadeRenderer {
     // Ходьба: движение определяем по смещению между кадрами (сим ввод не отдаёт).
     const dt = this.lastNow ? Math.min(0.1, (now - this.lastNow) / 1000) : 0;
     this.lastNow = now;
-    const moved = Math.hypot(p.x - this.prevX, p.y - this.prevY);
+    const moved = Math.sqrt((p.x - this.prevX) ** 2 + (p.y - this.prevY) ** 2);
     // Рывок (Blink, Phantom Strike, Rolling Boulder) сим не помечает отдельно — ловим скачок позиции
     // между кадрами: обычный бег даёт единицы пикселей, телепорт — сотню.
     if (moved > 70) { this.dashFrom = { x: this.prevX, y: this.prevY }; this.dashUntil = now + 280; }
@@ -1100,12 +1108,14 @@ export class ArcadeRenderer {
       this.lastHero = { sheet: heroDota, anim, dir: hdir, frame };
       const geo = this.auraGeo(heroDota, anim, hdir, frame, p.x, p.y + R * 0.75);
       this.drawAura(sim, geo, now, pal, "back");
-      drawDotaFrame(c, heroDota, anim, hdir, frame, p.x, p.y + R * 0.75);
+      drawDotaFrame(c, heroDota, anim, hdir, frame, p.x, p.y + R * 0.75, heroAlpha);
       this.drawAura(sim, geo, now, pal, "front");
     } else if (heroSheet) {
       const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 420) % 1 : atkT) * FRAMES[heroAnim]);
-      drawCharFrame(c, heroSheet, frame, dirOf(lookX, lookY), p.x, p.y + R * 0.75, look.scale);
+      this.lastHero = null;
+      drawCharFrame(c, heroSheet, frame, dirOf(lookX, lookY), p.x, p.y + R * 0.75, look.scale, heroAlpha);
     } else {
+      this.lastHero = null;
       const rig: RigParams = { size: 1.15, body: pal.player, limb: pal.limb, head: pal.player, weapon: heroWeapon(sim.hero.kit) };
       drawRig(c, p.x, p.y + R * 0.75, rig, { facing: lookX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
     }
@@ -1137,7 +1147,7 @@ export class ArcadeRenderer {
     const kind = this.cosmetic.trail as TrailEffect | undefined;
     if (!kind) { this.trail.length = 0; return; }
     const last = this.trail[this.trail.length - 1];
-    if (!last || Math.hypot(last.x - x, last.y - y) > 6) this.trail.push({ x, y, t: now });
+    if (!last || (last.x - x) ** 2 + (last.y - y) ** 2 > 36) this.trail.push({ x, y, t: now });
     while (this.trail.length && now - this.trail[0].t > 520) this.trail.shift();
     const lh = this.lastHero;
     const c = this.ctx;
@@ -1165,7 +1175,7 @@ export class ArcadeRenderer {
   private drawFx(sim: ArcadeSim, pal: Palette, layer: "ground" | "top"): void {
     const c = this.ctx;
     const tick = sim.tick;
-    c.font = "700 13px var(--font-display, sans-serif)";
+    c.font = this.font(700, 13);
     c.textAlign = "center";
     for (const f of sim.fx) {
       const age = tick - f.born;
@@ -1177,9 +1187,10 @@ export class ArcadeRenderer {
           if (f.value <= 0) break;
           if (f.kind !== "heal") drawHitSparks(c, f.x, f.y, k, f.kind === "crit", f.born, this.artPx(), pal);
           c.globalAlpha = 1 - k;
-          c.fillStyle = f.kind === "heal" ? pal.heal : f.kind === "crit" ? pal.crit : pal.text;
-          c.font = f.kind === "crit" ? "800 16px var(--font-display, sans-serif)" : "700 12px var(--font-display, sans-serif)";
-          this.text(c, String(f.value), f.x, f.y - 10 - k * 26);
+          c.fillStyle = f.kind === "heal" ? pal.heal : f.kind === "crit" ? pal.critText : pal.text;
+          // Крит — как в Dota: крупная красная цифра, в первые кадры «выпрыгивает» и оседает до 20 px.
+          c.font = f.kind === "crit" ? this.font(900, Math.round(20 + 8 * Math.max(0, 1 - k * 5))) : this.font(700, 12);
+          this.text(c, String(f.value), f.x, f.y - 10 - k * (f.kind === "crit" ? 34 : 26));
           break;
         }
         case "slash": {
@@ -1277,6 +1288,12 @@ export class ArcadeRenderer {
   }
 }
 
+function resolveFontFamily(): string {
+  if (typeof document === "undefined") return "sans-serif";
+  const fam = getComputedStyle(document.documentElement).getPropertyValue("--font-display").trim();
+  return fam || "sans-serif";
+}
+
 export function formatClock(tick: number): string {
   const s = Math.floor(tick / TICK_HZ);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -1286,4 +1303,3 @@ function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
-export type { Fx };

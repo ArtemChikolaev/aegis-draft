@@ -152,7 +152,7 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
         const a = el * 1.6;
         const tx = hx + Math.cos(a) * size * 0.22, ty = hy + Math.sin(a) * size * 0.08;
         const last = trailPts[trailPts.length - 1];
-        if (!last || Math.hypot(last.x - tx, last.y - ty) > 4) trailPts.push({ x: tx, y: ty, t: now });
+        if (!last || (last.x - tx) ** 2 + (last.y - ty) ** 2 > 16) trailPts.push({ x: tx, y: ty, t: now });
         while (trailPts.length && now - trailPts[0].t > 520) trailPts.shift();
         drawTrailEffect(c, trailPts, now, fx.trail, px, pal, (tx, ty, alpha) => { drawDotaFrame(c, s, anim, dir, frame, tx, ty, alpha, mult * 0.96); });
       }

@@ -38,7 +38,6 @@ export type TemplateHeroId =
   // Волна 15 (2026-09-06): последние семь из датасета. Остался только Largo — его модели в vpk нет.
   | "phantom_lancer" | "lifestealer" | "enchantress" | "chen" | "ancient_apparition" | "monkey_king" | "dark_willow";
 export type HeroId = UniqueHeroId | TemplateHeroId;
-export type ArchetypeId = "blademaster" | "frostfire" | "marksman" | "warlord" | "stormcaller";
 export const HERO_IDS: readonly HeroId[] = [
   "juggernaut", "crystal_maiden", "sniper", "axe", "zeus",
   "phantom_assassin", "anti_mage", "lina", "lich", "drow_ranger", "windranger", "bristleback", "sven", "storm_spirit", "leshrac",
@@ -127,7 +126,7 @@ export interface HeroDef {
   picture: string;
   ranged: boolean;
   /** Ключ текстов способностей: `arcade.ab.<kit>.<q|w|e|r>` — свой id у уникальных, архетип у шаблонов. */
-  kit: HeroId | ArchetypeId;
+  kit: HeroId;
   /** `pickup` у дальнобойных больше: шарды падают на дистанции выстрела, и без этого стрелок с 55
    *  убийствами оставался 1-го уровня (headless-QA 2026-09-05). */
   base: Partial<Pick<PlayerStats, "maxHp" | "regen" | "armor" | "speed" | "damage" | "attackInterval" | "range" | "pickup">>;
@@ -189,8 +188,6 @@ const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
   },
 };
 
-/** Архетипы шаблонных китов: только уже реализованные виды способностей — новый герой не требует кода сима. */
-// Архетипы удраны 2026-09-06: у каждого шаблонного героя теперь собственный кит (см. TEMPLATE_HEROES ниже).
 
 const MELEE_BASE: HeroDef["base"] = {};
 const RANGED_BASE: HeroDef["base"] = { maxHp: 510, speed: 160, damage: 21, attackInterval: 1.0, range: 310, armor: 1, pickup: 230 };

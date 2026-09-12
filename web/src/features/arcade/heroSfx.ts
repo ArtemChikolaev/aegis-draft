@@ -30,6 +30,7 @@ export function preloadHeroSfx(hero: string): void {
   if (index) run(); else indexJob?.then(run);
 }
 
+let critIndex = 0;
 let lastHit = 0;
 let hitIndex = 0;
 
@@ -61,8 +62,11 @@ export function heroHitSfx(hero: string, crit: boolean, now: number): boolean {
   const e = index?.[hero];
   const pool = e?.attack?.length ? e.attack : e?.impact?.length ? e.impact : null;
   const layer = IMPACT[hero] ?? "none";
+  // Крит — отдельный удар Dota (`sounds/weapons/crit1-4`) поверх обычного попадания, как у Daedalus; идёт до
+  // троттла обычных ударов, чтобы крит сразу после удара не молчал.
+  if (crit) { critIndex = (critIndex + 1) % 4; sfxSample(`${ROOT}shared/crit_${1 + critIndex}.m4a`, 0.7, 0.98 + critIndex * 0.015); }
   // У части героев в vpk нет свиста удара (Slardar, Ogre Magi): играем хотя бы слой попадания из Dota, а не синтетику.
-  if (!pool && layer === "none") return false;
+  if (!pool && layer === "none") return crit;
   if (now - lastHit < 45) return true;
   lastHit = now;
   if (!pool) {
