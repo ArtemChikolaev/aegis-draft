@@ -71,7 +71,7 @@ function botInput(sim: ArcadeSim): ArcadeInput {
   if (sim.shopOpen) {
     // Жадно: самый дорогой доступный предмет, потом закрыть.
     let best = -1, bestPrice = -1;
-    sim.shopOffers.forEach((o, i) => { if (o.price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
+    sim.shopOffers.forEach((o, i) => { const price = sim.shopBuyPrice(i); if (price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
     return { mx: 0, my: 0, cast: 0, choose: -1, act: best >= 0 ? best + 1 : SHOP_ACT.close };
   }
   // Пруд (T13.43): бот лечится, если потрёпан, снимает порчу, если есть, иначе уходит — окно нельзя оставлять открытым.

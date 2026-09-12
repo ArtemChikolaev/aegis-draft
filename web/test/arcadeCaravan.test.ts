@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
-import { IDLE_INPUT } from "../src/game/arcade/types.ts";
+import { IDLE_INPUT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT } from "../src/game/arcade/content/items.ts";
 
 // Караван лавочника (T13.59): ждёт героя, едет только под сопровождением, зовёт налёты, доехал — лавка на месте цели.
@@ -104,5 +104,51 @@ describe("караван лавочника", () => {
     expect(sim.over?.caravanDone).toBe(false);
     const run = () => { const x = new ArcadeSim("caravan-5", { act: "short" }); warp(x); follow(x, sec(6)); return x.digest(); };
     expect(run()).toBe(run());
+  });
+
+  it("везёт объявленное семейство: лавка каравана торгует только им, первый товар — подарок, или подъём редкости своего предмета (T13.71)", () => {
+    const sim = new ArcadeSim("caravan-3", { act: "short" });
+    const c = sim.caravan!;
+    expect(["offense", "defense", "utility"]).toContain(c.family);
+    expect(new ArcadeSim("caravan-3", { act: "short" }).caravan!.family).toBe(c.family);
+    warp(sim);
+    sim.shopkeeper.alive = false;
+    follow(sim, sec(15));
+    expect(c.state).toBe("arrived");
+    expect(sim.caravanGift).toBe(true);
+    sim.player.x = c.ex + 10; sim.player.y = c.ey;
+    while (sim.pending) sim.step({ ...IDLE_INPUT, choose: 0 });
+    sim.step(IDLE_INPUT); sim.step(IDLE_INPUT);
+    expect(sim.shopOpen).toBe(true);
+    expect(sim.caravanGiftAvailable()).toBe(true);
+    for (const o of sim.shopOffers) expect(ARCADE_ITEM_BY_ID[o.id].family).toBe(c.family);
+    expect(sim.shopBuyPrice(0)).toBe(0);
+    sim.player.gold = 0;
+    const gift = sim.shopOffers[0];
+    sim.step(act(1));
+    expect(sim.player.items.map((it) => it.id)).toEqual([gift.id]);
+    expect(sim.player.gold).toBe(0);
+    expect(sim.caravanGiftAvailable()).toBe(false);
+    expect(sim.shopBuyPrice(0)).toBe(sim.shopOffers[0]?.price ?? 0);
+    // Второй вариант подарка: подъём редкости своего предмета вместо товара.
+    const up = new ArcadeSim("caravan-3", { act: "short" });
+    warp(up); up.shopkeeper.alive = false; follow(up, sec(15));
+    up.player.items.push({ id: "desolator", rarity: "standard" });
+    up.player.x = up.caravan!.ex + 10; up.player.y = up.caravan!.ey;
+    while (up.pending) up.step({ ...IDLE_INPUT, choose: 0 });
+    up.step(IDLE_INPUT); up.step(IDLE_INPUT);
+    expect(up.shopOpen).toBe(true);
+    up.step(act(SHOP_ACT.upgradeBase));
+    expect(up.player.items[0].rarity).toBe("refined");
+    expect(up.caravanGiftAvailable()).toBe(false);
+    up.step(act(SHOP_ACT.upgradeBase));
+    expect(up.player.items[0].rarity).toBe("refined");
+    // Плановый торговец подарка не даёт и торгует всем.
+    const plain = new ArcadeSim("caravan-3", { act: "short" });
+    plain.shopkeeper = { alive: true, x: plain.player.x + 10, y: plain.player.y, until: 1e9, value: 0 };
+    plain.step(IDLE_INPUT); plain.step(IDLE_INPUT);
+    expect(plain.shopOpen).toBe(true);
+    expect(plain.caravanGiftAvailable()).toBe(false);
+    expect(plain.shopBuyPrice(0)).toBe(plain.shopOffers[0].price);
   });
 });

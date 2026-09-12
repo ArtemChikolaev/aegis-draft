@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE } from "../src/game/arcade/config.ts";
-import { IDLE_INPUT } from "../src/game/arcade/types.ts";
+import { CONTRACT_OATH_ACT, IDLE_INPUT } from "../src/game/arcade/types.ts";
+import { ENEMY_KINDS, type EnemyKind } from "../src/game/arcade/content/enemies.ts";
+import type { Enemy } from "../src/game/arcade/types.ts";
 import { MARK_IDS, emptyProgress, masteryTitle, recordProgress, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
 
 // Контракт охоты (T13.50): один из двух чемпионов с объявленной наградой; выполнение — награда сверх обычной; пропуск без штрафа.
 const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
+const spawn = (s: ArcadeSim, k: EnemyKind, x: number, y: number) => (s as unknown as { spawnEnemy(k: EnemyKind, x: number, y: number): Enemy }).spawnEnemy(k, x, y);
 const untilOffer = (sim: ArcadeSim) => { let g = 0; while (!sim.contractOpen && g++ < ARCADE.contract.at[sim.act] + 60) step(sim, 1); expect(sim.contractOpen).toBe(true); };
 
 describe("контракт охоты", () => {
@@ -35,7 +38,7 @@ describe("контракт охоты", () => {
     // Форсируем известную пару: Кентавр за оружие, Некромант за карту школы.
     sim.contractOffers = [{ target: "centaur", reward: "weapon" }, { target: "necro", reward: "school" }];
     sim.step({ ...IDLE_INPUT, act: 1 });
-    expect(sim.contract).toEqual({ target: "centaur", reward: "weapon", done: false });
+    expect(sim.contract).toEqual({ target: "centaur", reward: "weapon", done: false, oath: false });
     expect(sim.contractHome()).toMatchObject({ x: sim.grove!.x, y: sim.grove!.y });
     // Чужой чемпион не закрывает контракт.
     sim.barrow!.engaged = true; sim.damageEnemy(sim.necromancer!, 1e9, "hit");
@@ -87,5 +90,44 @@ describe("контракт охоты", () => {
     expect(sim.pending?.length).toBe(1);
     sim.step({ ...IDLE_INPUT, choose: 0 });
     expect(sim.pending).toBeNull();
+  });
+
+  it("Клятва охотника: act 6/7 берёт цель с клятвой; пока цель жива — толпе меньше, цели больше; выполнил — +1 ранг умению (T13.72)", () => {
+    const sim = new ArcadeSim("contract-1", { act: "short", composition: "all" });
+    untilOffer(sim);
+    const target = sim.contractOffers[0].target;
+    sim.step({ ...IDLE_INPUT, act: 1 + CONTRACT_OATH_ACT });
+    expect(sim.contractOpen).toBe(false);
+    expect(sim.contract).toMatchObject({ target, oath: true, done: false });
+    const O = ARCADE.contract.oath;
+    // Урон по обычному врагу — ниже, по цели контракта — выше, по чужому чемпиону — как обычно.
+    const kobold = spawn(sim, ENEMY_KINDS.kobold, sim.player.x + 400, sim.player.y);
+    const hp0 = kobold.hp; sim.damageEnemy(kobold, 10, "zap");
+    expect(hp0 - kobold.hp).toBeCloseTo(10 * O.trashMult, 5);
+    const champ = target === "centaur" ? sim.centaur! : target === "necro" ? sim.necromancer! : target === "thunder" ? sim.thunder! : sim.defiler!;
+    const other = target === "centaur" ? sim.necromancer! : sim.centaur!;
+    // Спящие чемпионы урон не берут — будим все места.
+    sim.barrow!.engaged = true; sim.grove!.engaged = true; sim.lair!.engaged = true; if (sim.camp) sim.camp.engaged = true;
+    const ch0 = champ.hp; sim.damageEnemy(champ, 10, "zap");
+    expect(ch0 - champ.hp).toBeCloseTo(10 * O.targetMult, 5);
+    const ot0 = other.hp; sim.damageEnemy(other, 10, "zap");
+    expect(ot0 - other.hp).toBeCloseTo(10, 5);
+    // Выполнение: самому прокачанному из Q/W/E +1 ранг, множители сняты.
+    const before = { ...sim.player.abilities };
+    sim.damageEnemy(champ, 1e9, "hit");
+    expect(sim.contract!.done).toBe(true);
+    const sum = (a: typeof before) => a.q + a.w + a.e;
+    expect(sum(sim.player.abilities)).toBe(sum(before) + 1);
+    const k1 = kobold.alive ? kobold : spawn(sim, ENEMY_KINDS.kobold, sim.player.x + 400, sim.player.y);
+    const h1 = k1.hp; sim.damageEnemy(k1, 10, "zap");
+    expect(h1 - k1.hp).toBeCloseTo(10, 5);
+    // Без клятвы (act 1) множителей нет.
+    const plain = new ArcadeSim("contract-1", { act: "short", composition: "all" });
+    untilOffer(plain);
+    plain.step({ ...IDLE_INPUT, act: 1 });
+    expect(plain.contract?.oath).toBe(false);
+    const k2 = spawn(plain, ENEMY_KINDS.kobold, plain.player.x + 400, plain.player.y);
+    const h2 = k2.hp; plain.damageEnemy(k2, 10, "zap");
+    expect(h2 - k2.hp).toBeCloseTo(10, 5);
   });
 });

@@ -17,7 +17,7 @@ import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { dotaSheet, dotaSheetState, preloadArcadeArt } from "./sprites.ts";
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
-import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput } from "../../game/arcade/types.ts";
+import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
@@ -305,6 +305,8 @@ function ArcadeStage() {
   const padFocusRef = useRef(0);
   /** Раскрытый предмет в лавке: показываем его статы и описание, продажа — отдельной кнопкой. */
   const [openItem, setOpenItem] = useState<number | null>(null);
+  /** Клятва охотника на экране контракта (T13.72): переключатель — локальный, в сим уходит `act` 6/7. */
+  const [oath, setOath] = useState(false);
   const autoCastSetting = useArcade((s) => s.autoCast);
   const toggleAutoCast = useArcade((s) => s.toggleAutoCast);
   const finish = useArcade((s) => s.finish);
@@ -555,9 +557,10 @@ function ArcadeStage() {
                 {sim.hero.signature && STACKING_SIGS.has(sim.hero.signature.kind) && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
-                {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}</Chip>}
+                {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}{sim.contract.oath ? ` · ${t("arcade.contract.oathShort")}` : ""}</Chip>}
                 {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}{sim.player.curse === "debt" ? ` · ${sim.player.debtLeft}` : ""}</Chip>}
-                {sim.caravan && (sim.caravan.state === "moving" || (sim.caravan.state === "waiting" && sim.playerEscorting())) && <Chip data-testid="arcade-caravan-chip">{t("arcade.hud.caravan", { pct: Math.round(sim.caravanProgress() * 100) })}</Chip>}
+                {sim.caravan && sim.caravan.state === "waiting" && !sim.playerEscorting() && <Chip data-testid="arcade-caravan-wait-chip">{t("arcade.hud.caravanWait", { family: t(`arcade.caravan.family.${sim.caravan.family}` as MessageKey) })}</Chip>}
+                {sim.caravan && (sim.caravan.state === "moving" || (sim.caravan.state === "waiting" && sim.playerEscorting())) && <Chip data-testid="arcade-caravan-chip">{t("arcade.hud.caravan", { pct: Math.round(sim.caravanProgress() * 100), family: t(`arcade.caravan.family.${sim.caravan.family}` as MessageKey) })}</Chip>}
                 {sim.pit && tide && tide.phase !== "low" && <Chip data-testid="arcade-tide-chip">{t(tide.phase === "high" ? "arcade.hud.tideHigh" : "arcade.hud.tideWarn", { time: formatClock(tide.left) })}</Chip>}
                 {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
@@ -765,9 +768,13 @@ function ArcadeStage() {
               <Eyebrow>{t("arcade.contract.title")}</Eyebrow>
               <h2>{t("arcade.contract.pick")}</h2>
               <p className="arcade-shop__hint">{t("arcade.contract.hint")}</p>
+              <label className="arcade-shop__hint arcade-contract__oath" data-testid="arcade-contract-oath">
+                <input type="checkbox" checked={oath} onChange={(e) => setOath(e.target.checked)} />{" "}
+                <b>{t("arcade.contract.oath")}</b> — {t("arcade.contract.oathDesc", { trash: Math.round((1 - ARCADE.contract.oath.trashMult) * 100), target: Math.round((ARCADE.contract.oath.targetMult - 1) * 100) })}
+              </label>
               <div className="arcade-overlay__actions arcade-shop__actions">
                 {sim.contractOffers.map((o, i) => (
-                  <Button key={o.target} variant={i === 0 ? "primary" : "secondary"} data-testid={`arcade-contract-${i + 1}`} onClick={() => shopAct(i + 1)}>{t(`arcade.contract.target.${o.target}` as MessageKey)} → {t(`arcade.contract.reward.${o.reward}` as MessageKey)}</Button>
+                  <Button key={o.target} variant={i === 0 ? "primary" : "secondary"} data-testid={`arcade-contract-${i + 1}`} onClick={() => shopAct(i + 1 + (oath ? CONTRACT_OATH_ACT : 0))}>{t(`arcade.contract.target.${o.target}` as MessageKey)} → {t(`arcade.contract.reward.${o.reward}` as MessageKey)}</Button>
                 ))}
                 <Button variant="leave" data-testid="arcade-contract-skip" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.contract.skip")}</Button>
               </div>
@@ -929,16 +936,18 @@ function ArcadeStage() {
               <Eyebrow>{t("arcade.shop.title")}</Eyebrow>
               <h2>{t("arcade.shop.gold", { gold: sim.player.gold })}</h2>
               {sim.shopPriceMult() < 1 && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-shop-discount">{t("arcade.shop.caravanDiscount", { pct: Math.round((1 - sim.shopPriceMult()) * 100) })}</p>}
+              {sim.caravanGiftAvailable() && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-shop-gift">{t("arcade.shop.caravanGift", { family: t(`arcade.caravan.family.${sim.caravan?.family ?? "offense"}` as MessageKey) })}</p>}
               <p className="arcade-shop__hint">{t("arcade.shop.hint", { n: sim.player.items.length, max: ARCADE.shop.slots })}</p>
               <div className="arcade-offers">
                 {sim.shopOffers.map((offer, i) => {
                   const def = ARCADE_ITEM_BY_ID[offer.id];
-                  const affordable = sim.player.gold >= offer.price && sim.player.items.length < ARCADE.shop.slots;
+                  const price = sim.shopBuyPrice(i);
+                  const affordable = sim.player.gold >= price && sim.player.items.length < ARCADE.shop.slots;
                   return (
                     <button key={`${offer.id}-${i}`} type="button" className="arcade-offer" data-kind="item" data-rarity={offer.rarity} data-testid={`arcade-shop-${i}`} disabled={!affordable} onClick={() => shopAct(i + 1)}>
                       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
                       <strong>{t(`arcade.item.${offer.id}` as MessageKey)}</strong>
-                      <small>{t("arcade.shop.price", { gold: offer.price })}{sim.player.items.filter((it) => it.id === offer.id).length > 0 && <> · {t("arcade.shop.haveN", { n: sim.player.items.filter((it) => it.id === offer.id).length })}</>}</small>
+                      <small>{price === 0 ? t("arcade.shop.free") : t("arcade.shop.price", { gold: price })}{sim.player.items.filter((it) => it.id === offer.id).length > 0 && <> · {t("arcade.shop.haveN", { n: sim.player.items.filter((it) => it.id === offer.id).length })}</>}</small>
                       <StatList effects={itemEffectsAt(def, offer.rarity)} now={sim.player.stats} />
                       {(offer.rarity === "standard" || offer.rarity === "refined") && def.extras && <small className="arcade-offer__more">{t("arcade.shop.moreAtExotic")}</small>}
                     </button>
@@ -965,6 +974,9 @@ function ArcadeStage() {
                           <div className="arcade-shop__details" data-testid={`arcade-shop-details-${i}`}>
                             {def && <StatList effects={itemEffectsAt(def, it.rarity)} />}
                             <p>{t(`arcade.item.${it.id}.desc` as MessageKey)}</p>
+                            {sim.caravanGiftAvailable() && it.rarity !== "arcana" && (
+                              <Button variant="primary" data-testid={`arcade-shop-upgrade-${i}`} onClick={() => { setOpenItem(null); shopAct(SHOP_ACT.upgradeBase + i); }}>{t("arcade.shop.upgradeGift")}</Button>
+                            )}
                             <Button variant="leave" data-testid={`arcade-shop-sell-${i}`} onClick={() => { setOpenItem(null); shopAct(SHOP_ACT.sellBase + i); }}>
                               {t("arcade.shop.sell", { gold: sim.itemSellPrice(it) })}
                             </Button>

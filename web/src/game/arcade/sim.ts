@@ -18,7 +18,7 @@ import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.t
 import { type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
-import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
+import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_FAMILIES, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
 import { type FormDef, HEROES, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
 import { GEAR_SLOTS, gearEffect, reforgeGear, rollGear, temperGear, uniqueGear, type GearItem, type GearSlot } from "./content/gear.ts";
@@ -59,6 +59,7 @@ import {
   PICKUP_ACT,
   AUTOCAST_ACT,
   SHOP_ACT,
+  CONTRACT_OATH_ACT,
   type Pet,
 } from "./types.ts";
 
@@ -80,6 +81,9 @@ const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 export const KIND_INDEX: Record<string, number> = Object.fromEntries(Object.keys(ENEMY_KINDS).map((id, i) => [id, i]));
 export const KIND_BY_INDEX: readonly string[] = Object.keys(ENEMY_KINDS);
 const R_LEVELS = [6, 12, 18];
+/** Вид врага по цели контракта — для Клятвы охотника. */
+const CONTRACT_KIND: Record<ContractTarget, string> = { defiler: "satyr_defiler", centaur: "centaur_warden", necro: "troll_necromancer", thunder: "thunder_golem", warden: "river_warden", stalker: "dire_stalker" };
+const NEXT_RARITY: Record<Rarity, Rarity | null> = { standard: "refined", refined: "exotic", exotic: "arcana", arcana: null };
 const GRID = 72;
 /** Питомец подошёл к новой цели, а перезарядка ещё идёт: бьёт не позже чем через 0.2 с (тиков) — см. tickPets. */
 const PET_REARM = 12;
@@ -116,6 +120,8 @@ export class ArcadeSim {
   /** Открытый магазин останавливает мир, как выбор карточки. */
   shopOpen = false;
   shopOffers: ShopOffer[] = [];
+  /** Подарок каравана (T13.71): один товар лавки каравана бесплатно или +1 редкость своему предмету; сгорает с уходом торговца. */
+  caravanGift = false;
   /** Токен нейтралки на карте и открытый выбор (мир стоит, как в лавке). */
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
@@ -679,7 +685,7 @@ export class ArcadeSim {
       if (score > bestScore) { bestScore = score; best = [ex, ey]; }
     }
     const [ex, ey] = this.obstacles.resolve(best[0], best[1], 30);
-    return { sx, sy, ex, ey, x: sx, y: sy, state: "hidden", leaveAt: 0, nextRaidAt: 0, raids: 0 };
+    return { sx, sy, ex, ey, x: sx, y: sy, state: "hidden", leaveAt: 0, nextRaidAt: 0, raids: 0, family: ITEM_FAMILIES[rng.int(ITEM_FAMILIES.length)] };
   }
 
   /** Герой сопровождает: рядом с повозкой. */
@@ -713,6 +719,7 @@ export class ArcadeSim {
       c.x = c.ex; c.y = c.ey; c.state = "arrived";
       // Доехал — лавка на месте цели (обычный торговец: касание открывает, закрытие убирает).
       this.shopkeeper = { alive: true, x: c.ex, y: c.ey, until: this.tick + ARCADE.shop.lifetime, value: 1 }; // value 1 — лавка каравана, со скидкой
+      this.caravanGift = true;
       this.events.caravans++;
       this.pushFx("levelup", c.ex, c.ey, 0, 0, 30);
       return;
@@ -843,11 +850,22 @@ export class ArcadeSim {
   }
 
   private contractAction(act: number): void {
-    if (act === 1 || act === 2) {
-      const o = this.contractOffers[act - 1];
-      if (o) this.contract = { target: o.target, reward: o.reward, done: false };
+    // 1–2 — цель, 6–7 — та же цель с Клятвой охотника (T13.72).
+    const oath = act > CONTRACT_OATH_ACT && act <= CONTRACT_OATH_ACT + 2;
+    const idx = oath ? act - CONTRACT_OATH_ACT : act;
+    if (idx === 1 || idx === 2) {
+      const o = this.contractOffers[idx - 1];
+      if (o) this.contract = { target: o.target, reward: o.reward, done: false, oath };
       this.contractOpen = false;
     } else if (act === 5) this.contractOpen = false;
+  }
+
+  /** Множитель Клятвы охотника к урону по врагу: цель контракта — больше, обычная толпа — меньше, остальным — 1. */
+  private oathMult(e: Enemy): number {
+    const c = this.contract;
+    if (!c?.oath || c.done) return 1;
+    if (e.kind.id === CONTRACT_KIND[c.target]) return ARCADE.contract.oath.targetMult;
+    return e.kind.elite || e.kind.boss || e.kind.structure ? 1 : ARCADE.contract.oath.trashMult;
   }
 
   /** Цель контракта убита: награда сверх обычной — оружие/броня exotic у ног или карта школы exotic. */
@@ -856,6 +874,13 @@ export class ArcadeSim {
     if (!c || c.done || c.target !== target) return;
     c.done = true;
     this.events.contracts++;
+    // Клятва выполнена: +1 ранг самому прокачанному из Q/W/E, у которого есть запас, — усиление до конца акта.
+    if (c.oath) {
+      const p = this.player;
+      let best: "q" | "w" | "e" | null = null;
+      for (const k of ["q", "w", "e"] as const) if (p.abilities[k] < 4 && (best === null || p.abilities[k] > p.abilities[best])) best = k;
+      if (best) { p.abilities[best]++; this.recomputeStats(); }
+    }
     this.pushFx("levelup", this.player.x, this.player.y, 0, 0, 30);
     if (c.reward === "weapon") this.dropLoot(x, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "weapon"));
     else if (c.reward === "armor") { this.dropLoot(x - 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "armor")); this.dropLoot(x + 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "helm")); }
@@ -2266,7 +2291,7 @@ export class ArcadeSim {
   damageEnemy(e: Enemy, amount: number, fx: FxKind): void {
     if (!e.alive || amount <= 0) return;
     // Наследие: весь исходящий урон (удары, умения, DoT, питомцы) — ровно один раз, здесь.
-    let dmg = amount * this.legacy.damage;
+    let dmg = amount * this.legacy.damage * this.oathMult(e);
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
     const vamp = this.hero.signature;
     if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
@@ -3223,7 +3248,9 @@ export class ArcadeSim {
   private rollShopOffers(): ShopOffer[] {
     const offers: ShopOffer[] = [];
     const mult = this.shopPriceMult();
-    const pool = [...ARCADE_ITEMS];
+    // Лавка каравана торгует объявленным семейством: сопровождение — выбор под билд, а не лотерея.
+    const family = this.shopkeeper.value === 1 ? this.caravan?.family : undefined;
+    const pool = ARCADE_ITEMS.filter((d) => !family || d.family === family);
     for (let i = 0; i < ARCADE.shop.offers && pool.length > 0; i++) {
       const def = pool.splice(this.rng.int(pool.length), 1)[0];
       const rarity = this.rollRarity();
@@ -3240,8 +3267,10 @@ export class ArcadeSim {
     const p = this.player;
     if (act >= 1 && act <= 3) {
       const offer = this.shopOffers[act - 1];
-      if (!offer || p.gold < offer.price || p.items.length >= ARCADE.shop.slots) return;
-      p.gold -= offer.price;
+      const price = this.shopBuyPrice(act - 1);
+      if (!offer || p.gold < price || p.items.length >= ARCADE.shop.slots) return;
+      if (this.caravanGiftAvailable()) this.caravanGift = false;
+      p.gold -= price;
       p.items.push({ id: offer.id, rarity: offer.rarity });
       this.shopOffers.splice(act - 1, 1);
       this.recomputeStats();
@@ -3256,6 +3285,15 @@ export class ArcadeSim {
       this.shopOpen = false;
       // Торговец уходит, чтобы игрок не открывал лавку заново каждым касанием.
       this.shopkeeper.alive = false;
+    } else if (act >= SHOP_ACT.upgradeBase && act < SHOP_ACT.upgradeBase + ARCADE.shop.slots) {
+      // Подарок каравана вместо товара: поднять редкость своего предмета на ступень.
+      const owned = p.items[act - SHOP_ACT.upgradeBase];
+      const next = owned ? NEXT_RARITY[owned.rarity] : null;
+      if (!owned || !next || !this.caravanGiftAvailable()) return;
+      owned.rarity = next;
+      this.caravanGift = false;
+      this.recomputeStats();
+      this.pushFx("levelup", p.x, p.y, 0, 0, 30);
     } else if (act >= SHOP_ACT.sellBase && act < SHOP_ACT.sellBase + ARCADE.shop.slots) {
       // Продажа: слот освобождается, половина цены возвращается — так можно поменять предмет, когда слоты полны.
       const idx = act - SHOP_ACT.sellBase;
@@ -3265,6 +3303,18 @@ export class ArcadeSim {
       p.items.splice(idx, 1);
       this.recomputeStats();
     }
+  }
+
+  /** Подарок каравана ещё не использован и открыта именно его лавка. */
+  caravanGiftAvailable(): boolean {
+    return this.shopOpen && this.shopkeeper.value === 1 && this.caravanGift;
+  }
+
+  /** Цена товара i с учётом подарка каравана (первый товар — бесплатно). */
+  shopBuyPrice(i: number): number {
+    const offer = this.shopOffers[i];
+    if (!offer) return 0;
+    return this.caravanGiftAvailable() ? 0 : offer.price;
   }
 
   itemSellPrice(owned: { id: string; rarity: Rarity }): number {

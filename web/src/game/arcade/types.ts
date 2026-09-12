@@ -1,3 +1,4 @@
+import type { ItemFamily } from "./content/items.ts";
 // Arcade (PRD §5.15, BACKLOG M13) — типы чистого real-time сима. Никакого DOM/React: ядро
 // тестируется в Node и крутится headless в `scripts/sim_arcade.ts`. Детерминизм — свойство
 // контракта: `seed + input-лог` ⇒ тот же забег (см. sim.ts, правила в брифе §3.1).
@@ -17,7 +18,9 @@ export interface ArcadeInput {
 }
 
 /** Действия лавки/нейтралки/лута в `ArcadeInput.act`; 10..15 — продать предмет из слота (act − 10) за половину цены (владелец 2026-09-06: «нельзя поменять предмет»). */
-export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5, sellBase: 10 } as const;
+/** `upgradeBase + i` — подарок каравана: поднять редкость своего предмета i (T13.71). Контракт: 1–2 цель, 6–7 цель с клятвой (T13.72). */
+export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5, sellBase: 10, upgradeBase: 20 } as const;
+export const CONTRACT_OATH_ACT = 5;
 /** `act` = AUTOCAST_ACT + индекс умения (0=q…3=r) переключает автокаст этого умения, +4 — автоатаку. */
 export const AUTOCAST_ACT = 40;
 export const AUTOATTACK_ACT = AUTOCAST_ACT + 4;
@@ -291,7 +294,8 @@ export interface Grove { x: number; y: number; engaged: boolean; rocks: number }
 /** Контракт охоты (T13.50): цель — чемпион, награда объявлена заранее. */
 export type ContractTarget = "defiler" | "centaur" | "necro" | "thunder" | "warden" | "stalker";
 export type ContractReward = "weapon" | "armor" | "school";
-export interface Contract { target: ContractTarget; reward: ContractReward; done: boolean }
+/** `oath` — Клятва охотника (T13.72): пока цель жива, урон по толпе ниже, по цели выше; выполнил — +1 ранг умению. */
+export interface Contract { target: ContractTarget; reward: ContractReward; done: boolean; oath?: boolean }
 
 /** Маркер у края экрана (T13.60). `committed` — угроза или уже выбранная цель: показывается всегда и в лимит
  *  приглашений не входит; остальное — приглашение к необязательному событию. */
@@ -312,6 +316,8 @@ export interface Caravan {
   leaveAt: number;
   nextRaidAt: number;
   raids: number;
+  /** Семейство товара (T13.71): объявляется до сопровождения, лавка каравана торгует только им. */
+  family: ItemFamily;
 }
 
 /** Курган Тролля-Некроманта (T13.46): дом чемпиона по seed; `engaged` — разбужен; `idolsDown` — снесено идолов; `nextRaiseAt` — следующий подъём. */

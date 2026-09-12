@@ -3,9 +3,14 @@
 // цена — тоже. Тексты — i18n `arcade.item.<id>` / `.desc`.
 import type { Rarity } from "../types.ts";
 
+/** Семейство товара (T13.71): караван объявляет, что везёт, — игрок решает сопровождать под свой билд. */
+export type ItemFamily = "offense" | "defense" | "utility";
+export const ITEM_FAMILIES: readonly ItemFamily[] = ["offense", "defense", "utility"];
+
 export interface ArcadeItemDef {
   id: string;
   art: string;
+  family: ItemFamily;
   price: number;
   /** Дополнительные эффекты по редкости (владелец 2026-09-06: «качество должно давать всё больше и эффектов больше»):
    *  exotic открывает первый, arcana — оба. Не масштабируются множителем — это плоские бонусы поверх. */
@@ -31,18 +36,18 @@ export interface ItemEffect {
 }
 
 export const ARCADE_ITEMS: readonly ArcadeItemDef[] = [
-  { id: "magic_wand", art: "magic_wand", price: 66, effect: { regen: 3 }, extras: [{ maxHp: 60 }, { cooldown: 0.05 }] },
-  { id: "vladmir", art: "vladmir", price: 102, effect: { lifesteal: 0.06 }, extras: [{ armor: 3 }, { damage: 8 }] },
-  { id: "assault", art: "assault", price: 138, effect: { armor: 6, attackSpeed: 0.1 }, extras: [{ damage: 10 }, { maxHp: 120 }] },
-  { id: "butterfly", art: "butterfly", price: 144, effect: { crit: 0.15 }, extras: [{ attackSpeed: 0.15 }, { moveSpeed: 0.06 }] },
-  { id: "desolator", art: "desolator", price: 120, effect: { damage: 18 }, extras: [{ crit: 0.08 }, { attackSpeed: 0.1 }] },
-  { id: "travel_boots", art: "travel_boots", price: 90, effect: { moveSpeed: 0.1 }, extras: [{ regen: 2 }, { armor: 3 }] },
-  { id: "heart", art: "heart", price: 132, effect: { maxHp: 200, regen: 2 }, extras: [{ armor: 4 }, { lifesteal: 0.05 }] },
-  { id: "mask_of_madness", art: "mask_of_madness", price: 84, effect: { attackSpeed: 0.3, armor: -4 }, extras: [{ lifesteal: 0.08 }, { damage: 10 }] },
-  { id: "hand_of_midas", art: "hand_of_midas", price: 108, effect: { goldPerKill: 1, xpMult: 0.1 }, extras: [{ xpMult: 0.1 }, { goldPerKill: 1 }] },
-  { id: "black_king_bar", art: "black_king_bar", price: 126, effect: { stunImmune: true, armor: 2 }, extras: [{ maxHp: 100 }, { damage: 12 }] },
-  { id: "bfury", art: "bfury", price: 114, effect: { cleave: 2, damage: 6 }, extras: [{ regen: 3 }, { damage: 10 }] },
-  { id: "octarine_core", art: "octarine_core", price: 120, effect: { cooldown: 0.15, maxHp: 80 }, extras: [{ regen: 3 }, { lifesteal: 0.06 }] },
+  { id: "magic_wand", art: "magic_wand", family: "defense", price: 66, effect: { regen: 3 }, extras: [{ maxHp: 60 }, { cooldown: 0.05 }] },
+  { id: "vladmir", art: "vladmir", family: "defense", price: 102, effect: { lifesteal: 0.06 }, extras: [{ armor: 3 }, { damage: 8 }] },
+  { id: "assault", art: "assault", family: "defense", price: 138, effect: { armor: 6, attackSpeed: 0.1 }, extras: [{ damage: 10 }, { maxHp: 120 }] },
+  { id: "butterfly", art: "butterfly", family: "offense", price: 144, effect: { crit: 0.15 }, extras: [{ attackSpeed: 0.15 }, { moveSpeed: 0.06 }] },
+  { id: "desolator", art: "desolator", family: "offense", price: 120, effect: { damage: 18 }, extras: [{ crit: 0.08 }, { attackSpeed: 0.1 }] },
+  { id: "travel_boots", art: "travel_boots", family: "utility", price: 90, effect: { moveSpeed: 0.1 }, extras: [{ regen: 2 }, { armor: 3 }] },
+  { id: "heart", art: "heart", family: "defense", price: 132, effect: { maxHp: 200, regen: 2 }, extras: [{ armor: 4 }, { lifesteal: 0.05 }] },
+  { id: "mask_of_madness", art: "mask_of_madness", family: "offense", price: 84, effect: { attackSpeed: 0.3, armor: -4 }, extras: [{ lifesteal: 0.08 }, { damage: 10 }] },
+  { id: "hand_of_midas", art: "hand_of_midas", family: "utility", price: 108, effect: { goldPerKill: 1, xpMult: 0.1 }, extras: [{ xpMult: 0.1 }, { goldPerKill: 1 }] },
+  { id: "black_king_bar", art: "black_king_bar", family: "defense", price: 126, effect: { stunImmune: true, armor: 2 }, extras: [{ maxHp: 100 }, { damage: 12 }] },
+  { id: "bfury", art: "bfury", family: "offense", price: 114, effect: { cleave: 2, damage: 6 }, extras: [{ regen: 3 }, { damage: 10 }] },
+  { id: "octarine_core", art: "octarine_core", family: "utility", price: 120, effect: { cooldown: 0.15, maxHp: 80 }, extras: [{ regen: 3 }, { lifesteal: 0.06 }] },
 ];
 
 export const ARCADE_ITEM_BY_ID: Record<string, ArcadeItemDef> = Object.fromEntries(ARCADE_ITEMS.map((i) => [i.id, i]));
