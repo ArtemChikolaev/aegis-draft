@@ -123,6 +123,8 @@ export const ARCADE = {
    *  встаёт лавка (обычный торговец на `shop.lifetime`) со скидкой `discount` на товары и реролл (владелец 2026-09-11).
    *  Полосы HP у каравана нет. Числа стартовые. */
   caravan: { at: { short: sec(4 * 60), full: sec(9 * 60), dire: sec(9 * 60), river: sec(9 * 60) } as Record<string, number>, window: sec(150), distMin: 420, distMax: 720, minFromOthers: 300, length: 520, speed: 62, escortRadius: 150, raidEvery: sec(6), raidSize: 3, raidRingMin: 220, raidRingMax: 300, discount: 0.7 },
+  /** Io (владелец 2026-09-12): радиус шара духов и время полного оборота орбиты. */
+  io: { orbR: 16, orbitSec: 3.5 },
   /** Приглашения у края экрана (T13.60): пока аванпост не захвачен, необязательных подсказок не больше `max`
    *  (порядок приоритета — в `ArcadeSim.invitations`); угрозы и выбранные цели показываются всегда. */
   invitations: { max: 2 },

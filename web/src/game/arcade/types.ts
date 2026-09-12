@@ -439,6 +439,10 @@ export interface Player {
   autoAttack: boolean;
   /** Активные эффекты способностей (общие для видов): вихрь/поле до тика, тотем, серия ударов, зона, бафы. */
   spinUntil: number;
+  /** Io (2026-09-12): орбита духов и связь с юнитом (индекс в `pets`, −1 — нет). */
+  spiritsUntil: number;
+  tetherUntil: number;
+  tetherPet: number;
   wardUntil: number;
   wardX: number;
   wardY: number;

@@ -266,7 +266,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
-      spinUntil: 0, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -1430,6 +1430,27 @@ export class ArcadeSim {
     }
   }
 
+  /** Io Tether: ближайший свой юнит в радиусе умения (индекс в `pets`), −1 — некого связывать. */
+  tetherTarget(ab: AbilityDef): number {
+    const p = this.player;
+    let best = -1, bd = ab.radius ?? 420;
+    this.pets.forEach((pet, i) => { const d = len(pet.x - p.x, pet.y - p.y); if (d < bd) { bd = d; best = i; } });
+    return best;
+  }
+
+  /** Io Spirits: позиции шаров на орбите (медленный оборот — `ARCADE.io.orbitSec` на круг). */
+  spiritOrbs(): [number, number][] {
+    const p = this.player;
+    const key = ABILITY_KEYS.find((k) => this.hero.abilities[k].kind === "spirits");
+    if (!key || this.tick >= p.spiritsUntil) return [];
+    const ab = this.hero.abilities[key];
+    const n = ab.count?.[p.abilities[key]] ?? 5, r = ab.radius ?? 130;
+    const base = (this.tick / TICK_HZ / ARCADE.io.orbitSec) * Math.PI * 2;
+    const out: [number, number][] = [];
+    for (let i = 0; i < n; i++) { const a = base + (i / n) * Math.PI * 2; out.push([p.x + Math.cos(a) * r, p.y + Math.sin(a) * r * 0.8]); }
+    return out;
+  }
+
   /** Форма активна? В ней могут отличаться тип атаки и дальность (Metamorphosis, Elder Dragon Form, True Form). */
   formNow(): FormDef | null {
     if (this.tick >= this.player.formUntil) return null;
@@ -1505,6 +1526,8 @@ export class ArcadeSim {
     const bossNear = this.roshan?.alive === true && len(this.roshan.x - p.x, this.roshan.y - p.y) < radius;
     switch (ab.kind) {
       case "ward": return hpPct < A.healHpPct;
+      case "tether": return hpPct < 0.7 && this.tetherTarget(ab) !== null;
+      case "spirits": return near >= 2 || bossNear;
       case "spin": case "nova": case "arc_lightning": case "battle_hunger": case "berserker_call": case "shrapnel":
         return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
       case "frostbite": case "lightning_bolt":
@@ -1535,6 +1558,18 @@ export class ArcadeSim {
     const radius = ab.radius ?? 150;
     let cast = true;
     switch (ab.kind) {
+      case "tether": {
+        // Только когда рядом свой юнит (иллюзия, призыв, питомец): без него каст не проходит и перезарядка не тратится.
+        const idx = this.tetherTarget(ab);
+        if (idx < 0) { cast = false; break; }
+        p.tetherPet = idx; p.tetherUntil = this.tick + sec(ab.duration ?? 8);
+        p.hasteUntil = Math.max(p.hasteUntil, p.tetherUntil);
+        this.pushFx("levelup", p.x, p.y, 0, 0, 12);
+        break;
+      }
+      case "spirits":
+        p.spiritsUntil = this.tick + sec(ab.duration ?? 12);
+        break;
       case "spin":
         p.spinUntil = this.tick + sec(ab.duration ?? 4);
         this.pushFx("spin", p.x, p.y, 0, 0, sec(ab.duration ?? 4));
@@ -1850,6 +1885,23 @@ export class ArcadeSim {
         if (!e.alive) continue;
         if (len(e.x - p.x, e.y - p.y) <= (sp.radius ?? 104) + e.kind.r) this.damageEnemy(e, dps * 0.1, "spin");
       }
+    }
+    // Io: духи по орбите бьют тех, в кого врезались (контакт, шаг проверки 6 тиков), автоатака не блокируется.
+    const spKey = ABILITY_KEYS.find((k) => H[k].kind === "spirits");
+    if (spKey && this.tick < p.spiritsUntil && this.tick % 6 === 0) {
+      const ab = H[spKey], dps = ab.value[p.abilities[spKey]];
+      for (const [ox, oy] of this.spiritOrbs()) for (const e of this.enemies) {
+        if (!e.alive || this.isDormant(e)) continue;
+        if (len(e.x - ox, e.y - oy) <= ARCADE.io.orbR + e.kind.r) this.damageEnemy(e, dps * 0.1, "burst");
+      }
+    }
+    // Io: связь с юнитом — лечение, пока он в радиусе; юнит пропал или ушёл — связь рвётся.
+    const teKey = ABILITY_KEYS.find((k) => H[k].kind === "tether");
+    if (teKey && this.tick < p.tetherUntil) {
+      const pet = this.pets[p.tetherPet];
+      const ab = H[teKey];
+      if (!pet || len(pet.x - p.x, pet.y - p.y) > (ab.radius ?? 420)) { p.tetherUntil = this.tick; p.tetherPet = -1; }
+      else if (this.tick % 30 === 0) this.heal(ab.value[p.abilities[teKey]] * 0.5);
     }
     const healKey = ABILITY_KEYS.find((k) => H[k].kind === "ward");
     if (healKey && this.tick < p.wardUntil) {

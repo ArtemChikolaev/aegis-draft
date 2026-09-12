@@ -68,7 +68,9 @@ export type AbilityKind =
   | "dash" | "line_burst" | "meteor" | "armor_buff" | "rage" | "frenzy" | "haste" | "damage_ward" | "life_drain"
   | "gust" | "multishot" | "remnant" | "mass_freeze" | "requiem" | "goo" | "ravage" | "edict" | "death_pact"
   | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "venom" | "mana_break" | "coup" | "mana_void"
-  | "reincarnation" | "rupture" | "corrosive" | "berserk_blood" | "metamorphosis";
+  | "reincarnation" | "rupture" | "corrosive" | "berserk_blood" | "metamorphosis"
+  // Io (владелец 2026-09-12): Tether — связь с подконтрольным юнитом (луч), Spirits — орбитальные шары.
+  | "tether" | "spirits";
 
 /** Альтернативная форма (Metamorphosis у Terrorblade, Elder Dragon Form у Dragon Knight, True Form у Lone Druid):
  *  меняются модель, тип атаки и дальность — владелец 2026-09-06: «нажимает скилл и ничего не происходит». */
@@ -904,8 +906,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "damage_ward", value: [0, 45, 65, 85], cooldown: 40, duration: 20, radius: 300, summon: { art: "illusion", count: 2 } },         // Divided We Stand
   }, { kind: "vampiric", value: 0.12 }),
   io: hero("io", 91, "wisp", true, { maxHp: 620, armor: 3, damage: 24, speed: 172, regen: 5 }, {
-    q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Tether
-    w: { kind: "spin", value: [0, 50, 70, 90, 110], cooldown: 7, radius: 210, duration: 4 },              // Spirits
+    q: { kind: "tether", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 8, radius: 420 },            // Tether: только к своему юниту (иллюзия/призыв), луч, лечение и скорость обоим
+    w: { kind: "spirits", value: [0, 40, 55, 70, 85], cooldown: 12, radius: 130, duration: 12, count: [0, 5, 5, 5, 5] }, // Spirits: 5 шаров по орбите, урон тем, в кого врезались
     e: { kind: "frenzy", value: [0, 0.3, 0.35, 0.4, 0.45], cooldown: 14, duration: 6 },                  // Overcharge
     r: { kind: "dash", value: [0, 0, 0, 0], cooldown: 40, radius: 600 },                                  // Relocate
   }, { kind: "vampiric", value: 0.12 }),

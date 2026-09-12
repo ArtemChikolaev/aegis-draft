@@ -983,6 +983,25 @@ export class ArcadeRenderer {
       const mae = sim.upgradePower("mae_static");
       if (mae > 0) drawSparks(c, p.x, p.y, R * 2.2, sim.tick, apx, pal, 2 + mae);
     }
+    // Io Tether (2026-09-12): луч между героем и связанным юнитом — пульсирующая линия с бусинами.
+    if (sim.tick < p.tetherUntil && sim.pets[p.tetherPet]) {
+      const pet = sim.pets[p.tetherPet];
+      c.save(); c.globalAlpha = 0.85; c.strokeStyle = pal.frost; c.lineWidth = 3;
+      c.beginPath(); c.moveTo(p.x, p.y - 10); c.lineTo(pet.x, pet.y - 10); c.stroke();
+      c.strokeStyle = pal.ice; c.lineWidth = 1; c.globalAlpha = 0.9; c.stroke();
+      const d = Math.hypot(pet.x - p.x, pet.y - p.y) || 1, beads = Math.max(2, Math.floor(d / 28));
+      c.fillStyle = pal.text;
+      for (let i = 0; i < beads; i++) { const k = ((i / beads) + (now / 900) % 1) % 1; c.fillRect(p.x + (pet.x - p.x) * k - 2, p.y - 12 + (pet.y - p.y) * k, 4, 4); }
+      c.restore();
+    }
+    // Io Spirits: шары по орбите — ядро, ореол и хвостик против хода.
+    for (const [ox, oy] of sim.spiritOrbs()) {
+      const orbR = ARCADE.io.orbR;
+      c.globalAlpha = 0.35; c.fillStyle = pal.frost; c.beginPath(); c.arc(ox, oy, orbR + 6, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 0.95; c.fillStyle = pal.ice; c.beginPath(); c.arc(ox, oy, orbR - 4, 0, Math.PI * 2); c.fill();
+      c.fillStyle = pal.text; c.beginPath(); c.arc(ox - 3, oy - 3, orbR * 0.3, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 1;
+    }
     const spinning = sim.tick < p.spinUntil;
     const invuln = sim.tick < p.invulnUntil || (p.burstLeft > 0 && ArcadeRenderer.slot(sim, "omni") !== null);
     // Радиус вихря — у своего слота: Rolling Thunder у Pangolier и Raptor Dance у Kez стоят в R,
