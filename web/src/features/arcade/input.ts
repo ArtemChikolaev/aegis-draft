@@ -2,6 +2,7 @@
 // и тач-джойстик (палец в любом месте сцены задаёт центр). Всё сводится в один ArcadeInput на тик;
 // направление квантуется в шестнадцатые — так лог компактен и одинаков на всех устройствах.
 import type { ArcadeInput } from "../../game/arcade/types.ts";
+import { PAD, PadNav, hasEdge, readPad } from "./gamepad.ts";
 
 const KEY_DIR: Record<string, [number, number]> = {
   KeyW: [0, -1], ArrowUp: [0, -1], KeyS: [0, 1], ArrowDown: [0, 1], KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0],
@@ -25,6 +26,16 @@ export class ArcadeInputController {
   onBuild: (() => void) | null = null;
   /** Вспышка свечения (T): чисто визуальная, в сим не идёт. */
   onFlare: (() => void) | null = null;
+  /** Геймпад (T13.34): первый ввод с пада — экран переключает подсказки на глифы; навигация по меню — стик/D-pad, × и ○. */
+  onGamepad: (() => void) | null = null;
+  /** Обратный переход, как в Steam Input: клавиша или указатель — раскладка снова клавиатурная. */
+  onKeyboard: (() => void) | null = null;
+  onPadNav: ((what: "left" | "right" | "confirm" | "back") => void) | null = null;
+  gamepadActive = false;
+  private padHeld = 0;
+  private padX = 0;
+  private padY = 0;
+  private padNav = new PadNav();
 
   constructor(private readonly surface: HTMLElement) {
     window.addEventListener("keydown", this.onKeyDown);
@@ -57,6 +68,30 @@ export class ArcadeInputController {
     this.castMask |= mask;
   }
 
+  /** Опрос геймпада — каждый кадр экрана, а не только на тике сима: кнопки меню (стик, ×, ○, Options)
+   *  должны работать и пока мир стоит в окне карточек или лавки. В меню (`menu=true`) касты и движение
+   *  не копятся, чтобы × на карточке не выстрелил умением после закрытия окна. */
+  pollPad(menu: boolean): void {
+    const raw = firstGamepad();
+    if (!raw) { this.padX = 0; this.padY = 0; return; }
+    const pad = readPad(raw, this.padHeld);
+    this.padHeld = pad.held;
+    if (pad.active && !this.gamepadActive) { this.gamepadActive = true; this.onGamepad?.(); }
+    if (menu) { this.padX = 0; this.padY = 0; }
+    else {
+      this.padX = pad.x; this.padY = pad.y;
+      this.castMask |= pad.cast;
+      if (hasEdge(pad.edges, PAD.r1)) this.onPickup?.();
+      if (hasEdge(pad.edges, PAD.l1)) this.onBuild?.();
+      if (hasEdge(pad.edges, PAD.touch) || hasEdge(pad.edges, PAD.ps)) this.onFlare?.();
+    }
+    if (hasEdge(pad.edges, PAD.options)) this.onPause?.();
+    const nav = this.padNav.step(pad);
+    if (nav) this.onPadNav?.(nav < 0 ? "left" : "right");
+    if (hasEdge(pad.edges, PAD.cross)) this.onPadNav?.("confirm");
+    if (hasEdge(pad.edges, PAD.circle)) this.onPadNav?.("back");
+  }
+
   /** Снять ввод на текущий тик (каст-буфер при этом сбрасывается). */
   read(): ArcadeInput {
     let dx = 0, dy = 0;
@@ -69,11 +104,7 @@ export class ArcadeInputController {
       const l = Math.hypot(sx, sy);
       if (l > 0.12) { dx = l > 1 ? sx / l : sx; dy = l > 1 ? sy / l : sy; }
     }
-    const pad = readGamepad();
-    if (pad) {
-      if (Math.hypot(pad.x, pad.y) > 0.2) { dx = pad.x; dy = pad.y; }
-      this.castMask |= pad.cast;
-    }
+    if (this.padX !== 0 || this.padY !== 0) { dx = this.padX; dy = this.padY; }
     const l = Math.hypot(dx, dy);
     if (l > 1) { dx /= l; dy /= l; }
     const input: ArcadeInput = { mx: Math.round(dx * 16), my: Math.round(dy * 16), cast: this.castMask, choose: -1, act: this.pendingAct.shift() ?? 0 };
@@ -81,7 +112,12 @@ export class ArcadeInputController {
     return input;
   }
 
+  private markKeyboard(): void {
+    if (this.gamepadActive) { this.gamepadActive = false; this.onKeyboard?.(); }
+  }
+
   private onKeyDown = (e: KeyboardEvent) => {
+    this.markKeyboard();
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
     if (KEY_DIR[e.code]) { this.keys.add(e.code); e.preventDefault(); return; }
     const cast = KEY_CAST[e.code];
@@ -94,6 +130,7 @@ export class ArcadeInputController {
   private onKeyUp = (e: KeyboardEvent) => { this.keys.delete(e.code); };
   private onBlur = () => { this.keys.clear(); this.stick = null; };
   private onPointerDown = (e: PointerEvent) => {
+    this.markKeyboard();
     if (e.pointerType === "mouse" && e.button !== 0) return;
     if (this.stick) return;
     // Кнопки HUD и оверлеи (карточки уровня, пауза) — не джойстик: захват указателя сценой
@@ -112,13 +149,8 @@ export class ArcadeInputController {
   };
 }
 
-function readGamepad(): { x: number; y: number; cast: number } | null {
+function firstGamepad(): Gamepad | null {
   if (typeof navigator === "undefined" || !navigator.getGamepads) return null;
-  const pads = navigator.getGamepads();
-  for (const pad of pads) {
-    if (!pad) continue;
-    const cast = (pad.buttons[0]?.pressed ? 1 : 0) | (pad.buttons[1]?.pressed ? 2 : 0) | (pad.buttons[2]?.pressed ? 4 : 0) | (pad.buttons[3]?.pressed ? 8 : 0);
-    return { x: pad.axes[0] ?? 0, y: pad.axes[1] ?? 0, cast };
-  }
+  try { for (const pad of navigator.getGamepads()) if (pad) return pad; } catch { /* нет доступа к падам — клавиатура/тач */ }
   return null;
 }

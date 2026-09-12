@@ -38,6 +38,7 @@ import { HeroWardrobe, wornSkin } from "./HeroWardrobe.tsx";
 /** Пиксельный режим статичен на загрузку страницы (query-параметр) — иконки предметов и умений берём из px-наборов. */
 const PX = pixelScale() >= 1;
 const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
+import { PAD_GLYPH } from "./gamepad.ts";
 import { groupHeroes, recentHeroes } from "./heroPicker.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
@@ -289,6 +290,10 @@ function ArcadeStage() {
   const levelReroll = useArcade((s) => s.levelReroll);
   const levelBanish = useArcade((s) => s.levelBanish);
   const shopAct = useArcade((s) => s.shopAct);
+  // Геймпад (T13.34): после первого ввода с пада подсказки HUD показывают глифы кнопок; карточки уровня выбираются стиком и ×.
+  const [padActive, setPadActive] = useState(false);
+  const [padFocus, setPadFocus] = useState(0);
+  const padFocusRef = useRef(0);
   /** Раскрытый предмет в лавке: показываем его статы и описание, продажа — отдельной кнопкой. */
   const [openItem, setOpenItem] = useState<number | null>(null);
   const autoCastSetting = useArcade((s) => s.autoCast);
@@ -348,6 +353,24 @@ function ArcadeStage() {
     // Подбор (G / Enter) и экран сборки (Tab / I) — через `act` в сим: попадают в input-лог, реплей повторяет.
     controller.onPickup = () => { const cur = getArcadeSim(); if (cur && (cur.nearLoot || cur.nearPond || (cur.nearForge && cur.forgeReady()) || (cur.nearRift && cur.riftReady())) && !cur.lootOpen && !cur.pondOpen && !cur.forgeOpen && !cur.riftOpen && !cur.buildOpen) controller.queueAct(PICKUP_ACT); };
     controller.onFlare = () => { if (useArcade.getState().status === "running") renderer.flare(performance.now()); };
+    controller.onGamepad = () => setPadActive(true);
+    controller.onKeyboard = () => setPadActive(false);
+    controller.onPadNav = (what) => {
+      const s = useArcade.getState();
+      const cur = getArcadeSim();
+      if (!cur) return;
+      if (cur.pending) {
+        // Карточки уровня/награды: стик двигает фокус, × выбирает.
+        const n = cur.pending.length;
+        if (what === "left" || what === "right") { padFocusRef.current = (padFocusRef.current + (what === "left" ? -1 : 1) + n) % n; setPadFocus(padFocusRef.current); }
+        else if (what === "confirm") { s.choose(Math.min(padFocusRef.current, n - 1)); padFocusRef.current = 0; setPadFocus(0); }
+        return;
+      }
+      // Окна мест и лавки: ○ закрывает (act 5 = «уйти»).
+      if (what === "back" && cur.buildOpen) controller.queueAct(BUILD_ACT);
+      else if (what === "back" && (cur.shopOpen || cur.neutralOpen || cur.lootOpen || cur.pondOpen || cur.contractOpen || cur.forgeOpen || cur.riftOpen)) s.shopAct(SHOP_ACT.close);
+      else if (what === "confirm" && s.status === "paused") s.resume();
+    };
     controller.onBuild = () => { const cur = getArcadeSim(); if (cur && !cur.pending && !cur.shopOpen && !cur.neutralOpen && !cur.lootOpen && useArcade.getState().status === "running") controller.queueAct(BUILD_ACT); };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
     ro.observe(stage);
@@ -380,6 +403,8 @@ function ArcadeStage() {
       last = now;
       // Hit-stop (R15-лестница): смерть элиты/босса замораживает мир на несколько кадров — только
       // здесь, в цикле экрана; сим о паузе не знает, детерминизм не трогается.
+      const inMenu = statusRef.current !== "running" || !!sim.pending || sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen || sim.riftOpen || sim.buildOpen || sim.over;
+      if (!replayRef.current) controller.pollPad(!!inMenu);
       if (hitStop > 0) { hitStop--; acc = 0; }
       else if (statusRef.current === "running" && !loadingRef.current && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.over) {
         acc += dt;
@@ -532,21 +557,21 @@ function ArcadeStage() {
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-forge-open" disabled={!sim.forgeReady()} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
                 <b>{t("arcade.forge.open")}</b>
                 <span>{sim.forgeReady() ? t("arcade.forge.openHint") : t("arcade.forge.cold", { time: formatClock(ARCADE.forge.fromTick[sim.act]) })}</span>
-                <small>G</small>
+                <small>{padActive ? PAD_GLYPH.r1 : "G"}</small>
               </button>
             )}
             {!sim.nearLoot && !sim.nearPond && !sim.nearForge && sim.nearRift && !sim.riftOpen && !sim.lootOpen && !sim.buildOpen && status === "running" && (
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-rift-open" disabled={!sim.riftReady()} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
                 <b>{t("arcade.rift.open")}</b>
                 <span>{sim.riftReady() ? t("arcade.rift.openHint", { sec: Math.round(ARCADE.rift.duration / 60) }) : t("arcade.rift.cold", { time: formatClock(ARCADE.rift.fromTick[sim.act]) })}</span>
-                <small>G</small>
+                <small>{padActive ? PAD_GLYPH.r1 : "G"}</small>
               </button>
             )}
             {!sim.nearLoot && sim.nearPond && !sim.pondOpen && !sim.lootOpen && !sim.buildOpen && status === "running" && (
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-pond-open" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
                 <b>{t("arcade.pond.open")}</b>
                 <span>{t(sim.player.curse ? "arcade.pond.openCursed" : "arcade.pond.openHint")}</span>
-                <small>G</small>
+                <small>{padActive ? PAD_GLYPH.r1 : "G"}</small>
               </button>
             )}
             {sim.nearLoot && !sim.lootOpen && !sim.buildOpen && status === "running" && (
@@ -554,7 +579,7 @@ function ArcadeStage() {
                 {sim.nearLoot.item && <ItemIcon pixel={PX} slug={gearArt(sim.nearLoot.item as GearItem)} name={sim.nearLoot.item.base} size="sm" />}
                 <b>{sim.nearLoot.kind === "chest" ? t("arcade.loot.pickupChest") : t("arcade.loot.pickup")}</b>
                 {sim.nearLoot.item && <span data-rarity={sim.nearLoot.item.rarity}>{t(`arcade.gearName.${sim.nearLoot.item.base}` as MessageKey)}</span>}
-                <small>G</small>
+                <small>{padActive ? PAD_GLYPH.r1 : "G"}</small>
               </button>
             )}
             <div className="arcade-hud__bottom">
@@ -596,7 +621,7 @@ function ArcadeStage() {
                   title={t(autoCastSetting.attack ? "arcade.hud.autoAttackOn" : "arcade.hud.autoAttackOff")}
                 >
                   <b>{t("arcade.hud.attackShort")}</b>
-                  <small>F</small>
+                  <small>{padActive ? PAD_GLYPH.r2 : "F"}</small>
                   <span
                     role="checkbox"
                     tabIndex={0}
@@ -625,7 +650,7 @@ function ArcadeStage() {
                       title={t(`arcade.ab.${sim.hero.kit}.${key}` as MessageKey)}
                     >
                       <AbilityIcon hero={sim.hero.id} k={key} size={30} />
-                      <b>{key.toUpperCase()}</b>
+                      <b>{padActive ? PAD_GLYPH[({ q: "cross", w: "circle", e: "square", r: "triangle" } as const)[key]] : key.toUpperCase()}</b>
                       <small>{lvl > 0 ? `${t("arcade.hud.lvlShort")}${lvl}` : "—"}</small>
                       {!ab.passive && (
                         // Переключатель автокаста рядом с умением (владелец 2026-09-06): выключен — умение
@@ -939,7 +964,7 @@ function ArcadeStage() {
               <p className="arcade-shop__hint">{sim.pendingSource === "camp" ? t("arcade.camp.hint") : t("arcade.pickHint")}</p>
               <div className="arcade-offers">
                 {sim.pending.map((offer, i) => (
-                  <div key={i} className="arcade-offer-wrap">
+                  <div key={i} className="arcade-offer-wrap" data-pad-focus={padActive && padFocus === i ? "true" : undefined}>
                     <OfferCard offer={offer} index={i} onPick={() => choose(i)} />
                     {offer.kind === "upgrade" && sim.banishesLeft > 0 && !UPGRADE_BY_ID[offer.id]?.legendary && (
                       <button type="button" className="arcade-offer__banish" data-testid={`arcade-banish-${i}`} onClick={() => levelBanish(i)}>{t("arcade.levelup.banish", { n: sim.banishesLeft })}</button>

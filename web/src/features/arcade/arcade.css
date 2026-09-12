@@ -375,3 +375,6 @@
 
 /* Лавка каравана (T13.59): строка скидки. */
 .arcade-shop__discount { color: var(--role-support, inherit); font-weight: 700; }
+
+/* Геймпад (T13.34): карточка уровня в фокусе стика. */
+.arcade-offer-wrap[data-pad-focus] .arcade-offer { border-color: var(--accent-strong); box-shadow: 0 0 0 3px var(--accent-soft); transform: translateY(-2px); }
