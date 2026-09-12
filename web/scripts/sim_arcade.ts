@@ -29,6 +29,8 @@ const HERO = args.get("hero") ?? "juggernaut";
 const ACT = (args.get("act") ?? "full") as "short" | "full" | "dire" | "river";
 /** Стартовая особенность (T13.62): `--trait berserk|bulwark|swift|scavenger`; без флага — базовая. */
 const TRAIT = args.get("trait");
+/** Композиция мест (T13.70): `--composition all|wilds|trade`; без флага — по seed, как у игрока. */
+const COMPOSITION = args.get("composition");
 /** Места (T13.63): бот идёт к перечисленным целям карты и проходит их — так измеряется ценность награды, а не только
  *  цена случайного контакта. Без флага — прежний «случайный игрок», который в места не ходит. */
 const PLACE_IDS = ["rift", "caravan", "pond", "forge", "camp"] as const;
@@ -225,7 +227,7 @@ const results: RunResult[] = [];
 const t0 = performance.now();
 for (let i = 0; i < RUNS; i++) {
   if (ONLY >= 0 && i !== ONLY) continue;
-  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}) });
+  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}), ...(COMPOSITION ? { composition: COMPOSITION } : {}) });
   const trace = i === TRACE;
   let lastHp = 0, lastLevel = sim.player.level;
   while (!sim.over && sim.tick < MAX_TICKS) {

@@ -14,7 +14,7 @@ const quiet = (sim: ArcadeSim) => { for (const e of sim.enemies) if (e.alive && 
 describe("Кентавр-Страж рощи", () => {
   it("роща по seed вдали от лагеря/аванпоста/пруда, детерминирована, кентавр дома и спит, пока рощу не разбудили", () => {
     for (const act of ["short", "full", "dire", "river"] as const) {
-      const a = new ArcadeSim("centaur-1", { act }), b = new ArcadeSim("centaur-1", { act });
+      const a = new ArcadeSim("centaur-1", { act, composition: "all" }), b = new ArcadeSim("centaur-1", { act, composition: "all" });
       expect(a.grove).toEqual(b.grove);
       const g = a.grove!;
       for (const o of [a.camp!, a.outpost!, a.pond!]) expect(Math.hypot(g.x - o.x, g.y - o.y), act).toBeGreaterThanOrEqual(C.minFromOthers - 60);

@@ -237,6 +237,8 @@ export interface ArcadeOptions {
   legacy?: { hp: number; damage: number; pickup: number };
   /** Стартовая особенность (T13.62, content/traits.ts); нет или чужой id — без особенности. */
   trait?: string;
+  /** Композиция мест (T13.70, content/compositions.ts); по умолчанию — по seed (полный акт) или `all`. */
+  composition?: string;
 }
 
 /** `dire` — акт 2: ночь (обзор ограничен) и лес Dire (враги крепче и быстрее). `river` — акт 3: река с рунами

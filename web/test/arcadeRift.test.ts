@@ -19,10 +19,10 @@ const enter = (sim: ArcadeSim, rule: (typeof RIFT_RULES)[number]) => { warp(sim)
 describe("разлом", () => {
   it("стоит по seed вдали от других мест, предлагает два разных правила, открывается по часам акта, кнопка рядом открывает выбор", () => {
     for (const a of ["short", "full", "dire", "river"] as const) {
-      const sim = new ArcadeSim("rift-1", { act: a });
+      const sim = new ArcadeSim("rift-1", { act: a, composition: "all" });
       const r = sim.rift!;
       for (const o of [sim.camp!, sim.outpost!, sim.pond!, sim.grove!, sim.barrow!, sim.forge!]) expect(Math.hypot(r.x - o.x, r.y - o.y), a).toBeGreaterThanOrEqual(R.minFromOthers - 60);
-      expect(new ArcadeSim("rift-1", { act: a }).rift).toEqual(r);
+      expect(new ArcadeSim("rift-1", { act: a, composition: "all" }).rift).toEqual(r);
       expect(r.offered.length).toBe(2);
       expect(r.offered[0]).not.toBe(r.offered[1]);
       for (const x of r.offered) expect(RIFT_RULES).toContain(x);

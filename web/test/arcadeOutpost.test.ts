@@ -11,7 +11,7 @@ const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over
 describe("аванпост", () => {
   it("стоит по seed на кольце от старта, далеко от лагеря, не в дереве; детерминирован", () => {
     for (const act of ["short", "full", "dire", "river"] as const) {
-      const a = new ArcadeSim("outpost-1", { act }), b = new ArcadeSim("outpost-1", { act });
+      const a = new ArcadeSim("outpost-1", { act, composition: "all" }), b = new ArcadeSim("outpost-1", { act, composition: "all" });
       expect(a.outpost).toEqual(b.outpost);
       const o = a.outpost!;
       const d = Math.hypot(o.x - ARCADE.world.w / 2, o.y - ARCADE.world.h / 2);

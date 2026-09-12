@@ -12,7 +12,7 @@ const quiet = (sim: ArcadeSim) => { sim.shopkeeper.alive = false; if (sim.carava
 
 describe("приглашения у края", () => {
   it("на старте — лагерь и аванпост, не больше max; разлом/кузня ждут свободного места", () => {
-    const sim = new ArcadeSim("inv-1", { act: "full" });
+    const sim = new ArcadeSim("inv-1", { act: "full", composition: "all" });
     sim.step(IDLE_INPUT);
     expect(kinds(sim)).toEqual(["camp", "outpost"]);
     sim.tick = ARCADE.rift.fromTick.full + ARCADE.forge.fromTick.full; sim.step(IDLE_INPUT); quiet(sim);
@@ -24,7 +24,7 @@ describe("приглашения у края", () => {
   });
 
   it("срочное впереди: караван ждёт и торговец вытесняют базовые цели; пруд при порче — перед ними", () => {
-    const sim = new ArcadeSim("inv-2", { act: "full" });
+    const sim = new ArcadeSim("inv-2", { act: "full", composition: "all" });
     sim.tick = ARCADE.caravan.at.full; sim.step(IDLE_INPUT); sim.step(IDLE_INPUT);
     expect(sim.caravan!.state).toBe("waiting");
     sim.shopkeeper.alive = false;
@@ -37,7 +37,7 @@ describe("приглашения у края", () => {
   });
 
   it("угрозы и выбранные цели всегда: охотник, контракт, лагерь в бою, аванпост с прогрессом, караван в пути — сверх лимита", () => {
-    const sim = new ArcadeSim("inv-3", { act: "full" });
+    const sim = new ArcadeSim("inv-3", { act: "full", composition: "all" });
     sim.step(IDLE_INPUT);
     sim.camp!.engaged = true;
     sim.outpost!.progress = 10;
@@ -52,7 +52,7 @@ describe("приглашения у края", () => {
   });
 
   it("после захвата аванпоста — обзор: все активные точки без лимита", () => {
-    const sim = new ArcadeSim("inv-4", { act: "full" });
+    const sim = new ArcadeSim("inv-4", { act: "full", composition: "all" });
     sim.tick = ARCADE.rift.fromTick.full + ARCADE.forge.fromTick.full; sim.step(IDLE_INPUT);
     sim.outpost!.captured = true;
     sim.chest.alive = true;

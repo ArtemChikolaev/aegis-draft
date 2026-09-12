@@ -39,6 +39,7 @@ import { HeroWardrobe, wornSkin } from "./HeroWardrobe.tsx";
 const PX = pixelScale() >= 1;
 const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
 import { PAD_GLYPH } from "./gamepad.ts";
+import { compositionFor } from "../../game/arcade/content/compositions.ts";
 import { groupHeroes, recentHeroes } from "./heroPicker.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
@@ -214,6 +215,12 @@ function ArcadeSetup() {
             })}
           </div>
           <p className="arcade-setup__goal">{t(act === "full" ? "arcade.goalFull" : act === "dire" ? "arcade.goalDire" : act === "river" ? "arcade.goalRiver" : "arcade.goal")}</p>
+          {act === "full" && (
+            <p className="arcade-setup__goal" data-testid="arcade-composition">
+              <b>{t("arcade.composition.label")}:</b>{" "}
+              {seed.trim() ? <>{t(`arcade.composition.${compositionFor(seed.trim(), "full")}` as MessageKey)} — {t(`arcade.composition.${compositionFor(seed.trim(), "full")}.desc` as MessageKey)}</> : t("arcade.composition.bySeed")}
+            </p>
+          )}
           <p className="arcade-setup__controls">{t("arcade.controls")}</p>
           <div className="arcade-rank" data-testid="arcade-rank">
             <span className="arcade-setup__label">{t("arcade.rank")} · {t(`arcade.tier.${current.tier}` as MessageKey)} {"★".repeat(current.stars)}</span>
@@ -554,6 +561,7 @@ function ArcadeStage() {
                 {sim.pit && tide && tide.phase !== "low" && <Chip data-testid="arcade-tide-chip">{t(tide.phase === "high" ? "arcade.hud.tideHigh" : "arcade.hud.tideWarn", { time: formatClock(tide.left) })}</Chip>}
                 {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
+                {sim.composition !== "all" && <Chip data-testid="arcade-composition-chip">{t(`arcade.composition.${sim.composition}` as MessageKey)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
               <Button variant="secondary" className="arcade-hud__build" data-testid="arcade-build-open" onClick={() => controllerRef.current?.onBuild?.()}>{t("arcade.build.open")}</Button>

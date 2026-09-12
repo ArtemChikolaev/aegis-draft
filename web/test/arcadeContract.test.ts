@@ -73,7 +73,7 @@ describe("контракт охоты", () => {
   });
 
   it("выдачи не сливаются: при висящем выборе уровня награда чемпиона и карта контракта приходят отдельными экранами (T13.68)", () => {
-    const sim = new ArcadeSim("audit-reward-queue", { act: "full" });
+    const sim = new ArcadeSim("audit-reward-queue", { act: "full", composition: "all" });
     sim.contract = { target: "necro", reward: "school", done: false };
     sim.barrow!.engaged = true;
     sim.pending = [{ kind: "ability", key: "q" }]; sim.pendingSource = "level";

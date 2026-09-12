@@ -15,6 +15,7 @@ import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward,
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
+import { type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
@@ -99,6 +100,8 @@ export class ArcadeSim {
   readonly rng: Rng;
   readonly rank: RankRules;
   readonly hero: HeroDef;
+  /** Состав мест акта (T13.70): объявляется на подготовке, размещение — только из него. */
+  readonly composition: CompositionId;
   /** Слот умения по его виду (первый из q,w,e,r): набор героя неизменен весь забег, ищем один раз, а не каждый тик. */
   private readonly slot: Partial<Record<AbilityKind, AbilityKey>> = {};
   tick = 0;
@@ -259,6 +262,7 @@ export class ArcadeSim {
     for (const k of ABILITY_KEYS) this.slot[this.hero.abilities[k].kind] ??= k;
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
     this.trait = isTraitId(options.trait) ? TRAITS[options.trait] : null;
+    this.composition = isCompositionId(options.composition) ? options.composition : compositionFor(seed, this.act);
     const L = options.legacy;
     this.legacy = L && [L.hp, L.damage, L.pickup].every((v) => typeof v === "number" && v >= 1 && v <= 2) ? { hp: L.hp, damage: L.damage, pickup: L.pickup } : LEGACY_NONE;
     this.obstacles = new ObstacleGrid(generateMap(seed, this.act).obstacles);
@@ -281,15 +285,17 @@ export class ArcadeSim {
     // Уникальный Aegis of the Immortal: одно воскрешение уже на старте.
     if (Object.values(this.player.gear).some((g) => g.unique === "aegis_of_the_immortal")) this.player.aegis = true;
     this.recomputeStats();
-    this.camp = this.placeCamp(seed);
-    this.outpost = this.placeOutpost(seed);
-    this.pond = this.placePond(seed);
-    this.grove = this.placeGrove(seed);
-    this.barrow = this.placeBarrow(seed);
-    this.forge = this.placeForge(seed);
-    this.rift = this.placeRift(seed);
-    this.caravan = this.placeCaravan(seed);
-    this.lair = this.placeLair(seed);
+    // Места — только из композиции; порядок размещения прежний (каждое следующее учитывает уже стоящие).
+    const has = (p: Parameters<typeof hasPlace>[1]) => hasPlace(this.composition, p);
+    this.camp = has("camp") ? this.placeCamp(seed) : null;
+    this.outpost = has("outpost") ? this.placeOutpost(seed) : null;
+    this.pond = has("pond") ? this.placePond(seed) : null;
+    this.grove = has("grove") ? this.placeGrove(seed) : null;
+    this.barrow = has("barrow") ? this.placeBarrow(seed) : null;
+    this.forge = has("forge") ? this.placeForge(seed) : null;
+    this.rift = has("rift") ? this.placeRift(seed) : null;
+    this.caravan = has("caravan") ? this.placeCaravan(seed) : null;
+    this.lair = has("lair") ? this.placeLair(seed) : null;
     if (this.pit) this.ford = this.placeFord(seed);
     if (this.night) this.den = this.placeDen(seed);
   }

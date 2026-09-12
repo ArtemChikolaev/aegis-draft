@@ -16,13 +16,13 @@ const follow = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.ov
 describe("караван лавочника", () => {
   it("путь по seed: старт вдали от других мест, длина около length, детерминирован; скрыт до часов акта, потом ждёт", () => {
     for (const a of ["short", "full", "dire", "river"] as const) {
-      const sim = new ArcadeSim("caravan-1", { act: a });
+      const sim = new ArcadeSim("caravan-1", { act: a, composition: "all" });
       const c = sim.caravan!;
       for (const o of [sim.camp!, sim.outpost!, sim.pond!, sim.grove!, sim.barrow!, sim.forge!, sim.rift!]) expect(Math.hypot(c.sx - o.x, c.sy - o.y), a).toBeGreaterThanOrEqual(C.minFromOthers - 60);
       const length = Math.hypot(c.ex - c.sx, c.ey - c.sy);
       expect(length, a).toBeGreaterThan(C.length * 0.5);
       expect(length, a).toBeLessThanOrEqual(C.length + 40);
-      expect(new ArcadeSim("caravan-1", { act: a }).caravan).toEqual(c);
+      expect(new ArcadeSim("caravan-1", { act: a, composition: "all" }).caravan).toEqual(c);
       expect(c.state).toBe("hidden");
     }
     const sim = new ArcadeSim("caravan-1", { act: "short" });
