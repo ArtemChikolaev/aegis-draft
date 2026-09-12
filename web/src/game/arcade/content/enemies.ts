@@ -45,6 +45,8 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
     id: "ancient", hp: 9000, speed: 0, dmg: 55, r: 58, xp: 300, gold: 200, structure: true, unstoppable: true, fromMin: 99, weight: 0, tone: "boss",
     ranged: { range: 560, every: 1.0, speed: 280 },
   },
+  /** Знаменосец патруля (T13.78, «Осада леса»): ходит по тропам между местами с охраной; убит — местная волна слабеет. */
+  standard_bearer: { id: "standard_bearer", hp: 260, speed: 84, dmg: 16, r: 14, xp: 24, gold: 12, fromMin: 99, weight: 0, elite: true, tone: "elite" },
 };
 
 /** Пул обычного спавна на минуте `min` (виды, доступные к этому времени). */

@@ -8,12 +8,12 @@ import { COMPOSITIONS, ROLLED_COMPOSITIONS, compositionFor } from "../src/game/a
 const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen || sim.riftOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
 
 describe("композиции акта", () => {
-  it("по seed: детерминированно, только для полного акта, оба набора встречаются", () => {
+  it("по seed: детерминированно, только для полного акта, все наборы встречаются", () => {
     expect(compositionFor("a", "full")).toBe(compositionFor("a", "full"));
     expect(compositionFor("a", "short")).toBe("all");
     expect(compositionFor("a", "dire")).toBe("all");
     const seen = new Set<string>();
-    for (let i = 0; i < 40; i++) seen.add(compositionFor(`seed-${i}`, "full"));
+    for (let i = 0; i < 60; i++) seen.add(compositionFor(`seed-${i}`, "full"));
     expect([...seen].sort()).toEqual([...ROLLED_COMPOSITIONS].sort());
   });
 
@@ -91,4 +91,35 @@ describe("композиции акта", () => {
     plain.caravan!.state = "arrived";
     expect(plain.forgePrice("temper")).toBe(full);
   });
+
+  it("«Осада леса» (T13.78): патруль — знаменосец с охраной по расписанию; охрана держится у него; гибель знаменосца ослабляет спавн и деморализует охрану", () => {
+    const S = ARCADE.siege;
+    const sim = new ArcadeSim("siege-1", { act: "short", composition: "siege" });
+    expect(sim.actProperty()).toBe("siege");
+    expect(sim.camp && sim.grove && sim.lair && sim.forge && sim.pond && sim.outpost).toBeTruthy();
+    expect(sim.caravan).toBeNull(); expect(sim.rift).toBeNull(); expect(sim.barrow).toBeNull();
+    step(sim, S.firstAt + 5);
+    const bearers = sim.enemies.filter((e) => e.alive && e.kind.id === "standard_bearer");
+    expect(bearers).toHaveLength(1);
+    const bearer = bearers[0];
+    const escorts = sim.enemies.filter((e) => e.alive && e.leader === bearer.id);
+    expect(escorts).toHaveLength(S.escorts);
+    expect(bearer.wpX !== 0 || bearer.wpY !== 0).toBe(true);
+    // Знаменосец идёт к точке маршрута, а не к герою; охрана рядом с ним.
+    const d0 = Math.hypot(bearer.wpX - bearer.x, bearer.wpY - bearer.y);
+    step(sim, 120);
+    expect(Math.hypot(bearer.wpX - bearer.x, bearer.wpY - bearer.y)).toBeLessThan(d0);
+    for (const e of escorts) if (e.alive) expect(Math.hypot(e.x - bearer.x, e.y - bearer.y)).toBeLessThan(S.leash + 80);
+    // Гибель: волна слабее, охрана без вожака и берёт больше урона.
+    expect(sim.siegeMult()).toBe(1);
+    sim.damageEnemy(bearer, 1e9, "hit");
+    expect(bearer.alive).toBe(false);
+    expect(sim.siegeMult()).toBe(S.weakMult);
+    expect(sim.siegeWeakUntil).toBe(sim.tick + Math.round(S.weakSec * 60));
+    for (const e of escorts) if (e.alive) { expect(e.leader).toBe(0); expect(e.ampMult).toBeGreaterThanOrEqual(S.escortAmp); }
+    // Не больше maxBearers живых; вне «Осады» патрулей нет.
+    const other = new ArcadeSim("siege-1", { act: "short", composition: "wilds" });
+    step(other, S.firstAt + S.every * 2 + 10);
+    expect(other.enemies.some((e) => e.alive && e.kind.id === "standard_bearer")).toBe(false);
+  }, 30_000);
 });

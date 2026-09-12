@@ -4,13 +4,14 @@
 // (лечение/очищение), аванпост (обзор) и не меньше двух чемпионов — иначе контракт не предложить.
 import type { ActId } from "../types.ts";
 
-export type CompositionId = "all" | "wilds" | "trade";
+export type CompositionId = "all" | "wilds" | "trade" | "siege";
 export type PlaceId = "camp" | "outpost" | "pond" | "grove" | "barrow" | "forge" | "rift" | "caravan" | "lair";
 
 /** Свойство акта (T13.73): одно объявленное взаимодействие мест на композицию.
  *  `tainted_pond` — пруд заражён, пока стоит лагерь: лечит вдвое слабее и не снимает порчу; очистил лагерь — пруд чист и снова готов.
- *  `caravan_forge` — караван везёт материалы: после его прибытия цены кузни вдвое ниже. */
-export type ActProperty = "tainted_pond" | "caravan_forge";
+ *  `caravan_forge` — караван везёт материалы: после его прибытия цены кузни вдвое ниже.
+ *  `siege` — «Осада леса»: патрули со знаменосцем ходят по тропам между местами; убил знаменосца — местная волна слабеет. */
+export type ActProperty = "tainted_pond" | "caravan_forge" | "siege";
 
 export interface CompositionDef {
   id: CompositionId;
@@ -27,10 +28,12 @@ export const COMPOSITIONS: Record<CompositionId, CompositionDef> = {
   wilds: { id: "wilds", places: ["camp", "outpost", "pond", "grove", "barrow", "lair"], property: "tainted_pond" },
   /** Торговый путь: караван, кузня, разлом — золото и снаряжение; из чемпионов только Кентавр и Гром-голем. */
   trade: { id: "trade", places: ["outpost", "pond", "grove", "forge", "rift", "caravan", "lair"], property: "caravan_forge" },
+  /** Осада леса: лагерь, роща, логово, кузня — и патрули со знаменосцами между ними; без каравана, разлома и кургана. */
+  siege: { id: "siege", places: ["camp", "outpost", "pond", "grove", "lair", "forge"], property: "siege" },
 };
 
 /** Композиции, между которыми выбирает seed в полном Radiant-акте. */
-export const ROLLED_COMPOSITIONS: readonly CompositionId[] = ["wilds", "trade"];
+export const ROLLED_COMPOSITIONS: readonly CompositionId[] = ["wilds", "trade", "siege"];
 
 export function isCompositionId(id: unknown): id is CompositionId {
   return typeof id === "string" && id in COMPOSITIONS;

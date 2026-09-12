@@ -902,6 +902,11 @@ export class ArcadeRenderer {
         c.fillStyle = pal.hpBg; c.fillRect(e.x - w / 2, e.y - r - 16, w, 5);
         c.fillStyle = pal.hp; c.fillRect(e.x - w / 2, e.y - r - 16, w * Math.max(0, e.hp / e.maxHp), 5);
       }
+      if (e.kind.id === "standard_bearer") {
+        // Знамя патруля (T13.78): древко и флажок над знаменосцем — читается издалека как цель.
+        c.strokeStyle = pal.text; c.lineWidth = 2; c.beginPath(); c.moveTo(e.x + r * 0.8, e.y - r * 0.4); c.lineTo(e.x + r * 0.8, e.y - r - 30); c.stroke();
+        c.fillStyle = pal.crit; c.beginPath(); c.moveTo(e.x + r * 0.8, e.y - r - 30); c.lineTo(e.x + r * 0.8 + 16, e.y - r - 24); c.lineTo(e.x + r * 0.8, e.y - r - 18); c.closePath(); c.fill();
+      }
       const defiler = e.kind.id === "satyr_defiler";
       const warden = e.kind.id === "centaur_warden";
       if (warden && e.slamT > 0 && e.chargeLeft === -1) {

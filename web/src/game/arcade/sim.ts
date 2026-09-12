@@ -129,6 +129,9 @@ export class ArcadeSim {
   caravanGift = false;
   /** «Долг силы» (T13.75): одна карта в долг за акт. */
   debtOfferTaken = false;
+  /** Осада леса (T13.78): следующий патруль и до какого тика волна ослаблена после гибели знаменосца. */
+  private nextPatrolAt = 0;
+  siegeWeakUntil = 0;
   /** Токен нейтралки на карте и открытый выбор (мир стоит, как в лавке). */
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
@@ -2377,6 +2380,12 @@ export class ArcadeSim {
     if (this.rift?.state === "active") this.rift.kills++;
     this.events.kills++;
     this.killsByKind[e.kind.id] = (this.killsByKind[e.kind.id] ?? 0) + 1;
+    if (e.kind.id === "standard_bearer") {
+      // Знаменосец пал: местная волна слабеет, охрана деморализована и без вожака.
+      this.siegeWeakUntil = this.tick + sec(ARCADE.siege.weakSec);
+      for (const o of this.enemies) if (o.alive && o.leader === e.id) { o.leader = 0; o.ampUntil = this.tick + sec(ARCADE.siege.escortAmpSec); o.ampMult = Math.max(o.ampMult, ARCADE.siege.escortAmp); }
+      this.pushFx("nova", e.x, e.y, 120, 0, 20);
+    }
     const sig = this.hero.signature;
     if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (e.kind.elite || e.kind.boss ? 6 : 1));
     if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1));
@@ -2725,7 +2734,8 @@ export class ArcadeSim {
     if (this.tick < this.respiteUntil) return;
     const min = this.minutes;
     const greedy = this.tick < this.greedUntil;
-    const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
+    if (this.actProperty() === "siege") this.tickPatrols();
+    const rate = this.siegeMult() * (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min, this.act);
     const alive = this.aliveEnemies();
@@ -2739,7 +2749,7 @@ export class ArcadeSim {
       this.lastWaveAt = this.tick;
       const waveNo = Math.round(this.tick / ARCADE.waves.every);
       const [ox, oy] = this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40);
-      const size = Math.round((ARCADE.waves.size + Math.floor(min / 2)) * (this.rank.bigWaves ? 1.5 : 1));
+      const size = Math.round((ARCADE.waves.size + Math.floor(min / 2)) * (this.rank.bigWaves ? 1.5 : 1) * this.siegeMult());
       for (let i = 0; i < size; i++) this.spawnEnemy(ENEMY_KINDS.lane_creep, ox + (this.rng.float() - 0.5) * 120, oy + (this.rng.float() - 0.5) * 120);
       if (waveNo % (this.rank.siegeOften ? 3 : ARCADE.waves.siegeEvery) === 0) this.spawnEnemy(ENEMY_KINDS.siege_creep, ox, oy);
     }
@@ -2913,6 +2923,7 @@ export class ArcadeSim {
       if (e.kind.id === "thunder_golem") { this.moveThunder(e, dx, dy, d); continue; }
       if (e.kind.id === "river_warden") { this.moveWarden(e, dx, dy, d); continue; }
       if (e.kind.id === "dire_stalker") { this.moveStalker(e, dx, dy, d); continue; }
+      if (e.kind.id === "standard_bearer") { this.moveBearer(e, d, frozen); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -2946,9 +2957,19 @@ export class ArcadeSim {
           if (od > 0 && od < minD) { sx += ox / od * (minD - od); sy += oy / od * (minD - od); }
         }
       }
+      // Охрана патруля (T13.78): пока герой дальше `aggro`, держится у знаменосца; он погиб — обычная толпа.
+      let tx = dx / d, ty = dy / d;
+      if (e.leader > 0 && d > ARCADE.siege.aggro) {
+        const lead = this.enemies.find((o) => o.alive && o.id === e.leader);
+        if (!lead) e.leader = 0;
+        else {
+          const lx = lead.x - e.x, ly = lead.y - e.y, ld = len(lx, ly);
+          if (ld < ARCADE.siege.leash) { tx = 0; ty = 0; } else { tx = lx / ld; ty = ly / ld; }
+        }
+      }
       const ex0 = e.x, ey0 = e.y;
-      e.x += (dx / d * speed) * DT + sx * 0.5;
-      e.y += (dy / d * speed) * DT + sy * 0.5;
+      e.x += (tx * speed) * DT + sx * 0.5;
+      e.y += (ty * speed) * DT + sy * 0.5;
       if (!e.kind.boss && !e.kind.structure && !e.kind.unstoppable) {
         [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
         // Застрял за деревом — обойти по касательной (иначе толпа копится за стволами и не доходит).
@@ -3357,6 +3378,57 @@ export class ArcadeSim {
       p.items.splice(idx, 1);
       this.recomputeStats();
     }
+  }
+
+  /** Осада леса (T13.78): множитель спавна леса и волн — ослаблены после гибели знаменосца. */
+  siegeMult(): number {
+    return this.tick < this.siegeWeakUntil ? ARCADE.siege.weakMult : 1;
+  }
+
+  /** Патрули: знаменосец с охраной из пула минуты, по расписанию, не больше `maxBearers` живых. */
+  private tickPatrols(): void {
+    const C = ARCADE.siege;
+    if (this.nextPatrolAt === 0) this.nextPatrolAt = C.firstAt;
+    if (this.actTick < this.nextPatrolAt) return;
+    this.nextPatrolAt = this.actTick + C.every;
+    let bearers = 0;
+    for (const e of this.enemies) if (e.alive && e.kind.id === "standard_bearer") bearers++;
+    if (bearers >= C.maxBearers) return;
+    const [x, y] = this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40);
+    const bearer = this.spawnEnemy(ENEMY_KINDS.standard_bearer, x, y);
+    this.pickWaypoint(bearer);
+    const pool = spawnPool(this.minutes, this.act);
+    for (let i = 0; i < C.escorts; i++) {
+      const a = this.rng.float() * Math.PI * 2, r = 30 + this.rng.float() * 40;
+      const esc = this.spawnEnemy(weightedPick(this.rng, pool), clamp(x + Math.cos(a) * r, 8, ARCADE.world.w - 8), clamp(y + Math.sin(a) * r, 8, ARCADE.world.h - 8));
+      esc.leader = bearer.id;
+    }
+  }
+
+  /** Следующая точка маршрута знаменосца — одно из мест карты (по тропам между ними), кроме той, где он стоит. */
+  private pickWaypoint(e: Enemy): void {
+    const spots: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.lair, this.forge]) if (o && len(o.x - e.x, o.y - e.y) > 120) spots.push(o);
+    const t = spots.length ? spots[this.rng.int(spots.length)] : { x: ARCADE.world.w / 2, y: ARCADE.world.h / 2 };
+    e.wpX = t.x; e.wpY = t.y;
+  }
+
+  /** Знаменосец идёт по маршруту и не гонится за героем; коснулся — бьёт. */
+  private moveBearer(e: Enemy, d: number, frozen: boolean): void {
+    if (frozen) return;
+    const wx = e.wpX - e.x, wy = e.wpY - e.y, wd = len(wx, wy);
+    if (wd < 30) { this.pickWaypoint(e); return; }
+    let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1);
+    if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
+    const ex0 = e.x, ey0 = e.y;
+    e.x += wx / wd * speed * DT; e.y += wy / wd * speed * DT;
+    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
+      const [mx, my] = this.obstacles.steer(ex0, ey0, wx / wd, wy / wd, e.kind.r * 0.8, 28);
+      e.x = ex0 + mx * speed * DT; e.y = ey0 + my * speed * DT;
+      [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    }
+    this.contactDamage(e, d);
   }
 
   /** Свойство акта (T13.73) — из композиции; у разминки/Dire/River его нет. */
@@ -3962,7 +4034,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, leader: 0, wpX: 0, wpY: 0,
   };
 }
 
@@ -3970,7 +4042,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
 function resetEnemy(e: Enemy, kind: EnemyKind): void {
   e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
   e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
-  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0;
+  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.leader = 0; e.wpX = 0; e.wpY = 0;
 }
 
 function cellKey(x: number, y: number): number {

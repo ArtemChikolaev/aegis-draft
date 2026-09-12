@@ -13,7 +13,7 @@ const quiet = (sim: ArcadeSim) => { for (const e of sim.enemies) if (e.alive && 
 describe("Тролль-Некромант", () => {
   it("курган по seed вдали от других мест, два идола, спящие неуязвимы и не цели; вход будит", () => {
     for (const act of ["short", "full", "dire", "river"] as const) {
-      const a = new ArcadeSim("necro-1", { act }), b = new ArcadeSim("necro-1", { act });
+      const a = new ArcadeSim("necro-1", { act, composition: "all" }), b = new ArcadeSim("necro-1", { act, composition: "all" });
       expect(a.barrow).toEqual(b.barrow);
       const bw = a.barrow!;
       for (const o of [a.camp!, a.outpost!, a.pond!, a.grove!]) expect(Math.hypot(bw.x - o.x, bw.y - o.y), act).toBeGreaterThanOrEqual(N.minFromOthers - 60);

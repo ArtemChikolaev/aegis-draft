@@ -566,6 +566,7 @@ function ArcadeStage() {
                 {sim.pit && tide && tide.phase !== "low" && <Chip data-testid="arcade-tide-chip">{t(tide.phase === "high" ? "arcade.hud.tideHigh" : "arcade.hud.tideWarn", { time: formatClock(tide.left) })}</Chip>}
                 {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
+                {sim.tick < sim.siegeWeakUntil && <Chip data-testid="arcade-siege-chip">{t("arcade.hud.siegeWeak", { time: formatClock(sim.siegeWeakUntil - sim.tick) })}</Chip>}
                 {sim.ritualActive() && sim.player.ritualKind && <Chip data-testid="arcade-ritual-chip">{t(`arcade.ritual.${sim.player.ritualKind}` as MessageKey)} {formatClock(sim.player.ritualUntil - sim.tick)}</Chip>}
                 {sim.composition !== "all" && <Chip data-testid="arcade-composition-chip">{t(`arcade.composition.${sim.composition}` as MessageKey)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>

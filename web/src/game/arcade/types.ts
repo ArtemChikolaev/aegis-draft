@@ -52,7 +52,8 @@ export type EnemyKindId =
   | "kobold" | "kobold_foreman" | "hill_troll" | "satyr" | "ogre" | "centaur" | "wildwing"
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
   | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
-  | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker";
+  | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker"
+  | "standard_bearer";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -170,6 +171,10 @@ export interface Enemy {
   /** Corrosive Haze (Slardar): до какого тика цель получает на ampMult больше урона. */
   ampUntil: number;
   ampMult: number;
+  /** Осада леса (T13.78): у охраны патруля — id знаменосца (0 — нет); у знаменосца — точка маршрута. */
+  leader: number;
+  wpX: number;
+  wpY: number;
   /** Осквернитель (T13.41): после окна контроля — иммунитет к повторному до этого тика. */
   ccResistUntil: number;
   /** Кентавр (T13.45): рывок — направление и оставшийся путь (−1 = телеграф рывка идёт); попал ли уже в героя. */

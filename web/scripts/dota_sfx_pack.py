@@ -177,6 +177,8 @@ ENEMIES = {
     "kobold_foreman": {"attack": [f"{C}neutral/kobold_whip_01", f"{C}neutral/kobold_whip_02"], "death": [f"{D}death_kobold_taskmaster"]},
     "hill_troll": {"attack": melee, "death": [f"{D}death_troll_common_0{i}" for i in (1, 2, 3, 4)]},
     "dark_troll": {"attack": melee, "death": [f"{D}death_troll_warlord"]},
+    # Знаменосец патруля (T13.78) — та же модель тёмного тролля, те же клипы.
+    "standard_bearer": {"attack": melee, "death": [f"{D}death_troll_warlord"]},
     "satyr": {"attack": melee, "death": [f"{D}death_satyr_0{i}" for i in (1, 2, 3, 4)], "aggro": [f"{C}neutral/satyr_hellcaster_cast"]},
     "ogre": {"attack": heavy, "death": [f"{D}death_ogre_0{i}" for i in (1, 2, 3, 4)]},
     "centaur": {"attack": [f"{C}neutral/centaur_khan_stomp_01"] + heavy[:1], "death": [f"{D}death_centaur_khan", f"{D}death_centaur_outrunner"]},
