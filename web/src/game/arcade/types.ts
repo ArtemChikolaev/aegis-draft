@@ -425,6 +425,8 @@ export interface Player {
   aimY: number;
   aimUntil: number;
   attackCd: number;
+  /** Полная длина последней перезарядки удара в тиках (с учётом Frenzy/Fiery Soul): рендер ведёт анимацию удара по ней, а не по базовому интервалу. */
+  attackCdMax: number;
   stunUntil: number;
   invulnUntil: number;
   aegis: boolean;

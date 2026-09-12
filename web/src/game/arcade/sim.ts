@@ -263,7 +263,7 @@ export class ArcadeSim {
     const P = ARCADE.player;
     this.player = {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
-      facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
+      facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
       spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
@@ -1488,6 +1488,7 @@ export class ArcadeSim {
           if (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil) k *= 1 - Math.min(0.6, this.hero.signature.value * this.sigScale());
           if (this.tick < p.frenzyUntil) k *= 1 - p.frenzyMult;
           p.attackCd = sec(p.stats.attackInterval * Math.max(0.25, k));
+          p.attackCdMax = p.attackCd; // Alchemist в ярости (владелец 2026-09-12): рендер считал прогресс удара от базового интервала и застывал на последнем кадре
         }
         if (this.rangedNow()) {
           const d = len(target.x - p.x, target.y - p.y) || 1;

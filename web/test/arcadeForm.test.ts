@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { IDLE_INPUT } from "../src/game/arcade/types.ts";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
+import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 
 // Владелец 2026-09-06: «у Terrorblade третий скилл — Metamorphosis: меняется модель и он бьёт дальнобойно,
 // а сейчас он просто нажимает скилл и ничего не происходит».
@@ -35,6 +36,15 @@ describe("смена формы (Metamorphosis / Elder Dragon Form / True Form)"
     expect(sim.formNow()).not.toBeNull();
     expect(sim.rangedNow()).toBe(false);
     expect(sim.attackRange()).toBe(range);
+    // В ярости перезарядка удара короче базового интервала, и рендер должен вести анимацию по фактической длине.
+    for (const e of sim.enemies) e.alive = false;
+    const foe = (sim as unknown as { spawnEnemy(k: unknown, x: number, y: number): { hp: number; maxHp: number; stunUntil: number } }).spawnEnemy(ENEMY_KINDS.kobold, sim.player.x + 30, sim.player.y);
+    foe.hp = 1e6; foe.maxHp = 1e6; foe.stunUntil = 1e9;
+    sim.player.attackCd = 0;
+    let guard = 0; while (sim.player.attackCd === 0 && guard++ < 30) { sim.player.hp = sim.player.stats.maxHp; sim.step(IDLE_INPUT); }
+    expect(sim.player.attackCd).toBeGreaterThan(0);
+    expect(sim.player.attackCdMax).toBeGreaterThanOrEqual(sim.player.attackCd);
+    expect(sim.player.attackCdMax).toBeLessThan(Math.round(sim.player.stats.attackInterval * 60));
     // Листы формы есть в обоих пиксельных манифестах — у базы и у обоих сетов.
     const { readFileSync } = require("node:fs") as typeof import("node:fs");
     for (const man of ["scripts/blender/dota_manifest_px2.tsv", "scripts/blender/dota_manifest_px.tsv"]) {

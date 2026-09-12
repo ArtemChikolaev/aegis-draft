@@ -1075,7 +1075,7 @@ export class ArcadeRenderer {
       const k = 1 - (this.dashUntil - now) / 280;
       drawDust(c, p.x, p.y + R * 0.75, p.x - this.dashFrom.x, p.y - this.dashFrom.y, k, this.artPx(), pal);
     }
-    const atkTotal = sec(p.stats.attackInterval);
+    const atkTotal = p.attackCdMax || sec(p.stats.attackInterval); // фактическая перезарядка: при Frenzy короче базового интервала
     const atkT = p.attackCd > 0 && atkTotal - p.attackCd < atkTotal * 0.45 ? (atkTotal - p.attackCd) / (atkTotal * 0.45) : -1;
     const look = heroLook(sim.hero.kit, HERO_TINT[sim.hero.id] ?? pal.playerRing);
     const heroAnim: CharAnim = spinning || atkT >= 0 ? attackAnim(look) : "walk";
