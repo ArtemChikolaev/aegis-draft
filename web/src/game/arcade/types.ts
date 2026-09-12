@@ -543,6 +543,9 @@ export interface ArcadeOutcome {
   neutral: string | null;
   /** Добыча забега: всё подобранное (надетое новое + сумка) — уходит в инвентарь. */
   loot: GearLike[];
+  /** Композиция и Клятва охотника выполнена (T13.77 экспедиции). */
+  composition?: string;
+  oathDone?: boolean;
   /** Разбор смерти (T13.74): кто добил (вид врага), урон по источникам и полученный урон по видам врагов ("projectile" — снаряды без владельца). */
   killer?: string | null;
   dealtBySource?: Record<string, number>;

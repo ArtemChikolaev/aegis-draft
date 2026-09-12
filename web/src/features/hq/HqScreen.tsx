@@ -17,7 +17,8 @@ import { usePlaybook } from "../../state/playbookStore.ts";
 import { MARK_IDS, arcadeTrophies, useArcade } from "../../state/arcadeStore.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import type { EnemyKindId } from "../../game/arcade/types.ts";
-import { HEROES, HERO_IDS } from "../../game/arcade/content/heroes.ts";
+import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { rankOf } from "../../game/arcade/content/ranks.ts";
 import { COSMETICS } from "../../game/arcade/content/cosmetics.ts";
 import { formatClock } from "../arcade/renderer.ts";
@@ -95,6 +96,22 @@ export function HqScreen() {
               <li key={id} data-met={n > 0 ? "true" : undefined} data-champion={def.elite || def.boss || def.structure ? "true" : undefined}>
                 <strong>{n > 0 ? t(`arcade.enemy.${id}` as MessageKey) : "???"}</strong>
                 <span>{n > 0 ? `${t("hq.bestiaryKills", { n })} · ${t(`arcade.enemy.${id}.desc` as MessageKey)}` : t("hq.bestiaryUnknown")}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <h3 className="hq__sub">{t("arcade.expedition.title")}</h3>
+        <p className="hq__hint">{t("arcade.expedition.hint")}</p>
+        <ul className="hq__expeditions" data-testid="hq-expeditions">
+          {EXPEDITIONS.map((def) => {
+            const steps = arcade.expeditions[def.id] ?? {};
+            const done = def.steps.filter((s) => steps[s]).length;
+            return (
+              <li key={def.id} data-done={done === def.steps.length ? "true" : undefined} data-testid={`hq-expedition-${def.id}`}>
+                <strong>{t(`arcade.expedition.${def.id}` as MessageKey)} · {done}/{def.steps.length}{arcade.titles.includes(def.id) ? ` · ${t("arcade.expedition.titleEarned", { title: t(`arcade.expedition.${def.id}.reward` as MessageKey) })}` : ""}</strong>
+                {def.steps.map((s) => (
+                  <span key={s} data-on={steps[s] ? "true" : undefined}>{steps[s] ? "✓" : "○"} {t(`arcade.expstep.${s}` as MessageKey)}{steps[s] ? ` — ${heroOf(HEROES[(steps[s] as HeroId) in HEROES ? (steps[s] as HeroId) : "juggernaut"].dotaId).name}` : ""}</span>
+                ))}
               </li>
             );
           })}

@@ -40,6 +40,7 @@ const PX = pixelScale() >= 1;
 const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
 import { PAD_GLYPH } from "./gamepad.ts";
 import { compositionFor } from "../../game/arcade/content/compositions.ts";
+import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { groupHeroes, recentHeroes } from "./heroPicker.ts";
 import { ArcadeRenderer, formatClock } from "./renderer.ts";
 import "./arcade.css";
@@ -204,6 +205,7 @@ function ArcadeSetup() {
             <small className="arcade-trait__desc">{trait ? t(`arcade.trait.${trait}.desc` as MessageKey) : t("arcade.trait.base.desc")}</small>
           </div>
           <MasteryPanel marks={progress.perHero[heroId]?.marks ?? []} />
+          <ExpeditionsPanel progress={progress} heroId={heroId} />
         </Surface>
         <Surface className="arcade-setup__run">
           <div className="arcade-act" data-testid="arcade-act">
@@ -1330,6 +1332,28 @@ function affixLabel(t: (k: MessageKey, v?: Record<string, string | number>) => s
 /** Панель баффов рун (T13.32, владелец: «нет индикации, сколько действует руна»): иконка модели руны,
  *  имя, остаток времени и тающая полоска; щит показывает ещё и запас, иллюзии — их число. */
 /** Мастерство героя (T13.48): отметки за события забега — звание и трофеи после потолка Наследия. */
+/** Экспедиции (T13.77): на подготовке — какие шаги открыты и может ли выбранный герой их закрыть (в одной экспедиции герой берёт один шаг). */
+function ExpeditionsPanel({ progress, heroId }: { progress: ArcadeProgress; heroId: HeroId }) {
+  const { t } = useI18n();
+  const total = EXPEDITIONS.length;
+  const done = EXPEDITIONS.filter((d) => progress.titles.includes(d.id)).length;
+  return (
+    <div className="arcade-mastery arcade-expeditions" data-testid="arcade-expeditions">
+      <span className="arcade-setup__label">{t("arcade.expedition.title")} · {done}/{total}</span>
+      <div className="arcade-mastery__marks">
+        {EXPEDITIONS.map((def) => {
+          const steps = progress.expeditions[def.id] ?? {};
+          const n = def.steps.filter((s) => steps[s]).length;
+          const heroUsed = Object.values(steps).includes(heroId);
+          const next = def.steps.find((s) => !steps[s]);
+          const title = next && !heroUsed ? `${t(`arcade.expstep.${next}` as MessageKey)}` : heroUsed && n < 3 ? t("arcade.expedition.heroUsed") : t(`arcade.expedition.${def.id}.reward` as MessageKey);
+          return <span key={def.id} className="arcade-mastery__mark" data-on={n === 3 ? "true" : undefined} title={title} data-testid={`arcade-expedition-${def.id}`}>{t(`arcade.expedition.${def.id}` as MessageKey)} {n}/3</span>;
+        })}
+      </div>
+    </div>
+  );
+}
+
 function MasteryPanel({ marks }: { marks: readonly MarkId[] }) {
   const { t } = useI18n();
   return (

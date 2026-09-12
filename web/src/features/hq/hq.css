@@ -47,3 +47,10 @@
 .hq__bestiary li { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; color: var(--muted); }
 .hq__bestiary li[data-met] { color: var(--text); }
 .hq__bestiary li[data-champion][data-met] { border-color: var(--accent-strong); }
+
+/* Экспедиции (T13.77): три шага разными героями. */
+.hq__expeditions { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.hq__expeditions li { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 12px; color: var(--muted); }
+.hq__expeditions li strong { color: var(--text); font-size: 13px; }
+.hq__expeditions li[data-done] { border-color: var(--accent-strong); background: var(--accent-soft); }
+.hq__expeditions li span[data-on] { color: var(--text); }

@@ -11,6 +11,7 @@ import type { AbilityKey, ActId, ArcadeOutcome, SchoolId } from "../game/arcade/
 import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
+import { EXPEDITIONS, EXPEDITION_BY_ID, expeditionStepDone } from "../game/arcade/content/expeditions.ts";
 import { LEGACY_MAX_RANK, LEGACY_NONE, LEGACY_ZERO, clampLegacy, legacyBonus, legacySpentTotal, type LegacyBranch, type LegacySpent } from "../game/arcade/content/legacy.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
 import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
@@ -52,6 +53,12 @@ export interface ArcadeHistoryEntry {
   trait?: string;
   /** Убийства по видам за забег (T13.56). */
   killsByKind?: Record<string, number>;
+  /** Экспедиции (T13.77): состав карты, клятва выполнена, караван доведён, кузня использована, принятые порчи. */
+  composition?: string;
+  oath?: boolean;
+  caravan?: boolean;
+  forged?: boolean;
+  cursesTaken?: number;
 }
 
 /** Отметки мастерства героя (T13.48): победы по актам, без единой смерти, лагерь, аванпост, чемпионы. */
@@ -211,6 +218,9 @@ function sanitizeProgress(p: Partial<ArcadeProgress>): ArcadeProgress {
     // Наследие (T13.44): профиль до него — нули; потраченное не может превышать заработанное.
     legacy: { seals: Math.max(0, num(lg?.seals)), spent: clampLegacy(lg?.spent), claimed: Array.isArray(lg?.claimed) ? lg!.claimed.filter((k): k is string => typeof k === "string").slice(-LEGACY_CLAIMED_CAP) : [] },
     bestiary: Object.fromEntries(Object.entries(p.bestiary && typeof p.bestiary === "object" ? p.bestiary : {}).filter(([, v]) => typeof v === "number" && v > 0).map(([k, v]) => [k, Math.floor(v as number)])),
+    // Экспедиции (T13.77): профиль до них — пусто; чужие id и нестроковые герои отбрасываются.
+    expeditions: Object.fromEntries(Object.entries(p.expeditions && typeof p.expeditions === "object" ? p.expeditions : {}).filter(([id]) => id in EXPEDITION_BY_ID).map(([id, steps]) => [id, Object.fromEntries(Object.entries(steps && typeof steps === "object" ? steps : {}).filter(([step, hero]) => (EXPEDITION_BY_ID[id].steps as readonly string[]).includes(step) && typeof hero === "string"))])),
+    titles: Array.isArray(p.titles) ? p.titles.filter((t): t is string => typeof t === "string" && t in EXPEDITION_BY_ID) : [],
   };
 }
 
@@ -473,6 +483,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
       seed: sim.seed, outcome: o.outcome, seconds: Math.floor(o.tick / 60), level: o.level, kills: o.kills, gold: o.gold,
       schools: o.schools, configVersion: ARCADE_CONFIG_VERSION, at: Date.now(), rank: o.rank, greedStacks: o.greedStacks, items: o.items, hero: o.hero, act: o.act,
       camp: o.campsCleared > 0, outpost: o.outpostCaptured, centaur: o.centaurSlain, necro: o.necromancerSlain, revived: o.revived, contract: o.contractDone, thunder: o.thunderSlain, warden: o.wardenSlain, stalker: o.stalkerSlain, rift: o.riftDone, killsByKind: o.killsByKind, ...(o.trait ? { trait: o.trait } : {}),
+      composition: o.composition, oath: o.oathDone, caravan: o.caravanDone, forged: o.forged, cursesTaken: o.cursesTaken,
     };
     const history = [entry, ...get().history].slice(0, HISTORY_CAP);
     void writePersisted(HISTORY_KEY, JSON.stringify(history));
@@ -566,10 +577,14 @@ export interface ArcadeProgress extends ArcadeTrophies {
   legacy: { seals: number; spent: LegacySpent; claimed: string[] };
   /** Бестиарий (T13.56): суммарные убийства по видам врагов за все забеги. */
   bestiary: Record<string, number>;
+  /** Экспедиции (T13.77): id → шаг → герой, который его закрыл (в одной экспедиции герой закрывает не больше одного шага). */
+  expeditions: Record<string, Record<string, string>>;
+  /** Титулы за завершённые экспедиции (id экспедиции). */
+  titles: string[];
 }
 
 export function emptyProgress(): ArcadeProgress {
-  return { v: 1, acts: [], runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {}, legacy: { seals: 0, spent: { ...LEGACY_ZERO }, claimed: [] }, bestiary: {} };
+  return { v: 1, acts: [], runs: 0, victories: 0, fullVictories: 0, bestRank: null, bestSeconds: 0, perHero: {}, legacy: { seals: 0, spent: { ...LEGACY_ZERO }, claimed: [] }, bestiary: {}, expeditions: {}, titles: [] };
 }
 
 /** Ключ завершения для однократной награды (дейлик содержит дату в сиде — не чаще раза в день). */
@@ -578,6 +593,23 @@ export function legacyClaimKey(e: Pick<ArcadeHistoryEntry, "seed" | "hero" | "ac
 }
 
 /** Одно завершение забега поверх профиля. Разминка считается забегом и победой, но акт/ступень не открывает. */
+/** Экспедиции (T13.77): забег закрывает шаги, которые ещё открыты, но в одной экспедиции герой берёт не больше одного шага —
+ *  иначе «три разных героя» превращаются в «три победы одним». Порядок шагов свободный; ничего не сбрасывается. */
+function recordExpeditions(prev: Record<string, Record<string, string>>, hero: string, e: ArcadeHistoryEntry): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {};
+  for (const [id, steps] of Object.entries(prev)) out[id] = { ...steps };
+  for (const def of EXPEDITIONS) {
+    const steps = (out[def.id] ??= {});
+    if (Object.values(steps).includes(hero)) continue;
+    for (const step of def.steps) {
+      if (steps[step] || !expeditionStepDone(step, e)) continue;
+      steps[step] = hero;
+      break;
+    }
+  }
+  return out;
+}
+
 export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): ArcadeProgress {
   const hero = e.hero ?? "juggernaut";
   const prev = p.perHero[hero] ?? { runs: 0, victories: 0, bestSeconds: 0, bestLevel: 0, marks: [] };
@@ -586,7 +618,8 @@ export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): Arcade
   if (e.camp) mark("camp"); if (e.outpost) mark("outpost"); if (e.centaur) mark("centaur"); if (e.necro) mark("necro"); if (e.contract) mark("contract"); if (e.thunder) mark("thunder"); if (e.warden) mark("warden"); if (e.stalker) mark("stalker"); if (e.rift) mark("rift");
   const bestiary = { ...p.bestiary };
   for (const [k, n] of Object.entries(e.killsByKind ?? {})) if (n > 0) bestiary[k] = (bestiary[k] ?? 0) + n;
-  const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] }, bestiary };
+  const next: ArcadeProgress = { ...p, acts: [...p.acts], runs: p.runs + 1, bestSeconds: Math.max(p.bestSeconds, e.seconds), perHero: { ...p.perHero, [hero]: h }, legacy: { ...p.legacy, spent: { ...p.legacy.spent }, claimed: [...p.legacy.claimed] }, bestiary, expeditions: recordExpeditions(p.expeditions ?? {}, hero, e), titles: [...(p.titles ?? [])] };
+  for (const def of EXPEDITIONS) if (def.steps.every((s) => next.expeditions[def.id]?.[s]) && !next.titles.includes(def.id)) next.titles.push(def.id);
   if (e.outcome === "victory") {
     next.victories++; h.victories++;
     if (e.act && e.act !== "short") {

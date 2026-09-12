@@ -2613,6 +2613,7 @@ export class ArcadeSim {
       contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
       riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null, caravanDone: this.caravan?.state === "arrived", trait: this.trait?.id ?? null,
       killer: outcome === "dead" ? KIND_BY_INDEX[this.events.hurtBy] ?? null : null, dealtBySource: { ...this.dealtBySource }, takenByKind: { ...this.takenByKind },
+      composition: this.composition, oathDone: (this.contract?.done && this.contract.oath) === true,
     };
   }
 
