@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.65.0";
+export const ARCADE_CONFIG_VERSION = "a0.66.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -82,7 +82,7 @@ export const ARCADE = {
   /** Осада леса (T13.78): патруль — знаменосец + `escorts` охраны из пула минуты, первый на `firstAt`, дальше каждые `every`;
    *  знаменосец ходит между местами, охрана держится в `leash` от него, пока герой дальше `aggro`. Убит знаменосец —
    *  `weakSec` секунд лес и волны спавнятся ×`weakMult`, охрана деморализована (берёт +`escortAmp` урона `escortAmpSec` с). */
-  siege: { firstAt: sec(60), every: sec(40), escorts: 4, leash: 90, aggro: 220, weakSec: 45, weakMult: 0.5, escortAmp: 0.5, escortAmpSec: 8, maxBearers: 3 },
+  siege: { firstAt: sec(60), every: sec(50), escorts: 4, leash: 90, aggro: 220, weakSec: 25, weakMult: 0.5, escortAmp: 0.5, escortAmpSec: 8, maxBearers: 3 },
   build: { debtRarity: "exotic" as const, ritual: { seconds: 180, healMult: 1.5, goldMult: 1.5, dmgMult: 1.1 } },
   /** Кентавр-Страж рощи (T13.45, этап 3 аудита): чемпион с рывком. Спит в роще (по seed, рядом с камнями), пока
    *  герой не войдёт в `wakeRadius` или не ударит. В `chargeRange` — телеграф `chargeTelegraph` (стрелка на позицию
