@@ -100,8 +100,10 @@ jobs:
         run: npm run gen:mock
       - name: Валидация контракта данных (JSON Schema)
         run: npm run validate:data
+      # Репортер github-actions пишет упавшие тесты аннотациями: их видно через публичный API check-runs,
+      # когда сам лог джоба без токена недоступен (2026-09-12: плавающее падение искали вслепую).
       - name: Unit tests (Vitest)
-        run: npm run test
+        run: npm run test -- --reporter=default --reporter=github-actions
       # Бинарь Chromium (~150 МБ) не меняется между прогонами, пока не бампнут @playwright/test.
       - uses: actions/cache@v4
         id: playwright-cache
