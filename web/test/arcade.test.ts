@@ -145,8 +145,11 @@ describe("arcade sim", () => {
     expect(sim.tick).toBe(tick + 1);
   });
 
-  it("каждый герой детерминирован, реплеится и наносит урон своим китом", () => {
+  // Тест async и отдаёт event loop после каждого героя: 40+ с синхронного цикла на раннере CI глушили RPC воркера
+  // («[vitest-worker]: Timeout calling "onTaskUpdate"» при всех зелёных проверках, 2026-09-12).
+  it("каждый герой детерминирован, реплеится и наносит урон своим китом", async () => {
     for (const hero of HERO_IDS) {
+      await new Promise<void>((r) => setImmediate(r));
       const a = new ArcadeSim(`hero-${hero}`, { hero });
       const b = new ArcadeSim(`hero-${hero}`, { hero });
       for (let i = 0; i < sec(90); i++) {
@@ -162,22 +165,23 @@ describe("arcade sim", () => {
     }
   }, 180_000); // 126 героев × (2 сима + реплей) по 90 с: ~23 с на M-серии (2026-09-12, с местами и патрулями), на раннере CI в 60 с уже не укладывалось: ~2.5 с на M-серии, на раннере CI укладывалось не всегда в дефолтные 5 с (упало 2026-09-06).
 
-  it("полный акт: второй Рошан на 14:00 сильнее, Древний на 20:00, его смерть — победа", () => {
+  it("полный акт: второй Рошан на 14:00 сильнее, Древний на 20:00, его смерть — победа", async () => {
     const sim = new ArcadeSim("full-1", { act: "full" });
-    const run = (until: number) => { while (sim.tick < until && !sim.over) { sim.player.hp = 1e6; sim.step(scriptedInput(sim, sim.tick)); } };
-    run(sec(7 * 60 + 2));
+    // Отдаём event loop каждые 30 игровых секунд — той же болезни RPC воркера ради (см. тест героев выше).
+    const run = async (until: number) => { while (sim.tick < until && !sim.over) { const chunk = Math.min(until, sim.tick + sec(30)); while (sim.tick < chunk && !sim.over) { sim.player.hp = 1e6; sim.step(scriptedInput(sim, sim.tick)); } await new Promise<void>((r) => setImmediate(r)); } };
+    await run(sec(7 * 60 + 2));
     const first = sim.roshan!;
     expect(first.alive).toBe(true);
     // Пул переиспользует объекты — запоминаем число, а не ссылку.
     const firstMaxHp = first.maxHp;
     first.hp = 0; sim.damageEnemy(first, 1, "hit");
     expect(sim.over).toBeNull();
-    run(sec(14 * 60 + 2));
+    await run(sec(14 * 60 + 2));
     const second = sim.roshan!;
     expect(second.alive).toBe(true);
     expect(second.maxHp).toBeGreaterThan(firstMaxHp * 1.3);
     second.hp = 0; sim.damageEnemy(second, 1, "hit");
-    run(sec(20 * 60 + 2));
+    await run(sec(20 * 60 + 2));
     expect(sim.ancient?.alive).toBe(true);
     expect(sim.over).toBeNull();
     sim.ancient!.hp = 1; sim.damageEnemy(sim.ancient!, 5, "hit");
