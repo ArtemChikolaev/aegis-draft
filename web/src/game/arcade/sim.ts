@@ -2046,7 +2046,8 @@ export class ArcadeSim {
       if (p.stackTarget === e.id) p.stacks = Math.min(sig.cap ?? 12, p.stacks + 1); else { p.stacks = 1; p.stackTarget = e.id; }
       dmg += p.stacks * sig.value * sc;
     } else if (sig?.kind === "marksmanship") {
-      if (len(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) { dmg *= 1 + sig.value * sc; kind = "crit"; }
+      // Пассивная прибавка за дистанцию, не крит: не красим в крит, иначе Drow «критует» каждым выстрелом (владелец 2026-09-12).
+      if (len(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) dmg *= 1 + sig.value * sc;
     } else if (sig?.kind === "timelock" && this.rng.float() < Math.min(0.5, sig.value * sc)) {
       dmg += 20 * sc; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(sig.duration ?? 0.5)); kind = "crit";
     } else if (sig?.kind === "crit" && this.rng.float() < Math.min(0.6, sig.value * sc)) {

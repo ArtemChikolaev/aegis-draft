@@ -109,7 +109,8 @@ export class Soundscape {
       if (this.gate("hurt", now, 110) && this.play("enemies", pool, id === "roshan" ? 0.8 : 0.5)) handled.hurt = true;
     }
     // Крит героя — брызги.
-    if (ev.crits > this.seen.crits) { this.seen.crits = ev.crits; if (this.gate("crit", now, 120)) handled.crit = this.play("fx", pack.fx.crit, 0.45); }
+    // Крит звучит из heroSfx (общий удар Dota `weapons/crit1-4`), а не «спаттером» PA из пака — один звук, узнаваемый как крит.
+    if (ev.crits > this.seen.crits) this.seen.crits = ev.crits;
     // Уровень, покупка, руна, Aegis, Рошан.
     if (sim.player.level > this.seen.level) { this.seen.level = sim.player.level; handled.levelup = this.play("ui", pack.ui.levelup, 0.7); }
     if (sim.player.items.length > this.seen.items) { this.play("ui", pack.ui.buy, 0.7); }

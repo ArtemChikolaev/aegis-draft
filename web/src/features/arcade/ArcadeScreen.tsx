@@ -438,7 +438,7 @@ function ArcadeStage() {
       if (ev.eliteKills > seen.eliteKills) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 6; }
       else if (ev.kills > seen.kills && !handled.kill) sfxArcade("kill");
       // Удары — сэмплы Dota героя (heroSfx), синтетика остаётся фолбэком.
-      if (ev.crits > seen.crits) { if (!heroHitSfx(sim.hero.id, true, now) && !handled.crit) sfxArcade("crit"); }
+      if (ev.crits > seen.crits) { if (!heroHitSfx(sim.hero.id, true, now)) sfxArcade("crit"); }
       else if (ev.hits > seen.hits) { if (!heroHitSfx(sim.hero.id, false, now)) sfxArcade("hit"); }
       heroSpinSfx(sim.hero.id, sim.tick < sim.player.spinUntil && !sim.over && statusRef.current === "running");
       // Реплики героя.
