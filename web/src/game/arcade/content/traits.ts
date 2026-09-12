@@ -18,10 +18,10 @@ export interface TraitDef {
 }
 
 export const TRAITS: Record<TraitId, TraitDef> = {
-  berserk: { id: "berserk", mult: { damage: 1.2, attackInterval: 0.92, maxHp: 0.85 }, unlockMarks: 1 },
+  berserk: { id: "berserk", mult: { damage: 1.2, attackInterval: 0.92, maxHp: 0.9 }, unlockMarks: 1 },
   bulwark: { id: "bulwark", mult: { maxHp: 1.2, speed: 0.9 }, add: { armor: 3 }, unlockMarks: 1 },
   swift: { id: "swift", mult: { speed: 1.12, pickup: 1.15, damage: 0.9 }, unlockMarks: 2 },
-  scavenger: { id: "scavenger", mult: { pickup: 1.3, regen: 1.6, maxHp: 0.9 }, unlockMarks: 2 },
+  scavenger: { id: "scavenger", mult: { pickup: 1.2, regen: 1.4, maxHp: 0.9 }, unlockMarks: 2 },
 };
 
 export const TRAIT_IDS = Object.keys(TRAITS) as TraitId[];

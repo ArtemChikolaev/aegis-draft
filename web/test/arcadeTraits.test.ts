@@ -19,7 +19,7 @@ describe("стартовые особенности", () => {
     const base = new ArcadeSim("trait-1", { hero: "axe" }), b = new ArcadeSim("trait-1", { hero: "axe", trait: "berserk" });
     expect(base.trait).toBeNull(); expect(b.trait?.id).toBe("berserk");
     expect(b.player.stats.damage).toBeCloseTo(base.player.stats.damage * 1.2, 5);
-    expect(b.player.stats.maxHp).toBeCloseTo(base.player.stats.maxHp * 0.85, 5);
+    expect(b.player.stats.maxHp).toBeCloseTo(base.player.stats.maxHp * 0.9, 5);
     expect(b.player.stats.attackInterval).toBeCloseTo(base.player.stats.attackInterval * 0.92, 5);
     const w = new ArcadeSim("trait-1", { hero: "axe", trait: "bulwark" });
     expect(w.player.stats.armor).toBeCloseTo(base.player.stats.armor + 3, 5);
