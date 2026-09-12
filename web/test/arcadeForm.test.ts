@@ -50,15 +50,14 @@ describe("смена формы (Metamorphosis / Elder Dragon Form / True Form)"
     for (const man of ["scripts/blender/dota_manifest_px2.tsv", "scripts/blender/dota_manifest_px.tsv"]) {
       const ids = new Set(readFileSync(man, "utf8").split("\n").map((l) => l.split("\t")[0]));
       for (const id of ["alchemist@meta", "alchemist@frankenstein@meta", "alchemist@jungle_chief@meta"]) expect(ids.has(id), `${man} ${id}`).toBe(true);
-      // Клинки ножен висят на костях hand_weapon и в ярости сами уходят в руки; вне ярости их нет вовсе:
-      // база — ножны с `--drop-vgroup hand_weapon` (пустые), сеты — без оружия и ножен; @meta — ножны с клинками (база) или оружие сета.
+      // Клинки ножен висят на костях hand_weapon: в базовых клипах — в ножнах на спине (руки пустые), в ярости уходят в руки.
+      // Вне ярости у базы и сетов — ножны с мечами и без оружия в руках; @meta базы — те же ножны, @meta сета — оружие сета.
       for (const l of readFileSync(man, "utf8").split("\n")) {
         const c = l.split("\t"); if (!c[0]?.startsWith("alchemist")) continue;
-        expect(c[3] ?? "", c[0]).not.toContain("alchemist_sword"); // отдельная модель мечей не нужна: клинки — в ножнах
-        if (c[0] === "alchemist") { expect(c[2]).toContain("--drop-vgroup (?i)hand_weapon"); expect(c[3]).toContain("alchemist_scabbard"); }
-        else if (c[0] === "alchemist@meta") { expect(c[2]).not.toContain("--drop-vgroup"); expect(c[3]).toContain("alchemist_scabbard"); }
-        else if (c[0].endsWith("@meta")) expect(c[3] ?? "", c[0]).toMatch(/_weapon\.vmdl_c/);
-        else expect(c[3] ?? "", c[0]).not.toMatch(/_weapon\.vmdl_c|alchemist_scabbard/);
+        expect(c[3] ?? "", c[0]).not.toContain("alchemist_sword"); // отдельная модель мечей дублирует клинки ножен
+        expect(c[2], c[0]).not.toContain("--drop-vgroup");
+        if (c[0].endsWith("@meta") && c[0] !== "alchemist@meta") expect(c[3] ?? "", c[0]).toMatch(/_weapon\.vmdl_c/);
+        else { expect(c[3] ?? "", c[0]).toContain("alchemist_scabbard"); expect(c[3] ?? "", c[0]).not.toMatch(/_weapon\.vmdl_c/); }
       }
     }
   });
