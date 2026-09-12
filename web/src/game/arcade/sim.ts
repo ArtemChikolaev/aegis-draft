@@ -1435,7 +1435,7 @@ export class ArcadeSim {
     if (this.tick >= this.player.formUntil) return null;
     for (const key of ABILITY_KEYS) {
       const ab = this.hero.abilities[key];
-      if (ab.kind === "metamorphosis" && ab.form) return ab.form;
+      if (ab.form) return ab.form; // metamorphosis и «форма поверх бафа» (Chemical Rage: мечи наголо, тип атаки тот же)
     }
     return null;
   }
@@ -1700,6 +1700,8 @@ export class ArcadeSim {
         break;
       case "frenzy":
         p.frenzyUntil = this.tick + sec(ab.duration ?? 4); p.frenzyMult = value;
+        // Alchemist (владелец 2026-09-12): в Chemical Rage он достаёт мечи — лист `<hero>@meta` на время бафа, бой не меняется.
+        if (ab.form) p.formUntil = p.frenzyUntil;
         break;
       case "haste":
         p.hasteUntil = this.tick + sec(ab.duration ?? 5);

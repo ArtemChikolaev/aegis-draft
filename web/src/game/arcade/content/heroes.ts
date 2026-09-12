@@ -585,7 +585,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 12, radius: 300, duration: 4 },            // Acid Spray
     w: { kind: "lightning_bolt", value: [0, 90, 135, 180, 230], cooldown: 10, radius: 300, duration: 1.8 }, // Unstable Concoction
     e: { kind: "frost_arrows", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },          // Corrosive Weaponry
-    r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 15 },                      // Chemical Rage
+    r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 15, form: { ranged: false, range: 88 } }, // Chemical Rage: мечи наголо — лист @meta (владелец 2026-09-12), дальность как база
   }, { kind: "souls", value: 1.2, cap: 34 }),
   bane: hero("bane", 3, "bane", true, { maxHp: 620, armor: 3, damage: 25, speed: 162 }, {
     q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 240, duration: 2 },            // Enfeeble

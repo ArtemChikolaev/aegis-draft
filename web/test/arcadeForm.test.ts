@@ -24,6 +24,27 @@ describe("смена формы (Metamorphosis / Elder Dragon Form / True Form)"
     expect(sim.attackRange()).toBe(meleeRange);
   });
 
+  it("Alchemist: Chemical Rage — форма «мечи наголо» на время бафа, бой не меняется (владелец 2026-09-12)", () => {
+    const sim = new ArcadeSim("meta-alch", { hero: "alchemist" });
+    const range = sim.attackRange();
+    expect(sim.formNow()).toBeNull();
+    sim.player.abilities.r = 1; sim.player.cooldowns.r = 0;
+    cast(sim, "r");
+    expect(sim.player.frenzyUntil).toBeGreaterThan(sim.tick);
+    expect(sim.player.formUntil).toBe(sim.player.frenzyUntil);
+    expect(sim.formNow()).not.toBeNull();
+    expect(sim.rangedNow()).toBe(false);
+    expect(sim.attackRange()).toBe(range);
+    // Листы формы есть в обоих пиксельных манифестах — у базы и у обоих сетов.
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    for (const man of ["scripts/blender/dota_manifest_px2.tsv", "scripts/blender/dota_manifest_px.tsv"]) {
+      const ids = new Set(readFileSync(man, "utf8").split("\n").map((l) => l.split("\t")[0]));
+      for (const id of ["alchemist@meta", "alchemist@frankenstein@meta", "alchemist@jungle_chief@meta"]) expect(ids.has(id), `${man} ${id}`).toBe(true);
+      // База и сеты — без мечей в руках (sword/weapon только у @meta).
+      for (const l of readFileSync(man, "utf8").split("\n")) { const c = l.split("\t"); if (c[0]?.startsWith("alchemist") && !c[0].endsWith("@meta")) expect(c[3] ?? "", c[0]).not.toMatch(/alchemist_sword|_weapon\.vmdl_c/); }
+    }
+  });
+
   it("Lone Druid в True Form наоборот становится ближним бойцом", () => {
     const sim = new ArcadeSim("meta-ld", { hero: "lone_druid" });
     expect(sim.hero.ranged).toBe(true);

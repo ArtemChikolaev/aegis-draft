@@ -224,7 +224,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const [previewBg, setPreviewBg] = useState<PreviewBg>("none");
   const [lifeSize, setLifeSize] = useState(false);
   const [compare, setCompare] = useState(false);
-  const hasForm = Object.values(HEROES[hero].abilities).some((a) => a.kind === "metamorphosis");
+  const hasForm = Object.values(HEROES[hero].abilities).some((a) => a.form !== undefined);
   const formSheet = dotaSheetState(`${previewSheet}@meta`) !== "missing" ? `${previewSheet}@meta` : `${hero}@meta`;
   const worn = (sel.def?.id ?? null) === (equippedSkin?.id ?? null);
   const price = sel.def ? SHARD_PRICE[sel.def.rarity] : 0;
