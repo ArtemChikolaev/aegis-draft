@@ -17,7 +17,7 @@ import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { dotaSheet, dotaSheetState, preloadArcadeArt } from "./sprites.ts";
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
-import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT } from "../../game/arcade/types.ts";
+import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT, POND_RITUAL_ACT } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
@@ -564,6 +564,7 @@ function ArcadeStage() {
                 {sim.pit && tide && tide.phase !== "low" && <Chip data-testid="arcade-tide-chip">{t(tide.phase === "high" ? "arcade.hud.tideHigh" : "arcade.hud.tideWarn", { time: formatClock(tide.left) })}</Chip>}
                 {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
                 {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
+                {sim.ritualActive() && sim.player.ritualKind && <Chip data-testid="arcade-ritual-chip">{t(`arcade.ritual.${sim.player.ritualKind}` as MessageKey)} {formatClock(sim.player.ritualUntil - sim.tick)}</Chip>}
                 {sim.composition !== "all" && <Chip data-testid="arcade-composition-chip">{t(`arcade.composition.${sim.composition}` as MessageKey)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
@@ -792,6 +793,9 @@ function ArcadeStage() {
               <div className="arcade-overlay__actions arcade-shop__actions">
                 <Button variant="primary" data-testid="arcade-pond-heal" onClick={() => shopAct(1)}>{t("arcade.pond.heal", { pct: Math.round(sim.pondHealFrac() * 100) })}</Button>
                 <Button variant="secondary" data-testid="arcade-pond-cleanse" disabled={!sim.player.curse || sim.pondTainted()} onClick={() => shopAct(2)}>{sim.player.curse ? t("arcade.pond.cleanse", { curse: t(`arcade.curse.${sim.player.curse}` as MessageKey) }) : t("arcade.pond.cleanseNone")}</Button>
+                {sim.player.curse && !sim.pondTainted() && (
+                  <Button variant="secondary" data-testid="arcade-pond-ritual" onClick={() => shopAct(POND_RITUAL_ACT)}>{t("arcade.pond.ritual", { buff: t(`arcade.ritual.${sim.player.curse}` as MessageKey), min: Math.round(ARCADE.build.ritual.seconds / 60) })}</Button>
+                )}
                 <Button variant="leave" data-testid="arcade-pond-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.pond.leave")}</Button>
               </div>
             </div>
@@ -990,6 +994,9 @@ function ArcadeStage() {
                 </div>
               )}
               <div className="arcade-overlay__actions arcade-shop__actions">
+                {sim.debtOfferAvailable() && (
+                  <Button variant="secondary" data-testid="arcade-shop-debt" title={t("arcade.shop.debtOfferHint", { pct: Math.round(ARCADE.curse.debt.share * 100) })} onClick={() => shopAct(SHOP_ACT.debt)}>{t("arcade.shop.debtOffer", { gold: sim.debtOfferAmount() })}</Button>
+                )}
                 <Button variant="secondary" disabled={sim.player.gold < sim.shopRerollPrice()} onClick={() => shopAct(SHOP_ACT.reroll)}>{t("arcade.shop.reroll", { gold: sim.shopRerollPrice() })}</Button>
                 <Button variant="primary" data-testid="arcade-shop-close" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.shop.close")}</Button>
               </div>

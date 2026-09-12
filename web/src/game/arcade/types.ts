@@ -19,7 +19,9 @@ export interface ArcadeInput {
 
 /** Действия лавки/нейтралки/лута в `ArcadeInput.act`; 10..15 — продать предмет из слота (act − 10) за половину цены (владелец 2026-09-06: «нельзя поменять предмет»). */
 /** `upgradeBase + i` — подарок каравана: поднять редкость своего предмета i (T13.71). Контракт: 1–2 цель, 6–7 цель с клятвой (T13.72). */
-export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5, sellBase: 10, upgradeBase: 20 } as const;
+export const SHOP_ACT = { none: 0, buy1: 1, buy2: 2, buy3: 3, reroll: 4, close: 5, debt: 6, sellBase: 10, upgradeBase: 20 } as const;
+/** Пруд: 1 — лечение, 2 — снять порчу, 3 — ритуал очищения (T13.75), 5 — уйти. */
+export const POND_RITUAL_ACT = 3;
 export const CONTRACT_OATH_ACT = 5;
 /** `act` = AUTOCAST_ACT + индекс умения (0=q…3=r) переключает автокаст этого умения, +4 — автоатаку. */
 export const AUTOCAST_ACT = 40;
@@ -508,6 +510,9 @@ export interface Player {
   curse: CurseId | null;
   /** Остаток долга лавочнику (T13.51) при порче `debt`. */
   debtLeft: number;
+  /** Ритуал очищения (T13.75): какая порча превращена в свойство и до какого тика оно действует. */
+  ritualKind: CurseId | null;
+  ritualUntil: number;
   /** Экипировка (T13.14): надетое по слотам и сумка забега. Типы — content/gear.ts (без импорта: цикл). */
   gear: Record<string, GearLike>;
   bag: GearLike[];

@@ -60,6 +60,7 @@ import {
   AUTOCAST_ACT,
   SHOP_ACT,
   CONTRACT_OATH_ACT,
+  POND_RITUAL_ACT,
   type Pet,
 } from "./types.ts";
 
@@ -126,6 +127,8 @@ export class ArcadeSim {
   shopOffers: ShopOffer[] = [];
   /** Подарок каравана (T13.71): один товар лавки каравана бесплатно или +1 редкость своему предмету; сгорает с уходом торговца. */
   caravanGift = false;
+  /** «Долг силы» (T13.75): одна карта в долг за акт. */
+  debtOfferTaken = false;
   /** Токен нейтралки на карте и открытый выбор (мир стоит, как в лавке). */
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
@@ -287,7 +290,7 @@ export class ArcadeSim {
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
       spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
-      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
+      schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, ritualKind: null, ritualUntil: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities.q = 1;
@@ -1115,6 +1118,7 @@ export class ArcadeSim {
   private gainGold(amount: number): void {
     const p = this.player;
     if (amount <= 0) return;
+    amount = Math.round(amount * this.ritualMult("debt"));
     if (p.curse === "debt" && p.debtLeft > 0) {
       const pay = Math.min(p.debtLeft, Math.ceil(amount * ARCADE.curse.debt.share));
       p.debtLeft -= pay; amount -= pay;
@@ -1142,6 +1146,14 @@ export class ArcadeSim {
     } else if (act === 2) {
       if (!p.curse || this.pondTainted()) return;
       this.liftCurse();
+      this.pushFx("revive", p.x, p.y, 0, 0, 30);
+      pond.used = true; this.pondOpen = false;
+    } else if (act === POND_RITUAL_ACT) {
+      // Ритуал очищения: порча снята и на время становится свойством билда. Пруд одноразовый — зациклить нельзя.
+      if (!p.curse || this.pondTainted()) return;
+      const kind = p.curse;
+      this.liftCurse();
+      p.ritualKind = kind; p.ritualUntil = this.tick + sec(ARCADE.build.ritual.seconds);
       this.pushFx("revive", p.x, p.y, 0, 0, 30);
       pond.used = true; this.pondOpen = false;
     } else if (act === 5) this.pondOpen = false;
@@ -2313,7 +2325,7 @@ export class ArcadeSim {
   damageEnemy(e: Enemy, amount: number, fx: FxKind): void {
     if (!e.alive || amount <= 0) return;
     // Наследие: весь исходящий урон (удары, умения, DoT, питомцы) — ровно один раз, здесь.
-    let dmg = amount * this.legacy.damage * this.oathMult(e);
+    let dmg = amount * this.legacy.damage * this.oathMult(e) * this.ritualMult("bloodhunt");
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
     const vamp = this.hero.signature;
     if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
@@ -2545,6 +2557,7 @@ export class ArcadeSim {
     const p = this.player;
     const before = p.hp;
     if (p.curse === "withering") amount *= ARCADE.curse.withering.healMult;
+    amount *= this.ritualMult("withering");
     p.hp = Math.min(p.stats.maxHp, p.hp + amount);
     if (p.hp - before >= 1) this.pushFx("heal", p.x, p.y - 30, 0, 0, 30, Math.round(p.hp - before));
   }
@@ -2605,7 +2618,7 @@ export class ArcadeSim {
 
   private regenAndHazards(): void {
     const p = this.player;
-    if (this.tick % 6 === 0 && p.hp < p.stats.maxHp) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen * 0.1 * (p.curse === "withering" ? ARCADE.curse.withering.healMult : 1));
+    if (this.tick % 6 === 0 && p.hp < p.stats.maxHp) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen * 0.1 * (p.curse === "withering" ? ARCADE.curse.withering.healMult : 1) * this.ritualMult("withering"));
     if (this.shrine.alive && len(this.shrine.x - p.x, this.shrine.y - p.y) < 34) {
       this.shrine.alive = false;
       this.greedUntil = this.tick + ARCADE.greed.duration;
@@ -3305,6 +3318,16 @@ export class ArcadeSim {
       this.shopOffers.splice(act - 1, 1);
       this.recomputeStats();
       this.pushFx("levelup", p.x, p.y, 0, 0, 30);
+    } else if (act === SHOP_ACT.debt) {
+      // «Долг силы»: карта школы exotic сейчас, взамен порча долга — половина дохода лавочнику, пока не выплачен.
+      if (!this.debtOfferAvailable()) return;
+      const up = this.rollUpgradeOffer([]);
+      if (!up || up.kind !== "upgrade") return;
+      this.debtOfferTaken = true;
+      this.applyCurse("debt");
+      this.shopOpen = false;
+      this.shopkeeper.alive = false;
+      this.queueReward([{ kind: "upgrade", id: up.id, rarity: ARCADE.build.debtRarity }]);
     } else if (act === 4) {
       const price = DEV_FREE_SHOP ? 0 : this.shopRerollPrice();
       if (p.gold < price) return;
@@ -3347,6 +3370,25 @@ export class ArcadeSim {
 
   pondHealFrac(): number {
     return ARCADE.pond.healFrac * (this.pondTainted() ? 0.5 : 1);
+  }
+
+  /** «Долг силы» доступен: лавка открыта, порчи нет, за акт ещё не брали. */
+  debtOfferAvailable(): boolean {
+    return this.shopOpen && !this.debtOfferTaken && this.player.curse === null;
+  }
+
+  /** Сумма долга, если взять карту сейчас (та же формула, что у порчи). */
+  debtOfferAmount(): number {
+    return Math.round(ARCADE.curse.debt.base + ARCADE.curse.debt.perMin * this.minutes);
+  }
+
+  /** Ритуал очищения действует (T13.75). */
+  ritualActive(): boolean {
+    return this.player.ritualKind !== null && this.tick < this.player.ritualUntil;
+  }
+
+  private ritualMult(kind: CurseId): number {
+    return this.ritualActive() && this.player.ritualKind === kind ? (kind === "withering" ? ARCADE.build.ritual.healMult : kind === "debt" ? ARCADE.build.ritual.goldMult : ARCADE.build.ritual.dmgMult) : 1;
   }
 
   /** Подарок каравана ещё не использован и открыта именно его лавка. */
