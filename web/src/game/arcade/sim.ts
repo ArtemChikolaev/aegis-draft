@@ -132,6 +132,8 @@ export class ArcadeSim {
   /** Осада леса (T13.78): следующий патруль и до какого тика волна ослаблена после гибели знаменосца. */
   private nextPatrolAt = 0;
   siegeWeakUntil = 0;
+  /** Шаман поддержки (T13.79): следующая группа по расписанию. */
+  private nextShamanAt = 0;
   /** Токен нейтралки на карте и открытый выбор (мир стоит, как в лавке). */
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
@@ -2336,6 +2338,8 @@ export class ArcadeSim {
     if (fx !== "hit" && fx !== "crit" && this.upgradePower("leg_bloodstone") > 0) this.heal(amount * 0.1);
     // Corrosive Haze (Slardar): помеченная цель получает больше от всего.
     if (this.tick < e.ampUntil) dmg *= 1 + e.ampMult;
+    // Щит шамана (T13.79): пока держится, урон снижен — цель приоритета сам шаман.
+    if (this.tick < e.shieldUntil) dmg *= ARCADE.shaman.shieldMult;
     // Backstab (Riki): автоатака по оглушённой/замороженной/замедленной цели — «в спину».
     if (fx === "hit" && vamp?.kind === "backstab" && (this.tick < e.stunUntil || this.tick < e.freezeUntil || this.tick < e.chillUntil)) dmg *= 1 + vamp.value * this.sigScale();
     // Presence of the Dark Lord (SF): враги рядом с героем получают больше урона.
@@ -2380,6 +2384,11 @@ export class ArcadeSim {
     if (this.rift?.state === "active") this.rift.kills++;
     this.events.kills++;
     this.killsByKind[e.kind.id] = (this.killsByKind[e.kind.id] ?? 0) + 1;
+    if (e.kind.id === "shaman") {
+      // Шаман пал — его щиты спадают сразу.
+      for (const o of this.enemies) if (o.alive && o.shieldBy === e.id) { o.shieldUntil = 0; o.shieldBy = 0; if (o.leader === e.id) o.leader = 0; }
+      this.pushFx("nova", e.x, e.y, ARCADE.shaman.shieldRadius, 0, 16);
+    }
     if (e.kind.id === "standard_bearer") {
       // Знаменосец пал: местная волна слабеет, охрана деморализована и без вожака.
       this.siegeWeakUntil = this.tick + sec(ARCADE.siege.weakSec);
@@ -2735,6 +2744,7 @@ export class ArcadeSim {
     const min = this.minutes;
     const greedy = this.tick < this.greedUntil;
     if (this.actProperty() === "siege") this.tickPatrols();
+    this.tickShamans();
     const rate = this.siegeMult() * (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min, this.act);
@@ -2924,6 +2934,7 @@ export class ArcadeSim {
       if (e.kind.id === "river_warden") { this.moveWarden(e, dx, dy, d); continue; }
       if (e.kind.id === "dire_stalker") { this.moveStalker(e, dx, dy, d); continue; }
       if (e.kind.id === "standard_bearer") { this.moveBearer(e, d, frozen); continue; }
+      if (e.kind.id === "shaman") { this.moveShaman(e, dx, dy, d, frozen); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -3378,6 +3389,55 @@ export class ArcadeSim {
       p.items.splice(idx, 1);
       this.recomputeStats();
     }
+  }
+
+  /** Шаман поддержки (T13.79): группа по расписанию с `fromMin` в любом акте, не больше `maxAlive` живых. */
+  private tickShamans(): void {
+    const C = ARCADE.shaman;
+    if (this.minutes < C.fromMin) return;
+    if (this.nextShamanAt === 0) this.nextShamanAt = this.actTick;
+    if (this.actTick < this.nextShamanAt) return;
+    this.nextShamanAt = this.actTick + C.every;
+    let alive = 0;
+    for (const e of this.enemies) if (e.alive && e.kind.id === "shaman") alive++;
+    if (alive >= C.maxAlive) return;
+    const [x, y] = this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40);
+    const shaman = this.spawnEnemy(ENEMY_KINDS.shaman, x, y);
+    shaman.shotCd = sec(2); // первый щит — через пару секунд, чтобы группа успела выйти на экран
+    const pool = spawnPool(this.minutes, this.act);
+    for (let i = 0; i < C.guards; i++) {
+      const a = this.rng.float() * Math.PI * 2, r = 30 + this.rng.float() * 40;
+      const g = this.spawnEnemy(weightedPick(this.rng, pool), clamp(x + Math.cos(a) * r, 8, ARCADE.world.w - 8), clamp(y + Math.sin(a) * r, 8, ARCADE.world.h - 8));
+      g.leader = shaman.id;
+    }
+  }
+
+  /** Шаман: держит дистанцию от героя (подходит издалека, отступает вплотную) и по перезарядке накрывает союзников щитом. */
+  private moveShaman(e: Enemy, dx: number, dy: number, d: number, frozen: boolean): void {
+    const C = ARCADE.shaman;
+    if (e.shotCd === 0 && d < C.keepRange + 220) {
+      e.shotCd = C.shieldEvery;
+      let n = 0;
+      for (const o of this.enemies) {
+        if (!o.alive || o === e || o.kind.boss || o.kind.structure || o.kind.totem) continue;
+        if (len(o.x - e.x, o.y - e.y) <= C.shieldRadius) { o.shieldUntil = this.tick + sec(C.shieldSec); o.shieldBy = e.id; n++; }
+      }
+      if (n > 0) this.pushFx("nova", e.x, e.y, C.shieldRadius, 0, 14);
+    }
+    if (frozen) return;
+    let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1);
+    if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
+    const dir = d > C.keepRange + 40 ? 1 : d < C.keepRange - 60 ? -1 : 0;
+    if (dir === 0) { this.contactDamage(e, d); return; }
+    const ex0 = e.x, ey0 = e.y;
+    e.x += dx / d * speed * DT * dir; e.y += dy / d * speed * DT * dir;
+    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
+      const [mx, my] = this.obstacles.steer(ex0, ey0, dx / d * dir, dy / d * dir, e.kind.r * 0.8, 28);
+      e.x = ex0 + mx * speed * DT; e.y = ey0 + my * speed * DT;
+      [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    }
+    this.contactDamage(e, d);
   }
 
   /** Осада леса (T13.78): множитель спавна леса и волн — ослаблены после гибели знаменосца. */
@@ -4034,7 +4094,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, leader: 0, wpX: 0, wpY: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, leader: 0, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
   };
 }
 
@@ -4042,7 +4102,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
 function resetEnemy(e: Enemy, kind: EnemyKind): void {
   e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
   e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
-  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.leader = 0; e.wpX = 0; e.wpY = 0;
+  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.leader = 0; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
 }
 
 function cellKey(x: number, y: number): number {

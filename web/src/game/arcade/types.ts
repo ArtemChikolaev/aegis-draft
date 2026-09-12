@@ -53,7 +53,7 @@ export type EnemyKindId =
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
   | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
   | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker"
-  | "standard_bearer";
+  | "standard_bearer" | "shaman";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -175,6 +175,9 @@ export interface Enemy {
   leader: number;
   wpX: number;
   wpY: number;
+  /** Щит шамана (T13.79): до какого тика урон по врагу снижен и кто его дал (смерть шамана снимает). */
+  shieldUntil: number;
+  shieldBy: number;
   /** Осквернитель (T13.41): после окна контроля — иммунитет к повторному до этого тика. */
   ccResistUntil: number;
   /** Кентавр (T13.45): рывок — направление и оставшийся путь (−1 = телеграф рывка идёт); попал ли уже в героя. */

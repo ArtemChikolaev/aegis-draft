@@ -179,6 +179,8 @@ ENEMIES = {
     "dark_troll": {"attack": melee, "death": [f"{D}death_troll_warlord"]},
     # Знаменосец патруля (T13.78) — та же модель тёмного тролля, те же клипы.
     "standard_bearer": {"attack": melee, "death": [f"{D}death_troll_warlord"]},
+    # Шаман поддержки (T13.79) — модель Ogre Magi, клипы огра.
+    "shaman": {"attack": heavy, "death": [f"{D}death_ogre_0{i}" for i in (1, 2, 3, 4)]},
     "satyr": {"attack": melee, "death": [f"{D}death_satyr_0{i}" for i in (1, 2, 3, 4)], "aggro": [f"{C}neutral/satyr_hellcaster_cast"]},
     "ogre": {"attack": heavy, "death": [f"{D}death_ogre_0{i}" for i in (1, 2, 3, 4)]},
     "centaur": {"attack": [f"{C}neutral/centaur_khan_stomp_01"] + heavy[:1], "death": [f"{D}death_centaur_khan", f"{D}death_centaur_outrunner"]},

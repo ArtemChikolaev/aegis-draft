@@ -902,6 +902,11 @@ export class ArcadeRenderer {
         c.fillStyle = pal.hpBg; c.fillRect(e.x - w / 2, e.y - r - 16, w, 5);
         c.fillStyle = pal.hp; c.fillRect(e.x - w / 2, e.y - r - 16, w * Math.max(0, e.hp / e.maxHp), 5);
       }
+      if (sim.tick < e.shieldUntil) {
+        // Щит шамана (T13.79): пунктирное кольцо цвета льда — «бей шамана, не их».
+        c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.85; c.setLineDash([3, 3]);
+        c.beginPath(); c.arc(e.x, e.y, r + 4, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+      }
       if (e.kind.id === "standard_bearer") {
         // Знамя патруля (T13.78): древко и флажок над знаменосцем — читается издалека как цель.
         c.strokeStyle = pal.text; c.lineWidth = 2; c.beginPath(); c.moveTo(e.x + r * 0.8, e.y - r * 0.4); c.lineTo(e.x + r * 0.8, e.y - r - 30); c.stroke();
