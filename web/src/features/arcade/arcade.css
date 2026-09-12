@@ -378,3 +378,8 @@
 
 /* Геймпад (T13.34): карточка уровня в фокусе стика. */
 .arcade-offer-wrap[data-pad-focus] .arcade-offer { border-color: var(--accent-strong); box-shadow: 0 0 0 3px var(--accent-soft); transform: translateY(-2px); }
+
+/* Разбор забега (T13.74) на экране итога. */
+.arcade-breakdown { display: grid; gap: 4px; margin: 0; font-size: 13px; color: var(--muted); }
+.arcade-breakdown p { margin: 0; }
+.arcade-breakdown b { color: var(--text); }

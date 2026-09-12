@@ -7,9 +7,15 @@ import type { ActId } from "../types.ts";
 export type CompositionId = "all" | "wilds" | "trade";
 export type PlaceId = "camp" | "outpost" | "pond" | "grove" | "barrow" | "forge" | "rift" | "caravan" | "lair";
 
+/** Свойство акта (T13.73): одно объявленное взаимодействие мест на композицию.
+ *  `tainted_pond` — пруд заражён, пока стоит лагерь: лечит вдвое слабее и не снимает порчу; очистил лагерь — пруд чист и снова готов.
+ *  `caravan_forge` — караван везёт материалы: после его прибытия цены кузни вдвое ниже. */
+export type ActProperty = "tainted_pond" | "caravan_forge";
+
 export interface CompositionDef {
   id: CompositionId;
   places: readonly PlaceId[];
+  property?: ActProperty;
 }
 
 const ALL: readonly PlaceId[] = ["camp", "outpost", "pond", "grove", "barrow", "forge", "rift", "caravan", "lair"];
@@ -18,9 +24,9 @@ export const COMPOSITIONS: Record<CompositionId, CompositionDef> = {
   /** Как было: все места сразу — разминка, Dire и River, а также явный выбор для тестов и бота. */
   all: { id: "all", places: ALL },
   /** Дикие угодья: лагерь, роща, курган, логово — маршрут через чемпионов, без торговли и разлома. */
-  wilds: { id: "wilds", places: ["camp", "outpost", "pond", "grove", "barrow", "lair"] },
+  wilds: { id: "wilds", places: ["camp", "outpost", "pond", "grove", "barrow", "lair"], property: "tainted_pond" },
   /** Торговый путь: караван, кузня, разлом — золото и снаряжение; из чемпионов только Кентавр и Гром-голем. */
-  trade: { id: "trade", places: ["outpost", "pond", "grove", "forge", "rift", "caravan", "lair"] },
+  trade: { id: "trade", places: ["outpost", "pond", "grove", "forge", "rift", "caravan", "lair"], property: "caravan_forge" },
 };
 
 /** Композиции, между которыми выбирает seed в полном Radiant-акте. */

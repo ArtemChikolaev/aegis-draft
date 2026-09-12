@@ -11,11 +11,11 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
-import { type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
+import { COMPOSITIONS, type ActProperty, type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_FAMILIES, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
@@ -106,6 +106,10 @@ export class ArcadeSim {
   readonly hero: HeroDef;
   /** Состав мест акта (T13.70): объявляется на подготовке, размещение — только из него. */
   readonly composition: CompositionId;
+  /** Разбор забега (T13.74): источник текущего урона (ставится в начале тика и у каждого источника), суммы по источникам и по видам врагов. */
+  private dmgSource: DmgSource = "other";
+  private dealtBySource: Record<string, number> = {};
+  private takenByKind: Record<string, number> = {};
   /** Слот умения по его виду (первый из q,w,e,r): набор героя неизменен весь забег, ищем один раз, а не каждый тик. */
   private readonly slot: Partial<Record<AbilityKind, AbilityKey>> = {};
   tick = 0;
@@ -745,7 +749,9 @@ export class ArcadeSim {
 
   forgePrice(kind: "temper" | "reforge" | "sacrifice"): number {
     const c = ARCADE.forge[kind];
-    return Math.round(c.base + c.perMin * this.minutes);
+    // «Торговый путь»: караван привёз материалы — кузня вдвое дешевле после его прибытия.
+    const mult = this.actProperty() === "caravan_forge" && this.caravan?.state === "arrived" ? 0.5 : 1;
+    return Math.round((c.base + c.perMin * this.minutes) * mult);
   }
 
   /** Кузня: 10+i — выбрать надетый предмет слота i; 1 — закалить, 2 — перековать, 3 — переплавить в другой слот; 5 — уйти. */
@@ -1130,11 +1136,11 @@ export class ArcadeSim {
     if (!pond) { this.pondOpen = false; return; }
     if (act === 1) {
       const before = p.hp;
-      p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * ARCADE.pond.healFrac);
+      p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.maxHp * this.pondHealFrac());
       this.pushFx("heal", p.x, p.y - 30, 0, 0, 30, Math.round(p.hp - before));
       pond.used = true; this.pondOpen = false;
     } else if (act === 2) {
-      if (!p.curse) return;
+      if (!p.curse || this.pondTainted()) return;
       this.liftCurse();
       this.pushFx("revive", p.x, p.y, 0, 0, 30);
       pond.used = true; this.pondOpen = false;
@@ -1328,6 +1334,7 @@ export class ArcadeSim {
   /** Один тик. Пока висит выбор уровня или забег окончен — мир стоит. */
   step(input: ArcadeInput): void {
     if (this.over) return;
+    this.dmgSource = "other";
     if (!sameInput(input, this.lastInput)) {
       this.log.push([this.steps, input.mx, input.my, input.cast, input.choose, input.act]);
       this.lastInput = { ...input };
@@ -1565,6 +1572,7 @@ export class ArcadeSim {
   }
 
   private castAbility(key: AbilityKey, ab: AbilityDef): void {
+    this.dmgSource = key;
     const p = this.player;
     const lvl = p.abilities[key];
     const ult = this.talentPower("t25_ult") ? 1.5 : 1;
@@ -1893,6 +1901,7 @@ export class ArcadeSim {
     // spinUntil/wardUntil, а тик проверял H.q/H.w и молчал: одиннадцать умений не делали ничего.
     const spinKey = this.slot.spin;
     if (spinKey && this.tick < p.spinUntil && this.tick % 6 === 0) {
+      this.dmgSource = spinKey;
       const sp = H[spinKey];
       const dps = sp.value[p.abilities[spinKey]];
       for (const e of this.enemies) {
@@ -1903,6 +1912,7 @@ export class ArcadeSim {
     // Io: духи по орбите бьют тех, в кого врезались (контакт, шаг проверки 6 тиков), автоатака не блокируется.
     const spKey = this.slot.spirits;
     if (spKey && this.tick < p.spiritsUntil && this.tick % 6 === 0) {
+      this.dmgSource = spKey;
       const ab = H[spKey], dps = ab.value[p.abilities[spKey]];
       for (const [ox, oy] of this.spiritOrbs()) for (const e of this.enemies) {
         if (!e.alive || this.isDormant(e)) continue;
@@ -1935,6 +1945,7 @@ export class ArcadeSim {
       const ult = this.talentPower("t25_ult") ? 1.5 : 1;
       const omniKey = this.slot.omni;
       const fieldKey = this.slot.freezing_field;
+      this.dmgSource = omniKey ?? fieldKey ?? "other";
       if (omniKey) {
         const ob = H[omniKey];
         const candidates = this.enemiesWithin(p.x, p.y, ob.radius ?? 230);
@@ -1967,12 +1978,14 @@ export class ArcadeSim {
     // моделью призыва сюда не попадают — у них урон наносят сами призывы (tickPets).
     const dwKey = ABILITY_KEYS.find((k) => H[k].kind === "damage_ward" && !H[k].summon);
     if (dwKey && this.tick < p.wardUntil && this.tick % 15 === 0) {
+      this.dmgSource = dwKey;
       const t = this.nearestEnemy(p.wardX, p.wardY, H[dwKey].radius ?? 200);
       if (t) { this.damageEnemy(t, H[dwKey].value[p.abilities[dwKey]], "zap"); this.pushFx("zap", p.wardX, p.wardY - 30, t.x, t.y, 6); }
     }
     // Static Remnant (Storm): мина взрывается, когда враг подошёл. Слот — любой (Doom: Scorched Earth в W).
     const remKey = this.slot.remnant;
     if (remKey && this.tick < p.zoneUntil) {
+      this.dmgSource = remKey;
       const r = H[remKey].radius ?? 130;
       if (this.countEnemiesWithin(p.zoneX, p.zoneY, r * 0.55) > 0) {
         for (const e of this.enemiesWithin(p.zoneX, p.zoneY, r)) this.damageEnemy(e, H[remKey].value[p.abilities[remKey]], "zap");
@@ -1984,12 +1997,14 @@ export class ArcadeSim {
     // Раньше проверялся только слот W — ульт Razor молчал (2026-09-06).
     const edKey = this.slot.edict;
     if (edKey && this.tick < p.zoneUntil && this.tick % 8 === 0) {
+      this.dmgSource = edKey;
       const around = this.enemiesWithin(p.x, p.y, H[edKey].radius ?? 260);
       if (around.length > 0) { const e = around[this.rng.int(around.length)]; this.damageEnemy(e, H[edKey].value[p.abilities[edKey]], "burst"); this.pushFx("burst", e.x, e.y, 24, 0, 8); }
     }
     // Life Drain / Mana Drain: канал по цели с лечением.
     if (this.tick < p.drainUntil && this.tick % 6 === 0) {
       const key = this.slot.life_drain;
+      if (key) this.dmgSource = key;
       const t = key ? this.enemies.find((e) => e.alive && e.id === p.drainTarget) : undefined;
       if (!key || !t || len(t.x - p.x, t.y - p.y) > (H[key].radius ?? 300) + 120) p.drainUntil = 0;
       else {
@@ -2001,6 +2016,7 @@ export class ArcadeSim {
     }
     const shrapKey = this.slot.shrapnel;
     if (shrapKey && this.tick < p.zoneUntil && this.tick % 12 === 0) {
+      this.dmgSource = shrapKey;
       const sb = H[shrapKey];
       const radius = sb.radius ?? 180;
       for (const e of this.enemiesWithin(p.zoneX, p.zoneY, radius)) { this.damageEnemy(e, sb.value[p.abilities[shrapKey]] * 0.2, "burst"); this.applyChill(e, 0.3, 0.4, false); }
@@ -2011,6 +2027,7 @@ export class ArcadeSim {
   private staticField(): void {
     const key = this.slot.static_field;
     if (!key) return;
+    this.dmgSource = key;
     const ab = this.hero.abilities[key];
     const lvl = this.player.abilities[key];
     if (lvl === 0) return;
@@ -2051,6 +2068,7 @@ export class ArcadeSim {
 
   /** Maelstrom `mae_clap`: каст Q/R — нова со станом. */
   private thunderclap(): void {
+    this.dmgSource = "school";
     const power = this.upgradePower("mae_clap");
     if (power === 0) return;
     const p = this.player;
@@ -2063,6 +2081,7 @@ export class ArcadeSim {
   }
 
   private onAttackHit(e: Enemy, scale = 1): void {
+    this.dmgSource = "attack";
     const p = this.player;
     let dmg = p.stats.damage * scale * (this.tick < p.ddUntil ? ARCADE.rune.dd.mult : 1) * this.riftAttackMult();
     let kind: FxKind = "hit";
@@ -2119,6 +2138,7 @@ export class ArcadeSim {
   }
 
   private chainLightning(from: Enemy, dmg: number, targets: number): void {
+    this.dmgSource = "school";
     let current = from;
     const visited = new Set<number>([from.id]);
     for (let i = 0; i < targets; i++) {
@@ -2139,6 +2159,7 @@ export class ArcadeSim {
   // ---------- школы: периодика и ауры ----------
 
   private schoolEffects(): void {
+    this.dmgSource = "school";
     const p = this.player;
     // Radiance aura — горение всем в радиусе (каждые 15 тиков обновляем статус).
     const aura = this.upgradePower("rad_aura");
@@ -2252,6 +2273,7 @@ export class ArcadeSim {
    * попаданием; dps стака — сильнейший из активных источников. Истёкший яд теряет все стаки.
    */
   applyPoison(e: Enemy, dpsPerStack: number, seconds = ARCADE.poison.seconds): void {
+    this.dmgSource = "dot";
     if (e.kind.unstoppable || dpsPerStack <= 0 || !e.alive) return;
     const active = e.poisonUntil > this.tick;
     // Полный стек и ещё один стак (T13.47): Дистилляция тратит стаки на взрыв; яд+огонь — ограниченный взрыв.
@@ -2328,6 +2350,7 @@ export class ArcadeSim {
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
     // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
     if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
+    this.dealtBySource[this.dmgSource] = (this.dealtBySource[this.dmgSource] ?? 0) + Math.min(dmg, Math.max(0, e.hp));
     e.hp -= dmg;
     e.hitAt = this.tick;
     if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect));
@@ -2478,6 +2501,8 @@ export class ArcadeSim {
     const p = this.player;
     this.events.hurtBy = by ? KIND_INDEX[by.id] ?? -1 : -1;
     if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.slot.omni !== undefined)) return;
+    const byId = by?.id ?? "projectile";
+    this.takenByKind[byId] = (this.takenByKind[byId] ?? 0) + amount;
     const sig = this.hero.signature;
     if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
     if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
@@ -2574,6 +2599,7 @@ export class ArcadeSim {
       centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed,
       contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
       riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null, caravanDone: this.caravan?.state === "arrived", trait: this.trait?.id ?? null,
+      killer: outcome === "dead" ? KIND_BY_INDEX[this.events.hurtBy] ?? null : null, dealtBySource: { ...this.dealtBySource }, takenByKind: { ...this.takenByKind },
     };
   }
 
@@ -2815,6 +2841,7 @@ export class ArcadeSim {
 
   /** Rupture: урон за пройденный путь (value за 100 px), пока метка жива. */
   private tickRupture(): void {
+    this.dmgSource = "dot";
     for (const e of this.enemies) {
       if (!e.alive || this.tick >= e.ruptureUntil) continue;
       const d = len(e.x - e.lastX, e.y - e.lastY);
@@ -2826,6 +2853,7 @@ export class ArcadeSim {
   /** Потиковые пассивки героя: Berserker's Blood (Huskar) — скорость атаки от потерянного HP через механику frenzy;
    *  Thirst (Bloodseeker) — ускорение, пока рядом есть враг с малым HP. */
   private heroPassives(): void {
+    this.dmgSource = "school";
     const p = this.player;
     for (const key of ABILITY_KEYS) {
       const ab = this.hero.abilities[key];
@@ -2976,6 +3004,7 @@ export class ArcadeSim {
   }
 
   private moveProjectiles(): void {
+    this.dmgSource = "proj";
     const p = this.player;
     for (const pr of this.projectiles) {
       if (!pr.alive) continue;
@@ -3099,6 +3128,7 @@ export class ArcadeSim {
   }
 
   private tickPets(): void {
+    this.dmgSource = "pets";
     this.expirePets();
     if (this.pets.length === 0) return;
     const p = this.player;
@@ -3303,6 +3333,20 @@ export class ArcadeSim {
       p.items.splice(idx, 1);
       this.recomputeStats();
     }
+  }
+
+  /** Свойство акта (T13.73) — из композиции; у разминки/Dire/River его нет. */
+  actProperty(): ActProperty | null {
+    return COMPOSITIONS[this.composition].property ?? null;
+  }
+
+  /** «Заражённый водоём»: пока стоит лагерь порчи, пруд лечит вдвое слабее и не смывает порчу. */
+  pondTainted(): boolean {
+    return this.actProperty() === "tainted_pond" && !!this.camp && !this.camp.cleared;
+  }
+
+  pondHealFrac(): number {
+    return ARCADE.pond.healFrac * (this.pondTainted() ? 0.5 : 1);
   }
 
   /** Подарок каравана ещё не использован и открыта именно его лавка. */
@@ -3559,6 +3603,8 @@ export class ArcadeSim {
   private clearCamp(): void {
     if (!this.camp) return;
     this.camp.cleared = true;
+    // «Заражённый водоём»: лагерь снесён — пруд чист и готов снова, даже если уже пили заражённую воду.
+    if (this.actProperty() === "tainted_pond" && this.pond) this.pond.used = false;
     this.events.camps++;
     this.shake = Math.max(this.shake, 14);
     this.pushFx("nova", this.camp.x, this.camp.y, ARCADE.camp.radius + 40, 0, 36);

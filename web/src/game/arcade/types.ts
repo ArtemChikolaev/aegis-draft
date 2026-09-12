@@ -255,6 +255,8 @@ export interface Shard {
   xp: number;
 }
 
+/** Источник урона для разбора забега (T13.74): автоатака, слот умения, питомцы, школы/пассивки, DoT, снаряды умений. */
+export type DmgSource = "attack" | "q" | "w" | "e" | "r" | "pets" | "school" | "dot" | "proj" | "other";
 export type FxKind = "hit" | "crit" | "slash" | "nova" | "zap" | "burst" | "heal" | "revive" | "levelup" | "spin" | "die" | "ash";
 
 /** Монотонные счётчики событий для звука и juice на стороне экрана: дельта между кадрами —
@@ -536,6 +538,10 @@ export interface ArcadeOutcome {
   neutral: string | null;
   /** Добыча забега: всё подобранное (надетое новое + сумка) — уходит в инвентарь. */
   loot: GearLike[];
+  /** Разбор смерти (T13.74): кто добил (вид врага), урон по источникам и полученный урон по видам врагов ("projectile" — снаряды без владельца). */
+  killer?: string | null;
+  dealtBySource?: Record<string, number>;
+  takenByKind?: Record<string, number>;
   /** Очищенные лагеря порчи (T13.40). */
   campsCleared: number;
   /** Аванпост захвачен (T13.42). */

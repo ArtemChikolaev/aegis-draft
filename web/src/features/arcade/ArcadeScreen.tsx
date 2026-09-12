@@ -10,7 +10,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/content/schools.ts";
-import type { PlayerStats } from "../../game/arcade/types.ts";
+import type { PlayerStats, ArcadeOutcome } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
@@ -743,6 +743,7 @@ function ArcadeStage() {
               <Eyebrow>{t("arcade.forge.title")}</Eyebrow>
               <h2>{sim.forgeSlot < 0 ? t("arcade.forge.pickItem") : t("arcade.forge.pickAction")}</h2>
               <p className="arcade-shop__hint">{t("arcade.forge.hint")}</p>
+              {sim.actProperty() === "caravan_forge" && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-forge-caravan">{t(sim.caravan?.state === "arrived" ? "arcade.forge.caravanHalf" : "arcade.forge.caravanHint")}</p>}
               <div className="arcade-forge__gear">
                 {GEAR_SLOTS.map((slot, i) => {
                   const item = (sim.player.gear[slot] as GearItem | undefined) ?? null;
@@ -787,9 +788,10 @@ function ArcadeStage() {
               <Eyebrow>{t("arcade.pond.title")}</Eyebrow>
               <h2>{t("arcade.pond.pick")}</h2>
               <p className="arcade-shop__hint">{t("arcade.pond.hint")}</p>
+              {sim.pondTainted() && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-pond-tainted">{t("arcade.pond.tainted")}</p>}
               <div className="arcade-overlay__actions arcade-shop__actions">
-                <Button variant="primary" data-testid="arcade-pond-heal" onClick={() => shopAct(1)}>{t("arcade.pond.heal", { pct: Math.round(ARCADE.pond.healFrac * 100) })}</Button>
-                <Button variant="secondary" data-testid="arcade-pond-cleanse" disabled={!sim.player.curse} onClick={() => shopAct(2)}>{sim.player.curse ? t("arcade.pond.cleanse", { curse: t(`arcade.curse.${sim.player.curse}` as MessageKey) }) : t("arcade.pond.cleanseNone")}</Button>
+                <Button variant="primary" data-testid="arcade-pond-heal" onClick={() => shopAct(1)}>{t("arcade.pond.heal", { pct: Math.round(sim.pondHealFrac() * 100) })}</Button>
+                <Button variant="secondary" data-testid="arcade-pond-cleanse" disabled={!sim.player.curse || sim.pondTainted()} onClick={() => shopAct(2)}>{sim.player.curse ? t("arcade.pond.cleanse", { curse: t(`arcade.curse.${sim.player.curse}` as MessageKey) }) : t("arcade.pond.cleanseNone")}</Button>
                 <Button variant="leave" data-testid="arcade-pond-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.pond.leave")}</Button>
               </div>
             </div>
@@ -1044,6 +1046,7 @@ function ArcadeStage() {
                 {outcome.riftDone && outcome.riftRule && <div><dt>{t("arcade.rift.title")}</dt><dd>{t("arcade.over.riftYes", { rule: t(`arcade.rift.rule.${outcome.riftRule}` as MessageKey) })}</dd></div>}
                 {outcome.cursesTaken > 0 && <div><dt>{t("arcade.over.curses")}</dt><dd>{outcome.cursed ? t("arcade.over.cursesLeft", { n: outcome.cursesTaken }) : t("arcade.over.cursesCleansed", { n: outcome.cursesTaken })}</dd></div>}
               </dl>
+              <RunBreakdown outcome={outcome} />
               {lastSeals > 0 && <p className="arcade-result__seals" data-testid="arcade-seals-result">{t("arcade.legacy.earned", { n: lastSeals })}</p>}
               {lastLoot.length > 0 && (
                 <div className="arcade-drops" data-testid="arcade-loot-result">
@@ -1274,6 +1277,27 @@ function BagList({ bag, onEquip, onDrop, equipLabel, dropLabel }: { bag: GearIte
           <Button variant="leave" data-testid={`arcade-bag-drop-${i}`} onClick={() => onDrop(i)}>{dropLabel}</Button>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Разбор забега (T13.74, аудит: «от чего умер, какие способности наносили урон»): кто добил, доли урона по источникам и по видам врагов. */
+function RunBreakdown({ outcome }: { outcome: ArcadeOutcome }) {
+  const { t } = useI18n();
+  const shares = (rec: Record<string, number> | undefined, label: (k: string) => string) => {
+    const entries = Object.entries(rec ?? {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+    const total = entries.reduce((n, [, v]) => n + v, 0);
+    if (!total) return null;
+    return entries.slice(0, 4).map(([k, v]) => `${label(k)} ${Math.round((v / total) * 100)}%`).join(" · ");
+  };
+  const dealt = shares(outcome.dealtBySource, (k) => (k === "q" || k === "w" || k === "e" || k === "r" ? t(`arcade.ab.${outcome.hero}.${k}` as MessageKey) : t(`arcade.dmg.${k}` as MessageKey)));
+  const taken = shares(outcome.takenByKind, (k) => (k === "projectile" ? t("arcade.dmg.projectile") : t(`arcade.enemy.${k}` as MessageKey)));
+  if (!dealt && !taken && !outcome.killer) return null;
+  return (
+    <div className="arcade-breakdown" data-testid="arcade-breakdown">
+      {outcome.killer && <p data-testid="arcade-breakdown-killer"><b>{t("arcade.over.killer")}:</b> {t(`arcade.enemy.${outcome.killer}` as MessageKey)}</p>}
+      {dealt && <p data-testid="arcade-breakdown-dealt"><b>{t("arcade.over.dealt")}:</b> {dealt}</p>}
+      {taken && <p data-testid="arcade-breakdown-taken"><b>{t("arcade.over.taken")}:</b> {taken}</p>}
     </div>
   );
 }

@@ -55,4 +55,40 @@ describe("композиции акта", () => {
     step(a, 1800); step(b, 1800);
     expect(a.digest()).toBe(b.digest());
   }, 30_000);
+
+  it("свойство акта «Заражённый водоём» (Дикие угодья): пруд лечит вдвое слабее и не смывает порчу, пока стоит лагерь; очистка лагеря делает его чистым и снова готовым", () => {
+    const sim = new ArcadeSim("comp-prop", { act: "short", composition: "wilds" });
+    expect(sim.actProperty()).toBe("tainted_pond");
+    expect(sim.pondTainted()).toBe(true);
+    expect(sim.pondHealFrac()).toBeCloseTo(ARCADE.pond.healFrac * 0.5, 6);
+    const p = sim.player;
+    p.hp = 1; p.curse = "withering";
+    sim.pondOpen = true;
+    sim.step({ ...IDLE_INPUT, act: 2 });
+    expect(p.curse).toBe("withering"); // заражённая вода порчу не смывает
+    expect(sim.pondOpen).toBe(true);
+    sim.step({ ...IDLE_INPUT, act: 1 });
+    expect(p.hp).toBeCloseTo(1 + p.stats.maxHp * ARCADE.pond.healFrac * 0.5, 3);
+    expect(sim.pond!.used).toBe(true);
+    (sim as unknown as { clearCamp(): void }).clearCamp();
+    while (sim.pending) sim.step({ ...IDLE_INPUT, choose: 0 }); // награда лагеря — своим экраном, до пруда
+    expect(sim.pondTainted()).toBe(false);
+    expect(sim.pond!.used).toBe(false);
+    expect(sim.pondHealFrac()).toBe(ARCADE.pond.healFrac);
+    sim.pondOpen = true;
+    sim.step({ ...IDLE_INPUT, act: 2 });
+    expect(p.curse).toBeNull();
+    expect(new ArcadeSim("comp-prop", { act: "short", composition: "all" }).actProperty()).toBeNull();
+  });
+
+  it("свойство акта «Торговый путь»: после прибытия каравана кузня вдвое дешевле", () => {
+    const sim = new ArcadeSim("comp-prop", { act: "short", composition: "trade" });
+    expect(sim.actProperty()).toBe("caravan_forge");
+    const full = sim.forgePrice("temper");
+    sim.caravan!.state = "arrived";
+    expect(sim.forgePrice("temper")).toBe(Math.round(full * 0.5));
+    const plain = new ArcadeSim("comp-prop", { act: "short", composition: "all" });
+    plain.caravan!.state = "arrived";
+    expect(plain.forgePrice("temper")).toBe(full);
+  });
 });
