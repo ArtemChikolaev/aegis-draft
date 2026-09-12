@@ -20,6 +20,8 @@ const url = (hero: string, file: string) => `${ROOT}${hero}/${file}`;
 
 export function preloadHeroSfx(hero: string): void {
   loadIndex();
+  // Клипы крита — заранее: `sfxSample` на незагруженный буфер только ставит загрузку, и первый крит забега молчал бы.
+  for (let i = 1; i <= 4; i++) preloadSample(`${ROOT}shared/crit_${i}.m4a`);
   const run = () => {
     const e = index?.[hero];
     if (!e) return;
@@ -64,19 +66,21 @@ export function heroHitSfx(hero: string, crit: boolean, now: number): boolean {
   const layer = IMPACT[hero] ?? "none";
   // Крит — отдельный удар Dota (`sounds/weapons/crit1-4`) поверх обычного попадания, как у Daedalus; идёт до
   // троттла обычных ударов, чтобы крит сразу после удара не молчал.
-  if (crit) { critIndex = (critIndex + 1) % 4; sfxSample(`${ROOT}shared/crit_${1 + critIndex}.m4a`, 0.7, 0.98 + critIndex * 0.015); }
+  // Клипы нормализованы к −1 dB и обрезаны до 1.1 с (в vpk они на −25 dB RMS и 2.6 с — тонули под ударом);
+  // сам удар при крите тише, чтобы крит был слышен как отдельное событие.
+  if (crit) { critIndex = (critIndex + 1) % 4; sfxSample(`${ROOT}shared/crit_${1 + critIndex}.m4a`, 1.0, 0.98 + critIndex * 0.015); }
   // У части героев в vpk нет свиста удара (Slardar, Ogre Magi): играем хотя бы слой попадания из Dota, а не синтетику.
   if (!pool && layer === "none") return crit;
   if (now - lastHit < 45) return true;
   lastHit = now;
   if (!pool) {
     hitIndex = (hitIndex + 1) % 3;
-    sfxSample(`${ROOT}shared/${layer}_${1 + hitIndex}.m4a`, crit ? 0.6 : 0.45, crit ? 0.9 : 0.97 + hitIndex * 0.03);
+    sfxSample(`${ROOT}shared/${layer}_${1 + hitIndex}.m4a`, crit ? 0.35 : 0.45, crit ? 0.9 : 0.97 + hitIndex * 0.03);
     return true;
   }
   hitIndex = (hitIndex + 1) % pool.length;
-  sfxSample(url(hero, pool[hitIndex]), crit ? 0.7 : 0.55, crit ? 0.92 : 0.97 + (hitIndex % 3) * 0.03);
-  if (layer !== "none") sfxSample(`${ROOT}shared/${layer}_${1 + (hitIndex % 3)}.m4a`, crit ? 0.5 : 0.35, crit ? 0.9 : 1, 0.03);
+  sfxSample(url(hero, pool[hitIndex]), crit ? 0.4 : 0.55, crit ? 0.92 : 0.97 + (hitIndex % 3) * 0.03);
+  if (layer !== "none") sfxSample(`${ROOT}shared/${layer}_${1 + (hitIndex % 3)}.m4a`, crit ? 0.3 : 0.35, crit ? 0.9 : 1, 0.03);
   else if (e?.impact?.length && pool !== e.impact) sfxSample(url(hero, e.impact[hitIndex % e.impact.length]), 0.4, 1, 0.05);
   return true;
 }
