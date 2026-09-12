@@ -103,7 +103,17 @@ jobs:
       # Репортер github-actions пишет упавшие тесты аннотациями: их видно через публичный API check-runs,
       # когда сам лог джоба без токена недоступен (2026-09-12: плавающее падение искали вслепую).
       - name: Unit tests (Vitest)
-        run: npm run test -- --reporter=default --reporter=github-actions
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test -- --pool=forks --reporter=default --reporter=github-actions 2>&1 | tee vitest.log
+      # Падение без единой проваленной проверки (крах воркера, нехватка памяти) не даёт аннотаций — публикуем хвост лога сами.
+      - name: Vitest log tail as annotation
+        if: failure()
+        shell: bash
+        run: |
+          tail -c 3500 vitest.log | tr -d '\r' > vitest.tail
+          echo "::error title=Vitest log tail::$(sed 's/%/%25/g; s/\n/%0A/g' vitest.tail | awk '{printf "%s%%0A", $0}')"
       # Бинарь Chromium (~150 МБ) не меняется между прогонами, пока не бампнут @playwright/test.
       - uses: actions/cache@v4
         id: playwright-cache
