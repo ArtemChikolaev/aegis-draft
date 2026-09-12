@@ -49,6 +49,8 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   standard_bearer: { id: "standard_bearer", hp: 260, speed: 84, dmg: 16, r: 14, xp: 24, gold: 12, fromMin: 99, weight: 0, elite: true, tone: "elite" },
   /** Шаман поддержки (T13.79): держится на дистанции, раз в несколько секунд накрывает группу щитом; убит — щит спадает. */
   shaman: { id: "shaman", hp: 150, speed: 66, dmg: 8, r: 14, xp: 16, gold: 8, fromMin: 99, weight: 0, elite: true, tone: "elite" },
+  /** Лучник строя (T13.81): держит дистанцию в линии, бьёт залпом по объявленной полосе; хрупкий вблизи. */
+  archer: { id: "archer", hp: 90, speed: 72, dmg: 26, r: 12, xp: 8, gold: 4, fromMin: 99, weight: 0, tone: "swift" },
 };
 
 /** Пул обычного спавна на минуте `min` (виды, доступные к этому времени). */

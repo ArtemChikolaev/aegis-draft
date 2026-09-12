@@ -11,7 +11,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type ArcherLine } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
@@ -134,6 +134,9 @@ export class ArcadeSim {
   siegeWeakUntil = 0;
   /** Шаман поддержки (T13.79): следующая группа по расписанию. */
   private nextShamanAt = 0;
+  /** Строй стрелков (T13.81): живые линии и следующий по расписанию. */
+  archerLines: ArcherLine[] = [];
+  private nextArchersAt = 0;
   /** Токен нейтралки на карте и открытый выбор (мир стоит, как в лавке). */
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
@@ -2745,6 +2748,7 @@ export class ArcadeSim {
     const greedy = this.tick < this.greedUntil;
     if (this.actProperty() === "siege") this.tickPatrols();
     this.tickShamans();
+    this.tickArcherLines();
     const rate = this.siegeMult() * (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min, this.act);
@@ -2935,6 +2939,7 @@ export class ArcadeSim {
       if (e.kind.id === "dire_stalker") { this.moveStalker(e, dx, dy, d); continue; }
       if (e.kind.id === "standard_bearer") { this.moveBearer(e, d, frozen); continue; }
       if (e.kind.id === "shaman") { this.moveShaman(e, dx, dy, d, frozen); continue; }
+      if (e.kind.id === "archer") { this.moveArcher(e, d, frozen); continue; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -3389,6 +3394,66 @@ export class ArcadeSim {
       p.items.splice(idx, 1);
       this.recomputeStats();
     }
+  }
+
+  /** Строй стрелков (T13.81): по расписанию — линия лучников поперёк направления на героя; залпы по объявленной полосе. */
+  private tickArcherLines(): void {
+    const C = ARCADE.archers;
+    const p = this.player;
+    // Живые линии: центр по живым лучникам, телеграф и залп.
+    for (let i = this.archerLines.length - 1; i >= 0; i--) {
+      const line = this.archerLines[i];
+      let n = 0, sx = 0, sy = 0;
+      for (const e of this.enemies) if (e.alive && e.kind.id === "archer" && e.leader === line.id) { n++; sx += e.x; sy += e.y; }
+      if (n === 0) { this.archerLines.splice(i, 1); continue; }
+      line.cx = sx / n; line.cy = sy / n;
+      const dx = p.x - line.cx, dy = p.y - line.cy, d = len(dx, dy) || 1;
+      if (line.fireAt === 0) {
+        if (this.tick >= line.nextAt && d < C.range + 140) { line.dirX = dx / d; line.dirY = dy / d; line.fireAt = this.tick + sec(C.telegraphSec); }
+      } else if (this.tick >= line.fireAt) {
+        // Залп: герой в полосе (вдоль 0..length, поперёк ±width/2) от центра строя по направлению телеграфа.
+        const along = dx * line.dirX + dy * line.dirY, across = Math.abs(-dx * line.dirY + dy * line.dirX);
+        if (along >= 0 && along <= C.length && across <= C.width / 2) { this.damagePlayer(C.dmg * (n / C.count), 0, ENEMY_KINDS.archer); this.pushFx("burst", p.x, p.y, 40, 0, 10); }
+        line.fireAt = 0; line.nextAt = this.tick + C.volleyEvery;
+      }
+    }
+    // Новый строй по расписанию.
+    if (this.minutes < C.fromMin) return;
+    if (this.nextArchersAt === 0) this.nextArchersAt = this.actTick;
+    if (this.actTick < this.nextArchersAt) return;
+    this.nextArchersAt = this.actTick + C.every;
+    if (this.archerLines.length >= C.maxLines) return;
+    const [x, y] = this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40);
+    const line: ArcherLine = { id: this.nextEnemyId++, cx: x, cy: y, dirX: 0, dirY: 0, fireAt: 0, nextAt: this.tick + sec(2) };
+    const tx = p.x - x, ty = p.y - y, td = len(tx, ty) || 1, px = -ty / td, py = tx / td;
+    for (let i = 0; i < C.count; i++) {
+      const off = (i - (C.count - 1) / 2) * C.spacing;
+      const e = this.spawnEnemy(ENEMY_KINDS.archer, clamp(x + px * off, 8, ARCADE.world.w - 8), clamp(y + py * off, 8, ARCADE.world.h - 8));
+      e.leader = line.id; e.wpX = off; e.wpY = 0; // wpX — место в строю (поперечное смещение от центра)
+    }
+    this.archerLines.push(line);
+  }
+
+  /** Лучник: держит место в строю поперёк направления на героя и дистанцию `range`; вплотную — контактный удар. */
+  private moveArcher(e: Enemy, d: number, frozen: boolean): void {
+    const C = ARCADE.archers;
+    const line = this.archerLines.find((l) => l.id === e.leader);
+    if (!line) { e.leader = 0; return; }
+    if (frozen) return;
+    const p = this.player;
+    const dx = p.x - line.cx, dy = p.y - line.cy, dd = len(dx, dy) || 1;
+    const ux = dx / dd, uy = dy / dd, px = -uy, py = ux;
+    const shift = dd > C.range + 60 ? Math.min(40, dd - C.range) : dd < C.range - 80 ? -Math.min(40, C.range - dd) : 0;
+    const tx = line.cx + ux * shift + px * e.wpX, ty = line.cy + uy * shift + py * e.wpX;
+    const vx = tx - e.x, vy = ty - e.y, vd = len(vx, vy);
+    if (vd > 6) {
+      let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1);
+      if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
+      const stepLen = Math.min(vd, speed * DT);
+      e.x += vx / vd * stepLen; e.y += vy / vd * stepLen;
+      [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    }
+    this.contactDamage(e, d);
   }
 
   /** Шаман поддержки (T13.79): группа по расписанию с `fromMin` в любом акте, не больше `maxAlive` живых. */

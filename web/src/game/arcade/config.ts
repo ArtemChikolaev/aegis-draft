@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.67.0";
+export const ARCADE_CONFIG_VERSION = "a0.68.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -87,6 +87,10 @@ export const ARCADE = {
    *  `shieldEvery` тиков накрывает союзников в `shieldRadius` щитом на `shieldSec` (урон по ним ×`shieldMult`), сам без щита —
    *  приоритет цели; держится в `keepRange` от героя. Живых не больше `maxAlive`. */
   shaman: { fromMin: 4, every: sec(60), guards: 3, shieldEvery: sec(9), shieldSec: 5, shieldRadius: 150, shieldMult: 0.3, keepRange: 200, maxAlive: 2 },
+  /** Строй стрелков (T13.81, аудит §4): с `fromMin` раз в `every` линия из `count` лучников через `spacing` px держит `range` от героя;
+   *  каждые `volleyEvery` тиков объявляет полосу шириной `width` и длиной `length` от центра строя к герою на `telegraphSec`, затем залп:
+   *  герой в полосе получает `dmg` × доля живых лучников. Полоса не перекрывает всё — выйти вбок или зайти сбоку. Живых строев ≤ `maxLines`. */
+  archers: { fromMin: 5, every: sec(70), count: 4, spacing: 34, range: 380, telegraphSec: 1.4, volleyEvery: sec(6), width: 90, length: 480, dmg: 26, maxLines: 2 },
   build: { debtRarity: "exotic" as const, ritual: { seconds: 180, healMult: 1.5, goldMult: 1.5, dmgMult: 1.1 } },
   /** Кентавр-Страж рощи (T13.45, этап 3 аудита): чемпион с рывком. Спит в роще (по seed, рядом с камнями), пока
    *  герой не войдёт в `wakeRadius` или не ударит. В `chargeRange` — телеграф `chargeTelegraph` (стрелка на позицию

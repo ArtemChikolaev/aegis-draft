@@ -53,7 +53,7 @@ export type EnemyKindId =
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
   | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
   | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker"
-  | "standard_bearer" | "shaman";
+  | "standard_bearer" | "shaman" | "archer";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -353,6 +353,10 @@ export type RiftRuleId = "surge" | "brittle" | "gloom" | "silence";
 export const RIFT_RULES: readonly RiftRuleId[] = ["surge", "brittle", "gloom", "silence"];
 
 /** Разлом (T13.58): место по seed; `offered` — два правила на выбор, `state` — ждёт/идёт/закрыт. */
+/** Строй стрелков (T13.81): линия лучников с объявленным залпом. `fireAt` > 0 — идёт телеграф полосы от центра строя
+ *  по направлению `dirX/dirY`; в момент `fireAt` герой внутри полосы получает урон. */
+export interface ArcherLine { id: number; cx: number; cy: number; dirX: number; dirY: number; fireAt: number; nextAt: number }
+
 export interface Rift {
   x: number;
   y: number;

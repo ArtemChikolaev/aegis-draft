@@ -251,6 +251,7 @@ export class ArcadeRenderer {
     this.drawLair(sim, pal, now);
     this.drawFord(sim, pal, now);
     this.drawLoot(sim, pal, now);
+    this.drawArcherLines(sim, pal);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
     this.drawProjectiles(sim, pal);
@@ -821,6 +822,22 @@ export class ArcadeRenderer {
         c.beginPath(); c.arc(pet.x, pet.y, pet.kind === "bear" ? 14 : 9, 0, Math.PI * 2); c.fill();
         c.globalAlpha = 1;
       }
+    }
+  }
+
+  /** Строй стрелков (T13.81): полоса залпа на земле во время телеграфа — наливается к моменту выстрела. */
+  private drawArcherLines(sim: ArcadeSim, pal: Palette): void {
+    const c = this.ctx, C = ARCADE.archers;
+    for (const line of sim.archerLines) {
+      if (line.fireAt === 0) continue;
+      const k = 1 - Math.max(0, line.fireAt - sim.tick) / Math.max(1, C.telegraphSec * 60);
+      c.save();
+      c.translate(line.cx, line.cy); c.rotate(Math.atan2(line.dirY, line.dirX));
+      c.fillStyle = pal.telegraph; c.globalAlpha = 0.12 + 0.28 * k;
+      c.fillRect(0, -C.width / 2, C.length, C.width);
+      c.globalAlpha = 0.5 + 0.5 * k; c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([10, 8]);
+      c.strokeRect(0, -C.width / 2, C.length, C.width); c.setLineDash([]);
+      c.restore(); c.globalAlpha = 1;
     }
   }
 
