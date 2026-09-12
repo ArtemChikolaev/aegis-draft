@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.68.0";
+export const ARCADE_CONFIG_VERSION = "a0.69.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -91,6 +91,10 @@ export const ARCADE = {
    *  каждые `volleyEvery` тиков объявляет полосу шириной `width` и длиной `length` от центра строя к герою на `telegraphSec`, затем залп:
    *  герой в полосе получает `dmg` × доля живых лучников. Полоса не перекрывает всё — выйти вбок или зайти сбоку. Живых строев ≤ `maxLines`. */
   archers: { fromMin: 5, every: sec(70), count: 4, spacing: 34, range: 380, telegraphSec: 1.4, volleyEvery: sec(6), width: 90, length: 480, dmg: 26, maxLines: 2 },
+  /** Спороносец (T13.82, аудит §4): с `fromMin` раз в `every` приходят `count` спороносцев; каждые `dropEvery` тиков оставляют лужу
+   *  `dropR` на `dropSec`, после смерти — `deathR` на `deathSec`. Герой в луже: `dps` в секунду и замедление `slow`. Луж не больше
+   *  `maxPuddles` (старые гаснут первыми) — обязательный путь не перекрыть. */
+  spores: { fromMin: 6, every: sec(75), count: 2, dropEvery: sec(5), dropR: 60, dropSec: 8, deathR: 110, deathSec: 10, dps: 14, slow: 0.35, maxPuddles: 6 },
   build: { debtRarity: "exotic" as const, ritual: { seconds: 180, healMult: 1.5, goldMult: 1.5, dmgMult: 1.1 } },
   /** Кентавр-Страж рощи (T13.45, этап 3 аудита): чемпион с рывком. Спит в роще (по seed, рядом с камнями), пока
    *  герой не войдёт в `wakeRadius` или не ударит. В `chargeRange` — телеграф `chargeTelegraph` (стрелка на позицию

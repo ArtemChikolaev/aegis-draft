@@ -51,6 +51,8 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   shaman: { id: "shaman", hp: 150, speed: 66, dmg: 8, r: 14, xp: 16, gold: 8, fromMin: 99, weight: 0, elite: true, tone: "elite" },
   /** Лучник строя (T13.81): держит дистанцию в линии, бьёт залпом по объявленной полосе; хрупкий вблизи. */
   archer: { id: "archer", hp: 90, speed: 72, dmg: 26, r: 12, xp: 8, gold: 4, fromMin: 99, weight: 0, tone: "swift" },
+  /** Спороносец (T13.82): медленный и живучий, на ходу и после смерти оставляет лужи спор — убить издалека или выманить с прохода. */
+  sporebearer: { id: "sporebearer", hp: 220, speed: 46, dmg: 12, r: 15, xp: 14, gold: 6, fromMin: 99, weight: 0, tone: "brute" },
 };
 
 /** Пул обычного спавна на минуте `min` (виды, доступные к этому времени). */

@@ -11,7 +11,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type ArcherLine } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type ArcherLine, type SporePuddle } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
@@ -137,6 +137,9 @@ export class ArcadeSim {
   /** Строй стрелков (T13.81): живые линии и следующий по расписанию. */
   archerLines: ArcherLine[] = [];
   private nextArchersAt = 0;
+  /** Спороносцы (T13.82): лужи на земле и следующая пара по расписанию. */
+  spores: SporePuddle[] = [];
+  private nextSporesAt = 0;
   /** Токен нейтралки на карте и открытый выбор (мир стоит, как в лавке). */
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
@@ -1453,6 +1456,7 @@ export class ArcadeSim {
     if (this.tick < p.spinUntil || this.tick < p.hasteUntil) speed *= 1.12;
     if (this.tick < p.fieldUntil) speed *= 0.5;
     if (this.inCurrent(p.x, p.y)) speed *= 1 - ARCADE.tide.slow; // прилив: медленнее, но управление своё
+    if (this.inSpore(p.x, p.y)) speed *= 1 - ARCADE.spores.slow; // лужа спор: замедление, пока не вышел
     const ox = p.x, oy = p.y;
     p.x = clamp(p.x + dx * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
     p.y = clamp(p.y + dy * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
@@ -2387,6 +2391,7 @@ export class ArcadeSim {
     if (this.rift?.state === "active") this.rift.kills++;
     this.events.kills++;
     this.killsByKind[e.kind.id] = (this.killsByKind[e.kind.id] ?? 0) + 1;
+    if (e.kind.id === "sporebearer") this.dropSpore(e.x, e.y, ARCADE.spores.deathR, ARCADE.spores.deathSec); // смерть — большая лужа там, где убит
     if (e.kind.id === "shaman") {
       // Шаман пал — его щиты спадают сразу.
       for (const o of this.enemies) if (o.alive && o.shieldBy === e.id) { o.shieldUntil = 0; o.shieldBy = 0; if (o.leader === e.id) o.leader = 0; }
@@ -2640,6 +2645,9 @@ export class ArcadeSim {
 
   private regenAndHazards(): void {
     const p = this.player;
+    // Лужи спор (T13.82): урон раз в 6 тиков, пока герой внутри; гаснут по времени.
+    if (this.spores.length && this.tick % 60 === 0) this.spores = this.spores.filter((sp) => this.tick < sp.until);
+    if (this.tick % 6 === 0 && this.inSpore(p.x, p.y)) this.damagePlayer(ARCADE.spores.dps * 0.1, 0, ENEMY_KINDS.sporebearer);
     if (this.tick % 6 === 0 && p.hp < p.stats.maxHp) p.hp = Math.min(p.stats.maxHp, p.hp + p.stats.regen * 0.1 * (p.curse === "withering" ? ARCADE.curse.withering.healMult : 1) * this.ritualMult("withering"));
     if (this.shrine.alive && len(this.shrine.x - p.x, this.shrine.y - p.y) < 34) {
       this.shrine.alive = false;
@@ -2749,6 +2757,7 @@ export class ArcadeSim {
     if (this.actProperty() === "siege") this.tickPatrols();
     this.tickShamans();
     this.tickArcherLines();
+    this.tickSpores();
     const rate = this.siegeMult() * (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min, this.act);
@@ -2940,6 +2949,8 @@ export class ArcadeSim {
       if (e.kind.id === "standard_bearer") { this.moveBearer(e, d, frozen); continue; }
       if (e.kind.id === "shaman") { this.moveShaman(e, dx, dy, d, frozen); continue; }
       if (e.kind.id === "archer") { this.moveArcher(e, d, frozen); continue; }
+      // Спороносец идёт как обычная толпа, но на ходу оставляет лужи.
+      if (e.kind.id === "sporebearer" && e.shotCd === 0 && !frozen) { this.dropSpore(e.x, e.y, ARCADE.spores.dropR, ARCADE.spores.dropSec); e.shotCd = ARCADE.spores.dropEvery; }
       if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
@@ -3394,6 +3405,28 @@ export class ArcadeSim {
       p.items.splice(idx, 1);
       this.recomputeStats();
     }
+  }
+
+  /** Спороносцы (T13.82): пара по расписанию с `fromMin`; лужи ограничены числом и временем. */
+  private tickSpores(): void {
+    const C = ARCADE.spores;
+    if (this.minutes < C.fromMin) return;
+    if (this.nextSporesAt === 0) this.nextSporesAt = this.actTick;
+    if (this.actTick < this.nextSporesAt) return;
+    this.nextSporesAt = this.actTick + C.every;
+    for (let i = 0; i < C.count; i++) this.spawnEnemy(ENEMY_KINDS.sporebearer, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40));
+  }
+
+  private dropSpore(x: number, y: number, r: number, seconds: number): void {
+    this.spores.push({ x, y, r, until: this.tick + sec(seconds) });
+    if (this.spores.length > ARCADE.spores.maxPuddles) this.spores.shift(); // старые гаснут первыми — проход не перекрыть навсегда
+    this.pushFx("nova", x, y, r, 0, 12);
+  }
+
+  /** Точка в луже спор. */
+  inSpore(x: number, y: number): boolean {
+    for (const sp of this.spores) if (this.tick < sp.until && len(sp.x - x, sp.y - y) <= sp.r) return true;
+    return false;
   }
 
   /** Строй стрелков (T13.81): по расписанию — линия лучников поперёк направления на героя; залпы по объявленной полосе. */

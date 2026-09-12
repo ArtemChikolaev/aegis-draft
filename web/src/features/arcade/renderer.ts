@@ -251,6 +251,7 @@ export class ArcadeRenderer {
     this.drawLair(sim, pal, now);
     this.drawFord(sim, pal, now);
     this.drawLoot(sim, pal, now);
+    this.drawSpores(sim, pal);
     this.drawArcherLines(sim, pal);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
@@ -822,6 +823,21 @@ export class ArcadeRenderer {
         c.beginPath(); c.arc(pet.x, pet.y, pet.kind === "bear" ? 14 : 9, 0, Math.PI * 2); c.fill();
         c.globalAlpha = 1;
       }
+    }
+  }
+
+  /** Лужи спор (T13.82): ядовитый круг на земле, гаснет к концу срока. */
+  private drawSpores(sim: ArcadeSim, pal: Palette): void {
+    const c = this.ctx;
+    for (const sp of sim.spores) {
+      const left = sp.until - sim.tick;
+      if (left <= 0) continue;
+      const k = Math.min(1, left / 60); // последняя секунда — тает
+      c.fillStyle = pal.venom; c.globalAlpha = 0.28 * k;
+      c.beginPath(); c.ellipse(sp.x, sp.y, sp.r, sp.r * 0.7, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = pal.venomDark; c.globalAlpha = 0.6 * k; c.lineWidth = 2;
+      c.beginPath(); c.ellipse(sp.x, sp.y, sp.r, sp.r * 0.7, 0, 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 1;
     }
   }
 

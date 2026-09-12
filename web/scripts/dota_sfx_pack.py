@@ -183,6 +183,8 @@ ENEMIES = {
     "shaman": {"attack": heavy, "death": [f"{D}death_ogre_0{i}" for i in (1, 2, 3, 4)]},
     # Лучник строя (T13.81) — модель Clinkz, клипы холмового тролля.
     "archer": {"attack": melee, "death": [f"{D}death_troll_common_0{i}" for i in (1, 2, 3, 4)]},
+    # Спороносец (T13.82) — модель Venomancer, клипы дикокрыла.
+    "sporebearer": {"attack": melee, "death": [f"{D}death_wildkin_0{i}" for i in (1, 2, 3)]},
     "satyr": {"attack": melee, "death": [f"{D}death_satyr_0{i}" for i in (1, 2, 3, 4)], "aggro": [f"{C}neutral/satyr_hellcaster_cast"]},
     "ogre": {"attack": heavy, "death": [f"{D}death_ogre_0{i}" for i in (1, 2, 3, 4)]},
     "centaur": {"attack": [f"{C}neutral/centaur_khan_stomp_01"] + heavy[:1], "death": [f"{D}death_centaur_khan", f"{D}death_centaur_outrunner"]},

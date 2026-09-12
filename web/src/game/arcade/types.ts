@@ -53,7 +53,7 @@ export type EnemyKindId =
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
   | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
   | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker"
-  | "standard_bearer" | "shaman" | "archer";
+  | "standard_bearer" | "shaman" | "archer" | "sporebearer";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -356,6 +356,9 @@ export const RIFT_RULES: readonly RiftRuleId[] = ["surge", "brittle", "gloom", "
 /** Строй стрелков (T13.81): линия лучников с объявленным залпом. `fireAt` > 0 — идёт телеграф полосы от центра строя
  *  по направлению `dirX/dirY`; в момент `fireAt` герой внутри полосы получает урон. */
 export interface ArcherLine { id: number; cx: number; cy: number; dirX: number; dirY: number; fireAt: number; nextAt: number }
+
+/** Лужа спор (T13.82): круг на земле до тика `until` — герой в ней получает урон и замедлен. */
+export interface SporePuddle { x: number; y: number; r: number; until: number }
 
 export interface Rift {
   x: number;
