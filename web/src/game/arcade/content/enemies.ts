@@ -48,8 +48,21 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
 };
 
 /** Пул обычного спавна на минуте `min` (виды, доступные к этому времени). */
-export function spawnPool(min: number, act = "short"): EnemyKind[] {
+/** Пороги появления по минутам (по возрастанию): пул меняется только при их пересечении. */
+let POOL_STEPS: number[] | null = null;
+const POOL_CACHE = new Map<string, readonly EnemyKind[]>();
+
+/** Пул спавна к минуте `min` в акте `act`. Массив общий и кэшированный (сим зовёт его каждый тик) — не мутировать. */
+export function spawnPool(min: number, act = "short"): readonly EnemyKind[] {
+  // Пороги считаем при первом вызове, а не при импорте: бот меняет `ENEMY_KINDS` флагом `--enemy` до первого сима.
+  const steps = POOL_STEPS ?? (POOL_STEPS = [...new Set(Object.values(ENEMY_KINDS).filter((k) => k.weight > 0).map((k) => k.fromMin))].sort((a, b) => a - b));
+  let stage = 0;
+  while (stage < steps.length && steps[stage] <= min) stage++;
+  const key = `${act}:${stage}`;
+  const hit = POOL_CACHE.get(key);
+  if (hit) return hit;
   const pool: EnemyKind[] = [];
   for (const kind of Object.values(ENEMY_KINDS)) if (kind.weight > 0 && kind.fromMin <= min && (!kind.acts || kind.acts.includes(act))) pool.push(kind);
+  POOL_CACHE.set(key, pool);
   return pool;
 }

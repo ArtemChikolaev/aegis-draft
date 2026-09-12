@@ -346,7 +346,6 @@ for (const c of COSMETICS) if (SHEET_STYLE_SKINS.has(c.id)) (c as { styles?: rea
 for (const c of COSMETICS) if (c.slot === "skin" && c.rarity === "arcana" && !c.styles) (c as { styles?: readonly StyleDef[] }).styles = GEMS;
 
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));
-export const COSMETIC_SLOTS: readonly CosmeticSlot[] = ["skin", "frame", "aura", "trail", "death", "tint"];
 
 /** Имя листа/озвучки героя с учётом надетого скина: `<hero>@<skin>`, если скин этого героя надет, иначе id героя.
  *  Стиль сюда НЕ входит: озвучка у стилей общая со скином. */

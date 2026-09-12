@@ -64,7 +64,3 @@ export interface ShopOffer {
   price: number;
 }
 
-export interface OwnedItem {
-  id: string;
-  rarity: Rarity;
-}

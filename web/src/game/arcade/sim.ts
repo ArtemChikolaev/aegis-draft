@@ -1,9 +1,10 @@
 // Arcade — чистый детерминированный сим (PRD §5.15, BACKLOG T13.1).
 //
 // Контракт детерминизма: состояние — функция ТОЛЬКО от `seed` и последовательности `ArcadeInput`
-// по тикам. Внутри нет Date/rAF/Math.random и трансцендентных функций (`Math.sin/cos/atan2/exp` у
-// браузеров расходятся в младших битах) — направления берутся из таблицы констант, дистанции
-// через sqrt (IEEE гарантирует округление). Один тик = 1/60 с (config.TICK_HZ).
+// по тикам. Внутри нет Date/rAF/Math.random; дистанции — через sqrt (IEEE гарантирует округление),
+// направления движения — из таблицы констант. `Math.sin/cos/atan2` остались в расстановке мест и
+// раскладке орбит/веера снарядов: в одном движке они детерминированы, между движками могут
+// расходиться в младших битах — реплеи гарантированы в пределах одного браузера. Один тик = 1/60 с (config.TICK_HZ).
 //
 // Сим не знает про рендер: `fx` — журнал визуальных событий с ttl, рендерер читает его и
 // ничего в сим не пишет. Level-up останавливает мир (`pending`) до `input.choose`.
@@ -17,7 +18,7 @@ import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.t
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
-import { type FormDef, HEROES, type AbilityDef, type HeroDef, type HeroId } from "./content/heroes.ts";
+import { type FormDef, HEROES, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
 import { GEAR_SLOTS, gearEffect, reforgeGear, rollGear, temperGear, uniqueGear, type GearItem, type GearSlot } from "./content/gear.ts";
 import { LEGACY_NONE, type LegacyBonus } from "./content/legacy.ts";
@@ -98,6 +99,8 @@ export class ArcadeSim {
   readonly rng: Rng;
   readonly rank: RankRules;
   readonly hero: HeroDef;
+  /** Слот умения по его виду (первый из q,w,e,r): набор героя неизменен весь забег, ищем один раз, а не каждый тик. */
+  private readonly slot: Partial<Record<AbilityKind, AbilityKey>> = {};
   tick = 0;
   shrine: Shrine = { alive: false, x: 0, y: 0, until: 0 };
   greedUntil = 0;
@@ -242,6 +245,7 @@ export class ArcadeSim {
   private golemIdx = 0;
   private lastInput: ArcadeInput = { ...IDLE_INPUT };
   private grid = new Map<number, Enemy[]>();
+  private gridUsed: number[] = [];
   /** Счётчик вызовов step(): ключ input-лога. Тик не годится — он стоит, пока висит выбор карточки. */
   steps = 0;
   /** Input-лог (записывается всегда: он дешёвый и нужен реплею/шарингу). */
@@ -251,6 +255,7 @@ export class ArcadeSim {
     this.seed = seed;
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
+    for (const k of ABILITY_KEYS) this.slot[this.hero.abilities[k].kind] ??= k;
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
     this.trait = isTraitId(options.trait) ? TRAITS[options.trait] : null;
     const L = options.legacy;
@@ -307,13 +312,7 @@ export class ArcadeSim {
     return !!d && !!this.stalker?.alive && this.stalker !== this.hunter && this.tick >= d.exposedUntil;
   }
 
-  private updateDenEngage(): void {
-    const d = this.den;
-    if (!d || !this.stalker?.alive) return;
-    const dist = len(this.player.x - d.x, this.player.y - d.y);
-    if (!d.engaged && dist <= ARCADE.stalker.huntRadius) d.engaged = true;
-    else if (d.engaged && dist > ARCADE.stalker.leash) d.engaged = false;
-  }
+  private updateDenEngage(): void { this.updateEngage(this.den, this.stalker?.alive === true, ARCADE.stalker.huntRadius, ARCADE.stalker.leash); }
 
   /** Охотник Dire: скрыт → метка на будущей позиции героя → прыжок и удар → открыт и уязвим → снова скрыт. */
   private moveStalker(e: Enemy, dx: number, dy: number, d: number): void {
@@ -325,8 +324,7 @@ export class ArcadeSim {
     if (!hunting && !this.playerAtDen()) {
       // Ушёл из охотничьих угодий: охотник возвращается в логово и лечится, метка снята.
       const home = len(e.x - den.x, e.y - den.y);
-      if (home > 8) { e.x += (den.x - e.x) / home * e.kind.speed * DT; e.y += (den.y - e.y) / home * e.kind.speed * DT; }
-      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * S.regenPerSec);
+      this.returnHome(e, den.x, den.y, home, S.regenPerSec);
       den.markUntil = 0; den.exposedUntil = 0;
       return;
     }
@@ -349,7 +347,7 @@ export class ArcadeSim {
       const speed = S.chaseSpeed * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1) * (this.tick < e.chillUntil ? 1 - e.chillSlow * 0.5 : 1);
       e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
       [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
-      if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
+      this.contactDamage(e, d);
       if (hunting) return;
     }
     if (this.tick >= den.exposedUntil && this.tick >= den.nextAt) {
@@ -384,13 +382,7 @@ export class ArcadeSim {
     return !!this.ford && !!this.warden?.alive && this.tick < this.ford.shieldUntil;
   }
 
-  private updateFordEngage(): void {
-    const f = this.ford;
-    if (!f || !this.warden?.alive) return;
-    const d = len(this.player.x - f.x, this.player.y - f.y);
-    if (!f.engaged && d <= ARCADE.warden.wakeRadius) f.engaged = true;
-    else if (f.engaged && d > ARCADE.warden.engageRadius) f.engaged = false;
-  }
+  private updateFordEngage(): void { this.updateEngage(this.ford, this.warden?.alive === true, ARCADE.warden.wakeRadius, ARCADE.warden.engageRadius); }
 
   /** Страж переправы: щит/открыт по фазам, волны через русло с островком, держит дистанцию в воде. */
   private moveWarden(e: Enemy, dx: number, dy: number, d: number): void {
@@ -411,8 +403,7 @@ export class ArcadeSim {
     if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
     const home = len(e.x - f.x, e.y - f.y);
     if (!hunting && (!this.playerAtFord() || home > Wd.leash)) {
-      if (home > 8) { e.x += (f.x - e.x) / home * e.kind.speed * DT; e.y += (f.y - e.y) / home * e.kind.speed * DT; }
-      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * Wd.regenPerSec);
+      this.returnHome(e, f.x, f.y, home, Wd.regenPerSec);
       f.shieldUntil = 0; f.openUntil = 0;
       return;
     }
@@ -429,7 +420,7 @@ export class ArcadeSim {
     if (d < Wd.keepMin && (hunting || home < Wd.leash - 20)) { e.x -= dx / d * speed * DT; e.y -= dy / d * speed * DT; }
     else if (d > Wd.keepMax) { e.x += dx / d * speed * DT; e.y += dy / d * speed * DT; }
     if (!hunting) e.y = clamp(e.y, R.y - R.halfWidth + 20, R.y + R.halfWidth - 20); // не выходит из воды
-    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
+    this.contactDamage(e, d);
   }
 
   /** Логово по seed: кольцо от старта, подальше от остальных мест, свободный центр. */
@@ -446,13 +437,7 @@ export class ArcadeSim {
     return !!this.lair && !!this.thunder?.alive && this.lair.engaged;
   }
 
-  private updateLairEngage(): void {
-    const l = this.lair;
-    if (!l || !this.thunder?.alive) return;
-    const d = len(this.player.x - l.x, this.player.y - l.y);
-    if (!l.engaged && d <= ARCADE.thunder.wakeRadius) l.engaged = true;
-    else if (l.engaged && d > ARCADE.thunder.engageRadius) l.engaged = false;
-  }
+  private updateLairEngage(): void { this.updateEngage(this.lair, this.thunder?.alive === true, ARCADE.thunder.wakeRadius, ARCADE.thunder.engageRadius); }
 
   /** Гром-голем: медленная погоня, раз в `every` — три заряженные зоны вокруг героя с безопасной четвёртой стороной, затем удар и цепь. */
   private moveThunder(e: Enemy, dx: number, dy: number, d: number): void {
@@ -482,8 +467,7 @@ export class ArcadeSim {
     if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
     const home = len(e.x - l.x, e.y - l.y);
     if (!hunting && (!this.playerAtLair() || home > T.leash)) {
-      if (home > 8) { e.x += (l.x - e.x) / home * e.kind.speed * DT; e.y += (l.y - e.y) / home * e.kind.speed * DT; }
-      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * T.regenPerSec);
+      this.returnHome(e, l.x, l.y, home, T.regenPerSec);
       return;
     }
     if (l.zones.length === 0 && this.tick >= l.nextAt && d <= 360) {
@@ -498,7 +482,7 @@ export class ArcadeSim {
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
     [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
-    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
+    this.contactDamage(e, d);
   }
 
   /** Кузня по seed: кольцо от старта, подальше от остальных мест, не в реке/яме, не в дереве. */
@@ -601,9 +585,7 @@ export class ArcadeSim {
     if (!won) return;
     const up = this.rollUpgradeOffer([]);
     if (up && up.kind === "upgrade") {
-      const offers: Offer[] = [{ kind: "upgrade", id: up.id, rarity: ARCADE.rift.rewardRarity }];
-      if (this.pending) this.campRewardQueued = [...(this.campRewardQueued ?? []), ...offers];
-      else { this.pending = offers; this.pendingSource = "camp"; }
+      this.queueReward([{ kind: "upgrade", id: up.id, rarity: ARCADE.rift.rewardRarity }]);
     } else this.gainGold(Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * this.minutes));
   }
 
@@ -815,13 +797,7 @@ export class ArcadeSim {
     return n;
   }
 
-  private updateBarrowEngage(): void {
-    const b = this.barrow;
-    if (!b || !this.necromancer?.alive) return;
-    const d = len(this.player.x - b.x, this.player.y - b.y);
-    if (!b.engaged && d <= ARCADE.necro.wakeRadius) b.engaged = true;
-    else if (b.engaged && d > ARCADE.necro.engageRadius) b.engaged = false;
-  }
+  private updateBarrowEngage(): void { this.updateEngage(this.barrow, this.necromancer?.alive === true, ARCADE.necro.wakeRadius, ARCADE.necro.engageRadius); }
 
   /** Живые цели для контракта (T13.50): Сатир лагеря (пока лагерь не очищен), Кентавр, Некромант. */
   private contractTargets(): ContractTarget[] {
@@ -878,7 +854,7 @@ export class ArcadeSim {
     else if (c.reward === "armor") { this.dropLoot(x - 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "armor")); this.dropLoot(x + 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "helm")); }
     else {
       const up = this.rollUpgradeOffer([]);
-      if (up && up.kind === "upgrade") { const offers: Offer[] = [{ kind: "upgrade", id: up.id, rarity: "exotic" }]; if (this.pending) this.campRewardQueued = [...(this.campRewardQueued ?? []), ...offers]; else { this.pending = offers; this.pendingSource = "camp"; } }
+      if (up && up.kind === "upgrade") this.queueReward([{ kind: "upgrade", id: up.id, rarity: "exotic" }]);
     }
   }
 
@@ -911,8 +887,7 @@ export class ArcadeSim {
     const home = len(e.x - b.x, e.y - b.y);
     const hunting = e === this.hunter;
     if (!hunting && (!this.playerAtBarrow() || home > N.leash)) {
-      if (home > 8) { e.x += (b.x - e.x) / home * e.kind.speed * DT; e.y += (b.y - e.y) / home * e.kind.speed * DT; }
-      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * N.regenPerSec);
+      this.returnHome(e, b.x, b.y, home, N.regenPerSec);
       return;
     }
     let speed = e.kind.speed;
@@ -925,7 +900,7 @@ export class ArcadeSim {
       e.shotCd = sec(N.shot.every);
       this.spawnProjectile(e.x, e.y, dx / d * N.shot.speed, dy / d * N.shot.speed, 10, e.dmg * N.shot.dmgMult, sec(2.2), 0, "siege", true);
     }
-    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
+    this.contactDamage(e, d);
   }
 
   /** Роща по seed: кольцо от старта, подальше от лагеря/аванпоста/пруда; из 40 проб берём место с наибольшим числом камней рядом —
@@ -967,13 +942,7 @@ export class ArcadeSim {
     return false;
   }
 
-  private updateGroveEngage(): void {
-    const g = this.grove;
-    if (!g || !this.centaur?.alive) return;
-    const d = len(this.player.x - g.x, this.player.y - g.y);
-    if (!g.engaged && d <= ARCADE.centaur.wakeRadius) g.engaged = true;
-    else if (g.engaged && d > ARCADE.centaur.engageRadius) g.engaged = false;
-  }
+  private updateGroveEngage(): void { this.updateEngage(this.grove, this.centaur?.alive === true, ARCADE.centaur.wakeRadius, ARCADE.centaur.engageRadius); }
 
   /** Контроль чемпиона: не дольше cap, после — resist иммунитета к повторному (Сатир и Кентавр). */
   private capControl(e: Enemy, cap: number, resist: number): void {
@@ -1048,8 +1017,7 @@ export class ArcadeSim {
     const home = len(e.x - g.x, e.y - g.y);
     const hunting = e === this.hunter;
     if (!hunting && (!this.playerAtGrove() || home > C.leash)) {
-      if (home > 8) { e.x += (g.x - e.x) / home * e.kind.speed * DT; e.y += (g.y - e.y) / home * e.kind.speed * DT; }
-      if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * C.regenPerSec);
+      this.returnHome(e, g.x, g.y, home, C.regenPerSec);
       return;
     }
     if (e.slamCd === 0 && d <= C.chargeRange + ARCADE.player.r && d > e.kind.r + ARCADE.player.r + 6) {
@@ -1146,7 +1114,6 @@ export class ArcadeSim {
     return order[Math.min(order.length - 1, order.indexOf(r) + ARCADE.curse.lootRarityUp)];
   }
 
-  /** Аванпост по seed: кольцо от старта, подальше от лагеря (разные направления = выбор маршрута), не в реке/яме, не в дереве. */
   /**
    * Точка места по seed (T13.53): пробы на кольце от старта; годная — не в реке/яме, не ближе `minFromOthers` к другим местам,
    * не в дереве. Ни одна не годится — берём пробу с наибольшим расстоянием до других мест, а не последнюю попавшуюся
@@ -1167,6 +1134,7 @@ export class ArcadeSim {
     return this.obstacles.resolve(...(best ?? [cx0 + distMin, cy0]), blockR);
   }
 
+  /** Аванпост по seed: кольцо от старта, подальше от лагеря (разные направления = выбор маршрута), не в реке/яме, не в дереве. */
   private placeOutpost(seed: string): Outpost {
     const O = ARCADE.outpost;
     const [x, y] = this.pickSpot(new Rng(`outpost:${seed}:${this.act}`), O.distMin, O.distMax, O.radius + 60, O.minFromCamp, this.camp ? [this.camp] : [], 40);
@@ -1242,12 +1210,25 @@ export class ArcadeSim {
   }
 
   /** Гистерезис агро: будим во внутреннем кольце, отпускаем за внешним (как нейтральный лагерь Dota). */
-  private updateCampEngage(): void {
-    const camp = this.camp;
-    if (!camp || camp.cleared) return;
-    const d = len(this.player.x - camp.x, this.player.y - camp.y);
-    if (!camp.engaged && d <= ARCADE.camp.wakeRadius) camp.engaged = true;
-    else if (camp.engaged && d > ARCADE.camp.engageRadius) camp.engaged = false;
+  private updateCampEngage(): void { this.updateEngage(this.camp, this.camp?.cleared === false, ARCADE.camp.wakeRadius, ARCADE.camp.engageRadius); }
+
+  /** Гистерезис «место разбужено»: вход ближе `wake`, выход дальше `leash`; пока чемпион мёртв (или лагерь очищен) — не трогаем. */
+  private updateEngage(place: { x: number; y: number; engaged: boolean } | null, active: boolean, wake: number, leash: number): void {
+    if (!place || !active) return;
+    const d = len(this.player.x - place.x, this.player.y - place.y);
+    if (!place.engaged && d <= wake) place.engaged = true;
+    else if (place.engaged && d > leash) place.engaged = false;
+  }
+
+  /** Чемпион идёт домой (`home` — уже посчитанная дистанция до дома) и раз в секунду лечится долей максимума. */
+  private returnHome(e: Enemy, hx: number, hy: number, home: number, regenPerSec: number, regen = true): void {
+    if (home > 8) { e.x += (hx - e.x) / home * e.kind.speed * DT; e.y += (hy - e.y) / home * e.kind.speed * DT; }
+    if (regen && this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * regenPerSec);
+  }
+
+  /** Контактный урон чемпиона: вплотную к герою, раз в `boss.contactEvery`. */
+  private contactDamage(e: Enemy, d: number): void {
+    if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) { e.contactCd = sec(ARCADE.boss.contactEvery); this.damagePlayer(e.dmg, 0, e.kind); }
   }
 
   // ---------- прилив (T13.61) ----------
@@ -1441,7 +1422,7 @@ export class ArcadeSim {
   /** Io Spirits: позиции шаров на орбите (медленный оборот — `ARCADE.io.orbitSec` на круг). */
   spiritOrbs(): [number, number][] {
     const p = this.player;
-    const key = ABILITY_KEYS.find((k) => this.hero.abilities[k].kind === "spirits");
+    const key = this.slot.spirits;
     if (!key || this.tick >= p.spiritsUntil) return [];
     const ab = this.hero.abilities[key];
     const n = ab.count?.[p.abilities[key]] ?? 5, r = ab.radius ?? 130;
@@ -1527,7 +1508,7 @@ export class ArcadeSim {
     const bossNear = this.roshan?.alive === true && len(this.roshan.x - p.x, this.roshan.y - p.y) < radius;
     switch (ab.kind) {
       case "ward": return hpPct < A.healHpPct;
-      case "tether": return hpPct < 0.7 && this.tetherTarget(ab) !== null;
+      case "tether": return hpPct < 0.7 && this.tetherTarget(ab) >= 0;
       case "spirits": return near >= 2 || bossNear;
       case "spin": case "nova": case "arc_lightning": case "battle_hunger": case "berserker_call": case "shrapnel":
         return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
@@ -1878,7 +1859,7 @@ export class ArcadeSim {
     // Слот ищем по виду умения, а не по букве: Rolling Thunder у Pangolier и Raptor Dance у Kez —
     // это `spin` в R, Hand of God у Chen и Cold Embrace у Winter Wyvern — `ward` в R и E. Каст ставил
     // spinUntil/wardUntil, а тик проверял H.q/H.w и молчал: одиннадцать умений не делали ничего.
-    const spinKey = ABILITY_KEYS.find((k) => H[k].kind === "spin");
+    const spinKey = this.slot.spin;
     if (spinKey && this.tick < p.spinUntil && this.tick % 6 === 0) {
       const sp = H[spinKey];
       const dps = sp.value[p.abilities[spinKey]];
@@ -1888,7 +1869,7 @@ export class ArcadeSim {
       }
     }
     // Io: духи по орбите бьют тех, в кого врезались (контакт, шаг проверки 6 тиков), автоатака не блокируется.
-    const spKey = ABILITY_KEYS.find((k) => H[k].kind === "spirits");
+    const spKey = this.slot.spirits;
     if (spKey && this.tick < p.spiritsUntil && this.tick % 6 === 0) {
       const ab = H[spKey], dps = ab.value[p.abilities[spKey]];
       for (const [ox, oy] of this.spiritOrbs()) for (const e of this.enemies) {
@@ -1897,14 +1878,14 @@ export class ArcadeSim {
       }
     }
     // Io: связь с юнитом — лечение, пока он в радиусе; юнит пропал или ушёл — связь рвётся.
-    const teKey = ABILITY_KEYS.find((k) => H[k].kind === "tether");
+    const teKey = this.slot.tether;
     if (teKey && this.tick < p.tetherUntil) {
       const pet = this.pets[p.tetherPet];
       const ab = H[teKey];
       if (!pet || len(pet.x - p.x, pet.y - p.y) > (ab.radius ?? 420)) { p.tetherUntil = this.tick; p.tetherPet = -1; }
       else if (this.tick % 30 === 0) this.heal(ab.value[p.abilities[teKey]] * 0.5);
     }
-    const healKey = ABILITY_KEYS.find((k) => H[k].kind === "ward");
+    const healKey = this.slot.ward;
     if (healKey && this.tick < p.wardUntil) {
       const hw = H[healKey];
       const d = len(p.x - p.wardX, p.y - p.wardY);
@@ -1920,8 +1901,8 @@ export class ArcadeSim {
     }
     if (p.burstLeft > 0 && this.tick >= p.burstNextAt) {
       const ult = this.talentPower("t25_ult") ? 1.5 : 1;
-      const omniKey = ABILITY_KEYS.find((k) => H[k].kind === "omni");
-      const fieldKey = ABILITY_KEYS.find((k) => H[k].kind === "freezing_field");
+      const omniKey = this.slot.omni;
+      const fieldKey = this.slot.freezing_field;
       if (omniKey) {
         const ob = H[omniKey];
         const candidates = this.enemiesWithin(p.x, p.y, ob.radius ?? 230);
@@ -1958,7 +1939,7 @@ export class ArcadeSim {
       if (t) { this.damageEnemy(t, H[dwKey].value[p.abilities[dwKey]], "zap"); this.pushFx("zap", p.wardX, p.wardY - 30, t.x, t.y, 6); }
     }
     // Static Remnant (Storm): мина взрывается, когда враг подошёл. Слот — любой (Doom: Scorched Earth в W).
-    const remKey = ABILITY_KEYS.find((k) => H[k].kind === "remnant");
+    const remKey = this.slot.remnant;
     if (remKey && this.tick < p.zoneUntil) {
       const r = H[remKey].radius ?? 130;
       if (this.countEnemiesWithin(p.zoneX, p.zoneY, r * 0.55) > 0) {
@@ -1969,14 +1950,14 @@ export class ArcadeSim {
     }
     // Diabolic Edict (Leshrac) / Eye of the Storm (Razor R) / Haunt (Spectre R): случайные разряды по врагам вокруг героя.
     // Раньше проверялся только слот W — ульт Razor молчал (2026-09-06).
-    const edKey = ABILITY_KEYS.find((k) => H[k].kind === "edict");
+    const edKey = this.slot.edict;
     if (edKey && this.tick < p.zoneUntil && this.tick % 8 === 0) {
       const around = this.enemiesWithin(p.x, p.y, H[edKey].radius ?? 260);
       if (around.length > 0) { const e = around[this.rng.int(around.length)]; this.damageEnemy(e, H[edKey].value[p.abilities[edKey]], "burst"); this.pushFx("burst", e.x, e.y, 24, 0, 8); }
     }
     // Life Drain / Mana Drain: канал по цели с лечением.
     if (this.tick < p.drainUntil && this.tick % 6 === 0) {
-      const key = ABILITY_KEYS.find((k) => H[k].kind === "life_drain");
+      const key = this.slot.life_drain;
       const t = key ? this.enemies.find((e) => e.alive && e.id === p.drainTarget) : undefined;
       if (!key || !t || len(t.x - p.x, t.y - p.y) > (H[key].radius ?? 300) + 120) p.drainUntil = 0;
       else {
@@ -1986,7 +1967,7 @@ export class ArcadeSim {
         if (this.tick % 12 === 0) this.pushFx("zap", t.x, t.y, p.x, p.y, 6);
       }
     }
-    const shrapKey = ABILITY_KEYS.find((k) => H[k].kind === "shrapnel");
+    const shrapKey = this.slot.shrapnel;
     if (shrapKey && this.tick < p.zoneUntil && this.tick % 12 === 0) {
       const sb = H[shrapKey];
       const radius = sb.radius ?? 180;
@@ -1996,9 +1977,11 @@ export class ArcadeSim {
 
   /** Zeus Static Field: любой каст снимает долю текущего HP всем вокруг (у босса — ограниченно). */
   private staticField(): void {
-    const ab = this.hero.abilities.e;
-    const lvl = this.player.abilities.e;
-    if (ab.kind !== "static_field" || lvl === 0) return;
+    const key = this.slot.static_field;
+    if (!key) return;
+    const ab = this.hero.abilities[key];
+    const lvl = this.player.abilities[key];
+    if (lvl === 0) return;
     const p = this.player;
     for (const e of this.enemiesWithin(p.x, p.y, ab.radius ?? 320)) this.damageEnemy(e, Math.min(e.hp * ab.value[lvl], e.kind.boss ? 60 : 1e9), "zap");
   }
@@ -2053,8 +2036,8 @@ export class ArcadeSim {
     let kind: FxKind = "hit";
     if (this.rng.float() < p.stats.critChance) { dmg *= p.stats.critMult; kind = "crit"; }
     this.events.hits++;
-    const head = this.hero.abilities.w;
-    if (head.kind === "headshot" && p.abilities.w > 0 && this.rng.float() < 0.3) { dmg += head.value[p.abilities.w]; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.25)); kind = "crit"; }
+    const headKey = this.slot.headshot;
+    if (headKey && p.abilities[headKey] > 0 && this.rng.float() < 0.3) { dmg += this.hero.abilities[headKey].value[p.abilities[headKey]]; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.25)); kind = "crit"; }
     // Фирменные пассивки (T13.15): души SF, ярость Ursa, меткость Drow, Time Lock Void — до удара; Cleave и Overload — после.
     const sig = this.hero.signature;
     const sc = this.sigScale();
@@ -2063,7 +2046,7 @@ export class ArcadeSim {
       if (p.stackTarget === e.id) p.stacks = Math.min(sig.cap ?? 12, p.stacks + 1); else { p.stacks = 1; p.stackTarget = e.id; }
       dmg += p.stacks * sig.value * sc;
     } else if (sig?.kind === "marksmanship") {
-      if (Math.hypot(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) { dmg *= 1 + sig.value * sc; kind = "crit"; }
+      if (len(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) { dmg *= 1 + sig.value * sc; kind = "crit"; }
     } else if (sig?.kind === "timelock" && this.rng.float() < Math.min(0.5, sig.value * sc)) {
       dmg += 20 * sc; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(sig.duration ?? 0.5)); kind = "crit";
     } else if (sig?.kind === "crit" && this.rng.float() < Math.min(0.6, sig.value * sc)) {
@@ -2286,8 +2269,8 @@ export class ArcadeSim {
     // Backstab (Riki): автоатака по оглушённой/замороженной/замедленной цели — «в спину».
     if (fx === "hit" && vamp?.kind === "backstab" && (this.tick < e.stunUntil || this.tick < e.freezeUntil || this.tick < e.chillUntil)) dmg *= 1 + vamp.value * this.sigScale();
     // Presence of the Dark Lord (SF): враги рядом с героем получают больше урона.
-    const pres = this.hero.abilities.e;
-    if (pres.kind === "presence" && this.player.abilities.e > 0 && len(e.x - this.player.x, e.y - this.player.y) <= (pres.radius ?? 300)) dmg *= 1 + pres.value[this.player.abilities.e];
+    const presKey = this.slot.presence;
+    if (presKey && this.player.abilities[presKey] > 0 && len(e.x - this.player.x, e.y - this.player.y) <= (this.hero.abilities[presKey].radius ?? 300)) dmg *= 1 + this.hero.abilities[presKey].value[this.player.abilities[presKey]];
     const shatter = this.upgradePower("ska_shatter");
     if (shatter > 0) {
       if (this.tick < e.freezeUntil) dmg *= 1 + 0.4 * shatter;
@@ -2363,7 +2346,7 @@ export class ArcadeSim {
       const offers: Offer[] = [];
       const a = this.rollUpgradeOffer([], undefined, "attack"), b = this.rollUpgradeOffer(a && a.kind === "upgrade" ? [a.id] : [], undefined, "passive") ?? this.rollUpgradeOffer(a && a.kind === "upgrade" ? [a.id] : [], undefined, "power");
       for (const o of [a, b]) if (o && o.kind === "upgrade") offers.push({ kind: "upgrade", id: o.id, rarity: "exotic" });
-      if (offers.length) { if (this.pending) this.campRewardQueued = [...(this.campRewardQueued ?? []), ...offers]; else { this.pending = offers; this.pendingSource = "camp"; } }
+      if (offers.length) this.queueReward(offers);
       this.completeContract("stalker", e.x, e.y);
     }
     if (e === this.warden) {
@@ -2388,7 +2371,7 @@ export class ArcadeSim {
       const offers: Offer[] = [];
       if (hy.length) for (const id of hy) offers.push({ kind: "upgrade", id, rarity: "exotic" });
       else { const up = this.rollUpgradeOffer([], "maelstrom") ?? this.rollUpgradeOffer([]); if (up && up.kind === "upgrade") offers.push({ kind: "upgrade", id: up.id, rarity: "exotic" }); }
-      if (offers.length) { if (this.pending) this.campRewardQueued = [...(this.campRewardQueued ?? []), ...offers]; else { this.pending = offers; this.pendingSource = "camp"; } }
+      if (offers.length) this.queueReward(offers);
       this.completeContract("thunder", e.x, e.y);
     }
     if (e === this.centaur) {
@@ -2461,7 +2444,7 @@ export class ArcadeSim {
   private damagePlayer(amount: number, stun = 0, by?: EnemyKind): void {
     const p = this.player;
     this.events.hurtBy = by ? KIND_INDEX[by.id] ?? -1 : -1;
-    if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.hero.abilities.r.kind === "omni")) return;
+    if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.slot.omni !== undefined)) return;
     const sig = this.hero.signature;
     if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
     if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
@@ -2490,9 +2473,10 @@ export class ArcadeSim {
       for (const e of this.enemiesWithin(p.x, p.y, 150)) this.damageEnemy(e, amount * 0.6, "burst");
       this.pushFx("nova", p.x, p.y, 150, 0, 8);
     }
-    const helix = this.hero.abilities.e;
-    if (helix.kind === "counter_helix" && p.abilities.e > 0 && this.rng.float() < 0.12 + 0.04 * p.abilities.e) {
-      for (const e of this.enemiesWithin(p.x, p.y, helix.radius ?? 130)) this.damageEnemy(e, helix.value[p.abilities.e], "spin");
+    const helixKey = this.slot.counter_helix;
+    const helix = helixKey ? this.hero.abilities[helixKey] : null;
+    if (helix && helixKey && p.abilities[helixKey] > 0 && this.rng.float() < 0.12 + 0.04 * p.abilities[helixKey]) {
+      for (const e of this.enemiesWithin(p.x, p.y, helix.radius ?? 130)) this.damageEnemy(e, helix.value[p.abilities[helixKey]], "spin");
       this.pushFx("nova", p.x, p.y, helix.radius ?? 130, 0, 10);
     }
     if (stun > 0 && this.tick >= p.spinUntil && !p.stats.stunImmune) p.stunUntil = Math.max(p.stunUntil, this.tick + sec(stun));
@@ -2516,10 +2500,11 @@ export class ArcadeSim {
       return;
     }
     // Reincarnation (Wraith King): пассивный ульт — встаёт сам раз в перезарядку с долей HP по уровню.
-    const r = this.hero.abilities.r;
-    if (r.kind === "reincarnation" && p.abilities.r > 0 && this.tick >= p.reincAt) {
+    const reincKey = this.slot.reincarnation;
+    if (reincKey && p.abilities[reincKey] > 0 && this.tick >= p.reincAt) {
+      const r = this.hero.abilities[reincKey];
       p.reincAt = this.tick + sec(r.cooldown);
-      this.revive(p.stats.maxHp * r.value[p.abilities.r]);
+      this.revive(p.stats.maxHp * r.value[p.abilities[reincKey]]);
       return;
     }
     p.hp = 0;
@@ -2529,22 +2514,20 @@ export class ArcadeSim {
   /** Подъём после смертельного урона (Aegis / Reincarnation): HP, неуязвимость, толчок и стан толпы вокруг. */
   private revive(hp: number): void {
     const p = this.player;
-    {
-      p.hp = Math.max(1, Math.min(p.stats.maxHp, hp));
-      p.invulnUntil = this.tick + sec(ARCADE.player.reviveInvuln);
-      for (const e of this.enemies) {
-        if (!e.alive || e.kind.boss) continue;
-        const d = len(e.x - p.x, e.y - p.y);
-        if (d < ARCADE.player.revivePush) {
-          const k = (ARCADE.player.revivePush - d) / (d || 1);
-          e.x = clamp(e.x + (e.x - p.x) * k, 0, ARCADE.world.w);
-          e.y = clamp(e.y + (e.y - p.y) * k, 0, ARCADE.world.h);
-          e.stunUntil = this.tick + sec(1.2);
-        }
+    p.hp = Math.max(1, Math.min(p.stats.maxHp, hp));
+    p.invulnUntil = this.tick + sec(ARCADE.player.reviveInvuln);
+    for (const e of this.enemies) {
+      if (!e.alive || e.kind.boss) continue;
+      const d = len(e.x - p.x, e.y - p.y);
+      if (d < ARCADE.player.revivePush) {
+        const k = (ARCADE.player.revivePush - d) / (d || 1);
+        e.x = clamp(e.x + (e.x - p.x) * k, 0, ARCADE.world.w);
+        e.y = clamp(e.y + (e.y - p.y) * k, 0, ARCADE.world.h);
+        e.stunUntil = this.tick + sec(1.2);
       }
-      this.shake = 20;
-      this.pushFx("revive", p.x, p.y, 0, 0, 50);
     }
+    this.shake = 20;
+    this.pushFx("revive", p.x, p.y, 0, 0, 50);
   }
 
   private finish(outcome: "dead" | "victory"): void {
@@ -2604,7 +2587,6 @@ export class ArcadeSim {
   // ---------- враги ----------
 
   private spawnTick(): void {
-    const p = this.player;
     const A = ARCADE.acts[this.act];
     // Рошан по расписанию акта; пока жив — тишина. Второй — сильнее (респавн).
     if (this.roshanIdx < this.roshanAt.length && this.actTick === this.roshanAt[this.roshanIdx]) {
@@ -2744,7 +2726,6 @@ export class ArcadeSim {
     if (this.chest.alive && this.tick >= this.chest.until) this.chest.alive = false;
     for (const g of this.groundLoot) if (this.tick >= g.until) g.until = -1;
     if (this.groundLoot.length && this.tick % 60 === 0) this.groundLoot = this.groundLoot.filter((g) => g.until > 0);
-    void p;
   }
 
   /** Акт 3: точка в русле реки недалеко от игрока по X (руны живут в реке, как в Dota). */
@@ -2779,17 +2760,23 @@ export class ArcadeSim {
     const dmgMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.dmgPerMin * early + ARCADE.spawn.lateDmgPerMin * late) * this.rank.dmgMult * greed;
     let e = this.enemies.find((o) => !o.alive);
     if (!e) { e = emptyEnemy(kind); this.enemies.push(e); }
-    Object.assign(e, emptyEnemy(kind), { id: this.nextEnemyId++, alive: true, x, y, hp: kind.hp * hpMult, maxHp: kind.hp * hpMult, dmg: kind.dmg * dmgMult });
+    resetEnemy(e, kind);
+    e.id = this.nextEnemyId++; e.alive = true; e.x = x; e.y = y;
+    e.hp = kind.hp * hpMult; e.maxHp = kind.hp * hpMult; e.dmg = kind.dmg * dmgMult;
     return e;
   }
 
   private rebuildGrid(): void {
-    this.grid.clear();
+    // Ячейки живут между тиками: обнуляем длину занятых, а не пересоздаём массивы (порядок обхода Map нигде не читается).
+    for (const key of this.gridUsed) { const cell = this.grid.get(key); if (cell) cell.length = 0; }
+    this.gridUsed.length = 0;
     for (const e of this.enemies) {
       if (!e.alive || this.isDormant(e)) continue;
       const key = cellKey(e.x, e.y);
-      const cell = this.grid.get(key);
-      if (cell) cell.push(e); else this.grid.set(key, [e]);
+      let cell = this.grid.get(key);
+      if (!cell) { cell = []; this.grid.set(key, cell); }
+      if (cell.length === 0) this.gridUsed.push(key);
+      cell.push(e);
     }
   }
 
@@ -2831,7 +2818,6 @@ export class ArcadeSim {
 
   private moveEnemies(): void {
     const p = this.player;
-    const B = ARCADE.boss;
     for (const e of this.enemies) {
       if (!e.alive) continue;
       const frozen = this.tick < e.freezeUntil || this.tick < e.stunUntil;
@@ -2903,7 +2889,6 @@ export class ArcadeSim {
         this.damagePlayer(e.dmg, 0, e.kind);
       }
     }
-    void B;
   }
 
   private moveBoss(e: Enemy, dx: number, dy: number, d: number, frozen: boolean): void {
@@ -2929,8 +2914,7 @@ export class ArcadeSim {
       const P = ARCADE.pit;
       const home = len(e.x - P.x, e.y - P.y);
       if (len(this.player.x - P.x, this.player.y - P.y) > P.leash) {
-        if (home > 8) { e.x += (P.x - e.x) / home * e.kind.speed * DT; e.y += (P.y - e.y) / home * e.kind.speed * DT; }
-        if (this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * P.regenPerSec);
+        this.returnHome(e, P.x, P.y, home, P.regenPerSec);
         return;
       }
     }
@@ -3483,10 +3467,9 @@ export class ArcadeSim {
     const home = len(e.x - camp.x, e.y - camp.y);
     // Сон / поводок: герой вне лагеря или сатир ушёл слишком далеко — домой и лечиться.
     if (!this.playerAtCamp() || home > ARCADE.camp.radius + D.leash) {
-      if (home > 8) { e.x += (camp.x - e.x) / home * e.kind.speed * DT; e.y += (camp.y - e.y) / home * e.kind.speed * DT; }
       // Лечится только когда лагерь отпущен (герой за engageRadius): кайт охраны у кромки лагеря больше не сбрасывает
       // Сатира в полный HP — с этим бот после сноса всех тотемов оставлял его на 100% в 10 из 10 забегов (2026-09-11).
-      if (!camp.engaged && this.tick % 60 === 0) e.hp = Math.min(e.maxHp, e.hp + e.maxHp * D.regenPerSec);
+      this.returnHome(e, camp.x, camp.y, home, D.regenPerSec, !camp.engaged);
       return;
     }
     if (d <= D.galeRange + ARCADE.player.r && e.slamCd === 0) { e.slamT = D.galeTelegraph; e.slamX = p.x; e.slamY = p.y; return; }
@@ -3511,9 +3494,7 @@ export class ArcadeSim {
     }
     for (const k of ["q", "w", "e"] as const) if (offers.length < 3 && this.player.abilities[k] < 4) offers.push({ kind: "ability", key: k });
     if (offers.length === 0) return;
-    if (this.pending) { this.campRewardQueued = offers; return; }
-    this.pending = offers;
-    this.pendingSource = "camp";
+    this.queueReward(offers);
   }
 
   /** Лагерь очищен: три карты апгрейдов гарантированной редкости (мир стоит, как на уровне); реролла нет. */
@@ -3532,9 +3513,7 @@ export class ArcadeSim {
     // Пул школ исчерпан (все на потолке) — предлагаем очки способностей, чтобы награда не пропала.
     for (const k of ["q", "w", "e"] as const) if (offers.length < 3 && this.player.abilities[k] < 4) offers.push({ kind: "ability", key: k });
     if (offers.length === 0) { this.completeContract("defiler", this.camp.x, this.camp.y); return; }
-    // Уже висит выбор уровня — награда подождёт: pending один.
-    if (this.pending) this.campRewardQueued = offers;
-    else { this.pending = offers; this.pendingSource = "camp"; }
+    this.queueReward(offers);
     this.completeContract("defiler", this.camp.x, this.camp.y);
   }
 
@@ -3611,12 +3590,22 @@ export class ArcadeSim {
   private rollRarity(): Rarity {
     const R = ARCADE.rarity;
     const t = Math.min(1, this.minutes / R.endMin);
-    const w = R.start.map((s, i) => s + (R.end[i] - s) * t);
-    const total = w[0] + w[1] + w[2] + w[3];
-    let roll = this.rng.float() * total;
-    const names: Rarity[] = ["standard", "refined", "exotic", "arcana"];
-    for (let i = 0; i < 4; i++) { roll -= w[i]; if (roll <= 0) return names[i]; }
+    // Без временных массивов: вызывается на каждый дроп, оффер лавки и карточку уровня.
+    const w0 = R.start[0] + (R.end[0] - R.start[0]) * t, w1 = R.start[1] + (R.end[1] - R.start[1]) * t;
+    const w2 = R.start[2] + (R.end[2] - R.start[2]) * t, w3 = R.start[3] + (R.end[3] - R.start[3]) * t;
+    let roll = this.rng.float() * (w0 + w1 + w2 + w3);
+    roll -= w0; if (roll <= 0) return "standard";
+    roll -= w1; if (roll <= 0) return "refined";
+    roll -= w2; if (roll <= 0) return "exotic";
+    roll -= w3; if (roll <= 0) return "arcana";
     return "standard";
+  }
+
+  /** Награда места/чемпиона: одна очередь `pending`; если выбор уже висит — карточки дописываются в хвост,
+   *  а не затирают награду, поставленную раньше (разлом + лагерь подряд теряли первую). */
+  private queueReward(offers: Offer[]): void {
+    if (this.pending) this.campRewardQueued = this.campRewardQueued ? this.campRewardQueued.concat(offers) : offers;
+    else { this.pending = offers; this.pendingSource = "camp"; }
   }
 
   private applyOffer(offer: Offer): void {
@@ -3771,7 +3760,10 @@ export class ArcadeSim {
 
   private pruneFx(): void {
     if (this.tick % 30 !== 0) return;
-    this.fx = this.fx.filter((f) => this.tick - f.born < f.dur);
+    // Уплотнение на месте (как expirePets): без нового массива каждые полсекунды.
+    let n = 0;
+    for (const f of this.fx) if (this.tick - f.born < f.dur) this.fx[n++] = f;
+    this.fx.length = n;
   }
 
   /** Дайджест состояния для тестов детерминизма и реплея: тот же сид + лог ⇒ та же строка. */
@@ -3825,6 +3817,13 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   };
 }
 
+/** Переиспользование слота пула: те же нули, что в `emptyEnemy`, без двух временных объектов на каждый спавн. */
+function resetEnemy(e: Enemy, kind: EnemyKind): void {
+  e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
+  e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
+  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0;
+}
+
 function cellKey(x: number, y: number): number {
   return Math.floor(x / GRID) * 100000 + Math.floor(y / GRID);
 }
@@ -3833,7 +3832,7 @@ function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;
 }
 
-function weightedPick(rng: Rng, pool: EnemyKind[]): EnemyKind {
+function weightedPick(rng: Rng, pool: readonly EnemyKind[]): EnemyKind {
   let total = 0;
   for (const k of pool) total += k.weight;
   let roll = rng.float() * total;
