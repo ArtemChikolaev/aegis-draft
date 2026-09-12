@@ -1,0 +1,20 @@
+COMMAND: node --experimental-transform-types scripts/sim_arcade.ts --runs 12 --seed audit-20260912 --hero juggernaut --act full --verbose
+#0 dead 309s lvl 15 kills 1069 gold 6729 camp 0/3 defiler 100% killer centaur items  rosh — hp 0 schools maelstrom+venom+beast ups mae_static:3,ven_cloud:2,beast_bear:1,beast_roar:1,beast_hawk:2,mae_chain:1,mae_clap:1,ven_spread:1
+#1 dead 490s lvl 16 kills 1881 gold 9552 camp 0/3 defiler 100% killer hill_troll items  rosh — hp 0 schools beast+venom ups beast_hawk:3,ven_cloud:1,hyb_venom_beast:2,ven_virulence:3,beast_wolf:3,leg_ven_pandemic:1
+#2 dead 313s lvl 13 kills 672 gold 989 camp 0/3 defiler 100% killer lane_creep items  rosh — hp 0 schools maelstrom+radiance+beast ups mae_clap:3,rad_strike:1,mae_mjollnir:1,rad_ring:1,beast_hawk:1,leg_mae_haste:1,hyb_plasma:1
+#3 dead 279s lvl 13 kills 835 gold 1496 camp 0/3 defiler 100% killer kobold items  rosh — hp 0 schools venom+beast+radiance ups ven_sting:2,beast_hawk:2,rad_ring:3,leg_beast_kennel:1,rad_inferno:1
+#4 timeout 1560s lvl 46 kills 24400 gold 135957 camp 1/3 defiler 100% killer - items  rosh — hp 1120 schools maelstrom+venom+skadi ups mae_clap:3,ven_sting:1,ven_fangs:2,ven_spread:4,mae_overcharge:2,ska_aura:2,mae_static:1,leg_bloodstone:1,hyb_superconductor:3,ven_virulence:3,ska_shards:3,leg_ven_distill:1,mae_mjollnir:2,ska_bite:2,mae_chain:1,ven_cloud:2,leg_butterfly:1,leg_refresher:1,leg_ska_glacier:1,leg_lotus:1,ska_shatter:1,hyb_venom_frost:1,ska_snap:1
+#5 dead 214s lvl 10 kills 552 gold 720 camp 1/3 defiler 100% killer hill_troll items  rosh — hp 0 schools venom+radiance+beast ups ven_cloud:1,rad_aura:2,beast_bear:1,rad_ring:1,beast_hawk:1,ven_virulence:1
+#6 dead 191s lvl 10 kills 477 gold 1109 camp 0/3 defiler 100% killer satyr items  rosh — hp 0 schools radiance+venom+maelstrom ups rad_aura:1,ven_fangs:1,mae_clap:1,ven_virulence:1,mae_mjollnir:1,leg_rad_sun:1,hyb_venom_fire:1
+#7 timeout 1560s lvl 44 kills 21298 gold 141543 camp 0/3 defiler 100% killer - items  rosh — hp 1345 schools beast+radiance+venom ups beast_bear:4,rad_aura:4,ven_sting:2,rad_blast:3,rad_inferno:3,ven_fangs:1,beast_roar:4,hyb_venom_beast:4,leg_satanic:1,ven_cloud:1,leg_heart:1,leg_moonshard:1,beast_hawk:1,ven_spread:2,leg_rad_phoenix:1,rad_strike:2,rad_ring:2,leg_ven_pandemic:1
+#8 dead 221s lvl 9 kills 412 gold 515 camp 0/3 defiler 100% killer hill_troll items  rosh — hp 0 schools radiance+skadi+venom ups rad_aura:1,ska_bite:2,ska_aura:1,rad_strike:1,ska_snap:1,ven_fangs:1
+#9 dead 621s lvl 26 kills 2458 gold 5017 camp 2/3 defiler 100% killer satyr items desolator+vladmir+travel_boots rosh — hp 0 schools skadi+radiance+beast ups ska_shards:1,ska_shatter:1,rad_strike:2,beast_wolf:2,rad_aura:2,ska_bite:2,ska_aura:1,rad_ring:1,hyb_wild_hunt:1,beast_hawk:2,leg_lotus:1,leg_rad_sun:1,ska_snap:1,rad_inferno:2,leg_ska_avalanche:1
+#10 dead 194s lvl 11 kills 569 gold 711 camp 0/3 defiler 100% killer satyr items  rosh — hp 0 schools radiance+maelstrom+skadi ups rad_strike:1,mae_static:1,mae_chain:2,mae_clap:1,mae_overcharge:2,ska_aura:1,leg_bloodstone:1
+#11 dead 199s lvl 11 kills 609 gold 777 camp 0/3 defiler 100% killer golem items  rosh — hp 0 schools venom+radiance+beast ups ven_cloud:1,rad_aura:2,ven_spread:1,ven_fangs:1,rad_ring:1,beast_wolf:1,leg_rad_sun:1
+arcade a0.61.0 · runs=12 · act=full · hero=juggernaut · school=any · rank=0 · 20.5s
+reached Roshan 33.3% · Roshan killed 33.3% · victory 0.0%
+death time p25/p50/p75: 214s / 309s / 621s · level p50 13 · kills p50 835
+deaths by minute: 3:5 4:1 5:2 8:1 10:1
+deaths by killer: hill_troll:3 satyr:3 centaur:1 lane_creep:1 kobold:1 golem:1
+(node:34342) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

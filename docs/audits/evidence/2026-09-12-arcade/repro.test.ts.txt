@@ -1,0 +1,29 @@
+import { expect, it } from "vitest";
+import { emptyProgress, recordProgress, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
+import { ArcadeSim } from "../src/game/arcade/sim.ts";
+import { IDLE_INPUT } from "../src/game/arcade/types.ts";
+const entry=(seed:string,hero="juggernaut"):ArcadeHistoryEntry=>({seed,hero,act:"full",rank:0,outcome:"victory",seconds:1200,level:25,kills:1000,gold:100,schools:[],configVersion:"a0.61.0",at:1});
+it("repro: first victory bonus returns after bounded claimed history",()=>{
+ let p=recordProgress(emptyProgress(),entry("original","axe"));
+ for(let i=0;i<200;i++)p=recordProgress(p,entry(`later-${i}`));
+ const before=p.legacy.seals;
+ expect(p.perHero.axe.victories).toBe(1);
+ expect(p.legacy.claimed).toHaveLength(200);
+ p=recordProgress(p,entry("original","axe"));
+ console.log("REPRO legacy",{before,after:p.legacy.seals,extra:p.legacy.seals-before});
+ expect(p.legacy.seals-before).toBe(2); // observed defect, expected product behavior: 0
+});
+it("repro: pending level merges champion choice and contract reward",()=>{
+ const sim=new ArcadeSim("audit-reward-queue",{act:"full"});
+ sim.contract={target:"necro",reward:"school",done:false};
+ sim.barrow!.engaged=true;
+ sim.pending=[{kind:"ability",key:"q"}];sim.pendingSource="level";
+ sim.damageEnemy(sim.necromancer!,1e9,"hit");
+ expect(sim.contract.done).toBe(true);
+ sim.step({...IDLE_INPUT,choose:0});
+ const choices=sim.pending?.length;
+ expect(choices).toBe(4);
+ sim.step({...IDLE_INPUT,choose:0});
+ console.log("REPRO rewards",{choicesAfterLevel:choices,pendingAfterChampion:sim.pending,contractDone:sim.contract.done});
+ expect(sim.pending).toBeNull(); // observed defect, expected: separate contract reward remains
+});

@@ -1,0 +1,704 @@
+[
+  {
+    "case": "jugg-full-base",
+    "runs": 12,
+    "wins": 0,
+    "timeouts": 2,
+    "withItems": 1,
+    "rows": [
+      {
+        "seedIndex": 0,
+        "outcome": "dead",
+        "seconds": 309,
+        "level": 15,
+        "kills": 1069,
+        "gold": 6729,
+        "items": ""
+      },
+      {
+        "seedIndex": 1,
+        "outcome": "dead",
+        "seconds": 490,
+        "level": 16,
+        "kills": 1881,
+        "gold": 9552,
+        "items": ""
+      },
+      {
+        "seedIndex": 2,
+        "outcome": "dead",
+        "seconds": 313,
+        "level": 13,
+        "kills": 672,
+        "gold": 989,
+        "items": ""
+      },
+      {
+        "seedIndex": 3,
+        "outcome": "dead",
+        "seconds": 279,
+        "level": 13,
+        "kills": 835,
+        "gold": 1496,
+        "items": ""
+      },
+      {
+        "seedIndex": 4,
+        "outcome": "timeout",
+        "seconds": 1560,
+        "level": 46,
+        "kills": 24400,
+        "gold": 135957,
+        "items": ""
+      },
+      {
+        "seedIndex": 5,
+        "outcome": "dead",
+        "seconds": 214,
+        "level": 10,
+        "kills": 552,
+        "gold": 720,
+        "items": ""
+      },
+      {
+        "seedIndex": 6,
+        "outcome": "dead",
+        "seconds": 191,
+        "level": 10,
+        "kills": 477,
+        "gold": 1109,
+        "items": ""
+      },
+      {
+        "seedIndex": 7,
+        "outcome": "timeout",
+        "seconds": 1560,
+        "level": 44,
+        "kills": 21298,
+        "gold": 141543,
+        "items": ""
+      },
+      {
+        "seedIndex": 8,
+        "outcome": "dead",
+        "seconds": 221,
+        "level": 9,
+        "kills": 412,
+        "gold": 515,
+        "items": ""
+      },
+      {
+        "seedIndex": 9,
+        "outcome": "dead",
+        "seconds": 621,
+        "level": 26,
+        "kills": 2458,
+        "gold": 5017,
+        "items": "desolator+vladmir+travel_boots"
+      },
+      {
+        "seedIndex": 10,
+        "outcome": "dead",
+        "seconds": 194,
+        "level": 11,
+        "kills": 569,
+        "gold": 711,
+        "items": ""
+      },
+      {
+        "seedIndex": 11,
+        "outcome": "dead",
+        "seconds": 199,
+        "level": 11,
+        "kills": 609,
+        "gold": 777,
+        "items": ""
+      }
+    ]
+  },
+  {
+    "case": "jugg-full-places",
+    "runs": 12,
+    "wins": 1,
+    "timeouts": 1,
+    "withItems": 4,
+    "rows": [
+      {
+        "seedIndex": 0,
+        "outcome": "dead",
+        "seconds": 145,
+        "level": 9,
+        "kills": 383,
+        "gold": 532,
+        "items": ""
+      },
+      {
+        "seedIndex": 1,
+        "outcome": "dead",
+        "seconds": 313,
+        "level": 14,
+        "kills": 895,
+        "gold": 1805,
+        "items": "bfury+vladmir+mask_of_madness"
+      },
+      {
+        "seedIndex": 2,
+        "outcome": "dead",
+        "seconds": 325,
+        "level": 12,
+        "kills": 747,
+        "gold": 996,
+        "items": ""
+      },
+      {
+        "seedIndex": 3,
+        "outcome": "dead",
+        "seconds": 267,
+        "level": 12,
+        "kills": 915,
+        "gold": 1293,
+        "items": ""
+      },
+      {
+        "seedIndex": 4,
+        "outcome": "dead",
+        "seconds": 279,
+        "level": 11,
+        "kills": 599,
+        "gold": 773,
+        "items": ""
+      },
+      {
+        "seedIndex": 5,
+        "outcome": "dead",
+        "seconds": 325,
+        "level": 12,
+        "kills": 1309,
+        "gold": 5538,
+        "items": ""
+      },
+      {
+        "seedIndex": 6,
+        "outcome": "dead",
+        "seconds": 354,
+        "level": 14,
+        "kills": 1170,
+        "gold": 1753,
+        "items": ""
+      },
+      {
+        "seedIndex": 7,
+        "outcome": "victory",
+        "seconds": 1356,
+        "level": 39,
+        "kills": 7000,
+        "gold": 50740,
+        "items": "heart+bfury+desolator+travel_boots+assault+black_king_bar"
+      },
+      {
+        "seedIndex": 8,
+        "outcome": "dead",
+        "seconds": 206,
+        "level": 9,
+        "kills": 406,
+        "gold": 520,
+        "items": ""
+      },
+      {
+        "seedIndex": 9,
+        "outcome": "dead",
+        "seconds": 426,
+        "level": 15,
+        "kills": 1073,
+        "gold": 1063,
+        "items": "magic_wand+assault+heart"
+      },
+      {
+        "seedIndex": 10,
+        "outcome": "dead",
+        "seconds": 315,
+        "level": 15,
+        "kills": 961,
+        "gold": 3535,
+        "items": ""
+      },
+      {
+        "seedIndex": 11,
+        "outcome": "timeout",
+        "seconds": 1560,
+        "level": 47,
+        "kills": 22916,
+        "gold": 143880,
+        "items": "butterfly+bfury+magic_wand+vladmir+butterfly+travel_boots"
+      }
+    ]
+  },
+  {
+    "case": "sniper-dire-places",
+    "runs": 12,
+    "wins": 1,
+    "timeouts": 0,
+    "withItems": 3,
+    "rows": [
+      {
+        "seedIndex": 0,
+        "outcome": "dead",
+        "seconds": 246,
+        "level": 13,
+        "kills": 783,
+        "gold": 1104,
+        "items": ""
+      },
+      {
+        "seedIndex": 1,
+        "outcome": "dead",
+        "seconds": 211,
+        "level": 12,
+        "kills": 624,
+        "gold": 839,
+        "items": ""
+      },
+      {
+        "seedIndex": 2,
+        "outcome": "dead",
+        "seconds": 327,
+        "level": 19,
+        "kills": 1322,
+        "gold": 5451,
+        "items": "heart+mask_of_madness+octarine_core"
+      },
+      {
+        "seedIndex": 3,
+        "outcome": "dead",
+        "seconds": 227,
+        "level": 20,
+        "kills": 1012,
+        "gold": 3258,
+        "items": ""
+      },
+      {
+        "seedIndex": 4,
+        "outcome": "dead",
+        "seconds": 260,
+        "level": 14,
+        "kills": 884,
+        "gold": 1287,
+        "items": ""
+      },
+      {
+        "seedIndex": 5,
+        "outcome": "dead",
+        "seconds": 171,
+        "level": 11,
+        "kills": 495,
+        "gold": 1706,
+        "items": ""
+      },
+      {
+        "seedIndex": 6,
+        "outcome": "dead",
+        "seconds": 254,
+        "level": 15,
+        "kills": 877,
+        "gold": 1300,
+        "items": ""
+      },
+      {
+        "seedIndex": 7,
+        "outcome": "dead",
+        "seconds": 304,
+        "level": 17,
+        "kills": 1322,
+        "gold": 2179,
+        "items": "hand_of_midas+black_king_bar+magic_wand"
+      },
+      {
+        "seedIndex": 8,
+        "outcome": "dead",
+        "seconds": 220,
+        "level": 12,
+        "kills": 687,
+        "gold": 2237,
+        "items": ""
+      },
+      {
+        "seedIndex": 9,
+        "outcome": "dead",
+        "seconds": 375,
+        "level": 18,
+        "kills": 1662,
+        "gold": 2842,
+        "items": ""
+      },
+      {
+        "seedIndex": 10,
+        "outcome": "dead",
+        "seconds": 302,
+        "level": 19,
+        "kills": 1166,
+        "gold": 2864,
+        "items": ""
+      },
+      {
+        "seedIndex": 11,
+        "outcome": "victory",
+        "seconds": 1267,
+        "level": 62,
+        "kills": 17567,
+        "gold": 201652,
+        "items": "desolator+hand_of_midas+vladmir+black_king_bar+heart+travel_boots"
+      }
+    ]
+  },
+  {
+    "case": "sniper-full-base",
+    "runs": 12,
+    "wins": 3,
+    "timeouts": 0,
+    "withItems": 5,
+    "rows": [
+      {
+        "seedIndex": 0,
+        "outcome": "dead",
+        "seconds": 398,
+        "level": 23,
+        "kills": 1816,
+        "gold": 4574,
+        "items": ""
+      },
+      {
+        "seedIndex": 1,
+        "outcome": "victory",
+        "seconds": 1335,
+        "level": 41,
+        "kills": 18729,
+        "gold": 57701,
+        "items": "bfury+hand_of_midas+magic_wand"
+      },
+      {
+        "seedIndex": 2,
+        "outcome": "dead",
+        "seconds": 381,
+        "level": 22,
+        "kills": 1607,
+        "gold": 5554,
+        "items": ""
+      },
+      {
+        "seedIndex": 3,
+        "outcome": "victory",
+        "seconds": 1277,
+        "level": 46,
+        "kills": 16358,
+        "gold": 82145,
+        "items": "butterfly+travel_boots+mask_of_madness+vladmir+bfury+hand_of_midas"
+      },
+      {
+        "seedIndex": 4,
+        "outcome": "dead",
+        "seconds": 428,
+        "level": 20,
+        "kills": 1974,
+        "gold": 4422,
+        "items": "travel_boots+vladmir+bfury"
+      },
+      {
+        "seedIndex": 5,
+        "outcome": "dead",
+        "seconds": 375,
+        "level": 18,
+        "kills": 1528,
+        "gold": 6539,
+        "items": ""
+      },
+      {
+        "seedIndex": 6,
+        "outcome": "dead",
+        "seconds": 277,
+        "level": 17,
+        "kills": 1131,
+        "gold": 1503,
+        "items": ""
+      },
+      {
+        "seedIndex": 7,
+        "outcome": "dead",
+        "seconds": 777,
+        "level": 22,
+        "kills": 8076,
+        "gold": 37169,
+        "items": "butterfly+assault+bfury"
+      },
+      {
+        "seedIndex": 8,
+        "outcome": "dead",
+        "seconds": 404,
+        "level": 21,
+        "kills": 1778,
+        "gold": 6162,
+        "items": ""
+      },
+      {
+        "seedIndex": 9,
+        "outcome": "victory",
+        "seconds": 1274,
+        "level": 48,
+        "kills": 16126,
+        "gold": 82438,
+        "items": "octarine_core+heart+black_king_bar"
+      },
+      {
+        "seedIndex": 10,
+        "outcome": "dead",
+        "seconds": 272,
+        "level": 15,
+        "kills": 1003,
+        "gold": 1403,
+        "items": ""
+      },
+      {
+        "seedIndex": 11,
+        "outcome": "dead",
+        "seconds": 423,
+        "level": 19,
+        "kills": 1862,
+        "gold": 3085,
+        "items": ""
+      }
+    ]
+  },
+  {
+    "case": "sniper-full-places",
+    "runs": 12,
+    "wins": 6,
+    "timeouts": 0,
+    "withItems": 8,
+    "rows": [
+      {
+        "seedIndex": 0,
+        "outcome": "dead",
+        "seconds": 602,
+        "level": 28,
+        "kills": 5312,
+        "gold": 23116,
+        "items": "black_king_bar+butterfly+octarine_core+butterfly+octarine_core+magic_wand"
+      },
+      {
+        "seedIndex": 1,
+        "outcome": "victory",
+        "seconds": 1292,
+        "level": 53,
+        "kills": 17731,
+        "gold": 79775,
+        "items": "butterfly+bfury+travel_boots+assault+heart+magic_wand"
+      },
+      {
+        "seedIndex": 2,
+        "outcome": "dead",
+        "seconds": 567,
+        "level": 28,
+        "kills": 3466,
+        "gold": 9080,
+        "items": "magic_wand+desolator+mask_of_madness+butterfly+travel_boots+assault"
+      },
+      {
+        "seedIndex": 3,
+        "outcome": "dead",
+        "seconds": 317,
+        "level": 18,
+        "kills": 1259,
+        "gold": 2821,
+        "items": ""
+      },
+      {
+        "seedIndex": 4,
+        "outcome": "dead",
+        "seconds": 840,
+        "level": 38,
+        "kills": 7371,
+        "gold": 43542,
+        "items": "butterfly+assault+desolator"
+      },
+      {
+        "seedIndex": 5,
+        "outcome": "victory",
+        "seconds": 1233,
+        "level": 55,
+        "kills": 17108,
+        "gold": 110675,
+        "items": "hand_of_midas+black_king_bar+travel_boots+butterfly+mask_of_madness+vladmir"
+      },
+      {
+        "seedIndex": 6,
+        "outcome": "victory",
+        "seconds": 1246,
+        "level": 55,
+        "kills": 15655,
+        "gold": 59493,
+        "items": "desolator+black_king_bar+travel_boots"
+      },
+      {
+        "seedIndex": 7,
+        "outcome": "victory",
+        "seconds": 1211,
+        "level": 65,
+        "kills": 17746,
+        "gold": 142253,
+        "items": "heart+butterfly+assault+vladmir+desolator+butterfly"
+      },
+      {
+        "seedIndex": 8,
+        "outcome": "victory",
+        "seconds": 1467,
+        "level": 38,
+        "kills": 22425,
+        "gold": 220375,
+        "items": ""
+      },
+      {
+        "seedIndex": 9,
+        "outcome": "victory",
+        "seconds": 1344,
+        "level": 45,
+        "kills": 18017,
+        "gold": 157473,
+        "items": "bfury+butterfly+travel_boots"
+      },
+      {
+        "seedIndex": 10,
+        "outcome": "dead",
+        "seconds": 581,
+        "level": 25,
+        "kills": 3891,
+        "gold": 19141,
+        "items": ""
+      },
+      {
+        "seedIndex": 11,
+        "outcome": "dead",
+        "seconds": 536,
+        "level": 28,
+        "kills": 3239,
+        "gold": 9451,
+        "items": ""
+      }
+    ]
+  },
+  {
+    "case": "sniper-river-places",
+    "runs": 12,
+    "wins": 2,
+    "timeouts": 0,
+    "withItems": 6,
+    "rows": [
+      {
+        "seedIndex": 0,
+        "outcome": "dead",
+        "seconds": 375,
+        "level": 19,
+        "kills": 1581,
+        "gold": 3614,
+        "items": "hand_of_midas+bfury+black_king_bar"
+      },
+      {
+        "seedIndex": 1,
+        "outcome": "dead",
+        "seconds": 251,
+        "level": 15,
+        "kills": 865,
+        "gold": 990,
+        "items": "octarine_core+vladmir+mask_of_madness"
+      },
+      {
+        "seedIndex": 2,
+        "outcome": "victory",
+        "seconds": 1224,
+        "level": 58,
+        "kills": 16271,
+        "gold": 113640,
+        "items": "vladmir+travel_boots+mask_of_madness"
+      },
+      {
+        "seedIndex": 3,
+        "outcome": "dead",
+        "seconds": 319,
+        "level": 20,
+        "kills": 1338,
+        "gold": 3245,
+        "items": ""
+      },
+      {
+        "seedIndex": 4,
+        "outcome": "dead",
+        "seconds": 227,
+        "level": 13,
+        "kills": 744,
+        "gold": 1098,
+        "items": ""
+      },
+      {
+        "seedIndex": 5,
+        "outcome": "dead",
+        "seconds": 217,
+        "level": 11,
+        "kills": 664,
+        "gold": 920,
+        "items": ""
+      },
+      {
+        "seedIndex": 6,
+        "outcome": "dead",
+        "seconds": 374,
+        "level": 19,
+        "kills": 1579,
+        "gold": 2429,
+        "items": ""
+      },
+      {
+        "seedIndex": 7,
+        "outcome": "dead",
+        "seconds": 266,
+        "level": 13,
+        "kills": 874,
+        "gold": 863,
+        "items": "heart+travel_boots+mask_of_madness"
+      },
+      {
+        "seedIndex": 8,
+        "outcome": "dead",
+        "seconds": 1002,
+        "level": 28,
+        "kills": 11954,
+        "gold": 71279,
+        "items": "vladmir+hand_of_midas+travel_boots"
+      },
+      {
+        "seedIndex": 9,
+        "outcome": "dead",
+        "seconds": 294,
+        "level": 18,
+        "kills": 1150,
+        "gold": 1852,
+        "items": ""
+      },
+      {
+        "seedIndex": 10,
+        "outcome": "dead",
+        "seconds": 278,
+        "level": 15,
+        "kills": 969,
+        "gold": 2327,
+        "items": ""
+      },
+      {
+        "seedIndex": 11,
+        "outcome": "victory",
+        "seconds": 1233,
+        "level": 53,
+        "kills": 16416,
+        "gold": 134267,
+        "items": "mask_of_madness+magic_wand+travel_boots+black_king_bar+octarine_core+vladmir"
+      }
+    ]
+  }
+]

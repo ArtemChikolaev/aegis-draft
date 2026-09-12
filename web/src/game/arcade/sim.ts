@@ -197,7 +197,8 @@ export class ArcadeSim {
   private chestNo = 0;
   /** Чей сейчас `pending`: уровень или награда лагеря (у награды нет реролла, заголовок другой). */
   pendingSource: "level" | "camp" = "level";
-  private campRewardQueued: Offer[] | null = null;
+  /** Очередь отдельных выдач (T13.68): каждая награда места/чемпиона/контракта — свой экран выбора, не альтернативы в одном. */
+  private rewardQueue: Offer[][] = [];
   /** Всё подобранное за забег — в инвентарь по итогу. */
   loot: GearItem[] = [];
   private nextChestAt = ARCADE.loot.chestFirstAt;
@@ -3602,10 +3603,11 @@ export class ArcadeSim {
     return "standard";
   }
 
-  /** Награда места/чемпиона: одна очередь `pending`; если выбор уже висит — карточки дописываются в хвост,
-   *  а не затирают награду, поставленную раньше (разлом + лагерь подряд теряли первую). */
+  /** Награда места/чемпиона/контракта: `pending` один; если выбор уже висит — выдача встаёт в очередь целиком
+   *  и покажется отдельным экраном после текущего. Раньше выдачи затирали друг друга, потом склеивались в один
+   *  выбор (три карточки чемпиона + карта контракта = «выбери одну из четырёх», аудит 2026-09-12). */
   private queueReward(offers: Offer[]): void {
-    if (this.pending) this.campRewardQueued = this.campRewardQueued ? this.campRewardQueued.concat(offers) : offers;
+    if (this.pending) this.rewardQueue.push(offers);
     else { this.pending = offers; this.pendingSource = "camp"; }
   }
 
@@ -3628,7 +3630,8 @@ export class ArcadeSim {
     }
     this.pending = null;
     this.pendingSource = "level";
-    if (this.campRewardQueued) { this.pending = this.campRewardQueued; this.campRewardQueued = null; this.pendingSource = "camp"; }
+    const nextReward = this.rewardQueue.shift();
+    if (nextReward) { this.pending = nextReward; this.pendingSource = "camp"; }
     this.recomputeStats();
     this.syncPets();
     // Уровень мог набежать «через» (несколько шардов разом) — следующий выбор на следующем тике.

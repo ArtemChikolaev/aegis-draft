@@ -94,4 +94,19 @@ describe("Наследие Aegis", () => {
     expect(getArcadeSim()!.legacy.hp).toBeCloseTo(1 + LEGACY_PER_RANK.vitality, 6);
     useArcade.getState().quit();
   });
+
+  it("первая победа героем — по постоянной отметке, а не по обрезанному списку claimed (аудит 2026-09-12)", () => {
+    const win = (seed: string, hero = "juggernaut"): ArcadeHistoryEntry => entry({ outcome: "victory", seed, hero, act: "full", rank: 0 });
+    let p = recordProgress(emptyProgress(), win("original", "axe"));
+    expect(p.legacy.seals).toBe(2);
+    for (let i = 0; i < 200; i++) p = recordProgress(p, win(`later-${i}`));
+    expect(p.legacy.claimed).toHaveLength(200);
+    const before = p.legacy.seals;
+    // Та же победа Axe снова: ключ вытеснен из claimed, но бонус «первой победы» не возвращается — только обычная печать.
+    p = recordProgress(p, win("original", "axe"));
+    expect(p.legacy.seals - before).toBe(1);
+    // Новый сид Axe — тоже одна печать, без бонуса первой победы.
+    p = recordProgress(p, win("fresh", "axe"));
+    expect(p.legacy.seals - before).toBe(2);
+  });
 });

@@ -1,0 +1,21 @@
+COMMAND: node --experimental-transform-types scripts/sim_arcade.ts --runs 12 --seed audit-20260912 --hero sniper --act dire --verbose --places all
+#0 dead 246s lvl 13 kills 783 gold 1104 camp 0/3 defiler 100% killer ? items  rosh — hp 0 schools radiance+beast+venom ups rad_aura:1,beast_hawk:2,ven_cloud:1,ven_virulence:1,rad_strike:1,hyb_venom_fire:1,ven_sting:1,rad_ring:1
+#1 dead 211s lvl 12 kills 624 gold 839 camp 0/3 defiler 100% killer ogre items  rosh — hp 0 schools maelstrom+radiance+beast ups mae_clap:1,mae_mjollnir:1,rad_strike:1,rad_blast:1,beast_wolf:1,mae_chain:1,mae_overcharge:1,beast_hawk:1,rad_aura:1
+#2 dead 327s lvl 19 kills 1322 gold 5451 camp 3/3✓ defiler dead killer ogre items heart+mask_of_madness+octarine_core rosh — hp 0 schools radiance+maelstrom+skadi ups rad_ring:1,rad_inferno:2,mae_clap:1,ska_aura:1,mae_static:2,leg_refresher:1,rad_strike:2,mae_chain:1,mae_overcharge:1,mae_mjollnir:1,rad_aura:1,hyb_superconductor:1
+#3 dead 227s lvl 20 kills 1012 gold 3258 camp 2/3 defiler 100% killer ? items  rosh — hp 0 schools radiance+skadi+venom ups rad_aura:2,ska_shards:1,rad_blast:1,ska_shatter:2,rad_inferno:1,ven_fangs:2,hyb_steam:1,ska_bite:1,rad_ring:2,rad_strike:1
+#4 dead 260s lvl 14 kills 884 gold 1287 camp 0/3 defiler 100% killer hellbear items  rosh — hp 0 schools radiance+maelstrom+skadi ups rad_strike:1,mae_static:3,mae_chain:1,hyb_plasma:2,ska_bite:1,rad_aura:1,mae_clap:1,ska_snap:1
+#5 dead 171s lvl 11 kills 495 gold 1706 camp 0/3 defiler 83% killer hellbear items  rosh — hp 0 schools radiance+beast+maelstrom ups rad_ring:1,beast_hawk:1,mae_clap:1,rad_strike:2,rad_blast:1,mae_mjollnir:1,rad_aura:1,leg_beast_kennel:1
+#6 dead 254s lvl 15 kills 877 gold 1300 camp 0/3 defiler 100% killer ogre items  rosh — hp 0 schools radiance+venom+beast ups rad_strike:3,ven_sting:1,beast_wolf:1,beast_bear:1,rad_ring:1,leg_heart:1,hyb_venom_fire:1,beast_hawk:1
+#7 dead 304s lvl 17 kills 1322 gold 2179 camp 1/3 defiler 94% killer hellbear items hand_of_midas+black_king_bar+magic_wand rosh — hp 0 schools beast+maelstrom+skadi ups beast_wolf:1,beast_hawk:3,mae_static:1,ska_aura:1,ska_snap:1,beast_pack:1,ska_shards:2,beast_roar:1,hyb_wild_hunt:2
+#8 dead 220s lvl 12 kills 687 gold 2237 camp 0/3 defiler 100% killer ? items  rosh — hp 0 schools maelstrom+skadi+radiance ups mae_clap:1,ska_aura:1,mae_chain:1,ska_bite:1,rad_strike:1,hyb_superconductor:1,mae_static:1,mae_overcharge:2
+#9 dead 375s lvl 18 kills 1662 gold 2842 camp 0/3 defiler 100% killer satyr items  rosh — hp 0 schools venom+maelstrom+beast ups ven_fangs:1,mae_chain:2,beast_bear:2,ven_spread:1,ven_cloud:3,ven_virulence:1,beast_hawk:1,hyb_venom_beast:1,mae_clap:1
+#10 dead 302s lvl 19 kills 1166 gold 2864 camp 0/3 defiler 100% killer hellbear items  rosh — hp 0 schools venom+maelstrom+radiance ups ven_cloud:3,ven_spread:2,ven_sting:1,mae_chain:2,rad_ring:1,hyb_plasma:1,mae_static:1,rad_aura:1,mae_clap:1,leg_octarine:1
+#11 victory 1267s lvl 62 kills 17567 gold 201652 camp 3/3✓ defiler dead killer - items desolator+hand_of_midas+vladmir+black_king_bar+heart+travel_boots rosh — hp 1276 schools venom+radiance+maelstrom ups ven_fangs:2,rad_aura:2,hyb_venom_fire:2,rad_blast:3,mae_clap:3,rad_inferno:5,mae_static:3,ven_sting:4,mae_chain:4,ven_spread:3,rad_strike:3,ven_virulence:4,rad_ring:4,mae_mjollnir:2,leg_moonshard:1,ven_cloud:3,hyb_plasma:2,mae_overcharge:4,leg_bloodstone:1,leg_ven_distill:1,leg_octarine:1,leg_rad_phoenix:1
+arcade a0.61.0 · runs=12 · act=dire · hero=sniper · school=any · rank=0 · 7.1s
+reached Roshan 8.3% · Roshan killed 8.3% · victory 8.3%
+death time p25/p50/p75: 227s / 260s / 327s · level p50 17 · kills p50 1012
+deaths by minute: 2:1 3:3 4:3 5:3 6:1
+deaths by killer: hellbear:4 ?:3 ogre:3 satyr:1
+places done: rift:8.3% caravan:8.3% pond:50.0% forge:8.3% camp:16.7% · victory with rift 8.3% of 8.3%
+(node:34628) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

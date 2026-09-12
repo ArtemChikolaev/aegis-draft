@@ -1,0 +1,15 @@
+{
+  "date": "2026-09-12",
+  "head": "3ad3796a4ab8ab17bbef12474187695a86a4a93b",
+  "configVersion": "a0.61.0",
+  "snapshot": "/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-audit-20260912-92_4h2mg",
+  "files": {
+    "src/game/arcade/sim.ts": "9082a9f68abfa702d974d8819b88ace571e2914d7f5ce59de3b6b38ff79c8dd4",
+    "src/state/arcadeStore.ts": "7663a0a11ffa489f38e811513c1cbb86d2a5c821728ee8c75a18e0bf1a559e9c",
+    "src/game/arcade/config.ts": "692c019cdcac3450da72e29e1e7bc5cdfadfc30d4948a1cfa0226116181734d3",
+    "scripts/sim_arcade.ts": "423c601905b07d6ac979a82562170a7e5bd75eac9251c8ff6af4ea32fa71cd63",
+    "src/game/arcade/content/cosmetics.ts": "1c165f8ac8a2e8cdd3b715ac7e867c1a2f887ad3ccfab15f63f5533f443c8621",
+    "src/game/arcade/content/items.ts": "268fa3363e2ef70408f2587d1360926e3806165bf7d49e48d68f44b8ab676afe"
+  },
+  "note": "Captured source snapshot includes initial uncommitted removal of unused exports in cosmetics/items. Sim in shared workspace changed later; matrix ran entirely on snapshot."
+}

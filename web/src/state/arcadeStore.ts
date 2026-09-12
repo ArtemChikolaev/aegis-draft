@@ -595,7 +595,10 @@ export function recordProgress(p: ArcadeProgress, e: ArcadeHistoryEntry): Arcade
       // Печать наследия: за победу в полном акте, +1 за первую полную победу этим героем; одна и та же
       // комбинация seed/hero/act/rank — один раз (повтор пользовательского сида, реимпорт, повторный callback).
       const key = legacyClaimKey(e);
-      const firstFull = !p.legacy.claimed.some((k) => k.split("|")[1] === hero);
+      // Первая полная победа героем — по постоянной отметке `win_*` в профиле героя, а не по списку `claimed`:
+      // он обрезан до 200 ключей, и после 200 чужих побед бонус «первой победы» выдавался повторно (аудит 2026-09-12).
+      // `claimed` остаётся только защитой от повтора той же комбинации seed/hero/act/rank в пределах последних 200.
+      const firstFull = !(prev.marks ?? []).some((m) => m.startsWith("win_")) && !p.legacy.claimed.some((k) => k.split("|")[1] === hero);
       if (!next.legacy.claimed.includes(key)) {
         next.legacy.seals += 1 + (firstFull ? 1 : 0);
         next.legacy.claimed.push(key);

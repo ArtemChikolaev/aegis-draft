@@ -1,0 +1,221 @@
+
+ RUN  v3.2.7 /private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web
+
+ ✓ test/arcadeContract.test.ts (2 tests) 945ms
+   ✓ контракт охоты > предлагается один раз по расписанию: две разные цели из живых чемпионов, награды разные; мир стоит; пропуск без следа  490ms
+   ✓ контракт охоты > принятый контракт помечает дом цели; убийство цели даёт объявленную награду и отметку; чужой чемпион — нет  453ms
+ ✓ test/arcadeCaravan.test.ts (4 tests) 556ms
+   ✓ караван лавочника > не дождался за window — уходит без лавки; в разломе караван стоит; детерминизм  495ms
+ ✓ test/arcadeRunes.test.ts (7 tests) 372ms
+ ✓ test/arcadeReplay.test.ts (3 tests) 205ms
+ ✓ test/arcadeSignature.test.ts (18 tests) 179ms
+ ✓ test/arcadePond.test.ts (4 tests) 116ms
+ ✓ test/arcadeNecro.test.ts (4 tests) 164ms
+ ✓ test/arcadeRift.test.ts (5 tests) 165ms
+ ✓ test/arcadeGear.test.ts (9 tests) 120ms
+ ✓ test/arcadeCurses.test.ts (3 tests) 83ms
+ ✓ test/arcadeStore.test.ts (7 tests) 49ms
+ ✓ test/arcadeBestiary.test.ts (2 tests) 100ms
+ ✓ test/arcadeDefiler.test.ts (6 tests) 68ms
+ ✓ test/arcadeCamp.test.ts (8 tests) 93ms
+ ✓ test/arcadeCentaur.test.ts (4 tests) 51ms
+ ✓ test/arcadeWarden.test.ts (3 tests) 37ms
+ ✓ test/arcadePets.test.ts (4 tests) 55ms
+ ✓ test/arcadePoison.test.ts (4 tests) 24ms
+ ✓ test/arcadeOutpost.test.ts (3 tests) 58ms
+ ✓ test/arcadeAutoCast.test.ts (6 tests) 52ms
+ ✓ test/arcadeLegendary.test.ts (3 tests) 34ms
+ ✓ test/arcadeTide.test.ts (3 tests) 46ms
+ ✓ test/arcadeLegacy.test.ts (5 tests) 38ms
+ ✓ test/arcadeVenom.test.ts (5 tests) 27ms
+ ✓ test/arcadeLookPresets.test.ts (2 tests) 24ms
+ ✓ test/arcadeObstacles.test.ts (3 tests) 12ms
+ ✓ test/arcadeIo.test.ts (2 tests) 23ms
+ ✓ test/arcadeInvitations.test.ts (4 tests) 14ms
+ ✓ test/arcadeTraits.test.ts (3 tests) 20ms
+ ❯ test/arcadeForm.test.ts (5 tests | 1 failed) 31ms
+   ✓ смена формы (Metamorphosis / Elder Dragon Form / True Form) > Terrorblade из ближнего боя переходит в дальний и возвращается 5ms
+   × смена формы (Metamorphosis / Elder Dragon Form / True Form) > Alchemist: Chemical Rage — форма «мечи наголо» на время бафа, бой не меняется (владелец 2026-09-12) 7ms
+     → ENOENT: no such file or directory, open 'scripts/blender/dota_manifest_px2.tsv'
+   ✓ смена формы (Metamorphosis / Elder Dragon Form / True Form) > Lone Druid в True Form наоборот становится ближним бойцом 1ms
+   ✓ смена формы (Metamorphosis / Elder Dragon Form / True Form) > в форме автоатака летит снарядом у ближнего героя 16ms
+   ✓ смена формы (Metamorphosis / Elder Dragon Form / True Form) > вид metamorphosis объявлен ровно у героев со сменой формы 1ms
+ ✓ test/arcadeStalker.test.ts (3 tests) 23ms
+ ✓ test/arcadeThunder.test.ts (3 tests) 25ms
+ ✓ test/arcadeUpgradeTree.test.ts (4 tests) 13ms
+ ✓ test/arcadeLevelupActions.test.ts (4 tests) 14ms
+ ❯ test/arcadeWardrobe.test.ts (10 tests | 1 failed) 8ms
+   ✓ гардероб: облик и стиль > skinnedSheet без стиля повторяет skinnedHero 1ms
+   ✓ гардероб: облик и стиль > отдельный лист берётся только под стиль-текстуру, самоцвет листа не меняет 0ms
+   ✓ гардероб: облик и стиль > у каждой арканы есть самоцветы, у персон их нет 2ms
+   ✓ гардероб: облик и стиль > setStyle принимает только объявленный стиль и снимается по null 0ms
+   × гардероб: облик и стиль > под каждый объявленный стиль есть лист в обоих пиксельных манифестах 3ms
+     → ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+   ✓ гардероб: облик и стиль > покупка скина списывает осколки и его можно надеть 0ms
+   ✓ гардероб: облик и стиль > скин у каждого героя свой: аркана второго героя не снимает аркану первого (владелец 2026-09-07) 1ms
+   ✓ масштаб превью облика > на увеличении — целое число физических пикселей на арт-пиксель 0ms
+   ✓ масштаб превью облика > на уменьшении масштаб остаётся дробным: миниатюра показывает фигуру целиком, а не кроп 0ms
+   ✓ превью гардероба: выбор анимации > auto повторяет прежний цикл стойка → ходьба по кругу → удар; принудительные — фиксируют анимацию, ходьба крутит модель 0ms
+ ❯ test/arcadeSheetIds.test.ts (4 tests | 3 failed) 4ms
+   × id листов спрайтов > в манифестах нет повторяющихся строк 3ms
+     → ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+   ✓ id листов спрайтов > id героя и id вида врага не совпадают (иначе один лист на двоих) 1ms
+   × id листов спрайтов > каждый вариант косметики есть в обоих манифестах ровно один раз 0ms
+     → ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+   × листы на диске > под каждую строку манифеста лежит лист в обоих наборах 0ms
+     → ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+ ✓ test/arcadeForge.test.ts (3 tests) 14ms
+ ❯ test/arcadeSummons.test.ts (4 tests | 1 failed) 12ms
+   × призывы Аркады > у каждого призыва есть лист: либо иллюзия героя, либо существо из манифеста 3ms
+     → ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px2.tsv'
+   ✓ призывы Аркады > у зонных умений (remnant/shrapnel/edict) объявлен свой радиус 1ms
+   ✓ призывы Аркады > Conjure Image у Terrorblade призывает иллюзии-питомцев у героя, а не тотем в точке каста 7ms
+   ✓ призывы героя попадают в предзагрузку арта 0ms
+ ✓ test/arcadeParticles.test.ts (13 tests) 11ms
+ ❯ test/arcadeSkinsManifest.test.ts (4 tests | 2 failed) 7ms
+   ✓ скины Аркады: косметика ↔ манифесты спрайтов ↔ герои > каждый скин привязан к существующему герою и назван `<hero>@<skin>` 4ms
+   × скины Аркады: косметика ↔ манифесты спрайтов ↔ герои > под каждый скин есть строка в обоих пиксельных манифестах 2ms
+     → ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+   × скины Аркады: косметика ↔ манифесты спрайтов ↔ герои > у каждого героя из HEROES есть строка в манифестах спрайтов 0ms
+     → ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px2.tsv'
+   ✓ скины Аркады: косметика ↔ манифесты спрайтов ↔ герои > skinnedHero: скин чужого героя не применяется 0ms
+ ✓ test/arcadeOverlay.test.ts (3 tests) 4ms
+stdout | test/audit20260912.test.ts > repro: first victory bonus returns after bounded claimed history
+REPRO legacy { before: 203, after: 205, extra: 2 }
+
+stdout | test/audit20260912.test.ts > repro: pending level merges champion choice and contract reward
+REPRO rewards {
+  choicesAfterLevel: 4,
+  pendingAfterChampion: null,
+  contractDone: true
+}
+
+ ✓ test/audit20260912.test.ts (2 tests) 8ms
+ ✓ test/arcadeCosmetics.test.ts (4 tests) 7ms
+ ✓ test/arcadeMastery.test.ts (2 tests) 4ms
+ ✓ test/arcadeMusic.test.ts (3 tests) 2ms
+ ✓ test/arcadeAbilityText.test.ts (1 test) 3ms
+ ✓ test/arcadeGamepad.test.ts (3 tests) 3ms
+ ✓ test/arcadeHeroPicker.test.ts (4 tests) 3ms
+ ✓ test/arcadeAbilitySlots.test.ts (4 tests) 3ms
+ ✓ test/arcadeTerrainTide.test.ts (2 tests) 2ms
+ ✓ test/arcadeFigures.test.ts (5 tests) 3ms
+ ✓ test/arcadePixelMode.test.ts (3 tests) 2ms
+ ✓ test/arcade.test.ts (16 tests) 31890ms
+   ✓ arcade sim > Рошан появляется на 7:00 и обычный спавн стоит, пока он жив  691ms
+   ✓ arcade sim > производительность: тик с толпой укладывается в бюджет  644ms
+   ✓ arcade sim > каждый герой детерминирован, реплеится и наносит урон своим китом  21202ms
+   ✓ arcade sim > полный акт: второй Рошан на 14:00 сильнее, Древний на 20:00, его смерть — победа  7277ms
+   ✓ arcade sim > акт 3: Рошан в яме и не выходит за поводок; Dire-крипы только в актах 2–3  1121ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  test/arcadeForm.test.ts > смена формы (Metamorphosis / Elder Dragon Form / True Form) > Alchemist: Chemical Rage — форма «мечи наголо» на время бафа, бой не меняется (владелец 2026-09-12)
+Error: ENOENT: no such file or directory, open 'scripts/blender/dota_manifest_px2.tsv'
+ ❯ test/arcadeForm.test.ts:51:27
+     49|     const { readFileSync } = require("node:fs") as typeof import("node…
+     50|     for (const man of ["scripts/blender/dota_manifest_px2.tsv", "scrip…
+     51|       const ids = new Set(readFileSync(man, "utf8").split("\n").map((l…
+       |                           ^
+     52|       for (const id of ["alchemist@meta", "alchemist@frankenstein@meta…
+     53|       // Клинки ножен висят на костях hand_weapon: в базовых клипах — …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  test/arcadeSheetIds.test.ts > id листов спрайтов > в манифестах нет повторяющихся строк
+Error: ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+ ❯ rows test/arcadeSheetIds.test.ts:9:32
+      7| // Один id — один лист. Однажды `centaur` оказался и видом крипа, и ге…
+      8| // затирали друг друга, и нейтральный кентавр бегал в модели Centaur W…
+      9| const rows = (file: string) => readFileSync(new URL(`../scripts/blende…
+       |                                ^
+     10| 
+     11| describe("id листов спрайтов", () => {
+ ❯ test/arcadeSheetIds.test.ts:14:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  test/arcadeSheetIds.test.ts > id листов спрайтов > каждый вариант косметики есть в обоих манифестах ровно один раз
+Error: ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+ ❯ rows test/arcadeSheetIds.test.ts:9:32
+      7| // Один id — один лист. Однажды `centaur` оказался и видом крипа, и ге…
+      8| // затирали друг друга, и нейтральный кентавр бегал в модели Centaur W…
+      9| const rows = (file: string) => readFileSync(new URL(`../scripts/blende…
+       |                                ^
+     10| 
+     11| describe("id листов спрайтов", () => {
+ ❯ test/arcadeSheetIds.test.ts:29:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  test/arcadeSheetIds.test.ts > листы на диске > под каждую строку манифеста лежит лист в обоих наборах
+Error: ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+ ❯ rows test/arcadeSheetIds.test.ts:9:32
+      7| // Один id — один лист. Однажды `centaur` оказался и видом крипа, и ге…
+      8| // затирали друг друга, и нейтральный кентавр бегал в модели Centaur W…
+      9| const rows = (file: string) => readFileSync(new URL(`../scripts/blende…
+       |                                ^
+     10| 
+     11| describe("id листов спрайтов", () => {
+ ❯ test/arcadeSheetIds.test.ts:41:23
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  test/arcadeSkinsManifest.test.ts > скины Аркады: косметика ↔ манифесты спрайтов ↔ герои > под каждый скин есть строка в обоих пиксельных манифестах
+Error: ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+ ❯ rows test/arcadeSkinsManifest.test.ts:8:32
+      6| // Скины — контент из трёх мест (cosmetics.ts, манифесты спрайтов, i18…
+      7| // в лавке косметики есть, а листа под него нет (2026-09-06, партия 2 …
+      8| const rows = (file: string) => readFileSync(new URL(`../scripts/blende…
+       |                                ^
+      9| 
+     10| describe("скины Аркады: косметика ↔ манифесты спрайтов ↔ герои", () =>…
+ ❯ test/arcadeSkinsManifest.test.ts:20:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  test/arcadeSkinsManifest.test.ts > скины Аркады: косметика ↔ манифесты спрайтов ↔ герои > у каждого героя из HEROES есть строка в манифестах спрайтов
+Error: ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px2.tsv'
+ ❯ rows test/arcadeSkinsManifest.test.ts:8:32
+      6| // Скины — контент из трёх мест (cosmetics.ts, манифесты спрайтов, i18…
+      7| // в лавке косметики есть, а листа под него нет (2026-09-06, партия 2 …
+      8| const rows = (file: string) => readFileSync(new URL(`../scripts/blende…
+       |                                ^
+      9| 
+     10| describe("скины Аркады: косметика ↔ манифесты спрайтов ↔ герои", () =>…
+ ❯ test/arcadeSkinsManifest.test.ts:24:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  test/arcadeSummons.test.ts > призывы Аркады > у каждого призыва есть лист: либо иллюзия героя, либо существо из манифеста
+Error: ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px2.tsv'
+ ❯ rows test/arcadeSummons.test.ts:10:32
+      8| // картинка призыва — чисто визуальная надстройка над damage_ward. Тес…
+      9| // у каждого объявленного призыва есть лист спрайтов, и сим от него не…
+     10| const rows = (file: string) => readFileSync(new URL(`../scripts/blende…
+       |                                ^
+     11| 
+     12| describe("призывы Аркады", () => {
+ ❯ test/arcadeSummons.test.ts:14:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  test/arcadeWardrobe.test.ts > гардероб: облик и стиль > под каждый объявленный стиль есть лист в обоих пиксельных манифестах
+Error: ENOENT: no such file or directory, open '/private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web/scripts/blender/dota_manifest_px.tsv'
+ ❯ rows test/arcadeWardrobe.test.ts:10:32
+      8| // Тест держит в согласии три места: cosmetics.ts (какие стили объявле…
+      9| // (есть ли под стиль лист `<variant>~<style>`) и стор (что реально мо…
+     10| const rows = (file: string) => readFileSync(new URL(`../scripts/blende…
+       |                                ^
+     11| 
+     12| describe("гардероб: облик и стиль", () => {
+ ❯ test/arcadeWardrobe.test.ts:54:24
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  5 failed | 48 passed (53)
+      Tests  8 failed | 237 passed (245)
+   Start at  12:33:02
+   Duration  32.28s (transform 884ms, setup 168ms, collect 2.76s, tests 35.83s, environment 5ms, prepare 1.84s)
+

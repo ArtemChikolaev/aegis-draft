@@ -1,0 +1,14 @@
+
+ RUN  v3.2.7 /private/var/folders/br/dj8xrr0j04sfj5m7_qwjmngw0000gn/T/aegis-arcade-recheck-x15imrxu/web
+
+ ✓ test/arcadeSkinsManifest.test.ts (4 tests) 10ms
+ ✓ test/arcadeSheetIds.test.ts (4 tests) 20ms
+ ✓ test/arcadeSummons.test.ts (4 tests) 12ms
+ ✓ test/arcadeForm.test.ts (5 tests) 33ms
+ ✓ test/arcadeWardrobe.test.ts (10 tests) 7ms
+
+ Test Files  5 passed (5)
+      Tests  27 passed (27)
+   Start at  12:34:08
+   Duration  1.15s (transform 801ms, setup 34ms, collect 1.64s, tests 82ms, environment 0ms, prepare 215ms)
+

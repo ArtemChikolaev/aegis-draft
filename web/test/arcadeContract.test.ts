@@ -71,4 +71,21 @@ describe("контракт охоты", () => {
     expect(p.perHero.axe.marks).toEqual(["contract"]);
     expect(masteryTitle([...MARK_IDS])).toBe("legend");
   });
+
+  it("выдачи не сливаются: при висящем выборе уровня награда чемпиона и карта контракта приходят отдельными экранами (T13.68)", () => {
+    const sim = new ArcadeSim("audit-reward-queue", { act: "full" });
+    sim.contract = { target: "necro", reward: "school", done: false };
+    sim.barrow!.engaged = true;
+    sim.pending = [{ kind: "ability", key: "q" }]; sim.pendingSource = "level";
+    sim.damageEnemy(sim.necromancer!, 1e9, "hit");
+    expect(sim.contract.done).toBe(true);
+    sim.step({ ...IDLE_INPUT, choose: 0 });
+    // Сначала выбор чемпиона (три карточки), потом отдельная карта контракта — не «одна из четырёх».
+    expect(sim.pending?.length).toBe(3);
+    expect(sim.pendingSource).toBe("camp");
+    sim.step({ ...IDLE_INPUT, choose: 0 });
+    expect(sim.pending?.length).toBe(1);
+    sim.step({ ...IDLE_INPUT, choose: 0 });
+    expect(sim.pending).toBeNull();
+  });
 });
