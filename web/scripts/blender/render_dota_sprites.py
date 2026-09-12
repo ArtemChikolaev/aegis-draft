@@ -192,7 +192,9 @@ def pick_action(actions, key, strict=False):
     hard = ("portrait", "loadout", "lookframe", "_faces_dup", "_cc_20", "basher", "ward", "pact", "effigy", "channel", "debut",
             "mvp", "screen", "_dig", "burrow")  # «cast_dig» Meepo уводит модель под пол — ряд каста пустой
     # Вариации той же анимации: годятся, но только если ничего лучше нет.
-    soft = ("haste", "injured", "showoff", "_alt", "versus", "turns", "taunt", "spawn", "agg", "green", "copy", "slide", "gesture", "sidestep", "loop_end", "_end", "_to_", "stop", "start", "heavy", "rare", "custom")
+    # «ability» — клипы состояния способности (ability_4_run у Alchemist = бег в Chemical Rage с мечами в руках): без штрафа
+    # они обходили `run_alt` по счёту «мягких» токенов, и базовый лист бегал с мечами (владелец 2026-09-12).
+    soft = ("ability", "haste", "injured", "showoff", "_alt", "versus", "turns", "taunt", "spawn", "agg", "green", "copy", "slide", "gesture", "sidestep", "loop_end", "_end", "_to_", "stop", "start", "heavy", "rare", "custom")
     def score(a):
         n = a.name.lower()
         return (sum(1 for t in soft if t in n), n.startswith("@"), not n.startswith(key), len(n))

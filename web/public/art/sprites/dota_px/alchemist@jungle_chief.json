@@ -16,7 +16,7 @@
     },
     "walk": {
       "row": 8,
-      "frames": 9
+      "frames": 10
     },
     "idle": {
       "row": 16,
