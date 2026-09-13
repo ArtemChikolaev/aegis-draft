@@ -50,12 +50,12 @@ export function App() {
   }, [modeAccent]);
   const { t } = useI18n();
   // Arena MP2: пока идёт общий драфт комнаты, место старт-экрана занимает экран драфта —
-  // но только у СИДЯЩИХ (зритель остаётся в лобби). Serial — подписка на мутации движка.
-  const arenaMatch = useArena((s) => s.match);
-  const arenaSelfId = useArena((s) => s.selfId);
-  useArena((s) => s.serial);
-  const arenaDrafting = mode === "arena" && phase === "start" && arenaMatch !== null
-    && arenaSelfId !== null && arenaMatch.engine.seatOf(arenaSelfId) !== null;
+  // но только у СИДЯЩИХ (зритель остаётся в лобби). Селектор возвращает булево: движок мутирует
+  // внутри той же ссылки и бампает serial на каждую запись relay-лога, но шелл перерисовывается
+  // только при смене «сижу за столом драфта», а не на каждый пик (селектор пересчитывается на
+  // любом set стора, так что мутация внутри ссылки его не обходит).
+  const arenaSeated = useArena((s) => s.match !== null && s.selfId !== null && s.match.engine.seatOf(s.selfId) !== null);
+  const arenaDrafting = mode === "arena" && phase === "start" && arenaSeated;
   const view = useShell((s) => s.view);
   const setView = useShell((s) => s.setView);
   // В TMA настройки уезжают в системное «…»-меню (SettingsButton) — нашу кнопку прячем.
