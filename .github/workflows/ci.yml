@@ -9,12 +9,26 @@ on:
 permissions:
   contents: read
 
+# timeout-minutes — типичная длительность джоба с запасом: без потолка зависший шаг держит раннер
+# до шести часов. Sparse checkout в мелких джобах: полное дерево ≈ 663 МиБ, из них ≈ 636 МиБ —
+# бинари арта web/public/art, которые им не нужны.
 jobs:
   skills:
     name: Shared skills (metadata, links, adapters)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      # Валидатор проверяет ссылки скиллов по всему репозиторию, поэтому дерево целиком, кроме
+      # бинарей арта: markdown/json/txt арта остаются, и ссылки на них по-прежнему проверяются.
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/web/public/art/**/*.webp
+            !/web/public/art/**/*.png
+            !/web/public/art/**/*.mp3
+            !/web/public/art/**/*.m4a
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -25,11 +39,15 @@ jobs:
   pipeline:
     name: Go pipeline
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: pipeline
     steps:
+      # Модулю нужен только pipeline/: vet, build и тесты не читают файлы вне него.
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: pipeline
       - uses: actions/setup-go@v5
         with:
           go-version-file: pipeline/go.mod
@@ -49,6 +67,7 @@ jobs:
   server:
     name: Go server (API)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: server
@@ -67,7 +86,10 @@ jobs:
           --health-cmd "pg_isready -U aegis -d aegis"
           --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
+      # Модулю нужен только server/ (go.mod без replace на соседние каталоги).
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout: server
       - uses: actions/setup-go@v5
         with:
           go-version-file: server/go.mod
@@ -83,6 +105,9 @@ jobs:
   web:
     name: Web (данные + логика + build)
     runs-on: ubuntu-latest
+    # Обычно ≈ 22 мин; у Playwright свой globalTimeout 35 мин — потолок джоба выше, чтобы зависший
+    # e2e успел отчитаться сам, а не был убит молча.
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: web
@@ -150,6 +175,8 @@ jobs:
   web-e2e-real:
     name: Web на реальном датасете (anteRun e2e + vitest)
     runs-on: ubuntu-latest
+    # Обычно ≈ 11 мин (anteRun ≈ 9, vitest ≈ 1).
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: web
@@ -184,8 +211,18 @@ jobs:
   antipatterns:
     name: Antipattern scan
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      # Скану нужны отслеживаемый код (git grep) и web/public/data/manifest.json, бинари арта — нет.
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/web/public/art/**/*.webp
+            !/web/public/art/**/*.png
+            !/web/public/art/**/*.mp3
+            !/web/public/art/**/*.m4a
       - run: bash .claude/skills/self-review-checklist/tools/antipatterns_grep.sh
 
   deploy:
@@ -198,6 +235,8 @@ jobs:
     # способом его получить был бы пустой коммит.
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    # Обычно ≈ 1.5 мин (сборка с копией арта и заливка артефакта); запас — на ожидание deploy-pages.
+    timeout-minutes: 20
     permissions:
       pages: write
       id-token: write
