@@ -1704,7 +1704,7 @@ export class ArcadeSim {
         break;
       }
       case "berserker_call":
-        for (const e of this.enemiesWithin(p.x, p.y, radius)) if (!e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(value)));
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) this.stun(e, this.statusSec(value));
         p.armorBuffUntil = this.tick + sec(ab.duration ?? 3);
         this.pushFx("nova", p.x, p.y, radius, 0, 14);
         break;
@@ -1735,7 +1735,7 @@ export class ArcadeSim {
         const target = this.eliteWithin(p.x, p.y, radius) ?? this.nearestEnemy(p.x, p.y, radius);
         if (!target) { cast = false; break; }
         this.damageEnemy(target, value, "zap");
-        target.stunUntil = Math.max(target.stunUntil, this.tick + sec(this.statusSec(ab.duration ?? 0.5)));
+        this.stun(target, this.statusSec(ab.duration ?? 0.5));
         this.pushFx("zap", target.x, target.y - 200, target.x, target.y, 12);
         break;
       }
@@ -1777,7 +1777,7 @@ export class ArcadeSim {
           const cx = p.x + fx * step * i, cy = p.y + fy * step * i;
           for (const e of this.enemiesWithin(cx, cy, radius)) {
             this.damageEnemy(e, value, "burst");
-            if (ab.duration && !e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(ab.duration)));
+            if (ab.duration) this.stun(e, this.statusSec(ab.duration));
             if (ab.kind === "meteor") this.applyBurn(e, value * 0.25, 3);
             if (ab.poison) this.applyPoison(e, value * ab.poison);
           }
@@ -1899,7 +1899,7 @@ export class ArcadeSim {
         break;
       }
       case "ravage":
-        for (const e of this.enemiesWithin(p.x, p.y, radius)) { this.damageEnemy(e, value, "burst"); if (!e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(ab.duration ?? 1.5))); }
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) { this.damageEnemy(e, value, "burst"); this.stun(e, this.statusSec(ab.duration ?? 1.5)); }
         this.pushFx("nova", p.x, p.y, radius, 0, 18);
         this.shake = 16;
         break;
@@ -1931,7 +1931,7 @@ export class ArcadeSim {
     if (sig?.kind === "overload") p.sigArmed = true; // Storm: следующий удар бьёт по площади
     if (sig?.kind === "aftershock") { // Earthshaker: любой каст — толчок земли вокруг
       const sc = this.sigScale();
-      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 160)) { this.damageEnemy(e, sig.value * sc, "burst"); if (!e.kind.unstoppable) e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(0.6))); }
+      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 160)) { this.damageEnemy(e, sig.value * sc, "burst"); this.stun(e, this.statusSec(0.6)); }
       this.pushFx("nova", p.x, p.y, sig.radius ?? 160, 0, 10);
     }
     // Culling Blade после добивания уходит на короткую перезарядку (3 с), не на полную и не на ноль.
@@ -2129,7 +2129,7 @@ export class ArcadeSim {
     this.dmgSource = "school";
     for (const e of this.enemiesWithin(p.x, p.y, 150)) {
       this.damageEnemy(e, dmg, "zap");
-      e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.6));
+      this.stun(e, 0.6);
     }
     this.dmgSource = src;
     this.pushFx("nova", p.x, p.y, 150, 0, 18);
@@ -2145,7 +2145,7 @@ export class ArcadeSim {
     if (this.rng.float() < p.stats.critChance) { dmg *= p.stats.critMult; kind = "crit"; }
     this.events.hits++;
     const headKey = this.slot.headshot;
-    if (headKey && p.abilities[headKey] > 0 && this.rng.float() < 0.3) { dmg += this.hero.abilities[headKey].value[p.abilities[headKey]]; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.25)); kind = "crit"; }
+    if (headKey && p.abilities[headKey] > 0 && this.rng.float() < 0.3) { dmg += this.hero.abilities[headKey].value[p.abilities[headKey]]; this.stun(e, 0.25); kind = "crit"; }
     // Фирменные пассивки (T13.15): души SF, ярость Ursa, меткость Drow, Time Lock Void — до удара; Cleave и Overload — после.
     const sig = this.hero.signature;
     const sc = this.sigScale();
@@ -2157,7 +2157,7 @@ export class ArcadeSim {
       // Пассивная прибавка за дистанцию, не крит: не красим в крит, иначе Drow «критует» каждым выстрелом (владелец 2026-09-12).
       if (len(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) dmg *= 1 + sig.value * sc;
     } else if (sig?.kind === "timelock" && this.rng.float() < Math.min(0.5, sig.value * sc)) {
-      dmg += 20 * sc; e.stunUntil = Math.max(e.stunUntil, this.tick + sec(sig.duration ?? 0.5)); kind = "crit";
+      dmg += 20 * sc; this.stun(e, sig.duration ?? 0.5); kind = "crit";
     } else if (sig?.kind === "crit" && this.rng.float() < Math.min(0.6, sig.value * sc)) {
       dmg *= sig.cap ?? 2; kind = "crit"; // Blade Dance: шанс на усиленный удар
     }
@@ -2178,14 +2178,15 @@ export class ArcadeSim {
     // Счётчик критов считаем здесь, а не сразу после шанса из статов: усиленным ударом делают и
     // фирменные пассивки (Blade Dance, Меткость, Time Lock), а раньше они в счётчик не попадали.
     if (kind === "crit") this.events.crits++;
-    this.damageEnemy(e, dmg, kind);
+    const landed = this.damageEnemy(e, dmg, kind);
     if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * Math.min(0.95, sig.value * sc), "slash"); }
     if (sig?.kind === "overload" && p.sigArmed) {
       p.sigArmed = false;
       for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 80)) this.damageEnemy(o, sig.value * sc, "zap");
       this.pushFx("nova", e.x, e.y, sig.radius ?? 80, 0, 10);
     }
-    if (p.stats.lifesteal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + dmg * p.stats.lifesteal);
+    // Вампиризм — только с урона, который прошёл: спящий, скрытый или под щитом чемпион не лечит.
+    if (landed && p.stats.lifesteal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + dmg * p.stats.lifesteal);
     // Школы «Attack»: статусы с удара.
     const burn = this.upgradePower("rad_strike");
     if (burn > 0) this.applyBurn(e, 6 * burn * this.burnMult(), 3);
@@ -2311,6 +2312,13 @@ export class ArcadeSim {
     return this.rank.resistStatus ? seconds * 0.7 : seconds;
   }
 
+  /** Оглушение врага — одно на все источники: unstoppable (Tormentor, тотемы, идолы, Древний) не оглушается. `seconds` —
+   *  уже с сопротивлением ранга там, где источник его учитывает (statusSec). Продлевает, не укорачивает. */
+  private stun(e: Enemy, seconds: number): void {
+    if (e.kind.unstoppable) return;
+    e.stunUntil = Math.max(e.stunUntil, this.tick + sec(seconds));
+  }
+
   private applyBurn(e: Enemy, dps: number, seconds: number): void {
     if (e.kind.unstoppable) return;
     e.burnDps = Math.max(e.burnDps * (e.burnUntil > this.tick ? 1 : 0), dps);
@@ -2378,15 +2386,13 @@ export class ArcadeSim {
     return 1;
   }
 
-  damageEnemy(e: Enemy, amount: number, fx: FxKind): void {
-    if (!e.alive || amount <= 0) return;
+  /** Урон по врагу. Возвращает false, если урон не прошёл (цель мертва или неуязвима) — по нему решаются лечения с удара. */
+  damageEnemy(e: Enemy, amount: number, fx: FxKind): boolean {
+    if (!e.alive || amount <= 0) return false;
     // Наследие: весь исходящий урон (удары, умения, DoT, питомцы) — ровно один раз, здесь.
     let dmg = amount * this.oathMult(e) * this.ritualMult("bloodhunt");
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
     const vamp = this.hero.signature;
-    if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
-    // Кровавик (легендарка): лечит с урона умениями — то есть со всего, кроме автоатак и критов.
-    if (fx !== "hit" && fx !== "crit" && this.upgradePower("leg_bloodstone") > 0) this.heal(amount * 0.1);
     // Corrosive Haze (Slardar): помеченная цель получает больше от всего.
     if (this.tick < e.ampUntil) dmg *= 1 + e.ampMult;
     // Щит шамана (T13.79): пока держится, урон снижен — цель приоритета сам шаман.
@@ -2412,12 +2418,17 @@ export class ArcadeSim {
     // Осквернитель под щитом тотемов: с тремя живыми берёт четверть урона, без тотемов — весь (T13.41).
     if (e.kind.id === "satyr_defiler" && this.camp) dmg *= Math.max(0, 1 - ARCADE.defiler.shieldPerTotem * this.totemsAlive());
     // Кентавр, оглушённый камнем, берёт больше (T13.45); спящий — не берёт ничего.
-    if (e.kind.id === "centaur_warden") { if (this.isDormant(e)) return; if (this.tick < e.stunUntil) dmg *= ARCADE.centaur.stunnedDmgMult; }
+    if (e.kind.id === "centaur_warden") { if (this.isDormant(e)) return false; if (this.tick < e.stunUntil) dmg *= ARCADE.centaur.stunnedDmgMult; }
     // Некромант и идолы: спящие неуязвимы; без идолов некромант открыт (T13.46).
-    if (e.kind.id === "thunder_golem" && this.isDormant(e)) return;
-    if (e.kind.id === "river_warden" && (this.isDormant(e) || this.wardenShielded())) return; // щит: не пробивать, ждать окна
-    if (e.kind.id === "dire_stalker" && this.isDormant(e)) return;
-    if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
+    if (e.kind.id === "thunder_golem" && this.isDormant(e)) return false;
+    if (e.kind.id === "river_warden" && (this.isDormant(e) || this.wardenShielded())) return false; // щит: не пробивать, ждать окна
+    if (e.kind.id === "dire_stalker" && this.isDormant(e)) return false;
+    if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return false; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
+    // Лечения с урона — после выходов по неуязвимости: удар по спящему/скрытому/под щитом чемпиону здоровья не даёт.
+    // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
+    if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
+    // Кровавик (легендарка): лечит с урона умениями — то есть со всего, кроме автоатак и критов.
+    if (fx !== "hit" && fx !== "crit" && this.upgradePower("leg_bloodstone") > 0) this.heal(amount * 0.1);
     // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
     if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
     this.dealtBySource[this.dmgSource] = (this.dealtBySource[this.dmgSource] ?? 0) + Math.min(dmg, Math.max(0, e.hp));
@@ -2426,6 +2437,7 @@ export class ArcadeSim {
     if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect), 0, e.kind);
     if (fx === "hit" || fx === "crit" || (e.kind.elite || e.kind.boss) && this.tick % 4 === 0) this.pushFx(fx, e.x, e.y - e.kind.r, 0, 0, 26, Math.round(dmg));
     if (e.hp <= 0) this.killEnemy(e);
+    return true;
   }
 
   private killEnemy(e: Enemy): void {
@@ -2671,13 +2683,14 @@ export class ArcadeSim {
     p.hp = Math.max(1, Math.min(p.stats.maxHp, hp));
     p.invulnUntil = this.tick + sec(ARCADE.player.reviveInvuln);
     for (const e of this.enemies) {
-      if (!e.alive || e.kind.boss) continue;
+      // Строения, тотемы, идолы и Tormentor (unstoppable) не отталкиваются и не оглушаются.
+      if (!e.alive || e.kind.boss || e.kind.unstoppable) continue;
       const d = len(e.x - p.x, e.y - p.y);
       if (d < ARCADE.player.revivePush) {
         const k = (ARCADE.player.revivePush - d) / (d || 1);
         e.x = clamp(e.x + (e.x - p.x) * k, 0, ARCADE.world.w);
         e.y = clamp(e.y + (e.y - p.y) * k, 0, ARCADE.world.h);
-        e.stunUntil = this.tick + sec(1.2);
+        this.stun(e, 1.2);
       }
     }
     this.shake = 20;
@@ -3361,7 +3374,7 @@ export class ArcadeSim {
         const venomPets = this.upgradePower("hyb_venom_beast");
         if (venomPets > 0) this.applyPoison(target, 3 * venomPets); // Яд + Зверинец: питомцы переносят яд
         if (def.slow) this.applyChill(target, def.slow, 1, false);
-        if (def.stun && !target.kind.unstoppable && this.rng.float() < def.stun) target.stunUntil = Math.max(target.stunUntil, this.tick + sec(0.3));
+        if (def.stun && !target.kind.unstoppable && this.rng.float() < def.stun) this.stun(target, 0.3); // unstoppable — до броска: порядок Rng прежний
       }
       // Ястреб: собирает шарды вокруг себя (радиус растёт с рангом).
       if (def.collect) {
