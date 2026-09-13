@@ -9,6 +9,25 @@ const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over
 const quiet = (sim: ArcadeSim) => { for (const e of sim.enemies) if (e.alive && e !== sim.thunder && !e.kind.totem) e.alive = false; sim.defiler = null; sim.centaur = null; sim.necromancer = null; sim.camp!.nextGuardAt = 1e9; };
 const hold = (sim: ArcadeSim, x: number, y: number, n: number) => { for (let i = 0; i < n; i++) { sim.player.x = x; sim.player.y = y; step(sim, 1); } };
 
+describe("логова видят все уже размещённые места (T13.66)", () => {
+  // До правки логово Гром-голема и логово Охотника не учитывали разлом и караван: на 150 сидах лагерь-логово ↔ разлом
+  // встречались в 6–15 px. Теперь «другие места» — общий список в порядке конструктора (placedSpots).
+  it("логово Гром-голема и логово Охотника не встают вплотную к разлому и к старту каравана", () => {
+    const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y);
+    for (let i = 0; i < 40; i++) {
+      for (const act of ["full", "dire"] as const) {
+        const sim = new ArcadeSim(`lair-place-${i}`, { act, composition: "all" });
+        const start = { x: sim.caravan!.sx, y: sim.caravan!.sy };
+        for (const home of [sim.lair, sim.den]) {
+          if (!home) continue;
+          expect(dist(home, sim.rift!), `${act} seed ${i}: до разлома`).toBeGreaterThanOrEqual(250);
+          expect(dist(home, start), `${act} seed ${i}: до каравана`).toBeGreaterThanOrEqual(250);
+        }
+      }
+    }
+  });
+});
+
 describe("Гром-голем", () => {
   it("логово по seed вдали от других мест; спит и неуязвим; будится входом; в бою ставит три зоны в трёх из четырёх сторон", () => {
     const sim = new ArcadeSim("thunder-1");

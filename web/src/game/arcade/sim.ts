@@ -345,11 +345,19 @@ export class ArcadeSim {
     if (this.night) this.den = this.placeDen(seed);
   }
 
+  /** Уже размещённые места в порядке конструктора (лагерь → аванпост → пруд → роща → курган → кузня → разлом → караван →
+   *  логово → брод → логово Охотника). До размещения поле места null, поэтому каждое следующее видит ровно те, что стоят
+   *  раньше. Караван — точкой старта (x/y до сопровождения). Раньше списки «других мест» писались вручную и расходились:
+   *  логово Гром-голема и Охотника не видели разлом и караван. */
+  private placedSpots(): { x: number; y: number }[] {
+    const out: { x: number; y: number }[] = [];
+    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge, this.rift, this.caravan, this.lair, this.ford, this.den]) if (o) out.push(o);
+    return out;
+  }
+
   private placeDen(seed: string): Den {
     const S = ARCADE.stalker;
-    const others: { x: number; y: number }[] = [];
-    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge, this.lair]) if (o) others.push({ x: o.x, y: o.y });
-    const [x, y] = this.pickSpot(new Rng(`den:${seed}:${this.act}`), S.distMin, S.distMax, 120, S.minFromOthers, others, 30);
+    const [x, y] = this.pickSpot(new Rng(`den:${seed}:${this.act}`), S.distMin, S.distMax, 120, S.minFromOthers, this.placedSpots(), 30);
     this.stalker = this.spawnEnemy(ENEMY_KINDS.dire_stalker, x, y);
     return { x, y, engaged: false, markX: 0, markY: 0, markUntil: 0, exposedUntil: 0, nextAt: 0 };
   }
@@ -478,9 +486,7 @@ export class ArcadeSim {
   /** Логово по seed: кольцо от старта, подальше от остальных мест, свободный центр. */
   private placeLair(seed: string): Lair {
     const T = ARCADE.thunder;
-    const others: { x: number; y: number }[] = [];
-    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge]) if (o) others.push({ x: o.x, y: o.y });
-    const [x, y] = this.pickSpot(new Rng(`lair:${seed}:${this.act}`), T.distMin, T.distMax, 120, T.minFromOthers, others, 44);
+    const [x, y] = this.pickSpot(new Rng(`lair:${seed}:${this.act}`), T.distMin, T.distMax, 120, T.minFromOthers, this.placedSpots(), 44);
     this.thunder = this.spawnEnemy(ENEMY_KINDS.thunder_golem, x, y);
     return { x, y, engaged: false, zones: [], telegraphUntil: 0, activeUntil: 0, nextAt: 0, chainHitAt: 0 };
   }
@@ -540,9 +546,7 @@ export class ArcadeSim {
   /** Кузня по seed: кольцо от старта, подальше от остальных мест, не в реке/яме, не в дереве. */
   private placeForge(seed: string): Forge {
     const F = ARCADE.forge;
-    const others: { x: number; y: number }[] = [];
-    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow]) if (o) others.push({ x: o.x, y: o.y });
-    const [x, y] = this.pickSpot(new Rng(`forge:${seed}:${this.act}`), F.distMin, F.distMax, 80, F.minFromOthers, others, 36);
+    const [x, y] = this.pickSpot(new Rng(`forge:${seed}:${this.act}`), F.distMin, F.distMax, 80, F.minFromOthers, this.placedSpots(), 36);
     return { x, y, used: false };
   }
 
@@ -551,9 +555,7 @@ export class ArcadeSim {
   private placeRift(seed: string): Rift {
     const R = ARCADE.rift;
     const rng = new Rng(`rift:${seed}:${this.act}`);
-    const others: { x: number; y: number }[] = [];
-    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge]) if (o) others.push({ x: o.x, y: o.y });
-    const [x, y] = this.pickSpot(rng, R.distMin, R.distMax, 80, R.minFromOthers, others, 36);
+    const [x, y] = this.pickSpot(rng, R.distMin, R.distMax, 80, R.minFromOthers, this.placedSpots(), 36);
     // Два правила из четырёх — по seed, чтобы выбор был частью сида, а не текущего состояния.
     const pool = [...RIFT_RULES];
     const a = pool.splice(rng.int(pool.length), 1)[0];
@@ -709,8 +711,7 @@ export class ArcadeSim {
   private placeCaravan(seed: string): Caravan {
     const C = ARCADE.caravan, W = ARCADE.world;
     const rng = new Rng(`caravan:${seed}:${this.act}`);
-    const others: { x: number; y: number }[] = [];
-    for (const o of [this.camp, this.outpost, this.pond, this.grove, this.barrow, this.forge, this.rift]) if (o) others.push({ x: o.x, y: o.y });
+    const others = this.placedSpots();
     const [sx, sy] = this.pickSpot(rng, C.distMin, C.distMax, 100, C.minFromOthers, others, 30);
     // Цель — по прямой на `length`; из 12 направлений берём то, где середина и конец дальше всего от других мест и в мире.
     let best: [number, number] = [sx, sy], bestScore = -Infinity;
@@ -834,9 +835,7 @@ export class ArcadeSim {
   private placeBarrow(seed: string): Barrow {
     const N = ARCADE.necro;
     const rng = new Rng(`barrow:${seed}:${this.act}`);
-    const others: { x: number; y: number }[] = [];
-    for (const o of [this.camp, this.outpost, this.pond, this.grove]) if (o) others.push({ x: o.x, y: o.y });
-    const [x, y] = this.pickSpot(rng, N.distMin, N.distMax, 120, N.minFromOthers, others, 40);
+    const [x, y] = this.pickSpot(rng, N.distMin, N.distMax, 120, N.minFromOthers, this.placedSpots(), 40);
     for (let i = 0; i < N.idols; i++) { const [ix, iy] = this.obstacles.resolve(x + (i === 0 ? -N.idolRing : N.idolRing), y + 30, 22); this.spawnEnemy(ENEMY_KINDS.bone_idol, ix, iy); }
     this.necromancer = this.spawnEnemy(ENEMY_KINDS.troll_necromancer, x, y - 20);
     return { x, y, engaged: false, idolsDown: 0, nextRaiseAt: 0 };
@@ -1111,9 +1110,7 @@ export class ArcadeSim {
   /** Пруд по seed: кольцо от старта, не ближе minFromOthers к лагерю и аванпосту, не в реке/яме, не в дереве. */
   private placePond(seed: string): Pond {
     const P = ARCADE.pond;
-    const others: { x: number; y: number }[] = [];
-    for (const o of [this.camp, this.outpost]) if (o) others.push({ x: o.x, y: o.y });
-    const [x, y] = this.pickSpot(new Rng(`pond:${seed}:${this.act}`), P.distMin, P.distMax, 80, P.minFromOthers, others, 36);
+    const [x, y] = this.pickSpot(new Rng(`pond:${seed}:${this.act}`), P.distMin, P.distMax, 80, P.minFromOthers, this.placedSpots(), 36);
     return { x, y, used: false };
   }
 
@@ -1223,7 +1220,7 @@ export class ArcadeSim {
   /** Аванпост по seed: кольцо от старта, подальше от лагеря (разные направления = выбор маршрута), не в реке/яме, не в дереве. */
   private placeOutpost(seed: string): Outpost {
     const O = ARCADE.outpost;
-    const [x, y] = this.pickSpot(new Rng(`outpost:${seed}:${this.act}`), O.distMin, O.distMax, O.radius + 60, O.minFromCamp, this.camp ? [this.camp] : [], 40);
+    const [x, y] = this.pickSpot(new Rng(`outpost:${seed}:${this.act}`), O.distMin, O.distMax, O.radius + 60, O.minFromCamp, this.placedSpots(), 40);
     return { x, y, progress: 0, need: sec(O.captureSec), captured: false };
   }
 
