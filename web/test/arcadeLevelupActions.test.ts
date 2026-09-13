@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { BANISH_ACT, IDLE_INPUT, REROLL_CHOOSE } from "../src/game/arcade/types.ts";
-import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
+import { UPGRADES, UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
 
 function levelUp(sim: ArcadeSim): void {
   (sim as unknown as { gainXp(n: number): void }).gainXp(sim.player.xpNext - sim.player.xp + 1);
@@ -37,6 +37,27 @@ describe("прокачка: реролл и изгнание (T13.21), гибр�
     expect(sim.banished.has(id)).toBe(true);
     expect(sim.banishesLeft).toBe(2);
     for (let i = 0; i < 20; i++) { if (sim.pending) sim.step({ ...IDLE_INPUT, choose: 0 }); levelUp(sim); for (const o of sim.pending ?? []) if (o.kind === "upgrade") expect(o.id).not.toBe(id); }
+  });
+
+  it("изгнание недоступно на экране награды и не оставляет пустой выбор", () => {
+    const sim = new ArcadeSim("lvl-banish-reward", { hero: "juggernaut" });
+    const internals = sim as unknown as { queueReward(o: unknown[]): void };
+    internals.queueReward([{ kind: "upgrade", id: "rad_aura", rarity: "exotic" }, { kind: "upgrade", id: "ska_bite", rarity: "exotic" }]);
+    expect(sim.pendingSource).toBe("camp");
+    const before = JSON.stringify(sim.pending);
+    sim.step({ ...IDLE_INPUT, act: BANISH_ACT });
+    expect(JSON.stringify(sim.pending)).toBe(before); // гарантированная редкость не подменяется обычной картой
+    expect(sim.banishesLeft).toBe(3);
+    expect(sim.banished.size).toBe(0);
+    sim.step({ ...IDLE_INPUT, choose: 0 });
+    // Экран уровня с единственной картой и пустым пулом: изгнать нечем заменить — карта остаётся, изгнание не тратится.
+    const lone = new ArcadeSim("lvl-banish-last", { hero: "juggernaut" });
+    for (const u of UPGRADES) if (u.id !== "rad_aura") lone.banished.add(u.id);
+    lone.pending = [{ kind: "upgrade", id: "rad_aura", rarity: "standard" }];
+    lone.step({ ...IDLE_INPUT, act: BANISH_ACT });
+    expect(lone.pending).toHaveLength(1);
+    expect(lone.banishesLeft).toBe(3);
+    expect(lone.banished.has("rad_aura")).toBe(false);
   });
 
   it("гибрид предлагается только при обеих школах", () => {

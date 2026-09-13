@@ -4032,14 +4032,19 @@ export class ArcadeSim {
     this.pending = this.rollOffers();
   }
 
-  /** Изгнание: апгрейд уходит из пула до конца забега, карта заменяется новой; способности изгнать нельзя. */
+  /** Изгнание: апгрейд уходит из пула до конца забега, карта заменяется новой; способности изгнать нельзя.
+   *  Только на экране уровня, как и реролл: карты награды места/чемпиона/контракта — гарантированной редкости и из своего
+   *  генератора (школа, тип, гибриды), а замена приходила обычной (`rollUpgradeOffer` с редкостью по минуте). */
   private banishPending(index: number): void {
     const offer = this.pending?.[index];
-    if (!offer || !this.pending || offer.kind !== "upgrade" || this.banishesLeft <= 0) return;
+    if (!offer || !this.pending || offer.kind !== "upgrade" || this.banishesLeft <= 0 || this.pendingSource === "camp") return;
+    const known = this.banished.has(offer.id);
     this.banished.add(offer.id);
-    this.banishesLeft--;
     const rest = this.pending.filter((_, i) => i !== index);
     const fresh = this.rollUpgradeOffer(rest.map((o) => (o.kind === "upgrade" ? o.id : "")));
+    // Последнюю карту без замены не изгоняем: пустой выбор не закрыть ничем, мир встал бы навсегда. Rng без замены не тратится.
+    if (!fresh && rest.length === 0) { if (!known) this.banished.delete(offer.id); return; }
+    this.banishesLeft--;
     this.pending = fresh ? [...rest.slice(0, index), fresh, ...rest.slice(index)] : rest;
   }
 
