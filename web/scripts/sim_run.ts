@@ -28,17 +28,22 @@ import {
   tradeInRarity,
   type Offer,
   type OfferKind,
-  type SummandModifiers,
 } from "../src/game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
-import { buildTacticContext, evaluateTactics, tacticRarityFactor, type TacticEvaluation } from "../src/game/tactics.ts";
+import { buildTacticContext } from "../src/game/tactics.ts";
 import { rarityModifiers, upgradeCost } from "../src/game/heroRarity.ts";
 import { pairScore } from "../src/game/assign.ts";
 import { heroStatsForAssignment, signatureLookup } from "../src/game/score.ts";
 import type { Rarity } from "../src/game/rarity.ts";
-import { activeCardIds, evaluateRunPower, runModifiers, stageStrength as runStageStrength } from "../src/game/runStrength.ts";
-import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
-import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
+import {
+  activeCardIds,
+  evaluateRunPower,
+  evaluateStage,
+  stageBoss,
+  stageBuild,
+  type StageBuild,
+} from "../src/game/runStrength.ts";
+import { bossForStage, type BossId } from "../src/game/bossConditions.ts";
 import { BALANCE_CONFIG_VERSION } from "../src/game/balance.ts";
 import { Rng } from "../src/game/rng.ts";
 import type { RunConfig } from "../src/game/packs.ts";
@@ -77,96 +82,27 @@ const useSinks = !process.argv.includes("--no-sinks");
  *  бесконечный прогон, поэтому у измерения есть потолок — он же читается как «дальше не мерили». */
 const DYNASTY_DEPTH_CAP = 25;
 
-// ─────────────────────────────── сила билда (зеркало runStore) ───────────────────────────────
+// ─────────────────────────────── сила билда (та же, что в игре) ───────────────────────────────
 
-function tacticsOf(engine: RunEngine, economy: RunEconomy): TacticEvaluation | null {
-  const score = engine.score();
-  if (!score) return null;
-  const ctx = buildTacticContext(
-    engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
-  );
-  // Заряды Charged-карт (R13.5) — как в игре, иначе симулятор мерил бы незаряженный билд.
-  return evaluateTactics(economy.equippedTactics, ctx, useEditions ? economy.cardCharges : {});
+/** A/B-переключатели (NOEDITIONS / NOBOSS). Сама сборка силы общая с игрой (game/runStrength.ts):
+ *  своя копия здесь однажды разъехалась, и симулятор мерил билд без редкости и тактик. */
+const stageOptions = { charges: useEditions, boss: useBoss };
+
+/** Билд на текущем составе: тактики, предметы и модификаторы — как в игре, с зарядами Charged-карт
+ *  (R13.5), если их не выключили для A/B. */
+function buildOf(engine: RunEngine, economy: RunEconomy): StageBuild | null {
+  return stageBuild(engine, economy, data, stageOptions);
 }
 
-/** Композиция слоёв — общая с игрой (game/runStrength.ts). Складывать их здесь «своей» суммой
- *  нельзя: именно так эта копия однажды разъехалась и симулятор мерил билд без редкости и тактик. */
-function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEvaluation | null) {
-  return {
-    economy: economy.modifiers(),
-    tactics: tactics?.modifiers ?? null,
-    heroRarity: economy.heroRarity,
-    activeHeroes: engine.heroes,
-    rarityFactor: tacticRarityFactor(economy.equippedTactics),
-  };
+/** Штраф босса этапа против билда — уже со смягчением предметами (R8.3) и Tempered-картами (LG4). */
+function bossPenaltyOf(build: StageBuild | null, engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number): number {
+  if (!build) return 0;
+  return stageBoss(build, engine, economy, { data, seed, stakes: simStakes }, stageIndex, stageOptions)?.penalty ?? 0;
 }
 
-function effectiveMods(
-  engine: RunEngine, economy: RunEconomy, tactics: TacticEvaluation | null,
-): SummandModifiers {
-  return runModifiers(strengthInput(engine, economy, tactics));
-}
-
-function bossPenalty(
-  engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number,
-  mods: SummandModifiers, bossId: BossId | null,
-): number {
-  const score = engine.score();
-  if (!score || !bossId) return 0;
-  const raw = evaluateBoss(bossId, {
-    seed,
-    absoluteStageIndex: stageIndex,
-    base: score.base + mods.base,
-    heroSynergy: score.heroSynergy + mods.heroSynergy,
-    chemistry: score.chemistry + mods.chemistry,
-    playerOvrs: engine.players.map((p) => p.ovr),
-    activeHeroes: engine.heroes,
-    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex), simStakes),
-    stakes: simStakes,
-    // Через тот же `buildTacticContext`, что и игра: иначе симулятор мерил бы другое условие.
-    ...(() => {
-      const ctx = buildTacticContext(
-        engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
-      );
-      return {
-        assignedHeroGames: ctx.players.map((player) => player.assignedHeroGames),
-        pairCoGames: ctx.pairs.map((pair) => pair.games),
-      };
-    })(),
-  }).penalty;
-  // Защита предметами — как в игре (R8.3), иначе симулятор мерил бы более тяжёлых боссов.
-  // Tempered (LG4): активность — те же activeCardIds, что заряды; сим обязан судить как store.
-  const items = itemsOf(engine, economy);
-  const editions = economy.cardEditions;
-  const activeTempered = [...activeCardIds(tacticsOf(engine, economy), items)]
-    .filter((id) => editions[id] === "tempered").length;
-  return protectedBossPenalty(raw, items, activeTempered);
-}
-
-/** Вклад экипированных предметов при текущем ростере. Тир карточек обязателен: без него симулятор
- *  мерил бы более слабый билд, чем играет игрок, — ровно тот дефект трёх копий, который R10 уже
- *  чинил для редкости героев и тактик. */
-function itemsOf(engine: RunEngine, economy: RunEconomy) {
-  return evaluateItems(economy.equippedTactics, {
-    activeHeroes: engine.heroes,
-    cardRarity: economy.cardRarity,
-    cardCharges: useEditions ? economy.cardCharges : {},
-  });
-}
-
-/** Итоговая сила состава на этапе — то, что уезжает в поле турнира. Через тот же слой, что игра
- *  (включая слои Tournament Power, R8.2): второй копии этой формулы здесь быть не должно. */
+/** Итоговая сила состава на этапе — то, что уезжает в поле турнира. */
 function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number): number {
-  const score = engine.score();
-  if (!score) return 0;
-  const tactics = tacticsOf(engine, economy);
-  const mods = effectiveMods(engine, economy, tactics);
-  const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStakes) : null;
-  const items = itemsOf(engine, economy);
-  return runStageStrength(score.teamOvr, strengthInput(engine, economy, tactics), {
-    bossPenalty: bossPenalty(engine, economy, seed, stageIndex, mods, bossId),
-    power: { flat: items.flat, additive: items.additive, xMults: items.xMults },
-  });
+  return evaluateStage(engine, economy, { data, seed, stakes: simStakes }, stageIndex, stageOptions)?.power.total ?? 0;
 }
 
 // ─────────────────────────────────────── агенты ───────────────────────────────────────
@@ -744,12 +680,7 @@ function spendSurplus(
   if (!useSinks || agent.passive || agent.random) return { preps, bossRerolls };
   const stageIndex = economy.snapshot.campStageIndex;
 
-  const penaltyNow = () => {
-    const tactics = tacticsOf(engine, economy);
-    const mods = effectiveMods(engine, economy, tactics);
-    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStakes) : null;
-    return bossPenalty(engine, economy, seed, stageIndex, mods, bossId);
-  };
+  const penaltyNow = () => bossPenaltyOf(buildOf(engine, economy), engine, economy, seed, stageIndex);
 
   if (agent.bossAware) {
     // Потолок в две смены — не правило игры, а поведение агента: дальше он ушёл бы в бесконечный
@@ -800,7 +731,6 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
   // конечным: бесконечная фаза не должна означать бесконечный тест.
   while (guard++ < stageCount + DYNASTY_DEPTH_CAP + 5) {
     const stageIndex = anteRun.state.index;
-    const bossId = useBoss ? bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex), simStakes) : null;
     let phase = anteRun.resolveStage();
     if (phase === "won" && dynasty && anteRun.state.index < stageCount + DYNASTY_DEPTH_CAP - 1) {
       phase = anteRun.continueDynasty();
@@ -809,8 +739,8 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     if (placement) placements.push(placement);
 
     if (phase !== "playing") {
-      const tactics = tacticsOf(engine, economy);
-      const mods = effectiveMods(engine, economy, tactics);
+      const build = buildOf(engine, economy);
+      const mods = build!.modifiers;
       return {
         outcome: phase,
         seasonWon: anteRun.state.seasonWon,
@@ -818,8 +748,9 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
         placements,
         draftOvr: score.teamOvr,
         finalStrength: engine.score()!.teamOvr + mods.base + mods.heroSynergy + mods.chemistry,
+        // Правило сыгранного этапа: resolveStage и Династия экономику не трогают, счётчик рероллов тот же.
         lostUnderBoss: phase === "lost"
-          && bossPenalty(engine, economy, seed, stageIndex, mods, bossId) > 0,
+          && bossPenaltyOf(build, engine, economy, seed, stageIndex) > 0,
         tacticsEquipped: economy.campView().equippedTactics.length,
         upgradedHeroes: engine.heroes.filter((h) => economy.rarityOf(h) !== "common").length,
         camps,
@@ -831,7 +762,8 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     // Заряды Charged-карт за пройденный этап (R13.5) — то же правило и те же sources, что в
     // runStore.openCampAfterStage; без этого симулятор мерил бы Editions как мёртвый дроп.
     if (useEditions) {
-      const active = activeCardIds(tacticsOf(engine, economy), itemsOf(engine, economy));
+      const build = buildOf(engine, economy);
+      const active = build ? activeCardIds(build.tactics, build.items) : new Set<string>();
       const editions = economy.cardEditions;
       if ([...active].some((id) => editions[id] === "charged")) chargedActiveStages += 1;
       economy.accrueCharges(active);
@@ -869,8 +801,7 @@ function playRun(seed: string, agent: Agent, season: SeasonModel, dynasty = fals
     anteRun.rebuildCurrentStage(stageStrength(engine, economy, seed, anteRun.state.index));
   }
 
-  const tactics = tacticsOf(engine, economy);
-  const mods = effectiveMods(engine, economy, tactics);
+  const mods = buildOf(engine, economy)!.modifiers;
   return {
     outcome: "lost", seasonWon: anteRun.state.seasonWon, stage: anteRun.state.index, placements, draftOvr: score.teamOvr,
     finalStrength: engine.score()!.teamOvr + mods.base + mods.heroSynergy + mods.chemistry,

@@ -16,97 +16,18 @@ import { AnteRunEngine, SEASON, seasonStage } from "../src/game/anteRun.ts";
 import { RunEconomy } from "../src/game/anteEconomy.ts";
 import type { Offer } from "../src/game/anteEconomy.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
-import { buildTacticContext, evaluateTactics, tacticRarityFactor, type TacticEvaluation } from "../src/game/tactics.ts";
-import { activeCardIds, runModifiers, stageStrength as runStageStrength, evaluateRunPower } from "../src/game/runStrength.ts";
-import { evaluateItems, protectedBossPenalty } from "../src/game/items.ts";
-import { bannedHeroesForStage, bossForStage, evaluateBoss, type BossId } from "../src/game/bossConditions.ts";
+import { buildTacticContext } from "../src/game/tactics.ts";
+import { evaluateRunPower, evaluateStage } from "../src/game/runStrength.ts";
 import { upgradeCost } from "../src/game/heroRarity.ts";
 import type { Rarity } from "../src/game/rarity.ts";
-import type { RunConfig } from "../src/game/packs.ts";
+import { E2E_RUN_CONFIG as config, firstAvailableDraft } from "./lib/sim_shared.ts";
 
 const data = loadGameData();
-const config: RunConfig = {
-  draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
-};
 
-function firstAvailableDraft(engine: RunEngine): void {
-  for (let step = 0; step < 40 && !engine.isComplete; step++) {
-    if (engine.rosterFilled < 5) {
-      const idx = engine.currentPack.candidates.findIndex((_, i) => engine.canPickPlayer(i));
-      if (idx >= 0) { engine.pickPlayer(idx); continue; }
-      if (engine.rerollsLeft > 0) { engine.reroll(); continue; }
-      break;
-    }
-    const hero = engine.packHeroes[0];
-    if (hero == null) break;
-    engine.pickHero(hero);
-  }
-}
-
-function tacticsOf(engine: RunEngine, economy: RunEconomy): TacticEvaluation | null {
-  const score = engine.score();
-  if (!score || economy.equippedTactics.length === 0) return null;
-  const ctx = buildTacticContext(engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex);
-  // Заряды Charged (R13.5) — как в игре: без них sweep номинировал бы сиды по заниженной силе.
-  return evaluateTactics(economy.equippedTactics, ctx, economy.cardCharges);
-}
-
-function strengthInput(engine: RunEngine, economy: RunEconomy, tactics: TacticEvaluation | null) {
-  return {
-    economy: economy.modifiers(),
-    tactics: tactics?.modifiers ?? null,
-    heroRarity: economy.heroRarity,
-    activeHeroes: engine.heroes,
-    rarityFactor: tacticRarityFactor(economy.equippedTactics),
-  };
-}
-
-function itemsOf(engine: RunEngine, economy: RunEconomy) {
-  return evaluateItems(economy.equippedTactics, {
-    activeHeroes: engine.heroes, cardRarity: economy.cardRarity, cardCharges: economy.cardCharges,
-  });
-}
-
-function bossPenalty(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number, bossId: BossId | null): number {
-  const score = engine.score();
-  if (!score || !bossId) return 0;
-  const tactics = tacticsOf(engine, economy);
-  const mods = runModifiers(strengthInput(engine, economy, tactics));
-  const raw = evaluateBoss(bossId, {
-    seed,
-    absoluteStageIndex: stageIndex,
-    base: score.base + mods.base,
-    heroSynergy: score.heroSynergy + mods.heroSynergy,
-    chemistry: score.chemistry + mods.chemistry,
-    playerOvrs: engine.players.map((p) => p.ovr),
-    activeHeroes: engine.heroes,
-    bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, economy.bossRerollsFor(stageIndex)),
-    ...(() => {
-      const ctx = buildTacticContext(
-        engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex,
-      );
-      return {
-        assignedHeroGames: ctx.players.map((player) => player.assignedHeroGames),
-        pairCoGames: ctx.pairs.map((pair) => pair.games),
-      };
-    })(),
-  }).penalty;
-  const items = itemsOf(engine, economy);
-  const editions = economy.cardEditions;
-  const activeTempered = [...activeCardIds(tactics, items)].filter((id) => editions[id] === "tempered").length;
-  return protectedBossPenalty(raw, items, activeTempered);
-}
-
+/** Сила этапа — та же сборка, что в игре и в балансовом симуляторе (game/runStrength.ts). Своя копия
+ *  здесь повторяла её вручную; Stakes свип не играет. */
 function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number): number {
-  const score = engine.score();
-  if (!score) return 0;
-  const tactics = tacticsOf(engine, economy);
-  const bossId = bossForStage(seed, stageIndex, economy.bossRerollsFor(stageIndex));
-  const items = itemsOf(engine, economy);
-  return runStageStrength(score.teamOvr, strengthInput(engine, economy, tactics), {
-    bossPenalty: bossPenalty(engine, economy, seed, stageIndex, bossId),
-    power: { flat: items.flat, additive: items.additive, xMults: items.xMults },
-  });
+  return evaluateStage(engine, economy, { data, seed, stakes: [] }, stageIndex)?.power.total ?? 0;
 }
 
 function currentPower(engine: RunEngine, economy: RunEconomy): number {

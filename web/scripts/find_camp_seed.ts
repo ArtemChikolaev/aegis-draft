@@ -9,28 +9,9 @@ import { AnteRunEngine, SEASON } from "../src/game/anteRun.ts";
 import { RunEconomy } from "../src/game/anteEconomy.ts";
 import { buildTacticContext } from "../src/game/tactics.ts";
 import { evaluateRunPower } from "../src/game/runStrength.ts";
-import type { RunConfig } from "../src/game/packs.ts";
+import { E2E_RUN_CONFIG as config, firstAvailableDraft } from "./lib/sim_shared.ts";
 
 const data = loadGameData();
-const config: RunConfig = {
-  draftStyle: "team", format: "last_2y", rerolls: 2, scoring: "event", allocation: "auto", hardMode: false,
-};
-
-/** Драфт «первым доступным» — точная копия e2e/helpers.completeDraft: тест кликает первую
- *  незаблокированную карточку, а не лучшую по OVR. Жадный драфт дал бы другой ростер и другой seed. */
-function firstAvailableDraft(engine: RunEngine): void {
-  for (let step = 0; step < 40 && !engine.isComplete; step++) {
-    if (engine.rosterFilled < 5) {
-      const idx = engine.currentPack.candidates.findIndex((_, i) => engine.canPickPlayer(i));
-      if (idx >= 0) { engine.pickPlayer(idx); continue; }
-      if (engine.rerollsLeft > 0) { engine.reroll(); continue; }
-      break;
-    }
-    const hero = engine.packHeroes[0];
-    if (hero == null) break;
-    engine.pickHero(hero);
-  }
-}
 
 // `--scouting` — второй путь спеки («разведка раскрывает будущего босса»): наградой первого
 // Буткемпа должна лежать карточка Camp Action `scouting`. Раньше такой сид подбирали руками.

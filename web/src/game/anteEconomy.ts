@@ -72,6 +72,12 @@ import {
 } from "./anteCosts.ts";
 import { cardOffer, marketOffers, rewardOffers, tradeInRarity, tradeOffers, type BuildTiers } from "./anteOffers.ts";
 
+/** Дельты слагаемых от покупок и временных Camp Actions по снимку экономики. Та же сумма, что
+ *  `RunEconomy.modifiers()`: экрану, у которого есть только снимок, вторая формула не нужна. */
+export function economyModifiers(state: Pick<RunEconomyState, "applied" | "temporary">): SummandModifiers {
+  return summandModifiers([...state.applied, ...state.temporary.map((t) => t.effect)]);
+}
+
 /** Готовый снимок Буткемпа для рендера (UI не держит движок — читает этот вид). */
 export interface CampView {
   gold: number;
@@ -239,7 +245,7 @@ export class RunEconomy {
   /** Суммарные дельты по слагаемым от покупок забега и временных Camp Actions.
    *  Условные Tactics сюда НЕ входят: они зависят от ростера и считаются в game/tactics.ts. */
   modifiers(): SummandModifiers {
-    return summandModifiers([...this.state.applied, ...this.temporaryEffects()]);
+    return economyModifiers(this.state);
   }
 
   /** Итоговая прибавка к Team OVR (сумма всех модификаторов слагаемых). */

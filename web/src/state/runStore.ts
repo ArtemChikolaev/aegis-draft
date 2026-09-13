@@ -12,13 +12,20 @@ import type { ScoreBreakdown } from "../game/score.ts";
 import { QUICK_DRAFT_FIELD, TournamentEngine, fieldRerollCount, type PlacementKey, type TournamentSnapshot, type TournamentTeam } from "../game/tournament.ts";
 import { buildRealField, rescoreRealField, scoutOptions, type RealField, type ScoutOption } from "../game/realTournament.ts";
 import { AnteRunEngine, effectiveStageTarget, grantsDynastyTitle, marketCostFactor, nextBossStage, SEASON, type AnteRunState } from "../game/anteRun.ts";
-import { RunEconomy, type CampView, type RunEconomyState, type SummandModifiers } from "../game/anteEconomy.ts";
+import { RunEconomy, type CampView, type RunEconomyState } from "../game/anteEconomy.ts";
 import type { CardEdition } from "../game/editions.ts";
 import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../game/anteMarket.ts";
-import { buildTacticContext, evaluateTactics, tacticRarityFactor, type TacticEvaluation } from "../game/tactics.ts";
-import { bannedHeroesForStage, bossForStage, bossIsRolled, evaluateBoss, type BossEvaluation } from "../game/bossConditions.ts";
-import { evaluateItems, protectedBossPenalty } from "../game/items.ts";
-import { activeCardIds, runModifiers, stageStrength as runStageStrength } from "../game/runStrength.ts";
+import { buildTacticContext, evaluateTactics, type TacticEvaluation } from "../game/tactics.ts";
+import { bossIsRolled, type BossEvaluation } from "../game/bossConditions.ts";
+import {
+  activeCardIds,
+  evaluateStage,
+  stageBoss,
+  stageBuild,
+  type StageBuild,
+  type StageEvaluation,
+  type StageRules,
+} from "../game/runStrength.ts";
 import { BALANCE_CONFIG_VERSION } from "../game/balance.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { buildCareerEntry, careerEntriesForMode, useCareer } from "./careerStore.ts";
@@ -530,70 +537,36 @@ export const useRun = create<RunStore>((set, get) => {
       economy.snapshot.campStageIndex,
     );
   };
-  const evaluateRunTactics = (): TacticEvaluation | null => {
-    const ctx = tacticContext();
-    const economy = get().economy;
-    return ctx && economy ? evaluateTactics(economy.equippedTactics, ctx, economy.cardCharges) : null;
+  /** Правила этапа текущего забега: датасет, сид и Stakes. */
+  const stageRules = (): StageRules | null => {
+    const { data, seed, config } = get();
+    return data ? { data, seed, stakes: stakesOf(config) } : null;
   };
-  // Вклад редкости активных героев (срез 3b): heroSynergy + base у immortal. Пересчитывается от
-  // engine.heroes + карты редкости в экономике, поэтому зависит от текущего состава (как tactics).
-  // Итоговые модификаторы забега: покупки/временные действия (экономика) + условные Tactics +
-  // редкость героев. Единственное место, где слои складываются, — чтобы поле этапа и UI не
-  // разъезжались; редкость вложена сюда, поэтому все места сборки силы получают её автоматически.
-  // Композиция слоёв — общая с балансовым симулятором (game/runStrength.ts). Складывать их здесь
-  // «своей» суммой нельзя: именно так копия в симуляторе однажды разъехалась с игрой.
-  const effectiveModifiers = (tactics: TacticEvaluation | null): SummandModifiers => {
-    const { economy, engine } = get();
-    return runModifiers({
-      economy: economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 },
-      tactics: tactics?.modifiers ?? null,
-      heroRarity: economy?.heroRarity ?? {},
-      activeHeroes: engine?.heroes ?? [],
-      rarityFactor: tacticRarityFactor(economy?.equippedTactics ?? []),
-    });
+  /** Билд на текущем составе: тактики, предметы и модификаторы слагаемых (экономика + тактики +
+   *  редкость). Сборка общая с resume и балансовым симулятором (game/runStrength.ts): своя сумма
+   *  здесь однажды потеряла ослабление Wide Pool, и поле этапа разошлось с экраном турнира. */
+  const currentBuild = (): StageBuild | null => {
+    const { economy, engine, data } = get();
+    return economy && engine && data ? stageBuild(engine, economy, data) : null;
   };
-  // Boss condition этапа `stageIndex` против текущего ростера с уже применёнными modifiers.
+  const evaluateRunTactics = (): TacticEvaluation | null => currentBuild()?.tactics ?? null;
+  // Boss condition этапа `stageIndex` против билда (штраф уже смягчён предметами-защитой и Tempered).
   // Штраф вычитается из силы поля; null — этап без правила. Пересчитывается на swap, как tactics.
-  const evaluateRunBoss = (stageIndex: number, tactics: TacticEvaluation | null): BossEvaluation | null => {
-    const { engine, seed, economy } = get();
-    const score = engine?.score();
-    if (!engine || !score) return null;
-    // Правило могло быть перекуплено в Буткемпе (T5.9) — счётчик живёт в экономике, сам босс
-    // остаётся чистой функцией от seed+stage+n.
-    const rerolls = economy?.bossRerollsFor(stageIndex) ?? 0;
-    // Stake обязателен и здесь: под uncappedBoss (b1.41.0) правило стоит и на элитных этапах.
-    const bossId = bossForStage(seed, stageIndex, rerolls, stakesOf(get().config));
-    if (!bossId) return null;
-    const mods = effectiveModifiers(tactics);
-    const items = runItems();
-    const raw = evaluateBoss(bossId, {
-      seed,
-      // Индекс именно оцениваемого этапа, а не текущего: разведка (R9.4) считает условие БУДУЩЕГО
-      // боссового турнира, и рампа планки обязана взяться от него же.
-      absoluteStageIndex: stageIndex,
-      base: score.base + mods.base,
-      heroSynergy: score.heroSynergy + mods.heroSynergy,
-      chemistry: score.chemistry + mods.chemistry,
-      playerOvrs: engine.players.map((p) => p.ovr),
-      activeHeroes: engine.heroes,
-      bannedHeroes: bannedHeroesForStage(seed, stageIndex, engine.allFormatHeroes, rerolls, stakesOf(get().config)),
-      stakes: stakesOf(get().config),
-      // Через тот же `buildTacticContext`, что и боевой расчёт тактик: «pro-игры на назначенном
-      // герое» и co-games пар определены там ровно один раз, второй копии быть не должно.
-      assignedHeroGames: tacticContext()?.players.map((player) => player.assignedHeroGames) ?? [],
-      pairCoGames: tacticContext()?.pairs.map((pair) => pair.games) ?? [],
-    });
-    // Предметы-защита смягчают штраф, но не отменяют правило (R8.3); Tempered-карты (LG4) —
-    // та же роль от Edition: активность judged теми же activeCardIds, что заряды и рейл.
-    const editions = economy?.cardEditions ?? {};
-    const activeTempered = [...activeCardIds(tactics, items)]
-      .filter((id) => editions[id] === "tempered").length;
-    return { ...raw, penalty: protectedBossPenalty(raw.penalty, items, activeTempered) };
+  const evaluateRunBoss = (stageIndex: number, build: StageBuild | null): BossEvaluation | null => {
+    const { economy, engine } = get();
+    const rules = stageRules();
+    return build && economy && engine && rules ? stageBoss(build, engine, economy, rules, stageIndex) : null;
+  };
+  /** Полная оценка этапа `stageIndex` на текущем составе: билд, босс и сила выхода в поле. */
+  const evaluateCurrentStage = (stageIndex: number): StageEvaluation | null => {
+    const { economy, engine } = get();
+    const rules = stageRules();
+    return economy && engine && rules ? evaluateStage(engine, economy, rules, stageIndex) : null;
   };
   /** Боссы Буткемпа: правило ПРЕДСТОЯЩЕГО этапа + разведанный босс следующего боссового турнира.
    *  Разведка (R9.4) обязана раскрывать то, чего ещё не видно, поэтому смотрит строго ДАЛЬШЕ
    *  предстоящего этапа: его правило и так на экране. */
-  const campBosses = (upcomingIndex: number, tactics: TacticEvaluation | null) => {
+  const campBosses = (upcomingIndex: number, build: StageBuild | null) => {
     const economy = get().economy;
     // Ближайший этап с НЕИЗВЕСТНЫМ правилом, а не ближайший финал: под стейком uncappedBoss
     // (b1.41.0) роллящееся правило стоит и на elite/playoffCheck — разведка обязана раскрывать
@@ -616,51 +589,25 @@ export const useRun = create<RunStore>((set, get) => {
     const scouted = economy
       ? economy.snapshot.scoutedCamps.some((camp) => nextRuledStage(camp) === scoutStage)
       : false;
-    const scoutedEval = scouted && scoutStage >= 0 ? evaluateRunBoss(scoutStage, tactics) : null;
+    const scoutedEval = scouted && scoutStage >= 0 ? evaluateRunBoss(scoutStage, build) : null;
     return {
-      boss: evaluateRunBoss(upcomingIndex, tactics),
+      boss: evaluateRunBoss(upcomingIndex, build),
       scoutedBoss: scoutedEval ? { ...scoutedEval, stageIndex: scoutStage } : null,
     };
-  };
-  // Итоговая сила поля этапа: сила состава + модификаторы − штраф босса (не ниже нуля вклада).
-  // Через общий слой (game/runStrength.ts): он же проводит счёт через слои Tournament Power,
-  // которые сегодня пусты, а в R8.3 наполнятся предметами.
-  /** Вклад экипированных предметов при текущем ростере (R8.3). Условия на тегах героев, поэтому
-   *  пересчитывается на каждый swap — как tactics. */
-  const runItems = () => {
-    const { economy, engine } = get();
-    return evaluateItems(economy?.equippedTactics ?? [], {
-      activeHeroes: engine?.heroes ?? [],
-      cardRarity: economy?.cardRarity ?? {},
-      cardCharges: economy?.cardCharges ?? {},
-    });
-  };
-  const stageStrength = (baseTeamOvr: number, tactics: TacticEvaluation | null, boss: BossEvaluation | null): number => {
-    const { economy, engine } = get();
-    const items = runItems();
-    return runStageStrength(baseTeamOvr, {
-      economy: economy?.modifiers() ?? { base: 0, heroSynergy: 0, chemistry: 0 },
-      tactics: tactics?.modifiers ?? null,
-      heroRarity: economy?.heroRarity ?? {},
-      activeHeroes: engine?.heroes ?? [],
-    }, {
-      bossPenalty: boss?.penalty,
-      power: { flat: items.flat, additive: items.additive, xMults: items.xMults },
-    });
   };
   // Обновить снимки экономики/Буткемпа для рендера и сохранить (во время camp резалтов нет).
   const syncCamp = () => {
     const { economy, engine, seed } = get();
     if (!economy || !engine) return;
     syncMarketOffers(economy, engine, seed, get().config);
-    const tactics = evaluateRunTactics();
+    const build = currentBuild();
     // Босс ПРЕДСТОЯЩЕГО этапа: в Буткемпе ante.index уже указывает на следующий этап.
     const upcoming = get().ante?.index ?? 0;
     set({
       economyView: economy.snapshot,
       camp: economy.campView(),
-      tactics,
-      ...campBosses(upcoming, tactics),
+      tactics: build?.tactics ?? null,
+      ...campBosses(upcoming, build),
     });
     persist();
   };
@@ -771,7 +718,8 @@ export const useRun = create<RunStore>((set, get) => {
     // сломанном. Активность — из тех же sources, что боевой расчёт (activeCardIds); состав не
     // менялся с выхода на этап, поэтому пересчёт честный. Строго ДО пересборки лагеря: превью
     // и разборы нового Буткемпа обязаны видеть уже обновлённые заряды.
-    economy.accrueCharges(activeCardIds(evaluateRunTactics(), runItems()));
+    const cleared = currentBuild();
+    economy.accrueCharges(cleared ? activeCardIds(cleared.tactics, cleared.items) : new Set<string>());
     // Порог пройденного этапа — ЭФФЕКТИВНЫЙ (мутатор круга LG3 мог его ужесточить): выплата
     // премии за место обязана судить по тому же порогу, по которому этап был пройден.
     economy.awardStageClear(nextIndex, placement, effectiveStageTarget(seed, nextIndex - 1, undefined, stakesOf(get().config)));
@@ -782,17 +730,18 @@ export const useRun = create<RunStore>((set, get) => {
     economy.openCamp(nextIndex);
     // openCamp только что сбросил preparedMarketOffers — здесь это всегда свежая рулетка.
     if (engine) syncMarketOffers(economy, engine, seed, get().config);
-    const campTactics = evaluateRunTactics();
+    // Билд пересобирается ПОСЛЕ начисления зарядов: превью и разборы нового Буткемпа видят их.
+    const campBuild = currentBuild();
     return {
       resultsSeen: false,
       economyView: economy.snapshot,
       camp: economy.campView(),
-      tactics: campTactics,
+      tactics: campBuild?.tactics ?? null,
       // Секвенция «этап пройден» (R15.2): взводится только здесь — свежий проход порога.
       // Resume не проходит через openCampAfterStage, поэтому праздник не переигрывается.
       campCelebration: true,
       // Босс ПРЕДСТОЯЩЕГО этапа — превью для адаптации в Буткемпе.
-      ...campBosses(nextIndex, campTactics),
+      ...campBosses(nextIndex, campBuild),
     };
   };
 
@@ -977,16 +926,15 @@ export const useRun = create<RunStore>((set, get) => {
         const snapshot = snap(engine);
         // До запуска симуляции (стадия field) свап меняет teamOvr → пересобираем поле,
         // чтобы посев остался консистентным. После старта групп ростер залочен.
-        const { anteRun, tournament, economy } = get();
+        const { anteRun, tournament } = get();
         if (tournament?.stage === "field" && snapshot.score) {
           if (anteRun) {
-            // Ante: пересобираем поле ТЕКУЩЕГО этапа под новый teamOvr (+ модификаторы экономики
-            // и Tactics − штраф босса), прогресс сохраняется (fresh AnteRunEngine сбросил бы на
+            // Ante: пересобираем поле ТЕКУЩЕГО этапа под новый состав (та же сила этапа, что при
+            // выходе из Буткемпа), прогресс сохраняется (fresh AnteRunEngine сбросил бы на
             // этап 0). Свап героев меняет назначения → пересчёт tactics и boss обязателен.
-            const tactics = economy ? evaluateRunTactics() : null;
-            const boss = evaluateRunBoss(anteRun.state.index, tactics);
-            anteRun.rebuildCurrentStage(stageStrength(snapshot.score.teamOvr, tactics, boss));
-            set({ snapshot, anteRun, ante: anteRun.state, tactics, boss, tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot, tournamentStep: 0 });
+            const stage = evaluateCurrentStage(anteRun.state.index);
+            if (stage) anteRun.rebuildCurrentStage(stage.power.total);
+            set({ snapshot, anteRun, ante: anteRun.state, tactics: stage?.tactics ?? null, boss: stage?.boss ?? null, tournamentEngine: anteRun.tournament, tournament: anteRun.tournament.snapshot, tournamentStep: 0 });
           } else {
             const rebuild = buildTournamentFields(snapshot);
             set(rebuild ? { snapshot, ...rebuild } : { snapshot });
@@ -1172,49 +1120,15 @@ export const useRun = create<RunStore>((set, get) => {
             economy.setStakes(stakesOf(resumable.config));
             economy.setPlaybook(resumable.config.playbook);
             if (economy.snapshot.inCamp) syncMarketOffers(economy, engine, resumable.seed, resumable.config);
-            // Условные Tactics восстанавливаются из ростера, а не из сейва (их вклад — производная
-            // состава); складываем с экономикой в поле этапа, чтобы resume совпал с исходным полем.
-            const tacticCtx = buildTacticContext(
-              engine.rosterView,
-              score.assignment.byPlayer,
-              data,
-              economy.snapshot.campStageIndex,
-            );
-            tactics = evaluateTactics(economy.equippedTactics, tacticCtx, economy.cardCharges);
-            // Та же композиция слоёв, что и в игре (game/runStrength.ts) — здесь она собиралась
-            // руками третьей копией, и именно так копии разъезжаются.
-            const strengthInput = {
-              economy: economy.modifiers(),
-              tactics: tactics.modifiers,
-              heroRarity: economy.heroRarity,
-              activeHeroes: engine.heroes,
-              rarityFactor: tacticRarityFactor(economy.equippedTactics),
-            };
-            const mods = runModifiers(strengthInput);
-            // Босс восстанавливается из ростера (как tactics), а не из сейва: правило детерминировано
-            // по seed+stage, штраф — производная состава. Без него resume дал бы более лёгкое поле.
-            // Из сейва берётся ровно одно число — сколько раз правило перекуплено (T5.9).
-            const bossRerolls = economy.bossRerollsFor(stageIndex);
-            const bossId = bossForStage(resumable.seed, stageIndex, bossRerolls, stakesOf(resumable.config));
-            boss = bossId
-              ? evaluateBoss(bossId, {
-                seed: resumable.seed,
-                absoluteStageIndex: stageIndex,
-                base: score.base + mods.base,
-                heroSynergy: score.heroSynergy + mods.heroSynergy,
-                chemistry: score.chemistry + mods.chemistry,
-                playerOvrs: engine.players.map((p) => p.ovr),
-                activeHeroes: engine.heroes,
-                bannedHeroes: bannedHeroesForStage(resumable.seed, stageIndex, engine.allFormatHeroes, bossRerolls, stakesOf(resumable.config)),
-                stakes: stakesOf(resumable.config),
-                // Тот же `tacticCtx`, что уже собран выше для восстановления тактик.
-                assignedHeroGames: tacticCtx.players.map((player) => player.assignedHeroGames),
-                pairCoGames: tacticCtx.pairs.map((pair) => pair.games),
-              })
-              : null;
-            anteRun.rebuildCurrentStage(
-              runStageStrength(score.teamOvr, strengthInput, { bossPenalty: boss?.penalty }),
-            );
+            // Tactics, предметы и босс восстанавливаются из ростера, а не из сейва: их вклад —
+            // производная состава, из сейва берётся только счётчик перекупки правила (T5.9). Сила
+            // этапа — той же функцией, что в игре (game/runStrength.ts): ручная копия здесь теряла
+            // слои предметов и защиту от босса, и поле после перезагрузки выходило другой силы.
+            const stage = evaluateStage(engine, economy, { data, seed: resumable.seed, stakes: stakesOf(resumable.config) }, stageIndex);
+            if (!stage) throw new Error("Completed draft has no score");
+            tactics = stage.tactics;
+            boss = stage.boss;
+            anteRun.rebuildCurrentStage(stage.power.total);
             inCamp = economy.snapshot.inCamp;
             ante = anteRun.state;
             tournamentEngine = anteRun.tournament;
@@ -1268,7 +1182,7 @@ export const useRun = create<RunStore>((set, get) => {
         // Разведанный босс (R9.4) — только после того, как стор получил движок: оценка идёт
         // против ростера, а он живёт в сторе. Босса предстоящего этапа при этом не трогаем:
         // выше он уже посчитан по восстановленному состоянию.
-        if (inCamp && ante) set({ scoutedBoss: campBosses(ante.index, tactics).scoutedBoss });
+        if (inCamp && ante) set({ scoutedBoss: campBosses(ante.index, currentBuild()).scoutedBoss });
       } catch (e) {
         // Сейв не воспроизвёлся — сбрасываем; раньше баннер просто исчезал без объяснения.
         console.warn("[aegis] resume failed", e);
@@ -1392,13 +1306,13 @@ export const useRun = create<RunStore>((set, get) => {
       const { economy, phase } = get();
       // Буткемп открыт экономикой в finishTournament; здесь только переключаем UI-фазу.
       if (!economy || !economy.snapshot.inCamp || phase === "camp") return;
-      const tactics = evaluateRunTactics();
+      const build = currentBuild();
       set({
         phase: "camp",
         economyView: economy.snapshot,
         camp: economy.campView(),
-        tactics,
-        ...campBosses(get().ante?.index ?? 0, tactics),
+        tactics: build?.tactics ?? null,
+        ...campBosses(get().ante?.index ?? 0, build),
       });
     },
 
@@ -1572,13 +1486,13 @@ export const useRun = create<RunStore>((set, get) => {
     advanceAnteStage() {
       const { anteRun, ante, economy, snapshot } = get();
       if (!anteRun || !ante || ante.phase !== "playing" || !snapshot?.score) return;
-      // Выходим из Буткемпа и пересобираем поле следующего этапа под итоговый effectiveTeamOvr
-      // (base teamOvr + покупки + Tactics − штраф босса этого этапа). Турнир текущего этапа
-      // рендерится тем же экраном. Tactics/boss снимаем ДО leaveCamp — состав финальный.
-      const tactics = economy ? evaluateRunTactics() : null;
-      const boss = evaluateRunBoss(ante.index, tactics);
+      // Выходим из Буткемпа и пересобираем поле следующего этапа под итоговую силу состава
+      // (teamOvr + покупки + Tactics + редкость → слои предметов − штраф босса этого этапа).
+      // Турнир текущего этапа рендерится тем же экраном. Оценку снимаем ДО leaveCamp — состав
+      // финальный, а leaveCamp только закрывает лагерь и на силу не влияет.
+      const stage = economy ? evaluateCurrentStage(ante.index) : null;
       economy?.leaveCamp();
-      if (economy) anteRun.rebuildCurrentStage(stageStrength(snapshot.score.teamOvr, tactics, boss));
+      if (stage) anteRun.rebuildCurrentStage(stage.power.total);
       set({
         phase: "tournament",
         tournamentEngine: anteRun.tournament,
@@ -1588,8 +1502,8 @@ export const useRun = create<RunStore>((set, get) => {
         ante: anteRun.state,
         economyView: economy ? economy.snapshot : null,
         camp: null,
-        tactics,
-        boss,
+        tactics: stage?.tactics ?? null,
+        boss: stage?.boss ?? null,
         campCelebration: false,
       });
       persist();

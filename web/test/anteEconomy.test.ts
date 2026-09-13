@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { runModifiers, runModifierTotal } from "../src/game/runStrength.ts";
+import { runModifiers, stagePowerOf } from "../src/game/runStrength.ts";
+import { evaluateItems } from "../src/game/items.ts";
 import { rarityModifiers } from "../src/game/heroRarity.ts";
 import { rarityRank, type Rarity } from "../src/game/rarity.ts";
 import { TACTIC_SLOTS } from "../src/game/tactics.ts";
@@ -655,26 +656,39 @@ describe("Композиция силы забега", () => {
       tactics: { base: 1, heroSynergy: 0, chemistry: 2 },
       heroRarity: { "11": "immortal" as const, "22": "unique" as const },
       activeHeroes: [11, 22],
+      rarityFactor: 1,
     };
     const mods = runModifiers(input);
     const rarity = rarityModifiers(input.heroRarity, input.activeHeroes);
     expect(mods.base).toBeCloseTo(3 + rarity.base, 6);
     expect(mods.heroSynergy).toBeCloseTo(1 + rarity.heroSynergy, 6);
     expect(mods.chemistry).toBeCloseTo(2.5, 6);
-    expect(runModifierTotal(input)).toBeCloseTo(mods.base + mods.heroSynergy + mods.chemistry, 6);
+    // Сила этапа: счёт состава + модификаторы → слои предметов → минус штраф босса ПОСЛЕ слоёв.
+    const noItems = evaluateItems([], { activeHeroes: [], cardRarity: {}, cardCharges: {} });
+    const stage = stagePowerOf(80, input, noItems, 1.5);
+    expect(stage.rosterScore).toBeCloseTo(80 + mods.base + mods.heroSynergy + mods.chemistry, 6);
+    expect(stage.total).toBeCloseTo(stage.rosterScore - 1.5, 6);
   });
 
   it("учитывает редкость только АКТИВНЫХ героев", () => {
     const heroRarity = { "11": "immortal" as const };
-    const active = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [11] });
-    const benched = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [99] });
+    const active = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [11], rarityFactor: 1 });
+    const benched = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [99], rarityFactor: 1 });
     expect(active.heroSynergy).toBeGreaterThan(0);
     expect(benched).toEqual(zero);
   });
 
+  it("ослабляет вклад редкости множителем Wide Pool", () => {
+    const heroRarity = { "11": "immortal" as const };
+    const full = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [11], rarityFactor: 1 });
+    const wide = runModifiers({ economy: zero, tactics: null, heroRarity, activeHeroes: [11], rarityFactor: 0.5 });
+    expect(wide.heroSynergy).toBeGreaterThan(0);
+    expect(wide.heroSynergy).toBeLessThan(full.heroSynergy);
+  });
+
   it("без тактик и редкости равна модификаторам экономики", () => {
     const economy = { base: 4, heroSynergy: -1, chemistry: 0 };
-    expect(runModifiers({ economy, tactics: null, heroRarity: {}, activeHeroes: [1, 2] }))
+    expect(runModifiers({ economy, tactics: null, heroRarity: {}, activeHeroes: [1, 2], rarityFactor: 1 }))
       .toEqual(economy);
   });
 });

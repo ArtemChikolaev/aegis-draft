@@ -23,7 +23,7 @@ import { useRun } from "../../state/runStore.ts";
 import { TACTIC_SLOTS, tacticRarityFactor } from "../../game/tactics.ts";
 import { BuildRail, buildRailCards } from "../run/BuildRail.tsx";
 import { evaluateItems } from "../../game/items.ts";
-import { powerBreakdown, powerLayers } from "../../game/tournamentPower.ts";
+import { activeCardIds, stagePowerOf } from "../../game/runStrength.ts";
 import { Button, CheatBadge, Eyebrow, HeroThumb, Modal, motionMs, OvrBadge, playerOvrTier, PowerBreakdown, prefersReducedMotion, RoleTag, screenShakeEnabled, StageKindBadge, StatTile, Surface, TeamName, TeamSigil } from "../../ui/index.ts";
 import { sfxSting, sfxVerdict } from "../../ui/sound.ts";
 import { Pentagon } from "../draft/Pentagon.tsx";
@@ -40,9 +40,8 @@ import {
   squadChemistryRows,
   withHeroGamesOverlay,
 } from "../../game/score.ts";
-import { summandModifiers } from "../../game/anteEconomy.ts";
+import { economyModifiers } from "../../game/anteEconomy.ts";
 import { underdogVerdict } from "../../game/realTournament.ts";
-import { rarityModifiers } from "../../game/heroRarity.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { SeasonVictory } from "../run/SeasonVictory.tsx";
@@ -303,7 +302,7 @@ export function TournamentScreen() {
   const setTeamName = useRun((state) => state.setTeamName);
   const swapHeroes = useRun((state) => state.swapHeroes);
   const hero = useHero();
-  const { locale, t } = useI18n();
+  const { t } = useI18n();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [inspectedPlayer, setInspectedPlayer] = useState<Candidate | null>(null);
   // Хардкор: профили закрыты, поле соперников не перевыбрать (см. game/packs RunConfig).
@@ -589,44 +588,33 @@ export function TournamentScreen() {
   if (!tournament || !snapshot?.score || !config || !data) return null;
 
   const { roster, score } = snapshot;
-  // Эффективные слагаемые обязаны совпадать с силой, ушедшей в поле этапа (иначе радар и таблица
-  // разъедутся): покупки + временные Camp Actions (economy) + условные Tactics.
-  const economyModifiers = summandModifiers([
-    ...(economyView?.applied ?? []),
-    ...(economyView?.temporary ?? []).map((t) => t.effect),
-  ]);
-  const tacticModifiers = tactics?.modifiers ?? { base: 0, heroSynergy: 0, chemistry: 0 };
-  // Редкость активных героев (срез 3b) — тот же слой модификаторов, что в поле этапа
-  // (включая ослабление Wide Pool — иначе радар разошёлся бы с силой в таблице).
-  const rarityMods = rarityModifiers(
-    economyView?.heroRarity ?? {},
-    snapshot.heroes,
-    tacticRarityFactor(economyView?.equippedTactics ?? []),
-  );
-  // Штраф босса — плоский к силе состава (не привязан к слагаемому): вычитаем только из итогового
-  // Team OVR, чтобы центр радара совпадал с силой в таблице поля; плитки base/synergy/chem не трогаем.
-  const bossPenalty = boss?.penalty ?? 0;
-  const effectiveScore = {
-    base: score.base + economyModifiers.base + tacticModifiers.base + rarityMods.base,
-    heroSynergy: score.heroSynergy + economyModifiers.heroSynergy + tacticModifiers.heroSynergy + rarityMods.heroSynergy,
-    chemistry: score.chemistry + economyModifiers.chemistry + tacticModifiers.chemistry + rarityMods.chemistry,
-    teamOvr: score.teamOvr
-      + economyModifiers.base + economyModifiers.heroSynergy + economyModifiers.chemistry
-      + tacticModifiers.base + tacticModifiers.heroSynergy + tacticModifiers.chemistry
-      + rarityMods.base + rarityMods.heroSynergy + rarityMods.chemistry
-      - bossPenalty,
-  };
-  // Сила забега с учётом предметов (R8.3). Порядок как в сторе: слои применяются к счёту состава,
-  // штраф босса вычитается ПОСЛЕ — иначе радар и поле показали бы разные числа.
+  // Радар и таблица обязаны показывать ту силу, что ушла в поле этапа, поэтому композиция общая со
+  // стором (game/runStrength.ts): покупки + временные Camp Actions + условные Tactics + редкость
+  // (с ослаблением Wide Pool) → слои предметов (R8.3) → минус штраф босса. Своя сумма здесь уже
+  // однажды расходилась с полем.
   const itemEval = evaluateItems(economyView?.equippedTactics ?? [], {
     activeHeroes: snapshot.heroes,
     cardRarity: economyView?.cardRarity ?? {},
     cardCharges: economyView?.cardCharges ?? {},
   });
-  const power = powerBreakdown(powerLayers(effectiveScore.teamOvr + bossPenalty, {
-    flat: itemEval.flat, additive: itemEval.additive, xMults: itemEval.xMults,
-  }));
-  const stagePower = power.total - bossPenalty;
+  // Штраф босса — плоский к силе состава (не привязан к слагаемому): вычитаем только из итогового
+  // Team OVR, чтобы центр радара совпадал с силой в таблице поля; плитки base/synergy/chem не трогаем.
+  const bossPenalty = boss?.penalty ?? 0;
+  const stageStrength = stagePowerOf(score.teamOvr, {
+    economy: economyView ? economyModifiers(economyView) : { base: 0, heroSynergy: 0, chemistry: 0 },
+    tactics: tactics?.modifiers ?? null,
+    heroRarity: economyView?.heroRarity ?? {},
+    activeHeroes: snapshot.heroes,
+    rarityFactor: tacticRarityFactor(economyView?.equippedTactics ?? []),
+  }, itemEval, bossPenalty);
+  const effectiveScore = {
+    base: score.base + stageStrength.modifiers.base,
+    heroSynergy: score.heroSynergy + stageStrength.modifiers.heroSynergy,
+    chemistry: score.chemistry + stageStrength.modifiers.chemistry,
+    teamOvr: stageStrength.rosterScore - bossPenalty,
+  };
+  const power = stageStrength.power;
+  const stagePower = stageStrength.total;
   const isManual = config.allocation === "manual";
   const canSwap = isManual && stage === "field";
   // Подготовка к событию (RT-E): виртуальные игры пар/героев входят в рёбра и строки разбора.
@@ -709,10 +697,7 @@ export function TournamentScreen() {
               economyView?.equippedTactics ?? [],
               economyView?.heldActions ?? [],
               economyView?.cardRarity ?? {},
-              new Set<string>([
-                ...itemEval.sources.filter((source) => source.met).map((source) => source.itemId),
-                ...(tactics?.sources ?? []).map((source) => source.tacticId as string),
-              ]),
+              activeCardIds(tactics, itemEval),
               economyView?.cardEditions ?? {},
               economyView?.cardCharges ?? {},
             )}
@@ -1045,7 +1030,7 @@ export function TournamentScreen() {
                           <strong>{player?.nickname ?? "—"}</strong>
                           <small>
                             {eventName
-                              ? `${locale.startsWith("ru") ? "из " : "from "}${eventName}`
+                              ? t("tournament.fromEvent", { event: eventName })
                               : "—"}
                           </small>
                         </div>
