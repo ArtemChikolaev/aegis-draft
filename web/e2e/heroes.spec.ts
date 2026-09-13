@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { gotoFreshApp } from "./helpers.ts";
+import { gotoFreshApp, openClassicVariant } from "./helpers.ts";
 
 test.describe("codex: heroes directory", () => {
   test.beforeEach(async ({ page }) => {
@@ -42,8 +42,7 @@ test.describe("codex: heroes directory", () => {
 test.describe("codex: фильтр по тегу", () => {
   test.beforeEach(async ({ page }) => {
     await gotoFreshApp(page);
-    await page.getByTestId("mode-classic").click();
-    await page.getByTestId("variant-run").click();
+    await openClassicVariant(page, "run");
     await page.getByTestId("open-settings").click();
     await page.getByTestId("open-heroes").dispatchEvent("click");
     await expect(page.getByTestId("heroes-screen")).toBeVisible();
@@ -99,8 +98,7 @@ test.describe("codex: теги только в Roguelite Run", () => {
 
   test("в Quick Draft тегов нет", async ({ page }) => {
     await gotoFreshApp(page);
-    await page.getByTestId("mode-classic").click();
-    await page.getByTestId("variant-quick").click();
+    await openClassicVariant(page, "quick");
     await expectNoTags(page);
   });
 });

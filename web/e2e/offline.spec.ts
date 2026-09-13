@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { completeDraft } from "./helpers.ts";
+import { completeDraft, startClassicRun } from "./helpers.ts";
 
 // Офлайн-регресс (T11.5, ADR 0003): то, ради чего затевалась веха M11 — игра открывается и
 // играется без сети. Гоняется на ПРОД-сборке (playwright.offline.config.ts, локально
@@ -48,10 +48,7 @@ test("офлайн: перезагрузка без сети открывает 
   await page.reload();
   await expect(page.getByTestId("mode-classic")).toBeVisible();
 
-  await page.getByTestId("mode-classic").click();
-  await page.getByTestId("variant-quick").click();
-  await page.getByTestId("start-run").click();
-  await expect(page.getByTestId("draft-screen")).toBeVisible();
+  await startClassicRun(page);
 
   // Картинки в офлайне обязаны быть из своего зеркала: CDN недоступен, и «битая картинка»
   // означала бы, что зеркало (T11.2) отвалилось.

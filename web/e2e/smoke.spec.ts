@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   completeDraft,
   gotoFreshApp,
+  openClassicVariant,
   simulateTournamentToEnd,
   startClassicRun,
 } from "./helpers.ts";
@@ -124,8 +125,7 @@ test.describe("navigation integrity", () => {
   });
 
   test("Browser Back идёт heroes → settings → исходный game-view", async ({ page }) => {
-    await page.getByTestId("mode-classic").click();
-    await page.getByTestId("variant-run").click();
+    await openClassicVariant(page, "run");
     await page.getByTestId("open-settings").click();
     await page.getByTestId("open-heroes").click();
 

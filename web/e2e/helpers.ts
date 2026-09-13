@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export async function clearPersist(page: Page) {
   await page.evaluate(() => {
@@ -32,42 +32,69 @@ export async function completeDraft(page: Page) {
   }
 }
 
-// Classic-карточка ведёт в шаг выбора варианта: Quick Draft или Roguelite Run.
-export async function startClassicRun(page: Page) {
+/** Classic-карточка ведёт в шаг выбора варианта: Quick Draft или Roguelite Run. Только вход —
+ *  экран конфигурации открыт, забег не стартует. */
+export async function openClassicVariant(page: Page, variant: "quick" | "run") {
   await page.getByTestId("mode-classic").click();
-  await page.getByTestId("variant-quick").click();
+  await page.getByTestId(`variant-${variant}`).click();
+}
+
+async function startClassicVariant(page: Page, variant: "quick" | "run") {
+  await openClassicVariant(page, variant);
   await expect(page.getByTestId("start-run")).toBeVisible();
   await page.getByTestId("start-run").click();
   await expect(page.getByTestId("draft-screen")).toBeVisible();
+}
+
+export async function startClassicRun(page: Page) {
+  await startClassicVariant(page, "quick");
 }
 
 export async function startRogueliteRun(page: Page) {
-  await page.getByTestId("mode-classic").click();
-  await page.getByTestId("variant-run").click();
-  await expect(page.getByTestId("start-run")).toBeVisible();
-  await page.getByTestId("start-run").click();
-  await expect(page.getByTestId("draft-screen")).toBeVisible();
+  await startClassicVariant(page, "run");
 }
 
-/** Детерминированный roguelite-старт по фиксированному seed через run-link (формат — как кодек
- *  state/runLink.ts, версии берём из манифеста → устойчиво к обновлению датасета). Нужен, когда
+/** Payload run-link в коротких ключах кодека state/runLink.ts; v/s/r подставляет runLinkCode. */
+type RunLinkPayload = Record<string, unknown> & { m: string; seed: string };
+
+/** Код run-link в формате кодека state/runLink.ts — единственная копия формата в e2e.
+ *  Сам кодек сюда не импортируется: его граф (playbook → items → heroTags.v1.json) содержит
+ *  JSON-импорт без атрибута type, и Node-загрузчик Playwright падает на нём ещё до тестов.
+ *  Версии датасета берутся из манифеста страницы — устойчиво к обновлению данных; `r` в payload
+ *  перекрывает версию модели (заведомо несовместимая ссылка). */
+export async function runLinkCode(page: Page, payload: RunLinkPayload) {
+  const manifest = await page.evaluate(() =>
+    fetch("data/manifest.json").then((response) => response.json() as Promise<{ schemaVersion: number; ratingModelVersion: string }>),
+  );
+  const full = { v: 1, s: manifest.schemaVersion, r: manifest.ratingModelVersion, ...payload };
+  // base64url без паддинга поверх UTF-8 — как toBase64Url кодека, не-Latin1 тоже кодируется.
+  return Buffer.from(JSON.stringify(full), "utf8").toString("base64url");
+}
+
+/** Детерминированный roguelite-старт по фиксированному seed через run-link. Нужен, когда
  *  тесту важен исход этапа: `camp-e2e-22` проходит этап 1 жадным драфтом (см. подбор в истории). */
 export async function startRogueliteSeed(page: Page, seed: string, opts: { cheatMode?: boolean; playbook?: readonly string[] } = {}) {
-  const encoded = await page.evaluate(async ({ seed, cheatMode, playbook }) => {
-    const m = await fetch("data/manifest.json").then((r) => r.json());
-    const payload = {
-      v: 1, s: m.schemaVersion, r: m.ratingModelVersion, m: "run", d: "team", f: "last_2y",
-      n: 2, c: "event", a: "auto", seed,
-      // `x` = cheatMode в кодеке runLink (R2.1).
-      ...(cheatMode ? { x: 1 } : {}),
-      // `p` = Playbook (T6.4-2): карты через точку.
-      ...(playbook ? { p: playbook.join(".") } : {}),
-    };
-    return btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  }, { seed, cheatMode: opts.cheatMode ?? false, playbook: opts.playbook ?? null });
+  const encoded = await runLinkCode(page, {
+    m: "run", d: "team", f: "last_2y", n: 2, c: "event", a: "auto", seed,
+    // `x` = cheatMode в кодеке runLink (R2.1).
+    ...(opts.cheatMode ? { x: 1 } : {}),
+    // `p` = Playbook (T6.4-2): карты через точку.
+    ...(opts.playbook ? { p: opts.playbook.join(".") } : {}),
+  });
   await page.goto(`#/run=${encoded}`);
   await page.getByTestId("run-link-accept").click();
   await expect(page.getByTestId("draft-screen")).toBeVisible();
+}
+
+/** Жать Skip, пока не появится `target`. Reveal идёт фазами, и кнопка Skip между ними
+ *  отсоединяется и появляется снова (авто-переход стадий, mobile-тайминги), поэтому клик —
+ *  best-effort, а ожидание — повторяемая проверка с общим потолком вместо пауз в цикле. */
+async function skipRevealUntil(page: Page, target: Locator) {
+  const skip = page.getByTestId("tournament-skip");
+  await expect(async () => {
+    if (!(await target.isVisible().catch(() => false))) await skip.click({ timeout: 1_500 }).catch(() => {});
+    await expect(target).toBeVisible({ timeout: 500 });
+  }).toPass({ timeout: 30_000 });
 }
 
 /** Симулировать текущий ante-этап до исхода: появляется либо «следующий этап»
@@ -75,32 +102,15 @@ export async function startRogueliteSeed(page: Page, seed: string, opts: { cheat
 export async function simulateAnteStageToOutcome(page: Page) {
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
   await page.getByTestId("tournament-simulate").click();
-  const next = page.getByTestId("ante-to-camp");
-  const complete = page.getByTestId("tournament-complete");
-  const skip = page.getByTestId("tournament-skip");
-  for (
-    let i = 0;
-    i < 12 && !(await next.isVisible().catch(() => false)) && !(await complete.isVisible().catch(() => false));
-    i += 1
-  ) {
-    await skip.click({ timeout: 1_500 }).catch(() => {});
-    await page.waitForTimeout(200);
-  }
+  await skipRevealUntil(page, page.getByTestId("ante-to-camp").or(page.getByTestId("tournament-complete")).first());
 }
 
 /** Бесшовный запуск: одна CTA «Симулировать», дальше группы → (авто) плей-офф проигрываются
- *  сами. Reveal идёт двумя фазами; жмём Skip best-effort в цикле, пока не появится терминальный
- *  итог. Устойчиво к авто-переходу стадий и mobile-таймингам (кнопка Skip отсоединяется/появляется). */
+ *  сами; ждём терминальный итог. */
 export async function simulateTournamentToEnd(page: Page) {
   await expect(page.getByTestId("tournament-simulate")).toBeVisible();
   await page.getByTestId("tournament-simulate").click();
-  const complete = page.getByTestId("tournament-complete");
-  const skip = page.getByTestId("tournament-skip");
-  for (let i = 0; i < 10 && !(await complete.isVisible().catch(() => false)); i += 1) {
-    await skip.click({ timeout: 1_500 }).catch(() => {});
-    await page.waitForTimeout(200);
-  }
-  await expect(complete).toBeVisible({ timeout: 15_000 });
+  await skipRevealUntil(page, page.getByTestId("tournament-complete"));
 }
 
 /** Максимально усилиться в Буткемпе: забрать награду, купить все карты с положительной дельтой

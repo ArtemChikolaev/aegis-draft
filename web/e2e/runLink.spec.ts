@@ -1,16 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
-import { gotoFreshApp } from "./helpers.ts";
+import { gotoFreshApp, openClassicVariant, runLinkCode, startClassicRun } from "./helpers.ts";
 
-/** Собрать ссылку тем же форматом, что и кодек (state/runLink.ts). */
-async function linkFor(page: Page, over: Record<string, unknown> = {}) {
-  return page.evaluate(async (o) => {
-    const m = await fetch("data/manifest.json").then((r) => r.json());
-    const payload = {
-      v: 1, s: m.schemaVersion, r: m.ratingModelVersion, m: "classic",
-      d: "team", f: "last_2y", n: 1, c: "event", a: "auto", seed: "e2e-shared", ...o,
-    };
-    return btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  }, over);
+/** Ссылка на Classic-забег в формате кодека (state/runLink.ts); `over` перекрывает ключи payload. */
+function linkFor(page: Page, over: Record<string, unknown> = {}) {
+  return runLinkCode(page, { m: "classic", d: "team", f: "last_2y", n: 1, c: "event", a: "auto", seed: "e2e-shared", ...over });
 }
 
 const packSignature = (page: Page) =>
@@ -41,7 +34,6 @@ test.describe("шеринг забега ссылкой", () => {
   });
 
   test("несовместимая версия объясняется и не запускается", async ({ page }) => {
-    // ASCII: наивный btoa в хелпере не умеет не-Latin1 (продакшн-кодек умеет, см. unit-тест).
     await page.goto(`#/run=${await linkFor(page, { r: "v0.0.1-old" })}`);
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
@@ -54,10 +46,7 @@ test.describe("шеринг забега ссылкой", () => {
   });
 
   test("идущий забег не затирается молча", async ({ page }) => {
-    await page.getByTestId("mode-classic").click();
-    await page.getByTestId("variant-quick").click();
-    await page.getByTestId("start-run").click();
-    await expect(page.getByTestId("draft-screen")).toBeVisible();
+    await startClassicRun(page);
     await page.locator('[data-testid^="candidate-"]').first().click();
 
     await page.goto(`#/run=${await linkFor(page, { seed: "another" })}`);
@@ -79,8 +68,7 @@ test.describe("шеринг забега ссылкой", () => {
 test.describe("поле Seed на экране настроек", () => {
   test.beforeEach(async ({ page }) => {
     await gotoFreshApp(page);
-    await page.getByTestId("mode-classic").click();
-    await page.getByTestId("variant-quick").click();
+    await openClassicVariant(page, "quick");
     await expect(page.getByTestId("seed-input")).toBeVisible();
   });
 
@@ -95,8 +83,7 @@ test.describe("поле Seed на экране настроек", () => {
     const first = await packSignature(page);
 
     await gotoFreshApp(page);
-    await page.getByTestId("mode-classic").click();
-    await page.getByTestId("variant-quick").click();
+    await openClassicVariant(page, "quick");
     const fullUrl = `${page.url().split("#")[0]}#/run=${encoded}`;
     await page.getByTestId("seed-input").fill(fullUrl);
     await expect(page.getByTestId("seed-status")).toContainText("Seed found");

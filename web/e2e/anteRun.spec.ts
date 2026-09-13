@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { boostInCamp, chooseReward, completeDraft, gotoFreshApp, openCampSection, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
+import { boostInCamp, chooseReward, completeDraft, gotoFreshApp, openCampSection, openClassicVariant, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
 // Длина сезона и шаблон акта берутся из самой модели: тест не должен знать «25» отдельно от игры.
 import { SEASON } from "../src/game/anteRun.ts";
 
@@ -638,15 +638,13 @@ test("cheat mode: секция Special rules только в Roguelite, вклю
   await gotoFreshApp(page);
 
   // Quick Draft — обычная конфигурация без особых правил.
-  await page.getByTestId("mode-classic").click();
-  await page.getByTestId("variant-quick").click();
+  await openClassicVariant(page, "quick");
   await expect(page.getByTestId("start-run")).toBeVisible();
   await expect(page.getByTestId("special-rules")).toHaveCount(0);
 
   // Roguelite Run — секция есть; по умолчанию Cheat Mode выключен.
   await gotoFreshApp(page);
-  await page.getByTestId("mode-classic").click();
-  await page.getByTestId("variant-run").click();
+  await openClassicVariant(page, "run");
   const special = page.getByTestId("special-rules");
   await expect(special).toBeVisible();
   const on = special.getByRole("button", { name: /Unlimited gold/ });
