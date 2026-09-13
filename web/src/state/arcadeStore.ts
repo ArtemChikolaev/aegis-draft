@@ -7,7 +7,7 @@ import { traitUnlocked, type TraitId } from "../game/arcade/content/traits.ts";
 import { create } from "zustand";
 import { ArcadeSim } from "../game/arcade/sim.ts";
 import { ARCADE_CONFIG_VERSION } from "../game/arcade/config.ts";
-import type { AbilityKey, ActId, ArcadeOutcome, SchoolId } from "../game/arcade/types.ts";
+import { BANISH_ACT, REROLL_CHOOSE, type AbilityKey, type ActId, type ArcadeOutcome, type SchoolId } from "../game/arcade/types.ts";
 import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
 import { HEROES, type HeroId } from "../game/arcade/content/heroes.ts";
 import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
@@ -513,12 +513,12 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   },
   levelReroll() {
     if (!sim || !sim.pending) return;
-    sim.step({ mx: 0, my: 0, cast: 0, choose: -2, act: 0 });
+    sim.step({ mx: 0, my: 0, cast: 0, choose: REROLL_CHOOSE, act: 0 });
     set((s) => ({ serial: s.serial + 1 }));
   },
   levelBanish(index) {
     if (!sim || !sim.pending) return;
-    sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act: 30 + index });
+    sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act: BANISH_ACT + index });
     set((s) => ({ serial: s.serial + 1 }));
   },
   legacySpend(branch) {

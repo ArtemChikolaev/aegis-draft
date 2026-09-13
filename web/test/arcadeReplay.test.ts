@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { sec } from "../src/game/arcade/config.ts";
-import { IDLE_INPUT, SHOP_ACT } from "../src/game/arcade/types.ts";
+import { BANISH_ACT, IDLE_INPUT, REROLL_CHOOSE, SHOP_ACT, type InputLogEntry } from "../src/game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, packLog, unpackLog } from "../src/game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../src/game/arcade/config.ts";
+import { legacyBonus } from "../src/game/arcade/content/legacy.ts";
 
 function play(sim: ArcadeSim, ticks: number): void {
   for (let i = 0; i < ticks && !sim.over; i++) {
@@ -37,6 +38,26 @@ describe("arcade replay codec + daily", () => {
     expect(decodeReplay("A1~x~y")).toBeNull();
     expect(decodeReplay(code.replace("axe", "no_such_hero"))).toBeNull();
     expect(decodeReplay(`https://x/y#arcade=${code}`)?.seed).toBe(sim.seed);
+  });
+
+  it("реролл уровня (choose −2) переживает упаковку лога и код реплея", () => {
+    const entries: InputLogEntry[] = [[0, 0, 0, 0, REROLL_CHOOSE, 0], [7, 16, -16, 8, 2, BANISH_ACT + 1], [300, 0, 0, 0, -1, 0]];
+    expect(unpackLog(packLog(entries))).toEqual(entries);
+    // «Прозорливость» даёт бесплатные рероллы: золото не нужно подливать мимо лога.
+    const spent = { reach: 0, swift: 0, thrift: 0, insight: 2, provisions: 0 };
+    const opts = { hero: "juggernaut", act: "short" as const, legacy: legacyBonus(spent) };
+    const live = new ArcadeSim("reroll-code", opts);
+    let rerolled = false;
+    for (let i = 0; i < sec(90) && !live.over; i++) {
+      if (live.pending && !rerolled) { live.step({ ...IDLE_INPUT, choose: REROLL_CHOOSE }); rerolled = true; continue; }
+      live.step(live.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT);
+    }
+    expect(live.levelRerolls).toBe(1);
+    const code = encodeReplay({ seed: live.seed, hero: "juggernaut", rank: 0, act: "short", version: ARCADE_CONFIG_VERSION, log: live.log, gear: [], legacy: spent });
+    const rep = decodeReplay(code)!;
+    const replayed = ArcadeSim.replay(rep.seed, rep.log, live.steps, { hero: rep.hero, act: rep.act, legacy: legacyBonus(rep.legacy!) });
+    expect(replayed.levelRerolls).toBe(1);
+    expect(replayed.digest()).toBe(live.digest());
   });
 
   it("дейлик: один сид и герой на день, разные дни — разные", () => {

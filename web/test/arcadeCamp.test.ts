@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
-import { IDLE_INPUT, type Enemy } from "../src/game/arcade/types.ts";
+import { IDLE_INPUT, REROLL_CHOOSE, type Enemy } from "../src/game/arcade/types.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 
 // Заражённый лагерь (T13.40, этап 1 аудита 2026-09-08): первая «цель карты» с маршрутом и выбором.
@@ -144,7 +144,7 @@ describe("заражённый лагерь", () => {
     expect(sim.pending).toHaveLength(3);
     for (const o of sim.pending!) { expect(o.kind).toBe("upgrade"); if (o.kind === "upgrade") expect(o.rarity).toBe(C.rewardRarity); }
     const tick = sim.tick;
-    sim.step({ ...IDLE_INPUT, choose: -2 }); // реролл — запрещён для награды
+    sim.step({ ...IDLE_INPUT, choose: REROLL_CHOOSE }); // реролл — запрещён для награды
     expect(sim.pending).toHaveLength(3);
     expect(sim.tick).toBe(tick);
     const gold = sim.player.gold;

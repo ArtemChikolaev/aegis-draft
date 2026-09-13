@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
-import { IDLE_INPUT } from "../src/game/arcade/types.ts";
+import { BANISH_ACT, IDLE_INPUT, REROLL_CHOOSE } from "../src/game/arcade/types.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
 
 function levelUp(sim: ArcadeSim): void {
@@ -16,11 +16,11 @@ describe("прокачка: реролл и изгнание (T13.21), гибр�
     expect(sim.pending).toBeTruthy();
     const before = JSON.stringify(sim.pending);
     sim.player.gold = 0;
-    sim.step({ ...IDLE_INPUT, choose: -2 });
+    sim.step({ ...IDLE_INPUT, choose: REROLL_CHOOSE });
     expect(JSON.stringify(sim.pending)).toBe(before);
     sim.player.gold = 1000;
     const price = sim.levelRerollPrice();
-    sim.step({ ...IDLE_INPUT, choose: -2 });
+    sim.step({ ...IDLE_INPUT, choose: REROLL_CHOOSE });
     expect(sim.player.gold).toBe(1000 - price);
     expect(sim.levelRerollPrice()).toBeGreaterThan(price);
     expect(sim.pending).toBeTruthy();
@@ -33,7 +33,7 @@ describe("прокачка: реролл и изгнание (T13.21), гибр�
     const idx = sim.pending!.findIndex((o) => o.kind === "upgrade");
     expect(idx).toBeGreaterThanOrEqual(0);
     const id = (sim.pending![idx] as { id: string }).id;
-    sim.step({ ...IDLE_INPUT, act: 30 + idx });
+    sim.step({ ...IDLE_INPUT, act: BANISH_ACT + idx });
     expect(sim.banished.has(id)).toBe(true);
     expect(sim.banishesLeft).toBe(2);
     for (let i = 0; i < 20; i++) { if (sim.pending) sim.step({ ...IDLE_INPUT, choose: 0 }); levelUp(sim); for (const o of sim.pending ?? []) if (o.kind === "upgrade") expect(o.id).not.toBe(id); }

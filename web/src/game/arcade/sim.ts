@@ -61,6 +61,8 @@ import {
   SHOP_ACT,
   CONTRACT_OATH_ACT,
   POND_RITUAL_ACT,
+  REROLL_CHOOSE,
+  BANISH_ACT,
   type Pet,
 } from "./types.ts";
 
@@ -1368,8 +1370,8 @@ export class ArcadeSim {
     this.steps++;
     if (this.pending) {
       if (input.choose >= 0 && input.choose < this.pending.length) this.applyOffer(this.pending[input.choose]);
-      else if (input.choose === -2) this.rerollPending();
-      else if (input.act >= 30 && input.act < 33) this.banishPending(input.act - 30);
+      else if (input.choose === REROLL_CHOOSE) this.rerollPending();
+      else if (input.act >= BANISH_ACT && input.act < BANISH_ACT + 3) this.banishPending(input.act - BANISH_ACT);
       return;
     }
     if (this.shopOpen) {

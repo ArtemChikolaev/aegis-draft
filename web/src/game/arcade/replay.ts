@@ -2,11 +2,11 @@
 // input-лог: сим детерминирован, поэтому этого достаточно, чтобы проиграть забег бит-в-бит без
 // сервера. Формат — строка `A1~<seed>~<hero>~<rank>~<act>~<ver>~<base64url лог>` (разделитель `~`:
 // версия баланса содержит точки, base64url тильды не содержит, в сиде она экранируется); лог пакуется
-// байтами (дельта шага varint, mx/my со сдвигом +16, cast, choose+1, act) — ~4 байта на запись.
+// байтами (дельта шага varint, mx/my со сдвигом +16, cast, choose+1 (реролл −2 → 255), act) — ~4 байта на запись.
 import { ARCADE_CONFIG_VERSION } from "./config.ts";
 import { HERO_IDS, type HeroId } from "./content/heroes.ts";
 import { MAX_RANK_STEP } from "./content/ranks.ts";
-import type { ActId, InputLogEntry } from "./types.ts";
+import { REROLL_CHOOSE, type ActId, type InputLogEntry } from "./types.ts";
 import type { GearItem } from "./content/gear.ts";
 import { LEGACY_BRANCHES, clampLegacy, legacySpentTotal, type LegacySpent } from "./content/legacy.ts";
 import { isTraitId, type TraitId } from "./content/traits.ts";
@@ -70,7 +70,9 @@ export function unpackLog(bytes: Uint8Array): InputLogEntry[] | null {
     } while (byte & 0x80);
     if (i + 5 > bytes.length) return null;
     step += delta;
-    log.push([step, bytes[i] - 16, bytes[i + 1] - 16, bytes[i + 2], bytes[i + 3] - 1, bytes[i + 4]]);
+    // `choose + 1` в байте: реролл (−2) упаковывается в 255 — читать его как 254 значило терять реролл в коде реплея.
+    const choose = bytes[i + 3] === 0xff ? REROLL_CHOOSE : bytes[i + 3] - 1;
+    log.push([step, bytes[i] - 16, bytes[i + 1] - 16, bytes[i + 2], choose, bytes[i + 4]]);
     i += 5;
   }
   return log;

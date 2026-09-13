@@ -39,6 +39,11 @@ export const BAG_DROP_ACT = 90;
 /** Бит ручной атаки в `cast` (умения занимают 1|2|4|8). */
 export const ATTACK_MASK = 16;
 
+/** `choose` = REROLL_CHOOSE — реролл карт экрана уровня за золото (награды мест не рероллятся). */
+export const REROLL_CHOOSE = -2;
+/** `act` = BANISH_ACT + i — изгнать апгрейд карты i экрана уровня из пула до конца забега. */
+export const BANISH_ACT = 30;
+
 export const IDLE_INPUT: Readonly<ArcadeInput> = Object.freeze({ mx: 0, my: 0, cast: 0, choose: -1, act: 0 });
 
 export function sameInput(a: ArcadeInput, b: ArcadeInput): boolean {
