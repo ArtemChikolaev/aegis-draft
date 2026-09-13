@@ -86,6 +86,13 @@ export class ObstacleGrid {
   }
   /** Вытолкнуть круг (x, y, r) из препятствий; два прохода хватает для углов между двумя объектами. */
   resolve(x: number, y: number, r: number): [number, number] {
+    const p = { x, y };
+    this.resolveInto(p, r);
+    return [p.x, p.y];
+  }
+  /** То же на месте: результат пишется в `p.x/p.y`. Для горячих циклов сима — без кортежа на каждого врага за тик. */
+  resolveInto(p: { x: number; y: number }, r: number): void {
+    let x = p.x, y = p.y;
     for (let pass = 0; pass < 2; pass++) {
       for (const o of this.near(x, y)) {
         const dx = x - o.x, dy = y - o.y;
@@ -97,7 +104,7 @@ export class ObstacleGrid {
         x = o.x + dx / d * min; y = o.y + dy / d * min;
       }
     }
-    return [x, y];
+    p.x = x; p.y = y;
   }
   /**
    * Подруливание: если по курсу (dx, dy) в пределах `ahead` стоит препятствие, вернуть направление, скользящее по
@@ -105,8 +112,14 @@ export class ObstacleGrid {
    * дерево), и боту калибровки, который ходит по прямой.
    */
   steer(x: number, y: number, dx: number, dy: number, r: number, ahead = 36): [number, number] {
+    const out = { x: 0, y: 0 };
+    this.steerInto(out, x, y, dx, dy, r, ahead);
+    return [out.x, out.y];
+  }
+  /** То же с результатом в `out` — для сима (без кортежа на каждого застрявшего врага). */
+  steerInto(out: { x: number; y: number }, x: number, y: number, dx: number, dy: number, r: number, ahead = 36): void {
     const l = Math.hypot(dx, dy);
-    if (l < 1e-6) return [dx, dy];
+    if (l < 1e-6) { out.x = dx; out.y = dy; return; }
     const ux = dx / l, uy = dy / l;
     let best: Obstacle | null = null, bestT = Infinity;
     for (const o of this.near(x + ux * ahead * 0.5, y + uy * ahead * 0.5)) {
@@ -117,7 +130,7 @@ export class ObstacleGrid {
       if (side >= o.r + r) continue;
       if (t < bestT) { bestT = t; best = o; }
     }
-    if (!best) return [dx, dy];
+    if (!best) { out.x = dx; out.y = dy; return; }
     const ox = best.x - x, oy = best.y - y;
     const cross = ox * uy - oy * ux;              // знак — с какой стороны центр
     const sgn = cross > 0 ? 1 : -1;               // обходим со стороны, противоположной центру
@@ -125,7 +138,7 @@ export class ObstacleGrid {
     const k = Math.min(1, (best.r + r) / Math.max(1, bestT)); // чем ближе, тем сильнее сворачиваем
     const nx = ux * (1 - 0.7 * k) + tx * k, ny = uy * (1 - 0.7 * k) + ty * k;
     const nl = Math.hypot(nx, ny) || 1;
-    return [nx / nl * l, ny / nl * l];
+    out.x = nx / nl * l; out.y = ny / nl * l;
   }
 
   blocked(x: number, y: number, r: number): boolean {

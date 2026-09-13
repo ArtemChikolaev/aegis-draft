@@ -10,7 +10,7 @@
 // ничего в сим не пишет. Level-up останавливает мир (`pending`) до `input.choose`.
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
-import { PETS, SUMMONS, type PetKind, type SummonBody } from "./content/pets.ts";
+import { PETS, SUMMONS, type PetDef, type PetKind, type SummonBody } from "./content/pets.ts";
 import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type ArcherLine, type SporePuddle } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
@@ -80,6 +80,8 @@ function rotate(x: number, y: number, c: number, s: number): [number, number] {
 }
 
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
+/** Бит ручного каста умения во вводе (`ArcadeInput.cast`). */
+const CAST_MASK: Readonly<Record<AbilityKey, number>> = { q: 1, w: 2, e: 4, r: 8 };
 /** Индекс вида врага для fx смерти (рендер восстанавливает вид по числу). */
 export const KIND_INDEX: Record<string, number> = Object.fromEntries(Object.keys(ENEMY_KINDS).map((id, i) => [id, i]));
 export const KIND_BY_INDEX: readonly string[] = Object.keys(ENEMY_KINDS);
@@ -118,6 +120,14 @@ export class ArcadeSim {
   private takenByKind: Record<string, number> = {};
   /** Слот умения по его виду (первый из q,w,e,r): набор героя неизменен весь забег, ищем один раз, а не каждый тик. */
   private readonly slot: Partial<Record<AbilityKind, AbilityKey>> = {};
+  /** Зона урона без модели призыва (Macropyre, Chakram): слот `damage_ward` без `summon` — тоже ищется один раз. */
+  private readonly wardZoneKey: AbilityKey | undefined;
+  /** Описания питомцев для tickPets без нового объекта на каждого за тик: PETS.summon, слитый с телом призыва (по `art`),
+   *  и одно описание иллюзии, в которое перед чтением пишутся скорость, период и дальность героя. */
+  private readonly summonDefs = new Map<string, PetDef>();
+  private readonly illusionDef: PetDef = { ...PETS.illusion };
+  /** Результат подруливания (ObstacleGrid.steerInto): читается сразу после вызова. */
+  private readonly steerOut = { x: 0, y: 0 };
   tick = 0;
   shrine: Shrine = { alive: false, x: 0, y: 0, until: 0 };
   greedUntil = 0;
@@ -289,6 +299,7 @@ export class ArcadeSim {
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
     for (const k of ABILITY_KEYS) this.slot[this.hero.abilities[k].kind] ??= k;
+    this.wardZoneKey = ABILITY_KEYS.find((k) => this.hero.abilities[k].kind === "damage_ward" && !this.hero.abilities[k].summon);
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
     this.night = ARCADE.acts[this.act].night === true;
     this.pit = ARCADE.acts[this.act].pit === true;
@@ -387,7 +398,7 @@ export class ArcadeSim {
       // Открыт: медленно преследует, бьёт контактом — окно наказания.
       const speed = S.chaseSpeed * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1) * (this.tick < e.chillUntil ? 1 - e.chillSlow * 0.5 : 1);
       e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
-      [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+      this.obstacles.resolveInto(e, e.kind.r * 0.8);
       this.contactDamage(e, d);
       if (hunting) return;
     }
@@ -522,7 +533,7 @@ export class ArcadeSim {
     let speed = (d > T.chaseFrom ? T.chaseSpeed : e.kind.speed) * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1);
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
-    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r * 0.8);
     this.contactDamage(e, d);
   }
 
@@ -956,7 +967,7 @@ export class ArcadeSim {
     // Кайт: ближе keepMin — отходит от героя (но не дальше поводка), дальше keepMax — подходит.
     if (d < N.keepMin && (hunting || home < N.leash - 20)) { e.x -= dx / d * speed * DT; e.y -= dy / d * speed * DT; }
     else if (d > N.keepMax) { e.x += dx / d * speed * DT; e.y += dy / d * speed * DT; }
-    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r * 0.8);
     if (d < N.shot.range && e.shotCd === 0) {
       e.shotCd = sec(N.shot.every);
       this.spawnProjectile(e.x, e.y, dx / d * N.shot.speed, dy / d * N.shot.speed, 10, e.dmg * N.shot.dmgMult, sec(2.2), 0, "siege", true);
@@ -1090,7 +1101,7 @@ export class ArcadeSim {
     let speed = e.kind.speed * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1);
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
-    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r * 0.8);
     if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
       e.contactCd = sec(ARCADE.boss.contactEvery);
       this.damagePlayer(e.dmg, 0, e.kind);
@@ -1475,16 +1486,17 @@ export class ArcadeSim {
     const ox = p.x, oy = p.y;
     p.x = clamp(p.x + dx * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
     p.y = clamp(p.y + dy * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
-    [p.x, p.y] = this.obstacles.resolve(p.x, p.y, ARCADE.player.r);
+    this.obstacles.resolveInto(p, ARCADE.player.r);
     // Упёрлись в дерево/камень (прошли меньше 40% шага) — скользим по касательной, а не стоим носом в ствол.
     // Без этого бот калибровки, идущий по прямой, терял 25 п.п. побед; игроку тоже приятнее.
     if (l > 0.05) {
       const want = speed * DT * Math.min(1, l), got = len(p.x - ox, p.y - oy);
       if (got < want * 0.4) {
-        const [sx, sy] = this.obstacles.steer(ox, oy, dx, dy, ARCADE.player.r);
-        p.x = clamp(ox + sx * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
-        p.y = clamp(oy + sy * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
-        [p.x, p.y] = this.obstacles.resolve(p.x, p.y, ARCADE.player.r);
+        const s = this.steerOut;
+        this.obstacles.steerInto(s, ox, oy, dx, dy, ARCADE.player.r);
+        p.x = clamp(ox + s.x * speed * DT, ARCADE.player.r, ARCADE.world.w - ARCADE.player.r);
+        p.y = clamp(oy + s.y * speed * DT, ARCADE.player.r, ARCADE.world.h - ARCADE.player.r);
+        this.obstacles.resolveInto(p, ARCADE.player.r);
       }
     }
   }
@@ -1566,11 +1578,10 @@ export class ArcadeSim {
     }
     // --- способности: ручной каст или авто-каст по виду (в разломе «Безмолвие» их нет, T13.58) ---
     if (!stunned && !this.riftSilenced()) {
-      const masks: Record<AbilityKey, number> = { q: 1, w: 2, e: 4, r: 8 };
       for (const key of ABILITY_KEYS) {
         const ab = this.hero.abilities[key];
         if (ab.passive || p.abilities[key] === 0 || p.cooldowns[key] > 0) continue;
-        if ((input.cast & masks[key]) !== 0 || (p.autoCast[key] && this.wantsCast(ab))) this.castAbility(key, ab);
+        if ((input.cast & CAST_MASK[key]) !== 0 || (p.autoCast[key] && this.wantsCast(ab))) this.castAbility(key, ab);
       }
     }
     this.tickActiveAbilities();
@@ -1745,7 +1756,7 @@ export class ArcadeSim {
         const ox = p.x, oy = p.y;
         p.x = Math.min(ARCADE.world.w - 40, Math.max(40, p.x + dx / d * dist));
         p.y = Math.min(ARCADE.world.h - 40, Math.max(40, p.y + dy / d * dist));
-        [p.x, p.y] = this.obstacles.resolve(p.x, p.y, ARCADE.player.r);
+        this.obstacles.resolveInto(p, ARCADE.player.r);
         p.invulnUntil = Math.max(p.invulnUntil, this.tick + sec(0.35));
         if (value > 0) { for (const e of this.enemiesWithin(p.x, p.y, 110)) this.damageEnemy(e, value, "zap"); this.pushFx("nova", p.x, p.y, 110, 0, 10); }
         this.pushFx("slash", ox, oy, p.x, p.y, 8);
@@ -1831,7 +1842,7 @@ export class ArcadeSim {
         if (hit.length === 0) { cast = false; break; }
         for (const e of hit) {
           const dx = e.x - p.x, dy = e.y - p.y, d = len(dx, dy) || 1;
-          if (!e.kind.unstoppable && !e.kind.structure) { e.x = Math.min(ARCADE.world.w - 20, Math.max(20, e.x + dx / d * 90)); e.y = Math.min(ARCADE.world.h - 20, Math.max(20, e.y + dy / d * 90)); [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8); }
+          if (!e.kind.unstoppable && !e.kind.structure) { e.x = Math.min(ARCADE.world.w - 20, Math.max(20, e.x + dx / d * 90)); e.y = Math.min(ARCADE.world.h - 20, Math.max(20, e.y + dy / d * 90)); this.obstacles.resolveInto(e, e.kind.r * 0.8); }
           this.damageEnemy(e, value, "burst");
           this.applyChill(e, 0.5, ab.duration ?? 2, false);
         }
@@ -2015,7 +2026,7 @@ export class ArcadeSim {
     }
     // Зона урона без модели призыва (Macropyre, Chakram): бьёт ближайшего врага в радиусе. Умения с
     // моделью призыва сюда не попадают — у них урон наносят сами призывы (tickPets).
-    const dwKey = ABILITY_KEYS.find((k) => H[k].kind === "damage_ward" && !H[k].summon);
+    const dwKey = this.wardZoneKey;
     if (dwKey && this.tick < p.wardUntil && this.tick % 15 === 0) {
       this.dmgSource = dwKey;
       const t = this.nearestEnemy(p.wardX, p.wardY, H[dwKey].radius ?? 200);
@@ -3016,7 +3027,9 @@ export class ArcadeSim {
       // Охрана патруля (T13.78): пока герой дальше `aggro`, держится у знаменосца; он погиб — обычная толпа.
       let tx = dx / d, ty = dy / d;
       if (e.leader > 0 && d > ARCADE.siege.aggro) {
-        const lead = this.enemies.find((o) => o.alive && o.id === e.leader);
+        // Вожак — из кэша, пока объект жив и с тем же id (пул переиспользует объекты); иначе поиск, как раньше.
+        let lead = e.leaderRef;
+        if (!lead || !lead.alive || lead.id !== e.leader) { lead = this.enemies.find((o) => o.alive && o.id === e.leader) ?? null; e.leaderRef = lead; }
         if (!lead) e.leader = 0;
         else {
           const lx = lead.x - e.x, ly = lead.y - e.y, ld = len(lx, ly);
@@ -3027,12 +3040,13 @@ export class ArcadeSim {
       e.x += (tx * speed) * DT + sx * 0.5;
       e.y += (ty * speed) * DT + sy * 0.5;
       if (!e.kind.boss && !e.kind.structure && !e.kind.unstoppable) {
-        [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+        this.obstacles.resolveInto(e, e.kind.r * 0.8);
         // Застрял за деревом — обойти по касательной (иначе толпа копится за стволами и не доходит).
         if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
-          const [mx, my] = this.obstacles.steer(ex0, ey0, dx / d, dy / d, e.kind.r * 0.8, 28);
-          e.x = ex0 + mx * speed * DT; e.y = ey0 + my * speed * DT;
-          [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+          const s = this.steerOut;
+          this.obstacles.steerInto(s, ex0, ey0, dx / d, dy / d, e.kind.r * 0.8, 28);
+          e.x = ex0 + s.x * speed * DT; e.y = ey0 + s.y * speed * DT;
+          this.obstacles.resolveInto(e, e.kind.r * 0.8);
         }
       }
       // Контакт с игроком.
@@ -3218,6 +3232,21 @@ export class ArcadeSim {
     return (1 + 0.35 * (this.player.upgrades.beast_roar?.rank ?? 0)) * (this.upgradePower("leg_beast_alpha") > 0 ? 2 : 1);
   }
 
+  /** Иллюзия повторяет героя: его скорость, период удара и дальность (в Метаморфозе Terrorblade — дальний бой).
+   *  Одно описание на всех иллюзий: поля пишутся перед каждым чтением, объект за пределы итерации не уходит. */
+  private illusionPetDef(ranged: boolean): PetDef {
+    const def = this.illusionDef, p = this.player;
+    def.speed = p.stats.speed * 1.05; def.every = p.stats.attackInterval; def.reach = ranged ? Math.max(60, this.attackRange() - 20) : 34;
+    return def;
+  }
+
+  /** Призыв: PETS.summon, слитый с телом по `art`, — один раз на вид, а не новый объект на каждого за тик. */
+  private summonPetDef(art: string, body: SummonBody): PetDef {
+    let def = this.summonDefs.get(art);
+    if (!def) { def = { ...PETS.summon, ...body }; this.summonDefs.set(art, def); }
+    return def;
+  }
+
   private tickPets(): void {
     this.dmgSource = "pets";
     this.expirePets();
@@ -3226,13 +3255,8 @@ export class ArcadeSim {
     const ranged = this.rangedNow();
     for (let i = 0; i < this.pets.length; i++) {
       const pet = this.pets[i];
-      const base = PETS[pet.kind];
       const body: SummonBody | undefined = pet.kind === "summon" ? SUMMONS[pet.art ?? ""] : undefined;
-      // Иллюзия повторяет героя: его скорость, период удара и дальность (в Метаморфозе Terrorblade — дальний бой).
-      const def = pet.kind === "illusion"
-        ? { ...base, speed: p.stats.speed * 1.05, every: p.stats.attackInterval, reach: ranged ? Math.max(60, this.attackRange() - 20) : 34 }
-        : body ? { ...base, ...body }
-        : base;
+      const def = pet.kind === "illusion" ? this.illusionPetDef(ranged) : body ? this.summonPetDef(pet.art ?? "", body) : PETS[pet.kind];
       const rank = pet.kind === "illusion" || pet.kind === "summon" ? 1
         : this.player.upgrades[pet.kind === "hawk" ? "beast_hawk" : pet.kind === "wolf" ? "beast_wolf" : "beast_bear"]?.rank ?? 1;
       pet.cd = Math.max(0, pet.cd - 1);
@@ -3258,7 +3282,7 @@ export class ArcadeSim {
           pet.x += dx / d * Math.min(sp, d - stop); pet.y += dy / d * Math.min(sp, d - stop);
           pet.facingX = dx / d; pet.facingY = dy / d;
         }
-        if (pet.kind !== "hawk") [pet.x, pet.y] = this.obstacles.resolve(pet.x, pet.y, def.r);
+        if (pet.kind !== "hawk") this.obstacles.resolveInto(pet, def.r);
       }
       // Удар. Перезарядка — восстановление после удара, а не таймер погони: дойдя до новой цели, готовый питомец бьёт
       // сразу, а с недоигранной перезарядкой — не позже чем через 0.2 с (фидбэк владельца 2026-09-06: волк/медведь бежали
@@ -3514,7 +3538,7 @@ export class ArcadeSim {
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
       const stepLen = Math.min(vd, speed * DT);
       e.x += vx / vd * stepLen; e.y += vy / vd * stepLen;
-      [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+      this.obstacles.resolveInto(e, e.kind.r * 0.8);
     }
     this.contactDamage(e, d);
   }
@@ -3559,11 +3583,12 @@ export class ArcadeSim {
     if (dir === 0) { this.contactDamage(e, d); return; }
     const ex0 = e.x, ey0 = e.y;
     e.x += dx / d * speed * DT * dir; e.y += dy / d * speed * DT * dir;
-    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r * 0.8);
     if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
-      const [mx, my] = this.obstacles.steer(ex0, ey0, dx / d * dir, dy / d * dir, e.kind.r * 0.8, 28);
-      e.x = ex0 + mx * speed * DT; e.y = ey0 + my * speed * DT;
-      [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+      const s = this.steerOut;
+      this.obstacles.steerInto(s, ex0, ey0, dx / d * dir, dy / d * dir, e.kind.r * 0.8, 28);
+      e.x = ex0 + s.x * speed * DT; e.y = ey0 + s.y * speed * DT;
+      this.obstacles.resolveInto(e, e.kind.r * 0.8);
     }
     this.contactDamage(e, d);
   }
@@ -3610,11 +3635,12 @@ export class ArcadeSim {
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
     const ex0 = e.x, ey0 = e.y;
     e.x += wx / wd * speed * DT; e.y += wy / wd * speed * DT;
-    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r * 0.8);
     if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
-      const [mx, my] = this.obstacles.steer(ex0, ey0, wx / wd, wy / wd, e.kind.r * 0.8, 28);
-      e.x = ex0 + mx * speed * DT; e.y = ey0 + my * speed * DT;
-      [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+      const s = this.steerOut;
+      this.obstacles.steerInto(s, ex0, ey0, wx / wd, wy / wd, e.kind.r * 0.8, 28);
+      e.x = ex0 + s.x * speed * DT; e.y = ey0 + s.y * speed * DT;
+      this.obstacles.resolveInto(e, e.kind.r * 0.8);
     }
     this.contactDamage(e, d);
   }
@@ -3882,7 +3908,7 @@ export class ArcadeSim {
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT;
     e.y += dy / d * speed * DT;
-    [e.x, e.y] = this.obstacles.resolve(e.x, e.y, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r * 0.8);
     if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
       e.contactCd = sec(ARCADE.boss.contactEvery);
       this.damagePlayer(e.dmg, 0, e.kind);
@@ -4226,7 +4252,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, leader: 0, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, leader: 0, leaderRef: null, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
   };
 }
 
@@ -4234,7 +4260,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
 function resetEnemy(e: Enemy, kind: EnemyKind): void {
   e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
   e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
-  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.leader = 0; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
+  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
 }
 
 function cellKey(x: number, y: number): number {
