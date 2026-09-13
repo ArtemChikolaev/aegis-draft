@@ -1158,6 +1158,11 @@ export class ArcadeSim {
     p.gold += amount;
   }
 
+  /** Сундук может быть проклятым: пруд ещё не использован (порчу есть чем снять) и порчи сейчас нет (одна за раз). */
+  private curseChestAllowed(): boolean {
+    return !!this.pond && !this.pond.used && !this.player.curse;
+  }
+
   /** Какая порча ждёт в проклятом сундуке: Кровавая охота — только при живом чемпионе и без контракта («свободный слот большой угрозы»). */
   private rollCurse(): CurseId {
     const pool: CurseId[] = ["withering", "debt"];
@@ -2906,7 +2911,7 @@ export class ArcadeSim {
       this.nextChestAt = at + ARCADE.loot.chestEvery;
       const [cx, cy] = this.ringPoint(ARCADE.loot.distMin, ARCADE.loot.distMax);
       // Проклятый сундук (T13.43): не первый, с шансом, и только пока пруд не использован — иначе порчу нечем снять.
-      const cursed = this.chestNo++ > 0 && !!this.pond && !this.pond.used && !this.player.curse && this.rng.float() < ARCADE.curse.chestChance;
+      const cursed = this.chestNo++ > 0 && this.curseChestAllowed() && this.rng.float() < ARCADE.curse.chestChance;
       this.chest = { alive: true, x: cx, y: cy, until: this.tick + ARCADE.loot.chestLifetime, value: cursed ? 1 : 0 };
     }
     this.holdEvent(this.chest);
@@ -3778,7 +3783,9 @@ export class ArcadeSim {
     if (near.kind === "chest") {
       if (!this.chest.alive) return;
       this.chest.alive = false;
-      const cursed = this.chest.value === 1;
+      // Условие проклятия проверяется и при вскрытии: пока сундук лежал, герой мог взять порчу («Долг силы») или выпить
+      // пруд — тогда сундук чист, иначе новая порча затирала взятую (долг прощался, охотник оставался без порчи).
+      const cursed = this.chest.value === 1 && this.curseChestAllowed();
       this.lootCursed = cursed;
       if (cursed) this.lootCurse = this.rollCurse();
       this.lootOpen = this.rollLoot(cursed ? this.rarityUp(this.rollRarity()) : this.rollRarity());

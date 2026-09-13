@@ -87,6 +87,29 @@ describe("порчи: долг и кровавая охота", () => {
     expect(sim2.over?.lastCurse).toBeNull();
   });
 
+  it("проклятый сундук при вскрытии чист, если порча уже есть или пруд использован: взятая порча не затирается", () => {
+    const openCursedChest = (sim: ArcadeSim) => {
+      const p = sim.player;
+      sim.chest = { alive: true, x: p.x + 5, y: p.y, until: 1e9, value: 1 };
+      sim.step(IDLE_INPUT);
+      sim.step(act(PICKUP_ACT));
+      expect(sim.lootOpen).not.toBeNull();
+      expect(sim.lootCursed).toBe(false);
+      sim.step(act(2)); // в сумку
+      expect(sim.lootOpen).toBeNull();
+    };
+    const sim = new ArcadeSim("curse-chest-debt", { act: "short", composition: "all" });
+    step(sim, 5);
+    (sim as unknown as { applyCurse(id: string): void }).applyCurse("debt");
+    openCursedChest(sim);
+    expect(sim.player.curse).toBe("debt");
+    const sim2 = new ArcadeSim("curse-chest-pond", { act: "short", composition: "all" });
+    step(sim2, 5);
+    sim2.pond!.used = true; // снять порчу было бы нечем
+    openCursedChest(sim2);
+    expect(sim2.player.curse).toBeNull();
+  });
+
   it("«Долг силы» (T13.75): в лавке раз за акт — карта школы exotic отдельным экраном и порча долга; с порчей или повторно — нет", () => {
     const sim = new ArcadeSim("build-debt", { act: "short", composition: "all" });
     step(sim, 60);
