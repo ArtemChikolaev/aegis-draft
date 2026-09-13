@@ -31,7 +31,7 @@ export function Modal({
   children,
   layout = "actions",
   presentation = "default",
-  dismissLabel = "Close",
+  dismissLabel,
 }: {
   mark?: ReactNode;
   title: ReactNode;
@@ -46,7 +46,7 @@ export function Modal({
   /** `card` — компактный центрированный оверлей, визуально продолжающий выбранную карточку. */
   presentation?: "default" | "card";
   /** Подпись крестика для скринридера — локализованная, её передаёт экран (`common.close`). */
-  dismissLabel?: string;
+  dismissLabel: string;
 }) {
   const panelRef = useRef<HTMLElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
