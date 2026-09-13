@@ -1,7 +1,7 @@
 // Arcade (PRD §5.15): экран режима — настройка → сцена (canvas + HUD) → итог. Сим тикает в rAF-цикле
 // сцены с фиксированным шагом (config.TICK_HZ), React рисует только HUD и оверлеи; сам мир — в
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { MARK_IDS, bestArcadeEntry, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, replayOf, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
 import { LEGACY_BRANCHES, LEGACY_KIND, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
@@ -347,6 +347,8 @@ function ArcadeStage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controllerRef = useRef<ArcadeInputController | null>(null);
   const [confirmQuit, setConfirmQuit] = useState(false);
+  /** Имя диалога подтверждения для скринридера: Modal ставит id на заголовок и ссылается на него из aria-labelledby. */
+  const quitTitleId = useId();
   const statusRef = useRef(status);
   statusRef.current = status;
   void serial;
@@ -1121,7 +1123,7 @@ function ArcadeStage() {
       {SFX_DEBUG && <SfxDebugPanel hero={sim?.hero.id ?? "juggernaut"} />}
       <p className="arcade__credits">{t("arcade.credits")}</p>
       {confirmQuit && (
-        <Modal title={t("arcade.hud.quit")} description={t("arcade.hud.quitConfirm")} onClose={() => setConfirmQuit(false)}>
+        <Modal title={t("arcade.hud.quit")} description={t("arcade.hud.quitConfirm")} labelledBy={quitTitleId} dismissLabel={t("common.close")} onClose={() => setConfirmQuit(false)}>
           {({ close }) => (
             <>
               <Button variant="danger" onClick={() => { close(); quit(); }}>{t("arcade.hud.quit")}</Button>

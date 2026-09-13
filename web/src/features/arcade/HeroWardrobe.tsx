@@ -3,7 +3,7 @@
 // Окно живо только на экране настройки: показывает анимированное превью выбранного облика (тот же
 // лист Dota, что и в бою), список обликов героя (базовая модель + арканы/персоны/сеты), стили аркан
 // и остальные слоты косметики. Покупка — здесь, а не списком под выбором героя.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
@@ -202,6 +202,8 @@ interface Look {
 
 export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => void }) {
   const { t } = useI18n();
+  /** Имя диалога для скринридера: Modal ставит этот id на заголовок и ссылается на него из aria-labelledby. */
+  const titleId = useId();
   const cosmetics = useArcade((s) => s.cosmetics);
   const equip = useArcade((s) => s.equip);
   const setStyle = useArcade((s) => s.setStyle);
@@ -254,6 +256,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
       subhead={<span className="arcade-wardrobe__shards">{t("arcade.cosmetics.shards", { n: cosmetics.shards })}</span>}
       onClose={onClose}
       layout="content"
+      labelledBy={titleId}
       dismissLabel={t("common.close")}
     >
       <div className="arcade-wardrobe" data-testid="arcade-wardrobe">
