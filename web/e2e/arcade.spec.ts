@@ -33,6 +33,30 @@ test.describe("arcade", () => {
     await expect(page.getByTestId("arcade-hero")).toBeVisible();
   });
 
+  test("«Ещё раз» монтирует сцену заново: новый холст и кнопки итога без состояния прошлого забега", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    await page.getByTestId("arcade-seed").fill("e2e-arcade-again");
+    await page.getByTestId("arcade-play").click();
+    await expect(page.getByTestId("arcade-clock")).toBeVisible();
+    // Метка на холсте первого забега: перемонтированная сцена создаёт новый холст без неё.
+    await page.evaluate("document.querySelector('.arcade__canvas').dataset.e2eRun = 'first'");
+    // Конец забега без ожидания — через dev-хук сима.
+    await page.evaluate("window.__arcadeSim().finish('dead')");
+    const over = page.getByTestId("arcade-over");
+    await expect(over).toBeVisible();
+    const copy = page.getByTestId("arcade-copy-replay");
+    await copy.click();
+    await expect(copy).toHaveText(/Реплей скопирован|Replay copied/);
+    await page.getByTestId("arcade-again").click();
+    await expect(over).toHaveCount(0);
+    await expect(page.getByTestId("arcade-clock")).toBeVisible();
+    await expect(page.locator(".arcade__canvas")).not.toHaveAttribute("data-e2e-run", "first");
+    await page.evaluate("window.__arcadeSim().finish('dead')");
+    await expect(over).toBeVisible();
+    await expect(copy).toHaveText(/Скопировать реплей|Copy replay/);
+  });
+
   test("фирменная пассивка героя видна в HUD", async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-arcade").click();

@@ -138,4 +138,22 @@ describe("arcadeStore: витрина и открытие рангов", () => {
     useArcade.getState().equip("trail", "trail_ember"); // не куплен — игнор
     expect(useArcade.getState().cosmetics.equipped.trail).toBeUndefined();
   });
+
+  it("номер забега растёт при каждом старте — сцена итога не переживает «Ещё раз», «Новый сид» и «Смотреть реплей»", () => {
+    useArcade.setState({ status: "setup", hero: "juggernaut", act: "short", rank: 0, trait: null, progress: emptyProgress(), gear: { items: [], equipped: {} }, runId: 0 });
+    const store = () => useArcade.getState();
+    store().start("run-id-1");
+    expect(store().runId).toBe(1);
+    store().start("run-id-1"); // «Ещё раз» — тот же сид
+    expect(store().runId).toBe(2);
+    store().start(); // «Новый сид»
+    expect(store().runId).toBe(3);
+    store().startDaily();
+    expect(store().runId).toBe(4);
+    store().startReplay({ seed: "run-id-1", hero: "juggernaut", rank: 0, act: "short", version: "a", log: [], gear: [] });
+    expect(store().runId).toBe(5);
+    // Пауза, выбор карточки и выход — не новый забег.
+    store().pause(); store().resume(); store().bump(); store().quit();
+    expect(store().runId).toBe(5);
+  });
 });

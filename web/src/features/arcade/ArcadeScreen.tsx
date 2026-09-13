@@ -54,7 +54,10 @@ const SFX_DEBUG = typeof window !== "undefined" && new URLSearchParams(window.lo
 
 export function ArcadeScreen() {
   const status = useArcade((s) => s.status);
-  return status === "setup" ? <ArcadeSetup /> : <ArcadeStage />;
+  const runId = useArcade((s) => s.runId);
+  // Ключ забега: «Ещё раз», «Новый сид» и «Смотреть реплей» монтируют сцену заново — цикл, звук, реплики и кнопки итога
+  // начинают с нуля, а не со счётчиков прошлого забега.
+  return status === "setup" ? <ArcadeSetup /> : <ArcadeStage key={runId} />;
 }
 
 function ArcadeSetup() {

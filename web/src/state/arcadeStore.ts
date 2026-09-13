@@ -263,6 +263,9 @@ interface ArcadeStore {
   hero: HeroId;
   act: ActId;
   serial: number;
+  /** Номер забега: растёт при каждом старте (обычный, дейлик, реплей). Сцена монтируется с этим ключом — локальные
+   *  счётчики звука, реплики и кнопки итога не переживают «Ещё раз» / «Новый сид» / «Смотреть реплей». */
+  runId: number;
   outcome: ArcadeOutcome | null;
   history: ArcadeHistoryEntry[];
   /** Постоянные открытия и трофеи (T13.37): не зависят от обрезки `history`. */
@@ -340,6 +343,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   act: "full",
   trait: null,
   serial: 0,
+  runId: 0,
   outcome: null,
   history: initialHistory,
   progress: readProgress(initialHistory),
@@ -361,20 +365,20 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     // Снимок того, с чем стартует сим, — в код реплея: экипировка по ходу забега меняется, наследие уходит в сим бонусом.
     const runStart: ArcadeRunStart = { gear: equippedGear(get().gear), legacy: { ...get().progress.legacy.spent } };
     sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: runStart.gear, legacy: legacyBonus(runStart.legacy), trait });
-    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [], lastLoot: [], runStart });
+    set({ status: "running", seed: next, rank, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lastDrops: [], lastLoot: [], runStart });
   },
   startDaily() {
     const d = arcadeDaily();
     // Дейлик — без экипировки и без наследия: у всех одинаковые условия.
     sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act, legacy: LEGACY_NONE });
     // Герой/акт — в стор (HUD, озвучка и облик читают выбранного героя), ранг — только в сим: выбор игрока не перебивать (2026-09-13).
-    set({ status: "running", seed: d.seed, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null, runStart: { gear: [] } });
+    set({ status: "running", seed: d.seed, hero: d.hero, act: d.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, runStart: { gear: [] } });
   },
   startReplay(replay) {
     // Реплей читает снимок наследия из кода, не текущую прокачку зрителя.
     sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO), trait: replay.trait });
     // Герой/акт реплея — в стор (HUD и облик), ранг — только в сим: выбор ранга реплей не переписывает (2026-09-13).
-    set({ status: "running", seed: replay.seed, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log, runStart: { gear: replay.gear, legacy: replay.legacy } });
+    set({ status: "running", seed: replay.seed, hero: replay.hero, act: replay.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: replay.log, runStart: { gear: replay.gear, legacy: replay.legacy } });
   },
   equipGear(slot, uid) {
     const g = get().gear;
