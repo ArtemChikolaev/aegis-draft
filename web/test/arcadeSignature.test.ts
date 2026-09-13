@@ -242,6 +242,12 @@ describe("фирменные пассивки волны 14 (T13.15, 80 геро
     expect(victims.length).toBe(3);
     for (const e of victims) sim.damageEnemy(e, 1e6, "hit");
     expect(sim.player.stats.maxHp).toBeCloseTo(maxBefore + sig.value * 3, 3);
+    // Пересчёт статов с нуля (карточка, предмет, кузня) запас не теряет: раньше maxHp откатывался к базе.
+    sim.player.hp = sim.player.stats.maxHp - 10; // тест держал hp = 1e6 — пересчёт законно обрезает его до максимума
+    const hp = sim.player.hp;
+    (sim as unknown as { recomputeStats(): void }).recomputeStats();
+    expect(sim.player.stats.maxHp).toBeCloseTo(maxBefore + sig.value * 3, 3);
+    expect(sim.player.hp).toBe(hp);
     // Потолок: дальше запас не растёт.
     sim.player.stacks = sig.cap!;
     const capped = sim.player.stats.maxHp;

@@ -2448,7 +2448,7 @@ export class ArcadeSim {
     if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1));
     if (sig?.kind === "growth") {
       // Flesh Heap: убийства наращивают запас здоровья до потолка; прибавка идёт и в текущее hp,
-      // иначе герой с полным hp получает только пустую полоску.
+      // иначе герой с полным hp получает только пустую полоску. maxHp = база + stacks: recomputeStats добавляет их заново.
       const add = sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1);
       const room = (sig.cap ?? 400) - p.stacks;
       if (room > 0) { const gain = Math.min(add, room); p.stacks += gain; p.stats.maxHp += gain; p.hp += gain; }
@@ -4166,6 +4166,8 @@ export class ArcadeSim {
     // Наследие Aegis (T13.88): удобства — радиус сбора и скорость бега, один раз; урон и HP не трогает.
     s.pickup *= this.legacy.pickup;
     s.speed *= this.legacy.speed;
+    // Flesh Heap (growth): запас здоровья за убийства живёт в `stacks` — пересчёт с нуля (карточка, предмет) его не теряет.
+    if (this.hero.signature?.kind === "growth") s.maxHp += p.stacks;
     const ratio = p.stats ? p.hp / p.stats.maxHp : 1;
     p.stats = s;
     p.hp = Math.min(s.maxHp, Math.max(p.hp, ratio * s.maxHp));
