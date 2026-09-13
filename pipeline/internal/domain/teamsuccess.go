@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/aegis-draft/pipeline/internal/formats"
 	"github.com/aegis-draft/pipeline/internal/model"
 	"github.com/aegis-draft/pipeline/internal/normalize"
 	"github.com/aegis-draft/pipeline/internal/opendota"
@@ -26,15 +27,6 @@ func tierWeight(tier string) float64 {
 	}
 }
 
-var rollingWindows = []struct {
-	format model.Format
-	years  int
-}{
-	{model.Last1y, 1},
-	{model.Last2y, 2},
-	{model.Last5y, 5},
-}
-
 // successWindow — «окно» агрегации успеха. Раньше окно было только диапазоном дат, поэтому
 // valve_legacy оставался пустым: это не последние N лет, а курируемый набор лиг (все TI +
 // Valve/DPC Major, 2012–2025). Из-за этого Mixed Draft в valve_legacy было нечем считать.
@@ -45,13 +37,14 @@ type successWindow struct {
 	include func(match normalize.NormalizedMatch, day time.Time) bool
 }
 
-// buildSuccessWindows — rolling-окна от asOf + valve_legacy по набору лиг.
+// buildSuccessWindows — rolling-окна от asOf (formats.RollingWindows) + valve_legacy по набору лиг.
 func buildSuccessWindows(asOfDay time.Time, nameByLeague map[int64]string) []successWindow {
-	windows := make([]successWindow, 0, len(rollingWindows)+1)
-	for _, w := range rollingWindows {
-		start := asOfDay.AddDate(-w.years, 0, 0)
+	rolling := formats.RollingWindows()
+	windows := make([]successWindow, 0, len(rolling)+1)
+	for _, w := range rolling {
+		start := w.Start(asOfDay)
 		windows = append(windows, successWindow{
-			format: w.format,
+			format: w.Format,
 			include: func(_ normalize.NormalizedMatch, day time.Time) bool {
 				return !day.Before(start) && !day.After(asOfDay)
 			},
@@ -90,7 +83,7 @@ func BuildTeamSuccess(matches []normalize.NormalizedMatch, leagues []opendota.Le
 		tierByLeague[league.LeagueID] = league.Tier
 		nameByLeague[league.LeagueID] = league.Name
 	}
-	asOfDay := utcDate(asOf)
+	asOfDay := formats.UTCDate(asOf)
 	result := make(map[string]map[model.Format]model.TeamWindowSuccess)
 	for _, window := range buildSuccessWindows(asOfDay, nameByLeague) {
 		teams := make(map[int]*teamAgg)
@@ -98,7 +91,7 @@ func BuildTeamSuccess(matches []normalize.NormalizedMatch, leagues []opendota.Le
 			if match.StartTime <= 0 {
 				continue
 			}
-			day := utcDate(time.Unix(match.StartTime, 0))
+			day := formats.UTCDate(time.Unix(match.StartTime, 0))
 			if !window.include(match, day) {
 				continue
 			}
@@ -155,11 +148,6 @@ func scoreTeamProxy(a *teamAgg, cfg rating.Config) model.TeamWindowSuccess {
 		Games:        a.games,
 		Winrate:      round4(raw),
 	}
-}
-
-func utcDate(t time.Time) time.Time {
-	u := t.UTC()
-	return time.Date(u.Year(), u.Month(), u.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func clamp100(v float64) float64 { return math.Max(0, math.Min(100, v)) }

@@ -15,6 +15,7 @@ import (
 	"github.com/aegis-draft/pipeline/internal/collect"
 	"github.com/aegis-draft/pipeline/internal/domain"
 	"github.com/aegis-draft/pipeline/internal/emit"
+	"github.com/aegis-draft/pipeline/internal/formats"
 	"github.com/aegis-draft/pipeline/internal/model"
 	"github.com/aegis-draft/pipeline/internal/normalize"
 	"github.com/aegis-draft/pipeline/internal/opendota"
@@ -298,18 +299,11 @@ func collectionWindow(cfg Config) (int64, string, error) {
 	if err != nil {
 		return 0, "", fmt.Errorf("invalid as-of date %q: %w", cfg.AsOf, err)
 	}
-	years := 0
-	switch cfg.Window {
-	case model.Last1y:
-		years = 1
-	case model.Last2y:
-		years = 2
-	case model.Last5y:
-		years = 5
-	default:
+	window, ok := formats.RollingWindow(cfg.Window)
+	if !ok {
 		return 0, "", fmt.Errorf("resumable time-window collection does not support %q", cfg.Window)
 	}
-	return asOf.AddDate(-years, 0, 0).Unix(), cfg.AsOf, nil
+	return window.Start(asOf).Unix(), cfg.AsOf, nil
 }
 
 // enrichTeamLogos дотягивает логотипы команд, которых нет в топ-списке /teams.

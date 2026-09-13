@@ -3,11 +3,10 @@ package emit
 
 import (
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"os"
 	"path/filepath"
 
+	"github.com/aegis-draft/pipeline/internal/artifact"
 	"github.com/aegis-draft/pipeline/internal/model"
 )
 
@@ -16,11 +15,10 @@ type outputFile struct {
 	payload any
 }
 
-// WriteAll сериализует все части Dataset в dir/<name>.json.
+// WriteAll сериализует все части Dataset в dir/<name>.json. Каждый файл пишется атомарно
+// (artifact.WriteFile): упавший посреди записи прогон не оставит усечённый JSON. manifest.json —
+// последним: его dataHash описывает уже записанные файлы.
 func WriteAll(dir string, ds *model.Dataset) error {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
 	files := []outputFile{
 		{name: "events", payload: nonNilSlice(ds.Events)},
 		{name: "heroes", payload: nonNilSlice(ds.Heroes)},
@@ -37,7 +35,7 @@ func WriteAll(dir string, ds *model.Dataset) error {
 	encoded := make([][]byte, len(files))
 	hash := sha256.New()
 	for i, file := range files {
-		b, err := marshalJSON(file.payload)
+		b, err := artifact.EncodeJSON(file.payload)
 		if err != nil {
 			return fmt.Errorf("encode %s: %w", file.name, err)
 		}
@@ -47,27 +45,19 @@ func WriteAll(dir string, ds *model.Dataset) error {
 	}
 	ds.Manifest.DataHash = fmt.Sprintf("sha256:%x", hash.Sum(nil))
 
-	manifest, err := marshalJSON(ds.Manifest)
+	manifest, err := artifact.EncodeJSON(ds.Manifest)
 	if err != nil {
 		return fmt.Errorf("encode manifest: %w", err)
 	}
 	for i, file := range files {
-		if err := os.WriteFile(filepath.Join(dir, file.name+".json"), encoded[i], 0o644); err != nil {
+		if err := artifact.WriteFile(filepath.Join(dir, file.name+".json"), encoded[i]); err != nil {
 			return fmt.Errorf("emit %s: %w", file.name, err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(dir, "manifest.json"), manifest, 0o644); err != nil {
+	if err := artifact.WriteFile(filepath.Join(dir, "manifest.json"), manifest); err != nil {
 		return fmt.Errorf("emit manifest: %w", err)
 	}
 	return nil
-}
-
-func marshalJSON(v any) ([]byte, error) {
-	b, err := json.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	return append(b, '\n'), nil
 }
 
 // Пустой срез должен сериализоваться как [], а не null (иначе валидатор схемы упадёт).

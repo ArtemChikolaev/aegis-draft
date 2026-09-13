@@ -18,6 +18,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/aegis-draft/pipeline/internal/artifact"
 )
 
 const maxResponseBytes = 128 << 20
@@ -176,7 +178,7 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 			if err := json.Unmarshal(body, out); err != nil {
 				return fmt.Errorf("decode %s: %w", safeURL, err)
 			}
-			if err := writeAtomic(cachePath, body); err != nil {
+			if err := artifact.WriteFile(cachePath, body); err != nil {
 				return fmt.Errorf("cache %s: %w", safeURL, err)
 			}
 			return nil
@@ -321,26 +323,6 @@ func sleepContext(ctx context.Context, duration time.Duration) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-}
-
-func writeAtomic(path string, body []byte) error {
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	tmp, err := os.CreateTemp(filepath.Dir(path), ".raw-*.tmp")
-	if err != nil {
-		return err
-	}
-	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath)
-	if _, err := tmp.Write(body); err != nil {
-		tmp.Close()
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(tmpPath, path)
 }
 
 func truncate(body []byte, limit int) string {

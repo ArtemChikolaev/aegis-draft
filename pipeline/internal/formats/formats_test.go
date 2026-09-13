@@ -16,6 +16,26 @@ func day(s string) time.Time {
 	return t
 }
 
+func TestRollingWindowLookupAndStart(t *testing.T) {
+	w, ok := RollingWindow(model.Last2y)
+	if !ok || w.Years != 2 {
+		t.Fatalf("last_2y window = %+v ok=%t", w, ok)
+	}
+	// Граница — UTC-полночь календарной даты: время суток и пояс asOf на неё не влияют.
+	evening := time.Date(2026, 7, 11, 23, 30, 0, 0, time.FixedZone("UTC+3", 3*3600))
+	if got, want := w.Start(evening), day("2024-07-11"); !got.Equal(want) {
+		t.Fatalf("start = %s, want %s", got, want)
+	}
+	if _, ok := RollingWindow(model.ValveLegacy); ok {
+		t.Fatal("valve_legacy is a curated league set, not a rolling window")
+	}
+	copied := RollingWindows()
+	copied[0].Years = 99
+	if again, _ := RollingWindow(model.Last1y); again.Years != 1 {
+		t.Fatal("RollingWindows must return a copy")
+	}
+}
+
 func TestAssignNestedWindows(t *testing.T) {
 	asOf := day("2026-07-11")
 	cases := []struct {
