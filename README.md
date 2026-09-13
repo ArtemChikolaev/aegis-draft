@@ -80,7 +80,7 @@ cd server && PORT=8080 go run ./cmd/api
 Ассеты в репозитории: зеркало портретов и знаков (`web/public/art/`, для офлайна) и спрайт-листы Аркады (`web/public/art/sprites/`, ~390 МБ) — они версионируются, потому что офлайн-готовность не должна зависеть от того, какие экраны игрок успел открыть.
 
 ## Данные, деплой, CI/CD
-- [.github/workflows/ci.yml](.github/workflows/ci.yml) — **проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`typecheck`→`test`→`build`→`test:e2e`→офлайн-спека на собранном dist; mock только в CI web-job) · antipattern-scan. **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует **реальный** `web/public/data` из data-refresh.
+- [.github/workflows/ci.yml](.github/workflows/ci.yml) — **проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`typecheck`→`test`→`build`→`test:e2e`→офлайн-спека на собранном dist; mock только в CI web-job) · Web на реальном датасете (anteRun e2e + vitest; в деплой не входит) · antipattern-scan. **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует **реальный** `web/public/data` из data-refresh.
 - [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml) — крон обновляет `web/public/data/*.json` (OpenDota-слайс) и коммитит их в репозиторий.
 - [.github/workflows/deploy-server.yml](.github/workflows/deploy-server.yml) — деплой `server/` на Fly.io. Пока в репозитории нет секрета `FLY_API_TOKEN`, джоб **чисто пропускается**, а не падает.
 

@@ -141,11 +141,14 @@ jobs:
   # T12.6 (2026-09-02): сиды anteRun.spec обязаны проходить на ОБОИХ датасетах, а джоб `web`
   # видит только mock — дрейф после data-refresh замечали лишь локально. Здесь тот же спек идёт
   # по закоммиченному реальному датасету (без gen:mock), только chromium: mobile-проект отличается
-  # вьюпортом, а не пулом. В `needs` деплоя джоб НЕ входит намеренно: красный здесь означает
-  # «переподбери сиды» (`npm run sim:sweep`, память roguelite-camp-seed-coupling), а не дефект
-  # продукта, и блокировать им выкладку свежих данных было бы наказанием за сам refresh.
+  # вьюпортом, а не пулом. Здесь же vitest на реальном датасете: тесты со skipIf(onMock) — свойства
+  # реальных данных (поле Real Tournament, посадка Арены, края шкалы OVR) — в web-job на моке
+  # всегда пропускаются, а golden здесь пропускаются сами. В `needs` деплоя джоб НЕ входит
+  # намеренно: красный здесь означает «переподбери сиды» (`npm run sim:sweep`, память
+  # roguelite-camp-seed-coupling) или «refresh сдвинул свойство данных», а не дефект продукта,
+  # и блокировать им выкладку свежих данных было бы наказанием за сам refresh.
   web-e2e-real:
-    name: Web e2e (реальный датасет, anteRun)
+    name: Web на реальном датасете (anteRun e2e + vitest)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -173,6 +176,10 @@ jobs:
         run: npx playwright install-deps chromium
       - name: anteRun.spec на реальном датасете
         run: npx playwright test e2e/anteRun.spec.ts --project=chromium
+      # После e2e и при его падении тоже: у двух проверок разные причины красного, нужны обе.
+      - name: Unit tests на реальном датасете (Vitest)
+        if: ${{ !cancelled() }}
+        run: npm run test -- --pool=forks --reporter=default --reporter=github-actions
 
   antipatterns:
     name: Antipattern scan
