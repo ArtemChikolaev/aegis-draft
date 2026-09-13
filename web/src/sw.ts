@@ -2,19 +2,21 @@
 // из `sw/policy.ts` — решения тестируются там, здесь только Cache API и события.
 //
 // Три разных мира с разными правилами:
-//   1. Оболочка (hashed js/css, index.html) — версия = сборка. Precache + cache-first.
+//   1. Оболочка (hashed js/css, index.html, свой арт из `art/`) — версия = сборка.
+//      Precache + cache-first. Арт — зеркало у нас (T11.2), шаблоны precache — в vite.config.ts.
 //   2. Датасет (data/*.json) — версия = manifest.dataHash. Отдельное ведро на версию,
 //      переключение АТОМАРНОЕ и только когда нет незавершённого забега (иначе смена хеша
 //      обнулит сейв — runPersist, BUG-2026-07-23).
 //   3. Всё чужое (Steam CDN, API) — не трогаем вовсе: cross-origin ответы приходят opaque,
-//      и «закэшированной» оказалась бы страница captive-portal, а не картинка. Арт заберём
-//      к себе в T11.2, тогда он попадёт в мир №1 сам собой.
+//      и «закэшированной» оказалась бы страница captive-portal, а не картинка.
 //
 // Собирается плагином в режиме injectManifest: список ассетов сборки подставляется в
 // `self.__WB_MANIFEST`, вся логика ниже — наша (готовые рецепты не умеют атомарный своп набора).
 import {
   META_CACHE,
   SHELL_CACHE,
+  activeDataKey,
+  completeMarkerKey,
   dataCacheName,
   dataFileFromPath,
   decideDataAction,
@@ -30,10 +32,11 @@ declare const self: ServiceWorkerGlobalScope & {
  *  В корне это `/`, на GitHub Pages — `/aegis-draft/`. */
 const BASE = new URL("./", self.location.href).pathname;
 const INDEX_URL = new URL("index.html", self.location.href).href;
-/** Указатель на активный набор данных (ключ в META_CACHE — обычный URL, так требует Cache API). */
-const ACTIVE_DATA_KEY = new URL("__aegis_active_data", self.location.href).href;
+/** Указатель на активный набор данных (ключ в META_CACHE — обычный URL, так требует Cache API).
+ *  Ключи собирает policy: их же читает панель «Офлайн» в настройках, разъехаться им нельзя. */
+const ACTIVE_DATA_KEY = activeDataKey(self.location.href);
 /** Маркер «ведро скачано целиком». Без него частично скачанный набор никогда не станет активным. */
-const completeMarker = (hash: string) => new URL(`__aegis_data_complete?h=${encodeURIComponent(hash)}`, self.location.href).href;
+const completeMarker = (hash: string) => completeMarkerKey(self.location.href, hash);
 
 /** Адреса оболочки из инжектированного манифеста, БЕЗ повторов.
  *  Дедуп обязателен: иконки и webmanifest приезжают в манифест дважды (из globPatterns и из
