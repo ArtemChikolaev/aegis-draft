@@ -876,7 +876,9 @@ export class ArcadeRenderer {
     if (sim.chest.alive) {
       const ch = tileImage("chests");
       const { x, y } = sim.chest;
-      if (ch) { c.imageSmoothingEnabled = false; c.drawImage(ch, 0, 0, 32, 32, x - 24, y - 30, 48, 48); c.imageSmoothingEnabled = true; }
+      // Тайл сундука — без сглаживания, потом прежнее значение: в пиксельном буфере оно выключено на весь кадр,
+      // и безусловное `true` мылило все спрайты, нарисованные после сундука.
+      if (ch) { const smooth = c.imageSmoothingEnabled; c.imageSmoothingEnabled = false; c.drawImage(ch, 0, 0, 32, 32, x - 24, y - 30, 48, 48); c.imageSmoothingEnabled = smooth; }
       else { c.fillStyle = pal.aegis; c.fillRect(x - 14, y - 12, 28, 22); }
       // Проклятый сундук (T13.43): ядовитое свечение вместо золотого и капли над крышкой — видно до вскрытия.
       const cursed = sim.chest.value === 1;
