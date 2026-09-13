@@ -47,9 +47,10 @@ cd web && npm install && npm run dev
 # Прод-сборка локально (нужна для всего, что живёт только в ней: service worker и офлайн):
 npm run preview          # или preview:pages — под сабпутём /aegis-draft/, как на Pages
 
-# Тесты и валидация (реальный датасет в git; unit/golden — после gen:mock):
+# Тесты и валидация на реальном датасете из git (golden на нём пропускаются):
 npm run validate:data && npm run test && npm run test:e2e && npm run typecheck
-npm run gen:mock && npm run test    # локально: mock для golden/fixtures
+# Unit-тесты на моке, как в CI, вместе с golden (мок пишется в web/.mock-data, public/data не трогается):
+npm run test:mock
 
 # Балансовые прогоны без UI:
 npm run sim            # рогалик-забег
@@ -82,14 +83,14 @@ cd server && PORT=8080 go run ./cmd/api
 - [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml) — крон обновляет `web/public/data/*.json` (OpenDota-слайс) и коммитит их в репозиторий.
 - [.github/workflows/deploy-server.yml](.github/workflows/deploy-server.yml) — деплой `server/` на Fly.io. Пока в репозитории нет секрета `FLY_API_TOKEN`, джоб **чисто пропускается**, а не падает.
 
-Локально: `gen:mock` для golden (`npm run test:golden:update`). Разовая настройка GitHub: **Settings → Pages → Source: GitHub Actions**; **Settings → Actions → General → Workflow permissions → Read and write**.
+Golden локально обновляет `npm run test:golden:update` (сам генерирует мок в `web/.mock-data`). Разовая настройка GitHub: **Settings → Pages → Source: GitHub Actions**; **Settings → Actions → General → Workflow permissions → Read and write**.
 
 ### Prod-like lab (nginx + Docker Compose)
 
 Локальный стенд с единым входом (`/` SPA · `/data/*` JSON · `/api/*` Go API) — **не заменяет** GitHub Pages. См. [`infra/README.md`](infra/README.md):
 
 ```bash
-[ -f web/public/data/manifest.json ] || (cd web && npm run gen:mock)
+[ -f web/public/data/manifest.json ] || (cd web && npm run gen:mock -- --out public/data)
 docker compose -f infra/docker-compose.yml up --build
 # → http://localhost:8080
 ```

@@ -1,8 +1,8 @@
-// Свип сидов anteRun-e2e (CAMP_SEED/CHEAT_SEED) по ТЕКУЩЕМУ датасету в web/public/data.
+// Свип сидов anteRun-e2e (CAMP_SEED/CHEAT_SEED) по датасету из AEGIS_DATA_DIR (по умолчанию web/public/data).
 // Сид обязан проходить на ДВУХ датасетах (локально — реальный слайс, CI — mock), поэтому гонять
-// дважды и брать пересечение:
-//   npm run gen:mock && npx tsx scripts/sweep_seeds_both.ts        # mock (как CI)
-//   git checkout -- public/data && npx tsx scripts/sweep_seeds_both.ts  # реальный
+// дважды и брать пересечение (мок пишется в web/.mock-data, боевой датасет не трогается):
+//   npm run gen:mock && AEGIS_DATA_DIR=.mock-data npm run sim:sweep   # mock (как CI)
+//   npm run sim:sweep                                                 # реальный
 // Модель отбирает КАНДИДАТОВ; boostInCamp повторяется неточно — финальная правда только живым
 // прогоном cheat-тестов по кандидатам (R15.8: модельные 3/9/13 падали на mock, 15 прошёл).
 // Для каждого сида:

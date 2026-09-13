@@ -94,10 +94,11 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-      # T3.13: Vitest/Playwright/golden — на эфемерном mock (gen:mock не коммитится).
+      # T3.13: Vitest/Playwright/golden — на эфемерном mock (не коммитится). Пишем прямо в public/data:
+      # dev-серверу e2e и сборке мок нужен по /data/*, а vitest по умолчанию читает тот же каталог.
       # Production dataset в git обновляет data-refresh; deploy-job собирает его без gen:mock.
       - name: Mock dataset (CI unit/E2E only)
-        run: npm run gen:mock
+        run: npm run gen:mock -- --out public/data
       - name: Валидация контракта данных (JSON Schema)
         run: npm run validate:data
       # Репортер github-actions пишет упавшие тесты аннотациями: их видно через публичный API check-runs,
@@ -207,7 +208,7 @@ jobs:
         run: |
           npm ci
           # Деплой — закоммиченный OpenDota-слайс (data-refresh). gen:mock — fallback если data/ пуст.
-          [ -f public/data/manifest.json ] || npm run gen:mock
+          [ -f public/data/manifest.json ] || npm run gen:mock -- --out public/data
           npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

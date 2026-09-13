@@ -5,14 +5,39 @@
 // и manifest. Мок играет роль вывода Go-пайплайна: events[].formats и manifest.formats
 // ВЫЧИСЛЯЮТСЯ от даты сборки (schema/events.schema.json), а не задаются руками.
 // Правило формата — зеркало pipeline/internal/formats/Assign; меняешь одно — правь оба.
-// Запуск: node web/scripts/gen_mock.mjs
-import { readFileSync, writeFileSync } from "node:fs";
+//
+// Запуск из web/: `npm run gen:mock [-- --out <каталог>]`; относительный путь считается от web/.
+// По умолчанию мок пишется в web/.mock-data (gitignore) и боевой датасет не трогает; тесты читают
+// его через `AEGIS_DATA_DIR=.mock-data` (test/helpers/data.ts). `--out public/data` — поверх
+// боевого датасета: только CI или изолированная копия дерева, где dev-серверу e2e нужен мок по /data/*.
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(here, "..", "public", "data");
+const webRoot = join(here, "..");
+/** Каталог вывода: `--out <каталог>` или `--out=<каталог>`, по умолчанию web/.mock-data. */
+function outDirFromArgs(argv) {
+  const index = argv.findIndex((arg) => arg === "--out" || arg.startsWith("--out="));
+  if (index === -1) return join(webRoot, ".mock-data");
+  const value = argv[index].startsWith("--out=") ? argv[index].slice("--out=".length) : argv[index + 1];
+  if (!value) {
+    console.error("gen:mock: --out требует каталог, например `npm run gen:mock -- --out public/data`");
+    process.exit(1);
+  }
+  return resolve(webRoot, value);
+}
+const dataDir = outDirFromArgs(process.argv.slice(2));
+mkdirSync(dataDir, { recursive: true });
+// heroes.json — справочник, а не мок: генератор его только читает. Берём из закоммиченного датасета
+// и кладём рядом с моком, чтобы каталог был полным датасетом (его читают тесты и dataHash ниже).
+// realpath, а не сравнение строк: при `--out public/data` через симлинк копия легла бы сама на себя.
+const heroesSource = join(webRoot, "public", "data", "heroes.json");
+const heroesTarget = join(dataDir, "heroes.json");
+if (!existsSync(heroesTarget) || realpathSync(heroesTarget) !== realpathSync(heroesSource)) {
+  copyFileSync(heroesSource, heroesTarget);
+}
 const read = (f) => JSON.parse(readFileSync(join(dataDir, f), "utf8"));
 const write = (f, o) => writeFileSync(join(dataDir, f), JSON.stringify(o, null, 2) + "\n");
 const DATA_FILES = [

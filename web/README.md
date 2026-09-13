@@ -76,10 +76,13 @@ public/art/      # зеркало арта Dota (герои/команды/пр�
 
 | Команда | Что делает |
 |---|---|
-| `npm run test` | Vitest — unit/regression/golden (`web/test/`) |
+| `npm run test` | Vitest — unit/regression (`web/test/`) на датасете из `public/data`; golden на реальном датасете пропускаются |
+| `npm run test:mock` | Мок в `web/.mock-data` и тот же Vitest на нём, как в CI, вместе с golden |
 | `npm run test:e2e` | Playwright smoke — draft + tournament (`web/e2e/`) |
-| `npm run test:golden:update` | Обновить golden fixtures (нужен `gen:mock` перед этим) |
-| `npm run gen:mock` | Mock-baseline для тестов/golden (не коммитится; CI web-job делает сам) |
+| `npm run test:golden:update` | Перегенерировать мок и обновить golden fixtures |
+| `npm run gen:mock` | Мок-датасет в `web/.mock-data` (не коммитится); `-- --out <каталог>` пишет в другой каталог, CI web-job — в `public/data` для e2e |
+
+Тесты и sim-скрипты берут датасет из `AEGIS_DATA_DIR` (путь от `web/`), по умолчанию — закоммиченный `public/data`.
 
 Legacy `verify_*.ts` удалены — логика покрыта Vitest.
 
