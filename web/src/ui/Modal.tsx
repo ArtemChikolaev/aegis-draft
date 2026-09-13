@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { prefersReducedMotion } from "./motion.ts";
 import styles from "./Modal.module.css";
@@ -38,12 +38,14 @@ export function Modal({
   description?: ReactNode;
   /** Под шапкой (ссылка и т.п.) — тоже в липкой зоне у content. */
   subhead?: ReactNode;
+  /** Явный id заголовка. Без него id генерируется сам: у диалога всегда есть доступное имя. */
   labelledBy?: string;
   onClose: () => void;
   children: ModalChildren;
   layout?: "actions" | "content";
   /** `card` — компактный центрированный оверлей, визуально продолжающий выбранную карточку. */
   presentation?: "default" | "card";
+  /** Подпись крестика для скринридера — локализованная, её передаёт экран (`common.close`). */
   dismissLabel?: string;
 }) {
   const panelRef = useRef<HTMLElement | null>(null);
@@ -58,6 +60,10 @@ export function Modal({
   const [closing, setClosing] = useState(false);
   const [entered, setEntered] = useState(prefersReducedMotion());
   const isCard = presentation === "card";
+  // role="dialog" без доступного имени скринридер объявляет просто «диалог». Заголовок есть
+  // всегда (title обязателен), поэтому связываем с ним и тогда, когда экран не передал свой id.
+  const autoTitleId = useId();
+  const titleId = labelledBy ?? autoTitleId;
 
   const finishClose = useCallback(() => {
     if (closingRef.current) return;
@@ -323,7 +329,7 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         tabIndex={-1}
-        aria-labelledby={labelledBy}
+        aria-labelledby={titleId}
         style={panelStyle}
       >
         <header className={styles.head}>
@@ -339,7 +345,7 @@ export function Modal({
             </svg>
           </button>
           {mark && <span className={styles.mark} aria-hidden="true">{mark}</span>}
-          <h2 id={labelledBy}>{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           {description && <p className={styles.description}>{description}</p>}
           {subhead && <div className={styles.subhead}>{subhead}</div>}
         </header>

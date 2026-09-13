@@ -48,7 +48,7 @@ export function BuildCardInspector({ cardId, rarity, edition, charges = 0, activ
   const texts = cardTexts(cardId, t as Translate, rarity);
 
   return (
-    <Modal title={title} onClose={onClose} layout="content" presentation="card">
+    <Modal title={title} onClose={onClose} dismissLabel={t("common.close")} layout="content" presentation="card">
       <div className="build-card-inspector">
         <div className="build-card-inspector__head">
           {slug && <ItemIcon slug={slug} name={title} />}

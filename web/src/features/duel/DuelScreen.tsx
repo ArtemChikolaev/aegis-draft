@@ -183,7 +183,7 @@ export function DuelScreen() {
   );
 
   const exitModal = exitGate && (
-    <Modal title={t("duel.exitTitle")} description={t("duel.exitText")} onClose={() => setExitGate(false)}>
+    <Modal title={t("duel.exitTitle")} description={t("duel.exitText")} dismissLabel={t("common.close")} onClose={() => setExitGate(false)}>
       <Button variant="secondary" onClick={() => setExitGate(false)}>{t("duel.exitStay")}</Button>
       <Button variant="danger" data-testid="duel-exit-confirm" onClick={() => { leaveRoom(); setExitGate(false); }}>
         {t("duel.exitConfirm")}

@@ -37,7 +37,7 @@ export function TradeOverlay({ outgoingId, outgoingRarity, options, tradeCost, r
     t(`${itemDef(id) ? "item" : "tactic"}.${id}` as MessageKey);
 
   return (
-    <Modal title={t("camp.tradeTitle", { card: nameOf(outgoingId) })} onClose={onClose} layout="content" presentation="card">
+    <Modal title={t("camp.tradeTitle", { card: nameOf(outgoingId) })} onClose={onClose} dismissLabel={t("common.close")} layout="content" presentation="card">
       <div className="trade-overlay" data-testid="trade-overlay">
         <p className="trade-overlay__hint">{t("camp.tradeHint")}</p>
         {options.map((option) => {

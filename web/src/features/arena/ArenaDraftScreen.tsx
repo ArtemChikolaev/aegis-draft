@@ -272,7 +272,7 @@ export function ArenaDraftScreen() {
       </div>
 
       {leaveGate && (
-        <Modal title={t("arena.leaveDraftTitle")} description={t("arena.leaveDraftText")} onClose={() => setLeaveGate(false)}>
+        <Modal title={t("arena.leaveDraftTitle")} description={t("arena.leaveDraftText")} dismissLabel={t("common.close")} onClose={() => setLeaveGate(false)}>
           <Button variant="secondary" onClick={() => setLeaveGate(false)}>{t("duel.exitStay")}</Button>
           <Button variant="danger" data-testid="arena-draft-leave-confirm" onClick={() => { leaveRoom(); setLeaveGate(false); }}>
             {t("arena.leave")}
