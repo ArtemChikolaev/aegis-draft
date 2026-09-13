@@ -98,6 +98,9 @@ const PET_REARM = 12;
 const SUMMON_DPS = 3.2;
 const WARD_DPS = 4;
 
+/** Фаза прилива (T13.61): подъём / прилив / отлив и сколько тиков до смены. */
+type TidePhase = { phase: "low" | "warn" | "high"; left: number };
+
 function len(x: number, y: number): number {
   return Math.sqrt(x * x + y * y);
 }
@@ -287,6 +290,8 @@ export class ArcadeSim {
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
     for (const k of ABILITY_KEYS) this.slot[this.hero.abilities[k].kind] ??= k;
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
+    this.night = ARCADE.acts[this.act].night === true;
+    this.pit = ARCADE.acts[this.act].pit === true;
     this.trait = isTraitId(options.trait) ? TRAITS[options.trait] : null;
     this.composition = isCompositionId(options.composition) ? options.composition : compositionFor(seed, this.act);
     const L = options.legacy;
@@ -830,10 +835,9 @@ export class ArcadeSim {
     return !!this.barrow && !!this.necromancer?.alive && this.barrow.engaged;
   }
 
+  /** Живые идолы кургана за O(1): идол умирает только через killEnemy, который ведёт `barrow.idolsDown`. */
   idolsAlive(): number {
-    let n = 0;
-    for (const e of this.enemies) if (e.alive && e.kind.id === "bone_idol") n++;
-    return n;
+    return this.barrow ? ARCADE.necro.idols - this.barrow.idolsDown : 0;
   }
 
   private updateBarrowEngage(): void { this.updateEngage(this.barrow, this.necromancer?.alive === true, ARCADE.necro.wakeRadius, ARCADE.necro.engageRadius); }
@@ -1263,11 +1267,10 @@ export class ArcadeSim {
     return [cx + Math.cos(a) * ARCADE.camp.totemRing, cy + Math.sin(a) * ARCADE.camp.totemRing];
   }
 
-  /** Живые тотемы лагеря (для HUD/рендера). */
+  /** Живые тотемы лагеря (для HUD/рендера и щита Осквернителя). За O(1): тотем умирает только через killEnemy,
+   *  который ведёт `camp.destroyed` (разлом их не втягивает, пул живых не переиспользует). */
   totemsAlive(): number {
-    let n = 0;
-    for (const e of this.enemies) if (e.alive && e.kind.id === "corruption_totem") n++;
-    return n;
+    return this.camp ? this.camp.totems - this.camp.destroyed : 0;
   }
 
   /** Лагерь разбужен героем: охрана прибывает, Сатир гонит, HUD показывает счёт тотемов. Обновляется в spawnTick и при ударе по лагерю. */
@@ -1299,13 +1302,24 @@ export class ArcadeSim {
 
   // ---------- прилив (T13.61) ----------
 
-  /** Фаза прилива по часам акта (чистая функция — состояние не нужно). Вне River всегда отлив. */
-  tidePhase(): { phase: "low" | "warn" | "high"; left: number } {
+  /** Кэш фазы прилива: течение спрашивают дважды на врага за тик (inCurrent + riverHalfWidth), а фаза — функция
+   *  только от часов акта. Объект новый на каждое значение часов и не мутируется: держать ссылку безопасно. */
+  private tideAt = -1;
+  private tide: TidePhase = { phase: "low", left: 0 };
+
+  /** Фаза прилива по часам акта. Вне River всегда отлив. */
+  tidePhase(): TidePhase {
+    const at = this.actTick;
+    if (at !== this.tideAt) { this.tideAt = at; this.tide = this.computeTide(at); }
+    return this.tide;
+  }
+
+  private computeTide(at: number): TidePhase {
     const T = ARCADE.tide;
-    if (!this.pit || this.actTick < T.firstAt) return { phase: "low", left: this.pit ? T.firstAt - this.actTick : 0 };
+    if (!this.pit || at < T.firstAt) return { phase: "low", left: this.pit ? T.firstAt - at : 0 };
     const low = sec(T.lowSec), warn = sec(T.warnSec), high = sec(T.highSec), period = low + warn + high;
     // Цикл начинается с подъёма: первый прилив тоже телеграфирован.
-    const t = (this.actTick - T.firstAt) % period;
+    const t = (at - T.firstAt) % period;
     if (t < warn) return { phase: "warn", left: warn - t };
     if (t < warn + high) return { phase: "high", left: warn + high - t };
     return { phase: "low", left: period - t };
@@ -1324,15 +1338,11 @@ export class ArcadeSim {
     return len(x - ARCADE.pit.x, y - ARCADE.pit.y) > ARCADE.pit.radius;
   }
 
-  /** Ночной акт: рендер ограничивает обзор, сим — нет (враги идут как обычно). */
-  get night(): boolean {
-    return ARCADE.acts[this.act].night === true;
-  }
+  /** Ночной акт: рендер ограничивает обзор, сим — нет (враги идут как обычно). Акт неизменен — поле из конструктора. */
+  readonly night: boolean;
 
-  /** Акт 3: яма Рошана и река. */
-  get pit(): boolean {
-    return ARCADE.acts[this.act].pit === true;
-  }
+  /** Акт 3: яма Рошана и река. Читается в течении на каждого врага — поле из конструктора, а не геттер. */
+  readonly pit: boolean;
 
   /** Игрок внутри ямы (акт 3) — только тогда Рошан преследует и обычный спавн стоит. */
   playerInPit(): boolean {
@@ -4132,25 +4142,27 @@ export class ArcadeSim {
     return best;
   }
 
+  // Запросы по врагам: сначала дистанция, потом isDormant — он чистый, но дороже сравнения, а в радиус
+  // попадает малая доля врагов. Результат тот же, порядок обхода тот же.
   nearestEnemy(x: number, y: number, radius: number): Enemy | null {
     let best: Enemy | null = null, bestD = radius;
     for (const e of this.enemies) {
-      if (!e.alive || this.isDormant(e)) continue;
+      if (!e.alive) continue;
       const d = len(e.x - x, e.y - y) - e.kind.r;
-      if (d < bestD) { bestD = d; best = e; }
+      if (d < bestD && !this.isDormant(e)) { bestD = d; best = e; }
     }
     return best;
   }
 
   enemiesWithin(x: number, y: number, radius: number): Enemy[] {
     const out: Enemy[] = [];
-    for (const e of this.enemies) if (e.alive && !this.isDormant(e) && len(e.x - x, e.y - y) <= radius + e.kind.r) out.push(e);
+    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && !this.isDormant(e)) out.push(e);
     return out;
   }
 
   countEnemiesWithin(x: number, y: number, radius: number): number {
     let n = 0;
-    for (const e of this.enemies) if (e.alive && !this.isDormant(e) && len(e.x - x, e.y - y) <= radius + e.kind.r) n++;
+    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && !this.isDormant(e)) n++;
     return n;
   }
 
