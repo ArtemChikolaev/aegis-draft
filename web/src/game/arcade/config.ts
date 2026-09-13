@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.69.0";
+export const ARCADE_CONFIG_VERSION = "a0.70.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -289,14 +289,18 @@ export const ARCADE = {
   neutral: { lifetime: sec(60), distMin: 200, distMax: 300 },
   /** Экипировка (T13.14): сундуки с 1:00 каждые 150 с (живут 60 с); шанс дропа с обычного врага мал,
    *  элита и боссы роняют всегда; тир по минуте (7/14); сумка забега — 12. */
-  loot: { chestFirstAt: sec(60), chestEvery: sec(150), chestLifetime: sec(60), distMin: 220, distMax: 320, commonChance: 0.004, bagCap: 12, lootLifetime: sec(90), tier2At: sec(7 * 60), tier3At: sec(14 * 60) },
+  loot: { chestFirstAt: sec(60), chestEvery: sec(150), chestLifetime: sec(90), distMin: 220, distMax: 320, commonChance: 0.004, bagCap: 12, lootLifetime: sec(90), tier2At: sec(7 * 60), tier3At: sec(14 * 60) },
   /** Bounty-руны: каждые 3 минуты, золото растёт с минутой. */
   bounty: {
     every: sec(3 * 60),
-    lifetime: sec(40),
+    lifetime: sec(60),
     base: 30,
     perMin: 6,
   },
+  /** События на карте (T13.86, владелец 2026-09-13: «подошёл к сундуку, начал бить мобов — через 3 с его не стало»):
+   *  таймер bounty/сундука/руны/токена замирает, пока герой в `holdRadius` от события («пришёл — твоё»), а при
+   *  приходе остаток поднимается хотя бы до `holdMin` — успеть добить охрану. Сроки жизни: сундук 60 → 90 с, bounty 40 → 60 с. */
+  events: { holdRadius: 220, holdMin: sec(20) },
   /** Авто-каст (общий для видов способностей): порог врагов в радиусе и HP. */
   autoCast: { aoeEnemies: 3, healHpPct: 0.6, ultEnemies: 8, ultHpPct: 0.32 },
   boss: {

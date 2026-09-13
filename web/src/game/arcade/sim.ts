@@ -660,7 +660,7 @@ export class ArcadeSim {
     if (cv && cv.state === "moving") out.push({ kind: "caravan", x: cv.x, y: cv.y, label: "$", committed: true });
     const optional: Invitation[] = [];
     if (cv && cv.state === "waiting") optional.push({ kind: "caravan", x: cv.x, y: cv.y, label: "$", committed: false });
-    if (this.shopkeeper.alive) optional.push({ kind: "shop", x: this.shopkeeper.x, y: this.shopkeeper.y, label: "$", committed: false });
+    if (this.shopkeeper.alive) optional.push({ kind: "shop", x: this.shopkeeper.x, y: this.shopkeeper.y, label: "$", committed: false, until: this.shopkeeper.until, life: ARCADE.shop.lifetime });
     if (this.pond && !this.pond.used && this.player.curse) optional.push({ kind: "pond", x: this.pond.x, y: this.pond.y, label: "✚", committed: false });
     if (camp && !camp.cleared && !camp.engaged) optional.push({ kind: "camp", x: camp.x, y: camp.y, label: String(this.totemsAlive()), committed: false });
     if (o && !o.captured && o.progress === 0) optional.push({ kind: "outpost", x: o.x, y: o.y, label: "", committed: false });
@@ -673,10 +673,10 @@ export class ArcadeSim {
       if (this.grove && this.centaur?.alive) optional.push({ kind: "grove", x: this.grove.x, y: this.grove.y, label: "", committed: false });
       if (this.barrow && this.necromancer?.alive) optional.push({ kind: "barrow", x: this.barrow.x, y: this.barrow.y, label: String(this.idolsAlive()), committed: false });
       if (this.pond && !this.pond.used && !this.player.curse) optional.push({ kind: "pond", x: this.pond.x, y: this.pond.y, label: "", committed: false });
-      if (this.bounty.alive) optional.push({ kind: "bounty", x: this.bounty.x, y: this.bounty.y, label: "$", committed: false });
-      if (this.rune.alive) optional.push({ kind: "rune", x: this.rune.x, y: this.rune.y, label: "", committed: false });
-      if (this.chest.alive) optional.push({ kind: "chest", x: this.chest.x, y: this.chest.y, label: "", committed: false });
-      if (this.neutralToken.alive) optional.push({ kind: "token", x: this.neutralToken.x, y: this.neutralToken.y, label: `T${this.neutralToken.value}`, committed: false });
+      if (this.bounty.alive) optional.push({ kind: "bounty", x: this.bounty.x, y: this.bounty.y, label: "$", committed: false, until: this.bounty.until, life: ARCADE.bounty.lifetime });
+      if (this.rune.alive) optional.push({ kind: "rune", x: this.rune.x, y: this.rune.y, label: "", committed: false, until: this.rune.until, life: ARCADE.rune.lifetime });
+      if (this.chest.alive) optional.push({ kind: "chest", x: this.chest.x, y: this.chest.y, label: "", committed: false, until: this.chest.until, life: ARCADE.loot.chestLifetime });
+      if (this.neutralToken.alive) optional.push({ kind: "token", x: this.neutralToken.x, y: this.neutralToken.y, label: `T${this.neutralToken.value}`, committed: false, until: this.neutralToken.until, life: ARCADE.neutral.lifetime });
       if (this.shrine.alive) optional.push({ kind: "shrine", x: this.shrine.x, y: this.shrine.y, label: "", committed: false });
       return [...out, ...optional];
     }
@@ -2805,6 +2805,7 @@ export class ArcadeSim {
       const [bx, by] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.bounty = { alive: true, x: bx, y: by, until: this.tick + ARCADE.bounty.lifetime, value: Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * min) };
     }
+    this.holdEvent(this.bounty);
     if (this.bounty.alive && this.tick >= this.bounty.until) this.bounty.alive = false;
     // Руны: раз в две минуты, вид — по сиду, у реки (акт с рекой) или на кольце вокруг героя.
     if (this.tick >= this.nextRuneAt) {
@@ -2813,6 +2814,7 @@ export class ArcadeSim {
       this.runeKind = RUNE_KINDS[this.rng.int(RUNE_KINDS.length)];
       this.rune = { alive: true, x: rx, y: ry, until: this.tick + ARCADE.rune.lifetime, value: 0 };
     }
+    this.holdEvent(this.rune);
     if (this.rune.alive && this.tick >= this.rune.until) this.rune.alive = false;
     // Нейтральный токен по тирам-минутам.
     if (this.neutralIdx < NEUTRAL_TIER_AT_MIN.length && min >= NEUTRAL_TIER_AT_MIN[this.neutralIdx] && !this.neutralToken.alive) {
@@ -2820,6 +2822,7 @@ export class ArcadeSim {
       const [nx, ny] = this.ringPoint(ARCADE.neutral.distMin, ARCADE.neutral.distMax);
       this.neutralToken = { alive: true, x: nx, y: ny, until: this.tick + ARCADE.neutral.lifetime, value: this.neutralIdx };
     }
+    this.holdEvent(this.neutralToken);
     if (this.neutralToken.alive && this.tick >= this.neutralToken.until) this.neutralToken.alive = false;
     // Сундук с экипировкой.
     if (this.tick >= this.nextChestAt && !this.chest.alive) {
@@ -2829,9 +2832,18 @@ export class ArcadeSim {
       const cursed = this.chestNo++ > 0 && !!this.pond && !this.pond.used && !this.player.curse && this.rng.float() < ARCADE.curse.chestChance;
       this.chest = { alive: true, x: cx, y: cy, until: this.tick + ARCADE.loot.chestLifetime, value: cursed ? 1 : 0 };
     }
+    this.holdEvent(this.chest);
     if (this.chest.alive && this.tick >= this.chest.until) this.chest.alive = false;
     for (const g of this.groundLoot) if (this.tick >= g.until) g.until = -1;
     if (this.groundLoot.length && this.tick % 60 === 0) this.groundLoot = this.groundLoot.filter((g) => g.until > 0);
+  }
+
+  /** «Пришёл — твоё» (T13.86): герой в `events.holdRadius` от события — его таймер замирает, а остаток не меньше `holdMin`. */
+  private holdEvent(e: { alive: boolean; x: number; y: number; until: number }): void {
+    if (!e.alive) return;
+    const dx = e.x - this.player.x, dy = e.y - this.player.y;
+    if (dx * dx + dy * dy > ARCADE.events.holdRadius * ARCADE.events.holdRadius) return;
+    e.until = Math.max(e.until + 1, this.tick + ARCADE.events.holdMin);
   }
 
   /** Акт 3: точка в русле реки недалеко от игрока по X (руны живут в реке, как в Dota). */

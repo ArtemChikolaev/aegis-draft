@@ -295,7 +295,86 @@ export class ArcadeRenderer {
       m.globalAlpha = 1; m.restore();
     }
     this.drawMarkers(sim, pal, now, camX, camY);
+    this.drawLootPointers(sim, pal, now, camX, camY);
+    this.drawMinimap(sim, pal, now, camX, camY);
     if (joystick) this.drawJoystick(joystick, pal);
+  }
+
+  /** Редкий лут на земле вне экрана (T13.84, владелец: «если падают красные предметы — с какой стороны»): стрелка у края
+   *  в цвете редкости с дугой остатка (лут лежит `loot.lootLifetime` и пропадает молча). Обычные предметы не зовут. */
+  private drawLootPointers(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
+    for (const g of sim.groundLoot) {
+      if (g.until <= 0 || g.item.rarity === "standard") continue;
+      const color = g.item.rarity === "arcana" ? pal.arcana : g.item.rarity === "exotic" ? pal.exotic : pal.refined;
+      const frac = Math.max(0, Math.min(1, (g.until - sim.tick) / ARCADE.loot.lootLifetime));
+      this.drawEdgeMarker(g.x - camX, g.y - camY, color, "◆", pal, now, frac);
+    }
+  }
+
+  /** Миникарта (T13.84): правый нижний угол — арена, окно камеры, герой, места (цвет приглашения), события с таймером,
+   *  элиты и боссы, редкий лут. Рисуется поверх мира из того же сима, в сим не идёт. На узком экране поднята над
+   *  строкой умений. */
+  private drawMinimap(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
+    const m = this.mainCtx;
+    const size = Math.round(Math.max(104, Math.min(150, this.w * 0.16)));
+    const pad = 14;
+    const x0 = this.w - pad - size, y0 = this.h - pad - size - (this.w < 720 ? 84 : 0);
+    const k = size / Math.max(ARCADE.world.w, ARCADE.world.h);
+    const X = (wx: number) => x0 + wx * k, Y = (wy: number) => y0 + wy * k;
+    const pulse = 0.5 + 0.5 * Math.sin(now / 240);
+    m.save();
+    m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    m.globalAlpha = 0.72; m.fillStyle = pal.groundNight;
+    m.beginPath(); m.roundRect(x0 - 3, y0 - 3, size + 6, size + 6, 6); m.fill();
+    m.globalAlpha = 0.9; m.strokeStyle = pal.bounds; m.lineWidth = 1;
+    m.strokeRect(x0 + 0.5, y0 + 0.5, size - 1, size - 1);
+    // Река и яма Рошана (акт с рекой) — полоса и точка.
+    if (sim.pit) {
+      m.globalAlpha = 0.5; m.fillStyle = pal.river;
+      m.fillRect(x0, Y(ARCADE.river.y - ARCADE.river.halfWidth), size, Math.max(2, ARCADE.river.halfWidth * 2 * k));
+    }
+    // Окно камеры.
+    m.globalAlpha = 0.35; m.strokeStyle = pal.text;
+    m.strokeRect(X(camX), Y(camY), this.w * k, this.h * k);
+    const dot = (wx: number, wy: number, r: number, color: string, alpha = 1) => { m.globalAlpha = alpha; m.fillStyle = color; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.fill(); };
+    const ring = (wx: number, wy: number, r: number, color: string) => { m.globalAlpha = 0.9; m.strokeStyle = color; m.lineWidth = 1.5; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.stroke(); };
+    // Места: сделанные — тусклее.
+    const c = sim.camp, o = sim.outpost;
+    if (c) dot(c.x, c.y, 3, pal.venom, c.cleared ? 0.35 : 1);
+    if (o) dot(o.x, o.y, 3, pal.aegis, o.captured ? 0.35 : 1);
+    if (sim.pond) dot(sim.pond.x, sim.pond.y, 3, pal.frost, sim.pond.used ? 0.35 : 1);
+    if (sim.grove) dot(sim.grove.x, sim.grove.y, 3, pal.crit, sim.centaur?.alive ? 1 : 0.35);
+    if (sim.barrow) dot(sim.barrow.x, sim.barrow.y, 3, pal.lightning, sim.necromancer?.alive ? 1 : 0.35);
+    if (sim.lair) dot(sim.lair.x, sim.lair.y, 3, pal.lightning, sim.thunder?.alive ? 1 : 0.35);
+    if (sim.ford) dot(sim.ford.x, sim.ford.y, 3, pal.river, sim.warden?.alive ? 1 : 0.35);
+    if (sim.den) dot(sim.den.x, sim.den.y, 3, pal.crit, sim.stalker?.alive ? 1 : 0.35);
+    if (sim.forge) dot(sim.forge.x, sim.forge.y, 3, pal.ember, sim.forge.used ? 0.35 : 1);
+    if (sim.rift) dot(sim.rift.x, sim.rift.y, 3, pal.aegis, sim.riftReady() ? 1 : 0.5);
+    if (sim.caravan && sim.caravan.state !== "hidden" && sim.caravan.state !== "gone") dot(sim.caravan.x, sim.caravan.y, 3, pal.shop);
+    // События с таймером — кольцо пульсирует.
+    if (sim.shopkeeper.alive) ring(sim.shopkeeper.x, sim.shopkeeper.y, 3 + pulse, pal.shop);
+    if (sim.bounty.alive) ring(sim.bounty.x, sim.bounty.y, 3 + pulse, pal.bounty);
+    if (sim.rune.alive) ring(sim.rune.x, sim.rune.y, 3 + pulse, runeColor(pal, sim.runeKind));
+    if (sim.chest.alive) ring(sim.chest.x, sim.chest.y, 3 + pulse, sim.chest.value === 1 ? pal.venom : pal.aegis);
+    if (sim.neutralToken.alive) ring(sim.neutralToken.x, sim.neutralToken.y, 3 + pulse, pal.text);
+    if (sim.shrine.alive) ring(sim.shrine.x, sim.shrine.y, 3 + pulse, pal.greed);
+    // Редкий лут — ромб цвета редкости.
+    for (const g of sim.groundLoot) {
+      if (g.until <= 0 || g.item.rarity === "standard") continue;
+      const color = g.item.rarity === "arcana" ? pal.arcana : g.item.rarity === "exotic" ? pal.exotic : pal.refined;
+      m.globalAlpha = 1; m.fillStyle = color;
+      m.beginPath(); m.moveTo(X(g.x), Y(g.y) - 4); m.lineTo(X(g.x) + 4, Y(g.y)); m.lineTo(X(g.x), Y(g.y) + 4); m.lineTo(X(g.x) - 4, Y(g.y)); m.closePath(); m.fill();
+    }
+    // Элиты и боссы; охотник Dire.
+    for (const e of sim.enemies) {
+      if (!e.alive || !(e.kind.elite || e.kind.boss)) continue;
+      dot(e.x, e.y, e.kind.boss ? 3 : 2, e.kind.boss ? pal.boss : pal.elite);
+    }
+    if (sim.hunter?.alive) dot(sim.hunter.x, sim.hunter.y, 2.5, pal.telegraph);
+    // Герой.
+    dot(sim.player.x, sim.player.y, 3.5 + pulse, pal.playerRing, 0.5);
+    dot(sim.player.x, sim.player.y, 2.5, pal.player);
+    m.restore();
   }
 
   private drawGround(sim: ArcadeSim, camX: number, camY: number, pal: Palette): void {
@@ -476,10 +555,14 @@ export class ArcadeRenderer {
    */
   /** Маркеры у края: состав и лимит решает сим (`invitations`, T13.60), здесь — только цвет по виду. */
   private drawMarkers(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
-    for (const inv of sim.invitations()) this.drawEdgeMarker(inv.x - camX, inv.y - camY, inv.kind === "rune" ? runeColor(pal, sim.runeKind) : pal[MARKER_TONE[inv.kind]], inv.label, pal, now);
+    for (const inv of sim.invitations()) {
+      // Остаток таймера события (T13.86): дуга вокруг стрелки, чтобы решать, бежать ли.
+      const frac = inv.until !== undefined && inv.life ? Math.max(0, Math.min(1, (inv.until - sim.tick) / inv.life)) : undefined;
+      this.drawEdgeMarker(inv.x - camX, inv.y - camY, inv.kind === "rune" ? runeColor(pal, sim.runeKind) : pal[MARKER_TONE[inv.kind]], inv.label, pal, now, frac);
+    }
   }
 
-  private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number): void {
+  private drawEdgeMarker(sx: number, sy: number, color: string, label: string, pal: Palette, now: number, frac?: number): void {
     const pad = 26;
     if (sx >= pad && sx <= this.w - pad && sy >= pad && sy <= this.h - pad) return;
     const m = this.mainCtx;
@@ -495,11 +578,24 @@ export class ArcadeRenderer {
     m.fillStyle = color; m.globalAlpha = 0.6 + 0.4 * pulse;
     m.beginPath(); m.moveTo(10, 0); m.lineTo(-6, -7); m.lineTo(-3, 0); m.lineTo(-6, 7); m.closePath(); m.fill();
     m.rotate(-a);
+    if (frac !== undefined) {
+      m.globalAlpha = 0.9; m.strokeStyle = color; m.lineWidth = 2;
+      m.beginPath(); m.arc(-Math.cos(a) * 18, -Math.sin(a) * 18, 11, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); m.stroke();
+    }
     if (label) {
       m.fillStyle = pal.text; m.font = this.font(800, 11); m.textAlign = "center"; m.textBaseline = "middle";
       m.fillText(label, -Math.cos(a) * 18, -Math.sin(a) * 18);
     }
     m.restore();
+  }
+
+  /** Дуга остатка таймера события в мире (T13.86): полный круг — только появилось, пустеет по часовой. */
+  private timerArc(c: CanvasRenderingContext2D, x: number, y: number, r: number, until: number, life: number, tick: number, color: string): void {
+    const frac = Math.max(0, Math.min(1, (until - tick) / life));
+    c.save();
+    c.strokeStyle = color; c.globalAlpha = 0.85; c.lineWidth = 2;
+    c.beginPath(); c.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * frac); c.stroke();
+    c.restore();
   }
 
   /** Охотник Dire (T13.55): метка засады — кольцо и перекрестие наливаются к прыжку; поверх всего, чтобы читаться ночью. */
@@ -743,6 +839,7 @@ export class ArcadeRenderer {
       c.beginPath(); c.arc(b.x, b.y, 12 + pulse * 2, 0, Math.PI * 2); c.fill();
       c.fillStyle = pal.player; c.font = this.font(800, 12); c.textAlign = "center";
       this.text(c, "$", b.x, b.y + 4);
+      this.timerArc(c, b.x, b.y, 18, b.until, ARCADE.bounty.lifetime, sim.tick, pal.bounty);
     }
     if (sim.rune.alive) {
       // Руна — модель Dota (`rune_<вид>`); пока лист не загружен — кружок цвета руны с буквой.
@@ -782,6 +879,8 @@ export class ArcadeRenderer {
       const cursed = sim.chest.value === 1;
       c.strokeStyle = cursed ? pal.venom : pal.aegis; c.globalAlpha = 0.35 + 0.35 * pulse; c.lineWidth = 2;
       c.beginPath(); c.ellipse(x, y + 10, 30 + pulse * 4, 12, 0, 0, Math.PI * 2); c.stroke();
+      c.globalAlpha = 1;
+      this.timerArc(c, x + 26, y - 26, 8, sim.chest.until, ARCADE.loot.chestLifetime, sim.tick, cursed ? pal.venom : pal.aegis);
       if (cursed) {
         c.fillStyle = pal.venomDark; c.globalAlpha = 0.3 + 0.2 * pulse;
         c.beginPath(); c.ellipse(x, y + 10, 26, 10, 0, 0, Math.PI * 2); c.fill();

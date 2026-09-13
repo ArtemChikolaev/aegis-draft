@@ -30,7 +30,7 @@ describe("композиции акта", () => {
     const wilds = new ArcadeSim("comp-1", { act: "full", composition: "wilds" });
     expect(wilds.composition).toBe("wilds");
     expect(wilds.camp && wilds.grove && wilds.barrow && wilds.lair && wilds.pond && wilds.outpost).toBeTruthy();
-    expect(wilds.forge).toBeNull(); expect(wilds.rift).toBeNull(); expect(wilds.caravan).toBeNull();
+    expect(wilds.forge).toBeNull(); expect(wilds.rift).not.toBeNull(); expect(wilds.caravan).toBeNull();
     const trade = new ArcadeSim("comp-1", { act: "full", composition: "trade" });
     expect(trade.forge && trade.rift && trade.caravan && trade.grove && trade.lair && trade.pond).toBeTruthy();
     expect(trade.camp).toBeNull(); expect(trade.barrow).toBeNull();
@@ -97,7 +97,7 @@ describe("композиции акта", () => {
     const sim = new ArcadeSim("siege-1", { act: "short", composition: "siege" });
     expect(sim.actProperty()).toBe("siege");
     expect(sim.camp && sim.grove && sim.lair && sim.forge && sim.pond && sim.outpost).toBeTruthy();
-    expect(sim.caravan).toBeNull(); expect(sim.rift).toBeNull(); expect(sim.barrow).toBeNull();
+    expect(sim.caravan).toBeNull(); expect(sim.rift).not.toBeNull(); expect(sim.barrow).toBeNull();
     step(sim, S.firstAt + 5);
     const bearers = sim.enemies.filter((e) => e.alive && e.kind.id === "standard_bearer");
     expect(bearers).toHaveLength(1);
