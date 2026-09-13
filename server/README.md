@@ -5,7 +5,8 @@
 ## Стек (T8.0)
 - **Router:** `chi` (поверх stdlib `net/http`).
 - **БД:** Postgres, запросы через `sqlc`, миграции `goose` (T8.2 — `users`/`identities`).
-- **Auth:** Steam OpenID, **опционально** — анонимная игра работает без логина (local-first), вход только для синхронизации/лидерборда (с T8.3).
+- **Auth:** Telegram Mini App initData → сессионный JWT (T8.3/T9.8), **опционально** — анонимная игра работает без логина (local-first), вход нужен только для облачных сейвов/лидерборда. Другие провайдеры ADR 0002 (Google/Apple/Steam) — позже тем же путём.
+- **Комнаты Arena/Дуэли:** in-memory `service.RoomManager` + ws-relay `coder/websocket` (см. раздел ниже), БД не нужна.
 
 ## Слои (`internal/`, не пробивать)
 ```
@@ -62,6 +63,14 @@ cd server && "$(go env GOPATH)/bin/sqlc" generate        # → internal/store/sq
 - `GET /api/saves/{kind}` → `{kind, payload, rev, schemaVersion, ratingModelVersion, updatedAt}` или 404. `kind` ∈ `run`/`career`.
 - `PUT /api/saves/{kind}` `{payload, baseRev, schemaVersion, ratingModelVersion}` → тот же объект с новым `rev`.
 - **Конфликт версий → 409** с телом `{error, current}`: `baseRev` не совпал с серверным (два устройства) — клиент мёржит по `current` и повторяет. CAS реализован одним `INSERT … ON CONFLICT … WHERE rev = base_rev` ([store/saves.go](internal/store/saves.go)).
+
+## Комнаты Arena и Дуэль (MP0, ws-relay)
+Лобби живут в памяти процесса (`service.RoomManager`): рестарт сервера теряет комнаты — принятая цена, игровое состояние забега здесь не живёт. БД и auth не нужны, маршруты включены всегда.
+
+- `POST /api/rooms` → `{code}` — пустое лобби; версии датасета/баланса пинит первый вход.
+- `GET /api/ws/rooms/{code}` — ws-сессия (протокол v1 `{v,type,payload}`): `hello {name, token?, versions}` → `welcome` лично, реплей `relay_log`, `presence` всем; дальше `ping`/`pong`, `relay` (сервер штампует `seq` и отправителя, payload не понимает), `leave`.
+- Reconnect по токену заменяет участника, а не добавляет второго; обрыв помечает участника `disconnected` (и когда hub выбрасывает клиента за переполненный outbox). Janitor удаляет комнаты, где все офлайн дольше часа. Вместимость — 18.
+- Из-за памяти процесса на Fly держим одну машину (см. ниже).
 
 ## Публичный деплой (Fly.io, T9.0)
 Один контейнер, без k8s (ADR 0002). Конфиг — [`fly.toml`](fly.toml) рядом; Fly собирает наш `Dockerfile` напрямую. Игровые данные тут НЕ живут — они static-first на GitHub Pages.

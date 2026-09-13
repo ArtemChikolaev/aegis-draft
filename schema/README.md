@@ -25,18 +25,23 @@
 | `playerHeroStats.json` | object | `accountId` → `heroId` → {games, winrate} (pro window) | `playerHeroStats.schema.json` |
 | `careerPlayerHeroStats.json` | object | Pro tier-1 all-time player×hero (Hero Synergy) | `careerPlayerHeroStats.schema.json` |
 | `teammates.json` | object | `accountId` → [accountId] | `teammates.schema.json` |
-| `squadSynergy.json` | array | Сыгранность пар | `squadSynergy.schema.json` |
+| `squadSynergy.json` | array | Сыгранность пар: пайплайн эмитит только пары, схема допускает `ids` до 5 | `squadSynergy.schema.json` |
 | `eventHeroStats.json` | object | `eventId` → `accountId` → `heroId` → {games, winrate} | `eventHeroStats.schema.json` |
 | `teamSuccess.json` | object | Успех команд по окнам для Mixed Draft; сырой `games+winrate` и производный score | `teamSuccess.schema.json` |
 
-> `players.json` — новый справочник (в оригинале профиль игрока был размазан по пакам). Нужен для Mixed Draft (собрать кандидатов из разных команд) и для дедупликации id.
+> `players.json` — справочник (в оригинале профиль игрока был размазан по пакам): ростер-история и роли игрока, дедупликация id.
+
+### Reserved-поля (схема есть, Go-пайплайн не выдаёт)
+
+Ждут Liquipedia (placements/призовые/патчи) или отдельной модели; клиент обязан жить без них:
+`events[].short`, `events[].patch`, `events[].prizePool`, `packs[].placement`, `players[].peak`, `players[].teams[].from/to`, `teamSuccess[].titles/topFinishes/prizeUsd/tiPlacement`.
 
 ## Как режимы потребляют данные
 
-- **Team Packs (Classic):** пул паков фильтруется по `manifest.formats` (окно/legacy) → `packs.json`. Рейтинг игрока — из пака (`ovr` при Event) или пиковое окно (Peak).
-- **Mixed Draft:** кандидаты собираются из `players.json` (по роли, из разных команд в окне); рейтинг — из `teamSuccess.json` за окно × индивидуальная поправка.
+- **Team Packs (Classic):** пул строится по `packs[].formats` (гейт присутствия команды; у́же `events[].formats`, проверка на клиенте — `packInFormat` в `game/packs.ts`). Рейтинг игрока — `ovr` из пака (форма на этом событии).
+- **Mixed Draft:** кандидаты — игроки паков того же пула, пятёрка из пяти разных команд (`mixedPack`); base — `teamSuccess.json` команды за окно × ограниченная индивидуальная поправка (`game/teamSuccess.ts`).
 - **Hero Synergy:** `careerPlayerHeroStats` (pro all-time) или `eventHeroStats` (event-scoped). `playerHeroStats` — pro window.
-- **Chemistry:** `squadSynergy` + `teammates`.
+- **Chemistry:** пары `squadSynergy` (+ `teammates` для UI).
 
 ## Идентификаторы
 
@@ -44,8 +49,8 @@
 |---|---|
 | Игрок | `accountId` (int, OpenDota account_id) |
 | Герой | `id` (int, Valve hero_id) |
-| Событие | `id` (string, напр. `ti2024`, `esl-birmingham-2024`) |
-| Команда | `teamId` (int, OpenDota/Liquipedia team id) |
+| Событие | `id` (string, `league-<leagueId>` OpenDota, напр. `league-16935`) |
+| Команда | `teamId` (int, OpenDota team_id) |
 | Пак | `id` (string, `{eventId}-{teamId}`) |
 
 ## Роли
