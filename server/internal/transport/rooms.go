@@ -35,6 +35,8 @@ const protocolVersion = 1
 const (
 	helloDeadline = 10 * time.Second // не прислал hello — соединение не занимает слот
 	readDeadline  = 75 * time.Second // клиент пингует каждые ~25с; 3 пропуска = обрыв
+	writeDeadline = 5 * time.Second  // одна запись в сокет; зависший клиент не держит писателя
+	outboxSize    = 32
 )
 
 // wsMessage — конверт протокола. Payload разбирается по type.
@@ -97,23 +99,27 @@ type roomHub struct {
 }
 
 // wsPeer — одно живое соединение участника. Outbox закрывает ТОЛЬКО владелец (читатель сессии),
-// hub лишь сигналит `dropped`: читатель шлёт в outbox pong, а send в закрытый другим канал —
-// паника, от которой select/default не защищает.
+// hub лишь отменяет ctx: читатель шлёт в outbox pong, а send в закрытый другим канал — паника,
+// от которой select/default не защищает. Отмена ctx прерывает и зависшую запись писателя
+// (coder/websocket закрывает сокет по отмене контекста записи), так что выброшенный клиент
+// освобождает сессию сразу, а не по таймауту записи.
 type wsPeer struct {
-	outbox  chan wsMessage
-	dropped chan struct{}
-	once    sync.Once
+	outbox chan wsMessage
+	ctx    context.Context
+	cancel context.CancelFunc
+	// replaced — сокет вытеснен reconnect'ом того же токена. Пишется и читается под roomHub.mu.
+	replaced bool
 }
 
 // drop просит писателя завершиться (идемпотентно: hub и reconnect могут сойтись на одном сокете).
-func (p *wsPeer) drop() { p.once.Do(func() { close(p.dropped) }) }
+func (p *wsPeer) drop() { p.cancel() }
 
 func newRoomHub() *roomHub {
 	return &roomHub{rooms: make(map[string]map[string]*wsPeer)}
 }
 
-// attach регистрирует сокет участника. Прежний сокет того же токена закрывается: reconnect
-// не плодит призраков и на транспортном уровне тоже (DoD MP0).
+// attach регистрирует сокет участника. Прежний сокет того же токена помечается вытесненным:
+// reconnect не плодит призраков и на транспортном уровне тоже (DoD MP0).
 func (h *roomHub) attach(code, token string) (peer *wsPeer, replaced *wsPeer) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -121,28 +127,44 @@ func (h *roomHub) attach(code, token string) (peer *wsPeer, replaced *wsPeer) {
 		h.rooms[code] = make(map[string]*wsPeer)
 	}
 	replaced = h.rooms[code][token]
-	peer = &wsPeer{outbox: make(chan wsMessage, 32), dropped: make(chan struct{})}
+	if replaced != nil {
+		replaced.replaced = true
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	peer = &wsPeer{outbox: make(chan wsMessage, outboxSize), ctx: ctx, cancel: cancel}
 	h.rooms[code][token] = peer
 	return peer, replaced
 }
 
-// detach снимает сокет, если он всё ещё текущий (reconnect мог уже заменить его новым).
+// detach снимает сокет с hub и сообщает, была ли эта сессия у участника последней. false —
+// сокет вытеснен reconnect'ом (или слот уже занят новым сокетом): участник живёт в новой сессии,
+// трогать его нельзя. true — сокет снят сейчас или раньше выброшен broadcast'ом за переполненный
+// outbox: участника нужно отпустить, иначе он навсегда Connected и PruneRooms не удалит комнату.
 func (h *roomHub) detach(code, token string, peer *wsPeer) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	current, ok := h.rooms[code][token]
-	if !ok || current != peer {
+	switch {
+	case ok && current == peer:
+		h.removeLocked(code, token)
+		return true
+	case ok:
 		return false
+	default:
+		return !peer.replaced
 	}
+}
+
+// removeLocked снимает слот и чистит опустевшую комнату. Вызывать под h.mu.
+func (h *roomHub) removeLocked(code, token string) {
 	delete(h.rooms[code], token)
 	if len(h.rooms[code]) == 0 {
 		delete(h.rooms, code)
 	}
-	return true
 }
 
 // broadcast шлёт сообщение всем живым сокетам комнаты. Забитый outbox выбрасывается из hub и
-// получает сигнал drop: висящий клиент не должен тормозить остальных, а его канал закроет владелец.
+// получает drop: висящий клиент не должен тормозить остальных, а его канал закроет владелец.
 func (h *roomHub) broadcast(code string, msg wsMessage) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
@@ -150,7 +172,7 @@ func (h *roomHub) broadcast(code string, msg wsMessage) {
 		select {
 		case peer.outbox <- msg:
 		default:
-			delete(h.rooms[code], token)
+			h.removeLocked(code, token)
 			peer.drop()
 		}
 	}
@@ -188,27 +210,36 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	token := joined.Token
+	memberID, memberName := joined.Member.ID, joined.Member.Name
 
 	peer, replaced := s.roomHub.attach(code, token)
+	defer peer.drop() // освобождает контекст пира на любом выходе
 	outbox := peer.outbox
 	if replaced != nil {
 		replaced.drop() // старый писатель завершится и закроет прежний сокет
 	}
+	// Выход до запуска писателя (welcome или реплей не дошли): JoinRoom уже пометил участника
+	// Connected, и без этого он остался бы подключённым навсегда.
+	abandon := func() {
+		if s.roomHub.detach(code, token, peer) {
+			s.markDisconnected(code, token, memberID, memberName)
+		}
+	}
 
 	// welcome — лично; presence — всем (включая нового: единый источник списка).
 	welcome := envelope("welcome", welcomePayload{
-		Token: token, SelfID: joined.Member.ID, Code: code,
+		Token: token, SelfID: memberID, Code: code,
 		Versions: joined.Versions, Members: joined.Members,
 	})
 	if err := wsjson.Write(ctx, conn, welcome); err != nil {
-		s.roomHub.detach(code, token, peer)
+		abandon()
 		return
 	}
 	// Реплей relay-лога — лично и ДО presence: вошедший (и переподключившийся) клиент обязан
 	// восстановить состояние режима раньше, чем начнёт получать живые relay-сообщения через hub.
 	if log, err := s.rooms.RelayLog(code); err == nil && len(log) > 0 {
 		if err := wsjson.Write(ctx, conn, envelope("relay_log", relayLogPayload{Entries: log})); err != nil {
-			s.roomHub.detach(code, token, peer)
+			abandon()
 			return
 		}
 	}
@@ -217,7 +248,7 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		kind = "reconnected"
 	}
 	s.roomHub.broadcast(code, envelope("presence", presencePayload{
-		Event:   presenceEvent{Kind: kind, ID: joined.Member.ID, Name: joined.Member.Name},
+		Event:   presenceEvent{Kind: kind, ID: memberID, Name: memberName},
 		Members: joined.Members,
 	}))
 
@@ -230,7 +261,7 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		for {
 			var msg wsMessage
 			select {
-			case <-peer.dropped:
+			case <-peer.ctx.Done():
 				// Сессию заменил reconnect или hub выкинул медленный сокет.
 				_ = conn.CloseNow()
 				return
@@ -242,7 +273,7 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 				}
 				msg = m
 			}
-			writeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			writeCtx, cancel := context.WithTimeout(peer.ctx, writeDeadline)
 			err := wsjson.Write(writeCtx, conn, msg)
 			cancel()
 			if err != nil {
@@ -252,7 +283,6 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// Читатель: ping/presence-жизнь. Любое валидное сообщение продлевает дедлайн.
-	memberID, memberName := joined.Member.ID, joined.Member.Name
 	explicitLeave := false
 	for {
 		readCtx, cancel := context.WithTimeout(ctx, readDeadline)
@@ -289,8 +319,8 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Сессия закончилась. Если сокет уже заменён reconnect'ом — участника не трогаем:
-	// его новая сессия живёт, а этот обрыв — просто смерть старого соединения.
+	// Сессия закончилась. Сокет вытеснен reconnect'ом — участника не трогаем: его новая сессия
+	// живёт. Иначе сессия была последней (даже если hub уже выбросил сокет за переполнение).
 	if !s.roomHub.detach(code, token, peer) {
 		return
 	}
@@ -306,12 +336,20 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 		_ = conn.CloseNow()
 		return
 	}
-	if members, _, err := s.rooms.DisconnectMember(code, token); err == nil {
-		s.roomHub.broadcast(code, envelope("presence", presencePayload{
-			Event:   presenceEvent{Kind: "disconnected", ID: memberID, Name: memberName},
-			Members: members,
-		}))
+	s.markDisconnected(code, token, memberID, memberName)
+}
+
+// markDisconnected помечает участника отключённым (reconnect по токену остаётся возможен) и
+// рассылает presence оставшимся.
+func (s *Server) markDisconnected(code, token, memberID, memberName string) {
+	members, _, err := s.rooms.DisconnectMember(code, token)
+	if err != nil {
+		return
 	}
+	s.roomHub.broadcast(code, envelope("presence", presencePayload{
+		Event:   presenceEvent{Kind: "disconnected", ID: memberID, Name: memberName},
+		Members: members,
+	}))
 }
 
 func readHello(ctx context.Context, conn *websocket.Conn) (helloPayload, error) {
