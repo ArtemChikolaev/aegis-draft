@@ -309,27 +309,19 @@ for (const { players: set } of byTeam.values()) {
 for (const k of Object.keys(teammates)) teammates[k].sort((x, y) => x - y);
 write("teammates.json", teammates);
 
-// squadSynergy.json — сыгранность групп 2–5 внутри команды (зеркало aggregate.FromOpenDota).
-// Chemistry v1.13 считает уникальные пары; группы 3–5 остаются в моке как в production-данных,
-// чтобы тесты ловили повторный учёт вложенных групп.
-// Игр у группы тем меньше, чем она больше — как в реальности (впятером играли реже, чем вдвоём).
-const subsets = (arr, min, max) => {
-  const out = [];
-  const walk = (start, current) => {
-    if (current.length >= min) out.push([...current]);
-    if (current.length === max) return;
-    for (let i = start; i < arr.length; i++) walk(i + 1, [...current, arr[i]]);
-  };
-  walk(0, []);
-  return out;
-};
+// squadSynergy.json — сыгранность ПАР внутри команды (зеркало aggregate.FromOpenDota: пайплайн
+// эмитит только пары, Chemistry клиента читает только пары). Повторный учёт вложенных групп
+// ловит score.test.ts на собственных фикстурах, датасет для этого не нужен.
+// Числа пар те же, что у пар прежнего мока с группами 2–5: rand/wr — чистые функции от id,
+// общего потока случайных чисел нет, и выпавшие группы ничего в остальном моке не сдвигают.
 const squad = [];
 for (const { players: set } of byTeam.values()) {
   const arr = [...set].sort((a, b) => a - b);
-  for (const group of subsets(arr, 2, 5)) {
-    const seed = group.reduce((s, id) => s + id, 0);
-    const games = Math.max(5, Math.floor((20 + rand(seed) * 200) / (group.length - 1)));
-    squad.push({ ids: group, games, winrate: wr(group[0], group[group.length - 1]) });
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = i + 1; j < arr.length; j++) {
+      const games = Math.max(5, Math.floor(20 + rand(arr[i] + arr[j]) * 200));
+      squad.push({ ids: [arr[i], arr[j]], games, winrate: wr(arr[i], arr[j]) });
+    }
   }
 }
 write("squadSynergy.json", squad);
