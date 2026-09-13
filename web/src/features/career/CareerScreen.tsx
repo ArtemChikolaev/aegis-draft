@@ -7,7 +7,7 @@ import { Banner, Button, Eyebrow, StatTile, Surface } from "../../ui/index.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { rankOf } from "../../game/arcade/content/ranks.ts";
-import { formatClock } from "../arcade/renderer.ts";
+import { formatClock } from "../../game/arcade/clock.ts";
 import { TICK_HZ } from "../../game/arcade/config.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { MessageKey } from "../../i18n/core.ts";

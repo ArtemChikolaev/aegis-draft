@@ -21,7 +21,7 @@ import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.
 import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { rankOf } from "../../game/arcade/content/ranks.ts";
 import { COSMETICS } from "../../game/arcade/content/cosmetics.ts";
-import { formatClock } from "../arcade/renderer.ts";
+import { formatClock } from "../../game/arcade/clock.ts";
 import { TICK_HZ } from "../../game/arcade/config.ts";
 import { useHero } from "../draft/heroes.ts";
 import { PLAYBOOK_MAX, PLAYBOOK_MIN, PLAYBOOK_RECOMMENDED, isPlaybookCard, normalizePlaybook } from "../../game/playbook.ts";

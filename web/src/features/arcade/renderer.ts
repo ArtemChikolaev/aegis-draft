@@ -4,6 +4,7 @@
 // Тригонометрия здесь разрешена: рендер не участвует в детерминизме.
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
+import { formatClock } from "../../game/arcade/clock.ts";
 import type { AbilityKey, Enemy, Invitation, RuneKind } from "../../game/arcade/types.ts";
 import type { AbilityDef } from "../../game/arcade/content/heroes.ts";
 
@@ -1448,11 +1449,6 @@ function resolveFontFamily(): string {
   if (typeof document === "undefined") return "sans-serif";
   const fam = getComputedStyle(document.documentElement).getPropertyValue("--font-display").trim();
   return fam || "sans-serif";
-}
-
-export function formatClock(tick: number): string {
-  const s = Math.floor(tick / TICK_HZ);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
 function clamp(v: number, lo: number, hi: number): number {

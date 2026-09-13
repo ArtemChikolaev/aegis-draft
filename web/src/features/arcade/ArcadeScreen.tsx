@@ -42,7 +42,8 @@ import { PAD_GLYPH } from "./gamepad.ts";
 import { compositionFor } from "../../game/arcade/content/compositions.ts";
 import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { groupHeroes, recentHeroes } from "./heroPicker.ts";
-import { ArcadeRenderer, formatClock } from "./renderer.ts";
+import { ArcadeRenderer } from "./renderer.ts";
+import { formatClock } from "../../game/arcade/clock.ts";
 import "./arcade.css";
 
 const ABILITY_MASK: Record<AbilityKey, number> = { q: 1, w: 2, e: 4, r: 8 };
