@@ -61,37 +61,6 @@ func TestOpenDotaWindowResumesFromRawCache(t *testing.T) {
 	}
 }
 
-func TestOpenDotaWindowFiltersTier1Leagues(t *testing.T) {
-	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		if r.URL.Path != "/proMatches" {
-			return nil, fmt.Errorf("unexpected path %s", r.URL.Path)
-		}
-		// leagueid 1 = премьер, 2 = не-премьер; вторая страница пустая = конец дискавери.
-		body := `[]`
-		if r.URL.Query().Get("less_than_match_id") == "" {
-			body = `[{"match_id":5,"start_time":200,"leagueid":1},{"match_id":4,"start_time":190,"leagueid":2},{"match_id":3,"start_time":180,"leagueid":1}]`
-		}
-		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
-	})}
-	cache := t.TempDir()
-	client := newClient(t, cache, 5, httpClient)
-	result, err := OpenDotaWindow(context.Background(), client, OpenDotaConfig{
-		WindowStartUnix: 100,
-		Tier1Leagues:    map[int64]struct{}{1: {}},
-	})
-	if err != nil || !result.DiscoveryComplete {
-		t.Fatalf("result=%+v err=%v", result, err)
-	}
-	if len(result.ProMatches) != 2 {
-		t.Fatalf("tier-1 фильтр должен оставить только премьер-матчи, got %d", len(result.ProMatches))
-	}
-	for _, m := range result.ProMatches {
-		if m.LeagueID != 1 {
-			t.Fatalf("не-премьер лига просочилась: match %d league %d", m.MatchID, m.LeagueID)
-		}
-	}
-}
-
 func TestCapPerLeague(t *testing.T) {
 	matches := []opendota.ProMatch{
 		{MatchID: 5, LeagueID: 1}, {MatchID: 4, LeagueID: 1}, {MatchID: 3, LeagueID: 1},

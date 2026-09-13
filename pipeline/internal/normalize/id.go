@@ -39,18 +39,3 @@ func AccountID(accountID *int64, steamID64 *uint64) (int, error) {
 	}
 	return int(canonical), nil
 }
-
-// UniqueAccountIDs rejects duplicate canonical players before aggregation.
-func UniqueAccountIDs(ids []int) error {
-	seen := make(map[int]struct{}, len(ids))
-	for _, id := range ids {
-		if id <= 0 {
-			return fmt.Errorf("invalid accountId %d", id)
-		}
-		if _, exists := seen[id]; exists {
-			return fmt.Errorf("duplicate accountId %d", id)
-		}
-		seen[id] = struct{}{}
-	}
-	return nil
-}

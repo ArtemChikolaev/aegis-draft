@@ -30,28 +30,11 @@ type Client struct {
 	transport *sourcehttp.Client
 }
 
+// ProMatch — строка discovery (/proMatches, /explorer): матч и его лига. Детали тянет FetchMatch.
 type ProMatch struct {
-	MatchID       int64  `json:"match_id"`
-	Duration      int    `json:"duration"`
-	StartTime     int64  `json:"start_time"`
-	RadiantTeamID int64  `json:"radiant_team_id"`
-	RadiantName   string `json:"radiant_name"`
-	DireTeamID    int64  `json:"dire_team_id"`
-	DireName      string `json:"dire_name"`
-	LeagueID      int64  `json:"leagueid"`
-	LeagueName    string `json:"league_name"`
-	RadiantWin    bool   `json:"radiant_win"`
-}
-
-type PlayerHero struct {
-	HeroID       int   `json:"hero_id"`
-	LastPlayed   int64 `json:"last_played"`
-	Games        int   `json:"games"`
-	Wins         int   `json:"win"`
-	WithGames    int   `json:"with_games"`
-	WithWins     int   `json:"with_win"`
-	AgainstGames int   `json:"against_games"`
-	AgainstWins  int   `json:"against_win"`
+	MatchID   int64 `json:"match_id"`
+	StartTime int64 `json:"start_time"`
+	LeagueID  int64 `json:"leagueid"`
 }
 
 type Match struct {
@@ -82,25 +65,12 @@ type MatchPlayer struct {
 	HeroDamage  int    `json:"hero_damage"`
 }
 
-// Team — запись из /teams (топ команд по рейтингу).
+// Team — запись из /teams (топ команд по рейтингу) и /teams/{id}.
 type Team struct {
-	TeamID        int64   `json:"team_id"`
-	Rating        float64 `json:"rating"`
-	Wins          int     `json:"wins"`
-	Losses        int     `json:"losses"`
-	LastMatchTime int64   `json:"last_match_time"`
-	Name          string  `json:"name"`
-	Tag           string  `json:"tag"`
-	LogoURL       string  `json:"logo_url"`
-}
-
-// TeamPlayer — запись из /teams/{id}/players. Ростер = is_current_team_member.
-type TeamPlayer struct {
-	AccountID   *int64 `json:"account_id"`
-	Name        string `json:"name"`
-	GamesPlayed int    `json:"games_played"`
-	Wins        int    `json:"wins"`
-	IsCurrent   bool   `json:"is_current_team_member"`
+	TeamID  int64  `json:"team_id"`
+	Name    string `json:"name"`
+	Tag     string `json:"tag"`
+	LogoURL string `json:"logo_url"`
 }
 
 // League — запись из /leagues. tier: premium|professional|amateur|excluded.
@@ -158,7 +128,7 @@ func (c *Client) FetchProMatches(ctx context.Context, lessThanMatchID int64) ([]
 // ExplorerMatchIDs — discovery матчей по league_id через /explorer (SQL на Postgres OpenDota).
 // Один запрос отдаёт match_id/start_time/leagueid для НАБОРА лиг, заменяя пагинацию /proMatches
 // (и достаёт старые лиги — TI/Major вне rolling-окна). sinceUnix>0 ограничивает окном; 0 — вся история.
-// Возвращает облегчённые ProMatch (остальные поля нули — детали тянет FetchMatch).
+// Возвращает строки discovery; детали тянет FetchMatch.
 func (c *Client) ExplorerMatchIDs(ctx context.Context, leagueIDs []int64, sinceUnix int64) ([]ProMatch, error) {
 	if len(leagueIDs) == 0 {
 		return nil, nil
@@ -185,18 +155,6 @@ func (c *Client) ExplorerMatchIDs(ctx context.Context, leagueIDs []int64, sinceU
 		return nil, fmt.Errorf("explorer sql error: %s", resp.Err)
 	}
 	return resp.Rows, nil
-}
-
-func (c *Client) FetchPlayerHeroes(ctx context.Context, accountID int64) ([]PlayerHero, error) {
-	if accountID <= 0 {
-		return nil, fmt.Errorf("invalid accountId %d", accountID)
-	}
-	var heroes []PlayerHero
-	path := fmt.Sprintf("players/%d/heroes", accountID)
-	if err := c.transport.GetJSON(ctx, path, c.query(), nil, &heroes); err != nil {
-		return nil, fmt.Errorf("fetch player heroes %d: %w", accountID, err)
-	}
-	return heroes, nil
 }
 
 func (c *Client) FetchMatch(ctx context.Context, matchID int64) (*Match, error) {
@@ -235,19 +193,6 @@ func (c *Client) FetchTeam(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, fmt.Errorf("fetch team %d: %w", teamID, err)
 	}
 	return &team, nil
-}
-
-// FetchTeamPlayers возвращает /teams/{id}/players (карьера игроков в команде; ростер = IsCurrent).
-func (c *Client) FetchTeamPlayers(ctx context.Context, teamID int64) ([]TeamPlayer, error) {
-	if teamID <= 0 {
-		return nil, fmt.Errorf("invalid teamId %d", teamID)
-	}
-	var players []TeamPlayer
-	path := fmt.Sprintf("teams/%d/players", teamID)
-	if err := c.transport.GetJSON(ctx, path, c.query(), nil, &players); err != nil {
-		return nil, fmt.Errorf("fetch team players %d: %w", teamID, err)
-	}
-	return players, nil
 }
 
 // FetchLeagues возвращает /leagues (все лиги с tier для классификации событий).

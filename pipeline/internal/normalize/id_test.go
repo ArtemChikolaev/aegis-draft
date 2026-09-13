@@ -14,12 +14,3 @@ func TestAccountID(t *testing.T) {
 		t.Fatal("expected conflicting ids error")
 	}
 }
-
-func TestUniqueAccountIDs(t *testing.T) {
-	if err := UniqueAccountIDs([]int{1, 2, 3}); err != nil {
-		t.Fatal(err)
-	}
-	if err := UniqueAccountIDs([]int{1, 2, 1}); err == nil {
-		t.Fatal("expected duplicate error")
-	}
-}

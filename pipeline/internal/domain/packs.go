@@ -139,7 +139,7 @@ func packFormats(lineups map[string]map[int]*eventLineup, events []model.EventIn
 }
 
 // buildLineups строит составы (eventID, teamID) -> {игры, герои} по появлениям в матчах
-// tier-1 событий. Общая основа для BuildPacks и PackPlayerIDs.
+// tier-1 событий. Основа BuildPacks.
 func buildLineups(matches []normalize.NormalizedMatch, events []model.EventInfo) map[string]map[int]*eventLineup {
 	leagueToEvent := make(map[int64]string, len(events))
 	for _, event := range events {
@@ -243,34 +243,6 @@ func permute(items []int, k int, visit func([]int)) {
 		rotated[k] = value
 		permute(rotated, k+1, visit)
 	}
-}
-
-// PackPlayerIDs — множество аккаунтов, реально попадающих в паки (топ-5 составов на событиях).
-// Обогащать career/peers имеет смысл только для них: непаковые игроки (стенд-ины, неполные
-// ростеры) в датасет не входят. Вычисляется из тех же входов, что и BuildPacks, но БЕЗ
-// рейтингов/справочников — то есть доступно ДО дорогого сетевого обогащения.
-//
-// Гейт присутствия применяется здесь тем же packFormats: игроки паков, которые BuildPacks
-// выбросит, в датасет не попадут, и сетевой бюджет на них тратить нельзя.
-func PackPlayerIDs(matches []normalize.NormalizedMatch, events []model.EventInfo) map[int]struct{} {
-	lineups := buildLineups(matches, events)
-	formatsByPack := packFormats(lineups, events)
-	ids := make(map[int]struct{})
-	for eventID, byTeam := range lineups {
-		for teamID, lineup := range byTeam {
-			if len(formatsByPack[eventID][teamID]) == 0 {
-				continue
-			}
-			roster, _, ok := selectRoster(lineup)
-			if !ok {
-				continue
-			}
-			for _, accountID := range roster {
-				ids[accountID] = struct{}{}
-			}
-		}
-	}
-	return ids
 }
 
 func buildPack(eventID string, teamID int, lineup *eventLineup, ratings map[int]rating.PlayerRating, nickByAccount map[int]string, teamInfo map[int]opendota.Team) (model.Pack, bool) {

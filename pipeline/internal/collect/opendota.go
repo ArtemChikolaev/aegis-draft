@@ -16,9 +16,6 @@ type OpenDotaConfig struct {
 	MaxPages        int
 	MatchLimit      int
 	CollectDetails  bool
-	// Tier1Leagues — tier-1 фильтр: если не nil, оставляем только матчи из этих лиг.
-	// nil = без фильтра (сырой сбор). Пагинация/детект границы окна не зависят от фильтра.
-	Tier1Leagues map[int64]struct{}
 	// MaxMatchesPerLeague — потолок деталей на событие (0 = без потолка). Все матчи топ-
 	// событий не нужны: для ростеров/рейтингов хватает выборки, а Free Tier ограничен.
 	MaxMatchesPerLeague int
@@ -66,11 +63,6 @@ func OpenDotaWindow(ctx context.Context, client *opendota.Client, cfg OpenDotaCo
 			if match.StartTime < cfg.WindowStartUnix {
 				reachedStart = true
 				continue
-			}
-			if cfg.Tier1Leagues != nil {
-				if _, ok := cfg.Tier1Leagues[match.LeagueID]; !ok {
-					continue // tier-1 scope: не-tier-1 матчи не берём (курсор всё равно продвинут)
-				}
 			}
 			if _, exists := seen[match.MatchID]; !exists {
 				seen[match.MatchID] = struct{}{}

@@ -20,19 +20,17 @@ type OpenDotaSnapshot struct {
 }
 
 type CollectionStatus struct {
-	Window                string `json:"window"`
-	AsOf                  string `json:"asOf"`
-	WindowStart           int64  `json:"windowStart"`
-	PagesRead             int    `json:"pagesRead"`
-	DiscoveredMatches     int    `json:"discoveredMatches"`
-	DiscoveryComplete     bool   `json:"discoveryComplete"`
-	DetailTargetMatches   int    `json:"detailTargetMatches"`
-	DetailsComplete       bool   `json:"detailsComplete"`
-	CareerTargetPlayers   int    `json:"careerTargetPlayers"`
-	CareerPlayersComplete int    `json:"careerPlayersComplete"`
-	CareerComplete        bool   `json:"careerComplete"`
-	CacheHits             int    `json:"cacheHits"`
-	NetworkRequests       int    `json:"networkRequests"`
+	Window              string `json:"window"`
+	AsOf                string `json:"asOf"`
+	WindowStart         int64  `json:"windowStart"`
+	PagesRead           int    `json:"pagesRead"`
+	DiscoveredMatches   int    `json:"discoveredMatches"`
+	DiscoveryComplete   bool   `json:"discoveryComplete"`
+	DetailTargetMatches int    `json:"detailTargetMatches"`
+	DetailsComplete     bool   `json:"detailsComplete"`
+	CareerComplete      bool   `json:"careerComplete"`
+	CacheHits           int    `json:"cacheHits"`
+	NetworkRequests     int    `json:"networkRequests"`
 }
 
 type NormalizedMatch struct {

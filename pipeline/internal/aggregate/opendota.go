@@ -10,7 +10,6 @@ import (
 
 	"github.com/aegis-draft/pipeline/internal/model"
 	"github.com/aegis-draft/pipeline/internal/normalize"
-	"github.com/aegis-draft/pipeline/internal/opendota"
 )
 
 type OpenDotaResult struct {
@@ -21,29 +20,6 @@ type OpenDotaResult struct {
 	CareerPlayerHeroStats map[string]map[string]model.Stat `json:"careerPlayerHeroStats"`
 	Teammates             map[string][]int                 `json:"teammates"`
 	SquadSynergy          []model.SquadGroup               `json:"squadSynergy"`
-}
-
-// AddCareerPlayerHeroes upserts rows from OpenDota /players/{id}/heroes (pub+pro lifetime).
-// Deprecated for emit-domain: careerPlayerHeroStats теперь агрегируется из tier-1 pro match details.
-func AddCareerPlayerHeroes(result *OpenDotaResult, accountID int, heroes []opendota.PlayerHero) error {
-	if result == nil || accountID <= 0 {
-		return fmt.Errorf("invalid career player target %d", accountID)
-	}
-	if result.CareerPlayerHeroStats == nil {
-		result.CareerPlayerHeroStats = make(map[string]map[string]model.Stat)
-	}
-	stats := make(map[string]model.Stat)
-	for _, hero := range heroes {
-		if hero.HeroID <= 0 || hero.Games < 0 || hero.Wins < 0 || hero.Wins > hero.Games {
-			return fmt.Errorf("player %d has invalid career hero row %+v", accountID, hero)
-		}
-		if hero.Games == 0 {
-			continue
-		}
-		stats[strconv.Itoa(hero.HeroID)] = model.Stat{Games: hero.Games, Winrate: float64(hero.Wins) / float64(hero.Games)}
-	}
-	result.CareerPlayerHeroStats[strconv.Itoa(accountID)] = stats
-	return nil
 }
 
 type counter struct {
@@ -238,23 +214,6 @@ func squadSlice(out []model.SquadGroup) []model.SquadGroup {
 		return false
 	})
 	return out
-}
-
-func teammateSet(teammates map[string][]int) map[int]map[int]struct{} {
-	set := make(map[int]map[int]struct{}, len(teammates))
-	for key, peers := range teammates {
-		id, err := strconv.Atoi(key)
-		if err != nil {
-			continue
-		}
-		if set[id] == nil {
-			set[id] = make(map[int]struct{}, len(peers))
-		}
-		for _, peer := range peers {
-			set[id][peer] = struct{}{}
-		}
-	}
-	return set
 }
 
 func emitTeammates(set map[int]map[int]struct{}) map[string][]int {

@@ -8,7 +8,6 @@ import (
 
 	"github.com/aegis-draft/pipeline/internal/model"
 	"github.com/aegis-draft/pipeline/internal/normalize"
-	"github.com/aegis-draft/pipeline/internal/opendota"
 )
 
 func TestFromOpenDotaAggregatesHeroesAndTeammates(t *testing.T) {
@@ -53,29 +52,6 @@ func TestFromOpenDotaSplitsWindowAndProCareer(t *testing.T) {
 	}
 	if stat := result.PlayerHeroStats["1"]["10"]; stat.Games != 1 {
 		t.Fatalf("window stat=%+v", stat)
-	}
-	if err := Validate(result); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestAddCareerPlayerHeroesUsesEndpointTotals(t *testing.T) {
-	result, err := FromOpenDota(fixture(), 0)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = AddCareerPlayerHeroes(result, 1, []opendota.PlayerHero{
-		{HeroID: 10, Games: 20, Wins: 12}, {HeroID: 11, Games: 0, Wins: 0},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	stat := result.CareerPlayerHeroStats["1"]["10"]
-	if stat.Games != 20 || stat.Winrate != 0.6 {
-		t.Fatalf("career stat=%+v", stat)
-	}
-	if _, exists := result.CareerPlayerHeroStats["1"]["11"]; exists {
-		t.Fatal("zero-game career rows must be omitted")
 	}
 	if err := Validate(result); err != nil {
 		t.Fatal(err)

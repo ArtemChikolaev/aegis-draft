@@ -116,34 +116,13 @@ type ComponentWeights struct {
 	Reliability float64
 }
 
-type TeamSuccessWeights struct {
-	Placement float64
-	Prize     float64
-	Winrate   float64
-	TopFinish float64
-}
-
-type EventPrestigeWeights struct {
-	TI    float64
-	Major float64
-	Tier1 float64
-}
-
-type PlacementWeights struct {
-	Champion float64
-	RunnerUp float64
-	Top4     float64
-	Top8     float64
-}
-
 // Config — параметры модели в одном месте (не размазывать по коду).
-// Зафиксированные решения PRD §5: без деления саппортов 4/5; сглаживание winrate;
-// Peak = скользящее окно; team-success для Mixed.
+// Зафиксированные решения PRD §5: без деления саппортов 4/5; сглаживание winrate.
+// Peak (v1.1.0) и веса полной team-success модели удалены как неподключённый код (git history):
+// players.peak пайплайн не заполняет, успех команд для Mixed — прокси domain.BuildTeamSuccess.
 type Config struct {
-	SmoothMu    float64 // μ базового winrate (~0.5)
-	SmoothM     float64 // сила сглаживания (~10)
-	PeakWindowD int     // длина окна пика в днях (90–180)
-	PeakMinN    int     // минимум игр в окне
+	SmoothMu float64 // μ базового winrate (~0.5)
+	SmoothM  float64 // сила сглаживания (~10)
 	// CalibrationMid/Spread — перенос z на шкалу OVR: OVR = Mid + z·Spread. Mid = среднее,
 	// Spread = сигма в очках OVR. Тюнится по ЗАМЕРУ распределения референса, НЕ на глаз:
 	//   node .claude/skills/scoring-model/tools/calibrate_ovr.mjs
@@ -161,21 +140,12 @@ type Config struct {
 	EconomyWeights      EconomyMetricWeights
 	ReliabilityWeights  ReliabilityMetricWeights
 	RoleWeights         map[model.Role]ComponentWeights
-	TeamSuccessWeights  TeamSuccessWeights
-	EventPrestige       EventPrestigeWeights
-	PlacementWeights    PlacementWeights
-	PlacementPointScale float64
-	PrizeReferenceUSD   float64
-	TitlePoints         float64
-	TopFinishPoints     float64
-	PlayerFormMinFactor float64
-	PlayerFormMaxFactor float64
 }
 
 // Default — стартовые параметры (тюнинг на данных — PRD §10-C).
 func Default() Config {
 	return Config{
-		SmoothMu: 0.5, SmoothM: 10, PeakWindowD: 120, PeakMinN: 15,
+		SmoothMu: 0.5, SmoothM: 10,
 		// Mid — среднее OVR, Spread — СИГМА в очках OVR (z центрирован в 0, см. probit).
 		// Цели замерены у 322-0: mean 74.1, sd 7.8, разброс внутри команды 2.0, доля
 		// команды 92%. Spread и TeamComponentWeight СВЯЗАНЫ — порознь не тюнить: обе цели
@@ -195,11 +165,5 @@ func Default() Config {
 			model.RoleOfflane:  {Impact: 0.45, Economy: 0.25, Reliability: 0.30},
 			model.RoleSupport:  {Impact: 0.45, Economy: 0.15, Reliability: 0.40},
 		},
-		TeamSuccessWeights:  TeamSuccessWeights{Placement: 0.40, Prize: 0.20, Winrate: 0.25, TopFinish: 0.15},
-		EventPrestige:       EventPrestigeWeights{TI: 3, Major: 2, Tier1: 1},
-		PlacementWeights:    PlacementWeights{Champion: 1, RunnerUp: 0.65, Top4: 0.40, Top8: 0.15},
-		PlacementPointScale: 25, PrizeReferenceUSD: 10_000_000,
-		TitlePoints: 30, TopFinishPoints: 10,
-		PlayerFormMinFactor: 0.8, PlayerFormMaxFactor: 1.2,
 	}
 }

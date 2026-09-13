@@ -161,16 +161,6 @@ func Build(in Input) (*model.Dataset, error) {
 	return ds, nil
 }
 
-// PackPlayerAccounts — аккаунты, попадающие в паки, прямо из снапшота: роли и события
-// (BuildEvents) выводятся внутри, поэтому пул считается до сетевого career/peers.
-// Позволяет обогащать только пак-игроков — полное окно (~1500 игроков) в дневной бюджет не
-// влезает, а непаковые аккаунты в датасет всё равно не попадают.
-func PackPlayerAccounts(snapshot *normalize.OpenDotaSnapshot, leagues []opendota.League, asOf time.Time, minEventMatches int) map[int]struct{} {
-	matches := snapshot.Matches
-	events := BuildEvents(matches, leagues, asOf, minEventMatches)
-	return PackPlayerIDs(matches, events)
-}
-
 func convertHeroes(heroes []opendota.Hero) []model.Hero {
 	out := make([]model.Hero, 0, len(heroes))
 	for _, hero := range heroes {

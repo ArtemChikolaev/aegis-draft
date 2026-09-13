@@ -161,7 +161,6 @@ func Run(ctx context.Context, cfg Config) error {
 			Window: string(cfg.Window), AsOf: asOf, WindowStart: windowStart,
 			PagesRead: collected.PagesRead, DiscoveredMatches: len(collected.ProMatches), DiscoveryComplete: collected.DiscoveryComplete,
 			DetailTargetMatches: target, DetailsComplete: collected.DetailsComplete,
-			CareerTargetPlayers: 0, CareerPlayersComplete: 0,
 			CareerComplete: cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete,
 			CacheHits:      stats.CacheHits, NetworkRequests: stats.NetworkRequests,
 		}
