@@ -10,8 +10,9 @@ import type { AbilityDef } from "../../game/arcade/content/heroes.ts";
 
 /** Порядок слотов умений — тот же, что в симе (там он приватный). */
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
-/** Умения, которые держат зону в `zoneUntil`: мина на месте (`remnant`), осколки (`shrapnel`) и разряды вокруг героя (`edict`). */
-const ZONE_KINDS = new Set(["remnant", "shrapnel", "edict"]);
+/** Умения с зоной на карте, у каждого своё состояние игрока: мина на месте (`remnant` — `remnantUntil/X/Y`),
+ *  осколки (`shrapnel` — `zoneUntil/X/Y`) и разряды вокруг героя (`edict` — `edictUntil`). */
+const ZONE_KINDS = ["remnant", "shrapnel", "edict"] as const;
 import { heroArtSources, itemArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot, HeroLook } from "../../game/arcade/content/cosmetics.ts";
@@ -1192,16 +1193,17 @@ export class ArcadeRenderer {
       c.beginPath(); c.arc(p.x, p.y, (ArcadeRenderer.slot(sim, "freezing_field") ?? sim.hero.abilities.r).radius ?? 270, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
     }
-    // Зона умения. Радиус берём у того слота, где стоит умение, а не у `q`: Diabolic Edict у Leshrac
-    // в W, Eye of the Storm у Razor и Haunt у Spectre — в R, и кольцо рисовалось чужого размера.
-    // Edict бьёт вокруг героя (сим — enemiesWithin(p.x, p.y)), а zoneX/zoneY он вообще не ставит,
-    // так что кольцо висело в начале координат карты.
-    if (sim.tick < p.zoneUntil) {
-      const zk = ABILITY_KEYS.find((k) => ZONE_KINDS.has(sim.hero.abilities[k].kind));
-      const zab = zk ? sim.hero.abilities[zk] : sim.hero.abilities.q;
-      const atHero = zab.kind === "edict";
-      const zx = atHero ? p.x : p.zoneX;
-      const zy = atHero ? p.y : p.zoneY;
+    // Зоны умений. У каждого вида своё состояние игрока (сим a0.72.0): у Dark Willow мина E и разряды R
+    // идут одновременно, а общий `zoneUntil` гасил одно другим. Радиус — у слота того же вида, а не у
+    // `q`: Diabolic Edict у Leshrac в W, Eye of the Storm у Razor и Haunt у Spectre — в R.
+    // Edict бьёт вокруг героя (сим — enemiesWithin(p.x, p.y)), поэтому его кольцо — на герое.
+    for (const kind of ZONE_KINDS) {
+      const until = kind === "remnant" ? p.remnantUntil : kind === "edict" ? p.edictUntil : p.zoneUntil;
+      if (sim.tick >= until) continue;
+      const zab = ArcadeRenderer.slot(sim, kind);
+      if (!zab) continue;
+      const zx = kind === "edict" ? p.x : kind === "remnant" ? p.remnantX : p.zoneX;
+      const zy = kind === "edict" ? p.y : kind === "remnant" ? p.remnantY : p.zoneY;
       c.fillStyle = pal.fire; c.globalAlpha = 0.12;
       c.beginPath(); c.arc(zx, zy, zab.radius ?? 180, 0, Math.PI * 2); c.fill();
       c.globalAlpha = 0.6; c.strokeStyle = pal.fire; c.lineWidth = 1.5; c.stroke();
