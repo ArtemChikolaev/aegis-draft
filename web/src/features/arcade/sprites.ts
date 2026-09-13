@@ -536,7 +536,7 @@ export function dotaSheet(name: string): DotaSheet | null {
   if (v === undefined) {
     dotaSheets.set(name, "loading");
     const miss = () => { dotaSheets.set(name, null); if (TERRAIN_SHEETS.has(name)) terrainAssets++; };
-    // Плотный пиксель (фактор 1): 128-px кадры `dota_px2/`, нет — 64-px `dota_px/` (растянутся nearest ×2), нет — обычный лист.
+    // Плотный пиксель (фактор 1): листы `dota_px2/` (кадр героя 160), нет — `dota_px/` (80, растянутся nearest ×2), нет — обычный лист.
     const px = () => loadSheet(name, "dota_px", () => loadSheet(name, "dota", miss));
     if (pixelSheets && denseSheets) loadSheet(name, "dota_px2", px);
     else if (pixelSheets) px();
