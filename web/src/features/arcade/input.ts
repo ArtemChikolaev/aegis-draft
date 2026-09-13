@@ -10,6 +10,27 @@ const KEY_DIR: Record<string, [number, number]> = {
 // KeyF / Digit5 — ручная атака (владелец 2026-09-06: «либо персонаж бьёт сам, либо мы бьём вручную»).
 const KEY_CAST: Record<string, number> = { KeyQ: 1, Digit1: 1, KeyE: 2, Digit2: 2, KeyR: 8, Digit4: 8, Digit3: 4, KeyF: 16, Digit5: 16 };
 
+/** Открыт модальный диалог (ui/Modal, подтверждение выхода): ввод принадлежит ему — ни клавиши, ни пад не трогают игру
+ *  под ним. Иначе Escape, закрывающий подтверждение, заодно снимал паузу. */
+function modalOpen(): boolean {
+  return typeof document !== "undefined" && document.querySelector('[role="dialog"][aria-modal="true"]') !== null;
+}
+
+/** Поле ввода или элемент внутри диалога: клавиши игры туда не лезут. */
+function typingTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"], [contenteditable=""], [role="dialog"]') !== null;
+}
+
+/**
+ * Enter, Space и Tab на элементе управления вне HUD остаются браузеру: жмут кнопку и двигают фокус — так с клавиатуры
+ * работают карточки уровня, лавка, окна мест, пауза и итог. HUD — часть игровой поверхности: после клика мышью по умению
+ * фокус остаётся на его кнопке, и Space/Enter/Tab там по-прежнему пауза, подбор и сборка.
+ */
+function nativeControl(target: EventTarget | null): boolean {
+  if (!(target instanceof Element) || target.closest(".arcade-hud")) return false;
+  return target.closest('.arcade-overlay, button, a[href], summary, [role="button"], [role="checkbox"], [tabindex]:not([tabindex="-1"])') !== null;
+}
+
 export class ArcadeInputController {
   private keys = new Set<string>();
   private castMask = 0;
@@ -23,7 +44,8 @@ export class ArcadeInputController {
   onPause: (() => void) | null = null;
   /** Подобрать добычу (G / Enter) и экран сборки (Tab / I): экран решает, слать ли `act` в сим. */
   onPickup: (() => void) | null = null;
-  onBuild: (() => void) | null = null;
+  /** true — сборка открывается/закрывается; false — сейчас нельзя (пауза, карточки, окна), и Tab остаётся фокусу. */
+  onBuild: (() => boolean) | null = null;
   /** Вспышка свечения (T): чисто визуальная, в сим не идёт. */
   onFlare: (() => void) | null = null;
   /** Геймпад (T13.34): первый ввод с пада — экран переключает подсказки на глифы; навигация по меню — стик/D-pad, × и ○. */
@@ -77,6 +99,9 @@ export class ArcadeInputController {
     const pad = readPad(raw, this.padHeld);
     this.padHeld = pad.held;
     if (pad.active && !this.gamepadActive) { this.gamepadActive = true; this.onGamepad?.(); }
+    const nav = this.padNav.step(pad);
+    // Под модальным диалогом пад молчит: × или Options не резюмят игру, пока висит подтверждение.
+    if (modalOpen()) { this.padX = 0; this.padY = 0; return; }
     if (menu) { this.padX = 0; this.padY = 0; }
     else {
       this.padX = pad.x; this.padY = pad.y;
@@ -86,7 +111,6 @@ export class ArcadeInputController {
       if (hasEdge(pad.edges, PAD.touch) || hasEdge(pad.edges, PAD.ps)) this.onFlare?.();
     }
     if (hasEdge(pad.edges, PAD.options)) this.onPause?.();
-    const nav = this.padNav.step(pad);
     if (nav) this.onPadNav?.(nav < 0 ? "left" : "right");
     if (hasEdge(pad.edges, PAD.cross)) this.onPadNav?.("confirm");
     if (hasEdge(pad.edges, PAD.circle)) this.onPadNav?.("back");
@@ -118,13 +142,17 @@ export class ArcadeInputController {
 
   private onKeyDown = (e: KeyboardEvent) => {
     this.markKeyboard();
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (modalOpen() || typingTarget(e.target)) return;
     if (KEY_DIR[e.code]) { this.keys.add(e.code); e.preventDefault(); return; }
     const cast = KEY_CAST[e.code];
     if (cast) { this.castMask |= cast; e.preventDefault(); return; }
+    if ((e.code === "Enter" || e.code === "Space" || e.code === "Tab") && nativeControl(e.target)) return;
     if (e.code === "Escape" || e.code === "Space") { this.onPause?.(); e.preventDefault(); return; }
     if (e.code === "KeyG" || e.code === "Enter") { this.onPickup?.(); e.preventDefault(); return; }
-    if (e.code === "Tab" || e.code === "KeyI") { this.onBuild?.(); e.preventDefault(); return; }
+    if (e.code === "KeyI") { this.onBuild?.(); e.preventDefault(); return; }
+    // Tab — хоткей сборки, только если она правда открылась или закрылась; на паузе, в карточках и окнах фокус идёт
+    // дальше по кнопкам — иначе до окна поверх сцены с клавиатуры не дойти.
+    if (e.code === "Tab") { if (this.onBuild?.()) e.preventDefault(); return; }
     if (e.code === "KeyT") { this.onFlare?.(); e.preventDefault(); }
   };
   private onKeyUp = (e: KeyboardEvent) => { this.keys.delete(e.code); };

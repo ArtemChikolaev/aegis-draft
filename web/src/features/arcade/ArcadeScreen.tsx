@@ -395,7 +395,14 @@ function ArcadeStage() {
       else if (what === "back" && (cur.shopOpen || cur.neutralOpen || cur.lootOpen || cur.pondOpen || cur.contractOpen || cur.forgeOpen || cur.riftOpen)) s.shopAct(SHOP_ACT.close);
       else if (what === "confirm" && s.status === "paused") s.resume();
     };
-    controller.onBuild = () => { const cur = getArcadeSim(); if (cur && !cur.pending && !cur.shopOpen && !cur.neutralOpen && !cur.lootOpen && useArcade.getState().status === "running") controller.queueAct(BUILD_ACT); };
+    // true — сборка откроется/закроется. В карточках, лавке и окнах мест act в сим не шлём (там он ничего не делает),
+    // и Tab тогда двигает фокус по кнопкам окна.
+    controller.onBuild = () => {
+      const cur = getArcadeSim();
+      if (!cur || cur.pending || cur.shopOpen || cur.neutralOpen || cur.lootOpen || cur.pondOpen || cur.contractOpen || cur.forgeOpen || cur.riftOpen || useArcade.getState().status !== "running") return false;
+      controller.queueAct(BUILD_ACT);
+      return true;
+    };
     const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
     ro.observe(stage);
     renderer.resize(stage.clientWidth, stage.clientHeight);

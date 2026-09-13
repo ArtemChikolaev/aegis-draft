@@ -57,6 +57,54 @@ test.describe("arcade", () => {
     await expect(copy).toHaveText(/Скопировать реплей|Copy replay/);
   });
 
+  test("клавиатура: карточка уровня выбирается Enter, Tab двигает фокус, Esc в подтверждении выхода не снимает паузу", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    await page.getByTestId("arcade-seed").fill("e2e-arcade-keys");
+    await page.getByTestId("arcade-play").click();
+    const clock = page.getByTestId("arcade-clock");
+    await expect(clock).toBeVisible();
+    await expect(page.getByTestId("arcade-loading")).toHaveCount(0, { timeout: 30_000 });
+    // Уровень без ожидания — через dev-хук: опыт ровно до порога (carried — без множителей), сим открывает выбор.
+    await page.evaluate("(() => { const s = window.__arcadeSim(); s.gainXp(s.player.xpNext - s.player.xp, true); })()");
+    const levelUp = page.getByTestId("arcade-levelup");
+    await expect(levelUp).toBeVisible();
+    // Tab с карточки уводит фокус дальше по окну (раньше игра глотала Tab), сборка не открывается; Enter выбирает карточку.
+    const offer = page.getByTestId("arcade-offer-0");
+    await offer.focus();
+    await page.keyboard.press("Tab");
+    await expect(offer).not.toBeFocused();
+    await expect(page.getByTestId("arcade-build")).toHaveCount(0);
+    await offer.focus();
+    await page.keyboard.press("Enter");
+    await expect(levelUp).toHaveCount(0);
+    // Пауза — Escape; «Выйти из забега» жмётся с клавиатуры и открывает подтверждение.
+    await page.keyboard.press("Escape");
+    const paused = page.getByTestId("arcade-paused");
+    await expect(paused).toBeVisible();
+    const leave = paused.getByRole("button", { name: /Leave run|Выйти из забега/ });
+    await leave.focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    // Escape закрывает только подтверждение: пауза остаётся, часы стоят.
+    const frozen = await clock.textContent();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(paused).toBeVisible();
+    await page.waitForTimeout(1200);
+    await expect(clock).toHaveText(frozen ?? "");
+    // Снова подтверждение: Tab ходит по кнопкам диалога, Enter на «Выйти» уводит на экран настройки.
+    await leave.focus();
+    await page.keyboard.press("Enter");
+    await expect(dialog).toBeVisible();
+    const confirm = dialog.getByRole("button", { name: /Leave run|Выйти из забега/ });
+    for (let i = 0; i < 4 && !(await confirm.evaluate((el) => el === document.activeElement)); i++) await page.keyboard.press("Tab");
+    await expect(confirm).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("arcade-hero")).toBeVisible();
+  });
+
   test("фирменная пассивка героя видна в HUD", async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-arcade").click();
