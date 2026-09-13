@@ -7,10 +7,9 @@ package main
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -27,7 +26,17 @@ import (
 const initDataMaxAge = 24 * time.Hour
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatalf("[server] %v", err)
+	}
+}
+
+// run поднимает сервер и возвращает ошибку вместо log.Fatalf: Fatalf завершает процесс мимо
+// defer-ов, и пул Postgres не закрывался бы при падении слушателя или неудачном shutdown.
+func run() error {
 	cfg := config.Load()
+	ctx, stopSignals := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stopSignals()
 
 	var deps transport.Deps
 
@@ -36,16 +45,16 @@ func main() {
 	// без Postgres/Docker всё запускается, а прод получает БД через fly secrets.
 	var db *store.DB
 	if cfg.DatabaseURL != "" {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		if err := store.Migrate(ctx, cfg.DatabaseURL); err != nil {
+		dbCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		if err := store.Migrate(dbCtx, cfg.DatabaseURL); err != nil {
 			cancel()
-			log.Fatalf("[server] migrate: %v", err)
+			return fmt.Errorf("migrate: %w", err)
 		}
 		var err error
-		db, err = store.Open(ctx, cfg.DatabaseURL)
+		db, err = store.Open(dbCtx, cfg.DatabaseURL)
 		cancel()
 		if err != nil {
-			log.Fatalf("[server] db: %v", err)
+			return fmt.Errorf("db: %w", err)
 		}
 		defer db.Close()
 		deps.DB = db
@@ -59,7 +68,7 @@ func main() {
 	if db != nil && cfg.SessionSecret != "" && cfg.BotToken != "" {
 		issuer, err := auth.NewSessionIssuer(cfg.SessionSecret, cfg.SessionTTL)
 		if err != nil {
-			log.Fatalf("[server] session issuer: %v", err)
+			return fmt.Errorf("session issuer: %w", err)
 		}
 		deps.Auth = service.NewAuthService(cfg.BotToken, initDataMaxAge, store.NewUserRepo(db), issuer)
 		deps.Sessions = issuer                                     // проверка Bearer на защищённых ручках
@@ -76,9 +85,14 @@ func main() {
 	go func() {
 		ticker := time.NewTicker(10 * time.Minute)
 		defer ticker.Stop()
-		for range ticker.C {
-			if removed := rooms.PruneRooms(time.Hour); removed > 0 {
-				log.Printf("[rooms] pruned %d abandoned room(s)", removed)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if removed := rooms.PruneRooms(time.Hour); removed > 0 {
+					log.Printf("[rooms] pruned %d abandoned room(s)", removed)
+				}
 			}
 		}
 	}()
@@ -91,23 +105,27 @@ func main() {
 		IdleTimeout:  cfg.IdleTimeout,
 	}
 
-	// Graceful shutdown по SIGINT/SIGTERM.
+	// Слушатель сообщает об ошибке в канал, а не через Fatalf: defer-ы run() отработают.
+	listenErr := make(chan error, 1)
 	go func() {
 		log.Printf("[server] listening on %s (env=%s)", srv.Addr, cfg.Env)
-		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("[server] listen: %v", err)
-		}
+		listenErr <- srv.ListenAndServe()
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
+	// Graceful shutdown по SIGINT/SIGTERM.
+	select {
+	case err := <-listenErr:
+		return fmt.Errorf("listen: %w", err)
+	case <-ctx.Done():
+	}
+	stopSignals() // повторный сигнал во время shutdown завершает процесс сразу
 
 	log.Printf("[server] shutting down…")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("[server] shutdown: %v", err)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		return fmt.Errorf("shutdown: %w", err)
 	}
 	log.Printf("[server] stopped")
+	return nil
 }
