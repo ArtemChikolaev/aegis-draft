@@ -1034,7 +1034,8 @@ function ArcadeStage() {
                 {sim.pending.map((offer, i) => (
                   <div key={i} className="arcade-offer-wrap" data-pad-focus={padActive && padFocus === i ? "true" : undefined}>
                     <OfferCard offer={offer} index={i} onPick={() => choose(i)} />
-                    {offer.kind === "upgrade" && sim.banishesLeft > 0 && !UPGRADE_BY_ID[offer.id]?.legendary && (
+                    {/* Награда места (лагерь, разлом, курган, чемпион) гарантирует редкость и школу — изгнание её не подменяет, как и реролл. */}
+                    {offer.kind === "upgrade" && sim.pendingSource !== "camp" && sim.banishesLeft > 0 && !UPGRADE_BY_ID[offer.id]?.legendary && (
                       <button type="button" className="arcade-offer__banish" data-testid={`arcade-banish-${i}`} onClick={() => levelBanish(i)}>{t("arcade.levelup.banish", { n: sim.banishesLeft })}</button>
                     )}
                   </div>
