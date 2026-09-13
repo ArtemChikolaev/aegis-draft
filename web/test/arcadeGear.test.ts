@@ -40,6 +40,19 @@ describe("arcade gear", () => {
     expect(sim.over?.loot).toEqual(sim.loot);
   });
 
+  it("победа и смертельный урон в одном тике — итог остаётся победой", () => {
+    const sim = new ArcadeSim("win-and-die", { act: "full", composition: "all" });
+    const internals = sim as unknown as { spawnEnemy(k: typeof ENEMY_KINDS.ancient, x: number, y: number): NonNullable<ArcadeSim["ancient"]>; nextMegaAt: number };
+    const ancient = internals.spawnEnemy(ENEMY_KINDS.ancient, sim.player.x + 60, sim.player.y);
+    ancient.hp = 1;
+    sim.ancient = ancient;
+    internals.nextMegaAt = 1e9; // без мегакрипов у Древнего: иначе автоатака уходит в ближайшего крипа
+    sim.player.hp = -100; // смертельный урон уже получен в этом тике, смерть проверяется в конце шага
+    sim.step(IDLE_INPUT); // автоатака добивает Древнего в том же шаге
+    expect(ancient.alive).toBe(false);
+    expect(sim.over?.outcome).toBe("victory");
+  });
+
   it("сундук открывает экран добычи (мир стоит), «надеть» меняет статы, «в сумку» кладёт в сумку", () => {
     const sim = new ArcadeSim("chest-1");
     // Цикл ограничен числом итераций, а не только тиком: экран добычи (lootOpen) и конец забега тик не двигают —

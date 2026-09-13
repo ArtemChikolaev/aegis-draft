@@ -1458,7 +1458,8 @@ export class ArcadeSim {
     this.regenAndHazards();
     this.tickOutpost();
     this.pruneFx();
-    if (p.hp <= 0) this.onLethal();
+    // Смерть проверяется в конце шага: если в этом же шаге пал Древний, итог уже «победа» — не перезаписываем.
+    if (p.hp <= 0 && !this.over) this.onLethal();
     const A = ARCADE.acts[this.act];
     if (A.endAt > 0 && this.actTick >= A.endAt && this.roshanKilled && !this.over) this.finish("victory");
   }
