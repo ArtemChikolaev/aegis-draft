@@ -2077,12 +2077,14 @@ export class ArcadeSim {
   private staticField(): void {
     const key = this.slot.static_field;
     if (!key) return;
-    this.dmgSource = key;
     const ab = this.hero.abilities[key];
     const lvl = this.player.abilities[key];
     if (lvl === 0) return;
     const p = this.player;
+    const src = this.dmgSource;
+    this.dmgSource = key;
     for (const e of this.enemiesWithin(p.x, p.y, ab.radius ?? 320)) this.damageEnemy(e, Math.min(e.hp * ab.value[lvl], e.kind.boss ? 60 : 1e9), "zap");
+    this.dmgSource = src;
   }
 
   private eliteWithin(x: number, y: number, radius: number): Enemy | null {
@@ -2118,19 +2120,23 @@ export class ArcadeSim {
 
   /** Maelstrom `mae_clap`: каст Q/R — нова со станом. */
   private thunderclap(): void {
-    this.dmgSource = "school";
     const power = this.upgradePower("mae_clap");
     if (power === 0) return;
     const p = this.player;
     const dmg = 40 * power * this.lightningMult();
+    const src = this.dmgSource;
+    this.dmgSource = "school";
     for (const e of this.enemiesWithin(p.x, p.y, 150)) {
       this.damageEnemy(e, dmg, "zap");
       e.stunUntil = Math.max(e.stunUntil, this.tick + sec(0.6));
     }
+    this.dmgSource = src;
     this.pushFx("nova", p.x, p.y, 150, 0, 18);
   }
 
   private onAttackHit(e: Enemy, scale = 1): void {
+    // Удар вложен в чужие фазы (снаряды, клив): источник вызывающего возвращаем в конце.
+    const src = this.dmgSource;
     this.dmgSource = "attack";
     const p = this.player;
     let dmg = p.stats.damage * scale * (this.tick < p.ddUntil ? ARCADE.rune.dd.mult : 1) * this.riftAttackMult();
@@ -2184,11 +2190,15 @@ export class ArcadeSim {
     const sting = this.upgradePower("ven_sting");
     if (sting > 0) this.applyPoison(e, 4 * sting);
     const chain = this.upgradePower("mae_chain");
-    if (chain > 0 && this.rng.float() < 0.25 + 0.08 * chain) this.chainLightning(e, 20 * chain * this.lightningMult(), 3 + Math.floor(this.upgradePower("mae_mjollnir") * 2) + (this.upgradePower("leg_mae_thunder") > 0 ? 4 : 0) + Math.floor(this.upgradePower("hyb_superconductor") * 2));
+    if (chain > 0 && this.rng.float() < 0.25 + 0.08 * chain) {
+      this.dmgSource = "school";
+      this.chainLightning(e, 20 * chain * this.lightningMult(), 3 + Math.floor(this.upgradePower("mae_mjollnir") * 2) + (this.upgradePower("leg_mae_thunder") > 0 ? 4 : 0) + Math.floor(this.upgradePower("hyb_superconductor") * 2));
+    }
+    this.dmgSource = src;
   }
 
+  /** Цепь молний: источник урона — у вызывающего (Arc Lightning — слот умения, Maelstrom с удара — школа). */
   private chainLightning(from: Enemy, dmg: number, targets: number): void {
-    this.dmgSource = "school";
     let current = from;
     const visited = new Set<number>([from.id]);
     for (let i = 0; i < targets; i++) {
@@ -2323,22 +2333,26 @@ export class ArcadeSim {
    * попаданием; dps стака — сильнейший из активных источников. Истёкший яд теряет все стаки.
    */
   applyPoison(e: Enemy, dpsPerStack: number, seconds = ARCADE.poison.seconds): void {
-    this.dmgSource = "dot";
     if (e.kind.unstoppable || dpsPerStack <= 0 || !e.alive) return;
     const active = e.poisonUntil > this.tick;
     // Полный стек и ещё один стак (T13.47): Дистилляция тратит стаки на взрыв; яд+огонь — ограниченный взрыв.
     if (active && e.poisonStacks >= ARCADE.poison.maxStacks) {
+      // Взрывы яда — урон DoT. Яд накладывают удар, умение, облако, питомцы: их источник возвращаем после взрыва,
+      // иначе весь дальнейший урон вызывающего (удар после пассивки, нова по следующим целям) уходил в «DoT».
+      const src = this.dmgSource;
+      this.dmgSource = "dot";
       const fire = this.upgradePower("hyb_venom_fire");
       if (fire > 0 && this.tick < e.burnUntil) { this.damageEnemy(e, 30 * fire, "burst"); for (const o of this.enemiesWithin(e.x, e.y, 60)) if (o !== e) this.damageEnemy(o, 15 * fire, "burst"); this.pushFx("burst", e.x, e.y, 60, 0, 12); }
-      if (this.upgradePower("leg_ven_distill") > 0) {
+      const distill = this.upgradePower("leg_ven_distill") > 0;
+      if (distill) {
         const dmg = e.poisonDps * e.poisonStacks * this.venomMult() * 6;
         e.poisonStacks = 0; e.poisonUntil = 0; e.poisonDps = 0;
         this.damageEnemy(e, dmg, "burst");
         for (const o of this.enemiesWithin(e.x, e.y, 70)) if (o !== e && o.alive) this.damageEnemy(o, dmg * 0.5, "burst");
         this.pushFx("nova", e.x, e.y, 70, 0, 14);
-        return;
       }
-      if (!e.alive) return;
+      this.dmgSource = src;
+      if (distill || !e.alive) return;
     }
     e.poisonStacks = Math.min(ARCADE.poison.maxStacks, (active ? e.poisonStacks : 0) + 1);
     e.poisonDps = Math.max(active ? e.poisonDps : 0, dpsPerStack);
@@ -2405,7 +2419,7 @@ export class ArcadeSim {
     this.dealtBySource[this.dmgSource] = (this.dealtBySource[this.dmgSource] ?? 0) + Math.min(dmg, Math.max(0, e.hp));
     e.hp -= dmg;
     e.hitAt = this.tick;
-    if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect));
+    if (e.kind.reflect) this.damagePlayer(Math.min(ARCADE.tormentor.reflectCap, dmg * e.kind.reflect), 0, e.kind);
     if (fx === "hit" || fx === "crit" || (e.kind.elite || e.kind.boss) && this.tick % 4 === 0) this.pushFx(fx, e.x, e.y - e.kind.r, 0, 0, 26, Math.round(dmg));
     if (e.hp <= 0) this.killEnemy(e);
   }
@@ -2523,8 +2537,12 @@ export class ArcadeSim {
     this.dropShard(e.x, e.y, e.kind.xp);
     const blast = this.upgradePower("rad_blast");
     if (blast > 0 && this.tick < e.burnUntil) {
+      // Взрыв горящего — урон школы Radiance, а не того, чем добили.
       const dmg = 25 * blast * this.burnMult();
+      const src = this.dmgSource;
+      this.dmgSource = "school";
       for (const o of this.enemiesWithin(e.x, e.y, 60)) if (o !== e) this.damageEnemy(o, dmg, "burst");
+      this.dmgSource = src;
       this.pushFx("burst", e.x, e.y, 60, 0, 14);
     }
     // Пул врагов переиспользует объекты: ссылку на босса снимаем сразу, иначе «Рошан жив» проверяет
@@ -2567,8 +2585,6 @@ export class ArcadeSim {
     const p = this.player;
     this.events.hurtBy = by ? KIND_INDEX[by.id] ?? -1 : -1;
     if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.slot.omni !== undefined)) return;
-    const byId = by?.id ?? "projectile";
-    this.takenByKind[byId] = (this.takenByKind[byId] ?? 0) + amount;
     const sig = this.hero.signature;
     if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
     if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
@@ -2582,11 +2598,17 @@ export class ArcadeSim {
     let taken = Math.max(1, amount * this.riftTakenMult() * (1 - reduction) - flat);
     // Руна щита: запас принимает урон первым, пока не кончится он или срок.
     if (this.tick < p.shieldUntil && p.shieldHp > 0) { const ab = Math.min(p.shieldHp, taken); p.shieldHp -= ab; taken -= ab; if (taken <= 0) return; }
+    // Разбор: полученный урон — сколько HP реально снято (после уклонения, брони и щита; смертельный — не больше остатка).
+    const byId = by?.id ?? "projectile";
+    this.takenByKind[byId] = (this.takenByKind[byId] ?? 0) + Math.min(taken, Math.max(0, p.hp));
     p.hp -= taken;
     this.events.hurt++;
+    // Ответный урон пишется своему источнику (пассивка/легендарка — школа, Counter Helix — его слот), источник вызывающего — назад.
+    const src = this.dmgSource;
     if (sig?.kind === "quill" && this.tick >= p.sigUntil) {
       // Quill Spray Bristleback: залп иглами в ответ на урон, не чаще раза в 0.8 с (при 0.5 с бот брал 75–87% в разминке).
       p.sigUntil = this.tick + sec(0.8);
+      this.dmgSource = "school";
       for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 130)) this.damageEnemy(e, sig.value * this.sigScale(), "burst");
       this.pushFx("nova", p.x, p.y, sig.radius ?? 130, 0, 8);
     }
@@ -2594,15 +2616,18 @@ export class ArcadeSim {
       // Лотос: полученный урон возвращается по всем вокруг. Ограничение по времени — иначе в толпе
       // герой отражает каждый тик и убивает волну, ничего не делая.
       p.lotusUntil = this.tick + sec(0.5);
+      this.dmgSource = "school";
       for (const e of this.enemiesWithin(p.x, p.y, 150)) this.damageEnemy(e, amount * 0.6, "burst");
       this.pushFx("nova", p.x, p.y, 150, 0, 8);
     }
     const helixKey = this.slot.counter_helix;
     const helix = helixKey ? this.hero.abilities[helixKey] : null;
     if (helix && helixKey && p.abilities[helixKey] > 0 && this.rng.float() < 0.12 + 0.04 * p.abilities[helixKey]) {
+      this.dmgSource = helixKey;
       for (const e of this.enemiesWithin(p.x, p.y, helix.radius ?? 130)) this.damageEnemy(e, helix.value[p.abilities[helixKey]], "spin");
       this.pushFx("nova", p.x, p.y, helix.radius ?? 130, 0, 10);
     }
+    this.dmgSource = src;
     if (stun > 0 && this.tick >= p.spinUntil && !p.stats.stunImmune) p.stunUntil = Math.max(p.stunUntil, this.tick + sec(stun));
     this.shake = Math.max(this.shake, 4);
   }
@@ -2965,6 +2990,8 @@ export class ArcadeSim {
   }
 
   private moveEnemies(): void {
+    // Тики горения и яда ниже — урон DoT (раньше шли под «other» из начала тика).
+    this.dmgSource = "dot";
     const p = this.player;
     for (const e of this.enemies) {
       if (!e.alive) continue;
