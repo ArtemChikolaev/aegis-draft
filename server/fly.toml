@@ -19,6 +19,9 @@ primary_region = 'fra'
   PORT = '8080'
 
 [http_service]
+  # Машина ровно одна: комнаты Arena (ws-relay) живут в памяти процесса (service/room.go).
+  # Fly по умолчанию поднимает две — CI деплоит с --ha=false, существующему приложению
+  # один раз: `fly scale count 1`.
   internal_port = 8080
   force_https = true
   # Idle → машина усыпляется (suspend), стоимость простоя ~ноль. Resume у Fly — сотни мс

@@ -63,7 +63,10 @@ jobs:
 
       # Деплой воспроизводим той же командой, что и локально: `fly deploy`.
       # --remote-only: образ собирается на билдере Fly, локальный Docker не нужен.
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only
+      # --ha=false: комнаты Arena живут в памяти одного процесса, вторая машина разводила бы
+      # участников одной комнаты по разным инстансам. Экшен запинен на тег (1.6 = v1, node24),
+      # а не на плавающий master.
+      - uses: superfly/flyctl-actions/setup-flyctl@1.6
+      - run: flyctl deploy --remote-only --ha=false
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

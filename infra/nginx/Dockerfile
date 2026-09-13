@@ -9,7 +9,7 @@ COPY web/ .
 ENV VITE_BASE=/
 RUN npm run build
 
-FROM nginx:1.27-alpine
+FROM nginx:1.28-alpine
 RUN apk add --no-cache wget
 COPY infra/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY infra/nginx/security-headers.conf /etc/nginx/security-headers.conf

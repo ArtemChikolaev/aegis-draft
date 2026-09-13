@@ -81,6 +81,8 @@ fly tokens create deploy -x 999999h      # deploy-scoped токен
 # → GitHub → Settings → Secrets and variables → Actions → New secret: FLY_API_TOKEN
 ```
 
+**Одна машина.** Комнаты Arena (ws-relay) живут в памяти процесса, поэтому инстанс ровно один: CI деплоит с `--ha=false`, а если приложение уже поднято с двумя машинами (дефолт Fly) — один раз `fly scale count 1`.
+
 **Секреты приложения из env**: `fly secrets set DATABASE_URL=… BOT_TOKEN=… SESSION_SECRET=…` — Fly инъектит их в env, читает `config.Load()` (без всех трёх auth-маршрут не поднимается). В `fly.toml` держим только НЕсекретное (`APP_ENV`, `PORT`).
 
 ## Статус
