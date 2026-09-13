@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { careerEntriesForMode, careerRunId, summarizeCareer, useCareer, type CareerPlacementBucket } from "../../state/careerStore.ts";
+import { careerEntriesForMode, careerRunId, summarizeCareer, useCareer } from "../../state/careerStore.ts";
 import type { RunMode } from "../../state/runPersist.ts";
 import { Eyebrow, StatTile, Surface } from "../../ui/index.ts";
-import { CareerRunCard, placementLabels, sortRunsNewestFirst } from "../career/CareerRunCard.tsx";
+import { CareerRunCard, careerStatTiles, sortRunsNewestFirst } from "../career/CareerRunCard.tsx";
 
 const LAST_RUNS = 8;
 export function CareerPanel({ mode }: { mode: RunMode }) {
@@ -23,16 +23,7 @@ export function CareerPanel({ mode }: { mode: RunMode }) {
     runsListRef.current?.scrollTo({ top: 0 });
   }, [newestRunId]);
 
-  const placementStats = (Object.keys(placementLabels) as CareerPlacementBucket[]).map((bucket, index) => ({
-    label: t(placementLabels[bucket]), value: summary.placements[bucket], kind: (["base", "synergy", "chemistry"] as const)[index % 3],
-  }));
-  const performanceStats = [
-    { label: t("career.runs"), value: summary.runs, kind: "base" as const },
-    { label: t("career.undefeated"), value: summary.undefeated, kind: "synergy" as const },
-    { label: t("career.flawlessGroup"), value: summary.flawlessGroups, kind: "synergy" as const },
-    { label: t("career.gamesWon"), value: summary.gamesWon, kind: "base" as const },
-    { label: t("career.gamesLost"), value: summary.gamesLost, kind: "chemistry" as const },
-  ];
+  const stats = careerStatTiles(summary, t);
 
   return (
     <section className="career-panel">
@@ -44,7 +35,7 @@ export function CareerPanel({ mode }: { mode: RunMode }) {
       <Surface className="career-stats">
         <h3 className="bracket__side-title">{t("career.stats")}</h3>
         <div className="career-stats__grid">
-          {[...performanceStats, ...placementStats].map((stat) => (
+          {stats.map((stat) => (
             <StatTile key={stat.label} label={stat.label} value={String(stat.value)} kind={stat.kind} />
           ))}
         </div>

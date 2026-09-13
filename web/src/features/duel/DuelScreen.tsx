@@ -13,19 +13,13 @@ import type { DuelSide } from "../../game/duel.ts";
 import { isApiConfigured } from "../../data/api/index.ts";
 import { Banner, Button, Eyebrow, HeroThumb, Modal, OptionGroup, RoleTag, Surface, TextField } from "../../ui/index.ts";
 import { useHero, useHeroName } from "../draft/heroes.ts";
+import { FORMAT } from "../start/startOptions.ts";
 import "./duel.css";
 
 const BEST_OF: { value: 1 | 3 | 5; label: string }[] = [
   { value: 1, label: "Bo1" },
   { value: 3, label: "Bo3" },
   { value: 5, label: "Bo5" },
-];
-
-const FORMATS: { value: Format; label: MessageKey }[] = [
-  { value: "last_1y", label: "start.last1y" },
-  { value: "last_2y", label: "start.last2y" },
-  { value: "last_5y", label: "start.last5y" },
-  { value: "valve_legacy", label: "start.valveLegacy" },
 ];
 
 export function DuelScreen() {
@@ -141,7 +135,7 @@ export function DuelScreen() {
                 <OptionGroup
                   title={t("start.format")}
                   soonLabel={t("common.soon")}
-                  options={FORMATS.map((option) => ({ value: option.value, label: t(option.label) }))}
+                  options={FORMAT.map((option) => ({ value: option.value, label: t(option.label) }))}
                   value={format}
                   onChange={setFormat}
                 />

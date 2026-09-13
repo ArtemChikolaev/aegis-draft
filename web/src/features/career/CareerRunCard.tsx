@@ -3,7 +3,7 @@ import { isTacticId } from "../../game/tactics.ts";
 import { roleMessageKey, type MessageKey } from "../../i18n/core.ts";
 import { dailySeedDate, formatDailyDate } from "../../game/daily.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import { entryStakes, type CareerConfigLabel, type CareerEntry, type CareerPlacementBucket } from "../../state/careerStore.ts";
+import { entryStakes, type CareerConfigLabel, type CareerEntry, type CareerPlacementBucket, type CareerSummary } from "../../state/careerStore.ts";
 import { HeroThumb, playerOvrTier, RoleTag } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import "./career.css";
@@ -29,6 +29,29 @@ export function configKeys(config: CareerConfigLabel): MessageKey[] {
 /** Свежие сверху. Общая сортировка: и сводка на итоге, и страница истории читают один порядок. */
 export function sortRunsNewestFirst(entries: CareerEntry[]): CareerEntry[] {
   return [...entries].sort((left, right) => right.finishedAt.localeCompare(left.finishedAt));
+}
+
+export interface CareerStatTile {
+  label: string;
+  value: number;
+  kind: "base" | "synergy" | "chemistry";
+}
+
+/** Плитки сводки: сначала результаты, затем места. Одни и те же на странице истории и в сводке
+ *  на итоге — раньше это были две копии списка, которым ничто не мешало разъехаться. */
+export function careerStatTiles(summary: CareerSummary, t: (key: MessageKey) => string): CareerStatTile[] {
+  return [
+    { label: t("career.runs"), value: summary.runs, kind: "base" },
+    { label: t("career.undefeated"), value: summary.undefeated, kind: "synergy" },
+    { label: t("career.flawlessGroup"), value: summary.flawlessGroups, kind: "synergy" },
+    { label: t("career.gamesWon"), value: summary.gamesWon, kind: "base" },
+    { label: t("career.gamesLost"), value: summary.gamesLost, kind: "chemistry" },
+    ...(Object.keys(placementLabels) as CareerPlacementBucket[]).map((bucket, index): CareerStatTile => ({
+      label: t(placementLabels[bucket]),
+      value: summary.placements[bucket],
+      kind: (["base", "synergy", "chemistry"] as const)[index % 3],
+    })),
+  ];
 }
 
 /**

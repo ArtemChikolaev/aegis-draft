@@ -2,7 +2,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
-import { careerRunId, summarizeCareer, useCareer, type CareerPlacementBucket } from "../../state/careerStore.ts";
+import { careerRunId, summarizeCareer, useCareer } from "../../state/careerStore.ts";
 import { Banner, Button, Eyebrow, StatTile, Surface } from "../../ui/index.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
@@ -11,7 +11,7 @@ import { formatClock } from "../../game/arcade/clock.ts";
 import { TICK_HZ } from "../../game/arcade/config.ts";
 import { useHero } from "../draft/heroes.ts";
 import type { MessageKey } from "../../i18n/core.ts";
-import { CareerRunCard, placementLabels, sortRunsNewestFirst } from "./CareerRunCard.tsx";
+import { CareerRunCard, careerStatTiles, sortRunsNewestFirst } from "./CareerRunCard.tsx";
 import "./career.css";
 
 /**
@@ -32,18 +32,7 @@ export function CareerScreen() {
   const arcadeHistory = useArcade((state) => state.history);
   const heroOf = useHero();
 
-  const stats = [
-    { label: t("career.runs"), value: summary.runs, kind: "base" as const },
-    { label: t("career.undefeated"), value: summary.undefeated, kind: "synergy" as const },
-    { label: t("career.flawlessGroup"), value: summary.flawlessGroups, kind: "synergy" as const },
-    { label: t("career.gamesWon"), value: summary.gamesWon, kind: "base" as const },
-    { label: t("career.gamesLost"), value: summary.gamesLost, kind: "chemistry" as const },
-    ...(Object.keys(placementLabels) as CareerPlacementBucket[]).map((bucket, index) => ({
-      label: t(placementLabels[bucket]),
-      value: summary.placements[bucket],
-      kind: (["base", "synergy", "chemistry"] as const)[index % 3],
-    })),
-  ];
+  const stats = careerStatTiles(summary, t);
 
   return (
     <main className="career-page" data-testid="career-screen">

@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
-import type { MessageKey } from "../../i18n/core.ts";
 import { isCodexLocked, useRun } from "../../state/runStore.ts";
 import { navigateBack } from "../../state/navigation.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
@@ -11,13 +10,7 @@ import { buildTeammateIndex, nicknameIndex, teammateLinks, type TeammateLink } f
 // что settings.css уже в бандле».
 import "../settings/settings.css";
 import "./teammates.css";
-
-const WINDOWS: { value: Format; label: MessageKey }[] = [
-  { value: "last_1y", label: "start.last1y" },
-  { value: "last_2y", label: "start.last2y" },
-  { value: "last_5y", label: "start.last5y" },
-  { value: "valve_legacy", label: "start.valveLegacy" },
-];
+import { FORMAT } from "../start/startOptions.ts";
 
 const SIZE = 460;
 const CENTER = SIZE / 2;
@@ -96,7 +89,7 @@ export function TeammatesScreen() {
         <Select
           label={t("teammates.window")}
           value={format}
-          options={WINDOWS.map((window) => ({ value: window.value, label: t(window.label) }))}
+          options={FORMAT.map((window) => ({ value: window.value, label: t(window.label) }))}
           onChange={(value) => setFormat(value as Format)}
           disabled={locked}
         />
