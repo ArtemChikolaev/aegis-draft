@@ -10,32 +10,31 @@ node_modules/
 /web/dist/
 .vite/
 
-# Данные web/public/data/*.json теперь версионируются: deploy берёт закоммиченный
-# датасет, а workflow data-refresh (крон) пересобирает его пайплайном (--emit-domain).
-# gen:mock перегенерирует мок локально/в CI-проверках.
+# Данные web/public/data/*.json версионируются: deploy берёт закоммиченный датасет, а workflow
+# data-refresh (крон) пересобирает его пайплайном (--emit-domain). Мок `npm run gen:mock` по
+# умолчанию пишет сюда, а не поверх боевого датасета (тесты читают его через AEGIS_DATA_DIR).
+/web/.mock-data/
 
 # Env / secrets (ключи OpenDota, контакты Liquipedia UA)
 .env
 .env.local
 api_keys.txt
 
+# Claude Code: настройки конкретной машины (общие для проекта — .claude/settings.json)
+/.claude/settings.local.json
+
 # OS / editor
 .DS_Store
 .idea/
 .vscode/
 
-# Playwright
-/web/test-results/
-/web/playwright-report/
-/web/blob-report/
-
-# Playwright: артефакты прогонов (в т.ч. из корня, если тест запущен не из web/)
+# Playwright: артефакты прогонов — из web/ или из корня, если тест запущен не оттуда
 test-results/
-web/test-results/
-web/playwright-report/
+playwright-report/
+blob-report/
 
-# Черновики агентских QA-прогонов (playwright-скрипты в рабочем дереве web/)
-web/.tmp_*
+# Черновики агентских QA-прогонов и разовых проверок в любом каталоге (web/.tmp_*, web/scripts/.tmp_*)
+**/.tmp_*
 
 # Python skill validation
 __pycache__/
