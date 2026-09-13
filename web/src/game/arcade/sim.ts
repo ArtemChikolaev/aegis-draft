@@ -2823,10 +2823,12 @@ export class ArcadeSim {
       if (alive >= ARCADE.spawn.cap) continue;
       this.spawnEnemy(weightedPick(this.rng, pool), ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMax));
     }
+    // Расписания мира — по часам акта (T13.58: в разломе они стоят), сроки жизни событий — реальные тики.
+    const at = this.actTick;
     // Крип-волна: пачка с одной стороны, каждая пятая — с осадным.
-    if (this.tick - this.lastWaveAt >= ARCADE.waves.every && this.tick > 0) {
-      this.lastWaveAt = this.tick;
-      const waveNo = Math.round(this.tick / ARCADE.waves.every);
+    if (at - this.lastWaveAt >= ARCADE.waves.every && at > 0) {
+      this.lastWaveAt = at;
+      const waveNo = Math.round(at / ARCADE.waves.every);
       const [ox, oy] = this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40);
       const size = Math.round((ARCADE.waves.size + Math.floor(min / 2)) * (this.rank.bigWaves ? 1.5 : 1) * this.siegeMult());
       for (let i = 0; i < size; i++) this.spawnEnemy(ENEMY_KINDS.lane_creep, ox + (this.rng.float() - 0.5) * 120, oy + (this.rng.float() - 0.5) * 120);
@@ -2837,26 +2839,26 @@ export class ArcadeSim {
       this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
       if (this.rank.doubleGolems) this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
     }
-    if (this.rank.trollPacks && this.tick >= this.nextTrollPackAt) {
-      this.nextTrollPackAt = this.tick + sec(45);
+    if (this.rank.trollPacks && at >= this.nextTrollPackAt) {
+      this.nextTrollPackAt = at + sec(45);
       for (let i = 0; i < 8; i++) this.spawnEnemy(ENEMY_KINDS.hill_troll, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 30));
     }
     // Руна щедрости: появляется недалеко, живёт ограниченно, следующая — по расписанию.
-    if (this.tick >= this.nextShrineAt && !this.shrine.alive) {
-      this.nextShrineAt = this.tick + ARCADE.greed.every;
+    if (at >= this.nextShrineAt && !this.shrine.alive) {
+      this.nextShrineAt = at + ARCADE.greed.every;
       const [sx, sy] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.greed.distMin, ARCADE.greed.distMax);
       this.shrine = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.greed.lifetime };
     }
     if (this.shrine.alive && this.tick >= this.shrine.until) this.shrine.alive = false;
     // Secret Shop: торговец в окна расписания.
-    if (this.shopIdx < ARCADE.shop.at.length && this.tick >= ARCADE.shop.at[this.shopIdx]) {
+    if (this.shopIdx < ARCADE.shop.at.length && at >= ARCADE.shop.at[this.shopIdx]) {
       this.shopIdx++;
       const [sx, sy] = this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.shopkeeper = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.shop.lifetime, value: 0 };
     }
     if (this.shopkeeper.alive && this.tick >= this.shopkeeper.until) this.shopkeeper.alive = false;
     // Bounty-руна каждые 3 минуты.
-    if (this.tick >= this.nextBountyAt) {
+    if (at >= this.nextBountyAt) {
       this.nextBountyAt += ARCADE.bounty.every;
       const [bx, by] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.bounty = { alive: true, x: bx, y: by, until: this.tick + ARCADE.bounty.lifetime, value: Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * min) };
@@ -2864,7 +2866,7 @@ export class ArcadeSim {
     this.holdEvent(this.bounty);
     if (this.bounty.alive && this.tick >= this.bounty.until) this.bounty.alive = false;
     // Руны: раз в две минуты, вид — по сиду, у реки (акт с рекой) или на кольце вокруг героя.
-    if (this.tick >= this.nextRuneAt) {
+    if (at >= this.nextRuneAt) {
       this.nextRuneAt += ARCADE.rune.every;
       const [rx, ry] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.runeKind = RUNE_KINDS[this.rng.int(RUNE_KINDS.length)];
@@ -2881,8 +2883,8 @@ export class ArcadeSim {
     this.holdEvent(this.neutralToken);
     if (this.neutralToken.alive && this.tick >= this.neutralToken.until) this.neutralToken.alive = false;
     // Сундук с экипировкой.
-    if (this.tick >= this.nextChestAt && !this.chest.alive) {
-      this.nextChestAt = this.tick + ARCADE.loot.chestEvery;
+    if (at >= this.nextChestAt && !this.chest.alive) {
+      this.nextChestAt = at + ARCADE.loot.chestEvery;
       const [cx, cy] = this.ringPoint(ARCADE.loot.distMin, ARCADE.loot.distMax);
       // Проклятый сундук (T13.43): не первый, с шансом, и только пока пруд не использован — иначе порчу нечем снять.
       const cursed = this.chestNo++ > 0 && !!this.pond && !this.pond.used && !this.player.curse && this.rng.float() < ARCADE.curse.chestChance;

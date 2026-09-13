@@ -98,6 +98,18 @@ describe("разлом", () => {
     expect(base.riftVisionMult()).toBe(1);
   });
 
+  it("расписание мира идёт по часам акта: вход на 2:15 — торговец на 3:00 по часам акта, а не по реальному тику", () => {
+    const sim = new ArcadeSim("rift-clock", { act: "short" });
+    enter(sim, "surge");
+    expect(sim.actTick).toBeGreaterThanOrEqual(R.fromTick.short); // вход через пару шагов после открытия
+    expect(sim.actTick).toBeLessThan(ARCADE.shop.at[0]);
+    let shopAt = -1, guard = 0;
+    while (shopAt < 0 && guard++ < sec(200) && !sim.over) { atRift(sim); step(sim, 1); if (sim.shopkeeper.alive) shopAt = sim.actTick; }
+    expect(sim.rift!.won).toBe(true);
+    expect(sim.pausedTicks).toBe(R.duration);
+    expect(shopAt).toBe(ARCADE.shop.at[0]);
+  });
+
   it("выход за кольцо — провал: без награды, разлом закрыт, передышка без спавна, потом часы идут", () => {
     const sim = new ArcadeSim("rift-4", { act: "short" });
     enter(sim, "surge");
