@@ -3,6 +3,7 @@ import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { IDLE_INPUT, type Enemy } from "../src/game/arcade/types.ts";
 import { LEGENDARY_UPGRADES, SCHOOLS, UPGRADES, upgradeFigures } from "../src/game/arcade/content/schools.ts";
+import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 
 // Школа Venom (T13.47, этап 3 аудита): пять узлов поверх статуса яда, две легендарные развилки, три гибрида.
 const P = ARCADE.poison;
@@ -121,6 +122,7 @@ describe("школа Venom", () => {
     sim.player.schools.push("venom", "skadi", "radiance", "beast");
     apply(sim, "hyb_venom_frost");
     sim.applyPoison(a, 10);
+    sim.tick += sec(1); // свежий стак уже полного срока: холод продлевает только сверх прошедшей части (потолок T13.66)
     const until = a.poisonUntil;
     (sim as unknown as { applyChill(e: Enemy, s: number, sec: number, st?: boolean): void }).applyChill(a, 0.3, 1, false);
     expect(a.poisonUntil).toBe(until + sec(0.6));
@@ -142,5 +144,21 @@ describe("школа Venom", () => {
     let guard = 0;
     while (t.poisonStacks === 0 && guard++ < sec(8)) { t.x = sim2.player.x + 30; t.y = sim2.player.y; step(sim2, 1); }
     expect(t.poisonStacks).toBeGreaterThan(0);
+  });
+});
+
+describe("Яд + холод: потолок продления (T13.66)", () => {
+  it("частый холод продлевает яд, но не дальше полного срока свежего стака", () => {
+    for (const every of [10, 6]) {
+      const sim = new ArcadeSim("venom-frost-cap", { hero: "viper", act: "short" });
+      const a = sim as unknown as { spawnEnemy(k: typeof ENEMY_KINDS.ogre, x: number, y: number): Enemy; applyPoison(e: Enemy, dps: number): void; applyChill(e: Enemy, slow: number, s: number, stack: boolean): void };
+      sim.player.upgrades.hyb_venom_frost = { rank: 1, power: 1, cap: 2 };
+      const e = a.spawnEnemy(ENEMY_KINDS.ogre, sim.player.x + 60, sim.player.y); e.hp = e.maxHp = 1e9;
+      a.applyPoison(e, 10);
+      for (let i = 1; i <= 600; i++) { sim.tick++; if (sim.tick % every === 0) a.applyChill(e, 0.2, 0.4, false); }
+      const left = e.poisonUntil - sim.tick;
+      expect(left, `холод каждые ${every} тиков`).toBeGreaterThan(0); // холод по-прежнему продлевает
+      expect(left, `холод каждые ${every} тиков`).toBeLessThanOrEqual(sec(ARCADE.poison.seconds));
+    }
   });
 });

@@ -2327,9 +2327,10 @@ export class ArcadeSim {
 
   private applyChill(e: Enemy, slow: number, seconds: number, stack = true): void {
     if (e.kind.unstoppable) return;
-    // Яд + холод (T13.47): охлаждение продлевает жизнь стаков.
+    // Яд + холод (T13.47): охлаждение продлевает жизнь стаков, но не дальше полного срока свежего яда — частый холод
+    // (аура Skadi раз в 10 тиков, Freezing Field раз в 6) иначе держал яд бесконечно.
     const frost = this.upgradePower("hyb_venom_frost");
-    if (frost > 0 && this.tick < e.poisonUntil) e.poisonUntil += sec(0.6 * frost);
+    if (frost > 0 && this.tick < e.poisonUntil) e.poisonUntil = Math.max(e.poisonUntil, Math.min(e.poisonUntil + sec(0.6 * frost), this.tick + sec(this.statusSec(ARCADE.poison.seconds + this.poisonExtraSec()))));
     e.chillSlow = Math.max(e.chillUntil > this.tick ? e.chillSlow : 0, slow);
     e.chillUntil = Math.max(e.chillUntil, this.tick + sec(this.statusSec(seconds)));
     if (!stack) return;
@@ -2368,8 +2369,12 @@ export class ArcadeSim {
     }
     e.poisonStacks = Math.min(ARCADE.poison.maxStacks, (active ? e.poisonStacks : 0) + 1);
     e.poisonDps = Math.max(active ? e.poisonDps : 0, dpsPerStack);
-    const extra = 0.5 * this.upgradePower("ven_virulence") + (this.upgradePower("leg_ven_pandemic") > 0 ? 2 : 0);
-    e.poisonUntil = Math.max(e.poisonUntil, this.tick + sec(this.statusSec(seconds + extra)));
+    e.poisonUntil = Math.max(e.poisonUntil, this.tick + sec(this.statusSec(seconds + this.poisonExtraSec())));
+  }
+
+  /** Надбавка к сроку яда, с: Вирулентность и Пандемия. */
+  private poisonExtraSec(): number {
+    return 0.5 * this.upgradePower("ven_virulence") + (this.upgradePower("leg_ven_pandemic") > 0 ? 2 : 0);
   }
 
   /** Множитель урона яда от Вирулентности (как burnMult у огня). */
