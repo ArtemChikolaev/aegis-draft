@@ -14,6 +14,7 @@
 // заявка, мусор) молча игнорируется одинаково у всех. Анти-чит — MP3: клиентский пик по
 // построению не даёт силы (пул общий, резолв одинаковый), но серверная валидация — там.
 import type { Format, GameData } from "../types/data.ts";
+import { isFormat } from "./packs.ts";
 import { ArenaDraftEngine, type ArenaPick } from "./arenaDraft.ts";
 
 export interface ArenaStartAction {
@@ -38,8 +39,6 @@ export interface ArenaCloseMessage {
   round: number;
 }
 
-export type ArenaAction = ArenaStartAction | ArenaPickMessage | ArenaCloseMessage;
-
 export interface ArenaMatchState {
   engine: ArenaDraftEngine;
   /** Отправитель start: только он закрывает раунды по таймеру. */
@@ -51,14 +50,12 @@ export function arenaSimSeed(seed: string): string {
   return `${seed}:arena:sim`;
 }
 
-const FORMATS: readonly Format[] = ["last_1y", "last_2y", "last_5y", "valve_legacy"];
-
 function parseStart(payload: unknown): ArenaStartAction | null {
   if (typeof payload !== "object" || payload === null) return null;
   const raw = payload as Record<string, unknown>;
   if (raw.kind !== "start") return null;
   if (typeof raw.seed !== "string" || raw.seed.length === 0) return null;
-  if (!FORMATS.includes(raw.format as Format)) return null;
+  if (!isFormat(raw.format)) return null;
   if (!Array.isArray(raw.members) || raw.members.length === 0) return null;
   const members: { id: string; name: string }[] = [];
   const seen = new Set<string>();

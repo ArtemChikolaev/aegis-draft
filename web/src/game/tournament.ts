@@ -1,6 +1,7 @@
 import type { Format, GameData } from "../types/data.ts";
 import { Rng } from "./rng.ts";
 import { eloDivisorForScale } from "./tournamentPower.ts";
+import { QUICK_DRAFT_FIELD, type FieldModel } from "./fieldModel.ts";
 
 export type TournamentStage = "field" | "groups" | "playoffs" | "final" | "complete";
 export type PlacementKey = "1" | "2" | "3" | "4" | "5-6" | "7-8" | "9-12" | "13-16" | "17" | "18";
@@ -108,41 +109,8 @@ const USER_ID = "aegis-user-team";
 // Final) + итоговая таблица + твой результат на одном экране (без отдельных final/complete).
 const STAGES: TournamentStage[] = ["field", "groups", "playoffs"];
 
-/**
- * Модель поля соперников (R7.1).
- *
- * Разделены две разные вещи:
- *  - **качество ростера** соперника — сэмплируется из `N(mean, sd)` и ограничено `[min, max]`,
- *    потому что это оценка живых игроков и у неё есть естественный потолок;
- *  - **`threat`** — надбавка к итоговой силе сверх качества ростера (акт/босс/Stake, R7.2).
- *    Она НЕ клампится: именно здесь снимается потолок 99, из-за которого поздняя угроза упиралась
- *    в стену.
- *
- * Зачем параметризация вместо прежнего «сдвинуть и переклампить»: Roguelite двигал уже
- * ограниченную выборку и переклампливал её, из-за чего распределение схлопывалось в спайк на
- * границе. Замер на этапе 1: **90.2% ботов стояли ровно на 76**, `sd ≈ 0.99` — то есть поле было
- * не распределением, а одним значением, матчи ботов между собой превращались в монетку, и место
- * игрока определялось жеребьёвкой, а не силой. Теперь по этапу двигается сам `mean`, а `sd`
- * остаётся живым.
- */
-export interface FieldModel {
-  /** Средняя сила ростера соперников на этом этапе. */
-  mean: number;
-  sd: number;
-  /** Границы КАЧЕСТВА ростера (не итоговой силы). */
-  min: number;
-  max: number;
-  /** Надбавка к итоговой силе сверх качества ростера. Без верхней границы. */
-  threat?: number;
-  /** Множитель итоговой силы — Tournament Power поля (R7.2, мультипликативная часть угрозы):
-   *  растёт по актам, как у игрока растут X Mult предметов. 1 по умолчанию; Quick Draft не задаёт. */
-  mult?: number;
-}
-
-/** Поле Quick Draft — `round(clamp(76, 99, Normal(86, 5)))`, параметры сняты из бандла 322-0
- *  дословно (docs/reference-322-0.md) и НЕ меняются: на них стоят golden-фикстуры и
- *  parity-аудит. */
-export const QUICK_DRAFT_FIELD: FieldModel = { mean: 86, sd: 5, min: 76, max: 99 };
+// Модель поля живёт в fieldModel.ts (разрыв цикла с tournamentPower.ts); публичный путь прежний.
+export { QUICK_DRAFT_FIELD, type FieldModel } from "./fieldModel.ts";
 
 // Сила бота НЕ привязана к силе игрока: место зависит от того, куда попадает его OVR в этом
 // поле (сильный драфт → 1-3, средний → середина, слабый → низ), а не «всегда 2-3».
@@ -260,7 +228,7 @@ function projectionForRank(rank: number): ProjectionKey {
  *  масштабироваться вместе со шкалой. Это и сделано в R8.2: `eloDivisorForScale` растит делитель
  *  пропорционально шкале ЭТАПА, поэтому Quick Draft (scale === QUICK_DRAFT_FIELD.mean) получает
  *  ровно 22 и golden не двигается, а инфляция силы больше не превращает матч в сравнение чисел. */
-const ELO_DIVISOR = 22;
+export const ELO_DIVISOR = 22;
 
 /** Вероятность победы силы `a` над силой `b` — ELO по основанию 10 с делителем, масштабированным
  *  под шкалу этапа. Экспортируется: Дуэль (M-DUEL) судит игры серии ТОЙ ЖЕ кривой, что и все
@@ -347,7 +315,8 @@ function buildResult(data: GameData, format: Format, seed: string, userStrength:
   const fieldRng = new Rng(`${seed}:tournament:field-${fieldReroll}`);
   const simRng = new Rng(`${seed}:tournament:sim-${fieldReroll}`);
   const name = userName.trim() || "Aegis Five";
-  const user: TournamentTeam = { id: USER_ID, name, eventLabel: "Fantasy roster", strength: userStrength, isUser: true, sigil: { monogram: monogramOf(name), color: "user" } };
+  // Подпись собственной команды — строка UI (i18n `tournament.fantasyRoster`), движок её не несёт.
+  const user: TournamentTeam = { id: USER_ID, name, eventLabel: "", strength: userStrength, isUser: true, sigil: { monogram: monogramOf(name), color: "user" } };
   // Roguelite Run (PRD §5.9.3): поле задаётся моделью этапа, а не пост-сдвигом уже
   // ограниченной выборки. Quick Draft передаёт QUICK_DRAFT_FIELD ⇒ те же роллы в том же
   // порядке ⇒ golden Classic байт-в-байт. Явные opponents (Manager) обходят генерацию.

@@ -858,7 +858,7 @@ export function TournamentScreen() {
                       <TeamSigil monogram={row.team.sigil.monogram} color={row.team.sigil.color} />
                       {/* \u041F\u043E\u0434\u0441\u0442\u0440\u043E\u043A\u0430 \u0441\u043E\u0431\u044B\u0442\u0438\u044F \u2014 \u0442\u043E\u043B\u044C\u043A\u043E \u043A\u043E\u0433\u0434\u0430 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C: \u043F\u0443\u0441\u0442\u043E\u0439 <small> \u0441 nbsp \u0441\u044A\u0435\u0434\u0430\u043B 12px
                           \u0432\u044B\u0441\u043E\u0442\u044B \u0432 \u043A\u0430\u0436\u0434\u043E\u0439 \u0438\u0437 18 \u0441\u0442\u0440\u043E\u043A \u0438 \u0443\u0436\u0438\u043C\u0430\u043B \u0438\u043C\u044F \u0434\u043E \u00ABCursed Dra\u2026\u00BB. */}
-                      <span className="table-row__team"><strong>{row.team.name}</strong>{row.team.eventLabel ? <small>{row.team.eventLabel}</small> : null}</span>
+                      <span className="table-row__team"><strong>{row.team.name}</strong>{row.team.isUser ? <small>{t("tournament.fantasyRoster")}</small> : row.team.eventLabel ? <small>{row.team.eventLabel}</small> : null}</span>
                       <span>{row.wins}–{row.losses}</span><span className={routed ? `route-tag route-tag--${row.route}` : ""}>{routed ? t(`tournament.${row.route}` as MessageKey) : "·"}</span>
                     </div>
                     );

@@ -14,6 +14,7 @@
 import type { Format, GameData } from "../../types/data.ts";
 import { type Candidate } from "../packs.ts";
 import { Rng } from "../rng.ts";
+import { ELO_DIVISOR, eloWinProbability } from "../tournament.ts";
 import {
   ELO_BOT_MAX,
   ELO_BOT_MIN,
@@ -138,7 +139,8 @@ export function simKnockout(
   placements: Array<{ name: string; strength: number; isUser: boolean; placement: number }>;
   bracket: BracketRound[];
 } {
-  const winProb = (a: number, b: number) => 1 / (1 + Math.pow(10, -(a - b) / 22));
+  // Та же ELO-кривая, что у всех турниров (tournament.ts): второй формулы матча быть не должно.
+  const winProb = (a: number, b: number) => eloWinProbability(a, b, ELO_DIVISOR);
   const rated = field.map((team) => ({ ...team, seedScore: team.strength + rng.normal(0, 3) }));
   rated.sort((a, b) => b.seedScore - a.seedScore);
   const cut = rated.slice(8);

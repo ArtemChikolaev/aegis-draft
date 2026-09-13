@@ -30,7 +30,7 @@ import {
   signatureLookup,
   type ScoreBreakdown,
 } from "./score.ts";
-import { eloWinProbability, QUICK_DRAFT_FIELD } from "./tournament.ts";
+import { ELO_DIVISOR, eloWinProbability, QUICK_DRAFT_FIELD } from "./tournament.ts";
 import { eloDivisorForScale } from "./tournamentPower.ts";
 
 export type DuelSide = 0 | 1;
@@ -281,7 +281,7 @@ export class DuelEngine {
     const scoreB = this.scoreSide(1);
     // Делитель масштабируется от средней силы игры — та же страховка от «матча-сравнения чисел»,
     // что у этапов (R8.2); на шкале Quick Draft это ровно базовые 22.
-    const divisor = eloDivisorForScale(22, Math.max(QUICK_DRAFT_FIELD.mean, (scoreA.teamOvr + scoreB.teamOvr) / 2));
+    const divisor = eloDivisorForScale(ELO_DIVISOR, Math.max(QUICK_DRAFT_FIELD.mean, (scoreA.teamOvr + scoreB.teamOvr) / 2));
     const pSideA = eloWinProbability(scoreA.teamOvr, scoreB.teamOvr, divisor);
     const roll = new Rng(`${this.seed}:duel:game-${this.games.length}`).float();
     this.games.push({

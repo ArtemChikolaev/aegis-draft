@@ -9,7 +9,7 @@
 // Формат данных сознательно тот же, что у сейва (state/runPersist.SavedRun): и там, и там
 // вопрос один — «воспроизводим ли забег на этом датасете». Проверку версий не дублируем.
 import { isMutatorId, type MutatorId } from "../game/dynastyMutators.ts";
-import { stakesOf, type RunConfig } from "../game/packs.ts";
+import { isFormat, stakesOf, type RunConfig } from "../game/packs.ts";
 import { normalizePlaybook, samePlaybook } from "../game/playbook.ts";
 import type { RunMode } from "./runPersist.ts";
 
@@ -128,7 +128,7 @@ export function decodeRunLink(encoded: string): RunLink | null {
   if (raw.d !== "team" && raw.d !== "mixed") return null;
   if (raw.c !== "event" && raw.c !== "peak") return null;
   if (raw.a !== "auto" && raw.a !== "manual") return null;
-  if (raw.f !== "last_1y" && raw.f !== "last_2y" && raw.f !== "last_5y" && raw.f !== "valve_legacy") return null;
+  if (!isFormat(raw.f)) return null;
   if (raw.h !== undefined && raw.h !== 1) return null;
   if (raw.x !== undefined && raw.x !== 1) return null;
   if (raw.b !== undefined && (typeof raw.b !== "string" || !raw.b)) return null;

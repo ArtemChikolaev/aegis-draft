@@ -7,6 +7,7 @@
 // payload, действие зрителя) молча ИГНОРИРУЕТСЯ — одинаково у всех. Ошибкой протокола оно не
 // является: злоумышленный клиент может испортить только свою комнату, рейтинги дуэль не пишет.
 import type { Format, GameData } from "../types/data.ts";
+import { isFormat } from "./packs.ts";
 import { DuelEngine, type DuelSide } from "./duel.ts";
 
 /** Стартовое сообщение: его шлёт создатель комнаты, когда оба капитана на месте. Несёт всё,
@@ -27,22 +28,18 @@ export type DuelPlayAction =
   | { kind: "actHero"; heroId: number }
   | { kind: "next" };
 
-export type DuelAction = DuelStartAction | DuelPlayAction;
-
 /** Активная партия: движок + привязка участников комнаты к сторонам. */
 export interface DuelMatch {
   engine: DuelEngine;
   sides: Record<string, DuelSide>;
 }
 
-const FORMATS: readonly Format[] = ["last_1y", "last_2y", "last_5y", "valve_legacy"];
-
 function parseStart(payload: unknown): DuelStartAction | null {
   if (typeof payload !== "object" || payload === null) return null;
   const raw = payload as Record<string, unknown>;
   if (raw.kind !== "start") return null;
   if (typeof raw.seed !== "string" || raw.seed.length === 0) return null;
-  if (!FORMATS.includes(raw.format as Format)) return null;
+  if (!isFormat(raw.format)) return null;
   if (raw.bestOf !== 1 && raw.bestOf !== 3 && raw.bestOf !== 5) return null;
   const sides = raw.sides;
   if (typeof sides !== "object" || sides === null) return null;

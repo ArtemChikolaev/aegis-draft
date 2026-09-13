@@ -12,6 +12,14 @@ export type DraftStyle = "team" | "mixed";
 export type Scoring = "event" | "peak";
 export type Allocation = "auto" | "manual";
 
+/** Все форматы пула в порядке manifest.formats — единственный список для протоколов комнат и
+ *  ссылок забега (раньше каждый держал свою копию литералов). */
+export const FORMATS: readonly Format[] = ["last_1y", "last_2y", "last_5y", "valve_legacy"];
+
+export function isFormat(value: unknown): value is Format {
+  return (FORMATS as readonly unknown[]).includes(value);
+}
+
 export interface RunConfig {
   draftStyle: DraftStyle;
   format: Format;
