@@ -1,9 +1,12 @@
 // Пиксельная земля Аркады из текстур Dota (docs/arcade-dota-sprites.md §7, владелец 2026-09-06: «земля мыльная, нужен пиксель»).
-// Исходник `public/art/sprites/dota/terrain/<name>.png` (512 px) → 128 px: усреднение до 64 px (пятна, а не шум по пикселю),
+// Исходник `public/art/sprites/dota/terrain/<name>.webp` (512 px) → 128 px: усреднение до 64 px (пятна, а не шум по пикселю),
 // 5 ступеней яркости по квантилям с лестницей контраста вокруг среднего цвета (оттенок Dota сохраняется), общее затемнение
-// под тон карты, ×2 nearest. Пишет в `public/art/sprites/dota_px/terrain/`. Запуск из web/: `npx tsx scripts/pixel_terrain.mts [lum=0.2] [contrast=0.3] [div=2]`.
+// под тон карты, ×2 nearest. Пишет `public/art/sprites/dota_px/terrain/<name>.webp`. Запуск из web/: `npx tsx scripts/pixel_terrain.mts [lum] [contrast] [div]`.
+// Закоммиченная земля собрана с `0.2 0.3 2` (с этими аргументами палитра совпадает до ±1 на канал); умолчания в коде
+// (контраст 2.2) давят две нижние ступени в чёрный — передавай аргументы явно.
 // Canvas — через headless Chromium (Playwright уже в devDependencies; без sharp/PIL). Скрипт страницы — строкой, не функцией:
-// esbuild-хелпер `__name` в page.evaluate не существует.
+// esbuild-хелпер `__name` в page.evaluate не существует. WebP с quality 1 Chromium кодирует без потерь (проверено
+// побайтным сравнением декодированных пикселей), поэтому палитра из 5 ступеней не размывается.
 import { chromium } from "playwright";
 import { writeFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -15,7 +18,7 @@ const jobs = [
   { name: "dirt", lum: Number(process.argv[2] ?? 0.2) * 1.25, div: Number(process.argv[4] ?? 4), contrast: Number(process.argv[3] ?? 2.2) },
 ];
 const PAGE = `(async (b64, N, K, contrast, targetLum, div) => {
-  const img = new Image(); img.src = 'data:image/png;base64,' + b64; await img.decode();
+  const img = new Image(); img.src = 'data:image/webp;base64,' + b64; await img.decode();
   // 1) усреднение до N/2: крупные пятна, а не шум по пикселю; 2) K ступеней по квантилям яркости, цвет ступени — средний
   // цвет исходника в ней (оттенок Dota сохраняется), контраст слегка растянут; 3) ×2 nearest до N.
   const small = N / div;
@@ -37,15 +40,15 @@ const PAGE = `(async (b64, N, K, contrast, targetLum, div) => {
   x.putImageData(d, 0, 0);
   const out = document.createElement('canvas'); out.width = out.height = N; const ox = out.getContext('2d'); ox.imageSmoothingEnabled = false; ox.drawImage(c, 0, 0, N, N);
   const big = document.createElement('canvas'); big.width = big.height = 512; const bx = big.getContext('2d'); bx.imageSmoothingEnabled = false; bx.drawImage(out, 0, 0, 512, 512);
-  return [out.toDataURL('image/png').split(',')[1], big.toDataURL('image/png').split(',')[1], pal];
+  return [out.toDataURL('image/webp', 1).split(',')[1], big.toDataURL('image/png').split(',')[1], pal];
 })`;
 const browser = await chromium.launch();
 const page = await browser.newPage();
 for (const j of jobs) {
-  const b64 = readFileSync(`${SRC}/${j.name}.png`).toString("base64");
+  const b64 = readFileSync(`${SRC}/${j.name}.webp`).toString("base64");
   const [out, prev, pal]: [string, string, number[][]] = await page.evaluate(`${PAGE}(${JSON.stringify(b64)}, 128, 5, ${j.contrast}, ${j.lum}, ${j.div})`);
   console.log(j.name, JSON.stringify(pal));
-  writeFileSync(`${DST}/${j.name}.png`, Buffer.from(out, "base64"));
+  writeFileSync(`${DST}/${j.name}.webp`, Buffer.from(out, "base64"));
   void prev;
 }
 await browser.close();
