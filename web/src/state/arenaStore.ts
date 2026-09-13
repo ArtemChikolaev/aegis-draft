@@ -60,6 +60,10 @@ let socket: ArenaSocket | null = null;
 let lastSeq = 0;
 /** Таймер авто-close текущего раунда (только у хоста). */
 let roundTimer: ReturnType<typeof setTimeout> | null = null;
+/** Номер последней попытки входа. Вход асинхронный (создание комнаты, барьер squadSynergy): за
+ *  время ожидания игрок мог выйти или нажать «Войти» ещё раз, и устаревшая попытка не должна
+ *  открыть второй сокет или «зомби-лобби». */
+let connectAttempt = 0;
 
 function clearRoundTimer(): void {
   if (roundTimer !== null) clearTimeout(roundTimer);
@@ -174,38 +178,50 @@ export const useArena = create<ArenaStore>((set, get) => {
       set({ status: "error", errorCode: "no_data" });
       return;
     }
+    const attempt = ++connectAttempt;
+    // «Подключение» — сразу, ДО барьера: пока грузится squadSynergy, статус idle разрешал второй
+    // клик «Войти», и два connect открывали два сокета.
+    set({ status: "connecting", errorCode: null });
     // Барьер отложенного squadSynergy: движок комнаты считает сыгранность, а relay-лог может
     // прийти сразу после welcome — файл должен лежать в data ДО открытия сокета.
     try {
       await useRun.getState().ensureSquadSynergy();
     } catch {
-      set({ status: "error", errorCode: "network" });
+      if (attempt === connectAttempt) set({ status: "error", errorCode: "network" });
       return;
     }
+    if (attempt !== connectAttempt) return;
     socket?.close();
     lastSeq = 0;
     clearRoundTimer();
     set({ status: "connecting", code, errorCode: null, match: null, serial: 0, roundDeadline: null });
-    socket = connectArenaRoom(code, name, tokens.read(code), versions, {
+    // События сокета, который уже заменён повторным входом или брошен выходом, стор не трогают:
+    // close старого приходит асинхронно и иначе обнулил бы ссылку на живое подключение.
+    const mine: ArenaSocket = connectArenaRoom(code, name, tokens.read(code), versions, {
       onWelcome: (welcome) => {
+        if (socket !== mine) return;
         tokens.write(code, welcome.token);
         set({ status: "lobby", code: welcome.code, selfId: welcome.selfId, members: welcome.members });
       },
       onRelayLog: (entries) => {
+        if (socket !== mine) return;
         // Реплей с нуля: reconnect мог прийти в середине партии.
         lastSeq = 0;
         clearRoundTimer();
         set({ match: null, roundDeadline: null });
         for (const entry of entries) applyEntry(entry);
       },
-      onRelay: applyEntry,
+      onRelay: (entry) => {
+        if (socket === mine) applyEntry(entry);
+      },
       onPresence: (presence) => {
-        set({ members: presence.members });
+        if (socket === mine) set({ members: presence.members });
       },
       onError: (error) => {
-        set({ status: "error", errorCode: error.code });
+        if (socket === mine) set({ status: "error", errorCode: error.code });
       },
       onClose: () => {
+        if (socket !== mine) return;
         // Ошибка уже показана — не перетираем; обычный обрыв возвращает в idle
         // (автоreconnect-политика — вместе с прод-прогоном T9.0).
         if (get().status !== "error") set({ status: "idle", members: [], selfId: null });
@@ -213,6 +229,7 @@ export const useArena = create<ArenaStore>((set, get) => {
         socket = null;
       },
     });
+    socket = mine;
   };
 
   return {
@@ -226,12 +243,14 @@ export const useArena = create<ArenaStore>((set, get) => {
     roundDeadline: null,
 
     async createRoom(name) {
+      const attempt = ++connectAttempt;
       set({ status: "connecting", errorCode: null });
       try {
         const code = await createArenaRoom();
-        connect(code, name);
+        // Игрок мог выйти, пока сервер создавал комнату, — такой вход уже отменён.
+        if (attempt === connectAttempt) connect(code, name);
       } catch (error) {
-        set({ status: "error", errorCode: error instanceof ApiError ? error.code : "network" });
+        if (attempt === connectAttempt) set({ status: "error", errorCode: error instanceof ApiError ? error.code : "network" });
       }
     },
 
@@ -274,6 +293,8 @@ export const useArena = create<ArenaStore>((set, get) => {
     },
 
     leaveRoom() {
+      // Отменяет и вход, который ещё ждёт создания комнаты или барьера squadSynergy.
+      connectAttempt += 1;
       socket?.leave();
       socket = null;
       lastSeq = 0;
