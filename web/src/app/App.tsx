@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import { useRun } from "../state/runStore.ts";
 import { useShell } from "../state/shellStore.ts";
 import { useTmaChrome } from "../state/tmaChrome.ts";
@@ -12,21 +12,31 @@ import { DraftScreen } from "../features/draft/DraftScreen.tsx";
 import { PrepScreen } from "../features/prep/PrepScreen.tsx";
 import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { CampScreen } from "../features/run/CampScreen.tsx";
-import { SettingsScreen } from "../features/settings/SettingsScreen.tsx";
-import { HeroesScreen } from "../features/heroes/HeroesScreen.tsx";
-import { TeammatesScreen } from "../features/teammates/TeammatesScreen.tsx";
-import { CareerScreen } from "../features/career/CareerScreen.tsx";
-import { HqScreen } from "../features/hq/HqScreen.tsx";
-import { RulesScreen } from "../features/rules/RulesScreen.tsx";
-import { ManagerScreen } from "../features/manager/ManagerScreen.tsx";
-import { DuelScreen } from "../features/duel/DuelScreen.tsx";
-import { ArcadeScreen } from "../features/arcade/ArcadeScreen.tsx";
-import { ArenaDraftScreen } from "../features/arena/ArenaDraftScreen.tsx";
 import { useArena } from "../state/arenaStore.ts";
 import { useI18n } from "../i18n/I18nProvider.tsx";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
 import "./App.css";
+
+/** Экран с именованным экспортом — в React.lazy (тот ждёт default). */
+function lazyScreen<K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) {
+  return lazy(() => load().then((module) => ({ default: module[name] })));
+}
+
+// Экраны вне основного пути забега (старт → драфт → турнир → Буткемп) грузятся отдельными
+// чанками: раньше весь фронт, включая сим Аркады и обе локали, был одним стартовым чанком
+// (~1.2 МБ), хотя справочники, Штаб, Менеджер, Дуэль и Аркаду открывают не в каждой сессии.
+// Офлайн это не ломает: service worker прекэширует все чанки сборки.
+const SettingsScreen = lazyScreen(() => import("../features/settings/SettingsScreen.tsx"), "SettingsScreen");
+const HeroesScreen = lazyScreen(() => import("../features/heroes/HeroesScreen.tsx"), "HeroesScreen");
+const TeammatesScreen = lazyScreen(() => import("../features/teammates/TeammatesScreen.tsx"), "TeammatesScreen");
+const CareerScreen = lazyScreen(() => import("../features/career/CareerScreen.tsx"), "CareerScreen");
+const HqScreen = lazyScreen(() => import("../features/hq/HqScreen.tsx"), "HqScreen");
+const RulesScreen = lazyScreen(() => import("../features/rules/RulesScreen.tsx"), "RulesScreen");
+const ManagerScreen = lazyScreen(() => import("../features/manager/ManagerScreen.tsx"), "ManagerScreen");
+const DuelScreen = lazyScreen(() => import("../features/duel/DuelScreen.tsx"), "DuelScreen");
+const ArcadeScreen = lazyScreen(() => import("../features/arcade/ArcadeScreen.tsx"), "ArcadeScreen");
+const ArenaDraftScreen = lazyScreen(() => import("../features/arena/ArenaDraftScreen.tsx"), "ArenaDraftScreen");
 
 export function App() {
   const phase = useRun((s) => s.phase);
@@ -114,6 +124,8 @@ export function App() {
     return () => window.removeEventListener("hashchange", syncLinkFromHash);
   }, [syncLinkFromHash]);
 
+  const loadingView = <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>;
+
   return (
     <div
       className={`app-shell${phase === "camp" && view === "game" ? " app-shell--camp" : ""}`}
@@ -149,50 +161,53 @@ export function App() {
         </Banner>
       )}
 
-      {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : view === "hq" ? <HqScreen /> : view === "rules" ? <RulesScreen /> : (
-        /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
-           (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
-           так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
-        <div className="enter-fade" key={mode === "manager" ? "manager" : mode === "duel" ? "duel" : mode === "arcade" ? "arcade" : phase}>
-          {/* Manager — свой мир со своим long-save: фазы classic-забега его не касаются.
-              Плашки resume висят и над его онбордингом — как на остальных start-экранах. */}
-          {mode === "manager" && phase === "start" ? (
-            <>
-              <ResumeBanner />
-              <ManagerResumeBanner />
-              <ManagerScreen />
-            </>
-          ) : mode === "duel" && phase === "start" ? (
-            /* Дуэль (M-DUEL) — как Manager: свой мир, фазы classic-забега его не касаются.
-               Персиста у hotseat-серии нет, поэтому и resume-плашек над ней нет. */
-            <DuelScreen />
-          ) : mode === "arcade" && phase === "start" ? (
-            /* Аркада (M13) — real-time сим со своим стором; сейва посреди забега нет. */
-            <ArcadeScreen />
-          ) : (
-            <>
-              {/* T7.3: упавшая загрузка данных — не вечная орбита, а retry. Баннер с причиной
-                  уже висит выше; здесь — действие, иначе первый визит без сети упирался в тупик. */}
-              {phase === "loading" && (error
-                ? (
-                  <div className="loading">
-                    <Button variant="primary" data-testid="retry-load" onClick={() => void loadData()}>
-                      ↻ {t("app.retry")}
-                    </Button>
-                  </div>
-                )
-                : <div className="loading"><span className="loading__orb" />{t("app.loading")}</div>)}
-              {phase === "start" && !arenaDrafting && <ResumeBanner />}
-              {phase === "start" && !arenaDrafting && <ManagerResumeBanner />}
-              {phase === "start" && (arenaDrafting ? <ArenaDraftScreen /> : <StartScreen />)}
-              {phase === "draft" && <DraftScreen />}
-              {phase === "prep" && <PrepScreen />}
-              {phase === "tournament" && <TournamentScreen />}
-              {phase === "camp" && <CampScreen />}
-            </>
-          )}
-        </div>
-      )}
+      {/* Ленивый экран на первом открытии показывает тот же индикатор, что загрузка данных. */}
+      <Suspense fallback={loadingView}>
+        {view === "settings" ? <SettingsScreen /> : view === "heroes" ? <HeroesScreen /> : view === "teammates" ? <TeammatesScreen /> : view === "career" ? <CareerScreen /> : view === "hq" ? <HqScreen /> : view === "rules" ? <RulesScreen /> : (
+          /* Смена фазы (этап ↔ Буткемп, драфт → турнир) — мягкий фейд вместо мгновенной подмены
+             (хвост R15.2). key={phase} перемонтирует обёртку и переигрывает enter-fade; экраны и
+             так меняют компонент при смене фазы, лишних перемонтирований это не добавляет. */
+          <div className="enter-fade" key={mode === "manager" ? "manager" : mode === "duel" ? "duel" : mode === "arcade" ? "arcade" : phase}>
+            {/* Manager — свой мир со своим long-save: фазы classic-забега его не касаются.
+                Плашки resume висят и над его онбордингом — как на остальных start-экранах. */}
+            {mode === "manager" && phase === "start" ? (
+              <>
+                <ResumeBanner />
+                <ManagerResumeBanner />
+                <ManagerScreen />
+              </>
+            ) : mode === "duel" && phase === "start" ? (
+              /* Дуэль (M-DUEL) — как Manager: свой мир, фазы classic-забега его не касаются.
+                 Персиста у hotseat-серии нет, поэтому и resume-плашек над ней нет. */
+              <DuelScreen />
+            ) : mode === "arcade" && phase === "start" ? (
+              /* Аркада (M13) — real-time сим со своим стором; сейва посреди забега нет. */
+              <ArcadeScreen />
+            ) : (
+              <>
+                {/* T7.3: упавшая загрузка данных — не вечная орбита, а retry. Баннер с причиной
+                    уже висит выше; здесь — действие, иначе первый визит без сети упирался в тупик. */}
+                {phase === "loading" && (error
+                  ? (
+                    <div className="loading">
+                      <Button variant="primary" data-testid="retry-load" onClick={() => void loadData()}>
+                        ↻ {t("app.retry")}
+                      </Button>
+                    </div>
+                  )
+                  : loadingView)}
+                {phase === "start" && !arenaDrafting && <ResumeBanner />}
+                {phase === "start" && !arenaDrafting && <ManagerResumeBanner />}
+                {phase === "start" && (arenaDrafting ? <ArenaDraftScreen /> : <StartScreen />)}
+                {phase === "draft" && <DraftScreen />}
+                {phase === "prep" && <PrepScreen />}
+                {phase === "tournament" && <TournamentScreen />}
+                {phase === "camp" && <CampScreen />}
+              </>
+            )}
+          </div>
+        )}
+      </Suspense>
       {/* Вне переключателя вида: ссылку могли открыть, стоя на любом экране, и предложение
           не должно зависеть от того, где игрок находится. */}
       <RunLinkPrompt />

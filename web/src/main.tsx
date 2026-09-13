@@ -22,6 +22,21 @@ registerServiceWorker();
 startInstallWatch();
 // Звук (R15.5): AudioContext разлочивается первым жестом — до него тишина и ноль autoplay-ошибок.
 initSoundUnlock();
+// Ленивые экраны — отдельные чанки с хэшем сборки. Вкладка со старым кодом после деплоя может
+// запросить чанк, которого уже нет (новый service worker при активации чистит старые хэши), —
+// тогда перезагружаемся на новую сборку вместо белого экрана. Не чаще раза в 10 с: без этого
+// сломанный чанк зациклил бы перезагрузки.
+const CHUNK_RELOAD_KEY = "aegis-draft.chunk-reload";
+window.addEventListener("vite:preloadError", (event) => {
+  try {
+    if (Date.now() - Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) ?? 0) < 10_000) return;
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
+  } catch {
+    return; // без sessionStorage защититься от цикла нечем — пусть ошибка всплывёт как есть
+  }
+  event.preventDefault();
+  window.location.reload();
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
