@@ -4,7 +4,7 @@
 
 Полный цикл `старт → драфт → турнир → итог` играется на **реальном OpenDota-слайсе** из `public/data` (mock остаётся только для тестов и golden). Сверх ядра: сейв/резюм забега, шеринг забега ссылкой и стартом по сид-коду, история забегов (карьера), hardcore-режим и справочники (герои / ростер-веб). Актуальные gaps и следующие задачи — в [`docs/BACKLOG.md`](../docs/BACKLOG.md).
 
-**Base-путь:** `DataSource` берёт префикс из `import.meta.env.BASE_URL`, поэтому фронт работает и в корне (dev, Cloudflare/Netlify), и под сабпутём (GitHub Pages). Для сабпути задать `VITE_BASE` при сборке, напр. `VITE_BASE=/aegis-draft/ npm run build`. Деплой и CI — в корневом [README](../README.md#деплой-и-cicd).
+**Base-путь:** `DataSource` берёт префикс из `import.meta.env.BASE_URL`, поэтому фронт работает и в корне (dev, Cloudflare/Netlify), и под сабпутём (GitHub Pages). Для сабпути задать `VITE_BASE` при сборке, напр. `VITE_BASE=/aegis-draft/ npm run build`. Деплой и CI — в корневом [README](../README.md#данные-деплой-cicd).
 
 ## Структура (design-system + features)
 
@@ -22,14 +22,10 @@ web/src/
 │                #   Button, Surface, Eyebrow, Banner, Chip, RoleTag, SoonBadge,
 │                #   StatTile, Select, TextField, PlayerPicker, Modal, OptionGroup,
 │                #   HeroThumb, Dealt, TeamName, TeamSigil + index.ts (barrel)
-├─ features/     # экраны, собранные ИЗ ui/ (+ локальный CSS раскладки):
-│  ├─ start/       #   StartScreen, ResumeBanner, SeedField, RunLinkPrompt + start.css
-│  ├─ draft/       #   DraftScreen, Pentagon, HeroAllocation, PlayerInspector, разборы счёта
-│  ├─ tournament/  #   симуляция турнира, сетка, итог, карьера и шеринг забега
-│  ├─ result/      #   раскладка экрана итога (result.css)
-│  ├─ settings/    #   язык, тема, паспорт датасета и ссылки на справочники
-│  ├─ heroes/      #   справочник: популярность героев (+ режим выбранного игрока)
-│  └─ teammates/   #   справочник: ростер-веб (кто с кем играл в одном ростере)
+├─ features/     # экраны по каталогу на режим/экран, собранные ИЗ ui/ (+ локальный CSS раскладки):
+│                #   старт, драфт, турнир, итог, рогалик-сезон, менеджер, Аркада, Дуэль, Арена,
+│                #   справочники и настройки. Актуальный состав — `ls src/features`, правила
+│                #   раскладки — скилл frontend-architecture (.claude/skills/frontend-architecture)
 ├─ tma/          # адаптер Telegram Mini App — ЕДИНСТВЕННОЕ место, знающее про Telegram:
 │                #   ленивая загрузка SDK, BackButton↔shellStore, цвет чрома, хаптика.
 │                #   Вне Telegram весь модуль — no-op (features/ и ui/ о нём не знают).
@@ -47,7 +43,8 @@ web/src/
 │                #   sw.ts только Cache API. Живёт вне tsconfig приложения (WebWorker-типы).
 └─ types/        # типы из schema/
 public/data/     # ← сюда пайплайн кладёт JSON
-public/art/      # зеркало арта Dota (герои/команды/предметы, webp) — `npm run gen:art`.
+public/art/      # арт в репозитории (~640 МБ): зеркало портретов, логотипов, иконок предметов и
+                 # способностей (webp, `npm run gen:art`), спрайт-листы Аркады `sprites/` и звуки `sfx/`.
                  # Своё, а не Steam CDN: чужой origin не кэшируется офлайн и «пачкает» canvas.
 ```
 

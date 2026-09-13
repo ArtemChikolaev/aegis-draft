@@ -77,7 +77,7 @@ cd server && PORT=8080 go run ./cmd/api
 
 **Static-first гибрид** (ADR [0001](docs/adr/0001-tech-stack.md)/[0002](docs/adr/0002-backend-now.md)): игровые данные — статикой на CDN (масштабируется бесконечно), сервер держит только изменяемое состояние. **Без Kubernetes.**
 
-Ассеты в репозитории: зеркало портретов и знаков (`web/public/art/`, для офлайна) и спрайт-листы Аркады (`web/public/art/sprites/`, ~390 МБ) — они версионируются, потому что офлайн-готовность не должна зависеть от того, какие экраны игрок успел открыть.
+Ассеты в репозитории: зеркало портретов, иконок и знаков (`web/public/art/`, для офлайна), спрайт-листы Аркады (`web/public/art/sprites/`, ~545 МБ) и звуки (`web/public/art/sfx/`, ~90 МБ) — всего около 640 МБ. Они версионируются, потому что офлайн-готовность не должна зависеть от того, какие экраны игрок успел открыть.
 
 ## Данные, деплой, CI/CD
 - [.github/workflows/ci.yml](.github/workflows/ci.yml) — **проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`typecheck`→`test`→`build`→`test:e2e`→офлайн-спека на собранном dist; mock только в CI web-job) · Web на реальном датасете (anteRun e2e + vitest; в деплой не входит) · antipattern-scan. **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует **реальный** `web/public/data` из data-refresh.
@@ -106,7 +106,7 @@ docker compose -f infra/docker-compose.yml up --build
 - 📄 **[docs/PRD.md](docs/PRD.md)** — концепция, механики, режимы, роадмап · **[docs/modes-scenarios.md](docs/modes-scenarios.md)** — сценарии режимов.
 - 🏛 **[ADR 0001](docs/adr/0001-tech-stack.md)** (стек, static-first) · **[ADR 0002](docs/adr/0002-backend-now.md)** (backend сейчас) · **[ADR 0003](docs/adr/0003-offline-first-pwa.md)** (офлайн: PWA, зеркало арта).
 - 🕹 **[docs/arcade-survivors-brief.md](docs/arcade-survivors-brief.md)** — бриф Аркады · **[docs/arcade-dota-sprites.md](docs/arcade-dota-sprites.md)** — конвейер «модели Dota → спрайт-листы».
-- 🎲 **[docs/roguelite-balatro-brief.md](docs/roguelite-balatro-brief.md)** · **[docs/roguelite-lategame-spec.md](docs/roguelite-lategame-spec.md)** — рогалик-сезон и его лейтгейм.
+- 🎲 **[docs/roguelite-lategame-spec.md](docs/roguelite-lategame-spec.md)** — лейтгейм рогалик-сезона; исходный бриф сезона — в [docs/archive/](docs/archive/roguelite-balatro-brief.md), его решения перенесены в PRD и BACKLOG.
 - 🎨 **[docs/design-language.md](docs/design-language.md)** — визуальная айдентика · 📐 **[schema/README.md](schema/README.md)** — контракт данных.
 - 🔍 **[docs/reference-322-0.md](docs/reference-322-0.md)** и **[docs/audits/](docs/audits/)** — разбор оригинала и аудиты парити.
 - 🤖 **[CLAUDE.md](CLAUDE.md)** — контракт для AI-агентов.
