@@ -59,13 +59,16 @@ export interface CampPowerPreview {
  */
 export const evaluateCampPower = evaluateRunPower;
 
-/** Одна модель превью для рынка, улучшения редкости и обоих видов резерва. */
+/** Одна модель превью для рынка, улучшения редкости и обоих видов резерва.
+ *
+ *  `before` — готовая оценка текущего состава с ТЕМ ЖЕ `build`: экран и так держит её для
+ *  разложения силы, а пересчёт на каждый оффер повторял бы одну и ту же работу до 15 раз за
+ *  раздачу. Пересчитывается только `after` — от контекста нового состояния (см. выше). */
 export function campPowerPreview(
-  beforeState: CampPowerState,
+  before: CampPowerEvaluation,
   afterState: CampPowerState,
   build: CampBuildContext,
 ): CampPowerPreview {
-  const before = evaluateRunPower(beforeState, build);
   const after = evaluateRunPower(afterState, build);
   const zero = { base: 0, heroSynergy: 0, chemistry: 0 };
   return {

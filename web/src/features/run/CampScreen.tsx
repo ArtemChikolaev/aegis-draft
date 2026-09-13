@@ -16,6 +16,7 @@ import {
 import { stageMutators } from "../../game/anteRun.ts";
 import { mutatorDescParams } from "../../game/dynastyMutators.ts";
 import { buildTacticContext, isTacticId, tacticLabelParams, widePoolProgress } from "../../game/tactics.ts";
+import { activeCardIds } from "../../game/runStrength.ts";
 import { heroTags } from "../../game/heroTags.ts";
 import type { Candidate } from "../../game/packs.ts";
 import { candidatesOf, stakesOf } from "../../game/packs.ts";
@@ -239,10 +240,10 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
     activeHeroes: readonly number[],
     heroRarity: Record<string, Rarity> = activeCamp.heroRarity,
   ): CampPowerPreview => campPowerPreview(
-    currentPowerState,
+    currentEvaluation,
     powerState(nextScore, roster, assignment, activeHeroes, heroRarity),
     build,
-  ), [currentPowerState, build, data, camp.heroRarity, camp.campStageIndex]);
+  ), [currentEvaluation, build, data, camp.heroRarity, camp.campStageIndex]);
 
   function replaceRosterCandidate(slotIndex: number, candidate: Candidate) {
     return activeSnapshot.roster.map((slot, index) => (
@@ -253,8 +254,10 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
   function replaceActiveHero(outgoingHeroId: number, incomingHeroId: number): number[] {
     return activeSnapshot.heroes.map((heroId) => heroId === outgoingHeroId ? incomingHeroId : heroId);
   }
-  const playerOffers = camp.marketOffers.filter((o) => o.kind === "player");
-  const heroOffers = camp.marketOffers.filter((o) => o.kind === "hero");
+  // Мемо обязателен: оба массива — deps кэша превью в MarketPanel. Новый массив на каждом
+  // рендере (оверлей, инспектор, count-up золота) сбрасывал бы кэш и пересчитывал все превью.
+  const playerOffers = useMemo(() => camp.marketOffers.filter((o) => o.kind === "player"), [camp.marketOffers]);
+  const heroOffers = useMemo(() => camp.marketOffers.filter((o) => o.kind === "hero"), [camp.marketOffers]);
   const nextLabel = ante.target <= 1
     ? t("ante.nextTargetWin")
     : t("ante.nextTargetTop", { rank: ante.target });
@@ -277,14 +280,10 @@ function CampScreenBody({ camp, ante, snapshot, score, data, config }: CampScree
       : mods.heroSynergy
         ? signed(mods.heroSynergy)
         : undefined;
-  // Активные карточки берём из тех же `sources`, что рисует разложение силы, — подсветка в рейле
-  // не может разойтись с тем, что реально сработало.
-  const activeCardIds = new Set<string>([
-    ...itemEval.sources.filter((source) => source.met).map((source) => source.itemId),
-    ...tactics.sources.map((source) => source.tacticId as string),
-  ]);
+  // Активные карточки — единое определение из runStrength (те же `sources`, что рисует разложение
+  // силы и что читают заряды): подсветка в рейле не может разойтись с тем, что реально сработало.
   const railCards = buildRailCards(
-    camp.equippedTactics, camp.heldActions, camp.cardRarity, activeCardIds,
+    camp.equippedTactics, camp.heldActions, camp.cardRarity, activeCardIds(tactics, itemEval),
     camp.cardEditions, camp.cardCharges,
   );
   const buildUsed = camp.equippedTactics.length;

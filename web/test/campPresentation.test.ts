@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { heroTags, taggedHeroIds } from "../src/game/heroTags.ts";
 import type { TacticContext, TacticPlayer } from "../src/game/tactics.ts";
-import { campPowerPreview, type CampPowerState } from "../src/features/run/campPresentation.ts";
+import {
+  campPowerPreview,
+  evaluateCampPower,
+  type CampBuildContext,
+  type CampPowerState,
+} from "../src/features/run/campPresentation.ts";
 
 function tacticContext(ovrs: number[]): TacticContext {
   const players: TacticPlayer[] = ovrs.map((ovr, index) => ({
@@ -31,15 +36,21 @@ function state(overrides: Partial<CampPowerState> = {}): CampPowerState {
   };
 }
 
-const emptyBuild = {
+const emptyBuild: CampBuildContext = {
   economy: { base: 0, heroSynergy: 0, chemistry: 0 },
-  equippedCards: [] as string[],
+  equippedCards: [],
   cardRarity: {},
+  cardCharges: {},
 };
+
+/** Превью так, как его зовёт экран: `before` — уже посчитанная оценка текущего состава. */
+function preview(before: CampPowerState, after: CampPowerState, build: CampBuildContext) {
+  return campPowerPreview(evaluateCampPower(before, build), after, build);
+}
 
 describe("Camp Run Power preview", () => {
   it("учитывает выключение тактики после замены, даже когда сырой OVR растёт", () => {
-    const preview = campPowerPreview(
+    const result = preview(
       state(),
       state({
         score: { base: 81, heroSynergy: 10, chemistry: 10 },
@@ -49,10 +60,10 @@ describe("Camp Run Power preview", () => {
       { ...emptyBuild, equippedCards: ["noSuperstars"] },
     );
 
-    expect(preview.before.tactics.modifiers.chemistry).toBe(2);
-    expect(preview.after.tactics.modifiers.chemistry).toBe(0);
-    expect(preview.delta).toBeCloseTo(-1, 6);
-    expect(preview.deltas).toEqual(expect.arrayContaining([
+    expect(result.before.tactics.modifiers.chemistry).toBe(2);
+    expect(result.after.tactics.modifiers.chemistry).toBe(0);
+    expect(result.delta).toBeCloseTo(-1, 6);
+    expect(result.deltas).toEqual(expect.arrayContaining([
       expect.objectContaining({ summand: "base", delta: 1 }),
       expect.objectContaining({ summand: "chemistry", delta: -2 }),
     ]));
@@ -65,7 +76,7 @@ describe("Camp Run Power preview", () => {
     expect(control).toBeDefined();
     expect(withoutControl).toBeDefined();
 
-    const preview = campPowerPreview(
+    const result = preview(
       state({ activeHeroes: [control!] }),
       state({
         score: { base: 81, heroSynergy: 10, chemistry: 10 },
@@ -74,9 +85,18 @@ describe("Camp Run Power preview", () => {
       { ...emptyBuild, equippedCards: ["scytheOfVyse"] },
     );
 
-    expect(preview.before.items.additive).toBe(2);
-    expect(preview.after.items.additive).toBe(0);
+    expect(result.before.items.additive).toBe(2);
+    expect(result.after.items.additive).toBe(0);
     // +1 сырого OVR не перекрывает потерю +2% к сотне силы.
-    expect(preview.delta).toBeCloseTo(-1, 6);
+    expect(result.delta).toBeCloseTo(-1, 6);
+  });
+
+  it("before — переданная оценка как есть: превью не пересчитывает текущий состав", () => {
+    const build = { ...emptyBuild, equippedCards: ["noSuperstars"] };
+    const before = evaluateCampPower(state(), build);
+    const result = campPowerPreview(before, state({ score: { base: 81, heroSynergy: 10, chemistry: 10 } }), build);
+
+    expect(result.before).toBe(before);
+    expect(result.delta).toBeCloseTo(result.after.power.total - before.power.total, 6);
   });
 });
