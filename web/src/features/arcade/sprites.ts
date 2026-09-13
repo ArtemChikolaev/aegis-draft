@@ -60,13 +60,22 @@ export function dirOf(dx: number, dy: number): Dir {
 
 const images = new Map<string, HTMLImageElement | null>();
 const composites = new Map<string, HTMLCanvasElement | null>();
-let version = 0;
+
+/* Версия ассетов земли: чанки ландшафта (terrain.ts) живут в кэше, пока она не выросла. Растёт только от того, из чего
+   рисуется чанк, — текстуры земли Dota, тайлы LPC, листы деревьев и камней — и от смены набора листов. Раньше это был
+   общий счётчик любой загрузки: лист нового врага или LPC-кадр посреди забега перерисовывал все видимые чанки. */
+let terrainAssets = 0;
+/** Тайлы LPC, из которых рисуется земля (terrain.ts paintChunk/paintDecor). */
+const TERRAIN_TILES = new Set(["tiles/grass.png", "tiles/dirt.png", "tiles/water.png", "tiles/treetop.png", "tiles/rock.png"]);
+/** Листы Dota пропсов на земле (terrain.ts paintDecor). */
+const TERRAIN_SHEETS = new Set(["tree_oak", "tree_pine", "rock"]);
+const isTerrainImage = (path: string) => path.includes("/terrain/") || TERRAIN_TILES.has(path);
 
 function img(path: string, root = BASE): HTMLImageElement | null | undefined {
   if (images.has(path)) return images.get(path);
   const el = new Image();
-  el.onload = () => { version++; };
-  el.onerror = () => { images.set(path, null); version++; };
+  el.onload = () => { if (isTerrainImage(path)) terrainAssets++; };
+  el.onerror = () => { images.set(path, null); if (isTerrainImage(path)) terrainAssets++; };
   el.src = root + path;
   images.set(path, el);
   return el;
@@ -76,9 +85,9 @@ function ready(el: HTMLImageElement | null | undefined): el is HTMLImageElement 
   return !!el && el.complete && el.naturalWidth > 0;
 }
 
-/** Растёт при каждой загрузке — рендер сбрасывает свои кэши (чанки ландшафта). */
-export function spriteVersion(): number {
-  return version;
+/** Версия ассетов земли: рендер отдаёт её ландшафту, кэш чанков сбрасывается только при её росте. */
+export function terrainVersion(): number {
+  return terrainAssets;
 }
 
 /** Композит персонажа для анимации; null — ещё грузится (или чего-то нет). */
@@ -466,7 +475,8 @@ export function setPixelSheets(on: boolean, dense = false): void {
   frameGeo.clear();
   glowScans.clear();
   gemSheets.clear();
-  version++;
+  // Текстуры земли и пропсы у наборов разные (`dota_px/terrain` ↔ `dota/terrain`): чанки ландшафта перерисовываются.
+  terrainAssets++;
 }
 
 /* ─── Композит облика по слотам (T13.80) ───
@@ -501,7 +511,6 @@ function compositeSheet(name: string): DotaSheet | null {
   // Имя меты — имя композита: геометрия кадров и скан свечения кэшируются по нему, а тело без частей — другой силуэт.
   const res: DotaSheet = { img: cv, meta: { ...body.meta, name } };
   compositeSheets.set(name, res);
-  version++;
   return res;
 }
 
@@ -511,7 +520,7 @@ function loadSheet(name: string, dir: string, onMiss: () => void): void {
     .then((meta) => {
       if (!meta || !meta.anims) { onMiss(); return; }
       const el = new Image();
-      el.onload = () => { dotaSheets.set(name, { img: el, meta }); version++; };
+      el.onload = () => { dotaSheets.set(name, { img: el, meta }); if (TERRAIN_SHEETS.has(name)) terrainAssets++; };
       el.onerror = () => { onMiss(); };
       // Листы лежат в WebP: у уже квантованного пиксель-арта lossless WebP на ~7% меньше PNG
       // (замер 2026-09-06), и это единственный формат-выигрыш без потери резкости — lossy WebP на
@@ -526,7 +535,7 @@ export function dotaSheet(name: string): DotaSheet | null {
   const v = dotaSheets.get(name);
   if (v === undefined) {
     dotaSheets.set(name, "loading");
-    const miss = () => { dotaSheets.set(name, null); version++; };
+    const miss = () => { dotaSheets.set(name, null); if (TERRAIN_SHEETS.has(name)) terrainAssets++; };
     // Плотный пиксель (фактор 1): 128-px кадры `dota_px2/`, нет — 64-px `dota_px/` (растянутся nearest ×2), нет — обычный лист.
     const px = () => loadSheet(name, "dota_px", () => loadSheet(name, "dota", miss));
     if (pixelSheets && denseSheets) loadSheet(name, "dota_px2", px);

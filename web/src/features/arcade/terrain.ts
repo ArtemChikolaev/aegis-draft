@@ -42,8 +42,9 @@ export class Terrain {
   private readonly decor: Decor[];
   private cache = new Map<string, HTMLCanvasElement>();
   private paletteKey = "";
-  /** Версия загрузки спрайтов: выросла — тайлы могли подгрузиться, кэш чанков сбрасываем. */
-  spriteVersion = 0;
+  /** Версия ассетов земли (sprites.ts terrainVersion: текстуры, тайлы LPC, листы деревьев и камней): выросла — что-то
+   *  из них подгрузилось, кэш чанков сбрасываем. Листы героев и врагов её не трогают — чанки не перерисовываются зря. */
+  assetVersion = 0;
   /** Текущая полуширина русла (River, прилив T13.61): рендер выставляет из `sim.riverHalfWidth()` перед `draw`. */
   riverHalfWidth: number = ARCADE.river.halfWidth;
 
@@ -55,7 +56,7 @@ export class Terrain {
 
   /** Нарисовать видимую область. Смена палитры (тема/акт) сбрасывает кэш чанков. */
   draw(c: CanvasRenderingContext2D, camX: number, camY: number, w: number, h: number, pal: TerrainPalette): void {
-    const key = Object.values(pal).join("|") + `#${this.spriteVersion}`;
+    const key = Object.values(pal).join("|") + `#${this.assetVersion}`;
     if (key !== this.paletteKey) { this.cache.clear(); this.paletteKey = key; }
     const cx0 = Math.floor(camX / CHUNK), cy0 = Math.floor(camY / CHUNK);
     const cx1 = Math.floor((camX + w) / CHUNK), cy1 = Math.floor((camY + h) / CHUNK);

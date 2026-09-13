@@ -20,7 +20,7 @@ import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawAsh, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, tileImage, HERO_AURA, heroLook, setPixelSheets, spriteVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, tileImage, HERO_AURA, heroLook, setPixelSheets, terrainVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { sec } from "../../game/arcade/config.ts";
@@ -385,7 +385,7 @@ export class ArcadeRenderer {
     const key = `${sim.seed}:${sim.act}`;
     if (!this.terrain || this.terrainKey !== key) { this.terrain = new Terrain(sim.seed, sim.act); this.terrainKey = key; }
     const night = sim.night;
-    this.terrain.spriteVersion = spriteVersion();
+    this.terrain.assetVersion = terrainVersion();
     this.terrain.riverHalfWidth = sim.riverHalfWidth(); // прилив: вода расширяется в самой терре, не только заливкой поверх
     this.terrain.draw(c, camX, camY, this.w, this.h, night
       ? { grassA: pal.grassNightA, grassB: pal.grassNightB, dirt: pal.dirtNight, rock: pal.rock, tree: pal.treeNight, treeDark: pal.treeNightDark, tuft: pal.treeNight }
@@ -1378,10 +1378,11 @@ export class ArcadeRenderer {
         case "die": {
           const death = (this.cosmetic.death as DeathEffect | undefined) ?? null;
           drawDeathEffect(c, f.x, f.y, f.x2, k, death, f.born, this.artPx(), pal);
-          // Смерть: у LPC-персонажей — кадры «hurt» (падение), у остальных — оседающий силуэт.
+          // Смерть: у листа Dota — клип `death`, у LPC-персонажей — кадры «hurt» (падение), у остальных — оседающий силуэт.
+          // LPC-кадры запрашиваем только без клипа Dota: иначе первая смерть каждого LPC-вида качала PNG посреди забега впустую.
           const kindId = KIND_BY_INDEX[f.y2];
-          const look = kindId ? enemyLook(kindId) : null;
           const dsDeath = kindId ? enemySheet(kindId) : null;
+          const look = kindId && !dsDeath?.meta.anims.death ? enemyLook(kindId) : null;
           const hurt = look?.kind === "char" ? charSheet(kindId!, look.spec, "hurt") : null;
           if (dsDeath && dsDeath.meta.anims.death) {
             const fr = dsDeath.meta.anims.death.frames;
