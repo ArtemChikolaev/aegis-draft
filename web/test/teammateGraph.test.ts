@@ -5,7 +5,7 @@ import {
   teammateLinks,
 } from "../src/features/teammates/teammateGraph.ts";
 import type { EventInfo, Pack } from "../src/types/data.ts";
-import { loadGameData } from "./helpers/data.ts";
+import { loadGameData, loadManifest } from "./helpers/data.ts";
 import { isMockBaseline } from "./helpers/dataset.ts";
 
 const events: EventInfo[] = [
@@ -66,7 +66,7 @@ describe("teammateGraph", () => {
   });
 
   // Размерность — свойство РЕАЛЬНОГО датасета: у мока свои события и ростеры.
-  it.skipIf(isMockBaseline(loadGameData().manifest))("на реальных данных кольцо соседей обозримо", () => {
+  it.skipIf(isMockBaseline(loadManifest()))("на реальных данных кольцо соседей обозримо", () => {
     const data = loadGameData();
     const index = buildTeammateIndex(data.packs, data.events, "last_2y");
     const degrees = [...index.values()].map((neighbours) => neighbours.size).sort((a, b) => a - b);

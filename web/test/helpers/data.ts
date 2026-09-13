@@ -18,9 +18,16 @@ function readJson<T>(file: string, fallback?: T): T {
   return JSON.parse(readFileSync(path, "utf8")) as T;
 }
 
-/** Снимок датасета из `AEGIS_DATA_DIR` (по умолчанию public/data). CI web-job: мок в public/data. */
+let cached: GameData | undefined;
+
+/** Снимок датасета из `AEGIS_DATA_DIR` (по умолчанию public/data). CI web-job: мок в public/data.
+ *
+ *  Один объект на модуль: разбор реального датасета стоит десятки миллисекунд, а тест-файлы зовут
+ *  loadGameData по нескольку раз (skipIf на этапе сбора, describe, it). Vitest изолирует модули
+ *  по тест-файлам, поэтому кэш не переживает файл. Датасет, как и в приложении, после загрузки
+ *  только читается: нужна правка — работай с копией (structuredClone), а не с общим объектом. */
 export function loadGameData(): GameData {
-  return {
+  cached ??= {
     manifest: readJson("manifest.json"),
     events: readJson("events.json"),
     heroes: readJson("heroes.json"),
@@ -33,4 +40,10 @@ export function loadGameData(): GameData {
     eventHeroStats: readJson("eventHeroStats.json"),
     teamSuccess: readJson("teamSuccess.json"),
   };
+  return cached;
+}
+
+/** Только manifest — для skipIf по типу датасета: не разбирать весь датасет ради одного поля. */
+export function loadManifest(): GameData["manifest"] {
+  return cached?.manifest ?? readJson("manifest.json");
 }

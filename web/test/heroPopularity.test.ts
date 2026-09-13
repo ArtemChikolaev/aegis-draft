@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { heroPopularity, sortHeroes } from "../src/features/heroes/heroPopularity.ts";
 import type { Hero, PlayerHeroStats } from "../src/types/data.ts";
-import { loadGameData } from "./helpers/data.ts";
+import { loadGameData, loadManifest } from "./helpers/data.ts";
 import { isMockBaseline } from "./helpers/dataset.ts";
 
 const heroes: Hero[] = [
@@ -58,7 +58,7 @@ describe("heroPopularity", () => {
   });
 
   // Масштаб — свойство РЕАЛЬНОГО датасета: у мока другие порядки (лидер ~35 игроков).
-  it.skipIf(isMockBaseline(loadGameData().manifest))("даёт осмысленный топ (реальный датасет)", () => {
+  it.skipIf(isMockBaseline(loadManifest()))("даёт осмысленный топ (реальный датасет)", () => {
     const data = loadGameData();
     const rows = sortHeroes(heroPopularity(data.heroes, data.careerPlayerHeroStats), "games");
     // Лидер должен быть заметно сыгран — если агрегация сломается, тут будут нули.
