@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/aegis-draft/pipeline/internal/model"
 	"github.com/aegis-draft/pipeline/internal/normalize"
@@ -27,58 +26,10 @@ type counter struct {
 	wins  int
 }
 
-const (
-	minGroupSize = 2
-	maxGroupSize = 5
-)
-
-// groupKey — канонический ключ группы: id по возрастанию через запятую. Строка, а не массив,
-// потому что Go не сравнивает слайсы; размер группы ≤5, так что цена приемлема.
-func groupKey(sorted []int) string {
-	parts := make([]string, len(sorted))
-	for i, id := range sorted {
-		parts[i] = strconv.Itoa(id)
-	}
-	return strings.Join(parts, ",")
-}
-
-func parseGroupKey(key string) []int {
-	parts := strings.Split(key, ",")
-	out := make([]int, 0, len(parts))
-	for _, part := range parts {
-		id, err := strconv.Atoi(part)
-		if err != nil {
-			return nil
-		}
-		out = append(out, id)
-	}
-	return out
-}
-
-// forEachSubset вызывает visit для каждой подгруппы items размера [min..max].
-// items обязан быть отсортирован — тогда и подгруппы выходят отсортированными.
-func forEachSubset(items []int, min, max int, visit func([]int)) {
-	n := len(items)
-	if n > maxGroupSize {
-		n = maxGroupSize
-	}
-	var current []int
-	var walk func(start int)
-	walk = func(start int) {
-		if len(current) >= min && len(current) <= max {
-			visit(current)
-		}
-		if len(current) == max {
-			return
-		}
-		for i := start; i < n; i++ {
-			current = append(current, items[i])
-			walk(i + 1)
-			current = current[:len(current)-1]
-		}
-	}
-	walk(0)
-}
+// squadSize — сколько аккаунтов стороны матча образуют пары сыгранности. В нормальном матче их
+// пять; больше бывает только в битых данных (одинаковый team_id у обеих сторон) — тогда, как и
+// раньше, пары строятся по первым пяти аккаунтам.
+const squadSize = 5
 
 func FromOpenDota(snapshot *normalize.OpenDotaSnapshot, windowStartUnix int64) (*OpenDotaResult, error) {
 	if snapshot == nil {
@@ -87,7 +38,7 @@ func FromOpenDota(snapshot *normalize.OpenDotaSnapshot, windowStartUnix int64) (
 	careerHeroes := make(map[int]map[int]*counter)
 	windowHeroes := make(map[int]map[int]*counter)
 	teammates := make(map[int]map[int]struct{})
-	groups := make(map[string]*counter)
+	pairs := make(map[[2]int]*counter)
 	appearances := 0
 
 	for _, match := range snapshot.Matches {
@@ -127,41 +78,36 @@ func FromOpenDota(snapshot *normalize.OpenDotaSnapshot, windowStartUnix int64) (
 					teammates[accounts[j]][accounts[i]] = struct{}{}
 				}
 			}
-			// Все подгруппы 2..5 сыгравшего состава остаются историческим агрегатом.
-			// Chemistry v1.13 читает только пары, не складывая поверх них вложенные группы.
-			forEachSubset(accounts, minGroupSize, maxGroupSize, func(group []int) {
-				key := groupKey(group)
-				stat := groups[key]
-				if stat == nil {
-					stat = &counter{}
-					groups[key] = stat
+			// Сыгранность — только пары: Chemistry v1.13 (web/src/game/score.ts) читает уникальные
+			// пары пятёрки, а группы 3–5 занимали две трети squadSynergy.json и в счёт не входили.
+			squad := accounts
+			if len(squad) > squadSize {
+				squad = squad[:squadSize]
+			}
+			for i := 0; i < len(squad); i++ {
+				for j := i + 1; j < len(squad); j++ {
+					key := [2]int{squad[i], squad[j]}
+					stat := pairs[key]
+					if stat == nil {
+						stat = &counter{}
+						pairs[key] = stat
+					}
+					stat.games++
+					if won {
+						stat.wins++
+					}
 				}
-				stat.games++
-				if won {
-					stat.wins++
-				}
-			})
+			}
 		}
 	}
 
-	result := &OpenDotaResult{
+	return &OpenDotaResult{
 		MatchCount: len(snapshot.Matches), AppearanceCount: appearances,
 		PlayerHeroStats:       encodeHeroStats(windowHeroes),
 		CareerPlayerHeroStats: encodeHeroStats(careerHeroes),
-		Teammates:             make(map[string][]int, len(teammates)),
-		SquadSynergy:          make([]model.SquadGroup, 0, len(groups)),
-	}
-	squad := make([]model.SquadGroup, 0, len(groups))
-	for key, stat := range groups {
-		ids := parseGroupKey(key)
-		if ids == nil {
-			return nil, fmt.Errorf("corrupt squad group key %q", key)
-		}
-		squad = append(squad, model.SquadGroup{IDs: ids, Games: stat.games, Winrate: winrate(stat)})
-	}
-	result.SquadSynergy = squadSlice(squad)
-	result.Teammates = emitTeammates(teammates)
-	return result, nil
+		Teammates:             emitTeammates(teammates),
+		SquadSynergy:          encodePairs(pairs),
+	}, nil
 }
 
 func accumulateHero(
@@ -198,20 +144,19 @@ func encodeHeroStats(heroes map[int]map[int]*counter) map[string]map[string]mode
 	return out
 }
 
-// squadSlice — детерминированный порядок: сначала по размеру группы, затем лексикографически
-// по id. Один и тот же snapshot ⇒ один и тот же файл (инвариант детерминизма пайплайна).
-func squadSlice(out []model.SquadGroup) []model.SquadGroup {
+// encodePairs — пары в детерминированном порядке (по id): один и тот же snapshot ⇒ один и тот же
+// файл (инвариант детерминизма пайплайна).
+func encodePairs(pairs map[[2]int]*counter) []model.SquadGroup {
+	out := make([]model.SquadGroup, 0, len(pairs))
+	for ids, stat := range pairs {
+		out = append(out, model.SquadGroup{IDs: []int{ids[0], ids[1]}, Games: stat.games, Winrate: winrate(stat)})
+	}
 	sort.Slice(out, func(i, j int) bool {
 		left, right := out[i].IDs, out[j].IDs
-		if len(left) != len(right) {
-			return len(left) < len(right)
+		if left[0] != right[0] {
+			return left[0] < right[0]
 		}
-		for k := range left {
-			if left[k] != right[k] {
-				return left[k] < right[k]
-			}
-		}
-		return false
+		return left[1] < right[1]
 	})
 	return out
 }
@@ -279,34 +224,27 @@ func Validate(result *OpenDotaResult) error {
 			}
 		}
 	}
-	seenGroups := make(map[string]struct{}, len(result.SquadSynergy))
+	seenPairs := make(map[[2]int]struct{}, len(result.SquadSynergy))
 	for _, group := range result.SquadSynergy {
-		if len(group.IDs) < minGroupSize || len(group.IDs) > maxGroupSize {
-			return fmt.Errorf("squad group %v must have %d..%d members", group.IDs, minGroupSize, maxGroupSize)
+		// Схема допускает группы до пяти (ids maxItems), но пайплайн эмитит только пары.
+		if len(group.IDs) != 2 {
+			return fmt.Errorf("squad group %v must be a pair", group.IDs)
 		}
-		for i, id := range group.IDs {
-			if id <= 0 {
-				return fmt.Errorf("invalid squad group member %v", group.IDs)
-			}
-			if i > 0 && group.IDs[i-1] >= id {
-				return fmt.Errorf("squad group %v is not strictly sorted/unique", group.IDs)
-			}
+		a, b := group.IDs[0], group.IDs[1]
+		if a <= 0 || b <= a {
+			return fmt.Errorf("squad pair %v must hold two positive ids in ascending order", group.IDs)
 		}
-		key := groupKey(group.IDs)
-		if _, exists := seenGroups[key]; exists {
-			return fmt.Errorf("duplicate squad group %v", group.IDs)
+		key := [2]int{a, b}
+		if _, exists := seenPairs[key]; exists {
+			return fmt.Errorf("duplicate squad pair %v", group.IDs)
 		}
-		seenGroups[key] = struct{}{}
+		seenPairs[key] = struct{}{}
 		if err := validStat(model.Stat{Games: group.Games, Winrate: group.Winrate}); err != nil {
-			return fmt.Errorf("squad group %v: %w", group.IDs, err)
+			return fmt.Errorf("squad pair %v: %w", group.IDs, err)
 		}
-		// Каждая пара внутри группы обязана быть в teammates — оба выводятся из тех же матчей.
-		for i := 0; i < len(group.IDs); i++ {
-			for j := i + 1; j < len(group.IDs); j++ {
-				if !containsSorted(result.Teammates[strconv.Itoa(group.IDs[i])], group.IDs[j]) {
-					return fmt.Errorf("squad group %v missing pair %d/%d from teammates", group.IDs, group.IDs[i], group.IDs[j])
-				}
-			}
+		// Пара обязана быть в teammates — оба выводятся из тех же матчей.
+		if !containsSorted(result.Teammates[strconv.Itoa(a)], b) {
+			return fmt.Errorf("squad pair %v missing from teammates", group.IDs)
 		}
 	}
 	return nil

@@ -58,6 +58,53 @@ func TestFromOpenDotaSplitsWindowAndProCareer(t *testing.T) {
 	}
 }
 
+// Chemistry читает только пары, поэтому aggregate эмитит только их: полная сторона — ровно 10
+// пар, без троек, четвёрок и пятёрки (они занимали две трети squadSynergy.json).
+func TestFromOpenDotaEmitsOnlyPairs(t *testing.T) {
+	players := make([]normalize.NormalizedAppearance, 0, 10)
+	for account := 1; account <= 10; account++ {
+		teamID := 10
+		if account > 5 {
+			teamID = 20
+		}
+		players = append(players, normalize.NormalizedAppearance{AccountID: account, TeamID: teamID, HeroID: account})
+	}
+	snapshot := &normalize.OpenDotaSnapshot{Matches: []normalize.NormalizedMatch{
+		{MatchID: 1, RadiantTeamID: 10, DireTeamID: 20, RadiantWin: true, Players: players},
+	}}
+	result, err := FromOpenDota(snapshot, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.SquadSynergy) != 20 {
+		t.Fatalf("two full sides must give 2×10 pairs, got %d", len(result.SquadSynergy))
+	}
+	for i, group := range result.SquadSynergy {
+		if len(group.IDs) != 2 {
+			t.Fatalf("only pairs are emitted, got %v", group.IDs)
+		}
+		if i > 0 {
+			prev := result.SquadSynergy[i-1].IDs
+			if prev[0] > group.IDs[0] || (prev[0] == group.IDs[0] && prev[1] >= group.IDs[1]) {
+				t.Fatalf("pairs must be sorted by ids: %v before %v", prev, group.IDs)
+			}
+		}
+	}
+	if pair := findPair(result, 1, 5); pair == nil || pair.Games != 1 || pair.Winrate != 1 {
+		t.Fatalf("winning pair=%+v", pair)
+	}
+	if pair := findPair(result, 6, 10); pair == nil || pair.Games != 1 || pair.Winrate != 0 {
+		t.Fatalf("losing pair=%+v", pair)
+	}
+	if err := Validate(result); err != nil {
+		t.Fatal(err)
+	}
+	result.SquadSynergy = append(result.SquadSynergy, model.SquadGroup{IDs: []int{1, 2, 3}, Games: 1, Winrate: 1})
+	if err := Validate(result); err == nil {
+		t.Fatal("Validate must reject squad groups larger than a pair")
+	}
+}
+
 func TestValidateRejectsAsymmetricTeammates(t *testing.T) {
 	result, err := FromOpenDota(fixture(), 0)
 	if err != nil {

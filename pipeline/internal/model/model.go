@@ -98,9 +98,9 @@ type PlayerProfile struct {
 	Peak        map[Role]PlayerPeak `json:"peak,omitempty"`
 }
 
-// SquadGroup — сыгранность группы из 2–5 игроков (совместные pro-игры за одну команду).
-// Chemistry v1.13 использует пары; группы 3–5 остаются историческим агрегатом.
-// IDs отсортированы по возрастанию — ключ группы канонический.
+// SquadGroup — сыгранность пары игроков (совместные pro-игры за одну команду). Схема допускает
+// группы до пяти (ids maxItems 5), но пайплайн эмитит только пары: Chemistry v1.13 читает пары.
+// IDs отсортированы по возрастанию — ключ канонический.
 type SquadGroup struct {
 	IDs     []int   `json:"ids"`
 	Games   int     `json:"games"`
