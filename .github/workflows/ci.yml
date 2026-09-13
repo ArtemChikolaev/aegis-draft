@@ -101,6 +101,8 @@ jobs:
         run: npm run gen:mock -- --out public/data
       - name: Валидация контракта данных (JSON Schema)
         run: npm run validate:data
+      # Быстрые проверки идут до e2e (≈20 мин): ошибка типов или сборки видна сразу, а не в конце джоба.
+      - run: npm run typecheck
       # Репортер github-actions пишет упавшие тесты аннотациями: их видно через публичный API check-runs,
       # когда сам лог джоба без токена недоступен (2026-09-12: плавающее падение искали вслепую).
       - name: Unit tests (Vitest)
@@ -109,12 +111,16 @@ jobs:
           set -o pipefail
           npm run test -- --pool=forks --reporter=default --reporter=github-actions 2>&1 | tee vitest.log
       # Падение без единой проваленной проверки (крах воркера, нехватка памяти) не даёт аннотаций — публикуем хвост лога сами.
+      # Только если vitest успел начать лог: упавший раньше шаг (typecheck) не должен давать ложную ошибку tail.
       - name: Vitest log tail as annotation
-        if: failure()
+        if: failure() && hashFiles('web/vitest.log') != ''
         shell: bash
         run: |
           tail -c 3500 vitest.log | tr -d '\r' > vitest.tail
           echo "::error title=Vitest log tail::$(sed 's/%/%25/g; s/\n/%0A/g' vitest.tail | awk '{printf "%s%%0A", $0}')"
+      # dist собирается один раз из этого же checkout (с моком в public/data): его отдаёт preview
+      # офлайн-спеки ниже, так что она проверяет текущий код без второй сборки.
+      - run: npm run build
       # Бинарь Chromium (~150 МБ) не меняется между прогонами, пока не бампнут @playwright/test.
       - uses: actions/cache@v4
         id: playwright-cache
@@ -129,8 +135,8 @@ jobs:
         run: npx playwright install-deps chromium
       - name: Browser smoke (Playwright)
         run: npm run test:e2e
-      - run: npm run typecheck
-      - run: npm run build
+      - name: Офлайн на прод-сборке (Playwright, dist из шага build)
+        run: npx playwright test -c playwright.offline.config.ts
 
   # T12.6 (2026-09-02): сиды anteRun.spec обязаны проходить на ОБОИХ датасетах, а джоб `web`
   # видит только mock — дрейф после data-refresh замечали лишь локально. Здесь тот же спек идёт

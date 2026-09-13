@@ -46,6 +46,7 @@ cd web && npm install && npm run dev
 
 # Прод-сборка локально (нужна для всего, что живёт только в ней: service worker и офлайн):
 npm run preview          # или preview:pages — под сабпутём /aegis-draft/, как на Pages
+npm run test:e2e:offline # офлайн-спека Playwright на свежей прод-сборке
 
 # Тесты и валидация на реальном датасете из git (golden на нём пропускаются):
 npm run validate:data && npm run test && npm run test:e2e && npm run typecheck
@@ -79,7 +80,7 @@ cd server && PORT=8080 go run ./cmd/api
 Ассеты в репозитории: зеркало портретов и знаков (`web/public/art/`, для офлайна) и спрайт-листы Аркады (`web/public/art/sprites/`, ~390 МБ) — они версионируются, потому что офлайн-готовность не должна зависеть от того, какие экраны игрок успел открыть.
 
 ## Данные, деплой, CI/CD
-- [.github/workflows/ci.yml](.github/workflows/ci.yml) — **проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`test`→`test:e2e`→`typecheck`→`build`; mock только в CI web-job) · antipattern-scan. **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует **реальный** `web/public/data` из data-refresh.
+- [.github/workflows/ci.yml](.github/workflows/ci.yml) — **проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`typecheck`→`test`→`build`→`test:e2e`→офлайн-спека на собранном dist; mock только в CI web-job) · antipattern-scan. **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует **реальный** `web/public/data` из data-refresh.
 - [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml) — крон обновляет `web/public/data/*.json` (OpenDota-слайс) и коммитит их в репозиторий.
 - [.github/workflows/deploy-server.yml](.github/workflows/deploy-server.yml) — деплой `server/` на Fly.io. Пока в репозитории нет секрета `FLY_API_TOKEN`, джоб **чисто пропускается**, а не падает.
 

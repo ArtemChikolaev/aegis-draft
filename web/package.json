@@ -15,6 +15,7 @@
     "test:mock": "node scripts/gen_mock.mjs && AEGIS_DATA_DIR=.mock-data vitest run",
     "test:golden:update": "node scripts/gen_mock.mjs && AEGIS_DATA_DIR=.mock-data UPDATE_GOLDEN=1 vitest run test/golden.test.ts",
     "test:e2e": "playwright test",
+    "test:e2e:offline": "npm run build && playwright test -c playwright.offline.config.ts",
     "test:e2e:ui": "playwright test --ui",
     "sim": "tsx scripts/sim_run.ts",
     "sim:manager": "tsx scripts/sim_manager.ts",

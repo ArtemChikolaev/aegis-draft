@@ -78,7 +78,8 @@ public/art/      # зеркало арта Dota (герои/команды/пр�
 |---|---|
 | `npm run test` | Vitest — unit/regression (`web/test/`) на датасете из `public/data`; golden на реальном датасете пропускаются |
 | `npm run test:mock` | Мок в `web/.mock-data` и тот же Vitest на нём, как в CI, вместе с golden |
-| `npm run test:e2e` | Playwright smoke — draft + tournament (`web/e2e/`) |
+| `npm run test:e2e` | Playwright smoke — draft + tournament (`web/e2e/`) на dev-сервере, chromium + mobile |
+| `npm run test:e2e:offline` | Прод-сборка и офлайн-спека на `vite preview`: service worker живёт только в сборке |
 | `npm run test:golden:update` | Перегенерировать мок и обновить golden fixtures |
 | `npm run gen:mock` | Мок-датасет в `web/.mock-data` (не коммитится); `-- --out <каталог>` пишет в другой каталог, CI web-job — в `public/data` для e2e |
 

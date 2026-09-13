@@ -2,8 +2,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { completeDraft } from "./helpers.ts";
 
 // Офлайн-регресс (T11.5, ADR 0003): то, ради чего затевалась веха M11 — игра открывается и
-// играется без сети. Гоняется на ПРОД-сборке (проект `offline` в playwright.config): в dev
-// service worker выключен намеренно, и здесь он бы просто не существовал.
+// играется без сети. Гоняется на ПРОД-сборке (playwright.offline.config.ts, локально
+// `npm run test:e2e:offline`): в dev service worker выключен намеренно, и здесь он бы просто не существовал.
 //
 // Спека держит три обещания сразу:
 //   1. офлайн-запуск и полный забег (T11.1);
