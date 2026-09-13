@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/aegis-draft/pipeline/internal/opendota"
@@ -102,7 +104,7 @@ func TestOpenDotaExplorerDiscoversAndResumes(t *testing.T) {
 	})}
 
 	cache := t.TempDir()
-	cfg := ExplorerConfig{RollingLeagues: []int64{100}, LegacyLeagues: []int64{900}, WindowStartUnix: 100, CollectDetails: true}
+	cfg := ExplorerConfig{RollingLeagues: []int64{100}, LegacyLeagues: []int64{900}, WindowStartUnix: 100, BeforeUnix: 1000, CollectDetails: true}
 
 	// Прогон 1, budget 2: обе explorer-дискавери проходят (2 сети), детали упираются в бюджет.
 	one, err := OpenDotaExplorer(context.Background(), newClient(t, cache, 2, httpClient), cfg)
@@ -124,6 +126,72 @@ func TestOpenDotaExplorerDiscoversAndResumes(t *testing.T) {
 	}
 	if stats := third.Stats(); stats.NetworkRequests != 1 {
 		t.Fatalf("resume должен быть из кэша кроме одной сети: stats=%+v", stats)
+	}
+}
+
+// Discovery ограничен as-of: вчерашний кэш explorer не отвечает на запрос с новым as-of (новый
+// ключ ⇒ сеть, новые матчи видны), а повтор с тем же as-of идёт из кэша без сети.
+func TestOpenDotaExplorerRefreshesDiscoveryWhenAsOfMoves(t *testing.T) {
+	var explorerCalls atomic.Int32
+	played := []struct{ id, start int64 }{{5, 100}, {6, 200}} // матч 6 сыгран «сегодня»
+	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		body := ""
+		switch {
+		case r.URL.Path == "/explorer":
+			explorerCalls.Add(1)
+			sql := r.URL.Query().Get("sql")
+			_, bound, found := strings.Cut(sql, "start_time < ")
+			if !found {
+				return nil, fmt.Errorf("explorer SQL must be bounded by as-of: %q", sql)
+			}
+			before, err := strconv.ParseInt(strings.Fields(bound)[0], 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			rows := make([]string, 0, len(played))
+			for _, match := range played {
+				if match.start < before {
+					rows = append(rows, fmt.Sprintf(`{"match_id":%d,"start_time":%d,"leagueid":100}`, match.id, match.start))
+				}
+			}
+			body = `{"rows":[` + strings.Join(rows, ",") + `]}`
+		case strings.HasPrefix(r.URL.Path, "/matches/"):
+			body = `{"match_id":` + strings.TrimPrefix(r.URL.Path, "/matches/") + `}`
+		default:
+			return nil, fmt.Errorf("unexpected path %s", r.URL.Path)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
+	})}
+
+	cache := t.TempDir()
+	yesterday := ExplorerConfig{RollingLeagues: []int64{100}, BeforeUnix: 150, CollectDetails: true}
+	first, err := OpenDotaExplorer(context.Background(), newClient(t, cache, 0, httpClient), yesterday)
+	if err != nil || len(first.ProMatches) != 1 || !first.DetailsComplete || explorerCalls.Load() != 1 {
+		t.Fatalf("first=%+v explorer=%d err=%v", first, explorerCalls.Load(), err)
+	}
+
+	// Тот же as-of: discovery и детали из кэша, сети нет — повторный прогон детерминирован.
+	replay := newClient(t, cache, 0, httpClient)
+	again, err := OpenDotaExplorer(context.Background(), replay, yesterday)
+	if err != nil || len(again.ProMatches) != 1 || explorerCalls.Load() != 1 || replay.Stats().NetworkRequests != 0 {
+		t.Fatalf("same as-of must replay the cache: again=%+v explorer=%d stats=%+v err=%v", again, explorerCalls.Load(), replay.Stats(), err)
+	}
+
+	// Новый as-of: новый ключ explorer — сетевой запрос, и discovery видит матч 6.
+	today := yesterday
+	today.BeforeUnix = 250
+	next := newClient(t, cache, 0, httpClient)
+	fresh, err := OpenDotaExplorer(context.Background(), next, today)
+	if err != nil || len(fresh.ProMatches) != 2 || !fresh.DetailsComplete || explorerCalls.Load() != 2 {
+		t.Fatalf("new as-of must refresh discovery: fresh=%+v explorer=%d err=%v", fresh, explorerCalls.Load(), err)
+	}
+	// Сеть — только explorer и детали нового матча; /matches/5 остаётся в вечном кэше.
+	if stats := next.Stats(); stats.NetworkRequests != 2 || stats.CacheHits != 1 {
+		t.Fatalf("stats=%+v", stats)
+	}
+
+	if _, err := OpenDotaExplorer(context.Background(), next, ExplorerConfig{RollingLeagues: []int64{100}}); err == nil {
+		t.Fatal("explorer discovery without an as-of bound must be rejected: its raw cache would never refresh")
 	}
 }
 

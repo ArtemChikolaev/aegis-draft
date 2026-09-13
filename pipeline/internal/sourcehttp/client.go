@@ -29,6 +29,9 @@ var ErrBudgetExhausted = errors.New("source HTTP request budget exhausted")
 type Stats struct {
 	CacheHits       int `json:"cacheHits"`
 	NetworkRequests int `json:"networkRequests"`
+	// StaleCacheHits — просроченные ответы, отданные из кэша, потому что обновить их не вышло по
+	// resumable-причине (бюджет, 429, устойчивый 5xx).
+	StaleCacheHits int `json:"staleCacheHits"`
 }
 
 type Config struct {
@@ -45,6 +48,8 @@ type Config struct {
 	// запрос, прежде чем отдать resumable-стоп (по умолчанию 6).
 	RateLimitCooldown time.Duration
 	MaxRateLimitWaits int
+	// Now — часы для срока годности кэша (тесты); nil = time.Now.
+	Now func() time.Time
 }
 
 type Client struct {
@@ -55,6 +60,7 @@ type Client struct {
 	maxAttempts int
 	backoff     time.Duration
 	httpClient  *http.Client
+	now         func() time.Time
 
 	rateLimitCooldown time.Duration
 	maxRateLimitWaits int
@@ -94,10 +100,13 @@ func New(cfg Config) (*Client, error) {
 	if cfg.MaxRateLimitWaits <= 0 {
 		cfg.MaxRateLimitWaits = 6
 	}
+	if cfg.Now == nil {
+		cfg.Now = time.Now
+	}
 	return &Client{
 		baseURL: baseURL, cacheDir: cfg.CacheDir, userAgent: cfg.UserAgent,
 		minInterval: cfg.MinInterval, maxAttempts: cfg.MaxAttempts,
-		backoff: cfg.Backoff, httpClient: cfg.HTTPClient,
+		backoff: cfg.Backoff, httpClient: cfg.HTTPClient, now: cfg.Now,
 		rateLimitCooldown: cfg.RateLimitCooldown, maxRateLimitWaits: cfg.MaxRateLimitWaits,
 		requestBudget: cfg.RequestBudget,
 	}, nil
@@ -110,13 +119,31 @@ func (c *Client) Stats() Stats {
 }
 
 // GetJSON reads a cached JSON response or performs a rate-limited GET and atomically caches it.
+// Кэш вечный — для иммутабельных ответов (детали матча); то, что меняется со временем, читай
+// через GetJSONMaxAge.
 func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, headers http.Header, out any) error {
+	return c.GetJSONMaxAge(ctx, path, query, headers, 0, out)
+}
+
+// GetJSONMaxAge — GetJSON со сроком годности кэша: ответ старше maxAge запрашивается заново
+// (maxAge <= 0 — вечный кэш). Время загрузки лежит рядом с телом (<ключ>.meta.json), а не в
+// mtime: mtime не переживает копирования кэша без -p, и просроченный ответ выглядел бы свежим.
+// Тело без метаданных (записанное вечным GetJSON) считается просроченным. Если обновить
+// просроченный ответ не удалось по resumable-причине (бюджет, 429, устойчивый 5xx), отдаётся
+// прежнее тело (Stats.StaleCacheHits): output остаётся функцией raw-кэша, а прогон не падает
+// из-за временно недоступного справочника.
+func (c *Client) GetJSONMaxAge(ctx context.Context, path string, query url.Values, headers http.Header, maxAge time.Duration, out any) error {
 	requestURL, err := c.resolve(path, query)
 	if err != nil {
 		return err
 	}
 	cachePath := c.cachePath(requestURL)
-	if cached, err := os.ReadFile(cachePath); err == nil {
+	cached, err := os.ReadFile(cachePath)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read cache %s: %w", cachePath, err)
+	}
+	haveCached := err == nil
+	if haveCached && (maxAge <= 0 || c.fresh(cachePath, maxAge)) {
 		if err := json.Unmarshal(cached, out); err != nil {
 			return fmt.Errorf("decode cached %s: %w", cachePath, err)
 		}
@@ -124,10 +151,24 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 		c.stats.CacheHits++
 		c.mu.Unlock()
 		return nil
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("read cache %s: %w", cachePath, err)
 	}
 
+	fetchErr := c.fetch(ctx, requestURL, headers, cachePath, maxAge, out)
+	if fetchErr != nil && haveCached && errors.Is(fetchErr, ErrBudgetExhausted) {
+		if err := json.Unmarshal(cached, out); err != nil {
+			return fmt.Errorf("decode stale cached %s: %w", cachePath, err)
+		}
+		c.mu.Lock()
+		c.stats.StaleCacheHits++
+		c.mu.Unlock()
+		return nil
+	}
+	return fetchErr
+}
+
+// fetch делает GET с rate-limit и ретраями, декодирует ответ в out и атомарно кэширует тело
+// (для maxAge > 0 — вместе с временем загрузки).
+func (c *Client) fetch(ctx context.Context, requestURL string, headers http.Header, cachePath string, maxAge time.Duration, out any) error {
 	safeURL := redactURL(requestURL)
 	var lastErr error
 	serverAttempts := 0 // ретраи сетевых/5xx ошибок (ограничены maxAttempts)
@@ -181,6 +222,14 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 			if err := artifact.WriteFile(cachePath, body); err != nil {
 				return fmt.Errorf("cache %s: %w", safeURL, err)
 			}
+			// Отметка — ПОСЛЕ тела: оборванная между ними запись оставит новое тело со старой
+			// отметкой (или без неё), и следующий прогон просто спросит ещё раз. Обратный порядок
+			// выдал бы старое тело за свежее.
+			if maxAge > 0 {
+				if err := artifact.WriteJSON(metaPath(cachePath), cacheMeta{FetchedAt: c.now().UTC()}); err != nil {
+					return fmt.Errorf("cache meta %s: %w", safeURL, err)
+				}
+			}
 			return nil
 		}
 
@@ -214,6 +263,30 @@ func (c *Client) GetJSON(ctx context.Context, path string, query url.Values, hea
 	// останавливаемся мягко для resume (прогресс в raw-кэше сохранён, добор в след. прогоне),
 	// а не роняем весь прогон одним неудачным матчем.
 	return fmt.Errorf("GET %s failed after %d attempts (%v); stopping for resume: %w", safeURL, c.maxAttempts, lastErr, ErrBudgetExhausted)
+}
+
+// cacheMeta — отметка времени загрузки ответа со сроком годности.
+type cacheMeta struct {
+	FetchedAt time.Time `json:"fetchedAt"`
+}
+
+func metaPath(cachePath string) string {
+	return strings.TrimSuffix(cachePath, ".json") + ".meta.json"
+}
+
+// fresh — ответ моложе maxAge. Нет или битые метаданные, отметка из будущего (сбитые часы, кэш
+// с другой машины) — просрочен: лишний запрос дешевле вечно замороженного справочника.
+func (c *Client) fresh(cachePath string, maxAge time.Duration) bool {
+	body, err := os.ReadFile(metaPath(cachePath))
+	if err != nil {
+		return false
+	}
+	var meta cacheMeta
+	if err := json.Unmarshal(body, &meta); err != nil || meta.FetchedAt.IsZero() {
+		return false
+	}
+	age := c.now().Sub(meta.FetchedAt)
+	return age >= 0 && age < maxAge
 }
 
 // rateLimitWait — пауза после 429: Retry-After, если сервер его прислал, иначе cooldown,

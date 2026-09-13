@@ -62,6 +62,11 @@ func Run(ctx context.Context, cfg Config) error {
 	if cfg.MaxPages < 0 || cfg.RequestBudget < 0 {
 		return fmt.Errorf("max-pages and request-budget must be non-negative")
 	}
+	// discoveryBefore — полночь UTC дня as-of, верхняя граница explorer-дискавери (исключительно).
+	// Она входит в SQL, а значит и в ключ raw-кэша: прогон с новым as-of заново спрашивает
+	// discovery и видит свежие матчи и турниры, повтор с тем же as-of переигрывает кэш. Матчи
+	// самого дня as-of приедут следующим прогоном — к тому времени OpenDota их распарсит.
+	var discoveryBefore int64
 	if cfg.EmitDomain {
 		if cfg.MatchDetailLimit == 0 && !cfg.CollectWindow {
 			return fmt.Errorf("emit-domain requires detail collection (--match-detail-limit or --collect-window)")
@@ -69,6 +74,11 @@ func Run(ctx context.Context, cfg Config) error {
 		if cfg.AsOf == "" {
 			return fmt.Errorf("emit-domain requires fixed --as-of YYYY-MM-DD for reproducible windows")
 		}
+		asOfDay, err := parseAsOf(cfg.AsOf)
+		if err != nil {
+			return err
+		}
+		discoveryBefore = asOfDay.Unix()
 	}
 	rcfg := rating.Default()
 
@@ -108,11 +118,11 @@ func Run(ctx context.Context, cfg Config) error {
 	log.Printf("[fetch] OpenDota discovery (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
 	var collected *collect.OpenDotaResult
 	if cfg.EmitDomain {
-		// Discovery: все tier-1 лиги за всю историю (since=0) — pro career player×hero.
+		// Discovery: все tier-1 лиги за всю историю (since=0) до as-of — pro career player×hero.
 		// Оконные рейтинги/паки фильтруют матчи по windowStart в domain.Build; playerHeroStats
 		// в aggregate — подмножество careerPlayerHeroStats (pro all-time vs pro window).
 		collected, err = collect.OpenDotaExplorer(ctx, od, collect.ExplorerConfig{
-			RollingLeagues: rollingLeagues, LegacyLeagues: legacyLeagues, WindowStartUnix: 0,
+			RollingLeagues: rollingLeagues, LegacyLeagues: legacyLeagues, WindowStartUnix: 0, BeforeUnix: discoveryBefore,
 			CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
 			MatchLimit: cfg.MatchDetailLimit,
 		})
@@ -130,8 +140,8 @@ func Run(ctx context.Context, cfg Config) error {
 		len(collected.ProMatches), len(collected.Details), collected.PagesRead, cfg.CacheDir)
 	if cfg.CollectWindow && !collected.DiscoveryComplete && len(collected.Details) == 0 {
 		stats := od.Stats()
-		log.Printf("[progress] discovery=false; network=%d cache=%d; artifacts preserved until details are available",
-			stats.NetworkRequests, stats.CacheHits)
+		log.Printf("[progress] discovery=false; network=%d cache=%d stale=%d; artifacts preserved until details are available",
+			stats.NetworkRequests, stats.CacheHits, stats.StaleCacheHits)
 		return nil
 	}
 	if cfg.MatchDetailLimit > 0 || cfg.CollectWindow {
@@ -176,9 +186,9 @@ func Run(ctx context.Context, cfg Config) error {
 		if err := artifact.WriteJSON(cfg.AggregateOut, aggregates); err != nil {
 			return fmt.Errorf("write OpenDota aggregates: %w", err)
 		}
-		log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) proCareer=%t; network=%d cache=%d",
+		log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) proCareer=%t; network=%d cache=%d stale=%d",
 			collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
-			status.CareerComplete, stats.NetworkRequests, stats.CacheHits)
+			status.CareerComplete, stats.NetworkRequests, stats.CacheHits, stats.StaleCacheHits)
 
 		if cfg.EmitDomain {
 			// Полное окно: emit, когда готовы discovery+details — из них считаются пакеты,
@@ -208,9 +218,9 @@ func Run(ctx context.Context, cfg Config) error {
 // emitDomainDataset дотягивает teams/leagues/heroes, собирает доменный датасет из
 // уже нормализованных матчей и агрегатов, валидирует инварианты и пишет в Out.
 func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, snapshot *normalize.OpenDotaSnapshot, aggregates *aggregate.OpenDotaResult, rcfg rating.Config) error {
-	asOf, err := time.Parse("2006-01-02", cfg.AsOf)
+	asOf, err := parseAsOf(cfg.AsOf)
 	if err != nil {
-		return fmt.Errorf("invalid as-of date %q: %w", cfg.AsOf, err)
+		return err
 	}
 	log.Printf("[domain] fetch teams/leagues/heroes…")
 	teams, err := od.FetchTeams(ctx)
@@ -258,8 +268,8 @@ func emitDomainDataset(ctx context.Context, od *opendota.Client, cfg Config, sna
 // tier1LeagueSlices — лиги для explorer-дискавери: rolling (все tier-1 по tier1.IsTier1 — premium
 // ∪ professional-минус-шум; OpenDota мислейблит EWC/DreamLeague/OGA PIT как professional) + legacy
 // (valve_legacy: все The International + курируемые Valve/DPC Major по tier1.IsValveLegacy — они вне
-// rolling-окна и тянутся всей историей). Один кэшируемый /leagues-запрос; id отсортированы для
-// детерминизма и стабильных chunk-границ (кэш explorer).
+// rolling-окна и тянутся всей историей). Один /leagues-запрос (кэш живёт opendota.DirectoryMaxAge);
+// id отсортированы для детерминизма и стабильных chunk-границ (кэш explorer).
 func tier1LeagueSlices(ctx context.Context, od *opendota.Client) (rolling, legacy []int64, err error) {
 	leagues, err := od.FetchLeagues(ctx)
 	if err != nil {
@@ -295,15 +305,24 @@ func collectionWindow(cfg Config) (int64, string, error) {
 	if cfg.AsOf == "" {
 		return 0, "", fmt.Errorf("collect-window requires fixed --as-of YYYY-MM-DD")
 	}
-	asOf, err := time.Parse("2006-01-02", cfg.AsOf)
+	asOf, err := parseAsOf(cfg.AsOf)
 	if err != nil {
-		return 0, "", fmt.Errorf("invalid as-of date %q: %w", cfg.AsOf, err)
+		return 0, "", err
 	}
 	window, ok := formats.RollingWindow(cfg.Window)
 	if !ok {
 		return 0, "", fmt.Errorf("resumable time-window collection does not support %q", cfg.Window)
 	}
 	return window.Start(asOf).Unix(), cfg.AsOf, nil
+}
+
+// parseAsOf — дата сборки --as-of (YYYY-MM-DD) как UTC-полночь.
+func parseAsOf(value string) (time.Time, error) {
+	asOf, err := time.Parse("2006-01-02", value)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid as-of date %q: %w", value, err)
+	}
+	return asOf, nil
 }
 
 // enrichTeamLogos дотягивает логотипы команд, которых нет в топ-списке /teams.

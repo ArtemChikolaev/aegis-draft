@@ -5,6 +5,9 @@ name: Data refresh
 # Сбор resumable: raw-кэш персистится между запусками (actions/cache), каждый прогон
 # добирает до дневного потолка Free Tier (~3000 req/day), полное окно доезжает за
 # несколько дней дейлик-крона. Ручной старт/докрутка — workflow_dispatch.
+# Discovery свежий в каждом прогоне: SQL explorer ограничен --as-of (ключ кэша меняется с
+# датой), справочники /leagues, /teams, /heroes живут в кэше 20 ч, детали матчей — навсегда
+# (pipeline/README.md, «Raw-кэш и свежесть discovery»).
 on:
   schedule:
     - cron: "0 6 * * *" # ежедневно 06:00 UTC

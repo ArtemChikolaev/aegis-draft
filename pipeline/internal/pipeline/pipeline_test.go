@@ -24,6 +24,17 @@ func TestRunWithoutSourceFailsAndLeavesOutputUntouched(t *testing.T) {
 	}
 }
 
+// As-of — граница explorer-дискавери, поэтому битая дата отклоняется до первого запроса в сеть.
+func TestRunRejectsInvalidAsOfBeforeNetwork(t *testing.T) {
+	err := Run(context.Background(), Config{
+		FetchOpenDota: true, EmitDomain: true, CollectWindow: true, Window: model.Last5y,
+		AsOf: "2026-13-01", CacheDir: t.TempDir(),
+	})
+	if err == nil {
+		t.Fatal("invalid as-of must be rejected")
+	}
+}
+
 func TestCollectionWindowUsesFixedCalendarBoundary(t *testing.T) {
 	start, asOf, err := collectionWindow(Config{CollectWindow: true, Window: model.Last2y, AsOf: "2026-07-11"})
 	if err != nil {

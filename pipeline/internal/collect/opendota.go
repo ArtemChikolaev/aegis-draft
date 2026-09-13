@@ -97,9 +97,13 @@ func OpenDotaWindow(ctx context.Context, client *opendota.Client, cfg OpenDotaCo
 // ExplorerConfig — discovery по league_id через /explorer.
 // RollingLeagues и LegacyLeagues: WindowStartUnix=0 → all-time pro career; иначе rolling-окно.
 type ExplorerConfig struct {
-	RollingLeagues      []int64
-	LegacyLeagues       []int64
-	WindowStartUnix     int64
+	RollingLeagues  []int64
+	LegacyLeagues   []int64
+	WindowStartUnix int64
+	// BeforeUnix — верхняя граница start_time (исключительно): полночь UTC дня as-of. Обязательна:
+	// граница входит в SQL и в ключ raw-кэша, поэтому прогон с новым as-of заново спрашивает
+	// discovery, а без неё кэш explorer навсегда замораживал список матчей.
+	BeforeUnix          int64
 	ChunkSize           int // лиг на explorer-запрос (guard длины URL); 0 => 100
 	CollectDetails      bool
 	MaxMatchesPerLeague int
@@ -108,10 +112,13 @@ type ExplorerConfig struct {
 
 // OpenDotaExplorer собирает tier-1 (+ valve_legacy) матчи через /explorer: один запрос на набор
 // лиг вместо сотен страниц proMatches, и достаёт старые TI/Major вне rolling-окна. Cache-aware и
-// budget-resumable (explorer-запросы кэшируются; details добираются в след. прогонах).
+// budget-resumable (explorer-запросы кэшируются по as-of; details добираются в след. прогонах).
 func OpenDotaExplorer(ctx context.Context, client *opendota.Client, cfg ExplorerConfig) (*OpenDotaResult, error) {
 	if client == nil {
 		return nil, fmt.Errorf("nil OpenDota client")
+	}
+	if cfg.BeforeUnix <= 0 {
+		return nil, fmt.Errorf("explorer discovery requires an as-of bound (BeforeUnix)")
 	}
 	chunk := cfg.ChunkSize
 	if chunk <= 0 {
@@ -125,7 +132,7 @@ func OpenDotaExplorer(ctx context.Context, client *opendota.Client, cfg Explorer
 			if end > len(leagues) {
 				end = len(leagues)
 			}
-			rows, err := client.ExplorerMatchIDs(ctx, leagues[i:end], since)
+			rows, err := client.ExplorerMatchIDs(ctx, leagues[i:end], since, cfg.BeforeUnix)
 			if budgetExhausted(err) {
 				return false, nil
 			}

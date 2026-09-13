@@ -16,6 +16,13 @@ import (
 
 const BaseURL = "https://api.opendota.com/api/"
 
+// DirectoryMaxAge — срок годности справочников /leagues, /teams, /heroes в raw-кэше. Они меняются
+// со временем (новые лиги и герои, переименования и логотипы команд), а вечный кэш замораживал
+// их на дате первой загрузки — новые турниры не попадали в discovery. Меньше суток, чтобы
+// ежедневный крон освежал их и при сдвиге расписания GitHub; больше длительности прогона, чтобы
+// повторные чтения внутри прогона шли из кэша.
+const DirectoryMaxAge = 20 * time.Hour
+
 type Config struct {
 	APIKey        string
 	CacheDir      string
@@ -23,6 +30,8 @@ type Config struct {
 	MinInterval   time.Duration
 	HTTPClient    *http.Client
 	RequestBudget int
+	// Now — часы для срока годности справочников (тесты); nil = time.Now.
+	Now func() time.Time
 }
 
 type Client struct {
@@ -104,6 +113,7 @@ func New(cfg Config) (*Client, error) {
 		MinInterval: interval, MaxAttempts: 4, Backoff: 500 * time.Millisecond,
 		HTTPClient:    cfg.HTTPClient,
 		RequestBudget: cfg.RequestBudget,
+		Now:           cfg.Now,
 	})
 	if err != nil {
 		return nil, err
@@ -127,9 +137,11 @@ func (c *Client) FetchProMatches(ctx context.Context, lessThanMatchID int64) ([]
 
 // ExplorerMatchIDs — discovery матчей по league_id через /explorer (SQL на Postgres OpenDota).
 // Один запрос отдаёт match_id/start_time/leagueid для НАБОРА лиг, заменяя пагинацию /proMatches
-// (и достаёт старые лиги — TI/Major вне rolling-окна). sinceUnix>0 ограничивает окном; 0 — вся история.
-// Возвращает строки discovery; детали тянет FetchMatch.
-func (c *Client) ExplorerMatchIDs(ctx context.Context, leagueIDs []int64, sinceUnix int64) ([]ProMatch, error) {
+// (и достаёт старые лиги — TI/Major вне rolling-окна). sinceUnix>0 — нижняя граница окна
+// (включительно), 0 — вся история; beforeUnix>0 — верхняя граница (исключительно, as-of сборки).
+// Граница as-of входит в SQL, а значит и в ключ raw-кэша: новый as-of — новый запрос с актуальным
+// списком матчей, повтор с тем же as-of — кэш. Возвращает строки discovery; детали тянет FetchMatch.
+func (c *Client) ExplorerMatchIDs(ctx context.Context, leagueIDs []int64, sinceUnix, beforeUnix int64) ([]ProMatch, error) {
 	if len(leagueIDs) == 0 {
 		return nil, nil
 	}
@@ -140,6 +152,9 @@ func (c *Client) ExplorerMatchIDs(ctx context.Context, leagueIDs []int64, sinceU
 	sql := "SELECT match_id, start_time, leagueid FROM matches WHERE leagueid IN (" + strings.Join(ids, ",") + ")"
 	if sinceUnix > 0 {
 		sql += fmt.Sprintf(" AND start_time >= %d", sinceUnix)
+	}
+	if beforeUnix > 0 {
+		sql += fmt.Sprintf(" AND start_time < %d", beforeUnix)
 	}
 	sql += " ORDER BY match_id DESC"
 	query := c.query()
@@ -168,10 +183,10 @@ func (c *Client) FetchMatch(ctx context.Context, matchID int64) (*Match, error) 
 	return &match, nil
 }
 
-// FetchTeams возвращает /teams (топ ~1000 команд по рейтингу).
+// FetchTeams возвращает /teams (топ ~1000 команд по рейтингу); кэш живёт DirectoryMaxAge.
 func (c *Client) FetchTeams(ctx context.Context) ([]Team, error) {
 	var teams []Team
-	if err := c.transport.GetJSON(ctx, "teams", c.query(), nil, &teams); err != nil {
+	if err := c.transport.GetJSONMaxAge(ctx, "teams", c.query(), nil, DirectoryMaxAge, &teams); err != nil {
 		return nil, fmt.Errorf("fetch teams: %w", err)
 	}
 	return teams, nil
@@ -195,19 +210,20 @@ func (c *Client) FetchTeam(ctx context.Context, teamID int64) (*Team, error) {
 	return &team, nil
 }
 
-// FetchLeagues возвращает /leagues (все лиги с tier для классификации событий).
+// FetchLeagues возвращает /leagues (все лиги с tier для классификации событий); кэш живёт
+// DirectoryMaxAge — иначе новые турниры не попадают в discovery.
 func (c *Client) FetchLeagues(ctx context.Context) ([]League, error) {
 	var leagues []League
-	if err := c.transport.GetJSON(ctx, "leagues", c.query(), nil, &leagues); err != nil {
+	if err := c.transport.GetJSONMaxAge(ctx, "leagues", c.query(), nil, DirectoryMaxAge, &leagues); err != nil {
 		return nil, fmt.Errorf("fetch leagues: %w", err)
 	}
 	return leagues, nil
 }
 
-// FetchHeroes возвращает /heroes (справочник героев для heroes.json).
+// FetchHeroes возвращает /heroes (справочник героев для heroes.json); кэш живёт DirectoryMaxAge.
 func (c *Client) FetchHeroes(ctx context.Context) ([]Hero, error) {
 	var heroes []Hero
-	if err := c.transport.GetJSON(ctx, "heroes", c.query(), nil, &heroes); err != nil {
+	if err := c.transport.GetJSONMaxAge(ctx, "heroes", c.query(), nil, DirectoryMaxAge, &heroes); err != nil {
 		return nil, fmt.Errorf("fetch heroes: %w", err)
 	}
 	return heroes, nil

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -206,5 +207,131 @@ func TestCachePathIgnoresAuthParamsAndMigratesLegacyFiles(t *testing.T) {
 	}
 	if _, err := os.Stat(legacy); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("legacy cache file should be renamed, stat err=%v", err)
+	}
+}
+
+type fakeClock struct{ now time.Time }
+
+func (c *fakeClock) Now() time.Time { return c.now }
+
+type versionedBody struct {
+	V int `json:"v"`
+}
+
+// counterClient — клиент с фейковым HTTP: каждый сетевой ответ несёт номер вызова {"v": N}.
+func counterClient(t *testing.T, clock *fakeClock, budget int, calls *atomic.Int32) *Client {
+	t.Helper()
+	client, err := New(Config{
+		BaseURL: "https://example.invalid/", CacheDir: t.TempDir(), UserAgent: "AegisDraft/test",
+		MinInterval: -1, MaxAttempts: 1, RequestBudget: budget, Now: clock.Now,
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+			return response(http.StatusOK, `{"v":`+strconv.Itoa(int(calls.Add(1)))+`}`), nil
+		})},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return client
+}
+
+func getVersion(t *testing.T, client *Client, path string, maxAge time.Duration) int {
+	t.Helper()
+	var out versionedBody
+	if err := client.GetJSONMaxAge(context.Background(), path, nil, nil, maxAge, &out); err != nil {
+		t.Fatalf("GET %s: %v", path, err)
+	}
+	return out.V
+}
+
+func TestGetJSONMaxAgeRefreshesOnlyExpiredEntries(t *testing.T) {
+	var calls atomic.Int32
+	clock := &fakeClock{now: time.Date(2026, 9, 12, 6, 0, 0, 0, time.UTC)}
+	client := counterClient(t, clock, 0, &calls)
+	const maxAge = 20 * time.Hour
+
+	if v := getVersion(t, client, "leagues", maxAge); v != 1 {
+		t.Fatalf("empty cache must hit the network, got v=%d", v)
+	}
+	clock.now = clock.now.Add(time.Hour)
+	if v := getVersion(t, client, "leagues", maxAge); v != 1 || calls.Load() != 1 {
+		t.Fatalf("fresh entry must be served without network: v=%d calls=%d", v, calls.Load())
+	}
+	clock.now = clock.now.Add(maxAge)
+	if v := getVersion(t, client, "leagues", maxAge); v != 2 || calls.Load() != 2 {
+		t.Fatalf("expired entry must be refetched: v=%d calls=%d", v, calls.Load())
+	}
+	if v := getVersion(t, client, "leagues", maxAge); v != 2 || calls.Load() != 2 {
+		t.Fatalf("refetched entry must be fresh again: v=%d calls=%d", v, calls.Load())
+	}
+	if stats := client.Stats(); stats.NetworkRequests != 2 || stats.CacheHits != 2 || stats.StaleCacheHits != 0 {
+		t.Fatalf("stats=%+v", stats)
+	}
+}
+
+func TestGetJSONMaxAgeTreatsEntryWithoutMetadataAsExpired(t *testing.T) {
+	var calls atomic.Int32
+	clock := &fakeClock{now: time.Date(2026, 9, 12, 6, 0, 0, 0, time.UTC)}
+	client := counterClient(t, clock, 0, &calls)
+
+	// Вечный GetJSON (как /matches/{id}) пишет тело без метаданных и не стареет.
+	for i := 0; i < 2; i++ {
+		var out versionedBody
+		if err := client.GetJSON(context.Background(), "leagues", nil, nil, &out); err != nil || out.V != 1 {
+			t.Fatalf("eternal read %d: v=%d err=%v", i, out.V, err)
+		}
+		clock.now = clock.now.Add(1000 * time.Hour)
+	}
+	// Тело без метаданных записано до появления срока годности — оно просрочено: справочники из
+	// кэша старого пайплайна обновятся первым же прогоном.
+	if v := getVersion(t, client, "leagues", 20*time.Hour); v != 2 {
+		t.Fatalf("entry without metadata must be refetched, got v=%d", v)
+	}
+	if v := getVersion(t, client, "leagues", 20*time.Hour); v != 2 || calls.Load() != 2 {
+		t.Fatalf("metadata must be written with the refetched body: v=%d calls=%d", v, calls.Load())
+	}
+}
+
+func TestGetJSONMaxAgeServesStaleEntryOnlyWhenRefreshIsResumable(t *testing.T) {
+	var calls atomic.Int32
+	clock := &fakeClock{now: time.Date(2026, 9, 12, 6, 0, 0, 0, time.UTC)}
+	client := counterClient(t, clock, 1, &calls)
+	if v := getVersion(t, client, "leagues", 20*time.Hour); v != 1 {
+		t.Fatalf("first read v=%d", v)
+	}
+	clock.now = clock.now.Add(21 * time.Hour)
+	// Бюджет прогона исчерпан: просроченный справочник отдаётся как есть, прогон продолжается.
+	if v := getVersion(t, client, "leagues", 20*time.Hour); v != 1 || calls.Load() != 1 {
+		t.Fatalf("stale entry must be served when refresh is resumable: v=%d calls=%d", v, calls.Load())
+	}
+	if stats := client.Stats(); stats.StaleCacheHits != 1 {
+		t.Fatalf("stale fallback must be counted: %+v", stats)
+	}
+	// Без прежнего тела подменять нечем — resumable-стоп, как и раньше.
+	var out versionedBody
+	if err := client.GetJSONMaxAge(context.Background(), "teams", nil, nil, 20*time.Hour, &out); !errors.Is(err, ErrBudgetExhausted) {
+		t.Fatalf("missing entry with exhausted budget: got %v, want ErrBudgetExhausted", err)
+	}
+
+	// Жёсткая ошибка обновления (4xx, не 429) не маскируется просроченным телом.
+	var hardCalls atomic.Int32
+	hard, err := New(Config{
+		BaseURL: "https://example.invalid/", CacheDir: t.TempDir(), UserAgent: "AegisDraft/test",
+		MinInterval: -1, Now: clock.Now,
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+			if hardCalls.Add(1) == 1 {
+				return response(http.StatusOK, `{"v":1}`), nil
+			}
+			return response(http.StatusNotFound, `gone`), nil
+		})},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v := getVersion(t, hard, "heroes", 20*time.Hour); v != 1 {
+		t.Fatalf("hard client first read v=%d", v)
+	}
+	clock.now = clock.now.Add(21 * time.Hour)
+	if err := hard.GetJSONMaxAge(context.Background(), "heroes", nil, nil, 20*time.Hour, &out); err == nil || errors.Is(err, ErrBudgetExhausted) {
+		t.Fatalf("hard refresh error must surface, got %v", err)
 	}
 }

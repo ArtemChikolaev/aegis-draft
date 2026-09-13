@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestClientEndpointsAndAPIKey(t *testing.T) {
@@ -22,7 +24,7 @@ func TestClientEndpointsAndAPIKey(t *testing.T) {
 		case "/api/matches/99":
 			return response(`{"match_id":99,"players":[{"account_id":42,"hero_id":1}]}`), nil
 		default:
-			return &http.Response{StatusCode: http.StatusNotFound, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("not found"))}, nil
+			return notFound(), nil
 		}
 	})}
 
@@ -52,7 +54,7 @@ func TestClientTeamsLeaguesEndpoints(t *testing.T) {
 		case "/api/heroes":
 			return response(`[{"id":1,"name":"npc_dota_hero_antimage","localized_name":"Anti-Mage"}]`), nil
 		default:
-			return &http.Response{StatusCode: http.StatusNotFound, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("not found"))}, nil
+			return notFound(), nil
 		}
 	})}
 
@@ -81,6 +83,80 @@ func TestClientTeamsLeaguesEndpoints(t *testing.T) {
 	}
 }
 
+// Справочники стареют (DirectoryMaxAge), детали матча — нет: иначе новые лиги и герои не
+// попадают в данные, а перезапрос тысяч иммутабельных матчей съел бы весь бюджет.
+func TestDirectoriesExpireButMatchDetailsStayCached(t *testing.T) {
+	var directoryCalls, matchCalls atomic.Int32
+	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		switch r.URL.Path {
+		case "/api/leagues", "/api/teams", "/api/heroes":
+			directoryCalls.Add(1)
+			return response(`[]`), nil
+		case "/api/matches/7":
+			matchCalls.Add(1)
+			return response(`{"match_id":7}`), nil
+		default:
+			return notFound(), nil
+		}
+	})}
+	now := time.Date(2026, 9, 12, 6, 0, 0, 0, time.UTC)
+	client, err := New(Config{
+		CacheDir: t.TempDir(), BaseURL: "https://example.invalid/api/", MinInterval: -1, HTTPClient: httpClient,
+		Now: func() time.Time { return now },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fetchAll := func() {
+		t.Helper()
+		ctx := context.Background()
+		if _, err := client.FetchLeagues(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := client.FetchTeams(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := client.FetchHeroes(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := client.FetchMatch(ctx, 7); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	fetchAll()
+	now = now.Add(DirectoryMaxAge - time.Minute)
+	fetchAll()
+	if directoryCalls.Load() != 3 || matchCalls.Load() != 1 {
+		t.Fatalf("fresh cache must not hit the network: directories=%d matches=%d", directoryCalls.Load(), matchCalls.Load())
+	}
+	now = now.Add(2 * time.Minute)
+	fetchAll()
+	if directoryCalls.Load() != 6 || matchCalls.Load() != 1 {
+		t.Fatalf("expired directories must be refetched, match details never: directories=%d matches=%d", directoryCalls.Load(), matchCalls.Load())
+	}
+}
+
+func TestExplorerMatchIDsBoundsDiscoveryByAsOf(t *testing.T) {
+	var sql string
+	httpClient := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		sql = r.URL.Query().Get("sql")
+		return response(`{"rows":[{"match_id":5,"start_time":100,"leagueid":1}]}`), nil
+	})}
+	client, err := New(Config{CacheDir: t.TempDir(), BaseURL: "https://example.invalid/api/", MinInterval: -1, HTTPClient: httpClient})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rows, err := client.ExplorerMatchIDs(context.Background(), []int64{1, 2}, 50, 1757635200)
+	if err != nil || len(rows) != 1 || rows[0].MatchID != 5 || rows[0].LeagueID != 1 {
+		t.Fatalf("rows=%v err=%v", rows, err)
+	}
+	want := "SELECT match_id, start_time, leagueid FROM matches WHERE leagueid IN (1,2) AND start_time >= 50 AND start_time < 1757635200 ORDER BY match_id DESC"
+	if sql != want {
+		t.Fatalf("explorer SQL:\n got %s\nwant %s", sql, want)
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -89,4 +165,8 @@ func (fn roundTripFunc) RoundTrip(request *http.Request) (*http.Response, error)
 
 func response(body string) *http.Response {
 	return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}
+}
+
+func notFound() *http.Response {
+	return &http.Response{StatusCode: http.StatusNotFound, Header: make(http.Header), Body: io.NopCloser(strings.NewReader("not found"))}
 }
