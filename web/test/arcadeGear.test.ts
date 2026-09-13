@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Rng } from "../src/game/rng.ts";
 import { AFFIX_POOL, GEAR_BASES, GEAR_SLOTS, UNIQUES, gearEffect, gearScore, rollGear, uniqueGear } from "../src/game/arcade/content/gear.ts";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
+import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { decodeReplay, encodeReplay } from "../src/game/arcade/replay.ts";
@@ -26,6 +27,17 @@ describe("arcade gear", () => {
     expect(armed.player.stats.maxHp).toBe(plain.player.stats.maxHp + 400 + 150);
     expect(armed.player.aegis).toBe(true);
     expect(plain.player.aegis).toBe(false);
+  });
+
+  it("убил Древнего — Сердце Древнего в добыче итога (finish копирует loot, сердце кладётся до него)", () => {
+    const sim = new ArcadeSim("ancient-heart", { act: "full", composition: "all" });
+    const internals = sim as unknown as { spawnEnemy(k: typeof ENEMY_KINDS.ancient, x: number, y: number): NonNullable<ArcadeSim["ancient"]> };
+    const ancient = internals.spawnEnemy(ENEMY_KINDS.ancient, sim.player.x + 200, sim.player.y);
+    sim.ancient = ancient;
+    sim.damageEnemy(ancient, 1e9, "burst");
+    expect(sim.over?.outcome).toBe("victory");
+    expect(sim.over?.loot.map((g) => g.unique)).toContain("heart_of_the_ancient");
+    expect(sim.over?.loot).toEqual(sim.loot);
   });
 
   it("сундук открывает экран добычи (мир стоит), «надеть» меняет статы, «в сумку» кладёт в сумку", () => {

@@ -2514,11 +2514,6 @@ export class ArcadeSim {
       this.shake = 24;
       this.pushFx("nova", e.x, e.y, 220, 0, 40);
     }
-    if (e.kind.structure) {
-      this.shake = 30;
-      this.pushFx("nova", e.x, e.y, 400, 0, 60);
-      this.finish("victory");
-    }
     // Экипировка: элита и боссы роняют всегда, обычные — редко; уникальные — с боссов.
     if (e.kind.boss && !this.aegisDropped) { this.aegisDropped = true; this.dropLoot(e.x, e.y, uniqueGear("aegis_of_the_immortal", this.nextUid(), this.lootTier())); }
     else if (e.kind.boss) {
@@ -2528,7 +2523,14 @@ export class ArcadeSim {
       this.dropLoot(e.x, e.y, uniqueGear(pool[this.rng.int(pool.length)], this.nextUid(), this.lootTier()));
     }
     else if (e.kind.id === "tormentor") this.dropLoot(e.x, e.y, uniqueGear("tormentors_shard", this.nextUid(), this.lootTier()));
-    else if (e.kind.structure) this.loot.push(uniqueGear("heart_of_the_ancient", this.nextUid(), 3));
+    else if (e.kind.structure) {
+      // Древний пал — победа акта. Сердце кладём в добычу ДО итога: finish копирует loot, и положенное
+      // после него в инвентарь не попадало.
+      this.loot.push(uniqueGear("heart_of_the_ancient", this.nextUid(), 3));
+      this.shake = 30;
+      this.pushFx("nova", e.x, e.y, 400, 0, 60);
+      this.finish("victory");
+    }
     else if (e.kind.elite && e.kind.id !== "centaur_warden" && e.kind.id !== "river_warden") this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity())); // у Стражей своя награда
     else if (this.rng.float() < ARCADE.loot.commonChance) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
     if (e.kind.id === "tormentor") {
