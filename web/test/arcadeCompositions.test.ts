@@ -30,7 +30,7 @@ describe("композиции акта", () => {
     const wilds = new ArcadeSim("comp-1", { act: "full", composition: "wilds" });
     expect(wilds.composition).toBe("wilds");
     expect(wilds.camp && wilds.grove && wilds.barrow && wilds.lair && wilds.pond && wilds.outpost).toBeTruthy();
-    expect(wilds.forge).toBeNull(); expect(wilds.rift).not.toBeNull(); expect(wilds.caravan).toBeNull();
+    expect(wilds.forge).not.toBeNull(); expect(wilds.rift).not.toBeNull(); expect(wilds.caravan).toBeNull();
     const trade = new ArcadeSim("comp-1", { act: "full", composition: "trade" });
     expect(trade.forge && trade.rift && trade.caravan && trade.grove && trade.lair && trade.pond).toBeTruthy();
     expect(trade.camp).toBeNull(); expect(trade.barrow).toBeNull();

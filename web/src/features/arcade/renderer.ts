@@ -303,11 +303,11 @@ export class ArcadeRenderer {
   /** Редкий лут на земле вне экрана (T13.84, владелец: «если падают красные предметы — с какой стороны»): стрелка у края
    *  в цвете редкости с дугой остатка (лут лежит `loot.lootLifetime` и пропадает молча). Обычные предметы не зовут. */
   private drawLootPointers(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
+    // Только арканный («красный») лут — владелец 2026-09-13: указатели ко всем вещам = визуальный шум.
     for (const g of sim.groundLoot) {
-      if (g.until <= 0 || g.item.rarity === "standard") continue;
-      const color = g.item.rarity === "arcana" ? pal.arcana : g.item.rarity === "exotic" ? pal.exotic : pal.refined;
+      if (g.until <= 0 || g.item.rarity !== "arcana") continue;
       const frac = Math.max(0, Math.min(1, (g.until - sim.tick) / ARCADE.loot.lootLifetime));
-      this.drawEdgeMarker(g.x - camX, g.y - camY, color, "◆", pal, now, frac);
+      this.drawEdgeMarker(g.x - camX, g.y - camY, pal.arcana, "◆", pal, now, frac);
     }
   }
 
@@ -338,18 +338,19 @@ export class ArcadeRenderer {
     m.strokeRect(X(camX), Y(camY), this.w * k, this.h * k);
     const dot = (wx: number, wy: number, r: number, color: string, alpha = 1) => { m.globalAlpha = alpha; m.fillStyle = color; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.fill(); };
     const ring = (wx: number, wy: number, r: number, color: string) => { m.globalAlpha = 0.9; m.strokeStyle = color; m.lineWidth = 1.5; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.stroke(); };
-    // Места: сделанные — тусклее.
+    // Места: только живые — сделанное с карты уходит (владелец 2026-09-13: «ивент продолжает отображаться»);
+    // разлом и кузня до своего часа — тусклые.
     const c = sim.camp, o = sim.outpost;
-    if (c) dot(c.x, c.y, 3, pal.venom, c.cleared ? 0.35 : 1);
-    if (o) dot(o.x, o.y, 3, pal.aegis, o.captured ? 0.35 : 1);
-    if (sim.pond) dot(sim.pond.x, sim.pond.y, 3, pal.frost, sim.pond.used ? 0.35 : 1);
-    if (sim.grove) dot(sim.grove.x, sim.grove.y, 3, pal.crit, sim.centaur?.alive ? 1 : 0.35);
-    if (sim.barrow) dot(sim.barrow.x, sim.barrow.y, 3, pal.lightning, sim.necromancer?.alive ? 1 : 0.35);
-    if (sim.lair) dot(sim.lair.x, sim.lair.y, 3, pal.lightning, sim.thunder?.alive ? 1 : 0.35);
-    if (sim.ford) dot(sim.ford.x, sim.ford.y, 3, pal.river, sim.warden?.alive ? 1 : 0.35);
-    if (sim.den) dot(sim.den.x, sim.den.y, 3, pal.crit, sim.stalker?.alive ? 1 : 0.35);
-    if (sim.forge) dot(sim.forge.x, sim.forge.y, 3, pal.ember, sim.forge.used ? 0.35 : 1);
-    if (sim.rift) dot(sim.rift.x, sim.rift.y, 3, pal.aegis, sim.riftReady() ? 1 : 0.5);
+    if (c && !c.cleared) dot(c.x, c.y, 3, pal.venom);
+    if (o && !o.captured) dot(o.x, o.y, 3, pal.aegis);
+    if (sim.pond && !sim.pond.used) dot(sim.pond.x, sim.pond.y, 3, pal.frost);
+    if (sim.grove && sim.centaur?.alive) dot(sim.grove.x, sim.grove.y, 3, pal.crit);
+    if (sim.barrow && sim.necromancer?.alive) dot(sim.barrow.x, sim.barrow.y, 3, pal.lightning);
+    if (sim.lair && sim.thunder?.alive) dot(sim.lair.x, sim.lair.y, 3, pal.lightning);
+    if (sim.ford && sim.warden?.alive) dot(sim.ford.x, sim.ford.y, 3, pal.river);
+    if (sim.den && sim.stalker?.alive) dot(sim.den.x, sim.den.y, 3, pal.crit);
+    if (sim.forge && !sim.forge.used) dot(sim.forge.x, sim.forge.y, 3, pal.ember, sim.forgeReady() ? 1 : 0.45);
+    if (sim.rift && sim.rift.state !== "done") dot(sim.rift.x, sim.rift.y, 3, pal.aegis, sim.riftReady() || sim.riftActive() ? 1 : 0.45);
     if (sim.caravan && sim.caravan.state !== "hidden" && sim.caravan.state !== "gone") dot(sim.caravan.x, sim.caravan.y, 3, pal.shop);
     // События с таймером — кольцо пульсирует.
     if (sim.shopkeeper.alive) ring(sim.shopkeeper.x, sim.shopkeeper.y, 3 + pulse, pal.shop);
@@ -358,11 +359,10 @@ export class ArcadeRenderer {
     if (sim.chest.alive) ring(sim.chest.x, sim.chest.y, 3 + pulse, sim.chest.value === 1 ? pal.venom : pal.aegis);
     if (sim.neutralToken.alive) ring(sim.neutralToken.x, sim.neutralToken.y, 3 + pulse, pal.text);
     if (sim.shrine.alive) ring(sim.shrine.x, sim.shrine.y, 3 + pulse, pal.greed);
-    // Редкий лут — ромб цвета редкости.
+    // Арканный лут — красный ромб (только он: остальное — шум).
     for (const g of sim.groundLoot) {
-      if (g.until <= 0 || g.item.rarity === "standard") continue;
-      const color = g.item.rarity === "arcana" ? pal.arcana : g.item.rarity === "exotic" ? pal.exotic : pal.refined;
-      m.globalAlpha = 1; m.fillStyle = color;
+      if (g.until <= 0 || g.item.rarity !== "arcana") continue;
+      m.globalAlpha = 1; m.fillStyle = pal.arcana;
       m.beginPath(); m.moveTo(X(g.x), Y(g.y) - 4); m.lineTo(X(g.x) + 4, Y(g.y)); m.lineTo(X(g.x), Y(g.y) + 4); m.lineTo(X(g.x) - 4, Y(g.y)); m.closePath(); m.fill();
     }
     // Элиты и боссы; охотник Dire.

@@ -71,6 +71,13 @@ const GEAR_KEY = "aegis-draft.arcade.gear";
 const AUTOCAST_KEY = "aegis-draft.arcade.autocast";
 /** Избранные герои экрана подготовки (2026-09-12), per-device как автокаст. */
 const FAVORITES_KEY = "aegis-draft.arcade.favorites";
+/** Выбранный ранг (2026-09-13): раньше жил только в памяти — после перезагрузки страницы забег тихо стартовал
+ *  на Herald 1, а просмотр реплея переписывал выбор рангом реплея (владелец: «прогресс не стал Herald 3»). */
+const RANK_KEY = "aegis-draft.arcade.rank";
+function readRank(): number {
+  const n = Number(readCached(RANK_KEY));
+  return Number.isFinite(n) ? Math.max(0, Math.min(MAX_RANK_STEP, Math.floor(n))) : 0;
+}
 /** Постоянный прогресс (T13.37): открытия и lifetime-трофеи живут отдельно от ленты последних забегов. */
 const PROGRESS_KEY = "aegis-draft.arcade.progress";
 /** Ключей награждённых завершений наследия храним ограниченно: одинаковый seed/hero/act/rank награждается один раз. */
@@ -310,7 +317,7 @@ const initialHistory = readHistory();
 export const useArcade = create<ArcadeStore>((set, get) => ({
   status: "setup",
   seed: "",
-  rank: 0,
+  rank: readRank(),
   hero: "juggernaut",
   act: "full",
   trait: null,
@@ -339,12 +346,14 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const d = arcadeDaily();
     // Дейлик — без экипировки и без наследия: у всех одинаковые условия.
     sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act, legacy: LEGACY_NONE });
-    set({ status: "running", seed: d.seed, rank: d.rank, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null });
+    // Герой/акт — в стор (HUD, озвучка и облик читают выбранного героя), ранг — только в сим: выбор игрока не перебивать (2026-09-13).
+    set({ status: "running", seed: d.seed, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null });
   },
   startReplay(replay) {
     // Реплей читает снимок наследия из кода, не текущую прокачку зрителя.
     sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO), trait: replay.trait });
-    set({ status: "running", seed: replay.seed, rank: replay.rank, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
+    // Герой/акт реплея — в стор (HUD и облик), ранг — только в сим: выбор ранга реплей не переписывает (2026-09-13).
+    set({ status: "running", seed: replay.seed, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
   },
   equipGear(slot, uid) {
     const g = get().gear;
@@ -462,7 +471,9 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     if (traitUnlocked(trait, get().progress.perHero[get().hero]?.marks.length ?? 0)) set({ trait });
   },
   setRank(rank) {
-    set({ rank: Math.max(0, Math.min(MAX_RANK_STEP, Math.min(rank, maxUnlockedRank(get().progress)))) });
+    const next = Math.max(0, Math.min(MAX_RANK_STEP, Math.min(rank, maxUnlockedRank(get().progress))));
+    void writePersisted(RANK_KEY, String(next));
+    set({ rank: next });
   },
   pause() {
     if (get().status === "running") set({ status: "paused" });
