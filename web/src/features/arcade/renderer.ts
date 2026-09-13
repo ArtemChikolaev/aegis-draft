@@ -219,10 +219,12 @@ export class ArcadeRenderer {
   }
 
   draw(sim: ArcadeSim, now: number, joystick: { ox: number; oy: number; x: number; y: number } | null, shakeEnabled: boolean): void {
-    const c = this.ctx;
+    // Кадр начинается на основном холсте; пиксельный проход ниже подменяет this.ctx буфером. Мировые слои берут
+    // this.ctx после подмены: контекст, захваченный здесь, в пиксельном режиме перекрыл бы блит буфера.
+    this.ctx = this.mainCtx;
     const pal = this.readPalette(now);
     const p = sim.player;
-    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    this.mainCtx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     // Камера: игрок в центре, мир не выезжает за край.
     const camX = clamp(p.x - this.w / 2, 0, Math.max(0, ARCADE.world.w - this.w));
     const camY = clamp(p.y - this.h / 2, 0, Math.max(0, ARCADE.world.h - this.h));
@@ -277,7 +279,7 @@ export class ArcadeRenderer {
       // Пепел в воздухе (T13.22): рисуем ДО тумана, иначе дальние искры светятся сквозь темноту.
       const camX = Math.max(0, Math.min(sim.player.x - this.w / 2, ARCADE.world.w - this.w));
       const camY = Math.max(0, Math.min(sim.player.y - this.h / 2, ARCADE.world.h - this.h));
-      if (sim.night) drawWeather(c, camX, camY, this.w, this.h, sim.tick, this.artPx(), pal, 90);
+      if (sim.night) drawWeather(this.ctx, camX, camY, this.w, this.h, sim.tick, this.artPx(), pal, 90);
       this.drawNight(sim, pal);
     }
     this.drawRiftArena(sim, pal, now);
