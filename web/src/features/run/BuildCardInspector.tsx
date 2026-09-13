@@ -14,6 +14,7 @@ import type { MessageKey } from "../../i18n/core.ts";
 import { ItemIcon, Modal, RarityBadge } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { ItemMatch, cardTexts, layerChip, type Translate } from "./CampCards.tsx";
+import "./buildCardInspector.css";
 
 /** Вклад карточки в силу забега — те же `sources`, что рисует разложение. Необязателен: рейл на
  *  экране этапа знает вклад, а вне забега его может не быть, и карточка обязана читаться без него. */

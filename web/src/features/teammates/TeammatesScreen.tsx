@@ -7,6 +7,9 @@ import { useTmaChrome } from "../../state/tmaChrome.ts";
 import type { Format, PlayerProfile } from "../../types/data.ts";
 import { Banner, Button, Eyebrow, PlayerPicker, Select, Surface } from "../../ui/index.ts";
 import { buildTeammateIndex, nicknameIndex, teammateLinks, type TeammateLink } from "./teammateGraph.ts";
+// Заголовок секции — общий с настройками (.settings__section): зависимость явная, а не «повезло,
+// что settings.css уже в бандле».
+import "../settings/settings.css";
 import "./teammates.css";
 
 const WINDOWS: { value: Format; label: MessageKey }[] = [

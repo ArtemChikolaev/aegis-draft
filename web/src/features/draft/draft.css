@@ -37,7 +37,6 @@
   opacity: .42;
 }
 .draft__radar > *:not(.draft__radar-glow) { position: relative; z-index: 1; }
-.score-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .draft__radar .synergy-breakdown { margin-top: 14px; }
 
 /* Панель пака — всегда-тёмная в ОБЕИХ темах (design-language: «black inset sections» у light).
@@ -131,21 +130,6 @@
 .drafted-hero { display: inline-flex; align-items: center; gap: 6px; }
 .drafted-hero small { color: var(--muted); font-size: 10px; }
 
-.player-inspector { display: grid; gap: 22px; }
-.player-inspector__external { justify-self: start; color: var(--brand-green); font-size: 12px; font-weight: 800; text-decoration: none; }
-.player-inspector__external:hover { text-decoration: underline; }
-.player-inspector__section h3 { margin: 0 0 10px; color: var(--muted-invert); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
-.player-inspector__section > p { margin: 0; }
-.player-inspector__stat-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.player-inspector__stat-list li { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: baseline; gap: 8px; padding: 7px 9px; border-radius: 10px; background: var(--surface-invert-soft); }
-.player-inspector__stat-list b { color: var(--brand-green); font-size: 13px; }
-.player-inspector__stat-list span { color: var(--muted-invert); font-size: 11px; line-height: 1.45; }
-.player-inspector__stat-note { margin: 8px 0 0; color: var(--muted-invert); font-size: 10px; }
-.player-inspector__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.player-inspector__row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 10px; background: var(--surface-invert-soft); }
-.player-inspector__row > span { color: var(--muted-invert); font-size: 9px; white-space: nowrap; }
-.player-inspector__row > strong { color: var(--brand-green); font-size: 10px; }
-
 @media (max-width: 980px) {
   .draft { grid-template-columns: 1fr; }
   .draft__radar,
@@ -161,7 +145,6 @@
   .candidate { grid-template-columns: auto 1fr 46px; }
   .candidate__stats { grid-column: 2 / 4; }
   .draft__heading { display: grid; gap: 14px; }
-  .player-inspector__grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 430px) {
   .candidate { grid-template-columns: 1fr 44px; }

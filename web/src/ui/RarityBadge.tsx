@@ -1,3 +1,5 @@
+import styles from "./RarityBadge.module.css";
+
 /** Бейдж тира — один примитив на обе шкалы: редкость героя (`--rarity-*`) и качество пассивной
  *  карточки (`--card-tier-*`, R11.5).
  *
@@ -7,12 +9,16 @@
  *  двусмысленность: качество есть у каждой карточки, вопрос только какое.
  *
  *  Локализация снаружи (как у `RoleTag`/`TagChips`): примитив презентационный, а решение «какой
- *  словарь тиров» принадлежит экрану. */
+ *  словарь тиров» принадлежит экрану.
+ *
+ *  Вид — в своём модуле. `rarity-badge` / `rarity-badge--<тир>` остаются глобальными классами-хуками
+ *  без стилей: за них держатся e2e и раскладка карточки улучшения (`.camp-rarity-card__hero`). */
 export function RarityBadge({ rarity, label, showBase = false }: {
   rarity: string;
   label: string;
   showBase?: boolean;
 }) {
   if (!showBase && (rarity === "common" || rarity === "standard")) return null;
-  return <span className={`rarity-badge rarity-badge--${rarity}`}>{label}</span>;
+  const className = [styles.badge, styles[rarity], "rarity-badge", `rarity-badge--${rarity}`].filter(Boolean).join(" ");
+  return <span className={className}>{label}</span>;
 }

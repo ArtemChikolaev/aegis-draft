@@ -1,0 +1,25 @@
+/* Бейдж тира. Цвет — только токены: варианты переключают локальную --rarity-color, без неё — common.
+   Жил в features/run/camp.css, хотя бейдж рисуют и вне Буткемпа (Штаб, рейл этапа, итог сезона). */
+.badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--rarity-color, var(--rarity-common));
+  background: color-mix(in srgb, var(--rarity-color, var(--rarity-common)) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--rarity-color, var(--rarity-common)) 45%, transparent);
+}
+
+/* Редкость героя (срез 3b). */
+.unique { --rarity-color: var(--rarity-unique); }
+.mythic { --rarity-color: var(--rarity-mythic); }
+.immortal { --rarity-color: var(--rarity-immortal); }
+
+/* Качество пассивной карточки (R11.5) — тот же бейдж, своя палитра. */
+.standard { --rarity-color: var(--card-tier-standard); }
+.refined { --rarity-color: var(--card-tier-refined); }
+.exotic { --rarity-color: var(--card-tier-exotic); }
+.arcana { --rarity-color: var(--card-tier-arcana); }

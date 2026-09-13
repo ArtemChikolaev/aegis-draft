@@ -14,6 +14,7 @@ import type { OfferOverlayAction } from "./OfferOverlay.tsx";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { Eyebrow, HeroThumb, OvrBadge, playerOvrTier, RoleTag, TeamLogo, teamMonogram } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
+import "./campCards.css";
 
 /** Перевод с уже подставленными переменными — ровно та сигнатура, что отдаёт `useI18n`. */
 export type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;

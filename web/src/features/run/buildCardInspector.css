@@ -1,0 +1,58 @@
+/* Разбор карточки билда (BuildCardInspector) — один на рейл этапа, слоты Буткемпа и Штаб. Стили рядом
+   с компонентом, а не в camp.css: этап турнира и Штаб camp.css не импортируют, и при разбиении бандла
+   по экранам разбор остался бы без раскладки. Буткемп получает их тем же импортом. Чипы вклада и
+   ItemMatch — в campCards.css (их рисуют компоненты CampCards). */
+.build-card-inspector {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.build-card-inspector__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.build-card-inspector__desc {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.build-card-inspector__desc--cost { color: var(--danger); }
+
+/* Edition (R13.5/LG4): бейдж и заряды. Цвет — токен через локальную переменную (вариант
+   --tempered переключает её); рамку карточки НЕ красим (цвет рамки принадлежит качеству).
+   Бейдж общий с панелями Буткемпа (слоты билда, награды). */
+.edition-badge {
+  --_edition: var(--edition-charged);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--_edition) 55%, transparent);
+  border-radius: 999px;
+  color: var(--_edition);
+  background: color-mix(in srgb, var(--_edition) 12%, transparent);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.edition-badge--tempered { --_edition: var(--edition-tempered); }
+.edition-charges { color: var(--edition-charged); font-weight: 800; font-size: 12px; }
+.build-card-inspector__edition {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 0 0 10px;
+}
+.build-card-inspector__edition small { flex-basis: 100%; color: var(--muted); }
+
+/* «Карта сейчас ничего не даёт» — одна подпись и в разборе, и в слоте билда. */
+.camp-slot__idle {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+}

@@ -381,35 +381,6 @@
 .camp-celebration__payout b { color: var(--gold); font-variant-numeric: tabular-nums; }
 .camp-celebration__continue { margin-top: 24px; }
 
-/* Edition (R13.5/LG4): бейдж и заряды. Цвет — токен через локальную переменную (вариант
-   --tempered переключает её); рамку карточки НЕ красим (цвет рамки принадлежит качеству). */
-.edition-badge {
-  --_edition: var(--edition-charged);
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 1px 7px;
-  border: 1px solid color-mix(in srgb, var(--_edition) 55%, transparent);
-  border-radius: 999px;
-  color: var(--_edition);
-  background: color-mix(in srgb, var(--_edition) 12%, transparent);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.edition-badge--tempered { --_edition: var(--edition-tempered); }
-.edition-charges { color: var(--edition-charged); font-weight: 800; font-size: 12px; }
-.build-card-inspector__edition {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  margin: 0 0 10px;
-}
-.build-card-inspector__edition small { flex-basis: 100%; color: var(--muted); }
-
 /* Вся offer-карточка — точка входа в увеличенный оверлей. Прозрачная кнопка лежит над обычным
    контентом; настоящие Buy/Swap/select/tag controls поднимаются выше неё и сохраняют своё действие. */
 .camp-inspectable-card {
@@ -532,21 +503,8 @@
    пробелам и вылезало из flex-бокса под соседний бейдж слота (замерено: до 40px наложения).
    `anywhere` ломает слово по границе бокса и уменьшает min-content, чтобы flex мог ужаться. */
 .camp-offer__label { font-size: 15px; overflow-wrap: anywhere; }
-.camp-offer__deltas {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.camp-offer__delta {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 6%, transparent);
-  font-size: 11px;
-  font-weight: 700;
-}
-.camp-offer__delta--up { color: var(--accent); }
-.camp-offer__delta--down { color: var(--danger); }
-.camp-offer__delta--gold { color: var(--gold); }
+/* Чипы дельт (.camp-offer__deltas / .camp-offer__delta--*) — в campCards.css: их рисует и разбор
+   карты вне Буткемпа. */
 .camp-offer__cost {
   font-size: 13px;
   font-weight: 700;
@@ -779,21 +737,11 @@
     inset 0 0 0 1px color-mix(in srgb, var(--rarity-color) 28%, transparent),
     0 0 28px -4px color-mix(in srgb, var(--rarity-color) 90%, transparent);
 }
-/* Бейдж качества предмета — тот же примитив `.rarity-badge`, только своя палитра. */
-.rarity-badge--standard { --rarity-color: var(--card-tier-standard); }
-.rarity-badge--refined { --rarity-color: var(--card-tier-refined); }
-.rarity-badge--exotic { --rarity-color: var(--card-tier-exotic); }
-.rarity-badge--arcana { --rarity-color: var(--card-tier-arcana); }
 .camp-slot__desc {
   margin: 0;
   color: var(--muted);
   font-size: 11px;
   line-height: 1.45;
-}
-.camp-slot__idle {
-  font-size: 11px;
-  color: var(--muted);
-  font-style: italic;
 }
 .camp-slot__discard {
   padding: 2px 7px;
@@ -816,22 +764,7 @@
 .camp-card-tag--tactic { background: color-mix(in srgb, var(--card-tactic) 22%, transparent); color: var(--card-tactic); }
 .camp-card-tag--action { background: color-mix(in srgb, var(--gold) 18%, transparent); color: var(--gold); }
 
-/* Редкость героев (срез 3b): бейдж + сетка улучшений. Цвет — только токены --rarity-*. */
-.rarity-badge {
-  display: inline-block;
-  padding: 1px 8px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--rarity-color, var(--rarity-common));
-  background: color-mix(in srgb, var(--rarity-color, var(--rarity-common)) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--rarity-color, var(--rarity-common)) 45%, transparent);
-}
-.rarity-badge--unique { --rarity-color: var(--rarity-unique); }
-.rarity-badge--mythic { --rarity-color: var(--rarity-mythic); }
-.rarity-badge--immortal { --rarity-color: var(--rarity-immortal); }
+/* Редкость героев (срез 3b): сетка улучшений. Сам бейдж — ui/RarityBadge (свой модуль). */
 .camp-hero-rarity { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 
 /* `auto-fill` по той же причине, что и в `.camp__pack`: карта улучшения не должна раздуваться,
@@ -1222,35 +1155,7 @@
 
 .camp-slot--item .camp-slot__desc--cost { color: var(--danger); }
 
-/* R11.7: кто из активных героев включает карточку. Портреты, а не список тегов — вопрос у игрока
-   конкретный («сработает или нет»), и отвечает на него состав, а не словарь. */
-.camp-item-match {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-.camp-item-match__label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .05em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.camp-item-match[data-met="true"] .camp-item-match__label { color: var(--accent); }
-/* Нарушители условия «без тега» — это цена, а не польза: подписываем их опасным цветом. */
-.camp-item-match[data-blockers="true"] .camp-item-match__label { color: var(--danger); }
-.camp-item-match__heroes {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.camp-item-match__note,
-.camp-item-match__empty {
-  font-size: 10px;
-  color: var(--muted);
-}
+/* ItemMatch (R11.7, «кто из героев включает карточку») — в campCards.css. */
 .camp-offer__card-desc--cost { color: var(--danger); }
 
 /* Свёрнутый разбор состава (R13.3): в Буткемпе таблицы Hero Synergy/Chemistry — справка, а не
@@ -1273,24 +1178,7 @@
 .camp__build-details[open] > summary::after { transform: rotate(180deg); }
 .camp__build-details > summary small { color: var(--muted); }
 
-/* Разбор карточки билда — общий для рейла и слотов. */
-.build-card-inspector {
-  display: grid;
-  gap: 10px;
-  min-width: 0;
-}
-.build-card-inspector__head {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.build-card-inspector__desc {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12.5px;
-  line-height: 1.5;
-}
-.build-card-inspector__desc--cost { color: var(--danger); }
+/* Разбор карточки билда, Edition-бейдж и подпись «не действует» — в buildCardInspector.css. */
 
 /* Зачарование (LG6): выбор Edition на карте без Edition — две мини-кнопки в ряд с бейджами.
    Цвета осей — те же токены, что у edition-бейджей; отдельного состояния нет: после клика кнопки

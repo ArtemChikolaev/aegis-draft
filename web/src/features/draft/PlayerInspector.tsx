@@ -5,6 +5,7 @@ import { useRun } from "../../state/runStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { heroGamesMessageKey } from "../../i18n/core.ts";
 import { Button, HeroThumb, Modal } from "../../ui/index.ts";
+import "./playerInspector.css";
 
 interface HeroStatRow {
   heroId: number;
