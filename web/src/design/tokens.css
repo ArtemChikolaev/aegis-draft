@@ -11,7 +11,6 @@
 
   color-scheme: dark;
   --bg: #000;
-  --bg-elevated: #0b0b0b;
   --surface: #111;
   --surface-solid: #111;
   --surface-soft: #1c1c1c;
@@ -182,7 +181,6 @@ html[data-theme="light"] {
   --stat-synergy-run-ink: #6234c4;
   color-scheme: light;
   --bg: #f1efe8;
-  --bg-elevated: #e8e4da;
   --surface: #f8f6ef;
   --surface-solid: #f8f6ef;
   --surface-soft: #e8e4da;

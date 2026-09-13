@@ -6,8 +6,6 @@
  */
 export const BP = { sm: 430, md: 680, lg: 980 } as const;
 
-export type Breakpoint = keyof typeof BP;
-
 /** Ширина, на которой раскладка уже схлопнута в одну колонку (совпадает с `@media max-width: lg`). */
 export function isNarrowViewport(): boolean {
   return typeof window !== "undefined" && window.matchMedia(`(max-width: ${BP.lg}px)`).matches;

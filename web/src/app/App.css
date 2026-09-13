@@ -11,8 +11,7 @@
 .brand__copy { display: grid; }
 .brand__copy strong { font-size: 19px; letter-spacing: -.02em; }
 .brand__copy small { color: var(--muted); font: 700 8px/1.4 Manrope, sans-serif; letter-spacing: .1em; }
-.muted, .run-meta { color: var(--muted); }
-.run-meta { margin: 18px 0; font-size: 10px; }
+.muted { color: var(--muted); }
 /* 14px — тот же зазор, что между карточками режимов: под последним блоком экрана не должно
    быть больше воздуха, чем внутри него. Разделяет уже сама линия, дублировать её отступом не надо. */
 .footer { margin-top: 14px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; text-align: center; }

@@ -1,6 +1,6 @@
 // UIkit — общие темизированные примитивы. Вид определяется токенами (design/tokens.css),
 // поэтому light/dark работают автоматически. Экраны собираются из этих компонентов.
-export { Button, type ButtonVariant } from "./Button.tsx";
+export { Button } from "./Button.tsx";
 export { Surface } from "./Surface.tsx";
 export { CheatBadge } from "./CheatBadge.tsx";
 export { Eyebrow } from "./Eyebrow.tsx";
@@ -8,23 +8,23 @@ export { Banner } from "./Banner.tsx";
 export { Chip } from "./Chip.tsx";
 export { Dealt } from "./Dealt.tsx";
 export { prefersReducedMotion, motionMs, useCountUp, useCardTilt, screenShakeEnabled, useScreenShakeSetting } from "./motion.ts";
-export { initSoundUnlock, setSoundEnabled, sfxArcade, sfxBuy, sfxCashTick, sfxDeal, sfxReroll, sfxSting, sfxVerdict, soundEnabled, useSoundSetting, useVolumeSetting, getVolume, setVolume, type VolumeChannel } from "./sound.ts";
-export { playerOvrTier, type OvrTier } from "./ovrTier.ts";
+export { initSoundUnlock, setSoundEnabled, sfxArcade, sfxBuy, sfxCashTick, sfxDeal, sfxReroll, sfxSting, sfxVerdict, soundEnabled, useSoundSetting, useVolumeSetting, getVolume } from "./sound.ts";
+export { playerOvrTier } from "./ovrTier.ts";
 export { OvrBadge } from "./OvrBadge.tsx";
 export { HeroThumb } from "./HeroThumb.tsx";
 export { RoleTag } from "./RoleTag.tsx";
 export { RarityBadge } from "./RarityBadge.tsx";
 export { ItemIcon } from "./ItemIcon.tsx";
 export { TeamLogo, teamMonogram } from "./TeamLogo.tsx";
-export { TagChips, type TagChip, type TagChipTone } from "./TagChips.tsx";
+export { TagChips, type TagChip } from "./TagChips.tsx";
 export { TeamName } from "./TeamName.tsx";
 export { TeamSigil } from "./TeamSigil.tsx";
 export { SoonBadge } from "./SoonBadge.tsx";
 export { StageKindBadge } from "./StageKindBadge.tsx";
-export { StatTile, type StatKind } from "./StatTile.tsx";
-export { Select, type SelectOption } from "./Select.tsx";
+export { StatTile } from "./StatTile.tsx";
+export { Select } from "./Select.tsx";
 export { PlayerPicker, findPlayerMatches } from "./PlayerPicker.tsx";
 export { Modal } from "./Modal.tsx";
 export { OptionGroup, type Option } from "./OptionGroup.tsx";
-export { TextField, type TextFieldTone, type TextFieldVariant } from "./TextField.tsx";
+export { TextField } from "./TextField.tsx";
 export { PowerBreakdown } from "./PowerBreakdown.tsx";
