@@ -1,6 +1,89 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HEROES } from "../src/game/arcade/content/heroes.ts";
+import { HEROES, type AbilityDef } from "../src/game/arcade/content/heroes.ts";
+import { SUMMONS } from "../src/game/arcade/content/pets.ts";
+import { ENEMY_KINDS, type EnemyKind } from "../src/game/arcade/content/enemies.ts";
+import { ArcadeSim } from "../src/game/arcade/sim.ts";
+import type { AbilityKey, Enemy } from "../src/game/arcade/types.ts";
+
+/** Поля Player, в которых вид умения держит своё состояние (синхронно с castAbility). Поля, которые виды только продлевают
+ *  через Math.max (hasteUntil, invulnUntil), общими быть могут — затирания нет. */
+function stateFields(ab: AbilityDef): string[] {
+  switch (ab.kind) {
+    case "spin": return ["spinUntil"];
+    case "spirits": return ["spiritsUntil"];
+    case "tether": return ["tetherUntil", "tetherPet"];
+    case "ward": return ["wardUntil", "wardX", "wardY"];
+    case "damage_ward": return ab.summon && (ab.summon.art === "illusion" || SUMMONS[ab.summon.art]) ? [] : ["wardUntil", "wardX", "wardY"];
+    case "omni": return ["burstLeft", "burstNextAt"];
+    case "freezing_field": return ["fieldUntil", "burstLeft", "burstNextAt"];
+    case "shrapnel": return ["zoneUntil", "zoneX", "zoneY"];
+    case "remnant": return ["remnantUntil", "remnantX", "remnantY"];
+    case "edict": return ["edictUntil"];
+    case "armor_buff": case "berserker_call": return ["armorBuffUntil"];
+    case "metamorphosis": return ["formUntil", "metaUntil", "metaMult"];
+    case "rage": return ["rageUntil", "rageMult"];
+    case "death_pact": return ["pactUntil", "pactMult"];
+    case "frenzy": return ab.form ? ["frenzyUntil", "frenzyMult", "formUntil"] : ["frenzyUntil", "frenzyMult"];
+    case "mass_freeze": case "berserk_blood": return ["frenzyUntil", "frenzyMult"];
+    case "haste": return ["evadeUntil", "evadeChance"];
+    case "life_drain": return ["drainUntil", "drainTarget"];
+    default: return [];
+  }
+}
+
+type Internals = { castAbility(k: AbilityKey, ab: AbilityDef): void; tickActiveAbilities(): void; spawnEnemy(k: EnemyKind, x: number, y: number): Enemy; dealtBySource: Record<string, number> };
+
+describe("состояние умений не общее между видами (T13.66)", () => {
+  it("у героя нет двух видов умений с общим полем Player", () => {
+    const player = new ArcadeSim("fields").player as unknown as Record<string, unknown>;
+    const clash: string[] = [];
+    for (const hero of Object.values(HEROES)) {
+      const keys = ["q", "w", "e", "r"] as const;
+      for (const k of keys) for (const f of stateFields(hero.abilities[k])) expect(f in player, `${hero.id}.${k}: поля ${f} нет у Player`).toBe(true);
+      for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+        const a = hero.abilities[keys[i]], b = hero.abilities[keys[j]];
+        const shared = stateFields(a).filter((f) => stateFields(b).includes(f));
+        if (shared.length) clash.push(`${hero.id}: ${keys[i]}:${a.kind} и ${keys[j]}:${b.kind} → ${shared.join(",")}`);
+      }
+    }
+    expect(clash).toEqual([]);
+  });
+
+  it("Dark Willow: взорвавшаяся мина E не гасит Bedlam R, а одна мина не бьёт от имени R", () => {
+    const setup = (seed: string, dist: number) => {
+      const sim = new ArcadeSim(seed, { hero: "dark_willow", act: "short" });
+      const a = sim as unknown as Internals, p = sim.player;
+      p.abilities.e = 1; p.abilities.r = 1; p.invulnUntil = 1e12;
+      for (let i = 0; i < 6; i++) { const e = a.spawnEnemy(ENEMY_KINDS.ogre, p.x + dist * Math.cos(i), p.y + dist * Math.sin(i)); e.hp = e.maxHp = 1e7; }
+      return { sim, a, p };
+    };
+    const { sim, a, p } = setup("dw-er", 40);
+    a.castAbility("e", sim.hero.abilities.e); sim.tick++; a.tickActiveAbilities();
+    expect(p.remnantUntil).toBe(0); // мина взорвалась
+    expect(a.dealtBySource.e).toBeGreaterThan(0);
+    a.castAbility("r", sim.hero.abilities.r);
+    for (let i = 0; i < 600; i++) { sim.tick++; a.tickActiveAbilities(); }
+    expect(a.dealtBySource.r).toBeGreaterThan(0);
+    const only = setup("dw-e", 250); // вне порога мины, но в радиусе Bedlam
+    only.a.castAbility("e", only.sim.hero.abilities.e);
+    for (let i = 0; i < 720; i++) { only.sim.tick++; only.a.tickActiveAbilities(); }
+    expect(only.a.dealtBySource.r).toBeUndefined();
+  });
+
+  it("Terrorblade: Sunder R не перетирает урон формы Metamorphosis E", () => {
+    const sim = new ArcadeSim("tb-er", { hero: "terrorblade", act: "short" });
+    const a = sim as unknown as Internals, p = sim.player;
+    p.abilities.e = 1; p.abilities.r = 1;
+    a.castAbility("e", sim.hero.abilities.e);
+    const metaUntil = p.metaUntil;
+    a.castAbility("r", sim.hero.abilities.r);
+    expect(p.metaUntil).toBe(metaUntil);
+    expect(p.metaMult).toBe(sim.hero.abilities.e.value[1]);
+    expect(p.pactMult).toBe(sim.hero.abilities.r.value[1]);
+    expect(p.pactUntil).toBeGreaterThan(sim.tick);
+  });
+});
 
 // Умение должно работать в любом слоте (T13.25). Тик активных эффектов раньше искал вид по букве —
 // `H.q.kind === "spin"`, `H.w.kind === "ward"` — и одиннадцать умений молчали: Rolling Thunder у

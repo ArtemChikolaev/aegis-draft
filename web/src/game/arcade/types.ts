@@ -487,9 +487,17 @@ export interface Player {
   burstLeft: number;
   burstNextAt: number;
   fieldUntil: number;
+  /** Зона Shrapnel: до какого тика и где. У каждого вида умения своё состояние — два вида у одного героя
+   *  не должны затирать друг друга (Dark Willow: мина E гасила Bedlam R, T13.66). */
   zoneUntil: number;
   zoneX: number;
   zoneY: number;
+  /** Мина Static Remnant (remnant): ждёт врага до тика и взрывается в своей точке. */
+  remnantUntil: number;
+  remnantX: number;
+  remnantY: number;
+  /** Разряды вокруг героя (edict: Diabolic Edict, Eye of the Storm, Bedlam). */
+  edictUntil: number;
   armorBuffUntil: number;
   /** Фирменная пассивка (heroes.ts signature): стаки (души/ярость), цель серии, таймер/взвод эффекта. */
   stacks: number;
@@ -506,6 +514,11 @@ export interface Player {
   /** Бафы собственных китов: ярость (×урон), исступление (скорость атаки), уклонение, вытягивание жизни. */
   rageUntil: number;
   rageMult: number;
+  /** Урон формы Metamorphosis и урон Death Pact — свои поля, а не общая «ярость» (Terrorblade: Sunder R гасил форму E). */
+  metaUntil: number;
+  metaMult: number;
+  pactUntil: number;
+  pactMult: number;
   frenzyUntil: number;
   frenzyMult: number;
   evadeUntil: number;

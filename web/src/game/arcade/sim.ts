@@ -321,7 +321,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
-      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, ritualKind: null, ritualUntil: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
     // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -1791,7 +1791,7 @@ export class ArcadeSim {
       case "metamorphosis":
         // Смена формы: модель, тип атаки и дальность меняются на время действия (renderer читает formUntil).
         p.formUntil = this.tick + sec(ab.duration ?? 10);
-        p.rageUntil = p.formUntil; p.rageMult = value;
+        p.metaUntil = p.formUntil; p.metaMult = value;
         this.pushFx("levelup", p.x, p.y, 0, 0, 24);
         this.shake = 12;
         break;
@@ -1802,7 +1802,7 @@ export class ArcadeSim {
         break;
       case "death_pact":
         this.heal(p.stats.maxHp * 0.3);
-        p.rageUntil = this.tick + sec(ab.duration ?? 12); p.rageMult = value;
+        p.pactUntil = this.tick + sec(ab.duration ?? 12); p.pactMult = value;
         this.pushFx("revive", p.x, p.y, 0, 0, 24);
         break;
       case "frenzy":
@@ -1860,11 +1860,11 @@ export class ArcadeSim {
         break;
       }
       case "remnant":
-        p.zoneX = p.x; p.zoneY = p.y; p.zoneUntil = this.tick + sec(12);
+        p.remnantX = p.x; p.remnantY = p.y; p.remnantUntil = this.tick + sec(12);
         this.pushFx("zap", p.x, p.y - 40, p.x, p.y, 8);
         break;
       case "edict":
-        p.zoneUntil = this.tick + sec(ab.duration ?? 7);
+        p.edictUntil = this.tick + sec(ab.duration ?? 7);
         break;
       case "mass_freeze":
         // `value` у mass_freeze — урон в момент каста, и он не обязателен: Chronosphere, Global Silence,
@@ -2034,19 +2034,19 @@ export class ArcadeSim {
     }
     // Static Remnant (Storm): мина взрывается, когда враг подошёл. Слот — любой (Doom: Scorched Earth в W).
     const remKey = this.slot.remnant;
-    if (remKey && this.tick < p.zoneUntil) {
+    if (remKey && this.tick < p.remnantUntil) {
       this.dmgSource = remKey;
       const r = H[remKey].radius ?? 130;
-      if (this.countEnemiesWithin(p.zoneX, p.zoneY, r * 0.55) > 0) {
-        for (const e of this.enemiesWithin(p.zoneX, p.zoneY, r)) this.damageEnemy(e, H[remKey].value[p.abilities[remKey]], "zap");
-        this.pushFx("nova", p.zoneX, p.zoneY, r, 0, 12);
-        p.zoneUntil = 0;
+      if (this.countEnemiesWithin(p.remnantX, p.remnantY, r * 0.55) > 0) {
+        for (const e of this.enemiesWithin(p.remnantX, p.remnantY, r)) this.damageEnemy(e, H[remKey].value[p.abilities[remKey]], "zap");
+        this.pushFx("nova", p.remnantX, p.remnantY, r, 0, 12);
+        p.remnantUntil = 0;
       }
     }
     // Diabolic Edict (Leshrac) / Eye of the Storm (Razor R) / Haunt (Spectre R): случайные разряды по врагам вокруг героя.
     // Раньше проверялся только слот W — ульт Razor молчал (2026-09-06).
     const edKey = this.slot.edict;
-    if (edKey && this.tick < p.zoneUntil && this.tick % 8 === 0) {
+    if (edKey && this.tick < p.edictUntil && this.tick % 8 === 0) {
       this.dmgSource = edKey;
       const around = this.enemiesWithin(p.x, p.y, H[edKey].radius ?? 260);
       if (around.length > 0) { const e = around[this.rng.int(around.length)]; this.damageEnemy(e, H[edKey].value[p.abilities[edKey]], "burst"); this.pushFx("burst", e.x, e.y, 24, 0, 8); }
@@ -2170,7 +2170,10 @@ export class ArcadeSim {
       else if (ab.kind === "mana_break") { dmg += ab.value[lvl]; this.applyChill(e, 0.25, 0.6, false); }
       else if (ab.kind === "frost_arrows") this.applyChill(e, ab.value[lvl], 2, false);
     }
+    // Бафы урона своих видов складываются: ярость (rage), форма (metamorphosis), Death Pact — порядок умножения фиксирован.
     if (this.tick < p.rageUntil) dmg *= 1 + p.rageMult;
+    if (this.tick < p.metaUntil) dmg *= 1 + p.metaMult;
+    if (this.tick < p.pactUntil) dmg *= 1 + p.pactMult;
     // Счётчик критов считаем здесь, а не сразу после шанса из статов: усиленным ударом делают и
     // фирменные пассивки (Blade Dance, Меткость, Time Lock), а раньше они в счётчик не попадали.
     if (kind === "crit") this.events.crits++;

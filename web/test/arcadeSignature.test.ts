@@ -200,7 +200,7 @@ describe("зоны по виду, а не по слоту (2026-09-06)", () => {
     const es = sim.enemies.filter((x) => x.alive).slice(0, 4);
     for (const e of es) { e.x = p.x + 100; e.y = p.y; e.hp = 1e5; e.maxHp = 1e5; }
     (sim as unknown as { castAbility(k: string, ab: unknown): void }).castAbility("r", sim.hero.abilities.r);
-    expect(p.zoneUntil).toBeGreaterThan(sim.tick);
+    expect(p.edictUntil).toBeGreaterThan(sim.tick);
     for (let i = 0; i < 60; i++) { p.hp = 1e6; for (const e of es) { e.x = p.x + 100; e.y = p.y; } sim.step(IDLE_INPUT); }
     expect(es.some((e) => e.hp < 1e5)).toBe(true);
   });
