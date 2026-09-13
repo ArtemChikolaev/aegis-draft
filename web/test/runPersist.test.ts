@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { RunEngine } from "../src/game/engine.ts";
 import { buildAnteMarketRoulette } from "../src/game/anteMarket.ts";
 import { RunEconomy } from "../src/game/anteEconomy.ts";
-import { careerRunIdFromRun } from "../src/state/careerStore.ts";
 import {
   clearSavedRun,
   freezeRoster,
@@ -204,16 +203,6 @@ describe("runPersist", () => {
     expect(state.snapshot?.rosterFilled).toBe(1);
     expect(state.snapshot?.rerollsLeft).toBe(defaultRunConfig.rerolls - 1);
     expect(state.snapshot?.roster.find((s) => s.candidate)?.candidate?.player.nickname).toBe(nickname);
-  });
-
-  it("careerRunIdFromRun стабилен для config+seed", () => {
-    const a = careerRunIdFromRun("seed-a", 1, "v1.3.0", defaultRunConfig);
-    const b = careerRunIdFromRun("seed-a", 1, "v1.3.0", defaultRunConfig);
-    const c = careerRunIdFromRun("seed-b", 1, "v1.3.0", defaultRunConfig);
-    const roguelite = careerRunIdFromRun("seed-a", 1, "v1.3.0", defaultRunConfig, "run");
-    expect(a).toBe(b);
-    expect(a).not.toBe(c);
-    expect(a).not.toBe(roguelite);
   });
 });
 

@@ -199,14 +199,6 @@ export class ArenaDraftEngine {
     return [...this.availableHeroes];
   }
 
-  isPlayerOpen(accountId: number): boolean {
-    return this.availablePlayers.has(accountId);
-  }
-
-  isHeroOpen(heroId: number): boolean {
-    return this.availableHeroes.has(heroId);
-  }
-
   /** Валиден ли пик для сиденья ПРЯМО СЕЙЧАС (у заявок проверяется ещё раз в резолве). */
   canPick(seatIndex: number, id: number): boolean {
     if (this.phase === "players") {

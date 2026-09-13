@@ -227,26 +227,6 @@ function hash(value: string): string {
   return (result >>> 0).toString(16).padStart(8, "0");
 }
 
-/** Stable id забега для career-дедупа и «уже завершён — не resume». */
-export function careerRunIdFromRun(
-  seed: string,
-  datasetSchemaVersion: number,
-  ratingModelVersion: string,
-  config: RunConfig,
-  mode?: RunMode,
-): string {
-  return hash(JSON.stringify([
-    seed,
-    datasetSchemaVersion,
-    ratingModelVersion,
-    config.format,
-    difficultyLabel(config.rerolls),
-    config.scoring,
-    config.draftStyle,
-    mode === "run" ? "run" : mode === "tournament" ? "tournament" : "quick",
-  ]));
-}
-
 /** Stable across reloads; intentionally excludes finishedAt, score and roster.
  *
  *  `dynasty` в id входит, а этап результата — нет, и это не противоречие: этап меняется у ОДНОГО

@@ -121,11 +121,3 @@ export function rarityModifiers(
   return mod;
 }
 
-/** Строки для UI: по одному активному герою — его редкость и вклад (для breakdown). */
-export interface RarityRow {
-  heroId: number;
-  rarity: Rarity;
-  heroSynergyBonus: number;
-  baseBonus: number;
-}
-

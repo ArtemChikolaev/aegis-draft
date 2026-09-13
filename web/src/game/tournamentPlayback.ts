@@ -5,9 +5,7 @@ export interface MatchFrame {
   scoreB: number;
 }
 
-export type SimTick =
-  | { kind: "group"; matchId: string; frameIndex: number }
-  | { kind: "playoff"; seriesId: string; frameIndex: number };
+export type SimTick = { kind: "playoff"; seriesId: string; frameIndex: number };
 
 export function findSeries(tournament: TournamentSnapshot, seriesId: string): SeriesResult | null {
   if (tournament.grandFinal.id === seriesId) return tournament.grandFinal;
@@ -16,16 +14,6 @@ export function findSeries(tournament: TournamentSnapshot, seriesId: string): Se
     if (hit) return hit;
   }
   return null;
-}
-
-export function buildGroupSimTicks(orderedMatches: GroupMatch[]): SimTick[] {
-  const ticks: SimTick[] = [];
-  for (const match of orderedMatches) {
-    for (let frameIndex = 1; frameIndex < match.frames.length; frameIndex += 1) {
-      ticks.push({ kind: "group", matchId: match.id, frameIndex });
-    }
-  }
-  return ticks;
 }
 
 export function buildPlayoffSimTicks(tournament: TournamentSnapshot, seriesOrder: string[]): SimTick[] {
@@ -118,15 +106,6 @@ export function orderGroupMatchesBySeries(matches: GroupMatch[]): GroupMatch[] {
   return out;
 }
 
-function lastGroupTick(ticks: SimTick[], step: number, matchId: string): SimTick | null {
-  let last: SimTick | null = null;
-  for (let i = 0; i < step && i < ticks.length; i += 1) {
-    const tick = ticks[i];
-    if (tick.kind === "group" && tick.matchId === matchId) last = tick;
-  }
-  return last;
-}
-
 function lastPlayoffTick(ticks: SimTick[], step: number, seriesId: string): SimTick | null {
   let last: SimTick | null = null;
   for (let i = 0; i < step && i < ticks.length; i += 1) {
@@ -134,26 +113,6 @@ function lastPlayoffTick(ticks: SimTick[], step: number, seriesId: string): SimT
     if (tick.kind === "playoff" && tick.seriesId === seriesId) last = tick;
   }
   return last;
-}
-
-export function groupMatchFrame(match: GroupMatch, ticks: SimTick[], step: number): MatchFrame | null {
-  const tick = lastGroupTick(ticks, step, match.id);
-  if (!tick || tick.kind !== "group") return null;
-  return match.frames[tick.frameIndex] ?? null;
-}
-
-export function groupMatchFinished(match: GroupMatch, ticks: SimTick[], step: number): boolean {
-  const tick = lastGroupTick(ticks, step, match.id);
-  if (!tick || tick.kind !== "group") return false;
-  return tick.frameIndex === match.frames.length - 1;
-}
-
-/** Групповые матчи, уже полностью доигранные на текущем шаге симуляции. */
-export function completedGroupMatches(orderedMatches: GroupMatch[], ticks: SimTick[], step: number): GroupMatch[] {
-  return orderedMatches.filter((match) => groupMatchFinished(match, ticks, step)).map((match) => {
-    const frame = match.frames[match.frames.length - 1];
-    return { ...match, scoreA: frame.scoreA, scoreB: frame.scoreB };
-  });
 }
 
 export function seriesFrame(series: SeriesResult, ticks: SimTick[], step: number): MatchFrame | null {

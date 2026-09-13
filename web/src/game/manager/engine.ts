@@ -456,10 +456,6 @@ export class ManagerEngine {
     return true;
   }
 
-  resetAssignment(): void {
-    this.state.manualAssignment = {};
-  }
-
   // ── Сезон: события ──────────────────────────────────────────────────────────
 
   get nextSlot(): CalendarSlot | null {

@@ -1,12 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildGroupSimTicks,
   buildPlayoffFeeders,
   buildPlayoffSimTicks,
-  completedGroupMatches,
   groupDrawOrder,
-  groupMatchFrame,
-  groupMatchFinished,
   groupSeriesRounds,
   orderGroupMatchesBySeries,
   seriesFrame,
@@ -21,25 +17,6 @@ import { useRun } from "../src/state/runStore.ts";
 
 describe("tournamentPlayback", () => {
   const data = loadGameData();
-
-  it("групповой тик проигрывает карты по очереди", () => {
-    const snapshot = createTournament(data, "playback-groups").snapshot;
-    const a = snapshot.groupMatches.filter((m) => m.group === "A");
-    const b = snapshot.groupMatches.filter((m) => m.group === "B");
-    const ordered = [];
-    for (let i = 0; i < Math.max(a.length, b.length); i += 1) {
-      if (a[i]) ordered.push(a[i]);
-      if (b[i]) ordered.push(b[i]);
-    }
-    const ticks = buildGroupSimTicks(ordered);
-    expect(ticks.length).toBeGreaterThan(ordered.length);
-
-    const first = ordered[0];
-    expect(groupMatchFrame(first, ticks, 0)).toBeNull();
-    expect(groupMatchFrame(first, ticks, 1)).toEqual(first.frames[1]);
-    expect(groupMatchFinished(first, ticks, ticks.length)).toBe(true);
-    expect(completedGroupMatches(ordered, ticks, ticks.length).length).toBe(ordered.length);
-  });
 
   it("groupDrawOrder возвращает все 9 команд", () => {
     const snapshot = createTournament(data, "draw-order").snapshot;
