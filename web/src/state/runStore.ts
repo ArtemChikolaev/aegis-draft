@@ -611,11 +611,14 @@ export const useRun = create<RunStore>((set, get) => {
     });
     persist();
   };
-  // Записать действие в лог и сохранить.
-  /** Stake текущего забега (T6.4): правило сезона из конфига; null вне Roguelite Run. */
-
-  const record = (action: RunAction) => {
+  /** Дописать действие в лог без записи сейва — когда следом всё равно идёт persist (syncCamp):
+   *  сейв весит ~8 КБ, а в Telegram каждая запись — несколько вызовов CloudStorage. */
+  const logAction = (action: RunAction) => {
     set((state) => ({ actions: [...state.actions, action] }));
+  };
+  // Записать действие в лог и сохранить.
+  const record = (action: RunAction) => {
+    logAction(action);
     persist();
   };
   // Собрать турнир (стадия field) из готового снапшота драфта. Детерминизм: seed+teamOvr.
@@ -1015,11 +1018,13 @@ export const useRun = create<RunStore>((set, get) => {
       // Real Tournament: поле — реальные составы события, перевыбор невозможен по смыслу.
       if (selectedMode === "tournament") return;
       if (!tournament || tournament.stage !== "field" || !snapshot?.score || !config || !data) return;
-      record({ t: "fieldReroll" });
+      // Действие и пересобранное поле уходят в сейв одной записью в конце.
+      logAction({ t: "fieldReroll" });
       const rebuilt = buildTournamentFields(snapshot, fieldRerollCount(get().actions));
-      if (!rebuilt) return;
-      set(rebuilt);
-      logTournament(rebuilt.tournament, { teamName: teamName || "Aegis Five", teamOvr: snapshot.score.teamOvr, fieldReroll: true });
+      if (rebuilt) {
+        set(rebuilt);
+        logTournament(rebuilt.tournament, { teamName: teamName || "Aegis Five", teamOvr: snapshot.score.teamOvr, fieldReroll: true });
+      }
       persist();
     },
 
@@ -1037,6 +1042,8 @@ export const useRun = create<RunStore>((set, get) => {
         phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
         resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
         anteRun: null, ante: null, economy: null, economyView: null, camp: null, prep: null, tactics: null, boss: null, scoutedBoss: null,
+        // Иначе праздник брошенного из Буткемпа забега переигрывался бы при resume другого сейва.
+        campCelebration: false,
       });
     },
 
@@ -1170,6 +1177,8 @@ export const useRun = create<RunStore>((set, get) => {
           tournament,
           tournamentStep: inCamp ? 0 : savedStep,
           resultsSeen: false,
+          // Resume не проходит через openCampAfterStage — праздник этапа не переигрывается.
+          campCelebration: false,
           anteRun,
           ante,
           economy,
@@ -1463,8 +1472,9 @@ export const useRun = create<RunStore>((set, get) => {
       try {
         engine.swapReservePlayer(slotIndex, benchAccountId);
         set({ snapshot: snap(engine) });
+        // Действие — в лог до syncCamp: тот сохраняет один раз и уже вместе с ним.
+        logAction({ t: "swapReservePlayer", slotIndex, benchAccountId });
         syncCamp();
-        record({ t: "swapReservePlayer", slotIndex, benchAccountId });
       } catch {
         /* invalid role/slot */
       }
@@ -1476,8 +1486,8 @@ export const useRun = create<RunStore>((set, get) => {
       try {
         engine.swapReserveHero(outgoingHeroId, reserveHeroId);
         set({ snapshot: snap(engine) });
+        logAction({ t: "swapReserveHero", outgoingHeroId, reserveHeroId });
         syncCamp();
-        record({ t: "swapReserveHero", outgoingHeroId, reserveHeroId });
       } catch {
         /* invalid hero swap */
       }
