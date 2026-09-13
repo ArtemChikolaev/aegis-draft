@@ -189,6 +189,22 @@ export function getArcadeSim(): ArcadeSim | null {
   return sim;
 }
 
+/** Стартовые условия забега, которых сим после старта уже не хранит: экипировка по ходу меняется (кузня, сумка),
+ *  а наследие уходит в сим бонусом, а не пунктами. Снимок пишется при каждом старте — обычном, дейлике и реплее. */
+export interface ArcadeRunStart {
+  gear: GearItem[];
+  legacy?: LegacySpent;
+}
+
+/**
+ * Реплей текущего забега — одна сборка для «Копировать код», «Ссылка» и «Смотреть реплей». Раньше экран собирал
+ * объект трижды: «Смотреть» терял особенность (T13.62), а снимок экипировки брался при первом монтировании сцены —
+ * после «Ещё раз» и в дейлике код нёс не ту экипировку, и реплей расходился с забегом.
+ */
+export function replayOf(current: ArcadeSim, start: ArcadeRunStart): ArcadeReplay {
+  return { seed: current.seed, hero: current.hero.id, rank: current.rank.step, act: current.act, version: ARCADE_CONFIG_VERSION, log: [...current.log], gear: start.gear, legacy: start.legacy, trait: current.trait?.id };
+}
+
 function readHistory(): ArcadeHistoryEntry[] {
   try {
     const raw = readCached(HISTORY_KEY);
@@ -267,6 +283,8 @@ interface ArcadeStore {
   /** Экипировка между забегами (T13.14): инвентарь и надетое по слотам. */
   gear: GearState;
   lastLoot: GearItem[];
+  /** Стартовые условия текущего забега для кода реплея (см. replayOf). */
+  runStart: ArcadeRunStart;
 
   start: (seed?: string) => void;
   startDaily: () => void;
@@ -334,26 +352,29 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   lastDrops: [],
   gear: readGear(),
   lastLoot: [],
+  runStart: { gear: [] },
 
   start(seed) {
     const next = seed?.trim() || createRunSeed();
     const rank = Math.min(get().rank, maxUnlockedRank(get().progress));
     const trait = get().trait && traitUnlocked(get().trait!, get().progress.perHero[get().hero]?.marks.length ?? 0) ? get().trait! : undefined;
-    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: equippedGear(get().gear), legacy: legacyBonus(get().progress.legacy.spent), trait });
-    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [], lastLoot: [] });
+    // Снимок того, с чем стартует сим, — в код реплея: экипировка по ходу забега меняется, наследие уходит в сим бонусом.
+    const runStart: ArcadeRunStart = { gear: equippedGear(get().gear), legacy: { ...get().progress.legacy.spent } };
+    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: runStart.gear, legacy: legacyBonus(runStart.legacy), trait });
+    set({ status: "running", seed: next, rank, outcome: null, serial: 0, replayLog: null, lastDrops: [], lastLoot: [], runStart });
   },
   startDaily() {
     const d = arcadeDaily();
     // Дейлик — без экипировки и без наследия: у всех одинаковые условия.
     sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act, legacy: LEGACY_NONE });
     // Герой/акт — в стор (HUD, озвучка и облик читают выбранного героя), ранг — только в сим: выбор игрока не перебивать (2026-09-13).
-    set({ status: "running", seed: d.seed, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null });
+    set({ status: "running", seed: d.seed, hero: d.hero, act: d.act, outcome: null, serial: 0, replayLog: null, runStart: { gear: [] } });
   },
   startReplay(replay) {
     // Реплей читает снимок наследия из кода, не текущую прокачку зрителя.
     sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO), trait: replay.trait });
     // Герой/акт реплея — в стор (HUD и облик), ранг — только в сим: выбор ранга реплей не переписывает (2026-09-13).
-    set({ status: "running", seed: replay.seed, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log });
+    set({ status: "running", seed: replay.seed, hero: replay.hero, act: replay.act, outcome: null, serial: 0, replayLog: replay.log, runStart: { gear: replay.gear, legacy: replay.legacy } });
   },
   equipGear(slot, uid) {
     const g = get().gear;

@@ -3,7 +3,7 @@
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
-import { MARK_IDS, bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
+import { MARK_IDS, bestArcadeEntry, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, replayOf, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
 import { LEGACY_BRANCHES, LEGACY_KIND, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -326,10 +326,8 @@ function ArcadeStage() {
   const lastDrops = useArcade((s) => s.lastDrops);
   const lastLoot = useArcade((s) => s.lastLoot);
   const lastSeals = useArcade((s) => s.lastSeals);
-  // Экипировка на старте забега — часть кода реплея (детерминизм): снимок берём один раз при монтировании.
-  const [startGear] = useState<GearItem[]>(() => equippedGear(useArcade.getState().gear));
-  /** Снимок пунктов наследия на старте: в код реплея, чтобы зритель видел ту же силу, а не свою. Дейлик — без. */
-  const [startLegacy] = useState(() => (isArcadeDailySeed(useArcade.getState().seed) ? undefined : { ...useArcade.getState().progress.legacy.spent }));
+  // Экипировка и наследие на старте — часть кода реплея (детерминизм): снимок пишет стор при каждом старте (replayOf).
+  const runStart = useArcade((s) => s.runStart);
   const rendererRef = useRef<ArcadeRenderer | null>(null);
   useEffect(() => { rendererRef.current?.setCosmetics(equippedCosmetics, cosmeticStyles); }, [equippedCosmetics, cosmeticStyles]);
   // Облик по слотам и скины призывов (T13.80): производное от косметики выбранного героя, в сим не идёт.
@@ -1096,9 +1094,9 @@ function ArcadeStage() {
               <p className="arcade-overlay__seed">{t("common.seed")}: <code>{seed}</code></p>
               {sim && !replayLog && (
                 <div className="arcade-overlay__actions arcade-overlay__share">
-                  <Button variant="secondary" data-testid="arcade-copy-replay" onClick={() => { void copyText(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy, trait: sim.trait?.id })).then(() => setCopied("code")); }}>{copied === "code" ? t("arcade.replay.copied") : t("arcade.replay.copy")}</Button>
-                  <Button variant="secondary" onClick={() => { void copyText(replayUrl(encodeReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: startGear, legacy: startLegacy, trait: sim.trait?.id }), window.location.origin, window.location.pathname)).then(() => setCopied("link")); }}>{copied === "link" ? t("link.copied") : t("link.copy")}</Button>
-                  <Button variant="secondary" data-testid="arcade-watch-replay" onClick={() => startReplay({ seed, hero: sim.hero.id, rank: sim.rank.step, act: sim.act, version: ARCADE_CONFIG_VERSION, log: [...sim.log], gear: startGear, legacy: startLegacy })}>{t("arcade.replay.watch")}</Button>
+                  <Button variant="secondary" data-testid="arcade-copy-replay" onClick={() => { void copyText(encodeReplay(replayOf(sim, runStart))).then(() => setCopied("code")); }}>{copied === "code" ? t("arcade.replay.copied") : t("arcade.replay.copy")}</Button>
+                  <Button variant="secondary" onClick={() => { void copyText(replayUrl(encodeReplay(replayOf(sim, runStart)), window.location.origin, window.location.pathname)).then(() => setCopied("link")); }}>{copied === "link" ? t("link.copied") : t("link.copy")}</Button>
+                  <Button variant="secondary" data-testid="arcade-watch-replay" onClick={() => startReplay(replayOf(sim, runStart))}>{t("arcade.replay.watch")}</Button>
                 </div>
               )}
               <div className="arcade-overlay__actions">
