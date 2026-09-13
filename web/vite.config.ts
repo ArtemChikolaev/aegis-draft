@@ -53,10 +53,11 @@ export default defineConfig({
         scope: ".",
         display: "standalone",
         orientation: "portrait",
-        // Тон совпадает с <meta name="theme-color"> в index.html: иначе splash установленного
-        // приложения мигает чужим цветом до первого кадра (та же грабля, что в TMA).
-        background_color: "#080b12",
-        theme_color: "#080b12",
+        // Тон совпадает с <meta name="theme-color"> в index.html и с фоном тёмной темы (токен --bg
+        // в design/tokens.css): иначе splash установленного приложения мигает чужим цветом до
+        // первого кадра (та же грабля, что в TMA).
+        background_color: "#000000",
+        theme_color: "#000000",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "icon-512.png", sizes: "512x512", type: "image/png" },

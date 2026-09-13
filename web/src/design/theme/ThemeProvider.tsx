@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { watchTelegramColorScheme } from "../../tma/telegram.ts";
+import { shellBackgroundColor, watchTelegramColorScheme } from "../../tma/telegram.ts";
 import { readCached, readPersisted, writePersisted } from "../../state/persist.ts";
 import { isThemeMode, resolveTheme, type ResolvedTheme, type ThemeMode } from "./core.ts";
 
@@ -57,7 +57,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     void writePersisted(STORAGE_KEY, mode);
     document.documentElement.dataset.themeMode = mode;
     document.documentElement.dataset.theme = resolved;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", resolved === "dark" ? "#080b12" : "#f3f6fb");
+    // Чром браузера/PWA — цветом фактического фона (токен --bg), как шапка Telegram. Порядок важен:
+    // сначала data-theme, потом чтение — getComputedStyle пересчитывает стили и отдаёт новую тему.
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", shellBackgroundColor());
   }, [mode, resolved]);
 
   const value = useMemo(() => ({
