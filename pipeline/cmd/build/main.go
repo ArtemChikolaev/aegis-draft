@@ -1,7 +1,9 @@
 // Command aegis-build — сборка игровых данных из внешних источников (скилл external-data-etl).
 // Опциональный premium-секрет — из env: OPENDOTA_API_KEY. Steam API key не используется.
+// Без источника (--fetch-opendota) запуск завершается ошибкой «nothing to do».
 //
-//	go run ./cmd/build --window last_2y --out ../web/public/data
+//	go run ./cmd/build --fetch-opendota --emit-domain --collect-window \
+//	  --window last_5y --as-of 2026-09-13 --request-budget 2000 --out ../web/public/data
 package main
 
 import (
@@ -18,7 +20,7 @@ func main() {
 	window := flag.String("window", "last_2y", "формат окна: last_1y|last_2y|last_5y|valve_legacy")
 	out := flag.String("out", "../web/public/data", "каталог для игровых JSON")
 	cache := flag.String("cache", "./data/raw", "каталог raw-кэша")
-	fetchOpenDota := flag.Bool("fetch-opendota", false, "разрешить OpenDota fetch в raw cache, без public emit; OPENDOTA_API_KEY опционален")
+	fetchOpenDota := flag.Bool("fetch-opendota", false, "источник OpenDota: raw-кэш + сеть в пределах бюджета (без него запуск — ошибка); public emit только с --emit-domain; OPENDOTA_API_KEY опционален")
 	matchDetailLimit := flag.Int("match-detail-limit", 0, "cap details первыми N матчами; 0 = только список в простом режиме, всё окно с --collect-window")
 	collectWindow := flag.Bool("collect-window", false, "resumable-сбор полного временного окна: pagination + details + career heroes")
 	asOf := flag.String("as-of", "", "фиксированная UTC-дата окна YYYY-MM-DD (обязательна с --collect-window)")

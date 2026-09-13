@@ -49,10 +49,7 @@ pipeline/
 ## CLI
 
 ```
-go run ./cmd/build \
-  --window last_2y \
-  --out ../web/public/data \
-  --cache ./data/raw
+# Без источника запуск — ошибка «nothing to do»: offline-режим, писавший пустой датасет в --out, удалён.
 
 # Явный Free Tier live fetch только в raw cache; ключ не обязателен, output не перезаписывается.
 go run ./cmd/build --fetch-opendota --cache ./data/raw

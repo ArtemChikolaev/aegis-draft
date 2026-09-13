@@ -1,11 +1,28 @@
 package pipeline
 
 import (
+	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/aegis-draft/pipeline/internal/model"
 )
+
+// Запуск без источника не пишет «скелет»: раньше голый `go run ./cmd/build` с дефолтным --out
+// перезаписывал боевой web/public/data пустым датасетом.
+func TestRunWithoutSourceFailsAndLeavesOutputUntouched(t *testing.T) {
+	out := filepath.Join(t.TempDir(), "data")
+	err := Run(context.Background(), Config{Window: model.Last2y, Out: out})
+	if !errors.Is(err, errNothingToDo) {
+		t.Fatalf("run without a source must fail with errNothingToDo, got %v", err)
+	}
+	if _, statErr := os.Stat(out); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("run without a source must not create output, stat err=%v", statErr)
+	}
+}
 
 func TestCollectionWindowUsesFixedCalendarBoundary(t *testing.T) {
 	start, asOf, err := collectionWindow(Config{CollectWindow: true, Window: model.Last2y, AsOf: "2026-07-11"})

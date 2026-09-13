@@ -1,5 +1,5 @@
 // Package pipeline оркестрирует стадии ETL: fetch → normalize → aggregate → rate → emit → validate.
-// Скелет (T1.1): стадии-заглушки + реальный emit валидного по схеме (пустого) датасета.
+// Источник данных — OpenDota (--fetch-opendota); запуск без источника — ошибка, а не пустой датасет.
 package pipeline
 
 import (
@@ -29,7 +29,7 @@ type Config struct {
 	Out                 string       // куда писать JSON (web/public/data)
 	CacheDir            string       // raw-кэш
 	OpenDotaKey         string       // из env
-	FetchOpenDota       bool         // явно разрешить live fetch; по умолчанию offline/cache-safe
+	FetchOpenDota       bool         // источник OpenDota: raw-кэш + сеть в пределах бюджета; без него Run — ошибка
 	MatchDetailLimit    int          // 0 = только /proMatches; >0 = details первых N матчей + normalize
 	NormalizedOut       string       // промежуточный snapshot, не public game data
 	AggregateOut        string       // player×hero, teammates, squad synergy; event mapping пока отдельно
@@ -44,24 +44,26 @@ type Config struct {
 	MaxMatchesPerLeague int  // потолок деталей на событие (Free Tier); 0 = без потолка
 }
 
-// Run прогоняет пайплайн. Пока стадии сбора — заглушки; emit пишет валидный пустой датасет,
-// чтобы контракт данных проверялся сразу (Go эмитит → Node-валидатор проверяет).
+// errNothingToDo — запуск без источника данных. Прежний offline-режим эмитил в Out пустой
+// «скелет» датасета, и голый `go run ./cmd/build` с дефолтным --out перезаписывал боевой
+// web/public/data пустыми файлами.
+var errNothingToDo = errors.New("nothing to do: no data source enabled (pass --fetch-opendota)")
+
+// Run прогоняет пайплайн: OpenDota discovery → details → normalize → aggregate и, с EmitDomain,
+// доменный датасет в Out. Raw-кэш переигрывается бесплатно, сеть расходует бюджет прогона.
 func Run(ctx context.Context, cfg Config) error {
+	if !cfg.FetchOpenDota {
+		return errNothingToDo
+	}
 	if cfg.MatchDetailLimit < 0 {
 		return fmt.Errorf("match-detail-limit must be non-negative")
 	}
 	if cfg.MaxPages < 0 || cfg.RequestBudget < 0 {
 		return fmt.Errorf("max-pages and request-budget must be non-negative")
 	}
-	if cfg.CollectWindow && !cfg.FetchOpenDota {
-		return fmt.Errorf("collect-window requires --fetch-opendota")
-	}
-	if cfg.MatchDetailLimit > 0 && !cfg.FetchOpenDota {
-		return fmt.Errorf("match-detail-limit requires --fetch-opendota")
-	}
 	if cfg.EmitDomain {
-		if !cfg.FetchOpenDota || (cfg.MatchDetailLimit == 0 && !cfg.CollectWindow) {
-			return fmt.Errorf("emit-domain requires --fetch-opendota with detail collection (--match-detail-limit or --collect-window)")
+		if cfg.MatchDetailLimit == 0 && !cfg.CollectWindow {
+			return fmt.Errorf("emit-domain requires detail collection (--match-detail-limit or --collect-window)")
 		}
 		if cfg.AsOf == "" {
 			return fmt.Errorf("emit-domain requires fixed --as-of YYYY-MM-DD for reproducible windows")
@@ -69,166 +71,137 @@ func Run(ctx context.Context, cfg Config) error {
 	}
 	rcfg := rating.Default()
 
-	if cfg.FetchOpenDota {
-		if cfg.OpenDotaKey == "" {
-			log.Printf("[fetch] OpenDota Free Tier без API key (лимит сервиса ниже premium)")
-		}
-		od, err := opendota.New(opendota.Config{APIKey: cfg.OpenDotaKey, CacheDir: cfg.CacheDir, RequestBudget: cfg.RequestBudget})
-		if err != nil {
-			return err
-		}
-		windowStart, asOf, err := collectionWindow(cfg)
-		if err != nil {
-			return err
-		}
-		maxPages := 1
-		matchLimit := cfg.MatchDetailLimit
-		if cfg.CollectWindow {
-			maxPages = cfg.MaxPages
-		} else if matchLimit == 0 {
-			matchLimit = 0
-		}
-		// Tier-1 scope (PRD §5.4.1): доменный сбор оставляет только tier-1 лиги =
-		// premium (из /leagues) ∪ курируемый реестр (OpenDota мислейблит EWC и др. как professional).
-		var rollingLeagues, legacyLeagues []int64
-		if cfg.EmitDomain {
-			rollingLeagues, legacyLeagues, err = tier1LeagueSlices(ctx, od)
-			if err != nil {
-				return err
-			}
-			log.Printf("[fetch] tier-1 фильтр: %d rolling лиг + %d valve_legacy (TI/Major) лиг", len(rollingLeagues), len(legacyLeagues))
-			// Прогреваем справочники teams/heroes ЗАРАНЕЕ (пока бюджет свежий), чтобы позже
-			// emit-domain взял их из кэша даже если сбор деталей исчерпал бюджет прогона.
-			if _, err := od.FetchTeams(ctx); err != nil {
-				return domainFetchErr("teams", err)
-			}
-			if _, err := od.FetchHeroes(ctx); err != nil {
-				return domainFetchErr("heroes", err)
-			}
-		}
-		log.Printf("[fetch] OpenDota discovery (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
-		var collected *collect.OpenDotaResult
-		if cfg.EmitDomain {
-			// Discovery: все tier-1 лиги за всю историю (since=0) — pro career player×hero.
-			// Оконные рейтинги/паки фильтруют матчи по windowStart в domain.Build; playerHeroStats
-			// в aggregate — подмножество careerPlayerHeroStats (pro all-time vs pro window).
-			collected, err = collect.OpenDotaExplorer(ctx, od, collect.ExplorerConfig{
-				RollingLeagues: rollingLeagues, LegacyLeagues: legacyLeagues, WindowStartUnix: 0,
-				CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
-				MatchLimit: matchLimit,
-			})
-		} else {
-			// Raw/smoke без домена — прежняя пагинация proMatches (без league-фильтра).
-			collected, err = collect.OpenDotaWindow(ctx, od, collect.OpenDotaConfig{
-				WindowStartUnix: windowStart, MaxPages: maxPages, MatchLimit: matchLimit,
-				CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
-			})
-		}
-		if err != nil {
-			return err
-		}
-		log.Printf("[fetch] OpenDota: %d matches discovered, %d details, %d pages (raw cache: %s)",
-			len(collected.ProMatches), len(collected.Details), collected.PagesRead, cfg.CacheDir)
-		if cfg.CollectWindow && !collected.DiscoveryComplete && len(collected.Details) == 0 {
-			stats := od.Stats()
-			log.Printf("[progress] discovery=false; network=%d cache=%d; artifacts preserved until details are available",
-				stats.NetworkRequests, stats.CacheHits)
-			return nil
-		}
-		if cfg.MatchDetailLimit > 0 || cfg.CollectWindow {
-			if cfg.NormalizedOut == "" || cfg.AggregateOut == "" {
-				return fmt.Errorf("normalized and aggregate output paths are required for detail collection")
-			}
-			snapshot, err := normalize.FromOpenDota(collected.Details)
-			if err != nil {
-				return fmt.Errorf("normalize OpenDota: %w", err)
-			}
-			aggregates, err := aggregate.FromOpenDota(snapshot, windowStart)
-			if err != nil {
-				return fmt.Errorf("aggregate OpenDota: %w", err)
-			}
-			// Chemistry считается ТОЛЬКО из наших нормализованных pro-матчей (aggregate.FromOpenDota:
-			// пара = два игрока одной команды в одном матче). /players/{id}/peers отсюда убран
-			// (v1.7.0): его with_games — пожизненный тотал по ВСЕМ матчам, включая пабы, а фильтр
-			// «оба игрока — про» пабы не отсекает (два про в дуо-ранкеде оба про). Peers ещё и
-			// затирали точный pro-счёт пары своим раздутым числом, из-за чего Yatoro+Save- получали
-			// «81 совместную игру», никогда не играв вместе в про. Тот же вывод, что и по героям
-			// (v1.5.0: pro window, career — только UI). Бонусом: минус ~1 запрос на пак-игрока.
-			target := len(collected.ProMatches)
-			if cfg.MatchDetailLimit > 0 && cfg.MatchDetailLimit < target {
-				target = cfg.MatchDetailLimit
-			}
-			stats := od.Stats()
-			status := &normalize.CollectionStatus{
-				Window: string(cfg.Window), AsOf: asOf, WindowStart: windowStart,
-				PagesRead: collected.PagesRead, DiscoveredMatches: len(collected.ProMatches), DiscoveryComplete: collected.DiscoveryComplete,
-				DetailTargetMatches: target, DetailsComplete: collected.DetailsComplete,
-				CareerTargetPlayers: 0, CareerPlayersComplete: 0,
-				CareerComplete: cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete,
-				CacheHits:      stats.CacheHits, NetworkRequests: stats.NetworkRequests,
-			}
-			snapshot.Collection = status
-			aggregates.Collection = status
-			if err := aggregate.Validate(aggregates); err != nil {
-				return fmt.Errorf("validate OpenDota aggregates: %w", err)
-			}
-			if err := normalize.WriteOpenDotaSnapshot(cfg.NormalizedOut, snapshot); err != nil {
-				return fmt.Errorf("write normalized OpenDota snapshot: %w", err)
-			}
-			if err := artifact.WriteJSON(cfg.AggregateOut, aggregates); err != nil {
-				return fmt.Errorf("write OpenDota aggregates: %w", err)
-			}
-			log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) proCareer=%t; network=%d cache=%d",
-				collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
-				status.CareerComplete, stats.NetworkRequests, stats.CacheHits)
-
-			if cfg.EmitDomain {
-				// Полное окно: emit, когда готовы discovery+details — из них считаются пакеты,
-				// рейтинги, hero synergy и chemistry (всё выводится из наших pro-матчей, внешнего
-				// обогащения на пару игроков больше нет). Пока details не готовы — прогрев кэша.
-				if cfg.CollectWindow {
-					if !status.DiscoveryComplete || !status.DetailsComplete {
-						log.Printf("[progress] emit-domain отложен: discovery=%t details=%t; кэш прогрет, добор в след. прогоне",
-							status.DiscoveryComplete, status.DetailsComplete)
-						return nil
-					}
-				}
-				if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {
-					if errors.Is(err, sourcehttp.ErrBudgetExhausted) {
-						log.Printf("[progress] emit-domain отложен: бюджет исчерпан на справочниках; кэш прогрет, retry next run")
-						return nil
-					}
-					return err
-				}
-				return nil
-			}
-		}
-		log.Printf("[fetch] raw-only завершён; emit доменного датасета — флаг --emit-domain")
-		return nil
-	} else {
-		log.Printf("[fetch] offline: live OpenDota disabled (use --fetch-opendota)")
+	if cfg.OpenDotaKey == "" {
+		log.Printf("[fetch] OpenDota Free Tier без API key (лимит сервиса ниже premium)")
 	}
-	log.Printf("[normalize] канонизация id (единый accountId)…")
-	log.Printf("[aggregate] player×hero, squad synergy, teammates…")
-	log.Printf("[rate] модель %s (sm μ=%.2f m=%.0f, peak %dd/N≥%d)…",
-		rating.ModelVersion, rcfg.SmoothMu, rcfg.SmoothM, rcfg.PeakWindowD, rcfg.PeakMinN)
-
-	ds := emptyDataset(cfg)
-	if err := validate.Dataset(ds); err != nil {
-		return fmt.Errorf("validate dataset: %w", err)
-	}
-
-	log.Printf("[emit] → %s", cfg.Out)
-	if err := emit.WriteAll(cfg.Out, ds); err != nil {
+	od, err := opendota.New(opendota.Config{APIKey: cfg.OpenDotaKey, CacheDir: cfg.CacheDir, RequestBudget: cfg.RequestBudget})
+	if err != nil {
 		return err
 	}
-	if cfg.SchemaValidator != "" {
-		log.Printf("[validate] JSON Schema → %s", cfg.Out)
-		if err := validate.RunNode(ctx, cfg.NodeBinary, cfg.SchemaValidator, cfg.Out); err != nil {
+	windowStart, asOf, err := collectionWindow(cfg)
+	if err != nil {
+		return err
+	}
+	maxPages := 1
+	if cfg.CollectWindow {
+		maxPages = cfg.MaxPages
+	}
+	// Tier-1 scope (PRD §5.4.1): доменный сбор оставляет только tier-1 лиги =
+	// premium (из /leagues) ∪ курируемый реестр (OpenDota мислейблит EWC и др. как professional).
+	var rollingLeagues, legacyLeagues []int64
+	if cfg.EmitDomain {
+		rollingLeagues, legacyLeagues, err = tier1LeagueSlices(ctx, od)
+		if err != nil {
 			return err
 		}
+		log.Printf("[fetch] tier-1 фильтр: %d rolling лиг + %d valve_legacy (TI/Major) лиг", len(rollingLeagues), len(legacyLeagues))
+		// Прогреваем справочники teams/heroes ЗАРАНЕЕ (пока бюджет свежий), чтобы позже
+		// emit-domain взял их из кэша даже если сбор деталей исчерпал бюджет прогона.
+		if _, err := od.FetchTeams(ctx); err != nil {
+			return domainFetchErr("teams", err)
+		}
+		if _, err := od.FetchHeroes(ctx); err != nil {
+			return domainFetchErr("heroes", err)
+		}
 	}
-	log.Printf("готово (скелет: датасет пустой, но валидный по схеме)")
+	log.Printf("[fetch] OpenDota discovery (окно %s, as-of %s, budget %d)…", cfg.Window, asOf, cfg.RequestBudget)
+	var collected *collect.OpenDotaResult
+	if cfg.EmitDomain {
+		// Discovery: все tier-1 лиги за всю историю (since=0) — pro career player×hero.
+		// Оконные рейтинги/паки фильтруют матчи по windowStart в domain.Build; playerHeroStats
+		// в aggregate — подмножество careerPlayerHeroStats (pro all-time vs pro window).
+		collected, err = collect.OpenDotaExplorer(ctx, od, collect.ExplorerConfig{
+			RollingLeagues: rollingLeagues, LegacyLeagues: legacyLeagues, WindowStartUnix: 0,
+			CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
+			MatchLimit: cfg.MatchDetailLimit,
+		})
+	} else {
+		// Raw/smoke без домена — прежняя пагинация proMatches (без league-фильтра).
+		collected, err = collect.OpenDotaWindow(ctx, od, collect.OpenDotaConfig{
+			WindowStartUnix: windowStart, MaxPages: maxPages, MatchLimit: cfg.MatchDetailLimit,
+			CollectDetails: cfg.CollectWindow || cfg.MatchDetailLimit > 0, MaxMatchesPerLeague: cfg.MaxMatchesPerLeague,
+		})
+	}
+	if err != nil {
+		return err
+	}
+	log.Printf("[fetch] OpenDota: %d matches discovered, %d details, %d pages (raw cache: %s)",
+		len(collected.ProMatches), len(collected.Details), collected.PagesRead, cfg.CacheDir)
+	if cfg.CollectWindow && !collected.DiscoveryComplete && len(collected.Details) == 0 {
+		stats := od.Stats()
+		log.Printf("[progress] discovery=false; network=%d cache=%d; artifacts preserved until details are available",
+			stats.NetworkRequests, stats.CacheHits)
+		return nil
+	}
+	if cfg.MatchDetailLimit > 0 || cfg.CollectWindow {
+		if cfg.NormalizedOut == "" || cfg.AggregateOut == "" {
+			return fmt.Errorf("normalized and aggregate output paths are required for detail collection")
+		}
+		snapshot, err := normalize.FromOpenDota(collected.Details)
+		if err != nil {
+			return fmt.Errorf("normalize OpenDota: %w", err)
+		}
+		aggregates, err := aggregate.FromOpenDota(snapshot, windowStart)
+		if err != nil {
+			return fmt.Errorf("aggregate OpenDota: %w", err)
+		}
+		// Chemistry считается ТОЛЬКО из наших нормализованных pro-матчей (aggregate.FromOpenDota:
+		// пара = два игрока одной команды в одном матче). /players/{id}/peers отсюда убран
+		// (v1.7.0): его with_games — пожизненный тотал по ВСЕМ матчам, включая пабы, а фильтр
+		// «оба игрока — про» пабы не отсекает (два про в дуо-ранкеде оба про). Peers ещё и
+		// затирали точный pro-счёт пары своим раздутым числом, из-за чего Yatoro+Save- получали
+		// «81 совместную игру», никогда не играв вместе в про. Тот же вывод, что и по героям
+		// (v1.5.0: pro window, career — только UI). Бонусом: минус ~1 запрос на пак-игрока.
+		target := len(collected.ProMatches)
+		if cfg.MatchDetailLimit > 0 && cfg.MatchDetailLimit < target {
+			target = cfg.MatchDetailLimit
+		}
+		stats := od.Stats()
+		status := &normalize.CollectionStatus{
+			Window: string(cfg.Window), AsOf: asOf, WindowStart: windowStart,
+			PagesRead: collected.PagesRead, DiscoveredMatches: len(collected.ProMatches), DiscoveryComplete: collected.DiscoveryComplete,
+			DetailTargetMatches: target, DetailsComplete: collected.DetailsComplete,
+			CareerTargetPlayers: 0, CareerPlayersComplete: 0,
+			CareerComplete: cfg.CollectWindow && collected.DiscoveryComplete && collected.DetailsComplete,
+			CacheHits:      stats.CacheHits, NetworkRequests: stats.NetworkRequests,
+		}
+		snapshot.Collection = status
+		aggregates.Collection = status
+		if err := aggregate.Validate(aggregates); err != nil {
+			return fmt.Errorf("validate OpenDota aggregates: %w", err)
+		}
+		if err := normalize.WriteOpenDotaSnapshot(cfg.NormalizedOut, snapshot); err != nil {
+			return fmt.Errorf("write normalized OpenDota snapshot: %w", err)
+		}
+		if err := artifact.WriteJSON(cfg.AggregateOut, aggregates); err != nil {
+			return fmt.Errorf("write OpenDota aggregates: %w", err)
+		}
+		log.Printf("[progress] discovery=%t details=%d/%d (complete=%t) proCareer=%t; network=%d cache=%d",
+			collected.DiscoveryComplete, len(collected.Details), target, collected.DetailsComplete,
+			status.CareerComplete, stats.NetworkRequests, stats.CacheHits)
+
+		if cfg.EmitDomain {
+			// Полное окно: emit, когда готовы discovery+details — из них считаются пакеты,
+			// рейтинги, hero synergy и chemistry (всё выводится из наших pro-матчей, внешнего
+			// обогащения на пару игроков больше нет). Пока details не готовы — прогрев кэша.
+			if cfg.CollectWindow {
+				if !status.DiscoveryComplete || !status.DetailsComplete {
+					log.Printf("[progress] emit-domain отложен: discovery=%t details=%t; кэш прогрет, добор в след. прогоне",
+						status.DiscoveryComplete, status.DetailsComplete)
+					return nil
+				}
+			}
+			if err := emitDomainDataset(ctx, od, cfg, snapshot, aggregates, rcfg); err != nil {
+				if errors.Is(err, sourcehttp.ErrBudgetExhausted) {
+					log.Printf("[progress] emit-domain отложен: бюджет исчерпан на справочниках; кэш прогрет, retry next run")
+					return nil
+				}
+				return err
+			}
+			return nil
+		}
+	}
+	log.Printf("[fetch] raw-only завершён; emit доменного датасета — флаг --emit-domain")
 	return nil
 }
 
@@ -338,22 +311,6 @@ func collectionWindow(cfg Config) (int64, string, error) {
 		return 0, "", fmt.Errorf("resumable time-window collection does not support %q", cfg.Window)
 	}
 	return asOf.AddDate(-years, 0, 0).Unix(), cfg.AsOf, nil
-}
-
-func emptyDataset(cfg Config) *model.Dataset {
-	return &model.Dataset{
-		Manifest: model.Manifest{
-			SchemaVersion:      1,
-			RatingModelVersion: rating.ModelVersion,
-			BuiltAt:            time.Now().UTC().Format(time.RFC3339),
-			Source: &model.Source{
-				OpenDota:   "OpenDota API — https://www.opendota.com",
-				Liquipedia: "Liquipedia (CC-BY-SA 3.0) — https://liquipedia.net",
-			},
-			Formats: []model.Format{cfg.Window},
-			Counts:  map[string]int{"events": 0, "heroes": 0, "packs": 0, "players": 0},
-		},
-	}
 }
 
 // enrichTeamLogos дотягивает логотипы команд, которых нет в топ-списке /teams.
