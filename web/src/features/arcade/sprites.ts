@@ -459,8 +459,13 @@ export function setPixelSheets(on: boolean, dense = false): void {
   if (pixelSheets === on && denseSheets === dense) return;
   pixelSheets = on;
   denseSheets = dense;
+  // Сбрасываем всё, что ключуется именем листа, а не набором: `dota_px2`, `dota_px` и `dota` дают листы одного имени
+  // с разным кадром (160/80/…), и после смены DPR контур, скан свечения и самоцветы брались бы от чужого размера.
   dotaSheets.clear();
   compositeSheets.clear();
+  frameGeo.clear();
+  glowScans.clear();
+  gemSheets.clear();
   version++;
 }
 
