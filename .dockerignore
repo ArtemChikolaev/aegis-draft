@@ -2,7 +2,13 @@
 .github
 **/.DS_Store
 **/node_modules
+**/.env*
+**/.tmp_*
+api_keys.txt
+docs
 web/dist
+web/test
+web/e2e
 web/test-results
 web/playwright-report
 web/blob-report

@@ -3,7 +3,7 @@
 #
 #   http://localhost:8080/        → React SPA
 #   http://localhost:8080/data/*  → static JSON (mount web/public/data)
-#   http://localhost:8080/api/*   → Go API (healthz → /api/healthz)
+#   http://localhost:8080/api/*   → Go API, путь как есть (/api/rooms, /api/ws/rooms/{code}); /healthz — только внутри compose
 #
 # Запуск из корня репо:
 #   [ -f web/public/data/manifest.json ] || (cd web && npm run gen:mock)

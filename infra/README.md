@@ -15,7 +15,7 @@ Browser → nginx:80 (host :8080)
 |---|---|---|
 | `/` | React `dist/` | SPA + fallback маршрутов |
 | `/data/*` | mount `web/public/data` | Игровые JSON с CDN-подобным кэшем |
-| `/api/*` | `server:8080` | Сейвы/лидерборд/дейлик (пока skeleton + `/healthz`) |
+| `/api/*` | `server:8080` (путь без изменений) | Telegram-auth и облачные сейвы (нужны секреты), комнаты Arena: `POST /api/rooms`, ws `/api/ws/rooms/{code}` |
 
 ## Быстрый старт
 
@@ -30,11 +30,15 @@ docker compose -f infra/docker-compose.yml up --build
 
 Открыть: **http://localhost:8080**
 
-Проверка API через nginx:
+Проверка API через nginx (путь `/api/*` уходит на сервер как есть):
 
 ```bash
-curl -s http://localhost:8080/api/healthz
+curl -s -X POST http://localhost:8080/api/rooms   # → {"code":"ABCDE"}
+# liveness сервера без префикса /api — изнутри compose (снаружи nginx его не публикует):
+docker compose -f infra/docker-compose.yml exec api wget -qO- http://127.0.0.1:8080/healthz
 ```
+
+WebSocket комнат идёт через тот же вход: `ws://localhost:8080/api/ws/rooms/<code>` (nginx пробрасывает `Upgrade`).
 
 Остановка: `Ctrl+C`, затем `docker compose -f infra/docker-compose.yml down` (данные Postgres — в volume `pgdata`).
 

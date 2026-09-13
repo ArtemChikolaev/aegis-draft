@@ -25,14 +25,14 @@ cd server
 PORT=8080 go run ./cmd/api      # → http://localhost:8080/healthz
 go test ./...                    # тесты
 gofmt -l . && go vet ./...
+```
 
 ## Docker (за nginx, см. infra/)
 ```bash
-# из корня репо, после docker compose up:
-curl http://localhost:8080/api/healthz
+# из корня репо, после docker compose up (nginx пробрасывает /api/* как есть):
+curl -s -X POST http://localhost:8080/api/rooms   # → {"code":"ABCDE"}
 ```
-Сборка образа: `docker compose -f infra/docker-compose.yml build api`
-```
+`/healthz` и `/readyz` живут без префикса `/api` и снаружи nginx не публикуются. Сборка образа: `docker compose -f infra/docker-compose.yml build api`.
 
 ## БД и стор — `users`/`identities` (T8.2, срез аккаунтов)
 Схема — единственный источник в goose-миграциях [`internal/store/migrations`](internal/store/migrations); запросы типобезопасные через `sqlc`. `users.id` — личность приложения (НЕ игровой `accountId`); способ входа (telegram/google/steam) — в `identities`, «любой один» из ADR 0002.
