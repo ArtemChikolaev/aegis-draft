@@ -96,6 +96,9 @@ while IFS=$'\t' read -r id vmdl args parts; do
   # системы о крахе всплывал бы на каждом герое, а старые листы выглядели бы как свежий результат.
   "$BLENDER" -b -P "$HERE/render_dota_sprites.py" -- --glb "$GLB" --name "$id" --out "$SPRITES" $args ${PARTS:+--parts "$PARTS"} 2>&1 | grep -E 'actions in file|attached|orientation|sheet |cast:|style |autoexpose|loop |glow-|white-to|mat-map|drop-mat|rootlock:|WARN|Error|Traceback'
   # Палитра 256 цветов (pngquant, brew install pngquant): лист худеет в 4–5 раз без видимой потери на 128 px.
+  # RAW=1 — оставить сырой PNG без палитры и WebP: слои частей (T13.80, dota_part_layers.mts) считаются
+  # разницей НЕквантованных листов, иначе разные палитры двух листов дают шум по всему телу.
+  if [ "${RAW:-}" = "1" ]; then echo "   raw png (RAW=1)"; continue; fi
   if command -v pngquant >/dev/null 2>&1 && [ -f "$SPRITES/$id.png" ]; then
     # Пиксельные листы: 48 цветов без дизеринга (--nofs) — ровные пятна, как в рисованном пиксель-арте.
     if [[ "$args" == *"--pixel"* ]]; then pngquant --nofs --speed 1 --force --output "$SPRITES/$id.png" 48 "$SPRITES/$id.png"

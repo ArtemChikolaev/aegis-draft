@@ -3,10 +3,14 @@
 // Правило PRD §5.10: косметика не меняет ни одного числа и не входит в сид/лог.
 import { Rng } from "../../rng.ts";
 import type { ArcadeOutcome, Rarity } from "../types.ts";
+import { HERO_PARTS, type DotaSlot } from "./parts.ts";
+export type { DotaSlot };
 
 /** Слоты: `frame` — наземный эффект у ног, `aura` — свечение героя, `trail` — след, `death` — эффект
  *  смерти врагов, `tint` — оттенок умений, `skin` — облик. Эффекты рисует features/arcade/effects.ts. */
-export type CosmeticSlot = "frame" | "aura" | "trail" | "death" | "tint" | "skin";
+/** `summon` — скин призыва (T13.80): `variant` = `<art>@<skin>` (лист призыва), `hero` — чей призыв; надевается в
+ *  гардеробе героя, живёт в `cosmetics.summonSkins`, в `equipped` не попадает. */
+export type CosmeticSlot = "frame" | "aura" | "trail" | "death" | "tint" | "skin" | "summon";
 
 export interface CosmeticDef {
   id: string;
@@ -327,6 +331,14 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_chen_infernal_psychic", slot: "skin", rarity: "exotic", variant: "chen@infernal_psychic", hero: "chen" },
   { id: "skin_ancient_apparition_aa_cosmic", slot: "skin", rarity: "exotic", variant: "ancient_apparition@aa_cosmic", hero: "ancient_apparition" },
   { id: "skin_dark_willow_burglar_of_wasp", slot: "skin", rarity: "exotic", variant: "dark_willow@burglar_of_wasp", hero: "dark_willow" },
+  // Скины призывов (T13.80, владелец: «медведь Lone Druid, волки Lycan… чтобы тоже можно было кастомизировать»):
+  // полная модель скина на скелете и анимациях базового призыва (--hide-base в манифесте), лист `<art>@<skin>`.
+  { id: "summon_bear_dark_wood", slot: "summon", rarity: "exotic", variant: "bear@dark_wood", hero: "lone_druid" },
+  { id: "summon_bear_iron_claw", slot: "summon", rarity: "exotic", variant: "bear@iron_claw", hero: "lone_druid" },
+  { id: "summon_spiderling_amber_queen", slot: "summon", rarity: "exotic", variant: "spiderling@amber_queen", hero: "broodmother" },
+  { id: "summon_spiderling_lycosidae", slot: "summon", rarity: "exotic", variant: "spiderling@lycosidae", hero: "broodmother" },
+  { id: "summon_warlock_golem_obsidian", slot: "summon", rarity: "exotic", variant: "warlock_golem@obsidian", hero: "warlock" },
+  { id: "summon_warlock_golem_hellsworn", slot: "summon", rarity: "exotic", variant: "warlock_golem@hellsworn", hero: "warlock" },
 ];
 
 /** Арканы, у которых в Dota есть настоящий стиль (свой набор текстур): лист `<variant>~style1`
@@ -381,6 +393,101 @@ export function skinnedStyle(
 }
 
 /** Осколки Aegis за дубликат — по редкости. */
+/* ─── Облик по слотам (T13.80) ───
+   Как в Dota: у героя слоты (голова, оружие, спина…), в каждый можно надеть часть любого своего сета. Источник
+   части — `base` (модель по умолчанию) или имя сета (`<set>` из `<hero>@<set>`). Слот без записи следует надетому
+   облику; у источника нет части в слоте — берётся часть по умолчанию (так делает и Dota). Всё как у одного
+   облика — рисуется его цельный лист (со стилем), смешение — композит `<hero>+body+<src>.<slot>+…` из слоёв
+   (features/arcade/sprites.ts). В сим ничего не идёт. Арканы и персоны с другой моделью тела в HERO_PARTS не входят —
+   они цельные. */
+export type Loadout = Partial<Record<DotaSlot, string>>;
+export const PART_BASE = "base";
+
+/** Косметика сета-источника (`<hero>@<src>`), у `base` её нет. */
+export function sourceCosmetic(hero: string, src: string): CosmeticDef | undefined {
+  return src === PART_BASE ? undefined : COSMETICS.find((c) => c.slot === "skin" && c.hero === hero && c.variant === `${hero}@${src}`);
+}
+
+/** Источник частей надетого облика: сет на базовом теле (есть в HERO_PARTS) — он, иначе `base` (аркана — цельный лист). */
+export function wornSource(hero: string, equipped: Partial<Record<CosmeticSlot, string>>): string {
+  const def = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
+  if (!def || def.slot !== "skin" || def.hero !== hero) return PART_BASE;
+  const set = def.variant.split("@")[1];
+  return set && HERO_PARTS[hero]?.sources[set] ? set : PART_BASE;
+}
+
+/** Надетый облик цельный (аркана/персона с другой моделью): слоты к нему не применяются. */
+export function wornIsWhole(hero: string, equipped: Partial<Record<CosmeticSlot, string>>): boolean {
+  const def = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
+  if (!def || def.slot !== "skin" || def.hero !== hero) return false;
+  return !HERO_PARTS[hero]?.sources[def.variant.split("@")[1] ?? ""];
+}
+
+/** Источники частей героя, которыми игрок владеет: `base` и купленные сеты. */
+export function partSources(hero: string, owned: readonly string[]): string[] {
+  const hp = HERO_PARTS[hero];
+  if (!hp) return [];
+  return Object.keys(hp.sources).filter((src) => src === PART_BASE || owned.includes(sourceCosmetic(hero, src)?.id ?? ""));
+}
+
+function wholeOf(hero: string, src: string): Partial<Record<DotaSlot, string>> {
+  const hp = HERO_PARTS[hero];
+  const out: Partial<Record<DotaSlot, string>> = {};
+  if (!hp) return out;
+  for (const slot of hp.slots) {
+    const s = hp.sources[src]?.includes(slot) ? src : hp.sources[PART_BASE]?.includes(slot) ? PART_BASE : null;
+    if (s) out[slot] = s;
+  }
+  return out;
+}
+
+/** Слот → источник после правил: явный выбор (если сет свой), иначе надетый облик; нет части — модель по умолчанию. */
+export function resolveLoadout(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, loadout: Loadout, owned: readonly string[]): Partial<Record<DotaSlot, string>> {
+  const hp = HERO_PARTS[hero];
+  if (!hp) return {};
+  const worn = wornSource(hero, equipped);
+  const mine = new Set(partSources(hero, owned));
+  const out: Partial<Record<DotaSlot, string>> = {};
+  for (const slot of hp.slots) {
+    const pick = loadout[slot];
+    const want = pick && mine.has(pick) ? pick : worn;
+    const src = hp.sources[want]?.includes(slot) ? want : hp.sources[PART_BASE]?.includes(slot) ? PART_BASE : null;
+    if (src) out[slot] = src;
+  }
+  return out;
+}
+
+/** Имя листа облика по слотам: цельный лист надетого облика (со стилем), если слоты его и повторяют; цельный лист
+ *  другого сета, если всё собрано из него; иначе композит `<hero>+body+<src>.<slot>+…` в порядке отрисовки. */
+export function loadoutSheet(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>>, loadout: Loadout, owned: readonly string[]): string {
+  const hp = HERO_PARTS[hero];
+  const whole = skinnedSheet(hero, equipped, styles);
+  if (!hp || wornIsWhole(hero, equipped)) return whole;
+  const resolved = resolveLoadout(hero, equipped, loadout, owned);
+  const worn = wornSource(hero, equipped);
+  const same = (a: Partial<Record<DotaSlot, string>>, b: Partial<Record<DotaSlot, string>>) => hp.slots.every((s) => a[s] === b[s]);
+  if (same(resolved, wholeOf(hero, worn))) return whole;
+  for (const src of Object.keys(hp.sources)) if (src !== worn && same(resolved, wholeOf(hero, src))) return src === PART_BASE ? hero : `${hero}@${src}`;
+  return `${hero}+body` + hp.slots.filter((s) => resolved[s]).map((s) => `+${resolved[s]}.${s}`).join("");
+}
+
+/** Листы призывов героя по надетым скинам: art → `<art>@<skin>` (только скины этого героя и этого призыва). */
+export function summonSheets(hero: string, summonSkins: Readonly<Record<string, Readonly<Record<string, string>>>>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [art, id] of Object.entries(summonSkins[hero] ?? {})) {
+    const def = COSMETIC_BY_ID[id];
+    if (def && def.slot === "summon" && def.hero === hero && def.variant.startsWith(`${art}@`)) out[art] = def.variant;
+  }
+  return out;
+}
+
+/** Всё, что нужно рендеру и превью от косметики героя (T13.80): лист облика (цельный или композит) и листы призывов. */
+export interface HeroLook { sheet: string; mixed: boolean; summons: Record<string, string> }
+export function heroLook(hero: string, c: { equipped: Partial<Record<CosmeticSlot, string>>; styles: Readonly<Record<string, string>>; owned: readonly string[]; loadout?: Readonly<Record<string, Loadout>>; summonSkins?: Readonly<Record<string, Readonly<Record<string, string>>>> }): HeroLook {
+  const sheet = loadoutSheet(hero, c.equipped, c.styles, c.loadout?.[hero] ?? {}, c.owned);
+  return { sheet, mixed: sheet !== skinnedSheet(hero, c.equipped, c.styles), summons: summonSheets(hero, c.summonSkins ?? {}) };
+}
+
 export const DUPLICATE_SHARDS: Record<Rarity, number> = { standard: 5, refined: 12, exotic: 30, arcana: 80 };
 /** Цена конкретного предмета за осколки (трата дублей): ~4–6 дублей своей редкости. */
 const SHARD_PRICE_FULL: Record<Rarity, number> = { standard: 20, refined: 50, exotic: 120, arcana: 320 };

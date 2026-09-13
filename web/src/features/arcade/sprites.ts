@@ -460,7 +460,44 @@ export function setPixelSheets(on: boolean, dense = false): void {
   pixelSheets = on;
   denseSheets = dense;
   dotaSheets.clear();
+  compositeSheets.clear();
   version++;
+}
+
+/* ─── Композит облика по слотам (T13.80) ───
+   Имя `<hero>+body+<src>.<slot>+…` (content/cosmetics.ts loadoutSheet): лист тела `<hero>+body` и слои частей
+   `<hero>+<src>.<slot>` — разница рендеров одного кадрирования (scripts/dota_part_layers.mts), поэтому их можно
+   просто нарисовать друг на друга. Складывается один раз на имя и кэшируется; пока грузится хоть один слой —
+   null (рендерер показывает цельный лист облика). Слой, которого нет на диске, пропускается — облик без части,
+   а не без героя. */
+const compositeSheets = new Map<string, DotaSheet | null>();
+export function isCompositeSheet(name: string): boolean { return name.split("+").length > 2; }
+function compositeParts(name: string): string[] {
+  const [hero, ...parts] = name.split("+");
+  return parts.map((p) => `${hero}+${p}`);
+}
+function compositeSheet(name: string): DotaSheet | null {
+  const cached = compositeSheets.get(name);
+  if (cached !== undefined) return cached;
+  const ids = compositeParts(name);
+  const sheets = ids.map((id) => dotaSheet(id));
+  const states = ids.map((id) => dotaSheetState(id));
+  if (states[0] === "missing") { compositeSheets.set(name, null); return null; }
+  if (states.some((st) => st === "loading") || typeof document === "undefined") return null;
+  const body = sheets[0]!;
+  const w = body.img instanceof HTMLCanvasElement ? body.img.width : body.img.naturalWidth;
+  const h = body.img instanceof HTMLCanvasElement ? body.img.height : body.img.naturalHeight;
+  const cv = document.createElement("canvas");
+  cv.width = w;
+  cv.height = h;
+  const c = cv.getContext("2d");
+  if (!c) return null;
+  for (const sh of sheets) if (sh) c.drawImage(sh.img, 0, 0);
+  // Имя меты — имя композита: геометрия кадров и скан свечения кэшируются по нему, а тело без частей — другой силуэт.
+  const res: DotaSheet = { img: cv, meta: { ...body.meta, name } };
+  compositeSheets.set(name, res);
+  version++;
+  return res;
 }
 
 function loadSheet(name: string, dir: string, onMiss: () => void): void {
@@ -480,6 +517,7 @@ function loadSheet(name: string, dir: string, onMiss: () => void): void {
 }
 
 export function dotaSheet(name: string): DotaSheet | null {
+  if (isCompositeSheet(name)) return compositeSheet(name);
   const v = dotaSheets.get(name);
   if (v === undefined) {
     dotaSheets.set(name, "loading");
@@ -506,6 +544,12 @@ export function enemySheet(kindId: string): DotaSheet | null {
 /** Состояние листа: «грузится» отличается от «нет такого листа» — гардеробу нужно показать,
  *  что облик ещё не отрендерен, а не пустую рамку (фидбэк владельца 2026-09-06). */
 export function dotaSheetState(name: string): "loading" | "missing" | "ready" {
+  if (isCompositeSheet(name)) {
+    const cached = compositeSheets.get(name);
+    if (cached !== undefined) return cached === null ? "missing" : "ready";
+    const states = compositeParts(name).map((id) => dotaSheetState(id));
+    return states[0] === "missing" ? "missing" : states.some((st) => st === "loading") ? "loading" : "ready";
+  }
   const v = dotaSheets.get(name);
   if (v === undefined || v === "loading") return "loading";
   return v === null ? "missing" : "ready";
@@ -620,19 +664,19 @@ export function pixelSheetsOn(): boolean { return pixelSheets; }
  * Предзагрузка арта забега (владелец 2026-09-06: «на мгновение видна другая моделька и карта»): лист героя,
  * враги акта, земля и пропсы. Резолвится, когда всё загрузилось или отвалилось, не дольше `timeoutMs`.
  */
-export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act: string, timeoutMs = 6000): Promise<void> {
+export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act: string, timeoutMs = 6000, extra: readonly string[] = []): Promise<void> {
   // Листы призывов героя грузим заранее вместе с ним: иначе первый вард (или паучки, или голем)
   // виден только со второго раза — на первом касте лист ещё качается, и на полу пусто.
-  const base = hero.split("@")[0].split("~")[0];
+  const base = hero.split("@")[0].split("~")[0].split("+")[0];
   const def: HeroDef | undefined = (HEROES as Record<string, HeroDef | undefined>)[base];
   const summons = ABILITY_SLOTS
     .map((k) => def?.abilities[k].summon?.art)
     .filter((a): a is string => !!a && a !== "illusion");
-  const sheets = [hero, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), ...summons, "tree_oak", "tree_pine", "rock", "rune_dd", "rune_shield", "rune_arcane", "rune_illusion"];
+  const sheets = [hero, ...extra, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), ...summons, "tree_oak", "tree_pine", "rock", "rune_dd", "rune_shield", "rune_arcane", "rune_illusion"];
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
   const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
   kick();
-  const ready = () => sheets.every((n) => dotaSheets.get(n) !== "loading" && dotaSheets.get(n) !== undefined) && terrain.every((t) => { const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${t}.webp`, ROOT); return el === null || (!!el && el.complete); });
+  const ready = () => sheets.every((n) => dotaSheetState(n) !== "loading") && terrain.every((t) => { const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${t}.webp`, ROOT); return el === null || (!!el && el.complete); });
   return new Promise((resolve) => {
     const started = Date.now();
     const tick = () => { if (ready() || Date.now() - started > timeoutMs) resolve(); else window.setTimeout(tick, 50); };

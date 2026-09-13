@@ -1,0 +1,46 @@
+{
+  "name": "warlock_golem@obsidian",
+  "frame": 64,
+  "dirs": 4,
+  "fps": 10,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 10
+    },
+    "idle": {
+      "row": 4,
+      "frames": 10
+    },
+    "attack": {
+      "row": 8,
+      "frames": 5
+    },
+    "death": {
+      "row": 12,
+      "frames": 10
+    }
+  },
+  "source": "warlock_demon.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.12,
+  "fit": {
+    "orientation": "none",
+    "clip": "warlock_imp_run",
+    "cx": 0.3125,
+    "zmin": 0.0,
+    "cy": 0.0,
+    "height": 6.25,
+    "width": 5.625,
+    "depth": 5.625,
+    "extent": 7.0
+  }
+}

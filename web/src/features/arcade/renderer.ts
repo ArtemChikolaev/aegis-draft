@@ -13,7 +13,7 @@ const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 const ZONE_KINDS = new Set(["remnant", "shrapnel", "edict"]);
 import { heroArtSources, itemArtSources } from "../../ui/artSource.ts";
 import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
-import type { CosmeticSlot } from "../../game/arcade/content/cosmetics.ts";
+import type { CosmeticSlot, HeroLook } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawAsh, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
@@ -112,6 +112,18 @@ export class ArcadeRenderer {
   }
   /** Эффект самого скина (cosmetics `fx.aura`, замена частиц Dota) — только у героя, которому скин принадлежит. */
   private skinFx: { hero?: string; aura: string } | null = null;
+  /** Облик по слотам и скины призывов (T13.80): композит `<hero>+body+…` вместо цельного листа, art призыва → лист скина. */
+  private mixSheet: string | null = null;
+  private summons: Record<string, string> = {};
+  setLook(look: HeroLook): void {
+    this.mixSheet = look.mixed ? look.sheet : null;
+    this.summons = look.summons;
+  }
+  /** Лист призыва с учётом скина (T13.80); нет скина или он не загрузился — базовый лист. */
+  private summonSheet(art: string): DotaSheet | null {
+    const skin = this.summons[art];
+    return (skin ? dotaSheet(skin) : null) ?? dotaSheet(art);
+  }
 
   /** Лист героя с учётом скина (`<hero>@<skin>`), с падением на базовый лист, пока скин не загрузился или не для этого героя. */
   /** Лист героя: альтернативная форма (Metamorphosis) важнее скина, скин важнее базовой модели. */
@@ -126,6 +138,8 @@ export class ArcadeRenderer {
       const ds = dotaSheet(`${hero}@meta`);
       if (ds) return mine ? paint(ds) : ds;
     }
+    // Смешанный облик (T13.80): композит слоёв, пока не собрался — цельный лист облика ниже.
+    if (this.mixSheet) { const ds = dotaSheet(this.mixSheet); if (ds) return paint(ds); }
     if (mine) {
       const ds = dotaSheet(skin!);
       if (ds) return paint(ds);
@@ -367,7 +381,7 @@ export class ArcadeRenderer {
     if (ab.kind === "ward") drawHealAura(c, p.wardX, p.wardY, ab.radius ?? 170, sim.tick, this.artPx(), pal.heal, pal.text);
     else drawWardTotem(c, p.wardX, p.wardY, sim.tick, this.artPx(), pal.ward, pal.text, pal.treeDark);
     // Модель тотема поверх ауры (Healing Ward у Juggernaut — `ward_healing`).
-    const ds = ab.summon ? dotaSheet(ab.summon.art) : null;
+    const ds = ab.summon ? this.summonSheet(ab.summon.art) : null;
     if (ds) {
       const frames = ds.meta.anims.idle?.frames ?? 1;
       drawDotaFrame(c, ds, "idle", 0, Math.floor((sim.tick / 60) * ds.meta.fps) % Math.max(1, frames), p.wardX, p.wardY, 1, 1);
@@ -388,7 +402,7 @@ export class ArcadeRenderer {
     const art = ab.summon;
     if (!art) return;
     const illusion = art.art === "illusion";
-    const ds = illusion ? this.heroSheet(sim.hero.id) : dotaSheet(art.art);
+    const ds = illusion ? this.heroSheet(sim.hero.id) : this.summonSheet(art.art);
     if (!ds) return;
     const frames = ds.meta.anims.idle?.frames ?? 1;
     const frame = Math.floor((sim.tick / 60) * ds.meta.fps) % Math.max(1, frames);
@@ -807,7 +821,7 @@ export class ArcadeRenderer {
     for (const pet of sim.pets) {
       // Иллюзия — лист самого героя (в Метаморфозе — форма), полупрозрачная и чуть мельче.
       const illusion = pet.kind === "illusion";
-      const ds = illusion ? this.heroSheet(sim.hero.id, sim.formNow() !== null) : dotaSheet(pet.art ?? pet.kind);
+      const ds = illusion ? this.heroSheet(sim.hero.id, sim.formNow() !== null) : this.summonSheet(pet.art ?? pet.kind);
       const attacking = tick - pet.hitAt < 14;
       if (ds) {
         // Тотем не бегает — у него нет «walk», стоим в idle между выстрелами.

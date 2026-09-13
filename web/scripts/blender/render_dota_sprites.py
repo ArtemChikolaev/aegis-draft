@@ -42,6 +42,7 @@ def parse_args():
     p.add_argument("--up", default="none", help="none — модели Source 2 из VRF стоят верно (стандарт); plus / minus — ±90° вокруг X; auto — по пробным рендерам (ненадёжно для сгорбленных)")
     p.add_argument("--margin", type=float, default=1.12)
     p.add_argument("--samples", type=int, default=16)
+    p.add_argument("--fit-from", default="", help="json листа-образца (мета с полем fit): взять его кадрирование — ориентацию, клип, центр, высоту и охват — вместо пробных рендеров. Так «голое тело» и «тело + часть» встают в кадр одинаково, и слой части (разница листов) ложится точно (T13.80)")
     p.add_argument("--ortho", type=float, default=0.0, help="принудительный охват камеры в единицах модели (0 = по силуэту)")
     p.add_argument("--pixel", action="store_true", help="пиксель-арт в духе Dead Cells: движок Workbench (плоский студийный свет, контур, без сглаживания), маленький кадр (48 px герой), палитра без дизеринга — см. docs/arcade-dota-sprites.md §7")
     p.add_argument("--outline", type=float, default=1.0, help="толщина контура Workbench в пикселях (только --pixel)")
@@ -488,10 +489,11 @@ def main():
         print("attached part:", os.path.basename(part), "bones", sum(len(pa.pose.bones) for pa in part_arms))
     if a.hide_base:
         # Скелет и анимации берём у героя, а показываем только надетые части (аркана целиком заменяет тело).
+        # Сначала отфильтровать, потом удалять: сравнение с уже удалённым объектом — ReferenceError «StructRNA removed» (T13.80).
+        objs = [o for o in objs if o not in base_meshes]
         for o in base_meshes:
             if o.name in bpy.data.objects:
                 bpy.data.objects.remove(o, do_unlink=True)
-        objs = [o for o in objs if o not in base_meshes]
         print(f"hide-base: убрано мешей тела {len(base_meshes)}")
     if a.pixel:
         # Workbench в режиме TEXTURE берёт АКТИВНЫЙ узел-картинку материала; у материалов Dota первым идёт
@@ -771,8 +773,14 @@ def main():
     first_act = frame_acts[0] if frame_acts else None
     if first_act is not None:
         use_action(first_act)
+    fit_from = None
+    if a.fit_from:
+        with open(a.fit_from, encoding="utf-8") as ff:
+            fit_from = json.load(ff).get("fit")
+        if not fit_from:
+            raise SystemExit(f"--fit-from: в {a.fit_from} нет поля fit (лист-образец отрендерен старым скриптом?)")
     wide = 40.0
-    mode = a.up
+    mode = fit_from["orientation"] if fit_from else a.up
     if mode == "auto":
         best, best_ratio = "none", -1.0
         for cand in ("none", "plus", "minus"):
@@ -793,34 +801,49 @@ def main():
         t = probe(rig, tmp, f"top_{tag}", 90.0, wide, 0.0)     # X и глубина
         return f, t
     best = None
-    for i, act in enumerate(frame_acts or [None]):
-        f, t = measure(act, str(i))
-        if not f:
-            continue
-        span = (f["vmax"] - f["vmin"]) * (f["xmax"] - f["xmin"])
-        if best is None or span < best[0]:
-            best = (span, f, t, act)
-    if best is not None:
-        _, front, top, chosen = best
-        print(f"кадр по клипу: {chosen.name if chosen else '—'}")
+    chosen = None
+    cx, zmin, cy = 0.0, 0.0, 0.0
+    if fit_from:
+        # Кадр образца (T13.80): та же поза, тот же сдвиг и охват — иначе слой части не ляжет на тело.
+        by_name = {act.name: act for _, act, _ in anim_map if act is not None}
+        chosen = by_name.get(fit_from.get("clip") or "")
         if chosen is not None:
             use_action(chosen)
-    else:
-        front, top = None, None
-    if front:
-        cx = (front["xmin"] + front["xmax"]) / 2
-        zmin, zmax = front["vmin"], front["vmax"]
+        cx, zmin, cy = fit_from["cx"], fit_from["zmin"], fit_from["cy"]
+        height, width, depth = fit_from["height"], fit_from["width"], fit_from["depth"]
         rig.fix.location.x -= cx
         rig.fix.location.z -= zmin
-        height = zmax - zmin
-        width = front["xmax"] - front["xmin"]
-    else:
-        height, width = 2.0, 1.0
-    depth = (top["vmax"] - top["vmin"]) if top else width
-    if top:
-        # Центр по глубине: сверху экранная вертикаль соответствует мировой Y (камера смотрит вниз, «вверх экрана» = +Y).
-        cy = (top["vmin"] + top["vmax"]) / 2
         rig.fix.location.y -= cy
+        print(f"кадр из образца {os.path.basename(a.fit_from)}: клип {fit_from.get('clip')}, охват {fit_from['extent']:.2f}")
+    else:
+        for i, act in enumerate(frame_acts or [None]):
+            f, t = measure(act, str(i))
+            if not f:
+                continue
+            span = (f["vmax"] - f["vmin"]) * (f["xmax"] - f["xmin"])
+            if best is None or span < best[0]:
+                best = (span, f, t, act)
+        if best is not None:
+            _, front, top, chosen = best
+            print(f"кадр по клипу: {chosen.name if chosen else '—'}")
+            if chosen is not None:
+                use_action(chosen)
+        else:
+            front, top = None, None
+        if front:
+            cx = (front["xmin"] + front["xmax"]) / 2
+            zmin, zmax = front["vmin"], front["vmax"]
+            rig.fix.location.x -= cx
+            rig.fix.location.z -= zmin
+            height = zmax - zmin
+            width = front["xmax"] - front["xmin"]
+        else:
+            height, width = 2.0, 1.0
+        depth = (top["vmax"] - top["vmin"]) if top else width
+        if top:
+            # Центр по глубине: сверху экранная вертикаль соответствует мировой Y (камера смотрит вниз, «вверх экрана» = +Y).
+            cy = (top["vmin"] + top["vmax"]) / 2
+            rig.fix.location.y -= cy
     bpy.context.view_layer.update()
     base_loc = rig.fix.location.copy()
     main_arm = main_arms[0] if main_arms else (armatures[0] if armatures else None)
@@ -833,7 +856,9 @@ def main():
     # первый кадр каждого клипа: иначе постоянный сдвиг клипа относительно стойки остаётся и модель
     # рисуется смещённой (каст Meepo и персоны Dragon Knight — пустые ряды).
     ref_heads = bone_heads()
-    extent = a.ortho if a.ortho > 0 else max(height, width, depth) * a.margin
+    extent = fit_from["extent"] if fit_from else (a.ortho if a.ortho > 0 else max(height, width, depth) * a.margin)
+    # Кадрирование в мету: лист-образец для --fit-from у слоёв частей (T13.80).
+    fit_meta = {"orientation": mode, "clip": chosen.name if chosen is not None else None, "cx": round(cx, 4), "zmin": round(zmin, 4), "cy": round(cy, 4), "height": round(height, 4), "width": round(width, 4), "depth": round(depth, 4), "extent": round(extent, 4)}
     print(f"orientation: {mode}; height {height:.2f}, width {width:.2f}, depth {depth:.2f} → ortho {extent:.2f}")
     rig.place(a.pitch, extent, height / 2)
 
@@ -888,7 +913,9 @@ def main():
         if main_arm is None or not ref_heads:
             return None
         acc = {}
-        for o in base_meshes:
+        # Под --hide-base меши тела уже удалены (обращение к ним — ReferenceError): вес считаем по надетым частям (T13.80).
+        weighted = [o for o in objs if o.type == "MESH"] if a.hide_base else base_meshes
+        for o in weighted:
             if o.name not in bpy.data.objects:
                 continue
             names = [g.name for g in o.vertex_groups]
@@ -1033,6 +1060,7 @@ def main():
         # Запас кадра вокруг силуэта: превью гардероба делит на него, чтобы герой в витрине не мельчал
         # вместе с ростом рамки (кадр 160 с запасом 1.4 против 128 с 1.12).
         "margin": a.margin,
+        "fit": fit_meta,
     }
     # Тон свечения (градусы): самоцветы в игре (gemSheet) красят пиксели этого тона, а не «доминирующий
     # тон листа» из скана — у тёмных аркан TB скан промахивался, и зелёные пятна ядра оставались.

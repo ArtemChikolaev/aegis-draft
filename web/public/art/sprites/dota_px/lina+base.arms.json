@@ -1,0 +1,50 @@
+{
+  "name": "lina+base.arms",
+  "frame": 80,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.753
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 7
+    },
+    "walk": {
+      "row": 8,
+      "frames": 12
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 8
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "lina.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "run",
+    "cx": -0.1562,
+    "zmin": 0.9375,
+    "cy": 0.7812,
+    "height": 4.375,
+    "width": 3.4375,
+    "depth": 3.4375,
+    "extent": 6.125
+  }
+}

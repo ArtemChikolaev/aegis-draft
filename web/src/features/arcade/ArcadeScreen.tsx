@@ -21,7 +21,7 @@ import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT,
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
-import { COSMETICS, COSMETIC_BY_ID, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, heroLook, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
 import type { AbilityKey, Offer, RuneKind } from "../../game/arcade/types.ts";
@@ -331,6 +331,11 @@ function ArcadeStage() {
   const [startLegacy] = useState(() => (isArcadeDailySeed(useArcade.getState().seed) ? undefined : { ...useArcade.getState().progress.legacy.spent }));
   const rendererRef = useRef<ArcadeRenderer | null>(null);
   useEffect(() => { rendererRef.current?.setCosmetics(equippedCosmetics, cosmeticStyles); }, [equippedCosmetics, cosmeticStyles]);
+  // Облик по слотам и скины призывов (T13.80): производное от косметики выбранного героя, в сим не идёт.
+  const cosmeticsAll = useArcade((s) => s.cosmetics);
+  const heroIdNow = useArcade((s) => s.hero);
+  const look = useMemo(() => heroLook(heroIdNow, cosmeticsAll), [heroIdNow, cosmeticsAll]);
+  useEffect(() => { rendererRef.current?.setLook(look); }, [look]);
   const heroId = useArcade((s) => s.hero);
   const heroDef = HEROES[heroId];
   const hero = useHero()(heroDef.dotaId);
@@ -354,6 +359,8 @@ function ArcadeStage() {
     const renderer = new ArcadeRenderer(canvas, hero.picture || heroDef.picture);
     rendererRef.current = renderer;
     renderer.setCosmetics(useArcade.getState().cosmetics.equipped, useArcade.getState().cosmetics.styles);
+    const lookNow = heroLook(useArcade.getState().hero, useArcade.getState().cosmetics);
+    renderer.setLook(lookNow);
     // Dev-хук для headless-QA (телепорт к торговцу/Рошану без ожидания): в прод-сборке его нет.
     if (import.meta.env.DEV) { const w = window as unknown as { __arcadeSim?: typeof getArcadeSim; __sfxDebug?: typeof sfxDebug }; w.__arcadeSim = getArcadeSim; w.__sfxDebug = sfxDebug; }
     const controller = new ArcadeInputController(stage);
@@ -506,7 +513,7 @@ function ArcadeStage() {
     const simNow = getArcadeSim();
     let cancelled = false;
     setLoading(true);
-    void preloadArcadeArt(voiceId, Object.keys(ENEMY_KINDS), simNow?.act ?? "short").then(() => { if (!cancelled) setLoading(false); });
+    void preloadArcadeArt(lookNow.sheet, Object.keys(ENEMY_KINDS), simNow?.act ?? "short", 6000, Object.values(lookNow.summons)).then(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);

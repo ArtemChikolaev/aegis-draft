@@ -14,7 +14,7 @@ import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
 import { EXPEDITIONS, EXPEDITION_BY_ID, expeditionStepDone } from "../game/arcade/content/expeditions.ts";
 import { LEGACY_MAX_RANK, LEGACY_NONE, LEGACY_ZERO, clampLegacy, legacyBonus, legacySpentTotal, type LegacyBranch, type LegacySpent } from "../game/arcade/content/legacy.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
-import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot } from "../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot, type DotaSlot, type Loadout } from "../game/arcade/content/cosmetics.ts";
 import { GEAR_SALVAGE, GEAR_SLOTS, type GearItem, type GearSlot } from "../game/arcade/content/gear.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readCached, writePersisted } from "./persist.ts";
@@ -135,6 +135,11 @@ export interface CosmeticsState {
    *  `perHeroLook` включён и пресет есть (пустой слот = снято). Скин всегда на героя (`skins`). */
   perHero: Record<string, Partial<Record<CosmeticSlot, string>>>;
   perHeroLook: boolean;
+  /** Облик по слотам (T13.80): id героя → слот Dota → источник части (`base` или сет). Пустой слот следует надетому
+   *  облику; надевание облика целиком (`equip("skin")`) сбрасывает слоты героя — как «надеть сет» в Dota. */
+  loadout: Record<string, Loadout>;
+  /** Скины призывов (T13.80): id героя → art призыва (`bear`, `wolf`…) → id косметики слота `summon`. */
+  summonSkins: Record<string, Record<string, string>>;
 }
 
 /** `equipped.skin` = скин героя `hero` (или ничего): все читатели слота продолжают работать как с одним слотом. */
@@ -148,7 +153,7 @@ function withHeroSkin(c: CosmeticsState, hero: string): CosmeticsState {
 }
 
 function readCosmetics(): CosmeticsState {
-  const empty: CosmeticsState = { owned: [], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false };
+  const empty: CosmeticsState = { owned: [], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false, loadout: {}, summonSkins: {} };
   try {
     const raw = readCached(COSMETICS_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<CosmeticsState>) : null;
@@ -160,7 +165,10 @@ function readCosmetics(): CosmeticsState {
     // Сейвы до T13.49: общий образ лежал в `equipped` — берём его как `shared` (без скина).
     const shared = { ...(parsed.shared ?? equipped) }; delete shared.skin;
     const perHero = parsed.perHero && typeof parsed.perHero === "object" ? parsed.perHero : {};
-    return { owned: parsed.owned, equipped, shared, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins, perHero, perHeroLook: parsed.perHeroLook === true };
+    // Сейвы до T13.80: без слотов и скинов призывов — пустые словари, облик следует надетому скину.
+    const loadout = parsed.loadout && typeof parsed.loadout === "object" ? parsed.loadout : {};
+    const summonSkins = parsed.summonSkins && typeof parsed.summonSkins === "object" ? parsed.summonSkins : {};
+    return { owned: parsed.owned, equipped, shared, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins, perHero, perHeroLook: parsed.perHeroLook === true, loadout, summonSkins };
   } catch {
     return empty;
   }
@@ -258,6 +266,10 @@ interface ArcadeStore {
   startReplay: (replay: ArcadeReplay) => void;
   setLoadedReplay: (replay: ArcadeReplay | null) => void;
   equip: (slot: CosmeticSlot, id: string | null) => void;
+  /** Часть в слот облика выбранного героя (T13.80): источник `base`/сет; null — как у надетого облика. */
+  setPart: (slot: DotaSlot, source: string | null) => void;
+  /** Скин призыва выбранного героя (T13.80): id косметики слота `summon` для этого art; null — обычный. */
+  setSummonSkin: (art: string, id: string | null) => void;
   /** Пресеты образа (T13.49): свой набор эффектов у каждого героя вместо общего. */
   setPerHeroLook: (on: boolean) => void;
   /** Выбрать стиль скина (аркана с самоцветом/стилем). null — базовый стиль. */
@@ -374,22 +386,51 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ cosmetics });
   },
   equip(slot, id) {
+    if (slot === "summon") return; // скины призывов — setSummonSkin (нужен art призыва)
     if (id !== null && (!COSMETIC_BY_ID[id] || COSMETIC_BY_ID[id].slot !== slot || !get().cosmetics.owned.includes(id))) return;
     const c = get().cosmetics;
     const shared = { ...c.shared };
     const skins = { ...c.skins };
     const perHero = { ...c.perHero };
+    const loadout = { ...(c.loadout ?? {}) };
     if (slot === "skin") {
-      // Скин — у героя, которому он принадлежит; снятие — у выбранного героя.
+      // Скин — у героя, которому он принадлежит; снятие — у выбранного героя. Облик целиком сбрасывает слоты (T13.80).
       const hero = id === null ? get().hero : COSMETIC_BY_ID[id]?.hero ?? get().hero;
       if (id === null) delete skins[hero]; else skins[hero] = id;
+      delete loadout[hero];
     } else if (c.perHeroLook) {
       // Пресет героя (T13.49): эффект пишется только выбранному герою.
       const mine = { ...(perHero[get().hero] ?? {}) };
       if (id === null) delete mine[slot]; else mine[slot] = id;
       perHero[get().hero] = mine;
     } else if (id === null) delete shared[slot]; else shared[slot] = id;
-    const cosmetics = withHeroSkin({ ...c, shared, skins, perHero }, get().hero);
+    const cosmetics = withHeroSkin({ ...c, shared, skins, perHero, loadout }, get().hero);
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
+  },
+  setPart(slot, source) {
+    const c = get().cosmetics;
+    const hero = get().hero;
+    const mine = { ...(c.loadout?.[hero] ?? {}) };
+    if (source === null) delete mine[slot]; else mine[slot] = source;
+    const loadout = { ...(c.loadout ?? {}), [hero]: mine };
+    if (!Object.keys(mine).length) delete loadout[hero];
+    const cosmetics = { ...c, loadout };
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
+  },
+  setSummonSkin(art, id) {
+    const c = get().cosmetics;
+    const hero = get().hero;
+    if (id !== null) {
+      const def = COSMETIC_BY_ID[id];
+      if (!def || def.slot !== "summon" || def.hero !== hero || !def.variant.startsWith(`${art}@`) || !c.owned.includes(id)) return;
+    }
+    const mine = { ...(c.summonSkins?.[hero] ?? {}) };
+    if (id === null) delete mine[art]; else mine[art] = id;
+    const summonSkins = { ...(c.summonSkins ?? {}), [hero]: mine };
+    if (!Object.keys(mine).length) delete summonSkins[hero];
+    const cosmetics = { ...c, summonSkins };
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });
   },

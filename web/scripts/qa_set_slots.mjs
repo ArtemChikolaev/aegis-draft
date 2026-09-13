@@ -8,31 +8,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 const argv = process.argv.slice(2);
 const manifest = argv.find((a) => !a.startsWith("--")) ?? "scripts/blender/dota_manifest_px2.tsv";
 const apply = argv.includes("--apply");
-// Слот по токенам имени файла (без префикса героя): первый совпавший токен решает.
-const SLOT_TOKENS = {
-  head: ["head", "hat", "helm", "helmet", "hair", "horn", "horns", "mask", "face", "crown", "hood", "skull", "beard", "cowl", "bandana", "goggles", "veil", "jaw", "antlers", "mohawk", "ear", "ears", "goblinhat"],
-  arms: ["arm", "arms", "bracer", "bracers", "gauntlet", "gauntlets", "glove", "gloves", "hand", "hands", "sleeve", "sleeves", "wrist", "claw", "claws", "leftarm", "rightarm", "demonarm"],
-  back: ["back", "cape", "cloak", "wing", "wings", "scabbard", "quiver", "sheath", "banner", "pack", "tail", "ponytail", "backitem"],
-  weapon: ["weapon", "weapon1", "weapon2", "sword", "swords", "blade", "blades", "axe", "gun", "rifle", "staff", "bow", "hammer", "mace", "club", "dagger", "spear", "scythe", "lance", "whip", "glaive", "shield", "offhand", "off", "rod", "wand", "hook", "anchor", "chainsaw", "crossbow", "sickle", "guns"],
-  shoulder: ["shoulder", "shoulders", "pauldron", "pauldrons", "pads", "shoulderbottles"],
-  belt: ["belt", "loincloth", "skirt", "pants", "legs", "leg", "waist", "boot", "boots", "feet", "foot", "tass", "tassets"],
-  armor: ["armor", "armour", "vest", "torso", "chest", "body", "robe", "tunic", "coat", "dress", "dresstop", "upper", "fur", "shirt"],
-  neck: ["neck", "necklace", "collar", "scarf"],
-  mount: ["mount", "rider", "goblin", "saddle", "steed", "horse", "saddlehat", "cart"],
-  misc: ["bottle", "lantern", "gem", "orb", "rotor", "propeller", "misc", "jar", "flask", "totem", "bag", "flower", "abdomen", "spike", "chain", "foliage", "amour"],
-};
-const stripHero = (name, hero, folder) => name.replace(new RegExp(`^(${hero}|${folder}|${hero.replace(/_/g, "")}|${folder.replace(/_/g, "")})_?`, "i"), "");
-const slotOf = (part, hero, folder) => {
-  const raw = part.split("/").pop().replace(/\.vmdl_c$/, "");
-  const name = stripHero(raw, hero, folder);
-  const tokens = name.toLowerCase().split(/[_\W]+/).filter(Boolean);
-  // Сначала точное совпадение токена, потом составные слова (headitem, shoulderpads, lweapon, backpack) — по подстроке
-  // от 4 символов, чтобы «ear» не ловил «spear». Порядок слотов: mount раньше armor (mount_armor у Chen — маунт).
-  const order = ["mount", "head", "arms", "back", "weapon", "shoulder", "belt", "neck", "misc", "armor"];
-  for (const slot of order) if (tokens.some((t) => SLOT_TOKENS[slot].includes(t))) return slot;
-  for (const slot of order) if (tokens.some((t) => SLOT_TOKENS[slot].some((k) => k.length >= 4 && t.includes(k)))) return slot;
-  return "?" + (tokens[0] ?? raw); // уникальный слот (foliage, abdomen…): сет его не перекрывает — оставляем
-};
+// Слот по токенам имени файла — общий модуль с dota_part_layers.mts (T13.80).
+import { slotOf } from "./lib/dota_slots.mjs";
 const rows = readFileSync(manifest, "utf8").split("\n").filter((l) => l && !l.startsWith("#")).map((l) => l.split("\t"));
 const base = new Map(rows.filter((c) => !c[0].includes("@")).map((c) => [c[0], c]));
 let issues = 0; const changed = [];
