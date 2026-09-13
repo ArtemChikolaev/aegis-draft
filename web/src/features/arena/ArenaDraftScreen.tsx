@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useArena } from "../../state/arenaStore.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import { roleMessageKey } from "../../i18n/core.ts";
-import { ROLE_SEQUENCE } from "../../game/packs.ts";
+import { ROLE_SEQUENCE, type Candidate } from "../../game/packs.ts";
 import type { ArenaResolvedPick } from "../../game/arenaDraft.ts";
 import type { Role } from "../../types/data.ts";
 import { Button, Eyebrow, HeroThumb, Modal, RoleTag, Surface } from "../../ui/index.ts";
@@ -19,7 +19,8 @@ const ROLES: readonly Role[] = ["safelane", "mid", "offlane", "support"];
 export function ArenaDraftScreen() {
   const { t } = useI18n();
   const match = useArena((s) => s.match);
-  useArena((s) => s.serial);
+  // Бамп на каждую запись relay-лога: движок мутирует внутри той же ссылки match.
+  const serial = useArena((s) => s.serial);
   const selfId = useArena((s) => s.selfId);
   const deadline = useArena((s) => s.roundDeadline);
   const sendPick = useArena((s) => s.sendPick);
@@ -37,11 +38,15 @@ export function ArenaDraftScreen() {
   const [backup, setBackup] = useState<number | null>(null);
   const [leaveGate, setLeaveGate] = useState(false);
   // Отсчёт до конца раунда — чисто индикативный: резолвит лог (последний человек либо host).
+  // Тик только пока есть дедлайн (как в DuelScreen): без него экран перерисовывался раз в секунду
+  // впустую. На старте тика сверяем часы сразу — иначе первую секунду отсчёт шёл бы от старого now.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
+    if (deadline === null) return;
+    setNow(Date.now());
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [deadline]);
   // Новый раунд — чистый выбор.
   useEffect(() => {
     setMain(null);
@@ -62,6 +67,19 @@ export function ArenaDraftScreen() {
     for (const candidate of engine.openPlayers()) names.set(candidate.player.accountId, candidate.player.nickname);
     return names;
   }, [engine, round]);
+
+  // Пул раунда: openPlayers()/openHeroes() копируют коллекции движка, а раскладка по ролям с
+  // сортировкой шла на каждом рендере (тик таймера, выбор main/backup). Движок мутирует внутри той
+  // же ссылки, поэтому в deps serial — его бампает каждая запись relay-лога, то есть любая мутация.
+  const pool = useMemo(() => {
+    const byRole = new Map<Role, Candidate[]>(ROLES.map((role) => [role, []]));
+    if (!engine) return { byRole, heroes: [] as number[] };
+    for (const candidate of engine.openPlayers()) byRole.get(candidate.player.role)?.push(candidate);
+    for (const candidates of byRole.values()) {
+      candidates.sort((a, b) => b.player.ovr - a.player.ovr || a.player.accountId - b.player.accountId);
+    }
+    return { byRole, heroes: engine.openHeroes().sort((a, b) => a - b) };
+  }, [engine, serial]);
 
   if (!engine || !match || !selfId) return null;
   const seatIndex = engine.seatOf(selfId);
@@ -172,50 +190,45 @@ export function ArenaDraftScreen() {
                 <section key={role}>
                   <RoleTag role={role}>{t(roleMessageKey(role))}</RoleTag>
                   <ul>
-                    {engine.openPlayers()
-                      .filter((candidate) => candidate.player.role === role)
-                      .sort((a, b) => b.player.ovr - a.player.ovr || a.player.accountId - b.player.accountId)
-                      .map((candidate) => (
-                        <li key={candidate.player.accountId}>
-                          <button
-                            type="button"
-                            className="arena-draft__candidate"
-                            data-selected={main === candidate.player.accountId || backup === candidate.player.accountId}
-                            data-testid={`arena-candidate-${candidate.player.accountId}`}
-                            disabled={submitted || !engine.canPick(seatIndex, candidate.player.accountId)}
-                            onClick={() => select(candidate.player.accountId)}
-                          >
-                            <b>{candidate.player.nickname}</b>
-                            <span className="arena-draft__ovr">{candidate.player.ovr}</span>
-                            <small>{candidate.teamName}</small>
-                            {selectionTag(candidate.player.accountId)}
-                          </button>
-                        </li>
-                      ))}
+                    {(pool.byRole.get(role) ?? []).map((candidate) => (
+                      <li key={candidate.player.accountId}>
+                        <button
+                          type="button"
+                          className="arena-draft__candidate"
+                          data-selected={main === candidate.player.accountId || backup === candidate.player.accountId}
+                          data-testid={`arena-candidate-${candidate.player.accountId}`}
+                          disabled={submitted || !engine.canPick(seatIndex, candidate.player.accountId)}
+                          onClick={() => select(candidate.player.accountId)}
+                        >
+                          <b>{candidate.player.nickname}</b>
+                          <span className="arena-draft__ovr">{candidate.player.ovr}</span>
+                          <small>{candidate.teamName}</small>
+                          {selectionTag(candidate.player.accountId)}
+                        </button>
+                      </li>
+                    ))}
                   </ul>
                 </section>
               ))}
             </div>
           ) : (
             <ul className="arena-draft__hero-grid">
-              {engine.openHeroes()
-                .sort((a, b) => a - b)
-                .map((heroId) => (
-                  <li key={heroId}>
-                    <button
-                      type="button"
-                      className="arena-draft__hero"
-                      data-selected={main === heroId || backup === heroId}
-                      data-testid={`arena-hero-${heroId}`}
-                      disabled={submitted}
-                      onClick={() => select(heroId)}
-                    >
-                      <HeroThumb picture={hero(heroId).picture} name={hero(heroId).name} showName={false} />
-                      <span>{heroName(heroId)}</span>
-                      {selectionTag(heroId)}
-                    </button>
-                  </li>
-                ))}
+              {pool.heroes.map((heroId) => (
+                <li key={heroId}>
+                  <button
+                    type="button"
+                    className="arena-draft__hero"
+                    data-selected={main === heroId || backup === heroId}
+                    data-testid={`arena-hero-${heroId}`}
+                    disabled={submitted}
+                    onClick={() => select(heroId)}
+                  >
+                    <HeroThumb picture={hero(heroId).picture} name={hero(heroId).name} showName={false} />
+                    <span>{heroName(heroId)}</span>
+                    {selectionTag(heroId)}
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
           <div className="arena-draft__actions">
