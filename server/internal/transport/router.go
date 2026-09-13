@@ -55,6 +55,11 @@ func NewServer(cfg config.Config, deps Deps) *Server {
 	}
 }
 
+// requestTimeout — дедлайн обычных HTTP-маршрутов (middleware.Timeout). Обязан быть короче
+// config WriteTimeout (15 с): иначе сервер обрывает запись раньше, чем middleware успевает
+// ответить 504, и клиент видит разорванное соединение вместо ответа.
+const requestTimeout = 10 * time.Second
+
 // Handler строит корневой http.Handler со стандартным middleware-стеком.
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
@@ -74,7 +79,7 @@ func (s *Server) Handler() http.Handler {
 
 	// Обычные HTTP-маршруты — под общим таймаутом, как раньше.
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Timeout(30 * time.Second))
+		r.Use(middleware.Timeout(requestTimeout))
 
 		r.Get("/healthz", s.health) // liveness: процесс жив (Fly бьёт сюда)
 		r.Get("/readyz", s.ready)   // readiness: БД доступна

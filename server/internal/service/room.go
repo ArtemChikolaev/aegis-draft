@@ -60,7 +60,6 @@ type RoomMember struct {
 	ID        string
 	Name      string
 	Connected bool
-	JoinedAt  time.Time
 	LastSeen  time.Time
 	token     string
 }
@@ -192,7 +191,6 @@ func (m *RoomManager) JoinRoom(code, name, token string, versions RoomVersions) 
 		ID:        uuid.NewString(),
 		Name:      name,
 		Connected: true,
-		JoinedAt:  now,
 		LastSeen:  now,
 		token:     uuid.NewString(),
 	}

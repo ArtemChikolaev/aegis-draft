@@ -34,13 +34,11 @@ var (
 	ErrExpired     = errors.New("telegram: initData expired")
 )
 
-// User — минимум профиля из поля `user`. Храним только необходимое: это ПДн.
+// User — минимум профиля из поля `user`: только id и username, которые нужны аккаунту. Имя,
+// фамилию и язык не разбираем — это ПДн, которые сервису не нужны.
 type User struct {
-	ID           int64  `json:"id"`
-	FirstName    string `json:"first_name"`
-	LastName     string `json:"last_name"`
-	Username     string `json:"username"`
-	LanguageCode string `json:"language_code"`
+	ID       int64  `json:"id"`
+	Username string `json:"username"`
 }
 
 // InitData — разобранные и проверенные поля.
@@ -48,7 +46,6 @@ type InitData struct {
 	User     User
 	AuthDate time.Time
 	QueryID  string
-	Raw      url.Values // все поля as-is (декодированные), кроме доверия к hash
 }
 
 // Validate проверяет подпись initData ботом botToken. Если maxAge > 0 — отвергает
@@ -77,7 +74,7 @@ func Validate(initData, botToken string, maxAge time.Duration) (*InitData, error
 		return nil, ErrInvalidHash
 	}
 
-	out := &InitData{QueryID: values.Get("query_id"), Raw: values}
+	out := &InitData{QueryID: values.Get("query_id")}
 	if ad := values.Get("auth_date"); ad != "" {
 		sec, err := strconv.ParseInt(ad, 10, 64)
 		if err != nil {
