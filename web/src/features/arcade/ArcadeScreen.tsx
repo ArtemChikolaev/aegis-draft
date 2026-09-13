@@ -4,7 +4,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
 import { MARK_IDS, bestArcadeEntry, equippedGear, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
-import { LEGACY_BRANCHES, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
+import { LEGACY_BRANCHES, LEGACY_KIND, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
@@ -1374,35 +1374,47 @@ function MasteryPanel({ marks }: { marks: readonly MarkId[] }) {
   );
 }
 
-/** Наследие Aegis (T13.44): печати за победы в полных актах → три ветки по четыре пункта на весь ростер. */
+/** Наследие Aegis (T13.44/T13.88): печати за победы в полных актах → пять веток удобств по четыре пункта на весь ростер.
+ *  Сброс спрятан за ссылкой «перераспределить» (владелец 2026-09-13: кнопка не должна висеть всегда). */
 function LegacyPanel({ progress, onSpend, onReset }: { progress: ArcadeProgress; onSpend: (b: LegacyBranch) => void; onReset: () => void }) {
   const { t } = useI18n();
   const L = progress.legacy;
   const spentTotal = legacySpentTotal(L.spent);
   const free = L.seals - spentTotal;
+  const [respec, setRespec] = useState(false);
   return (
     <div className="arcade-legacy" data-testid="arcade-legacy">
       <div className="arcade-legacy__head">
         <span className="arcade-setup__label">{t("arcade.legacy.title")}</span>
-        <span className="arcade-legacy__seals" data-testid="arcade-legacy-seals">{t("arcade.legacy.seals", { free, total: L.seals })}</span>
+        <span className="arcade-legacy__seals" data-testid="arcade-legacy-seals">
+          {t("arcade.legacy.seals", { free, total: L.seals })}
+          {spentTotal > 0 && !respec && <button type="button" className="arcade-legacy__respec" data-testid="arcade-legacy-respec" onClick={() => setRespec(true)}>{t("arcade.legacy.respec")}</button>}
+        </span>
       </div>
       <p className="arcade-rank__unlock">{t("arcade.legacy.hint")}</p>
       <div className="arcade-legacy__rows">
         {LEGACY_BRANCHES.map((b) => {
           const rank = L.spent[b];
-          const pct = Math.round(LEGACY_PER_RANK[b] * rank * 1000) / 10;
-          const maxPct = Math.round(LEGACY_PER_RANK[b] * LEGACY_MAX_RANK * 1000) / 10;
+          const per = LEGACY_PER_RANK[b];
+          const val = LEGACY_KIND[b] === "pct" ? Math.round(per * rank * 1000) / 10 : per * rank;
+          const max = LEGACY_KIND[b] === "pct" ? Math.round(per * LEGACY_MAX_RANK * 1000) / 10 : per * LEGACY_MAX_RANK;
           return (
             <div key={b} className="arcade-legacy__row" data-testid={`arcade-legacy-${b}`}>
               <b>{t(`arcade.legacy.${b}` as MessageKey)}</b>
-              <span>{t(`arcade.legacy.${b}.desc` as MessageKey, { pct, max: maxPct })}</span>
+              <span>{t(`arcade.legacy.${b}.desc` as MessageKey, { pct: val, n: val, max })}</span>
               <i className="arcade-legacy__pips" aria-label={`${rank}/${LEGACY_MAX_RANK}`}>{Array.from({ length: LEGACY_MAX_RANK }, (_, i) => <em key={i} data-on={i < rank ? "true" : undefined} />)}</i>
               <Button variant="secondary" data-testid={`arcade-legacy-spend-${b}`} disabled={free <= 0 || rank >= LEGACY_MAX_RANK} onClick={() => onSpend(b)}>+1</Button>
             </div>
           );
         })}
       </div>
-      {spentTotal > 0 && <Button variant="leave" data-testid="arcade-legacy-reset" onClick={onReset}>{t("arcade.legacy.reset")}</Button>}
+      {spentTotal > 0 && respec && (
+        <div className="arcade-legacy__confirm" data-testid="arcade-legacy-confirm">
+          <span>{t("arcade.legacy.resetConfirm")}</span>
+          <Button variant="leave" data-testid="arcade-legacy-reset" onClick={() => { onReset(); setRespec(false); }}>{t("arcade.legacy.reset")}</Button>
+          <Button variant="secondary" data-testid="arcade-legacy-keep" onClick={() => setRespec(false)}>{t("arcade.legacy.keep")}</Button>
+        </div>
+      )}
     </div>
   );
 }

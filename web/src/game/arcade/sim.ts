@@ -288,7 +288,10 @@ export class ArcadeSim {
     this.trait = isTraitId(options.trait) ? TRAITS[options.trait] : null;
     this.composition = isCompositionId(options.composition) ? options.composition : compositionFor(seed, this.act);
     const L = options.legacy;
-    this.legacy = L && [L.hp, L.damage, L.pickup].every((v) => typeof v === "number" && v >= 1 && v <= 2) ? { hp: L.hp, damage: L.damage, pickup: L.pickup } : LEGACY_NONE;
+    const okMult = (v: unknown) => typeof v === "number" && v >= 1 && v <= 2;
+    const okCount = (v: unknown, max: number) => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= max;
+    this.legacy = L && okMult(L.pickup) && okMult(L.speed) && typeof L.shop === "number" && L.shop >= 0.5 && L.shop <= 1 && okCount(L.rerolls, 10) && okCount(L.gold, 200)
+      ? { pickup: L.pickup, speed: L.speed, shop: L.shop, rerolls: L.rerolls, gold: L.gold } : LEGACY_NONE;
     this.obstacles = new ObstacleGrid(generateMap(seed, this.act).obstacles);
     this.rng = new Rng(`arcade:${seed}:r${this.rank.step}:${this.hero.id}:${this.act}`);
     this.roshanAt = ARCADE.acts[this.act].roshanAt.map((t, i) => (i === 0 && this.rank.earlyRoshan ? t - sec(60) : t));
@@ -296,7 +299,7 @@ export class ArcadeSim {
     this.nextTrollPackAt = sec(45);
     const P = ARCADE.player;
     this.player = {
-      x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: 0, kills: 0,
+      x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: this.legacy.gold, kills: 0,
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
@@ -2337,7 +2340,7 @@ export class ArcadeSim {
   damageEnemy(e: Enemy, amount: number, fx: FxKind): void {
     if (!e.alive || amount <= 0) return;
     // Наследие: весь исходящий урон (удары, умения, DoT, питомцы) — ровно один раз, здесь.
-    let dmg = amount * this.legacy.damage * this.oathMult(e) * this.ritualMult("bloodhunt");
+    let dmg = amount * this.oathMult(e) * this.ritualMult("bloodhunt");
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
     const vamp = this.hero.signature;
     if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
@@ -3346,7 +3349,8 @@ export class ArcadeSim {
 
   /** Множитель цен текущей лавки: у торговца каравана (T13.59, `shopkeeper.value === 1`) — скидка. */
   shopPriceMult(): number {
-    return this.shopkeeper.alive && this.shopkeeper.value === 1 ? ARCADE.caravan.discount : 1;
+    // Наследие «Бережливость» (T13.88) — множитель к ценам лавки поверх скидки каравана.
+    return (this.shopkeeper.alive && this.shopkeeper.value === 1 ? ARCADE.caravan.discount : 1) * this.legacy.shop;
   }
 
   private rollShopOffers(): ShopOffer[] {
@@ -3941,7 +3945,9 @@ export class ArcadeSim {
   }
 
   levelRerollPrice(): number {
-    return ARCADE.levelup.rerollBase + ARCADE.levelup.rerollStep * this.levelRerolls;
+    // Наследие «Прозорливость» (T13.88): первые N рероллов уровня за забег бесплатны, дальше — обычная лестница.
+    if (this.levelRerolls < this.legacy.rerolls) return 0;
+    return ARCADE.levelup.rerollBase + ARCADE.levelup.rerollStep * (this.levelRerolls - this.legacy.rerolls);
   }
 
   /** Реролл офферов уровня за золото: тот же генератор, новые карты. */
@@ -4090,9 +4096,9 @@ export class ArcadeSim {
     s.cooldown = Math.min(0.55, s.cooldown);
     s.attackInterval /= 1 + attackSpeed;
     s.speed *= 1 + moveSpeed;
-    // Наследие Aegis: к итоговым HP и радиусу сбора, один раз (урон — в damageEnemy).
-    s.maxHp = Math.round(s.maxHp * this.legacy.hp);
+    // Наследие Aegis (T13.88): удобства — радиус сбора и скорость бега, один раз; урон и HP не трогает.
     s.pickup *= this.legacy.pickup;
+    s.speed *= this.legacy.speed;
     const ratio = p.stats ? p.hp / p.stats.maxHp : 1;
     p.stats = s;
     p.hp = Math.min(s.maxHp, Math.max(p.hp, ratio * s.maxHp));

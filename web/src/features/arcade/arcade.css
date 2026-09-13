@@ -335,6 +335,9 @@
 .arcade-legacy__head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
 .arcade-legacy__seals { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .arcade-legacy__rows { display: grid; gap: 6px; }
+.arcade-legacy__respec { margin-left: 8px; padding: 0; border: 0; background: none; font: inherit; font-size: 11px; font-weight: 600; color: var(--muted); text-decoration: underline dotted; cursor: pointer; }
+.arcade-legacy__respec:hover { color: var(--text); }
+.arcade-legacy__confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
 .arcade-legacy__row { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto auto; gap: 8px; align-items: center; font-size: 12px; }
 .arcade-legacy__row b { font-weight: 800; }
 .arcade-legacy__row span { color: var(--muted); }

@@ -246,8 +246,9 @@ export interface ArcadeOptions {
   act?: ActId;
   /** Надетая экипировка на старте (из инвентаря между забегами); дейлик — без неё. */
   gear?: GearLike[];
-  /** Снимок «Наследия Aegis» (T13.44): множители hp/damage/pickup; дейлик и старые реплеи — без него. */
-  legacy?: { hp: number; damage: number; pickup: number };
+  /** Снимок «Наследия Aegis» (T13.44/T13.88): удобства — радиус сбора, скорость, цены лавки, бесплатные рероллы,
+   *  стартовое золото; дейлик и старые реплеи — без него. */
+  legacy?: { pickup: number; speed: number; shop: number; rerolls: number; gold: number };
   /** Стартовая особенность (T13.62, content/traits.ts); нет или чужой id — без особенности. */
   trait?: string;
   /** Композиция мест (T13.70, content/compositions.ts); по умолчанию — по seed (полный акт) или `all`. */

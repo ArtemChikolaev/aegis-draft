@@ -32,7 +32,7 @@ describe("стартовые особенности", () => {
     expect(base.over ?? null).toBeNull();
   });
 
-  it("реплей несёт особенность десятой частью; без неё код прежний; кривая особенность → null; наследие-заглушка 0.0.0", () => {
+  it("реплей несёт особенность десятой частью; без неё код прежний; кривая особенность → null; наследие-заглушка из нулей", () => {
     const sim = new ArcadeSim("trait-2", { hero: "zeus", trait: "swift" });
     for (let i = 0; i < 120; i++) sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : { ...IDLE_INPUT, mx: 16 });
     const base = { seed: sim.seed, hero: sim.hero.id, rank: 0, act: sim.act, version: ARCADE_CONFIG_VERSION, log: sim.log, gear: [] } as const;
@@ -40,14 +40,14 @@ describe("стартовые особенности", () => {
     expect(plain.split("~").length).toBe(8);
     const withTrait = encodeReplay({ ...base, trait: "swift" });
     expect(withTrait.split("~").length).toBe(10);
-    expect(withTrait.split("~")[8]).toBe("0.0.0");
+    expect(withTrait.split("~")[8]).toBe("0.0.0.0.0"); // заглушка на пять веток (T13.88)
     const rep = decodeReplay(withTrait)!;
     expect(rep.trait).toBe("swift");
     expect(rep.legacy).toBeUndefined();
     expect(decodeReplay(plain)!.trait).toBeUndefined();
     expect(decodeReplay(withTrait.replace(/swift$/, "hax"))).toBeNull();
-    const withBoth = decodeReplay(encodeReplay({ ...base, trait: "bulwark", legacy: { vitality: 1, might: 0, reach: 2 } }))!;
-    expect(withBoth.trait).toBe("bulwark"); expect(withBoth.legacy).toEqual({ vitality: 1, might: 0, reach: 2 });
+    const withBoth = decodeReplay(encodeReplay({ ...base, trait: "bulwark", legacy: { reach: 2, swift: 1, thrift: 0, insight: 0, provisions: 0 } }))!;
+    expect(withBoth.trait).toBe("bulwark"); expect(withBoth.legacy).toEqual({ reach: 2, swift: 1, thrift: 0, insight: 0, provisions: 0 });
     // Воспроизведение с особенностью детерминировано.
     const re = new ArcadeSim(sim.seed, { hero: "zeus", trait: rep.trait });
     let cur = { ...IDLE_INPUT };

@@ -86,7 +86,7 @@ export function encodeReplay(replay: ArcadeReplay): string {
   // Наследие — девятой частью `v.m.r`, только если оно есть: старые коды и коды без наследия не меняются.
   const legacy = replay.legacy ? clampLegacy(replay.legacy) : null;
   const trait = replay.trait && isTraitId(replay.trait) ? replay.trait : null;
-  if ((legacy && legacySpentTotal(legacy) > 0) || trait) parts.push(legacy ? LEGACY_BRANCHES.map((b) => legacy[b]).join(".") : "0.0.0");
+  if ((legacy && legacySpentTotal(legacy) > 0) || trait) parts.push(LEGACY_BRANCHES.map((b) => (legacy ? legacy[b] : 0)).join("."));
   if (trait) parts.push(trait);
   return parts.join(SEP);
 }
@@ -119,7 +119,7 @@ export function decodeReplay(text: string): ArcadeReplay | null {
   if (legacyRaw !== undefined) {
     const nums = legacyRaw.split(".").map(Number);
     if (nums.length !== LEGACY_BRANCHES.length || nums.some((n) => !Number.isInteger(n) || n < 0)) return null;
-    const parsed = clampLegacy({ vitality: nums[0], might: nums[1], reach: nums[2] });
+    const parsed = clampLegacy(Object.fromEntries(LEGACY_BRANCHES.map((b, i) => [b, nums[i]])));
     if (legacySpentTotal(parsed) > 0) legacy = parsed; // «0.0.0» — заглушка перед особенностью, не наследие
   }
   if (traitRaw !== undefined && !isTraitId(traitRaw)) return null;
