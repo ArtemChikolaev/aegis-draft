@@ -956,12 +956,39 @@
     ]
   },
   {
+    "id": "league-19719",
+    "name": "The International 2026",
+    "type": "ti",
+    "year": 2026,
+    "startDate": "2026-08-13",
+    "endDate": "2026-08-23",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y",
+      "valve_legacy"
+    ]
+  },
+  {
     "id": "league-19785",
     "name": "Esports World Cup 2026",
     "type": "tier1",
     "year": 2026,
     "startDate": "2026-07-07",
-    "endDate": "2026-07-16",
+    "endDate": "2026-07-19",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
+    "id": "league-19917",
+    "name": "The Games of the Future 2026",
+    "type": "tier1",
+    "year": 2026,
+    "startDate": "2026-07-31",
+    "endDate": "2026-08-05",
     "formats": [
       "last_1y",
       "last_2y",

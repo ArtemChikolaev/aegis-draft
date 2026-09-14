@@ -188643,6 +188643,2932 @@
       }
     }
   },
+  "league-19719": {
+    "100058342": {
+      "109": {
+        "games": 1,
+        "winrate": 1
+      },
+      "11": {
+        "games": 1,
+        "winrate": 1
+      },
+      "18": {
+        "games": 7,
+        "winrate": 0.5714
+      },
+      "19": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "54": {
+        "games": 2,
+        "winrate": 0
+      },
+      "56": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "73": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "100594231": {
+      "21": {
+        "games": 2,
+        "winrate": 0
+      },
+      "30": {
+        "games": 2,
+        "winrate": 1
+      },
+      "5": {
+        "games": 1,
+        "winrate": 0
+      },
+      "62": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 2,
+        "winrate": 0
+      },
+      "9": {
+        "games": 3,
+        "winrate": 0
+      }
+    },
+    "101356886": {
+      "103": {
+        "games": 1,
+        "winrate": 0
+      },
+      "112": {
+        "games": 3,
+        "winrate": 1
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "50": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "9": {
+        "games": 8,
+        "winrate": 0.625
+      },
+      "91": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "101695162": {
+      "100": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
+        "games": 2,
+        "winrate": 0
+      },
+      "7": {
+        "games": 1,
+        "winrate": 0
+      },
+      "71": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "86": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "10366616": {
+      "110": {
+        "games": 1,
+        "winrate": 1
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "5": {
+        "games": 5,
+        "winrate": 0.4
+      },
+      "58": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "64": {
+        "games": 1,
+        "winrate": 0
+      },
+      "83": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "85": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "9": {
+        "games": 5,
+        "winrate": 0.8
+      }
+    },
+    "103735745": {
+      "123": {
+        "games": 5,
+        "winrate": 0.2
+      },
+      "26": {
+        "games": 1,
+        "winrate": 0
+      },
+      "53": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "58": {
+        "games": 1,
+        "winrate": 1
+      },
+      "62": {
+        "games": 5,
+        "winrate": 1
+      },
+      "79": {
+        "games": 2,
+        "winrate": 0
+      },
+      "86": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "9": {
+        "games": 5,
+        "winrate": 0.4
+      },
+      "90": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "1044002267": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "11": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "19": {
+        "games": 2,
+        "winrate": 1
+      },
+      "46": {
+        "games": 1,
+        "winrate": 1
+      },
+      "53": {
+        "games": 6,
+        "winrate": 0.6667
+      },
+      "54": {
+        "games": 3,
+        "winrate": 1
+      },
+      "6": {
+        "games": 1,
+        "winrate": 0
+      },
+      "8": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "80": {
+        "games": 4,
+        "winrate": 0.75
+      }
+    },
+    "105045291": {
+      "100": {
+        "games": 2,
+        "winrate": 1
+      },
+      "119": {
+        "games": 5,
+        "winrate": 0.4
+      },
+      "121": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "71": {
+        "games": 1,
+        "winrate": 0
+      },
+      "79": {
+        "games": 1,
+        "winrate": 0
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "90": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "106305042": {
+      "106": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "107": {
+        "games": 3,
+        "winrate": 1
+      },
+      "120": {
+        "games": 5,
+        "winrate": 1
+      },
+      "13": {
+        "games": 1,
+        "winrate": 0
+      },
+      "17": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "25": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "28": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "49": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "53": {
+        "games": 1,
+        "winrate": 1
+      },
+      "60": {
+        "games": 1,
+        "winrate": 1
+      },
+      "74": {
+        "games": 2,
+        "winrate": 0
+      },
+      "91": {
+        "games": 1,
+        "winrate": 1
+      },
+      "93": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "106573901": {
+      "106": {
+        "games": 4,
+        "winrate": 1
+      },
+      "107": {
+        "games": 6,
+        "winrate": 1
+      },
+      "120": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "128": {
+        "games": 2,
+        "winrate": 1
+      },
+      "13": {
+        "games": 3,
+        "winrate": 0
+      },
+      "16": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 1,
+        "winrate": 1
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "47": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 1,
+        "winrate": 0
+      },
+      "91": {
+        "games": 1,
+        "winrate": 0
+      },
+      "93": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "111114687": {
+      "100": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "103": {
+        "games": 1,
+        "winrate": 0
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 2,
+        "winrate": 0
+      },
+      "64": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "85": {
+        "games": 2,
+        "winrate": 0
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "111620041": {
+      "106": {
+        "games": 1,
+        "winrate": 1
+      },
+      "11": {
+        "games": 2,
+        "winrate": 1
+      },
+      "18": {
+        "games": 1,
+        "winrate": 1
+      },
+      "21": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "36": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "52": {
+        "games": 1,
+        "winrate": 0
+      },
+      "53": {
+        "games": 2,
+        "winrate": 1
+      },
+      "54": {
+        "games": 2,
+        "winrate": 0
+      },
+      "56": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "73": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "118134220": {
+      "120": {
+        "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 2,
+        "winrate": 0
+      },
+      "29": {
+        "games": 1,
+        "winrate": 0
+      },
+      "33": {
+        "games": 1,
+        "winrate": 0
+      },
+      "38": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "47": {
+        "games": 1,
+        "winrate": 0
+      },
+      "55": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "69": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "78": {
+        "games": 1,
+        "winrate": 0
+      },
+      "97": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "123787715": {
+      "103": {
+        "games": 1,
+        "winrate": 1
+      },
+      "112": {
+        "games": 2,
+        "winrate": 0
+      },
+      "123": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "124801257": {
+      "11": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "12": {
+        "games": 1,
+        "winrate": 1
+      },
+      "18": {
+        "games": 1,
+        "winrate": 0
+      },
+      "19": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "54": {
+        "games": 1,
+        "winrate": 1
+      },
+      "67": {
+        "games": 1,
+        "winrate": 1
+      },
+      "80": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "126842529": {
+      "108": {
+        "games": 2,
+        "winrate": 0
+      },
+      "135": {
+        "games": 1,
+        "winrate": 0
+      },
+      "2": {
+        "games": 2,
+        "winrate": 0
+      },
+      "36": {
+        "games": 2,
+        "winrate": 1
+      },
+      "38": {
+        "games": 1,
+        "winrate": 1
+      },
+      "60": {
+        "games": 1,
+        "winrate": 0
+      },
+      "77": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "98": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "129958758": {
+      "108": {
+        "games": 2,
+        "winrate": 1
+      },
+      "135": {
+        "games": 2,
+        "winrate": 0
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "55": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 1,
+        "winrate": 0
+      },
+      "98": {
+        "games": 3,
+        "winrate": 0.3333
+      }
+    },
+    "132309493": {
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "2": {
+        "games": 1,
+        "winrate": 0
+      },
+      "33": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "38": {
+        "games": 1,
+        "winrate": 0
+      },
+      "47": {
+        "games": 1,
+        "winrate": 0
+      },
+      "55": {
+        "games": 1,
+        "winrate": 1
+      },
+      "60": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 2,
+        "winrate": 0
+      },
+      "96": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "136829091": {
+      "100": {
+        "games": 2,
+        "winrate": 0
+      },
+      "112": {
+        "games": 1,
+        "winrate": 1
+      },
+      "131": {
+        "games": 9,
+        "winrate": 0.5556
+      },
+      "26": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 2,
+        "winrate": 1
+      },
+      "85": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "137129583": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "107": {
+        "games": 1,
+        "winrate": 0
+      },
+      "11": {
+        "games": 1,
+        "winrate": 0
+      },
+      "114": {
+        "games": 1,
+        "winrate": 1
+      },
+      "120": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "13": {
+        "games": 2,
+        "winrate": 0
+      },
+      "16": {
+        "games": 1,
+        "winrate": 0
+      },
+      "17": {
+        "games": 2,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "138880576": {
+      "108": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "155": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "2": {
+        "games": 1,
+        "winrate": 1
+      },
+      "28": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "33": {
+        "games": 2,
+        "winrate": 1
+      },
+      "36": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "77": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 1,
+        "winrate": 0
+      },
+      "98": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "140251702": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "11": {
+        "games": 1,
+        "winrate": 0
+      },
+      "120": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "39": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "7": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "145065875": {
+      "100": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "119": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "51": {
+        "games": 1,
+        "winrate": 0
+      },
+      "7": {
+        "games": 1,
+        "winrate": 0
+      },
+      "90": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "145957968": {
+      "108": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "120": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "128": {
+        "games": 1,
+        "winrate": 1
+      },
+      "155": {
+        "games": 1,
+        "winrate": 1
+      },
+      "2": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "69": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "98": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "150961567": {
+      "105": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 3,
+        "winrate": 1
+      },
+      "27": {
+        "games": 1,
+        "winrate": 0
+      },
+      "51": {
+        "games": 1,
+        "winrate": 1
+      },
+      "86": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "9": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "90": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "152168157": {
+      "123": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "27": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "51": {
+        "games": 8,
+        "winrate": 0.625
+      },
+      "62": {
+        "games": 2,
+        "winrate": 1
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "152962063": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "11": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "114": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "145": {
+        "games": 2,
+        "winrate": 1
+      },
+      "18": {
+        "games": 1,
+        "winrate": 1
+      },
+      "19": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "21": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "41": {
+        "games": 1,
+        "winrate": 1
+      },
+      "48": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "67": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "154974246": {
+      "106": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "107": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "126": {
+        "games": 1,
+        "winrate": 0
+      },
+      "145": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 3,
+        "winrate": 0
+      },
+      "96": {
+        "games": 3,
+        "winrate": 0.6667
+      }
+    },
+    "155494381": {
+      "100": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 5,
+        "winrate": 0.2
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "86": {
+        "games": 1,
+        "winrate": 0
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      },
+      "90": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "157475523": {
+      "103": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "121": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "79": {
+        "games": 1,
+        "winrate": 0
+      },
+      "86": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      },
+      "90": {
+        "games": 1,
+        "winrate": 1
+      },
+      "91": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "160119017": {
+      "108": {
+        "games": 1,
+        "winrate": 0
+      },
+      "135": {
+        "games": 2,
+        "winrate": 1
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "2": {
+        "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 1,
+        "winrate": 1
+      },
+      "33": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "38": {
+        "games": 2,
+        "winrate": 0
+      },
+      "96": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "164199202": {
+      "119": {
+        "games": 9,
+        "winrate": 0.7778
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "136": {
+        "games": 1,
+        "winrate": 0
+      },
+      "14": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "62": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "86": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "90": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "16497807": {
+      "112": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "123": {
+        "games": 7,
+        "winrate": 0.5714
+      },
+      "30": {
+        "games": 1,
+        "winrate": 0
+      },
+      "79": {
+        "games": 3,
+        "winrate": 1
+      },
+      "83": {
+        "games": 2,
+        "winrate": 1
+      },
+      "86": {
+        "games": 1,
+        "winrate": 0
+      },
+      "9": {
+        "games": 4,
+        "winrate": 0
+      }
+    },
+    "165564598": {
+      "104": {
+        "games": 1,
+        "winrate": 1
+      },
+      "108": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "155": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "2": {
+        "games": 2,
+        "winrate": 1
+      },
+      "28": {
+        "games": 1,
+        "winrate": 1
+      },
+      "33": {
+        "games": 1,
+        "winrate": 0
+      },
+      "38": {
+        "games": 1,
+        "winrate": 0
+      },
+      "65": {
+        "games": 1,
+        "winrate": 1
+      },
+      "69": {
+        "games": 1,
+        "winrate": 0
+      },
+      "77": {
+        "games": 2,
+        "winrate": 0
+      },
+      "96": {
+        "games": 5,
+        "winrate": 0.6
+      }
+    },
+    "170896543": {
+      "11": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "138": {
+        "games": 1,
+        "winrate": 1
+      },
+      "145": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "19": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "20": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 1,
+        "winrate": 1
+      },
+      "6": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "67": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "171262902": {
+      "109": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "11": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "145": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "19": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "36": {
+        "games": 1,
+        "winrate": 1
+      },
+      "48": {
+        "games": 1,
+        "winrate": 1
+      },
+      "53": {
+        "games": 3,
+        "winrate": 0
+      },
+      "6": {
+        "games": 1,
+        "winrate": 0
+      },
+      "80": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "89": {
+        "games": 1,
+        "winrate": 0
+      },
+      "91": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "172099728": {
+      "145": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "18": {
+        "games": 1,
+        "winrate": 0
+      },
+      "19": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "46": {
+        "games": 2,
+        "winrate": 0
+      },
+      "54": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "6": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "80": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "89": {
+        "games": 1,
+        "winrate": 1
+      },
+      "91": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "173978074": {
+      "106": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "120": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "13": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "34": {
+        "games": 1,
+        "winrate": 0
+      },
+      "59": {
+        "games": 1,
+        "winrate": 0
+      },
+      "97": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "177203952": {
+      "12": {
+        "games": 1,
+        "winrate": 1
+      },
+      "18": {
+        "games": 2,
+        "winrate": 1
+      },
+      "20": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "4": {
+        "games": 1,
+        "winrate": 1
+      },
+      "46": {
+        "games": 1,
+        "winrate": 0
+      },
+      "54": {
+        "games": 1,
+        "winrate": 1
+      },
+      "67": {
+        "games": 1,
+        "winrate": 1
+      },
+      "80": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "183719386": {
+      "120": {
+        "games": 3,
+        "winrate": 1
+      },
+      "129": {
+        "games": 2,
+        "winrate": 0
+      },
+      "15": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 6,
+        "winrate": 0.5
+      },
+      "59": {
+        "games": 1,
+        "winrate": 1
+      },
+      "69": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "96": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "98": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "191362875": {
+      "112": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "62": {
+        "games": 1,
+        "winrate": 0
+      },
+      "64": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 7,
+        "winrate": 0.4286
+      }
+    },
+    "195108598": {
+      "108": {
+        "games": 1,
+        "winrate": 1
+      },
+      "2": {
+        "games": 2,
+        "winrate": 0
+      },
+      "28": {
+        "games": 6,
+        "winrate": 0.5
+      },
+      "55": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "69": {
+        "games": 5,
+        "winrate": 1
+      },
+      "77": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 3,
+        "winrate": 1
+      },
+      "98": {
+        "games": 3,
+        "winrate": 0.6667
+      }
+    },
+    "196878136": {
+      "103": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "112": {
+        "games": 7,
+        "winrate": 0.5714
+      },
+      "123": {
+        "games": 3,
+        "winrate": 0
+      },
+      "3": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "85": {
+        "games": 7,
+        "winrate": 0.5714
+      }
+    },
+    "201358612": {
+      "106": {
+        "games": 2,
+        "winrate": 1
+      },
+      "107": {
+        "games": 6,
+        "winrate": 0.6667
+      },
+      "120": {
+        "games": 1,
+        "winrate": 1
+      },
+      "13": {
+        "games": 1,
+        "winrate": 0
+      },
+      "17": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "53": {
+        "games": 1,
+        "winrate": 0
+      },
+      "59": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 3,
+        "winrate": 0.3333
+      }
+    },
+    "206642367": {
+      "11": {
+        "games": 1,
+        "winrate": 1
+      },
+      "12": {
+        "games": 1,
+        "winrate": 0
+      },
+      "145": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "19": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 1
+      },
+      "36": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "41": {
+        "games": 1,
+        "winrate": 0
+      },
+      "56": {
+        "games": 1,
+        "winrate": 0
+      },
+      "6": {
+        "games": 1,
+        "winrate": 1
+      },
+      "73": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "210053851": {
+      "106": {
+        "games": 5,
+        "winrate": 0.8
+      },
+      "107": {
+        "games": 1,
+        "winrate": 0
+      },
+      "126": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "13": {
+        "games": 1,
+        "winrate": 1
+      },
+      "17": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "25": {
+        "games": 1,
+        "winrate": 1
+      },
+      "35": {
+        "games": 1,
+        "winrate": 1
+      },
+      "47": {
+        "games": 1,
+        "winrate": 1
+      },
+      "53": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "59": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "218231587": {
+      "119": {
+        "games": 6,
+        "winrate": 0.8333
+      },
+      "123": {
+        "games": 3,
+        "winrate": 0
+      },
+      "131": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "26": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 1,
+        "winrate": 1
+      },
+      "51": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "79": {
+        "games": 1,
+        "winrate": 1
+      },
+      "86": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "9": {
+        "games": 3,
+        "winrate": 0.6667
+      }
+    },
+    "249835593": {
+      "105": {
+        "games": 1,
+        "winrate": 0
+      },
+      "110": {
+        "games": 1,
+        "winrate": 1
+      },
+      "112": {
+        "games": 6,
+        "winrate": 0.3333
+      },
+      "58": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "9": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "256156323": {
+      "100": {
+        "games": 1,
+        "winrate": 1
+      },
+      "119": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "123": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "26": {
+        "games": 1,
+        "winrate": 0
+      },
+      "79": {
+        "games": 1,
+        "winrate": 0
+      },
+      "9": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "90": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "25907144": {
+      "119": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "26": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "51": {
+        "games": 6,
+        "winrate": 0.6667
+      },
+      "58": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "62": {
+        "games": 1,
+        "winrate": 1
+      },
+      "79": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "292921272": {
+      "128": {
+        "games": 1,
+        "winrate": 1
+      },
+      "135": {
+        "games": 1,
+        "winrate": 1
+      },
+      "2": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "33": {
+        "games": 2,
+        "winrate": 1
+      },
+      "38": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "55": {
+        "games": 1,
+        "winrate": 0
+      },
+      "65": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 2,
+        "winrate": 1
+      },
+      "97": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "98": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "301750126": {
+      "106": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "107": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "126": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "74": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "302214028": {
+      "108": {
+        "games": 6,
+        "winrate": 0.8333
+      },
+      "129": {
+        "games": 1,
+        "winrate": 1
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "2": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "28": {
+        "games": 1,
+        "winrate": 1
+      },
+      "29": {
+        "games": 1,
+        "winrate": 0
+      },
+      "43": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "60": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "69": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "85": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "96": {
+        "games": 5,
+        "winrate": 0.8
+      }
+    },
+    "312436974": {
+      "106": {
+        "games": 2,
+        "winrate": 0
+      },
+      "107": {
+        "games": 5,
+        "winrate": 0.4
+      },
+      "114": {
+        "games": 1,
+        "winrate": 1
+      },
+      "128": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "13": {
+        "games": 1,
+        "winrate": 1
+      },
+      "137": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 1,
+        "winrate": 0
+      },
+      "49": {
+        "games": 1,
+        "winrate": 1
+      },
+      "74": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "91": {
+        "games": 1,
+        "winrate": 1
+      },
+      "93": {
+        "games": 2,
+        "winrate": 1
+      },
+      "96": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "315272623": {
+      "106": {
+        "games": 2,
+        "winrate": 1
+      },
+      "107": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "120": {
+        "games": 1,
+        "winrate": 0
+      },
+      "13": {
+        "games": 2,
+        "winrate": 0
+      },
+      "16": {
+        "games": 2,
+        "winrate": 0
+      },
+      "7": {
+        "games": 2,
+        "winrate": 1
+      },
+      "74": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "317880638": {
+      "119": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "131": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "27": {
+        "games": 1,
+        "winrate": 0
+      },
+      "79": {
+        "games": 1,
+        "winrate": 0
+      },
+      "86": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "9": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "90": {
+        "games": 6,
+        "winrate": 0.3333
+      }
+    },
+    "320017600": {
+      "109": {
+        "games": 2,
+        "winrate": 0
+      },
+      "18": {
+        "games": 2,
+        "winrate": 0
+      },
+      "36": {
+        "games": 1,
+        "winrate": 0
+      },
+      "53": {
+        "games": 1,
+        "winrate": 1
+      },
+      "54": {
+        "games": 1,
+        "winrate": 0
+      },
+      "6": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "73": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "320219866": {
+      "110": {
+        "games": 1,
+        "winrate": 0
+      },
+      "112": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "64": {
+        "games": 6,
+        "winrate": 0.5
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "85": {
+        "games": 1,
+        "winrate": 0
+      },
+      "86": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "320252024": {
+      "11": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "114": {
+        "games": 1,
+        "winrate": 0
+      },
+      "19": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "21": {
+        "games": 2,
+        "winrate": 0
+      },
+      "25": {
+        "games": 2,
+        "winrate": 1
+      },
+      "54": {
+        "games": 1,
+        "winrate": 0
+      },
+      "80": {
+        "games": 1,
+        "winrate": 0
+      },
+      "91": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "321580662": {
+      "109": {
+        "games": 5,
+        "winrate": 0.8
+      },
+      "11": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "12": {
+        "games": 1,
+        "winrate": 1
+      },
+      "145": {
+        "games": 1,
+        "winrate": 1
+      },
+      "18": {
+        "games": 1,
+        "winrate": 0
+      },
+      "19": {
+        "games": 1,
+        "winrate": 1
+      },
+      "46": {
+        "games": 1,
+        "winrate": 0
+      },
+      "48": {
+        "games": 1,
+        "winrate": 0
+      },
+      "53": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "54": {
+        "games": 2,
+        "winrate": 1
+      },
+      "6": {
+        "games": 5,
+        "winrate": 0.4
+      },
+      "80": {
+        "games": 3,
+        "winrate": 0.6667
+      }
+    },
+    "324277900": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "107": {
+        "games": 1,
+        "winrate": 0
+      },
+      "120": {
+        "games": 1,
+        "winrate": 1
+      },
+      "137": {
+        "games": 1,
+        "winrate": 0
+      },
+      "17": {
+        "games": 1,
+        "winrate": 1
+      },
+      "19": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 2,
+        "winrate": 0
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "49": {
+        "games": 1,
+        "winrate": 0
+      },
+      "7": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "331855530": {
+      "10": {
+        "games": 1,
+        "winrate": 1
+      },
+      "145": {
+        "games": 6,
+        "winrate": 0.6667
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "46": {
+        "games": 1,
+        "winrate": 0
+      },
+      "54": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "69": {
+        "games": 1,
+        "winrate": 0
+      },
+      "73": {
+        "games": 1,
+        "winrate": 0
+      },
+      "8": {
+        "games": 1,
+        "winrate": 0
+      },
+      "80": {
+        "games": 1,
+        "winrate": 0
+      },
+      "81": {
+        "games": 1,
+        "winrate": 1
+      },
+      "91": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "346412363": {
+      "100": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "123": {
+        "games": 10,
+        "winrate": 0.4
+      },
+      "26": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "27": {
+        "games": 1,
+        "winrate": 1
+      },
+      "62": {
+        "games": 1,
+        "winrate": 0
+      },
+      "90": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "355168766": {
+      "11": {
+        "games": 1,
+        "winrate": 0
+      },
+      "12": {
+        "games": 1,
+        "winrate": 0
+      },
+      "138": {
+        "games": 1,
+        "winrate": 0
+      },
+      "145": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "19": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "46": {
+        "games": 1,
+        "winrate": 0
+      },
+      "54": {
+        "games": 1,
+        "winrate": 0
+      },
+      "72": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "480412663": {
+      "106": {
+        "games": 2,
+        "winrate": 1
+      },
+      "11": {
+        "games": 1,
+        "winrate": 1
+      },
+      "114": {
+        "games": 1,
+        "winrate": 0
+      },
+      "120": {
+        "games": 1,
+        "winrate": 0
+      },
+      "128": {
+        "games": 2,
+        "winrate": 1
+      },
+      "13": {
+        "games": 5,
+        "winrate": 0.4
+      },
+      "25": {
+        "games": 5,
+        "winrate": 0.2
+      },
+      "28": {
+        "games": 2,
+        "winrate": 0
+      },
+      "47": {
+        "games": 1,
+        "winrate": 1
+      },
+      "49": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "93": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "56351509": {
+      "108": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "155": {
+        "games": 1,
+        "winrate": 1
+      },
+      "2": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "29": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "36": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "55": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "69": {
+        "games": 7,
+        "winrate": 0.5714
+      },
+      "96": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "98": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "73401082": {
+      "103": {
+        "games": 1,
+        "winrate": 1
+      },
+      "105": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "112": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "58": {
+        "games": 5,
+        "winrate": 0.8
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "84": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "85": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "9": {
+        "games": 4,
+        "winrate": 0.75
+      }
+    },
+    "77490514": {
+      "100": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "119": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 3,
+        "winrate": 1
+      },
+      "21": {
+        "games": 5,
+        "winrate": 0.8
+      },
+      "51": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "71": {
+        "games": 1,
+        "winrate": 0
+      },
+      "90": {
+        "games": 3,
+        "winrate": 0
+      },
+      "96": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "81306398": {
+      "110": {
+        "games": 1,
+        "winrate": 0
+      },
+      "111": {
+        "games": 1,
+        "winrate": 1
+      },
+      "112": {
+        "games": 2,
+        "winrate": 1
+      },
+      "123": {
+        "games": 3,
+        "winrate": 1
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "51": {
+        "games": 2,
+        "winrate": 0
+      },
+      "85": {
+        "games": 2,
+        "winrate": 0
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "96": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "847565596": {
+      "100": {
+        "games": 3,
+        "winrate": 1
+      },
+      "112": {
+        "games": 7,
+        "winrate": 0.5714
+      },
+      "123": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "131": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "2": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 2,
+        "winrate": 1
+      },
+      "30": {
+        "games": 1,
+        "winrate": 0
+      },
+      "51": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "64": {
+        "games": 2,
+        "winrate": 1
+      },
+      "85": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "87": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "86698277": {
+      "107": {
+        "games": 2,
+        "winrate": 1
+      },
+      "155": {
+        "games": 1,
+        "winrate": 1
+      },
+      "29": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "36": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "60": {
+        "games": 1,
+        "winrate": 0
+      },
+      "69": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "77": {
+        "games": 1,
+        "winrate": 1
+      },
+      "78": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "898455820": {
+      "107": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "120": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "128": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "15": {
+        "games": 1,
+        "winrate": 0
+      },
+      "16": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "25": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "59": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "7": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "898754153": {
+      "12": {
+        "games": 2,
+        "winrate": 0
+      },
+      "19": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "25": {
+        "games": 1,
+        "winrate": 1
+      },
+      "53": {
+        "games": 1,
+        "winrate": 0
+      },
+      "54": {
+        "games": 1,
+        "winrate": 0
+      },
+      "6": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "67": {
+        "games": 1,
+        "winrate": 0
+      },
+      "91": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "90423751": {
+      "100": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
+        "games": 6,
+        "winrate": 0.6667
+      },
+      "123": {
+        "games": 4,
+        "winrate": 0.25
+      },
+      "51": {
+        "games": 1,
+        "winrate": 0
+      },
+      "79": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "92487440": {
+      "108": {
+        "games": 1,
+        "winrate": 0
+      },
+      "135": {
+        "games": 1,
+        "winrate": 0
+      },
+      "55": {
+        "games": 3,
+        "winrate": 0
+      },
+      "96": {
+        "games": 5,
+        "winrate": 0.4
+      }
+    },
+    "93618577": {
+      "106": {
+        "games": 4,
+        "winrate": 0
+      },
+      "107": {
+        "games": 5,
+        "winrate": 0.8
+      },
+      "113": {
+        "games": 1,
+        "winrate": 0
+      },
+      "16": {
+        "games": 1,
+        "winrate": 1
+      },
+      "17": {
+        "games": 1,
+        "winrate": 1
+      },
+      "19": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "49": {
+        "games": 1,
+        "winrate": 0
+      },
+      "7": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "74": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "93817671": {
+      "100": {
+        "games": 1,
+        "winrate": 0
+      },
+      "103": {
+        "games": 1,
+        "winrate": 0
+      },
+      "112": {
+        "games": 6,
+        "winrate": 0.8333
+      },
+      "123": {
+        "games": 2,
+        "winrate": 1
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "30": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "51": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "64": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "85": {
+        "games": 7,
+        "winrate": 0.4286
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "94054712": {
+      "107": {
+        "games": 1,
+        "winrate": 0
+      },
+      "120": {
+        "games": 1,
+        "winrate": 1
+      },
+      "126": {
+        "games": 1,
+        "winrate": 0
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "22": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "32": {
+        "games": 1,
+        "winrate": 0
+      },
+      "47": {
+        "games": 1,
+        "winrate": 0
+      },
+      "49": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "72": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 1,
+        "winrate": 1
+      },
+      "95": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "94296097": {
+      "103": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "112": {
+        "games": 3,
+        "winrate": 0
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 3,
+        "winrate": 0.3333
+      }
+    },
+    "97590558": {
+      "108": {
+        "games": 5,
+        "winrate": 0.4
+      },
+      "135": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "28": {
+        "games": 1,
+        "winrate": 1
+      },
+      "29": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "47": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "77": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "96": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "98": {
+        "games": 1,
+        "winrate": 0
+      }
+    }
+  },
   "league-19785": {
     "100058342": {
       "11": {
@@ -188650,8 +191576,8 @@
         "winrate": 1
       },
       "19": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "21": {
         "games": 3,
@@ -188668,6 +191594,10 @@
       "67": {
         "games": 1,
         "winrate": 1
+      },
+      "72": {
+        "games": 1,
+        "winrate": 0
       }
     },
     "100471531": {
@@ -188728,8 +191658,8 @@
         "winrate": 0.5
       },
       "3": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "50": {
         "games": 2,
@@ -188738,6 +191668,10 @@
       "68": {
         "games": 1,
         "winrate": 1
+      },
+      "85": {
+        "games": 1,
+        "winrate": 0
       },
       "90": {
         "games": 2,
@@ -188831,9 +191765,13 @@
       }
     },
     "10366616": {
+      "112": {
+        "games": 1,
+        "winrate": 0
+      },
       "131": {
-        "games": 3,
-        "winrate": 0.6667
+        "games": 4,
+        "winrate": 0.5
       },
       "58": {
         "games": 1,
@@ -188854,7 +191792,7 @@
         "winrate": 1
       },
       "123": {
-        "games": 3,
+        "games": 5,
         "winrate": 1
       },
       "128": {
@@ -188862,7 +191800,7 @@
         "winrate": 1
       },
       "53": {
-        "games": 2,
+        "games": 3,
         "winrate": 1
       },
       "79": {
@@ -188870,18 +191808,22 @@
         "winrate": 1
       },
       "9": {
-        "games": 2,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       },
       "90": {
-        "games": 2,
-        "winrate": 0.5
+        "games": 3,
+        "winrate": 0.3333
       }
     },
     "1044002267": {
       "11": {
         "games": 1,
         "winrate": 1
+      },
+      "12": {
+        "games": 1,
+        "winrate": 0
       },
       "145": {
         "games": 2,
@@ -188891,12 +191833,16 @@
         "games": 2,
         "winrate": 1
       },
-      "53": {
-        "games": 1,
+      "19": {
+        "games": 2,
         "winrate": 1
       },
+      "53": {
+        "games": 2,
+        "winrate": 0.5
+      },
       "54": {
-        "games": 1,
+        "games": 3,
         "winrate": 1
       },
       "6": {
@@ -188904,7 +191850,7 @@
         "winrate": 1
       },
       "80": {
-        "games": 1,
+        "games": 2,
         "winrate": 1
       }
     },
@@ -188970,19 +191916,19 @@
     },
     "106573901": {
       "106": {
-        "games": 2,
-        "winrate": 1
+        "games": 5,
+        "winrate": 0.6
       },
       "107": {
         "games": 2,
         "winrate": 1
       },
       "120": {
-        "games": 5,
+        "games": 6,
         "winrate": 1
       },
       "13": {
-        "games": 1,
+        "games": 2,
         "winrate": 1
       },
       "155": {
@@ -188991,6 +191937,10 @@
       },
       "7": {
         "games": 1,
+        "winrate": 1
+      },
+      "74": {
+        "games": 2,
         "winrate": 1
       }
     },
@@ -189090,16 +192040,16 @@
     },
     "111114687": {
       "100": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "111": {
         "games": 1,
         "winrate": 0
       },
       "123": {
-        "games": 2,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       },
       "131": {
         "games": 1,
@@ -189109,21 +192059,25 @@
         "games": 4,
         "winrate": 0.75
       },
+      "5": {
+        "games": 1,
+        "winrate": 0
+      },
       "51": {
         "games": 1,
         "winrate": 1
       },
       "83": {
-        "games": 1,
-        "winrate": 0
+        "games": 2,
+        "winrate": 0.5
       },
       "85": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "9": {
-        "games": 1,
-        "winrate": 0
+        "games": 2,
+        "winrate": 0.5
       }
     },
     "111620041": {
@@ -189132,8 +192086,8 @@
         "winrate": 1
       },
       "19": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "21": {
         "games": 3,
@@ -189142,6 +192096,10 @@
       "73": {
         "games": 4,
         "winrate": 1
+      },
+      "74": {
+        "games": 1,
+        "winrate": 0
       },
       "80": {
         "games": 1,
@@ -189262,18 +192220,22 @@
     },
     "118134220": {
       "155": {
-        "games": 4,
-        "winrate": 0.75
+        "games": 5,
+        "winrate": 0.6
       },
       "29": {
         "games": 1,
         "winrate": 1
       },
       "38": {
-        "games": 2,
-        "winrate": 1
+        "games": 4,
+        "winrate": 0.75
       },
       "55": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "60": {
         "games": 1,
         "winrate": 0
       },
@@ -189282,8 +192244,8 @@
         "winrate": 0
       },
       "69": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "85": {
         "games": 1,
@@ -189609,9 +192571,13 @@
       }
     },
     "137129583": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
       "107": {
-        "games": 2,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       },
       "120": {
         "games": 1,
@@ -189626,18 +192592,26 @@
         "winrate": 0
       },
       "17": {
-        "games": 4,
-        "winrate": 0.5
+        "games": 5,
+        "winrate": 0.4
       },
       "25": {
-        "games": 2,
+        "games": 3,
         "winrate": 1
+      },
+      "36": {
+        "games": 1,
+        "winrate": 0
       },
       "52": {
         "games": 1,
         "winrate": 0
       },
       "7": {
+        "games": 1,
+        "winrate": 1
+      },
+      "93": {
         "games": 1,
         "winrate": 1
       }
@@ -189664,8 +192638,12 @@
         "winrate": 1
       },
       "77": {
-        "games": 4,
-        "winrate": 1
+        "games": 5,
+        "winrate": 0.8
+      },
+      "98": {
+        "games": 1,
+        "winrate": 0
       }
     },
     "140251702": {
@@ -189726,8 +192704,8 @@
     },
     "152168157": {
       "123": {
-        "games": 7,
-        "winrate": 0.8571
+        "games": 9,
+        "winrate": 0.6667
       },
       "131": {
         "games": 1,
@@ -189935,7 +192913,19 @@
       }
     },
     "157475523": {
+      "100": {
+        "games": 1,
+        "winrate": 1
+      },
       "101": {
+        "games": 1,
+        "winrate": 0
+      },
+      "112": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
         "games": 1,
         "winrate": 0
       },
@@ -189964,12 +192954,12 @@
         "winrate": 1
       },
       "9": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "90": {
-        "games": 1,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       }
     },
     "157989498": {
@@ -190038,12 +193028,20 @@
         "winrate": 1
       },
       "119": {
-        "games": 5,
+        "games": 8,
+        "winrate": 0.875
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "86": {
+        "games": 1,
         "winrate": 1
       },
       "90": {
-        "games": 3,
-        "winrate": 1
+        "games": 5,
+        "winrate": 0.8
       },
       "91": {
         "games": 1,
@@ -190086,10 +193084,14 @@
     },
     "165564598": {
       "155": {
-        "games": 3,
-        "winrate": 0.6667
+        "games": 5,
+        "winrate": 0.6
       },
       "2": {
+        "games": 2,
+        "winrate": 1
+      },
+      "28": {
         "games": 1,
         "winrate": 1
       },
@@ -190098,8 +193100,8 @@
         "winrate": 1
       },
       "38": {
-        "games": 2,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       },
       "60": {
         "games": 1,
@@ -190114,12 +193116,12 @@
         "winrate": 1
       },
       "96": {
-        "games": 1,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       },
       "98": {
-        "games": 1,
-        "winrate": 0
+        "games": 2,
+        "winrate": 0.5
       }
     },
     "171262902": {
@@ -190127,17 +193129,29 @@
         "games": 1,
         "winrate": 0
       },
-      "12": {
-        "games": 3,
+      "11": {
+        "games": 1,
         "winrate": 1
       },
+      "12": {
+        "games": 4,
+        "winrate": 0.75
+      },
       "145": {
-        "games": 3,
+        "games": 4,
+        "winrate": 1
+      },
+      "19": {
+        "games": 1,
         "winrate": 1
       },
       "25": {
         "games": 1,
         "winrate": 1
+      },
+      "46": {
+        "games": 1,
+        "winrate": 0
       },
       "53": {
         "games": 1,
@@ -190162,28 +193176,36 @@
         "winrate": 1
       },
       "145": {
-        "games": 3,
-        "winrate": 1
+        "games": 6,
+        "winrate": 0.6667
       },
       "19": {
         "games": 1,
         "winrate": 1
       },
       "21": {
-        "games": 1,
-        "winrate": 0
+        "games": 2,
+        "winrate": 0.5
       },
       "4": {
         "games": 1,
         "winrate": 1
       },
       "56": {
-        "games": 1,
+        "games": 2,
         "winrate": 1
       },
       "6": {
-        "games": 3,
-        "winrate": 0.6667
+        "games": 4,
+        "winrate": 0.5
+      },
+      "80": {
+        "games": 1,
+        "winrate": 1
+      },
+      "89": {
+        "games": 1,
+        "winrate": 1
       }
     },
     "173978074": {
@@ -190282,12 +193304,16 @@
     },
     "183719386": {
       "135": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "2": {
         "games": 2,
         "winrate": 1
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
       },
       "36": {
         "games": 3,
@@ -190378,7 +193404,7 @@
     },
     "195108598": {
       "108": {
-        "games": 1,
+        "games": 2,
         "winrate": 1
       },
       "135": {
@@ -190389,13 +193415,21 @@
         "games": 2,
         "winrate": 1
       },
+      "2": {
+        "games": 1,
+        "winrate": 1
+      },
       "28": {
+        "games": 2,
+        "winrate": 1
+      },
+      "36": {
         "games": 1,
         "winrate": 1
       },
       "38": {
-        "games": 1,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.3333
       },
       "55": {
         "games": 3,
@@ -190404,6 +193438,10 @@
       "60": {
         "games": 2,
         "winrate": 0.5
+      },
+      "96": {
+        "games": 1,
+        "winrate": 1
       }
     },
     "196400041": {
@@ -190468,28 +193506,28 @@
         "winrate": 0
       },
       "112": {
-        "games": 2,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       },
       "3": {
-        "games": 4,
-        "winrate": 1
+        "games": 6,
+        "winrate": 0.8333
       },
       "30": {
         "games": 1,
         "winrate": 0
       },
       "83": {
-        "games": 1,
-        "winrate": 1
-      },
-      "85": {
         "games": 2,
         "winrate": 1
       },
-      "87": {
-        "games": 1,
+      "85": {
+        "games": 5,
         "winrate": 1
+      },
+      "87": {
+        "games": 2,
+        "winrate": 0.5
       }
     },
     "201358612": {
@@ -190617,6 +193655,10 @@
         "games": 1,
         "winrate": 1
       },
+      "13": {
+        "games": 1,
+        "winrate": 0
+      },
       "17": {
         "games": 1,
         "winrate": 1
@@ -190630,8 +193672,8 @@
         "winrate": 1
       },
       "47": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       },
       "53": {
         "games": 1,
@@ -190786,8 +193828,8 @@
         "winrate": 1
       },
       "51": {
-        "games": 7,
-        "winrate": 0.8571
+        "games": 9,
+        "winrate": 0.6667
       },
       "58": {
         "games": 2,
@@ -190995,12 +194037,20 @@
         "games": 1,
         "winrate": 1
       },
-      "28": {
-        "games": 3,
+      "114": {
+        "games": 2,
         "winrate": 1
       },
-      "7": {
+      "120": {
         "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "7": {
+        "games": 2,
         "winrate": 1
       },
       "74": {
@@ -191014,28 +194064,36 @@
         "winrate": 0
       },
       "123": {
-        "games": 1,
+        "games": 2,
         "winrate": 1
       },
       "131": {
         "games": 3,
         "winrate": 1
       },
-      "27": {
+      "21": {
         "games": 1,
+        "winrate": 0
+      },
+      "27": {
+        "games": 3,
         "winrate": 1
       },
       "65": {
         "games": 1,
         "winrate": 0
       },
+      "79": {
+        "games": 1,
+        "winrate": 0
+      },
       "9": {
-        "games": 2,
+        "games": 3,
         "winrate": 1
       },
       "90": {
-        "games": 2,
-        "winrate": 1
+        "games": 4,
+        "winrate": 0.75
       },
       "92": {
         "games": 1,
@@ -191100,7 +194158,7 @@
     },
     "320252024": {
       "109": {
-        "games": 1,
+        "games": 2,
         "winrate": 0
       },
       "11": {
@@ -191108,8 +194166,8 @@
         "winrate": 0.75
       },
       "19": {
-        "games": 2,
-        "winrate": 0.5
+        "games": 3,
+        "winrate": 0.3333
       },
       "21": {
         "games": 1,
@@ -191128,12 +194186,20 @@
         "winrate": 1
       },
       "56": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "67": {
         "games": 1,
         "winrate": 1
       },
       "70": {
         "games": 1,
         "winrate": 0
+      },
+      "80": {
+        "games": 2,
+        "winrate": 0.5
       }
     },
     "321580662": {
@@ -191426,19 +194492,23 @@
     },
     "480412663": {
       "106": {
-        "games": 1,
-        "winrate": 1
-      },
-      "107": {
-        "games": 4,
-        "winrate": 0.75
-      },
-      "25": {
         "games": 2,
         "winrate": 1
       },
-      "28": {
+      "107": {
+        "games": 6,
+        "winrate": 0.5
+      },
+      "13": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
         "games": 3,
+        "winrate": 1
+      },
+      "28": {
+        "games": 5,
         "winrate": 1
       },
       "60": {
@@ -191446,8 +194516,8 @@
         "winrate": 0
       },
       "74": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       }
     },
     "56351509": {
@@ -191455,15 +194525,23 @@
         "games": 1,
         "winrate": 1
       },
-      "23": {
+      "2": {
         "games": 1,
         "winrate": 1
       },
-      "33": {
+      "23": {
         "games": 2,
         "winrate": 1
       },
+      "33": {
+        "games": 4,
+        "winrate": 0.75
+      },
       "38": {
+        "games": 1,
+        "winrate": 0
+      },
+      "55": {
         "games": 1,
         "winrate": 0
       },
@@ -191478,12 +194556,16 @@
         "winrate": 1
       },
       "112": {
-        "games": 5,
-        "winrate": 1
+        "games": 7,
+        "winrate": 0.8571
       },
       "121": {
         "games": 1,
         "winrate": 0
+      },
+      "123": {
+        "games": 4,
+        "winrate": 1
       },
       "31": {
         "games": 1,
@@ -191502,8 +194584,8 @@
         "winrate": 1
       },
       "84": {
-        "games": 1,
-        "winrate": 1
+        "games": 2,
+        "winrate": 0.5
       }
     },
     "77490514": {
@@ -191738,16 +194820,16 @@
     },
     "898455820": {
       "106": {
-        "games": 4,
-        "winrate": 0.75
+        "games": 5,
+        "winrate": 0.6
       },
       "107": {
         "games": 4,
         "winrate": 1
       },
       "128": {
-        "games": 2,
-        "winrate": 1
+        "games": 3,
+        "winrate": 0.6667
       }
     },
     "898754153": {
@@ -191909,8 +194991,12 @@
       }
     },
     "93817671": {
+      "100": {
+        "games": 1,
+        "winrate": 0
+      },
       "112": {
-        "games": 3,
+        "games": 5,
         "winrate": 1
       },
       "30": {
@@ -191918,6 +195004,14 @@
         "winrate": 1
       },
       "51": {
+        "games": 1,
+        "winrate": 0
+      },
+      "58": {
+        "games": 1,
+        "winrate": 1
+      },
+      "64": {
         "games": 1,
         "winrate": 0
       },
@@ -192166,6 +195260,1980 @@
       "80": {
         "games": 1,
         "winrate": 0
+      }
+    }
+  },
+  "league-19917": {
+    "100471531": {
+      "107": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "155": {
+        "games": 1,
+        "winrate": 1
+      },
+      "2": {
+        "games": 3,
+        "winrate": 1
+      },
+      "33": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "36": {
+        "games": 1,
+        "winrate": 1
+      },
+      "47": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "98": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "100616105": {
+      "112": {
+        "games": 1,
+        "winrate": 0
+      },
+      "121": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "30": {
+        "games": 2,
+        "winrate": 1
+      },
+      "87": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "101695162": {
+      "100": {
+        "games": 1,
+        "winrate": 1
+      },
+      "119": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "51": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "9": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "1026694469": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "107": {
+        "games": 2,
+        "winrate": 0
+      },
+      "13": {
+        "games": 1,
+        "winrate": 1
+      },
+      "17": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "47": {
+        "games": 2,
+        "winrate": 1
+      },
+      "90": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "1031547092": {
+      "111": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "26": {
+        "games": 1,
+        "winrate": 1
+      },
+      "58": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 5,
+        "winrate": 0.8
+      }
+    },
+    "105045291": {
+      "121": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "51": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "71": {
+        "games": 3,
+        "winrate": 1
+      },
+      "79": {
+        "games": 1,
+        "winrate": 0
+      },
+      "88": {
+        "games": 1,
+        "winrate": 1
+      },
+      "90": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "111114687": {
+      "100": {
+        "games": 1,
+        "winrate": 1
+      },
+      "112": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "84": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "116585378": {
+      "108": {
+        "games": 1,
+        "winrate": 0
+      },
+      "120": {
+        "games": 1,
+        "winrate": 0
+      },
+      "135": {
+        "games": 1,
+        "winrate": 0
+      },
+      "65": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "117089283": {
+      "123": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "64": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 1,
+        "winrate": 0
+      },
+      "90": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "118134220": {
+      "120": {
+        "games": 1,
+        "winrate": 1
+      },
+      "155": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "38": {
+        "games": 1,
+        "winrate": 1
+      },
+      "69": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "96": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "118559150": {
+      "123": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "20": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 1,
+        "winrate": 1
+      },
+      "30": {
+        "games": 2,
+        "winrate": 0
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "1202267677": {
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "31": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "51": {
+        "games": 2,
+        "winrate": 1
+      },
+      "65": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "122817493": {
+      "111": {
+        "games": 1,
+        "winrate": 0
+      },
+      "112": {
+        "games": 1,
+        "winrate": 0
+      },
+      "31": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "85": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "123023873": {
+      "106": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "126": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "123787715": {
+      "112": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "125445069": {
+      "11": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "19": {
+        "games": 1,
+        "winrate": 0
+      },
+      "80": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "129958758": {
+      "155": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "2": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "96": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "131303632": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "120": {
+        "games": 2,
+        "winrate": 0
+      },
+      "53": {
+        "games": 1,
+        "winrate": 0
+      },
+      "77": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "137129583": {
+      "11": {
+        "games": 1,
+        "winrate": 1
+      },
+      "120": {
+        "games": 1,
+        "winrate": 1
+      },
+      "126": {
+        "games": 1,
+        "winrate": 0
+      },
+      "13": {
+        "games": 1,
+        "winrate": 1
+      },
+      "28": {
+        "games": 1,
+        "winrate": 1
+      },
+      "36": {
+        "games": 1,
+        "winrate": 0
+      },
+      "47": {
+        "games": 1,
+        "winrate": 0
+      },
+      "93": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "139876032": {
+      "119": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0
+      },
+      "26": {
+        "games": 6,
+        "winrate": 0.6667
+      },
+      "27": {
+        "games": 5,
+        "winrate": 0.8
+      },
+      "86": {
+        "games": 1,
+        "winrate": 0
+      },
+      "88": {
+        "games": 1,
+        "winrate": 0
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "140251702": {
+      "126": {
+        "games": 1,
+        "winrate": 0
+      },
+      "13": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "52": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "140411011": {
+      "109": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "11": {
+        "games": 1,
+        "winrate": 0
+      },
+      "145": {
+        "games": 1,
+        "winrate": 0
+      },
+      "53": {
+        "games": 1,
+        "winrate": 0
+      },
+      "67": {
+        "games": 1,
+        "winrate": 0
+      },
+      "80": {
+        "games": 1,
+        "winrate": 1
+      },
+      "89": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "145065875": {
+      "119": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "51": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "90": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "145957968": {
+      "108": {
+        "games": 1,
+        "winrate": 0
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "69": {
+        "games": 1,
+        "winrate": 1
+      },
+      "77": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "98": {
+        "games": 5,
+        "winrate": 1
+      },
+      "99": {
+        "games": 2,
+        "winrate": 0
+      }
+    },
+    "147767183": {
+      "53": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "55": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "78": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "150961567": {
+      "105": {
+        "games": 2,
+        "winrate": 1
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0
+      },
+      "22": {
+        "games": 1,
+        "winrate": 0
+      },
+      "51": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "7": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "88": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "90": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "152859296": {
+      "100": {
+        "games": 1,
+        "winrate": 1
+      },
+      "119": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 2,
+        "winrate": 1
+      },
+      "131": {
+        "games": 1,
+        "winrate": 1
+      },
+      "51": {
+        "games": 1,
+        "winrate": 1
+      },
+      "53": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "154715080": {
+      "106": {
+        "games": 2,
+        "winrate": 1
+      },
+      "107": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "120": {
+        "games": 2,
+        "winrate": 1
+      },
+      "17": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 3,
+        "winrate": 1
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 3,
+        "winrate": 0.6667
+      }
+    },
+    "155162307": {
+      "19": {
+        "games": 1,
+        "winrate": 0
+      },
+      "48": {
+        "games": 1,
+        "winrate": 0
+      },
+      "53": {
+        "games": 1,
+        "winrate": 1
+      },
+      "70": {
+        "games": 1,
+        "winrate": 0
+      },
+      "99": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "155447692": {
+      "119": {
+        "games": 3,
+        "winrate": 0
+      },
+      "131": {
+        "games": 1,
+        "winrate": 1
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 1,
+        "winrate": 1
+      },
+      "51": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "156328257": {
+      "135": {
+        "games": 1,
+        "winrate": 0
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 1,
+        "winrate": 0
+      },
+      "55": {
+        "games": 1,
+        "winrate": 0
+      },
+      "65": {
+        "games": 1,
+        "winrate": 1
+      },
+      "69": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "157475523": {
+      "119": {
+        "games": 1,
+        "winrate": 1
+      },
+      "86": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      },
+      "90": {
+        "games": 3,
+        "winrate": 0.6667
+      }
+    },
+    "157989498": {
+      "100": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "123": {
+        "games": 2,
+        "winrate": 1
+      },
+      "136": {
+        "games": 1,
+        "winrate": 1
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "7": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "85": {
+        "games": 2,
+        "winrate": 1
+      },
+      "88": {
+        "games": 3,
+        "winrate": 1
+      }
+    },
+    "158847773": {
+      "110": {
+        "games": 1,
+        "winrate": 0
+      },
+      "112": {
+        "games": 7,
+        "winrate": 0.4286
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "30": {
+        "games": 1,
+        "winrate": 1
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "85": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "164506534": {
+      "11": {
+        "games": 1,
+        "winrate": 0
+      },
+      "12": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 2,
+        "winrate": 0
+      },
+      "56": {
+        "games": 2,
+        "winrate": 1
+      },
+      "99": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "164685175": {
+      "20": {
+        "games": 1,
+        "winrate": 0
+      },
+      "48": {
+        "games": 1,
+        "winrate": 1
+      },
+      "54": {
+        "games": 1,
+        "winrate": 0
+      },
+      "72": {
+        "games": 1,
+        "winrate": 0
+      },
+      "8": {
+        "games": 1,
+        "winrate": 1
+      },
+      "89": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "1657135701": {
+      "109": {
+        "games": 1,
+        "winrate": 0
+      },
+      "18": {
+        "games": 1,
+        "winrate": 0
+      },
+      "19": {
+        "games": 1,
+        "winrate": 1
+      },
+      "21": {
+        "games": 1,
+        "winrate": 1
+      },
+      "80": {
+        "games": 1,
+        "winrate": 0
+      },
+      "99": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "1682179459": {
+      "26": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "65": {
+        "games": 4,
+        "winrate": 0.25
+      }
+    },
+    "170896543": {
+      "11": {
+        "games": 1,
+        "winrate": 1
+      },
+      "145": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "20": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "36": {
+        "games": 2,
+        "winrate": 0
+      },
+      "53": {
+        "games": 1,
+        "winrate": 0
+      },
+      "56": {
+        "games": 1,
+        "winrate": 0
+      },
+      "6": {
+        "games": 1,
+        "winrate": 0
+      },
+      "67": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "173378701": {
+      "106": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "107": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "128": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "65": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "173978074": {
+      "106": {
+        "games": 1,
+        "winrate": 1
+      },
+      "137": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "16": {
+        "games": 1,
+        "winrate": 1
+      },
+      "34": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "7": {
+        "games": 1,
+        "winrate": 1
+      },
+      "91": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "175311897": {
+      "119": {
+        "games": 2,
+        "winrate": 0
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "177203952": {
+      "10": {
+        "games": 1,
+        "winrate": 0
+      },
+      "11": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "18": {
+        "games": 2,
+        "winrate": 1
+      },
+      "19": {
+        "games": 1,
+        "winrate": 0
+      },
+      "36": {
+        "games": 1,
+        "winrate": 1
+      },
+      "48": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "63": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "181716137": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "13": {
+        "games": 1,
+        "winrate": 1
+      },
+      "17": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 2,
+        "winrate": 0
+      },
+      "53": {
+        "games": 1,
+        "winrate": 1
+      },
+      "7": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "185908355": {
+      "10": {
+        "games": 1,
+        "winrate": 0
+      },
+      "11": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "145": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "18": {
+        "games": 1,
+        "winrate": 0
+      },
+      "19": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 1,
+        "winrate": 1
+      },
+      "36": {
+        "games": 1,
+        "winrate": 0
+      },
+      "48": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "54": {
+        "games": 1,
+        "winrate": 1
+      },
+      "56": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "67": {
+        "games": 1,
+        "winrate": 0
+      },
+      "80": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "202217968": {
+      "106": {
+        "games": 1,
+        "winrate": 1
+      },
+      "107": {
+        "games": 2,
+        "winrate": 1
+      },
+      "126": {
+        "games": 1,
+        "winrate": 0
+      },
+      "13": {
+        "games": 2,
+        "winrate": 0
+      },
+      "17": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "28": {
+        "games": 1,
+        "winrate": 0
+      },
+      "7": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "93": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "203351055": {
+      "128": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "135": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "155": {
+        "games": 1,
+        "winrate": 1
+      },
+      "38": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "55": {
+        "games": 1,
+        "winrate": 1
+      },
+      "69": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "217472313": {
+      "112": {
+        "games": 1,
+        "winrate": 0
+      },
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "31": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "51": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "249835593": {
+      "105": {
+        "games": 1,
+        "winrate": 0
+      },
+      "110": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "112": {
+        "games": 2,
+        "winrate": 1
+      },
+      "131": {
+        "games": 1,
+        "winrate": 1
+      },
+      "3": {
+        "games": 2,
+        "winrate": 0
+      },
+      "30": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "40": {
+        "games": 1,
+        "winrate": 1
+      },
+      "51": {
+        "games": 1,
+        "winrate": 0
+      },
+      "83": {
+        "games": 2,
+        "winrate": 1
+      },
+      "85": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "292921272": {
+      "33": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "38": {
+        "games": 1,
+        "winrate": 0
+      },
+      "55": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "65": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "69": {
+        "games": 1,
+        "winrate": 0
+      },
+      "97": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "294135421": {
+      "16": {
+        "games": 8,
+        "winrate": 0.625
+      },
+      "19": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "96": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "315272623": {
+      "106": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "107": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "120": {
+        "games": 2,
+        "winrate": 0
+      },
+      "13": {
+        "games": 5,
+        "winrate": 0.6
+      },
+      "7": {
+        "games": 1,
+        "winrate": 1
+      },
+      "74": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "320017600": {
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "48": {
+        "games": 1,
+        "winrate": 1
+      },
+      "67": {
+        "games": 1,
+        "winrate": 0
+      },
+      "72": {
+        "games": 1,
+        "winrate": 0
+      },
+      "73": {
+        "games": 1,
+        "winrate": 1
+      },
+      "80": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "320252024": {
+      "11": {
+        "games": 2,
+        "winrate": 1
+      },
+      "145": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "53": {
+        "games": 1,
+        "winrate": 1
+      },
+      "73": {
+        "games": 1,
+        "winrate": 0
+      },
+      "80": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "326327879": {
+      "119": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 1,
+        "winrate": 1
+      },
+      "51": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "83": {
+        "games": 1,
+        "winrate": 1
+      },
+      "9": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "330534326": {
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "19": {
+        "games": 1,
+        "winrate": 1
+      },
+      "25": {
+        "games": 1,
+        "winrate": 1
+      },
+      "6": {
+        "games": 1,
+        "winrate": 0
+      },
+      "61": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "72": {
+        "games": 1,
+        "winrate": 0
+      },
+      "73": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "333351042": {
+      "119": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "86": {
+        "games": 1,
+        "winrate": 0
+      },
+      "9": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "90": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "337575662": {
+      "109": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 1,
+        "winrate": 0
+      },
+      "69": {
+        "games": 1,
+        "winrate": 1
+      },
+      "77": {
+        "games": 1,
+        "winrate": 0
+      },
+      "91": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 3,
+        "winrate": 0.3333
+      }
+    },
+    "343084576": {
+      "112": {
+        "games": 1,
+        "winrate": 1
+      },
+      "123": {
+        "games": 1,
+        "winrate": 1
+      },
+      "85": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "9": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "349310876": {
+      "100": {
+        "games": 1,
+        "winrate": 1
+      },
+      "123": {
+        "games": 1,
+        "winrate": 0
+      },
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "30": {
+        "games": 1,
+        "winrate": 1
+      },
+      "87": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "352623024": {
+      "108": {
+        "games": 1,
+        "winrate": 1
+      },
+      "155": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "2": {
+        "games": 1,
+        "winrate": 0
+      },
+      "78": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "363758022": {
+      "11": {
+        "games": 1,
+        "winrate": 0
+      },
+      "12": {
+        "games": 1,
+        "winrate": 1
+      },
+      "19": {
+        "games": 1,
+        "winrate": 0
+      },
+      "56": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "6": {
+        "games": 1,
+        "winrate": 1
+      },
+      "69": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "80": {
+        "games": 2,
+        "winrate": 1
+      },
+      "89": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "374875067": {
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "2": {
+        "games": 1,
+        "winrate": 1
+      },
+      "38": {
+        "games": 1,
+        "winrate": 0
+      },
+      "85": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "98": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "383788462": {
+      "108": {
+        "games": 2,
+        "winrate": 0
+      },
+      "135": {
+        "games": 1,
+        "winrate": 0
+      },
+      "29": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "392169957": {
+      "106": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "107": {
+        "games": 1,
+        "winrate": 1
+      },
+      "11": {
+        "games": 1,
+        "winrate": 1
+      },
+      "13": {
+        "games": 1,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "392385140": {
+      "119": {
+        "games": 1,
+        "winrate": 1
+      },
+      "128": {
+        "games": 1,
+        "winrate": 0
+      },
+      "86": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "392565237": {
+      "25": {
+        "games": 1,
+        "winrate": 1
+      },
+      "36": {
+        "games": 1,
+        "winrate": 1
+      },
+      "67": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "72": {
+        "games": 1,
+        "winrate": 1
+      },
+      "73": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "399862798": {
+      "107": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
+        "games": 1,
+        "winrate": 1
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0
+      },
+      "155": {
+        "games": 1,
+        "winrate": 0
+      },
+      "51": {
+        "games": 1,
+        "winrate": 0
+      },
+      "86": {
+        "games": 1,
+        "winrate": 1
+      },
+      "90": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "399920568": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "107": {
+        "games": 1,
+        "winrate": 1
+      },
+      "120": {
+        "games": 1,
+        "winrate": 0
+      },
+      "13": {
+        "games": 1,
+        "winrate": 0
+      },
+      "17": {
+        "games": 1,
+        "winrate": 1
+      },
+      "74": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "72393079": {
+      "106": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "13": {
+        "games": 1,
+        "winrate": 0
+      },
+      "16": {
+        "games": 1,
+        "winrate": 0
+      },
+      "59": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "81306398": {
+      "112": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "123": {
+        "games": 4,
+        "winrate": 0.75
+      },
+      "3": {
+        "games": 1,
+        "winrate": 0
+      },
+      "57": {
+        "games": 1,
+        "winrate": 0
+      },
+      "83": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "860145568": {
+      "106": {
+        "games": 1,
+        "winrate": 0
+      },
+      "107": {
+        "games": 1,
+        "winrate": 1
+      },
+      "17": {
+        "games": 2,
+        "winrate": 0
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "74": {
+        "games": 2,
+        "winrate": 1
+      }
+    },
+    "87063175": {
+      "100": {
+        "games": 1,
+        "winrate": 0
+      },
+      "131": {
+        "games": 1,
+        "winrate": 0
+      },
+      "31": {
+        "games": 2,
+        "winrate": 0
+      },
+      "51": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "892486081": {
+      "135": {
+        "games": 2,
+        "winrate": 0
+      },
+      "155": {
+        "games": 1,
+        "winrate": 1
+      },
+      "29": {
+        "games": 1,
+        "winrate": 0
+      },
+      "78": {
+        "games": 3,
+        "winrate": 0.6667
+      }
+    },
+    "898754153": {
+      "10": {
+        "games": 1,
+        "winrate": 1
+      },
+      "21": {
+        "games": 1,
+        "winrate": 0
+      },
+      "46": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "6": {
+        "games": 1,
+        "winrate": 1
+      },
+      "73": {
+        "games": 1,
+        "winrate": 0
+      },
+      "8": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "903184860": {
+      "135": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "136": {
+        "games": 4,
+        "winrate": 0.5
+      },
+      "29": {
+        "games": 1,
+        "winrate": 1
+      },
+      "55": {
+        "games": 1,
+        "winrate": 0
+      },
+      "78": {
+        "games": 3,
+        "winrate": 0.3333
+      },
+      "85": {
+        "games": 1,
+        "winrate": 1
+      },
+      "96": {
+        "games": 4,
+        "winrate": 0.5
+      }
+    },
+    "92487440": {
+      "2": {
+        "games": 1,
+        "winrate": 0
+      },
+      "28": {
+        "games": 1,
+        "winrate": 1
+      },
+      "38": {
+        "games": 2,
+        "winrate": 0
+      },
+      "43": {
+        "games": 1,
+        "winrate": 0
+      },
+      "96": {
+        "games": 1,
+        "winrate": 1
+      }
+    },
+    "9403474": {
+      "105": {
+        "games": 1,
+        "winrate": 0
+      },
+      "119": {
+        "games": 1,
+        "winrate": 0
+      },
+      "123": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "9": {
+        "games": 1,
+        "winrate": 0
+      }
+    },
+    "94296097": {
+      "112": {
+        "games": 1,
+        "winrate": 1
+      },
+      "123": {
+        "games": 3,
+        "winrate": 1
+      },
+      "30": {
+        "games": 2,
+        "winrate": 0
+      },
+      "85": {
+        "games": 2,
+        "winrate": 0.5
+      }
+    },
+    "96183976": {
+      "11": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "25": {
+        "games": 1,
+        "winrate": 0
+      },
+      "53": {
+        "games": 1,
+        "winrate": 1
+      },
+      "54": {
+        "games": 1,
+        "winrate": 0
+      },
+      "67": {
+        "games": 2,
+        "winrate": 0.5
+      },
+      "80": {
+        "games": 3,
+        "winrate": 0.6667
+      },
+      "89": {
+        "games": 1,
+        "winrate": 1
       }
     }
   },
