@@ -54342,7 +54342,6 @@
     "tag": "NAVI",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/36.png",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -54420,7 +54419,6 @@
     "tag": "Liquid",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/2163.png",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -54498,7 +54496,6 @@
     "tag": "TSpirit",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/1839179120711951766/CD7E0885CB527334205CC7885E9C101B7BC17702/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -54576,7 +54573,6 @@
     "tag": "NGX",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/1827894588975105240/421C0D8318D71D5DD31FD08A7933AB622AE26590/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -54731,7 +54727,6 @@
     "tag": "BB",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/9995426432403529725/51E13136D4CCC8C7D8062861541A1D13B8ED87E0/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -54809,7 +54804,6 @@
     "tag": "XG",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2402194226059610590/E3CF4B6C4B2CFB974A9B415141E4A37317AD4D80/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -54887,7 +54881,6 @@
     "tag": "Tundra",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2031716132171967904/07B168B8063D9B22CDAD53AB421ECAF3D4B2E07E/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -54965,7 +54958,6 @@
     "tag": "FLCN",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2314350571781870059/2B5C9FE9BA0A2DC303A13261444532AA08352843/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -55043,7 +55035,6 @@
     "tag": "HEROIC",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2471984170520125054/B066431AF4D322D300DD5180CEC8F6BA0E85A7F5/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -55121,7 +55112,6 @@
     "tag": "YB",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/18179376480673513766/A3EDE6125A651D94E1DAAF0F3361ACEB9FB858C4/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y"
     ],
@@ -55198,7 +55188,6 @@
     "tag": "Aurora",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/13052583756685508/22B0338D7E09FB2F021E5DB5BBEFFD170D5E5E1A/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -55276,7 +55265,6 @@
     "tag": "VSN",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/10380389074903512947/5D074799695A862D17D4205285315FE20399B28D/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y",
       "valve_legacy"
@@ -55354,7 +55342,6 @@
     "tag": "TT",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/12094940740270677482/9AD05F0A80A562EE4A833375BF1783B52B3D4C30/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y"
     ],
@@ -55431,7 +55418,6 @@
     "tag": "WC",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/14173210407158797/EAFCC9BE14FBFC9DC1EA3D03D62772D38F7DF15F/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y"
     ],
@@ -55508,7 +55494,6 @@
     "tag": "NMSS",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/16578975333650734744/040492179D9E0E83DA0559848D88CFC17A1EFCAC/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y"
     ],
@@ -61057,7 +61042,6 @@
     "tag": "WC",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/14173210407158797/EAFCC9BE14FBFC9DC1EA3D03D62772D38F7DF15F/",
     "formats": [
-      "last_1y",
       "last_2y",
       "last_5y"
     ],
