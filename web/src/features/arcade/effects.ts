@@ -35,7 +35,7 @@ function pixelEllipse(c: CanvasRenderingContext2D, x: number, y: number, rx: num
 }
 
 export type GroundEffect = "ember" | "frost" | "gold" | "void";
-export type AuraEffect = "fire" | "frost" | "lightning" | "aegis" | "wisp";
+export type AuraEffect = "fire" | "frost" | "lightning" | "aegis" | "wisp" | "flamehair";
 export type TrailEffect = "fire" | "frost" | "lightning" | "aegis" | "blood" | "leaves" | "void" | "spectral" | "spores" | "hoofprints";
 export type DeathEffect = "ring" | "shatter" | "nova" | "bones";
 
@@ -303,6 +303,33 @@ export function drawAuraEffect(c: CanvasRenderingContext2D, geo: AuraGeo, kind: 
         pixelEllipse(c, hx, hy, hr, hr * 0.4, px, pal.aegis, 1.2);
         c.globalAlpha = 0.5;
         pixelEllipse(c, hx, hy, hr * 0.7, hr * 0.28, px, pal.text, 2);
+      }
+      c.globalAlpha = 1;
+      break;
+    }
+    case "flamehair": {
+      // Пылающие волосы (аркана Lina «Fiery Soul of the Slayer», T13.80 A1): в Dota огонь — частицы `lina_headflame`,
+      // в модели `origins_flamehair` лишь скальп. Грива огня растёт с макушки силуэта: языки стартуют по ширине головы
+      // (по краям ниже — как волосы вдоль головы), поднимаются, гаснут дымом; спереди — редкие яркие языки поверх скальпа.
+      // Старт — чуть ниже макушки (огонь растёт из скальпа, а не висит над ним), по краям ниже; языки плотные и
+      // крупные у корня, к вершине тоньше и темнее.
+      const w = h * 0.3, hy = geo.top + h * 0.05, life = 26;
+      const tongue = (i: number, spread: number, rise: number, alphaMul: number, seedOff: number) => {
+        const t = (tick * 1.2 + hash(seed, i + seedOff) * life) % life, k = t / life;
+        const ox = (hash(seed, i + seedOff + 50) - 0.5) * w * spread;
+        const x = cx + ox + Math.sin(k * 7 + i) * px * 1.2 + (ox < 0 ? -1 : 1) * k * px;
+        const y = hy + Math.abs(ox) * 0.5 - k * h * rise * boost;
+        c.globalAlpha = (k < 0.15 ? k / 0.15 : 1 - (k - 0.15) / 0.85) * alphaMul;
+        c.fillStyle = k < 0.25 ? pal.text : k < 0.55 ? pal.ember : k < 0.8 ? pal.fire : pal.smoke;
+        const sz = k < 0.35 ? 3 : k < 0.7 ? 2 : 1;
+        dot(c, x, y, px * sz, px * sz);
+      };
+      if (layer === "back") {
+        rim(geo, pal.fire, 0.1 + flare * 0.25, px);
+        const count = Math.round(28 * boost);
+        for (let i = 0; i < count; i++) tongue(i, 1.4, 0.26, 0.95, 400);
+      } else {
+        for (let i = 0; i < 10; i++) tongue(i, 0.9, 0.16, 0.9, 500);
       }
       c.globalAlpha = 1;
       break;

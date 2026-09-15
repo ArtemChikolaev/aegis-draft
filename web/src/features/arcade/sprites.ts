@@ -472,6 +472,7 @@ export function setPixelSheets(on: boolean, dense = false): void {
   // с разным кадром (160/80/…), и после смены DPR контур, скан свечения и самоцветы брались бы от чужого размера.
   dotaSheets.clear();
   compositeSheets.clear();
+  compositeStills.clear();
   frameGeo.clear();
   glowScans.clear();
   gemSheets.clear();
@@ -480,37 +481,112 @@ export function setPixelSheets(on: boolean, dense = false): void {
 }
 
 /* ─── Композит облика по слотам (T13.80) ───
-   Имя `<hero>+body+<src>.<slot>+…` (content/cosmetics.ts loadoutSheet): лист тела `<hero>+body` и слои частей
-   `<hero>+<src>.<slot>` — разница рендеров одного кадрирования (scripts/dota_part_layers.mts), поэтому их можно
+   Имя `<основа>+body+<src>.<slot>+…` (content/cosmetics.ts loadoutSheet): лист тела `<основа>+body` и слои частей
+   `<основа>+<src>.<slot>` — разница рендеров одного кадрирования (scripts/dota_part_layers.mts), поэтому их можно
    просто нарисовать друг на друга. Складывается один раз на имя и кэшируется; пока грузится хоть один слой —
    null (рендерер показывает цельный лист облика). Слой, которого нет на диске, пропускается — облик без части,
-   а не без героя. */
-const compositeSheets = new Map<string, DotaSheet | null>();
+   а не без героя; слой другого размера (откат px2 → px у одного из листов) растягивается nearest до тела.
+   Память (аудит 2026-09-15, A4): полный композит плотного листа — 47–56 МиБ RGBA, поэтому кэш держит байтовый бюджет и
+   вытесняет давно не использованные варианты (текущий облик боя и витрины трогаются каждый кадр — они всегда свежие),
+   а миниатюры гардероба собирают ОДИН кадр (`dotaSheetStill`), не весь лист. */
+export class ByteLru<T> {
+  private map = new Map<string, { value: T; bytes: number }>();
+  private total = 0;
+  constructor(readonly budget: number) {}
+  get bytes(): number { return this.total; }
+  get size(): number { return this.map.size; }
+  has(key: string): boolean { return this.map.has(key); }
+  /** Чтение освежает запись: вытесняются те, к кому дольше всех не обращались. */
+  get(key: string): T | undefined {
+    const e = this.map.get(key);
+    if (!e) return undefined;
+    this.map.delete(key);
+    this.map.set(key, e);
+    return e.value;
+  }
+  set(key: string, value: T, bytes: number): void {
+    this.delete(key);
+    this.map.set(key, { value, bytes });
+    this.total += bytes;
+    for (const [k, e] of this.map) {
+      if (this.total <= this.budget || k === key) break;
+      this.map.delete(k);
+      this.total -= e.bytes;
+    }
+  }
+  delete(key: string): void {
+    const e = this.map.get(key);
+    if (!e) return;
+    this.map.delete(key);
+    this.total -= e.bytes;
+  }
+  clear(): void { this.map.clear(); this.total = 0; }
+}
+/** Бюджет полных композитов: четыре-пять плотных обликов (бой + витрина + пара недавних вариантов). */
+export const COMPOSITE_BUDGET = 256 * 1024 * 1024;
+const compositeSheets = new ByteLru<DotaSheet | null>(COMPOSITE_BUDGET);
+/** Состояние кэша композитов — для тестов и отладки. */
+export function compositeCacheStats(): { entries: number; bytes: number } { return { entries: compositeSheets.size, bytes: compositeSheets.bytes }; }
 export function isCompositeSheet(name: string): boolean { return name.split("+").length > 2; }
 function compositeParts(name: string): string[] {
-  const [hero, ...parts] = name.split("+");
-  return parts.map((p) => `${hero}+${p}`);
+  const [base, ...parts] = name.split("+");
+  return parts.map((p) => `${base}+${p}`);
+}
+const imgSize = (img: DotaSheet["img"]) => (img instanceof HTMLCanvasElement ? { w: img.width, h: img.height } : { w: img.naturalWidth, h: img.naturalHeight });
+/** Слои композита, когда все готовы: null — хоть один ещё грузится; `missing` — нет тела. */
+function compositeLayers(name: string): { body: DotaSheet; layers: DotaSheet[] } | null | "missing" {
+  const ids = compositeParts(name);
+  const sheets = ids.map((id) => dotaSheet(id));
+  const states = ids.map((id) => dotaSheetState(id));
+  if (states[0] === "missing") return "missing";
+  if (states.some((st) => st === "loading") || typeof document === "undefined") return null;
+  return { body: sheets[0]!, layers: sheets.filter((sh): sh is DotaSheet => !!sh) };
 }
 function compositeSheet(name: string): DotaSheet | null {
   const cached = compositeSheets.get(name);
   if (cached !== undefined) return cached;
-  const ids = compositeParts(name);
-  const sheets = ids.map((id) => dotaSheet(id));
-  const states = ids.map((id) => dotaSheetState(id));
-  if (states[0] === "missing") { compositeSheets.set(name, null); return null; }
-  if (states.some((st) => st === "loading") || typeof document === "undefined") return null;
-  const body = sheets[0]!;
-  const w = body.img instanceof HTMLCanvasElement ? body.img.width : body.img.naturalWidth;
-  const h = body.img instanceof HTMLCanvasElement ? body.img.height : body.img.naturalHeight;
+  const got = compositeLayers(name);
+  if (got === "missing") { compositeSheets.set(name, null, 0); return null; }
+  if (!got) return null;
+  const { w, h } = imgSize(got.body.img);
   const cv = document.createElement("canvas");
   cv.width = w;
   cv.height = h;
   const c = cv.getContext("2d");
   if (!c) return null;
-  for (const sh of sheets) if (sh) c.drawImage(sh.img, 0, 0);
+  c.imageSmoothingEnabled = false;
+  for (const sh of got.layers) c.drawImage(sh.img, 0, 0, w, h);
   // Имя меты — имя композита: геометрия кадров и скан свечения кэшируются по нему, а тело без частей — другой силуэт.
-  const res: DotaSheet = { img: cv, meta: { ...body.meta, name } };
-  compositeSheets.set(name, res);
+  const res: DotaSheet = { img: cv, meta: { ...got.body.meta, name } };
+  compositeSheets.set(name, res, w * h * 4);
+  return res;
+}
+/** Один кадр композита (стойка лицом к камере) для миниатюр: лист из одной клетки с той же метой кадра. */
+const compositeStills = new Map<string, DotaSheet | null>();
+export function dotaSheetStill(name: string): DotaSheet | null {
+  if (!isCompositeSheet(name)) return dotaSheet(name);
+  const cached = compositeStills.get(name);
+  if (cached !== undefined) return cached;
+  const got = compositeLayers(name);
+  if (got === "missing") { compositeStills.set(name, null); return null; }
+  if (!got) return null;
+  const m = got.body.meta;
+  const a = m.anims.idle ?? m.anims.walk;
+  if (!a) { compositeStills.set(name, null); return null; }
+  const { w } = imgSize(got.body.img);
+  const cv = document.createElement("canvas");
+  cv.width = m.frame;
+  cv.height = m.frame;
+  const c = cv.getContext("2d");
+  if (!c) return null;
+  c.imageSmoothingEnabled = false;
+  for (const sh of got.layers) {
+    const sz = imgSize(sh.img);
+    const k = sz.w / w;
+    c.drawImage(sh.img, 0, a.row * m.frame * k, m.frame * k, m.frame * k, 0, 0, m.frame, m.frame);
+  }
+  const res: DotaSheet = { img: cv, meta: { ...m, name: `${name}#still`, dirs: 1, anims: { idle: { row: 0, frames: 1 } } } };
+  compositeStills.set(name, res);
   return res;
 }
 
@@ -559,7 +635,7 @@ export function enemySheet(kindId: string): DotaSheet | null {
  *  что облик ещё не отрендерен, а не пустую рамку (фидбэк владельца 2026-09-06). */
 export function dotaSheetState(name: string): "loading" | "missing" | "ready" {
   if (isCompositeSheet(name)) {
-    const cached = compositeSheets.get(name);
+    const cached = compositeStills.get(name) ?? (compositeSheets.has(name) ? compositeSheets.get(name) : undefined);
     if (cached !== undefined) return cached === null ? "missing" : "ready";
     const states = compositeParts(name).map((id) => dotaSheetState(id));
     return states[0] === "missing" ? "missing" : states.some((st) => st === "loading") ? "loading" : "ready";

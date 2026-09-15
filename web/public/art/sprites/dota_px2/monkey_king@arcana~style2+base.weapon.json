@@ -1,0 +1,50 @@
+{
+  "name": "monkey_king@arcana~style2+base.weapon",
+  "frame": 160,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.753
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 12
+    },
+    "walk": {
+      "row": 8,
+      "frames": 8
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 9
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "monkey_king.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "mk_idle_head_turn",
+    "cx": -0.9375,
+    "zmin": -0.3125,
+    "cy": 0.4688,
+    "height": 6.5625,
+    "width": 5.625,
+    "depth": 5.9375,
+    "extent": 9.1875
+  }
+}

@@ -8,8 +8,9 @@ import { readFileSync, writeFileSync } from "node:fs";
 const argv = process.argv.slice(2);
 const manifest = argv.find((a) => !a.startsWith("--")) ?? "scripts/blender/dota_manifest_px2.tsv";
 const apply = argv.includes("--apply");
-// Слот по токенам имени файла — общий модуль с dota_part_layers.mts (T13.80).
-import { slotOf } from "./lib/dota_slots.mjs";
+// Слот — по индексу предметов Dota (item_slot, T13.80 A2), для моделей вне индекса — догадка по токенам имени файла.
+import { indexedSlot, slotOf as guessSlot } from "./lib/dota_slots.mjs";
+const slotOf = (p, hero, folder) => indexedSlot(p)?.slot ?? guessSlot(p, hero, folder);
 const rows = readFileSync(manifest, "utf8").split("\n").filter((l) => l && !l.startsWith("#")).map((l) => l.split("\t"));
 const base = new Map(rows.filter((c) => !c[0].includes("@")).map((c) => [c[0], c]));
 let issues = 0; const changed = [];

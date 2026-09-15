@@ -1,0 +1,229 @@
+{
+  "date": "2026-09-15",
+  "commit": "5d441c06",
+  "dotaBuild": "25132749",
+  "itemsGameSha256": "d987b84a083f751a900dc81086e3919b2106a4e3ff242af87a0fe2a5bec28686",
+  "selectedItems": [
+    {
+      "itemId": "4794",
+      "name": "Fiery Soul of the Slayer",
+      "item_slot": "head",
+      "item_rarity": "arcana",
+      "model_player": "models/items/lina/origins_flamehair/origins_flamehair.vmdl"
+    },
+    {
+      "itemId": "4935",
+      "name": "Pauldrons of the Battle Caster",
+      "item_slot": "neck",
+      "item_rarity": "rare",
+      "model_player": "models/items/lina/pauldrons_of_the_slayer/pauldrons_of_the_slayer.vmdl"
+    },
+    {
+      "itemId": "4936",
+      "name": "Vambraces of the Battle Caster",
+      "item_slot": "arms",
+      "model_player": "models/items/lina/vambracesoftheslayerz1/vambracesoftheslayerz1.vmdl"
+    },
+    {
+      "itemId": "4937",
+      "name": "Plates of the Battle Caster",
+      "item_slot": "belt",
+      "item_rarity": "rare",
+      "model_player": "models/items/lina/skirtoftheslayerz10/skirtoftheslayerz10.vmdl"
+    },
+    {
+      "itemId": "4938",
+      "name": "Cut of the Battle Caster",
+      "item_slot": "head",
+      "item_rarity": "uncommon",
+      "model_player": "models/items/lina/hairoftheslayerr/hairoftheslayerr.vmdl"
+    },
+    {
+      "itemId": "9050",
+      "name": "Great Sage's Reckoning",
+      "item_slot": "hero_base",
+      "item_rarity": "arcana"
+    },
+    {
+      "itemId": "9059",
+      "name": "Bladeform Legacy",
+      "item_slot": "hero_base",
+      "item_rarity": "arcana"
+    },
+    {
+      "itemId": "34183",
+      "name": "Great Sage's Reckoning - Head",
+      "item_slot": "head",
+      "item_rarity": "mythical",
+      "model_player": "models/items/monkey_king/monkey_king_arcana_head/mesh/monkey_king_arcana.vmdl"
+    }
+  ],
+  "matchedModelReferences": 49,
+  "unmatchedModelReferences": [
+    {
+      "layer": "juggernaut+base.weapon",
+      "model": "models/heroes/juggernaut/jugg_sword.vmdl_c"
+    },
+    {
+      "layer": "juggernaut+bladesrunner.weapon",
+      "model": "models/items/juggernaut/bladesrunner_weapon/bladesrunner_weapon.vmdl_c"
+    },
+    {
+      "layer": "phantom_assassin+base.weapon",
+      "model": "models/heroes/phantom_assassin/phantom_assassin_weapon.vmdl_c"
+    },
+    {
+      "layer": "phantom_assassin+darkfeather.weapon",
+      "model": "models/items/phantom_assassin/assassination_of_dark_feather_weapon/assassination_of_dark_feather_weapon.vmdl_c"
+    },
+    {
+      "layer": "monkey_king+base.weapon",
+      "model": "models/heroes/monkey_king/monkey_king_base_weapon.vmdl_c"
+    },
+    {
+      "layer": "monkey_king+base.back",
+      "model": "models/heroes/monkey_king/monkey_king_cape.vmdl_c"
+    },
+    {
+      "layer": "monkey_king+fiery_vajrapani.weapon",
+      "model": "models/items/monkey_king/mk_fiery_vajrapani_weapon/mk_fiery_vajrapani_weapon.vmdl_c"
+    },
+    {
+      "layer": "monkey_king+cult_of_the_demon_trickster.weapon",
+      "model": "models/items/monkey_king/mk_ti9_immortal_weapon/mk_ti9_immortal_weapon.vmdl_c"
+    },
+    {
+      "layer": "axe+base.head",
+      "model": "models/heroes/axe/axe_hair.vmdl_c"
+    },
+    {
+      "layer": "axe+base.weapon",
+      "model": "models/heroes/axe/axe_weapon.vmdl_c"
+    },
+    {
+      "layer": "axe+blackthorn.weapon",
+      "model": "models/items/axe/axe_blackthorn_weapon/axe_blackthorn_weapon.vmdl_c"
+    },
+    {
+      "layer": "axe+armor_of_the_wrought_legion.weapon",
+      "model": "models/items/axe/armor_of_the_wrought_legion_weapon/armor_of_the_wrought_legion_weapon.vmdl_c"
+    }
+  ],
+  "slotMismatches": [
+    {
+      "layer": "juggernaut+base.belt",
+      "model": "models/heroes/juggernaut/juggernaut_pants.vmdl_c",
+      "dotaSlots": [
+        "legs"
+      ],
+      "items": [
+        {
+          "itemId": "62",
+          "name": "Juggernaut's Legs",
+          "item_slot": "legs",
+          "model_player": "models/heroes/juggernaut/juggernaut_pants.vmdl"
+        }
+      ]
+    },
+    {
+      "layer": "juggernaut+bladesrunner.belt",
+      "model": "models/items/juggernaut/bladesrunner_legs/bladesrunner_legs.vmdl_c",
+      "dotaSlots": [
+        "legs"
+      ],
+      "items": [
+        {
+          "itemId": "6774",
+          "name": "Belt of the Bladesrunner",
+          "item_slot": "legs",
+          "item_rarity": "uncommon",
+          "model_player": "models/items/juggernaut/bladesrunner_legs/bladesrunner_legs.vmdl"
+        }
+      ]
+    },
+    {
+      "layer": "phantom_assassin+base.weapon",
+      "model": "models/heroes/phantom_assassin/phantom_assassin_daggers.vmdl_c",
+      "dotaSlots": [
+        "belt"
+      ],
+      "items": [
+        {
+          "itemId": "141",
+          "name": "Phantom Assassin's Daggers",
+          "item_slot": "belt",
+          "model_player": "models/heroes/phantom_assassin/phantom_assassin_daggers.vmdl"
+        }
+      ]
+    },
+    {
+      "layer": "lina+arcana.shoulder",
+      "model": "models/items/lina/pauldrons_of_the_slayer/pauldrons_of_the_slayer.vmdl_c",
+      "dotaSlots": [
+        "neck"
+      ],
+      "items": [
+        {
+          "itemId": "4935",
+          "name": "Pauldrons of the Battle Caster",
+          "item_slot": "neck",
+          "item_rarity": "rare",
+          "model_player": "models/items/lina/pauldrons_of_the_slayer/pauldrons_of_the_slayer.vmdl"
+        }
+      ]
+    },
+    {
+      "layer": "lina+arcana.misc",
+      "model": "models/items/lina/vambracesoftheslayerz1/vambracesoftheslayerz1.vmdl_c",
+      "dotaSlots": [
+        "arms"
+      ],
+      "items": [
+        {
+          "itemId": "4936",
+          "name": "Vambraces of the Battle Caster",
+          "item_slot": "arms",
+          "model_player": "models/items/lina/vambracesoftheslayerz1/vambracesoftheslayerz1.vmdl"
+        }
+      ]
+    },
+    {
+      "layer": "monkey_king+arcana.misc",
+      "model": "models/items/monkey_king/monkey_king_arcana_head/mesh/monkey_king_arcana.vmdl_c",
+      "dotaSlots": [
+        "head"
+      ],
+      "items": [
+        {
+          "itemId": "34183",
+          "name": "Great Sage's Reckoning - Head",
+          "item_slot": "head",
+          "item_rarity": "mythical",
+          "model_player": "models/items/monkey_king/monkey_king_arcana_head/mesh/monkey_king_arcana.vmdl"
+        }
+      ]
+    },
+    {
+      "layer": "axe+base.back",
+      "model": "models/heroes/axe/axe_ponytail.vmdl_c",
+      "dotaSlots": [
+        "head"
+      ],
+      "items": [
+        {
+          "itemId": "4",
+          "name": "Axe's Hair",
+          "item_slot": "head",
+          "model_player": "models/heroes/axe/axe_ponytail.vmdl"
+        },
+        {
+          "itemId": "17796",
+          "name": "Axe's Diretide Shimmer Hair",
+          "item_slot": "head",
+          "item_rarity": "seasonal",
+          "model_player": "models/heroes/axe/axe_ponytail.vmdl"
+        }
+      ]
+    }
+  ]
+}

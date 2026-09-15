@@ -15,6 +15,7 @@ import { EXPEDITIONS, EXPEDITION_BY_ID, expeditionStepDone } from "../game/arcad
 import { LEGACY_MAX_RANK, LEGACY_NONE, LEGACY_ZERO, clampLegacy, legacyBonus, legacySpentTotal, type LegacyBranch, type LegacySpent } from "../game/arcade/content/legacy.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
 import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot, type DotaSlot, type Loadout } from "../game/arcade/content/cosmetics.ts";
+import { HERO_PARTS } from "../game/arcade/content/parts.ts";
 import { GEAR_SALVAGE, GEAR_SLOTS, type GearItem, type GearSlot } from "../game/arcade/content/gear.ts";
 import { createRunSeed } from "../game/rng.ts";
 import { readCached, writePersisted } from "./persist.ts";
@@ -147,6 +148,32 @@ export interface CosmeticsState {
   loadout: Record<string, Loadout>;
   /** Скины призывов (T13.80): id героя → art призыва (`bear`, `wolf`…) → id косметики слота `summon`. */
   summonSkins: Record<string, Record<string, string>>;
+  /** Версия формата (COSMETICS_VERSION): сейв без неё или ниже — прогоняется через миграции при чтении. */
+  v?: number;
+}
+
+/** Версия формата косметики. 2 (2026-09-15, T13.80 срез 2): слоты частей по `item_slot` Dota и настоящая аркана Lina. */
+export const COSMETICS_VERSION = 2;
+/** Миграция v1 → v2: переименование слотов, найденных аудитом (голова арканы MK была в misc, наручи Lina — в misc, воротник —
+ *  в shoulder, штаны Jugg — в belt, хвост Axe — в back) и источник `arcana` у Lina, который на деле был сетом Battle Caster. */
+const MIGRATE_V2: Record<string, { slots?: Record<string, DotaSlot>; sources?: Record<string, string> }> = {
+  lina: { slots: { misc: "arms", shoulder: "neck" }, sources: { arcana: "battle_caster" } },
+  monkey_king: { slots: { misc: "head" } },
+  juggernaut: { slots: { belt: "legs" } },
+  axe: { slots: { back: "head" } },
+};
+export function migrateCosmeticsV2(c: { owned: string[]; skins: Record<string, string>; loadout: Record<string, Loadout> }): void {
+  // Под `skin_lina_arcana` до среза 2 лежал вид Battle Caster: кто его носил — продолжает носить именно его, а настоящая
+  // аркана остаётся в собственности (косметика бесплатна, но владение — это доступ к источнику частей).
+  if (c.owned.includes("skin_lina_arcana") && !c.owned.includes("skin_lina_battle_caster")) c.owned.push("skin_lina_battle_caster");
+  if (c.skins.lina === "skin_lina_arcana") c.skins.lina = "skin_lina_battle_caster";
+  for (const [hero, m] of Object.entries(MIGRATE_V2)) {
+    const old = c.loadout[hero];
+    if (!old) continue;
+    const next: Loadout = {};
+    for (const [slot, src] of Object.entries(old)) next[(m.slots?.[slot] ?? slot) as DotaSlot] = m.sources?.[src] ?? src;
+    c.loadout[hero] = next;
+  }
 }
 
 /** `equipped.skin` = скин героя `hero` (или ничего): все читатели слота продолжают работать как с одним слотом. */
@@ -160,7 +187,7 @@ function withHeroSkin(c: CosmeticsState, hero: string): CosmeticsState {
 }
 
 function readCosmetics(): CosmeticsState {
-  const empty: CosmeticsState = { owned: [], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false, loadout: {}, summonSkins: {} };
+  const empty: CosmeticsState = { owned: [], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false, loadout: {}, summonSkins: {}, v: COSMETICS_VERSION };
   try {
     const raw = readCached(COSMETICS_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<CosmeticsState>) : null;
@@ -173,9 +200,12 @@ function readCosmetics(): CosmeticsState {
     const shared = { ...(parsed.shared ?? equipped) }; delete shared.skin;
     const perHero = parsed.perHero && typeof parsed.perHero === "object" ? parsed.perHero : {};
     // Сейвы до T13.80: без слотов и скинов призывов — пустые словари, облик следует надетому скину.
-    const loadout = parsed.loadout && typeof parsed.loadout === "object" ? parsed.loadout : {};
+    const loadout: Record<string, Loadout> = { ...(parsed.loadout && typeof parsed.loadout === "object" ? parsed.loadout : {}) };
     const summonSkins = parsed.summonSkins && typeof parsed.summonSkins === "object" ? parsed.summonSkins : {};
-    return { owned: parsed.owned, equipped, shared, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins, perHero, perHeroLook: parsed.perHeroLook === true, loadout, summonSkins };
+    const owned = [...parsed.owned];
+    const mig = { owned, skins: { ...skins }, loadout };
+    if ((typeof parsed.v === "number" ? parsed.v : 1) < 2) migrateCosmeticsV2(mig);
+    return { owned, equipped, shared, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins: mig.skins, perHero, perHeroLook: parsed.perHeroLook === true, loadout, summonSkins, v: COSMETICS_VERSION };
   } catch {
     return empty;
   }
@@ -296,6 +326,8 @@ interface ArcadeStore {
   equip: (slot: CosmeticSlot, id: string | null) => void;
   /** Часть в слот облика выбранного героя (T13.80): источник `base`/сет; null — как у надетого облика. */
   setPart: (slot: DotaSlot, source: string | null) => void;
+  /** Снять все выбранные части выбранного героя: облик снова следует надетой основе/сету. */
+  resetParts: () => void;
   /** Скин призыва выбранного героя (T13.80): id косметики слота `summon` для этого art; null — обычный. */
   setSummonSkin: (art: string, id: string | null) => void;
   /** Пресеты образа (T13.49): свой набор эффектов у каждого героя вместо общего. */
@@ -431,7 +463,10 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
       // Скин — у героя, которому он принадлежит; снятие — у выбранного героя. Облик целиком сбрасывает слоты (T13.80).
       const hero = id === null ? get().hero : COSMETIC_BY_ID[id]?.hero ?? get().hero;
       if (id === null) delete skins[hero]; else skins[hero] = id;
-      delete loadout[hero];
+      // Сет целиком (источник частей на базовом теле) — как «надеть сет» в Dota: сбрасывает слоты героя. Основа (аркана
+      // или базовая модель) слоты не трогает: надетые части остаются на новой основе, как предметы при смене арканы в Dota.
+      const set = id ? COSMETIC_BY_ID[id]?.variant.split("@")[1] : undefined;
+      if (set && HERO_PARTS[hero]?.families[hero]?.sources[set]) delete loadout[hero];
     } else if (c.perHeroLook) {
       // Пресет героя (T13.49): эффект пишется только выбранному герою.
       const mine = { ...(perHero[get().hero] ?? {}) };
@@ -449,6 +484,15 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     if (source === null) delete mine[slot]; else mine[slot] = source;
     const loadout = { ...(c.loadout ?? {}), [hero]: mine };
     if (!Object.keys(mine).length) delete loadout[hero];
+    const cosmetics = { ...c, loadout };
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
+  },
+  resetParts() {
+    const c = get().cosmetics;
+    if (!c.loadout?.[get().hero]) return;
+    const loadout = { ...c.loadout };
+    delete loadout[get().hero];
     const cosmetics = { ...c, loadout };
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });

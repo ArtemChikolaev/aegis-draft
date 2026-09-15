@@ -3,7 +3,7 @@
 // Правило PRD §5.10: косметика не меняет ни одного числа и не входит в сид/лог.
 import { Rng } from "../../rng.ts";
 import type { ArcadeOutcome, Rarity } from "../types.ts";
-import { HERO_PARTS, type DotaSlot } from "./parts.ts";
+import { HERO_PARTS, type DotaSlot, type PartsFamily } from "./parts.ts";
 export type { DotaSlot };
 
 /** Слоты: `frame` — наземный эффект у ног, `aura` — свечение героя, `trail` — след, `death` — эффект
@@ -27,7 +27,7 @@ export interface CosmeticDef {
   /** Встроенные эффекты скина — замена частиц Dota, которых в спрайте нет (дым-плащ и капюшон арканы PA
    *  живут в `pa_arcana_*.vpcf`, в модели их геометрии нет). Вид — как у слота `aura` (features/arcade/effects.ts),
    *  рисуется всегда, поверх него — надетое свечение игрока. */
-  fx?: { aura?: string };
+  fx?: { aura?: string; /** Эффект принадлежит части в этом слоте (пламя волос арканы Lina — голове): заменил часть — эффекта нет. */ slot?: DotaSlot };
 }
 
 /**
@@ -123,7 +123,10 @@ export const COSMETICS: readonly CosmeticDef[] = [
   // которых у нас не было. Список сверен по `scripts/items/items_game.txt` (item_rarity = arcana), а не
   // по памяти: у Invoker арканы нет вовсе (Magus Apex — immortal), больше аркан в игре не осталось.
   { id: "skin_mk_arcana", slot: "skin", rarity: "arcana", variant: "monkey_king@arcana", hero: "monkey_king", styles: [{ id: "style1", sheet: true }, { id: "style2", sheet: true }, { id: "style3", sheet: true }, ...GEMS] },
-  { id: "skin_lina_arcana", slot: "skin", rarity: "arcana", variant: "lina@arcana", hero: "lina" },
+  // Fiery Soul of the Slayer (item 4794): скальп `origins_flamehair` + текстура тела `lina_base_flamehair` (model_skin 1); сам огонь
+  // у Valve — частицы `lina_headflame.vpcf`, в модели его нет — рисуется эффектом `flamehair` (effects.ts). До 2026-09-15
+  // под этим id ошибочно лежал сет Battle Caster (4935–4938) — он остался отдельным сетом ниже, сейв мигрирует (arcadeStore).
+  { id: "skin_lina_arcana", slot: "skin", rarity: "arcana", variant: "lina@arcana", hero: "lina", fx: { aura: "flamehair", slot: "head" } },
   { id: "skin_lc_arcana", slot: "skin", rarity: "arcana", variant: "legion_commander@arcana", hero: "legion_commander" },
   { id: "skin_techies_arcana", slot: "skin", rarity: "arcana", variant: "techies@arcana", hero: "techies" },
   { id: "skin_io_arcana", slot: "skin", rarity: "arcana", variant: "io@arcana", hero: "io" },
@@ -151,6 +154,7 @@ export const COSMETICS: readonly CosmeticDef[] = [
   // Сет каждому герою, у которого не было косметики (T13.27): части `models/items/<hero>/<set>_*`
   // пришиваются к скелету базовой модели тем же Copy Transforms, что и части аркан.
   { id: "skin_lina_dragonfire", slot: "skin", rarity: "exotic", variant: "lina@dragonfire", hero: "lina" },
+  { id: "skin_lina_battle_caster", slot: "skin", rarity: "exotic", variant: "lina@battle_caster", hero: "lina" },
   { id: "skin_lich_rime_lord", slot: "skin", rarity: "exotic", variant: "lich@rime_lord", hero: "lich" },
   { id: "skin_bristleback_wrathrunner", slot: "skin", rarity: "exotic", variant: "bristleback@wrathrunner", hero: "bristleback" },
   { id: "skin_sven_arbiter", slot: "skin", rarity: "exotic", variant: "sven@arbiter", hero: "sven" },
@@ -394,81 +398,93 @@ export function skinnedStyle(
 
 /** Осколки Aegis за дубликат — по редкости. */
 /* ─── Облик по слотам (T13.80) ───
-   Как в Dota: у героя слоты (голова, оружие, спина…), в каждый можно надеть часть любого своего сета. Источник
-   части — `base` (модель по умолчанию) или имя сета (`<set>` из `<hero>@<set>`). Слот без записи следует надетому
-   облику; у источника нет части в слоте — берётся часть по умолчанию (так делает и Dota). Всё как у одного
-   облика — рисуется его цельный лист (со стилем), смешение — композит `<hero>+body+<src>.<slot>+…` из слоёв
-   (features/arcade/sprites.ts). В сим ничего не идёт. Арканы и персоны с другой моделью тела в HERO_PARTS не входят —
-   они цельные. */
+   Как в Dota: у героя слоты (голова, оружие, спина…), в каждый можно надеть часть любого своего сета. Основа облика —
+   семейство из HERO_PARTS: базовая модель `<hero>`, аркана `<hero>@arcana` или её стиль `<hero>@arcana~style1` (своё
+   тело и свои слои). Источник части — `base` (модель по умолчанию), имя основы (её собственные части) или сет
+   (`<set>` из `<hero>@<set>`). Слот без записи следует надетому облику: у сета на базовом теле — его часть, иначе часть
+   по умолчанию; у основы — её `defaults` (слот без записи у неё пуст, как в Dota у арканы без плаща). Всё как у одного
+   облика — рисуется его цельный лист (со стилем), смешение — композит `<основа>+body+<src>.<slot>+…` из слоёв
+   (features/arcade/sprites.ts). В сим ничего не идёт. Облик без семейства (персона/аркана, для которой слои не
+   подготовлены) — цельный, слоты к нему не применяются. */
 export type Loadout = Partial<Record<DotaSlot, string>>;
 export const PART_BASE = "base";
 
-/** Косметика сета-источника (`<hero>@<src>`), у `base` её нет. */
+/** Косметика источника частей (`<hero>@<src>`): у `base` её нет; у `arcana` — аркана героя. */
 export function sourceCosmetic(hero: string, src: string): CosmeticDef | undefined {
   return src === PART_BASE ? undefined : COSMETICS.find((c) => c.slot === "skin" && c.hero === hero && c.variant === `${hero}@${src}`);
 }
 
-/** Источник частей надетого облика: сет на базовом теле (есть в HERO_PARTS) — он, иначе `base` (аркана — цельный лист). */
-export function wornSource(hero: string, equipped: Partial<Record<CosmeticSlot, string>>): string {
-  const def = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
-  if (!def || def.slot !== "skin" || def.hero !== hero) return PART_BASE;
-  const set = def.variant.split("@")[1];
-  return set && HERO_PARTS[hero]?.sources[set] ? set : PART_BASE;
-}
-
-/** Надетый облик цельный (аркана/персона с другой моделью): слоты к нему не применяются. */
-export function wornIsWhole(hero: string, equipped: Partial<Record<CosmeticSlot, string>>): boolean {
-  const def = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
-  if (!def || def.slot !== "skin" || def.hero !== hero) return false;
-  return !HERO_PARTS[hero]?.sources[def.variant.split("@")[1] ?? ""];
-}
-
-/** Источники частей героя, которыми игрок владеет: `base` и купленные сеты. */
-export function partSources(hero: string, owned: readonly string[]): string[] {
+/** Основа надетого облика: семейство слоёв, источник надетого сета на базовом теле (или null у самой основы) и признак,
+ *  что выбранный стиль не подготовлен как семейство (смешанный облик покажет основу без стиля). null — облик цельный. */
+export interface WornFamily { id: string; family: PartsFamily; worn: string | null; styleDropped: boolean }
+export function familyOf(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>> = {}): WornFamily | null {
   const hp = HERO_PARTS[hero];
-  if (!hp) return [];
-  return Object.keys(hp.sources).filter((src) => src === PART_BASE || owned.includes(sourceCosmetic(hero, src)?.id ?? ""));
+  if (!hp) return null;
+  const def = equipped.skin ? COSMETIC_BY_ID[equipped.skin] : undefined;
+  const skin = def && def.slot === "skin" && def.hero === hero ? def : null;
+  if (!skin) return hp.families[hero] ? { id: hero, family: hp.families[hero], worn: PART_BASE, styleDropped: false } : null;
+  const styled = skinnedSheet(hero, equipped, styles);
+  if (hp.families[styled]) return { id: styled, family: hp.families[styled], worn: null, styleDropped: false };
+  if (hp.families[skin.variant]) return { id: skin.variant, family: hp.families[skin.variant], worn: null, styleDropped: styled !== skin.variant };
+  const set = skin.variant.split("@")[1] ?? "";
+  const base = hp.families[hero];
+  if (base && base.sources[set]) return { id: hero, family: base, worn: set, styleDropped: styled !== skin.variant };
+  return null;
 }
 
-function wholeOf(hero: string, src: string): Partial<Record<DotaSlot, string>> {
-  const hp = HERO_PARTS[hero];
+/** Надетый облик цельный (персона/аркана без семейства): слоты к нему не применяются. */
+export function wornIsWhole(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>> = {}): boolean {
+  return !!HERO_PARTS[hero] && familyOf(hero, equipped, styles) === null;
+}
+
+/** Источники частей семейства, которыми игрок владеет: `base`, купленные сеты и своя аркана. */
+export function partSources(hero: string, owned: readonly string[], familyId = hero): string[] {
+  const fam = HERO_PARTS[hero]?.families[familyId];
+  if (!fam) return [];
+  return Object.keys(fam.sources).filter((src) => src === PART_BASE || owned.includes(sourceCosmetic(hero, src)?.id ?? ""));
+}
+
+/** Слоты по умолчанию: у основы — её `defaults`; у сета на базовом теле — его части, остальное — модель по умолчанию. */
+function defaultsOf(fam: WornFamily, worn: string | null = fam.worn): Partial<Record<DotaSlot, string>> {
+  if (worn === null) return { ...fam.family.defaults };
   const out: Partial<Record<DotaSlot, string>> = {};
-  if (!hp) return out;
-  for (const slot of hp.slots) {
-    const s = hp.sources[src]?.includes(slot) ? src : hp.sources[PART_BASE]?.includes(slot) ? PART_BASE : null;
-    if (s) out[slot] = s;
-  }
+  for (const slot of Object.keys(fam.family.defaults) as DotaSlot[]) out[slot] = fam.family.sources[worn]?.includes(slot) ? worn : fam.family.defaults[slot];
+  for (const slot of fam.family.sources[worn] ?? []) out[slot] = worn;
   return out;
 }
 
-/** Слот → источник после правил: явный выбор (если сет свой), иначе надетый облик; нет части — модель по умолчанию. */
-export function resolveLoadout(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, loadout: Loadout, owned: readonly string[]): Partial<Record<DotaSlot, string>> {
-  const hp = HERO_PARTS[hero];
-  if (!hp) return {};
-  const worn = wornSource(hero, equipped);
-  const mine = new Set(partSources(hero, owned));
-  const out: Partial<Record<DotaSlot, string>> = {};
-  for (const slot of hp.slots) {
+/** Слоты надетого облика без выборов игрока (что показывает «как у облика» в гардеробе). */
+export function defaultLoadout(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>> = {}): Partial<Record<DotaSlot, string>> {
+  const fam = familyOf(hero, equipped, styles);
+  return fam ? defaultsOf(fam) : {};
+}
+
+/** Слот → источник после правил: явный выбор (если источник свой и даёт эту часть), иначе как у надетого облика. */
+export function resolveLoadout(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>>, loadout: Loadout, owned: readonly string[]): Partial<Record<DotaSlot, string>> {
+  const fam = familyOf(hero, equipped, styles);
+  if (!fam) return {};
+  const mine = new Set(partSources(hero, owned, fam.id));
+  const out = defaultsOf(fam);
+  for (const slot of HERO_PARTS[hero]!.slots) {
     const pick = loadout[slot];
-    const want = pick && mine.has(pick) ? pick : worn;
-    const src = hp.sources[want]?.includes(slot) ? want : hp.sources[PART_BASE]?.includes(slot) ? PART_BASE : null;
-    if (src) out[slot] = src;
+    if (pick && mine.has(pick) && fam.family.sources[pick]?.includes(slot)) out[slot] = pick;
   }
   return out;
 }
+
+const sameSlots = (slots: readonly DotaSlot[], a: Partial<Record<DotaSlot, string>>, b: Partial<Record<DotaSlot, string>>) => slots.every((s) => a[s] === b[s]);
 
 /** Имя листа облика по слотам: цельный лист надетого облика (со стилем), если слоты его и повторяют; цельный лист
- *  другого сета, если всё собрано из него; иначе композит `<hero>+body+<src>.<slot>+…` в порядке отрисовки. */
+ *  другого сета/базовой модели, если всё собрано из него; иначе композит `<основа>+body+<src>.<slot>+…` в порядке отрисовки. */
 export function loadoutSheet(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>>, loadout: Loadout, owned: readonly string[]): string {
-  const hp = HERO_PARTS[hero];
   const whole = skinnedSheet(hero, equipped, styles);
-  if (!hp || wornIsWhole(hero, equipped)) return whole;
-  const resolved = resolveLoadout(hero, equipped, loadout, owned);
-  const worn = wornSource(hero, equipped);
-  const same = (a: Partial<Record<DotaSlot, string>>, b: Partial<Record<DotaSlot, string>>) => hp.slots.every((s) => a[s] === b[s]);
-  if (same(resolved, wholeOf(hero, worn))) return whole;
-  for (const src of Object.keys(hp.sources)) if (src !== worn && same(resolved, wholeOf(hero, src))) return src === PART_BASE ? hero : `${hero}@${src}`;
-  return `${hero}+body` + hp.slots.filter((s) => resolved[s]).map((s) => `+${resolved[s]}.${s}`).join("");
+  const fam = familyOf(hero, equipped, styles);
+  if (!fam) return whole;
+  const slots = HERO_PARTS[hero]!.slots;
+  const resolved = resolveLoadout(hero, equipped, styles, loadout, owned);
+  if (sameSlots(slots, resolved, defaultsOf(fam))) return whole;
+  if (fam.id === hero) for (const src of Object.keys(fam.family.sources)) if (src !== fam.worn && sameSlots(slots, resolved, defaultsOf(fam, src))) return src === PART_BASE ? hero : `${hero}@${src}`;
+  return `${fam.id}+body` + slots.filter((s) => resolved[s]).map((s) => `+${resolved[s]}.${s}`).join("");
 }
 
 /** Листы призывов героя по надетым скинам: art → `<art>@<skin>` (только скины этого героя и этого призыва). */
@@ -481,11 +497,20 @@ export function summonSheets(hero: string, summonSkins: Readonly<Record<string, 
   return out;
 }
 
-/** Всё, что нужно рендеру и превью от косметики героя (T13.80): лист облика (цельный или композит) и листы призывов. */
-export interface HeroLook { sheet: string; mixed: boolean; summons: Record<string, string> }
+/** Всё, что нужно рендеру и превью от косметики героя (T13.80): лист облика (цельный или композит), состав по слотам,
+ *  основа, признак «стиль не перенесён в смешанный облик» и листы призывов. */
+export interface HeroLook { sheet: string; mixed: boolean; family: string | null; parts: Partial<Record<DotaSlot, string>>; styleDropped: boolean; /** Встроенный эффект надетого облика; null — нет или его часть заменена в слоте. */ fx: { aura: string } | null; summons: Record<string, string> }
 export function heroLook(hero: string, c: { equipped: Partial<Record<CosmeticSlot, string>>; styles: Readonly<Record<string, string>>; owned: readonly string[]; loadout?: Readonly<Record<string, Loadout>>; summonSkins?: Readonly<Record<string, Readonly<Record<string, string>>>> }): HeroLook {
-  const sheet = loadoutSheet(hero, c.equipped, c.styles, c.loadout?.[hero] ?? {}, c.owned);
-  return { sheet, mixed: sheet !== skinnedSheet(hero, c.equipped, c.styles), summons: summonSheets(hero, c.summonSkins ?? {}) };
+  const loadout = c.loadout?.[hero] ?? {};
+  const sheet = loadoutSheet(hero, c.equipped, c.styles, loadout, c.owned);
+  const mixed = sheet !== skinnedSheet(hero, c.equipped, c.styles);
+  const fam = familyOf(hero, c.equipped, c.styles);
+  const parts = fam ? resolveLoadout(hero, c.equipped, c.styles, loadout, c.owned) : {};
+  const def = c.equipped.skin ? COSMETIC_BY_ID[c.equipped.skin] : undefined;
+  const skin = def && def.slot === "skin" && def.hero === hero ? def : undefined;
+  const own = skin?.variant.split("@")[1];
+  const fxOn = !!skin?.fx?.aura && (!skin.fx.slot || !fam || parts[skin.fx.slot] === own);
+  return { sheet, mixed, family: fam?.id ?? null, parts, styleDropped: mixed && !!fam?.styleDropped, fx: fxOn ? { aura: skin!.fx!.aura! } : null, summons: summonSheets(hero, c.summonSkins ?? {}) };
 }
 
 export const DUPLICATE_SHARDS: Record<Rarity, number> = { standard: 5, refined: 12, exotic: 30, arcana: 80 };

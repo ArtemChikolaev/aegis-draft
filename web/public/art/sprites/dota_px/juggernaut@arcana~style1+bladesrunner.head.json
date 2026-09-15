@@ -1,0 +1,55 @@
+{
+  "name": "juggernaut@arcana~style1+bladesrunner.head",
+  "frame": 80,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.753
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 3
+    },
+    "walk": {
+      "row": 8,
+      "frames": 8
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 7
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    },
+    "spin": {
+      "row": 40,
+      "frames": 12
+    }
+  },
+  "source": "juggernaut_arcana.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "idle",
+    "cx": -0.3125,
+    "zmin": -0.3125,
+    "cy": -0.4688,
+    "height": 4.6875,
+    "width": 2.5,
+    "depth": 3.4375,
+    "extent": 6.5625
+  },
+  "glow": 26.3
+}

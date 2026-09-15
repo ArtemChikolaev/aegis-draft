@@ -1,0 +1,76 @@
+{
+  "commit": "5d441c06",
+  "tests": "30 tests passed in 5 files; typecheck passed",
+  "probes": {
+    "mkMixedStyles": [
+      {
+        "style": "style1",
+        "sheet": "monkey_king+body+base.back+base.armor+base.shoulder+arcana.misc+base.head+fiery_vajrapani.weapon"
+      },
+      {
+        "style": "style2",
+        "sheet": "monkey_king+body+base.back+base.armor+base.shoulder+arcana.misc+base.head+fiery_vajrapani.weapon"
+      },
+      {
+        "style": "style3",
+        "sheet": "monkey_king+body+base.back+base.armor+base.shoulder+arcana.misc+base.head+fiery_vajrapani.weapon"
+      }
+    ],
+    "mkResolvedSlots": {
+      "back": "base",
+      "armor": "base",
+      "shoulder": "base",
+      "misc": "arcana",
+      "head": "base",
+      "weapon": "fiery_vajrapani"
+    },
+    "juggArcanaWhole": true
+  },
+  "stats": [
+    {
+      "hero": "juggernaut",
+      "sourceCount": 2,
+      "layerCount": 10,
+      "estimatedRGBABytesPerComposite": 58982400,
+      "canvasWidth": 1920,
+      "canvasHeight": 7680,
+      "slotCombinationsIncludingEmptyBase": 32
+    },
+    {
+      "hero": "phantom_assassin",
+      "sourceCount": 2,
+      "layerCount": 9,
+      "estimatedRGBABytesPerComposite": 49152000,
+      "canvasWidth": 1920,
+      "canvasHeight": 6400,
+      "slotCombinationsIncludingEmptyBase": 32
+    },
+    {
+      "hero": "lina",
+      "sourceCount": 3,
+      "layerCount": 12,
+      "estimatedRGBABytesPerComposite": 49152000,
+      "canvasWidth": 1920,
+      "canvasHeight": 6400,
+      "slotCombinationsIncludingEmptyBase": 144
+    },
+    {
+      "hero": "monkey_king",
+      "sourceCount": 4,
+      "layerCount": 14,
+      "estimatedRGBABytesPerComposite": 49152000,
+      "canvasWidth": 1920,
+      "canvasHeight": 6400,
+      "slotCombinationsIncludingEmptyBase": 162
+    },
+    {
+      "hero": "axe",
+      "sourceCount": 3,
+      "layerCount": 15,
+      "estimatedRGBABytesPerComposite": 49152000,
+      "canvasWidth": 1920,
+      "canvasHeight": 6400,
+      "slotCombinationsIncludingEmptyBase": 243
+    }
+  ]
+}

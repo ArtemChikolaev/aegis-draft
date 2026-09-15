@@ -1,33 +1,102 @@
-// Части героев по слотам Dota (T13.80). СГЕНЕРИРОВАНО scripts/dota_part_layers.mts build — не править руками:
-// у каждого героя слоты в порядке отрисовки (снизу вверх) и источники частей (`base` — модель по умолчанию,
-// `<set>` — сет `<hero>@<set>`) с теми слотами, под которые отрендерен слой `<hero>+<источник>.<слот>`.
-// Лист тела — `<hero>+body`. Сборка облика — content/cosmetics.ts (loadoutSheet), рендер — features/arcade/sprites.ts.
-export type DotaSlot = "back" | "mount" | "belt" | "armor" | "arms" | "shoulder" | "neck" | "misc" | "head" | "weapon";
-export interface HeroParts { slots: readonly DotaSlot[]; sources: Readonly<Record<string, readonly DotaSlot[]>> }
+// Части героев по слотам Dota (T13.80). СГЕНЕРИРОВАНО scripts/dota_part_layers.mts table — не править руками.
+// У героя: слоты в порядке отрисовки (снизу вверх) и семейства основ — тела со своими слоями: базовая модель `<hero>`,
+// аркана `<hero>@arcana` и её стили `<hero>@arcana~style1`. У семейства: `defaults` — источник части в каждом слоте у
+// самой основы (слот без записи у неё пуст) и `sources` — источники (`base` — модель по умолчанию, имя основы — её
+// собственные части, `<set>` — сет `<hero>@<set>`) со слотами, под которые отрендерен слой `<основа>+<источник>.<слот>`.
+// Лист тела — `<основа>+body`. Слот — `item_slot` из items_game (dota_item_index.json), порядок — DRAW_ORDER (dota_slots.mjs).
+// Сборка облика — content/cosmetics.ts (loadoutSheet), рендер — features/arcade/sprites.ts.
+export type DotaSlot = "back" | "mount" | "legs" | "belt" | "armor" | "arms" | "shoulder" | "neck" | "misc" | "head" | "weapon";
+export interface PartsFamily { defaults: Readonly<Partial<Record<DotaSlot, string>>>; sources: Readonly<Record<string, readonly DotaSlot[]>> }
+export interface HeroParts { slots: readonly DotaSlot[]; families: Readonly<Record<string, PartsFamily>> }
 export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
   "juggernaut": {
     "slots": [
       "back",
-      "belt",
+      "legs",
       "arms",
       "head",
       "weapon"
     ],
-    "sources": {
-      "base": [
-        "belt",
-        "head",
-        "weapon",
-        "arms",
-        "back"
-      ],
-      "bladesrunner": [
-        "arms",
-        "back",
-        "head",
-        "belt",
-        "weapon"
-      ]
+    "families": {
+      "juggernaut": {
+        "defaults": {
+          "legs": "base",
+          "head": "base",
+          "weapon": "base",
+          "arms": "base",
+          "back": "base"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "legs",
+            "arms",
+            "head",
+            "weapon"
+          ],
+          "bladesrunner": [
+            "back",
+            "legs",
+            "arms",
+            "head",
+            "weapon"
+          ]
+        }
+      },
+      "juggernaut@arcana": {
+        "defaults": {
+          "legs": "base",
+          "weapon": "base",
+          "arms": "base",
+          "head": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "legs",
+            "arms",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "bladesrunner": [
+            "back",
+            "legs",
+            "arms",
+            "head",
+            "weapon"
+          ]
+        }
+      },
+      "juggernaut@arcana~style1": {
+        "defaults": {
+          "legs": "base",
+          "weapon": "base",
+          "arms": "base",
+          "head": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "legs",
+            "arms",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "bladesrunner": [
+            "back",
+            "legs",
+            "arms",
+            "head",
+            "weapon"
+          ]
+        }
+      }
     }
   },
   "phantom_assassin": {
@@ -38,50 +107,101 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
       "head",
       "weapon"
     ],
-    "sources": {
-      "base": [
-        "back",
-        "weapon",
-        "head",
-        "shoulder"
-      ],
-      "darkfeather": [
-        "back",
-        "belt",
-        "head",
-        "shoulder",
-        "weapon"
-      ]
+    "families": {
+      "phantom_assassin": {
+        "defaults": {
+          "back": "base",
+          "belt": "base",
+          "head": "base",
+          "shoulder": "base",
+          "weapon": "base"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "belt",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "darkfeather": [
+            "back",
+            "belt",
+            "shoulder",
+            "head",
+            "weapon"
+          ]
+        }
+      }
     }
   },
   "lina": {
     "slots": [
       "belt",
       "arms",
-      "shoulder",
       "neck",
-      "misc",
       "head"
     ],
-    "sources": {
-      "base": [
-        "arms",
-        "belt",
-        "head",
-        "neck"
-      ],
-      "dragonfire": [
-        "arms",
-        "belt",
-        "head",
-        "neck"
-      ],
-      "arcana": [
-        "head",
-        "shoulder",
-        "belt",
-        "misc"
-      ]
+    "families": {
+      "lina": {
+        "defaults": {
+          "arms": "base",
+          "belt": "base",
+          "head": "base",
+          "neck": "base"
+        },
+        "sources": {
+          "base": [
+            "belt",
+            "arms",
+            "neck",
+            "head"
+          ],
+          "dragonfire": [
+            "belt",
+            "arms",
+            "neck",
+            "head"
+          ],
+          "battle_caster": [
+            "belt",
+            "arms",
+            "neck",
+            "head"
+          ]
+        }
+      },
+      "lina@arcana": {
+        "defaults": {
+          "head": "arcana",
+          "arms": "base",
+          "belt": "base",
+          "neck": "base"
+        },
+        "sources": {
+          "base": [
+            "belt",
+            "arms",
+            "neck",
+            "head"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "dragonfire": [
+            "belt",
+            "arms",
+            "neck",
+            "head"
+          ],
+          "battle_caster": [
+            "belt",
+            "arms",
+            "neck",
+            "head"
+          ]
+        }
+      }
     }
   },
   "monkey_king": {
@@ -89,66 +209,213 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
       "back",
       "armor",
       "shoulder",
-      "misc",
       "head",
       "weapon"
     ],
-    "sources": {
-      "base": [
-        "armor",
-        "weapon",
-        "back",
-        "head",
-        "shoulder"
-      ],
-      "fiery_vajrapani": [
-        "armor",
-        "head",
-        "shoulder",
-        "weapon"
-      ],
-      "arcana": [
-        "misc"
-      ],
-      "cult_of_the_demon_trickster": [
-        "armor",
-        "head",
-        "shoulder",
-        "weapon"
-      ]
+    "families": {
+      "monkey_king": {
+        "defaults": {
+          "armor": "base",
+          "weapon": "base",
+          "back": "base",
+          "head": "base",
+          "shoulder": "base"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "fiery_vajrapani": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "cult_of_the_demon_trickster": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ]
+        }
+      },
+      "monkey_king@arcana": {
+        "defaults": {
+          "armor": "base",
+          "weapon": "base",
+          "back": "base",
+          "shoulder": "base",
+          "head": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "fiery_vajrapani": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "cult_of_the_demon_trickster": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ]
+        }
+      },
+      "monkey_king@arcana~style1": {
+        "defaults": {
+          "armor": "base",
+          "weapon": "base",
+          "back": "base",
+          "shoulder": "base",
+          "head": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "fiery_vajrapani": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "cult_of_the_demon_trickster": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ]
+        }
+      },
+      "monkey_king@arcana~style2": {
+        "defaults": {
+          "armor": "base",
+          "weapon": "base",
+          "back": "base",
+          "shoulder": "base",
+          "head": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "fiery_vajrapani": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "cult_of_the_demon_trickster": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ]
+        }
+      },
+      "monkey_king@arcana~style3": {
+        "defaults": {
+          "armor": "base",
+          "weapon": "base",
+          "back": "base",
+          "shoulder": "base",
+          "head": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "fiery_vajrapani": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ],
+          "cult_of_the_demon_trickster": [
+            "armor",
+            "shoulder",
+            "head",
+            "weapon"
+          ]
+        }
+      }
     }
   },
   "axe": {
     "slots": [
-      "back",
       "belt",
       "armor",
       "misc",
       "head",
       "weapon"
     ],
-    "sources": {
-      "base": [
-        "armor",
-        "belt",
-        "head",
-        "back",
-        "weapon"
-      ],
-      "blackthorn": [
-        "armor",
-        "belt",
-        "head",
-        "misc",
-        "weapon"
-      ],
-      "armor_of_the_wrought_legion": [
-        "armor",
-        "belt",
-        "head",
-        "misc",
-        "weapon"
-      ]
+    "families": {
+      "axe": {
+        "defaults": {
+          "armor": "base",
+          "belt": "base",
+          "head": "base",
+          "weapon": "base"
+        },
+        "sources": {
+          "base": [
+            "belt",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "blackthorn": [
+            "belt",
+            "armor",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "armor_of_the_wrought_legion": [
+            "belt",
+            "armor",
+            "misc",
+            "head",
+            "weapon"
+          ]
+        }
+      }
     }
   }
 }/* END */;

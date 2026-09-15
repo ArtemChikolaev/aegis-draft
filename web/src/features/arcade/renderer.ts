@@ -117,9 +117,12 @@ export class ArcadeRenderer {
   /** Облик по слотам и скины призывов (T13.80): композит `<hero>+body+…` вместо цельного листа, art призыва → лист скина. */
   private mixSheet: string | null = null;
   private summons: Record<string, string> = {};
+  /** Эффект скина выключен обликом по слотам: его часть (пламя волос Lina) заменена другой (T13.80 срез 2). */
+  private skinFxOn = true;
   setLook(look: HeroLook): void {
     this.mixSheet = look.mixed ? look.sheet : null;
     this.summons = look.summons;
+    this.skinFxOn = look.fx !== null;
   }
   /** Лист призыва с учётом скина (T13.80); нет скина или он не загрузился — базовый лист. */
   private summonSheet(art: string): DotaSheet | null {
@@ -1320,7 +1323,7 @@ export class ArcadeRenderer {
   /** Свечение героя (слот `aura`) по контуру силуэта: слой `back` до спрайта, `front` после; вспышка по T разжигает его. */
   private drawAura(sim: ArcadeSim, geo: AuraGeo, now: number, pal: Palette, layer: "back" | "front"): void {
     // Своё свечение героя (Io) идёт как «эффект скина», если скин ничего своего не даёт.
-    const skinFx = (this.skinFx && (!this.skinFx.hero || this.skinFx.hero === sim.hero.id) ? (this.skinFx.aura as AuraEffect) : undefined)
+    const skinFx = (this.skinFx && this.skinFxOn && (!this.skinFx.hero || this.skinFx.hero === sim.hero.id) ? (this.skinFx.aura as AuraEffect) : undefined)
       ?? HERO_AURA[sim.hero.id];
     const kind = this.cosmetic.aura as AuraEffect | undefined;
     if (!kind && !skinFx) return;

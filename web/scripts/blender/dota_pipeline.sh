@@ -59,35 +59,46 @@ while IFS=$'\t' read -r id vmdl args parts; do
   STYLE_TOK="$(printf '%s' "$args" | sed -n 's/.*--style \([A-Za-z0-9_]*\).*/\1/p')"
   if [ -n "$STYLE_TOK" ]; then
     folder="$(printf '%s' "$vmdl" | cut -d/ -f3)"
-    sdir="$OUT/$id/styletex"; rm -rf "$sdir"; mkdir -p "$sdir"
+    sdir="$OUT/$id/styletex"
+    # REUSE=1: текстуры стиля семьи слоёв (T13.80) лежат в общей экспортной папке основы — не тянуть из vpk на каждую строку
+    # (листинг vpk + 39 текстур MK — почти минута на строку).
+    if [ "${REUSE:-}" = "1" ] && [ -n "$(find "$sdir" -name '*.png' 2>/dev/null | head -1)" ]; then echo "   стиль $STYLE_TOK: текстуры уже есть (REUSE=1)"; else
+    rm -rf "$sdir"; mkdir -p "$sdir"
     for root in items heroes; do
       DOTA="$DOTA" S2V="$S2V" bash "$HERE/dota_style_textures.sh" "models/$root/$folder" "$STYLE_TOK" "$sdir" >/dev/null 2>&1 || true
     done
     echo "   стиль $STYLE_TOK: текстур $(find "$sdir" -name '*.png' | wc -l | tr -d ' ')"
+    fi
     args="$args --style-dir $sdir"
   fi
   # Материалы, которых нет в vpk (--fix-tex <папка материалов> + --mat-map в render_dota_sprites.py):
   # достаём все color-текстуры папки в $OUT/$id/fixtex и отдаём рендеру как --fix-tex-dir.
   FIX_TEX="$(printf '%s' "$args" | sed -n 's/.*--fix-tex \([^ ]*\).*/\1/p')"
   if [ -n "$FIX_TEX" ]; then
-    fdir="$OUT/$id/fixtex"; rm -rf "$fdir"; mkdir -p "$fdir"
+    fdir="$OUT/$id/fixtex"
+    if [ "${REUSE:-}" = "1" ] && [ -n "$(find "$fdir" -name '*.png' 2>/dev/null | head -1)" ]; then echo "   fix-tex $FIX_TEX: текстуры уже есть (REUSE=1)"; else
+    rm -rf "$fdir"; mkdir -p "$fdir"
     FIX_LIST="$("$S2V" -i "$VPK" --vpk_dir 2>/dev/null | sed 's/ .*//' | grep -F "$FIX_TEX" | grep -E '_color_.*\.vtex_c$' || true)"
     for f in $FIX_LIST; do
       "$S2V" -i "$VPK" -f "$f" -o "$fdir/" -d >/dev/null 2>&1 || true
     done
     echo "   fix-tex $FIX_TEX: текстур $(find "$fdir" -name '*.png' | wc -l | tr -d ' ')"
+    fi
     args="$(printf '%s' "$args" | sed "s|--fix-tex $FIX_TEX|--fix-tex-dir $fdir|")"
   fi
   # Маски свечения (--glow-mask <папка материалов в vpk> → --glow-mask-dir): selfillum лежит в альфе
   # `*_detailmask_*` / в `*_selfillummask_*`, glb их с альфой не привозит — достаём vtex напрямую.
   GLOW_MASK="$(printf '%s' "$args" | sed -n 's/.*--glow-mask \([^ ]*\).*/\1/p')"
   if [ -n "$GLOW_MASK" ]; then
-    gdir="$OUT/$id/glowtex"; rm -rf "$gdir"; mkdir -p "$gdir"
+    gdir="$OUT/$id/glowtex"
+    if [ "${REUSE:-}" = "1" ] && [ -n "$(find "$gdir" -name '*.png' 2>/dev/null | head -1)" ]; then echo "   glow-mask $GLOW_MASK: маски уже есть (REUSE=1)"; else
+    rm -rf "$gdir"; mkdir -p "$gdir"
     GLOW_LIST="$("$S2V" -i "$VPK" --vpk_dir 2>/dev/null | sed 's/ .*//' | grep -F "$GLOW_MASK" | grep -E '(_detailmask_|_selfillummask_).*\.vtex_c$' || true)"
     for f in $GLOW_LIST; do
       "$S2V" -i "$VPK" -f "$f" -o "$gdir/" -d >/dev/null 2>&1 || true
     done
     echo "   glow-mask $GLOW_MASK: масок $(find "$gdir" -name '*.png' | wc -l | tr -d ' ')"
+    fi
     args="$(printf '%s' "$args" | sed "s|--glow-mask $GLOW_MASK|--glow-mask-dir $gdir|")"
   fi
   [ -n "$GLB" ] || { echo "   glb не найден для $id — проверь путь vmdl_c (список: $S2V -i \"$VPK\" -l -f $(dirname "$vmdl")/)"; continue; }

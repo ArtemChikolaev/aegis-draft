@@ -8,12 +8,12 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { COSMETICS, COSMETIC_BY_ID, PART_BASE, SHARD_PRICE, heroLook, resolveLoadout, sourceCosmetic, wornIsWhole, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, PART_BASE, SHARD_PRICE, defaultLoadout, familyOf, heroLook, sourceCosmetic, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
 import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { dotaSheet, dotaSheetState, drawDotaFrame, frameGeometry, gemSheet, HERO_AURA, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
+import { dotaSheet, dotaSheetState, dotaSheetStill, drawDotaFrame, frameGeometry, gemSheet, HERO_AURA, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, readEffectPalette, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
@@ -110,7 +110,9 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
     const draw = () => {
       raf = requestAnimationFrame(draw);
       const bare = sheet.split("~")[0];
-      const raw = dotaSheet(sheet) ?? dotaSheet(bare);
+      // Неподвижная миниатюра композита — один кадр, а не полный лист (A4: полный композит — десятки МиБ).
+      const pick = still ? dotaSheetStill : dotaSheet;
+      const raw = pick(sheet) ?? pick(bare);
       if (!raw && dotaSheetState(sheet) === "missing" && dotaSheetState(bare) === "missing") setMissing(true);
       const s = raw && glow ? gemSheet(raw, gem) : raw;
       c.imageSmoothingEnabled = false;
@@ -238,15 +240,22 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const stageSheet = worn && wornLook.mixed ? wornLook.sheet : previewSheet;
   const [slotTab, setSlotTab] = useState<DotaSlot>(hp?.slots[0] ?? "head");
   const myLoadout = cosmetics.loadout?.[hero] ?? {};
-  const followSrc = resolveLoadout(hero, cosmetics.equipped, {}, cosmetics.owned)[slotTab] ?? PART_BASE;
-  const partSheet = (src: string) => `${hero}+body+${src}.${slotTab}`;
+  // Основа надетого облика (срез 2): семейство слоёв — базовая модель, аркана или её стиль; слоты редактируются на ней.
+  const wornFam = familyOf(hero, cosmetics.equipped, cosmetics.styles);
+  const wornDefaults = defaultLoadout(hero, cosmetics.equipped, cosmetics.styles);
+  const followSrc = wornDefaults[slotTab];
+  const partSheet = (src: string) => `${wornFam?.id ?? hero}+body+${src}.${slotTab}`;
+  const srcName = (src: string) => { const d = sourceCosmetic(hero, src); return d ? t(`arcade.cosmetic.${d.id}` as MessageKey) : t("arcade.wardrobe.base"); };
+  const changedSlots = (hp?.slots ?? []).filter((s) => wornLook.parts[s] !== wornDefaults[s]);
+  const wornStyleDef = equippedSkin?.styles?.find((st) => st.id === cosmetics.styles[equippedSkin.id]);
+  const resetParts = useArcade((s) => s.resetParts);
   const summonArts = [...new Set(Object.values(def.abilities).map((a) => a.summon?.art).filter((a): a is string => !!a && COSMETICS.some((c) => c.slot === "summon" && c.hero === hero && c.variant.startsWith(`${a}@`))))];
   const price = sel.def ? SHARD_PRICE[sel.def.rarity] : 0;
   // Аркана рисуется со свечением; самоцветы показываем только если у листа это свечение есть
   // (как в Dota: призматический самоцвет красит эффекты, и облику без них он не нужен).
   const arcana = sel.def?.rarity === "arcana";
   const effectVariant = (slot: CosmeticSlot) => { const id = cosmetics.equipped[slot]; return id ? COSMETIC_BY_ID[id]?.variant : undefined; };
-  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: effectVariant("aura") as AuraEffect | undefined, skinAura: (sel.def?.fx?.aura as AuraEffect | undefined) ?? HERO_AURA[hero], trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
+  const previewEffects: PreviewEffects = { frame: effectVariant("frame") as GroundEffect | undefined, aura: effectVariant("aura") as AuraEffect | undefined, skinAura: ((worn ? wornLook.fx?.aura : sel.def?.fx?.aura) as AuraEffect | undefined) ?? HERO_AURA[hero], trail: effectVariant("trail") as TrailEffect | undefined, death: effectVariant("death") as DeathEffect | undefined };
   const glow = useSheetGlow(previewSheet, arcana);
   const styleOptions = (sel.def?.styles ?? []).filter((st) => st.hue === undefined || !!glow);
   return (
@@ -286,6 +295,15 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
           </strong>
           {sel.def && <small data-rarity={sel.def.rarity}>{t(`arcade.rarity.${sel.def.rarity}` as MessageKey)}</small>}
+          {worn && wornFam && changedSlots.length > 0 && (
+            <div className="arcade-wardrobe__composition" data-testid="arcade-wardrobe-composition">
+              {wornLook.mixed && <b>{t("arcade.wardrobe.mixed")}</b>}
+              <span>{t("arcade.wardrobe.baseOf")}: {wornFam.id === hero ? t("arcade.wardrobe.base") : equippedSkin ? t(`arcade.cosmetic.${equippedSkin.id}` as MessageKey) : hero}</span>
+              {changedSlots.map((s) => <span key={s}>{t(`arcade.wardrobe.slot.${s}` as MessageKey)}: {wornLook.parts[s] ? srcName(wornLook.parts[s]!) : t("arcade.wardrobe.slotEmpty")}</span>)}
+              <button type="button" data-testid="arcade-wardrobe-reset-parts" onClick={resetParts}>{t("arcade.wardrobe.resetParts")}</button>
+            </div>
+          )}
+          {worn && wornLook.styleDropped && wornStyleDef && <em className="arcade-wardrobe__hint" data-testid="arcade-wardrobe-style-dropped">{t("arcade.wardrobe.styleDropped", { style: t(`arcade.style.${wornStyleDef.id}` as MessageKey) })}</em>}
           <div className="arcade-wardrobe__actions">
             {worn
               ? <Button variant="secondary" disabled>{t("arcade.wardrobe.worn")}</Button>
@@ -341,8 +359,8 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
         {hp && (
           <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-slots">
             <small>{t("arcade.wardrobe.slots")}</small>
-            {wornIsWhole(hero, cosmetics.equipped) ? (
-              <em className="arcade-wardrobe__hint">{t("arcade.wardrobe.slotsWhole")}</em>
+            {!wornFam ? (
+              <em className="arcade-wardrobe__hint" data-testid="arcade-wardrobe-slots-whole">{t("arcade.wardrobe.slotsWhole")}</em>
             ) : (
               <>
                 <div className="arcade-cosmetics__options">
@@ -352,10 +370,10 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                 </div>
                 <div className="arcade-wardrobe__looks" data-testid="arcade-wardrobe-parts">
                   <button type="button" className="arcade-wardrobe__look" data-active={!myLoadout[slotTab] ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-part-follow" onClick={() => setPart(slotTab, null)}>
-                    <LookPreview sheet={partSheet(followSrc)} size={64} still />
+                    {followSrc ? <LookPreview sheet={partSheet(followSrc)} size={64} still /> : <span className="arcade-wardrobe__slot" style={{ width: 64, height: 64 }}><small>{t("arcade.wardrobe.slotEmpty")}</small></span>}
                     <span>{t("arcade.wardrobe.followSkin")}</span>
                   </button>
-                  {Object.keys(hp.sources).filter((src) => hp.sources[src].includes(slotTab)).map((src) => {
+                  {Object.keys(wornFam.family.sources).filter((src) => wornFam.family.sources[src].includes(slotTab)).map((src) => {
                     const srcDef = sourceCosmetic(hero, src);
                     const owned = src === PART_BASE || (srcDef ? cosmetics.owned.includes(srcDef.id) : false);
                     return (
