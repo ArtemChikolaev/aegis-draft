@@ -576,7 +576,6 @@
     "startDate": "2024-09-04",
     "endDate": "2024-09-15",
     "formats": [
-      "last_2y",
       "last_5y",
       "valve_legacy"
     ]
