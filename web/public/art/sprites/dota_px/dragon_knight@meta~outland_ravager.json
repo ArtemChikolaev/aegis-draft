@@ -1,0 +1,46 @@
+{
+  "name": "dragon_knight@meta~outland_ravager",
+  "frame": 80,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.603
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 7
+    },
+    "walk": {
+      "row": 8,
+      "frames": 8
+    },
+    "idle": {
+      "row": 16,
+      "frames": 10
+    },
+    "attack": {
+      "row": 24,
+      "frames": 7
+    }
+  },
+  "source": "dragon_knight_dragon.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "dragon_run",
+    "cx": 0.0,
+    "zmin": 2.5,
+    "cy": 0.4688,
+    "height": 5.625,
+    "width": 13.75,
+    "depth": 7.1875,
+    "extent": 19.25
+  }
+}

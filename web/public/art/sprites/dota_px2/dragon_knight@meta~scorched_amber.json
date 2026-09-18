@@ -1,0 +1,46 @@
+{
+  "name": "dragon_knight@meta~scorched_amber",
+  "frame": 160,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.614
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 7
+    },
+    "walk": {
+      "row": 8,
+      "frames": 8
+    },
+    "idle": {
+      "row": 16,
+      "frames": 10
+    },
+    "attack": {
+      "row": 24,
+      "frames": 7
+    }
+  },
+  "source": "dragon_knight_dragon.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "dragon_run",
+    "cx": 0.0,
+    "zmin": 2.5,
+    "cy": 1.0938,
+    "height": 5.625,
+    "width": 12.5,
+    "depth": 8.4375,
+    "extent": 17.5
+  }
+}

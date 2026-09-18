@@ -2,7 +2,7 @@
   "source": {
     "file": "scripts/items/items_game.txt",
     "sha256": "b1ff4c9f96a0d2261950567605d60fc36f3ebafcaac338a9fce7eecd8220afb0",
-    "built": "2026-09-15"
+    "built": "2026-09-18"
   },
   "models": {
     "models/heroes/abaddon/cape.vmdl": {
@@ -12928,5 +12928,645 @@
         }
       }
     ]
+  },
+  "entityModels": {
+    "models/heroes/antimage_female/antimage_female.vmdl": {
+      "id": "13783",
+      "name": "The Disciple's Path",
+      "slot": "persona_selector",
+      "rarity": "legendary",
+      "hero": "antimage",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_antimage"
+    },
+    "models/heroes/crystal_maiden_persona/crystal_maiden_persona.vmdl": {
+      "id": "19205",
+      "name": "Conduit of the Blueheart",
+      "slot": "persona_selector",
+      "rarity": "legendary",
+      "hero": "crystal_maiden",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_crystal_maiden"
+    },
+    "models/heroes/crystal_maiden/crystal_maiden_arcana.vmdl": {
+      "id": "7385",
+      "name": "Frost Avalanche",
+      "slot": "back",
+      "rarity": "arcana",
+      "hero": "crystal_maiden",
+      "prefab": "wearable",
+      "styles": 4,
+      "asset": "npc_dota_hero_crystal_maiden"
+    },
+    "models/heroes/dragon_knight_persona/dk_persona_base.vmdl": {
+      "id": "18113",
+      "name": "Davion of Dragon Hold",
+      "slot": "persona_selector",
+      "rarity": "legendary",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_dragon_knight"
+    },
+    "models/heroes/invoker_kid/invoker_kid.vmdl": {
+      "id": "13042",
+      "name": "Acolyte of the Lost Arts",
+      "slot": "persona_selector",
+      "rarity": "legendary",
+      "hero": "invoker",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_invoker"
+    },
+    "models/heroes/juggernaut/jugg_healing_ward.vmdl": {
+      "id": "560",
+      "name": "Juggernaut's Healing Ward",
+      "slot": "ability2",
+      "rarity": "common",
+      "hero": "juggernaut",
+      "prefab": "default_item",
+      "asset": "npc_dota_juggernaut_healing_ward"
+    },
+    "models/heroes/juggernaut/juggernaut_arcana.vmdl": {
+      "id": "9059",
+      "name": "Bladeform Legacy",
+      "slot": "hero_base",
+      "rarity": "arcana",
+      "hero": "juggernaut",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_juggernaut"
+    },
+    "models/heroes/mirana_persona/mirana_persona_base.vmdl": {
+      "id": "18178",
+      "name": "Mirana of Nightsilver",
+      "slot": "persona_selector",
+      "rarity": "legendary",
+      "hero": "mirana",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_mirana"
+    },
+    "models/heroes/phantom_assassin_persona/phantom_assassin_persona.vmdl": {
+      "id": "22723",
+      "name": "Exile Unveiled",
+      "slot": "persona_selector",
+      "rarity": "legendary",
+      "hero": "phantom_assassin",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_phantom_assassin"
+    },
+    "models/heroes/phantom_assassin/pa_arcana.vmdl": {
+      "id": "7247",
+      "name": "Manifold Paradox",
+      "slot": "weapon",
+      "rarity": "arcana",
+      "hero": "phantom_assassin",
+      "prefab": "wearable",
+      "styles": 3,
+      "asset": "npc_dota_hero_phantom_assassin"
+    },
+    "models/heroes/shadow_fiend/shadow_fiend_arcana.vmdl": {
+      "id": "6996",
+      "name": "Demon Eater",
+      "slot": "hero_base",
+      "rarity": "arcana",
+      "hero": "nevermore",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_nevermore"
+    },
+    "models/heroes/terrorblade/terrorblade_arcana.vmdl": {
+      "id": "5957",
+      "name": "Fractal Horns of Inner Abysm",
+      "slot": "head",
+      "rarity": "arcana",
+      "hero": "terrorblade",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_terrorblade"
+    },
+    "models/heroes/witchdoctor/witchdoctor_ward.vmdl": {
+      "id": "558",
+      "name": "Witch Doctor's Death Ward",
+      "slot": "summon",
+      "rarity": "common",
+      "hero": "witch_doctor",
+      "prefab": "default_item",
+      "asset": "npc_dota_witch_doctor_death_ward"
+    },
+    "models/heroes/zeus/zeus_arcana.vmdl": {
+      "id": "6914",
+      "name": "Tempest Helm of the Thundergod",
+      "slot": "head",
+      "rarity": "arcana",
+      "hero": "zuus",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_zuus"
+    },
+    "models/items/broodmother/spiderling/amber_queen_spiderling_2/amber_queen_spiderling_2.vmdl": {
+      "id": "8862",
+      "name": "Amber Queen's Spiderling",
+      "slot": "ability1",
+      "rarity": "mythical",
+      "hero": "broodmother",
+      "prefab": "wearable",
+      "asset": "npc_dota_broodmother_spiderling"
+    },
+    "models/items/broodmother/spiderling/lycosidae_spiderling/lycosidae_spiderling.vmdl": {
+      "id": "9091",
+      "name": "Lycosidae's Spiderling",
+      "slot": "ability1",
+      "rarity": "immortal",
+      "hero": "broodmother",
+      "prefab": "wearable",
+      "asset": "npc_dota_broodmother_spiderling"
+    },
+    "models/items/dragon_knight/aurora_warrior_set_dragon_style2_aurora_warrior_set/aurora_warrior_set_dragon_style2_aurora_warrior_set.vmdl": {
+      "id": "9136",
+      "name": "Dragon of the Outland Ravager",
+      "slot": "shapeshift",
+      "rarity": "mythical",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/dplus_ancient_dragon_ancient_dragon_forms/dplus_ancient_dragon_ancient_dragon_forms.vmdl": {
+      "id": "18397",
+      "name": "The Gilded Maw Forms",
+      "slot": "shapeshift",
+      "rarity": "rare",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/dragon_immortal_1/dragon_immortal_1.vmdl": {
+      "id": "6615",
+      "name": "Kindred of the Iron Dragon",
+      "slot": "shapeshift",
+      "rarity": "immortal",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/fireborn_dragon/fireborn_dragon.vmdl": {
+      "id": "8979",
+      "name": "Shadow of the Burning Scale",
+      "slot": "shapeshift",
+      "rarity": "mythical",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/griffin_knight_set_dragon/griffin_knight_set_dragon.vmdl": {
+      "id": "30735",
+      "name": "Griffin Knight - Dragon Form",
+      "slot": "shapeshift",
+      "rarity": "mythical",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "styles": 3,
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/legacy_of_the_winterwyrm_form_of_the_winterwyrm/legacy_of_the_winterwyrm_form_of_the_winterwyrm.vmdl": {
+      "id": "9644",
+      "name": "Bitterwing",
+      "slot": "shapeshift",
+      "rarity": "rare",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/oblivion_blazer_dragon/oblivion_blazer_dragon.vmdl": {
+      "id": "7671",
+      "name": "Elder Drake of Blazing Oblivion",
+      "slot": "shapeshift",
+      "rarity": "mythical",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/silver_dragon_king_dragon/silver_dragon_king_dragon.vmdl": {
+      "id": "17999",
+      "name": "Silverwurm Sacrifice - Dragon Form",
+      "slot": "shapeshift",
+      "rarity": "mythical",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/ti8_dk_third_awakening_dragon/ti8_dk_third_awakening_dragon.vmdl": {
+      "id": "9996",
+      "name": "Dragon Form of the Third Awakening",
+      "slot": "shapeshift",
+      "rarity": "mythical",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/dragon_knight/ti9_cache_dk_scorching_amber_dragoon_form/ti9_cache_dk_scorching_amber_dragoon_form.vmdl": {
+      "id": "13329",
+      "name": "Scorched Amber Dragon Form",
+      "slot": "shapeshift",
+      "rarity": "mythical",
+      "hero": "dragon_knight",
+      "prefab": "wearable",
+      "asset": "models/heroes/dragon_knight/dragon_knight_dragon.vmdl"
+    },
+    "models/items/drow/drow_arcana/drow_arcana.vmdl": {
+      "id": "19090",
+      "name": "Dread Retribution",
+      "slot": "weapon",
+      "rarity": "arcana",
+      "hero": "drow_ranger",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_drow_ranger"
+    },
+    "models/items/earthshaker/earthshaker_arcana/earthshaker_arcana.vmdl": {
+      "id": "12692",
+      "name": "Planetfall",
+      "slot": "hero_base",
+      "rarity": "arcana",
+      "hero": "earthshaker",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_earthshaker"
+    },
+    "models/items/faceless_void/faceless_void_arcana/faceless_void_arcana_base.vmdl": {
+      "id": "18033",
+      "name": "Claszian Apostasy Head",
+      "slot": "body_head",
+      "rarity": "arcana",
+      "hero": "faceless_void",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_faceless_void"
+    },
+    "models/items/gyrocopter/dwarven_gyrocopter_off_hand/dwarven_gyrocopter_off_hand.vmdl": {
+      "id": "8318",
+      "name": "Missile of the Dwarf Gyrocopter",
+      "slot": "offhand_weapon",
+      "rarity": "uncommon",
+      "hero": "gyrocopter",
+      "prefab": "wearable",
+      "asset": "npc_dota_gyrocopter_homing_missile"
+    },
+    "models/items/gyrocopter/flamed_falcon_patrol_off_hand/flamed_falcon_patrol_off_hand.vmdl": {
+      "id": "9138",
+      "name": "Missile of the Gunboat Hegemon",
+      "slot": "offhand_weapon",
+      "rarity": "mythical",
+      "hero": "gyrocopter",
+      "prefab": "wearable",
+      "asset": "npc_dota_gyrocopter_homing_missile"
+    },
+    "models/items/lone_druid/bear/dark_wood_bear/dark_wood_bear.vmdl": {
+      "id": "8864",
+      "name": "Spirit of the Dark Wood",
+      "slot": "summon",
+      "rarity": "mythical",
+      "hero": "lone_druid",
+      "prefab": "wearable",
+      "styles": 3,
+      "asset": "npc_dota_lone_druid_bear"
+    },
+    "models/items/lone_druid/bear/iron_claw_spirit_bear/iron_claw_spirit_bear.vmdl": {
+      "id": "6638",
+      "name": "Spirit of the Iron Claw",
+      "slot": "summon",
+      "rarity": "uncommon",
+      "hero": "lone_druid",
+      "prefab": "wearable",
+      "asset": "npc_dota_lone_druid_bear"
+    },
+    "models/items/lone_druid/true_form/dark_wood_true_form/dark_wood_true_form.vmdl": {
+      "id": "8871",
+      "name": "Form of the Dark Wood",
+      "slot": "ability_ultimate",
+      "rarity": "mythical",
+      "hero": "lone_druid",
+      "prefab": "wearable",
+      "styles": 3,
+      "asset": "models/heroes/lone_druid/true_form.vmdl"
+    },
+    "models/items/lone_druid/true_form/elemental_curse_set_elemental_curse_true_form/elemental_curse_set_elemental_curse_true_form.vmdl": {
+      "id": "9567",
+      "name": "True Form of the War-Burrow Ravager",
+      "slot": "ability_ultimate",
+      "rarity": "rare",
+      "hero": "lone_druid",
+      "prefab": "wearable",
+      "asset": "models/heroes/lone_druid/true_form.vmdl"
+    },
+    "models/items/lone_druid/true_form/form_of_the_atniw/form_of_the_atniw.vmdl": {
+      "id": "5193",
+      "name": "Form of the Atniw",
+      "slot": "ability_ultimate",
+      "rarity": "mythical",
+      "hero": "lone_druid",
+      "prefab": "wearable",
+      "asset": "models/heroes/lone_druid/true_form.vmdl"
+    },
+    "models/items/lone_druid/true_form/iron_claw_true_form/iron_claw_true_form.vmdl": {
+      "id": "6669",
+      "name": "Beast of The Iron Claw",
+      "slot": "ability_ultimate",
+      "rarity": "mythical",
+      "hero": "lone_druid",
+      "prefab": "wearable",
+      "asset": "models/heroes/lone_druid/true_form.vmdl"
+    },
+    "models/items/lone_druid/true_form/rabid_black_bear/rabid_black_bear.vmdl": {
+      "id": "5089",
+      "name": "Form of the Onyx Grove",
+      "slot": "ability_ultimate",
+      "rarity": "mythical",
+      "hero": "lone_druid",
+      "prefab": "wearable",
+      "asset": "models/heroes/lone_druid/true_form.vmdl"
+    },
+    "models/items/lycan/wolves/_ascension_of_the_hallowed_beast_summons/_ascension_of_the_hallowed_beast_summons.vmdl": {
+      "id": "18255",
+      "name": "Creed of the Skullhound - Summon",
+      "slot": "summon",
+      "rarity": "mythical",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/_werewolf_samurai_wolves_v1/_werewolf_samurai_wolves_v1.vmdl": {
+      "id": "14858",
+      "name": "Requiem for Red Wolf Clan Wolves",
+      "slot": "summon",
+      "rarity": "rare",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/alpha_summon_01/alpha_summon_01.vmdl": {
+      "id": "4988",
+      "name": "Familiar of the Great Grey",
+      "slot": "summon",
+      "rarity": "rare",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/ambry_summon/ambry_summon.vmdl": {
+      "id": "7906",
+      "name": "Wolves of Ambry",
+      "slot": "summon",
+      "rarity": "uncommon",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/blood_moon_hunter_wolves/blood_moon_hunter_wolves.vmdl": {
+      "id": "8998",
+      "name": "Wolves of the Blood Moon",
+      "slot": "summon",
+      "rarity": "mythical",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/frostivus2018_lycan_winter_snow_wolf_wolves/frostivus2018_lycan_winter_snow_wolf_wolves.vmdl": {
+      "id": "12892",
+      "name": "Companion of the Grey Ghost",
+      "slot": "summon",
+      "rarity": "rare",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/hunter_kings_wolves/hunter_kings_wolves.vmdl": {
+      "id": "7050",
+      "name": "Borealis and Puppey, Guardians of Ambry",
+      "slot": "summon",
+      "rarity": "mythical",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/icewrack_pack/icewrack_pack.vmdl": {
+      "id": "5596",
+      "name": "Icewrack Pack",
+      "slot": "summon",
+      "rarity": "rare",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/lycan/wolves/mutant_exorcist_summon/mutant_exorcist_summon.vmdl": {
+      "id": "17640",
+      "name": "Darkheart Redemption Wolves",
+      "slot": "summon",
+      "rarity": "rare",
+      "hero": "lycan",
+      "prefab": "wearable",
+      "asset": "npc_dota_lycan_wolf"
+    },
+    "models/items/ogre_magi/ogre_arcana/ogre_magi_arcana.vmdl": {
+      "id": "13670",
+      "name": "Flockheart's Gamble",
+      "slot": "hero_base",
+      "rarity": "arcana",
+      "hero": "ogre_magi",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_ogre_magi"
+    },
+    "models/items/pudge/arcana/pudge_arcana_base.vmdl": {
+      "id": "7756",
+      "name": "Feast of Abscession",
+      "slot": "hero_base",
+      "rarity": "arcana",
+      "hero": "pudge",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_pudge"
+    },
+    "models/items/razor/razor_arcana/razor_arcana.vmdl": {
+      "id": "23095",
+      "name": "Voidstorm Asylum Tormentor",
+      "slot": "weapon",
+      "rarity": "arcana",
+      "hero": "razor",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_razor"
+    },
+    "models/items/rubick/rubick_arcana/rubick_arcana_base.vmdl": {
+      "id": "12451",
+      "name": "The Magus Cypher",
+      "slot": "back",
+      "rarity": "arcana",
+      "hero": "rubick",
+      "prefab": "wearable",
+      "styles": 41,
+      "asset": "npc_dota_hero_rubick"
+    },
+    "models/items/skywrath_mage/skywrath_arcana/skywrath_arcana.vmdl": {
+      "id": "18539",
+      "name": "The Devotions of Dragonus - Wings",
+      "slot": "back",
+      "rarity": "arcana",
+      "hero": "skywrath_mage",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_skywrath_mage"
+    },
+    "models/items/spectre/spectre_arcana/spectre_arcana_base.vmdl": {
+      "id": "9662",
+      "name": "Phantom Advent",
+      "slot": "head",
+      "rarity": "arcana",
+      "hero": "spectre",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_spectre"
+    },
+    "models/items/techies/techies_mad_tex_arms/techies_mad_tex_arms.vmdl": {
+      "id": "26372",
+      "name": "War Rig Eradicators - Arms",
+      "slot": "arms",
+      "rarity": "mythical",
+      "hero": "techies",
+      "prefab": "wearable",
+      "asset": "npc_dota_techies_remote_mine"
+    },
+    "models/items/techies/techies_mad_tex_belt/techies_mad_tex_belt.vmdl": {
+      "id": "26158",
+      "name": "War Rig Eradicators - Belt",
+      "slot": "belt",
+      "rarity": "mythical",
+      "hero": "techies",
+      "prefab": "wearable",
+      "asset": "npc_dota_techies_minefield_sign"
+    },
+    "models/items/terrorblade/corrupted_form/corrupted_form.vmdl": {
+      "id": "7404",
+      "name": "Form of the Baleful Hollow",
+      "slot": "ability3",
+      "rarity": "rare",
+      "hero": "terrorblade",
+      "prefab": "wearable",
+      "asset": "models/heroes/terrorblade/demon.vmdl"
+    },
+    "models/items/terrorblade/endless_purgatory_demon/endless_purgatory_demon.vmdl": {
+      "id": "8276",
+      "name": "Form of Eternal Purgatory",
+      "slot": "ability3",
+      "rarity": "rare",
+      "hero": "terrorblade",
+      "prefab": "wearable",
+      "asset": "models/heroes/terrorblade/demon.vmdl"
+    },
+    "models/items/terrorblade/knight_of_foulfell_demon/knight_of_foulfell_demon.vmdl": {
+      "id": "9501",
+      "name": "Demon Form of the Foulfell Corruptor",
+      "slot": "ability3",
+      "rarity": "mythical",
+      "hero": "terrorblade",
+      "prefab": "wearable",
+      "asset": "models/heroes/terrorblade/demon.vmdl"
+    },
+    "models/items/terrorblade/marauders_demon/marauders_demon.vmdl": {
+      "id": "7033",
+      "name": "Marauder's Demon Form",
+      "slot": "ability3",
+      "rarity": "rare",
+      "hero": "terrorblade",
+      "prefab": "wearable",
+      "asset": "models/heroes/terrorblade/demon.vmdl"
+    },
+    "models/items/terrorblade/tb_samurai_samurai_demon/tb_samurai_samurai_demon.vmdl": {
+      "id": "14339",
+      "name": "Chasm of the Broken Code Demon",
+      "slot": "ability3",
+      "rarity": "mythical",
+      "hero": "terrorblade",
+      "prefab": "wearable",
+      "asset": "models/heroes/terrorblade/demon.vmdl"
+    },
+    "models/items/terrorblade/terrorblade_ultimate_depravity_ability/terrorblade_ultimate_depravity_ability.vmdl": {
+      "id": "26446",
+      "name": "Forgotten Station - Demon",
+      "slot": "ability3",
+      "rarity": "mythical",
+      "hero": "terrorblade",
+      "prefab": "wearable",
+      "asset": "models/heroes/terrorblade/demon.vmdl"
+    },
+    "models/items/tiny/tiny_astral_order_back/tiny_astral_order_back.vmdl": {
+      "id": "26755",
+      "name": "Astral Origins - Back",
+      "slot": "back",
+      "rarity": "mythical",
+      "hero": "tiny",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_tiny_variant_3"
+    },
+    "models/items/tiny/tiny_astral_order_belt/tiny_astral_order_belt.vmdl": {
+      "id": "26757",
+      "name": "Astral Origins - Belt",
+      "slot": "belt",
+      "rarity": "mythical",
+      "hero": "tiny",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_tiny_variant_1"
+    },
+    "models/items/tiny/tiny_astral_order_neck/tiny_astral_order_neck.vmdl": {
+      "id": "26756",
+      "name": "Astral Origins - Neck",
+      "slot": "neck",
+      "rarity": "mythical",
+      "hero": "tiny",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_tiny_variant_2"
+    },
+    "models/items/tiny/tiny_astral_order_shoulder/tiny_astral_order_shoulder.vmdl": {
+      "id": "26758",
+      "name": "Astral Origins - Shoulder",
+      "slot": "shoulder",
+      "rarity": "mythical",
+      "hero": "tiny",
+      "prefab": "wearable",
+      "asset": "npc_dota_hero_tiny_variant_0"
+    },
+    "models/items/vengefulspirit/vengeful_spirit_arcana/vengeful_spirit_arcana.vmdl": {
+      "id": "22718",
+      "name": "The Resurrection of Shen - Wings",
+      "slot": "shoulder",
+      "rarity": "arcana",
+      "hero": "vengefulspirit",
+      "prefab": "wearable",
+      "styles": 3,
+      "asset": "npc_dota_hero_vengefulspirit"
+    },
+    "models/items/warlock/golem/hellsworn_golem/hellsworn_golem.vmdl": {
+      "id": "9865",
+      "name": "Hellsworn Construct",
+      "slot": "ability_ultimate",
+      "rarity": "mythical",
+      "hero": "warlock",
+      "prefab": "wearable",
+      "asset": "npc_dota_warlock_golem"
+    },
+    "models/items/warlock/golem/obsidian_golem/obsidian_golem.vmdl": {
+      "id": "5411",
+      "name": "Obsidian Golem",
+      "slot": "ability_ultimate",
+      "rarity": "mythical",
+      "hero": "warlock",
+      "prefab": "wearable",
+      "asset": "npc_dota_warlock_golem"
+    },
+    "models/items/wraith_king/arcana/wraith_king_arcana.vmdl": {
+      "id": "13456",
+      "name": "Crown of the One True King",
+      "slot": "head",
+      "rarity": "arcana",
+      "hero": "skeleton_king",
+      "prefab": "wearable",
+      "styles": 2,
+      "asset": "npc_dota_hero_skeleton_king"
+    }
   }
 }

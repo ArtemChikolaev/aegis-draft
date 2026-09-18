@@ -232,12 +232,17 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const [lifeSize, setLifeSize] = useState(false);
   const [compare, setCompare] = useState(false);
   const hasForm = Object.values(HEROES[hero].abilities).some((a) => a.form !== undefined);
-  const formSheet = dotaSheetState(`${previewSheet}@meta`) !== "missing" ? `${previewSheet}@meta` : `${hero}@meta`;
+  // Форма: свой скин формы (слот `form`, T13.80 срез 3) важнее формы облика (`<hero>@<skin>@meta`), та — важнее базовой.
+  const skinForm = dotaSheetState(`${previewSheet}@meta`) !== "missing" ? `${previewSheet}@meta` : `${hero}@meta`;
+  const formSkins = COSMETICS.filter((c) => c.slot === "form" && c.hero === hero);
+  const formOn = cosmetics.formSkins?.[hero];
+  const setFormSkin = useArcade((s) => s.setFormSkin);
   const worn = (sel.def?.id ?? null) === (equippedSkin?.id ?? null);
   // Облик по слотам (T13.80): на витрине — собранный облик надетого скина; вкладка слота и части-источники.
   const hp = HERO_PARTS[hero];
   const wornLook = heroLook(hero, cosmetics);
   const stageSheet = worn && wornLook.mixed ? wornLook.sheet : previewSheet;
+  const formSheet = wornLook.form ?? skinForm;
   const [slotTab, setSlotTab] = useState<DotaSlot>(hp?.slots[0] ?? "head");
   const myLoadout = cosmetics.loadout?.[hero] ?? {};
   // Основа надетого облика (срез 2): семейство слоёв — базовая модель, аркана или её стиль; слоты редактируются на ней.
@@ -432,6 +437,36 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                 </div>
               );
             })}
+          </div>
+        )}
+        {hasForm && formSkins.length > 0 && (
+          <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-forms">
+            <small>{t("arcade.wardrobe.forms")}</small>
+            <div className="arcade-wardrobe__looks">
+              <button type="button" className="arcade-wardrobe__look" data-active={!formOn ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-base" onClick={() => { setFormSkin(null); setPreviewAnim("form"); }}>
+                <LookPreview sheet={skinForm} size={64} still />
+                <span>{t("arcade.wardrobe.formBase")}</span>
+              </button>
+              {formSkins.map((c) => {
+                const owned = cosmetics.owned.includes(c.id);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className="arcade-wardrobe__look"
+                    data-active={formOn === c.id ? "true" : undefined}
+                    data-rarity={c.rarity}
+                    data-owned={owned ? "true" : undefined}
+                    data-testid={`arcade-wardrobe-form-${c.id}`}
+                    onClick={() => { if (owned || buyCosmetic(c.id)) { setFormSkin(c.id); setPreviewAnim("form"); } }}
+                  >
+                    <LookPreview sheet={c.variant} size={64} still />
+                    <span>{t(`arcade.cosmetic.${c.id}` as MessageKey)}</span>
+                    {!owned && <em>{SHARD_PRICE[c.rarity]}</em>}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
         <div className="arcade-wardrobe__effects">

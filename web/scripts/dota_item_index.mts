@@ -101,6 +101,9 @@ export interface ItemIndex {
   /** Основы героя (`item_slot = hero_base`: арканы/персоны со своей моделью тела) по героям: у них нет `model_player`,
    *  тело задаёт `asset_modifier` типа `entity_model`. */
   bases: Record<string, IndexedItem[]>;
+  /** Подмены модели сущности (`asset_modifier` типов `entity_model` и `hero_model_change`): скины форм (Метаморфоза TB, True Form LD, дракон DK — `asset`
+   *  = модель базовой формы) и призывов без `model_player` (волки Lycan — `asset` = имя юнита). Путь модели скина → предмет. */
+  entityModels: Record<string, IndexedItem & { asset: string }>;
 }
 const norm = (p: string) => p.replace(/\.vmdl_c$/, ".vmdl");
 
@@ -164,9 +167,22 @@ export function buildIndex(itemsFile: string, wanted: Set<string>): ItemIndex {
     if (Object.keys(swaps).length) entry.swaps = swaps;
     return entry;
   };
+  const entityModels: Record<string, IndexedItem & { asset: string }> = {};
   for (const [id, raw] of items) {
     const item = raw[0];
     if (!(item instanceof Map)) continue;
+    for (const [k, vals] of sub(item, "visuals") ?? []) {
+      if (!k.startsWith("asset_modifier")) continue;
+      for (const v of vals) {
+        // `entity_model` — подмена модели юнита (волки Lycan, аркана TB), `hero_model_change` — модели формы (демон TB, True Form LD, дракон DK).
+        if (!(v instanceof Map) || !["entity_model", "hero_model_change"].includes(one(v, "type") ?? "")) continue;
+        const asset = one(v, "asset"), modifier = one(v, "modifier");
+        if (!asset || !modifier || !wanted.has(norm(modifier)) || entityModels[norm(modifier)] || norm(asset) === norm(modifier)) continue;
+        const e = entryOf(id, item);
+        delete e.swaps;
+        entityModels[norm(modifier)] = { ...e, asset: norm(asset) };
+      }
+    }
     const model = one(item, "model_player");
     if (!model) {
       // Основа героя: аркана/персона без model_player (тело — entity_model). Нужны только те, у кого есть герой.
@@ -180,7 +196,7 @@ export function buildIndex(itemsFile: string, wanted: Set<string>): ItemIndex {
     models[key] = entryOf(id, item);
   }
   const sorted = <T,>(o: Record<string, T>) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => a.localeCompare(b)));
-  return { source: { file: "scripts/items/items_game.txt", sha256, built: new Date().toISOString().slice(0, 10) }, models: sorted(models), bases: sorted(bases) };
+  return { source: { file: "scripts/items/items_game.txt", sha256, built: new Date().toISOString().slice(0, 10) }, models: sorted(models), bases: sorted(bases), entityModels: sorted(entityModels) };
 }
 
 if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop()!)) {

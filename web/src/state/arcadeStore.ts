@@ -148,6 +148,8 @@ export interface CosmeticsState {
   loadout: Record<string, Loadout>;
   /** Скины призывов (T13.80): id героя → art призыва (`bear`, `wolf`…) → id косметики слота `summon`. */
   summonSkins: Record<string, Record<string, string>>;
+  /** Скины форм (T13.80 срез 3): id героя → id косметики слота `form` (Метаморфоза TB, True Form LD, дракон DK). */
+  formSkins?: Record<string, string>;
   /** Версия формата (COSMETICS_VERSION): сейв без неё или ниже — прогоняется через миграции при чтении. */
   v?: number;
 }
@@ -187,7 +189,7 @@ function withHeroSkin(c: CosmeticsState, hero: string): CosmeticsState {
 }
 
 function readCosmetics(): CosmeticsState {
-  const empty: CosmeticsState = { owned: [], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false, loadout: {}, summonSkins: {}, v: COSMETICS_VERSION };
+  const empty: CosmeticsState = { owned: [], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false, loadout: {}, summonSkins: {}, formSkins: {}, v: COSMETICS_VERSION };
   try {
     const raw = readCached(COSMETICS_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<CosmeticsState>) : null;
@@ -202,10 +204,11 @@ function readCosmetics(): CosmeticsState {
     // Сейвы до T13.80: без слотов и скинов призывов — пустые словари, облик следует надетому скину.
     const loadout: Record<string, Loadout> = { ...(parsed.loadout && typeof parsed.loadout === "object" ? parsed.loadout : {}) };
     const summonSkins = parsed.summonSkins && typeof parsed.summonSkins === "object" ? parsed.summonSkins : {};
+    const formSkins = parsed.formSkins && typeof parsed.formSkins === "object" ? parsed.formSkins : {};
     const owned = [...parsed.owned];
     const mig = { owned, skins: { ...skins }, loadout };
     if ((typeof parsed.v === "number" ? parsed.v : 1) < 2) migrateCosmeticsV2(mig);
-    return { owned, equipped, shared, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins: mig.skins, perHero, perHeroLook: parsed.perHeroLook === true, loadout, summonSkins, v: COSMETICS_VERSION };
+    return { owned, equipped, shared, shards: parsed.shards ?? 0, styles: parsed.styles ?? {}, skins: mig.skins, perHero, perHeroLook: parsed.perHeroLook === true, loadout, summonSkins, formSkins, v: COSMETICS_VERSION };
   } catch {
     return empty;
   }
@@ -330,6 +333,8 @@ interface ArcadeStore {
   resetParts: () => void;
   /** Скин призыва выбранного героя (T13.80): id косметики слота `summon` для этого art; null — обычный. */
   setSummonSkin: (art: string, id: string | null) => void;
+  /** Скин формы выбранного героя (T13.80 срез 3): id косметики слота `form`; null — форма как у облика. */
+  setFormSkin: (id: string | null) => void;
   /** Пресеты образа (T13.49): свой набор эффектов у каждого героя вместо общего. */
   setPerHeroLook: (on: boolean) => void;
   /** Выбрать стиль скина (аркана с самоцветом/стилем). null — базовый стиль. */
@@ -452,7 +457,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ cosmetics });
   },
   equip(slot, id) {
-    if (slot === "summon") return; // скины призывов — setSummonSkin (нужен art призыва)
+    if (slot === "summon" || slot === "form") return; // скины призывов и форм — setSummonSkin / setFormSkin (они на героя)
     if (id !== null && (!COSMETIC_BY_ID[id] || COSMETIC_BY_ID[id].slot !== slot || !get().cosmetics.owned.includes(id))) return;
     const c = get().cosmetics;
     const shared = { ...c.shared };
@@ -509,6 +514,19 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const summonSkins = { ...(c.summonSkins ?? {}), [hero]: mine };
     if (!Object.keys(mine).length) delete summonSkins[hero];
     const cosmetics = { ...c, summonSkins };
+    void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
+    set({ cosmetics });
+  },
+  setFormSkin(id) {
+    const c = get().cosmetics;
+    const hero = get().hero;
+    if (id !== null) {
+      const def = COSMETIC_BY_ID[id];
+      if (!def || def.slot !== "form" || def.hero !== hero || !c.owned.includes(id)) return;
+    }
+    const formSkins = { ...(c.formSkins ?? {}) };
+    if (id === null) delete formSkins[hero]; else formSkins[hero] = id;
+    const cosmetics = { ...c, formSkins };
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });
   },

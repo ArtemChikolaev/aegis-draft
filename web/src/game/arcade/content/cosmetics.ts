@@ -10,7 +10,10 @@ export type { DotaSlot };
  *  смерти врагов, `tint` — оттенок умений, `skin` — облик. Эффекты рисует features/arcade/effects.ts. */
 /** `summon` — скин призыва (T13.80): `variant` = `<art>@<skin>` (лист призыва), `hero` — чей призыв; надевается в
  *  гардеробе героя, живёт в `cosmetics.summonSkins`, в `equipped` не попадает. */
-export type CosmeticSlot = "frame" | "aura" | "trail" | "death" | "tint" | "skin" | "summon";
+/** `form` — скин формы героя (T13.80 срез 3): в Dota это отдельный предмет в своём слоте (Метаморфоза TB — `ability3`,
+ *  True Form Lone Druid — `ability_ultimate`, дракон DK — `shapeshift`), поэтому не зависит от надетого облика.
+ *  `variant` = лист `<hero>@meta~<имя>`, `hero` — чья форма; живёт в `cosmetics.formSkins[hero]`, в `equipped` не попадает. */
+export type CosmeticSlot = "frame" | "aura" | "trail" | "death" | "tint" | "skin" | "summon" | "form";
 
 export interface CosmeticDef {
   id: string;
@@ -343,6 +346,40 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "summon_spiderling_lycosidae", slot: "summon", rarity: "exotic", variant: "spiderling@lycosidae", hero: "broodmother" },
   { id: "summon_warlock_golem_obsidian", slot: "summon", rarity: "exotic", variant: "warlock_golem@obsidian", hero: "warlock" },
   { id: "summon_warlock_golem_hellsworn", slot: "summon", rarity: "exotic", variant: "warlock_golem@hellsworn", hero: "warlock" },
+  // Срез 3 (2026-09-19): скины форм — отдельные предметы Dota (TB `ability3`, Lone Druid `ability_ultimate`, DK `shapeshift`:
+  // подмена `entity_model` модели формы), лист `<hero>@meta~<имя>` — модель скина на скелете и анимациях базовой формы
+  // (--hide-base). Волки Lycan — подмена юнита `npc_dota_lycan_wolf` (слот `summon`): у моделей свой скелет, поэтому
+  // рендерятся основной моделью со своими клипами, а не частью на скелете базового волка. В комментарии — item ID и имя.
+  { id: "form_terrorblade_marauders", slot: "form", rarity: "refined", variant: "terrorblade@meta~marauders", hero: "terrorblade" }, // 7033 Marauder's Demon Form
+  { id: "form_terrorblade_baleful_hollow", slot: "form", rarity: "refined", variant: "terrorblade@meta~baleful_hollow", hero: "terrorblade" }, // 7404 Form of the Baleful Hollow
+  { id: "form_terrorblade_eternal_purgatory", slot: "form", rarity: "refined", variant: "terrorblade@meta~eternal_purgatory", hero: "terrorblade" }, // 8276 Form of Eternal Purgatory
+  { id: "form_terrorblade_foulfell", slot: "form", rarity: "exotic", variant: "terrorblade@meta~foulfell", hero: "terrorblade" }, // 9501 Demon Form of the Foulfell Corruptor
+  { id: "form_terrorblade_broken_code", slot: "form", rarity: "exotic", variant: "terrorblade@meta~broken_code", hero: "terrorblade" }, // 14339 Chasm of the Broken Code Demon
+  { id: "form_terrorblade_forgotten_station", slot: "form", rarity: "exotic", variant: "terrorblade@meta~forgotten_station", hero: "terrorblade" }, // 26446 Forgotten Station Demon
+  { id: "form_lone_druid_onyx_grove", slot: "form", rarity: "exotic", variant: "lone_druid@meta~onyx_grove", hero: "lone_druid" }, // 5089 Form of the Onyx Grove
+  { id: "form_lone_druid_atniw", slot: "form", rarity: "exotic", variant: "lone_druid@meta~atniw", hero: "lone_druid" }, // 5193 Form of the Atniw
+  { id: "form_lone_druid_iron_claw", slot: "form", rarity: "exotic", variant: "lone_druid@meta~iron_claw", hero: "lone_druid" }, // 6669 Beast of the Iron Claw
+  { id: "form_lone_druid_dark_wood", slot: "form", rarity: "exotic", variant: "lone_druid@meta~dark_wood", hero: "lone_druid" }, // 8871 Form of the Dark Wood
+  { id: "form_lone_druid_war_burrow", slot: "form", rarity: "refined", variant: "lone_druid@meta~war_burrow", hero: "lone_druid" }, // 9567 True Form of the War-Burrow Ravager
+  { id: "form_dragon_knight_iron_dragon", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~iron_dragon", hero: "dragon_knight" }, // 6615 Kindred of the Iron Dragon
+  { id: "form_dragon_knight_blazing_oblivion", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~blazing_oblivion", hero: "dragon_knight" }, // 7671 Elder Drake of Blazing Oblivion
+  { id: "form_dragon_knight_burning_scale", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~burning_scale", hero: "dragon_knight" }, // 8979 Shadow of the Burning Scale
+  { id: "form_dragon_knight_outland_ravager", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~outland_ravager", hero: "dragon_knight" }, // 9136 Dragon of the Outland Ravager
+  { id: "form_dragon_knight_bitterwing", slot: "form", rarity: "refined", variant: "dragon_knight@meta~bitterwing", hero: "dragon_knight" }, // 9644 Bitterwing
+  { id: "form_dragon_knight_third_awakening", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~third_awakening", hero: "dragon_knight" }, // 9996 Dragon Form of the Third Awakening
+  { id: "form_dragon_knight_scorched_amber", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~scorched_amber", hero: "dragon_knight" }, // 13329 Scorched Amber Dragon Form
+  { id: "form_dragon_knight_silverwurm", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~silverwurm", hero: "dragon_knight" }, // 17999 Silverwurm Sacrifice Dragon Form
+  { id: "form_dragon_knight_gilded_maw", slot: "form", rarity: "refined", variant: "dragon_knight@meta~gilded_maw", hero: "dragon_knight" }, // 18397 The Gilded Maw Forms
+  { id: "form_dragon_knight_griffin_knight", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~griffin_knight", hero: "dragon_knight" }, // 30735 Griffin Knight Dragon Form
+  { id: "summon_wolf_great_grey", slot: "summon", rarity: "refined", variant: "wolf@great_grey", hero: "lycan" }, // 4988 Familiar of the Great Grey
+  { id: "summon_wolf_icewrack_pack", slot: "summon", rarity: "refined", variant: "wolf@icewrack_pack", hero: "lycan" }, // 5596 Icewrack Pack
+  { id: "summon_wolf_hunter_kings", slot: "summon", rarity: "exotic", variant: "wolf@hunter_kings", hero: "lycan" }, // 7050 Borealis and Puppey, Guardians of Ambry
+  { id: "summon_wolf_ambry", slot: "summon", rarity: "refined", variant: "wolf@ambry", hero: "lycan" }, // 7906 Wolves of Ambry
+  { id: "summon_wolf_blood_moon", slot: "summon", rarity: "exotic", variant: "wolf@blood_moon", hero: "lycan" }, // 8998 Wolves of the Blood Moon
+  { id: "summon_wolf_grey_ghost", slot: "summon", rarity: "refined", variant: "wolf@grey_ghost", hero: "lycan" }, // 12892 Companion of the Grey Ghost
+  { id: "summon_wolf_red_wolf_clan", slot: "summon", rarity: "refined", variant: "wolf@red_wolf_clan", hero: "lycan" }, // 14858 Requiem for Red Wolf Clan Wolves
+  { id: "summon_wolf_darkheart", slot: "summon", rarity: "refined", variant: "wolf@darkheart", hero: "lycan" }, // 17640 Darkheart Redemption Wolves
+  { id: "summon_wolf_skullhound", slot: "summon", rarity: "exotic", variant: "wolf@skullhound", hero: "lycan" }, // 18255 Creed of the Skullhound Summon
 ];
 
 /** Арканы, у которых в Dota есть настоящий стиль (свой набор текстур): лист `<variant>~style1`
@@ -497,10 +534,17 @@ export function summonSheets(hero: string, summonSkins: Readonly<Record<string, 
   return out;
 }
 
+/** Лист формы героя по надетому скину формы: `<hero>@meta~<имя>` (только скин формы этого героя), иначе null —
+ *  тогда форма берётся у надетого облика (`<hero>@<skin>@meta`) или базовая (`<hero>@meta`). */
+export function formSheet(hero: string, formSkins: Readonly<Record<string, string>>): string | null {
+  const def = COSMETIC_BY_ID[formSkins[hero] ?? ""];
+  return def && def.slot === "form" && def.hero === hero ? def.variant : null;
+}
+
 /** Всё, что нужно рендеру и превью от косметики героя (T13.80): лист облика (цельный или композит), состав по слотам,
  *  основа, признак «стиль не перенесён в смешанный облик» и листы призывов. */
-export interface HeroLook { sheet: string; mixed: boolean; family: string | null; parts: Partial<Record<DotaSlot, string>>; styleDropped: boolean; /** Встроенный эффект надетого облика; null — нет или его часть заменена в слоте. */ fx: { aura: string } | null; summons: Record<string, string> }
-export function heroLook(hero: string, c: { equipped: Partial<Record<CosmeticSlot, string>>; styles: Readonly<Record<string, string>>; owned: readonly string[]; loadout?: Readonly<Record<string, Loadout>>; summonSkins?: Readonly<Record<string, Readonly<Record<string, string>>>> }): HeroLook {
+export interface HeroLook { sheet: string; mixed: boolean; family: string | null; parts: Partial<Record<DotaSlot, string>>; styleDropped: boolean; /** Встроенный эффект надетого облика; null — нет или его часть заменена в слоте. */ fx: { aura: string } | null; summons: Record<string, string>; /** Лист скина формы (Метаморфоза, True Form…) или null — форма как у облика. */ form: string | null }
+export function heroLook(hero: string, c: { equipped: Partial<Record<CosmeticSlot, string>>; styles: Readonly<Record<string, string>>; owned: readonly string[]; loadout?: Readonly<Record<string, Loadout>>; summonSkins?: Readonly<Record<string, Readonly<Record<string, string>>>>; formSkins?: Readonly<Record<string, string>> }): HeroLook {
   const loadout = c.loadout?.[hero] ?? {};
   const sheet = loadoutSheet(hero, c.equipped, c.styles, loadout, c.owned);
   const mixed = sheet !== skinnedSheet(hero, c.equipped, c.styles);
@@ -510,7 +554,7 @@ export function heroLook(hero: string, c: { equipped: Partial<Record<CosmeticSlo
   const skin = def && def.slot === "skin" && def.hero === hero ? def : undefined;
   const own = skin?.variant.split("@")[1];
   const fxOn = !!skin?.fx?.aura && (!skin.fx.slot || !fam || parts[skin.fx.slot] === own);
-  return { sheet, mixed, family: fam?.id ?? null, parts, styleDropped: mixed && !!fam?.styleDropped, fx: fxOn ? { aura: skin!.fx!.aura! } : null, summons: summonSheets(hero, c.summonSkins ?? {}) };
+  return { sheet, mixed, family: fam?.id ?? null, parts, styleDropped: mixed && !!fam?.styleDropped, fx: fxOn ? { aura: skin!.fx!.aura! } : null, summons: summonSheets(hero, c.summonSkins ?? {}), form: formSheet(hero, c.formSkins ?? {}) };
 }
 
 export const DUPLICATE_SHARDS: Record<Rarity, number> = { standard: 5, refined: 12, exotic: 30, arcana: 80 };

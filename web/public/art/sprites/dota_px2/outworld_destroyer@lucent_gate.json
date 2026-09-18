@@ -35,5 +35,16 @@
   "orientation": "none",
   "pitch": 45.0,
   "pixel": true,
-  "margin": 1.4
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "idle",
+    "cx": 0.4688,
+    "zmin": 4.0625,
+    "cy": -0.1562,
+    "height": 6.25,
+    "width": 6.5625,
+    "depth": 6.5625,
+    "extent": 9.1875
+  }
 }

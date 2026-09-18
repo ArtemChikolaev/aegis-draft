@@ -1,0 +1,46 @@
+{
+  "name": "wolf@grey_ghost",
+  "frame": 60,
+  "dirs": 4,
+  "fps": 10,
+  "world": 120,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.616
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 5
+    },
+    "idle": {
+      "row": 4,
+      "frames": 8
+    },
+    "attack": {
+      "row": 8,
+      "frames": 6
+    },
+    "death": {
+      "row": 12,
+      "frames": 8
+    }
+  },
+  "source": "frostivus2018_lycan_winter_snow_wolf_wolves.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "run",
+    "cx": 0.0,
+    "zmin": 0.3125,
+    "cy": 0.0,
+    "height": 3.4375,
+    "width": 1.875,
+    "depth": 7.5,
+    "extent": 10.5
+  }
+}

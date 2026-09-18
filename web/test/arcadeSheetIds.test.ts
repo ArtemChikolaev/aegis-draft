@@ -27,7 +27,7 @@ describe("id листов спрайтов", () => {
   it("каждый вариант косметики есть в обоих манифестах ровно один раз", () => {
     for (const f of ["dota_manifest_px.tsv", "dota_manifest_px2.tsv"]) {
       const ids = rows(f);
-      for (const c of COSMETICS.filter((x) => x.slot === "skin" || x.slot === "summon")) {
+      for (const c of COSMETICS.filter((x) => x.slot === "skin" || x.slot === "summon" || x.slot === "form")) {
         expect(ids.filter((id) => id === c.variant).length, `${c.variant} в ${f}`).toBe(1);
       }
     }

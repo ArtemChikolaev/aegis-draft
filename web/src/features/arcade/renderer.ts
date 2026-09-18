@@ -123,6 +123,7 @@ export class ArcadeRenderer {
     this.mixSheet = look.mixed ? look.sheet : null;
     this.summons = look.summons;
     this.skinFxOn = look.fx !== null;
+    this.formSkin = look.form;
   }
   /** Лист призыва с учётом скина (T13.80); нет скина или он не загрузился — базовый лист. */
   private summonSheet(art: string): DotaSheet | null {
@@ -132,10 +133,13 @@ export class ArcadeRenderer {
 
   /** Лист героя с учётом скина (`<hero>@<skin>`), с падением на базовый лист, пока скин не загрузился или не для этого героя. */
   /** Лист героя: альтернативная форма (Metamorphosis) важнее скина, скин важнее базовой модели. */
+  /** Скин формы (T13.80 срез 3): свой предмет Dota, важнее формы надетого облика; не загрузился — обычная форма. */
+  private formSkin: string | null = null;
   private heroSheet(hero: string, form = false) {
     const skin = this.cosmetic.skin;
     const mine = skin && skin.startsWith(`${hero}@`) ? skin.split("~")[0] : null;
     const paint = (ds: DotaSheet) => (this.skinGlow ? gemSheet(ds, this.skinGem) : ds);
+    if (form && this.formSkin && this.formSkin.startsWith(`${hero}@`)) { const ds = dotaSheet(this.formSkin); if (ds) return ds; }
     if (form) {
       // Форма со скином: у арканы Terrorblade своя модель демона (`<hero>@<skin>@meta`). Самоцвет
       // красит и её — владелец 2026-09-08: «метаморфоза серая, а должна краситься в цвет гема».

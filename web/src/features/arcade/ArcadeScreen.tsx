@@ -524,7 +524,7 @@ function ArcadeStage() {
     const simNow = getArcadeSim();
     let cancelled = false;
     setLoading(true);
-    void preloadArcadeArt(lookNow.sheet, Object.keys(ENEMY_KINDS), simNow?.act ?? "short", 6000, Object.values(lookNow.summons)).then(() => { if (!cancelled) setLoading(false); });
+    void preloadArcadeArt(lookNow.sheet, Object.keys(ENEMY_KINDS), simNow?.act ?? "short", 6000, [...Object.values(lookNow.summons), ...(lookNow.form ? [lookNow.form] : [])]).then(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);

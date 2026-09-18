@@ -1,0 +1,46 @@
+{
+  "name": "wolf@red_wolf_clan",
+  "frame": 60,
+  "dirs": 4,
+  "fps": 10,
+  "world": 120,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.605
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 5
+    },
+    "idle": {
+      "row": 4,
+      "frames": 8
+    },
+    "attack": {
+      "row": 8,
+      "frames": 6
+    },
+    "death": {
+      "row": 12,
+      "frames": 8
+    }
+  },
+  "source": "_werewolf_samurai_wolves_v1.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "summon_wolves_run",
+    "cx": 0.1562,
+    "zmin": 0.3125,
+    "cy": 0.0,
+    "height": 3.125,
+    "width": 2.8125,
+    "depth": 7.5,
+    "extent": 10.5
+  }
+}

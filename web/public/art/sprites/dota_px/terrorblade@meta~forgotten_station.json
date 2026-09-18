@@ -1,0 +1,51 @@
+{
+  "name": "terrorblade@meta~forgotten_station",
+  "frame": 80,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.707
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 10
+    },
+    "walk": {
+      "row": 8,
+      "frames": 12
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 8
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "demon.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "idle",
+    "cx": 0.3125,
+    "zmin": 0.0,
+    "cy": 1.4062,
+    "height": 7.1875,
+    "width": 8.75,
+    "depth": 5.9375,
+    "extent": 12.25
+  },
+  "glow": 175.4
+}
