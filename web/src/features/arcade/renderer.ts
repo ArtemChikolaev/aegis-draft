@@ -139,7 +139,12 @@ export class ArcadeRenderer {
     const skin = this.cosmetic.skin;
     const mine = skin && skin.startsWith(`${hero}@`) ? skin.split("~")[0] : null;
     const paint = (ds: DotaSheet) => (this.skinGlow ? gemSheet(ds, this.skinGem) : ds);
-    if (form && this.formSkin && this.formSkin.startsWith(`${hero}@`)) { const ds = dotaSheet(this.formSkin); if (ds) return ds; }
+    if (form && this.formSkin && this.formSkin.startsWith(`${hero}@`)) {
+      const ds = dotaSheet(this.formSkin);
+      // Аркана красит и скин формы (владелец 2026-09-19: «если аркана красная — форма должна быть красной»): самоцвет,
+      // а без него — родной тон свечения арканы. Явная «обычная» форма (`<hero>@meta`) — только самоцвет, как и раньше.
+      if (ds) return this.skinGlow ? gemSheet(ds, this.skinGem ?? (this.formSkin === `${hero}@meta` || !mine ? null : dotaSheet(mine)?.meta.glow ?? null)) : ds;
+    }
     if (form) {
       // Форма со скином: у арканы Terrorblade своя модель демона (`<hero>@<skin>@meta`). Самоцвет
       // красит и её — владелец 2026-09-08: «метаморфоза серая, а должна краситься в цвет гема».

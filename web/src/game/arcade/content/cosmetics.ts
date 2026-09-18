@@ -30,6 +30,9 @@ export interface CosmeticDef {
   /** Встроенные эффекты скина — замена частиц Dota, которых в спрайте нет (дым-плащ и капюшон арканы PA
    *  живут в `pa_arcana_*.vpcf`, в модели их геометрии нет). Вид — как у слота `aura` (features/arcade/effects.ts),
    *  рисуется всегда, поверх него — надетое свечение игрока. */
+  /** Скин формы/призыва из бандла сета (id облика героя): в Dota он идёт вместе с сетом, поэтому «как у облика» при надетом
+   *  сете показывает именно его (демон Marauder's у сета Marauder's, волки Ambry у сета Ambry). Явный выбор игрока важнее. */
+  withSkin?: string;
   fx?: { aura?: string; /** Эффект принадлежит части в этом слоте (пламя волос арканы Lina — голове): заменил часть — эффекта нет. */ slot?: DotaSlot };
 }
 
@@ -158,6 +161,12 @@ export const COSMETICS: readonly CosmeticDef[] = [
   // пришиваются к скелету базовой модели тем же Copy Transforms, что и части аркан.
   { id: "skin_lina_dragonfire", slot: "skin", rarity: "exotic", variant: "lina@dragonfire", hero: "lina" },
   { id: "skin_lina_battle_caster", slot: "skin", rarity: "exotic", variant: "lina@battle_caster", hero: "lina" },
+  // Сеты Terrorblade (2026-09-19, владелец: «сеты и для обычной формы»): у каждого в Dota свой демон — он привязан через `withSkin`.
+  { id: "skin_terrorblade_marauders", slot: "skin", rarity: "exotic", variant: "terrorblade@marauders", hero: "terrorblade" },
+  { id: "skin_terrorblade_eternal_purgatory", slot: "skin", rarity: "exotic", variant: "terrorblade@eternal_purgatory", hero: "terrorblade" },
+  { id: "skin_terrorblade_foulfell", slot: "skin", rarity: "exotic", variant: "terrorblade@foulfell", hero: "terrorblade" },
+  { id: "skin_terrorblade_broken_code", slot: "skin", rarity: "exotic", variant: "terrorblade@broken_code", hero: "terrorblade" },
+  { id: "skin_terrorblade_forgotten_station", slot: "skin", rarity: "exotic", variant: "terrorblade@forgotten_station", hero: "terrorblade" },
   { id: "skin_lich_rime_lord", slot: "skin", rarity: "exotic", variant: "lich@rime_lord", hero: "lich" },
   { id: "skin_bristleback_wrathrunner", slot: "skin", rarity: "exotic", variant: "bristleback@wrathrunner", hero: "bristleback" },
   { id: "skin_sven_arbiter", slot: "skin", rarity: "exotic", variant: "sven@arbiter", hero: "sven" },
@@ -340,7 +349,7 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_dark_willow_burglar_of_wasp", slot: "skin", rarity: "exotic", variant: "dark_willow@burglar_of_wasp", hero: "dark_willow" },
   // Скины призывов (T13.80, владелец: «медведь Lone Druid, волки Lycan… чтобы тоже можно было кастомизировать»):
   // полная модель скина на скелете и анимациях базового призыва (--hide-base в манифесте), лист `<art>@<skin>`.
-  { id: "summon_bear_dark_wood", slot: "summon", rarity: "exotic", variant: "bear@dark_wood", hero: "lone_druid" },
+  { id: "summon_bear_dark_wood", slot: "summon", rarity: "exotic", variant: "bear@dark_wood", hero: "lone_druid", withSkin: "skin_lone_druid_dark_wood" },
   { id: "summon_bear_iron_claw", slot: "summon", rarity: "exotic", variant: "bear@iron_claw", hero: "lone_druid" },
   { id: "summon_spiderling_amber_queen", slot: "summon", rarity: "exotic", variant: "spiderling@amber_queen", hero: "broodmother" },
   { id: "summon_spiderling_lycosidae", slot: "summon", rarity: "exotic", variant: "spiderling@lycosidae", hero: "broodmother" },
@@ -350,17 +359,17 @@ export const COSMETICS: readonly CosmeticDef[] = [
   // подмена `entity_model` модели формы), лист `<hero>@meta~<имя>` — модель скина на скелете и анимациях базовой формы
   // (--hide-base). Волки Lycan — подмена юнита `npc_dota_lycan_wolf` (слот `summon`): у моделей свой скелет, поэтому
   // рендерятся основной моделью со своими клипами, а не частью на скелете базового волка. В комментарии — item ID и имя.
-  { id: "form_terrorblade_marauders", slot: "form", rarity: "refined", variant: "terrorblade@meta~marauders", hero: "terrorblade" }, // 7033 Marauder's Demon Form
+  { id: "form_terrorblade_marauders", slot: "form", rarity: "refined", variant: "terrorblade@meta~marauders", hero: "terrorblade", withSkin: "skin_terrorblade_marauders" }, // 7033 Marauder's Demon Form
   { id: "form_terrorblade_baleful_hollow", slot: "form", rarity: "refined", variant: "terrorblade@meta~baleful_hollow", hero: "terrorblade" }, // 7404 Form of the Baleful Hollow
-  { id: "form_terrorblade_eternal_purgatory", slot: "form", rarity: "refined", variant: "terrorblade@meta~eternal_purgatory", hero: "terrorblade" }, // 8276 Form of Eternal Purgatory
-  { id: "form_terrorblade_foulfell", slot: "form", rarity: "exotic", variant: "terrorblade@meta~foulfell", hero: "terrorblade" }, // 9501 Demon Form of the Foulfell Corruptor
-  { id: "form_terrorblade_broken_code", slot: "form", rarity: "exotic", variant: "terrorblade@meta~broken_code", hero: "terrorblade" }, // 14339 Chasm of the Broken Code Demon
-  { id: "form_terrorblade_forgotten_station", slot: "form", rarity: "exotic", variant: "terrorblade@meta~forgotten_station", hero: "terrorblade" }, // 26446 Forgotten Station Demon
+  { id: "form_terrorblade_eternal_purgatory", slot: "form", rarity: "refined", variant: "terrorblade@meta~eternal_purgatory", hero: "terrorblade", withSkin: "skin_terrorblade_eternal_purgatory" }, // 8276 Form of Eternal Purgatory
+  { id: "form_terrorblade_foulfell", slot: "form", rarity: "exotic", variant: "terrorblade@meta~foulfell", hero: "terrorblade", withSkin: "skin_terrorblade_foulfell" }, // 9501 Demon Form of the Foulfell Corruptor
+  { id: "form_terrorblade_broken_code", slot: "form", rarity: "exotic", variant: "terrorblade@meta~broken_code", hero: "terrorblade", withSkin: "skin_terrorblade_broken_code" }, // 14339 Chasm of the Broken Code Demon
+  { id: "form_terrorblade_forgotten_station", slot: "form", rarity: "exotic", variant: "terrorblade@meta~forgotten_station", hero: "terrorblade", withSkin: "skin_terrorblade_forgotten_station" }, // 26446 Forgotten Station Demon
   { id: "form_lone_druid_onyx_grove", slot: "form", rarity: "exotic", variant: "lone_druid@meta~onyx_grove", hero: "lone_druid" }, // 5089 Form of the Onyx Grove
   { id: "form_lone_druid_atniw", slot: "form", rarity: "exotic", variant: "lone_druid@meta~atniw", hero: "lone_druid" }, // 5193 Form of the Atniw
   { id: "form_lone_druid_iron_claw", slot: "form", rarity: "exotic", variant: "lone_druid@meta~iron_claw", hero: "lone_druid" }, // 6669 Beast of the Iron Claw
-  { id: "form_lone_druid_dark_wood", slot: "form", rarity: "exotic", variant: "lone_druid@meta~dark_wood", hero: "lone_druid" }, // 8871 Form of the Dark Wood
-  { id: "form_lone_druid_war_burrow", slot: "form", rarity: "refined", variant: "lone_druid@meta~war_burrow", hero: "lone_druid" }, // 9567 True Form of the War-Burrow Ravager
+  { id: "form_lone_druid_dark_wood", slot: "form", rarity: "exotic", variant: "lone_druid@meta~dark_wood", hero: "lone_druid", withSkin: "skin_lone_druid_dark_wood" }, // 8871 Form of the Dark Wood
+  { id: "form_lone_druid_war_burrow", slot: "form", rarity: "refined", variant: "lone_druid@meta~war_burrow", hero: "lone_druid", withSkin: "skin_lone_druid_elemental_curse" }, // 9567 True Form of the War-Burrow Ravager
   { id: "form_dragon_knight_iron_dragon", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~iron_dragon", hero: "dragon_knight" }, // 6615 Kindred of the Iron Dragon
   { id: "form_dragon_knight_blazing_oblivion", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~blazing_oblivion", hero: "dragon_knight" }, // 7671 Elder Drake of Blazing Oblivion
   { id: "form_dragon_knight_burning_scale", slot: "form", rarity: "exotic", variant: "dragon_knight@meta~burning_scale", hero: "dragon_knight" }, // 8979 Shadow of the Burning Scale
@@ -374,12 +383,12 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "summon_wolf_great_grey", slot: "summon", rarity: "refined", variant: "wolf@great_grey", hero: "lycan" }, // 4988 Familiar of the Great Grey
   { id: "summon_wolf_icewrack_pack", slot: "summon", rarity: "refined", variant: "wolf@icewrack_pack", hero: "lycan" }, // 5596 Icewrack Pack
   { id: "summon_wolf_hunter_kings", slot: "summon", rarity: "exotic", variant: "wolf@hunter_kings", hero: "lycan" }, // 7050 Borealis and Puppey, Guardians of Ambry
-  { id: "summon_wolf_ambry", slot: "summon", rarity: "refined", variant: "wolf@ambry", hero: "lycan" }, // 7906 Wolves of Ambry
+  { id: "summon_wolf_ambry", slot: "summon", rarity: "refined", variant: "wolf@ambry", hero: "lycan", withSkin: "skin_lycan_ambry" }, // 7906 Wolves of Ambry
   { id: "summon_wolf_blood_moon", slot: "summon", rarity: "exotic", variant: "wolf@blood_moon", hero: "lycan" }, // 8998 Wolves of the Blood Moon
   { id: "summon_wolf_grey_ghost", slot: "summon", rarity: "refined", variant: "wolf@grey_ghost", hero: "lycan" }, // 12892 Companion of the Grey Ghost
   { id: "summon_wolf_red_wolf_clan", slot: "summon", rarity: "refined", variant: "wolf@red_wolf_clan", hero: "lycan" }, // 14858 Requiem for Red Wolf Clan Wolves
   { id: "summon_wolf_darkheart", slot: "summon", rarity: "refined", variant: "wolf@darkheart", hero: "lycan" }, // 17640 Darkheart Redemption Wolves
-  { id: "summon_wolf_skullhound", slot: "summon", rarity: "exotic", variant: "wolf@skullhound", hero: "lycan" }, // 18255 Creed of the Skullhound Summon
+  { id: "summon_wolf_skullhound", slot: "summon", rarity: "exotic", variant: "wolf@skullhound", hero: "lycan", withSkin: "skin_lycan_ascension_of_the_hallowed_beast" }, // 18255 Creed of the Skullhound Summon
 ];
 
 /** Арканы, у которых в Dota есть настоящий стиль (свой набор текстур): лист `<variant>~style1`
@@ -524,10 +533,22 @@ export function loadoutSheet(hero: string, equipped: Partial<Record<CosmeticSlot
   return `${fam.id}+body` + slots.filter((s) => resolved[s]).map((s) => `+${resolved[s]}.${s}`).join("");
 }
 
-/** Листы призывов героя по надетым скинам: art → `<art>@<skin>` (только скины этого героя и этого призыва). */
-export function summonSheets(hero: string, summonSkins: Readonly<Record<string, Readonly<Record<string, string>>>>): Record<string, string> {
+/** Явный выбор «обычная модель» в слотах формы и призыва: не следовать бандлу надетого сета. */
+export const LOOK_DEFAULT = "base";
+
+/** Скины формы/призыва из бандла надетого облика героя (`withSkin`). */
+function bundledWith(hero: string, slot: "form" | "summon", equipped: Partial<Record<CosmeticSlot, string>>): CosmeticDef[] {
+  const worn = equipped.skin;
+  return worn ? COSMETICS.filter((c) => c.slot === slot && c.hero === hero && c.withSkin === worn) : [];
+}
+
+/** Листы призывов героя: art → `<art>@<skin>`. Явный выбор игрока (скин этого героя и этого призыва, либо LOOK_DEFAULT —
+ *  обычная модель) важнее; без выбора призыв следует бандлу надетого сета (волки Ambry у сета Ambry). */
+export function summonSheets(hero: string, summonSkins: Readonly<Record<string, Readonly<Record<string, string>>>>, equipped: Partial<Record<CosmeticSlot, string>> = {}): Record<string, string> {
   const out: Record<string, string> = {};
+  for (const c of bundledWith(hero, "summon", equipped)) out[c.variant.split("@")[0]] = c.variant;
   for (const [art, id] of Object.entries(summonSkins[hero] ?? {})) {
+    if (id === LOOK_DEFAULT) { delete out[art]; continue; }
     const def = COSMETIC_BY_ID[id];
     if (def && def.slot === "summon" && def.hero === hero && def.variant.startsWith(`${art}@`)) out[art] = def.variant;
   }
@@ -536,9 +557,11 @@ export function summonSheets(hero: string, summonSkins: Readonly<Record<string, 
 
 /** Лист формы героя по надетому скину формы: `<hero>@meta~<имя>` (только скин формы этого героя), иначе null —
  *  тогда форма берётся у надетого облика (`<hero>@<skin>@meta`) или базовая (`<hero>@meta`). */
-export function formSheet(hero: string, formSkins: Readonly<Record<string, string>>): string | null {
+export function formSheet(hero: string, formSkins: Readonly<Record<string, string>>, equipped: Partial<Record<CosmeticSlot, string>> = {}): string | null {
+  if (formSkins[hero] === LOOK_DEFAULT) return `${hero}@meta`; // явная «обычная форма» — даже при аркане со своим демоном
   const def = COSMETIC_BY_ID[formSkins[hero] ?? ""];
-  return def && def.slot === "form" && def.hero === hero ? def.variant : null;
+  if (def && def.slot === "form" && def.hero === hero) return def.variant;
+  return bundledWith(hero, "form", equipped)[0]?.variant ?? null; // форма из бандла надетого сета
 }
 
 /** Всё, что нужно рендеру и превью от косметики героя (T13.80): лист облика (цельный или композит), состав по слотам,
@@ -554,7 +577,7 @@ export function heroLook(hero: string, c: { equipped: Partial<Record<CosmeticSlo
   const skin = def && def.slot === "skin" && def.hero === hero ? def : undefined;
   const own = skin?.variant.split("@")[1];
   const fxOn = !!skin?.fx?.aura && (!skin.fx.slot || !fam || parts[skin.fx.slot] === own);
-  return { sheet, mixed, family: fam?.id ?? null, parts, styleDropped: mixed && !!fam?.styleDropped, fx: fxOn ? { aura: skin!.fx!.aura! } : null, summons: summonSheets(hero, c.summonSkins ?? {}), form: formSheet(hero, c.formSkins ?? {}) };
+  return { sheet, mixed, family: fam?.id ?? null, parts, styleDropped: mixed && !!fam?.styleDropped, fx: fxOn ? { aura: skin!.fx!.aura! } : null, summons: summonSheets(hero, c.summonSkins ?? {}, c.equipped), form: formSheet(hero, c.formSkins ?? {}, c.equipped) };
 }
 
 export const DUPLICATE_SHARDS: Record<Rarity, number> = { standard: 5, refined: 12, exotic: 30, arcana: 80 };

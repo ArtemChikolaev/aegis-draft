@@ -236,7 +236,26 @@
 /* Гардероб героя (T13.27): превью облика + список обликов + слоты эффектов.
    Живёт внутри Modal, а у панели модалки инвертированная поверхность (--surface-invert / --on-invert),
    поэтому фоны и рамки берём из invert-словаря, иначе светлая плашка съедает светлый текст. */
-.arcade-wardrobe { display: grid; gap: 16px; color: var(--on-invert); }
+.arcade-wardrobe { display: grid; gap: 16px; color: var(--on-invert); align-items: start; }
+/* Раскладка 2026-09-19 (владелец: «слишком много листать, при пролистывании не видно, как будет выглядеть»):
+   превью закреплено — слева на широком экране, сверху на узком; разделы — вкладками в панели справа/ниже. */
+.arcade-wardrobe__stage { position: sticky; top: 0; z-index: 2; }
+.arcade-wardrobe__panel { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.arcade-wardrobe__tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line-invert); }
+/* Содержимое вкладок — от левого края, как сами вкладки (не по центру, как лента обликов до раскладки по вкладкам). */
+.arcade-wardrobe__panel .arcade-wardrobe__looks { justify-content: flex-start; }
+.arcade-wardrobe__panel .arcade-wardrobe__styles { justify-items: start; }
+.arcade-wardrobe__view-toggle { display: none; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-invert); background: transparent; color: inherit; font-size: 10px; opacity: .8; cursor: pointer; }
+.arcade-wardrobe__view-toggle[data-active] { border-color: var(--accent-strong); opacity: 1; }
+@media (min-width: 900px) {
+  .arcade-wardrobe { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
+}
+@media (max-width: 899px) {
+  /* Узкий экран: закреплённая витрина компактна — настройки вида превью свёрнуты под кнопку, вкладки липнут под витриной не нужно. */
+  .arcade-wardrobe__stage { padding: 8px; gap: 4px; background: var(--surface-invert); }
+  .arcade-wardrobe__view-toggle { display: inline-block; }
+  .arcade-wardrobe__controls:not([data-open]) { display: none; }
+}
 .arcade-wardrobe__shards { font: 800 11px var(--font-display); letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
 .arcade-wardrobe__stage { display: grid; justify-items: center; gap: 6px; padding: 12px; border: 1px solid var(--line-invert); border-radius: 14px; background: var(--surface-invert-soft); }
 .arcade-wardrobe__stage strong { font: 800 15px var(--font-display); text-align: center; }

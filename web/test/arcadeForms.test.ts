@@ -4,7 +4,7 @@
 // обязана быть подменой именно базовой модели формы этого героя, а волки — подменой юнита `npc_dota_lycan_wolf`.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { COSMETICS, formSheet, heroLook } from "../src/game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, formSheet, heroLook, summonSheets } from "../src/game/arcade/content/cosmetics.ts";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
 
@@ -23,6 +23,24 @@ describe("скины форм: правила", () => {
     expect(heroLook("terrorblade", { equipped: { skin: "skin_tb_arcana" }, styles: {}, owned: [tb.id, "skin_tb_arcana"], formSkins: { terrorblade: tb.id } }).form).toBe(tb.variant);
     expect(heroLook("terrorblade", { equipped: {}, styles: {}, owned: [] }).form).toBeNull();
   });
+  it("«как у облика» следует бандлу сета: у сета Marauder — его демон, у арканы — её собственный; явный выбор и «обычная» важнее", () => {
+    const set = COSMETIC_BY_ID.skin_terrorblade_marauders, demon = COSMETIC_BY_ID.form_terrorblade_marauders, other = COSMETIC_BY_ID.form_terrorblade_foulfell;
+    expect(demon.withSkin).toBe(set.id);
+    // Сет надет, форма не выбрана — демон из бандла сета (владеть им отдельно не нужно: он часть сета).
+    expect(heroLook("terrorblade", { equipped: { skin: set.id }, styles: {}, owned: [set.id] }).form).toBe(demon.variant);
+    // Аркана: своего скина формы в бандле нет — form = null, рендерер берёт `terrorblade@arcana@meta` (красный демон арканы).
+    expect(heroLook("terrorblade", { equipped: { skin: "skin_tb_arcana" }, styles: {}, owned: ["skin_tb_arcana"] }).form).toBeNull();
+    // Явный выбор важнее бандла; «обычная» — базовый демон даже при аркане.
+    expect(formSheet("terrorblade", { terrorblade: other.id }, { skin: set.id })).toBe(other.variant);
+    expect(formSheet("terrorblade", { terrorblade: LOOK_DEFAULT }, { skin: "skin_tb_arcana" })).toBe("terrorblade@meta");
+    // Призывы так же: сет Ambry ведёт своих волков, «обычный» их отменяет, явный скин важнее.
+    expect(summonSheets("lycan", {}, { skin: "skin_lycan_ambry" })).toEqual({ wolf: "wolf@ambry" });
+    expect(summonSheets("lycan", { lycan: { wolf: LOOK_DEFAULT } }, { skin: "skin_lycan_ambry" })).toEqual({});
+    expect(summonSheets("lycan", { lycan: { wolf: "summon_wolf_blood_moon" } }, { skin: "skin_lycan_ambry" })).toEqual({ wolf: "wolf@blood_moon" });
+    expect(summonSheets("lycan", {}, {})).toEqual({});
+    // Каждая связь бандла указывает на существующий облик того же героя.
+    for (const c of COSMETICS.filter((x) => x.withSkin)) expect(COSMETIC_BY_ID[c.withSkin!]?.hero, c.id).toBe(c.hero);
+  });
   it("setFormSkin: только свой купленный скин формы выбранного героя; null снимает; equip слота form — no-op; старый сейв без formSkins", () => {
     useArcade.setState({ cosmetics: { owned: [tb.id], equipped: {}, shared: {}, shards: 0, styles: {}, skins: {}, perHero: {}, perHeroLook: false, loadout: {}, summonSkins: {} } });
     useArcade.getState().setHero("terrorblade");
@@ -36,8 +54,16 @@ describe("скины форм: правила", () => {
     useArcade.getState().setFormSkin(tb.id); // куплен, но чужой герой
     expect(useArcade.getState().cosmetics.formSkins?.lone_druid).toBeUndefined();
     useArcade.getState().setHero("terrorblade");
+    useArcade.getState().setFormSkin(LOOK_DEFAULT); // «обычная» — без владения
+    expect(useArcade.getState().cosmetics.formSkins).toEqual({ terrorblade: LOOK_DEFAULT });
     useArcade.getState().setFormSkin(null);
     expect(useArcade.getState().cosmetics.formSkins).toEqual({});
+    // Надевание облика возвращает форму к «как у облика»: у арканы свой демон, прежний явный выбор не должен его подменять.
+    useArcade.setState({ cosmetics: { ...useArcade.getState().cosmetics, owned: [tb.id, "skin_tb_arcana"] } });
+    useArcade.getState().setFormSkin(tb.id);
+    useArcade.getState().equip("skin", "skin_tb_arcana");
+    expect(useArcade.getState().cosmetics.formSkins).toEqual({});
+    expect(heroLook("terrorblade", useArcade.getState().cosmetics).form).toBeNull();
   });
 });
 

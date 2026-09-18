@@ -1,0 +1,51 @@
+{
+  "name": "terrorblade@arcana+broken_code.armor",
+  "frame": 80,
+  "dirs": 8,
+  "fps": 12,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.753
+  },
+  "anims": {
+    "cast": {
+      "row": 0,
+      "frames": 10
+    },
+    "walk": {
+      "row": 8,
+      "frames": 10
+    },
+    "idle": {
+      "row": 16,
+      "frames": 12
+    },
+    "attack": {
+      "row": 24,
+      "frames": 7
+    },
+    "death": {
+      "row": 32,
+      "frames": 12
+    }
+  },
+  "source": "terrorblade_arcana.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.4,
+  "fit": {
+    "orientation": "none",
+    "clip": "run",
+    "cx": 0.1562,
+    "zmin": 0.0,
+    "cy": -0.1562,
+    "height": 5.625,
+    "width": 3.4375,
+    "depth": 4.0625,
+    "extent": 7.875
+  },
+  "glow": 0.0
+}

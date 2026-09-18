@@ -23,7 +23,10 @@ export const SLOT_TOKENS = {
 export const SLOT_ORDER = ["mount", "head", "arms", "back", "weapon", "shoulder", "belt", "neck", "misc", "armor"];
 /** Порядок отрисовки слоёв снизу вверх (T13.80): дальнее и крупное раньше, оружие и голова поверх. Семантический слот
  *  Dota (`item_slot`) и порядок отрисовки — разные вещи: тут только порядок; слот, которого здесь нет, генератор не берёт. */
-export const DRAW_ORDER = ["back", "mount", "legs", "belt", "armor", "arms", "shoulder", "neck", "misc", "head", "weapon"];
+// Волна героев 2026-09-19 добавила слоты Dota, которых не было у первых шести героев: `tail` (хвост — позади тела), `costume`
+// (цельное одеяние поверх брони), `gloves` (вместе с руками), `body_head` (лицо/голова самого героя — ПОД шлемом слота `head`,
+// шлем его не заменяет) и `offhand_weapon` (вторая рука — поверх всего, как оружие).
+export const DRAW_ORDER = ["back", "tail", "mount", "legs", "belt", "armor", "costume", "arms", "gloves", "shoulder", "neck", "misc", "body_head", "head", "weapon", "offhand_weapon"];
 const stripHero = (name, hero, folder) => name.replace(new RegExp(`^(${hero}|${folder}|${hero.replace(/_/g, "")}|${folder.replace(/_/g, "")})_?`, "i"), "");
 export const slotOf = (part, hero, folder) => {
   const raw = part.split("/").pop().replace(/\.vmdl_c$/, "");

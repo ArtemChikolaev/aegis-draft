@@ -8,7 +8,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { COSMETICS, COSMETIC_BY_ID, PART_BASE, SHARD_PRICE, defaultLoadout, familyOf, heroLook, sourceCosmetic, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, defaultLoadout, familyOf, formSheet as formSheetOf, heroLook, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
 import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -195,6 +195,22 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
   );
 }
 
+type WardrobeTab = "looks" | "parts" | "form" | "summons" | "effects";
+
+/** Широкая раскладка гардероба (превью слева, вкладки справа) — от 900 px; уже — превью закреплено сверху. */
+function useWideWardrobe(): boolean {
+  const query = "(min-width: 900px)";
+  const [wide, setWide] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(query).matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia(query);
+    const on = () => setWide(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return wide;
+}
+
 interface Look {
   /** null — базовая модель героя. */
   def: CosmeticDef | null;
@@ -228,6 +244,18 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const previewSheet = selStyle?.sheet ? `${sel.sheet}~${selStyle.id}` : sel.sheet;
   // Превью (T13.57): ручной выбор анимации/формы, фон акта, реальный размер, сравнение с базовым обликом.
   const [previewAnim, setPreviewAnim] = useState<PreviewAnim | "form">("auto");
+  // Вкладки вместо длинной ленты (владелец 2026-09-19: «слишком много листать вниз, при пролистывании не видно, как
+  // будет выглядеть»): превью закреплено, разделы — по одному. Вкладка «Форма» сама показывает форму в превью и
+  // возвращает обычный показ при уходе с неё — режим «Form» не залипает.
+  const [tab, setTab] = useState<WardrobeTab>("looks");
+  const selectTab = (next: WardrobeTab) => {
+    if (next === "form") setPreviewAnim("form");
+    else if (tab === "form" && previewAnim === "form") setPreviewAnim("auto");
+    setTab(next);
+  };
+  const wide = useWideWardrobe();
+  const [viewOpen, setViewOpen] = useState(false);
+  const stageSize = wide ? 300 : 200;
   const [previewBg, setPreviewBg] = useState<PreviewBg>("none");
   const [lifeSize, setLifeSize] = useState(false);
   const [compare, setCompare] = useState(false);
@@ -242,7 +270,13 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const hp = HERO_PARTS[hero];
   const wornLook = heroLook(hero, cosmetics);
   const stageSheet = worn && wornLook.mixed ? wornLook.sheet : previewSheet;
-  const formSheet = wornLook.form ?? skinForm;
+  // Что сейчас даёт форма: явный выбор / «обычная» / бандл надетого сета / форма самого облика. Подпись под витриной —
+  // чтобы было видно, выбран ли скин на Метаморфозу (владелец 2026-09-19: «нет понимания, выбран ли скин»).
+  const formNow = wornLook.form ?? skinForm;
+  const asWornForm = formSheetOf(hero, {}, cosmetics.equipped) ?? skinForm;
+  const formDef = COSMETICS.find((c) => c.slot === "form" && c.variant === wornLook.form);
+  const formLabel = formOn === LOOK_DEFAULT ? t("arcade.wardrobe.formDefault") : formDef ? t(`arcade.cosmetic.${formDef.id}` as MessageKey) : t("arcade.wardrobe.formOfLook");
+  const asWornSummons = summonSheets(hero, {}, cosmetics.equipped);
   const [slotTab, setSlotTab] = useState<DotaSlot>(hp?.slots[0] ?? "head");
   const myLoadout = cosmetics.loadout?.[hero] ?? {};
   // Основа надетого облика (срез 2): семейство слоёв — базовая модель, аркана или её стиль; слоты редактируются на ней.
@@ -266,7 +300,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   return (
     <Modal
       title={info.name || def.picture}
-      description={t("arcade.wardrobe.lead")}
+      size="wide"
       subhead={<span className="arcade-wardrobe__shards">{t("arcade.cosmetics.shards", { n: cosmetics.shards })}</span>}
       onClose={onClose}
       layout="content"
@@ -276,15 +310,16 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
       <div className="arcade-wardrobe" data-testid="arcade-wardrobe">
         <div className="arcade-wardrobe__stage">
           <div className="arcade-wardrobe__stages">
-            <LookPreview key={`${stageSheet}#${selStyle?.hue ?? "own"}#${previewAnim}#${previewBg}#${lifeSize}`} sheet={previewAnim === "form" ? formSheet : stageSheet} size={compare ? 220 : 320} gem={selStyle?.hue ?? null} glow={arcana} effects={previewEffects} anim={previewAnim === "form" ? "idle" : previewAnim} bg={previewBg} lifeSize={lifeSize} />
+            <LookPreview key={`${stageSheet}#${selStyle?.hue ?? "own"}#${previewAnim}#${previewBg}#${lifeSize}`} sheet={previewAnim === "form" ? formNow : stageSheet} size={compare ? Math.round(stageSize * 0.7) : stageSize} gem={previewAnim === "form" && wornLook.form && formOn !== LOOK_DEFAULT ? selStyle?.hue ?? glow?.hue ?? null : selStyle?.hue ?? null} glow={arcana} effects={previewEffects} anim={previewAnim === "form" ? "idle" : previewAnim} bg={previewBg} lifeSize={lifeSize} />
             {compare && sel.def && (
               <span className="arcade-wardrobe__compare" data-testid="arcade-wardrobe-compare">
-                <LookPreview key={`base#${previewAnim}#${previewBg}#${lifeSize}`} sheet={previewAnim === "form" ? `${hero}@meta` : hero} size={220} effects={{ skinAura: HERO_AURA[hero] }} anim={previewAnim === "form" ? "idle" : previewAnim} bg={previewBg} lifeSize={lifeSize} />
+                <LookPreview key={`base#${previewAnim}#${previewBg}#${lifeSize}`} sheet={previewAnim === "form" ? `${hero}@meta` : hero} size={Math.round(stageSize * 0.7)} effects={{ skinAura: HERO_AURA[hero] }} anim={previewAnim === "form" ? "idle" : previewAnim} bg={previewBg} lifeSize={lifeSize} />
                 <small>{t("arcade.wardrobe.base")}</small>
               </span>
             )}
           </div>
-          <div className="arcade-wardrobe__controls" data-testid="arcade-wardrobe-controls">
+          <button type="button" className="arcade-wardrobe__view-toggle" data-active={viewOpen ? "true" : undefined} data-testid="arcade-wardrobe-view-toggle" onClick={() => setViewOpen((v) => !v)}>{t("arcade.wardrobe.view")}</button>
+          <div className="arcade-wardrobe__controls" data-open={viewOpen ? "true" : undefined} data-testid="arcade-wardrobe-controls">
             {(["auto", "idle", "walk", "attack", ...(hasForm ? (["form"] as const) : [])] as (PreviewAnim | "form")[]).map((a) => (
               <button key={a} type="button" className="arcade-rank__tier" data-active={previewAnim === a ? "true" : undefined} data-testid={`arcade-wardrobe-anim-${a}`} onClick={() => setPreviewAnim(a)}>{t(`arcade.wardrobe.anim.${a}` as MessageKey)}</button>
             ))}
@@ -300,6 +335,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
           </strong>
           {sel.def && <small data-rarity={sel.def.rarity}>{t(`arcade.rarity.${sel.def.rarity}` as MessageKey)}</small>}
+          {hasForm && formSkins.length > 0 && <small className="arcade-wardrobe__hint" data-testid="arcade-wardrobe-form-now">{t(formOn ? "arcade.wardrobe.formNow" : "arcade.wardrobe.formNowFollow", { name: formLabel })}</small>}
           {worn && wornFam && changedSlots.length > 0 && (
             <div className="arcade-wardrobe__composition" data-testid="arcade-wardrobe-composition">
               {wornLook.mixed && <b>{t("arcade.wardrobe.mixed")}</b>}
@@ -324,21 +360,15 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                   </Button>}
           </div>
           {!sel.owned && <em className="arcade-wardrobe__hint">{t("arcade.cosmetics.buyHint")}</em>}
-          {sel.def && styleOptions.length > 0 && (
-            <div className="arcade-wardrobe__styles" data-testid="arcade-wardrobe-styles">
-              <small>{t("arcade.wardrobe.styles")}</small>
-              <div className="arcade-cosmetics__options">
-                <button type="button" className="arcade-rank__tier" data-active={!selStyle ? "true" : undefined} onClick={() => setStyle(sel.def!.id, null)}>{t("arcade.wardrobe.styleBase")}</button>
-                {styleOptions.map((st) => (
-                  <button key={st.id} type="button" className="arcade-rank__tier" data-active={selStyle?.id === st.id ? "true" : undefined} data-testid={`arcade-wardrobe-style-${st.id}`} onClick={() => setStyle(sel.def!.id, st.id)}>
-                    {st.hue !== undefined && <i className="arcade-wardrobe__gem" style={{ background: `hsl(${st.hue} 72% 56%)` }} />}
-                    {t(`arcade.style.${st.id}` as MessageKey)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
+        <div className="arcade-wardrobe__panel">
+          <div className="arcade-wardrobe__tabs" role="tablist" data-testid="arcade-wardrobe-tabs">
+            {([["looks", "arcade.wardrobe.tab.looks", true], ["parts", "arcade.wardrobe.slots", !!hp || skins.length > 0], ["form", "arcade.wardrobe.forms", hasForm && formSkins.length > 0], ["summons", "arcade.wardrobe.summons", summonArts.length > 0], ["effects", "arcade.wardrobe.tab.effects", true]] as [WardrobeTab, MessageKey, boolean][]).filter((x) => x[2]).map(([id, key]) => (
+              <button key={id} type="button" role="tab" aria-selected={tab === id} className="arcade-rank__tier" data-active={tab === id ? "true" : undefined} data-testid={`arcade-wardrobe-tab-${id}`} onClick={() => selectTab(id)}>{t(key)}</button>
+            ))}
+          </div>
+          {tab === "looks" && (
+            <>
         <div className="arcade-wardrobe__looks" data-testid="arcade-wardrobe-looks">
           {looks.map((l) => {
             const id = l.def?.id ?? "base";
@@ -361,7 +391,24 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             );
           })}
         </div>
-        {hp && (
+
+          {sel.def && styleOptions.length > 0 && (
+            <div className="arcade-wardrobe__styles" data-testid="arcade-wardrobe-styles">
+              <small>{t("arcade.wardrobe.styles")}</small>
+              <div className="arcade-cosmetics__options">
+                <button type="button" className="arcade-rank__tier" data-active={!selStyle ? "true" : undefined} onClick={() => setStyle(sel.def!.id, null)}>{t("arcade.wardrobe.styleBase")}</button>
+                {styleOptions.map((st) => (
+                  <button key={st.id} type="button" className="arcade-rank__tier" data-active={selStyle?.id === st.id ? "true" : undefined} data-testid={`arcade-wardrobe-style-${st.id}`} onClick={() => setStyle(sel.def!.id, st.id)}>
+                    {st.hue !== undefined && <i className="arcade-wardrobe__gem" style={{ background: `hsl(${st.hue} 72% 56%)` }} />}
+                    {t(`arcade.style.${st.id}` as MessageKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+            </>
+          )}
+        {tab === "parts" && hp && (
           <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-slots">
             <small>{t("arcade.wardrobe.slots")}</small>
             {!wornFam ? (
@@ -377,6 +424,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                   <button type="button" className="arcade-wardrobe__look" data-active={!myLoadout[slotTab] ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-part-follow" onClick={() => setPart(slotTab, null)}>
                     {followSrc ? <LookPreview sheet={partSheet(followSrc)} size={64} still /> : <span className="arcade-wardrobe__slot" style={{ width: 64, height: 64 }}><small>{t("arcade.wardrobe.slotEmpty")}</small></span>}
                     <span>{t("arcade.wardrobe.followSkin")}</span>
+                    {!myLoadout[slotTab] && <b>{t("arcade.wardrobe.wornMark")}</b>}
                   </button>
                   {Object.keys(wornFam.family.sources).filter((src) => wornFam.family.sources[src].includes(slotTab)).map((src) => {
                     const srcDef = sourceCosmetic(hero, src);
@@ -394,6 +442,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                       >
                         <LookPreview sheet={partSheet(src)} size={64} still />
                         <span>{srcDef ? t(`arcade.cosmetic.${srcDef.id}` as MessageKey) : t("arcade.wardrobe.base")}</span>
+                        {myLoadout[slotTab] === src && <b>{t("arcade.wardrobe.wornMark")}</b>}
                         {!owned && srcDef && <em>{SHARD_PRICE[srcDef.rarity]}</em>}
                       </button>
                     );
@@ -404,16 +453,26 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             )}
           </div>
         )}
-        {summonArts.length > 0 && (
+        {tab === "summons" && summonArts.length > 0 && (
           <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-summons">
             <small>{t("arcade.wardrobe.summons")}</small>
             {summonArts.map((art) => {
               const on = cosmetics.summonSkins?.[hero]?.[art];
+              // У сета героя может быть свой призыв (волки Ambry): тогда «как у облика» и «обычный» — разные выборы.
+              const bundled = COSMETICS.some((c) => c.slot === "summon" && c.hero === hero && c.withSkin && c.variant.startsWith(`${art}@`));
               return (
                 <div key={art} className="arcade-wardrobe__looks">
-                  <button type="button" className="arcade-wardrobe__look" data-active={!on ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-base`} onClick={() => setSummonSkin(art, null)}>
+                  {bundled && (
+                    <button type="button" className="arcade-wardrobe__look" data-active={!on ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-follow`} onClick={() => setSummonSkin(art, null)}>
+                      <LookPreview sheet={asWornSummons[art] ?? art} size={64} still />
+                      <span>{t("arcade.wardrobe.followSkin")}</span>
+                      {!on && <b>{t("arcade.wardrobe.wornMark")}</b>}
+                    </button>
+                  )}
+                  <button type="button" className="arcade-wardrobe__look" data-active={(bundled ? on === LOOK_DEFAULT : !on) ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-base`} onClick={() => setSummonSkin(art, bundled ? LOOK_DEFAULT : null)}>
                     <LookPreview sheet={art} size={64} still />
                     <span>{t("arcade.wardrobe.summonBase")}</span>
+                    {(bundled ? on === LOOK_DEFAULT : !on) && <b>{t("arcade.wardrobe.wornMark")}</b>}
                   </button>
                   {COSMETICS.filter((c) => c.slot === "summon" && c.hero === hero && c.variant.startsWith(`${art}@`)).map((c) => {
                     const owned = cosmetics.owned.includes(c.id);
@@ -430,6 +489,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                       >
                         <LookPreview sheet={c.variant} size={64} still />
                         <span>{t(`arcade.cosmetic.${c.id}` as MessageKey)}</span>
+                        {on === c.id && <b>{t("arcade.wardrobe.wornMark")}</b>}
                         {!owned && <em>{SHARD_PRICE[c.rarity]}</em>}
                       </button>
                     );
@@ -439,13 +499,19 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             })}
           </div>
         )}
-        {hasForm && formSkins.length > 0 && (
+        {tab === "form" && hasForm && formSkins.length > 0 && (
           <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-forms">
             <small>{t("arcade.wardrobe.forms")}</small>
             <div className="arcade-wardrobe__looks">
-              <button type="button" className="arcade-wardrobe__look" data-active={!formOn ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-base" onClick={() => { setFormSkin(null); setPreviewAnim("form"); }}>
-                <LookPreview sheet={skinForm} size={64} still />
+              <button type="button" className="arcade-wardrobe__look" data-active={!formOn ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-follow" onClick={() => setFormSkin(null)}>
+                <LookPreview sheet={asWornForm} size={64} still />
                 <span>{t("arcade.wardrobe.formBase")}</span>
+                {!formOn && <b>{t("arcade.wardrobe.wornMark")}</b>}
+              </button>
+              <button type="button" className="arcade-wardrobe__look" data-active={formOn === LOOK_DEFAULT ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-base" onClick={() => setFormSkin(LOOK_DEFAULT)}>
+                <LookPreview sheet={`${hero}@meta`} size={64} still />
+                <span>{t("arcade.wardrobe.formDefault")}</span>
+                {formOn === LOOK_DEFAULT && <b>{t("arcade.wardrobe.wornMark")}</b>}
               </button>
               {formSkins.map((c) => {
                 const owned = cosmetics.owned.includes(c.id);
@@ -458,10 +524,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                     data-rarity={c.rarity}
                     data-owned={owned ? "true" : undefined}
                     data-testid={`arcade-wardrobe-form-${c.id}`}
-                    onClick={() => { if (owned || buyCosmetic(c.id)) { setFormSkin(c.id); setPreviewAnim("form"); } }}
+                    onClick={() => { if (owned || buyCosmetic(c.id)) setFormSkin(c.id); }}
                   >
                     <LookPreview sheet={c.variant} size={64} still />
                     <span>{t(`arcade.cosmetic.${c.id}` as MessageKey)}</span>
+                    {formOn === c.id && <b>{t("arcade.wardrobe.wornMark")}</b>}
                     {!owned && <em>{SHARD_PRICE[c.rarity]}</em>}
                   </button>
                 );
@@ -469,6 +536,13 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             </div>
           </div>
         )}
+        {tab === "parts" && !hp && skins.length > 0 && (
+          <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-slots-soon">
+            <small>{t("arcade.wardrobe.slots")}</small>
+            <em className="arcade-wardrobe__hint">{t("arcade.wardrobe.slotsSoon")}</em>
+          </div>
+        )}
+        {tab === "effects" && (
         <div className="arcade-wardrobe__effects">
           <label className="arcade-wardrobe__toggle" data-testid="arcade-wardrobe-perhero">
             <input type="checkbox" checked={cosmetics.perHeroLook} onChange={(e) => setPerHeroLook(e.target.checked)} />
@@ -499,6 +573,8 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               </div>
             );
           })}
+        </div>
+        )}
         </div>
       </div>
     </Modal>

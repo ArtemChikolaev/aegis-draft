@@ -5,7 +5,7 @@
 // собственные части, `<set>` — сет `<hero>@<set>`) со слотами, под которые отрендерен слой `<основа>+<источник>.<слот>`.
 // Лист тела — `<основа>+body`. Слот — `item_slot` из items_game (dota_item_index.json), порядок — DRAW_ORDER (dota_slots.mjs).
 // Сборка облика — content/cosmetics.ts (loadoutSheet), рендер — features/arcade/sprites.ts.
-export type DotaSlot = "back" | "mount" | "legs" | "belt" | "armor" | "arms" | "shoulder" | "neck" | "misc" | "head" | "weapon";
+export type DotaSlot = "back" | "tail" | "mount" | "legs" | "belt" | "armor" | "costume" | "arms" | "gloves" | "shoulder" | "neck" | "misc" | "body_head" | "head" | "weapon" | "offhand_weapon";
 export interface PartsFamily { defaults: Readonly<Partial<Record<DotaSlot, string>>>; sources: Readonly<Record<string, readonly DotaSlot[]>> }
 export interface HeroParts { slots: readonly DotaSlot[]; families: Readonly<Record<string, PartsFamily>> }
 export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
@@ -411,6 +411,111 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "belt",
             "armor",
             "misc",
+            "head",
+            "weapon"
+          ]
+        }
+      }
+    }
+  },
+  "terrorblade": {
+    "slots": [
+      "back",
+      "armor",
+      "head",
+      "weapon"
+    ],
+    "families": {
+      "terrorblade": {
+        "defaults": {
+          "armor": "base",
+          "head": "base",
+          "weapon": "base",
+          "back": "base"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "marauders": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "eternal_purgatory": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "foulfell": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "broken_code": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "forgotten_station": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ]
+        }
+      },
+      "terrorblade@arcana": {
+        "defaults": {
+          "armor": "base",
+          "head": "arcana",
+          "weapon": "base",
+          "back": "base"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "head"
+          ],
+          "marauders": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "eternal_purgatory": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "foulfell": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "broken_code": [
+            "back",
+            "armor",
+            "head",
+            "weapon"
+          ],
+          "forgotten_station": [
+            "back",
+            "armor",
             "head",
             "weapon"
           ]

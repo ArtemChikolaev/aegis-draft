@@ -31,6 +31,7 @@ export function Modal({
   children,
   layout = "actions",
   presentation = "default",
+  size = "default",
   dismissLabel,
 }: {
   mark?: ReactNode;
@@ -45,6 +46,8 @@ export function Modal({
   layout?: "actions" | "content";
   /** `card` — компактный центрированный оверлей, визуально продолжающий выбранную карточку. */
   presentation?: "default" | "card";
+  /** `wide` — двухколоночное содержимое (гардероб героя: закреплённое превью + вкладки); на узком экране — обычная ширина. */
+  size?: "default" | "wide";
   /** Подпись крестика для скринридера — локализованная, её передаёт экран (`common.close`). */
   dismissLabel: string;
 }) {
@@ -325,7 +328,7 @@ export function Modal({
     >
       <section
         ref={panelRef}
-        className={`${styles.panel} ${isContent ? styles.contentPanel : ""} ${isCard ? styles.cardPanel : ""}`}
+        className={`${styles.panel} ${isContent ? styles.contentPanel : ""} ${isCard ? styles.cardPanel : ""} ${size === "wide" ? styles.widePanel : ""}`}
         role="dialog"
         aria-modal="true"
         tabIndex={-1}

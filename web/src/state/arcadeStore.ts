@@ -14,7 +14,7 @@ import { arcadeDaily, type ArcadeReplay } from "../game/arcade/replay.ts";
 import { EXPEDITIONS, EXPEDITION_BY_ID, expeditionStepDone } from "../game/arcade/content/expeditions.ts";
 import { LEGACY_MAX_RANK, LEGACY_NONE, LEGACY_ZERO, clampLegacy, legacyBonus, legacySpentTotal, type LegacyBranch, type LegacySpent } from "../game/arcade/content/legacy.ts";
 import type { InputLogEntry } from "../game/arcade/types.ts";
-import { COSMETICS, COSMETIC_BY_ID, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot, type DotaSlot, type Loadout } from "../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, SHARD_PRICE, rollCosmeticDrops, type CosmeticDrop, type CosmeticSlot, type DotaSlot, type Loadout } from "../game/arcade/content/cosmetics.ts";
 import { HERO_PARTS } from "../game/arcade/content/parts.ts";
 import { GEAR_SALVAGE, GEAR_SLOTS, type GearItem, type GearSlot } from "../game/arcade/content/gear.ts";
 import { createRunSeed } from "../game/rng.ts";
@@ -333,7 +333,7 @@ interface ArcadeStore {
   resetParts: () => void;
   /** Скин призыва выбранного героя (T13.80): id косметики слота `summon` для этого art; null — обычный. */
   setSummonSkin: (art: string, id: string | null) => void;
-  /** Скин формы выбранного героя (T13.80 срез 3): id косметики слота `form`; null — форма как у облика. */
+  /** Скин формы выбранного героя (T13.80 срез 3): id косметики слота `form`; LOOK_DEFAULT — обычная форма; null — как у облика. */
   setFormSkin: (id: string | null) => void;
   /** Пресеты образа (T13.49): свой набор эффектов у каждого героя вместо общего. */
   setPerHeroLook: (on: boolean) => void;
@@ -464,6 +464,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const skins = { ...c.skins };
     const perHero = { ...c.perHero };
     const loadout = { ...(c.loadout ?? {}) };
+    let formSkins = c.formSkins, summonSkins = c.summonSkins;
     if (slot === "skin") {
       // Скин — у героя, которому он принадлежит; снятие — у выбранного героя. Облик целиком сбрасывает слоты (T13.80).
       const hero = id === null ? get().hero : COSMETIC_BY_ID[id]?.hero ?? get().hero;
@@ -472,13 +473,17 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
       // или базовая модель) слоты не трогает: надетые части остаются на новой основе, как предметы при смене арканы в Dota.
       const set = id ? COSMETIC_BY_ID[id]?.variant.split("@")[1] : undefined;
       if (set && HERO_PARTS[hero]?.families[hero]?.sources[set]) delete loadout[hero];
+      // Новый облик — форма и призывы снова «как у облика» (владелец 2026-09-19: надел красную аркану, а демон остался
+      // от прежнего выбора): у арканы свой демон, у сета — свой бандл; явный выбор делается уже после надевания.
+      if (c.formSkins?.[hero]) { formSkins = { ...c.formSkins }; delete formSkins[hero]; }
+      if (c.summonSkins?.[hero]) { summonSkins = { ...c.summonSkins }; delete summonSkins[hero]; }
     } else if (c.perHeroLook) {
       // Пресет героя (T13.49): эффект пишется только выбранному герою.
       const mine = { ...(perHero[get().hero] ?? {}) };
       if (id === null) delete mine[slot]; else mine[slot] = id;
       perHero[get().hero] = mine;
     } else if (id === null) delete shared[slot]; else shared[slot] = id;
-    const cosmetics = withHeroSkin({ ...c, shared, skins, perHero, loadout }, get().hero);
+    const cosmetics = withHeroSkin({ ...c, shared, skins, perHero, loadout, formSkins, summonSkins }, get().hero);
     void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics));
     set({ cosmetics });
   },
@@ -505,7 +510,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   setSummonSkin(art, id) {
     const c = get().cosmetics;
     const hero = get().hero;
-    if (id !== null) {
+    if (id !== null && id !== LOOK_DEFAULT) {
       const def = COSMETIC_BY_ID[id];
       if (!def || def.slot !== "summon" || def.hero !== hero || !def.variant.startsWith(`${art}@`) || !c.owned.includes(id)) return;
     }
@@ -520,7 +525,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   setFormSkin(id) {
     const c = get().cosmetics;
     const hero = get().hero;
-    if (id !== null) {
+    if (id !== null && id !== LOOK_DEFAULT) {
       const def = COSMETIC_BY_ID[id];
       if (!def || def.slot !== "form" || def.hero !== hero || !c.owned.includes(id)) return;
     }
