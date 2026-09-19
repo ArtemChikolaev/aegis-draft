@@ -14,7 +14,7 @@ for hero in "$@"; do
   if ! npx tsx scripts/dota_part_layers.mts plan --heroes "$hero" --dir "$DIR/$hero" >> "$LOG" 2>&1; then say "$hero: ПЛАН НЕ СОБРАЛСЯ (слот модели) — пропуск"; continue; fi
   say "$hero: рендер px2"; RAW=1 REUSE=1 OUT="$DIR/$hero/export" SPRITES="$DIR/$hero/px2" bash scripts/blender/dota_pipeline.sh "$DIR/$hero/family_px2.tsv" >> "$LOG" 2>&1
   say "$hero: рендер px";  RAW=1 REUSE=1 OUT="$DIR/$hero/export" SPRITES="$DIR/$hero/px"  bash scripts/blender/dota_pipeline.sh "$DIR/$hero/family_px.tsv"  >> "$LOG" 2>&1
-  if npx tsx scripts/dota_part_layers.mts build --heroes "$hero" --dir "$DIR/$hero" >> "$LOG" 2>&1; then say "$hero: готово — $(grep "$hero: композит" "$LOG" | tail -2 | sed 's/.*расхождение/расхождение/' | tr '\n' ' ')"; else say "$hero: BUILD УПАЛ"; fi
-  rm -rf "$DIR/$hero/px2" "$DIR/$hero/px" "$DIR/$hero/export"   # сырые листы и glb — десятки МБ на героя
+  if npx tsx scripts/dota_part_layers.mts build --heroes "$hero" --dir "$DIR/$hero" >> "$LOG" 2>&1; then say "$hero: готово — $(grep "$hero: композит" "$LOG" | tail -2 | sed 's/.*расхождение/расхождение/' | tr '\n' ' ')"; else say "$hero: BUILD УПАЛ — сырьё оставлено в $DIR/$hero для разбора и повторного build"; continue; fi
+  rm -rf "$DIR/$hero/px2" "$DIR/$hero/px" "$DIR/$hero/export"   # сырые листы и glb — десятки МБ на героя; только после удачного build
 done
 say "волна окончена"

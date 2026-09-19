@@ -107,7 +107,10 @@ export function families(hero: string, man: Row[], want: readonly string[]): Fam
     const own = row.parts.filter((p) => !base.parts.includes(p));
     // Подмены моделей при надетой основе: аркана героя (hero_base) + предметы её собственных частей.
     const swaps: Record<string, string> = {};
-    if (skin === "arcana") for (const b of index.bases[hero] ?? []) if (b.rarity === "arcana") Object.assign(swaps, b.swaps ?? {});
+    // `index.bases` ключуется именем героя у Valve (`nevermore`, `windrunner`), а не нашим id (`shadow_fiend`, `windranger`):
+    // имя берём у самих частей (`models[...].hero`), иначе подмены арканы SF и Windranger молча не применялись (аудит 2026-09-19).
+    const npc = base.parts.map((p) => index.models[modelKey(p)]?.hero).find(Boolean) ?? hero;
+    if (skin === "arcana") for (const b of index.bases[npc] ?? index.bases[hero] ?? []) if (b.rarity === "arcana") Object.assign(swaps, b.swaps ?? {});
     for (const p of own) Object.assign(swaps, index.models[modelKey(p)]?.swaps ?? {});
     const swap = (p: string) => { const to = swaps[modelKey(p)]; return to ? `${to}_c` : p; };
     const sources = new Map<string, Map<string, string[]>>();
@@ -193,12 +196,14 @@ if (mode === "build") {
       if (!wantedFamily(f)) continue;
       const raw = join(dir, size);
       const body = join(raw, `${f.id}+body.png`), ref = join(raw, `${f.id}+ref.png`);
-      if (!existsSync(body) || !existsSync(ref)) { console.error(`${size} ${f.id}: нет ${body} или ${ref} — сначала рендер`); continue; }
+      // Любой отказ ниже — ненулевой код выхода: волна (`dota_part_wave.sh`) иначе считала героя готовым и удаляла сырьё.
+      if (!existsSync(body) || !existsSync(ref)) { console.error(`${size} ${f.id}: нет ${body} или ${ref} — сначала рендер`); process.exitCode = 1; continue; }
+      // Слои, которых нет в рендере: при --only — ожидаемо (остаются прежние), без него — семейство неполное, стоп.
+      // Проверка — ДО публикации тела: иначе новое `+body` ложилось поверх старых слоёв без единого сигнала (аудит 2026-09-19).
+      const missing = layerIds(f).filter((id) => wantedLayer(id) && !existsSync(join(raw, `${id}.png`)));
+      if (missing.length) { console.error(`${size} ${f.id}: нет рендера ${missing.join(", ")} — семейство не публикуется`); process.exitCode = 1; continue; }
       quantWebp(body, join(pub, `${f.id}+body.webp`)); copyFileSync(join(raw, `${f.id}+body.json`), join(pub, `${f.id}+body.json`));
       byId.set(`${f.id}+body`, { id: `${f.id}+body`, vmdl: f.row.vmdl, args: f.row.args, parts: [] });
-      // Слои, которых нет в рендере: при --only — ожидаемо (остаются прежние), без него — семейство неполное, стоп.
-      const missing = layerIds(f).filter((id) => wantedLayer(id) && !existsSync(join(raw, `${id}.png`)));
-      if (missing.length) { console.error(`${size} ${f.id}: нет рендера ${missing.join(", ")} — семейство не публикуется`); continue; }
       const defaultLayers: string[] = [];
       for (const [src, slots] of f.sources) for (const [slot, parts] of slots) {
         const id = `${f.id}+${src}.${slot}`;
