@@ -232,6 +232,17 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
 
 type WardrobeTab = "looks" | "parts" | "form" | "summons" | "effects";
 
+/** Вкладка по клавише (WAI-ARIA tabs): стрелки — соседняя по кругу, Home/End — крайние; null — клавиша не про вкладки. */
+export function tabByKey<T>(ids: readonly T[], current: T, key: string): T | null {
+  const i = ids.indexOf(current);
+  if (i < 0 || ids.length === 0) return null;
+  if (key === "ArrowRight") return ids[(i + 1) % ids.length];
+  if (key === "ArrowLeft") return ids[(i - 1 + ids.length) % ids.length];
+  if (key === "Home") return ids[0];
+  if (key === "End") return ids[ids.length - 1];
+  return null;
+}
+
 /** Некупленная косметика, выбранная к покупке (часть слота, скин призыва или формы): `id` — предмет косметики. */
 export type PendingBuy = { kind: "part"; id: string; slot: DotaSlot; src: string } | { kind: "summon"; id: string; art: string } | { kind: "form"; id: string };
 
@@ -351,6 +362,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const resetParts = useArcade((s) => s.resetParts);
   const summonArts = [...new Set(Object.values(def.abilities).map((a) => a.summon?.art).filter((a): a is string => !!a && COSMETICS.some((c) => c.slot === "summon" && c.hero === hero && c.variant.startsWith(`${a}@`))))];
   const price = sel.def ? SHARD_PRICE[sel.def.rarity] : 0;
+  const tabs = ([["looks", "arcade.wardrobe.tab.looks", true], ["parts", "arcade.wardrobe.slots", !!hp || skins.length > 0], ["form", "arcade.wardrobe.forms", hasForm && formSkins.length > 0], ["summons", "arcade.wardrobe.summons", summonArts.length > 0], ["effects", "arcade.wardrobe.tab.effects", true]] as [WardrobeTab, MessageKey, boolean][]).filter((x) => x[2]);
   const applyPending = (p: PendingBuy) => { if (p.kind === "part") setPart(p.slot, p.src); else if (p.kind === "summon") setSummonSkin(p.art, p.id); else setFormSkin(p.id); };
   /** Тычок по миниатюре: своя — надеть, некупленная — выбрать к покупке (см. `pickThumb`). */
   const onThumb = (owned: boolean, want: PendingBuy) => { const r = pickThumb(owned, want, pending); if (r.apply) applyPending(want); setPending(r.pending); };
@@ -392,18 +404,18 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               </span>
             )}
           </div>
-          <button type="button" className="arcade-wardrobe__view-toggle" data-active={viewOpen ? "true" : undefined} data-testid="arcade-wardrobe-view-toggle" onClick={() => setViewOpen((v) => !v)}>{t("arcade.wardrobe.view")}</button>
-          <div className="arcade-wardrobe__controls" data-open={viewOpen ? "true" : undefined} data-testid="arcade-wardrobe-controls">
+          <button type="button" className="arcade-wardrobe__view-toggle" aria-expanded={viewOpen} aria-controls={`${titleId}-view`} data-active={viewOpen ? "true" : undefined} data-testid="arcade-wardrobe-view-toggle" onClick={() => setViewOpen((v) => !v)}>{t("arcade.wardrobe.view")}</button>
+          <div className="arcade-wardrobe__controls" id={`${titleId}-view`} data-open={viewOpen ? "true" : undefined} data-testid="arcade-wardrobe-controls">
             {(["auto", "idle", "walk", "attack", ...(hasForm ? (["form"] as const) : [])] as (PreviewAnim | "form")[]).map((a) => (
-              <button key={a} type="button" className="arcade-rank__tier" data-active={previewAnim === a ? "true" : undefined} data-testid={`arcade-wardrobe-anim-${a}`} onClick={() => setPreviewAnim(a)}>{t(`arcade.wardrobe.anim.${a}` as MessageKey)}</button>
+              <button key={a} type="button" className="arcade-rank__tier" aria-pressed={previewAnim === a} data-active={previewAnim === a ? "true" : undefined} data-testid={`arcade-wardrobe-anim-${a}`} onClick={() => setPreviewAnim(a)}>{t(`arcade.wardrobe.anim.${a}` as MessageKey)}</button>
             ))}
             <span className="arcade-wardrobe__sep" />
             {(["none", "radiant", "dire"] as const).map((b) => (
-              <button key={b} type="button" className="arcade-rank__tier" data-active={previewBg === b ? "true" : undefined} data-testid={`arcade-wardrobe-bg-${b}`} onClick={() => setPreviewBg(b)}>{t(`arcade.wardrobe.bg.${b}` as MessageKey)}</button>
+              <button key={b} type="button" className="arcade-rank__tier" aria-pressed={previewBg === b} data-active={previewBg === b ? "true" : undefined} data-testid={`arcade-wardrobe-bg-${b}`} onClick={() => setPreviewBg(b)}>{t(`arcade.wardrobe.bg.${b}` as MessageKey)}</button>
             ))}
             <span className="arcade-wardrobe__sep" />
-            <button type="button" className="arcade-rank__tier" data-active={lifeSize ? "true" : undefined} data-testid="arcade-wardrobe-lifesize" onClick={() => setLifeSize((v) => !v)}>{t("arcade.wardrobe.lifeSize")}</button>
-            <button type="button" className="arcade-rank__tier" data-active={compare ? "true" : undefined} disabled={!sel.def} data-testid="arcade-wardrobe-compare-toggle" onClick={() => setCompare((v) => !v)}>{t("arcade.wardrobe.compare")}</button>
+            <button type="button" className="arcade-rank__tier" aria-pressed={lifeSize} data-active={lifeSize ? "true" : undefined} data-testid="arcade-wardrobe-lifesize" onClick={() => setLifeSize((v) => !v)}>{t("arcade.wardrobe.lifeSize")}</button>
+            <button type="button" className="arcade-rank__tier" aria-pressed={compare} data-active={compare ? "true" : undefined} disabled={!sel.def} data-testid="arcade-wardrobe-compare-toggle" onClick={() => setCompare((v) => !v)}>{t("arcade.wardrobe.compare")}</button>
           </div>
           <strong data-testid="arcade-wardrobe-name">
             {sel.def ? t(`arcade.cosmetic.${sel.def.id}` as MessageKey) : t("arcade.wardrobe.base")}
@@ -436,11 +448,34 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
           {!sel.owned && <em className="arcade-wardrobe__hint">{t("arcade.cosmetics.buyHint")}</em>}
         </div>
         <div className="arcade-wardrobe__panel">
-          <div className="arcade-wardrobe__tabs" role="tablist" data-testid="arcade-wardrobe-tabs">
-            {([["looks", "arcade.wardrobe.tab.looks", true], ["parts", "arcade.wardrobe.slots", !!hp || skins.length > 0], ["form", "arcade.wardrobe.forms", hasForm && formSkins.length > 0], ["summons", "arcade.wardrobe.summons", summonArts.length > 0], ["effects", "arcade.wardrobe.tab.effects", true]] as [WardrobeTab, MessageKey, boolean][]).filter((x) => x[2]).map(([id, key]) => (
-              <button key={id} type="button" role="tab" aria-selected={tab === id} className="arcade-rank__tier" data-active={tab === id ? "true" : undefined} data-testid={`arcade-wardrobe-tab-${id}`} onClick={() => selectTab(id)}>{t(key)}</button>
+          <div className="arcade-wardrobe__tabs" role="tablist" aria-labelledby={titleId} data-testid="arcade-wardrobe-tabs">
+            {tabs.map(([id, key]) => (
+              <button
+                key={id}
+                type="button"
+                role="tab"
+                id={`${titleId}-tab-${id}`}
+                aria-selected={tab === id}
+                aria-controls={`${titleId}-panel`}
+                tabIndex={tab === id ? 0 : -1}
+                className="arcade-rank__tier"
+                data-active={tab === id ? "true" : undefined}
+                data-testid={`arcade-wardrobe-tab-${id}`}
+                onClick={() => selectTab(id)}
+                onKeyDown={(e) => {
+                  // Стрелки/Home/End двигают выбор по вкладкам (WAI-ARIA tabs), фокус едет вместе с выбором.
+                  const next = tabByKey(tabs.map((x) => x[0]), id, e.key);
+                  if (!next) return;
+                  e.preventDefault();
+                  selectTab(next);
+                  document.getElementById(`${titleId}-tab-${next}`)?.focus();
+                }}
+              >
+                {t(key)}
+              </button>
             ))}
           </div>
+          <div className="arcade-wardrobe__tabpanel" role="tabpanel" id={`${titleId}-panel`} aria-labelledby={`${titleId}-tab-${tab}`}>
           {tab === "looks" && (
             <>
         <div className="arcade-wardrobe__looks" data-testid="arcade-wardrobe-looks">
@@ -451,7 +486,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                 key={id}
                 type="button"
                 className="arcade-wardrobe__look"
-                data-active={(l.def?.id ?? null) === (sel.def?.id ?? null) ? "true" : undefined}
+                aria-pressed={(l.def?.id ?? null) === (sel.def?.id ?? null)} data-active={(l.def?.id ?? null) === (sel.def?.id ?? null) ? "true" : undefined}
                 data-rarity={l.def?.rarity}
                 data-owned={l.owned ? "true" : undefined}
                 data-testid={`arcade-wardrobe-look-${id}`}
@@ -470,9 +505,9 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             <div className="arcade-wardrobe__styles" data-testid="arcade-wardrobe-styles">
               <small>{t("arcade.wardrobe.styles")}</small>
               <div className="arcade-cosmetics__options">
-                <button type="button" className="arcade-rank__tier" data-active={!selStyle ? "true" : undefined} onClick={() => setStyle(sel.def!.id, null)}>{t("arcade.wardrobe.styleBase")}</button>
+                <button type="button" className="arcade-rank__tier" aria-pressed={!selStyle} data-active={!selStyle ? "true" : undefined} onClick={() => setStyle(sel.def!.id, null)}>{t("arcade.wardrobe.styleBase")}</button>
                 {styleOptions.map((st) => (
-                  <button key={st.id} type="button" className="arcade-rank__tier" data-active={selStyle?.id === st.id ? "true" : undefined} data-testid={`arcade-wardrobe-style-${st.id}`} onClick={() => setStyle(sel.def!.id, st.id)}>
+                  <button key={st.id} type="button" className="arcade-rank__tier" aria-pressed={selStyle?.id === st.id} data-active={selStyle?.id === st.id ? "true" : undefined} data-testid={`arcade-wardrobe-style-${st.id}`} onClick={() => setStyle(sel.def!.id, st.id)}>
                     {st.hue !== undefined && <i className="arcade-wardrobe__gem" style={{ background: `hsl(${st.hue} 72% 56%)` }} />}
                     {t(`arcade.style.${st.id}` as MessageKey)}
                   </button>
@@ -491,11 +526,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               <>
                 <div className="arcade-cosmetics__options">
                   {slotTabs.map((slot) => (
-                    <button key={slot} type="button" className="arcade-rank__tier" data-active={slotTab === slot ? "true" : undefined} data-override={myLoadout[slot] ? "true" : undefined} data-testid={`arcade-wardrobe-slot-${slot}`} onClick={() => { setSlotTab(slot); setPending(null); }}>{t(`arcade.wardrobe.slot.${slot}` as MessageKey)}</button>
+                    <button key={slot} type="button" className="arcade-rank__tier" aria-pressed={slotTab === slot} data-active={slotTab === slot ? "true" : undefined} data-override={myLoadout[slot] ? "true" : undefined} data-testid={`arcade-wardrobe-slot-${slot}`} onClick={() => { setSlotTab(slot); setPending(null); }}>{t(`arcade.wardrobe.slot.${slot}` as MessageKey)}</button>
                   ))}
                 </div>
                 <div className="arcade-wardrobe__looks" data-testid="arcade-wardrobe-parts">
-                  <button type="button" className="arcade-wardrobe__look" data-active={!myLoadout[slotTab] ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-part-follow" onClick={() => { setPart(slotTab, null); setPending(null); }}>
+                  <button type="button" className="arcade-wardrobe__look" aria-pressed={!myLoadout[slotTab]} data-active={!myLoadout[slotTab] ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-part-follow" onClick={() => { setPart(slotTab, null); setPending(null); }}>
                     {followSrc ? <LookPreview sheet={partSheet(followSrc)} size={64} still /> : <span className="arcade-wardrobe__slot" style={{ width: 64, height: 64 }}><small>{t("arcade.wardrobe.slotEmpty")}</small></span>}
                     <span>{t("arcade.wardrobe.followSkin")}</span>
                     {!myLoadout[slotTab] && <b>{t("arcade.wardrobe.wornMark")}</b>}
@@ -508,7 +543,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                         key={src}
                         type="button"
                         className="arcade-wardrobe__look"
-                        data-active={myLoadout[slotTab] === src ? "true" : undefined}
+                        aria-pressed={myLoadout[slotTab] === src} data-active={myLoadout[slotTab] === src ? "true" : undefined}
                         data-rarity={srcDef?.rarity}
                         data-owned={owned ? "true" : undefined}
                         data-pending={srcDef && isPending("part", srcDef.id) ? "true" : undefined}
@@ -539,13 +574,13 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               return (
                 <div key={art} className="arcade-wardrobe__looks">
                   {bundled && (
-                    <button type="button" className="arcade-wardrobe__look" data-active={!on ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-follow`} onClick={() => { setSummonSkin(art, null); setPending(null); }}>
+                    <button type="button" className="arcade-wardrobe__look" aria-pressed={!on} data-active={!on ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-follow`} onClick={() => { setSummonSkin(art, null); setPending(null); }}>
                       <LookPreview sheet={asWornSummons[art] ?? art} size={64} still />
                       <span>{t("arcade.wardrobe.followSkin")}</span>
                       {!on && <b>{t("arcade.wardrobe.wornMark")}</b>}
                     </button>
                   )}
-                  <button type="button" className="arcade-wardrobe__look" data-active={(bundled ? on === LOOK_DEFAULT : !on) ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-base`} onClick={() => { setSummonSkin(art, bundled ? LOOK_DEFAULT : null); setPending(null); }}>
+                  <button type="button" className="arcade-wardrobe__look" aria-pressed={(bundled ? on === LOOK_DEFAULT : !on)} data-active={(bundled ? on === LOOK_DEFAULT : !on) ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-base`} onClick={() => { setSummonSkin(art, bundled ? LOOK_DEFAULT : null); setPending(null); }}>
                     <LookPreview sheet={art} size={64} still />
                     <span>{t("arcade.wardrobe.summonBase")}</span>
                     {(bundled ? on === LOOK_DEFAULT : !on) && <b>{t("arcade.wardrobe.wornMark")}</b>}
@@ -557,7 +592,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                         key={c.id}
                         type="button"
                         className="arcade-wardrobe__look"
-                        data-active={on === c.id ? "true" : undefined}
+                        aria-pressed={on === c.id} data-active={on === c.id ? "true" : undefined}
                         data-rarity={c.rarity}
                         data-owned={owned ? "true" : undefined}
                         data-pending={isPending("summon", c.id) ? "true" : undefined}
@@ -581,12 +616,12 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
           <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-forms">
             <small>{t("arcade.wardrobe.forms")}</small>
             <div className="arcade-wardrobe__looks">
-              <button type="button" className="arcade-wardrobe__look" data-active={!formOn ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-follow" onClick={() => { setFormSkin(null); setPending(null); }}>
+              <button type="button" className="arcade-wardrobe__look" aria-pressed={!formOn} data-active={!formOn ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-follow" onClick={() => { setFormSkin(null); setPending(null); }}>
                 <LookPreview sheet={asWornForm} size={64} still />
                 <span>{t("arcade.wardrobe.formBase")}</span>
                 {!formOn && <b>{t("arcade.wardrobe.wornMark")}</b>}
               </button>
-              <button type="button" className="arcade-wardrobe__look" data-active={formOn === LOOK_DEFAULT ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-base" onClick={() => { setFormSkin(LOOK_DEFAULT); setPending(null); }}>
+              <button type="button" className="arcade-wardrobe__look" aria-pressed={formOn === LOOK_DEFAULT} data-active={formOn === LOOK_DEFAULT ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-base" onClick={() => { setFormSkin(LOOK_DEFAULT); setPending(null); }}>
                 <LookPreview sheet={`${hero}@meta`} size={64} still />
                 <span>{t("arcade.wardrobe.formDefault")}</span>
                 {formOn === LOOK_DEFAULT && <b>{t("arcade.wardrobe.wornMark")}</b>}
@@ -598,7 +633,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                     key={c.id}
                     type="button"
                     className="arcade-wardrobe__look"
-                    data-active={formOn === c.id ? "true" : undefined}
+                    aria-pressed={formOn === c.id} data-active={formOn === c.id ? "true" : undefined}
                     data-rarity={c.rarity}
                     data-owned={owned ? "true" : undefined}
                     data-pending={isPending("form", c.id) ? "true" : undefined}
@@ -636,11 +671,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               <div key={slot} className="arcade-cosmetics__slot">
                 <small>{t(`arcade.cosmetics.slot.${slot}` as MessageKey)}</small>
                 <div className="arcade-cosmetics__options">
-                  <button type="button" className="arcade-rank__tier" data-active={!cosmetics.equipped[slot] ? "true" : undefined} onClick={() => equip(slot, null)}>{t("arcade.cosmetics.none")}</button>
+                  <button type="button" className="arcade-rank__tier" aria-pressed={!cosmetics.equipped[slot]} data-active={!cosmetics.equipped[slot] ? "true" : undefined} onClick={() => equip(slot, null)}>{t("arcade.cosmetics.none")}</button>
                   {all.map((c) => {
                     const owned = cosmetics.owned.includes(c.id);
                     return owned ? (
-                      <button key={c.id} type="button" className="arcade-rank__tier" data-rarity={c.rarity} data-active={cosmetics.equipped[slot] === c.id ? "true" : undefined} data-testid={`arcade-cosmetic-${c.id}`} onClick={() => equip(slot, c.id)}>
+                      <button key={c.id} type="button" className="arcade-rank__tier" data-rarity={c.rarity} aria-pressed={cosmetics.equipped[slot] === c.id} data-active={cosmetics.equipped[slot] === c.id ? "true" : undefined} data-testid={`arcade-cosmetic-${c.id}`} onClick={() => equip(slot, c.id)}>
                         {t(`arcade.cosmetic.${c.id}` as MessageKey)}
                       </button>
                     ) : (
@@ -655,6 +690,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
           })}
         </div>
         )}
+          </div>
         </div>
       </div>
     </Modal>

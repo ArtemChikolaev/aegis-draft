@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import { COSMETICS, skinnedHero, skinnedSheet, skinnedStyle } from "../src/game/arcade/content/cosmetics.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
-import { pickThumb, previewScale, type PendingBuy } from "../src/features/arcade/HeroWardrobe.tsx";
+import { pickThumb, previewScale, tabByKey, type PendingBuy } from "../src/features/arcade/HeroWardrobe.tsx";
 
 // Гардероб (T13.27): облик героя выбирается и покупается в своём окне, у аркан бывают стили.
 // Тест держит в согласии три места: cosmetics.ts (какие стили объявлены), манифесты спрайтов
@@ -118,6 +118,19 @@ describe("превью гардероба: выбор анимации", () => {
     const dirs = new Set(Array.from({ length: 16 }, (_, i) => pickPreviewAnim(i * 0.2, 8, false, "walk").dir));
     expect(dirs.size).toBeGreaterThan(4);
     expect(pickPreviewAnim(3.2, 8, false, "walk").dir).toBe(0); // полный круг — снова к камере
+  });
+});
+
+describe("гардероб: вкладки с клавиатуры", () => {
+  it("стрелки ходят по кругу, Home/End — к крайним, прочие клавиши вкладки не трогают", () => {
+    const ids = ["looks", "parts", "effects"] as const;
+    expect(tabByKey(ids, "looks", "ArrowRight")).toBe("parts");
+    expect(tabByKey(ids, "effects", "ArrowRight")).toBe("looks");
+    expect(tabByKey(ids, "looks", "ArrowLeft")).toBe("effects");
+    expect(tabByKey(ids, "parts", "Home")).toBe("looks");
+    expect(tabByKey(ids, "parts", "End")).toBe("effects");
+    expect(tabByKey(ids, "parts", "Enter")).toBeNull();
+    expect(tabByKey(ids, "form" as (typeof ids)[number], "ArrowRight")).toBeNull();
   });
 });
 

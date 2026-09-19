@@ -243,7 +243,7 @@
 /* Раскладка 2026-09-19 (владелец: «слишком много листать, при пролистывании не видно, как будет выглядеть»):
    превью закреплено — слева на широком экране, сверху на узком; разделы — вкладками в панели справа/ниже. */
 .arcade-wardrobe__stage { position: sticky; top: 0; z-index: 2; }
-.arcade-wardrobe__panel { display: grid; gap: 12px; min-width: 0; align-content: start; }
+.arcade-wardrobe__panel, .arcade-wardrobe__tabpanel { display: grid; gap: 12px; min-width: 0; align-content: start; }
 .arcade-wardrobe__tabs { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line-invert); }
 /* Содержимое вкладок — от левого края, как сами вкладки (не по центру, как лента обликов до раскладки по вкладкам). */
 .arcade-wardrobe__panel .arcade-wardrobe__looks { justify-content: flex-start; }
@@ -288,7 +288,8 @@
 /* Выбрана к покупке (ещё не своя): пунктир вместо сплошной рамки надетого; полоса покупки — под списком вкладки. */
 .arcade-wardrobe__look[data-pending] { border-style: dashed; border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
 .arcade-wardrobe__look[data-pending] .arcade-wardrobe__canvas { opacity: 1; filter: none; }
-.arcade-wardrobe__buybar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; font-size: 12px; }
+.arcade-wardrobe__buybar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-self: start; font-size: 12px; }
+.arcade-wardrobe__buybar button { width: auto; padding: 10px 16px; }
 .arcade-wardrobe__effects, .arcade-wardrobe__slots { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line-invert); border-radius: 12px; }
 .arcade-wardrobe__effects .arcade-cosmetics__slot small { opacity: .7; color: inherit; }
 .arcade-wardrobe__slots > small { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; opacity: .7; }
