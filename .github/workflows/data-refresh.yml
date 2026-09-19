@@ -1,7 +1,10 @@
 name: Data refresh
 
 # Крон-пересборка реального tier-1 датасета из OpenDota: resumable --collect-window
-# пишет web/public/data/*.json, коммитит изменения в main → push триггерит CI-деплой.
+# пишет web/public/data/*.json, коммитит изменения в main и САМ запускает CI-деплой (шаг в конце):
+# push дефолтным GITHUB_TOKEN `on: push` не триггерит — это документированное поведение GitHub, и
+# бот-коммиты 2026-09-14…18 не дали ни одного прогона CI: датасет доезжал до Pages только со
+# следующим человеческим пушем (аудит 2026-09-19).
 # Сбор resumable: raw-кэш персистится между запусками (actions/cache), каждый прогон
 # добирает до дневного потолка Free Tier (~3000 req/day), полное окно доезжает за
 # несколько дней дейлик-крона. Ручной старт/докрутка — workflow_dispatch.
@@ -31,6 +34,7 @@ on:
 
 permissions:
   contents: write # коммит обновлённых данных в main
+  actions: write # запуск CI-деплоя после бот-коммита (gh workflow run)
 
 concurrency:
   group: data-refresh
@@ -39,6 +43,9 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    # Бюджет 2000 запросов укладывается в ~40 мин; каждый 429 — минута ожидания, и без потолка прогон упирался бы в
+    # 6-часовой лимит раннера, теряя по пути raw-кэш.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -50,8 +57,10 @@ jobs:
           node-version: "24"
       # Персистим raw-кэш OpenDota между прогонами: resumable-сбор продолжает с первого
       # cache miss, а не начинает с нуля. Rolling key + restore-keys накапливают кэш.
+      # restore и save — раздельно: единый actions/cache сохраняет ТОЛЬКО при зелёном джобе, и любой красный
+      # шаг ниже выбрасывал всё скачанное за прогон (до дневной квоты Free Tier) — см. шаг «Save» в конце.
       - name: Restore OpenDota raw cache
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: pipeline/data/raw
           key: opendota-raw-${{ github.run_id }}
@@ -59,16 +68,29 @@ jobs:
             opendota-raw-
       - name: Collect real tier-1 dataset from OpenDota (resumable window)
         working-directory: pipeline
+        # Входы — через env, а не подстановкой в текст скрипта: джоб пишет в main, и `${{ inputs.* }}` внутри `run`
+        # исполнялся бы как shell.
+        env:
+          WINDOW: ${{ github.event.inputs.window || 'last_5y' }}
+          MIN_EVENT_MATCHES: ${{ github.event.inputs.minEventMatches || '8' }}
+          MAX_MATCHES_PER_LEAGUE: ${{ github.event.inputs.maxMatchesPerLeague || '0' }}
+          REQUEST_BUDGET: ${{ github.event.inputs.requestBudget || '2000' }}
         run: |
           go run ./cmd/build \
             --fetch-opendota --emit-domain --collect-window \
-            --window "${{ github.event.inputs.window || 'last_5y' }}" \
-            --min-event-matches "${{ github.event.inputs.minEventMatches || '8' }}" \
-            --max-matches-per-league "${{ github.event.inputs.maxMatchesPerLeague || '0' }}" \
-            --request-budget "${{ github.event.inputs.requestBudget || '2000' }}" \
+            --window "$WINDOW" \
+            --min-event-matches "$MIN_EVENT_MATCHES" \
+            --max-matches-per-league "$MAX_MATCHES_PER_LEAGUE" \
+            --request-budget "$REQUEST_BUDGET" \
             --as-of "$(date -u +%F)" \
             --out ../web/public/data \
             --schema-validator ../.claude/skills/data-contract/tools/validate_data.mjs
+      - name: Save OpenDota raw cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: pipeline/data/raw
+          key: opendota-raw-${{ github.run_id }}
       - name: Sanity check (непустой датасет)
         run: |
           node -e "const p=require('./web/public/data/packs.json'); if(!Array.isArray(p)||p.length===0){console.error('пустой packs.json — не коммитим');process.exit(1)}; console.log('packs:',p.length)"
@@ -111,3 +133,7 @@ jobs:
           git commit -m "chore(data): refresh dataset $(date -u +%F)"
           git pull --rebase origin main
           git push
+          # CI + деплой Pages на свежем main (условие deploy в ci.yml пускает workflow_dispatch).
+          gh workflow run ci.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
