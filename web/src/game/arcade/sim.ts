@@ -639,6 +639,9 @@ export class ArcadeSim {
       if (!e.alive || e.kind.boss || e.kind.structure || e.kind.totem || e.kind.id === "tormentor" || special.has(e)) continue;
       e.alive = false;
     }
+    // Лучники втянуты — их линий больше нет. В разломе мировые системы стоят, и пустая линия иначе висела до выхода
+    // вместе с объявленной полосой залпа (её рисует рендер).
+    this.archerLines.length = 0;
   }
 
   private enterRift(rule: RiftRuleId): void {
@@ -2833,38 +2836,12 @@ export class ArcadeSim {
       this.roshan = r;
       this.roshanSpawnedAt = this.tick;
       this.shake = 12;
-      return;
     }
+    // Мир живёт всегда — и при живом Рошане, и на передышке после разлома: тишина боя с боссом глушит ЛЕС и расписание,
+    // а не места, залпы и сроки событий (раньше `return` ниже стоял выше них — см. tickWorld).
+    this.tickWorld();
     // Акт 3: пока ты не в яме, лес живёт своей жизнью — Рошан ждёт тебя, спавн идёт.
     if (this.roshan?.alive && (!this.pit || this.playerInPit())) return;
-    // Заражённый лагерь (T13.40): пока герой внутри и тотемы стоят, порча зовёт охрану; каждый снесённый тотем
-    // злит оставшихся — охраны больше, она крепче и приходит чаще. Ушёл — охрана перестаёт прибывать.
-    this.tickContractOffer();
-    this.updateCampEngage();
-    this.updateGroveEngage();
-    this.updateBarrowEngage();
-    this.updateLairEngage();
-    this.updateFordEngage();
-    this.updateDenEngage();
-    this.tickBarrowRaise();
-    const camp = this.camp;
-    // Охрану зовут тотемы: снесены все — остаётся дуэль с Сатиром (2026-09-11: с охраной 5×каждые 4 с после третьего
-    // тотема бот убегал из лагеря и Сатир оставался на 100% в 10 забегах из 10 со всеми снесёнными тотемами).
-    if (camp && !camp.cleared && this.totemsAlive() > 0 && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
-      const C = ARCADE.camp;
-      camp.nextGuardAt = this.tick + Math.round(C.guardEvery / (1 + 0.25 * camp.destroyed));
-      const n = C.guardBase + C.guardPerDestroyed * camp.destroyed;
-      const heavy = this.act === "dire" || this.act === "river";
-      for (let i = 0; i < n; i++) {
-        const kind = heavy && i % 2 === 1 ? ENEMY_KINDS.hellbear : ENEMY_KINDS.satyr;
-        const a = this.rng.float() * Math.PI * 2, d = C.guardRingMin + this.rng.float() * (C.guardRingMax - C.guardRingMin);
-        const [gx, gy] = this.obstacles.resolve(clamp(camp.x + Math.cos(a) * d, 8, ARCADE.world.w - 8), clamp(camp.y + Math.sin(a) * d, 8, ARCADE.world.h - 8), 24);
-        const g = this.spawnEnemy(kind, gx, gy);
-        const mult = 1 + C.guardHpPerDestroyed * camp.destroyed;
-        g.hp *= mult; g.maxHp *= mult;
-      }
-    }
-    this.tickCampLine();
     // Tormentor и Древний — не глушат обычный спавн.
     if (!this.tormentorSpawned && A.tormentorAt > 0 && this.actTick >= A.tormentorAt) {
       this.tormentorSpawned = true;
@@ -2891,7 +2868,7 @@ export class ArcadeSim {
     const greedy = this.tick < this.greedUntil;
     if (this.actProperty() === "siege") this.tickPatrols();
     this.tickShamans();
-    this.tickArcherLines();
+    this.spawnArcherLine();
     this.tickSpores();
     const rate = this.siegeMult() * (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
@@ -2904,7 +2881,7 @@ export class ArcadeSim {
       if (alive >= ARCADE.spawn.cap) continue;
       this.spawnEnemy(weightedPick(this.rng, pool), ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMax));
     }
-    // Расписания мира — по часам акта (T13.58: в разломе они стоят), сроки жизни событий — реальные тики.
+    // Расписания мира — по часам акта (T13.58: в разломе они стоят); сроки жизни событий истекают в tickWorld.
     const at = this.actTick;
     // Крип-волна: пачка с одной стороны, каждая пятая — с осадным.
     if (at - this.lastWaveAt >= ARCADE.waves.every && at > 0) {
@@ -2930,22 +2907,18 @@ export class ArcadeSim {
       const [sx, sy] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.greed.distMin, ARCADE.greed.distMax);
       this.shrine = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.greed.lifetime };
     }
-    if (this.shrine.alive && this.tick >= this.shrine.until) this.shrine.alive = false;
     // Secret Shop: торговец в окна расписания.
     if (this.shopIdx < ARCADE.shop.at.length && at >= ARCADE.shop.at[this.shopIdx]) {
       this.shopIdx++;
       const [sx, sy] = this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.shopkeeper = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.shop.lifetime, value: 0 };
     }
-    if (this.shopkeeper.alive && this.tick >= this.shopkeeper.until) this.shopkeeper.alive = false;
     // Bounty-руна каждые 3 минуты.
     if (at >= this.nextBountyAt) {
       this.nextBountyAt += ARCADE.bounty.every;
       const [bx, by] = this.pit ? this.riverPoint() : this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.bounty = { alive: true, x: bx, y: by, until: this.tick + ARCADE.bounty.lifetime, value: Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * min) };
     }
-    this.holdEvent(this.bounty);
-    if (this.bounty.alive && this.tick >= this.bounty.until) this.bounty.alive = false;
     // Руны: раз в две минуты, вид — по сиду, у реки (акт с рекой) или на кольце вокруг героя.
     if (at >= this.nextRuneAt) {
       this.nextRuneAt += ARCADE.rune.every;
@@ -2953,16 +2926,12 @@ export class ArcadeSim {
       this.runeKind = RUNE_KINDS[this.rng.int(RUNE_KINDS.length)];
       this.rune = { alive: true, x: rx, y: ry, until: this.tick + ARCADE.rune.lifetime, value: 0 };
     }
-    this.holdEvent(this.rune);
-    if (this.rune.alive && this.tick >= this.rune.until) this.rune.alive = false;
     // Нейтральный токен по тирам-минутам.
     if (this.neutralIdx < NEUTRAL_TIER_AT_MIN.length && min >= NEUTRAL_TIER_AT_MIN[this.neutralIdx] && !this.neutralToken.alive) {
       this.neutralIdx++;
       const [nx, ny] = this.ringPoint(ARCADE.neutral.distMin, ARCADE.neutral.distMax);
       this.neutralToken = { alive: true, x: nx, y: ny, until: this.tick + ARCADE.neutral.lifetime, value: this.neutralIdx };
     }
-    this.holdEvent(this.neutralToken);
-    if (this.neutralToken.alive && this.tick >= this.neutralToken.until) this.neutralToken.alive = false;
     // Сундук с экипировкой.
     if (at >= this.nextChestAt && !this.chest.alive) {
       this.nextChestAt = at + ARCADE.loot.chestEvery;
@@ -2971,6 +2940,52 @@ export class ArcadeSim {
       const cursed = this.chestNo++ > 0 && this.curseChestAllowed() && this.rng.float() < ARCADE.curse.chestChance;
       this.chest = { alive: true, x: cx, y: cy, until: this.tick + ARCADE.loot.chestLifetime, value: cursed ? 1 : 0 };
     }
+  }
+
+  /** Мировые системы, которые идут ВСЕГДА, когда идёт мир вне разлома: предложение контракта, разбуженность мест, подъём
+   *  павших, охрана и полоса порчи лагеря, залпы живых лучников, сроки событий и добычи. Раньше они стояли в `spawnTick`
+   *  ниже выхода «Рошан жив» (а залпы и сроки — ещё и ниже передышки после разлома): на бой с боссом места переставали
+   *  просыпаться и засыпать, лучники замирали с висящим телеграфом, сундук/торговец/руны не истекали, контракт не
+   *  предлагался. Тишина боя с боссом — про лесной спавн, волны и новые события, они остались в `spawnTick`. */
+  private tickWorld(): void {
+    this.tickContractOffer();
+    this.updateCampEngage();
+    this.updateGroveEngage();
+    this.updateBarrowEngage();
+    this.updateLairEngage();
+    this.updateFordEngage();
+    this.updateDenEngage();
+    this.tickBarrowRaise();
+    // Заражённый лагерь (T13.40): пока герой внутри и тотемы стоят, порча зовёт охрану; каждый снесённый тотем
+    // злит оставшихся — охраны больше, она крепче и приходит чаще. Ушёл — охрана перестаёт прибывать.
+    const camp = this.camp;
+    // Охрану зовут тотемы: снесены все — остаётся дуэль с Сатиром (2026-09-11: с охраной 5×каждые 4 с после третьего
+    // тотема бот убегал из лагеря и Сатир оставался на 100% в 10 забегах из 10 со всеми снесёнными тотемами).
+    if (camp && !camp.cleared && this.totemsAlive() > 0 && this.playerAtCamp() && this.tick >= camp.nextGuardAt) {
+      const C = ARCADE.camp;
+      camp.nextGuardAt = this.tick + Math.round(C.guardEvery / (1 + 0.25 * camp.destroyed));
+      const n = C.guardBase + C.guardPerDestroyed * camp.destroyed;
+      const heavy = this.act === "dire" || this.act === "river";
+      for (let i = 0; i < n; i++) {
+        const kind = heavy && i % 2 === 1 ? ENEMY_KINDS.hellbear : ENEMY_KINDS.satyr;
+        const a = this.rng.float() * Math.PI * 2, d = C.guardRingMin + this.rng.float() * (C.guardRingMax - C.guardRingMin);
+        const [gx, gy] = this.obstacles.resolve(clamp(camp.x + Math.cos(a) * d, 8, ARCADE.world.w - 8), clamp(camp.y + Math.sin(a) * d, 8, ARCADE.world.h - 8), 24);
+        const g = this.spawnEnemy(kind, gx, gy);
+        const mult = 1 + C.guardHpPerDestroyed * camp.destroyed;
+        g.hp *= mult; g.maxHp *= mult;
+      }
+    }
+    this.tickCampLine();
+    this.tickArcherVolleys();
+    // Сроки событий: «пришёл — твоё» держит таймер, истёкшее гаснет.
+    if (this.shrine.alive && this.tick >= this.shrine.until) this.shrine.alive = false;
+    if (this.shopkeeper.alive && this.tick >= this.shopkeeper.until) this.shopkeeper.alive = false;
+    this.holdEvent(this.bounty);
+    if (this.bounty.alive && this.tick >= this.bounty.until) this.bounty.alive = false;
+    this.holdEvent(this.rune);
+    if (this.rune.alive && this.tick >= this.rune.until) this.rune.alive = false;
+    this.holdEvent(this.neutralToken);
+    if (this.neutralToken.alive && this.tick >= this.neutralToken.until) this.neutralToken.alive = false;
     this.holdEvent(this.chest);
     if (this.chest.alive && this.tick >= this.chest.until) this.chest.alive = false;
     for (const g of this.groundLoot) if (this.tick >= g.until) g.until = -1;
@@ -3626,8 +3641,9 @@ export class ArcadeSim {
     return false;
   }
 
-  /** Строй стрелков (T13.81): по расписанию — линия лучников поперёк направления на героя; залпы по объявленной полосе. */
-  private tickArcherLines(): void {
+  /** Строй стрелков (T13.81), живые линии: залпы по объявленной полосе. Мировая система (tickWorld) — идёт и при живом
+   *  Рошане, и на передышке: иначе живые лучники переставали стрелять, а объявленный телеграф висел. */
+  private tickArcherVolleys(): void {
     const C = ARCADE.archers;
     const p = this.player;
     // Живые линии: центр по живым лучникам, телеграф и залп. Лучники всех линий считаются ОДНИМ проходом по врагам (было по
@@ -3658,7 +3674,12 @@ export class ArcadeSim {
         line.fireAt = 0; line.nextAt = this.tick + C.volleyEvery;
       }
     }
-    // Новый строй по расписанию.
+  }
+
+  /** Новый строй по расписанию — линия лучников поперёк направления на героя. Лесной спавн: молчит с остальным лесом. */
+  private spawnArcherLine(): void {
+    const C = ARCADE.archers;
+    const p = this.player;
     if (this.minutes < C.fromMin) return;
     if (this.nextArchersAt === 0) this.nextArchersAt = this.actTick;
     if (this.actTick < this.nextArchersAt) return;
