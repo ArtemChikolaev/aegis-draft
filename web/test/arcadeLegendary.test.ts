@@ -57,7 +57,7 @@ describe("легендарные апгрейды (T13.18)", () => {
     expect(target).toBeTruthy();
     apply2("leg_bloodstone");
     sim2.player.hp = 100;
-    sim2.damageEnemy(target!, 200, "hit");
+    sim2.damageEnemy(target!, 200, "hit", "attack"); // автоатака героя — не «урон умениями»
     expect(sim2.player.hp).toBe(100);
     const victim = sim2.enemies.find((e) => e.alive);
     sim2.damageEnemy(victim!, 200, "burst");

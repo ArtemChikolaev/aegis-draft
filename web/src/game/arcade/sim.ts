@@ -11,7 +11,7 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetDef, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type ArcherLine, type SporePuddle } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type DmgOrigin, type ArcherLine, type SporePuddle } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
 import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
@@ -302,6 +302,8 @@ export class ArcadeSim {
   /** Рабочие буферы горячих путей (не состояние забега): посещённые цепью молний, цель канала Life Drain. */
   private chainVisited: number[] = [];
   private drainRef: Enemy | null = null;
+  /** Происхождение урона летящего снаряда, пока идёт его попадание (moveProjectiles). */
+  private projOrigin: DmgOrigin = "other";
   private archerCnt: number[] = [];
   private archerSumX: number[] = [];
   private archerSumY: number[] = [];
@@ -2232,7 +2234,7 @@ export class ArcadeSim {
     // Счётчик критов считаем здесь, а не сразу после шанса из статов: усиленным ударом делают и
     // фирменные пассивки (Blade Dance, Меткость, Time Lock), а раньше они в счётчик не попадали.
     if (kind === "crit") this.events.crits++;
-    const landed = this.damageEnemy(e, dmg, kind);
+    const landed = this.damageEnemy(e, dmg, kind, "attack");
     if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * Math.min(0.95, sig.value * sc), "slash"); }
     if (sig?.kind === "overload" && p.sigArmed) {
       p.sigArmed = false;
@@ -2452,7 +2454,7 @@ export class ArcadeSim {
   }
 
   /** Урон по врагу. Возвращает false, если урон не прошёл (цель мертва или неуязвима) — по нему решаются лечения с удара. */
-  damageEnemy(e: Enemy, amount: number, fx: FxKind): boolean {
+  damageEnemy(e: Enemy, amount: number, fx: FxKind, origin: DmgOrigin = this.originNow()): boolean {
     if (!e.alive || !(amount > 0)) return false; // `!(x > 0)` отсекает и NaN: иначе hp врага становится NaN и он бессмертен
     // Наследие: весь исходящий урон (удары, умения, DoT, питомцы) — ровно один раз, здесь.
     let dmg = amount * this.oathMult(e) * this.ritualMult("bloodhunt");
@@ -2462,8 +2464,9 @@ export class ArcadeSim {
     if (this.tick < e.ampUntil) dmg *= 1 + e.ampMult;
     // Щит шамана (T13.79): пока держится, урон снижен — цель приоритета сам шаман.
     if (this.tick < e.shieldUntil) dmg *= ARCADE.shaman.shieldMult;
-    // Backstab (Riki): автоатака по оглушённой/замороженной/замедленной цели — «в спину».
-    if (fx === "hit" && vamp?.kind === "backstab" && (this.tick < e.stunUntil || this.tick < e.freezeUntil || this.tick < e.chillUntil)) dmg *= 1 + vamp.value * this.sigScale();
+    // Backstab (Riki): автоатака ГЕРОЯ по оглушённой/замороженной/замедленной цели — «в спину». Признак — происхождение
+    // урона, не вид эффекта: с fx "hit" бьют и питомцы/иллюзии/призывы (они включали пассивку героя), а крит героя её терял.
+    if (origin === "attack" && vamp?.kind === "backstab" && (this.tick < e.stunUntil || this.tick < e.freezeUntil || this.tick < e.chillUntil)) dmg *= 1 + vamp.value * this.sigScale();
     // Presence of the Dark Lord (SF): враги рядом с героем получают больше урона.
     const presKey = this.slot.presence;
     if (presKey && this.player.abilities[presKey] > 0 && len(e.x - this.player.x, e.y - this.player.y) <= (this.hero.abilities[presKey].radius ?? 300)) dmg *= 1 + this.hero.abilities[presKey].value[this.player.abilities[presKey]];
@@ -2490,10 +2493,12 @@ export class ArcadeSim {
     if (e.kind.id === "dire_stalker" && this.isDormant(e)) return false;
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return false; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
     // Лечения с урона — после выходов по неуязвимости: удар по спящему/скрытому/под щитом чемпиону здоровья не даёт.
-    // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
-    if (fx === "hit" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
-    // Кровавик (легендарка): лечит с урона умениями — то есть со всего, кроме автоатак и критов.
-    if (fx !== "hit" && fx !== "crit" && this.upgradePower("leg_bloodstone") > 0) this.heal(amount * 0.1);
+    // Vampiric Spirit (Wraith King): доля урона автоатак ГЕРОЯ возвращается здоровьем (крит — тоже автоатака; питомцы — нет).
+    if (origin === "attack" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());
+    // Кровавик (легендарка): лечит с урона умениями и эффектами — со всего, кроме автоатак героя и призывов. Раньше
+    // автоатаку узнавали по fx "hit"/"crit": добивающие умения с fx "crit" (Assassinate, Laguna Blade, Finger of Death,
+    // Sun Strike, Mana Void) не лечили. Лечит от НАНЕСЁННОГО (после множителей, не больше остатка HP цели), а не от номинала.
+    if (origin !== "attack" && origin !== "summon" && this.upgradePower("leg_bloodstone") > 0) this.heal(Math.min(dmg, Math.max(0, e.hp)) * 0.1);
     // Удар по тотему или Сатиру будит лагерь даже издалека (дальнобойный герой не остаётся безнаказанным).
     if ((e.kind.totem || e.kind.id === "satyr_defiler") && this.camp && !this.camp.cleared) this.camp.engaged = true;
     this.dealtBySource[this.dmgSource] = (this.dealtBySource[this.dmgSource] ?? 0) + Math.min(dmg, Math.max(0, e.hp));
@@ -2503,6 +2508,16 @@ export class ArcadeSim {
     if (fx === "hit" || fx === "crit" || (e.kind.elite || e.kind.boss) && this.tick % 4 === 0) this.pushFx(fx, e.x, e.y - e.kind.r, 0, 0, 26, Math.round(dmg));
     if (e.hp <= 0) this.killEnemy(e);
     return true;
+  }
+
+  /** Происхождение урона по текущей фазе сима (см. `DmgOrigin`): слот умения → `ability`, питомцы → `summon`, снаряд —
+   *  чей он; основной удар автоатаки передаёт `attack` сам (внутри onAttackHit есть и всплески пассивок — они `other`). */
+  private originNow(): DmgOrigin {
+    const src = this.dmgSource;
+    if (src === "q" || src === "w" || src === "e" || src === "r") return "ability";
+    if (src === "pets") return "summon";
+    if (src === "proj") return this.projOrigin;
+    return "other";
   }
 
   private killEnemy(e: Enemy): void {
@@ -3276,7 +3291,8 @@ export class ArcadeSim {
   private spawnProjectile(x: number, y: number, vx: number, vy: number, r: number, dmg: number, ttl: number, pierce: number, kind: Projectile["kind"], fromEnemy: boolean, attack = false): void {
     let pr: Projectile | undefined;
     for (const o of this.projectiles) if (!o.alive) { pr = o; break; }
-    if (!pr) { pr = { alive: false, x: 0, y: 0, vx: 0, vy: 0, r: 0, dmg: 0, ttl: 0, pierce: 0, hits: [], kind: "fire", fromEnemy: false, attack: false }; this.projectiles.push(pr); }
+    if (!pr) { pr = { alive: false, x: 0, y: 0, vx: 0, vy: 0, r: 0, dmg: 0, ttl: 0, pierce: 0, hits: [], kind: "fire", fromEnemy: false, attack: false, origin: "other" }; this.projectiles.push(pr); }
+    pr.origin = this.originNow();
     pr.alive = true; pr.x = x; pr.y = y; pr.vx = vx; pr.vy = vy; pr.r = r; pr.dmg = dmg; pr.ttl = ttl; pr.pierce = pierce; pr.hits.length = 0; pr.kind = kind; pr.fromEnemy = fromEnemy; pr.attack = attack;
   }
 
@@ -3302,6 +3318,7 @@ export class ArcadeSim {
             if (!e.alive || pr.hits.includes(e.id)) continue;
             if (len(e.x - pr.x, e.y - pr.y) > e.kind.r + pr.r) continue;
             pr.hits.push(e.id);
+            this.projOrigin = pr.origin;
             if (pr.attack) this.onAttackHit(e);
             else this.damageEnemy(e, pr.dmg, pr.kind === "zap" ? "zap" : "burst");
             if (pr.kind === "fire") this.applyBurn(e, pr.dmg * 0.4, 2);

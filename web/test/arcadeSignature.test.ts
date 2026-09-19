@@ -91,11 +91,11 @@ describe("волна 2 героев (2026-09-06): Reincarnation и Vampiric Spir
     const e = sim.enemies.find((x) => x.alive)!;
     e.hp = 1e6;
     sim.player.hp = 100;
-    sim.damageEnemy(e, 200, "hit");
+    sim.damageEnemy(e, 200, "hit", "attack"); // автоатака героя — по происхождению урона, не по виду эффекта
     expect(sim.player.hp).toBeCloseTo(100 + 200 * 0.14, 3);
     sim.player.abilities.w = 4; // SIG ×2.05
     sim.player.hp = 100;
-    sim.damageEnemy(e, 200, "hit");
+    sim.damageEnemy(e, 200, "hit", "attack");
     expect(sim.player.hp).toBeCloseTo(100 + 200 * 0.14 * 2.05, 3);
     sim.player.hp = 100;
     sim.damageEnemy(e, 200, "burst"); // умения не вампирят
@@ -160,9 +160,9 @@ describe("волна 3 героев (2026-09-06): Rupture, Corrosive Haze, Berse
     const sim = warm("riki", "rk-stab");
     const e = sim.enemies.find((x) => x.alive)!;
     e.hp = 1e5; e.maxHp = 1e5; e.stunUntil = 0; e.chillUntil = 0; e.freezeUntil = 0;
-    sim.damageEnemy(e, 100, "hit"); const plain = 1e5 - e.hp;
+    sim.damageEnemy(e, 100, "hit", "attack"); const plain = 1e5 - e.hp;
     e.hp = 1e5; e.stunUntil = sim.tick + 60;
-    sim.damageEnemy(e, 100, "hit"); const stab = 1e5 - e.hp;
+    sim.damageEnemy(e, 100, "hit", "attack"); const stab = 1e5 - e.hp;
     expect(stab).toBeCloseTo(plain * 1.8, 3);
   });
 
