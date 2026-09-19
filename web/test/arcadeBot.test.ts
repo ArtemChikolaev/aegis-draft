@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { ArcadeSim, type ArcadeModal } from "../src/game/arcade/sim.ts";
 import { IDLE_INPUT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { botInput } from "../scripts/sim_arcade.ts";
+import { ARCADE } from "../src/game/arcade/config.ts";
+import { rollGear } from "../src/game/arcade/content/gear.ts";
+import { Rng } from "../src/game/rng.ts";
 
 // Окна держат мир на паузе: пока бот отвечает «не тому» окну или действием, которого окно не понимает, тик стоит и
 // headless-прогон крутится вечно (аудит 2026-09-19). Порядок окон — один на сим и бота: `sim.activeModal()`.
@@ -69,5 +72,28 @@ describe("окна сима и бот", () => {
     expect(botInput(sim)).toMatchObject({ mx: 0, my: 0 });
     sim.grove!.engaged = true;
     expect(botInput(sim).mx).toBeGreaterThan(0);
+  });
+
+  it("ненужную добычу бот открывает один раз: не лучше надетой и сумка полна — оставил и больше не подбирает", () => {
+    const sim = new ArcadeSim("bot-loot-decline");
+    const p = sim.player;
+    for (const e of sim.enemies) if (e.alive) e.alive = false;
+    const rng = new Rng("bot-loot-decline:gear");
+    // Надето сильное оружие, сумка забита, у ног — слабое того же слота.
+    p.gear.weapon = rollGear(rng, 3, "arcana", "w-strong", "weapon");
+    while (p.bag.length < ARCADE.loot.bagCap) p.bag.push(rollGear(rng, 1, "standard", `bag-${p.bag.length}`, "weapon"));
+    const weak = rollGear(rng, 1, "standard", "w-weak", "weapon");
+    sim.groundLoot.push({ x: p.x, y: p.y, item: weak, until: sim.tick + ARCADE.loot.lootLifetime });
+    let opened = 0, wasOpen = false, steps = 0;
+    while (sim.tick < 120 && !sim.over && steps++ < 2000) {
+      p.hp = p.stats.maxHp;
+      sim.step(botInput(sim));
+      const open = sim.lootOpen === weak;
+      if (open && !wasOpen) opened++;
+      wasOpen = open;
+    }
+    expect(sim.tick).toBe(120);
+    expect(opened).toBe(1); // было: «подобрать → оставить» каждые два тика (десятки раз за две секунды)
+    expect(sim.groundLoot.some((g) => g.item === weak && g.until > 0)).toBe(true); // предмет по-прежнему лежит
   });
 });

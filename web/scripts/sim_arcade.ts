@@ -106,7 +106,11 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
       // Проклятая добыча (T13.43/T13.51): осторожный игрок берёт её только при заметном выигрыше — иначе оставляет у ног.
       if (sim.lootCursed && !(cur && gearScore(item) > gearScore(cur) * 1.6) && !(!cur && gearScore(item) > 30)) return act(SHOP_ACT.close);
       const better = !cur || gearScore(item) > gearScore(cur);
-      return act(better ? 1 : sim.player.bag.length < ARCADE.loot.bagCap ? 2 : SHOP_ACT.close);
+      if (better) return act(1);
+      if (sim.player.bag.length < ARCADE.loot.bagCap) return act(2);
+      // Не нужна и класть некуда: «оставить» кладёт её обратно к ногам со свежим сроком — запоминаем, чтобы не подбирать снова.
+      declined.add(item);
+      return act(SHOP_ACT.close);
     }
     case "pond": {
       // Пруд (T13.43): снять порчу (или ритуал), если есть и пруд её смывает; иначе лечиться, если потрёпан; иначе уйти —
@@ -128,8 +132,11 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
     case "rift": return act(PLACES.has("rift") ? 1 : SHOP_ACT.close); // --places rift: первое правило; иначе окно закрывается (T13.58)
     case "build": return act(SHOP_ACT.close);
   }
-  // Добыча подбирается кнопкой (PICKUP_ACT), не касанием: бот жмёт её, как только сундук/предмет рядом.
-  if (sim.nearLoot) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
+  // Добыча подбирается кнопкой (PICKUP_ACT), не касанием: бот жмёт её, как только сундук/предмет рядом. Отвергнутую
+  // («не лучше надетой, сумка полна») не трогает: иначе «подобрать → оставить» повторялось каждые два тика, пока вещь лежит
+  // в радиусе подбора, и бот шёл оттуда вдвое медленнее (шаг подбора стоит на месте). Проклятую добычу это не касается —
+  // её повторный подбор уже чистой есть в игре (решение владельца по обходу порчи не принято), поведение бота там прежнее.
+  if (sim.nearLoot && !(sim.nearLoot.item && declined.has(sim.nearLoot.item))) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
   // Места: кнопка у входа, когда цель выбрана и рядом.
   if (PLACES.has("rift") && sim.nearRift && sim.riftReady()) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
   if (PLACES.has("pond") && sim.nearPond && wantsPond(sim)) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
@@ -260,6 +267,8 @@ function placeGoal(sim: ArcadeSim): { x: number; y: number; w: number; hard: boo
   return null;
 }
 const VERBOSE = args.has("verbose");
+/** Добыча, от которой бот отказался (по объекту предмета: у каждого забега свои, чистить между забегами не нужно). */
+const declined = new WeakSet<GearItem>();
 /** Гистерезис отхода от босса: ушёл при <30% HP, вернулся при >55%. */
 let retreating = false;
 
