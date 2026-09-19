@@ -1756,7 +1756,7 @@ export class ArcadeSim {
         break;
       }
       case "berserker_call":
-        for (const e of this.enemiesWithin(p.x, p.y, radius)) this.stun(e, this.statusSec(value));
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) this.stun(e, value);
         p.armorBuffUntil = this.tick + sec(ab.duration ?? 3);
         this.pushFx("nova", p.x, p.y, radius, 0, 14);
         break;
@@ -1794,7 +1794,7 @@ export class ArcadeSim {
         const target = this.eliteWithin(p.x, p.y, radius) ?? this.nearestEnemy(p.x, p.y, radius);
         if (!target) { cast = false; break; }
         this.damageEnemy(target, value, "zap");
-        this.stun(target, this.statusSec(ab.duration ?? 0.5));
+        this.stun(target, ab.duration ?? 0.5);
         this.pushFx("zap", target.x, target.y - 200, target.x, target.y, 12);
         break;
       }
@@ -1836,7 +1836,7 @@ export class ArcadeSim {
           const cx = p.x + fx * step * i, cy = p.y + fy * step * i;
           for (const e of this.enemiesWithin(cx, cy, radius)) {
             this.damageEnemy(e, value, "burst");
-            if (ab.duration) this.stun(e, this.statusSec(ab.duration));
+            if (ab.duration) this.stun(e, ab.duration);
             if (ab.kind === "meteor") this.applyBurn(e, value * 0.25, 3);
             if (ab.poison) this.applyPoison(e, value * ab.poison);
           }
@@ -1958,7 +1958,7 @@ export class ArcadeSim {
         break;
       }
       case "ravage":
-        for (const e of this.enemiesWithin(p.x, p.y, radius)) { this.damageEnemy(e, value, "burst"); this.stun(e, this.statusSec(ab.duration ?? 1.5)); }
+        for (const e of this.enemiesWithin(p.x, p.y, radius)) { this.damageEnemy(e, value, "burst"); this.stun(e, ab.duration ?? 1.5); }
         this.pushFx("nova", p.x, p.y, radius, 0, 18);
         this.shake = 16;
         break;
@@ -1990,7 +1990,7 @@ export class ArcadeSim {
     if (sig?.kind === "overload") p.sigArmed = true; // Storm: следующий удар бьёт по площади
     if (sig?.kind === "aftershock") { // Earthshaker: любой каст — толчок земли вокруг
       const sc = this.sigScale();
-      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 160)) { this.damageEnemy(e, sig.value * sc, "burst"); this.stun(e, this.statusSec(0.6)); }
+      for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 160)) { this.damageEnemy(e, sig.value * sc, "burst"); this.stun(e, 0.6); }
       this.pushFx("nova", p.x, p.y, sig.radius ?? 160, 0, 10);
     }
     // Culling Blade после добивания уходит на короткую перезарядку (1.5 с), не на полную и не на ноль.
@@ -2381,10 +2381,12 @@ export class ArcadeSim {
   }
 
   /** Оглушение врага — одно на все источники: unstoppable (Tormentor, тотемы, идолы, Древний) не оглушается. `seconds` —
-   *  уже с сопротивлением ранга там, где источник его учитывает (statusSec). Продлевает, не укорачивает. */
+   *  БЕЗ сопротивления ранга: правило Divine «статусы короче на 30%» применяется здесь, как у горения и холода, а не у
+   *  вызывающего — раньше его учитывали только умения, а Thunderclap, Headshot, Time Lock, подъём после смерти и медведь
+   *  шли мимо. Продлевает, не укорачивает. */
   private stun(e: Enemy, seconds: number): void {
     if (e.kind.unstoppable) return;
-    e.stunUntil = Math.max(e.stunUntil, this.tick + sec(seconds));
+    e.stunUntil = Math.max(e.stunUntil, this.tick + sec(this.statusSec(seconds)));
   }
 
   private applyBurn(e: Enemy, dps: number, seconds: number): void {
