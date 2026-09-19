@@ -2481,8 +2481,6 @@ export class ArcadeSim {
     if (steam > 0 && this.tick < e.burnUntil && this.tick < e.chillUntil) dmg *= 1 + 0.25 * steam;
     const cond = this.upgradePower("hyb_superconductor");
     if (cond > 0 && fx === "zap" && this.tick < e.freezeUntil) dmg *= 1 + 0.35 * cond;
-    const plasma = this.upgradePower("hyb_plasma");
-    if (plasma > 0 && fx === "zap" && this.tick >= e.burnUntil) this.applyBurn(e, 5 * plasma, 2);
     // Осквернитель под щитом тотемов: с тремя живыми берёт четверть урона, без тотемов — весь (T13.41).
     if (e.kind.id === "satyr_defiler" && this.camp) dmg *= Math.max(0, 1 - ARCADE.defiler.shieldPerTotem * this.totemsAlive());
     // Кентавр, оглушённый камнем, берёт больше (T13.45); спящий — не берёт ничего.
@@ -2492,6 +2490,10 @@ export class ArcadeSim {
     if (e.kind.id === "river_warden" && (this.isDormant(e) || this.wardenShielded())) return false; // щит: не пробивать, ждать окна
     if (e.kind.id === "dire_stalker" && this.isDormant(e)) return false;
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") { if (this.isDormant(e)) return false; if (e.kind.id === "troll_necromancer" && this.idolsAlive() === 0) dmg *= ARCADE.necro.exposedDmgMult; }
+    // Плазма — молния поджигает; после выходов по неуязвимости: спящий, скрытый или закрытый щитом чемпион не загорается
+    // (раньше стояла выше них, и горение потом тикало по проснувшемуся). Множитель «Пара» выше этот поджог не видит, как и прежде.
+    const plasma = this.upgradePower("hyb_plasma");
+    if (plasma > 0 && fx === "zap" && this.tick >= e.burnUntil) this.applyBurn(e, 5 * plasma, 2);
     // Лечения с урона — после выходов по неуязвимости: удар по спящему/скрытому/под щитом чемпиону здоровья не даёт.
     // Vampiric Spirit (Wraith King): доля урона автоатак ГЕРОЯ возвращается здоровьем (крит — тоже автоатака; питомцы — нет).
     if (origin === "attack" && vamp?.kind === "vampiric") this.heal(amount * vamp.value * this.sigScale());

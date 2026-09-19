@@ -41,4 +41,17 @@ describe("контроль и неуязвимые цели", () => {
     sim.damageEnemy(kobold, 500, "burst");
     expect(p.hp).toBeGreaterThan(100);
   });
+
+  it("Плазма не поджигает неуязвимого: спящий чемпион от молнии не загорается, обычный враг — загорается", () => {
+    const sim = new ArcadeSim("cc-plasma", { act: "full", composition: "all" });
+    const a = sim as unknown as Internals, p = sim.player;
+    p.upgrades.hyb_plasma = { rank: 1, power: 1, cap: 2 };
+    const centaur = sim.centaur!;
+    expect(sim.isDormant(centaur)).toBe(true);
+    expect(sim.damageEnemy(centaur, 50, "zap")).toBe(false);
+    expect(centaur.burnUntil).toBe(0); // было: горение ложилось до выхода по неуязвимости и тикало по проснувшемуся
+    const kobold = a.spawnEnemy(ENEMY_KINDS.kobold, p.x + 30, p.y); kobold.hp = kobold.maxHp = 1e7;
+    sim.damageEnemy(kobold, 50, "zap");
+    expect(kobold.burnUntil).toBeGreaterThan(sim.tick);
+  });
 });
