@@ -162,3 +162,29 @@ describe("Яд + холод: потолок продления (T13.66)", () => 
     }
   });
 });
+
+describe("яд: цепочки смертей (M15)", () => {
+  it("Пандемия + Дистилляция: цепочка смертей от яда идёт очередью — глубина вызовов не растёт с длиной цепочки, итог тот же", () => {
+    const sim = new ArcadeSim("venom-chain");
+    for (const e of sim.enemies) if (e.alive) e.alive = false;
+    sim.player.upgrades.leg_ven_pandemic = { rank: 1, power: 1, cap: 1 };
+    sim.player.upgrades.leg_ven_distill = { rank: 1, power: 1, cap: 1 };
+    type Internals = { spawnEnemy(k: typeof ENEMY_KINDS.kobold, x: number, y: number): Enemy; killEnemy(e: Enemy): void };
+    const a = sim as unknown as Internals;
+    // 120 отравленных до потолка кобольдов сеткой с шагом 60 px: смерть достаёт Пандемией (160 px) соседей, у тех стек
+    // полон — Дистилляция взрывает их, всплеск взрыва (70 px) убивает следующих, а те снова распространяют яд.
+    const N = 120, chain: Enemy[] = [];
+    for (let i = 0; i < N; i++) {
+      const e = a.spawnEnemy(ENEMY_KINDS.kobold, 400 + (i % 24) * 60, 400 + Math.floor(i / 24) * 60);
+      e.hp = e.maxHp = 5; e.poisonStacks = P.maxStacks; e.poisonDps = 10; e.poisonUntil = sim.tick + sec(10);
+      chain.push(e);
+    }
+    const orig = a.killEnemy.bind(sim);
+    let depth = 0, maxDepth = 0, deaths = 0;
+    a.killEnemy = (e: Enemy) => { depth++; deaths++; maxDepth = Math.max(maxDepth, depth); try { orig(e); } finally { depth--; } };
+    sim.damageEnemy(chain[0], 100, "burst");
+    expect(chain.every((e) => !e.alive)).toBe(true); // итог прежний: цепочка выкашивается целиком
+    expect(deaths).toBe(N);
+    expect(maxDepth).toBeLessThanOrEqual(2); // было: глубина = длина цепочки (рекурсия killEnemy → applyPoison → damageEnemy → killEnemy)
+  });
+});

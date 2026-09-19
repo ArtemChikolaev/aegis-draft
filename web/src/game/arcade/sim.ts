@@ -302,6 +302,9 @@ export class ArcadeSim {
   /** Рабочие буферы горячих путей (не состояние забега): посещённые цепью молний, цель канала Life Drain. */
   private chainVisited: number[] = [];
   private drainRef: Enemy | null = null;
+  /** Очередь распространения яда со смертей этого вызова (см. killEnemy/drainPoisonSpread). */
+  private poisonSpread: { from: Enemy; x: number; y: number; dps: number; stacks: number; radius: number; limit: number }[] = [];
+  private spreadingPoison = false;
   /** Происхождение урона летящего снаряда, пока идёт его попадание (moveProjectiles). */
   private projOrigin: DmgOrigin = "other";
   private archerCnt: number[] = [];
@@ -2624,17 +2627,15 @@ export class ArcadeSim {
       this.dropLoot(e.x + 26, e.y + 10, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "boots"));
     }
     if (e === this.defiler) { this.defiler = null; this.shake = Math.max(this.shake, 12); this.pushFx("nova", e.x, e.y, 150, 0, 24); this.tryClearCamp(); }
-    // Распространение яда при смерти (T13.47): часть стаков соседям; Пандемия — все стаки всем рядом. Только на смерти,
-    // и applyPoison сам никого не убивает → рекурсии нет.
+    // Распространение яда при смерти (T13.47): часть стаков соседям; Пандемия — все стаки всем рядом. Только на смерти.
+    // Само наложение — НЕ здесь, а из очереди в конце killEnemy (drainPoisonSpread): applyPoison на полном стеке взрывается
+    // («Дистилляция», яд+огонь) и убивает, убитый снова распространяет яд — прежний прямой вызов давал рекурсию глубиной в
+    // цепочку (до числа врагов в толпе) прямо посреди этой функции.
     if (this.tick < e.poisonUntil && e.poisonStacks > 0) {
       const spread = this.upgradePower("ven_spread"), pandemic = this.upgradePower("leg_ven_pandemic") > 0;
       if (spread > 0 || pandemic) {
         const rankSpread = this.player.upgrades["ven_spread"]?.rank ?? 0;
-        const stacks = pandemic ? e.poisonStacks : Math.min(e.poisonStacks, 1 + rankSpread);
-        const radius = pandemic ? 160 : 90, limit = pandemic ? 99 : 2 + rankSpread;
-        const near = this.enemiesWithin(e.x, e.y, radius).filter((o) => o !== e && o.alive).sort((a, b) => len(a.x - e.x, a.y - e.y) - len(b.x - e.x, b.y - e.y)).slice(0, limit);
-        for (const o of near) for (let i = 0; i < stacks; i++) this.applyPoison(o, e.poisonDps);
-        if (near.length) this.pushFx("nova", e.x, e.y, radius, 0, 10);
+        this.poisonSpread.push({ from: e, x: e.x, y: e.y, dps: e.poisonDps, stacks: pandemic ? e.poisonStacks : Math.min(e.poisonStacks, 1 + rankSpread), radius: pandemic ? 160 : 90, limit: pandemic ? 99 : 2 + rankSpread });
       }
     }
     // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
@@ -2685,6 +2686,24 @@ export class ArcadeSim {
       this.greedUntil = Math.max(this.greedUntil, this.tick + ARCADE.greed.duration);
       this.pushFx("nova", e.x, e.y, 160, 0, 30);
     }
+    this.drainPoisonSpread();
+  }
+
+  /** Развернуть очередь распространения яда (см. killEnemy). Зовётся в конце каждой смерти, но работает только внешний
+   *  вызов: смерти от взрывов внутри него дописывают очередь и выходят — цепочка любой длины идёт циклом, глубина стека
+   *  постоянна. Итог тот же, что у прежней рекурсии (те же соседи, стаки и взрывы), порядок — по очереди смертей. */
+  private drainPoisonSpread(): void {
+    if (this.spreadingPoison) return;
+    this.spreadingPoison = true;
+    const q = this.poisonSpread;
+    for (let i = 0; i < q.length; i++) {
+      const s = q[i];
+      const near = this.enemiesWithin(s.x, s.y, s.radius).filter((o) => o !== s.from && o.alive).sort((a, b) => len(a.x - s.x, a.y - s.y) - len(b.x - s.x, b.y - s.y)).slice(0, s.limit);
+      for (const o of near) for (let k = 0; k < s.stacks; k++) this.applyPoison(o, s.dps);
+      if (near.length) this.pushFx("nova", s.x, s.y, s.radius, 0, 10);
+    }
+    q.length = 0;
+    this.spreadingPoison = false;
   }
 
   private damagePlayer(amount: number, stun = 0, by?: EnemyKind): void {
