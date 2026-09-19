@@ -9,7 +9,8 @@
 //
 // Запуск из web/: `npx tsx scripts/sim_kit.ts --hero io --slot w [--runs 12] [--ticks 5400]`
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
-import { IDLE_INPUT, type AbilityKey } from "../src/game/arcade/types.ts";
+import { ARCADE } from "../src/game/arcade/config.ts";
+import { IDLE_INPUT, SHOP_ACT, type AbilityKey, type ArcadeInput } from "../src/game/arcade/types.ts";
 
 const arg = (name: string, def: string) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -24,16 +25,29 @@ const SEED = arg("seed", "kit");
 // урона не даёт лишних убийств — слот выглядит мёртвым, не будучи им. На высоком ранге насыщения нет.
 const RANK = Number(arg("rank", "0"));
 
+/** Ответ открытому окну — строго по `sim.activeModal()`, как у бота `sim_arcade.ts`. Раньше всем окнам уходил act 1:
+ *  лавка без золота, пруд, контракт (он открывается сам по расписанию), кузня и разлом его не понимают — тик вставал,
+ *  и остаток пробы сравнивал два одинаково замёрзших забега. Политика простая: карточка — первая, лавка — первый товар,
+ *  пока хватает золота и слотов, токен — первый предмет, добыча — надеть, остальное — закрыть. */
+function kitInput(sim: ArcadeSim): ArcadeInput {
+  const act = (a: number): ArcadeInput => ({ ...IDLE_INPUT, act: a });
+  switch (sim.activeModal()) {
+    case null: return IDLE_INPUT;
+    case "pending": return { ...IDLE_INPUT, choose: 0 };
+    case "shop": return act(sim.shopOffers.length > 0 && sim.player.gold >= sim.shopBuyPrice(0) && sim.player.items.length < ARCADE.shop.slots ? 1 : SHOP_ACT.close);
+    case "neutral": return act(sim.neutralOffers.length > 0 ? 1 : SHOP_ACT.close);
+    case "loot": return act(1);
+    default: return act(SHOP_ACT.close);
+  }
+}
+
 function run(level: number, seed: string): { kills: number; hp: number; alive: boolean } {
   const sim = new ArcadeSim(seed, { rank: RANK, hero: HERO, act: "short" });
   // Уровни ставим ДО первого шага: сим читает их каждый тик, ничего пересчитывать не нужно.
   sim.player.abilities[SLOT] = level;
   sim.player.hp = sim.player.stats.maxHp;
-  for (let t = 0; t < TICKS && !sim.over; t++) {
-    // Экраны выбора закрываем «первым попавшимся», иначе тик стоит и проба вырождается.
-    const inp = sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen ? { ...IDLE_INPUT, act: 1 } : IDLE_INPUT;
-    sim.step(inp);
-  }
+  // Счёт — по тикам мира (шаг с открытым окном тик не двигает), потолок шагов — от зависшего окна.
+  for (let steps = 0; sim.tick < TICKS && !sim.over && steps < TICKS * 3; steps++) sim.step(kitInput(sim));
   return { kills: sim.events.kills, hp: Math.max(0, Math.round(sim.player.hp)), alive: !sim.over };
 }
 
