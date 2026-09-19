@@ -2,7 +2,7 @@
 // local-first история результатов. Сам сим живёт вне React (модульная переменная): 60 тиков в
 // секунду через zustand — лишняя работа, HUD читает состояние по `serial`, который бампает цикл
 // экрана ~10 раз в секунду. Посреди забега сейва нет (как у референса): пауза — по visibilitychange.
-import { toggleFavorite } from "../features/arcade/heroPicker.ts";
+import { toggleFavorite } from "../game/arcade/heroPicker.ts";
 import { traitUnlocked, type TraitId } from "../game/arcade/content/traits.ts";
 import { create } from "zustand";
 import { ArcadeSim } from "../game/arcade/sim.ts";
@@ -155,7 +155,7 @@ export interface CosmeticsState {
 }
 
 /** Версия формата косметики. 2 (2026-09-15, T13.80 срез 2): слоты частей по `item_slot` Dota и настоящая аркана Lina. */
-export const COSMETICS_VERSION = 2;
+const COSMETICS_VERSION = 2;
 /** Миграция v1 → v2: переименование слотов, найденных аудитом (голова арканы MK была в misc, наручи Lina — в misc, воротник —
  *  в shoulder, штаны Jugg — в belt, хвост Axe — в back) и источник `arcana` у Lina, который на деле был сетом Battle Caster. */
 const MIGRATE_V2: Record<string, { slots?: Record<string, DotaSlot>; sources?: Record<string, string> }> = {
@@ -307,7 +307,7 @@ interface ArcadeStore {
   lastSeals: number;
   /** Авто-каст способностей (по умолчанию включён: тач без него неиграбелен). */
   autoCast: AutoCastState;
-  /** Избранные герои (порядок добавления), см. features/arcade/heroPicker.ts. */
+  /** Избранные герои (порядок добавления), см. game/arcade/heroPicker.ts. */
   favorites: HeroId[];
   /** Просмотр реплея: ввод берётся из лога, а не с клавиатуры; в историю не пишется. */
   replayLog: InputLogEntry[] | null;

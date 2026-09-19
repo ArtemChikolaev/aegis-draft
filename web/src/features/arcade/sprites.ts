@@ -240,8 +240,9 @@ export const HERO_AURA: Record<string, "fire" | "frost" | "lightning" | "aegis" 
   io: "wisp", // шар света с усиками (частицы Dota), см. effects.ts case "wisp"
 };
 
-/** Внешний вид героя по киту и цвету оттенка (свой у каждого героя). */
-export function heroLook(kit: string, tint: string): CharSpec {
+/** Запасной LPC-вид героя по киту и цвету оттенка (пока нет листа Dota). Не путать с `heroLook` из content/cosmetics.ts —
+ *  тот собирает облик по косметике; раньше обе функции звались одинаково. */
+export function lpcHeroLook(kit: string, tint: string): CharSpec {
   switch (kit) {
     case "juggernaut": case "blademaster":
       return { body: "male", layers: ["FEET_shoes_brown", "LEGS_pants_greenish", "TORSO_leather_armor_torso", "HEAD_hair_blonde"], weapon: "dagger", tint, scale: 1.15 };
@@ -601,14 +602,12 @@ export class ByteLru<T> {
   clear(): void { this.map.clear(); this.total = 0; }
 }
 /** Бюджет полных композитов: четыре-пять плотных обликов (бой + витрина + пара недавних вариантов). */
-export const COMPOSITE_BUDGET = 256 * 1024 * 1024;
+const COMPOSITE_BUDGET = 256 * 1024 * 1024;
 const compositeSheets = new ByteLru<DotaSheet | null>(COMPOSITE_BUDGET);
 /** Перекрашенные копии листов (`gemSheet`) — полноразмерные canvas (39–48 МиБ у плотной арканы), поэтому под байтовым
  *  бюджетом, как композиты: лист боя и витрины трогается каждый кадр и не вытесняется, давние примерки уходят.
  *  Раньше это был `Map` без предела, и имя композита (новое на каждую часть) оставляло копию навсегда. */
 const gemSheets = new ByteLru<DotaSheet>(192 * 1024 * 1024);
-/** Состояние кэша композитов — для тестов и отладки. */
-export function compositeCacheStats(): { entries: number; bytes: number } { return { entries: compositeSheets.size, bytes: compositeSheets.bytes }; }
 export function isCompositeSheet(name: string): boolean { return name.split("+").length > 2; }
 function compositeParts(name: string): string[] {
   const [base, ...parts] = name.split("+");

@@ -21,7 +21,7 @@ import { densePixel, pixelScale } from "./pixelMode.ts";
 import { drawAsh, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
-import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, tileImage, HERO_AURA, heroLook, setPixelSheets, terrainVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
+import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, tileImage, HERO_AURA, lpcHeroLook, setPixelSheets, terrainVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
 import { KIND_BY_INDEX } from "../../game/arcade/sim.ts";
 import { gearArt } from "../../game/arcade/content/gear.ts";
 import { sec } from "../../game/arcade/config.ts";
@@ -1283,7 +1283,7 @@ export class ArcadeRenderer {
     }
     const atkTotal = p.attackCdMax || sec(p.stats.attackInterval); // фактическая перезарядка: при Frenzy короче базового интервала
     const atkT = p.attackCd > 0 && atkTotal - p.attackCd < atkTotal * 0.45 ? (atkTotal - p.attackCd) / (atkTotal * 0.45) : -1;
-    const look = heroLook(sim.hero.kit, HERO_TINT[sim.hero.id] ?? pal.playerRing);
+    const look = lpcHeroLook(sim.hero.kit, HERO_TINT[sim.hero.id] ?? pal.playerRing);
     const heroAnim: CharAnim = spinning || atkT >= 0 ? attackAnim(look) : "walk";
     // Куда смотрит спрайт: в цель, пока идёт удар/выстрел, иначе — по движению (Dead Cells/DMD: ноги бегут, корпус целится).
     const aiming = sim.tick < p.aimUntil;

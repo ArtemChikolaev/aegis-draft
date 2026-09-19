@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { groupHeroes, recentHeroes, toggleFavorite } from "../src/features/arcade/heroPicker.ts";
+import { groupHeroes, recentHeroes, toggleFavorite } from "../src/game/arcade/heroPicker.ts";
 import { HERO_IDS } from "../src/game/arcade/content/heroes.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
 

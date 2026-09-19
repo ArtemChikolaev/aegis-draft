@@ -41,7 +41,7 @@ const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
 import { PAD_GLYPH } from "./gamepad.ts";
 import { compositionFor } from "../../game/arcade/content/compositions.ts";
 import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
-import { groupHeroes, recentHeroes } from "./heroPicker.ts";
+import { groupHeroes, recentHeroes } from "../../game/arcade/heroPicker.ts";
 import { ArcadeRenderer, sceneNeedsDraw } from "./renderer.ts";
 import { formatClock } from "../../game/arcade/clock.ts";
 import "./arcade.css";

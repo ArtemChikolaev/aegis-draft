@@ -1,6 +1,7 @@
 // Порядок героев на экране подготовки Аркады (владелец 2026-09-12: «избранное, чтобы не искать каждый раз во всём списке»).
-// Чистая функция: избранные → недавние (по ленте забегов) → остальные; поиск по имени сужает всё. UI — ArcadeScreen.
-import type { HeroId } from "../../game/arcade/content/heroes.ts";
+// Чистые функции: избранные → недавние (по ленте забегов) → остальные; поиск по имени сужает всё. UI — ArcadeScreen,
+// стор — state/arcadeStore.ts (поэтому модуль живёт в game/, а не в features/: состояние не зависит от экрана).
+import type { HeroId } from "./content/heroes.ts";
 
 export interface HeroPickerGroups {
   favorites: HeroId[];
