@@ -935,6 +935,9 @@ export class ArcadeSim {
   private oathMult(e: Enemy): number {
     const c = this.contract;
     if (!c?.oath || c.done) return 1;
+    // «Пока цель жива»: контракт на Сатира закрывается очисткой лагеря (T13.50), а не его смертью — с живыми тотемами цель
+    // уже мертва, а контракт ещё открыт, и штраф по толпе продолжал действовать до конца зачистки.
+    if (c.target === "defiler" && !this.defiler?.alive) return 1;
     if (e.kind.id === CONTRACT_KIND[c.target]) return ARCADE.contract.oath.targetMult;
     return e.kind.elite || e.kind.boss || e.kind.structure ? 1 : ARCADE.contract.oath.trashMult;
   }

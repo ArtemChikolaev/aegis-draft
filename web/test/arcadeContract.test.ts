@@ -134,6 +134,27 @@ describe("контракт охоты", () => {
     const h2 = k2.hp; plain.damageEnemy(k2, 10, "zap");
     expect(h2 - k2.hp).toBeCloseTo(10, 5);
   });
+
+  it("Клятва на Сатира: Сатир убит при живых тотемах — штраф по толпе снят («пока цель жива»), контракт ждёт очистки лагеря", () => {
+    const sim = new ArcadeSim("contract-1", { act: "short", composition: "all" });
+    untilOffer(sim);
+    sim.contractOffers = [{ target: "defiler", reward: "weapon" }, { target: "necro", reward: "armor" }];
+    sim.step({ ...IDLE_INPUT, act: 1 + CONTRACT_OATH_ACT });
+    expect(sim.contract).toMatchObject({ target: "defiler", oath: true, done: false });
+    const O = ARCADE.contract.oath;
+    const kobold = spawn(sim, ENEMY_KINDS.kobold, sim.player.x + 400, sim.player.y);
+    kobold.hp = kobold.maxHp = 1e6;
+    let h = kobold.hp; sim.damageEnemy(kobold, 10, "zap");
+    expect(h - kobold.hp).toBeCloseTo(10 * O.trashMult, 5); // цель жива — штраф действует
+    sim.camp!.engaged = true;
+    expect(sim.totemsAlive()).toBeGreaterThan(0);
+    sim.damageEnemy(sim.defiler!, 1e9, "zap");
+    expect(sim.defiler).toBeNull();
+    expect(sim.camp!.cleared).toBe(false);
+    expect(sim.contract!.done).toBe(false); // контракт закрывает очистка лагеря (T13.50)
+    h = kobold.hp; sim.damageEnemy(kobold, 10, "zap");
+    expect(h - kobold.hp).toBeCloseTo(10, 5); // было: 10 × trashMult до конца зачистки
+  });
   it("награда «карта школы» не пропадает, когда школьный пул исчерпан: золото, как у разлома", () => {
     const killGold = (withContract: boolean): { gold: number; sim: ArcadeSim } => {
       const sim = new ArcadeSim("contract-fallback", { act: "short", composition: "all" });
