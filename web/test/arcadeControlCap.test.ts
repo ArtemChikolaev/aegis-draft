@@ -47,11 +47,9 @@ describe("предел контроля чемпиона", () => {
     const s = sim.centaur!, g = sim.grove!;
     for (const e of sim.enemies) if (e.alive && e !== s && !e.kind.totem) e.alive = false;
     sim.defiler = null; sim.camp!.nextGuardAt = 1e9;
-    const grid = sim.obstacles as unknown as { cells: Map<number, { kind: string }[]> };
-    for (const [k, list] of grid.cells) grid.cells.set(k, list.filter((o) => o.kind !== "rock"));
+    sim.obstacles.remove((o) => o.kind === "rock");
     const rock = { x: g.x + 150, y: g.y, r: 14, kind: "rock" as const };
-    const key = Math.floor(rock.y / 256) * 4096 + Math.floor(rock.x / 256);
-    const list = grid.cells.get(key); if (list) list.push(rock); else grid.cells.set(key, [rock]);
+    sim.obstacles.add(rock);
     sim.player.x = g.x + 250; sim.player.y = g.y; g.engaged = true;
     step(sim, 2);
     expect(s.chargeLeft).toBe(-1);

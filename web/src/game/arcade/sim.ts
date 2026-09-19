@@ -93,6 +93,8 @@ const R_LEVELS = [6, 12, 18];
 const CONTRACT_KIND: Record<ContractTarget, string> = { defiler: "satyr_defiler", centaur: "centaur_warden", necro: "troll_necromancer", thunder: "thunder_golem", warden: "river_warden", stalker: "dire_stalker" };
 const NEXT_RARITY: Record<Rarity, Rarity | null> = { standard: "refined", refined: "exotic", exotic: "arcana", arcana: null };
 const GRID = 72;
+/** Сторона плоской части сетки в ячейках: 64 × 72 px = 4608 px ≥ мира (3200). */
+const GRID_DIM = 64;
 /** Питомец подошёл к новой цели, а перезарядка ещё идёт: бьёт не позже чем через 0.2 с (тиков) — см. tickPets. */
 const PET_REARM = 12;
 /** Урон призыва умения в секунду на единицу `value` (см. spawnSummons). 4 — точный DPS прежней зоны
@@ -294,8 +296,18 @@ export class ArcadeSim {
   private lastWaveAt = 0;
   private golemIdx = 0;
   private lastInput: ArcadeInput = { ...IDLE_INPUT };
+  /** Сетка врагов: мир целиком лежит в плоском массиве ячеек `GRID_DIM × GRID_DIM` (индекс вместо хеша — `Map.get` на
+   *  каждого врага за тик стоил ~10% времени прогона), всё за его пределами (отрицательные координаты, NaN) — в прежней
+   *  `Map` с прежним ключом. Разбиение на ячейки и порядок врагов в ячейке те же, что были. */
+  /** Рабочие буферы горячих путей (не состояние забега): посещённые цепью молний, цель канала Life Drain. */
+  private chainVisited: number[] = [];
+  private drainRef: Enemy | null = null;
+  private archerCnt: number[] = [];
+  private archerSumX: number[] = [];
+  private archerSumY: number[] = [];
   private grid = new Map<number, Enemy[]>();
-  private gridUsed: number[] = [];
+  private gridFlat: (Enemy[] | undefined)[] = Array.from({ length: GRID_DIM * GRID_DIM }, () => undefined);
+  private gridUsed: Enemy[][] = [];
   /** Счётчик вызовов step(): ключ input-лога. Тик не годится — он стоит, пока висит выбор карточки. */
   steps = 0;
   /** Input-лог (записывается всегда: он дешёвый и нужен реплею/шарингу). */
@@ -665,7 +677,7 @@ export class ArcadeSim {
     const rate = (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * this.rank.spawnMult * R.spawnMult * (rule === "surge" ? rules.surge.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min, this.act);
-    const alive = this.aliveEnemies();
+    const alive = this.spawnAcc >= 1 ? this.aliveEnemies() : 0; // как в spawnTick: счёт нужен только когда есть кого спавнить
     let n = 0;
     while (this.spawnAcc >= 1) { this.spawnAcc -= 1; if (alive + n < R.cap) n++; }
     if (this.tick >= rift.nextWaveAt) { rift.nextWaveAt = this.tick + R.waveEvery; n += R.waveSize; }
@@ -1018,6 +1030,9 @@ export class ArcadeSim {
   /** Спящий чемпион (T13.45): не цель для ударов, умений, снарядов и толпы, урона не берёт — мимо него можно пройти.
    *  Будится только входом в рощу (wakeRadius): автоатака по «ближайшему» иначе будила его случайно и ломала кайт (бот 23→13%). */
   isDormant(e: Enemy): boolean {
+    // Спать умеют только чемпионы мест (все — `elite`) и идолы кургана (`totem`): остальной лес отсекается одним чтением
+    // флагов, без цепочки сравнений id — проверка зовётся на каждого врага за тик (сетка, выбор целей).
+    if (!e.kind.elite && !e.kind.totem) return false;
     if (e === this.hunter) return false;
     if (e.kind.id === "centaur_warden") return !!this.grove && !this.grove.engaged;
     if (e.kind.id === "troll_necromancer" || e.kind.id === "bone_idol") return !!this.barrow && !this.barrow.engaged && !!this.necromancer?.alive;
@@ -1614,30 +1629,33 @@ export class ArcadeSim {
     const A = ARCADE.autoCast;
     const hpPct = p.hp / p.stats.maxHp;
     const radius = ab.radius ?? 150;
-    const near = this.countEnemiesWithin(p.x, p.y, radius);
+    // Счёт врагов рядом — полный проход; считаем его только тем видам, которым он нужен, один раз на вызов и после дешёвых
+    // условий (Рошан рядом). Запросы чистые (ни Rng, ни записи), поэтому порядок условий на результат не влияет.
+    let nearMemo = -1;
+    const near = (): number => (nearMemo >= 0 ? nearMemo : (nearMemo = this.countEnemiesWithin(p.x, p.y, radius)));
     const bossNear = this.roshan?.alive === true && len(this.roshan.x - p.x, this.roshan.y - p.y) < radius;
     switch (ab.kind) {
       case "ward": return hpPct < A.healHpPct;
       case "tether": return hpPct < 0.7 && this.tetherTarget(ab) >= 0;
-      case "spirits": return near >= 2 || bossNear;
+      case "spirits": return bossNear || near() >= 2;
       case "spin": case "nova": case "arc_lightning": case "battle_hunger": case "berserker_call": case "shrapnel":
-        return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
+        return bossNear || near() >= A.aoeEnemies || (hpPct < 0.5 && near() >= 1);
       case "frostbite": case "lightning_bolt":
-        return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= A.aoeEnemies;
-      case "assassinate": case "mana_void": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= 6;
+        return bossNear || near() >= A.aoeEnemies || this.eliteWithin(p.x, p.y, radius) !== null;
+      case "assassinate": case "mana_void": return bossNear || near() >= 6 || this.eliteWithin(p.x, p.y, radius) !== null;
       case "culling_blade": return this.cullTarget(ab) !== null;
       case "omni": case "freezing_field": case "thundergod":
-        return near >= A.ultEnemies || bossNear || (hpPct < A.ultHpPct && near >= 3);
+        return bossNear || near() >= A.ultEnemies || (hpPct < A.ultHpPct && near() >= 3);
       // Собственные киты шаблонных героев.
       case "line_burst": case "meteor": case "gust": case "multishot": case "remnant": case "edict":
-        return near >= A.aoeEnemies || (hpPct < 0.5 && near >= 1) || bossNear;
-      case "goo": case "rupture": case "corrosive": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || near >= A.aoeEnemies;
-      case "dash": return (hpPct < 0.4 && near >= 1) || (ab.value.some((v) => v > 0) && (near >= A.aoeEnemies || bossNear));
+        return bossNear || near() >= A.aoeEnemies || (hpPct < 0.5 && near() >= 1);
+      case "goo": case "rupture": case "corrosive": return bossNear || near() >= A.aoeEnemies || this.eliteWithin(p.x, p.y, radius) !== null;
+      case "dash": return (hpPct < 0.4 && near() >= 1) || (ab.value.some((v) => v > 0) && (bossNear || near() >= A.aoeEnemies));
       case "armor_buff": case "frenzy": case "haste": case "rage": case "death_pact": case "damage_ward": case "metamorphosis":
-        return near >= A.aoeEnemies || bossNear || (hpPct < 0.5 && near >= 1);
+        return bossNear || near() >= A.aoeEnemies || (hpPct < 0.5 && near() >= 1);
       case "mass_freeze": case "requiem": case "ravage":
-        return near >= A.ultEnemies || bossNear || (hpPct < A.ultHpPct && near >= 3);
-      case "life_drain": return bossNear || this.eliteWithin(p.x, p.y, radius) !== null || (hpPct < 0.6 && near >= 2);
+        return bossNear || near() >= A.ultEnemies || (hpPct < A.ultHpPct && near() >= 3);
+      case "life_drain": return bossNear || (hpPct < 0.6 && near() >= 2) || this.eliteWithin(p.x, p.y, radius) !== null;
       default: return false;
     }
   }
@@ -2083,7 +2101,10 @@ export class ArcadeSim {
     if (this.tick < p.drainUntil && this.tick % 6 === 0) {
       const key = this.slot.life_drain;
       if (key) this.dmgSource = key;
-      const t = key ? this.enemies.find((e) => e.alive && e.id === p.drainTarget) : undefined;
+      // Цель канала — из кэша, пока объект жив и с тем же id (пул переиспользует объекты); иначе поиск, как раньше.
+      let t: Enemy | null | undefined = this.drainRef;
+      if (!key) t = undefined;
+      else if (!t || !t.alive || t.id !== p.drainTarget) { t = this.enemies.find((e) => e.alive && e.id === p.drainTarget); this.drainRef = t ?? null; }
       if (!key || !t || len(t.x - p.x, t.y - p.y) > (H[key].radius ?? 300) + 120) p.drainUntil = 0;
       else {
         const dmg = H[key].value[p.abilities[key]] * 0.1 * (key === "r" && this.talentPower("t25_ult") ? 1.5 : 1);
@@ -2232,16 +2253,22 @@ export class ArcadeSim {
   /** Цепь молний: источник урона — у вызывающего (Arc Lightning — слот умения, Maelstrom с удара — школа). */
   private chainLightning(from: Enemy, dmg: number, targets: number): void {
     let current = from;
-    const visited = new Set<number>([from.id]);
+    // Посещённые — общий массив вместо `new Set` на каждый разряд (целей единицы: линейный поиск дешевле хеша).
+    const visited = this.chainVisited;
+    visited.length = 0;
+    visited.push(from.id);
     for (let i = 0; i < targets; i++) {
       let best: Enemy | null = null, bestD = 160;
       for (const e of this.enemies) {
-        if (!e.alive || visited.has(e.id)) continue;
-        const d = len(e.x - current.x, e.y - current.y);
+        if (!e.alive) continue;
+        // Грубый отсев без корня (с запасом на округление): решает точное `d < bestD` ниже — выбор цели тот же.
+        const ex = e.x - current.x, ey = e.y - current.y, q = ex * ex + ey * ey;
+        if (q > bestD * bestD * 1.000001 || visited.includes(e.id)) continue;
+        const d = Math.sqrt(q);
         if (d < bestD && this.targetable(e)) { bestD = d; best = e; }
       }
       if (!best) break;
-      visited.add(best.id);
+      visited.push(best.id);
       this.pushFx("zap", current.x, current.y, best.x, best.y, 8);
       this.damageEnemy(best, dmg, "zap");
       current = best;
@@ -2869,7 +2896,9 @@ export class ArcadeSim {
     const rate = this.siegeMult() * (ARCADE.spawn.base + ARCADE.spawn.perMin * Math.min(min, ARCADE.spawn.kneeMin) + ARCADE.spawn.latePerMin * Math.max(0, min - ARCADE.spawn.kneeMin)) * (this.roshanKilled ? ARCADE.postRoshanRate : 1) * this.rank.spawnMult * (greedy ? ARCADE.greed.spawnMult : 1) * (this.ancient?.alive ? ARCADE.ancient.spawnMult : 1);
     this.spawnAcc += rate * DT;
     const pool = spawnPool(min, this.act);
-    const alive = this.aliveEnemies();
+    // Живых считаем, только когда есть кого спавнить (единицы раз в секунду, а не каждый тик); как и раньше — один раз
+    // до цикла: пачка этого тика потолок не пересчитывает.
+    const alive = this.spawnAcc >= 1 ? this.aliveEnemies() : 0;
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;
       if (alive >= ARCADE.spawn.cap) continue;
@@ -2986,7 +3015,11 @@ export class ArcadeSim {
     const actHp = kind.boss || kind.structure ? 1 : ARCADE.acts[this.act].hpMult ?? 1;
     const hpMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.hpPerMin * early + ARCADE.spawn.lateHpPerMin * late) * this.rank.hpMult * greed * actHp;
     const dmgMult = (kind.boss || kind.structure ? 1 : 1 + ARCADE.spawn.dmgPerMin * early + ARCADE.spawn.lateDmgPerMin * late) * this.rank.dmgMult * greed;
-    let e = this.enemies.find((o) => !o.alive);
+    // Первый свободный слот по порядку (порядок слотов = порядок обхода врагов, от него зависят выбор целей и Rng).
+    // Список свободных/счётчик живых сюда не ставим: `alive = false` пишут и мимо сима (тесты, разлом), а промах даёт
+    // другой слот — тихий сдвиг всего забега; сам поиск в профиле не виден.
+    let e: Enemy | undefined;
+    for (const o of this.enemies) if (!o.alive) { e = o; break; }
     if (!e) { e = emptyEnemy(kind); this.enemies.push(e); }
     resetEnemy(e, kind);
     e.id = this.nextEnemyId++; e.alive = true; e.x = x; e.y = y;
@@ -2996,16 +3029,28 @@ export class ArcadeSim {
 
   private rebuildGrid(): void {
     // Ячейки живут между тиками: обнуляем длину занятых, а не пересоздаём массивы (порядок обхода Map нигде не читается).
-    for (const key of this.gridUsed) { const cell = this.grid.get(key); if (cell) cell.length = 0; }
+    for (const cell of this.gridUsed) cell.length = 0;
     this.gridUsed.length = 0;
     for (const e of this.enemies) {
       if (!e.alive || this.isDormant(e)) continue;
-      const key = cellKey(e.x, e.y);
-      let cell = this.grid.get(key);
-      if (!cell) { cell = []; this.grid.set(key, cell); }
-      if (cell.length === 0) this.gridUsed.push(key);
+      const gx = Math.floor(e.x / GRID), gy = Math.floor(e.y / GRID);
+      let cell: Enemy[] | undefined;
+      if (gx >= 0 && gx < GRID_DIM && gy >= 0 && gy < GRID_DIM) {
+        cell = this.gridFlat[gx * GRID_DIM + gy];
+        if (!cell) { cell = []; this.gridFlat[gx * GRID_DIM + gy] = cell; }
+      } else {
+        const key = gx * 100000 + gy;
+        cell = this.grid.get(key);
+        if (!cell) { cell = []; this.grid.set(key, cell); }
+      }
+      if (cell.length === 0) this.gridUsed.push(cell);
       cell.push(e);
     }
+  }
+
+  /** Ячейка сетки по её координатам (не px): плоский массив в пределах мира, `Map` — за ними. */
+  private cellAt(gx: number, gy: number): Enemy[] | undefined {
+    return gx >= 0 && gx < GRID_DIM && gy >= 0 && gy < GRID_DIM ? this.gridFlat[gx * GRID_DIM + gy] : this.grid.get(gx * 100000 + gy);
   }
 
   /** Rupture: урон за пройденный путь (value за 100 px), пока метка жива. */
@@ -3099,13 +3144,18 @@ export class ArcadeSim {
       }
       // Мягкое расталкивание с соседями по клетке — толпа не схлопывается в точку.
       let sx = 0, sy = 0;
-      const cell = this.grid.get(cellKey(e.x, e.y));
+      const cell = this.cellAt(Math.floor(e.x / GRID), Math.floor(e.y / GRID));
       if (cell) {
+        const er = e.kind.r;
         for (const o of cell) {
           if (o === e) continue;
           const ox = e.x - o.x, oy = e.y - o.y;
-          const od = len(ox, oy);
-          const minD = e.kind.r + o.kind.r;
+          const minD = er + o.kind.r;
+          // Грубый отсев без корня: заведомо дальше `minD` (с запасом на округление) — пара не расталкивается. Решает по-прежнему
+          // точное сравнение `od < minD` ниже, поэтому результат тот же бит-в-бит; в плотной ячейке таких пар большинство.
+          const q = ox * ox + oy * oy;
+          if (q > minD * minD * 1.000001) continue;
+          const od = Math.sqrt(q);
           if (od > 0 && od < minD) { sx += ox / od * (minD - od); sy += oy / od * (minD - od); }
         }
       }
@@ -3188,7 +3238,8 @@ export class ArcadeSim {
   // ---------- снаряды и шарды ----------
 
   private spawnProjectile(x: number, y: number, vx: number, vy: number, r: number, dmg: number, ttl: number, pierce: number, kind: Projectile["kind"], fromEnemy: boolean, attack = false): void {
-    let pr = this.projectiles.find((o) => !o.alive);
+    let pr: Projectile | undefined;
+    for (const o of this.projectiles) if (!o.alive) { pr = o; break; }
     if (!pr) { pr = { alive: false, x: 0, y: 0, vx: 0, vy: 0, r: 0, dmg: 0, ttl: 0, pierce: 0, hits: [], kind: "fire", fromEnemy: false, attack: false }; this.projectiles.push(pr); }
     pr.alive = true; pr.x = x; pr.y = y; pr.vx = vx; pr.vy = vy; pr.r = r; pr.dmg = dmg; pr.ttl = ttl; pr.pierce = pierce; pr.hits.length = 0; pr.kind = kind; pr.fromEnemy = fromEnemy; pr.attack = attack;
   }
@@ -3209,7 +3260,7 @@ export class ArcadeSim {
       const cx = Math.floor(pr.x / GRID), cy = Math.floor(pr.y / GRID);
       for (let gx = cx - 1; gx <= cx + 1 && pr.alive; gx++) {
         for (let gy = cy - 1; gy <= cy + 1 && pr.alive; gy++) {
-          const cell = this.grid.get(gx * 100000 + gy);
+          const cell = this.cellAt(gx, gy);
           if (!cell) continue;
           for (const e of cell) {
             if (!e.alive || pr.hits.includes(e.id)) continue;
@@ -3579,11 +3630,22 @@ export class ArcadeSim {
   private tickArcherLines(): void {
     const C = ARCADE.archers;
     const p = this.player;
-    // Живые линии: центр по живым лучникам, телеграф и залп.
-    for (let i = this.archerLines.length - 1; i >= 0; i--) {
-      const line = this.archerLines[i];
-      let n = 0, sx = 0, sy = 0;
-      for (const e of this.enemies) if (e.alive && e.kind.id === "archer" && e.leader === line.id) { n++; sx += e.x; sy += e.y; }
+    // Живые линии: центр по живым лучникам, телеграф и залп. Лучники всех линий считаются ОДНИМ проходом по врагам (было по
+    // проходу на линию каждый тик); суммы копятся в том же порядке врагов, поэтому центры те же бит-в-бит. Залп, попавший по
+    // герою, может убить лучников другой линии ответным уроном (Quill/Lotus/Helix) — после него остаток линий считается заново.
+    const lines = this.archerLines, cnt = this.archerCnt, sumX = this.archerSumX, sumY = this.archerSumY;
+    if (lines.length > 0) {
+      for (let j = 0; j < lines.length; j++) { cnt[j] = 0; sumX[j] = 0; sumY[j] = 0; }
+      for (const e of this.enemies) {
+        if (!e.alive || e.leader === 0 || e.kind.id !== "archer") continue;
+        for (let j = 0; j < lines.length; j++) if (lines[j].id === e.leader) { cnt[j]++; sumX[j] += e.x; sumY[j] += e.y; break; }
+      }
+    }
+    let recount = false;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i];
+      let n = cnt[i], sx = sumX[i], sy = sumY[i];
+      if (recount) { n = 0; sx = 0; sy = 0; for (const e of this.enemies) if (e.alive && e.kind.id === "archer" && e.leader === line.id) { n++; sx += e.x; sy += e.y; } }
       if (n === 0) { this.archerLines.splice(i, 1); continue; }
       line.cx = sx / n; line.cy = sy / n;
       const dx = p.x - line.cx, dy = p.y - line.cy, d = len(dx, dy) || 1;
@@ -3592,7 +3654,7 @@ export class ArcadeSim {
       } else if (this.tick >= line.fireAt) {
         // Залп: герой в полосе (вдоль 0..length, поперёк ±width/2) от центра строя по направлению телеграфа.
         const along = dx * line.dirX + dy * line.dirY, across = Math.abs(-dx * line.dirY + dy * line.dirX);
-        if (along >= 0 && along <= C.length && across <= C.width / 2) { this.damagePlayer(C.dmg * (n / C.count), 0, ENEMY_KINDS.archer); this.pushFx("burst", p.x, p.y, 40, 0, 10); }
+        if (along >= 0 && along <= C.length && across <= C.width / 2) { this.damagePlayer(C.dmg * (n / C.count), 0, ENEMY_KINDS.archer); this.pushFx("burst", p.x, p.y, 40, 0, 10); recount = true; }
         line.fireAt = 0; line.nextAt = this.tick + C.volleyEvery;
       }
     }
@@ -3616,7 +3678,8 @@ export class ArcadeSim {
   /** Лучник: держит место в строю поперёк направления на героя и дистанцию `range`; вплотную — контактный удар. */
   private moveArcher(e: Enemy, d: number, frozen: boolean): void {
     const C = ARCADE.archers;
-    const line = this.archerLines.find((l) => l.id === e.leader);
+    let line: ArcherLine | undefined;
+    for (const l of this.archerLines) if (l.id === e.leader) { line = l; break; }
     if (!line) { e.leader = 0; return; }
     if (frozen) return;
     const p = this.player;
@@ -4284,11 +4347,20 @@ export class ArcadeSim {
 
   // Запросы по врагам: сначала дистанция, потом targetable (isDormant) — он чистый, но дороже сравнения, а в радиус
   // попадает малая доля врагов. Результат тот же, порядок обхода тот же.
+  //
+  // Грубый отсев без корня: враг заведомо дальше предела (квадрат с запасом 1e-6 на округление) пропускается, остальных
+  // решает прежнее точное сравнение — выбор и порядок те же бит-в-бит. Предел ≤ 1 px отсев не включает (запас там
+  // сравним с ошибкой округления). Через сетку эти запросы НЕ идут намеренно: она строится до `moveEnemies`, а зовут их
+  // после (питомцы, бой, школы) — враги уже сдвинулись (расталкивание в толпе не ограничено шагом), плюс толчок подъёма,
+  // рывки и спавны после сборки; точного совпадения с полным проходом сетка не гарантирует, а в профиле бота все три
+  // запроса вместе — около 2%.
   nearestEnemy(x: number, y: number, radius: number): Enemy | null {
     let best: Enemy | null = null, bestD = radius;
     for (const e of this.enemies) {
       if (!e.alive) continue;
-      const d = len(e.x - x, e.y - y) - e.kind.r;
+      const dx = e.x - x, dy = e.y - y, q = dx * dx + dy * dy, lim = bestD + e.kind.r;
+      if (lim > 1 && q > lim * lim * 1.000001) continue;
+      const d = Math.sqrt(q) - e.kind.r;
       if (d < bestD && this.targetable(e)) { bestD = d; best = e; }
     }
     return best;
@@ -4296,13 +4368,23 @@ export class ArcadeSim {
 
   enemiesWithin(x: number, y: number, radius: number): Enemy[] {
     const out: Enemy[] = [];
-    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && this.targetable(e)) out.push(e);
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const dx = e.x - x, dy = e.y - y, q = dx * dx + dy * dy, lim = radius + e.kind.r;
+      if (lim > 1 && q > lim * lim * 1.000001) continue;
+      if (Math.sqrt(q) <= lim && this.targetable(e)) out.push(e);
+    }
     return out;
   }
 
   countEnemiesWithin(x: number, y: number, radius: number): number {
     let n = 0;
-    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && this.targetable(e)) n++;
+    for (const e of this.enemies) {
+      if (!e.alive) continue;
+      const dx = e.x - x, dy = e.y - y, q = dx * dx + dy * dy, lim = radius + e.kind.r;
+      if (lim > 1 && q > lim * lim * 1.000001) continue;
+      if (Math.sqrt(q) <= lim && this.targetable(e)) n++;
+    }
     return n;
   }
 
@@ -4375,10 +4457,6 @@ function resetEnemy(e: Enemy, kind: EnemyKind): void {
   e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
   e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
   e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
-}
-
-function cellKey(x: number, y: number): number {
-  return Math.floor(x / GRID) * 100000 + Math.floor(y / GRID);
 }
 
 function clamp(v: number, lo: number, hi: number): number {

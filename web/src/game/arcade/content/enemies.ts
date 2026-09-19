@@ -2,7 +2,7 @@
 // Числа — базовые на минуте 0; сим умножает HP/урон по минутам (ARCADE.spawn.*PerMin).
 import type { EnemyKind, EnemyKindId } from "../types.ts";
 
-export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
+const KINDS: Record<EnemyKindId, EnemyKind> = {
   kobold: { id: "kobold", hp: 14, speed: 86, dmg: 6, r: 10, xp: 1, gold: 1, fromMin: 0, weight: 10, tone: "grunt" },
   kobold_foreman: { id: "kobold_foreman", hp: 32, speed: 72, dmg: 9, r: 12, xp: 2, gold: 1, fromMin: 0.75, weight: 6, tone: "grunt" },
   hill_troll: { id: "hill_troll", hp: 44, speed: 112, dmg: 10, r: 11, xp: 3, gold: 2, fromMin: 1.5, weight: 6, tone: "swift" },
@@ -54,6 +54,15 @@ export const ENEMY_KINDS: Record<EnemyKindId, EnemyKind> = {
   /** Спороносец (T13.82): медленный и живучий, на ходу и после смерти оставляет лужи спор — убить издалека или выманить с прохода. */
   sporebearer: { id: "sporebearer", hp: 220, speed: 46, dmg: 12, r: 15, xp: 14, gold: 6, fromMin: 99, weight: 0, tone: "brute" },
 };
+
+/** Одна форма объекта на все виды: те же значения, но все поля на месте и в одном порядке. Литералы выше разной формы
+ *  (у кобольда нет `elite`, у голема есть), и чтения `e.kind.totem/boss/ranged/…` в цикле по врагам шли мимо inline-кэша
+ *  движка; с единой формой они мономорфны. Значения не меняются — отсутствующее поле остаётся `undefined`. */
+function uniform(k: EnemyKind): EnemyKind {
+  return { id: k.id, hp: k.hp, speed: k.speed, dmg: k.dmg, r: k.r, xp: k.xp, gold: k.gold, elite: k.elite, boss: k.boss, structure: k.structure, reflect: k.reflect, unstoppable: k.unstoppable, totem: k.totem, ranged: k.ranged, fromMin: k.fromMin, weight: k.weight, acts: k.acts, tone: k.tone };
+}
+
+export const ENEMY_KINDS = Object.fromEntries(Object.entries(KINDS).map(([id, k]) => [id, uniform(k)])) as Record<EnemyKindId, EnemyKind>;
 
 /** Пул обычного спавна на минуте `min` (виды, доступные к этому времени). */
 /** Пороги появления по минутам (по возрастанию): пул меняется только при их пересечении. */

@@ -8,7 +8,7 @@ const C = ARCADE.centaur;
 const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : IDLE_INPUT); } };
 /** Убрать обычный спавн и лагерных, чтобы считать только кентавра. */
 /** Убрать камни из сетки препятствий — рывок по чистому полю. */
-const clearRocks = (sim: ArcadeSim) => { const cells = (sim.obstacles as unknown as { cells: Map<number, { kind: string }[]> }).cells; for (const [k, list] of cells) cells.set(k, list.filter((o) => o.kind !== "rock")); };
+const clearRocks = (sim: ArcadeSim) => sim.obstacles.remove((o) => o.kind === "rock");;
 const quiet = (sim: ArcadeSim) => { for (const e of sim.enemies) if (e.alive && e !== sim.centaur && !e.kind.totem) e.alive = false; sim.defiler = null; sim.camp!.nextGuardAt = 1e9; };
 
 describe("Кентавр-Страж рощи", () => {
@@ -81,9 +81,7 @@ describe("Кентавр-Страж рощи", () => {
     clearRocks(sim);
     // Ставим камень прямо на пути рывка.
     const rock = { x: g.x + 150, y: g.y, r: 14, kind: "rock" as const };
-    const grid = sim.obstacles as unknown as { cells: Map<number, unknown[]> };
-    const key = Math.floor(rock.y / 256) * 4096 + Math.floor(rock.x / 256);
-    const list = grid.cells.get(key); if (list) list.push(rock); else grid.cells.set(key, [rock]);
+    sim.obstacles.add(rock);
     sim.player.x = g.x + 250; sim.player.y = g.y; g.engaged = true;
     step(sim, 2);
     expect(s.chargeLeft).toBe(-1);

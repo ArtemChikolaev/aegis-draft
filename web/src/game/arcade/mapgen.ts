@@ -74,19 +74,34 @@ export class ObstacleGrid {
    *  ячейку по ЦЕНТРУ сущности, поэтому препятствие регистрируется и в ячейках, откуда до него дотянется такой круг; иначе
    *  у границы ячейки сосед «не видел» камень: вход в него до r px и рывок наружу, рывок Кентавра проскакивал камень. */
   static readonly PAD = 40;
+  /** Плоская копия ячеек в пределах `DIM × DIM` (8192 px ≥ мира): `near()` зовётся на каждого врага за тик, индекс дешевле
+   *  хеша. За пределами (отрицательные координаты, NaN) — прежняя `Map` с прежним ключом; содержимое ячеек то же. */
+  private static readonly DIM = 32;
+  private static readonly NONE: readonly Obstacle[] = [];
+  private readonly flat: (readonly Obstacle[])[] = Array.from({ length: ObstacleGrid.DIM * ObstacleGrid.DIM }, () => ObstacleGrid.NONE);
   constructor(readonly obstacles: readonly Obstacle[]) {
-    for (const o of obstacles) {
-      const c = ObstacleGrid.CELL, reach = o.r + ObstacleGrid.PAD;
-      for (let gy = Math.floor((o.y - reach) / c); gy <= Math.floor((o.y + reach) / c); gy++)
-        for (let gx = Math.floor((o.x - reach) / c); gx <= Math.floor((o.x + reach) / c); gx++) {
-          const key = gy * 4096 + gx;
-          const list = this.cells.get(key);
-          if (list) list.push(o); else this.cells.set(key, [o]);
-        }
-    }
+    for (const o of obstacles) this.add(o);
+  }
+  /** Зарегистрировать препятствие в сетке (с запасом `PAD`). Списком `obstacles` (его рисует рендер) не управляет — это
+   *  вход конструктора; отдельно метод нужен сценам тестов, которые ставят камень на путь рывка. */
+  add(o: Obstacle): void {
+    const c = ObstacleGrid.CELL, reach = o.r + ObstacleGrid.PAD, n = ObstacleGrid.DIM;
+    for (let gy = Math.floor((o.y - reach) / c); gy <= Math.floor((o.y + reach) / c); gy++)
+      for (let gx = Math.floor((o.x - reach) / c); gx <= Math.floor((o.x + reach) / c); gx++) {
+        const key = gy * 4096 + gx;
+        let list = this.cells.get(key);
+        if (!list) { list = []; this.cells.set(key, list); if (gx >= 0 && gx < n && gy >= 0 && gy < n) this.flat[gy * n + gx] = list; }
+        list.push(o);
+      }
+  }
+  /** Убрать из сетки препятствия по условию (списки ячеек правятся на месте — плоская копия смотрит на них же). */
+  remove(match: (o: Obstacle) => boolean): void {
+    for (const list of this.cells.values()) { let w = 0; for (const o of list) if (!match(o)) list[w++] = o; list.length = w; }
   }
   near(x: number, y: number): readonly Obstacle[] {
-    return this.cells.get(Math.floor(y / ObstacleGrid.CELL) * 4096 + Math.floor(x / ObstacleGrid.CELL)) ?? [];
+    const gx = Math.floor(x / ObstacleGrid.CELL), gy = Math.floor(y / ObstacleGrid.CELL), n = ObstacleGrid.DIM;
+    if (gx >= 0 && gx < n && gy >= 0 && gy < n) return this.flat[gy * n + gx];
+    return this.cells.get(gy * 4096 + gx) ?? ObstacleGrid.NONE;
   }
   /** Вытолкнуть круг (x, y, r) из препятствий; два прохода хватает для углов между двумя объектами. */
   resolve(x: number, y: number, r: number): [number, number] {
