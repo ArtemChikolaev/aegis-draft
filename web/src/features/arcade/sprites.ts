@@ -778,6 +778,21 @@ export function dotaSheetState(name: string): "loading" | "missing" | "ready" {
   if (v === "loading" || isRetry(v)) return "loading";
   return v === null ? "missing" : "ready";
 }
+/**
+ * Первый существующий лист из кандидатов по приоритету (форма облика → базовая форма). `settled` — ответ окончательный:
+ * лист готов либо отсутствие всех предыдущих подтверждено. Пока нет — более приоритетный кандидат ещё грузится, и ответ
+ * может смениться на следующий; вызывающий переспрашивает. Запрашивается только текущий кандидат: с прочитанным
+ * индексом набора отсутствующие отсеиваются синхронно и без сети, без индекса — по одному, а не все листы разом.
+ */
+export function resolveSheet(candidates: readonly string[], request = true): { sheet: string; settled: boolean } {
+  for (const name of candidates) {
+    const st = dotaSheetState(name);
+    if (st === "missing") continue;
+    if (st === "loading" && request) dotaSheet(name); // `request = false` — только посмотреть (из рендера React)
+    return { sheet: name, settled: st === "ready" };
+  }
+  return { sheet: candidates[candidates.length - 1] ?? "", settled: true };
+}
 /** Загрузка листа закончилась (готов, подтверждённо отсутствует или отложен после сбоя сети) — предзагрузка забега не ждёт дольше. */
 function sheetSettled(name: string): boolean {
   if (isCompositeSheet(name)) return compositeParts(name).every(sheetSettled);
@@ -903,8 +918,9 @@ export function pixelSheetsOn(): boolean { return pixelSheets; }
 /**
  * Предзагрузка арта забега (владелец 2026-09-06: «на мгновение видна другая моделька и карта»): лист героя,
  * враги акта, земля и пропсы. Резолвится, когда всё загрузилось или отвалилось, не дольше `timeoutMs`.
+ * `firstOf` — списки кандидатов по приоритету (лист формы героя): из каждого грузится первый существующий.
  */
-export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act: string, timeoutMs = 6000, extra: readonly string[] = []): Promise<void> {
+export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act: string, timeoutMs = 6000, extra: readonly string[] = [], firstOf: readonly (readonly string[])[] = []): Promise<void> {
   // Листы призывов героя грузим заранее вместе с ним: иначе первый вард (или паучки, или голем)
   // виден только со второго раза — на первом касте лист ещё качается, и на полу пусто.
   const base = hero.split("@")[0].split("~")[0].split("+")[0];
@@ -914,11 +930,12 @@ export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act:
     .filter((a): a is string => !!a && a !== "illusion");
   const sheets = [hero, ...extra, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), ...summons, "tree_oak", "tree_pine", "rock", "rune_dd", "rune_shield", "rune_arcane", "rune_illusion"];
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
-  // Земля запрашивается после индекса набора, поэтому её «пинаем» на каждой проверке, пока индекс не пришёл
-  // (`terrainImage` в проверке ниже сам начинает загрузку, как только индекс набора прочитан.)
   for (const n of sheets) dotaSheet(n);
   tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock");
-  const ready = () => sheets.every(sheetSettled) && terrain.every((t) => { const el = terrainImage(t); return el === null || (!!el && el.complete); });
+  // Первый существующий из кандидатов: запрашивается по одному (`resolveSheet`); отложенный после сбоя сети — не ждём.
+  const firstSettled = (c: readonly string[]) => { const { sheet, settled } = resolveSheet(c); return settled || sheetSettled(sheet); };
+  // Земля запрашивается после индекса набора: `terrainImage` в проверке сам начинает загрузку, как только индекс прочитан.
+  const ready = () => sheets.every(sheetSettled) && firstOf.every(firstSettled) && terrain.every((t) => { const el = terrainImage(t); return el === null || (!!el && el.complete); });
   return new Promise((resolve) => {
     const started = Date.now();
     const tick = () => { if (ready() || Date.now() - started > timeoutMs) resolve(); else window.setTimeout(tick, 50); };

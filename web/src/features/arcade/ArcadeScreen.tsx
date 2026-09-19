@@ -15,13 +15,13 @@ import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/r
 import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
-import { dotaSheet, dotaSheetState, preloadArcadeArt } from "./sprites.ts";
+import { dotaSheet, dotaSheetState, preloadArcadeArt, preloadSheetIndexes } from "./sprites.ts";
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT, POND_RITUAL_ACT } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
-import { COSMETICS, COSMETIC_BY_ID, heroLook, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, formSheetCandidates, heroLook, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
 import type { AbilityKey, Offer, RuneKind } from "../../game/arcade/types.ts";
@@ -99,6 +99,8 @@ function ArcadeSetup() {
   const daily = arcadeDaily();
   const dailyEntry = history.find((e) => e.seed === daily.seed) ?? null;
   const best = bestArcadeEntry(history);
+  // Индексы листов — заранее: к открытию гардероба «есть ли у облика такой лист» уже синхронная проверка без сети.
+  useEffect(() => { void preloadSheetIndexes(); }, []);
   // Ссылка `#arcade=<код>`: открыли — предлагаем смотреть реплей сразу.
   useEffect(() => {
     if (typeof window === "undefined" || !window.location.hash.startsWith("#arcade=")) return;
@@ -526,7 +528,11 @@ function ArcadeStage() {
     const simNow = getArcadeSim();
     let cancelled = false;
     setLoading(true);
-    void preloadArcadeArt(lookNow.sheet, Object.keys(ENEMY_KINDS), simNow?.act ?? "short", 6000, [...Object.values(lookNow.summons), ...(lookNow.form ? [lookNow.form] : [])]).then(() => { if (!cancelled) setLoading(false); });
+    // Лист формы (Метаморфоза, Elder Dragon Form, True Form, Chemical Rage) — вместе с героем: без скина формы он раньше не
+    // грузился заранее вовсе, и первое превращение шло в обычной модели, пока лист качался. Кандидаты — в порядке рендера,
+    // грузится первый существующий (у облика обычно нет своей формы — индекс набора отсеивает таких без запросов).
+    const formSheets = Object.values(heroDef.abilities).some((a) => a.form !== undefined) ? [formSheetCandidates(heroDef.id, voiceId, lookNow.form)] : [];
+    void preloadArcadeArt(lookNow.sheet, Object.keys(ENEMY_KINDS), simNow?.act ?? "short", 6000, Object.values(lookNow.summons), formSheets).then(() => { if (!cancelled) setLoading(false); });
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);

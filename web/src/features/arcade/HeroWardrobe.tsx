@@ -8,12 +8,12 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, choosableSlots, defaultLoadout, familyOf, formSheet as formSheetOf, heroLook, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, choosableSlots, defaultLoadout, familyOf, formSheet as formSheetOf, formSheetCandidates, heroLook, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
 import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { dotaSheet, dotaSheetState, dotaSheetStill, drawDotaFrame, frameGeometry, gemSheet, HERO_AURA, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
+import { dotaSheet, dotaSheetState, dotaSheetStill, drawDotaFrame, frameGeometry, gemSheet, HERO_AURA, resolveSheet, setPixelSheets, sheetGlow, type SheetGlow } from "./sprites.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, readEffectPalette, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 
 /** Слоты, которые редактируются в гардеробе после облика. */
@@ -88,6 +88,23 @@ function useSheetGlow(sheet: string, enabled: boolean): SheetGlow | null | undef
   return glow;
 }
 
+/**
+ * Лист из кандидатов по приоритету (sprites.ts `resolveSheet`): первый существующий. С прочитанным индексом набора ответ
+ * синхронный; без него опрашиваем раз в 100 мс, пока более приоритетный кандидат грузится, и перерисовываем родителя,
+ * когда ответ сменился (раньше «листа нет» узнавал только сам холст превью, и родитель оставался с пустым листом).
+ */
+function useResolvedSheet(candidates: readonly string[]): string {
+  const key = candidates.join("|");
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const list = key.split("|");
+    if (resolveSheet(list).settled) return;
+    const id = window.setInterval(() => { bump((n) => n + 1); if (resolveSheet(list).settled) window.clearInterval(id); }, 100);
+    return () => window.clearInterval(id);
+  }, [key]);
+  return resolveSheet(candidates, false).sheet;
+}
+
 function LookPreview({ sheet, size, gem = null, glow = false, still = false, effects, anim: forcedAnim = "auto", bg = "none", lifeSize = false }: { sheet: string; size: number; gem?: number | null; glow?: boolean; still?: boolean; effects?: PreviewEffects; anim?: PreviewAnim; bg?: PreviewBg; lifeSize?: boolean }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
   const { t } = useI18n();
@@ -104,32 +121,39 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
     const c = cv.getContext("2d");
     if (!c) return;
     const t0 = performance.now();
-    let raf = 0;
     const pal = readEffectPalette();
     const trailPts: { x: number; y: number; t: number }[] = [];
-    const draw = () => {
-      raf = requestAnimationFrame(draw);
+    // Токены фона читаются один раз на эффект, а не в каждом кадре: `getComputedStyle` форсирует пересчёт стилей.
+    const style = bg !== "none" ? getComputedStyle(document.documentElement) : null;
+    const tok = (k: string, fb: string) => style?.getPropertyValue(k).trim() || fb;
+    const ground = bg === "none" ? null : bg === "dire"
+      ? { base: tok("--arcade-ground-night", "#0a0f12"), grass: tok("--arcade-grass-night-a", "#0c1418"), dirt: tok("--arcade-dirt-night", "#1c1714") }
+      : { base: tok("--arcade-ground", "#0f1a12"), grass: tok("--arcade-grass-a", "#17301c"), dirt: tok("--arcade-dirt", "#3a2e1e") };
+    /** Кадр превью; true — картинка окончательная (лист нарисован либо его точно нет): неподвижной миниатюре ждать больше нечего. */
+    const draw = (): boolean => {
       const bare = sheet.split("~")[0];
       // Неподвижная миниатюра композита — один кадр, а не полный лист (A4: полный композит — десятки МиБ).
       const pick = still ? dotaSheetStill : dotaSheet;
-      const raw = pick(sheet) ?? pick(bare);
-      if (!raw && dotaSheetState(sheet) === "missing" && dotaSheetState(bare) === "missing") setMissing(true);
+      const primary = pick(sheet);
+      const raw = primary ?? pick(bare);
+      const gone = !raw && dotaSheetState(sheet) === "missing" && dotaSheetState(bare) === "missing";
+      if (gone) setMissing(true);
+      // Лист без стиля — временная замена, пока грузится свой: окончательно только когда своего точно нет.
+      const final = !!primary || gone || (!!raw && dotaSheetState(sheet) === "missing");
       const s = raw && glow ? gemSheet(raw, gem) : raw;
       c.imageSmoothingEnabled = false;
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.clearRect(0, 0, size, size);
       // Фон Radiant/Dire (T13.57): пятно земли в тонах акта, чтобы оценить читаемость облика днём и ночью.
-      if (bg !== "none") {
-        const style = getComputedStyle(document.documentElement);
-        const tok = (k: string, fb: string) => style.getPropertyValue(k).trim() || fb;
-        c.fillStyle = bg === "dire" ? tok("--arcade-ground-night", "#0a0f12") : tok("--arcade-ground", "#0f1a12");
+      if (ground) {
+        c.fillStyle = ground.base;
         c.fillRect(0, 0, size, size);
-        c.fillStyle = bg === "dire" ? tok("--arcade-grass-night-a", "#0c1418") : tok("--arcade-grass-a", "#17301c");
+        c.fillStyle = ground.grass;
         c.beginPath(); c.ellipse(size / 2, size * 0.78, size * 0.42, size * 0.14, 0, 0, Math.PI * 2); c.fill();
-        c.fillStyle = bg === "dire" ? tok("--arcade-dirt-night", "#1c1714") : tok("--arcade-dirt", "#3a2e1e");
+        c.fillStyle = ground.dirt;
         c.beginPath(); c.ellipse(size / 2, size * 0.8, size * 0.22, size * 0.07, 0, 0, Math.PI * 2); c.fill();
       }
-      if (!s) return;
+      if (!s) return final;
       const el = (performance.now() - t0) / 1000;
       const picked = pickPreviewAnim(el, s.meta.dirs, still, forcedAnim);
       const anim = picked.anim, dir = picked.dir;
@@ -183,8 +207,19 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
         const k = (el % 2) / 0.9;
         if (k < 1) drawDeathEffect(c, hx + size * 0.32, hy - size * 0.1, size * 0.06, k, fx.death, Math.floor(el / 2), px, pal);
       }
+      return final;
     };
-    draw();
+    // Неподвижная миниатюра рисуется один раз: пока лист грузится — переспрашиваем раз в 100 мс, потом останавливаемся.
+    // Раньше у каждой был свой вечный rAF — до 13 миниатюр на вкладке перерисовывали один и тот же кадр 60 раз в секунду.
+    if (still) {
+      let timer = 0;
+      const poll = () => { if (!draw()) timer = window.setTimeout(poll, 100); };
+      poll();
+      return () => window.clearTimeout(timer);
+    }
+    let raf = 0;
+    const loop = () => { raf = requestAnimationFrame(loop); draw(); };
+    loop();
     return () => cancelAnimationFrame(raf);
   }, [sheet, size, gem, glow, still, effects?.frame, effects?.aura, effects?.skinAura, effects?.trail, effects?.death, forcedAnim, bg, lifeSize]);
   return (
@@ -261,7 +296,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const [compare, setCompare] = useState(false);
   const hasForm = Object.values(HEROES[hero].abilities).some((a) => a.form !== undefined);
   // Форма: свой скин формы (слот `form`, T13.80 срез 3) важнее формы облика (`<hero>@<skin>@meta`), та — важнее базовой.
-  const skinForm = dotaSheetState(`${previewSheet}@meta`) !== "missing" ? `${previewSheet}@meta` : `${hero}@meta`;
+  // Своего листа формы у большинства обликов нет, поэтому лист выбирается из кандидатов по факту существования
+  // (`useResolvedSheet`): раньше `<облик>@meta` выбирался, пока «грузится», приходил 404 — и превью формы оставалось пустым.
+  // На витрине — форма ВЫБРАННОГО облика (что будет, если его надеть), в миниатюре «как у облика» — форма НАДЕТОГО.
+  const stageForm = useResolvedSheet(formSheetCandidates(hero, sel.def ? sel.sheet : null, formSheetOf(hero, cosmetics.formSkins ?? {}, { ...cosmetics.equipped, skin: sel.def?.id })));
+  const asWornForm = useResolvedSheet(formSheetCandidates(hero, equippedSkin?.variant ?? null, formSheetOf(hero, {}, cosmetics.equipped)));
   const formSkins = COSMETICS.filter((c) => c.slot === "form" && c.hero === hero);
   const formOn = cosmetics.formSkins?.[hero];
   const setFormSkin = useArcade((s) => s.setFormSkin);
@@ -272,8 +311,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const stageSheet = worn && wornLook.mixed ? wornLook.sheet : previewSheet;
   // Что сейчас даёт форма: явный выбор / «обычная» / бандл надетого сета / форма самого облика. Подпись под витриной —
   // чтобы было видно, выбран ли скин на Метаморфозу (владелец 2026-09-19: «нет понимания, выбран ли скин»).
-  const formNow = wornLook.form ?? skinForm;
-  const asWornForm = formSheetOf(hero, {}, cosmetics.equipped) ?? skinForm;
+  const formNow = stageForm;
   const formDef = COSMETICS.find((c) => c.slot === "form" && c.variant === wornLook.form);
   const formLabel = formOn === LOOK_DEFAULT ? t("arcade.wardrobe.formDefault") : formDef ? t(`arcade.cosmetic.${formDef.id}` as MessageKey) : t("arcade.wardrobe.formOfLook");
   const asWornSummons = summonSheets(hero, {}, cosmetics.equipped);

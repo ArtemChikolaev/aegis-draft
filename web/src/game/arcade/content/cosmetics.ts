@@ -583,6 +583,19 @@ export function formSheet(hero: string, formSkins: Readonly<Record<string, strin
   return bundledWith(hero, "form", equipped)[0]?.variant ?? null; // форма из бандла надетого сета
 }
 
+/** Листы формы героя по убыванию приоритета: скин формы (`form` — итог `formSheet`) → форма надетого облика
+ *  (`<hero>@<skin>@meta`, стиль облика своей формы не имеет) → базовая `<hero>@meta`. Существует не каждый: рендер берёт
+ *  первый загруженный, гардероб и предзагрузка забега — первый существующий (features/arcade/sprites.ts resolveSheet).
+ *  `skinSheet` — цельный лист надетого облика (со стилем или без) либо null. */
+export function formSheetCandidates(hero: string, skinSheet: string | null, form: string | null): string[] {
+  const out: string[] = [];
+  if (form && form.startsWith(`${hero}@`)) out.push(form);
+  const mine = skinSheet && skinSheet.startsWith(`${hero}@`) ? skinSheet.split("~")[0] : null;
+  if (mine) out.push(`${mine}@meta`);
+  out.push(`${hero}@meta`);
+  return [...new Set(out)];
+}
+
 /** Всё, что нужно рендеру и превью от косметики героя (T13.80): лист облика (цельный или композит), состав по слотам,
  *  основа, признак «стиль не перенесён в смешанный облик» и листы призывов. */
 export interface HeroLook { sheet: string; mixed: boolean; family: string | null; parts: Partial<Record<DotaSlot, string>>; styleDropped: boolean; /** Встроенный эффект надетого облика; null — нет или его часть заменена в слоте. */ fx: { aura: string } | null; summons: Record<string, string>; /** Лист скина формы (Метаморфоза, True Form…) или null — форма как у облика. */ form: string | null }

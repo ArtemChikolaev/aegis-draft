@@ -4,7 +4,7 @@
 // обязана быть подменой именно базовой модели формы этого героя, а волки — подменой юнита `npc_dota_lycan_wolf`.
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
-import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, formSheet, heroLook, summonSheets } from "../src/game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, formSheet, formSheetCandidates, heroLook, summonSheets } from "../src/game/arcade/content/cosmetics.ts";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
 
@@ -100,6 +100,31 @@ describe("скины форм и волков: данные", () => {
       const item = index.entityModels[key(rows[c.variant][1])];
       expect(item, `${c.variant}: ${rows[c.variant][1]}`).toBeDefined();
       expect([item.hero, item.slot, item.asset], c.variant).toEqual(["lycan", "summon", "npc_dota_lycan_wolf"]);
+    }
+  });
+});
+
+// Лист формы выбирается из кандидатов по факту существования (аудит 2026-09-19): у большинства обликов своей формы
+// нет, и гардероб показывал пустое превью (`<облик>@meta` → 404), а забег не грузил лист формы заранее.
+describe("листы формы: кандидаты", () => {
+  const index = JSON.parse(readFileSync(new URL("../public/art/sprites/dota_px2/index.json", import.meta.url), "utf8")) as { sheets: string[] };
+  const onDisk = new Set(index.sheets);
+
+  it("порядок — как у рендера: скин формы → форма облика (без стиля) → базовая", () => {
+    expect(formSheetCandidates("terrorblade", null, null)).toEqual(["terrorblade@meta"]);
+    expect(formSheetCandidates("terrorblade", "terrorblade@arcana~style1", null)).toEqual(["terrorblade@arcana@meta", "terrorblade@meta"]);
+    expect(formSheetCandidates("terrorblade", "terrorblade@arcana", tb.variant)).toEqual([tb.variant, "terrorblade@arcana@meta", "terrorblade@meta"]);
+    // Явная «обычная форма» не дублируется; чужие облик и форма в список не попадают.
+    expect(formSheetCandidates("terrorblade", "lina@arcana", "terrorblade@meta")).toEqual(["terrorblade@meta"]);
+    expect(formSheetCandidates("terrorblade", null, ld.variant)).toEqual(["terrorblade@meta"]);
+  });
+
+  it("у каждого героя с формой и у каждого его облика есть существующий лист формы", () => {
+    const withForm = Object.values(HEROES).filter((h) => Object.values(h.abilities).some((a) => a.form !== undefined));
+    expect(withForm.length).toBeGreaterThan(0);
+    for (const h of withForm) {
+      const looks = [null, ...COSMETICS.filter((c) => c.slot === "skin" && c.hero === h.id).map((c) => c.variant)];
+      for (const look of looks) expect(formSheetCandidates(h.id, look, null).some((s) => onDisk.has(s)), `${h.id} / ${look ?? "база"}`).toBe(true);
     }
   });
 });

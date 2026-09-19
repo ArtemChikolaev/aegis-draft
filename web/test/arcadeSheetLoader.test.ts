@@ -109,6 +109,42 @@ describe("индекс листов набора", () => {
   });
 });
 
+describe("первый существующий лист из кандидатов (форма облика → базовая форма)", () => {
+  it("с прочитанным индексом ответ синхронный и без запросов к отсутствующему кандидату", async () => {
+    replies.set("/art/sprites/dota_px2/index.json", index(["tb@meta"]));
+    replies.set("/art/sprites/dota_px/index.json", index(["tb@meta"]));
+    replies.set("/art/sprites/dota_px2/tb@meta.json", [{ status: 200, body: META(160) }]);
+    const s = await load();
+    await s.preloadSheetIndexes();
+    const first = s.resolveSheet(["tb@fractal@meta", "tb@meta"], false);
+    expect(first).toEqual({ sheet: "tb@meta", settled: false });
+    expect(requested.filter((u) => !u.endsWith("/index.json"))).toEqual([]); // «только посмотреть» ничего не грузит
+    s.resolveSheet(["tb@fractal@meta", "tb@meta"]);
+    await settle();
+    expect(s.resolveSheet(["tb@fractal@meta", "tb@meta"])).toEqual({ sheet: "tb@meta", settled: true });
+    expect(requested.some((u) => u.includes("tb@fractal@meta"))).toBe(false);
+  });
+
+  it("без индекса кандидаты пробуются по одному: 404 первого — переход ко второму", async () => {
+    replies.set("/art/sprites/dota_px2/tb@meta.json", [{ status: 200, body: META(160) }]);
+    const s = await load();
+    expect(s.resolveSheet(["tb@fractal@meta", "tb@meta"])).toEqual({ sheet: "tb@fractal@meta", settled: false });
+    expect(requested.some((u) => u.includes("/tb@meta."))).toBe(false); // второй кандидат ещё не запрошен
+    await settle();
+    expect(s.resolveSheet(["tb@fractal@meta", "tb@meta"]).sheet).toBe("tb@meta");
+    await settle();
+    expect(s.resolveSheet(["tb@fractal@meta", "tb@meta"])).toEqual({ sheet: "tb@meta", settled: true });
+  });
+
+  it("ни одного кандидата нет — последний, окончательно", async () => {
+    replies.set("/art/sprites/dota_px2/index.json", index([]));
+    replies.set("/art/sprites/dota_px/index.json", index([]));
+    const s = await load();
+    await s.preloadSheetIndexes();
+    expect(s.resolveSheet(["a@meta", "b@meta"])).toEqual({ sheet: "b@meta", settled: true });
+  });
+});
+
 describe("сетевая ошибка — не «листа нет»", () => {
   it("сбой меты повторяется с бэк-оффом, лист в итоге загружен", async () => {
     replies.set("/art/sprites/dota_px2/index.json", index(["x"]));
