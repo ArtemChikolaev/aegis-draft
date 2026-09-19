@@ -41,6 +41,36 @@ if (!["plan", "build", "table"].includes(mode ?? "") || (mode !== "table" && (!h
 }
 const SIZES = [["px2", "scripts/blender/dota_manifest_px2.tsv", "public/art/sprites/dota_px2", "scripts/blender/dota_manifest_parts_px2.tsv"], ["px", "scripts/blender/dota_manifest_px.tsv", "public/art/sprites/dota_px", "scripts/blender/dota_manifest_parts_px.tsv"]] as const;
 const TS_PATH = "src/game/arcade/content/parts.ts";
+// Рамка силуэта клетки (стойка, направление 0) у двух листов — сверка кадрирования цельного листа с образцом семейства.
+const BBOX = `(async ({ a, am, b, bm, frame, row }) => {
+  const load = (x, mime) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = "data:" + mime + ";base64," + x; });
+  const out = [];
+  for (const img of [await load(a, am), await load(b, bm)]) {
+    const c = document.createElement("canvas"); c.width = c.height = frame; const x = c.getContext("2d");
+    x.drawImage(img, 0, row * frame, frame, frame, 0, 0, frame, frame);
+    const d = x.getImageData(0, 0, frame, frame).data; let x0 = frame, x1 = 0, y0 = frame, y1 = 0;
+    for (let y = 0; y < frame; y++) for (let xx = 0; xx < frame; xx++) if (d[(y * frame + xx) * 4 + 3] > 64) { x0 = Math.min(x0, xx); x1 = Math.max(x1, xx); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    out.push([x0, y0, x1, y1]);
+  }
+  return out;
+})`;
+// Скрипт страницы для замера порядка слоя спины (measureBackOrder ниже); объявлен до режимов: они идут с top-level await.
+const BACK_PROBE = `(async ({ whole, body, imgs, orders, meta }) => {
+  const load = (b) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = "data:image/webp;base64," + b; });
+  const W = await load(whole), B = await load(body); const L = {};
+  for (const [k, v] of Object.entries(imgs)) L[k] = await load(v);
+  const c = document.createElement("canvas"); c.width = W.width; c.height = W.height;
+  const x = c.getContext("2d", { willReadFrequently: true });
+  x.drawImage(W, 0, 0); const ref = x.getImageData(0, 0, c.width, c.height).data;
+  const out = [];
+  for (const order of orders) {
+    x.clearRect(0, 0, c.width, c.height); x.drawImage(B, 0, 0); for (const sl of order) x.drawImage(L[sl], 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height).data; const bad = new Array(meta.dirs).fill(0), tot = new Array(meta.dirs).fill(0);
+    for (const a of Object.values(meta.anims)) for (let dir = 0; dir < (a.dirs ?? meta.dirs); dir++) { const y0 = (a.row + dir) * meta.frame; for (let y = y0; y < y0 + meta.frame; y++) for (let xx = 0; xx < a.frames * meta.frame; xx++) { const i = (y * c.width + xx) * 4; if (ref[i + 3] < 8 && d[i + 3] < 8) continue; tot[dir]++; if (Math.abs(ref[i] - d[i]) + Math.abs(ref[i + 1] - d[i + 1]) + Math.abs(ref[i + 2] - d[i + 2]) + Math.abs(ref[i + 3] - d[i + 3]) > 48) bad[dir]++; } }
+    out.push(bad.map((b, i) => (b / Math.max(1, tot[i])) * 100));
+  }
+  return out;
+})`;
 interface Row { id: string; vmdl: string; args: string; parts: string[] }
 const rows = (f: string): Row[] => (existsSync(f) ? readFileSync(f, "utf8").split("\n").filter((l) => l && !l.startsWith("#")).map((l) => { const c = l.split("\t"); return { id: c[0], vmdl: c[1], args: c[2], parts: (c[3] ?? "").split(",").filter(Boolean) }; }) : []);
 const rowLine = (r: Row) => [r.id, r.vmdl, r.args, r.parts.join(",")].join("\t");
@@ -54,7 +84,7 @@ function slotName(p: string): string {
 }
 
 /** Семейство: основа героя со своим телом, её источники частей (источник → слот → модели) и слоты по умолчанию. */
-interface Family { id: string; hero: string; row: Row; sources: Map<string, Map<string, string[]>>; defaults: Map<string, string> }
+interface Family { id: string; hero: string; row: Row; sources: Map<string, Map<string, string[]>>; defaults: Map<string, string>; /** Хвост аргументов источника: сет-перекраска (`--style dpc` у Spring Lineage SF) рендерит свои слои с ним. */ extras: Map<string, string> }
 export function families(hero: string, man: Row[], want: readonly string[]): Family[] {
   const base = man.find((r) => r.id === hero);
   if (!base) throw new Error(`${hero}: нет базовой строки в манифесте`);
@@ -62,8 +92,14 @@ export function families(hero: string, man: Row[], want: readonly string[]): Fam
   // Слот — по исходной модели; `swap` подменяет путь уже после (арканный вариант части наследует слот предмета).
   const group = (parts: string[], swap: (p: string) => string = (p) => p) => { const m = new Map<string, string[]>(); for (const p of parts) { const s = slotName(p); (m.get(s) ?? m.set(s, []).get(s)!).push(swap(p)); } return m; };
   // Сеты на базовом теле: та же модель и те же аргументы, без стиля и формы; свои части — те, которых нет у базовой строки.
-  const sets = man.filter((r) => r.id.startsWith(`${hero}@`) && !r.id.includes("~") && !r.id.endsWith("@meta") && r.vmdl === base.vmdl && r.args === base.args)
-    .map((r) => ({ name: r.id.split("@")[1], own: r.parts.filter((p) => !base.parts.includes(p)) })).filter((s) => s.own.length);
+  // Сет-перекраска: те же аргументы плюс хвост только из `--style <токен>` / `--style-folder <папка>` (другие текстуры тех же моделей).
+  const setExtra = (r: Row): string | null => {
+    if (r.args === base.args) return "";
+    const e = r.args.startsWith(`${base.args} `) ? r.args.slice(base.args.length) : null;
+    return e !== null && /^( --style \S+| --style-folder \S+)+$/.test(e) ? e : null;
+  };
+  const sets = man.filter((r) => r.id.startsWith(`${hero}@`) && !r.id.includes("~") && !r.id.endsWith("@meta") && r.vmdl === base.vmdl && setExtra(r) !== null)
+    .map((r) => ({ name: r.id.split("@")[1], own: r.parts.filter((p) => !base.parts.includes(p)), extra: setExtra(r)! })).filter((s) => s.own.length);
   const famRows = [base, ...want.filter((id) => id.startsWith(`${hero}@`)).map((id) => { const r = man.find((x) => x.id === id); if (!r) throw new Error(`${id}: нет строки основы в манифесте`); return r; })];
   return famRows.map((row) => {
     const skin = row.id === hero ? null : row.id.split("@")[1].split("~")[0];
@@ -76,10 +112,11 @@ export function families(hero: string, man: Row[], want: readonly string[]): Fam
     const sources = new Map<string, Map<string, string[]>>();
     sources.set("base", group(base.parts));
     if (skin && own.length) sources.set(skin, group(own));
-    for (const s of sets) sources.set(s.name, group(s.own, swap));
+    const extras = new Map<string, string>();
+    for (const s of sets) { sources.set(s.name, group(s.own, swap)); if (s.extra) extras.set(s.name, s.extra); }
     const defaults = new Map<string, string>();
     for (const p of row.parts) defaults.set(slotName(p), own.includes(p) && skin ? skin : "base");
-    return { id: row.id, hero, row, sources, defaults };
+    return { id: row.id, hero, row, sources, defaults, extras };
   });
 }
 const layerIds = (f: Family) => [...f.sources].flatMap(([src, slots]) => [...slots.keys()].map((slot) => `${f.id}+${src}.${slot}`));
@@ -104,7 +141,7 @@ if (mode === "plan") {
         const id = `${f.id}+${src}.${slot}`;
         if (!wantedLayer(id)) continue;
         ids.push(id);
-        out.push(rowLine({ id, vmdl: f.row.vmdl, args: `${f.row.args} ${fit}`, parts }));
+        out.push(rowLine({ id, vmdl: f.row.vmdl, args: `${f.row.args}${f.extras.get(src) ?? ""} ${fit}`, parts }));
       }
       // Экспортные папки семьи → папка образца: vpk → glb один раз на основу (REUSE=1 в dota_pipeline.sh).
       mkdirSync(join(dir, "export", `${f.id}+ref`), { recursive: true });
@@ -167,11 +204,20 @@ if (mode === "build") {
           const layer = await partLayer(page, body, join(raw, `${id}.png`), tol);
           writeFileSync(lp, layer.png);
           quantWebp(lp, join(pub, `${id}.webp`)); copyFileSync(join(raw, `${id}.json`), join(pub, `${id}.json`));
-          byId.set(id, { id, vmdl: f.row.vmdl, args: f.row.args, parts });
+          byId.set(id, { id, vmdl: f.row.vmdl, args: `${f.row.args}${f.extras.get(src) ?? ""}`, parts });
           added++;
           console.log(`${size} ${id}: ${((layer.kept / layer.total) * 100).toFixed(1)}% листа`);
         }
         if (f.defaults.get(slot) === src && existsSync(lp)) defaultLayers[DRAW_ORDER.indexOf(slot)] = lp;
+      }
+      // Цельный лист основы в public обязан быть того же кадрирования, что образец семейства: иначе при переходе от цельного
+      // облика к смешанному спрайт «прыгает» (аркана SF 2026-09-19: старый цельный лист был мельче семейства на 8%).
+      const wholeWebp = join(pub, `${f.id}.webp`);
+      if (existsSync(wholeWebp)) {
+        const meta = JSON.parse(readFileSync(join(raw, `${f.id}+ref.json`), "utf8")) as { frame: number; anims: Record<string, { row: number }> };
+        const cell = { frame: meta.frame, row: (meta.anims.idle ?? Object.values(meta.anims)[0]).row };
+        const bb = await page.evaluate(`${BBOX}(${JSON.stringify({ a: readFileSync(wholeWebp).toString("base64"), am: "image/webp", b: readFileSync(ref).toString("base64"), bm: "image/png", ...cell })})`) as number[][];
+        if (bb[0].some((v, i) => Math.abs(v - bb[1][i]) > 3)) console.error(`${size} ${f.id}: ЦЕЛЬНЫЙ ЛИСТ ${f.id}.webp другого кадрирования (${bb[0].join(",")} против ${bb[1].join(",")}) — перерендерь строку основы или опубликуй лист из +ref`);
       }
       const ordered = defaultLayers.filter(Boolean);
       if (ordered.length === f.defaults.size) {
@@ -184,16 +230,16 @@ if (mode === "build") {
     console.log(`${size}: слоёв обновлено ${added}, строк в ${partsMan} ${byId.size}`);
   }
   await browser.close();
-  writeTable();
+  await writeTable();
 }
 
-if (mode === "table") writeTable();
+if (mode === "table") await writeTable();
 
 /** parts.ts из манифестов слоёв: семейства → источники → слоты (px2 — истина, px и файлы на диске обязаны совпадать). */
-function writeTable(): void {
+async function writeTable(): Promise<void> {
   const man = rows(SIZES[0][1]);
   const px2 = rows(SIZES[0][3]), px = new Set(rows(SIZES[1][3]).map((r) => r.id));
-  type Fam = { defaults: Record<string, string>; sources: Record<string, string[]> };
+  type Fam = { defaults: Record<string, string>; sources: Record<string, string[]>; backOrder?: number[] };
   const table: Record<string, { slots: string[]; families: Record<string, Fam> }> = {};
   const famIds = new Map<string, Set<string>>(); // hero → id семейств из манифеста слоёв
   for (const r of px2) {
@@ -226,18 +272,56 @@ function writeTable(): void {
     entry.slots = DRAW_ORDER.filter((s) => entry.slots.includes(s));
   }
   if (problems.length) { console.error(problems.join("\n")); process.exit(1); }
-  const data = JSON.stringify(table, null, 2);
+  await measureBackOrder(table);
+  const data = JSON.stringify(table, null, 2).replace(/"backOrder": \[[^\]]*\]/g, (m) => m.replace(/\s+/g, " "));
   writeFileSync(TS_PATH, `// Части героев по слотам Dota (T13.80). СГЕНЕРИРОВАНО scripts/dota_part_layers.mts table — не править руками.
 // У героя: слоты в порядке отрисовки (снизу вверх) и семейства основ — тела со своими слоями: базовая модель \`<hero>\`,
 // аркана \`<hero>@arcana\` и её стили \`<hero>@arcana~style1\`. У семейства: \`defaults\` — источник части в каждом слоте у
 // самой основы (слот без записи у неё пуст) и \`sources\` — источники (\`base\` — модель по умолчанию, имя основы — её
 // собственные части, \`<set>\` — сет \`<hero>@<set>\`) со слотами, под которые отрендерен слой \`<основа>+<источник>.<слот>\`.
 // Лист тела — \`<основа>+body\`. Слот — \`item_slot\` из items_game (dota_item_index.json), порядок — DRAW_ORDER (dota_slots.mjs).
+// \`backOrder\` — где рисовать слой спины (плащ, крылья) в каждом направлении: порядок слотов один на лист, но спиной к камере
+// плащ лежит ПОВЕРХ брони, а не под ней. Меряется здесь же: композит «тело + слои по умолчанию» против цельного листа основы.
 // Сборка облика — content/cosmetics.ts (loadoutSheet), рендер — features/arcade/sprites.ts.
 export type DotaSlot = ${DRAW_ORDER.map((s) => JSON.stringify(s)).join(" | ")};
-export interface PartsFamily { defaults: Readonly<Partial<Record<DotaSlot, string>>>; sources: Readonly<Record<string, readonly DotaSlot[]>> }
+export interface PartsFamily { defaults: Readonly<Partial<Record<DotaSlot, string>>>; sources: Readonly<Record<string, readonly DotaSlot[]>>; /** Порядок слоя спины по направлениям листа: 0 — первой, 1 — перед головой/оружием, 2 — последней (нет поля — всюду 0). */ backOrder?: readonly number[] }
 export interface HeroParts { slots: readonly DotaSlot[]; families: Readonly<Record<string, PartsFamily>> }
 export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */${data}/* END */;
 `);
   console.log(`${TS_PATH}: героев ${Object.keys(table).length}, семейств ${Object.values(table).reduce((n, h) => n + Object.keys(h.families).length, 0)}`);
+}
+
+
+/**
+ * Порядок слоя спины по направлениям (владелец 2026-09-19: «крылья TB просвечивают сквозь скин»). Слой — разница с голым
+ * телом, взаимных перекрытий частей он не знает: лицом к камере плащ под бронёй, спиной — поверх неё. Для каждого
+ * семейства со спиной по умолчанию сравниваем с цельным листом основы три варианта (0 — спина первой, 1 — перед
+ * головой/оружием, 2 — последней) по каждому направлению и берём лучший; 0 уступает, только если выигрыш заметен
+ * (> 0.5 п.п.). Семейство без спины по умолчанию (аркана Jugg) наследует порядок базового семейства героя.
+ */
+async function measureBackOrder(table: Record<string, { slots: string[]; families: Record<string, { defaults: Record<string, string>; sources: Record<string, string[]>; backOrder?: number[] }> }>): Promise<void> {
+  const { chromium } = await import("playwright");
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  const pub = SIZES[0][2];
+  const b64 = (f: string) => readFileSync(f).toString("base64");
+  const TOP = ["head", "weapon", "offhand_weapon"];
+  for (const [hero, hp] of Object.entries(table)) {
+    for (const [fam, f] of Object.entries(hp.families)) {
+      if (!f.defaults.back || !existsSync(join(pub, `${fam}.webp`))) continue;
+      const meta = JSON.parse(readFileSync(join(pub, `${fam}.json`), "utf8")) as { frame: number; dirs: number; anims: Record<string, { row: number; frames: number }> };
+      const slots = hp.slots.filter((sl) => f.defaults[sl]);
+      const orders = [slots, [...slots.filter((x) => x !== "back" && !TOP.includes(x)), "back", ...slots.filter((x) => TOP.includes(x))], [...slots.filter((x) => x !== "back"), "back"]];
+      const imgs = Object.fromEntries(slots.map((sl) => [sl, b64(join(pub, `${fam}+${f.defaults[sl]}.${sl}.webp`))]));
+      // Скрипт страницы — строкой: tsx/esbuild вставляет в функции хелпер `__name`, которого в браузере нет.
+      const miss = await page.evaluate(`${BACK_PROBE}(${JSON.stringify({ whole: b64(join(pub, `${fam}.webp`)), body: b64(join(pub, `${fam}+body.webp`)), imgs, orders, meta })})`) as number[][];
+      const order = Array.from({ length: meta.dirs }, (_, d) => { const best = miss[1][d] <= miss[2][d] ? 1 : 2; return miss[0][d] - miss[best][d] > 0.5 ? best : 0; });
+      if (order.some((o) => o !== 0)) f.backOrder = order;
+      const avg = (o: number[]) => (o.reduce((s2, v) => s2 + v, 0) / o.length).toFixed(1);
+      console.log(`${fam}: спина по направлениям [${order.join(",")}] — промах ${avg(miss[0])}% → ${avg(order.map((o, d) => miss[o][d]))}%`);
+    }
+    const base = hp.families[hero]?.backOrder;
+    if (base) for (const f of Object.values(hp.families)) if (!f.defaults.back && !f.backOrder) f.backOrder = base;
+  }
+  await browser.close();
 }

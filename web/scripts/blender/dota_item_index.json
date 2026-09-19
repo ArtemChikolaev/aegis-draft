@@ -3430,6 +3430,30 @@
       "hero": "nevermore",
       "prefab": "wearable"
     },
+    "models/heroes/shadow_fiend/shadow_fiend_arms.vmdl": {
+      "id": "488",
+      "name": "Shadow Fiend's Arms",
+      "slot": "arms",
+      "rarity": "common",
+      "hero": "nevermore",
+      "prefab": "default_item"
+    },
+    "models/heroes/shadow_fiend/shadow_fiend_head.vmdl": {
+      "id": "387",
+      "name": "Shadow Fiend's Head",
+      "slot": "head",
+      "rarity": "common",
+      "hero": "nevermore",
+      "prefab": "default_item"
+    },
+    "models/heroes/shadow_fiend/shadow_fiend_shoulders.vmdl": {
+      "id": "486",
+      "name": "Shadow Fiend's Shoulders",
+      "slot": "shoulder",
+      "rarity": "common",
+      "hero": "nevermore",
+      "prefab": "default_item"
+    },
     "models/heroes/shadowshaman/armarmor.vmdl": {
       "id": "249",
       "name": "Shadow Shaman's Armor",
@@ -4878,6 +4902,22 @@
       "hero": "ancient_apparition",
       "prefab": "wearable"
     },
+    "models/items/antimage/arc_of_manta__offhand/arc_of_manta__offhand.vmdl": {
+      "id": "5395",
+      "name": "Arc of Manta - Off-Hand",
+      "slot": "offhand_weapon",
+      "rarity": "mythical",
+      "hero": "antimage",
+      "prefab": "wearable"
+    },
+    "models/items/antimage/arc_of_manta/arc_of_manta.vmdl": {
+      "id": "5396",
+      "name": "Arc of Manta",
+      "slot": "weapon",
+      "rarity": "mythical",
+      "hero": "antimage",
+      "prefab": "wearable"
+    },
     "models/items/antimage/god_eater_armor/god_eater_armor.vmdl": {
       "id": "8730",
       "name": "Tunic of the Survivor",
@@ -4931,6 +4971,22 @@
       "name": "Blade of the Survivor",
       "slot": "weapon",
       "rarity": "mythical",
+      "hero": "antimage",
+      "prefab": "wearable"
+    },
+    "models/items/antimage/skullbasher/skullbasher_offhand.vmdl": {
+      "id": "8324",
+      "name": "Offhand Basher of Mage Skulls",
+      "slot": "offhand_weapon",
+      "rarity": "immortal",
+      "hero": "antimage",
+      "prefab": "wearable"
+    },
+    "models/items/antimage/skullbasher/skullbasher.vmdl": {
+      "id": "8271",
+      "name": "Basher of Mage Skulls",
+      "slot": "weapon",
+      "rarity": "immortal",
       "hero": "antimage",
       "prefab": "wearable"
     },
@@ -6718,6 +6774,62 @@
       "hero": "dragon_knight",
       "prefab": "wearable"
     },
+    "models/items/drow/aghsbp_2021_drow_arms/aghsbp_2021_drow_arms.vmdl": {
+      "id": "22353",
+      "name": "Black Ice Constellation - Arms",
+      "slot": "arms",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/aghsbp_2021_drow_back/aghsbp_2021_drow_back.vmdl": {
+      "id": "22355",
+      "name": "Black Ice Constellation - Cloak",
+      "slot": "back",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/aghsbp_2021_drow_head/aghsbp_2021_drow_head.vmdl": {
+      "id": "22351",
+      "name": "Black Ice Constellation - Head",
+      "slot": "head",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/aghsbp_2021_drow_leg/aghsbp_2021_drow_leg.vmdl": {
+      "id": "22354",
+      "name": "Black Ice Constellation - Legs",
+      "slot": "legs",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/aghsbp_2021_drow_misc/aghsbp_2021_drow_misc.vmdl": {
+      "id": "22358",
+      "name": "Black Ice Constellation - Quiver",
+      "slot": "misc",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/aghsbp_2021_drow_shoulders/aghsbp_2021_drow_shoulders.vmdl": {
+      "id": "22352",
+      "name": "Black Ice Constellation - Shoulders",
+      "slot": "shoulder",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/aghsbp_2021_drow_weapon/aghsbp_2021_drow_weapon.vmdl": {
+      "id": "22359",
+      "name": "Black Ice Constellation - Weapon",
+      "slot": "weapon",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
     "models/items/drow/drow_arcana/drow_arcana_arms.vmdl": {
       "id": "19088",
       "name": "Dread Retribution - Bracers",
@@ -6827,6 +6939,118 @@
         "models/items/drow/2023_crownfall_shoulders/drow_scree_shoulders.vmdl": "models/items/drow/2023_crownfall_shoulders/drow_scree_shoulders_arcana_refit.vmdl",
         "models/items/drow/drow_dark_carnival/drow_dark_carnival_shoulders.vmdl": "models/items/drow/drow_dark_carnival/drow_dark_carnival_shoulders_arcana_refit.vmdl"
       }
+    },
+    "models/items/drow/drow_runic_archer_arms/drow_runic_archer_arms.vmdl": {
+      "id": "13377",
+      "name": "Arms of the Kha-Ren Faithful",
+      "slot": "arms",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/drow_runic_archer_back/drow_runic_archer_back.vmdl": {
+      "id": "13380",
+      "name": "Cape of the Kha-Ren Faithful",
+      "slot": "back",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/drow_runic_archer_head/drow_runic_archer_head.vmdl": {
+      "id": "13339",
+      "name": "Style of the Kha-Ren Faithful",
+      "slot": "head",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/drow_runic_archer_legs/drow_runic_archer_legs.vmdl": {
+      "id": "13379",
+      "name": "Legs of the Kha-Ren Faithful",
+      "slot": "legs",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/drow_runic_archer_misc/drow_runic_archer_misc.vmdl": {
+      "id": "13337",
+      "name": "Quiver of the Kha-Ren Faithful",
+      "slot": "misc",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/drow_runic_archer_shoulder/drow_runic_archer_shoulder.vmdl": {
+      "id": "13378",
+      "name": "Armor of the Kha-Ren Faithful",
+      "slot": "shoulder",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/drow_runic_archer_weapon/drow_runic_archer_weapon.vmdl": {
+      "id": "13338",
+      "name": "Bow of the Kha-Ren Faithful",
+      "slot": "weapon",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/wandering_ranger_arms/wandering_ranger_arms.vmdl": {
+      "id": "17871",
+      "name": "Stranger in the Wandering Isles - Arms",
+      "slot": "arms",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/wandering_ranger_back/wandering_ranger_back.vmdl": {
+      "id": "17870",
+      "name": "Stranger in the Wandering Isles - Back",
+      "slot": "back",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/wandering_ranger_head/wandering_ranger_head.vmdl": {
+      "id": "17869",
+      "name": "Stranger in the Wandering Isles - Head",
+      "slot": "head",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/wandering_ranger_legs/wandering_ranger_legs.vmdl": {
+      "id": "17868",
+      "name": "Stranger in the Wandering Isles - Legs",
+      "slot": "legs",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/wandering_ranger_misc/wandering_ranger_misc.vmdl": {
+      "id": "19311",
+      "name": "Stranger in the Wandering Isles - Misc",
+      "slot": "misc",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/wandering_ranger_shoulder/wandering_ranger_shoulder.vmdl": {
+      "id": "19310",
+      "name": "Stranger in the Wandering Isles - Shoulder",
+      "slot": "shoulder",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
+    },
+    "models/items/drow/wandering_ranger_weapon/wandering_ranger_weapon.vmdl": {
+      "id": "19309",
+      "name": "Stranger in the Wandering Isles - Weapon",
+      "slot": "weapon",
+      "rarity": "mythical",
+      "hero": "drow_ranger",
+      "prefab": "wearable"
     },
     "models/items/earth_spirit/bowling_champion_arms/bowling_champion_arms.vmdl": {
       "id": "17850",
@@ -9332,6 +9556,54 @@
       "slot": "weapon",
       "rarity": "rare",
       "hero": "nyx_assassin",
+      "prefab": "wearable"
+    },
+    "models/items/nevermore/ferrum_chiroptera_arms/ferrum_chiroptera_arms.vmdl": {
+      "id": "9019",
+      "name": "Grips of Eternal Harvest",
+      "slot": "arms",
+      "rarity": "mythical",
+      "hero": "nevermore",
+      "prefab": "wearable"
+    },
+    "models/items/nevermore/ferrum_chiroptera_head/ferrum_chiroptera_head.vmdl": {
+      "id": "9021",
+      "name": "Horns of Eternal Harvest",
+      "slot": "head",
+      "rarity": "mythical",
+      "hero": "nevermore",
+      "prefab": "wearable"
+    },
+    "models/items/nevermore/ferrum_chiroptera_shoulder/ferrum_chiroptera_shoulder.vmdl": {
+      "id": "9020",
+      "name": "Pauldrons of Eternal Harvest",
+      "slot": "shoulder",
+      "rarity": "mythical",
+      "hero": "nevermore",
+      "prefab": "wearable"
+    },
+    "models/items/nevermore/sf_souls_tyrant_arms/sf_souls_tyrant_arms.vmdl": {
+      "id": "13506",
+      "name": "Souls Tyrant Arms",
+      "slot": "arms",
+      "rarity": "mythical",
+      "hero": "nevermore",
+      "prefab": "wearable"
+    },
+    "models/items/nevermore/sf_souls_tyrant_head/sf_souls_tyrant_head.vmdl": {
+      "id": "13505",
+      "name": "Souls Tyrant Head",
+      "slot": "head",
+      "rarity": "mythical",
+      "hero": "nevermore",
+      "prefab": "wearable"
+    },
+    "models/items/nevermore/sf_souls_tyrant_shoulder/sf_souls_tyrant_shoulder.vmdl": {
+      "id": "13507",
+      "name": "Souls Tyrant Shoulder",
+      "slot": "shoulder",
+      "rarity": "mythical",
+      "hero": "nevermore",
       "prefab": "wearable"
     },
     "models/items/nightstalker/black_nihility/black_nihility_arms.vmdl": {

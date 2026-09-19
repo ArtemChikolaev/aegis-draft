@@ -150,7 +150,7 @@ export function buildIndex(itemsFile: string, wanted: Set<string>): ItemIndex {
     const hero = heroes ? [...heroes.keys()][0]?.replace(/^npc_dota_hero_/, "") : undefined;
     const visuals = sub(item, "visuals");
     const styles = sub(visuals, "styles");
-    const entry: IndexedItem = { id, name: one(item, "name") ?? "", slot: inherited(item, "item_slot") ?? "?" };
+    const entry: IndexedItem = { id, name: one(item, "name") ?? "", slot: (inherited(item, "item_slot") ?? "?").toLowerCase() }; // у Valve встречается «Legs» с заглавной (Death Shadow у Drow)
     const rarity = inherited(item, "item_rarity"); if (rarity) entry.rarity = rarity;
     if (hero) entry.hero = hero;
     const prefab = one(item, "prefab"); if (prefab) entry.prefab = prefab;

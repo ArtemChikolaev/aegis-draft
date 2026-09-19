@@ -4,9 +4,11 @@
 // самой основы (слот без записи у неё пуст) и `sources` — источники (`base` — модель по умолчанию, имя основы — её
 // собственные части, `<set>` — сет `<hero>@<set>`) со слотами, под которые отрендерен слой `<основа>+<источник>.<слот>`.
 // Лист тела — `<основа>+body`. Слот — `item_slot` из items_game (dota_item_index.json), порядок — DRAW_ORDER (dota_slots.mjs).
+// `backOrder` — где рисовать слой спины (плащ, крылья) в каждом направлении: порядок слотов один на лист, но спиной к камере
+// плащ лежит ПОВЕРХ брони, а не под ней. Меряется здесь же: композит «тело + слои по умолчанию» против цельного листа основы.
 // Сборка облика — content/cosmetics.ts (loadoutSheet), рендер — features/arcade/sprites.ts.
 export type DotaSlot = "back" | "tail" | "mount" | "legs" | "belt" | "armor" | "costume" | "arms" | "gloves" | "shoulder" | "neck" | "misc" | "body_head" | "head" | "weapon" | "offhand_weapon";
-export interface PartsFamily { defaults: Readonly<Partial<Record<DotaSlot, string>>>; sources: Readonly<Record<string, readonly DotaSlot[]>> }
+export interface PartsFamily { defaults: Readonly<Partial<Record<DotaSlot, string>>>; sources: Readonly<Record<string, readonly DotaSlot[]>>; /** Порядок слоя спины по направлениям листа: 0 — первой, 1 — перед головой/оружием, 2 — последней (нет поля — всюду 0). */ backOrder?: readonly number[] }
 export interface HeroParts { slots: readonly DotaSlot[]; families: Readonly<Record<string, PartsFamily>> }
 export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
   "juggernaut": {
@@ -41,7 +43,8 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "head",
             "weapon"
           ]
-        }
+        },
+        "backOrder": [ 1, 0, 0, 0, 1, 2, 1, 1 ]
       },
       "juggernaut@arcana": {
         "defaults": {
@@ -68,7 +71,8 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "head",
             "weapon"
           ]
-        }
+        },
+        "backOrder": [ 1, 0, 0, 0, 1, 2, 1, 1 ]
       },
       "juggernaut@arcana~style1": {
         "defaults": {
@@ -95,7 +99,8 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "head",
             "weapon"
           ]
-        }
+        },
+        "backOrder": [ 1, 0, 0, 0, 1, 2, 1, 1 ]
       }
     }
   },
@@ -470,7 +475,8 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "head",
             "weapon"
           ]
-        }
+        },
+        "backOrder": [ 0, 0, 2, 2, 2, 2, 2, 0 ]
       },
       "terrorblade@arcana": {
         "defaults": {
@@ -519,7 +525,256 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "head",
             "weapon"
           ]
+        },
+        "backOrder": [ 0, 0, 2, 2, 2, 2, 2, 0 ]
+      }
+    }
+  },
+  "anti_mage": {
+    "slots": [
+      "belt",
+      "armor",
+      "arms",
+      "shoulder",
+      "head",
+      "weapon",
+      "offhand_weapon"
+    ],
+    "families": {
+      "anti_mage": {
+        "defaults": {
+          "arms": "base",
+          "belt": "base",
+          "armor": "base",
+          "head": "base",
+          "offhand_weapon": "base",
+          "weapon": "base"
+        },
+        "sources": {
+          "base": [
+            "belt",
+            "armor",
+            "arms",
+            "head",
+            "weapon",
+            "offhand_weapon"
+          ],
+          "guilt_of_the_survivor": [
+            "belt",
+            "armor",
+            "arms",
+            "shoulder",
+            "head",
+            "weapon",
+            "offhand_weapon"
+          ],
+          "basher_blades": [
+            "weapon",
+            "offhand_weapon"
+          ],
+          "arcs_of_manta": [
+            "weapon",
+            "offhand_weapon"
+          ]
         }
+      }
+    }
+  },
+  "shadow_fiend": {
+    "slots": [
+      "back",
+      "arms",
+      "shoulder",
+      "head"
+    ],
+    "families": {
+      "shadow_fiend": {
+        "defaults": {
+          "arms": "base",
+          "head": "base",
+          "shoulder": "base"
+        },
+        "sources": {
+          "base": [
+            "arms",
+            "shoulder",
+            "head"
+          ],
+          "eternal_harvest": [
+            "arms",
+            "shoulder",
+            "head"
+          ],
+          "souls_tyrant": [
+            "arms",
+            "shoulder",
+            "head"
+          ],
+          "spring_lineage_eternal_harvest": [
+            "arms",
+            "shoulder",
+            "head"
+          ]
+        }
+      },
+      "shadow_fiend@arcana": {
+        "defaults": {
+          "back": "arcana",
+          "arms": "arcana",
+          "head": "arcana",
+          "shoulder": "arcana"
+        },
+        "sources": {
+          "base": [
+            "arms",
+            "shoulder",
+            "head"
+          ],
+          "arcana": [
+            "back",
+            "arms",
+            "shoulder",
+            "head"
+          ],
+          "eternal_harvest": [
+            "arms",
+            "shoulder",
+            "head"
+          ],
+          "souls_tyrant": [
+            "arms",
+            "shoulder",
+            "head"
+          ],
+          "spring_lineage_eternal_harvest": [
+            "arms",
+            "shoulder",
+            "head"
+          ]
+        },
+        "backOrder": [ 0, 0, 1, 2, 2, 2, 1, 0 ]
+      }
+    }
+  },
+  "drow_ranger": {
+    "slots": [
+      "back",
+      "legs",
+      "arms",
+      "shoulder",
+      "misc",
+      "head",
+      "weapon"
+    ],
+    "families": {
+      "drow_ranger": {
+        "defaults": {
+          "shoulder": "base",
+          "arms": "base",
+          "back": "base",
+          "head": "base",
+          "legs": "base",
+          "misc": "base",
+          "weapon": "base"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "sight_of_the_kha_ren_faithful": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "stranger_in_the_wandering_isles": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "black_ice_constellation": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ]
+        },
+        "backOrder": [ 0, 0, 2, 2, 2, 1, 1, 1 ]
+      },
+      "drow_ranger@arcana": {
+        "defaults": {
+          "arms": "arcana",
+          "back": "arcana",
+          "head": "arcana",
+          "legs": "arcana",
+          "misc": "arcana",
+          "shoulder": "arcana",
+          "weapon": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "arcana": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "sight_of_the_kha_ren_faithful": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "stranger_in_the_wandering_isles": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "black_ice_constellation": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ]
+        },
+        "backOrder": [ 0, 0, 0, 1, 1, 0, 0, 0 ]
       }
     }
   }

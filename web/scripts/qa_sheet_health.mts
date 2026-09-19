@@ -35,7 +35,7 @@ const PAGE = `(async (b64, meta) => {
   const grab = (row, fr) => { x.clearRect(0, 0, F, F); x.drawImage(img, fr*F, row*F, F, F, 0, 0, F, F); return x.getImageData(0, 0, F, F).data; };
   for (const [name, a] of Object.entries(meta.anims)) {
     let worstParts = 0, worstJit = 0, worstStrobe = 0, worstDrop = 0, worstWhere = ''; let cut = 0, cutTotal = 0;
-    for (let d = 0; d < meta.dirs; d++) {
+    for (let d = 0; d < (a.dirs ?? meta.dirs); d++) { // у клипа может быть своё число направлений (смерть — одно)
       const cent = [], parts = [], area = [], masks = [];
       for (let fr = 0; fr < a.frames; fr++) {
         const px = grab(a.row + d, fr);

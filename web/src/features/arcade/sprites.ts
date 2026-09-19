@@ -13,6 +13,7 @@ import type { AbilityKey } from "../../game/arcade/types.ts";
 
 const ABILITY_SLOTS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 
+import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
 const ROOT = `${import.meta.env.BASE_URL}art/sprites/`;
 const BASE = `${ROOT}lpc/`;
 const FOLDER: Record<CharAnim, string> = { walk: "walkcycle", slash: "slash", thrust: "thrust", bow: "bow", spellcast: "spellcast", hurt: "hurt" };
@@ -252,7 +253,9 @@ export interface DotaMeta {
   fps: number;
   world: number;
   anchor: { x: number; y: number };
-  anims: Record<string, { row: number; frames: number }>;
+  /** `dirs` у клипа — своё число направлений (смерть рендерится только лицом к камере: в игре её рисуют в направлении 0,
+   *  остальные ряды были мёртвым весом — 17% каждого листа); нет поля — как у листа. */
+  anims: Record<string, { row: number; frames: number; dirs?: number }>;
   /** Запас кадра вокруг силуэта (render_dota_sprites.py --margin); нет в мете — старые листы с 1.12. */
   margin?: number;
   /** Тон свечения листа в градусах (render_dota_sprites.py пишет из --glow-color / --glow-from-alpha):
@@ -534,14 +537,47 @@ function compositeParts(name: string): string[] {
 }
 const imgSize = (img: DotaSheet["img"]) => (img instanceof HTMLCanvasElement ? { w: img.width, h: img.height } : { w: img.naturalWidth, h: img.naturalHeight });
 /** Слои композита, когда все готовы: null — хоть один ещё грузится; `missing` — нет тела. */
-function compositeLayers(name: string): { body: DotaSheet; layers: DotaSheet[] } | null | "missing" {
+function compositeLayers(name: string): { body: DotaSheet; layers: DotaSheet[]; ids: string[]; all: (DotaSheet | null)[] } | null | "missing" {
   const ids = compositeParts(name);
   const sheets = ids.map((id) => dotaSheet(id));
   const states = ids.map((id) => dotaSheetState(id));
   if (states[0] === "missing") return "missing";
   if (states.some((st) => st === "loading") || typeof document === "undefined") return null;
-  return { body: sheets[0]!, layers: sheets.filter((sh): sh is DotaSheet => !!sh) };
+  return { body: sheets[0]!, layers: sheets.filter((sh): sh is DotaSheet => !!sh), ids, all: sheets };
 }
+/** Слоты, которые остаются поверх спины в порядке 1 («спина перед головой и оружием»). */
+const OVER_BACK = new Set(["head", "weapon", "offhand_weapon"]);
+/**
+ * Нарисовать слои композита. Порядок слотов один на лист, но слой спины (крылья, плащ) зависит от направления: лицом к
+ * камере он под бронёй, спиной к камере — поверх неё (владелец 2026-09-19: «крылья TB просвечивают сквозь скин»).
+ * `backOrder[dir]` из parts.ts (меряет `dota_part_layers.mts` против цельного листа): 0 — спина первой, 1 — перед
+ * головой/оружием, 2 — последней. `rows(dir)` отдаёт прямоугольники рядов этого направления в координатах назначения.
+ */
+function drawLayers(c: CanvasRenderingContext2D, ids: readonly string[], layers: readonly (DotaSheet | null)[], backOrder: readonly number[] | undefined, dirs: number, draw: (img: DotaSheet["img"]) => void, rows: (dir: number) => readonly [number, number, number, number][]): void {
+  const slotOf = (id: string) => id.slice(id.lastIndexOf(".") + 1);
+  const backs = layers.map((sh, i) => (sh && i > 0 && slotOf(ids[i]) === "back" ? sh : null));
+  const drawBack = (order: number) => {
+    const ds = Array.from({ length: dirs }, (_, d) => d).filter((d) => (backOrder?.[d] ?? 0) === order);
+    if (!ds.length || !backs.some(Boolean)) return;
+    c.save();
+    c.beginPath();
+    for (const d of ds) for (const [x, y, w, h] of rows(d)) c.rect(x, y, w, h);
+    c.clip();
+    for (const b of backs) if (b) draw(b.img);
+    c.restore();
+  };
+  let overDone = false;
+  layers.forEach((sh, i) => {
+    if (!sh) return;
+    if (backs[i]) { drawBack(0); return; }
+    if (!overDone && i > 0 && OVER_BACK.has(slotOf(ids[i]))) { drawBack(1); overDone = true; }
+    draw(sh.img);
+  });
+  if (!overDone) drawBack(1);
+  drawBack(2);
+}
+const backOrderOf = (name: string): readonly number[] | undefined => { const fam = name.split("+")[0]; return HERO_PARTS[fam.split("@")[0]]?.families[fam]?.backOrder; };
+
 function compositeSheet(name: string): DotaSheet | null {
   const cached = compositeSheets.get(name);
   if (cached !== undefined) return cached;
@@ -555,7 +591,9 @@ function compositeSheet(name: string): DotaSheet | null {
   const c = cv.getContext("2d");
   if (!c) return null;
   c.imageSmoothingEnabled = false;
-  for (const sh of got.layers) c.drawImage(sh.img, 0, 0, w, h);
+  const m0 = got.body.meta; // ряды — в координатах листа тела (слой другого размера растянут до него)
+  drawLayers(c, got.ids, got.all, backOrderOf(name), m0.dirs, (img) => c.drawImage(img, 0, 0, w, h),
+    (dir) => Object.values(m0.anims).filter((a) => dir < (a.dirs ?? m0.dirs)).map((a) => [0, (a.row + dir) * m0.frame, w, m0.frame] as [number, number, number, number]));
   // Имя меты — имя композита: геометрия кадров и скан свечения кэшируются по нему, а тело без частей — другой силуэт.
   const res: DotaSheet = { img: cv, meta: { ...got.body.meta, name } };
   compositeSheets.set(name, res, w * h * 4);
@@ -580,11 +618,8 @@ export function dotaSheetStill(name: string): DotaSheet | null {
   const c = cv.getContext("2d");
   if (!c) return null;
   c.imageSmoothingEnabled = false;
-  for (const sh of got.layers) {
-    const sz = imgSize(sh.img);
-    const k = sz.w / w;
-    c.drawImage(sh.img, 0, a.row * m.frame * k, m.frame * k, m.frame * k, 0, 0, m.frame, m.frame);
-  }
+  // Кадр стойки лицом к камере — направление 0: слой спины рисуется по своему порядку для него.
+  drawLayers(c, got.ids, got.all, backOrderOf(name), 1, (img) => { const k = imgSize(img).w / w; c.drawImage(img, 0, a.row * m.frame * k, m.frame * k, m.frame * k, 0, 0, m.frame, m.frame); }, () => [[0, 0, m.frame, m.frame]]);
   const res: DotaSheet = { img: cv, meta: { ...m, name: `${name}#still`, dirs: 1, anims: { idle: { row: 0, frames: 1 } } } };
   compositeStills.set(name, res);
   return res;
@@ -612,11 +647,12 @@ export function dotaSheet(name: string): DotaSheet | null {
   if (v === undefined) {
     dotaSheets.set(name, "loading");
     const miss = () => { dotaSheets.set(name, null); if (TERRAIN_SHEETS.has(name)) terrainAssets++; };
-    // Плотный пиксель (фактор 1): листы `dota_px2/` (кадр героя 160), нет — `dota_px/` (80, растянутся nearest ×2), нет — обычный лист.
-    const px = () => loadSheet(name, "dota_px", () => loadSheet(name, "dota", miss));
-    if (pixelSheets && denseSheets) loadSheet(name, "dota_px2", px);
-    else if (pixelSheets) px();
-    else loadSheet(name, "dota", miss);
+    // Плотный пиксель (фактор 1): листы `dota_px2/` (кадр героя 160), нет — `dota_px/` (80, растянутся nearest ×2). Непиксельного
+    // набора `dota/` больше нет (2026-09-19: 41 лист первых героев, −31 МБ сайта): отладочный `?pixel=0` рисует те же
+    // пиксельные листы, только без пиксельного прохода рендера.
+    const px = () => loadSheet(name, "dota_px", miss);
+    if (!pixelSheets || denseSheets) loadSheet(name, "dota_px2", px);
+    else px();
     return null;
   }
   return v === "loading" ? null : v;
@@ -665,7 +701,7 @@ export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, ani
   const m = sheet.meta;
   const a = m.anims[anim] ?? (anim === "attack" || anim === "idle" ? m.anims.walk ?? m.anims.idle : anim === "walk" ? m.anims.idle : undefined);
   if (!a) return false;
-  const row = a.row + (dir % m.dirs);
+  const row = a.row + (dir % (a.dirs ?? m.dirs));
   const f = a.frames > 0 ? ((frame % a.frames) + a.frames) % a.frames : 0;
   const scale = (m.world / m.frame) * sizeMult;
   const w = m.frame * scale;
@@ -707,7 +743,7 @@ export function frameGeometry(sheet: DotaSheet, anim: string, dir: number, frame
   const m = sheet.meta;
   const a = m.anims[anim] ?? (anim === "attack" || anim === "idle" ? m.anims.walk ?? m.anims.idle : anim === "walk" ? m.anims.idle : undefined);
   if (!a || typeof document === "undefined") return null;
-  const row = a.row + (dir % m.dirs);
+  const row = a.row + (dir % (a.dirs ?? m.dirs));
   const f = a.frames > 0 ? ((frame % a.frames) + a.frames) % a.frames : 0;
   const key = `${m.name}:${row}:${f}`;
   const cached = frameGeo.get(key);
@@ -743,9 +779,9 @@ export function frameGeometry(sheet: DotaSheet, anim: string, dir: number, frame
   return geo;
 }
 
-/** Бесшовная текстура земли Dota (`dota/terrain/<name>.webp`), если положена. */
+/** Бесшовная текстура земли Dota (`dota_px/terrain/<name>.webp`), если положена. */
 export function dotaTerrain(name: string): HTMLImageElement | null {
-  const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${name}.webp`, ROOT);
+  const el = img(`dota_px/terrain/${name}.webp`, ROOT);
   return ready(el) ? el : null;
 }
 export function pixelSheetsOn(): boolean { return pixelSheets; }
@@ -766,7 +802,7 @@ export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act:
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
   const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
   kick();
-  const ready = () => sheets.every((n) => dotaSheetState(n) !== "loading") && terrain.every((t) => { const el = img(`${pixelSheets ? "dota_px" : "dota"}/terrain/${t}.webp`, ROOT); return el === null || (!!el && el.complete); });
+  const ready = () => sheets.every((n) => dotaSheetState(n) !== "loading") && terrain.every((t) => { const el = img(`dota_px/terrain/${t}.webp`, ROOT); return el === null || (!!el && el.complete); });
   return new Promise((resolve) => {
     const started = Date.now();
     const tick = () => { if (ready() || Date.now() - started > timeoutMs) resolve(); else window.setTimeout(tick, 50); };

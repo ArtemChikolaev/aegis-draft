@@ -1,5 +1,15 @@
 {
   "_": "Слоты моделей, которых нет в items_game.txt (T13.80 A2). Каждая запись — с причиной: генератор слоёв не превращает неизвестное в misc, а останавливается. Ключ — путь модели без `_c`.",
-  "models/heroes/axe/axe_hair.vmdl": { "slot": "head", "why": "Волосы базовой модели Axe не оформлены предметом: предмет 4 «Axe's Hair» (head) — только хвост axe_ponytail, а axe_hair — вторая часть той же причёски. Голова сета (blackthorn_head, armor_of_the_wrought_legion_head) заменяет обе." },
-  "models/heroes/monkey_king/monkey_king_cape.vmdl": { "slot": "back", "why": "Плащ базовой модели MK не оформлен предметом (дефолтные предметы MK: head/armor/weapon/shoulder). Сеты MK в манифесте его не перекрывают, слот назван по месту на теле." }
+  "models/heroes/axe/axe_hair.vmdl": {
+    "slot": "head",
+    "why": "Волосы базовой модели Axe не оформлены предметом: предмет 4 «Axe's Hair» (head) — только хвост axe_ponytail, а axe_hair — вторая часть той же причёски. Голова сета (blackthorn_head, armor_of_the_wrought_legion_head) заменяет обе."
+  },
+  "models/heroes/monkey_king/monkey_king_cape.vmdl": {
+    "slot": "back",
+    "why": "Плащ базовой модели MK не оформлен предметом (дефолтные предметы MK: head/armor/weapon/shoulder). Сеты MK в манифесте его не перекрывают, слот назван по месту на теле."
+  },
+  "models/heroes/shadow_fiend/arcana_wings.vmdl": {
+    "slot": "back",
+    "why": "Крылья арканы SF (Demon Eater) — не предмет: в items_game модели нет, это дополнительная модель арканы (в Dota раскрывается на Requiem of Souls), в нашей строке shadow_fiend@arcana надета постоянно. Слот по месту на теле; сеты SF слот back не занимают."
+  }
 }

@@ -19,7 +19,7 @@ const PAGE = `(async (b64, meta, anims) => {
   for (const [name, a] of Object.entries(meta.anims)) {
     if (anims.length && !anims.includes(name)) continue;
     const counts = [];
-    for (let d = 0; d < meta.dirs; d++) {
+    for (let d = 0; d < (a.dirs ?? meta.dirs); d++) { // у клипа может быть своё число направлений (смерть — одно)
       for (let fr = 0; fr < a.frames; fr++) {
         x.clearRect(0,0,f,f); x.drawImage(img, fr*f, (a.row + d)*f, f, f, 0, 0, f, f);
         const px = x.getImageData(0,0,f,f).data;

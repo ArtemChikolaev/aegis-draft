@@ -33,6 +33,24 @@ describe("id листов спрайтов", () => {
     }
   });
 });
+// Вес листов (2026-09-19): клип смерти игра рисует только в направлении 0, поэтому в листе он занимает один ряд (`dirs: 1`).
+// Страж на случай рендера старым скриптом: лист с восемью рядами смерти — это +17–25% веса без единого видимого пикселя.
+describe("формат листов", () => {
+  it("клип death в каждом листе — одно направление, ряды клипов не пересекаются и идут подряд", () => {
+    for (const dir of ["dota_px", "dota_px2"]) {
+      for (const id of rows(dir === "dota_px" ? "dota_manifest_px.tsv" : "dota_manifest_px2.tsv")) {
+        const file = new URL(`../public/art/sprites/${dir}/${id}.json`, import.meta.url);
+        if (!existsSync(file)) continue;
+        const m = JSON.parse(readFileSync(file, "utf8")) as { dirs: number; anims?: Record<string, { row: number; frames: number; dirs?: number }> };
+        if (!m.anims) continue;
+        if (m.anims.death && m.dirs > 1) expect(m.anims.death.dirs, `${dir}/${id}: смерть во всех направлениях`).toBe(1);
+        let next = 0;
+        for (const a of Object.values(m.anims).sort((p, q) => p.row - q.row)) { expect(a.row, `${dir}/${id}: ряды`).toBe(next); next += a.dirs ?? m.dirs; }
+      }
+    }
+  });
+});
+
 // Строка манифеста без отрендеренного листа = невидимый герой (или вард) в бою: загрузчик тихо
 // отдаёт undefined, а рендер рисует кружок. Ловим это до игры, а не в бою.
 describe("листы на диске", () => {

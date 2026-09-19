@@ -58,8 +58,11 @@ while IFS=$'\t' read -r id vmdl args parts; do
   # привозит — достаём сами в $OUT/$id/styletex и подкладываем рендеру (см. dota_style_textures.sh).
   STYLE_TOK="$(printf '%s' "$args" | sed -n 's/.*--style \([A-Za-z0-9_]*\).*/\1/p')"
   if [ -n "$STYLE_TOK" ]; then
-    folder="$(printf '%s' "$vmdl" | cut -d/ -f3)"
-    sdir="$OUT/$id/styletex"
+    # Папка героя в vpk для текстур стиля: по умолчанию — папка модели; `--style-folder <имя>` — когда предметы лежат в другой
+    # (Shadow Fiend: модель в heroes/shadow_fiend, предметы и их `_dpc`-текстуры — в items/nevermore). Кэш — на токен стиля.
+    STYLE_FOLDER="$(printf '%s' "$args" | sed -n 's/.*--style-folder \([A-Za-z0-9_]*\).*/\1/p')"
+    folder="${STYLE_FOLDER:-$(printf '%s' "$vmdl" | cut -d/ -f3)}"
+    sdir="$OUT/$id/styletex_$STYLE_TOK"
     # REUSE=1: текстуры стиля семьи слоёв (T13.80) лежат в общей экспортной папке основы — не тянуть из vpk на каждую строку
     # (листинг vpk + 39 текстур MK — почти минута на строку).
     if [ "${REUSE:-}" = "1" ] && [ -n "$(find "$sdir" -name '*.png' 2>/dev/null | head -1)" ]; then echo "   стиль $STYLE_TOK: текстуры уже есть (REUSE=1)"; else

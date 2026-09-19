@@ -1,5 +1,5 @@
 // Пиксельная земля Аркады из текстур Dota (docs/arcade-dota-sprites.md §7, владелец 2026-09-06: «земля мыльная, нужен пиксель»).
-// Исходник `public/art/sprites/dota/terrain/<name>.webp` (512 px) → 128 px: усреднение до 64 px (пятна, а не шум по пикселю),
+// Исходник `scripts/blender/terrain_src/<name>.webp` (512 px) → 128 px: усреднение до 64 px (пятна, а не шум по пикселю),
 // 5 ступеней яркости по квантилям с лестницей контраста вокруг среднего цвета (оттенок Dota сохраняется), общее затемнение
 // под тон карты, ×2 nearest. Пишет `public/art/sprites/dota_px/terrain/<name>.webp`. Запуск из web/: `npx tsx scripts/pixel_terrain.mts [lum] [contrast] [div]`.
 // Закоммиченная земля собрана с `0.2 0.3 2` (с этими аргументами палитра совпадает до ±1 на канал); умолчания в коде
@@ -11,7 +11,7 @@ import { chromium } from "playwright";
 import { writeFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 const WEB = fileURLToPath(new URL("..", import.meta.url));
-const SRC = `${WEB}public/art/sprites/dota/terrain`;
+const SRC = `${WEB}scripts/blender/terrain_src`; // исходники 512 px; из public убраны вместе с непиксельным набором `dota/` (2026-09-19)
 const DST = `${WEB}public/art/sprites/dota_px/terrain`;
 const jobs = [
   { name: "grass", lum: Number(process.argv[2] ?? 0.2), div: Number(process.argv[4] ?? 4), contrast: Number(process.argv[3] ?? 2.2) },

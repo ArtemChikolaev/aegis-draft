@@ -167,6 +167,16 @@ export const COSMETICS: readonly CosmeticDef[] = [
   { id: "skin_terrorblade_foulfell", slot: "skin", rarity: "exotic", variant: "terrorblade@foulfell", hero: "terrorblade" },
   { id: "skin_terrorblade_broken_code", slot: "skin", rarity: "exotic", variant: "terrorblade@broken_code", hero: "terrorblade" },
   { id: "skin_terrorblade_forgotten_station", slot: "skin", rarity: "exotic", variant: "terrorblade@forgotten_station", hero: "terrorblade" },
+  // Волна владельца 2026-09-19: Anti-Mage (наборы оружия «с башерами» и «с мантами»), все сеты Shadow Fiend и Drow Ranger —
+  // состав по бандлам items_game (в комментарии id бандла), слои частей — на базовом теле и на аркане.
+  { id: "skin_shadow_fiend_eternal_harvest", slot: "skin", rarity: "exotic", variant: "shadow_fiend@eternal_harvest", hero: "shadow_fiend" }, // бандл 21070
+  { id: "skin_shadow_fiend_souls_tyrant", slot: "skin", rarity: "exotic", variant: "shadow_fiend@souls_tyrant", hero: "shadow_fiend" }, // бандл 21419
+  { id: "skin_shadow_fiend_spring_lineage_eternal_harvest", slot: "skin", rarity: "exotic", variant: "shadow_fiend@spring_lineage_eternal_harvest", hero: "shadow_fiend" }, // бандл 22842
+  { id: "skin_drow_ranger_sight_of_the_kha_ren_faithful", slot: "skin", rarity: "exotic", variant: "drow_ranger@sight_of_the_kha_ren_faithful", hero: "drow_ranger" }, // бандл 21375
+  { id: "skin_drow_ranger_stranger_in_the_wandering_isles", slot: "skin", rarity: "exotic", variant: "drow_ranger@stranger_in_the_wandering_isles", hero: "drow_ranger" }, // бандл 21710
+  { id: "skin_drow_ranger_black_ice_constellation", slot: "skin", rarity: "exotic", variant: "drow_ranger@black_ice_constellation", hero: "drow_ranger" }, // бандл 22360
+  { id: "skin_anti_mage_basher_blades", slot: "skin", rarity: "exotic", variant: "anti_mage@basher_blades", hero: "anti_mage" }, // бандл 20796
+  { id: "skin_anti_mage_arcs_of_manta", slot: "skin", rarity: "exotic", variant: "anti_mage@arcs_of_manta", hero: "anti_mage" }, // бандл 20251
   { id: "skin_lich_rime_lord", slot: "skin", rarity: "exotic", variant: "lich@rime_lord", hero: "lich" },
   { id: "skin_bristleback_wrathrunner", slot: "skin", rarity: "exotic", variant: "bristleback@wrathrunner", hero: "bristleback" },
   { id: "skin_sven_arbiter", slot: "skin", rarity: "exotic", variant: "sven@arbiter", hero: "sven" },

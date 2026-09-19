@@ -225,15 +225,18 @@ describe("облик по слотам: данные", () => {
     }
   });
   it("слой лежит в слоте своего предмета по items_game (A2): item_slot из индекса ↔ слот в id слоя", () => {
-    const index = JSON.parse(readFileSync(new URL("../scripts/blender/dota_item_index.json", import.meta.url), "utf8")) as { models: Record<string, { slot: string }> };
+    const index = JSON.parse(readFileSync(new URL("../scripts/blender/dota_item_index.json", import.meta.url), "utf8")) as { models: Record<string, { slot: string; swaps?: Record<string, string> }>; bases: Record<string, { swaps?: Record<string, string> }[]> };
+    // Подменённая модель (арканный вариант части: `*_arcana_*` у MK, `*_refit` у Drow) наследует слот исходного предмета:
+    // обратная карта подмен из самого индекса, а не догадка по имени.
+    const original: Record<string, string> = {};
+    for (const it of [...Object.values(index.models), ...Object.values(index.bases).flat()]) for (const [from, to] of Object.entries(it.swaps ?? {})) original[to] = from;
     const overrides = JSON.parse(readFileSync(new URL("../scripts/blender/dota_slot_overrides.json", import.meta.url), "utf8")) as Record<string, { slot: string }>;
     const slotOfModel = (p: string) => { const k = p.replace(/\.vmdl_c$/, ".vmdl"); return index.models[k]?.slot ?? overrides[k]?.slot; };
     for (const c of manRows("dota_manifest_parts_px2.tsv")) {
       if (c[0].endsWith("+body")) continue;
       const slot = c[0].slice(c[0].lastIndexOf(".") + 1);
       for (const p of (c[3] ?? "").split(",").filter(Boolean)) {
-        // Арканный вариант части (подмена asset_modifier) наследует слот исходного предмета — в индексе его может не быть.
-        const s = slotOfModel(p) ?? slotOfModel(p.replace(/_arcana_/, "_"));
+        const s = slotOfModel(p) ?? slotOfModel(original[p.replace(/\.vmdl_c$/, ".vmdl")] ?? "");
         expect(s, `${c[0]}: ${p} не в индексе`).toBeDefined();
         expect(s, `${c[0]}: ${p}`).toBe(slot);
       }

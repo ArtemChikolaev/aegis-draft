@@ -51,6 +51,8 @@ def parse_args():
     p.add_argument("--expose-target", type=float, default=0.4)
     p.add_argument("--style", default="", help="стиль арканы Dota (style1/style2): color-текстуры материалов подменяются одноимёнными из --style-dir; см. dota_style_textures.sh")
     p.add_argument("--style-dir", default="", help="папка с PNG стиля (рекурсивно), распакованными из vpk")
+    p.add_argument("--single-dir", default="death", help="клипы через запятую, которые рендерятся только в направлении 0 (лицом к камере): в игре клип смерти рисуется одним направлением, остальные ряды были мёртвым весом листа (17%). В мете у такого клипа dirs=1. Пусто — все клипы во всех направлениях")
+    p.add_argument("--style-folder", default="", help="только для dota_pipeline.sh: папка героя в vpk, где искать текстуры стиля, если она не совпадает с папкой модели (у Shadow Fiend модель в heroes/shadow_fiend, а предметы и их текстуры — в items/nevermore); рендер аргумент игнорирует")
     p.add_argument("--glow-from-alpha", default="", help="только --pixel: прозрачные области color-текстуры (alpha < 0.5) закрасить этим цветом «R,G,B» (0–1). У арканы PA «Manifold Paradox» узор свечения лежит именно в альфе цвета, а Workbench альфу не видит — платье выходило сплошь чёрным")
     p.add_argument("--glow-mask-dir", default="", help="только --pixel: папка с масками свечения из vpk (`*_detailmask_*` — альфа = selfillum, `*_selfillummask_*` — яркость); где маска > 0.3, цвет текстуры поднимается к --glow-color. Пайплайн достаёт их по --glow-mask <папка материалов в vpk>. В Dota это свечение считает шейдер (selfillum), Workbench его не знает — грудь арканы Terrorblade выходила чёрной дырой")
     p.add_argument("--glow-grow", type=int, default=0, help="расширить маску свечения на N текселей (max-фильтр): точечный selfillum (ядро груди Terrorblade — 0.7% текстуры) в 160-px кадре иначе не виден")
@@ -941,6 +943,8 @@ def main():
         print(f"rootlock: несущая кость {track_bone}, корень {root_bone}")
 
     rows = []  # (ours, dir, [frame paths])
+    single_dir = {v for v in a.single_dir.split(",") if v}
+    anim_dirs = {}
     first_row = {}
     for ours, act, span in anim_map:
         track = None
@@ -986,7 +990,8 @@ def main():
             n = 1
             sample_frames = [scene.frame_current]
         first_row[ours] = len(rows)
-        for d in range(a.dirs):
+        anim_dirs[ours] = 1 if ours in single_dir else a.dirs
+        for d in range(anim_dirs[ours]):
             rig.yaw(d * 360.0 / a.dirs + a.yaw_offset)
             paths = []
             for i, fr in enumerate(sample_frames):
@@ -1055,7 +1060,7 @@ def main():
         "name": a.name, "frame": a.frame, "dirs": a.dirs, "fps": fps, "world": a.world,
         "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
         "anchor": {"x": 0.5, "y": round(anchor_y, 3)},
-        "anims": {k: {"row": v["row"], "frames": v["frames"]} for k, v in meta_anims.items()},
+        "anims": {k: ({"row": v["row"], "frames": v["frames"], "dirs": anim_dirs[k]} if anim_dirs.get(k, a.dirs) != a.dirs else {"row": v["row"], "frames": v["frames"]}) for k, v in meta_anims.items()},
         "source": os.path.basename(a.glb), "orientation": mode, "pitch": a.pitch, "pixel": bool(a.pixel),
         # Запас кадра вокруг силуэта: превью гардероба делит на него, чтобы герой в витрине не мельчал
         # вместе с ростом рамки (кадр 160 с запасом 1.4 против 128 с 1.12).
