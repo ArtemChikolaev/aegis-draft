@@ -789,7 +789,10 @@ export class ArcadeSim {
     const stepLen = C.speed * DT;
     if (d <= stepLen) {
       c.x = c.ex; c.y = c.ey; c.state = "arrived";
-      // Доехал — лавка на месте цели (обычный торговец: касание открывает, закрытие убирает).
+      // Доехал — лавка на месте цели (обычный торговец: касание открывает, закрытие убирает). Торговец в мире один: если
+      // сейчас стоит лавка по расписанию, караван занимает её место, а она возвращается в расписание и выйдет, когда
+      // место освободится (раньше одна лавка молча затирала другую — в разминке окна 6:00 и каравана пересекаются).
+      if (this.shopkeeper.alive && this.shopkeeper.value === 0 && this.shopIdx > 0) this.shopIdx--;
       this.shopkeeper = { alive: true, x: c.ex, y: c.ey, until: this.tick + ARCADE.shop.lifetime, value: 1 }; // value 1 — лавка каравана, со скидкой
       this.caravanGift = true;
       this.events.caravans++;
@@ -2931,7 +2934,8 @@ export class ArcadeSim {
       this.shrine = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.greed.lifetime };
     }
     // Secret Shop: торговец в окна расписания.
-    if (this.shopIdx < ARCADE.shop.at.length && at >= ARCADE.shop.at[this.shopIdx]) {
+    // Пока стоит другой торговец (лавка каравана с подарком) — ждём: иначе она затиралась, а `caravanGift` повисал навсегда.
+    if (this.shopIdx < ARCADE.shop.at.length && at >= ARCADE.shop.at[this.shopIdx] && !this.shopkeeper.alive) {
       this.shopIdx++;
       const [sx, sy] = this.ringPoint(ARCADE.shop.distMin, ARCADE.shop.distMax);
       this.shopkeeper = { alive: true, x: sx, y: sy, until: this.tick + ARCADE.shop.lifetime, value: 0 };

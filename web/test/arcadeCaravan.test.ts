@@ -172,4 +172,32 @@ describe("караван лавочника", () => {
     expect(plain.caravanGiftAvailable()).toBe(false);
     expect(plain.shopBuyPrice(0)).toBe(plain.shopOffers[0].price);
   });
+
+  it("торговец в мире один: лавка по расписанию не затирает лавку каравана с подарком, а караван — не теряет плановую", () => {
+    // Лавка каравана стоит, пришло окно расписания (в разминке 6:00 попадает в срок жизни лавки каравана).
+    const a = new ArcadeSim("caravan-5", { act: "short" });
+    a.caravan!.state = "arrived";
+    a.shopkeeper = { alive: true, x: a.player.x + 1200, y: a.player.y, until: 1e9, value: 1 };
+    a.caravanGift = true;
+    a.tick = ARCADE.shop.at[0];
+    step(a, 2);
+    expect(a.shopkeeper).toMatchObject({ alive: true, value: 1 }); // было: затёрта плановой, подарок повисал навсегда
+    expect(a.caravanGift).toBe(true);
+    // Лавка каравана ушла — плановая выходит следом, окно не потеряно.
+    a.shopkeeper.alive = false;
+    step(a, 2);
+    expect(a.shopkeeper).toMatchObject({ alive: true, value: 0 });
+    // Обратный порядок: плановая стоит, караван доехал — место занимает караван, плановая возвращается после него.
+    const b = new ArcadeSim("caravan-5", { act: "short" });
+    warp(b); // 4:00 — окно 3:00 уже прошло, плановая лавка вышла этим же тиком
+    expect(b.shopkeeper).toMatchObject({ alive: true, value: 0 });
+    b.shopkeeper.until = 1e9;
+    follow(b, sec(15));
+    expect(b.caravan!.state).toBe("arrived");
+    expect(b.shopkeeper).toMatchObject({ alive: true, value: 1 });
+    b.shopkeeper.alive = false;
+    b.player.x = b.caravan!.ex + 1200;
+    step(b, 2);
+    expect(b.shopkeeper).toMatchObject({ alive: true, value: 0 }); // было: плановая лавка 3:00 пропадала
+  });
 });
