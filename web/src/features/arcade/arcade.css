@@ -157,6 +157,9 @@
 .arcade-overlay__card--over[data-outcome="dead"] h2 { color: var(--danger); }
 .arcade-overlay__seed { margin: 0; color: var(--muted); font-size: 12px; }
 .arcade-overlay__actions { display: flex; flex-wrap: wrap; gap: 10px; }
+/* Итог забега: главные кнопки прилипают к низу прокрутки — с лутом и разбором урона карточка выше сцены, и «Ещё раз»
+   уезжала под сгиб (живой прогон 2026-09-19, 1440×900). Фон — непрозрачный токен: под ним прокручивается разбор. */
+.arcade-overlay__actions--sticky { position: sticky; bottom: -16px; z-index: 1; margin: 0 -24px -24px; padding: 12px 24px 24px; border-top: 1px solid var(--line); border-radius: 0 0 var(--radius) var(--radius); background: var(--surface-solid); }
 .arcade-result { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; margin: 0; }
 .arcade-result div { display: grid; gap: 2px; }
 .arcade-result dt { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
@@ -252,12 +255,13 @@
 }
 @media (max-width: 899px) {
   /* Узкий экран: закреплённая витрина компактна — настройки вида превью свёрнуты под кнопку, вкладки липнут под витриной не нужно. */
-  .arcade-wardrobe__stage { padding: 8px; gap: 4px; background: var(--surface-invert); }
   .arcade-wardrobe__view-toggle { display: inline-block; }
   .arcade-wardrobe__controls:not([data-open]) { display: none; }
 }
 .arcade-wardrobe__shards { font: 800 11px var(--font-display); letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
 .arcade-wardrobe__stage { display: grid; justify-items: center; gap: 6px; padding: 12px; border: 1px solid var(--line-invert); border-radius: 14px; background: var(--surface-invert-soft); }
+/* Компактная витрина узкого экрана — ПОСЛЕ базового правила: стоя выше, при равной специфичности она не применялась вовсе. */
+@media (max-width: 899px) { .arcade-wardrobe__stage { padding: 8px; gap: 4px; background: var(--surface-invert); } }
 .arcade-wardrobe__stage strong { font: 800 15px var(--font-display); text-align: center; }
 .arcade-wardrobe__stage small[data-rarity] { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; opacity: .7; }
 .arcade-wardrobe__stage small[data-rarity="arcana"] { color: var(--card-tier-arcana); opacity: 1; }

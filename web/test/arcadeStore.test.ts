@@ -156,4 +156,17 @@ describe("arcadeStore: витрина и открытие рангов", () => {
     store().pause(); store().resume(); store().bump(); store().quit();
     expect(store().runId).toBe(5);
   });
+
+  it("реплей и дейлик на другом герое пересчитывают надетый облик под него, а не оставляют скин прежнего", () => {
+    const c = useArcade.getState().cosmetics;
+    useArcade.setState({ status: "setup", hero: "juggernaut", cosmetics: { ...c, skins: { ...c.skins, juggernaut: "skin_jugg", lina: "skin_lina" }, equipped: { ...c.equipped, skin: "skin_jugg" } } });
+    useArcade.getState().startReplay({ seed: "look-1", hero: "lina", rank: 0, act: "short", version: "a", log: [], gear: [] });
+    expect(useArcade.getState().hero).toBe("lina");
+    expect(useArcade.getState().cosmetics.equipped.skin).toBe("skin_lina");
+    useArcade.getState().quit();
+    useArcade.getState().startDaily();
+    const s = useArcade.getState();
+    expect(s.cosmetics.equipped.skin).toBe(s.cosmetics.skins[s.hero]);
+    s.quit();
+  });
 });

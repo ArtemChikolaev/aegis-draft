@@ -517,7 +517,9 @@ function ArcadeStage() {
       renderer.draw(sim, now, controller.joystick, screenShakeEnabled());
     };
     raf = requestAnimationFrame(loop);
-    const onVisibility = () => { if (document.hidden) useArcade.getState().pause(); };
+    // Звук гасим здесь же: в скрытой вкладке rAF стоит, и кадр, который выключает музыку и петли на паузе, не придёт —
+    // боевая тема играла дальше и сама переходила на следующий трек (аудит 2026-09-19). Вернётся с первым кадром.
+    const onVisibility = () => { if (!document.hidden) return; useArcade.getState().pause(); ensureMusic("off"); resetHeroSfx(); scape.dispose(); };
     document.addEventListener("visibilitychange", onVisibility);
     preloadHeroSfx(heroDef.id);
     preloadHeroVoice(voiceId);
@@ -1112,7 +1114,7 @@ function ArcadeStage() {
                   <Button variant="secondary" data-testid="arcade-watch-replay" onClick={() => startReplay(replayOf(sim, runStart))}>{t("arcade.replay.watch")}</Button>
                 </div>
               )}
-              <div className="arcade-overlay__actions">
+              <div className="arcade-overlay__actions arcade-overlay__actions--sticky">
                 <Button variant="primary" data-testid="arcade-again" onClick={() => start(seed)}>{t("arcade.over.again")}</Button>
                 <Button variant="secondary" onClick={() => start()}>{t("arcade.over.newSeed")}</Button>
                 <Button variant="leave" onClick={quit}>{t("arcade.over.toSetup")}</Button>

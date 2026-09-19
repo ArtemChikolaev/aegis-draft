@@ -68,8 +68,8 @@ export class Soundscape {
   private play(group: string, pool: string[] | undefined, gain: number, rate = 1): boolean {
     const f = pick(pool, this.salt++);
     if (!f) return false;
-    sfxSample(url(group, f), gain, rate);
-    return true;
+    // false = сэмпл ещё грузится или не декодировался: экран сыграет синтетику, тишины быть не должно (см. sfxSample).
+    return sfxSample(url(group, f), gain, rate);
   }
 
   /** Зовётся каждый кадр после шагов сима. Возвращает, какие синтетические звуки экран может не играть. */

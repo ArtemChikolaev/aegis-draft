@@ -55,6 +55,8 @@ export class ArcadeInputController {
   onPadNav: ((what: "left" | "right" | "confirm" | "back") => void) | null = null;
   gamepadActive = false;
   private padHeld = 0;
+  /** Кнопки умений, зажатые, пока было открыто окно: молчат до отпускания. */
+  private padMenuHeld = 0;
   private padX = 0;
   private padY = 0;
   private padNav = new PadNav();
@@ -101,11 +103,14 @@ export class ArcadeInputController {
     if (pad.active && !this.gamepadActive) { this.gamepadActive = true; this.onGamepad?.(); }
     const nav = this.padNav.step(pad);
     // Под модальным диалогом пад молчит: × или Options не резюмят игру, пока висит подтверждение.
-    if (modalOpen()) { this.padX = 0; this.padY = 0; return; }
-    if (menu) { this.padX = 0; this.padY = 0; }
+    // `pad.cast` — удержание, а не нажатие: × подтвердил карточку, окно закрылось, и на следующем кадре та же ещё
+    // зажатая кнопка уходила умением. Кнопки, зажатые в меню, молчат до отпускания (аудит 2026-09-19).
+    if (modalOpen()) { this.padX = 0; this.padY = 0; this.padMenuHeld |= pad.cast; return; }
+    if (menu) { this.padX = 0; this.padY = 0; this.padMenuHeld |= pad.cast; }
     else {
       this.padX = pad.x; this.padY = pad.y;
-      this.castMask |= pad.cast;
+      this.padMenuHeld &= pad.cast;
+      this.castMask |= pad.cast & ~this.padMenuHeld;
       if (hasEdge(pad.edges, PAD.r1)) this.onPickup?.();
       if (hasEdge(pad.edges, PAD.l1)) this.onBuild?.();
       if (hasEdge(pad.edges, PAD.touch) || hasEdge(pad.edges, PAD.ps)) this.onFlare?.();
@@ -142,11 +147,16 @@ export class ArcadeInputController {
 
   private onKeyDown = (e: KeyboardEvent) => {
     this.markKeyboard();
+    // Сочетания браузера и системы (Cmd/Ctrl+R, Alt+←) — не ввод игры: иначе Cmd+R кастовал ульт вместо перезагрузки.
+    // На macOS при зажатом Cmd `keyup` остальных клавиш не приходит — направление залипало; снимаем удержания.
+    if (e.metaKey || e.ctrlKey || e.altKey) { this.keys.clear(); return; }
     if (modalOpen() || typingTarget(e.target)) return;
     if (KEY_DIR[e.code]) { this.keys.add(e.code); e.preventDefault(); return; }
     const cast = KEY_CAST[e.code];
     if (cast) { this.castMask |= cast; e.preventDefault(); return; }
     if ((e.code === "Enter" || e.code === "Space" || e.code === "Tab") && nativeControl(e.target)) return;
+    // Автоповтор удержанной клавиши не переключает паузу/сборку по многу раз (движение и каст выше — идемпотентны).
+    if (e.repeat) { if (e.code !== "Tab") e.preventDefault(); return; }
     if (e.code === "Escape" || e.code === "Space") { this.onPause?.(); e.preventDefault(); return; }
     if (e.code === "KeyG" || e.code === "Enter") { this.onPickup?.(); e.preventDefault(); return; }
     if (e.code === "KeyI") { this.onBuild?.(); e.preventDefault(); return; }

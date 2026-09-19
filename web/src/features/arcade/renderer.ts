@@ -178,8 +178,13 @@ export class ArcadeRenderer {
    *  падала в 10px sans-serif. Читаем токен один раз при создании. */
   private readonly fontFamily = resolveFontFamily();
 
+  private fontCache = new Map<number, string>();
+  /** Строка шрифта canvas; кэш по (вес, размер) — цифры урона просят её на каждую цифру каждый кадр. */
   private font(weight: number, px: number): string {
-    return `${weight} ${px}px ${this.fontFamily}`;
+    const key = weight * 4096 + Math.round(px * 4);
+    let f = this.fontCache.get(key);
+    if (!f) { f = `${weight} ${Math.round(px * 4) / 4}px ${this.fontFamily}`; this.fontCache.set(key, f); }
+    return f;
   }
   private camSnapX = 0;
   private camSnapY = 0;
@@ -221,6 +226,18 @@ export class ArcadeRenderer {
     this.canvas.height = Math.floor(this.h * this.dpr);
   }
 
+  /** Камера идёт за героем и заходит за край мира на `CAM_OVERSCROLL` экрана: у границы герой остаётся не ближе 30% от
+   *  кромки. При жёстком упоре в край (как было) он в углу мира уходил под панель умений и миникарту — поймано живым
+   *  прогоном 2026-09-19 (бот умер в углу, которого игрок не видит). За границей — фон сцены: чанков земли там нет. */
+  private camX(sim: ArcadeSim): number {
+    const over = this.w * CAM_OVERSCROLL;
+    return clamp(sim.player.x - this.w / 2, -over, Math.max(-over, ARCADE.world.w - this.w + over));
+  }
+  private camY(sim: ArcadeSim): number {
+    const over = this.h * CAM_OVERSCROLL;
+    return clamp(sim.player.y - this.h / 2, -over, Math.max(-over, ARCADE.world.h - this.h + over));
+  }
+
   private readPalette(now: number): Palette {
     if (this.palette && now - this.paletteAt < 1000) return this.palette;
     const style = getComputedStyle(document.documentElement);
@@ -236,11 +253,9 @@ export class ArcadeRenderer {
     // this.ctx после подмены: контекст, захваченный здесь, в пиксельном режиме перекрыл бы блит буфера.
     this.ctx = this.mainCtx;
     const pal = this.readPalette(now);
-    const p = sim.player;
     this.mainCtx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    // Камера: игрок в центре, мир не выезжает за край.
-    const camX = clamp(p.x - this.w / 2, 0, Math.max(0, ARCADE.world.w - this.w));
-    const camY = clamp(p.y - this.h / 2, 0, Math.max(0, ARCADE.world.h - this.h));
+    // Камера: игрок в центре; у края мира — с запасом за границу (см. camX).
+    const camX = this.camX(sim), camY = this.camY(sim);
     if (shakeEnabled && sim.shake > 0) {
       const k = Math.min(1, sim.shake / 12) * 6;
       this.shakeX = (Math.random() - 0.5) * k;
@@ -290,8 +305,7 @@ export class ArcadeRenderer {
     this.drawFx(sim, pal, "top");
     if (sim.night || sim.riftVisionMult() < 1) {
       // Пепел в воздухе (T13.22): рисуем ДО тумана, иначе дальние искры светятся сквозь темноту.
-      const camX = Math.max(0, Math.min(sim.player.x - this.w / 2, ARCADE.world.w - this.w));
-      const camY = Math.max(0, Math.min(sim.player.y - this.h / 2, ARCADE.world.h - this.h));
+      const camX = this.camX(sim), camY = this.camY(sim);
       if (sim.night) drawWeather(this.ctx, camX, camY, this.w, this.h, sim.tick, this.artPx(), pal, 90);
       this.drawNight(sim, pal);
     }
@@ -338,22 +352,27 @@ export class ArcadeRenderer {
     const k = size / Math.max(ARCADE.world.w, ARCADE.world.h);
     const X = (wx: number) => x0 + wx * k, Y = (wy: number) => y0 + wy * k;
     const pulse = 0.5 + 0.5 * Math.sin(now / 240);
+    // Герой под миникартой (угол мира, узкий экран) — карта бледнеет, чтобы его было видно.
+    const hx = sim.player.x - camX, hy = sim.player.y - camY;
+    const fade = hx > x0 - 36 && hx < x0 + size + 36 && hy > y0 - 56 && hy < y0 + size + 24 ? 0.3 : 1;
     m.save();
     m.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
-    m.globalAlpha = 0.72; m.fillStyle = pal.groundNight;
+    m.globalAlpha = 0.72 * fade; m.fillStyle = pal.groundNight;
     m.beginPath(); m.roundRect(x0 - 3, y0 - 3, size + 6, size + 6, 6); m.fill();
-    m.globalAlpha = 0.9; m.strokeStyle = pal.bounds; m.lineWidth = 1;
+    m.globalAlpha = 0.9 * fade; m.strokeStyle = pal.bounds; m.lineWidth = 1;
     m.strokeRect(x0 + 0.5, y0 + 0.5, size - 1, size - 1);
     // Река и яма Рошана (акт с рекой) — полоса и точка.
     if (sim.pit) {
-      m.globalAlpha = 0.5; m.fillStyle = pal.river;
+      m.globalAlpha = 0.5 * fade; m.fillStyle = pal.river;
       m.fillRect(x0, Y(ARCADE.river.y - ARCADE.river.halfWidth), size, Math.max(2, ARCADE.river.halfWidth * 2 * k));
     }
     // Окно камеры.
-    m.globalAlpha = 0.35; m.strokeStyle = pal.text;
-    m.strokeRect(X(camX), Y(camY), this.w * k, this.h * k);
-    const dot = (wx: number, wy: number, r: number, color: string, alpha = 1) => { m.globalAlpha = alpha; m.fillStyle = color; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.fill(); };
-    const ring = (wx: number, wy: number, r: number, color: string) => { m.globalAlpha = 0.9; m.strokeStyle = color; m.lineWidth = 1.5; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.stroke(); };
+    m.globalAlpha = 0.35 * fade; m.strokeStyle = pal.text;
+    // Камера заходит за край мира (camX) — рамку окна режем по миру, чтобы она не вылезала из миникарты.
+    const vx0 = Math.max(0, camX), vy0 = Math.max(0, camY), vx1 = Math.min(ARCADE.world.w, camX + this.w), vy1 = Math.min(ARCADE.world.h, camY + this.h);
+    m.strokeRect(X(vx0), Y(vy0), (vx1 - vx0) * k, (vy1 - vy0) * k);
+    const dot = (wx: number, wy: number, r: number, color: string, alpha = 1) => { m.globalAlpha = alpha * fade; m.fillStyle = color; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.fill(); };
+    const ring = (wx: number, wy: number, r: number, color: string) => { m.globalAlpha = 0.9 * fade; m.strokeStyle = color; m.lineWidth = 1.5; m.beginPath(); m.arc(X(wx), Y(wy), r, 0, Math.PI * 2); m.stroke(); };
     // Места: только живые — сделанное с карты уходит (владелец 2026-09-13: «ивент продолжает отображаться»);
     // разлом и кузня до своего часа — тусклые.
     const c = sim.camp, o = sim.outpost;
@@ -378,7 +397,7 @@ export class ArcadeRenderer {
     // Арканный лут — красный ромб (только он: остальное — шум).
     for (const g of sim.groundLoot) {
       if (g.until <= 0 || g.item.rarity !== "arcana") continue;
-      m.globalAlpha = 1; m.fillStyle = pal.arcana;
+      m.globalAlpha = 1 * fade; m.fillStyle = pal.arcana;
       m.beginPath(); m.moveTo(X(g.x), Y(g.y) - 4); m.lineTo(X(g.x) + 4, Y(g.y)); m.lineTo(X(g.x), Y(g.y) + 4); m.lineTo(X(g.x) - 4, Y(g.y)); m.closePath(); m.fill();
     }
     // Элиты и боссы; охотник Dire.
@@ -789,7 +808,7 @@ export class ArcadeRenderer {
     if (!r || r.state !== "active") return;
     const c = this.ctx, R = ARCADE.rift;
     const pulse = 0.5 + 0.5 * Math.sin(now / 200);
-    const camX = Math.max(0, Math.min(sim.player.x - this.w / 2, ARCADE.world.w - this.w)), camY = Math.max(0, Math.min(sim.player.y - this.h / 2, ARCADE.world.h - this.h));
+    const camX = this.camX(sim), camY = this.camY(sim);
     c.globalAlpha = 0.28; c.fillStyle = pal.fog;
     c.beginPath(); c.rect(camX - 20, camY - 20, this.w + 40, this.h + 40); c.arc(r.x, r.y, R.arena, 0, Math.PI * 2, true); c.fill("evenodd");
     c.globalAlpha = 0.6 + 0.3 * pulse; c.strokeStyle = pal.aegis; c.lineWidth = 3; c.setLineDash([12, 8]);
@@ -1017,7 +1036,6 @@ export class ArcadeRenderer {
         const attackT = cd > 0 && total - cd < total * 0.45 ? (total - cd) / (total * 0.45) : -1;
         const speedK = e.kind.speed / 90;
         const moving = !frozen && e.kind.speed > 0;
-        const look = enemyLook(e.kind.id);
         let drawn = false;
         const dir = dirOf(sim.player.x - e.x, sim.player.y - e.y);
         // Лист из модели Dota — главнее всего остального.
@@ -1029,7 +1047,10 @@ export class ArcadeRenderer {
           drawn = drawDotaFrame(c, ds, anim, dotaDir(sim.player.x - e.x, sim.player.y - e.y, ds.meta.dirs), frame, e.x, e.y + r * 0.6, flash ? 0.55 : dormant ? 0.7 : 1, (e.kind.r * 2) / ds.meta.world > 1.2 ? (e.kind.r * 2) / ds.meta.world : 1);
           if (dormant) { c.fillStyle = pal.text; c.globalAlpha = 0.6 + 0.3 * Math.sin(tick / 20); c.font = this.font(800, 12); c.textAlign = "center"; this.text(c, "z", e.x + 14, e.y - r * 1.8 - Math.round((tick / 30) % 6)); c.globalAlpha = 1; }
         }
-        if (!drawn && look.kind === "char") {
+        // Запасной LPC-облик — только когда листа Dota нет: `enemyLook` собирает объект с массивом, и на 300 врагов
+        // это было 300 объектов в кадр впустую (аудит 2026-09-19).
+        const look = drawn ? null : enemyLook(e.kind.id);
+        if (look?.kind === "char") {
           const anim: CharAnim = attackT >= 0 ? attackAnim(look.spec) : "walk";
           const sheet = charSheet(e.kind.id, look.spec, anim);
           if (sheet) {
@@ -1037,7 +1058,7 @@ export class ArcadeRenderer {
             drawCharFrame(c, sheet, frame, dir, e.x, e.y + r * 0.6, look.spec.scale, flash ? 0.55 : 1);
             drawn = true;
           }
-        } else if (!drawn && look.kind === "monster") {
+        } else if (look?.kind === "monster") {
           drawn = drawMonsterFrame(c, look.name, moving ? Math.floor((tick / 60) * 6 * speedK + e.id) : 1, dir, e.x, e.y + r * 0.6, flash ? 0.55 : 1);
         }
         if (!drawn) drawRig(c, e.x, e.y + r * 0.6, enemyRig(e.kind.id, tone, pal.limb), {
@@ -1443,7 +1464,7 @@ export class ArcadeRenderer {
     c.fillRect(p.x - r, p.y - r, r * 2, r * 2);
     c.fillStyle = pal.fog;
     // Четыре прямоугольника вокруг квадрата обзора — заливка без дорогого evenodd.
-    const camX = Math.max(0, Math.min(p.x - this.w / 2, ARCADE.world.w - this.w)), camY = Math.max(0, Math.min(p.y - this.h / 2, ARCADE.world.h - this.h));
+    const camX = this.camX(sim), camY = this.camY(sim);
     c.fillRect(camX - 20, camY - 20, this.w + 40, Math.max(0, p.y - r - camY + 20));
     c.fillRect(camX - 20, p.y + r, this.w + 40, Math.max(0, camY + this.h - (p.y + r) + 20));
     c.fillRect(camX - 20, p.y - r, Math.max(0, p.x - r - camX + 20), r * 2);
@@ -1469,6 +1490,9 @@ function resolveFontFamily(): string {
   const fam = getComputedStyle(document.documentElement).getPropertyValue("--font-display").trim();
   return fam || "sans-serif";
 }
+
+/** Доля экрана, на которую камера заходит за край мира (см. `camX`). */
+const CAM_OVERSCROLL = 0.3;
 
 function clamp(v: number, lo: number, hi: number): number {
   return v < lo ? lo : v > hi ? hi : v;

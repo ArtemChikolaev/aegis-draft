@@ -297,7 +297,10 @@ export interface SheetGlow {
   share: number;
 }
 
-function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
+/** Результат `rgbToHsv` — в полях модуля, а не кортежем: скан листа зовёт её на 10–12 млн пикселей, и массив на
+ *  пиксель давал столько же аллокаций (аудит 2026-09-19). Читать сразу после вызова. */
+let hsvH = 0, hsvS = 0, hsvV = 0;
+function rgbToHsv(r: number, g: number, b: number): void {
   const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
   let h = 0;
   if (d > 0) {
@@ -307,7 +310,7 @@ function rgbToHsv(r: number, g: number, b: number): [number, number, number] {
     h *= 60;
     if (h < 0) h += 360;
   }
-  return [h, max > 0 ? d / max : 0, max];
+  hsvH = h; hsvS = max > 0 ? d / max : 0; hsvV = max;
 }
 
 function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
@@ -321,25 +324,34 @@ function hueDist(a: number, b: number): number {
   return d > 180 ? 360 - d : d;
 }
 
-interface GlowScan { glow: SheetGlow | null; data: ImageData | null; w: number; h: number }
+/** Итог скана — только тон и доля. Пиксели листа здесь НЕ живут (аудит 2026-09-19): `ImageData` плотной арканы —
+ *  39–48 МиБ, а имя композита меняется с каждой частью, так что каждая примерка в гардеробе оставляла такой блок
+ *  навсегда. `gemSheet` читает пиксели заново — это один `getImageData` на новую пару «лист + самоцвет». */
+interface GlowScan { glow: SheetGlow | null }
 const glowScans = new Map<string, GlowScan>();
 
-function scanGlow(sheet: DotaSheet): GlowScan {
-  const key = sheet.meta.name;
-  const cached = glowScans.get(key);
-  if (cached) return cached;
+function sheetPixels(sheet: DotaSheet): ImageData | null {
   const src = sheet.img;
   const w = src instanceof HTMLCanvasElement ? src.width : src.naturalWidth;
   const h = src instanceof HTMLCanvasElement ? src.height : src.naturalHeight;
-  const none: GlowScan = { glow: null, data: null, w, h };
-  if (!w || !h || typeof document === "undefined") return none;
+  if (!w || !h || typeof document === "undefined") return null;
   const cv = document.createElement("canvas");
   cv.width = w;
   cv.height = h;
   const c = cv.getContext("2d", { willReadFrequently: true });
-  if (!c) return none;
+  if (!c) return null;
   c.drawImage(src, 0, 0);
-  const data = c.getImageData(0, 0, w, h);
+  return c.getImageData(0, 0, w, h);
+}
+
+/** `pixels` — уже прочитанный лист (его отдаёт `gemSheet`, чтобы не читать дважды); без него скан читает сам. */
+function scanGlow(sheet: DotaSheet, pixels?: ImageData | null): GlowScan {
+  const key = sheet.meta.name;
+  const cached = glowScans.get(key);
+  if (cached) return cached;
+  const none: GlowScan = { glow: null };
+  const data = pixels ?? sheetPixels(sheet);
+  if (!data) return none;
   const px = data.data;
   // Доминирующий тон: гистограмма тона ярких насыщенных пикселей (вес — насыщенность × яркость),
   // берём самый тяжёлый сектор и уточняем круговым средним в ±30° от него. Круговое среднее по всем
@@ -347,40 +359,42 @@ function scanGlow(sheet: DotaSheet): GlowScan {
   // совпадало ни с одним.
   const bins = new Float32Array(36);
   let opaque = 0, strong = 0;
-  const hs: number[] = [], ws: number[] = [];
   for (let i = 0; i < px.length; i += 4) {
     if (px[i + 3] < 128) continue;
     opaque++;
-    const [hh, s, v] = rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
-    if (s < 0.4 || v < 0.5) continue;
+    rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
+    if (hsvS < 0.4 || hsvV < 0.5) continue;
     strong++;
-    const wgt = s * v;
-    bins[Math.floor(hh / 10) % 36] += wgt;
-    hs.push(hh); ws.push(wgt);
+    bins[Math.floor(hsvH / 10) % 36] += hsvS * hsvV;
   }
   if (!opaque || (strong / opaque < GLOW_MIN_SHARE && sheet.meta.glow === undefined)) { glowScans.set(key, none); return none; }
-  let peak = 0;
-  for (let b = 1; b < 36; b++) if (bins[b] > bins[peak]) peak = b;
-  const center = peak * 10 + 5;
-  let sx = 0, sy = 0;
-  for (let k = 0; k < hs.length; k++) {
-    if (hueDist(hs[k], center) > 30) continue;
-    const rad = (hs[k] * Math.PI) / 180;
-    sx += Math.cos(rad) * ws[k];
-    sy += Math.sin(rad) * ws[k];
+  let hue = sheet.meta.glow;
+  if (hue === undefined) {
+    // Тон не задан метой — уточняем круговым средним вторым проходом (без списков тонов на миллионы пикселей).
+    let peak = 0;
+    for (let b = 1; b < 36; b++) if (bins[b] > bins[peak]) peak = b;
+    const center = peak * 10 + 5;
+    let sx = 0, sy = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      if (px[i + 3] < 128) continue;
+      rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
+      if (hsvS < 0.4 || hsvV < 0.5 || hueDist(hsvH, center) > 30) continue;
+      const rad = (hsvH * Math.PI) / 180, wgt = hsvS * hsvV;
+      sx += Math.cos(rad) * wgt;
+      sy += Math.sin(rad) * wgt;
+    }
+    hue = (Math.atan2(sy, sx) * 180) / Math.PI;
+    if (hue < 0) hue += 360;
   }
-  let hue = (Math.atan2(sy, sx) * 180) / Math.PI;
-  if (hue < 0) hue += 360;
-  if (sheet.meta.glow !== undefined) hue = sheet.meta.glow;
   const th = glowThresholds(sheet.meta);
   let accent = 0;
   for (let i = 0; i < px.length; i += 4) {
     if (px[i + 3] < 128) continue;
-    const [hh, s, v] = rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
-    if (s >= th.sat && v >= th.val && hueDist(hh, hue) <= th.tol) accent++;
+    rgbToHsv(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
+    if (hsvS >= th.sat && hsvV >= th.val && hueDist(hsvH, hue) <= th.tol) accent++;
   }
   const share = accent / opaque;
-  const out: GlowScan = share >= GLOW_MIN_SHARE || sheet.meta.glow !== undefined ? { glow: { hue, share }, data, w, h } : none;
+  const out: GlowScan = share >= GLOW_MIN_SHARE || sheet.meta.glow !== undefined ? { glow: { hue, share } } : none;
   glowScans.set(key, out);
   return out;
 }
@@ -390,7 +404,6 @@ export function sheetGlow(sheet: DotaSheet): SheetGlow | null {
   return scanGlow(sheet).glow;
 }
 
-const gemSheets = new Map<string, DotaSheet>();
 
 /**
  * Лист арканы со свечением: акцентные пиксели перекрашены в тон самоцвета (`gemHue`, null — родной
@@ -399,13 +412,17 @@ const gemSheets = new Map<string, DotaSheet>();
  */
 export function gemSheet(sheet: DotaSheet, gemHue: number | null): DotaSheet {
   if (typeof document === "undefined") return sheet;
-  const scan = scanGlow(sheet);
-  if (!scan.glow || !scan.data) return sheet;
   const key = `${sheet.meta.name}#${gemHue ?? "own"}`;
   const cached = gemSheets.get(key);
   if (cached) return cached;
-  const { w, h } = scan;
-  const src = scan.data.data;
+  // Лист без свечения (скан уже был) — без чтения пикселей; иначе читаем один раз и отдаём их же скану.
+  const known = glowScans.get(sheet.meta.name);
+  if (known && !known.glow) return sheet;
+  const pixels = sheetPixels(sheet);
+  const scan = scanGlow(sheet, pixels);
+  if (!scan.glow || !pixels) return sheet;
+  const w = pixels.width, h = pixels.height;
+  const src = pixels.data;
   const out = new Uint8ClampedArray(src);
   const mask = new Uint8Array(w * h);
   const hue = scan.glow.hue;
@@ -413,8 +430,9 @@ export function gemSheet(sheet: DotaSheet, gemHue: number | null): DotaSheet {
   // 1. Акцентные пиксели: отметить и, если выбран самоцвет, перекрасить (тон меняем, S и V оставляем).
   for (let p = 0, i = 0; i < src.length; i += 4, p++) {
     if (src[i + 3] < 128) continue;
-    const [hh, s, v] = rgbToHsv(src[i] / 255, src[i + 1] / 255, src[i + 2] / 255);
-    if (s < th.sat || v < th.val || hueDist(hh, hue) > th.tol) continue;
+    rgbToHsv(src[i] / 255, src[i + 1] / 255, src[i + 2] / 255);
+    const s = hsvS, v = hsvV;
+    if (s < th.sat || v < th.val || hueDist(hsvH, hue) > th.tol) continue;
     const t = Math.min(1, (s - th.sat) / 0.35) * Math.min(1, (v - th.val) / 0.35);
     mask[p] = 1 + Math.round(t * 254);
     if (gemHue !== null) {
@@ -458,7 +476,7 @@ export function gemSheet(sheet: DotaSheet, gemHue: number | null): DotaSheet {
   if (!c) return sheet;
   c.putImageData(new ImageData(out, w, h), 0, 0);
   const res: DotaSheet = { img: cv, meta: sheet.meta };
-  gemSheets.set(key, res);
+  gemSheets.set(key, res, w * h * 4);
   return res;
 }
 
@@ -528,6 +546,10 @@ export class ByteLru<T> {
 /** Бюджет полных композитов: четыре-пять плотных обликов (бой + витрина + пара недавних вариантов). */
 export const COMPOSITE_BUDGET = 256 * 1024 * 1024;
 const compositeSheets = new ByteLru<DotaSheet | null>(COMPOSITE_BUDGET);
+/** Перекрашенные копии листов (`gemSheet`) — полноразмерные canvas (39–48 МиБ у плотной арканы), поэтому под байтовым
+ *  бюджетом, как композиты: лист боя и витрины трогается каждый кадр и не вытесняется, давние примерки уходят.
+ *  Раньше это был `Map` без предела, и имя композита (новое на каждую часть) оставляло копию навсегда. */
+const gemSheets = new ByteLru<DotaSheet>(192 * 1024 * 1024);
 /** Состояние кэша композитов — для тестов и отладки. */
 export function compositeCacheStats(): { entries: number; bytes: number } { return { entries: compositeSheets.size, bytes: compositeSheets.bytes }; }
 export function isCompositeSheet(name: string): boolean { return name.split("+").length > 2; }
