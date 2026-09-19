@@ -98,9 +98,19 @@ jobs:
         run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
       - run: go vet ./...
       - run: go build ./...
-      - run: go test ./...
+      # Упавшие тесты — аннотацией: лог джоба без токена не читается (403), а агентская проверка CI ходит публичным API
+      # (2026-09-20: красный прогон 0bc7c7d9 без единой зацепки, кроме «exit code 1»).
+      - name: go test ./...
+        run: |
+          set -o pipefail
+          go test ./... 2>&1 | tee gotest.log
         env:
           DATABASE_URL: postgres://aegis:aegis@localhost:5432/aegis?sslmode=disable
+      - name: Go test failures as annotation
+        if: failure()
+        run: |
+          grep -E -A12 '^(--- FAIL|FAIL|panic:|\s+.*_test\.go:[0-9]+:)' gotest.log | head -60 > gotest.tail || true
+          echo "::error title=go test failures::$(awk '{gsub(/%/,"%25"); printf "%s%%0A", $0}' gotest.tail)"
 
   web:
     name: Web (данные + логика + build)
