@@ -8,7 +8,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, defaultLoadout, familyOf, formSheet as formSheetOf, heroLook, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, choosableSlots, defaultLoadout, familyOf, formSheet as formSheetOf, heroLook, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
 import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -277,10 +277,13 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const formDef = COSMETICS.find((c) => c.slot === "form" && c.variant === wornLook.form);
   const formLabel = formOn === LOOK_DEFAULT ? t("arcade.wardrobe.formDefault") : formDef ? t(`arcade.cosmetic.${formDef.id}` as MessageKey) : t("arcade.wardrobe.formOfLook");
   const asWornSummons = summonSheets(hero, {}, cosmetics.equipped);
-  const [slotTab, setSlotTab] = useState<DotaSlot>(hp?.slots[0] ?? "head");
+  const [slotPick, setSlotTab] = useState<DotaSlot>(hp?.slots[0] ?? "head");
   const myLoadout = cosmetics.loadout?.[hero] ?? {};
   // Основа надетого облика (срез 2): семейство слоёв — базовая модель, аркана или её стиль; слоты редактируются на ней.
   const wornFam = familyOf(hero, cosmetics.equipped, cosmetics.styles);
+  // Слот без выбора (закреплён за основой: арбалет арканы Drow) вкладкой не показываем.
+  const slotTabs = wornFam ? choosableSlots(hero, wornFam.id) : hp?.slots ?? [];
+  const slotTab = slotTabs.includes(slotPick) ? slotPick : slotTabs[0] ?? slotPick;
   const wornDefaults = defaultLoadout(hero, cosmetics.equipped, cosmetics.styles);
   const followSrc = wornDefaults[slotTab];
   const partSheet = (src: string) => `${wornFam?.id ?? hero}+body+${src}.${slotTab}`;
@@ -416,7 +419,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
             ) : (
               <>
                 <div className="arcade-cosmetics__options">
-                  {hp.slots.map((slot) => (
+                  {slotTabs.map((slot) => (
                     <button key={slot} type="button" className="arcade-rank__tier" data-active={slotTab === slot ? "true" : undefined} data-override={myLoadout[slot] ? "true" : undefined} data-testid={`arcade-wardrobe-slot-${slot}`} onClick={() => setSlotTab(slot)}>{t(`arcade.wardrobe.slot.${slot}` as MessageKey)}</button>
                   ))}
                 </div>

@@ -735,9 +735,12 @@ test("roguelite run: Playbook ограничивает награды и trade-i
 // выполняться, и тест краснеет НЕ на регрессии кода. Так он и упал на гейте присутствия (TDATA3).
 // Не чини это ослаблением проверки — подбери новый seed: `npx tsx scripts/find_camp_seed.ts`
 // (повторяет ровно этот путь оффлайн и печатает годные сиды).
+// Пере-подобран 2026-09-19: camp-e2e-5 → 7 — data-refresh 09-14…09-18 сдвинул пул, джоб web-e2e-real покраснел на 8d999b2b
+// (бот-коммиты данных CI не запускают, поэтому дрейф всплыл на первом же кодовом пуше). Сид взят из пересечения
+// find_camp_seed на real и на mock (изолированная копия) и пройден живьём на обоих.
 test("roguelite run: предмет в слоте показывает разложение силы", async ({ page }) => {
   await gotoFreshApp(page);
-  await startRogueliteSeed(page, "camp-e2e-5");
+  await startRogueliteSeed(page, "camp-e2e-7");
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();

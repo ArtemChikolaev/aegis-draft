@@ -515,6 +515,15 @@ export function defaultLoadout(hero: string, equipped: Partial<Record<CosmeticSl
   return fam ? defaultsOf(fam) : {};
 }
 
+/** Слоты, в которых на этой основе есть из чего выбирать: у слота больше одного источника либо единственный — не тот, что
+ *  надет по умолчанию. Слот, закреплённый за основой (арбалет арканы Drow: другой лук на её хват не ложится —
+ *  scripts/blender/dota_part_exclusions.json), гардероб не показывает — выбирать там нечего. */
+export function choosableSlots(hero: string, familyId: string): DotaSlot[] {
+  const hp = HERO_PARTS[hero], fam = hp?.families[familyId];
+  if (!hp || !fam) return [];
+  return hp.slots.filter((slot) => { const srcs = Object.keys(fam.sources).filter((src) => fam.sources[src].includes(slot)); return srcs.length > 1 || (srcs.length === 1 && srcs[0] !== fam.defaults[slot]); });
+}
+
 /** Слот → источник после правил: явный выбор (если источник свой и даёт эту часть), иначе как у надетого облика. */
 export function resolveLoadout(hero: string, equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>>, loadout: Loadout, owned: readonly string[]): Partial<Record<DotaSlot, string>> {
   const fam = familyOf(hero, equipped, styles);

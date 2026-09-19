@@ -734,8 +734,7 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "arms",
             "shoulder",
             "misc",
-            "head",
-            "weapon"
+            "head"
           ],
           "arcana": [
             "back",
@@ -752,8 +751,7 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "arms",
             "shoulder",
             "misc",
-            "head",
-            "weapon"
+            "head"
           ],
           "stranger_in_the_wandering_isles": [
             "back",
@@ -761,8 +759,7 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "arms",
             "shoulder",
             "misc",
-            "head",
-            "weapon"
+            "head"
           ],
           "black_ice_constellation": [
             "back",
@@ -770,11 +767,65 @@ export const HERO_PARTS: Readonly<Record<string, HeroParts>> = /* DATA */{
             "arms",
             "shoulder",
             "misc",
-            "head",
-            "weapon"
+            "head"
           ]
         },
         "backOrder": [ 0, 0, 0, 1, 1, 0, 0, 0 ]
+      },
+      "drow_ranger@arcana~style1": {
+        "defaults": {
+          "arms": "arcana",
+          "back": "arcana",
+          "head": "arcana",
+          "legs": "arcana",
+          "misc": "arcana",
+          "shoulder": "arcana",
+          "weapon": "arcana"
+        },
+        "sources": {
+          "base": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head"
+          ],
+          "arcana": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head",
+            "weapon"
+          ],
+          "sight_of_the_kha_ren_faithful": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head"
+          ],
+          "stranger_in_the_wandering_isles": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head"
+          ],
+          "black_ice_constellation": [
+            "back",
+            "legs",
+            "arms",
+            "shoulder",
+            "misc",
+            "head"
+          ]
+        },
+        "backOrder": [ 0, 0, 0, 0, 1, 0, 0, 0 ]
       }
     }
   }

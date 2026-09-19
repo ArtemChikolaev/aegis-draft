@@ -5,7 +5,7 @@
 // проверялись независимо от того, что уже отрендерено.
 import { describe, it, expect, vi } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
-import { COSMETICS, COSMETIC_BY_ID, PART_BASE, defaultLoadout, familyOf, heroLook, loadoutSheet, partSources, resolveLoadout, summonSheets, wornIsWhole } from "../src/game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, PART_BASE, choosableSlots, defaultLoadout, familyOf, heroLook, loadoutSheet, partSources, resolveLoadout, summonSheets, wornIsWhole } from "../src/game/arcade/content/cosmetics.ts";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
 import { migrateCosmeticsV2, useArcade } from "../src/state/arcadeStore.ts";
 import { ByteLru, isCompositeSheet } from "../src/features/arcade/sprites.ts";
@@ -223,6 +223,32 @@ describe("облик по слотам: данные", () => {
         for (const [s, src] of Object.entries(fam.defaults)) expect(fam.sources[src]?.includes(s as never), `${famId}: слот по умолчанию ${s}=${src} без слоя`).toBe(true);
       }
     }
+  });
+  it("закреплённые слоты (dota_part_exclusions.json): чужого слоя нет ни в таблице, ни в манифестах, ни на диске; у записи есть причина; стиль наследует правило", async () => {
+    const { HERO_PARTS } = await vi.importActual<typeof import("../src/game/arcade/content/parts.ts")>("../src/game/arcade/content/parts.ts");
+    const ex = JSON.parse(readFileSync(new URL("../scripts/blender/dota_part_exclusions.json", import.meta.url), "utf8")) as Record<string, Record<string, { only: string[]; why: string }>>;
+    delete ex._;
+    expect(Object.keys(ex)).toContain("drow_ranger@arcana"); // плейтест 2026-09-19: лук сета на аркане висел в воздухе
+    const layerRows = [...rows("dota_manifest_parts_px.tsv"), ...rows("dota_manifest_parts_px2.tsv")];
+    for (const [base, slots] of Object.entries(ex)) for (const [slot, rule] of Object.entries(slots)) {
+      expect(rule.why.length, `${base}.${slot}: причина`).toBeGreaterThan(40);
+      const fams = Object.entries(HERO_PARTS[base.split("@")[0]]!.families).filter(([id]) => id.split("~")[0] === base);
+      expect(fams.length).toBeGreaterThan(0);
+      for (const [famId, fam] of fams) {
+        expect(rule.only).toContain(fam.defaults[slot as never]); // слот по умолчанию остаётся за разрешённым источником
+        for (const [src, has] of Object.entries(fam.sources)) if (!rule.only.includes(src)) {
+          expect(has.includes(slot as never), `${famId}: ${src} даёт закреплённый слот ${slot}`).toBe(false);
+          expect(layerRows.includes(`${famId}+${src}.${slot}`), `${famId}+${src}.${slot} остался в манифесте слоёв`).toBe(false);
+          for (const dir of ["dota_px", "dota_px2"]) expect(existsSync(new URL(`../public/art/sprites/${dir}/${famId}+${src}.${slot}.webp`, import.meta.url)), `${dir}/${famId}+${src}.${slot}`).toBe(false);
+        }
+      }
+    }
+    // Правила: закреплённый слот гардероб не предлагает, а старый выбор игрока в нём молча уступает основе.
+    expect(choosableSlots("drow_ranger", "drow_ranger@arcana")).not.toContain("weapon");
+    expect(choosableSlots("drow_ranger", "drow_ranger")).toContain("weapon");
+    const set = "skin_drow_ranger_stranger_in_the_wandering_isles";
+    const worn = resolveLoadout("drow_ranger", { skin: "skin_drow_arcana" }, {}, { weapon: "stranger_in_the_wandering_isles", head: "stranger_in_the_wandering_isles" }, ["skin_drow_arcana", set]);
+    expect([worn.weapon, worn.head]).toEqual(["arcana", "stranger_in_the_wandering_isles"]);
   });
   it("слой лежит в слоте своего предмета по items_game (A2): item_slot из индекса ↔ слот в id слоя", () => {
     const index = JSON.parse(readFileSync(new URL("../scripts/blender/dota_item_index.json", import.meta.url), "utf8")) as { models: Record<string, { slot: string; swaps?: Record<string, string> }>; bases: Record<string, { swaps?: Record<string, string> }[]> };

@@ -83,6 +83,7 @@ function slotName(p: string): string {
   return s.slot;
 }
 
+const EXCLUSIONS = (() => { const j = JSON.parse(readFileSync("scripts/blender/dota_part_exclusions.json", "utf8")) as Record<string, Record<string, { only: string[]; why: string }>>; delete j._; return j; })();
 /** Семейство: основа героя со своим телом, её источники частей (источник → слот → модели) и слоты по умолчанию. */
 interface Family { id: string; hero: string; row: Row; sources: Map<string, Map<string, string[]>>; defaults: Map<string, string>; /** Хвост аргументов источника: сет-перекраска (`--style dpc` у Spring Lineage SF) рендерит свои слои с ним. */ extras: Map<string, string> }
 export function families(hero: string, man: Row[], want: readonly string[]): Family[] {
@@ -110,10 +111,12 @@ export function families(hero: string, man: Row[], want: readonly string[]): Fam
     for (const p of own) Object.assign(swaps, index.models[modelKey(p)]?.swaps ?? {});
     const swap = (p: string) => { const to = swaps[modelKey(p)]; return to ? `${to}_c` : p; };
     const sources = new Map<string, Map<string, string[]>>();
-    sources.set("base", group(base.parts));
+    sources.set("base", group(base.parts, swap)); // базовая часть тоже может иметь вариант под аркану (колчан Drow → drow_quiver_refit)
     if (skin && own.length) sources.set(skin, group(own));
     const extras = new Map<string, string>();
     for (const s of sets) { sources.set(s.name, group(s.own, swap)); if (s.extra) extras.set(s.name, s.extra); }
+    // Слоты, закреплённые за источником (dota_part_exclusions.json, по замеру qa_part_attach.mts): чужой слой сидел бы криво.
+    for (const [slot, rule] of Object.entries(EXCLUSIONS[row.id.split("~")[0]] ?? {})) for (const [src, slots] of sources) if (!rule.only.includes(src)) slots.delete(slot);
     const defaults = new Map<string, string>();
     for (const p of row.parts) defaults.set(slotName(p), own.includes(p) && skin ? skin : "base");
     return { id: row.id, hero, row, sources, defaults, extras };
