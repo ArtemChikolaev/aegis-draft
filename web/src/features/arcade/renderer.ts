@@ -219,6 +219,7 @@ export class ArcadeRenderer {
 
   /** Подогнать буфер под CSS-размер и DPR (зовётся из ResizeObserver). */
   resize(width: number, height: number): void {
+    this.stickRectFor = null;
     this.dpr = Math.min(2, window.devicePixelRatio || 1);
     this.w = Math.max(1, Math.floor(width));
     this.h = Math.max(1, Math.floor(height));
@@ -933,10 +934,11 @@ export class ArcadeRenderer {
       const tier = g.item.rarity === "arcana" ? 3 : g.item.rarity === "exotic" ? 2 : g.item.rarity === "refined" ? 1 : 0;
       const color = tier === 3 ? pal.arcana : tier === 2 ? pal.exotic : tier === 1 ? pal.refined : pal.text;
       if (tier > 0) {
-        const grad = c.createLinearGradient(0, g.y - 40 - tier * 10, 0, g.y + 8);
-        grad.addColorStop(0, "transparent"); grad.addColorStop(1, color);
-        c.fillStyle = grad; c.globalAlpha = 0.18 + 0.1 * tier + 0.12 * pulse;
-        c.fillRect(g.x - 10 - tier * 2, g.y - 40 - tier * 10, 20 + tier * 4, 48 + tier * 10);
+        // Столб света: градиент один на редкость (в координатах предмета), а не новый на каждый предмет каждый кадр.
+        c.fillStyle = this.lootBeam(tier, color); c.globalAlpha = 0.18 + 0.1 * tier + 0.12 * pulse;
+        c.translate(g.x, g.y);
+        c.fillRect(-10 - tier * 2, -40 - tier * 10, 20 + tier * 4, 48 + tier * 10);
+        c.translate(-g.x, -g.y);
         c.fillStyle = color; c.globalAlpha = 0.22 + 0.16 * pulse;
         c.beginPath(); c.ellipse(g.x, g.y + 8, 22 + tier * 2, 10 + tier, 0, 0, Math.PI * 2); c.fill();
       }
@@ -1302,10 +1304,11 @@ export class ArcadeRenderer {
         : Math.floor((now / 1000) * heroDota.meta.fps * 0.6);
       const hdir = dotaDir(lookX, lookY, heroDota.meta.dirs);
       this.lastHero = { sheet: heroDota, anim, dir: hdir, frame };
-      const geo = this.auraGeo(heroDota, anim, hdir, frame, p.x, p.y + R * 0.75);
-      this.drawAura(sim, geo, now, pal, "back");
+      // Геометрия контура — только когда свечение есть: без него она считалась каждый кадр впустую (64 точки контура).
+      const geo = this.hasAura(sim) ? this.auraGeo(heroDota, anim, hdir, frame, p.x, p.y + R * 0.75) : null;
+      if (geo) this.drawAura(sim, geo, now, pal, "back");
       drawDotaFrame(c, heroDota, anim, hdir, frame, p.x, p.y + R * 0.75, heroAlpha);
-      this.drawAura(sim, geo, now, pal, "front");
+      if (geo) this.drawAura(sim, geo, now, pal, "front");
     } else if (heroSheet) {
       const frame = heroAnim === "walk" ? (moving ? 1 + Math.floor(this.walkPhase * 1.3) % 8 : 0) : Math.floor((spinning ? (now / 420) % 1 : atkT) * FRAMES[heroAnim]);
       this.lastHero = null;
@@ -1316,12 +1319,27 @@ export class ArcadeRenderer {
       drawRig(c, p.x, p.y + R * 0.75, rig, { facing: lookX >= 0 ? 1 : -1, walkPhase: this.walkPhase, moving, attackT: spinning ? (now / 420) % 1 : atkT, hit: false }, this.portraitReady ? this.portrait : null);
     }
     c.globalAlpha = 1;
-    if (!heroDota) {
+    if (!heroDota && this.hasAura(sim)) {
       // Без листа Dota (LPC/риг) геометрии контура нет — свечение по коробке.
       const geo = auraGeoFromBox(p.x, p.y + R * 0.75, R * 3);
       this.drawAura(sim, geo, now, pal, "back");
       this.drawAura(sim, geo, now, pal, "front");
     }
+  }
+
+  /** Градиенты столба света редкой добычи: ключ — редкость и цвет палитры (тема), свой набор на каждый контекст. */
+  private lootBeams = new Map<string, CanvasGradient>();
+  private lootBeamCtx: CanvasRenderingContext2D | null = null;
+  private lootBeam(tier: number, color: string): CanvasGradient {
+    if (this.lootBeamCtx !== this.ctx) { this.lootBeams.clear(); this.lootBeamCtx = this.ctx; }
+    const key = `${tier}:${color}`;
+    let grad = this.lootBeams.get(key);
+    if (!grad) {
+      grad = this.ctx.createLinearGradient(0, -40 - tier * 10, 0, 8);
+      grad.addColorStop(0, "transparent"); grad.addColorStop(1, color);
+      this.lootBeams.set(key, grad);
+    }
+    return grad;
   }
 
   /** Геометрия силуэта кадра героя в мировых координатах (для свечения по контуру). */
@@ -1351,10 +1369,16 @@ export class ArcadeRenderer {
   }
 
   /** Свечение героя (слот `aura`) по контуру силуэта: слой `back` до спрайта, `front` после; вспышка по T разжигает его. */
+  /** Эффект самого облика: своё свечение героя (Io) идёт как «эффект скина», если скин ничего своего не даёт. */
+  private skinAura(sim: ArcadeSim): AuraEffect | undefined {
+    return (this.skinFx && this.skinFxOn && (!this.skinFx.hero || this.skinFx.hero === sim.hero.id) ? (this.skinFx.aura as AuraEffect) : undefined) ?? HERO_AURA[sim.hero.id];
+  }
+  /** Есть ли что рисовать вокруг героя: надетое свечение или эффект облика. */
+  private hasAura(sim: ArcadeSim): boolean {
+    return !!this.cosmetic.aura || !!this.skinAura(sim);
+  }
   private drawAura(sim: ArcadeSim, geo: AuraGeo, now: number, pal: Palette, layer: "back" | "front"): void {
-    // Своё свечение героя (Io) идёт как «эффект скина», если скин ничего своего не даёт.
-    const skinFx = (this.skinFx && this.skinFxOn && (!this.skinFx.hero || this.skinFx.hero === sim.hero.id) ? (this.skinFx.aura as AuraEffect) : undefined)
-      ?? HERO_AURA[sim.hero.id];
+    const skinFx = this.skinAura(sim);
     const kind = this.cosmetic.aura as AuraEffect | undefined;
     if (!kind && !skinFx) return;
     const flareK = now < this.flareUntil ? Math.sin(((this.flareUntil - now) / 1200) * Math.PI) : 0;
@@ -1471,9 +1495,14 @@ export class ArcadeRenderer {
     c.fillRect(p.x + r, p.y - r, Math.max(0, camX + this.w - (p.x + r) + 20), r * 2);
   }
 
+  /** Положение холста на странице на время одного жеста стика: `getBoundingClientRect` форсирует layout, а читался он
+   *  каждый кадр с активным стиком. Объект стика новый на каждое касание (input.ts), resize сбрасывает кэш. */
+  private stickRect: { left: number; top: number } | null = null;
+  private stickRectFor: object | null = null;
   private drawJoystick(j: { ox: number; oy: number; x: number; y: number }, pal: Palette): void {
     const c = this.ctx;
-    const rect = this.canvas.getBoundingClientRect();
+    if (this.stickRectFor !== j || !this.stickRect) { this.stickRect = this.canvas.getBoundingClientRect(); this.stickRectFor = j; }
+    const rect = this.stickRect;
     const ox = j.ox - rect.left, oy = j.oy - rect.top;
     let dx = j.x - j.ox, dy = j.y - j.oy;
     const l = Math.hypot(dx, dy);
@@ -1483,6 +1512,16 @@ export class ArcadeRenderer {
     c.globalAlpha = 0.7; c.beginPath(); c.arc(ox + dx, oy + dy, 22, 0, Math.PI * 2); c.fill();
     c.globalAlpha = 1;
   }
+}
+
+/**
+ * Рисовать ли сцену в этом кадре. На паузе и после конца забега мир стоит под blur-оверлеем, а сцена перерисовывалась
+ * 60 раз в секунду. Теперь «застывшая» сцена рисуется при входе в это состояние, после resize (смена размера холста
+ * стирает буфер) и раз в `every` кадров — на случай догрузившегося листа. Остальной цикл экрана (опрос пада, звук,
+ * HUD) идёт каждый кадр, как раньше.
+ */
+export function sceneNeedsDraw(frozen: boolean, wasFrozen: boolean, dirty: boolean, frame: number, every = 60): boolean {
+  return !frozen || !wasFrozen || dirty || frame % every === 0;
 }
 
 function resolveFontFamily(): string {

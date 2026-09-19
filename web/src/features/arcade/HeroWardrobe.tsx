@@ -8,7 +8,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, choosableSlots, defaultLoadout, familyOf, formSheet as formSheetOf, formSheetCandidates, heroLook, loadoutSheet, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, choosableSlots, defaultLoadout, familyOf, formSheet as formSheetOf, formSheetCandidates, heroLook, heroSkins, loadoutSheet, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
 import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -291,7 +291,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const heroOf = useHero();
   const def = HEROES[hero];
   const info = heroOf(def.dotaId);
-  const skins = COSMETICS.filter((c) => c.slot === "skin" && c.hero === hero);
+  const skins = heroSkins(hero);
   const looks: Look[] = [
     { def: null, sheet: hero, owned: true },
     ...skins.map((c) => ({ def: c, sheet: c.variant, owned: cosmetics.owned.includes(c.id) })),

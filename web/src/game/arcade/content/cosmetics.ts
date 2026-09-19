@@ -419,6 +419,16 @@ for (const c of COSMETICS) if (c.slot === "skin" && c.rarity === "arcana" && !c.
 
 export const COSMETIC_BY_ID: Record<string, CosmeticDef> = Object.fromEntries(COSMETICS.map((c) => [c.id, c]));
 
+/** Облики (слот `skin`) по героям — индекс, построенный один раз: экран подготовки спрашивает облики для каждой из
+ *  126 карточек на каждый рендер (каждая буква поиска), и это был `COSMETICS.filter` по ~330 записям на карточку. */
+const SKINS_BY_HERO = new Map<string, CosmeticDef[]>();
+for (const c of COSMETICS) if (c.slot === "skin" && c.hero) { const list = SKINS_BY_HERO.get(c.hero); if (list) list.push(c); else SKINS_BY_HERO.set(c.hero, [c]); }
+const NO_SKINS: readonly CosmeticDef[] = [];
+/** Облики героя в порядке каталога. */
+export function heroSkins(hero: string): readonly CosmeticDef[] {
+  return SKINS_BY_HERO.get(hero) ?? NO_SKINS;
+}
+
 /** Имя листа/озвучки героя с учётом надетого скина: `<hero>@<skin>`, если скин этого героя надет, иначе id героя.
  *  Стиль сюда НЕ входит: озвучка у стилей общая со скином. */
 export function skinnedHero(hero: string, equipped: Partial<Record<CosmeticSlot, string>>): string {
@@ -467,7 +477,7 @@ export const PART_BASE = "base";
 
 /** Косметика источника частей (`<hero>@<src>`): у `base` её нет; у `arcana` — аркана героя. */
 export function sourceCosmetic(hero: string, src: string): CosmeticDef | undefined {
-  return src === PART_BASE ? undefined : COSMETICS.find((c) => c.slot === "skin" && c.hero === hero && c.variant === `${hero}@${src}`);
+  return src === PART_BASE ? undefined : heroSkins(hero).find((c) => c.variant === `${hero}@${src}`);
 }
 
 /** Основа надетого облика: семейство слоёв, источник надетого сета на базовом теле (или null у самой основы) и признак,

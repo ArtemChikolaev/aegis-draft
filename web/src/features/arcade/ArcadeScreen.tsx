@@ -21,7 +21,7 @@ import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT,
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
-import { COSMETICS, COSMETIC_BY_ID, formSheetCandidates, heroLook, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, formSheetCandidates, heroLook, heroSkins, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
 import type { AbilityKey, Offer, RuneKind } from "../../game/arcade/types.ts";
@@ -42,7 +42,7 @@ import { PAD_GLYPH } from "./gamepad.ts";
 import { compositionFor } from "../../game/arcade/content/compositions.ts";
 import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { groupHeroes, recentHeroes } from "./heroPicker.ts";
-import { ArcadeRenderer } from "./renderer.ts";
+import { ArcadeRenderer, sceneNeedsDraw } from "./renderer.ts";
 import { formatClock } from "../../game/arcade/clock.ts";
 import "./arcade.css";
 
@@ -136,13 +136,13 @@ function ArcadeSetup() {
                   const def = HEROES[id];
                   const info = heroOf(def.dotaId);
                   return (
-                    <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { if (id === heroId) { setWardrobe(id); return; } setHero(id); preloadHeroSfx(id); preloadHeroVoice(id); void preloadArcadeArt(id, Object.keys(ENEMY_KINDS), "short"); }}>
+                    <button key={id} type="button" className="arcade-heroes__pick" data-active={id === heroId ? "true" : undefined} data-testid={`arcade-hero-${id}`} onClick={() => { if (id === heroId) { setWardrobe(id); return; } setHero(id); preloadHeroSfx(id); void preloadArcadeArt(id, Object.keys(ENEMY_KINDS), "short"); }}>
                       <span role="button" tabIndex={0} className="arcade-heroes__star" data-on={fav ? "true" : undefined} aria-label={t(fav ? "arcade.heroes.unfav" : "arcade.heroes.fav")} title={t(fav ? "arcade.heroes.unfav" : "arcade.heroes.fav")} data-testid={`arcade-hero-fav-${id}`} onClick={(e) => { e.stopPropagation(); toggleFavorite(id); }} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); toggleFavorite(id); } }}>{fav ? "★" : "☆"}</span>
                       <HeroThumb picture={info.picture || def.picture} name={info.name} size="md" layout="card" />
                       <small>{t(def.ranged ? "arcade.hero.ranged" : "arcade.hero.melee")}</small>
                       {(() => {
                         // Бейдж скина на карточке героя (владелец: «косметика по герою»): надетый — по редкости, иначе — сколько доступно.
-                        const skins = COSMETICS.filter((c) => c.slot === "skin" && c.hero === id);
+                        const skins = heroSkins(id);
                         if (skins.length === 0) return null;
                         const on = wornSkin(id, cosmetics.skins[id]);
                         return on
@@ -407,7 +407,9 @@ function ArcadeStage() {
       controller.queueAct(BUILD_ACT);
       return true;
     };
-    const ro = new ResizeObserver(() => renderer.resize(stage.clientWidth, stage.clientHeight));
+    // Сцена на паузе и после конца забега рисуется не каждый кадр (renderer.ts sceneNeedsDraw): resize просит перерисовку.
+    let sceneDirty = true, wasFrozen = false;
+    const ro = new ResizeObserver(() => { renderer.resize(stage.clientWidth, stage.clientHeight); sceneDirty = true; });
     ro.observe(stage);
     renderer.resize(stage.clientWidth, stage.clientHeight);
     let raf = 0;
@@ -473,7 +475,9 @@ function ArcadeStage() {
       else if (ev.hits > seen.hits) { if (!heroHitSfx(sim.hero.id, false, now)) sfxArcade("hit"); }
       heroSpinSfx(sim.hero.id, sim.tick < sim.player.spinUntil && !sim.over && statusRef.current === "running");
       // Реплики героя.
-      if (!spoke && sim.tick > 30 && statusRef.current === "running" && !loadingRef.current) { spoke = true; heroVoice(voiceId, "spawn", now); nextMoveLine = now + 20000 + Math.random() * 15000; }
+      // Озвучка грузится при старте забега (не по тычку в карточку героя), поэтому реплика спавна ждёт свой буфер —
+      // не дольше 5 с забега: `heroVoice` отвечает false, пока сэмпл не декодирован (или реплик у героя нет).
+      if (!spoke && sim.tick > 30 && statusRef.current === "running" && !loadingRef.current && (heroVoice(voiceId, "spawn", now) || sim.tick > sec(5))) { spoke = true; nextMoveLine = now + 20000 + Math.random() * 15000; }
       if (!sim.over && statusRef.current === "running") {
         const moved = Math.abs(sim.player.x - lastPx) + Math.abs(sim.player.y - lastPy) > 0.5;
         lastPx = sim.player.x; lastPy = sim.player.y;
@@ -516,7 +520,9 @@ function ArcadeStage() {
       if (bossAlive && !wasBoss) sfxSting("boss");
       wasBoss = bossAlive;
       if (++frame % 6 === 0) bump();
-      renderer.draw(sim, now, controller.joystick, screenShakeEnabled());
+      const frozen = statusRef.current !== "running" && !loadingRef.current;
+      if (sceneNeedsDraw(frozen, wasFrozen, sceneDirty, frame)) { renderer.draw(sim, now, controller.joystick, screenShakeEnabled()); sceneDirty = false; }
+      wasFrozen = frozen;
     };
     raf = requestAnimationFrame(loop);
     // Звук гасим здесь же: в скрытой вкладке rAF стоит, и кадр, который выключает музыку и петли на паузе, не придёт —
@@ -524,6 +530,8 @@ function ArcadeStage() {
     const onVisibility = () => { if (!document.hidden) return; useArcade.getState().pause(); ensureMusic("off"); resetHeroSfx(); scape.dispose(); };
     document.addEventListener("visibilitychange", onVisibility);
     preloadHeroSfx(heroDef.id);
+    // Озвучка — только при старте забега: это ~5.8 МБ PCM на героя, а кэш сэмплов (ui/sound.ts) ничего не вытесняет.
+    // Раньше она грузилась и по тычку в карточку героя — перебор карточек оставлял в памяти озвучку каждого (аудит 2026-09-19).
     preloadHeroVoice(voiceId);
     const simNow = getArcadeSim();
     let cancelled = false;
