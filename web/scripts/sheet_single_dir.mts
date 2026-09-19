@@ -37,7 +37,7 @@ function parsePam(buf: Buffer): { w: number; h: number; data: Buffer } {
 let before = 0, after = 0, done = 0, skipped = 0;
 for (const d of dirs.length ? dirs : ["dota_px2", "dota_px"]) {
   const root = d.startsWith("/") ? d : `public/art/sprites/${d}`;
-  const ids = readdirSync(root).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5));
+  const ids = readdirSync(root).filter((f) => f.endsWith(".json") && f !== "index.json").map((f) => f.slice(0, -5));
   let next = 0;
   const worker = async () => {
     for (;;) {

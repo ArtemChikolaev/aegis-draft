@@ -9,7 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 const dir = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[2] : "dota_px2";
 const ROOT = `public/art/sprites/${dir}`;
 const anims = process.argv.slice(3).filter((a) => !a.startsWith("--"));
-const ids = readdirSync(ROOT).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort();
+const ids = readdirSync(ROOT).filter((f) => f.endsWith(".json") && f !== "index.json").map((f) => f.slice(0, -5)).sort();
 
 const PAGE = `(async (b64, meta, anims) => {
   const img = new Image(); img.src = 'data:image/webp;base64,' + b64; await img.decode();

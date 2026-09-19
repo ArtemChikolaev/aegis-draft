@@ -21,7 +21,7 @@ const ROOT = dir.startsWith("/") ? dir : `public/art/sprites/${dir}`;
 const only = argv.slice(1).filter((a, i, arr) => !a.startsWith("--") && arr[i - 1] !== "--top");
 const asJson = argv.includes("--json");
 const top = Number(argv[argv.indexOf("--top") + 1]) || 25;
-const ids = (only.length ? only : readdirSync(ROOT).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5))).sort();
+const ids = (only.length ? only : readdirSync(ROOT).filter((f) => f.endsWith(".json") && f !== "index.json").map((f) => f.slice(0, -5))).sort();
 
 interface AnimStat { куски: number; рывок: number; строб: number; провал: number; срез: number; где: string }
 interface SheetStat { anims: Record<string, AnimStat>; яркость: number; насыщенность: number; пусто: number }

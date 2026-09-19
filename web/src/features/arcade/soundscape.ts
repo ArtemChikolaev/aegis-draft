@@ -5,6 +5,7 @@
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { preloadSample, sfxLoop, sfxSample } from "../../ui/sound.ts";
+import { LazyJson } from "./netRetry.ts";
 
 interface Pack {
   abilities: Record<string, Partial<Record<"q" | "w" | "e" | "r", string[]>>>;
@@ -14,29 +15,23 @@ interface Pack {
 }
 
 const ROOT = `${import.meta.env.BASE_URL}art/sfx/dota/pack/`;
-let pack: Pack | null = null;
-let job: Promise<void> | null = null;
+/** Индекс пакета: сетевой сбой не запоминается как «пакета нет» (netRetry.ts) — чтение повторится после паузы. */
+const packIndex = new LazyJson<Pack>(`${ROOT}index.json`, { abilities: {}, enemies: {}, ui: {}, fx: {} });
 const KIND_IDS = Object.keys(ENEMY_KINDS);
-
-function load(): void {
-  if (pack || job || typeof fetch === "undefined") return;
-  job = fetch(`${ROOT}index.json`).then((r) => (r.ok ? (r.json() as Promise<Pack>) : Promise.reject(new Error(String(r.status))))).then((d) => { pack = d; }, () => { pack = { abilities: {}, enemies: {}, ui: {}, fx: {} }; });
-}
 
 const url = (group: string, file: string) => `${ROOT}${group}/${file}`;
 const pick = (pool: string[] | undefined, salt: number) => (pool && pool.length ? pool[salt % pool.length] : null);
 
 /** Предзагрузка: умения героя, все враги, UI и эффекты — ~150 клипов по ~10 КБ, только при входе в забег. */
 function preloadSoundscape(hero: string): void {
-  load();
-  const run = () => {
+  packIndex.whenReady(() => {
+    const pack = packIndex.value;
     if (!pack) return;
     for (const files of Object.values(pack.abilities[hero] ?? {})) for (const f of files ?? []) preloadSample(url("abilities", f));
     for (const cats of Object.values(pack.enemies)) for (const files of Object.values(cats)) for (const f of files ?? []) preloadSample(url("enemies", f));
     for (const files of Object.values(pack.ui)) for (const f of files) preloadSample(url("ui", f));
     for (const files of Object.values(pack.fx)) for (const f of files) preloadSample(url("fx", f));
-  };
-  if (pack) run(); else job?.then(run);
+  });
 }
 
 /** Затухание по расстоянию от героя: рядом — полная громкость, за 700 px — тишина. */
@@ -57,7 +52,7 @@ export class Soundscape {
   private nextGrunt = 0;
   private primed = false;
 
-  constructor(private hero: string) { load(); preloadSoundscape(hero); }
+  constructor(private hero: string) { preloadSoundscape(hero); }
 
   private gate(key: string, now: number, ms: number): boolean {
     if (now - (this.last[key] ?? -1e9) < ms) return false;
@@ -83,7 +78,8 @@ export class Soundscape {
       this.lastBorn = sim.tick; this.roshanAlive = !!sim.roshan?.alive; this.greedUntil = sim.greedUntil; this.aegis = sim.player.aegis;
       return handled;
     }
-    if (!pack) return handled;
+    const pack = packIndex.value;
+    if (!pack) { packIndex.load(); return handled; }
     // Умения героя по кнопкам.
     const ab = pack.abilities[this.hero] ?? {};
     for (const key of ["q", "w", "e", "r"] as const) {

@@ -14,6 +14,8 @@ import type { AbilityKey } from "../../game/arcade/types.ts";
 const ABILITY_SLOTS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 
 import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
+import { fetchJsonRetry, RETRY_DELAYS } from "./netRetry.ts";
+import { SHEET_INDEX_REV } from "./sheetIndexRev.ts";
 const ROOT = `${import.meta.env.BASE_URL}art/sprites/`;
 const BASE = `${ROOT}lpc/`;
 const FOLDER: Record<CharAnim, string> = { walk: "walkcycle", slash: "slash", thrust: "thrust", bow: "bow", spellcast: "spellcast", hurt: "hurt" };
@@ -72,11 +74,20 @@ const TERRAIN_TILES = new Set(["tiles/grass.png", "tiles/dirt.png", "tiles/water
 const TERRAIN_SHEETS = new Set(["tree_oak", "tree_pine", "rock"]);
 const isTerrainImage = (path: string) => path.includes("/terrain/") || TERRAIN_TILES.has(path);
 
-function img(path: string, root = BASE): HTMLImageElement | null | undefined {
-  if (images.has(path)) return images.get(path);
+function img(path: string, root = BASE, attempt = 0): HTMLImageElement | null | undefined {
+  if (attempt === 0 && images.has(path)) return images.get(path);
   const el = new Image();
   el.onload = () => { if (isTerrainImage(path)) terrainAssets++; };
-  el.onerror = () => { images.set(path, null); if (isTerrainImage(path)) terrainAssets++; };
+  el.onerror = () => {
+    // Текстура земли Dota запрашивается только если она есть в индексе набора, значит, сбой — сеть: повторяем с
+    // бэк-оффом, а после неудачи забываем ответ через паузу (следующий чанк попробует снова). Слоя LPC может не быть
+    // по замыслу (одежда без кадров для анимации) — там «нет» окончательно и с первого раза.
+    const listed = root === ROOT && !!sheetIndexes.get(TERRAIN_DIR);
+    if (listed && attempt < RETRY_DELAYS.length) { setTimeout(() => { img(path, root, attempt + 1); }, RETRY_DELAYS[attempt]); return; }
+    images.set(path, null);
+    if (listed) setTimeout(() => { if (images.get(path) === null) images.delete(path); }, SHEET_RETRY_COOLDOWN);
+    if (isTerrainImage(path)) terrainAssets++;
+  };
   el.src = root + path;
   images.set(path, el);
   return el;
@@ -480,7 +491,16 @@ export function gemSheet(sheet: DotaSheet, gemHue: number | null): DotaSheet {
   return res;
 }
 
-const dotaSheets = new Map<string, DotaSheet | null | "loading">();
+/** Лист, который не удалось скачать из-за сети (не 404): не «нет», а «попробовать позже» — следующий запрос листа
+ *  после `retryAt` запускает загрузку заново. */
+interface SheetRetry { retryAt: number }
+/** Пауза перед новой серией попыток после сетевого сбоя, мс. */
+const SHEET_RETRY_COOLDOWN = 8000;
+const dotaSheets = new Map<string, DotaSheet | null | "loading" | SheetRetry>();
+const isRetry = (v: DotaSheet | null | "loading" | SheetRetry | undefined): v is SheetRetry => !!v && v !== "loading" && "retryAt" in v;
+/** Поколение набора листов: растёт при смене набора (`setPixelSheets`). Загрузка, начатая в прошлом поколении, свой
+ *  ответ не записывает — иначе после смены DPR лист старого набора (другой кадр) ложился в уже очищенный кэш. */
+let sheetGen = 0;
 
 /** Пиксельные листы (`dota_px/`, Dead Cells-стиль, docs/arcade-dota-sprites.md §7): включаются рендерером в пиксельном режиме; нет px-листа — берётся обычный. */
 let pixelSheets = false;
@@ -489,6 +509,7 @@ export function setPixelSheets(on: boolean, dense = false): void {
   if (pixelSheets === on && denseSheets === dense) return;
   pixelSheets = on;
   denseSheets = dense;
+  sheetGen++;
   // Сбрасываем всё, что ключуется именем листа, а не набором: `dota_px2`, `dota_px` и `dota` дают листы одного имени
   // с разным кадром (160/80/…), и после смены DPR контур, скан свечения и самоцветы брались бы от чужого размера.
   dotaSheets.clear();
@@ -499,6 +520,42 @@ export function setPixelSheets(on: boolean, dense = false): void {
   gemSheets.clear();
   // Текстуры земли и пропсы у наборов разные (`dota_px/terrain` ↔ `dota/terrain`): чанки ландшафта перерисовываются.
   terrainAssets++;
+}
+
+/* ─── Индекс листов набора ───
+   `<набор>/index.json` (scripts/gen_sheet_index.mjs): имена листов и файлов terrain. Читается один раз на набор; про
+   имя, которого в индексе нет, загрузчик отвечает «missing» сразу, без запроса, — раньше отсутствие узнавалось пробой
+   404 (`dota_px2/` → `dota_px/`): ошибки в консоли на старте забега и десятки — в гардеробе с его сотнями слоёв.
+   Индекс не загрузился (старый деплой, сбой сети после повторов) — `null`, и набор работает прежней пробой. */
+interface SheetIndex { sheets: ReadonlySet<string>; terrain: ReadonlySet<string> }
+const sheetIndexes = new Map<string, SheetIndex | null>();
+const sheetIndexJobs = new Map<string, Promise<SheetIndex | null>>();
+function sheetIndex(dir: string): Promise<SheetIndex | null> {
+  let job = sheetIndexJobs.get(dir);
+  if (!job) {
+    const rev = SHEET_INDEX_REV[dir];
+    job = fetchJsonRetry<{ sheets?: string[]; terrain?: string[] }>(`${ROOT}${dir}/index.json${rev ? `?v=${rev}` : ""}`).then((got) => {
+      const idx = got.kind === "ok" && Array.isArray(got.value.sheets) ? { sheets: new Set(got.value.sheets), terrain: new Set(got.value.terrain ?? []) } : null;
+      sheetIndexes.set(dir, idx);
+      // Земля ждала индекс (`dotaTerrain` до него ничего не запрашивает) — чанки перерисуются уже с текстурой.
+      terrainAssets++;
+      return idx;
+    });
+    sheetIndexJobs.set(dir, job);
+  }
+  return job;
+}
+/** Наборы, в которых ищется лист, по порядку. Плотный пиксель (фактор 1): `dota_px2/` (кадр героя 160), нет —
+ *  `dota_px/` (80, растянутся nearest ×2). Непиксельного набора `dota/` больше нет (2026-09-19: 41 лист первых героев,
+ *  −31 МБ сайта): отладочный `?pixel=0` рисует те же пиксельные листы, только без пиксельного прохода рендера. */
+const sheetDirs = (): readonly string[] => (!pixelSheets || denseSheets ? ["dota_px2", "dota_px"] : ["dota_px"]);
+/** Индексы всех наборов уже прочитаны, и листа нет ни в одном — «missing» известно без сети. */
+function knownMissing(name: string): boolean {
+  return sheetDirs().every((dir) => { const idx = sheetIndexes.get(dir); return !!idx && !idx.sheets.has(name); });
+}
+/** Прочитать индексы заранее (экран подготовки): к открытию гардероба «есть ли лист» — уже синхронная проверка. */
+export function preloadSheetIndexes(): Promise<void> {
+  return Promise.all(sheetDirs().map((dir) => sheetIndex(dir))).then(() => undefined);
 }
 
 /* ─── Композит облика по слотам (T13.80) ───
@@ -647,37 +704,54 @@ export function dotaSheetStill(name: string): DotaSheet | null {
   return res;
 }
 
-function loadSheet(name: string, dir: string, onMiss: () => void): void {
-  fetch(`${ROOT}${dir}/${name}.json`)
-    .then((r) => (r.ok ? (r.json() as Promise<DotaMeta>) : null))
-    .then((meta) => {
-      if (!meta || !meta.anims) { onMiss(); return; }
-      const el = new Image();
-      el.onload = () => { dotaSheets.set(name, { img: el, meta }); if (TERRAIN_SHEETS.has(name)) terrainAssets++; };
-      el.onerror = () => { onMiss(); };
-      // Листы лежат в WebP: у уже квантованного пиксель-арта lossless WebP на ~7% меньше PNG
-      // (замер 2026-09-06), и это единственный формат-выигрыш без потери резкости — lossy WebP на
-      // резких краях с альфой выходит наоборот КРУПНЕЕ PNG.
-      el.src = `${ROOT}${dir}/${name}.webp`;
-    })
-    .catch(() => { onMiss(); });
+/** Картинка листа: сбой загрузки повторяется с бэк-оффом (мета уже пришла — лист существует, значит, это сеть). */
+function loadSheetImage(src: string, attempt = 0): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => {
+      if (attempt >= RETRY_DELAYS.length) { resolve(null); return; }
+      setTimeout(() => { void loadSheetImage(src, attempt + 1).then(resolve); }, RETRY_DELAYS[attempt]);
+    };
+    // Листы лежат в WebP: у уже квантованного пиксель-арта lossless WebP на ~7% меньше PNG
+    // (замер 2026-09-06), и это единственный формат-выигрыш без потери резкости — lossy WebP на
+    // резких краях с альфой выходит наоборот КРУПНЕЕ PNG.
+    el.src = src;
+  });
+}
+
+/** Загрузка листа по наборам. `null` в кэш — только подтверждённое отсутствие (индекс набора или 404 меты); сетевой сбой
+ *  после повторов — `SheetRetry`: раньше один сбой оставлял героя без листа до перезагрузки страницы. */
+async function loadSheet(name: string, gen: number): Promise<void> {
+  let failed = false;
+  for (const dir of sheetDirs()) {
+    const idx = await sheetIndex(dir);
+    if (gen !== sheetGen) return;
+    if (idx && !idx.sheets.has(name)) continue;
+    const got = await fetchJsonRetry<DotaMeta>(`${ROOT}${dir}/${name}.json`);
+    if (gen !== sheetGen) return;
+    if (got.kind === "missing" || (got.kind === "ok" && !got.value?.anims)) continue;
+    const el = got.kind === "ok" ? await loadSheetImage(`${ROOT}${dir}/${name}.webp`) : null;
+    if (gen !== sheetGen) return;
+    if (got.kind === "ok" && el) { dotaSheets.set(name, { img: el, meta: got.value }); if (TERRAIN_SHEETS.has(name)) terrainAssets++; return; }
+    // Сеть: плотный лист не подменяем редким «навсегда» — вся цепочка повторится после паузы.
+    failed = true;
+    break;
+  }
+  dotaSheets.set(name, failed ? { retryAt: Date.now() + SHEET_RETRY_COOLDOWN } : null);
+  if (TERRAIN_SHEETS.has(name)) terrainAssets++;
 }
 
 export function dotaSheet(name: string): DotaSheet | null {
   if (isCompositeSheet(name)) return compositeSheet(name);
   const v = dotaSheets.get(name);
-  if (v === undefined) {
+  if (v === undefined || (isRetry(v) && Date.now() >= v.retryAt)) {
+    if (knownMissing(name)) { dotaSheets.set(name, null); return null; }
     dotaSheets.set(name, "loading");
-    const miss = () => { dotaSheets.set(name, null); if (TERRAIN_SHEETS.has(name)) terrainAssets++; };
-    // Плотный пиксель (фактор 1): листы `dota_px2/` (кадр героя 160), нет — `dota_px/` (80, растянутся nearest ×2). Непиксельного
-    // набора `dota/` больше нет (2026-09-19: 41 лист первых героев, −31 МБ сайта): отладочный `?pixel=0` рисует те же
-    // пиксельные листы, только без пиксельного прохода рендера.
-    const px = () => loadSheet(name, "dota_px", miss);
-    if (!pixelSheets || denseSheets) loadSheet(name, "dota_px2", px);
-    else px();
+    void loadSheet(name, sheetGen);
     return null;
   }
-  return v === "loading" ? null : v;
+  return v === "loading" || isRetry(v) ? null : v;
 }
 
 /** Лист врага по его виду. Id вида и id героя живут в разных словарях и однажды столкнулись:
@@ -699,8 +773,16 @@ export function dotaSheetState(name: string): "loading" | "missing" | "ready" {
     return states[0] === "missing" ? "missing" : states.some((st) => st === "loading") ? "loading" : "ready";
   }
   const v = dotaSheets.get(name);
-  if (v === undefined || v === "loading") return "loading";
+  if (v === undefined) return knownMissing(name) ? "missing" : "loading";
+  // Сетевой сбой — не «нет листа»: для экрана это всё ещё загрузка (лист запросят снова после паузы).
+  if (v === "loading" || isRetry(v)) return "loading";
   return v === null ? "missing" : "ready";
+}
+/** Загрузка листа закончилась (готов, подтверждённо отсутствует или отложен после сбоя сети) — предзагрузка забега не ждёт дольше. */
+function sheetSettled(name: string): boolean {
+  if (isCompositeSheet(name)) return compositeParts(name).every(sheetSettled);
+  const v = dotaSheets.get(name);
+  return v !== "loading" && (v !== undefined || knownMissing(name));
 }
 
 /** Индекс направления листа Dota: 0 = лицом к камере (вниз по экрану), далее против часовой
@@ -801,9 +883,19 @@ export function frameGeometry(sheet: DotaSheet, anim: string, dir: number, frame
   return geo;
 }
 
+/** Набор, в котором лежат текстуры земли (у `dota_px2/` своей земли нет). */
+const TERRAIN_DIR = "dota_px";
+/** Текстура земли: `undefined` — индекс набора ещё читается (запрос не начат), `null` — такой текстуры нет. */
+function terrainImage(name: string): HTMLImageElement | null | undefined {
+  const idx = sheetIndexes.get(TERRAIN_DIR);
+  if (idx === undefined) { void sheetIndex(TERRAIN_DIR); return undefined; }
+  // Индекс есть — отсутствующую текстуру (`water`, `grass_dire` пока не положены) не запрашиваем вовсе.
+  if (idx && !idx.terrain.has(name)) return null;
+  return img(`${TERRAIN_DIR}/terrain/${name}.webp`, ROOT);
+}
 /** Бесшовная текстура земли Dota (`dota_px/terrain/<name>.webp`), если положена. */
 export function dotaTerrain(name: string): HTMLImageElement | null {
-  const el = img(`dota_px/terrain/${name}.webp`, ROOT);
+  const el = terrainImage(name);
   return ready(el) ? el : null;
 }
 export function pixelSheetsOn(): boolean { return pixelSheets; }
@@ -822,9 +914,11 @@ export function preloadArcadeArt(hero: string, enemyIds: readonly string[], act:
     .filter((a): a is string => !!a && a !== "illusion");
   const sheets = [hero, ...extra, ...enemyIds.map((id) => ENEMY_SHEET[id] ?? id), ...summons, "tree_oak", "tree_pine", "rock", "rune_dd", "rune_shield", "rune_arcane", "rune_illusion"];
   const terrain = ["grass", "dirt", ...(act === "river" ? ["water"] : []), ...(act === "dire" ? ["grass_dire"] : [])];
-  const kick = () => { for (const n of sheets) dotaSheet(n); for (const t of terrain) dotaTerrain(t); tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock"); };
-  kick();
-  const ready = () => sheets.every((n) => dotaSheetState(n) !== "loading") && terrain.every((t) => { const el = img(`dota_px/terrain/${t}.webp`, ROOT); return el === null || (!!el && el.complete); });
+  // Земля запрашивается после индекса набора, поэтому её «пинаем» на каждой проверке, пока индекс не пришёл
+  // (`terrainImage` в проверке ниже сам начинает загрузку, как только индекс набора прочитан.)
+  for (const n of sheets) dotaSheet(n);
+  tileImage("grass"); tileImage("dirt"); tileImage("treetop"); tileImage("rock");
+  const ready = () => sheets.every(sheetSettled) && terrain.every((t) => { const el = terrainImage(t); return el === null || (!!el && el.complete); });
   return new Promise((resolve) => {
     const started = Date.now();
     const tick = () => { if (ready() || Date.now() - started > timeoutMs) resolve(); else window.setTimeout(tick, 50); };

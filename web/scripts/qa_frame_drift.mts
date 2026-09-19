@@ -9,7 +9,7 @@ const dir = process.argv[2] && !process.argv[2].startsWith("--") ? process.argv[
 const ROOT = `public/art/sprites/${dir}`;
 const limit = Number(process.argv[3]) || 0.25;
 const anims = process.argv.slice(4).filter((a) => !a.startsWith("--"));
-const ids = readdirSync(ROOT).filter((f) => f.endsWith(".json")).map((f) => f.slice(0, -5)).sort();
+const ids = readdirSync(ROOT).filter((f) => f.endsWith(".json") && f !== "index.json").map((f) => f.slice(0, -5)).sort();
 
 const PAGE = `(async (b64, meta, anims) => {
   const img = new Image(); img.src = 'data:image/webp;base64,' + b64; await img.decode();
