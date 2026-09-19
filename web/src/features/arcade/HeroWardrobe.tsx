@@ -8,7 +8,7 @@ import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
 import { useArcade } from "../../state/arcadeStore.ts";
 import { HEROES, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, choosableSlots, defaultLoadout, familyOf, formSheet as formSheetOf, formSheetCandidates, heroLook, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
+import { COSMETICS, COSMETIC_BY_ID, LOOK_DEFAULT, PART_BASE, SHARD_PRICE, choosableSlots, defaultLoadout, familyOf, formSheet as formSheetOf, formSheetCandidates, heroLook, loadoutSheet, sourceCosmetic, summonSheets, type CosmeticDef, type CosmeticSlot, type DotaSlot, type StyleDef } from "../../game/arcade/content/cosmetics.ts";
 import { HERO_PARTS } from "../../game/arcade/content/parts.ts";
 import { Button, Modal } from "../../ui/index.ts";
 import { useHero } from "../draft/heroes.ts";
@@ -232,6 +232,19 @@ function LookPreview({ sheet, size, gem = null, glow = false, still = false, eff
 
 type WardrobeTab = "looks" | "parts" | "form" | "summons" | "effects";
 
+/** Некупленная косметика, выбранная к покупке (часть слота, скин призыва или формы): `id` — предмет косметики. */
+export type PendingBuy = { kind: "part"; id: string; slot: DotaSlot; src: string } | { kind: "summon"; id: string; art: string } | { kind: "form"; id: string };
+
+/**
+ * Тычок по миниатюре части/призыва/формы: своя — надевается сразу, некупленная — только выбирается к покупке
+ * (повторный тычок снимает выбор). Чистая функция, чтобы правило «один клик не покупает» держал тест.
+ */
+export function pickThumb(owned: boolean, want: PendingBuy, current: PendingBuy | null): { apply: boolean; pending: PendingBuy | null } {
+  if (owned) return { apply: true, pending: null };
+  const same = !!current && current.kind === want.kind && current.id === want.id && (current.kind !== "part" || (want.kind === "part" && current.slot === want.slot));
+  return { apply: false, pending: same ? null : want };
+}
+
 /** Широкая раскладка гардероба (превью слева, вкладки справа) — от 900 px; уже — превью закреплено сверху. */
 function useWideWardrobe(): boolean {
   const query = "(min-width: 900px)";
@@ -283,7 +296,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   // будет выглядеть»): превью закреплено, разделы — по одному. Вкладка «Форма» сама показывает форму в превью и
   // возвращает обычный показ при уходе с неё — режим «Form» не залипает.
   const [tab, setTab] = useState<WardrobeTab>("looks");
+  // Покупка — как во вкладке «Облики»: тычок по некупленной миниатюре только выбирает её (примерка на витрине), покупает
+  // отдельная кнопка. Раньше части, призывы и формы покупались самим тычком по миниатюре (аудит 2026-09-19).
+  const [pending, setPending] = useState<PendingBuy | null>(null);
   const selectTab = (next: WardrobeTab) => {
+    setPending(null);
     if (next === "form") setPreviewAnim("form");
     else if (tab === "form" && previewAnim === "form") setPreviewAnim("auto");
     setTab(next);
@@ -308,10 +325,13 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   // Облик по слотам (T13.80): на витрине — собранный облик надетого скина; вкладка слота и части-источники.
   const hp = HERO_PARTS[hero];
   const wornLook = heroLook(hero, cosmetics);
-  const stageSheet = worn && wornLook.mixed ? wornLook.sheet : previewSheet;
+  const pendingDef = pending ? COSMETIC_BY_ID[pending.id] : undefined;
+  // Примерка выбранной к покупке части: облик, каким он станет после покупки (часть считается своей).
+  const tryOnSheet = pending?.kind === "part" ? loadoutSheet(hero, cosmetics.equipped, cosmetics.styles, { ...(cosmetics.loadout?.[hero] ?? {}), [pending.slot]: pending.src }, [...cosmetics.owned, pending.id]) : null;
+  const stageSheet = tryOnSheet ?? (worn && wornLook.mixed ? wornLook.sheet : previewSheet);
   // Что сейчас даёт форма: явный выбор / «обычная» / бандл надетого сета / форма самого облика. Подпись под витриной —
   // чтобы было видно, выбран ли скин на Метаморфозу (владелец 2026-09-19: «нет понимания, выбран ли скин»).
-  const formNow = stageForm;
+  const formNow = pending?.kind === "form" && pendingDef ? pendingDef.variant : stageForm;
   const formDef = COSMETICS.find((c) => c.slot === "form" && c.variant === wornLook.form);
   const formLabel = formOn === LOOK_DEFAULT ? t("arcade.wardrobe.formDefault") : formDef ? t(`arcade.cosmetic.${formDef.id}` as MessageKey) : t("arcade.wardrobe.formOfLook");
   const asWornSummons = summonSheets(hero, {}, cosmetics.equipped);
@@ -331,6 +351,19 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
   const resetParts = useArcade((s) => s.resetParts);
   const summonArts = [...new Set(Object.values(def.abilities).map((a) => a.summon?.art).filter((a): a is string => !!a && COSMETICS.some((c) => c.slot === "summon" && c.hero === hero && c.variant.startsWith(`${a}@`))))];
   const price = sel.def ? SHARD_PRICE[sel.def.rarity] : 0;
+  const applyPending = (p: PendingBuy) => { if (p.kind === "part") setPart(p.slot, p.src); else if (p.kind === "summon") setSummonSkin(p.art, p.id); else setFormSkin(p.id); };
+  /** Тычок по миниатюре: своя — надеть, некупленная — выбрать к покупке (см. `pickThumb`). */
+  const onThumb = (owned: boolean, want: PendingBuy) => { const r = pickThumb(owned, want, pending); if (r.apply) applyPending(want); setPending(r.pending); };
+  const isPending = (kind: PendingBuy["kind"], id: string) => pending?.kind === kind && pending.id === id;
+  /** Полоса покупки выбранной миниатюры — под списком вкладки. */
+  const buyBar = (kind: PendingBuy["kind"]) => pending && pendingDef && pending.kind === kind && (kind !== "part" || (pending.kind === "part" && pending.slot === slotTab)) ? (
+    <div className="arcade-wardrobe__buybar" data-testid="arcade-wardrobe-pending">
+      <span>{t(`arcade.cosmetic.${pendingDef.id}` as MessageKey)}</span>
+      <Button variant="primary" data-testid="arcade-wardrobe-pending-buy" disabled={cosmetics.shards < SHARD_PRICE[pendingDef.rarity]} onClick={() => { if (buyCosmetic(pendingDef.id)) { applyPending(pending); setPending(null); } }}>
+        {t("arcade.wardrobe.buy", { n: SHARD_PRICE[pendingDef.rarity] })}
+      </Button>
+    </div>
+  ) : null;
   // Аркана рисуется со свечением; самоцветы показываем только если у листа это свечение есть
   // (как в Dota: призматический самоцвет красит эффекты, и облику без них он не нужен).
   const arcana = sel.def?.rarity === "arcana";
@@ -458,11 +491,11 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               <>
                 <div className="arcade-cosmetics__options">
                   {slotTabs.map((slot) => (
-                    <button key={slot} type="button" className="arcade-rank__tier" data-active={slotTab === slot ? "true" : undefined} data-override={myLoadout[slot] ? "true" : undefined} data-testid={`arcade-wardrobe-slot-${slot}`} onClick={() => setSlotTab(slot)}>{t(`arcade.wardrobe.slot.${slot}` as MessageKey)}</button>
+                    <button key={slot} type="button" className="arcade-rank__tier" data-active={slotTab === slot ? "true" : undefined} data-override={myLoadout[slot] ? "true" : undefined} data-testid={`arcade-wardrobe-slot-${slot}`} onClick={() => { setSlotTab(slot); setPending(null); }}>{t(`arcade.wardrobe.slot.${slot}` as MessageKey)}</button>
                   ))}
                 </div>
                 <div className="arcade-wardrobe__looks" data-testid="arcade-wardrobe-parts">
-                  <button type="button" className="arcade-wardrobe__look" data-active={!myLoadout[slotTab] ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-part-follow" onClick={() => setPart(slotTab, null)}>
+                  <button type="button" className="arcade-wardrobe__look" data-active={!myLoadout[slotTab] ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-part-follow" onClick={() => { setPart(slotTab, null); setPending(null); }}>
                     {followSrc ? <LookPreview sheet={partSheet(followSrc)} size={64} still /> : <span className="arcade-wardrobe__slot" style={{ width: 64, height: 64 }}><small>{t("arcade.wardrobe.slotEmpty")}</small></span>}
                     <span>{t("arcade.wardrobe.followSkin")}</span>
                     {!myLoadout[slotTab] && <b>{t("arcade.wardrobe.wornMark")}</b>}
@@ -478,8 +511,9 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                         data-active={myLoadout[slotTab] === src ? "true" : undefined}
                         data-rarity={srcDef?.rarity}
                         data-owned={owned ? "true" : undefined}
+                        data-pending={srcDef && isPending("part", srcDef.id) ? "true" : undefined}
                         data-testid={`arcade-wardrobe-part-${src}`}
-                        onClick={() => { if (owned) setPart(slotTab, src); else if (srcDef && buyCosmetic(srcDef.id)) setPart(slotTab, src); }}
+                        onClick={() => { if (owned) { setPart(slotTab, src); setPending(null); } else if (srcDef) onThumb(false, { kind: "part", id: srcDef.id, slot: slotTab, src }); }}
                       >
                         <LookPreview sheet={partSheet(src)} size={64} still />
                         <span>{srcDef ? t(`arcade.cosmetic.${srcDef.id}` as MessageKey) : t("arcade.wardrobe.base")}</span>
@@ -489,6 +523,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                     );
                   })}
                 </div>
+                {buyBar("part")}
                 <small className="arcade-wardrobe__hint">{t("arcade.wardrobe.slotsHint")}</small>
               </>
             )}
@@ -504,13 +539,13 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
               return (
                 <div key={art} className="arcade-wardrobe__looks">
                   {bundled && (
-                    <button type="button" className="arcade-wardrobe__look" data-active={!on ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-follow`} onClick={() => setSummonSkin(art, null)}>
+                    <button type="button" className="arcade-wardrobe__look" data-active={!on ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-follow`} onClick={() => { setSummonSkin(art, null); setPending(null); }}>
                       <LookPreview sheet={asWornSummons[art] ?? art} size={64} still />
                       <span>{t("arcade.wardrobe.followSkin")}</span>
                       {!on && <b>{t("arcade.wardrobe.wornMark")}</b>}
                     </button>
                   )}
-                  <button type="button" className="arcade-wardrobe__look" data-active={(bundled ? on === LOOK_DEFAULT : !on) ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-base`} onClick={() => setSummonSkin(art, bundled ? LOOK_DEFAULT : null)}>
+                  <button type="button" className="arcade-wardrobe__look" data-active={(bundled ? on === LOOK_DEFAULT : !on) ? "true" : undefined} data-owned="true" data-testid={`arcade-wardrobe-summon-${art}-base`} onClick={() => { setSummonSkin(art, bundled ? LOOK_DEFAULT : null); setPending(null); }}>
                     <LookPreview sheet={art} size={64} still />
                     <span>{t("arcade.wardrobe.summonBase")}</span>
                     {(bundled ? on === LOOK_DEFAULT : !on) && <b>{t("arcade.wardrobe.wornMark")}</b>}
@@ -525,8 +560,9 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                         data-active={on === c.id ? "true" : undefined}
                         data-rarity={c.rarity}
                         data-owned={owned ? "true" : undefined}
+                        data-pending={isPending("summon", c.id) ? "true" : undefined}
                         data-testid={`arcade-wardrobe-summon-${c.id}`}
-                        onClick={() => { if (owned) setSummonSkin(art, c.id); else if (buyCosmetic(c.id)) setSummonSkin(art, c.id); }}
+                        onClick={() => onThumb(owned, { kind: "summon", id: c.id, art })}
                       >
                         <LookPreview sheet={c.variant} size={64} still />
                         <span>{t(`arcade.cosmetic.${c.id}` as MessageKey)}</span>
@@ -538,18 +574,19 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                 </div>
               );
             })}
+            {buyBar("summon")}
           </div>
         )}
         {tab === "form" && hasForm && formSkins.length > 0 && (
           <div className="arcade-wardrobe__slots" data-testid="arcade-wardrobe-forms">
             <small>{t("arcade.wardrobe.forms")}</small>
             <div className="arcade-wardrobe__looks">
-              <button type="button" className="arcade-wardrobe__look" data-active={!formOn ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-follow" onClick={() => setFormSkin(null)}>
+              <button type="button" className="arcade-wardrobe__look" data-active={!formOn ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-follow" onClick={() => { setFormSkin(null); setPending(null); }}>
                 <LookPreview sheet={asWornForm} size={64} still />
                 <span>{t("arcade.wardrobe.formBase")}</span>
                 {!formOn && <b>{t("arcade.wardrobe.wornMark")}</b>}
               </button>
-              <button type="button" className="arcade-wardrobe__look" data-active={formOn === LOOK_DEFAULT ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-base" onClick={() => setFormSkin(LOOK_DEFAULT)}>
+              <button type="button" className="arcade-wardrobe__look" data-active={formOn === LOOK_DEFAULT ? "true" : undefined} data-owned="true" data-testid="arcade-wardrobe-form-base" onClick={() => { setFormSkin(LOOK_DEFAULT); setPending(null); }}>
                 <LookPreview sheet={`${hero}@meta`} size={64} still />
                 <span>{t("arcade.wardrobe.formDefault")}</span>
                 {formOn === LOOK_DEFAULT && <b>{t("arcade.wardrobe.wornMark")}</b>}
@@ -564,8 +601,9 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                     data-active={formOn === c.id ? "true" : undefined}
                     data-rarity={c.rarity}
                     data-owned={owned ? "true" : undefined}
+                    data-pending={isPending("form", c.id) ? "true" : undefined}
                     data-testid={`arcade-wardrobe-form-${c.id}`}
-                    onClick={() => { if (owned || buyCosmetic(c.id)) setFormSkin(c.id); }}
+                    onClick={() => onThumb(owned, { kind: "form", id: c.id })}
                   >
                     <LookPreview sheet={c.variant} size={64} still />
                     <span>{t(`arcade.cosmetic.${c.id}` as MessageKey)}</span>
@@ -575,6 +613,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
                 );
               })}
             </div>
+            {buyBar("form")}
           </div>
         )}
         {tab === "parts" && !hp && skins.length > 0 && (

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import { COSMETICS, skinnedHero, skinnedSheet, skinnedStyle } from "../src/game/arcade/content/cosmetics.ts";
 import { useArcade } from "../src/state/arcadeStore.ts";
-import { previewScale } from "../src/features/arcade/HeroWardrobe.tsx";
+import { pickThumb, previewScale, type PendingBuy } from "../src/features/arcade/HeroWardrobe.tsx";
 
 // Гардероб (T13.27): облик героя выбирается и покупается в своём окне, у аркан бывают стили.
 // Тест держит в согласии три места: cosmetics.ts (какие стили объявлены), манифесты спрайтов
@@ -118,5 +118,25 @@ describe("превью гардероба: выбор анимации", () => {
     const dirs = new Set(Array.from({ length: 16 }, (_, i) => pickPreviewAnim(i * 0.2, 8, false, "walk").dir));
     expect(dirs.size).toBeGreaterThan(4);
     expect(pickPreviewAnim(3.2, 8, false, "walk").dir).toBe(0); // полный круг — снова к камере
+  });
+});
+
+// Покупка — выбор, потом кнопка (аудит 2026-09-19): тычок по некупленной миниатюре части/призыва/формы раньше сразу покупал.
+describe("гардероб: тычок по миниатюре части, призыва и формы", () => {
+  const part: PendingBuy = { kind: "part", id: "skin_x", slot: "head", src: "x" };
+
+  it("своя — надевается сразу и снимает выбор к покупке", () => {
+    expect(pickThumb(true, part, { kind: "form", id: "form_y" })).toEqual({ apply: true, pending: null });
+  });
+
+  it("некупленная — только выбирается: ничего не надевается и не покупается", () => {
+    expect(pickThumb(false, part, null)).toEqual({ apply: false, pending: part });
+    expect(pickThumb(false, { kind: "summon", id: "s", art: "wolf" }, part)).toEqual({ apply: false, pending: { kind: "summon", id: "s", art: "wolf" } });
+  });
+
+  it("повторный тычок по выбранной снимает выбор; та же косметика в другом слоте — новый выбор", () => {
+    expect(pickThumb(false, part, part)).toEqual({ apply: false, pending: null });
+    const back: PendingBuy = { ...part, slot: "back" };
+    expect(pickThumb(false, back, part)).toEqual({ apply: false, pending: back });
   });
 });

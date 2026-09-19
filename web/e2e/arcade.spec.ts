@@ -152,6 +152,17 @@ test.describe("arcade", () => {
     const wardrobe = page.getByTestId("arcade-wardrobe");
     await expect(wardrobe).toBeVisible();
     await expect(page.getByTestId("arcade-wardrobe-look-base")).toBeVisible();
+    // Часть слота покупается так же, как облик: тычок по некупленной миниатюре только выбирает её, покупает кнопка.
+    await page.getByTestId("arcade-wardrobe-tab-parts").click();
+    const part = page.getByTestId("arcade-wardrobe-part-bladesrunner");
+    await part.click();
+    await expect(part).toHaveAttribute("data-pending", "true");
+    await expect(part).not.toHaveAttribute("data-owned", "true");
+    await expect(part).not.toHaveAttribute("data-active", "true");
+    await page.getByTestId("arcade-wardrobe-pending-buy").click();
+    await expect(part).toHaveAttribute("data-active", "true");
+    await expect(page.getByTestId("arcade-wardrobe-pending")).toHaveCount(0);
+    await page.getByTestId("arcade-wardrobe-tab-looks").click();
     const arcana = page.getByTestId("arcade-wardrobe-look-skin_jugg_arcana");
     await expect(arcana).toBeVisible();
     await arcana.click();
