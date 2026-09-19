@@ -2843,7 +2843,9 @@ export class ArcadeSim {
       }
       if (best) this.nearLoot = { kind: "ground", item: best.item };
     }
-    if (this.aegisDrop && len(this.aegisDrop.x - p.x, this.aegisDrop.y - p.y) < 40) {
+    // Aegis с Рошана подбирается касанием, но только когда воскрешения ещё нет: иначе второй (или взятый поверх «Феникса»
+    // и стартового Aegis) сгорал впустую. Лежит, пока не понадобится.
+    if (this.aegisDrop && !p.aegis && len(this.aegisDrop.x - p.x, this.aegisDrop.y - p.y) < 40) {
       p.aegis = true;
       this.aegisDrop = null;
       this.pushFx("levelup", p.x, p.y, 0, 0, 40);
@@ -4193,7 +4195,9 @@ export class ArcadeSim {
     const rAllowed = R_LEVELS[p.abilities.r] !== undefined && p.level >= R_LEVELS[p.abilities.r];
     if (rAllowed) offers.push({ kind: "ability", key: "r" });
     // Легендарный апгрейд: гарантированно на LEGENDARY_LEVELS, иначе с растущим шансом с 8-го уровня.
-    const legs = LEGENDARY_UPGRADES.filter((u) => !p.upgrades[u.id] && (u.neutral || p.schools.includes(u.school)));
+    // «Феникс» — то же одно воскрешение, что Aegis (общий флаг `p.aegis`): пока оно есть, карта ничего бы не дала и
+    // сгорала впустую вместе с легендарным слотом выбора — не предлагаем, вернётся в пул, когда воскрешение потрачено.
+    const legs = LEGENDARY_UPGRADES.filter((u) => !p.upgrades[u.id] && (u.neutral || p.schools.includes(u.school)) && !(u.id === "leg_rad_phoenix" && p.aegis));
     if (legs.length > 0 && p.level >= 8 && (LEGENDARY_LEVELS.includes(p.level) || this.rng.float() < Math.min(0.22, 0.04 + 0.012 * this.minutes))) {
       offers.push({ kind: "upgrade", id: legs[this.rng.int(legs.length)].id, rarity: "arcana" });
     }
