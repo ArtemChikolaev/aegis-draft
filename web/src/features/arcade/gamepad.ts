@@ -20,6 +20,16 @@ export interface PadRead {
   active: boolean;
 }
 
+/**
+ * Пад, с которого читаем ввод: первый подключённый со стандартной раскладкой. Номера кнопок `PAD` верны только для
+ * `mapping === "standard"`; у устройства с иной раскладкой (руль, HOTAS, часть гарнитур и адаптеров тоже видны как
+ * геймпад) те же индексы значат другое — оно кастовало бы умения и вело героя само по себе.
+ */
+export function pickPad<T extends { mapping?: string; connected?: boolean }>(pads: readonly (T | null | undefined)[]): T | null {
+  for (const pad of pads) if (pad && pad.connected !== false && pad.mapping === "standard") return pad;
+  return null;
+}
+
 const bit = (i: number) => 1 << i;
 export const hasEdge = (edges: number, button: number) => (edges & bit(button)) !== 0;
 

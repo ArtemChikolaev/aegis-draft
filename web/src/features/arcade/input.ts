@@ -2,7 +2,7 @@
 // и тач-джойстик (палец в любом месте сцены задаёт центр). Всё сводится в один ArcadeInput на тик;
 // направление квантуется в шестнадцатые — так лог компактен и одинаков на всех устройствах.
 import type { ArcadeInput } from "../../game/arcade/types.ts";
-import { PAD, PadNav, hasEdge, readPad } from "./gamepad.ts";
+import { PAD, PadNav, hasEdge, pickPad, readPad } from "./gamepad.ts";
 
 const KEY_DIR: Record<string, [number, number]> = {
   KeyW: [0, -1], ArrowUp: [0, -1], KeyS: [0, 1], ArrowDown: [0, 1], KeyA: [-1, 0], ArrowLeft: [-1, 0], KeyD: [1, 0], ArrowRight: [1, 0],
@@ -97,7 +97,9 @@ export class ArcadeInputController {
    *  не копятся, чтобы × на карточке не выстрелил умением после закрытия окна. */
   pollPad(menu: boolean): void {
     const raw = firstGamepad();
-    if (!raw) { this.padX = 0; this.padY = 0; return; }
+    // Пад отключился: вместе с движением забываем удержанные кнопки — иначе маска прошлого пада пережила бы
+    // переподключение, и первое нажатие той же кнопки на новом паде не дало бы фронта.
+    if (!raw) { this.padX = 0; this.padY = 0; this.padHeld = 0; this.padMenuHeld = 0; return; }
     const pad = readPad(raw, this.padHeld);
     this.padHeld = pad.held;
     if (pad.active && !this.gamepadActive) { this.gamepadActive = true; this.onGamepad?.(); }
@@ -189,6 +191,6 @@ export class ArcadeInputController {
 
 function firstGamepad(): Gamepad | null {
   if (typeof navigator === "undefined" || !navigator.getGamepads) return null;
-  try { for (const pad of navigator.getGamepads()) if (pad) return pad; } catch { /* нет доступа к падам — клавиатура/тач */ }
+  try { return pickPad(navigator.getGamepads()); } catch { /* нет доступа к падам — клавиатура/тач */ }
   return null;
 }

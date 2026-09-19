@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { DEADZONE, PAD, PadNav, hasEdge, readPad } from "../src/features/arcade/gamepad.ts";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { DEADZONE, PAD, PadNav, hasEdge, pickPad, readPad } from "../src/features/arcade/gamepad.ts";
 
 // Геймпад (T13.34): мёртвая зона, D-pad, раскладка кнопок в маску каста, фронты нажатий, навигация по меню.
 const pad = (axes: number[], pressed: number[] = []) => ({ axes, buttons: Array.from({ length: 18 }, (_, i) => ({ pressed: pressed.includes(i) })) });
@@ -38,5 +38,43 @@ describe("readPad", () => {
     const l = readPad(pad([0, 0], [PAD.left]), held); held = l.held;
     expect(nav.step(l)).toBe(-1);
     expect(nav.step(readPad(pad([0, 0], [PAD.left]), held))).toBe(0);
+  });
+});
+
+// Аудит 2026-09-19: читался первый попавшийся пад с любой раскладкой, а маска удержанных кнопок переживала отключение.
+describe("выбор пада и отключение", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("берётся только подключённый пад со стандартной раскладкой", () => {
+    const wheel = { ...pad([0, 0], [PAD.cross]), mapping: "", connected: true };
+    const gone = { ...pad([0, 0]), mapping: "standard", connected: false };
+    const dual = { ...pad([0, 0]), mapping: "standard", connected: true };
+    expect(pickPad([null, wheel, gone, dual])).toBe(dual);
+    expect(pickPad([wheel])).toBeNull(); // руль с «нажатой» кнопкой 0 не кастует Q
+    expect(pickPad([])).toBeNull();
+  });
+
+  it("пад отключился с зажатой кнопкой: после переподключения то же нажатие снова даёт фронт", async () => {
+    const listeners = { addEventListener: () => {}, removeEventListener: () => {} };
+    let pads: unknown[] = [];
+    vi.stubGlobal("window", listeners);
+    vi.stubGlobal("navigator", { getGamepads: () => pads });
+    const { ArcadeInputController } = await import("../src/features/arcade/input.ts");
+    const controller = new ArcadeInputController(listeners as unknown as HTMLElement);
+    let pauses = 0;
+    controller.onPause = () => { pauses++; };
+    const options = { ...pad([0, 0], [PAD.options]), mapping: "standard", connected: true };
+    pads = [options]; controller.pollPad(false);
+    expect(pauses).toBe(1);
+    controller.pollPad(false); // удержание — не фронт
+    expect(pauses).toBe(1);
+    pads = [null]; controller.pollPad(false); // отключился с зажатой Options
+    pads = [options]; controller.pollPad(false); // подключился новый, Options уже нажата
+    expect(pauses).toBe(2);
+    // Пад с нестандартной раскладкой ввода не даёт вовсе.
+    pads = [{ ...options, mapping: "" }]; controller.pollPad(false);
+    pads = [null]; controller.pollPad(false);
+    pads = [{ ...options, mapping: "" }]; controller.pollPad(false);
+    expect(pauses).toBe(2);
   });
 });
