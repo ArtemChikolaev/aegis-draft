@@ -128,7 +128,7 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "ska_shards": return [{ key: "shardDmg", value: 14 * p }, { key: "every", value: 2.2 / (1 + 0.1 * p), unit: "s" }];
     case "ska_aura": return [{ key: "fieldSlow", value: Math.min(0.5, 0.15 * p), unit: "pct" }];
     case "ska_shatter": return [{ key: "vsFrozen", value: 0.4 * p, unit: "pct" }, { key: "vsSlowed", value: 0.1 * p, unit: "pct" }];
-    case "mae_chain": return [{ key: "chainChance", value: 0.25 + 0.08 * p, unit: "pct" }, { key: "chainDmg", value: 20 * p * lightningMult }, { key: "chainTargets", value: 3 + Math.floor(ctx.power("mae_mjollnir") * 2) + (ctx.power("leg_mae_thunder") > 0 ? 4 : 0), unit: "x" }];
+    case "mae_chain": return [{ key: "chainChance", value: 0.25 + 0.08 * p, unit: "pct" }, { key: "chainDmg", value: 20 * p * lightningMult }, { key: "chainTargets", value: 3 + Math.floor(ctx.power("mae_mjollnir") * 2) + (ctx.power("leg_mae_thunder") > 0 ? 4 : 0) + Math.floor(ctx.power("hyb_superconductor") * 2), unit: "x" }]; // зеркало onAttackHit в sim.ts
     case "mae_static": return [{ key: "zapDmg", value: 24 * p * lightningMult }, { key: "zapTargets", value: 1 + Math.floor(p / 2), unit: "x" }, { key: "every", value: 1.6, unit: "s" }];
     case "mae_overcharge": return [{ key: "attackSpeed", value: 0.12 * p, unit: "pct" }, { key: "moveSpeed", value: 0.04 * p, unit: "pct" }];
     case "mae_clap": return [{ key: "clapDmg", value: 40 * p * lightningMult }, { key: "stunSec", value: 0.6, unit: "s" }];
@@ -139,7 +139,7 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "beast_pack": return [{ key: "wolves", value: 1 + rank, unit: "x" }];
     case "beast_roar": return [{ key: "petPower", value: 0.35 * rank, unit: "pct" }];
     case "hyb_steam": return [{ key: "vsBurningChilled", value: 0.25 * p, unit: "pct" }];
-    case "hyb_superconductor": return [{ key: "vsFrozenZap", value: 0.35 * p, unit: "pct" }];
+    case "hyb_superconductor": return [{ key: "vsFrozenZap", value: 0.35 * p, unit: "pct" }, { key: "chainTargetsBonus", value: Math.floor(p * 2), unit: "x" }];
     case "hyb_plasma": return [{ key: "plasmaDps", value: 5 * p }];
     case "hyb_wild_hunt": return [{ key: "vsSlowedPets", value: 0.3 * p, unit: "pct" }];
     case "ven_sting": return [{ key: "poisonDps", value: 4 * p * venomMult }];

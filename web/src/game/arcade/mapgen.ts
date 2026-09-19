@@ -70,11 +70,15 @@ export function generateMap(seed: string, act: ActId): ArcadeMap {
 export class ObstacleGrid {
   private readonly cells = new Map<number, Obstacle[]>();
   private static readonly CELL = 256;
+  /** Запас регистрации: самый большой радиус сущности в запросах сима (`blocked`/`resolve` мест — 40). `near()` отдаёт одну
+   *  ячейку по ЦЕНТРУ сущности, поэтому препятствие регистрируется и в ячейках, откуда до него дотянется такой круг; иначе
+   *  у границы ячейки сосед «не видел» камень: вход в него до r px и рывок наружу, рывок Кентавра проскакивал камень. */
+  static readonly PAD = 40;
   constructor(readonly obstacles: readonly Obstacle[]) {
     for (const o of obstacles) {
-      const c = ObstacleGrid.CELL;
-      for (let gy = Math.floor((o.y - o.r) / c); gy <= Math.floor((o.y + o.r) / c); gy++)
-        for (let gx = Math.floor((o.x - o.r) / c); gx <= Math.floor((o.x + o.r) / c); gx++) {
+      const c = ObstacleGrid.CELL, reach = o.r + ObstacleGrid.PAD;
+      for (let gy = Math.floor((o.y - reach) / c); gy <= Math.floor((o.y + reach) / c); gy++)
+        for (let gx = Math.floor((o.x - reach) / c); gx <= Math.floor((o.x + reach) / c); gx++) {
           const key = gy * 4096 + gx;
           const list = this.cells.get(key);
           if (list) list.push(o); else this.cells.set(key, [o]);

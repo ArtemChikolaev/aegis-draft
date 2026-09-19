@@ -32,4 +32,9 @@ describe("цифры карточек школ", () => {
     expect(f.find((x) => x.key === "chainChance")?.value).toBeCloseTo(0.33, 6);
     expect(f.find((x) => x.key === "chainTargets")?.value).toBe(3 + 2 + 4);
   });
+  it("цепная молния: Сверхпроводник добавляет цели так же, как в симе (+floor(p·2)), и показывает это на своей карте", () => {
+    const f = upgradeFigures("mae_chain", 1, 1, ctx({ mae_mjollnir: 1, hyb_superconductor: 1.35 }));
+    expect(f.find((x) => x.key === "chainTargets")?.value).toBe(3 + 2 + 2);
+    expect(upgradeFigures("hyb_superconductor", 1, 1.35, ctx()).find((x) => x.key === "chainTargetsBonus")?.value).toBe(2);
+  });
 });

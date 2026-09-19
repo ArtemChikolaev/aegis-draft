@@ -93,6 +93,27 @@ describe("караван лавочника", () => {
     expect(sim.over?.caravanDone).toBe(true);
   });
 
+  it("срок ожидания (leaveAt) не отнимает повозку у того, кто уже сопровождает: уходит только ждущий караван", () => {
+    const sim = new ArcadeSim("caravan-late", { act: "short" });
+    warp(sim);
+    follow(sim, 5);
+    expect(sim.caravan!.state).toBe("moving");
+    sim.caravan!.leaveAt = sim.tick + 3; // окно ожидания истекает посреди пути
+    follow(sim, 20);
+    expect(sim.caravan!.state).toBe("moving");
+    follow(sim, sec(120));
+    expect(sim.caravan!.state).toBe("arrived");
+    // А вот брошенный после срока караван уходит.
+    const left = new ArcadeSim("caravan-late", { act: "short" });
+    warp(left);
+    follow(left, 5);
+    left.caravan!.leaveAt = left.tick + 3;
+    follow(left, 10);
+    left.player.x = left.caravan!.x + C.escortRadius + 200;
+    step(left, 3);
+    expect(left.caravan!.state).toBe("gone");
+  });
+
   it("не дождался за window — уходит без лавки; в разломе караван стоит; детерминизм", () => {
     const sim = new ArcadeSim("caravan-4", { act: "short" });
     warp(sim);

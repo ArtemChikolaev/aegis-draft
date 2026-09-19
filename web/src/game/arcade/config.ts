@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.72.0";
+export const ARCADE_CONFIG_VERSION = "a0.73.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -37,8 +37,9 @@ export const ARCADE = {
   night: { visibility: 440 },
   /** Пока Рошан жив, обычные спавны стоят; после его смерти — интенсивность ×postRoshanRate. */
   postRoshanRate: 1.6,
-  /** Второй Рошан сильнее первого (как респавн в Dota). */
-  secondRoshan: { hpMult: 1.4, dmgMult: 1.25 },
+  /** Второй Рошан сильнее первого (как респавн в Dota). При живом первом он не появляется: ждёт его смерти и ещё
+   *  `respawnGap` передышки (подобрать Aegis) — раньше второй спавнился поверх первого, и боссов становилось два. */
+  secondRoshan: { hpMult: 1.4, dmgMult: 1.25, respawnGap: sec(30) },
   ancient: { megaEvery: sec(15), megaSize: 8, megaHpMult: 2, lateMult: 2, spawnMult: 1.3 },
   tormentor: { reflectCap: 30 },
   /** Яд (T13.39, аудит 2026-09-08): самостоятельный статус, не горение. До `maxStacks` стаков с ОБЩИМ

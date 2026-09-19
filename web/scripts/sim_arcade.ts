@@ -44,6 +44,9 @@ const PLACE_IDS = ["rift", "caravan", "pond", "forge", "camp"] as const;
 type PlaceId = (typeof PLACE_IDS)[number];
 const PLACES = new Set<PlaceId>((args.get("places") ?? "") === "all" ? PLACE_IDS : ((args.get("places") ?? "").split(",").filter((p): p is PlaceId => (PLACE_IDS as readonly string[]).includes(p))));
 const MAX_TICKS = TICK_HZ * 60 * 26;
+/** Потолок шагов на забег (шаг ≠ тик: шаг с открытым окном тик не двигает) и порог «тик стоит» — см. цикл прогона. */
+const MAX_STEPS = MAX_TICKS * 3;
+const STALL_STEPS = 600;
 /** Калибровка без правки конфига (2026-09-11): `--set defiler.shieldPerTotem=0.15,camp.guardBase=1` меняет числа ARCADE
  *  по пути, `--enemy satyr_defiler.hp=1200` — поля видов врагов. Только для A/B; в игру попадает правка config/enemies. */
 const setPath = (root: Record<string, unknown>, path: string, value: number) => { const keys = path.split("."); let o = root; for (const k of keys.slice(0, -1)) o = o[k] as Record<string, unknown>; if (typeof o[keys[keys.length - 1]] !== "number") throw new Error(`нет числового поля ${path}`); o[keys[keys.length - 1]] = value; };
@@ -66,60 +69,78 @@ function pickOffer(offers: Offer[], school: SchoolId | "any"): number {
   return best;
 }
 
+/** К пруду есть зачем идти: потрёпан — или порча, которую этот пруд смоет (заражённый не смывает — иначе бот вечно
+ *  открывает и закрывает окно у пруда, стоя на месте). */
+function wantsPond(sim: ArcadeSim): boolean {
+  const p = sim.player;
+  return !!sim.pond && !sim.pond.used && ((!!p.curse && !sim.pondTainted()) || p.hp < p.stats.maxHp * 0.5);
+}
+
 /** Политика бота: собирать шарды, держать врагов на дистанции удара, бежать только от давки или при
  *  низком HP, не прижиматься к стенам. Juggernaut — мили: «убегать всегда» = не качаться. */
-function botInput(sim: ArcadeSim): ArcadeInput {
-  if (sim.pending) return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending, SCHOOL), act: 0 };
-  if (sim.neutralOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: 1 };
-  // ОТКРЫТЫЕ ОКНА — ПЕРВЫМИ. Пока висит лавка или добыча, мир стоит (`sim.step` возвращает управление,
-  // не двигая тик), и любое «не то» действие — вечный цикл в прогоне. Так и вышло: бот стоял на добыче,
-  // рядом открылась лавка, и он слал в неё PICKUP_ACT, которого `shopAction` не знает (2026-09-08,
-  // seed cmp-76 на Shadow Shaman: 22 минуты на одном тике).
-  if (sim.shopOpen) {
-    // «Долг силы» (--build debt): карта exotic сейчас, порча долга потом — раньше покупок.
-    if (BUILD.has("debt") && sim.debtOfferAvailable()) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.debt };
-    // Подарок каравана (--gift upgrade): поднять редкость первого своего предмета вместо бесплатного товара.
-    // Предмет уровня arcana поднять нельзя — иначе окно не закрывается и прогон виснет (первый запуск сетки, 2026-09-12).
-    const upgradable = GIFT === "upgrade" && sim.caravanGiftAvailable() ? sim.player.items.findIndex((it) => it.rarity !== "arcana") : -1;
-    if (upgradable >= 0) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.upgradeBase + upgradable };
-    // Жадно: самый дорогой доступный предмет, потом закрыть.
-    let best = -1, bestPrice = -1;
-    sim.shopOffers.forEach((o, i) => { const price = sim.shopBuyPrice(i); if (price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
-    return { mx: 0, my: 0, cast: 0, choose: -1, act: best >= 0 ? best + 1 : SHOP_ACT.close };
-  }
-  // Пруд (T13.43): бот лечится, если потрёпан, снимает порчу, если есть, иначе уходит — окно нельзя оставлять открытым.
-  if (sim.pondOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: sim.player.curse ? (BUILD.has("ritual") && !sim.pondTainted() ? POND_RITUAL_ACT : 2) : sim.player.hp < sim.player.stats.maxHp * 0.5 ? 1 : SHOP_ACT.close };
-  if (sim.forgeOpen) {
-    // Кузня (--places forge): выбрать первый надетый слот и закалить; иначе уйти.
-    if (PLACES.has("forge")) {
-      if (sim.forgeSlot < 0) { const i = GEAR_SLOTS.findIndex((s) => !!sim.player.gear[s]); if (i >= 0) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.sellBase + i }; }
-      else if (sim.player.gold >= sim.forgePrice("temper")) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.buy1 };
+export function botInput(sim: ArcadeSim): ArcadeInput {
+  // ОТКРЫТЫЕ ОКНА — ПЕРВЫМИ и строго в порядке сима (`sim.activeModal()`): пока висит окно, мир стоит (`sim.step`
+  // возвращает управление, не двигая тик), и любое «не то» действие — вечный цикл в прогоне. Так уже выходило дважды:
+  // бот стоял на добыче, рядом открылась лавка, и он слал в неё PICKUP_ACT (2026-09-08, seed cmp-76 на Shadow Shaman:
+  // 22 минуты на одном тике); бот смотрел токен раньше лавки, а сим — наоборот (аудит 2026-09-19).
+  const act = (a: number): ArcadeInput => ({ mx: 0, my: 0, cast: 0, choose: -1, act: a });
+  switch (sim.activeModal()) {
+    case null: break;
+    case "pending": return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending!, SCHOOL), act: 0 };
+    case "shop": {
+      // «Долг силы» (--build debt): карта exotic сейчас, порча долга потом — раньше покупок.
+      if (BUILD.has("debt") && sim.debtOfferAvailable()) return act(SHOP_ACT.debt);
+      // Подарок каравана (--gift upgrade): поднять редкость первого своего предмета вместо бесплатного товара.
+      // Предмет уровня arcana поднять нельзя — иначе окно не закрывается и прогон виснет (первый запуск сетки, 2026-09-12).
+      const upgradable = GIFT === "upgrade" && sim.caravanGiftAvailable() ? sim.player.items.findIndex((it) => it.rarity !== "arcana") : -1;
+      if (upgradable >= 0) return act(SHOP_ACT.upgradeBase + upgradable);
+      // Жадно: самый дорогой доступный предмет, потом закрыть.
+      let best = -1, bestPrice = -1;
+      sim.shopOffers.forEach((o, i) => { const price = sim.shopBuyPrice(i); if (price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
+      return act(best >= 0 ? best + 1 : SHOP_ACT.close);
     }
-    return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close };
-  }
-  // Разлом (--places rift): первое правило; иначе окно закрывается (T13.58).
-  if (sim.riftOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: PLACES.has("rift") ? 1 : SHOP_ACT.close };
-  // Контракт (--contract): первая цель, с клятвой или без; без флага — пропуск, как раньше.
-  if (sim.contractOpen) return { mx: 0, my: 0, cast: 0, choose: -1, act: CONTRACT ? 1 + (OATH ? CONTRACT_OATH_ACT : 0) : SHOP_ACT.close };
-  if (sim.lootOpen) {
-    const cur = sim.player.gear[sim.lootOpen.slot] as GearItem | undefined;
-    // Проклятая добыча (T13.43/T13.51): осторожный игрок берёт её только при заметном выигрыше — иначе оставляет у ног.
-    if (sim.lootCursed && !(cur && gearScore(sim.lootOpen) > gearScore(cur) * 1.6) && !(!cur && gearScore(sim.lootOpen) > 30)) return { mx: 0, my: 0, cast: 0, choose: -1, act: SHOP_ACT.close };
-    const better = !cur || gearScore(sim.lootOpen) > gearScore(cur);
-    return { mx: 0, my: 0, cast: 0, choose: -1, act: better ? 1 : sim.player.bag.length < 12 ? 2 : SHOP_ACT.close };
+    case "neutral": return act(sim.neutralOffers.length > 0 ? 1 : SHOP_ACT.close);
+    case "loot": {
+      const item = sim.lootOpen!;
+      const cur = sim.player.gear[item.slot] as GearItem | undefined;
+      // Проклятая добыча (T13.43/T13.51): осторожный игрок берёт её только при заметном выигрыше — иначе оставляет у ног.
+      if (sim.lootCursed && !(cur && gearScore(item) > gearScore(cur) * 1.6) && !(!cur && gearScore(item) > 30)) return act(SHOP_ACT.close);
+      const better = !cur || gearScore(item) > gearScore(cur);
+      return act(better ? 1 : sim.player.bag.length < ARCADE.loot.bagCap ? 2 : SHOP_ACT.close);
+    }
+    case "pond": {
+      // Пруд (T13.43): снять порчу (или ритуал), если есть и пруд её смывает; иначе лечиться, если потрёпан; иначе уйти —
+      // окно нельзя оставлять открытым. Заражённый пруд (wilds, лагерь стоит) порчу НЕ снимает: `pondAction(2)` там
+      // молча ничего не делает, и бот с порчей слал act 2 вечно (аудит 2026-09-19).
+      const p = sim.player;
+      if (p.curse && !sim.pondTainted()) return act(BUILD.has("ritual") ? POND_RITUAL_ACT : 2);
+      return act(p.hp < p.stats.maxHp * 0.5 ? 1 : SHOP_ACT.close);
+    }
+    case "contract": return act(CONTRACT ? 1 + (OATH ? CONTRACT_OATH_ACT : 0) : SHOP_ACT.close); // --contract: первая цель, с клятвой или без
+    case "forge": {
+      // Кузня (--places forge): выбрать первый надетый слот и закалить; иначе уйти.
+      if (PLACES.has("forge")) {
+        if (sim.forgeSlot < 0) { const i = GEAR_SLOTS.findIndex((s) => !!sim.player.gear[s]); if (i >= 0) return act(SHOP_ACT.sellBase + i); }
+        else if (sim.player.gold >= sim.forgePrice("temper")) return act(SHOP_ACT.buy1);
+      }
+      return act(SHOP_ACT.close);
+    }
+    case "rift": return act(PLACES.has("rift") ? 1 : SHOP_ACT.close); // --places rift: первое правило; иначе окно закрывается (T13.58)
+    case "build": return act(SHOP_ACT.close);
   }
   // Добыча подбирается кнопкой (PICKUP_ACT), не касанием: бот жмёт её, как только сундук/предмет рядом.
   if (sim.nearLoot) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
   // Места: кнопка у входа, когда цель выбрана и рядом.
   if (PLACES.has("rift") && sim.nearRift && sim.riftReady()) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
-  if (PLACES.has("pond") && sim.nearPond && sim.pond && !sim.pond.used && (sim.player.curse || sim.player.hp < sim.player.stats.maxHp * 0.5)) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
+  if (PLACES.has("pond") && sim.nearPond && wantsPond(sim)) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
   if (PLACES.has("forge") && sim.nearForge && sim.forgeReady() && sim.player.gold >= sim.forgePrice("temper") && GEAR_SLOTS.some((s) => !!sim.player.gear[s])) return { mx: 0, my: 0, cast: 0, choose: -1, act: PICKUP_ACT };
   const p = sim.player;
   const hpPct = p.hp / p.stats.maxHp;
   let cx = 0, cy = 0, danger = 0, near = 0;
   let nx = 0, ny = 0, nd = Infinity;
   for (const e of sim.enemies) {
-    if (!e.alive) continue;
+    // Спящий чемпион и скрытый Охотник — не угроза и не цель: игрок их не видит/не трогает, а бот от них бежал и к ним шёл.
+    if (!e.alive || sim.isDormant(e)) continue;
     const dx = e.x - p.x, dy = e.y - p.y;
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d < nd && !e.kind.reflect && !e.kind.structure) { nd = d; nx = dx / (d || 1); ny = dy / (d || 1); }
@@ -221,7 +242,7 @@ function placeGoal(sim: ArcadeSim): { x: number; y: number; w: number; hard: boo
     const d = Math.hypot(cv.x - p.x, cv.y - p.y);
     return d > 90 ? { x: cv.x, y: cv.y, w: d > ARCADE.caravan.escortRadius - 20 ? 3 : 1.2, hard: d > ARCADE.caravan.escortRadius - 20 && cv.state === "moving" } : null;
   }
-  if (PLACES.has("pond") && sim.pond && !sim.pond.used && (p.curse || p.hp < p.stats.maxHp * 0.5)) return { x: sim.pond.x, y: sim.pond.y, w: 1.6, hard: false };
+  if (PLACES.has("pond") && sim.pond && wantsPond(sim)) return { x: sim.pond.x, y: sim.pond.y, w: 1.6, hard: false };
   if (PLACES.has("forge") && sim.forgeReady() && p.gold >= sim.forgePrice("temper") && GEAR_SLOTS.some((s) => !!p.gear[s])) return { x: sim.forge!.x, y: sim.forge!.y, w: 1.4, hard: false };
   // Контракт (--contract): к дому цели с 8-го уровня; чемпион просыпается сам, бой ведёт обычная политика.
   if (CONTRACT && sim.contract && !sim.contract.done && p.level >= 8) {
@@ -242,43 +263,54 @@ const VERBOSE = args.has("verbose");
 /** Гистерезис отхода от босса: ушёл при <30% HP, вернулся при >55%. */
 let retreating = false;
 
-const results: RunResult[] = [];
-const t0 = performance.now();
-for (let i = 0; i < RUNS; i++) {
-  if (ONLY >= 0 && i !== ONLY) continue;
-  const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}), ...(COMPOSITION ? { composition: COMPOSITION } : {}) });
-  const trace = i === TRACE;
-  let lastHp = 0, lastLevel = sim.player.level;
-  while (!sim.over && sim.tick < MAX_TICKS) {
-    sim.step(botInput(sim));
-    if (trace && sim.player.level - lastLevel >= 3) { console.log(`${(sim.tick / TICK_HZ).toFixed(1)}s level ${lastLevel}→${sim.player.level} xp=${sim.player.xp.toFixed(0)}/${sim.player.xpNext} pending=${sim.pending?.length ?? 0}/${sim.pendingSource} camp=${sim.camp?.destroyed}/${sim.camp?.totems}${sim.camp?.cleared ? "✓" : ""}`); }
-    lastLevel = sim.player.level;
-    if (trace && sim.roshan?.alive && sim.tick % TICK_HZ === 0) {
-      const r = sim.roshan, p = sim.player;
-      const d = Math.sqrt((r.x - p.x) ** 2 + (r.y - p.y) ** 2);
-      console.log(`${(sim.tick / TICK_HZ).toFixed(0)}s d=${d.toFixed(0)} slamT=${r.slamT} slamCd=${r.slamCd} roshHp=${r.hp.toFixed(0)} Δ=${(lastHp - r.hp).toFixed(0)} php=${p.hp.toFixed(0)} atkCd=${p.attackCd} spin=${sim.tick < p.spinUntil} burst=${p.burstLeft} stun=${sim.tick < p.stunUntil}`);
-      lastHp = r.hp;
+/** Прогон и печать — только когда скрипт запущен сам; импорт из теста (`test/arcadeBot.test.ts`) берёт одну политику. */
+function main(): void {
+  const results: RunResult[] = [];
+  const t0 = performance.now();
+  for (let i = 0; i < RUNS; i++) {
+    if (ONLY >= 0 && i !== ONLY) continue;
+    const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}), ...(COMPOSITION ? { composition: COMPOSITION } : {}) });
+    const trace = i === TRACE;
+    let lastHp = 0, lastLevel = sim.player.level;
+    // Окно держит мир на паузе: тик не растёт, пока бот не ответит окну тем, что оно понимает. Поэтому цикл ограничен
+    // не только `sim.tick`, но и числом шагов, а «STALL_STEPS шагов без роста тика» — ошибка политики бота, не медленный забег.
+    let stallTick = sim.tick, stallSteps = 0;
+    while (!sim.over && sim.tick < MAX_TICKS) {
+      sim.step(botInput(sim));
+      if (sim.tick !== stallTick) { stallTick = sim.tick; stallSteps = 0; }
+      else if (++stallSteps >= STALL_STEPS) throw new Error(`бот завис: seed=${BASE}-${i} hero=${HERO} act=${ACT} tick=${sim.tick} (${(sim.tick / TICK_HZ).toFixed(1)}s) steps=${sim.steps} — ${STALL_STEPS} шагов без роста тика, открыто окно «${sim.activeModal() ?? "нет"}»`);
+      if (sim.steps >= MAX_STEPS) throw new Error(`бот превысил потолок шагов: seed=${BASE}-${i} hero=${HERO} act=${ACT} tick=${sim.tick} steps=${sim.steps} ≥ ${MAX_STEPS}, окно «${sim.activeModal() ?? "нет"}»`);
+      if (trace && sim.player.level - lastLevel >= 3) { console.log(`${(sim.tick / TICK_HZ).toFixed(1)}s level ${lastLevel}→${sim.player.level} xp=${sim.player.xp.toFixed(0)}/${sim.player.xpNext} pending=${sim.pending?.length ?? 0}/${sim.pendingSource} camp=${sim.camp?.destroyed}/${sim.camp?.totems}${sim.camp?.cleared ? "✓" : ""}`); }
+      lastLevel = sim.player.level;
+      if (trace && sim.roshan?.alive && sim.tick % TICK_HZ === 0) {
+        const r = sim.roshan, p = sim.player;
+        const d = Math.sqrt((r.x - p.x) ** 2 + (r.y - p.y) ** 2);
+        console.log(`${(sim.tick / TICK_HZ).toFixed(0)}s d=${d.toFixed(0)} slamT=${r.slamT} slamCd=${r.slamCd} roshHp=${r.hp.toFixed(0)} Δ=${(lastHp - r.hp).toFixed(0)} php=${p.hp.toFixed(0)} atkCd=${p.attackCd} spin=${sim.tick < p.spinUntil} burst=${p.burstLeft} stun=${sim.tick < p.stunUntil}`);
+        lastHp = r.hp;
+      }
     }
+    const o = sim.over ?? { outcome: "timeout", tick: sim.tick, level: sim.player.level, kills: sim.player.kills, gold: sim.player.gold, roshanKilled: sim.roshanKilled, schools: sim.player.schools };
+    const roshanHp = sim.roshan ? Math.max(0, sim.roshan.hp / sim.roshan.maxHp) : 1;
+    const places: Record<PlaceId, boolean> = { rift: sim.rift?.won ?? false, caravan: sim.caravan?.state === "arrived", pond: sim.pond?.used ?? false, forge: sim.forge?.used ?? false, camp: sim.camp?.cleared ?? false };
+    results.push({ contractDone: o.contractDone, build: sim.debtOfferTaken || sim.player.ritualKind !== null, seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "", places });
+    if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} camp ${sim.camp ? `${sim.camp.destroyed}/${sim.camp.totems}${sim.camp.cleared ? "✓" : ""} defiler ${sim.defiler ? `${Math.round(sim.defiler.hp / sim.defiler.maxHp * 100)}%` : "dead"}` : "—"} killer ${o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "-"} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
   }
-  const o = sim.over ?? { outcome: "timeout", tick: sim.tick, level: sim.player.level, kills: sim.player.kills, gold: sim.player.gold, roshanKilled: sim.roshanKilled, schools: sim.player.schools };
-  const roshanHp = sim.roshan ? Math.max(0, sim.roshan.hp / sim.roshan.maxHp) : 1;
-  const places: Record<PlaceId, boolean> = { rift: sim.rift?.won ?? false, caravan: sim.caravan?.state === "arrived", pond: sim.pond?.used ?? false, forge: sim.forge?.used ?? false, camp: sim.camp?.cleared ?? false };
-  results.push({ contractDone: o.contractDone, build: sim.debtOfferTaken || sim.player.ritualKind !== null, seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "", places });
-  if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} camp ${sim.camp ? `${sim.camp.destroyed}/${sim.camp.totems}${sim.camp.cleared ? "✓" : ""} defiler ${sim.defiler ? `${Math.round(sim.defiler.hp / sim.defiler.maxHp * 100)}%` : "dead"}` : "—"} killer ${o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "-"} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
+  const elapsed = (performance.now() - t0) / 1000;
+  const q = (arr: number[], k: number) => { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(k * s.length))]; };
+  const secs = results.map((r) => r.seconds);
+  const pct = (f: (r: RunResult) => boolean) => `${(results.filter(f).length / results.length * 100).toFixed(1)}%`;
+  console.log(`arcade ${ARCADE_CONFIG_VERSION} · runs=${RUNS} · act=${ACT} · hero=${HERO} · school=${SCHOOL} · rank=${RANK} · ${elapsed.toFixed(1)}s`);
+  console.log(`reached Roshan ${pct((r) => r.reachedRoshan)} · Roshan killed ${pct((r) => r.roshan)} · victory ${pct((r) => r.outcome === "victory")}`);
+  console.log(`death time p25/p50/p75: ${q(secs, 0.25).toFixed(0)}s / ${q(secs, 0.5).toFixed(0)}s / ${q(secs, 0.75).toFixed(0)}s · level p50 ${q(results.map((r) => r.level), 0.5)} · kills p50 ${q(results.map((r) => r.kills), 0.5)}`);
+  const byMinute = new Map<number, number>();
+  for (const r of results) if (r.outcome === "dead") byMinute.set(Math.floor(r.seconds / 60), (byMinute.get(Math.floor(r.seconds / 60)) ?? 0) + 1);
+  console.log("deaths by minute:", [...byMinute.entries()].sort((a, b) => a[0] - b[0]).map(([m, n]) => `${m}:${n}`).join(" "));
+  // Кто нанёс последний урон (T13.45): чемпионы и лагерь не должны становиться главной причиной ранних смертей.
+  const byKiller = new Map<string, number>();
+  for (const r of results) if (r.outcome === "dead") byKiller.set(r.killer, (byKiller.get(r.killer) ?? 0) + 1);
+  console.log("deaths by killer:", [...byKiller.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`).join(" "));
+  if (CONTRACT || BUILD.size > 0) console.log(`contracts done: ${pct((r) => r.contractDone)} · build mods taken: ${pct((r) => r.build)}`);
+  if (PLACES.size > 0) console.log("places done:", [...PLACES].map((pl) => `${pl}:${pct((r) => r.places[pl])}`).join(" "), `· victory with rift ${pct((r) => r.places.rift && r.outcome === "victory")} of ${pct((r) => r.places.rift)}`);
 }
-const elapsed = (performance.now() - t0) / 1000;
-const q = (arr: number[], k: number) => { const s = [...arr].sort((a, b) => a - b); return s[Math.min(s.length - 1, Math.floor(k * s.length))]; };
-const secs = results.map((r) => r.seconds);
-const pct = (f: (r: RunResult) => boolean) => `${(results.filter(f).length / results.length * 100).toFixed(1)}%`;
-console.log(`arcade ${ARCADE_CONFIG_VERSION} · runs=${RUNS} · act=${ACT} · hero=${HERO} · school=${SCHOOL} · rank=${RANK} · ${elapsed.toFixed(1)}s`);
-console.log(`reached Roshan ${pct((r) => r.reachedRoshan)} · Roshan killed ${pct((r) => r.roshan)} · victory ${pct((r) => r.outcome === "victory")}`);
-console.log(`death time p25/p50/p75: ${q(secs, 0.25).toFixed(0)}s / ${q(secs, 0.5).toFixed(0)}s / ${q(secs, 0.75).toFixed(0)}s · level p50 ${q(results.map((r) => r.level), 0.5)} · kills p50 ${q(results.map((r) => r.kills), 0.5)}`);
-const byMinute = new Map<number, number>();
-for (const r of results) if (r.outcome === "dead") byMinute.set(Math.floor(r.seconds / 60), (byMinute.get(Math.floor(r.seconds / 60)) ?? 0) + 1);
-console.log("deaths by minute:", [...byMinute.entries()].sort((a, b) => a[0] - b[0]).map(([m, n]) => `${m}:${n}`).join(" "));
-// Кто нанёс последний урон (T13.45): чемпионы и лагерь не должны становиться главной причиной ранних смертей.
-const byKiller = new Map<string, number>();
-for (const r of results) if (r.outcome === "dead") byKiller.set(r.killer, (byKiller.get(r.killer) ?? 0) + 1);
-console.log("deaths by killer:", [...byKiller.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`).join(" "));
-if (CONTRACT || BUILD.size > 0) console.log(`contracts done: ${pct((r) => r.contractDone)} · build mods taken: ${pct((r) => r.build)}`);
-if (PLACES.size > 0) console.log("places done:", [...PLACES].map((pl) => `${pl}:${pct((r) => r.places[pl])}`).join(" "), `· victory with rift ${pct((r) => r.places.rift && r.outcome === "victory")} of ${pct((r) => r.places.rift)}`);
+
+if (/sim_arcade\.ts$/.test(process.argv[1] ?? "")) main();

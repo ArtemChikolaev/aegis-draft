@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { UPGRADES } from "../src/game/arcade/content/schools.ts";
 import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE } from "../src/game/arcade/config.ts";
 import { CONTRACT_OATH_ACT, IDLE_INPUT } from "../src/game/arcade/types.ts";
@@ -95,6 +96,9 @@ describe("контракт охоты", () => {
   it("Клятва охотника: act 6/7 берёт цель с клятвой; пока цель жива — толпе меньше, цели больше; выполнил — +1 ранг умению (T13.72)", () => {
     const sim = new ArcadeSim("contract-1", { act: "short", composition: "all" });
     untilOffer(sim);
+    // Цель фиксируем сами: какую пару выдаст seed, зависит от раскладки карты, а Сатир лагеря закрывает контракт иначе
+    // (очисткой лагеря) и сидит под щитом тотемов — проверки ниже написаны для чемпиона, который умирает от удара.
+    sim.contractOffers = [{ target: "centaur", reward: "weapon" }, { target: "necro", reward: "armor" }];
     const target = sim.contractOffers[0].target;
     sim.step({ ...IDLE_INPUT, act: 1 + CONTRACT_OATH_ACT });
     expect(sim.contractOpen).toBe(false);
@@ -129,5 +133,22 @@ describe("контракт охоты", () => {
     const k2 = spawn(plain, ENEMY_KINDS.kobold, plain.player.x + 400, plain.player.y);
     const h2 = k2.hp; plain.damageEnemy(k2, 10, "zap");
     expect(h2 - k2.hp).toBeCloseTo(10, 5);
+  });
+  it("награда «карта школы» не пропадает, когда школьный пул исчерпан: золото, как у разлома", () => {
+    const killGold = (withContract: boolean): { gold: number; sim: ArcadeSim } => {
+      const sim = new ArcadeSim("contract-fallback", { act: "short", composition: "all" });
+      for (const u of UPGRADES) sim.banished.add(u.id); // пул пуст: rollUpgradeOffer вернёт null
+      if (withContract) sim.contract = { target: "centaur", reward: "school", done: false };
+      sim.grove!.engaged = true;
+      const gold0 = sim.player.gold;
+      sim.damageEnemy(sim.centaur!, 1e9, "hit");
+      return { gold: sim.player.gold - gold0, sim };
+    };
+    const plain = killGold(false), contract = killGold(true);
+    expect(contract.sim.contract!.done).toBe(true);
+    expect(contract.sim.pending).toBeNull();
+    const bounty = Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * contract.sim.minutes);
+    expect(bounty).toBeGreaterThan(0);
+    expect(contract.gold - plain.gold).toBe(bounty);
   });
 });

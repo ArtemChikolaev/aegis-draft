@@ -32,4 +32,18 @@ describe("препятствия карты (T13.19)", () => {
     expect(Math.hypot(x - 100, y - 100)).toBeCloseTo(30, 5);
     expect(grid.blocked(x, y, 10)).toBe(false);
   });
+
+  it("препятствие у границы ячейки сетки видно и из соседней ячейки (радиус сущности учтён при регистрации)", () => {
+    // Камень целиком в ячейке 0 (x 230..250), сущность r=16 стоит в ячейке 1 (x=262) и пересекается с ним на 4 px.
+    const grid = new ObstacleGrid([{ x: 240, y: 100, r: 10, kind: "rock" }]);
+    expect(grid.blocked(262, 100, 16)).toBe(true);
+    const [x, y] = grid.resolve(262, 100, 16);
+    expect([x, y]).toEqual([266, 100]);
+    expect(grid.near(262, 100).length).toBe(1);
+    // То же по вертикали и по диагонали, с самым большим радиусом запроса сима (40).
+    const g2 = new ObstacleGrid([{ x: 250, y: 250, r: 5, kind: "tree" }]);
+    expect(g2.blocked(250, 290, 40)).toBe(true);
+    expect(g2.blocked(280, 280, 40)).toBe(true);
+    expect(g2.blocked(250, 300, 40)).toBe(false);
+  });
 });

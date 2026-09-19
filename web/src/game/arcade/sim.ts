@@ -82,6 +82,9 @@ function rotate(x: number, y: number, c: number, s: number): [number, number] {
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 /** Бит ручного каста умения во вводе (`ArcadeInput.cast`). */
 const CAST_MASK: Readonly<Record<AbilityKey, number>> = { q: 1, w: 2, e: 4, r: 8 };
+/** Окно, которое держит мир на паузе и принимает ввод (см. `ArcadeSim.activeModal`). */
+export type ArcadeModal = "pending" | "shop" | "neutral" | "loot" | "pond" | "contract" | "forge" | "rift" | "build";
+
 /** Индекс вида врага для fx смерти (рендер восстанавливает вид по числу). */
 export const KIND_INDEX: Record<string, number> = Object.fromEntries(Object.keys(ENEMY_KINDS).map((id, i) => [id, i]));
 export const KIND_BY_INDEX: readonly string[] = Object.keys(ENEMY_KINDS);
@@ -112,6 +115,8 @@ export class ArcadeSim {
   readonly rng: Rng;
   readonly rank: RankRules;
   readonly hero: HeroDef;
+  /** В ките есть Rupture: только тогда метки кровотечения вообще бывают и `tickRupture` обходит врагов. */
+  private readonly hasRupture: boolean;
   /** Состав мест акта (T13.70): объявляется на подготовке, размещение — только из него. */
   readonly composition: CompositionId;
   /** Разбор забега (T13.74): источник текущего урона (ставится в начале тика и у каждого источника), суммы по источникам и по видам врагов. */
@@ -260,6 +265,8 @@ export class ArcadeSim {
   private readonly roshanAt: number[];
   private roshanIdx = 0;
   private roshanSpawnedAt = 0;
+  /** Час акта, когда пал последний Рошан: следующий ждёт `secondRoshan.respawnGap` после него. */
+  private roshanDiedAt = -1e9;
   private tormentorSpawned = false;
   ancient: Enemy | null = null;
   private nextMegaAt = 0;
@@ -298,6 +305,7 @@ export class ArcadeSim {
     this.seed = seed;
     this.rank = rankOf(options.rank ?? 0);
     this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
+    this.hasRupture = ABILITY_KEYS.some((k) => this.hero.abilities[k].kind === "rupture");
     for (const k of ABILITY_KEYS) this.slot[this.hero.abilities[k].kind] ??= k;
     this.wardZoneKey = ABILITY_KEYS.find((k) => this.hero.abilities[k].kind === "damage_ward" && !this.hero.abilities[k].summon);
     this.act = options.act === "full" || options.act === "dire" || options.act === "river" ? options.act : "short";
@@ -459,7 +467,10 @@ export class ArcadeSim {
         this.damagePlayer(e.dmg / e.kind.dmg * Wd.waveDmg, 0, e.kind);
       }
     }
-    f.waves = f.waves.filter((w) => w.left > 0);
+    // Уплотнение на месте: без нового массива каждый тик.
+    let keep = 0;
+    for (const w of f.waves) if (w.left > 0) f.waves[keep++] = w;
+    f.waves.length = keep;
     if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
     const home = len(e.x - f.x, e.y - f.y);
     if (!hunting && (!this.playerAtFord() || home > Wd.leash)) {
@@ -750,8 +761,9 @@ export class ArcadeSim {
       c.state = "waiting"; c.leaveAt = this.tick + C.window;
       return;
     }
-    if (this.tick >= c.leaveAt) { c.state = "gone"; return; }
-    if (!this.playerEscorting()) { c.state = "waiting"; return; }
+    // Срок `leaveAt` — про ОЖИДАНИЕ: уходит только караван без сопровождения. Раньше он пропадал и посреди пути, если
+    // герой подошёл на последних секундах окна.
+    if (!this.playerEscorting()) { c.state = this.tick >= c.leaveAt ? "gone" : "waiting"; return; }
     c.state = "moving";
     const d = len(c.ex - c.x, c.ey - c.y);
     const stepLen = C.speed * DT;
@@ -924,15 +936,17 @@ export class ArcadeSim {
     if (c.reward === "weapon") this.dropLoot(x, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "weapon"));
     else if (c.reward === "armor") { this.dropLoot(x - 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "armor")); this.dropLoot(x + 20, y - 20, rollGear(this.rng, this.lootTier(), "exotic", this.nextUid(), "helm")); }
     else {
+      // Школьный пул исчерпан — та же запасная награда, что у разлома: золото (раньше награда молча пропадала).
       const up = this.rollUpgradeOffer([]);
       if (up && up.kind === "upgrade") this.queueReward([{ kind: "upgrade", id: up.id, rarity: "exotic" }]);
+      else this.gainGold(Math.round(ARCADE.bounty.base + ARCADE.bounty.perMin * this.minutes));
     }
   }
 
   /** Подъём павших (T13.46): пока герой у кургана и стоит хоть один идол — скелеты у случайного идола, с потолком живых. */
   private tickBarrowRaise(): void {
     const b = this.barrow, N = ARCADE.necro;
-    if (!b || !this.playerAtBarrow() || this.tick < b.nextRaiseAt) return;
+    if (!b || !this.playerAtBarrow() || this.tick < b.nextRaiseAt || this.idolsAlive() === 0) return;
     const idols = this.enemies.filter((e) => e.alive && e.kind.id === "bone_idol");
     if (idols.length === 0) return;
     b.nextRaiseAt = this.tick + N.raiseEvery;
@@ -953,7 +967,7 @@ export class ArcadeSim {
     const N = ARCADE.necro, b = this.barrow;
     if (!b) return;
     this.capControl(e, N.ccCap, N.ccResist);
-    e.shotCd = Math.max(0, e.shotCd - 1);
+    // `shotCd` уже тикнул в общем цикле moveEnemies — второй декремент здесь удваивал темп стрельбы (раз в 1 с вместо shot.every).
     if (this.tick < e.stunUntil || this.tick < e.freezeUntil) return;
     const home = len(e.x - b.x, e.y - b.y);
     const hunting = e === this.hunter;
@@ -1017,7 +1031,14 @@ export class ArcadeSim {
 
   /** Контроль чемпиона: не дольше cap, после — resist иммунитета к повторному (Сатир и Кентавр). */
   private capControl(e: Enemy, cap: number, resist: number): void {
-    if (this.tick < e.ccResistUntil) { e.stunUntil = 0; e.freezeUntil = 0; return; }
+    if (this.tick < e.ccResistUntil) {
+      // `ccResistUntil` = конец идущего контроля + resist. Пока контроль идёт — он действует (раньше обнулялся на
+      // следующем же тике: стан жил один тик), но не продлевается новым; после его конца — иммунитет, новые отбрасываются.
+      const ccEnd = e.ccResistUntil - resist;
+      if (this.tick >= ccEnd) { e.stunUntil = 0; e.freezeUntil = 0; }
+      else { if (e.stunUntil > ccEnd) e.stunUntil = ccEnd; if (e.freezeUntil > ccEnd) e.freezeUntil = ccEnd; }
+      return;
+    }
     const until = this.tick + cap;
     if (e.stunUntil > until) e.stunUntil = until;
     if (e.freezeUntil > until) e.freezeUntil = until;
@@ -1368,6 +1389,7 @@ export class ArcadeSim {
     return this.tick - this.pausedTicks;
   }
 
+  /** Секунды по часам акта. В репозитории потребителей нет (аудит 2026-09-19), но им пользуются headless-QA-скрипты вне репозитория — не удалять вслепую. */
   get seconds(): number {
     return this.actTick / TICK_HZ;
   }
@@ -1382,6 +1404,21 @@ export class ArcadeSim {
     return n;
   }
 
+  /** Какое окно сейчас принимает ввод (мир стоит, пока оно открыто). Порядок — единственный источник правды и для
+   *  `step`, и для headless-бота: pending → лавка → токен → добыча → пруд → контракт → кузня → разлом → сборка. */
+  activeModal(): ArcadeModal | null {
+    if (this.pending) return "pending";
+    if (this.shopOpen) return "shop";
+    if (this.neutralOpen) return "neutral";
+    if (this.lootOpen) return "loot";
+    if (this.pondOpen) return "pond";
+    if (this.contractOpen) return "contract";
+    if (this.forgeOpen) return "forge";
+    if (this.riftOpen) return "rift";
+    if (this.buildOpen) return "build";
+    return null;
+  }
+
   /** Один тик. Пока висит выбор уровня или забег окончен — мир стоит. */
   step(input: ArcadeInput): void {
     if (this.over) return;
@@ -1391,42 +1428,23 @@ export class ArcadeSim {
       this.lastInput = { ...input };
     }
     this.steps++;
-    if (this.pending) {
-      if (input.choose >= 0 && input.choose < this.pending.length) this.applyOffer(this.pending[input.choose]);
-      else if (input.choose === REROLL_CHOOSE) this.rerollPending();
-      else if (input.act >= BANISH_ACT && input.act < BANISH_ACT + 3) this.banishPending(input.act - BANISH_ACT);
-      return;
-    }
-    if (this.shopOpen) {
-      this.shopAction(input.act);
-      return;
-    }
-    if (this.neutralOpen) {
-      this.neutralAction(input.act);
-      return;
-    }
-    if (this.lootOpen) {
-      this.lootAction(input.act);
-      return;
-    }
-    if (this.pondOpen) {
-      this.pondAction(input.act);
-      return;
-    }
-    if (this.contractOpen) {
-      this.contractAction(input.act);
-      return;
-    }
-    if (this.forgeOpen) {
-      this.forgeAction(input.act);
-      return;
-    }
-    if (this.riftOpen) {
-      this.riftAction(input.act);
-      return;
-    }
-    if (this.buildOpen) {
-      this.buildAction(input.act);
+    // Окна — строго в порядке `activeModal()`: тем же геттером пользуется бот (scripts/sim_arcade.ts), иначе при двух
+    // окнах сразу он шлёт действие не тому окну и тик стоит вечно.
+    const modal = this.activeModal();
+    if (modal !== null) {
+      if (modal === "pending") {
+        const pending = this.pending!;
+        if (input.choose >= 0 && input.choose < pending.length) this.applyOffer(pending[input.choose]);
+        else if (input.choose === REROLL_CHOOSE) this.rerollPending();
+        else if (input.act >= BANISH_ACT && input.act < BANISH_ACT + 3) this.banishPending(input.act - BANISH_ACT);
+      } else if (modal === "shop") this.shopAction(input.act);
+      else if (modal === "neutral") this.neutralAction(input.act);
+      else if (modal === "loot") this.lootAction(input.act);
+      else if (modal === "pond") this.pondAction(input.act);
+      else if (modal === "contract") this.contractAction(input.act);
+      else if (modal === "forge") this.forgeAction(input.act);
+      else if (modal === "rift") this.riftAction(input.act);
+      else this.buildAction(input.act);
       return;
     }
     if (input.act === BUILD_ACT) {
@@ -1573,7 +1591,7 @@ export class ArcadeSim {
           for (const e of this.enemies) {
             if (cleave <= 0) break;
             if (!e.alive || e === target) continue;
-            if (len(e.x - target.x, e.y - target.y) <= ARCADE.player.cleaveRadius) { this.onAttackHit(e, 0.6); cleave--; }
+            if (len(e.x - target.x, e.y - target.y) <= ARCADE.player.cleaveRadius && this.targetable(e)) { this.onAttackHit(e, 0.6); cleave--; }
           }
           this.pushFx("slash", p.x, p.y, target.x, target.y, 10);
         }
@@ -1720,7 +1738,14 @@ export class ArcadeSim {
         const target = this.cullTarget(ab);
         if (!target) { cast = false; break; }
         if (target.kind.boss) this.damageEnemy(target, value * 2, "crit");
-        else { this.damageEnemy(target, target.hp + 1, "crit"); p.cooldowns.r = -1; p.hasteUntil = this.tick + sec(ab.duration ?? 3); }
+        else {
+          // Добивание гарантировано: множители урона (Клятва охотника ×0.85, щит шамана ×0.3, щит тотемов) его не режут —
+          // раньше цель под порогом выживала, а короткая перезарядка и ускорение всё равно выдавались. Неуязвимость
+          // (щит Стража) уважаем: удар не прошёл — каста не было, перезарядка цела.
+          if (!this.damageEnemy(target, target.hp + 1, "crit")) { cast = false; break; }
+          if (target.alive) { target.hp = 0; this.killEnemy(target); }
+          p.cooldowns[key] = -1; p.hasteUntil = this.tick + sec(ab.duration ?? 3);
+        }
         this.shake = 8;
         if (!target.alive && !target.kind.boss) { this.pushFx("burst", target.x, target.y, 50, 0, 14); }
         break;
@@ -1936,8 +1961,8 @@ export class ArcadeSim {
       for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 160)) { this.damageEnemy(e, sig.value * sc, "burst"); this.stun(e, this.statusSec(0.6)); }
       this.pushFx("nova", p.x, p.y, sig.radius ?? 160, 0, 10);
     }
-    // Culling Blade после добивания уходит на короткую перезарядку (3 с), не на полную и не на ноль.
-    if (ab.kind === "culling_blade" && p.cooldowns.r === -1) p.cooldowns.r = sec(1.5);
+    // Culling Blade после добивания уходит на короткую перезарядку (1.5 с), не на полную и не на ноль.
+    if (ab.kind === "culling_blade" && p.cooldowns[key] === -1) p.cooldowns[key] = sec(1.5);
     else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1) * (this.tick < p.arcaneUntil ? 1 - ARCADE.rune.arcane.cooldown : 1));
     // Multicast (Ogre Magi): с шансом умение срабатывает ещё раз на следующем тике (перезарядка сбрасывается до 1 тика).
     if (sig?.kind === "multicast" && key !== "r" && ab.cooldown > 0 && this.rng.float() < Math.min(0.6, sig.value * this.sigScale())) { p.cooldowns[key] = 1; this.pushFx("levelup", p.x, p.y, 0, 0, 12); }
@@ -1959,7 +1984,7 @@ export class ArcadeSim {
       const dps = sp.value[p.abilities[spinKey]];
       for (const e of this.enemies) {
         if (!e.alive) continue;
-        if (len(e.x - p.x, e.y - p.y) <= (sp.radius ?? 104) + e.kind.r) this.damageEnemy(e, dps * 0.1, "spin");
+        if (len(e.x - p.x, e.y - p.y) <= (sp.radius ?? 104) + e.kind.r && this.targetable(e)) this.damageEnemy(e, dps * 0.1, "spin");
       }
     }
     // Io: духи по орбите бьют тех, в кого врезались (контакт, шаг проверки 6 тиков), автоатака не блокируется.
@@ -1968,7 +1993,7 @@ export class ArcadeSim {
       this.dmgSource = spKey;
       const ab = H[spKey], dps = ab.value[p.abilities[spKey]];
       for (const [ox, oy] of this.spiritOrbs()) for (const e of this.enemies) {
-        if (!e.alive || this.isDormant(e)) continue;
+        if (!this.targetable(e)) continue;
         if (len(e.x - ox, e.y - oy) <= ARCADE.io.orbR + e.kind.r) this.damageEnemy(e, dps * 0.1, "burst");
       }
     }
@@ -2095,7 +2120,7 @@ export class ArcadeSim {
     for (const e of this.enemies) {
       if (!e.alive || !(e.kind.elite || e.kind.boss)) continue;
       const d = len(e.x - x, e.y - y) - e.kind.r;
-      if (d < bestD) { bestD = d; best = e; }
+      if (d < bestD && this.targetable(e)) { bestD = d; best = e; }
     }
     return best;
   }
@@ -2103,7 +2128,7 @@ export class ArcadeSim {
   private strongestWithin(x: number, y: number, radius: number): Enemy | null {
     let best: Enemy | null = null;
     for (const e of this.enemies) {
-      if (!e.alive || len(e.x - x, e.y - y) > radius + e.kind.r) continue;
+      if (!e.alive || len(e.x - x, e.y - y) > radius + e.kind.r || !this.targetable(e)) continue;
       if (!best || e.kind.boss || (!best.kind.boss && e.maxHp > best.maxHp)) best = e;
     }
     return best;
@@ -2111,11 +2136,11 @@ export class ArcadeSim {
 
   private cullTarget(ab: AbilityDef): Enemy | null {
     const p = this.player;
-    const threshold = ab.value[p.abilities.r] || 0;
+    const threshold = ab.value[p.abilities[this.slot.culling_blade ?? "r"]] || 0; // слот — по виду умения, не по букве
     const radius = ab.radius ?? 130;
     let best: Enemy | null = null;
     for (const e of this.enemies) {
-      if (!e.alive || len(e.x - p.x, e.y - p.y) > radius + e.kind.r) continue;
+      if (!e.alive || len(e.x - p.x, e.y - p.y) > radius + e.kind.r || !this.targetable(e)) continue;
       if (e.kind.boss || (e.hp <= threshold && (!best || e.maxHp > best.maxHp))) best = e;
     }
     return best;
@@ -2188,7 +2213,7 @@ export class ArcadeSim {
       this.pushFx("nova", e.x, e.y, sig.radius ?? 80, 0, 10);
     }
     // Вампиризм — только с урона, который прошёл: спящий, скрытый или под щитом чемпион не лечит.
-    if (landed && p.stats.lifesteal > 0) p.hp = Math.min(p.stats.maxHp, p.hp + dmg * p.stats.lifesteal);
+    if (landed && p.stats.lifesteal > 0) this.heal(dmg * p.stats.lifesteal, true); // через heal(): Увядание и ритуал действуют и на вампиризм
     // Школы «Attack»: статусы с удара.
     const burn = this.upgradePower("rad_strike");
     if (burn > 0) this.applyBurn(e, 6 * burn * this.burnMult(), 3);
@@ -2213,7 +2238,7 @@ export class ArcadeSim {
       for (const e of this.enemies) {
         if (!e.alive || visited.has(e.id)) continue;
         const d = len(e.x - current.x, e.y - current.y);
-        if (d < bestD) { bestD = d; best = e; }
+        if (d < bestD && this.targetable(e)) { bestD = d; best = e; }
       }
       if (!best) break;
       visited.add(best.id);
@@ -2395,7 +2420,7 @@ export class ArcadeSim {
 
   /** Урон по врагу. Возвращает false, если урон не прошёл (цель мертва или неуязвима) — по нему решаются лечения с удара. */
   damageEnemy(e: Enemy, amount: number, fx: FxKind): boolean {
-    if (!e.alive || amount <= 0) return false;
+    if (!e.alive || !(amount > 0)) return false; // `!(x > 0)` отсекает и NaN: иначе hp врага становится NaN и он бессмертен
     // Наследие: весь исходящий урон (удары, умения, DoT, питомцы) — ровно один раз, здесь.
     let dmg = amount * this.oathMult(e) * this.ritualMult("bloodhunt");
     // Vampiric Spirit (Wraith King): доля урона автоатак возвращается здоровьем.
@@ -2468,7 +2493,7 @@ export class ArcadeSim {
     }
     const sig = this.hero.signature;
     if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (e.kind.elite || e.kind.boss ? 6 : 1));
-    if (sig?.kind === "deathpact") p.hp = Math.min(p.stats.maxHp, p.hp + sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1));
+    if (sig?.kind === "deathpact") this.heal(sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1), true);
     if (sig?.kind === "growth") {
       // Flesh Heap: убийства наращивают запас здоровья до потолка; прибавка идёт и в текущее hp,
       // иначе герой с полным hp получает только пустую полоску. maxHp = база + stacks: recomputeStats добавляет их заново.
@@ -2570,7 +2595,7 @@ export class ArcadeSim {
     }
     // Пул врагов переиспользует объекты: ссылку на босса снимаем сразу, иначе «Рошан жив» проверяет
     // уже кобольда в том же объекте и глушит спавн до конца забега (баг a0.2–a0.5, 2026-09-05).
-    if (e === this.roshan) this.roshan = null;
+    if (e === this.roshan) { this.roshan = null; this.roshanDiedAt = this.actTick; }
     if (e === this.ancient) this.ancient = null;
     if (e.kind.boss) {
       this.roshanKilled = true;
@@ -2614,7 +2639,9 @@ export class ArcadeSim {
     if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return; // BKB: треть ударов мимо
     if (this.upgradePower("leg_butterfly") > 0 && this.rng.float() < 0.25) return; // Бабочка: четверть ударов мимо
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
-    const reduction = (0.06 * armor) / (1 + 0.06 * armor);
+    // Отрицательная броня — формула Dota (урон ×(1 + 0.06|a|/(1+0.06|a|)), не выше ×2): у прежней общей формулы полюс при
+    // a ≈ −16.7 (урон ×25, дальше — «отрицательный»), а Mask of Madness (−4) покупается повторно.
+    const reduction = armor >= 0 ? (0.06 * armor) / (1 + 0.06 * armor) : -(0.06 * -armor) / (1 + 0.06 * -armor);
     // Kraken Shell: плоское снижение поверх брони, но удар всегда проходит хотя бы на 1 — иначе
     // мелкие враги перестают быть угрозой совсем и забег превращается в прогулку.
     const flat = sig?.kind === "tough" ? sig.value * this.sigScale() : 0;
@@ -2655,13 +2682,15 @@ export class ArcadeSim {
     this.shake = Math.max(this.shake, 4);
   }
 
-  private heal(amount: number): void {
+  /** Единственный путь лечения героя (кроме пруда и регена, у которых своя формула): Увядание и ритуал действуют здесь.
+   *  `quiet` — без всплывающего числа: лечения с каждого удара/убийства (вампиризм, Death Pact) иначе засыпают экран. */
+  private heal(amount: number, quiet = false): void {
     const p = this.player;
     const before = p.hp;
     if (p.curse === "withering") amount *= ARCADE.curse.withering.healMult;
     amount *= this.ritualMult("withering");
     p.hp = Math.min(p.stats.maxHp, p.hp + amount);
-    if (p.hp - before >= 1) this.pushFx("heal", p.x, p.y - 30, 0, 0, 30, Math.round(p.hp - before));
+    if (!quiet && p.hp - before >= 1) this.pushFx("heal", p.x, p.y - 30, 0, 0, 30, Math.round(p.hp - before));
   }
 
   private onLethal(): void {
@@ -2768,7 +2797,9 @@ export class ArcadeSim {
   private spawnTick(): void {
     const A = ARCADE.acts[this.act];
     // Рошан по расписанию акта; пока жив — тишина. Второй — сильнее (респавн).
-    if (this.roshanIdx < this.roshanAt.length && this.actTick === this.roshanAt[this.roshanIdx]) {
+    // Следующий Рошан — по расписанию, но не при живом предыдущем (иначе `this.roshan` перезаписывался и боссов было два):
+    // опоздавший ждёт смерти первого и `respawnGap` передышки. В обычном случае (первый убит заранее) тик спавна прежний.
+    if (this.roshanIdx < this.roshanAt.length && this.actTick >= this.roshanAt[this.roshanIdx] && !this.roshan?.alive && this.actTick >= this.roshanDiedAt + ARCADE.secondRoshan.respawnGap) {
       const r = this.pit ? this.spawnEnemy(ENEMY_KINDS.roshan, ARCADE.pit.x, ARCADE.pit.y) : this.spawnEnemy(ENEMY_KINDS.roshan, ...this.ringPoint(420, 480));
       if (this.roshanIdx > 0) { r.hp *= ARCADE.secondRoshan.hpMult; r.maxHp *= ARCADE.secondRoshan.hpMult; r.dmg *= ARCADE.secondRoshan.dmgMult; }
       this.roshanIdx++;
@@ -2980,6 +3011,7 @@ export class ArcadeSim {
   /** Rupture: урон за пройденный путь (value за 100 px), пока метка жива. */
   private tickRupture(): void {
     this.dmgSource = "dot";
+    if (!this.hasRupture) return;
     for (const e of this.enemies) {
       if (!e.alive || this.tick >= e.ruptureUntil) continue;
       const d = len(e.x - e.lastX, e.y - e.lastY);
@@ -3007,9 +3039,9 @@ export class ArcadeSim {
       for (const e of this.enemiesWithin(p.x, p.y, sig.radius ?? 150)) this.damageEnemy(e, sig.value * this.sigScale(), "burst");
     }
     if (sig?.kind === "thirst" && this.tick % 10 === 0) {
-      const r = sig.radius ?? 600;
+      const r = sig.radius ?? 600, scale = this.sigScale(); // вне цикла: в нём нет урона, ранг не меняется; порядок умножения прежний
       for (const e of this.enemies) {
-        if (!e.alive || e.hp > e.maxHp * sig.value * this.sigScale()) continue;
+        if (!e.alive || e.hp > e.maxHp * sig.value * scale) continue;
         if (len(e.x - p.x, e.y - p.y) <= r) { p.hasteUntil = Math.max(p.hasteUntil, this.tick + 12); break; }
       }
     }
@@ -3276,9 +3308,16 @@ export class ArcadeSim {
   /** Иллюзии живут по таймеру; остальные питомцы — пока стоит апгрейд. */
   private expirePets(): void {
     if (this.pets.length === 0) return;
+    // Связь Io хранит индекс в `pets` (его читает и рендер): при уплотнении ведём индекс за самим юнитом, иначе связь
+    // перескакивает на соседа; связанный юнит истёк — индекс −1, тик умений рвёт связь.
+    const p = this.player;
+    const tethered = p.tetherPet >= 0 ? this.pets[p.tetherPet] : undefined;
     let w = 0;
     for (const pet of this.pets) if (pet.until === undefined || this.tick < pet.until) this.pets[w++] = pet;
-    this.pets.length = w;
+    if (w !== this.pets.length) {
+      this.pets.length = w;
+      if (tethered) p.tetherPet = this.pets.indexOf(tethered);
+    }
   }
 
   private petPower(): number {
@@ -3917,7 +3956,7 @@ export class ArcadeSim {
       }
       return;
     }
-    if (!this.defiler?.alive || !this.playerAtCamp() || this.tick < camp.nextLineAt) return;
+    if (!this.defiler?.alive || !this.playerAtCamp() || this.tick < camp.nextLineAt || this.totemsAlive() < 2) return;
     const alive = this.enemies.filter((e) => e.alive && e.kind.id === "corruption_totem");
     if (alive.length < 2) return;
     const a = alive.splice(this.rng.int(alive.length), 1)[0];
@@ -4106,8 +4145,12 @@ export class ArcadeSim {
 
   private applyOffer(offer: Offer): void {
     const p = this.player;
-    if (offer.kind === "ability") p.abilities[offer.key]++;
-    else if (offer.kind === "talent") p.talents.push(offer.id);
+    if (offer.kind === "ability") {
+      // Потолок ранга проверяем ЗДЕСЬ, а не только при выдаче карт: пока карта висит в pending, ранг может поднять
+      // Клятва охотника — и выбор уводил ранг за массив `value` (undefined → NaN-урон → бессмертные враги).
+      const max = Math.min(this.hero.abilities[offer.key].value.length - 1, offer.key === "r" ? R_LEVELS.length : 4);
+      if (p.abilities[offer.key] < max) p.abilities[offer.key]++;
+    } else if (offer.kind === "talent") p.talents.push(offer.id);
     else {
       const def = UPGRADE_BY_ID[offer.id];
       const cur = p.upgrades[offer.id] ?? { rank: 0, power: 0, cap: def.maxRank };
@@ -4117,7 +4160,9 @@ export class ArcadeSim {
       // Легендарки берутся один раз (maxRank 1) и всегда приходят с редкостью arcana — надбавка их
       // не касается, иначе одна легендарка бралась бы трижды.
       const cap = def.legendary ? def.maxRank : Math.max(cur.cap, def.maxRank + (ARCADE.rarity.rankBonus[offer.rarity] ?? 0));
-      p.upgrades[offer.id] = { rank: cur.rank + 1, power: def.legendary ? 1 : cur.power + ARCADE.rarity.mult[offer.rarity], cap };
+      // Выше потолка ранг не растёт (та же карта могла прийти дважды: очередь наград + выбор уровня); потолок от редкости — растёт.
+      const full = cur.rank >= cap;
+      p.upgrades[offer.id] = { rank: full ? cur.rank : cur.rank + 1, power: def.legendary ? 1 : full ? cur.power : cur.power + ARCADE.rarity.mult[offer.rarity], cap };
       if (!def.neutral && !p.schools.includes(def.school)) p.schools.push(def.school);
       if (def.id === "leg_rad_phoenix") p.aegis = true; // Феникс: одно возрождение, как Aegis
     }
@@ -4230,27 +4275,34 @@ export class ArcadeSim {
     return best;
   }
 
-  // Запросы по врагам: сначала дистанция, потом isDormant — он чистый, но дороже сравнения, а в радиус
+  /** Врага можно выбрать целью: жив и не спит/не скрыт. ЕДИНСТВЕННЫЙ предикат всех выборок цели (ближайший, в радиусе,
+   *  элита, сильнейший, добивание, цепь молний, клив, вращение): новая выборка по `this.enemies` обязана звать его,
+   *  иначе автокаст жжёт перезарядку в неуязвимого, а луч выдаёт скрытого Охотника. */
+  private targetable(e: Enemy): boolean {
+    return e.alive && !this.isDormant(e);
+  }
+
+  // Запросы по врагам: сначала дистанция, потом targetable (isDormant) — он чистый, но дороже сравнения, а в радиус
   // попадает малая доля врагов. Результат тот же, порядок обхода тот же.
   nearestEnemy(x: number, y: number, radius: number): Enemy | null {
     let best: Enemy | null = null, bestD = radius;
     for (const e of this.enemies) {
       if (!e.alive) continue;
       const d = len(e.x - x, e.y - y) - e.kind.r;
-      if (d < bestD && !this.isDormant(e)) { bestD = d; best = e; }
+      if (d < bestD && this.targetable(e)) { bestD = d; best = e; }
     }
     return best;
   }
 
   enemiesWithin(x: number, y: number, radius: number): Enemy[] {
     const out: Enemy[] = [];
-    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && !this.isDormant(e)) out.push(e);
+    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && this.targetable(e)) out.push(e);
     return out;
   }
 
   countEnemiesWithin(x: number, y: number, radius: number): number {
     let n = 0;
-    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && !this.isDormant(e)) n++;
+    for (const e of this.enemies) if (e.alive && len(e.x - x, e.y - y) <= radius + e.kind.r && this.targetable(e)) n++;
     return n;
   }
 

@@ -60,6 +60,19 @@ describe("Тролль-Некромант", () => {
     expect(hp0 - nm.hp).toBeCloseTo(100 * N.exposedDmgMult, 5);
   });
 
+  it("стреляет раз в shot.every секунд: перезарядка выстрела тикает один раз за тик, не дважды", () => {
+    const sim = new ArcadeSim("necro-shot-rate");
+    quiet(sim);
+    const bw = sim.barrow!, nm = sim.necromancer!;
+    bw.nextRaiseAt = 1e9; bw.engaged = true;
+    const hold = () => { sim.player.x = nm.x + 250; sim.player.y = nm.y; }; // между keepMin и keepMax: стоит и стреляет
+    hold(); step(sim, 1);
+    expect(nm.shotCd).toBe(sec(N.shot.every)); // выстрелил сразу
+    let shots = 0;
+    for (let i = 0; i < sec(N.shot.every) * 3; i++) { hold(); const before = nm.shotCd; step(sim, 1); if (nm.shotCd > before) shots++; }
+    expect(shots).toBe(3); // ровно по выстрелу на shot.every (при двойном декременте было бы 6)
+  });
+
   it("держит дистанцию и стреляет; уход за поводок/из кургана — домой и лечится; контроль не дольше ccCap", () => {
     const sim = new ArcadeSim("necro-3");
     quiet(sim);

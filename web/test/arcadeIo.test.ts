@@ -37,6 +37,24 @@ describe("Io", () => {
     expect(p.tetherPet).toBe(-1);
   });
 
+  it("Tether держится за СВОЙ юнит, когда другой призыв истёк и массив питомцев уплотнился", () => {
+    const sim = new ArcadeSim("io-tether-compact", { hero: "io" });
+    quiet(sim);
+    const p = sim.player;
+    p.abilities.q = 1; p.cooldowns.q = 0;
+    const a = pet(sim, 300); sim.pets[a].until = sim.tick + 5; // скоро истечёт, стоит первым в массиве
+    const b = pet(sim, 100);                                   // ближайший — к нему и связь
+    pet(sim, 300);                                             // третий: после уплотнения займёт индекс b
+    const tethered = sim.pets[b];
+    cast(sim, "q");
+    expect(sim.pets[p.tetherPet]).toBe(tethered);
+    // Питомцы бегают за героем сами; держим расстановку руками: связанный — рядом, третий — за радиусом связи.
+    for (let t = 0; t < 12; t++) { tethered.x = p.x + 100; tethered.y = p.y; const last = sim.pets[sim.pets.length - 1]; last.x = p.x + 2000; last.y = p.y; sim.step(IDLE_INPUT); }
+    expect(sim.pets).toHaveLength(2);
+    expect(sim.tick < p.tetherUntil, "связь не порвалась").toBe(true);
+    expect(sim.pets[p.tetherPet], "и держится за тот же юнит").toBe(tethered);
+  });
+
   it("Spirits: пять шаров по орбите, бьют только того, кого коснулись; герой в центре бьёт автоатакой как обычно", () => {
     const sim = new ArcadeSim("io-2", { hero: "io" });
     quiet(sim);
