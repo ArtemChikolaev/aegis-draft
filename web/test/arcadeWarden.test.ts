@@ -76,6 +76,27 @@ describe("Страж переправы", () => {
     void w;
   });
 
+  it("стан на тике спада щита не съедает окно уязвимости: окно открывается и длится openSec от спада", () => {
+    const sim = new ArcadeSim("ford-2", { act: "river" });
+    quiet(sim);
+    const f = sim.ford!, w = sim.warden!;
+    f.engaged = true;
+    hold(sim, f.x + 180, f.y, 2);
+    expect(sim.wardenShielded()).toBe(true);
+    const drop = f.shieldUntil;
+    // Оглушаем за пару тиков до спада щита так, чтобы стан накрыл сам тик спада (кап контроля — 0.5 с, этого хватает).
+    hold(sim, f.x + 180, f.y, drop - sim.tick - 2);
+    w.stunUntil = drop + 3;
+    hold(sim, f.x + 180, f.y, 8); // стан прошёл
+    expect(sim.tick).toBeGreaterThan(drop + 3);
+    expect(sim.wardenShielded()).toBe(false); // было: сразу новый щит, окна нет
+    expect(f.openUntil).toBe(drop + sec(Wd.openSec));
+    hold(sim, f.x + 180, f.y, f.openUntil - sim.tick - 1);
+    expect(sim.wardenShielded()).toBe(false); // окно держится до конца
+    hold(sim, f.x + 180, f.y, 3);
+    expect(sim.wardenShielded()).toBe(true); // и сменяется щитом
+  });
+
   it("смерть в открытой фазе: руны DD/щит/магия на runeSec, амулет exotic, цель контракта, итог и отметка", () => {
     const sim = new ArcadeSim("ford-3", { act: "river" });
     quiet(sim);

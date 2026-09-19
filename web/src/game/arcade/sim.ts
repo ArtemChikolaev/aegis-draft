@@ -491,7 +491,10 @@ export class ArcadeSim {
       return;
     }
     // Фазы: щит → открыт → щит…; первая фаза — щит.
-    if (this.tick === f.shieldUntil) f.openUntil = this.tick + sec(Wd.openSec); // щит спал — окно
+    // Окно открывается, когда щит спал, а окно ЭТОГО щита ещё не выдано (`openUntil < shieldUntil`), — не по равенству
+    // `tick === shieldUntil`: выше стоит выход по стану, и стан ровно на тике спада щита пропускал окно уязвимости —
+    // следующим тиком сразу ставился новый щит. Окно считается от спада щита, стан его не сдвигает и не съедает.
+    if (f.shieldUntil > 0 && this.tick >= f.shieldUntil && f.openUntil < f.shieldUntil) f.openUntil = f.shieldUntil + sec(Wd.openSec);
     else if (this.tick >= f.openUntil && this.tick >= f.shieldUntil) f.shieldUntil = this.tick + sec(Wd.shieldSec); // окно кончилось — щит
     if (this.tick >= f.nextWaveAt) {
       f.nextWaveAt = this.tick + Wd.waveEvery;
