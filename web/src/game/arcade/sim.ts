@@ -1483,7 +1483,7 @@ export class ArcadeSim {
     this.prevPx = p.x; this.prevPy = p.y;
     this.movePlayer(input);
     // В разломе (T13.58) мир снаружи стоит вместе с часами акта: спавн ведёт сам разлом.
-    if (this.rift?.state === "active") { this.pausedTicks++; this.tickRift(); } else { this.spawnTick(); this.tickCaravan(); }
+    if (this.rift?.state === "active") { this.pausedTicks++; this.holdWorldTimers(); this.tickRift(); } else { this.spawnTick(); this.tickCaravan(); }
     this.rebuildGrid();
     this.moveEnemies();
     this.tickRupture();
@@ -2990,6 +2990,24 @@ export class ArcadeSim {
     if (this.chest.alive && this.tick >= this.chest.until) this.chest.alive = false;
     for (const g of this.groundLoot) if (this.tick >= g.until) g.until = -1;
     if (this.groundLoot.length && this.tick % 60 === 0) this.groundLoot = this.groundLoot.filter((g) => g.until > 0);
+  }
+
+  /** В разломе мир снаружи стоит вместе с часами акта (T13.58) — и сроки его событий тоже: сундук, торговец, руны, токен,
+   *  руна щедрости, добыча на земле, окно каравана и волна мегакрипов. Раньше они тикали по реальному времени: 50 секунд
+   *  испытания съедали сундук (90 с) больше чем наполовину, а торговца с караваном — почти целиком. Сами сроки остаются в
+   *  реальных тиках (рендер и приглашения считают остаток как `until − tick`), поэтому на каждый тик разлома они сдвигаются
+   *  на тик — ровно так же, как `pausedTicks` сдвигает часы акта. */
+  private holdWorldTimers(): void {
+    if (this.shrine.alive) this.shrine.until++;
+    if (this.shopkeeper.alive) this.shopkeeper.until++;
+    if (this.bounty.alive) this.bounty.until++;
+    if (this.rune.alive) this.rune.until++;
+    if (this.neutralToken.alive) this.neutralToken.until++;
+    if (this.chest.alive) this.chest.until++;
+    for (const g of this.groundLoot) if (g.until > 0) g.until++;
+    const c = this.caravan;
+    if (c && (c.state === "waiting" || c.state === "moving")) c.leaveAt++;
+    if (this.ancient?.alive) this.nextMegaAt++;
   }
 
   /** «Пришёл — твоё» (T13.86): герой в `events.holdRadius` от события — его таймер замирает, а остаток не меньше `holdMin`. */

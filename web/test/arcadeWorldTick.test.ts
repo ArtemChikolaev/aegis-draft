@@ -3,6 +3,8 @@ import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE, sec } from "../src/game/arcade/config.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { IDLE_INPUT, SHOP_ACT, type Enemy, type EnemyKind } from "../src/game/arcade/types.ts";
+import { rollGear } from "../src/game/arcade/content/gear.ts";
+import { Rng } from "../src/game/rng.ts";
 
 // Мировые системы идут всегда (M15, B1): тишина боя с Рошаном и передышка после разлома глушат лесной спавн, а не места,
 // залпы лучников, сроки событий и контракт. Раньше всё это стояло в spawnTick ниже раннего `return`.
@@ -110,5 +112,36 @@ describe("Аркада: мировые системы при живом Роша
     expect(sim.rift?.state).toBe("active");
     expect(sim.enemies.some((e) => e.alive && e.kind.id === "archer")).toBe(false);
     expect(sim.archerLines).toHaveLength(0);
+  });
+});
+
+// Сроки событий стоят вместе с часами акта, пока герой в разломе (M15, B10).
+describe("Аркада: сроки событий в разломе", () => {
+  it("сундук, торговец, добыча на земле и окно каравана не стареют за время испытания", () => {
+    const sim = new ArcadeSim("world-rift-timers", { composition: "all" });
+    quiet(sim);
+    const p = sim.player, rift = sim.rift!, cv = sim.caravan!;
+    p.x = rift.x; p.y = rift.y;
+    const left = sec(20);
+    sim.chest = { alive: true, x: p.x + 1200, y: p.y, until: sim.tick + left, value: 0 };
+    sim.shopkeeper = { alive: true, x: p.x - 1200, y: p.y, until: sim.tick + left, value: 0 };
+    sim.groundLoot.push({ x: p.x + 900, y: p.y + 900, item: rollGear(new Rng("world-rift-timers:gear"), 1, "standard", "t-1", "weapon"), until: sim.tick + left });
+    cv.state = "waiting"; cv.leaveAt = sim.tick + left;
+    inner(sim).enterRift("surge");
+    const act0 = sim.actTick;
+    let guard = 0;
+    while (sim.rift!.state === "active" && guard++ < ARCADE.rift.duration + 10) { p.x = rift.x; p.y = rift.y; advance(sim, 1); }
+    expect(sim.rift!.state).toBe("done");
+    expect(sim.actTick).toBe(act0); // часы акта стояли
+    expect(guard).toBeGreaterThan(left); // испытание длиннее срока — на старом коде всё истекло бы
+    expect(sim.chest.until - sim.tick).toBe(left);
+    expect(sim.shopkeeper.until - sim.tick).toBe(left);
+    expect(sim.groundLoot[0].until - sim.tick).toBe(left);
+    expect(cv.leaveAt - sim.tick).toBe(left);
+    advance(sim, 5);
+    expect(sim.chest.alive).toBe(true);
+    expect(sim.shopkeeper.alive).toBe(true);
+    expect(sim.groundLoot[0].until).toBeGreaterThan(0);
+    expect(cv.state).toBe("waiting");
   });
 });
