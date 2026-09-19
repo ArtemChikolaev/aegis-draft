@@ -7,10 +7,14 @@
 //
 // Протокол v1 (версия — с ПЕРВОГО сообщения, спека MP0):
 //
-//	клиент → сервер:  hello {name, token?, versions}, ping {}
+//	клиент → сервер:  hello {name, token?, versions}, ping {}, relay <payload>, leave {}
 //	сервер → клиенту: welcome {token, selfId, code, versions, members},
+//	                  relay_log {entries}, relay {seq, from, payload},
 //	                  presence {event:{kind,id,name}, members}, pong {},
-//	                  error {code, message} (затем close)
+//	                  error {code, message} — фатальная (bad_hello, bad_protocol, room_*,
+//	                  version_mismatch: затем close) либо НЕфатальная на отклонённый relay
+//	                  (relay_rejected, relay_log_full: сокет остаётся открытым, запись в лог
+//	                  не попала)
 package transport
 
 import (
@@ -22,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aegis-draft/server/internal/apperr"
 	"github.com/aegis-draft/server/internal/service"
 	"github.com/coder/websocket"
 	"github.com/coder/websocket/wsjson"
@@ -36,7 +41,16 @@ const (
 	helloDeadline = 10 * time.Second // не прислал hello — соединение не занимает слот
 	readDeadline  = 75 * time.Second // клиент пингует каждые ~25с; 3 пропуска = обрыв
 	writeDeadline = 5 * time.Second  // одна запись в сокет; зависший клиент не держит писателя
-	outboxSize    = 32
+	// replayDeadline — запись relay_log при входе: лог до 256 КиБ одним сообщением, на слабой
+	// мобильной сети это дольше одной обычной записи.
+	replayDeadline = 15 * time.Second
+	outboxSize     = 32
+	// maxMessageBytes — предел входящего ws-сообщения. Самое крупное легитимное — start Арены:
+	// снапшот 18 участников (uuid 36 + имя до 32 рун, в JSON до ~190 байт с экранированием) ≈ 5 КиБ;
+	// пики, ходы Дуэли, hello и ping — десятки-сотни байт. 16 КиБ = запас ×3. Превышение
+	// библиотека закрывает статусом 1009 (message too big). Лимит задан явно, а не дефолтом
+	// библиотеки (32 КиБ): от него считается худший размер relay-лога комнаты.
+	maxMessageBytes = 16 << 10
 )
 
 // wsMessage — конверт протокола. Payload разбирается по type.
@@ -179,8 +193,17 @@ func (h *roomHub) broadcast(code string, msg wsMessage) {
 }
 
 // createRoom — POST /api/rooms: пустое лобби, версии пинит первый ws-джойн.
+// Потолок числа комнат — 503 rooms_limit: состояние временное (брошенные комнаты снимает prune).
 func (s *Server) createRoom(w http.ResponseWriter, _ *http.Request) {
-	room := s.rooms.CreateRoom()
+	room, err := s.rooms.CreateRoom()
+	if errors.Is(err, service.ErrTooManyRooms) {
+		writeError(w, apperr.Unavailable("rooms_limit", "too many rooms, try again later"))
+		return
+	}
+	if err != nil {
+		writeError(w, err)
+		return
+	}
 	writeJSON(w, http.StatusCreated, map[string]string{"code": room.Code})
 }
 
@@ -197,6 +220,7 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	// Дальше жизнью соединения управляет сессия; Close на выходе — страховка.
 	defer conn.CloseNow()
+	conn.SetReadLimit(maxMessageBytes)
 
 	ctx := r.Context()
 	hello, err := readHello(ctx, conn)
@@ -218,28 +242,49 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 	if replaced != nil {
 		replaced.drop() // старый писатель завершится и закроет прежний сокет
 	}
-	// Выход до запуска писателя (welcome или реплей не дошли): JoinRoom уже пометил участника
-	// Connected, и без этого он остался бы подключённым навсегда.
-	abandon := func() {
-		if s.roomHub.detach(code, token, peer) {
-			s.markDisconnected(code, token, memberID, memberName)
-		}
-	}
 
-	// welcome — лично; presence — всем (включая нового: единый источник списка).
+	// Конец сессии — в defer: JoinRoom уже пометил участника Connected, и ЛЮБОЙ выход после attach
+	// (welcome/реплей не дошли, обрыв, leave, паника в обработке сообщения — Recoverer её ловит,
+	// но код после цикла не выполнился бы) обязан его отпустить. Иначе участник навсегда
+	// Connected, и PruneRooms никогда не удалит комнату.
+	explicitLeave := false
+	var writerDone chan struct{} // nil, пока писатель не запущен
+	defer func() {
+		// Сокет вытеснен reconnect'ом — участника не трогаем: его новая сессия живёт. Иначе сессия
+		// была последней (даже если hub уже выбросил сокет за переполнение).
+		if !s.roomHub.detach(code, token, peer) {
+			return
+		}
+		if writerDone != nil {
+			close(outbox) // после detach в канал пишет только этот читатель — он уже закончил
+			<-writerDone
+		}
+		if !explicitLeave {
+			s.markDisconnected(code, token, memberID, memberName)
+			return
+		}
+		if members, member, err := s.rooms.LeaveRoom(code, token); err == nil {
+			s.roomHub.broadcast(code, envelope("presence", presencePayload{
+				Event:   presenceEvent{Kind: "left", ID: member.ID, Name: member.Name},
+				Members: members,
+			}))
+		}
+	}()
+
+	// welcome — лично; presence — всем (включая нового: единый источник списка). Личные записи
+	// идут до запуска писателя, но под тем же правилом: не читающий клиент не держит сессию.
 	welcome := envelope("welcome", welcomePayload{
 		Token: token, SelfID: memberID, Code: code,
 		Versions: joined.Versions, Members: joined.Members,
 	})
-	if err := wsjson.Write(ctx, conn, welcome); err != nil {
-		abandon()
+	if err := writeWithDeadline(ctx, conn, welcome, writeDeadline); err != nil {
 		return
 	}
 	// Реплей relay-лога — лично и ДО presence: вошедший (и переподключившийся) клиент обязан
 	// восстановить состояние режима раньше, чем начнёт получать живые relay-сообщения через hub.
 	if log, err := s.rooms.RelayLog(code); err == nil && len(log) > 0 {
-		if err := wsjson.Write(ctx, conn, envelope("relay_log", relayLogPayload{Entries: log})); err != nil {
-			abandon()
+		replay := envelope("relay_log", relayLogPayload{Entries: log})
+		if err := writeWithDeadline(ctx, conn, replay, replayDeadline); err != nil {
 			return
 		}
 	}
@@ -255,9 +300,9 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 	// Писатель: единственная горутина, пишущая в сокет после welcome. На выходе CloseNow, не Close:
 	// closing handshake ждёт эха пира до 5с, а пир может не читать — это стойло задерживало бы
 	// teardown-рассылки (поймано транспортным тестом).
-	writerDone := make(chan struct{})
-	go func() {
-		defer close(writerDone)
+	writerDone = make(chan struct{})
+	go func(done chan<- struct{}) {
+		defer close(done)
 		for {
 			var msg wsMessage
 			select {
@@ -280,10 +325,9 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-	}()
+	}(writerDone)
 
 	// Читатель: ping/presence-жизнь. Любое валидное сообщение продлевает дедлайн.
-	explicitLeave := false
 	for {
 		readCtx, cancel := context.WithTimeout(ctx, readDeadline)
 		var msg wsMessage
@@ -304,10 +348,15 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		case "relay":
 			// Универсальный релей комнаты (Дуэль M-DUEL; Arena MP2 — тот же слой): сервер
-			// штампует порядок и отправителя, полезную нагрузку не понимает. Ошибка записи
-			// (умерший слот) молча игнорируется — protocol-error тут не за что выдавать.
-			if entry, err := s.rooms.AppendRelay(code, token, msg.Payload); err == nil {
-				s.roomHub.broadcast(code, envelope("relay", entry))
+			// штампует порядок и отправителя, полезную нагрузку не понимает. Отказ записи
+			// сообщается ОТПРАВИТЕЛЮ: иначе ход молча исчезает, а клиент ждёт эха, которого не
+			// будет. Ошибка не фатальная (сокет живёт) и идёт через outbox — порядок с relay
+			// сохраняется, писатель у сокета один.
+			if err := s.relay(code, token, msg.Payload); err != nil {
+				select {
+				case outbox <- envelope("error", errorPayload{Code: relayErrorCode(err), Message: err.Error()}):
+				default: // забитый собственный outbox — пусть решает writer/hub
+				}
 			}
 		case "leave":
 			explicitLeave = true
@@ -318,25 +367,27 @@ func (s *Server) roomSocket(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	// Конец сессии (detach, закрытие outbox, presence) — в defer выше.
+}
 
-	// Сессия закончилась. Сокет вытеснен reconnect'ом — участника не трогаем: его новая сессия
-	// живёт. Иначе сессия была последней (даже если hub уже выбросил сокет за переполнение).
-	if !s.roomHub.detach(code, token, peer) {
-		return
-	}
-	close(outbox)
-	<-writerDone
-	if explicitLeave {
-		if members, member, err := s.rooms.LeaveRoom(code, token); err == nil {
-			s.roomHub.broadcast(code, envelope("presence", presencePayload{
-				Event:   presenceEvent{Kind: "left", ID: member.ID, Name: member.Name},
-				Members: members,
-			}))
-		}
-		_ = conn.CloseNow()
-		return
-	}
-	s.markDisconnected(code, token, memberID, memberName)
+// writeWithDeadline — личная запись в сокет до запуска писателя, с тем же правилом, что у него:
+// зависший клиент не держит сессию дольше дедлайна.
+func writeWithDeadline(ctx context.Context, conn *websocket.Conn, msg wsMessage, deadline time.Duration) error {
+	writeCtx, cancel := context.WithTimeout(ctx, deadline)
+	defer cancel()
+	return wsjson.Write(writeCtx, conn, msg)
+}
+
+// relay штампует сообщение и ставит его в outbox участников в ОДНОЙ критической секции: рассылка
+// идёт колбэком под мьютексом RoomManager, поэтому порядок в outbox каждого клиента совпадает с
+// порядком seq (клиенты отбрасывают seq <= lastSeq — перестановка означала бы потерянный ход).
+// Порядок замков: RoomManager.mu → roomHub.mu. Обратного пути нет и быть не должно: методы hub
+// не зовут service. broadcast не блокируется (select/default), так что замок комнат он не держит.
+func (s *Server) relay(code, token string, payload json.RawMessage) error {
+	_, err := s.rooms.AppendRelay(code, token, payload, func(entry service.RelayEntry) {
+		s.roomHub.broadcast(code, envelope("relay", entry))
+	})
+	return err
 }
 
 // markDisconnected помечает участника отключённым (reconnect по токену остаётся возможен) и
@@ -363,7 +414,13 @@ func readHello(ctx context.Context, conn *websocket.Conn) (helloPayload, error) 
 		return helloPayload{}, errors.New("hello v1 expected as the first message")
 	}
 	var hello helloPayload
-	if err := json.Unmarshal(msg.Payload, &hello); err != nil || hello.Name == "" {
+	if err := json.Unmarshal(msg.Payload, &hello); err != nil {
+		return helloPayload{}, errors.New("hello payload must carry a name")
+	}
+	// Имя без краевых пробелов и не длиннее лимита (обрезаем, не отвергаем); из одних пробелов —
+	// то же, что пустое.
+	hello.Name = service.NormalizeMemberName(hello.Name)
+	if hello.Name == "" {
 		return helloPayload{}, errors.New("hello payload must carry a name")
 	}
 	return hello, nil
@@ -374,6 +431,16 @@ func closeWithError(ctx context.Context, conn *websocket.Conn, code, message str
 	defer cancel()
 	_ = wsjson.Write(writeCtx, conn, envelope("error", errorPayload{Code: code, Message: message}))
 	_ = conn.Close(websocket.StatusPolicyViolation, code)
+}
+
+// relayErrorCode — код НЕфатальной ошибки на отклонённый relay (сокет остаётся открытым).
+// relay_log_full отделён от общего relay_rejected: для партии он окончателен (комната больше
+// не примет ни одного хода), клиенту есть что сказать игроку — «создайте новую комнату».
+func relayErrorCode(err error) string {
+	if errors.Is(err, service.ErrRelayLogFull) {
+		return "relay_log_full"
+	}
+	return "relay_rejected"
 }
 
 func roomErrorCode(err error) string {

@@ -119,3 +119,37 @@ func TestPutSave_Conflict(t *testing.T) {
 		t.Fatalf("409 должен нести актуальный сейв rev=7, got %+v", body.Current)
 	}
 }
+
+// Тело больше лимита — честный 413 too_large, а не 400 bad_json от молча обрезанного JSON;
+// до сервиса такой запрос не доходит. Тело ровно под лимитом проходит.
+func TestPutSave_TooLarge(t *testing.T) {
+	uid := uuid.New()
+	saves := &fakeSaves{put: &model.Save{Kind: model.SaveKindRun, Rev: 1}}
+	h := savesHandler(fakeVerifier{id: uid}, saves)
+
+	put := func(body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest(http.MethodPut, "/api/saves/run", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer good")
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req)
+		return rec
+	}
+	const head, tail = `{"payload":{"blob":"`, `"},"baseRev":0}`
+
+	rec := put(head + strings.Repeat("x", maxSaveBodyBytes) + tail)
+	if rec.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want 413 (%s)", rec.Code, rec.Body)
+	}
+	var fail apperr.Error
+	if err := json.NewDecoder(rec.Body).Decode(&fail); err != nil || fail.Code != "too_large" {
+		t.Fatalf("code = %q (%v), want too_large", fail.Code, err)
+	}
+	if saves.gotKind != "" {
+		t.Fatal("oversized save must not reach the service")
+	}
+
+	rec = put(head + strings.Repeat("x", maxSaveBodyBytes-len(head)-len(tail)) + tail)
+	if rec.Code != http.StatusOK || saves.gotKind != "run" {
+		t.Fatalf("body at the limit must pass: status = %d (%s)", rec.Code, rec.Body)
+	}
+}

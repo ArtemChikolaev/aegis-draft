@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"time"
 
@@ -19,6 +18,9 @@ type Saves interface {
 	Get(ctx context.Context, userID uuid.UUID, kind string) (*model.Save, error)
 	Put(ctx context.Context, w model.SaveWrite) (*model.Save, error)
 }
+
+// maxSaveBodyBytes — предел тела PUT /api/saves/{kind} (конверт + payload сейва).
+const maxSaveBodyBytes = 1 << 20
 
 type saveDTO struct {
 	Kind               string          `json:"kind"`
@@ -68,7 +70,14 @@ func (s *Server) getSave(w http.ResponseWriter, r *http.Request) {
 func (s *Server) putSave(w http.ResponseWriter, r *http.Request) {
 	userID, _ := userIDFrom(r.Context())
 	var req putSaveRequest
-	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
+	// MaxBytesReader, а не io.LimitReader: тот молча обрезал тело, и слишком большой сейв
+	// получал невнятный 400 bad_json вместо честного 413.
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, maxSaveBodyBytes)).Decode(&req); err != nil {
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, apperr.TooLarge("too_large", "save body exceeds 1 MiB"))
+			return
+		}
 		writeError(w, apperr.BadRequest("bad_json", "invalid request body"))
 		return
 	}

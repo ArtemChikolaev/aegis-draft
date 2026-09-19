@@ -36,4 +36,10 @@ func BadRequest(code, message string) *Error   { return New(http.StatusBadReques
 func Unauthorized(code, message string) *Error { return New(http.StatusUnauthorized, code, message) }
 func NotFound(code, message string) *Error     { return New(http.StatusNotFound, code, message) }
 func Conflict(code, message string) *Error     { return New(http.StatusConflict, code, message) }
-func Internal(message string) *Error           { return New(http.StatusInternalServerError, "internal", message) }
+func TooLarge(code, message string) *Error {
+	return New(http.StatusRequestEntityTooLarge, code, message)
+}
+func Unavailable(code, message string) *Error {
+	return New(http.StatusServiceUnavailable, code, message)
+}
+func Internal(message string) *Error { return New(http.StatusInternalServerError, "internal", message) }

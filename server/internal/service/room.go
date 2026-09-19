@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,12 +25,48 @@ import (
 // RoomCapacity — предел людей в комнате: сетка турнира «18 команд» (PRD §5.12).
 const RoomCapacity = 18
 
+// Потолки памяти: комнаты и их relay-логи живут в RAM одного инстанса (VM 256 МБ), а лог при
+// входе/reconnect уходит клиенту целиком одним сообщением.
+//
+// MaxRelayEntries. Реальный максимум матча Арены: start + 10 раундов × (18 пиков + close) = 191
+// запись. Серия Дуэли Bo5 ≈ 5 × (10 пиков игроков + до 4 рероллов + ~14 шагов героев + next) +
+// start ≈ 150, но реванши копятся в той же комнате. 1024 = Арена ×5 или ~6 серий Bo5 подряд;
+// дальше — relay отклоняется, игрокам нужна новая комната.
+//
+// MaxRelayBytes — настоящий предохранитель памяти: записей мало, но каждая ограничена только
+// пределом ws-сообщения (16 КиБ). Легитимный лог — это ~5 КиБ start Арены + записи по 40–80 байт,
+// то есть ≤ 20 КиБ на матч и ≤ ~100 КиБ на забитую реваншами Дуэль; 256 КиБ — запас ×2.5–12.
+//
+// MaxRooms: худший случай 500 × 256 КиБ ≈ 125 МиБ — влезает в VM вместе с процессом. Брошенные
+// комнаты снимает PruneRooms (TTL час), так что потолок упирается только при живом наплыве.
+const (
+	MaxRooms        = 500
+	MaxRelayEntries = 1024
+	MaxRelayBytes   = 256 << 10
+)
+
+// MaxMemberNameRunes — предел длины имени участника. Имя уходит в каждый presence всем и в
+// start-сообщение Арены; поле ввода на фронте короче, так что лимит режет только чужие клиенты.
+// Длинное имя ОБРЕЗАЕТСЯ, а не отвергается: вход в комнату не должен ломаться из-за ника.
+const MaxMemberNameRunes = 32
+
+// NormalizeMemberName — каноническая форма имени: без краевых пробелов, не длиннее лимита.
+func NormalizeMemberName(name string) string {
+	name = strings.TrimSpace(name)
+	if runes := []rune(name); len(runes) > MaxMemberNameRunes {
+		name = strings.TrimSpace(string(runes[:MaxMemberNameRunes]))
+	}
+	return name
+}
+
 // Ошибки комнат — доменные; transport маппит их в код протокола/HTTP.
 var (
 	ErrRoomNotFound    = errors.New("room not found")
 	ErrRoomFull        = errors.New("room is full")
 	ErrVersionMismatch = errors.New("room versions mismatch")
 	ErrMemberNotFound  = errors.New("member not found")
+	ErrTooManyRooms    = errors.New("too many rooms")
+	ErrRelayLogFull    = errors.New("room relay log is full")
 )
 
 // RoomVersions — совместимость клиента: те же оси, что у сейва/share-ссылки
@@ -78,6 +115,8 @@ type Room struct {
 	versions  *RoomVersions // nil до первого джойна — он и пинит
 	members   []*RoomMember // порядок входа стабилен (посадка/змейка MP2 обопрётся на него)
 	relay     []RelayEntry  // упорядоченный лог relay-сообщений (Дуэль M-DUEL; Arena MP2 — тот же слой)
+	// relayBytes — суммарный размер payload лога (потолок MaxRelayBytes).
+	relayBytes int
 }
 
 // RelayEntry — одно упорядоченное сообщение комнаты. Сервер режима НЕ понимает: он источник
@@ -135,10 +174,14 @@ func randomRoomCode() string {
 }
 
 // CreateRoom создаёт пустое лобби и возвращает код. Версии пинит ПЕРВЫЙ джойн, не создание:
-// комнату может открыть страница, ещё не загрузившая манифест.
-func (m *RoomManager) CreateRoom() *Room {
+// комнату может открыть страница, ещё не загрузившая манифест. Потолок MaxRooms —
+// ErrTooManyRooms: память инстанса конечна, а создание комнаты ничем не авторизовано.
+func (m *RoomManager) CreateRoom() (*Room, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if len(m.rooms) >= MaxRooms {
+		return nil, ErrTooManyRooms
+	}
 	for {
 		code := randomRoomCode()
 		if _, exists := m.rooms[code]; exists {
@@ -146,13 +189,14 @@ func (m *RoomManager) CreateRoom() *Room {
 		}
 		room := &Room{Code: code, CreatedAt: m.now()}
 		m.rooms[code] = room
-		return room
+		return room, nil
 	}
 }
 
 // JoinRoom — вход/переподключение. token пустой → новый участник; знакомый token →
 // reconnect того же участника (без второго «призрака»). Первый вход пинит версии комнаты.
 func (m *RoomManager) JoinRoom(code, name, token string, versions RoomVersions) (RoomJoin, error) {
+	name = NormalizeMemberName(name)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	room, ok := m.rooms[code]
@@ -240,8 +284,15 @@ func (m *RoomManager) LeaveRoom(code, token string) ([]RoomMemberView, *RoomMemb
 // AppendRelay добавляет relay-сообщение в лог комнаты от участника с данным токеном и
 // возвращает проштампованную запись (seq и подтверждённый серверм ID отправителя — клиенту
 // поле from доверять нельзя). Неизвестный токен — ErrMemberNotFound: писать в лог можно
-// только из живого слота.
-func (m *RoomManager) AppendRelay(code, token string, payload json.RawMessage) (RelayEntry, error) {
+// только из живого слота. Лог упёрся в MaxRelayEntries/MaxRelayBytes — ErrRelayLogFull.
+//
+// deliver (может быть nil) вызывается ПОД мьютексом менеджера сразу после штампа — штамп seq и
+// постановка записи в очереди получателей образуют одну критическую секцию, поэтому порядок
+// вызовов deliver совпадает с порядком seq. Без этого два одновременных relay могли уйти клиентам
+// как 6, 5: клиент отбрасывает seq <= lastSeq, и ход терялся у всех онлайн, оставаясь в логе.
+// Контракт deliver: не блокироваться (только неблокирующая постановка в очередь) и не звать
+// методы менеджера — иначе взаимная блокировка.
+func (m *RoomManager) AppendRelay(code, token string, payload json.RawMessage, deliver func(RelayEntry)) (RelayEntry, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	room, ok := m.rooms[code]
@@ -250,9 +301,16 @@ func (m *RoomManager) AppendRelay(code, token string, payload json.RawMessage) (
 	}
 	for _, member := range room.members {
 		if member.token == token {
+			if len(room.relay) >= MaxRelayEntries || room.relayBytes+len(payload) > MaxRelayBytes {
+				return RelayEntry{}, ErrRelayLogFull
+			}
 			entry := RelayEntry{Seq: len(room.relay) + 1, From: member.ID, Payload: payload}
 			room.relay = append(room.relay, entry)
+			room.relayBytes += len(payload)
 			member.LastSeen = m.now()
+			if deliver != nil {
+				deliver(entry)
+			}
 			return entry, nil
 		}
 	}
