@@ -82,7 +82,7 @@ export function DuelScreen() {
         {!isApiConfigured() && <Banner tone="locked" title={t("duel.noApiTitle")}>{t("duel.noApi")}</Banner>}
         {errorCode && (
           <Banner tone="locked" title={t("duel.errorTitle")} data-testid="duel-error">
-            {t(`duel.error.${errorCode}` as MessageKey) || errorCode}{" "}
+            {t(duelErrorKey(errorCode))}{" "}
             <Button variant="secondary" onClick={dismissError}>{t("duel.errorDismiss")}</Button>
           </Banner>
         )}
@@ -344,4 +344,12 @@ export function DuelScreen() {
       {exitModal}
     </main>
   );
+}
+
+/** Текст ошибки комнаты. `t()` на незнакомый ключ возвращает сам ключ (не пустую строку), поэтому прежний `|| errorCode`
+ *  не срабатывал и игрок видел «duel.error.internal»; коды без своего текста (internal, bad_hello, bad_protocol,
+ *  http_error…) читаются как сетевой сбой — так же, как в лобби Арены. */
+const DUEL_ERROR_CODES = new Set(["room_not_found", "room_full", "version_mismatch", "network", "no_data"]);
+function duelErrorKey(code: string): MessageKey {
+  return `duel.error.${DUEL_ERROR_CODES.has(code) ? code : "network"}` as MessageKey;
 }

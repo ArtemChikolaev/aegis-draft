@@ -1037,7 +1037,9 @@ export const useRun = create<RunStore>((set, get) => {
     },
 
     reset() {
-      clearSavedRun();
+      // Arena сейв не пишет (см. persist) — значит и чужой не чистит: иначе выход из турнира Арены молча стирал
+      // незаконченный соло-забег игрока (аудит 2026-09-19).
+      if (get().selectedMode !== "arena") clearSavedRun();
       set({
         phase: "start", engine: null, config: null, seed: "", snapshot: null, actions: [],
         resumable: null, error: null, tournamentEngine: null, tournament: null, tournamentStep: 0, resultsSeen: false,
@@ -1294,7 +1296,7 @@ export const useRun = create<RunStore>((set, get) => {
       }
       recordCareer(tournament);
       set({ resultsSeen: true });
-      clearSavedRun();
+      if (get().selectedMode !== "arena") clearSavedRun();
     },
 
     continueDynasty() {

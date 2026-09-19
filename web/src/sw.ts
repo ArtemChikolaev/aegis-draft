@@ -216,9 +216,11 @@ async function downloadBucket(hash: string, manifest: Response): Promise<void> {
     if (name === "manifest") continue;
     const url = new URL(dataFilePath(name), self.location.href).href;
     if (await cache.match(url, MATCH)) continue;
-    // Обычный кэш-режим намеренно: браузер только что тянул эти файлы для игры, и повторно
-    // качать 19 МБ ради того же содержимого незачем.
-    const response = await fetch(url);
+    // `no-cache` = ревалидация по ETag, а не повторная закачка: браузер только что тянул эти файлы для игры, и
+    // неизменённые вернутся дешёвым 304. Обычный режим клал в ведро НОВОГО хеша файлы СТАРОЙ версии из HTTP-кэша
+    // (Pages отдаёт max-age=600, манифест — no-store): деплой данных между загрузкой страницы и этой докачкой
+    // оставлял смешанное ведро с маркером полноты до следующего хеша (аудит 2026-09-19).
+    const response = await fetch(url, { cache: "no-cache" });
     if (!response.ok) throw new Error(`data ${name}: ${response.status}`);
     await cache.put(url, response);
   }
@@ -226,7 +228,7 @@ async function downloadBucket(hash: string, manifest: Response): Promise<void> {
     const url = new URL(dataFilePath(name), self.location.href).href;
     if (await cache.match(url, MATCH)) continue;
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: "no-cache" });
       if (response.ok) await cache.put(url, response);
     } catch {
       /* опциональный файл: его отсутствие — не сбой набора */

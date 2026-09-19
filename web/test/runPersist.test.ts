@@ -127,6 +127,18 @@ describe("runPersist", () => {
     expect(loaded?.frozenRoster).toHaveLength(5);
   });
 
+  it("выход из Арены не стирает незаконченный соло-сейв; обычный reset — стирает", () => {
+    saveRun({ ...baseRun, seed: "solo-unfinished" });
+    const mode = useRun.getState().selectedMode;
+    useRun.setState({ selectedMode: "arena" });
+    useRun.getState().reset();
+    expect(loadSavedRun()?.seed).toBe("solo-unfinished");
+    useRun.setState({ selectedMode: "classic" });
+    useRun.getState().reset();
+    expect(loadSavedRun()).toBeNull();
+    useRun.setState({ selectedMode: mode });
+  });
+
   it("Easy Infinity переживает JSON: null → Infinity", () => {
     saveRun({
       ...baseRun,
