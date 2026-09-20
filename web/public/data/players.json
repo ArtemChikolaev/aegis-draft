@@ -97,6 +97,11 @@
         "teamId": 9247354,
         "teamName": "Team Falcons",
         "games": 701
+      },
+      {
+        "teamId": 9467224,
+        "teamName": "Aurora Gaming",
+        "games": 3
       }
     ]
   },
@@ -443,6 +448,11 @@
         "teamId": 9450071,
         "teamName": "Fusion Esports",
         "games": 7
+      },
+      {
+        "teamId": 10208608,
+        "teamName": "Pibbles Corp.",
+        "games": 2
       }
     ]
   },
@@ -495,6 +505,20 @@
       {
         "teamId": 10019997,
         "games": 4
+      }
+    ]
+  },
+  "1012061568": {
+    "accountId": 1012061568,
+    "nickname": "StjN",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10250936,
+        "games": 2
       }
     ]
   },
@@ -1100,7 +1124,7 @@
       {
         "teamId": 10020555,
         "teamName": "PlayTime",
-        "games": 27
+        "games": 30
       },
       {
         "teamId": 10108947,
@@ -1183,6 +1207,11 @@
         "teamId": 3,
         "teamName": "compLexity Gaming",
         "games": 0
+      },
+      {
+        "teamId": 15,
+        "teamName": "LGD Gaming",
+        "games": 3
       },
       {
         "teamId": 142,
@@ -1368,7 +1397,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 217
+        "games": 220
       }
     ]
   },
@@ -1786,6 +1815,11 @@
     ],
     "teams": [
       {
+        "teamId": 15,
+        "teamName": "LGD Gaming",
+        "games": 3
+      },
+      {
         "teamId": 39,
         "teamName": "Shopify Rebellion",
         "games": 41
@@ -2068,6 +2102,11 @@
         "teamId": 9498970,
         "teamName": "AVULUS",
         "games": 58
+      },
+      {
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 3
       }
     ]
   },
@@ -2296,6 +2335,11 @@
         "teamId": 9699533,
         "teamName": "Mosquito Clan",
         "games": 2
+      },
+      {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 3
       }
     ]
   },
@@ -2780,6 +2824,11 @@
         "teamId": 9634742,
         "teamName": "Chimera Esports",
         "games": 38
+      },
+      {
+        "teamId": 10261180,
+        "teamName": "Conventus Stellarum",
+        "games": 3
       }
     ]
   },
@@ -3491,6 +3540,11 @@
       "support"
     ],
     "teams": [
+      {
+        "teamId": 15,
+        "teamName": "LGD Gaming",
+        "games": 3
+      },
       {
         "teamId": 39,
         "teamName": "Shopify Rebellion",
@@ -4610,6 +4664,11 @@
         "teamId": 9895247,
         "teamName": "Rune Eaters",
         "games": 17
+      },
+      {
+        "teamId": 10150633,
+        "teamName": "Pipsqueak + 4",
+        "games": 3
       }
     ]
   },
@@ -5108,6 +5167,10 @@
         "teamId": 9928403,
         "teamName": "Team Cobra",
         "games": 7
+      },
+      {
+        "teamId": 10250936,
+        "games": 2
       }
     ]
   },
@@ -5748,6 +5811,10 @@
         "teamId": 8254400,
         "teamName": "beastcoast",
         "games": 94
+      },
+      {
+        "teamId": 10250936,
+        "games": 2
       }
     ]
   },
@@ -5927,6 +5994,11 @@
         "teamId": 9895247,
         "teamName": "Rune Eaters",
         "games": 17
+      },
+      {
+        "teamId": 10150633,
+        "teamName": "Pipsqueak + 4",
+        "games": 3
       },
       {
         "teamId": 10207961,
@@ -6800,6 +6872,11 @@
         "games": 0
       },
       {
+        "teamId": 7119077,
+        "teamName": "Hokori",
+        "games": 2
+      },
+      {
         "teamId": 7468974,
         "teamName": "SandBlood",
         "games": 0
@@ -6929,6 +7006,11 @@
         "teamId": 9498970,
         "teamName": "AVULUS",
         "games": 12
+      },
+      {
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 3
       },
       {
         "teamId": 9895392,
@@ -7094,7 +7176,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 204
+        "games": 207
       },
       {
         "teamId": 9766941,
@@ -7569,7 +7651,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 119
+        "games": 121
       },
       {
         "teamId": 9017006,
@@ -7709,6 +7791,11 @@
         "teamId": 9691969,
         "teamName": "Team Nemesis",
         "games": 26
+      },
+      {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 3
       },
       {
         "teamId": 10207962,
@@ -8404,7 +8491,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 13
+        "games": 16
       }
     ]
   },
@@ -8445,7 +8532,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 377
+        "games": 379
       },
       {
         "teamId": 8574561,
@@ -8595,6 +8682,11 @@
     ],
     "teams": [
       {
+        "teamId": 7119077,
+        "teamName": "Hokori",
+        "games": 2
+      },
+      {
         "teamId": 7468974,
         "teamName": "SandBlood",
         "games": 0
@@ -8737,6 +8829,11 @@
     ],
     "teams": [
       {
+        "teamId": 15,
+        "teamName": "LGD Gaming",
+        "games": 3
+      },
+      {
         "teamId": 39,
         "teamName": "Shopify Rebellion",
         "games": 44
@@ -8876,7 +8973,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 56
+        "games": 59
       }
     ]
   },
@@ -9052,6 +9149,11 @@
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
         "games": 19
+      },
+      {
+        "teamId": 9351740,
+        "teamName": "Yakult Brothers",
+        "games": 3
       },
       {
         "teamId": 10208034,
@@ -9837,6 +9939,11 @@
         "games": 0
       },
       {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 2
+      },
+      {
         "teamId": 9338413,
         "teamName": "MOUZ",
         "games": 8
@@ -10153,6 +10260,11 @@
         "teamId": 10136357,
         "teamName": "Nigma Galaxy ",
         "games": 46
+      },
+      {
+        "teamId": 10261180,
+        "teamName": "Conventus Stellarum",
+        "games": 3
       }
     ]
   },
@@ -10325,7 +10437,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 16
+        "games": 19
       },
       {
         "teamId": 9766941,
@@ -10533,7 +10645,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 122
+        "games": 124
       }
     ]
   },
@@ -10972,7 +11084,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 315
+        "games": 317
       },
       {
         "teamId": 8574561,
@@ -11138,7 +11250,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 78
+        "games": 81
       },
       {
         "teamId": 10208034,
@@ -11285,7 +11397,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 122
+        "games": 124
       }
     ]
   },
@@ -11650,6 +11762,11 @@
         "teamId": 9964962,
         "teamName": "GamerLegion",
         "games": 15
+      },
+      {
+        "teamId": 10182357,
+        "teamName": "1w",
+        "games": 3
       }
     ]
   },
@@ -11778,6 +11895,21 @@
         "teamId": 10208035,
         "teamName": "Zero Tenacity",
         "games": 6
+      }
+    ]
+  },
+  "1673586483": {
+    "accountId": 1673586483,
+    "nickname": "wonderkid",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 7119077,
+        "teamName": "Hokori",
+        "games": 2
       }
     ]
   },
@@ -12340,7 +12472,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 229
+        "games": 232
       }
     ]
   },
@@ -12854,6 +12986,11 @@
         "teamId": 9303484,
         "teamName": "HEROIC",
         "games": 250
+      },
+      {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 3
       },
       {
         "teamId": 10144195,
@@ -13581,6 +13718,20 @@
       }
     ]
   },
+  "183126002": {
+    "accountId": 183126002,
+    "nickname": "CoYoTão",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 10250936,
+        "games": 2
+      }
+    ]
+  },
   "183378746": {
     "accountId": 183378746,
     "nickname": "皮球",
@@ -13666,6 +13817,11 @@
         "teamId": 9247354,
         "teamName": "Team Falcons",
         "games": 689
+      },
+      {
+        "teamId": 9823272,
+        "teamName": "Team Yandex",
+        "games": 3
       }
     ]
   },
@@ -13886,7 +14042,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 119
+        "games": 121
       },
       {
         "teamId": 9017006,
@@ -13924,6 +14080,11 @@
         "teamId": 8574561,
         "teamName": "Azure Ray",
         "games": 179
+      },
+      {
+        "teamId": 9351740,
+        "teamName": "Yakult Brothers",
+        "games": 3
       },
       {
         "teamId": 10208034,
@@ -14072,6 +14233,11 @@
         "teamId": 9432799,
         "teamName": "Cuyes e-Sports",
         "games": 10
+      },
+      {
+        "teamId": 10208608,
+        "teamName": "Pibbles Corp.",
+        "games": 2
       }
     ]
   },
@@ -14243,7 +14409,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 205
+        "games": 208
       }
     ]
   },
@@ -14281,6 +14447,11 @@
         "teamId": 9470838,
         "teamName": "Infinity",
         "games": 7
+      },
+      {
+        "teamId": 10208608,
+        "teamName": "Pibbles Corp.",
+        "games": 2
       }
     ]
   },
@@ -14337,7 +14508,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 122
+        "games": 124
       }
     ]
   },
@@ -15011,7 +15182,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 109
+        "games": 112
       },
       {
         "teamId": 10081680,
@@ -15193,6 +15364,11 @@
         "teamId": 9895247,
         "teamName": "Rune Eaters",
         "games": 17
+      },
+      {
+        "teamId": 10150633,
+        "teamName": "Pipsqueak + 4",
+        "games": 3
       },
       {
         "teamId": 10207961,
@@ -15384,6 +15560,11 @@
         "teamId": 9964962,
         "teamName": "GamerLegion",
         "games": 51
+      },
+      {
+        "teamId": 10261180,
+        "teamName": "Conventus Stellarum",
+        "games": 3
       }
     ]
   },
@@ -15422,6 +15603,11 @@
         "teamId": 6209166,
         "teamName": "Team Aster",
         "games": 268
+      },
+      {
+        "teamId": 8261500,
+        "teamName": "Xtreme Gaming",
+        "games": 2
       },
       {
         "teamId": 9351740,
@@ -15574,6 +15760,11 @@
         "teamId": 10136357,
         "teamName": "Nigma Galaxy ",
         "games": 31
+      },
+      {
+        "teamId": 10261180,
+        "teamName": "Conventus Stellarum",
+        "games": 3
       }
     ]
   },
@@ -16114,6 +16305,11 @@
         "teamId": 9895247,
         "teamName": "Rune Eaters",
         "games": 17
+      },
+      {
+        "teamId": 10150633,
+        "teamName": "Pipsqueak + 4",
+        "games": 3
       }
     ]
   },
@@ -16875,6 +17071,10 @@
         "teamId": 10182309,
         "teamName": "PTime",
         "games": 10
+      },
+      {
+        "teamId": 10250936,
+        "games": 2
       }
     ]
   },
@@ -16926,7 +17126,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 398
+        "games": 401
       }
     ]
   },
@@ -17039,6 +17239,11 @@
         "teamId": 2586976,
         "teamName": "OG",
         "games": 8
+      },
+      {
+        "teamId": 9467224,
+        "teamName": "Aurora Gaming",
+        "games": 3
       },
       {
         "teamId": 10019843,
@@ -18047,7 +18252,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 260
+        "games": 263
       }
     ]
   },
@@ -18345,7 +18550,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 204
+        "games": 207
       }
     ]
   },
@@ -18766,6 +18971,11 @@
         "games": 28
       },
       {
+        "teamId": 9338413,
+        "teamName": "MOUZ",
+        "games": 3
+      },
+      {
         "teamId": 9651814,
         "teamName": "Yellow Submarine",
         "games": 12
@@ -18980,7 +19190,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 16
+        "games": 19
       },
       {
         "teamId": 10081680,
@@ -19142,7 +19352,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 13
+        "games": 16
       }
     ]
   },
@@ -19241,6 +19451,11 @@
         "teamId": 8254400,
         "teamName": "beastcoast",
         "games": 94
+      },
+      {
+        "teamId": 9338413,
+        "teamName": "MOUZ",
+        "games": 3
       },
       {
         "teamId": 9600141,
@@ -19623,6 +19838,11 @@
       "offlane"
     ],
     "teams": [
+      {
+        "teamId": 15,
+        "teamName": "LGD Gaming",
+        "games": 3
+      },
       {
         "teamId": 67,
         "teamName": "paiN Gaming",
@@ -20377,6 +20597,11 @@
         "games": 0
       },
       {
+        "teamId": 9691969,
+        "teamName": "Team Nemesis",
+        "games": 3
+      },
+      {
         "teamId": 10081680,
         "teamName": "GLYPH",
         "games": 11
@@ -20422,6 +20647,21 @@
         "teamId": 7225724,
         "teamName": "Team Jinesbrus",
         "games": 0
+      }
+    ]
+  },
+  "395770377": {
+    "accountId": 395770377,
+    "nickname": "Asao",
+    "primaryRole": "support",
+    "rolesPlayed": [
+      "support"
+    ],
+    "teams": [
+      {
+        "teamId": 7119077,
+        "teamName": "Hokori",
+        "games": 2
       }
     ]
   },
@@ -21047,6 +21287,11 @@
         "teamId": 10136357,
         "teamName": "Nigma Galaxy ",
         "games": 15
+      },
+      {
+        "teamId": 10150633,
+        "teamName": "Pipsqueak + 4",
+        "games": 3
       }
     ]
   },
@@ -21067,6 +21312,11 @@
         "teamId": 9450071,
         "teamName": "Fusion Esports",
         "games": 7
+      },
+      {
+        "teamId": 10208608,
+        "teamName": "Pibbles Corp.",
+        "games": 2
       }
     ]
   },
@@ -21080,6 +21330,11 @@
       "support"
     ],
     "teams": [
+      {
+        "teamId": 7119077,
+        "teamName": "Hokori",
+        "games": 2
+      },
       {
         "teamId": 8254400,
         "teamName": "beastcoast",
@@ -21457,7 +21712,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 15
+        "games": 18
       },
       {
         "teamId": 9678064,
@@ -21999,6 +22254,11 @@
         "teamId": 9824702,
         "teamName": "PVISION",
         "games": 45
+      },
+      {
+        "teamId": 10261180,
+        "teamName": "Conventus Stellarum",
+        "games": 3
       }
     ]
   },
@@ -22054,7 +22314,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 73
+        "games": 76
       }
     ]
   },
@@ -22885,6 +23145,11 @@
         "games": 415
       },
       {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 3
+      },
+      {
         "teamId": 10144195,
         "teamName": "ex-HEROIC",
         "games": 14
@@ -23217,7 +23482,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 138
+        "games": 140
       },
       {
         "teamId": 9017006,
@@ -23934,7 +24199,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 13
+        "games": 16
       }
     ]
   },
@@ -27609,7 +27874,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 542
+        "games": 544
       },
       {
         "teamId": 9351740,
@@ -27871,7 +28136,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 122
+        "games": 124
       }
     ]
   },
@@ -28282,6 +28547,30 @@
       }
     ]
   },
+  "914221413": {
+    "accountId": 914221413,
+    "nickname": "lalatroni",
+    "primaryRole": "mid",
+    "rolesPlayed": [
+      "mid"
+    ],
+    "teams": [
+      {
+        "teamId": 7421111,
+        "teamName": "AddictioN Zone",
+        "games": 0
+      },
+      {
+        "teamId": 8034772,
+        "games": 0
+      },
+      {
+        "teamId": 10208608,
+        "teamName": "Pibbles Corp.",
+        "games": 2
+      }
+    ]
+  },
   "91443418": {
     "accountId": 91443418,
     "nickname": "yuki",
@@ -28685,7 +28974,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 33
+        "games": 35
       },
       {
         "teamId": 2586976,
@@ -29377,7 +29666,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 13
+        "games": 16
       }
     ]
   },
@@ -29459,7 +29748,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 229
+        "games": 232
       }
     ]
   },
@@ -30176,7 +30465,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 119
+        "games": 121
       },
       {
         "teamId": 9017006,
@@ -30783,6 +31072,11 @@
         "teamId": 9895392,
         "teamName": "Virtus.pro",
         "games": 101
+      },
+      {
+        "teamId": 9964962,
+        "teamName": "GamerLegion",
+        "games": 2
       }
     ]
   },

@@ -994,6 +994,19 @@
     ]
   },
   {
+    "id": "league-20279",
+    "name": "PGL Wallachia 2026 Season 9",
+    "type": "tier1",
+    "year": 2026,
+    "startDate": "2026-09-19",
+    "endDate": "2026-09-19",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
     "id": "league-65001",
     "name": "The International 2012",
     "type": "ti",
