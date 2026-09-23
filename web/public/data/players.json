@@ -101,7 +101,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 7
+        "games": 9
       }
     ]
   },
@@ -518,7 +518,7 @@
     "teams": [
       {
         "teamId": 10250936,
-        "games": 7
+        "games": 10
       }
     ]
   },
@@ -1211,7 +1211,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 142,
@@ -1817,7 +1817,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 39,
@@ -2106,7 +2106,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 7
+        "games": 10
       }
     ]
   },
@@ -2828,7 +2828,7 @@
       {
         "teamId": 10261180,
         "teamName": "Conventus Stellarum",
-        "games": 9
+        "games": 11
       }
     ]
   },
@@ -3543,7 +3543,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 39,
@@ -4668,7 +4668,7 @@
       {
         "teamId": 10150633,
         "teamName": "Pipsqueak + 4",
-        "games": 9
+        "games": 12
       }
     ]
   },
@@ -5170,7 +5170,7 @@
       },
       {
         "teamId": 10250936,
-        "games": 7
+        "games": 10
       }
     ]
   },
@@ -5814,7 +5814,7 @@
       },
       {
         "teamId": 10250936,
-        "games": 7
+        "games": 10
       }
     ]
   },
@@ -5998,7 +5998,7 @@
       {
         "teamId": 10150633,
         "teamName": "Pipsqueak + 4",
-        "games": 9
+        "games": 12
       },
       {
         "teamId": 10207961,
@@ -6874,7 +6874,7 @@
       {
         "teamId": 7119077,
         "teamName": "Hokori",
-        "games": 6
+        "games": 8
       },
       {
         "teamId": 7468974,
@@ -7010,7 +7010,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 7
+        "games": 10
       },
       {
         "teamId": 9895392,
@@ -7176,7 +7176,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 211
+        "games": 213
       },
       {
         "teamId": 9766941,
@@ -7652,7 +7652,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 125
+        "games": 128
       },
       {
         "teamId": 9017006,
@@ -8492,7 +8492,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 21
+        "games": 24
       }
     ]
   },
@@ -8685,7 +8685,7 @@
       {
         "teamId": 7119077,
         "teamName": "Hokori",
-        "games": 6
+        "games": 8
       },
       {
         "teamId": 7468974,
@@ -8832,7 +8832,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 39,
@@ -8944,6 +8944,7 @@
     "primaryRole": "offlane",
     "rolesPlayed": [
       "offlane",
+      "mid",
       "support"
     ],
     "teams": [
@@ -8974,7 +8975,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 64
+        "games": 66
       }
     ]
   },
@@ -9154,7 +9155,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 8
+        "games": 10
       },
       {
         "teamId": 10208034,
@@ -10265,7 +10266,7 @@
       {
         "teamId": 10261180,
         "teamName": "Conventus Stellarum",
-        "games": 9
+        "games": 11
       }
     ]
   },
@@ -10438,7 +10439,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 23
+        "games": 26
       },
       {
         "teamId": 9766941,
@@ -10646,7 +10647,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 129
+        "games": 132
       }
     ]
   },
@@ -11251,7 +11252,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 86
+        "games": 88
       },
       {
         "teamId": 10208034,
@@ -11398,7 +11399,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 129
+        "games": 132
       }
     ]
   },
@@ -11767,7 +11768,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 8
+        "games": 11
       }
     ]
   },
@@ -11910,7 +11911,7 @@
       {
         "teamId": 7119077,
         "teamName": "Hokori",
-        "games": 6
+        "games": 8
       }
     ]
   },
@@ -13729,7 +13730,7 @@
     "teams": [
       {
         "teamId": 10250936,
-        "games": 7
+        "games": 10
       }
     ]
   },
@@ -14043,7 +14044,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 125
+        "games": 128
       },
       {
         "teamId": 9017006,
@@ -14085,7 +14086,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 8
+        "games": 10
       },
       {
         "teamId": 10208034,
@@ -14410,7 +14411,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 212
+        "games": 214
       }
     ]
   },
@@ -14509,7 +14510,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 129
+        "games": 132
       }
     ]
   },
@@ -15157,7 +15158,8 @@
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid",
-      "safelane"
+      "safelane",
+      "offlane"
     ],
     "teams": [
       {
@@ -15183,7 +15185,7 @@
       {
         "teamId": 9351740,
         "teamName": "Yakult Brothers",
-        "games": 117
+        "games": 119
       },
       {
         "teamId": 10081680,
@@ -15369,7 +15371,7 @@
       {
         "teamId": 10150633,
         "teamName": "Pipsqueak + 4",
-        "games": 9
+        "games": 12
       },
       {
         "teamId": 10207961,
@@ -15565,7 +15567,7 @@
       {
         "teamId": 10261180,
         "teamName": "Conventus Stellarum",
-        "games": 9
+        "games": 11
       }
     ]
   },
@@ -15765,7 +15767,7 @@
       {
         "teamId": 10261180,
         "teamName": "Conventus Stellarum",
-        "games": 9
+        "games": 11
       }
     ]
   },
@@ -16310,7 +16312,7 @@
       {
         "teamId": 10150633,
         "teamName": "Pipsqueak + 4",
-        "games": 9
+        "games": 12
       }
     ]
   },
@@ -17075,7 +17077,7 @@
       },
       {
         "teamId": 10250936,
-        "games": 7
+        "games": 10
       }
     ]
   },
@@ -17127,7 +17129,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 405
+        "games": 407
       }
     ]
   },
@@ -17244,7 +17246,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 10019843,
@@ -18551,7 +18553,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 211
+        "games": 213
       }
     ]
   },
@@ -18974,7 +18976,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 9651814,
@@ -19191,7 +19193,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 23
+        "games": 26
       },
       {
         "teamId": 10081680,
@@ -19353,7 +19355,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 21
+        "games": 24
       }
     ]
   },
@@ -19456,7 +19458,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 9600141,
@@ -19842,7 +19844,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 67,
@@ -20600,7 +20602,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 7
+        "games": 10
       },
       {
         "teamId": 10081680,
@@ -20662,7 +20664,7 @@
       {
         "teamId": 7119077,
         "teamName": "Hokori",
-        "games": 6
+        "games": 8
       }
     ]
   },
@@ -21292,7 +21294,7 @@
       {
         "teamId": 10150633,
         "teamName": "Pipsqueak + 4",
-        "games": 9
+        "games": 12
       }
     ]
   },
@@ -21334,7 +21336,7 @@
       {
         "teamId": 7119077,
         "teamName": "Hokori",
-        "games": 6
+        "games": 8
       },
       {
         "teamId": 8254400,
@@ -21713,7 +21715,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 22
+        "games": 24
       },
       {
         "teamId": 9678064,
@@ -22259,7 +22261,7 @@
       {
         "teamId": 10261180,
         "teamName": "Conventus Stellarum",
-        "games": 9
+        "games": 11
       }
     ]
   },
@@ -22315,7 +22317,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 80
+        "games": 82
       }
     ]
   },
@@ -23484,7 +23486,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 144
+        "games": 147
       },
       {
         "teamId": 9017006,
@@ -24201,7 +24203,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 21
+        "games": 24
       }
     ]
   },
@@ -28138,7 +28140,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 129
+        "games": 132
       }
     ]
   },
@@ -28976,7 +28978,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 39
+        "games": 42
       },
       {
         "teamId": 2586976,
@@ -29668,7 +29670,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 21
+        "games": 24
       }
     ]
   },
@@ -30467,7 +30469,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 125
+        "games": 128
       },
       {
         "teamId": 9017006,
@@ -31078,7 +31080,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 7
+        "games": 10
       }
     ]
   },
