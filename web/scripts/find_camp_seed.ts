@@ -5,20 +5,24 @@
 // награда вида item. Годный seed — тот, где после взятия награды разложение силы не тривиально.
 import { loadGameData } from "../test/helpers/data.ts";
 import { RunEngine } from "../src/game/engine.ts";
-import { AnteRunEngine, SEASON } from "../src/game/anteRun.ts";
+import { AnteRunEngine, SEASON, seasonStage } from "../src/game/anteRun.ts";
 import { RunEconomy } from "../src/game/anteEconomy.ts";
 import { buildTacticContext } from "../src/game/tactics.ts";
-import { evaluateRunPower } from "../src/game/runStrength.ts";
+import { evaluateRunPower, evaluateStage } from "../src/game/runStrength.ts";
 import { E2E_RUN_CONFIG as config, firstAvailableDraft } from "./lib/sim_shared.ts";
 
 const data = loadGameData();
 
 // `--scouting` — второй путь спеки («разведка раскрывает будущего босса»): наградой первого
-// Буткемпа должна лежать карточка Camp Action `scouting`. Раньше такой сид подбирали руками.
+// Буткемпа должна лежать карточка Camp Action `scouting`, и этап 2 после неё обязан быть пройден
+// (тест доходит до второго Буткемпа). Раньше такой сид подбирали руками.
 const wantScouting = process.argv.includes("--scouting");
 const maxFound = Number(process.env.MAX_FOUND ?? (wantScouting ? 12 : 5));
+// Для разведки на реальном слайсе годен примерно один сид из сотни (2026-09-26: 33 из 3000) —
+// диапазон расширяется env.
+const maxSeed = Number(process.env.MAX_SEED ?? 400);
 const found: string[] = [];
-for (let n = 1; n <= 400 && found.length < maxFound; n++) {
+for (let n = 1; n <= maxSeed && found.length < maxFound; n++) {
   const seed = `camp-e2e-${n}`;
   if (wantScouting) {
     const engine = new RunEngine(data, config, seed);
@@ -27,12 +31,26 @@ for (let n = 1; n <= 400 && found.length < maxFound; n++) {
     if (!score || !engine.isComplete) continue;
     const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "E2E", SEASON);
     if (anteRun.resolveStage() !== "playing") continue;
+    // Свежая карьера, как у gotoFreshApp: случайные повышенные качества выключены (runStore).
     const economy = new RunEconomy(seed);
-    economy.openCamp(anteRun.state.index);
-    if (economy.campView().rewardOffers.some((o) => o.kind === "action" && o.cardId === "scouting")) {
-      found.push(seed);
-      console.log(`✅ ${seed}  scouting наградой первого Буткемпа`);
-    }
+    economy.setRarityFlags({ drops: false, upgrades: true });
+    const campId = anteRun.state.index;
+    const firstPlacement = anteRun.state.lastPlacement;
+    economy.awardStageClear(campId, firstPlacement, seasonStage(campId - 1).target);
+    economy.openCamp(campId);
+    // helpers.chooseReward берёт ПЕРВУЮ action-карту, а тест разыгрывает именно scouting.
+    const action = economy.campView().rewardOffers.find((o) => o.kind === "action");
+    if (action?.cardId !== "scouting" || !economy.chooseReward(action.id)) continue;
+    if (!economy.playCampAction("scouting")) continue;
+    // Второй этап (как advanceAnteStage): сила снимается до leaveCamp, поле пересобирается под неё.
+    const stage = evaluateStage(engine, economy, { data, seed, stakes: [] }, anteRun.state.index);
+    economy.leaveCamp();
+    if (!stage) continue;
+    anteRun.rebuildCurrentStage(stage.power.total);
+    if (anteRun.resolveStage() !== "playing") continue;
+    found.push(seed);
+    // Места обоих этапов — запас сида: «1 → 1» переживёт следующий data-refresh вероятнее, чем «7-8».
+    console.log(`✅ ${seed}  scouting наградой первого Буткемпа, места этапов 1/2: ${firstPlacement} / ${anteRun.state.lastPlacement}`);
     continue;
   }
   {
