@@ -111,6 +111,29 @@ export interface AbilityDef {
 /** `art` — «illusion» (копия героя) или имя листа существа (`wolf`, `bear`, `treant`, `hawk`, `hellbear`). */
 export interface SummonDef { art: string; count?: number }
 
+/**
+ * Ранг умения без числа (T15.5): у рывков и чистого контроля (Blink, Time Walk, Chronosphere, Global Silence…) `value`
+ * нулевой на всех уровнях, и ранги 2–4 ничего не меняли — карточка предлагалась впустую. Для таких умений каждый ранг
+ * после первого сокращает перезарядку на `cdStep` и продлевает действие на `durStep`. Умения с числом растут им.
+ * Читают сим (перезарядка, длительность) и карточка уровня (цифры «сейчас → после»).
+ */
+export const UTILITY_RANK = { cdStep: 0.1, durStep: 0.15 } as const;
+export function abilityRankScale(ab: AbilityDef, lvl: number): { cd: number; dur: number } {
+  if (lvl <= 1 || ab.passive || ab.value.some((v) => v !== 0)) return { cd: 1, dur: 1 };
+  return { cd: 1 - UTILITY_RANK.cdStep * (lvl - 1), dur: 1 + UTILITY_RANK.durStep * (lvl - 1) };
+}
+
+/** Что даёт ранг умения без числа урона — цифры для карточки уровня (ключи `arcade.fig.*`); умения с числом — пусто. */
+export function abilityRankFigures(ab: AbilityDef, lvl: number): { key: string; value: number; unit?: "s" }[] {
+  if (lvl <= 0 || ab.passive) return [];
+  if (ab.kind === "armor_buff") return [{ key: "abArmor", value: ab.value[lvl] ?? 0 }, { key: "abDuration", value: ab.duration ?? 5, unit: "s" }];
+  if (ab.value.some((v) => v !== 0)) return [];
+  const k = abilityRankScale(ab, lvl);
+  const out: { key: string; value: number; unit?: "s" }[] = [{ key: "abCooldown", value: ab.cooldown * k.cd, unit: "s" }];
+  if (ab.kind === "mass_freeze") out.push({ key: "abDuration", value: (ab.duration ?? 3.5) * k.dur, unit: "s" });
+  return out;
+}
+
 /** Фирменная пассивка героя поверх кита архетипа (BACKLOG T13.15): то, что делает Shadow Fiend Shadow Fiend'ом. */
 export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathpact" | "fiery_soul" | "overload" | "marksmanship" | "quill" | "blur" | "vampiric"
   | "aftershock" | "multicast" | "backstab" | "thirst"
@@ -132,6 +155,8 @@ export interface HeroDef {
   base: Partial<Pick<PlayerStats, "maxHp" | "regen" | "armor" | "speed" | "damage" | "attackInterval" | "range" | "pickup">>;
   abilities: { q: AbilityDef; w: AbilityDef; e: AbilityDef; r: AbilityDef };
   signature?: SignatureDef;
+  /** Куда идёт первое очко на старте (по умолчанию Q): Io начинал с Tether, которому не к кому привязаться (T15.5). */
+  startKey?: "q" | "w" | "e";
 }
 
 const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
@@ -221,7 +246,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "fiery_soul", value: 0.3, duration: 6 }),
   lich: hero("lich", 31, "lich", true, { maxHp: 580, armor: 2, speed: 156 }, {
     q: { kind: "nova", value: [0, 90, 140, 190, 240], cooldown: 8, radius: 160, duration: 3 },           // Frost Blast
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Frost Shield
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 5 },                // Frost Shield
     e: { kind: "frostbite", value: [0, 60, 100, 140, 180], cooldown: 12, radius: 320, duration: 1.6 },   // Sinister Gaze
     r: { kind: "arc_lightning", value: [0, 120, 190, 260], cooldown: 50, radius: 340, count: [0, 7, 9, 11] }, // Chain Frost
   }, { kind: "overload", value: 40, radius: 90 }),
@@ -253,7 +278,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   sven: hero("sven", 18, "sven", false, { maxHp: 700, damage: 26, armor: 4, regen: 3 }, {
     q: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 320, duration: 1.2 }, // Storm Hammer
     w: SIG,                                                                                              // Great Cleave
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 16, duration: 6 },                        // Warcry
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 16, duration: 6 },                // Warcry
     r: { kind: "rage", value: [0, 1.0, 1.5, 2.0], cooldown: 60, duration: 10 },                          // God's Strength
   }, { kind: "cleave", value: 0.5, radius: 85 }),
   storm_spirit: hero("storm_spirit", 17, "storm_spirit", true, { speed: 168, maxHp: 540 }, {
@@ -343,7 +368,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "cleave", value: 0.45, radius: 100 }),
   necrophos: hero("necrophos", 36, "necrolyte", true, { maxHp: 560, armor: 2, regen: 4, damage: 21, speed: 158 }, {
     q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 300, duration: 1.5 },           // Death Pulse
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 18, duration: 5 },                        // Ghost Shroud
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 18, duration: 5 },                // Ghost Shroud
     e: { kind: "presence", value: [0, 0.07, 0.1, 0.14, 0.17], cooldown: 0, radius: 260, passive: true }, // Heartstopper Aura
     r: { kind: "assassinate", value: [0, 450, 700, 950], cooldown: 55, radius: 340 },                    // Reaper's Scythe
   }, { kind: "aura_burn", value: 5, radius: 130 }),
@@ -453,12 +478,12 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "deathpact", value: 7 }),
   legion_commander: hero("legion_commander", 104, "legion_commander", false, { maxHp: 620, armor: 3, damage: 24, speed: 164, regen: 2 }, {
     q: { kind: "nova", value: [0, 60, 100, 140, 180], cooldown: 9, radius: 300, duration: 1.0 },          // Overwhelming Odds
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Press the Attack
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 5 },                // Press the Attack
     e: SIG,                                                                                              // Moment of Courage
     r: { kind: "assassinate", value: [0, 300, 470, 640], cooldown: 70, radius: 300 },                    // Duel
   }, { kind: "vampiric", value: 0.06 }),
   templar_assassin: hero("templar_assassin", 46, "templar_assassin", true, { maxHp: 560, armor: 3, damage: 26, speed: 168, range: 250 }, {
-    q: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 15, duration: 6 },                        // Refraction
+    q: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 15, duration: 6 },                // Refraction
     w: { kind: "dash", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 280 },                       // Meld
     e: SIG,                                                                                              // Psi Blades
     r: { kind: "damage_ward", value: [0, 60, 90, 120], cooldown: 45, duration: 10, radius: 320, summon: { art: "trap_psionic", count: 2 } }, // Psionic Trap
@@ -484,7 +509,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "multicast", value: 0.3 }),
   dazzle: hero("dazzle", 50, "dazzle", true, { maxHp: 640, armor: 4, damage: 27, speed: 164, regen: 3 }, {
     q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 6, radius: 85, count: [0, 3, 3, 3, 3], poison: 0.1 }, // Poison Touch — яд
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 20, duration: 4 },                        // Shallow Grave
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 20, duration: 4 },                // Shallow Grave
     e: { kind: "life_drain", value: [0, 40, 55, 70, 85], cooldown: 9, radius: 320, duration: 4 },         // Shadow Wave
     r: { kind: "arcane_aura", value: [0, 0.1, 0.18, 0.25], cooldown: 0, passive: true },                 // Bad Juju
   }, { kind: "vampiric", value: 0.08 }),
@@ -515,19 +540,19 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   tinker: hero("tinker", 34, "tinker", true, { maxHp: 660, armor: 4, damage: 25, speed: 164, range: 320, regen: 2 }, {
     q: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 6, radius: 320, duration: 0.5 }, // Laser
     w: { kind: "arc_lightning", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 340, count: [0, 2, 3, 4, 5] }, // Heat-Seeking Missile
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Defense Matrix
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 6 },                // Defense Matrix
     r: SIG,                                                                                              // Rearm
   }, { kind: "multicast", value: 0.4 }),
   // ---- Волна 6 ----
   omniknight: hero("omniknight", 57, "omniknight", false, { maxHp: 760, armor: 5, damage: 26, speed: 158, regen: 3 }, {
     q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Purification
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Heavenly Grace
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 6 },                // Heavenly Grace
     e: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Hammer of Purity
     r: { kind: "death_pact", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 8 },                      // Guardian Angel
   }, { kind: "tough", value: 5 }),
   abaddon: hero("abaddon", 102, "abaddon", false, { maxHp: 820, armor: 5, damage: 28, speed: 162, regen: 3 }, {
     q: { kind: "lightning_bolt", value: [0, 110, 165, 220, 270], cooldown: 5, radius: 300, duration: 0.3 }, // Mist Coil
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 5 },                        // Aphotic Shield
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 12, duration: 5 },                // Aphotic Shield
     e: { kind: "frost_arrows", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },          // Curse of Avernus
     r: { kind: "reincarnation", value: [0, 0.5, 0.7, 0.9], cooldown: 120, passive: true },               // Borrowed Time
   }, { kind: "vampiric", value: 0.1 }),
@@ -632,13 +657,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   ember_spirit: hero("ember_spirit", 106, "ember_spirit", false, { maxHp: 620, armor: 3, damage: 26, speed: 176, attackInterval: 0.85 }, {
     q: { kind: "nova", value: [0, 60, 95, 130, 165], cooldown: 9, radius: 260, duration: 2 },             // Searing Chains
     w: { kind: "spin", value: [0, 60, 90, 120, 150], cooldown: 8, radius: 220, duration: 1.5 },          // Sleight of Fist
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Flame Guard
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 6 },                // Flame Guard
     r: { kind: "dash", value: [0, 150, 250, 350], cooldown: 40, radius: 500 },                           // Fire Remnant
   }, { kind: "fiery_soul", value: 0.3, duration: 6 }),
   grimstroke: hero("grimstroke", 121, "grimstroke", true, { maxHp: 620, armor: 3, damage: 25, speed: 164 }, {
     q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Stroke of Fate
     w: { kind: "life_drain", value: [0, 30, 40, 50, 60], cooldown: 12, radius: 320, duration: 4 },        // Phantom's Embrace
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Ink Swell
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 5 },                // Ink Swell
     r: { kind: "mass_freeze", value: [0, 220, 330, 440], cooldown: 60, radius: 260, duration: 2.5 },      // Soulbind
   }, { kind: "multicast", value: 0.28 }),
   gyrocopter: hero("gyrocopter", 72, "gyrocopter", true, { maxHp: 620, armor: 3, damage: 25, speed: 166 }, {
@@ -692,7 +717,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "quill", value: 18, radius: 160 }),
   oracle: hero("oracle", 111, "oracle", true, { maxHp: 560, armor: 2, damage: 23, speed: 162 }, {
     q: { kind: "nova", value: [0, 70, 105, 140, 180], cooldown: 8, radius: 250, duration: 1.6 },          // Fortune's End
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Fate's Edict
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 12, duration: 4 },                // Fate's Edict
     e: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Purifying Flames
     r: { kind: "death_pact", value: [0, 0.5, 0.7, 0.9], cooldown: 60, duration: 8 },                      // False Promise
   }, { kind: "vampiric", value: 0.09 }),
@@ -718,7 +743,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   puck: hero("puck", 13, "puck", true, { maxHp: 600, armor: 3, damage: 25, speed: 172 }, {
     q: { kind: "line_burst", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Illusory Orb
     w: { kind: "nova", value: [0, 100, 145, 190, 240], cooldown: 9, radius: 280, duration: 2 },           // Waning Rift
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 8, duration: 3 },                          // Phase Shift
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 8, duration: 3 },                  // Phase Shift
     r: { kind: "ravage", value: [0, 150, 225, 300], cooldown: 60, radius: 300, duration: 2.5 },          // Dream Coil
   }, { kind: "blur", value: 0.2 }),
   pudge: hero("pudge", 14, "pudge", false, { maxHp: 880, armor: 4, damage: 31, speed: 154, regen: 4 }, {
@@ -759,14 +784,14 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "overload", value: 42, radius: 90 }),
   spirit_breaker: hero("spirit_breaker", 71, "spirit_breaker", false, { maxHp: 840, armor: 5, damage: 30, speed: 166, regen: 3 }, {
     q: { kind: "dash", value: [0, 150, 220, 290, 360], cooldown: 12, radius: 600 },                       // Charge of Darkness
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 16, duration: 6 },                        // Bulldoze
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 16, duration: 6 },                // Bulldoze
     e: SIG,                                                                                              // Greater Bash
     r: { kind: "lightning_bolt", value: [0, 250, 375, 500], cooldown: 45, radius: 400, duration: 1.5 },   // Nether Strike
   }, { kind: "timelock", value: 0.2, duration: 0.6 }),
   // ---- Волна 11 ----
   techies: hero("techies", 105, "techies", true, { maxHp: 660, armor: 3, damage: 25, speed: 160, range: 320 }, {
     q: { kind: "meteor", value: [0, 140, 200, 260, 320], cooldown: 7, radius: 150, count: [0, 1, 1, 1, 1], duration: 1.2 }, // Sticky Bomb
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Reactive Tazer
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 5 },                // Reactive Tazer
     e: { kind: "dash", value: [0, 150, 210, 270, 350], cooldown: 14, radius: 320 },                       // Blast Off!
     r: { kind: "remnant", value: [0, 260, 390, 520], cooldown: 16, radius: 170, summon: { art: "mine_techies" } }, // Proximity Mines
   }, { kind: "overload", value: 44, radius: 90 }),
@@ -785,7 +810,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   treant: hero("treant", 83, "treant", false, { maxHp: 920, armor: 4, damage: 32, speed: 156, regen: 5, attackInterval: 1.1 }, {
     q: { kind: "line_burst", value: [0, 100, 150, 200, 250], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], duration: 1.0 }, // Nature's Grasp
     w: { kind: "life_drain", value: [0, 34, 46, 58, 70], cooldown: 9, radius: 300, duration: 4 },         // Leech Seed
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 6 },                        // Living Armor
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 12, duration: 6 },                // Living Armor
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 360, duration: 3 },              // Overgrowth
   }, { kind: "tough", value: 4 }),
   troll_warlord: hero("troll_warlord", 95, "troll_warlord", false, { maxHp: 680, armor: 4, damage: 27, speed: 170, attackInterval: 0.8 }, {
@@ -828,7 +853,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   void_spirit: hero("void_spirit", 126, "void_spirit", false, { maxHp: 660, armor: 4, damage: 27, speed: 172 }, {
     q: { kind: "remnant", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 170, summon: { art: "illusion" } }, // Aether Remnant
     w: { kind: "nova", value: [0, 90, 135, 180, 230], cooldown: 10, radius: 240, duration: 1 },           // Dissimilate
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Resonant Pulse
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 12, duration: 4 },                // Resonant Pulse
     r: { kind: "dash", value: [0, 200, 310, 420], cooldown: 20, radius: 500 },                           // Astral Step
   }, { kind: "blur", value: 0.2 }),
   weaver: hero("weaver", 63, "weaver", true, { maxHp: 620, armor: 3, damage: 28, speed: 176 }, {
@@ -849,7 +874,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     // условием каста, и герой не успевал за волнами (уровень 12 и 617 убийств против 26 и 2525 у
     // Rubick на тех же сидах). Меняем местами: искра-цепь в Q, Flux в E.
     q: { kind: "arc_lightning", value: [0, 110, 160, 210, 260], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Spark Wraith
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 5 },                        // Magnetic Field
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 5 },                // Magnetic Field
     e: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 340, duration: 5 },            // Flux
     r: SIG,                                                                                              // Tempest Double
   }, { kind: "multicast", value: 0.35 }),
@@ -881,7 +906,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   primal_beast: hero("primal_beast", 137, "primal_beast", false, { maxHp: 940, armor: 5, damage: 31, speed: 158, regen: 4, attackInterval: 1.1 }, {
     q: { kind: "dash", value: [0, 160, 235, 310, 380], cooldown: 9, radius: 500 },                        // Onslaught
     w: { kind: "spin", value: [0, 70, 100, 130, 160], cooldown: 12, radius: 190, duration: 3 },          // Trample
-    e: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 14, duration: 6 },                        // Uproar
+    e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 6 },                // Uproar
     r: { kind: "ravage", value: [0, 200, 300, 400], cooldown: 60, radius: 220, duration: 2 },            // Pulverize
   }, { kind: "quill", value: 7, radius: 100 }),
   kez: hero("kez", 145, "kez", false, { maxHp: 760, armor: 5, damage: 29, speed: 180, attackInterval: 0.85 }, {
@@ -892,7 +917,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "crit", value: 0.14, cap: 2.2 }),
   ringmaster: hero("ringmaster", 131, "ringmaster", true, { maxHp: 580, armor: 3, damage: 24, speed: 162 }, {
     q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 70, count: [0, 3, 3, 3, 3] }, // Tame the Beasts
-    w: { kind: "armor_buff", value: [0, 0, 0, 0, 0], cooldown: 12, duration: 4 },                        // Escape Act
+    w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 12, duration: 4 },                // Escape Act
     e: { kind: "lightning_bolt", value: [0, 90, 135, 180, 230], cooldown: 6, radius: 320, duration: 0.5 }, // Impalement Arts
     r: { kind: "mass_freeze", value: [0, 220, 330, 440], cooldown: 60, radius: 320, duration: 2.5 },      // Wheel
   }, { kind: "multicast", value: 0.28 }),
@@ -902,12 +927,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: SIG,                                                                                              // Ransack
     r: { kind: "damage_ward", value: [0, 45, 65, 85], cooldown: 40, duration: 20, radius: 300, summon: { art: "illusion", count: 2 } },         // Divided We Stand
   }, { kind: "vampiric", value: 0.12 }),
-  io: hero("io", 91, "wisp", true, { maxHp: 620, armor: 3, damage: 24, speed: 172, regen: 5 }, {
+  // Первое очко — в Spirits: Tether без своего юнита (иллюзии, призыва, питомца) не кастуется, и старт был голым.
+  io: { ...hero("io", 91, "wisp", true, { maxHp: 620, armor: 3, damage: 24, speed: 172, regen: 5 }, {
     q: { kind: "tether", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 8, radius: 420 },            // Tether: только к своему юниту (иллюзия/призыв), луч, лечение и скорость обоим
     w: { kind: "spirits", value: [0, 40, 55, 70, 85], cooldown: 12, radius: 130, duration: 12, count: [0, 5, 5, 5, 5] }, // Spirits: 5 шаров по орбите, урон тем, в кого врезались
     e: { kind: "frenzy", value: [0, 0.3, 0.35, 0.4, 0.45], cooldown: 14, duration: 6 },                  // Overcharge
     r: { kind: "dash", value: [0, 0, 0, 0], cooldown: 40, radius: 600 },                                  // Relocate
-  }, { kind: "vampiric", value: 0.12 }),
+  }, { kind: "vampiric", value: 0.12 }), startKey: "w" },
   // ---- Волна 15 (последние семь из датасета; Largo ждёт модель в vpk) ----
   phantom_lancer: hero("phantom_lancer", 12, "phantom_lancer", false, { maxHp: 620, armor: 4, damage: 25, speed: 174 }, {
     q: { kind: "goo", value: [0, 95, 140, 185, 230], cooldown: 5, radius: 330, duration: 2 },            // Spirit Lance

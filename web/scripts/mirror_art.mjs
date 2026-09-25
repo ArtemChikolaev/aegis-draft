@@ -57,6 +57,9 @@ const KINDS = {
   items: { box: [88, 64] },
 };
 
+/** Иконки предметов, которые HUD Аркады рисует сам, вне реестров: Blink героя (кнопка рывка, ARCADE.blink). */
+const ARCADE_HUD_ITEMS = ["blink"];
+
 const json = async (name) => JSON.parse(await readFile(resolve(DATA_DIR, name), "utf8"));
 
 /** Что зеркалим: список {kind, name, url}. Источник имён — те же файлы, что читает игра. */
@@ -74,7 +77,7 @@ async function collectTargets() {
     // Значения ITEM_ART — реальные внутренние имена Dota (см. комментарий в itemArt.ts),
     // поэтому берём именно их, а не ключи каталога.
     // Аркада (M13): иконки школ, предметов лавки и нейтралок — те же внутренние имена Dota.
-    ...[...new Set([...Object.values(ITEM_ART), ...Object.values(SCHOOL_ART), ...UPGRADES.flatMap((u) => (u.art ? [u.art] : [])), ...ARCADE_ITEMS.map((i) => i.art), ...NEUTRALS.map((n) => n.id), ...GEAR_BASES.map((b) => b.art), ...Object.values(UNIQUES).map((u) => u.art)])].map((slug) => ({ kind: "items", name: slug, url: `${ITEM_CDN}/${slug}.png` })),
+    ...[...new Set([...Object.values(ITEM_ART), ...Object.values(SCHOOL_ART), ...UPGRADES.flatMap((u) => (u.art ? [u.art] : [])), ...ARCADE_ITEMS.map((i) => i.art), ...NEUTRALS.map((n) => n.id), ...GEAR_BASES.map((b) => b.art), ...Object.values(UNIQUES).map((u) => u.art), ...ARCADE_HUD_ITEMS])].map((slug) => ({ kind: "items", name: slug, url: `${ITEM_CDN}/${slug}.png` })),
   ];
 }
 

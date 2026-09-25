@@ -1,7 +1,7 @@
-// Ввод Arcade: клавиатура (WASD/стрелки, QWER/1234 — ручной каст), геймпад (левый стик, A/B/X/Y)
+// Ввод Arcade: клавиатура (WASD/стрелки, QWER/1234 — ручной каст, Shift — Blink), геймпад (левый стик, A/B/X/Y, L2 — Blink)
 // и тач-джойстик (палец в любом месте сцены задаёт центр). Всё сводится в один ArcadeInput на тик;
 // направление квантуется в шестнадцатые — так лог компактен и одинаков на всех устройствах.
-import type { ArcadeInput } from "../../game/arcade/types.ts";
+import { BLINK_MASK, type ArcadeInput } from "../../game/arcade/types.ts";
 import { PAD, PadNav, hasEdge, pickPad, readPad } from "./gamepad.ts";
 
 const KEY_DIR: Record<string, [number, number]> = {
@@ -96,6 +96,9 @@ export class ArcadeInputController {
    *  должны работать и пока мир стоит в окне карточек или лавки. В меню (`menu=true`) касты и движение
    *  не копятся, чтобы × на карточке не выстрелил умением после закрытия окна. */
   pollPad(menu: boolean): void {
+    // Окно уровня, лавка и пауза не читают ввод (`read()` не зовётся): нажатое там с клавиатуры/тача копилось в маске и
+    // срабатывало после закрытия — Shift на карточке давал внезапный Blink, цифра выбора карты — каст умения.
+    if (menu) this.castMask = 0;
     const raw = firstGamepad();
     // Пад отключился: вместе с движением забываем удержанные кнопки — иначе маска прошлого пада пережила бы
     // переподключение, и первое нажатие той же кнопки на новом паде не дало бы фронта.
@@ -113,6 +116,8 @@ export class ArcadeInputController {
       this.padX = pad.x; this.padY = pad.y;
       this.padMenuHeld &= pad.cast;
       this.castMask |= pad.cast & ~this.padMenuHeld;
+      // Blink — по нажатию, не по удержанию: зажатый L2 не тратит все заряды подряд.
+      if (hasEdge(pad.edges, PAD.l2)) this.castMask |= BLINK_MASK;
       if (hasEdge(pad.edges, PAD.r1)) this.onPickup?.();
       if (hasEdge(pad.edges, PAD.l1)) this.onBuild?.();
       if (hasEdge(pad.edges, PAD.touch) || hasEdge(pad.edges, PAD.ps)) this.onFlare?.();
@@ -154,6 +159,8 @@ export class ArcadeInputController {
     if (e.metaKey || e.ctrlKey || e.altKey) { this.keys.clear(); return; }
     if (modalOpen() || typingTarget(e.target)) return;
     if (KEY_DIR[e.code]) { this.keys.add(e.code); e.preventDefault(); return; }
+    // Blink — по нажатию: автоповтор удержанного Shift не тратит заряды подряд.
+    if (e.code === "ShiftLeft" || e.code === "ShiftRight") { if (!e.repeat) this.castMask |= BLINK_MASK; e.preventDefault(); return; }
     const cast = KEY_CAST[e.code];
     if (cast) { this.castMask |= cast; e.preventDefault(); return; }
     if ((e.code === "Enter" || e.code === "Space" || e.code === "Tab") && nativeControl(e.target)) return;

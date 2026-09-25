@@ -19,7 +19,7 @@ import { COMPOSITIONS, type ActProperty, type CompositionId, compositionFor, has
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_FAMILIES, ITEM_PRICE_MULT, itemEffectsAt, type ShopOffer } from "./content/items.ts";
-import { type FormDef, HEROES, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
+import { type FormDef, HEROES, abilityRankScale, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef } from "./content/neutrals.ts";
 import { GEAR_SLOTS, gearEffect, reforgeGear, rollGear, temperGear, uniqueGear, type GearItem, type GearSlot } from "./content/gear.ts";
 import { LEGACY_NONE, type LegacyBonus } from "./content/legacy.ts";
@@ -52,6 +52,7 @@ import {
   type Shrine,
   type Spot,
   ATTACK_MASK,
+  BLINK_MASK,
   AUTOATTACK_ACT,
   BAG_DROP_ACT,
   BAG_EQUIP_ACT,
@@ -290,7 +291,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0, blinks: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -346,11 +347,11 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
-      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, armorBuffAmt: 0, blinkCharges: ARCADE.blink.charges, blinkCd: 0, blinkAt: -ARCADE.blink.lockout, swiftUntil: 0, pounceUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, ritualKind: null, ritualUntil: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
-    // Первое очко — сразу в Q: так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
-    this.player.abilities.q = 1;
+    // Первое очко — сразу в Q (у Io — в Spirits, `startKey`): так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
+    this.player.abilities[this.hero.startKey ?? "q"] = 1;
     for (const g of options.gear ?? []) this.player.gear[g.slot] = g;
     // Уникальный Aegis of the Immortal: одно воскрешение уже на старте.
     if (Object.values(this.player.gear).some((g) => g.unique === "aegis_of_the_immortal")) this.player.aegis = true;
@@ -1496,6 +1497,7 @@ export class ArcadeSim {
     this.tickCooldowns();
     this.prevPx = p.x; this.prevPy = p.y;
     this.movePlayer(input);
+    if ((input.cast & BLINK_MASK) !== 0) this.blink(input);
     // В разломе (T13.58) мир снаружи стоит вместе с часами акта: спавн ведёт сам разлом.
     if (this.rift?.state === "active") { this.pausedTicks++; this.holdWorldTimers(); this.tickRift(); } else { this.spawnTick(); this.tickCaravan(); }
     this.rebuildGrid();
@@ -1522,6 +1524,106 @@ export class ArcadeSim {
     const p = this.player;
     p.attackCd = Math.max(0, p.attackCd - 1);
     for (const k of ABILITY_KEYS) p.cooldowns[k] = Math.max(0, p.cooldowns[k] - 1);
+    // Blink: заряды копятся по одному; последний заряд докопился — таймер стоит до следующего рывка.
+    if (p.blinkCharges < this.blinkMaxCharges() && --p.blinkCd <= 0) {
+      p.blinkCharges++;
+      p.blinkCd = p.blinkCharges < this.blinkMaxCharges() ? this.blinkRechargeTicks() : 0;
+    }
+  }
+
+  /** Зарядов Blink: базовые плюс Arcane Blink. */
+  blinkMaxCharges(): number {
+    return ARCADE.blink.charges + (this.upgradePower("leg_blink_arcane") > 0 ? ARCADE.blink.arcane.charges : 0);
+  }
+
+  /** Тиков на заряд Blink: перезарядка героя (Octarine, Arcane Aura, ранги) сокращает и его — как у предметов в Dota. */
+  blinkRechargeTicks(): number {
+    const B = ARCADE.blink;
+    return Math.max(1, sec(B.recharge * (1 - this.player.stats.cooldown) * (this.upgradePower("leg_blink_arcane") > 0 ? B.arcane.rechargeMult : 1)));
+  }
+
+  /**
+   * Blink (ARCADE.blink): мгновенный рывок по направлению движения (стоишь — куда смотришь) с короткой неуязвимостью.
+   * Стан не пускает, «Безмолвие» разлома — пускает (предмет, а не умение). В разломе точка прибытия не выходит за арену:
+   * рывок уклонения не должен молча проваливать испытание. Камни и деревья выталкивают, как у рывков умений.
+   */
+  private blink(input: ArcadeInput): void {
+    const p = this.player, B = ARCADE.blink;
+    if (this.tick < p.stunUntil || p.blinkCharges <= 0 || this.tick - p.blinkAt < B.lockout) return;
+    let dx = input.mx / 16, dy = input.my / 16;
+    let l = len(dx, dy);
+    if (l < 0.05) { dx = p.facingX; dy = p.facingY; l = len(dx, dy); }
+    if (l < 1e-6) { dx = 1; dy = 0; l = 1; }
+    dx /= l; dy /= l;
+    const ox = p.x, oy = p.y, r = ARCADE.player.r;
+    let tx = ox + dx * B.dist, ty = oy + dy * B.dist;
+    const rift = this.rift?.state === "active" ? this.rift : null;
+    if (rift) {
+      const rx = tx - rift.x, ry = ty - rift.y, rd = len(rx, ry), max = ARCADE.rift.arena - r;
+      if (rd > max) { tx = rift.x + rx / rd * max; ty = rift.y + ry / rd * max; }
+    }
+    p.x = clamp(tx, r, ARCADE.world.w - r);
+    p.y = clamp(ty, r, ARCADE.world.h - r);
+    this.obstacles.resolveInto(p, r);
+    if (l >= 0.05) { p.facingX = dx; p.facingY = dy; }
+    p.blinkCharges--;
+    if (p.blinkCd <= 0) p.blinkCd = this.blinkRechargeTicks();
+    p.blinkAt = this.tick;
+    p.invulnUntil = Math.max(p.invulnUntil, this.tick + B.invuln);
+    this.events.blinks++;
+    this.pushFx("blink", ox, oy, p.x, p.y, 24);
+    this.blinkEffects(ox, oy);
+  }
+
+  /** Благословения типа «Рывок» и легендарки Blink: огонь/яд — в точке ухода, холод/молния/удар/питомцы — в точке прибытия. */
+  private blinkEffects(ox: number, oy: number): void {
+    const p = this.player;
+    const src = this.dmgSource;
+    this.dmgSource = "school";
+    const flare = this.upgradePower("rad_flare");
+    if (flare > 0) {
+      const burn = this.burnMult();
+      for (const e of this.enemiesWithin(ox, oy, 100)) { this.damageEnemy(e, 16 * flare * burn, "burst"); this.applyBurn(e, 6 * flare * burn, 3); }
+      this.pushFx("burst", ox, oy, 100, 0, 14);
+    }
+    const slip = this.upgradePower("ven_slip");
+    if (slip > 0) {
+      const dps = 4 * slip * this.venomMult();
+      for (const e of this.enemiesWithin(ox, oy, 110)) { this.applyPoison(e, dps); this.applyPoison(e, dps); }
+      this.pushFx("nova", ox, oy, 110, 0, 12);
+    }
+    const frost = this.upgradePower("ska_frostblink");
+    if (frost > 0) {
+      for (const e of this.enemiesWithin(p.x, p.y, 110)) { this.damageEnemy(e, 12 * frost, "burst"); this.applyChill(e, Math.min(0.6, 0.35 + 0.05 * frost), 2.5); }
+      this.pushFx("nova", p.x, p.y, 110, 0, 12);
+    }
+    const bolt = this.upgradePower("mae_blinkbolt");
+    if (bolt > 0) {
+      const first = this.nearestEnemy(p.x, p.y, 260);
+      if (first) {
+        const dmg = 22 * bolt * this.lightningMult();
+        this.pushFx("zap", p.x, p.y, first.x, first.y, 8);
+        this.damageEnemy(first, dmg, "zap");
+        this.chainLightning(first, dmg, 1 + Math.floor(bolt / 2));
+      }
+    }
+    if (this.upgradePower("leg_blink_over") > 0) {
+      const O = ARCADE.blink.over;
+      for (const e of this.enemiesWithin(p.x, p.y, O.radius)) { this.damageEnemy(e, O.dmg + O.perLevel * p.level, "burst"); this.applyChill(e, O.slow, O.slowSec, false); }
+      this.pushFx("nova", p.x, p.y, O.radius, 0, 16);
+      this.shake = Math.max(this.shake, 8);
+    }
+    if (this.upgradePower("leg_blink_swift") > 0) p.swiftUntil = this.tick + sec(ARCADE.blink.swift.seconds);
+    if ((p.upgrades.beast_pounce?.rank ?? 0) > 0) {
+      // Стая следом: питомцы (не вкопанные тотемы) прыгают к точке прибытия и бьют сразу; 3 с сильнее.
+      p.pounceUntil = this.tick + sec(3);
+      this.pets.forEach((pet, i) => {
+        if (pet.kind === "summon" && SUMMONS[pet.art ?? ""]?.stationary) return;
+        const d = DIRS[(i * 5) % DIRS.length];
+        pet.x = p.x + d[0] * 36; pet.y = p.y + d[1] * 36; pet.cd = 0;
+      });
+    }
+    this.dmgSource = src;
   }
 
   private movePlayer(input: ArcadeInput): void {
@@ -1533,6 +1635,7 @@ export class ArcadeSim {
     if (l > 0.05) { p.facingX = dx / (l > 1 ? 1 : l); p.facingY = dy / (l > 1 ? 1 : l); }
     let speed = p.stats.speed;
     if (this.tick < p.spinUntil || this.tick < p.hasteUntil) speed *= 1.12;
+    if (this.tick < p.swiftUntil) speed *= ARCADE.blink.swift.speedMult; // Swift Blink
     if (this.tick < p.fieldUntil) speed *= 0.5;
     if (this.inCurrent(p.x, p.y)) speed *= 1 - ARCADE.tide.slow; // прилив: медленнее, но управление своё
     if (this.inSpore(p.x, p.y)) speed *= 1 - ARCADE.spores.slow; // лужа спор: замедление, пока не вышел
@@ -1611,6 +1714,7 @@ export class ArcadeSim {
           let k = 1;
           if (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil) k *= 1 - Math.min(0.6, this.hero.signature.value * this.sigScale());
           if (this.tick < p.frenzyUntil) k *= 1 - p.frenzyMult;
+          if (this.tick < p.swiftUntil) k *= ARCADE.blink.swift.attackMult; // Swift Blink
           p.attackCd = sec(p.stats.attackInterval * Math.max(0.25, k));
           p.attackCdMax = p.attackCd; // Alchemist в ярости (владелец 2026-09-12): рендер считал прогресс удара от базового интервала и застывал на последнем кадре
         }
@@ -1760,6 +1864,7 @@ export class ArcadeSim {
       }
       case "berserker_call":
         for (const e of this.enemiesWithin(p.x, p.y, radius)) this.stun(e, value);
+        p.armorBuffAmt = this.tick < p.armorBuffUntil ? Math.max(p.armorBuffAmt, 25) : 25;
         p.armorBuffUntil = this.tick + sec(ab.duration ?? 3);
         this.pushFx("nova", p.x, p.y, radius, 0, 14);
         break;
@@ -1848,6 +1953,8 @@ export class ArcadeSim {
         break;
       }
       case "armor_buff":
+        // Броня по рангу (T15.5: раньше +25 на любом ранге — ранги 2–4 ничего не давали).
+        p.armorBuffAmt = this.tick < p.armorBuffUntil ? Math.max(p.armorBuffAmt, value) : value;
         p.armorBuffUntil = this.tick + sec(ab.duration ?? 5);
         this.pushFx("heal", p.x, p.y - 30, 0, 0, 14);
         break;
@@ -1929,19 +2036,22 @@ export class ArcadeSim {
       case "edict":
         p.edictUntil = this.tick + sec(ab.duration ?? 7);
         break;
-      case "mass_freeze":
+      case "mass_freeze": {
         // `value` у mass_freeze — урон в момент каста, и он не обязателен: Chronosphere, Global Silence,
         // Stone Gaze и Song of the Siren стоят с нулём и остаются чистым контролем. Ненулевой урон
         // нужен ультам, которые в Dota бьют (Winter's Curse) — раньше число в таблице просто молчало.
+        // У чистого контроля ранг продлевает действие (abilityRankScale), иначе ранги 2–4 были пустыми.
+        const dur = (ab.duration ?? 3.5) * abilityRankScale(ab, lvl).dur;
         for (const e of this.enemiesWithin(p.x, p.y, radius)) {
-          if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 1.5 : ab.duration ?? 3.5)));
+          if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 1.5 : dur)));
           if (value > 0) this.damageEnemy(e, value, "burst");
         }
         // Внутри Chronosphere Void бьёт вдвое чаще — иначе ульт без урона.
-        p.frenzyUntil = this.tick + sec(ab.duration ?? 3.5); p.frenzyMult = 0.5;
-        this.pushFx("nova", p.x, p.y, radius, 0, sec(ab.duration ?? 3.5));
+        p.frenzyUntil = this.tick + sec(dur); p.frenzyMult = 0.5;
+        this.pushFx("nova", p.x, p.y, radius, 0, sec(dur));
         this.shake = 10;
         break;
+      }
       case "requiem": {
         const souls = p.stacks;
         const dmg = value + souls * (ab.count?.[lvl] ?? 6);
@@ -1998,7 +2108,7 @@ export class ArcadeSim {
     }
     // Culling Blade после добивания уходит на короткую перезарядку (1.5 с), не на полную и не на ноль.
     if (ab.kind === "culling_blade" && p.cooldowns[key] === -1) p.cooldowns[key] = sec(1.5);
-    else p.cooldowns[key] = sec(ab.cooldown * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1) * (this.tick < p.arcaneUntil ? 1 - ARCADE.rune.arcane.cooldown : 1));
+    else p.cooldowns[key] = sec(ab.cooldown * abilityRankScale(ab, lvl).cd * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1) * (this.tick < p.arcaneUntil ? 1 - ARCADE.rune.arcane.cooldown : 1));
     // Multicast (Ogre Magi): с шансом умение срабатывает ещё раз на следующем тике (перезарядка сбрасывается до 1 тика).
     if (sig?.kind === "multicast" && key !== "r" && ab.cooldown > 0 && this.rng.float() < Math.min(0.6, sig.value * this.sigScale())) { p.cooldowns[key] = 1; this.pushFx("levelup", p.x, p.y, 0, 0, 12); }
     if (key === "q" || key === "r") this.thunderclap();
@@ -2715,7 +2825,7 @@ export class ArcadeSim {
     if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
     if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return; // BKB: треть ударов мимо
     if (this.upgradePower("leg_butterfly") > 0 && this.rng.float() < 0.25) return; // Бабочка: четверть ударов мимо
-    const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? 25 : 0);
+    const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? p.armorBuffAmt : 0);
     // Отрицательная броня — формула Dota (урон ×(1 + 0.06|a|/(1+0.06|a|)), не выше ×2): у прежней общей формулы полюс при
     // a ≈ −16.7 (урон ×25, дальше — «отрицательный»), а Mask of Madness (−4) покупается повторно.
     const reduction = armor >= 0 ? (0.06 * armor) / (1 + 0.06 * armor) : -(0.06 * -armor) / (1 + 0.06 * -armor);
@@ -3204,7 +3314,12 @@ export class ArcadeSim {
       if (e.kind.id === "archer") { this.moveArcher(e, d, frozen); continue; }
       // Спороносец идёт как обычная толпа, но на ходу оставляет лужи.
       if (e.kind.id === "sporebearer" && e.shotCd === 0 && !frozen) { this.dropSpore(e.x, e.y, ARCADE.spores.dropR, ARCADE.spores.dropSec); e.shotCd = ARCADE.spores.dropEvery; }
-      if (e.kind.boss) { this.moveBoss(e, dx, dy, d, frozen); continue; }
+      if (e.kind.boss) {
+        // Рошан держит контроль не дольше ccCap, затем ccResist иммунитета — как чемпионы (T15.5: почти вечный стан босса).
+        this.capControl(e, ARCADE.boss.ccCap, ARCADE.boss.ccResist);
+        this.moveBoss(e, dx, dy, d, this.tick < e.freezeUntil || this.tick < e.stunUntil);
+        continue;
+      }
       if (e.kind.structure) {
         const shot = e.kind.ranged;
         if (shot && d < shot.range && e.shotCd === 0) {
@@ -3278,12 +3393,15 @@ export class ArcadeSim {
   private moveBoss(e: Enemy, dx: number, dy: number, d: number, frozen: boolean): void {
     const B = ARCADE.boss;
     e.slamCd = Math.max(0, e.slamCd - 1);
+    // Акт 3: пока герой вне ямы, Рошан ждёт — и часы ярости стоят (раньше пришедший после 9:00 сразу получал ×3).
+    if (this.pit && e.slamT === 0 && len(this.player.x - ARCADE.pit.x, this.player.y - ARCADE.pit.y) > ARCADE.pit.leash) this.roshanSpawnedAt++;
     const enraged = this.tick - this.roshanSpawnedAt >= B.enrageAfter;
     if (e.slamT > 0) {
       e.slamT--;
       if (e.slamT === 0) {
         const p = this.player;
-        if (len(p.x - e.slamX, p.y - e.slamY) <= B.slamRadius + ARCADE.player.r) this.damagePlayer(B.slamDmg * (enraged ? 3 : 1), B.slamStun, e.kind);
+        // Удар растёт с тем же множителем, что контакт: ранг, руна щедрости, второй Рошан (`e.dmg / kind.dmg`).
+        if (len(p.x - e.slamX, p.y - e.slamY) <= B.slamRadius + ARCADE.player.r) this.damagePlayer(B.slamDmg * (e.dmg / e.kind.dmg) * (enraged ? 3 : 1), B.slamStun, e.kind);
         this.shake = Math.max(this.shake, 10);
         this.pushFx("nova", e.slamX, e.slamY, B.slamRadius, 0, 16);
         e.slamCd = B.slamCooldown;
@@ -3457,7 +3575,9 @@ export class ArcadeSim {
   }
 
   private petPower(): number {
-    return (1 + 0.35 * (this.player.upgrades.beast_roar?.rank ?? 0)) * (this.upgradePower("leg_beast_alpha") > 0 ? 2 : 1);
+    const p = this.player;
+    const pounce = this.tick < p.pounceUntil ? 1 + 0.3 * (p.upgrades.beast_pounce?.rank ?? 0) : 1; // «Стая следом» после Blink
+    return (1 + 0.35 * (p.upgrades.beast_roar?.rank ?? 0)) * (this.upgradePower("leg_beast_alpha") > 0 ? 2 : 1) * pounce;
   }
 
   /** Иллюзия повторяет героя: его скорость, период удара и дальность (в Метаморфозе Terrorblade — дальний бой).

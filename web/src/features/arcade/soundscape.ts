@@ -42,7 +42,7 @@ function falloff(sim: ArcadeSim, x: number, y: number): number {
 
 export class Soundscape {
   private lastBorn = -1;
-  private seen = { castQ: 0, castW: 0, castE: 0, castR: 0, hurt: 0, crits: 0, items: 0, level: 1 };
+  private seen = { castQ: 0, castW: 0, castE: 0, castR: 0, hurt: 0, crits: 0, blinks: 0, items: 0, level: 1 };
   private last: Record<string, number> = {};
   private salt = 0;
   private radiance: (() => void) | null = null;
@@ -74,7 +74,7 @@ export class Soundscape {
     if (!this.primed) {
       // Первый кадр: не «догонять» события, случившиеся до подключения (реплей/резюм).
       this.primed = true;
-      this.seen = { castQ: ev.castQ, castW: ev.castW, castE: ev.castE, castR: ev.castR, hurt: ev.hurt, crits: ev.crits, items: sim.player.items.length, level: sim.player.level };
+      this.seen = { castQ: ev.castQ, castW: ev.castW, castE: ev.castE, castR: ev.castR, hurt: ev.hurt, crits: ev.crits, blinks: ev.blinks, items: sim.player.items.length, level: sim.player.level };
       this.lastBorn = sim.tick; this.roshanAlive = !!sim.roshan?.alive; this.greedUntil = sim.greedUntil; this.aegis = sim.player.aegis;
       return handled;
     }
@@ -85,6 +85,12 @@ export class Soundscape {
     for (const key of ["q", "w", "e", "r"] as const) {
       const counter = `cast${key.toUpperCase()}` as "castQ" | "castW" | "castE" | "castR";
       if (ev[counter] > this.seen[counter]) { this.seen[counter] = ev[counter]; if (this.gate(`ab:${key}`, now, 120)) this.play("abilities", ab[key], key === "r" ? 0.8 : 0.6); }
+    }
+    // Blink: взятая легендарка звучит своим предметом Dota (Overwhelming/Swift/Arcane), иначе — обычный блинк.
+    if (ev.blinks > this.seen.blinks) {
+      this.seen.blinks = ev.blinks;
+      const pool = sim.upgradePower("leg_blink_over") > 0 ? pack.fx.blinkOver : sim.upgradePower("leg_blink_swift") > 0 ? pack.fx.blinkSwift : sim.upgradePower("leg_blink_arcane") > 0 ? pack.fx.blinkArcane : pack.fx.blink;
+      if (this.gate("blink", now, 90)) this.play("fx", pool ?? pack.fx.blink, 0.55);
     }
     // Смерти врагов — из ленты fx (вид и позиция).
     for (const f of sim.fx) {

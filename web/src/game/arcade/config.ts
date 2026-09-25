@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.74.0";
+export const ARCADE_CONFIG_VERSION = "a0.75.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -138,6 +138,18 @@ export const ARCADE = {
    *  встаёт лавка (обычный торговец на `shop.lifetime`) со скидкой `discount` на товары и реролл (владелец 2026-09-11).
    *  Полосы HP у каравана нет. Числа стартовые. */
   caravan: { at: { short: sec(4 * 60), full: sec(9 * 60), dire: sec(9 * 60), river: sec(9 * 60) } as Record<string, number>, window: sec(150), distMin: 420, distMax: 720, minFromOthers: 300, length: 520, speed: 62, escortRadius: 150, raidEvery: sec(6), raidSize: 3, raidRingMin: 220, raidRingMax: 300, discount: 0.7 },
+  /** Blink (седьмой тип благословений DMD — «Dash»; у каждого героя, как Blink Dagger): мгновенный рывок на `dist` по
+   *  направлению движения (стоишь — куда смотришь), `invuln` неуязвимости, `charges` зарядов, заряд копится `recharge`
+   *  (× перезарядка героя — Octarine и т.п.), между рывками не меньше `lockout`. Оглушённый не блинкует; «Безмолвие»
+   *  разлома его не глушит — это предмет, а не умение. Благословения типа `dash` срабатывают на каждом рывке.
+   *  Легендарки — три апгрейда Blink из Dota: Overwhelming (удар и замедление в точке прибытия, урон растёт с уровнем),
+   *  Swift (скорость атаки и бега после рывка), Arcane (заряд сверху и быстрее копится). Числа стартовые. */
+  blink: {
+    dist: 150, charges: 1, recharge: 6, invuln: sec(0.3), lockout: sec(0.25),
+    over: { radius: 170, dmg: 60, perLevel: 6, slow: 0.5, slowSec: 3 },
+    swift: { seconds: 3, attackMult: 0.7, speedMult: 1.25 },
+    arcane: { charges: 1, rechargeMult: 0.5 },
+  },
   /** Io (владелец 2026-09-12): радиус шара духов и время полного оборота орбиты. */
   io: { orbR: 16, orbitSec: 3.5 },
   /** Приглашения у края экрана (T13.60): пока аванпост не захвачен, необязательных подсказок не больше `max`
@@ -313,6 +325,8 @@ export const ARCADE = {
     chaseSpeed: 150,
     slamTelegraph: sec(0.9),
     slamRadius: 124,
+    /** Урон удара по телеграфу на Herald; как у контакта, умножается на ранговый `dmgMult`, руну щедрости и второго Рошана
+     *  (`e.dmg / kind.dmg`) — раньше голая константа: на Immortal удар бил так же, как на Herald (T15.5). */
     slamDmg: 92,
     slamStun: 0.8,
     slamCooldown: sec(2.8),
@@ -320,5 +334,9 @@ export const ARCADE = {
     slamRecovery: sec(1.3),
     /** Контакт босса реже и слабее обычного: его угроза — удар по телеграфу, а не прилипание. */
     contactEvery: 1.1,
+    /** Контроль Рошана — как у чемпионов (capControl): стан/заморозка не дольше `ccCap`, затем `ccResist` иммунитета.
+     *  Без предела Time Lock под Frenzy и Berserker's Call держали главного босса в почти вечном стане (T15.5). */
+    ccCap: sec(1.2),
+    ccResist: sec(3),
   },
 } as const;

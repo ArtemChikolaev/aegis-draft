@@ -30,10 +30,10 @@ function pair(sim: ArcadeSim, far = false): [Enemy, Enemy] {
 const stop = (sim: ArcadeSim) => { sim.player.autoAttack = false; sim.player.autoCast = { q: false, w: false, e: false, r: false }; };
 
 describe("школа Venom", () => {
-  it("реестр: пятая школа, 5 узлов, 2 легендарки, 3 гибрида, у всех карточек есть числа и тексты", () => {
+  it("реестр: пятая школа, 6 узлов (с рывком), 2 легендарки, 3 гибрида, у всех карточек есть числа и тексты", () => {
     expect(SCHOOLS).toContain("venom");
     const ven = UPGRADES.filter((u) => u.school === "venom");
-    expect(ven.filter((u) => !u.legendary && !u.requiresSchools)).toHaveLength(5);
+    expect(ven.filter((u) => !u.legendary && !u.requiresSchools)).toHaveLength(6);
     expect(ven.filter((u) => u.legendary)).toHaveLength(2);
     expect(ven.filter((u) => u.requiresSchools)).toHaveLength(3);
     expect(LEGENDARY_UPGRADES.length).toBeGreaterThanOrEqual(20);

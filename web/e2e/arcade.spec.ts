@@ -105,6 +105,36 @@ test.describe("arcade", () => {
     await expect(page.getByTestId("arcade-hero")).toBeVisible();
   });
 
+  test("Blink: Shift и кнопка HUD тратят заряд, откат виден; кнопки HUD не вылезают за сцену", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    await page.getByTestId("arcade-seed").fill("e2e-arcade-blink");
+    await page.getByTestId("arcade-play").click();
+    await expect(page.getByTestId("arcade-clock")).toBeVisible();
+    const blink = page.getByTestId("arcade-blink");
+    await expect(blink).toHaveAttribute("data-charges", "1");
+    // Семь кнопок в строку на телефоне не влезали — R уезжал за край сцены; теперь двухрядный кластер.
+    const stage = (await page.locator(".arcade__stage").boundingBox())!;
+    for (const b of await page.locator(".arcade-hud__abilities > *").all()) {
+      const r = (await b.boundingBox())!;
+      expect(r.x).toBeGreaterThanOrEqual(stage.x - 0.5);
+      expect(r.x + r.width).toBeLessThanOrEqual(stage.x + stage.width + 0.5);
+    }
+    await page.keyboard.down("KeyD");
+    await page.keyboard.press("Shift");
+    await page.keyboard.up("KeyD");
+    await expect(blink).toHaveAttribute("data-charges", "0");
+    await expect(blink.locator("em")).toBeVisible();
+    // Заряд копится сам; окно уровня останавливает мир — закрываем его, если выпало.
+    const levelUp = page.getByTestId("arcade-levelup");
+    await expect.poll(async () => {
+      if (await levelUp.isVisible()) await page.getByTestId("arcade-offer-0").click();
+      return blink.getAttribute("data-charges");
+    }, { timeout: 30_000 }).toBe("1");
+    await blink.dispatchEvent("pointerdown");
+    await expect(blink).toHaveAttribute("data-charges", "0");
+  });
+
   test("фирменная пассивка героя видна в HUD", async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-arcade").click();

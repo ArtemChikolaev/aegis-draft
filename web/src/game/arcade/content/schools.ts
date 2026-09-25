@@ -21,18 +21,22 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "rad_aura", school: "radiance", type: "power", maxRank: 3 },
   { id: "rad_strike", school: "radiance", type: "attack", maxRank: 3 },
   { id: "rad_ring", school: "radiance", type: "strike", maxRank: 3 },
-  { id: "rad_blast", school: "radiance", type: "passive", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring"] },
-  { id: "rad_inferno", school: "radiance", type: "power", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring"] },
+  { id: "rad_blast", school: "radiance", type: "passive", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring", "rad_flare"] },
+  { id: "rad_inferno", school: "radiance", type: "power", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring", "rad_flare"] },
+  // Тип «Рывок» (Dash DMD): источник статуса школы на каждом Blink героя — тоже открывает модификаторы школы.
+  { id: "rad_flare", school: "radiance", type: "dash", maxRank: 3 },
   { id: "ska_bite", school: "skadi", type: "attack", maxRank: 3 },
-  { id: "ska_snap", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura"] },
+  { id: "ska_snap", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura", "ska_frostblink"] },
   { id: "ska_shards", school: "skadi", type: "strike", maxRank: 3 },
   { id: "ska_aura", school: "skadi", type: "power", maxRank: 3 },
-  { id: "ska_shatter", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura", "ska_snap"] },
+  { id: "ska_shatter", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura", "ska_snap", "ska_frostblink"] },
+  { id: "ska_frostblink", school: "skadi", type: "dash", maxRank: 3 },
   { id: "mae_chain", school: "maelstrom", type: "attack", maxRank: 3 },
   { id: "mae_static", school: "maelstrom", type: "cast", maxRank: 3 },
-  { id: "mae_overcharge", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap"] },
+  { id: "mae_overcharge", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap", "mae_blinkbolt"] },
   { id: "mae_clap", school: "maelstrom", type: "strike", maxRank: 3 },
-  { id: "mae_mjollnir", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap"] },
+  { id: "mae_mjollnir", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap", "mae_blinkbolt"] },
+  { id: "mae_blinkbolt", school: "maelstrom", type: "dash", maxRank: 3 },
   // Зверинец (T13.21, питомцы как призывы DMD): ястреб собирает опыт, волк кусает и замедляет, медведь бьёт и оглушает;
   // стая и рёв — модификаторы, требуют зверя.
   { id: "beast_hawk", school: "beast", type: "power", maxRank: 3 },
@@ -40,15 +44,18 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "beast_bear", school: "beast", type: "attack", maxRank: 3 },
   { id: "beast_pack", school: "beast", type: "power", maxRank: 2, requires: ["beast_wolf"] },
   { id: "beast_roar", school: "beast", type: "passive", maxRank: 3, requires: ["beast_wolf", "beast_bear"] },
+  // Стая следом: питомцы прыгают за героем в точку Blink и бьют сразу — нужен зверь, который бьёт.
+  { id: "beast_pounce", school: "beast", type: "dash", maxRank: 3, requires: ["beast_wolf", "beast_bear"] },
   // Venom (T13.47, этап 3 аудита): пятая школа поверх статуса яда (T13.39). Источники — жало (удар) и облако (залп);
   // модификаторы — распространение при смерти, вирулентность (сила и длительность стаков), клыки (запасной источник
   // для медленных героев: стак ближайшему по таймеру). Развилки-легендарки: Пандемия переносит стаки, Дистилляция
   // тратит полный стек на взрыв. Механика — sim.ts по id.
   { id: "ven_sting", school: "venom", type: "attack", maxRank: 3 },
   { id: "ven_cloud", school: "venom", type: "strike", maxRank: 3 },
-  { id: "ven_spread", school: "venom", type: "passive", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs"] },
-  { id: "ven_virulence", school: "venom", type: "power", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs"] },
+  { id: "ven_spread", school: "venom", type: "passive", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs", "ven_slip"] },
+  { id: "ven_virulence", school: "venom", type: "power", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs", "ven_slip"] },
   { id: "ven_fangs", school: "venom", type: "cast", maxRank: 2 },
+  { id: "ven_slip", school: "venom", type: "dash", maxRank: 3 },
   // Гибриды двух школ (T13.21): открываются, когда обе школы уже в билде — ещё один слой путей.
   { id: "hyb_steam", school: "radiance", type: "passive", maxRank: 2, requiresSchools: ["radiance", "skadi"] },
   { id: "hyb_superconductor", school: "skadi", type: "passive", maxRank: 2, requiresSchools: ["skadi", "maelstrom"] },
@@ -81,6 +88,10 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "leg_beast_kennel", school: "beast", type: "strike", maxRank: 1, legendary: true, art: "necronomicon" },
   { id: "leg_ven_pandemic", school: "venom", type: "passive", maxRank: 1, legendary: true, art: "orb_of_venom" },
   { id: "leg_ven_distill", school: "venom", type: "power", maxRank: 1, legendary: true, art: "orb_of_venom" },
+  // Апгрейды Blink Dagger из Dota (ARCADE.blink): нейтральные, школу в билд не добавляют.
+  { id: "leg_blink_over", school: "radiance", type: "dash", maxRank: 1, legendary: true, neutral: true, art: "overwhelming_blink" },
+  { id: "leg_blink_swift", school: "maelstrom", type: "dash", maxRank: 1, legendary: true, neutral: true, art: "swift_blink" },
+  { id: "leg_blink_arcane", school: "skadi", type: "dash", maxRank: 1, legendary: true, neutral: true, art: "arcane_blink" },
 ];
 
 export const LEGENDARY_UPGRADES: readonly UpgradeDef[] = UPGRADES.filter((u) => u.legendary);
@@ -150,6 +161,12 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "hyb_venom_frost": return [{ key: "poisonSec", value: 0.6 * p, unit: "s" }];
     case "hyb_venom_beast": return [{ key: "poisonDps", value: 3 * p * venomMult }];
     case "hyb_venom_fire": return [{ key: "blastDmg", value: 30 * p }];
+    // Тип «Рывок» (на каждый Blink) — зеркало blinkEffects в sim.ts.
+    case "rad_flare": return [{ key: "blinkDmg", value: 16 * p * burnMult }, { key: "burnDps", value: 6 * p * burnMult }, { key: "burnSec", value: 3, unit: "s" }];
+    case "ska_frostblink": return [{ key: "blinkDmg", value: 12 * p }, { key: "blinkSlow", value: Math.min(0.6, 0.35 + 0.05 * p), unit: "pct" }, { key: "slowSec", value: 2.5, unit: "s" }];
+    case "mae_blinkbolt": return [{ key: "zapDmg", value: 22 * p * lightningMult }, { key: "zapTargets", value: 2 + Math.floor(p / 2), unit: "x" }];
+    case "beast_pounce": return [{ key: "petPower", value: 0.3 * rank, unit: "pct" }, { key: "buffSec", value: 3, unit: "s" }];
+    case "ven_slip": return [{ key: "poisonDps", value: 4 * p * venomMult }, { key: "poisonStacks", value: 2, unit: "x" }];
     default: return [];
   }
 }

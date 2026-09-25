@@ -6,7 +6,7 @@
   abilities.<hero>.{q,w,e,r}   — касты умений героя (sounds/weapons/hero/<folder>/…)
   enemies.<enemyId>.{attack,death,aggro} — удары мобов по герою, их смерть, рык
   ui.{levelup,abilitylevel,coins,buy,lasthit,itemPickup,rune,heroPicked,deny}
-  fx.{crit,fireRing,frostShatter,chain,radianceLoop,roshanRoar,whoosh}
+  fx.{crit,fireRing,frostShatter,chain,radianceLoop,roshanRoar,whoosh,nova,zap,blink,blinkOver,blinkSwift,blinkArcane}
 Запуск: S2V=~/tools/s2v/Source2Viewer-CLI python3 scripts/dota_sfx_pack.py  (DOTA=, OUT= как у других скриптов).
 Клипы в vpk — WAV (жмём afconvert в AAC mono 44 kbps) или MP3 (копируем)."""
 import json, os, shutil, subprocess, sys
@@ -217,6 +217,11 @@ FX = {
     "whoosh": [f"{C}shared/whoosh0{i}" for i in (1, 2, 3)],
     "nova": [f"{H}lich/frost_nova"],
     "zap": [f"{H}zuus/lightning_bolt"],
+    # Blink героя (ARCADE.blink) и три его апгрейда-легендарки — звуки предметов Dota.
+    "blink": [f"{H}antimage/blink_out"],
+    "blinkOver": [f"{I}blink_overwhelming"],
+    "blinkSwift": [f"{I}blink_swift"],
+    "blinkArcane": [f"{I}blink_arcane"],
 }
 
 def export(src_path):

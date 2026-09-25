@@ -333,6 +333,7 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-venom: #7be04a;     /* яд: пузыри/капли на отравленном враге (particles.ts) */
   --arcade-venom-dark: #2f7d3a; /* тёмная капля яда */
   --arcade-lightning: #d7bcff;
+  --arcade-blink: #b6a2ff;      /* вспышка Blink героя — сиреневая, как частицы Blink Dagger */
   --arcade-hp: #5bd98c;
   --arcade-hp-bg: rgba(255, 255, 255, .14);
   --arcade-text: #f7f7f5;

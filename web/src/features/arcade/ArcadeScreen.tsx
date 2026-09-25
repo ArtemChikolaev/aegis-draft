@@ -13,11 +13,11 @@ import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/con
 import type { PlayerStats, ArcadeOutcome } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
-import { HEROES, HERO_IDS, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { dotaSheet, dotaSheetState, preloadArcadeArt, preloadSheetIndexes } from "./sprites.ts";
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
-import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT, POND_RITUAL_ACT } from "../../game/arcade/types.ts";
+import { ATTACK_MASK, BLINK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT, POND_RITUAL_ACT } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
@@ -27,6 +27,7 @@ import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "..
 import type { AbilityKey, Offer, RuneKind } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { sfxDebug, sfxSample } from "../../ui/sound.ts";
+import { itemArtSources, useArtSource } from "../../ui/artSource.ts";
 import { useHero } from "../draft/heroes.ts";
 import { ArcadeInputController } from "./input.ts";
 import { heroHitSfx, heroSpinSfx, heroVoice, preloadHeroSfx, preloadHeroVoice, resetHeroSfx } from "./heroSfx.ts";
@@ -348,6 +349,20 @@ function ArcadeStage() {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controllerRef = useRef<ArcadeInputController | null>(null);
+  // Высота нижней панели HUD от низа сцены (полосы, предметы, кнопки): миникарта встаёт над ней, а не под кнопки.
+  // Меряется ResizeObserver-ом панели, а не каждый кадр — панель меняется только при переносе строк (предметы, узкий экран).
+  const hudInsetRef = useRef(0);
+  const hudRoRef = useRef<ResizeObserver | null>(null);
+  const hudBottomRef = useCallback((el: HTMLDivElement | null) => {
+    hudRoRef.current?.disconnect();
+    hudRoRef.current = null;
+    if (!el) { hudInsetRef.current = 0; return; }
+    const measure = () => { const stage = el.closest(".arcade__stage"); if (stage) hudInsetRef.current = Math.max(0, stage.getBoundingClientRect().bottom - el.getBoundingClientRect().top); };
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    hudRoRef.current = ro;
+    measure();
+  }, []);
   const [confirmQuit, setConfirmQuit] = useState(false);
   /** Имя диалога подтверждения для скринридера: Modal ставит id на заголовок и ссылается на него из aria-labelledby. */
   const quitTitleId = useId();
@@ -521,6 +536,7 @@ function ArcadeStage() {
       wasBoss = bossAlive;
       if (++frame % 6 === 0) bump();
       const frozen = statusRef.current !== "running" && !loadingRef.current;
+      renderer.setHudInset(hudInsetRef.current);
       if (sceneNeedsDraw(frozen, wasFrozen, sceneDirty, frame)) { renderer.draw(sim, now, controller.joystick, screenShakeEnabled()); sceneDirty = false; }
       wasFrozen = frozen;
     };
@@ -649,7 +665,7 @@ function ArcadeStage() {
                 <small>{padActive ? PAD_GLYPH.r1 : "G"}</small>
               </button>
             )}
-            <div className="arcade-hud__bottom">
+            <div className="arcade-hud__bottom" ref={hudBottomRef}>
               <HeroThumb picture={hero.picture || heroDef.picture} name={hero.name} size="md" showName={false} />
               <div className="arcade-hud__bars">
                 <div className="arcade-bar arcade-bar--hp" title="HP"><i style={{ width: `${Math.max(0, p.hp / p.stats.maxHp) * 100}%` }} /><span>{Math.ceil(p.hp)} / {p.stats.maxHp}</span></div>
@@ -672,6 +688,7 @@ function ArcadeStage() {
                   // пассивок (души, ярость, плоть) рядом счётчик, иначе рост ничем не подтверждается.
                   <span
                     className="arcade-ability arcade-ability--sig"
+                    data-slot="sig"
                     data-testid="arcade-hud-signature"
                     title={`${t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} — ${t(`arcade.sig.${sim.hero.signature.kind}.desc` as MessageKey)}`}
                   >
@@ -683,6 +700,7 @@ function ArcadeStage() {
                 <button
                   type="button"
                   className="arcade-ability"
+                  data-slot="attack"
                   data-testid="arcade-attack"
                   onPointerDown={(e) => { e.stopPropagation(); controllerRef.current?.cast(ATTACK_MASK); }}
                   title={t(autoCastSetting.attack ? "arcade.hud.autoAttackOn" : "arcade.hud.autoAttackOff")}
@@ -700,16 +718,18 @@ function ArcadeStage() {
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); toggleAutoCast("attack"); } }}
                   >{t("arcade.hud.autoCastShort")}</span>
                 </button>
+                <BlinkButton sim={sim} padActive={padActive} onBlink={() => controllerRef.current?.cast(BLINK_MASK)} />
                 {(["q", "w", "e", "r"] as const).map((key) => {
                   const lvl = p.abilities[key];
                   const ab = sim.hero.abilities[key];
-                  const cdTotal = ab.passive ? 0 : ab.cooldown * (1 - p.stats.cooldown);
+                  const cdTotal = ab.passive ? 0 : ab.cooldown * abilityRankScale(ab, lvl).cd * (1 - p.stats.cooldown);
                   const cd = p.cooldowns[key] / TICK_HZ;
                   return (
                     <button
                       key={key}
                       type="button"
                       className="arcade-ability"
+                      data-slot={key}
                       data-locked={lvl === 0 ? "true" : undefined}
                       data-passive={ab.passive ? "true" : undefined}
                       disabled={lvl === 0 || ab.passive}
@@ -1222,6 +1242,32 @@ function SfxDebugPanel({ hero }: { hero: string }) {
   );
 }
 
+/** Blink в HUD: иконка Blink Dagger, клавиша, заряды (если их больше одного) и откат следующего заряда, когда пусто. */
+function BlinkButton({ sim, padActive, onBlink }: { sim: ArcadeSim; padActive: boolean; onBlink: () => void }) {
+  const { t } = useI18n();
+  const { src, onError } = useArtSource(itemArtSources("blink", PX));
+  const p = sim.player;
+  const max = sim.blinkMaxCharges();
+  const total = sim.blinkRechargeTicks();
+  return (
+    <button
+      type="button"
+      className="arcade-ability arcade-ability--blink"
+      data-slot="blink"
+      data-testid="arcade-blink"
+      data-charges={p.blinkCharges}
+      onPointerDown={(e) => { e.stopPropagation(); onBlink(); }}
+      title={t("arcade.hud.blink")}
+    >
+      {src && <img className="arcade-ability-icon" data-pixel={PX ? "true" : undefined} src={src} alt="" draggable={false} onError={onError} />}
+      <b>{padActive ? PAD_GLYPH.l2 : "⇧"}</b>
+      <small>{max > 1 ? `${p.blinkCharges}/${max}` : t("arcade.hud.blinkShort")}</small>
+      {p.blinkCharges === 0 && p.blinkCd > 0 && <i style={{ height: `${Math.min(1, p.blinkCd / total) * 100}%` }} />}
+      {p.blinkCharges === 0 && p.blinkCd > 0 && <em>{Math.ceil(p.blinkCd / TICK_HZ)}</em>}
+    </button>
+  );
+}
+
 function AbilityIcon({ hero, k, size = 28 }: { hero: string; k: AbilityKey; size?: number }) {
   const [failed, setFailed] = useState(false);
   if (failed) return <b className="arcade-ability-icon arcade-ability-icon--fallback" style={{ width: size, height: size }}>{k.toUpperCase()}</b>;
@@ -1233,12 +1279,30 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   const sim = getArcadeSim();
   if (offer.kind === "ability") {
     const lvl = (sim?.player.abilities[offer.key] ?? 0) + 1;
+    // Ранг умения без числа урона (броня, перезарядка, длительность контроля) — «сейчас → после», как у школ (T15.5).
+    const ab = sim?.hero.abilities[offer.key];
+    const now = ab ? abilityRankFigures(ab, lvl - 1) : [];
+    const next = ab ? abilityRankFigures(ab, lvl) : [];
+    const fmtAb = (f: { value: number; unit?: string }) => f.unit === "s" ? `${Math.round(f.value * 10) / 10} ${t("arcade.unit.s")}` : `+${Math.round(f.value)}`;
     return (
       <button type="button" className="arcade-offer" data-kind="ability" data-testid={`arcade-offer-${index}`} onClick={onPick}>
         <span className="arcade-offer__tag"><AbilityIcon hero={sim?.hero.id ?? "juggernaut"} k={offer.key} size={36} /> {t("arcade.offer.ability")} · {offer.key.toUpperCase()}</span>
         <strong>{t(`arcade.ab.${sim?.hero.kit ?? "juggernaut"}.${offer.key}` as MessageKey)}</strong>
         <small>{t("arcade.offer.point", { lvl })}</small>
         <p>{t(`arcade.ab.${sim?.hero.kit ?? "juggernaut"}.${offer.key}.desc` as MessageKey)}</p>
+        {next.length > 0 && (
+          <ul className="arcade-figures" data-testid="arcade-offer-figures">
+            {next.map((f, i) => {
+              const b = now[i];
+              return (
+                <li key={f.key}>
+                  <span>{t(`arcade.fig.${f.key}` as MessageKey)}</span>
+                  {b && Math.abs(b.value - f.value) > 1e-9 ? <><s>{fmtAb(b)}</s> → <em>{fmtAb(f)}</em></> : <em>{fmtAb(f)}</em>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </button>
     );
   }

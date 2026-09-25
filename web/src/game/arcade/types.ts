@@ -38,6 +38,8 @@ export const BAG_EQUIP_ACT = 70;
 export const BAG_DROP_ACT = 90;
 /** Бит ручной атаки в `cast` (умения занимают 1|2|4|8). */
 export const ATTACK_MASK = 16;
+/** Бит Blink в `cast` — рывок героя (ARCADE.blink): нажатие, а не удержание; повтор держит `lockout` и заряды. */
+export const BLINK_MASK = 32;
 
 /** `choose` = REROLL_CHOOSE — реролл карт экрана уровня за золото (награды мест не рероллятся). */
 export const REROLL_CHOOSE = -2;
@@ -117,7 +119,8 @@ export interface Pet {
 /** Руны у реки, как в Dota (владелец 2026-09-07): двойной урон, щит, магия (короче перезарядки), иллюзии. */
 export type RuneKind = "dd" | "shield" | "arcane" | "illusion";
 export const RUNE_KINDS: readonly RuneKind[] = ["dd", "shield", "arcane", "illusion"];
-export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive";
+/** `dash` — срабатывает на Blink героя (седьмой тип благословений DMD, «Dash»). */
+export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive" | "dash";
 export type Rarity = "standard" | "refined" | "exotic" | "arcana";
 
 export interface UpgradeDef {
@@ -283,7 +286,8 @@ export interface Shard {
 export type DmgOrigin = "attack" | "ability" | "summon" | "other";
 
 export type DmgSource = "attack" | "q" | "w" | "e" | "r" | "pets" | "school" | "dot" | "proj" | "other";
-export type FxKind = "hit" | "crit" | "slash" | "nova" | "zap" | "burst" | "heal" | "revive" | "levelup" | "spin" | "die" | "ash";
+/** `blink` — вспышка Blink: `x,y` — откуда, `x2,y2` — куда. */
+export type FxKind = "hit" | "crit" | "slash" | "nova" | "zap" | "burst" | "heal" | "revive" | "levelup" | "spin" | "die" | "ash" | "blink";
 
 /** Монотонные счётчики событий для звука и juice на стороне экрана: дельта между кадрами —
  *  «что случилось», без подписки на сим и без влияния на детерминизм. */
@@ -314,6 +318,8 @@ export interface ArcadeEventCounters {
   rifts: number;
   /** Доведённые караваны (T13.59). */
   caravans: number;
+  /** Рывки Blink — звук и juice. */
+  blinks: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
@@ -507,6 +513,15 @@ export interface Player {
   /** Разряды вокруг героя (edict: Diabolic Edict, Eye of the Storm, Bedlam). */
   edictUntil: number;
   armorBuffUntil: number;
+  /** Сколько брони даёт идущий `armorBuffUntil`: у armor_buff — значение умения по рангу, у Berserker's Call — прежние 25. */
+  armorBuffAmt: number;
+  /** Blink (ARCADE.blink): готовые заряды, тики до следующего заряда (0 — все заряжены) и тик последнего рывка. */
+  blinkCharges: number;
+  blinkCd: number;
+  blinkAt: number;
+  /** Swift Blink — до какого тика ускорение после рывка; «Стая следом» (beast_pounce) — до какого тика питомцы бьют сильнее. */
+  swiftUntil: number;
+  pounceUntil: number;
   /** Фирменная пассивка (heroes.ts signature): стаки (души/ярость), цель серии, таймер/взвод эффекта. */
   stacks: number;
   stackTarget: number;

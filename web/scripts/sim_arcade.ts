@@ -6,7 +6,7 @@ import { ArcadeSim, KIND_BY_INDEX } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
-import { CONTRACT_OATH_ACT, PICKUP_ACT, POND_RITUAL_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
+import { BLINK_MASK, CONTRACT_OATH_ACT, PICKUP_ACT, POND_RITUAL_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { GEAR_SLOTS, gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
 import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
 
@@ -43,6 +43,9 @@ const GIFT = args.get("gift") ?? "item";
 const PLACE_IDS = ["rift", "caravan", "pond", "forge", "camp"] as const;
 type PlaceId = (typeof PLACE_IDS)[number];
 const PLACES = new Set<PlaceId>((args.get("places") ?? "") === "all" ? PLACE_IDS : ((args.get("places") ?? "").split(",").filter((p): p is PlaceId => (PLACE_IDS as readonly string[]).includes(p))));
+/** Blink (ARCADE.blink): бот уклоняется им от удара Рошана по телеграфу и отрывается от толпы при низком HP.
+ *  `--noblink` — прежний бот без рывка (A/B: сколько даёт сама механика). */
+const BLINK = !args.has("noblink");
 const MAX_TICKS = TICK_HZ * 60 * 26;
 /** Потолок шагов на забег (шаг ≠ тик: шаг с открытым окном тик не двигает) и порог «тик стоит» — см. цикл прогона. */
 const MAX_STEPS = MAX_TICKS * 3;
@@ -168,12 +171,15 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
   // Древний: как босс — идём в дальность удара и бьём (снаряды строения не уклоняемы для бота).
   // Акт 3: к Рошану идём в яму (босс привязан к ней); снаружи он лечится, поэтому не тянем.
   const rosh = sim.roshan?.alive ? sim.roshan : sim.ancient?.alive ? sim.ancient : null;
+  const canBlink = BLINK && p.blinkCharges > 0 && sim.tick >= p.stunUntil;
   if (rosh && rosh.slamT > 0) {
     const dx = p.x - rosh.slamX, dy = p.y - rosh.slamY;
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d < ARCADE.boss.slamRadius + 30) {
       const ux = d > 1 ? dx / d : 1, uy = d > 1 ? dy / d : 0;
-      return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: 0, choose: -1, act: 0 };
+      // Не успеть выбежать до удара — рывок из зоны (как человек жмёт Blink в последний момент).
+      const late = rosh.slamT * ARCADE.player.speed / TICK_HZ < ARCADE.boss.slamRadius + ARCADE.player.r - d;
+      return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: canBlink && late ? BLINK_MASK : 0, choose: -1, act: 0 };
     }
   }
   if (rosh) retreating = retreating ? hpPct < 0.55 : hpPct < 0.3; else retreating = false;
@@ -202,10 +208,13 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
       if (d < 700) { fx += dx / d * 1.5; fy += dy / d * 1.5; }
     }
   }
+  let blinkNow = false;
   if (flee && near > 0) {
     const l = Math.sqrt(cx * cx + cy * cy) || 1;
     fx -= cx / l * 2; fy -= cy / l * 2;
     if (sd < 200) { fx += sx * 0.5; fy += sy * 0.5; }
+    // Зажали на низком HP — рывок прочь от центра масс толпы.
+    blinkNow = canBlink && hpPct < 0.4 && danger > (sim.hero.ranged ? 4 : 6);
   } else if (sim.hero.ranged) {
     // Дальний бой: держим дистанцию ~70% дальности — подходим, если далеко, отходим, если близко.
     const keep = p.stats.range * 0.7;
@@ -224,7 +233,7 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
   [fx, fy] = sim.obstacles.steer(p.x, p.y, fx, fy, ARCADE.player.r, 80);
   const l = Math.sqrt(fx * fx + fy * fy);
   if (l < 0.05) return { mx: 0, my: 0, cast: 0, choose: -1, act: 0 };
-  return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: 0, choose: -1, act: 0 };
+  return { mx: Math.round(fx / l * 16), my: Math.round(fy / l * 16), cast: blinkNow ? BLINK_MASK : 0, choose: -1, act: 0 };
 }
 
 interface RunResult { contractDone: boolean; build: boolean; seconds: number; level: number; kills: number; roshan: boolean; reachedRoshan: boolean; outcome: string; schools: string[]; roshanHp: number

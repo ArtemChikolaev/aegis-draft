@@ -18,7 +18,7 @@ import { COSMETIC_BY_ID } from "../../game/arcade/content/cosmetics.ts";
 import type { CosmeticSlot, HeroLook } from "../../game/arcade/content/cosmetics.ts";
 import { Terrain } from "./terrain.ts";
 import { densePixel, pixelScale } from "./pixelMode.ts";
-import { drawAsh, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
+import { drawAsh, drawBlinkFlash, drawBurning, drawChilled, drawPoisoned, drawDust, drawEmberRing, drawFrostMist, drawHealAura, drawWardTotem, drawHeroProjectile, drawHitSparks, drawPixelRing, drawProjectileTrail, drawSparks, drawWeather } from "./particles.ts";
 import { auraGeoFromBox, drawAuraEffect, drawDeathEffect, drawGroundEffect, drawTrailEffect, type AuraEffect, type AuraGeo, type DeathEffect, type GroundEffect, type TrailEffect } from "./effects.ts";
 import { drawRig, enemyRig, heroWeapon, type RigParams } from "./rig.ts";
 import { FRAMES, HERO_PROJECTILE, HERO_TINT, attackAnim, charSheet, dirOf, dotaDir, dotaSheet, drawCharFrame, drawDotaFrame, drawMonsterFrame, enemyLook, enemySheet, frameGeometry, gemSheet, tileImage, HERO_AURA, lpcHeroLook, setPixelSheets, terrainVersion, type CharAnim, type DotaSheet } from "./sprites.ts";
@@ -28,7 +28,7 @@ import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice", "venom", "venomDark",
-  "lightning", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "critText", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
+  "lightning", "blink", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "critText", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
@@ -217,6 +217,12 @@ export class ArcadeRenderer {
     this.portrait.src = src;
   }
 
+  /** Высота нижней панели HUD от низа сцены, CSS px (0 — не измерена: прежний отступ миникарты). */
+  private hudInset = 0;
+  setHudInset(px: number): void {
+    this.hudInset = px;
+  }
+
   /** Подогнать буфер под CSS-размер и DPR (зовётся из ResizeObserver). */
   resize(width: number, height: number): void {
     this.stickRectFor = null;
@@ -343,13 +349,13 @@ export class ArcadeRenderer {
   }
 
   /** Миникарта (T13.84): правый нижний угол — арена, окно камеры, герой, места (цвет приглашения), события с таймером,
-   *  элиты и боссы, редкий лут. Рисуется поверх мира из того же сима, в сим не идёт. На узком экране поднята над
-   *  строкой умений. */
+   *  элиты и боссы, редкий лут. Рисуется поверх мира из того же сима, в сим не идёт. Стоит над нижней панелью HUD
+   *  (`hudInset` меряет экран): раньше на ширине 720–1000 px кнопка R ложилась на её угол, а на телефоне — полоса HP. */
   private drawMinimap(sim: ArcadeSim, pal: Palette, now: number, camX: number, camY: number): void {
     const m = this.mainCtx;
     const size = Math.round(Math.max(104, Math.min(150, this.w * 0.16)));
     const pad = 14;
-    const x0 = this.w - pad - size, y0 = this.h - pad - size - (this.w < 720 ? 84 : 0);
+    const x0 = this.w - pad - size, y0 = this.hudInset > 0 ? this.h - this.hudInset - 8 - size : this.h - pad - size - (this.w < 720 ? 84 : 0);
     const k = size / Math.max(ARCADE.world.w, ARCADE.world.h);
     const X = (wx: number) => x0 + wx * k, Y = (wy: number) => y0 + wy * k;
     const pulse = 0.5 + 0.5 * Math.sin(now / 240);
@@ -1416,6 +1422,10 @@ export class ArcadeRenderer {
         case "slash": {
           c.globalAlpha = 1 - k; c.strokeStyle = pal.playerRing; c.lineWidth = 2.5;
           c.beginPath(); c.moveTo(f.x, f.y); c.lineTo(f.x2, f.y2); c.stroke();
+          break;
+        }
+        case "blink": {
+          drawBlinkFlash(c, f.x, f.y, f.x2, f.y2, k, f.born, this.artPx(), pal.blink, pal.text);
           break;
         }
         case "zap": {

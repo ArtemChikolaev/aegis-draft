@@ -1,6 +1,6 @@
 // Геймпад Аркады (T13.34, владелец 2026-09-07: DualSense). Чистый разбор состояния пада без DOM — тестируется
 // без браузера. Стандартная раскладка Gamepad API: 0 ×, 1 ○, 2 □, 3 △, 4 L1, 5 R1, 6 L2, 7 R2, 8 Share, 9 Options,
-// 10 L3, 11 R3, 12–15 D-pad, 16 PS, 17 тач-пад. Левый стик/D-pad — движение; ×○□△ — Q/W/E/R; R2 — атака;
+// 10 L3, 11 R3, 12–15 D-pad, 16 PS, 17 тач-пад. Левый стик/D-pad — движение; ×○□△ — Q/W/E/R; R2 — атака; L2 — Blink;
 // R1 — подобрать; L1 — сборка; Options — пауза; тач-пад/PS — вспышка. В меню: стик/D-pad — выбор, × — подтвердить, ○ — назад.
 export const PAD = { cross: 0, circle: 1, square: 2, triangle: 3, l1: 4, r1: 5, l2: 6, r2: 7, share: 8, options: 9, l3: 10, r3: 11, up: 12, down: 13, left: 14, right: 15, ps: 16, touch: 17 } as const;
 export const DEADZONE = 0.2;
@@ -62,4 +62,4 @@ export class PadNav {
 }
 
 /** Глифы кнопок для подсказок HUD (текст, без i18n: символы одинаковы на всех языках). */
-export const PAD_GLYPH = { cross: "✕", circle: "○", square: "□", triangle: "△", r1: "R1", l1: "L1", r2: "R2", options: "≡", touch: "▭" } as const;
+export const PAD_GLYPH = { cross: "✕", circle: "○", square: "□", triangle: "△", r1: "R1", l1: "L1", r2: "R2", l2: "L2", options: "≡", touch: "▭" } as const;

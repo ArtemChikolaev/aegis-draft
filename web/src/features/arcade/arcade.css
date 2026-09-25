@@ -188,6 +188,18 @@
   .arcade-hud__clock { font-size: 26px; }
   .arcade-hud__stats { display: none; }
   .arcade-ability { width: 56px; height: 56px; }
+  /* Семь кнопок (пассивка, удар, Blink, Q–R) в строку на 375 px не влезали — R уезжал за край сцены. На телефоне —
+     двухрядный кластер справа: сверху удар и Blink под большой палец, снизу Q W E R; полосы HP/XP — отдельной строкой выше.
+     Миникарта поднята над кластером (renderer.ts, drawMinimap). */
+  .arcade-hud__bottom { flex-wrap: wrap; row-gap: 8px; }
+  .arcade-hud__abilities { flex: 1 0 100%; display: grid; grid-template-columns: repeat(4, 56px); gap: 6px; justify-content: end; }
+  .arcade-hud__abilities > [data-slot="sig"] { grid-area: 1 / 2; }
+  .arcade-hud__abilities > [data-slot="attack"] { grid-area: 1 / 3; }
+  .arcade-hud__abilities > [data-slot="blink"] { grid-area: 1 / 4; }
+  .arcade-hud__abilities > [data-slot="q"] { grid-area: 2 / 1; }
+  .arcade-hud__abilities > [data-slot="w"] { grid-area: 2 / 2; }
+  .arcade-hud__abilities > [data-slot="e"] { grid-area: 2 / 3; }
+  .arcade-hud__abilities > [data-slot="r"] { grid-area: 2 / 4; }
   .arcade-offers { grid-template-columns: 1fr; }
   .arcade-offer { min-height: 0; }
 }

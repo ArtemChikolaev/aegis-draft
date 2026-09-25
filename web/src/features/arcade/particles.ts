@@ -265,6 +265,25 @@ export function drawPixelRing(c: CanvasRenderingContext2D, x: number, y: number,
   c.globalAlpha = 1;
 }
 
+/** Blink героя: у точки ухода пиксели стягиваются внутрь, у точки прибытия разлетаются, между ними — гаснущий пунктир. */
+export function drawBlinkFlash(c: CanvasRenderingContext2D, x: number, y: number, x2: number, y2: number, k: number, seed: number, px: number, main: string, core: string): void {
+  const lift = 16; // середина фигуры героя, а не ноги
+  // Свечение: у точки ухода гаснет быстрее, у точки прибытия — вспышка.
+  c.fillStyle = main;
+  c.globalAlpha = 0.45 * (1 - k) * (1 - k);
+  c.beginPath(); c.arc(x, y - lift, 20 * (1 - k * 0.6), 0, Math.PI * 2); c.fill();
+  c.globalAlpha = 0.5 * (1 - k);
+  c.beginPath(); c.arc(x2, y2 - lift, 12 + 16 * k, 0, Math.PI * 2); c.fill();
+  for (let i = 1; i < 10; i++) {
+    const t = i / 10;
+    c.globalAlpha = (1 - k) * (0.35 + 0.55 * t);
+    c.fillStyle = i % 3 === 0 ? core : main;
+    dot(c, x + (x2 - x) * t, y + (y2 - y) * t - lift + (hash(seed, i) - 0.5) * 8, px * 2, px);
+  }
+  drawPixelRing(c, x, y - lift, 6 + 28 * (1 - k), k, seed, px, main, core);
+  drawPixelRing(c, x2, y2 - lift, 8 + 36 * k, k, seed + 7, px, main, core);
+}
+
 /** Вид снаряда автоатаки героя (владелец 2026-09-06: «не один и тот же шарик у всех — у Мираны стрела,
  *  у Shadow Fiend красный сгусток»). Рисуем пиксельными квадратами вдоль вектора скорости. */
 export type ProjectileArt = "arrow" | "bolt" | "knife" | "bullet";

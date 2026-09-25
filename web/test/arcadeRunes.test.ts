@@ -68,7 +68,9 @@ describe("руны", () => {
     expect(ill.length).toBe(ARCADE.rune.illusion.count);
     expect(ill[0].dmg).toBeCloseTo(sim.player.stats.damage * ARCADE.rune.illusion.dmgFrac, 6);
     for (let i = 0; i < sec(5); i++) { sim.player.hp = 1e6; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : { ...IDLE_INPUT, mx: 16 }); }
-    for (const p of sim.pets) if (p.kind === "illusion") expect(Math.hypot(p.x - sim.player.x, p.y - sim.player.y)).toBeLessThan(400);
+    // Иллюзии дерутся с ближайшими врагами, но от героя не отстают: дальше поводка 520 px (tickPets) — телепорт к нему.
+    // Прежняя граница 400 была числом одной раскладки врагов и ломалась от любого сдвига потока Rng.
+    for (const p of sim.pets) if (p.kind === "illusion") expect(Math.hypot(p.x - sim.player.x, p.y - sim.player.y)).toBeLessThan(530);
     sim.tick = ill[0].until! + 1;
     sim.step(IDLE_INPUT);
     expect(sim.pets.filter((p) => p.kind === "illusion").length).toBe(0);
