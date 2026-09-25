@@ -101,7 +101,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 9
+        "games": 11
       }
     ]
   },
@@ -1211,7 +1211,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 11
+        "games": 14
       },
       {
         "teamId": 142,
@@ -1397,7 +1397,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 224
+        "games": 226
       }
     ]
   },
@@ -1817,7 +1817,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 11
+        "games": 14
       },
       {
         "teamId": 39,
@@ -2106,7 +2106,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 13
+        "games": 15
       }
     ]
   },
@@ -3543,7 +3543,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 11
+        "games": 14
       },
       {
         "teamId": 39,
@@ -7010,7 +7010,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 13
+        "games": 15
       },
       {
         "teamId": 9895392,
@@ -7176,7 +7176,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 213
+        "games": 215
       },
       {
         "teamId": 9766941,
@@ -7652,7 +7652,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 128
+        "games": 131
       },
       {
         "teamId": 9017006,
@@ -8492,7 +8492,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 26
+        "games": 28
       }
     ]
   },
@@ -8533,7 +8533,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 384
+        "games": 386
       },
       {
         "teamId": 8574561,
@@ -8832,7 +8832,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 11
+        "games": 14
       },
       {
         "teamId": 39,
@@ -9943,7 +9943,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 9338413,
@@ -10439,7 +10439,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 29
+        "games": 31
       },
       {
         "teamId": 9766941,
@@ -10647,7 +10647,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 132
+        "games": 134
       }
     ]
   },
@@ -11086,7 +11086,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 322
+        "games": 324
       },
       {
         "teamId": 8574561,
@@ -11349,7 +11349,8 @@
     "rolesPlayed": [
       "offlane",
       "support",
-      "safelane"
+      "safelane",
+      "mid"
     ],
     "teams": [
       {
@@ -11399,7 +11400,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 132
+        "games": 134
       }
     ]
   },
@@ -11768,7 +11769,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 13
+        "games": 15
       }
     ]
   },
@@ -12474,7 +12475,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 236
+        "games": 238
       }
     ]
   },
@@ -13823,7 +13824,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 7
+        "games": 9
       }
     ]
   },
@@ -14044,7 +14045,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 128
+        "games": 131
       },
       {
         "teamId": 9017006,
@@ -14510,7 +14511,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 132
+        "games": 134
       }
     ]
   },
@@ -15610,7 +15611,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 7
+        "games": 9
       },
       {
         "teamId": 9351740,
@@ -17129,7 +17130,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 407
+        "games": 409
       }
     ]
   },
@@ -17246,7 +17247,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 9
+        "games": 11
       },
       {
         "teamId": 10019843,
@@ -18255,7 +18256,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 267
+        "games": 269
       }
     ]
   },
@@ -18553,7 +18554,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 213
+        "games": 215
       }
     ]
   },
@@ -19193,7 +19194,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 29
+        "games": 31
       },
       {
         "teamId": 10081680,
@@ -19355,7 +19356,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 26
+        "games": 28
       }
     ]
   },
@@ -19844,7 +19845,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 11
+        "games": 14
       },
       {
         "teamId": 67,
@@ -20602,7 +20603,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 13
+        "games": 15
       },
       {
         "teamId": 10081680,
@@ -23486,7 +23487,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 147
+        "games": 150
       },
       {
         "teamId": 9017006,
@@ -24203,7 +24204,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 26
+        "games": 28
       }
     ]
   },
@@ -27878,7 +27879,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 549
+        "games": 551
       },
       {
         "teamId": 9351740,
@@ -28140,7 +28141,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 132
+        "games": 134
       }
     ]
   },
@@ -28978,7 +28979,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 42
+        "games": 45
       },
       {
         "teamId": 2586976,
@@ -29670,7 +29671,7 @@
       {
         "teamId": 10182357,
         "teamName": "1w",
-        "games": 26
+        "games": 28
       }
     ]
   },
@@ -29752,7 +29753,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 236
+        "games": 238
       }
     ]
   },
@@ -30469,7 +30470,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 128
+        "games": 131
       },
       {
         "teamId": 9017006,
@@ -31080,7 +31081,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 10
+        "games": 12
       }
     ]
   },
