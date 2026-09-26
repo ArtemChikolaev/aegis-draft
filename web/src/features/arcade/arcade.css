@@ -434,3 +434,14 @@
 .arcade-breakdown { display: grid; gap: 4px; margin: 0; font-size: 13px; color: var(--muted); }
 .arcade-breakdown p { margin: 0; }
 .arcade-breakdown b { color: var(--text); }
+
+/* Серия убийств без урона (ARCADE.streak): значок у часов, новая ступень «выпрыгивает» (ключ — ступень). Цвет крепчает
+   к Godlike; на телефоне строка статистики скрыта, поэтому значок стоит отдельно. */
+.arcade-hud__streak { display: grid; gap: 1px; padding: 4px 10px; border-radius: 10px; background: color-mix(in srgb, var(--arcade-crit) 20%, transparent); border: 1px solid color-mix(in srgb, var(--arcade-crit) 55%, transparent); color: var(--arcade-crit); text-shadow: 0 1px 2px var(--arcade-text-shadow); pointer-events: auto; animation: arcade-streak-pop .45s cubic-bezier(.2, 1.6, .4, 1); }
+.arcade-hud__streak b { font: 800 13px/1 var(--font-display); letter-spacing: .06em; text-transform: uppercase; }
+.arcade-hud__streak small { font: 600 10px/1 var(--font-display); color: var(--on-invert); opacity: .85; }
+.arcade-hud__streak[data-tier="6"], .arcade-hud__streak[data-tier="7"], .arcade-hud__streak[data-tier="8"] { color: var(--arcade-crit-text); border-color: color-mix(in srgb, var(--arcade-crit-text) 60%, transparent); background: color-mix(in srgb, var(--arcade-crit-text) 18%, transparent); }
+@keyframes arcade-streak-pop { 0% { transform: scale(1.45); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .arcade-hud__streak { animation: none; } }
+/* Элита с аффиксами рядом — та же строка, что у босса, но короче. */
+.arcade-hud__boss--affix { width: min(360px, 60%); color: var(--arcade-crit); }

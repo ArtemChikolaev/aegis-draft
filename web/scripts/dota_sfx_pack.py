@@ -5,7 +5,7 @@
 Выход: web/public/art/sfx/dota/pack/<группа>/<имя>_N.(m4a|mp3) и pack/index.json:
   abilities.<hero>.{q,w,e,r}   — касты умений героя (sounds/weapons/hero/<folder>/…)
   enemies.<enemyId>.{attack,death,aggro} — удары мобов по герою, их смерть, рык
-  ui.{levelup,abilitylevel,coins,buy,lasthit,itemPickup,rune,heroPicked,deny}
+  ui.{levelup,abilitylevel,coins,buy,lasthit,itemPickup,rune,heroPicked,deny,aegis,streak1..8,firstBlood}
   fx.{crit,fireRing,frostShatter,chain,radianceLoop,roshanRoar,whoosh,nova,zap,blink,blinkOver,blinkSwift,blinkArcane}
 Запуск: S2V=~/tools/s2v/Source2Viewer-CLI python3 scripts/dota_sfx_pack.py  (DOTA=, OUT= как у других скриптов).
 Клипы в vpk — WAV (жмём afconvert в AAC mono 44 kbps) или MP3 (копируем)."""
@@ -23,6 +23,7 @@ C = "sounds/weapons/creep/"
 D = "sounds/misc/creep_deaths/"
 U = "sounds/ui/"
 I = "sounds/items/"
+A = "sounds/vo/announcer_killing_spree/"
 
 def hero(folder, q, w, e, r):
     return {k: [f"{H}{folder}/{n}" for n in v] for k, v in (("q", q), ("w", w), ("e", e), ("r", r)) if v}
@@ -206,6 +207,9 @@ UI = {
     "levelup": [f"{U}levelup"], "abilitylevel": [f"{U}abilitylevel"], "coins": [f"{U}coins"], "buy": [f"{U}buy"],
     "lasthit": [f"{U}last_hit"], "itemPickup": [f"{U}item_pickup_world"], "rune": [f"{I}rune_bounty", f"{I}rune_haste", f"{I}rune_dd"],
     "heroPicked": [f"{U}hero_picked"], "deny": [f"{U}deny_general"], "aegis": [f"{I}aegis_timer"],
+    # Комментатор серий (ARCADE.streak): streak1..8 = Killing Spree … Beyond Godlike, плюс First Blood — голос по умолчанию.
+    **{f"streak{i + 1}": [f"{A}announcer_kill_{n}_01"] for i, n in enumerate(["spree", "dominate", "mega", "unstop", "wicked", "monster", "godlike", "holy"])},
+    "firstBlood": [f"{A}announcer_1stblood_01"],
 }
 FX = {
     "crit": [f"{H}phantom_assassin/crit_spatter0{i}" for i in (1, 2, 3)],

@@ -8,13 +8,13 @@ import { LEGACY_BRANCHES, LEGACY_KIND, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacyS
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
-import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "../../game/arcade/config.ts";
+import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec, streakTierOf } from "../../game/arcade/config.ts";
 import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/content/schools.ts";
 import type { PlayerStats, ArcadeOutcome } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
+import { AFFIX, AFFIX_IDS, ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { dotaSheet, dotaSheetState, preloadArcadeArt, preloadSheetIndexes } from "./sprites.ts";
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ATTACK_MASK, BLINK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT, POND_RITUAL_ACT } from "../../game/arcade/types.ts";
@@ -439,7 +439,7 @@ function ArcadeStage() {
     let wasContract = false;
     let wasForge = false;
     let wasRift = false;
-    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0 };
+    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0, streakUps: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
     const voiceId = skinnedHero(heroDef.id, useArcade.getState().cosmetics.equipped);
@@ -516,6 +516,7 @@ function ArcadeStage() {
       if (ev.contracts > seen.contracts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 8; }
       if (ev.rifts > seen.rifts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 10; }
       if (ev.caravans > seen.caravans) { sfxBuy(); bump(); }
+      if (ev.streakUps > seen.streakUps) bump(); // новая ступень серии: голос комментатора — в soundscape
       if (ev.ambushes > seen.ambushes) sfxArcade("crit"); // метка засады — звук-предупреждение
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
@@ -578,6 +579,9 @@ function ArcadeStage() {
   const sim = getArcadeSim();
   const p = sim?.player;
   const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : sim?.thunder?.alive && sim.playerAtLair() ? sim.thunder : sim?.warden?.alive && sim.playerAtFord() ? sim.warden : sim?.stalker?.alive && sim.playerAtDen() ? sim.stalker : sim?.hunter?.alive ? sim.hunter : null;
+  // Элита с аффиксами рядом — строка вместо полосы босса, когда босса нет: что за кольцо и чего от неё ждать.
+  const affixed = !boss && sim ? sim.affixedNear(460) : null;
+  const streakTier = sim ? sim.streakTier() : 0;
   // Подсказка подбора у ног: ближайшее интерактивное побеждает (добыча → пруд → кузня → разлом); в окнах не показываем.
   const prompt = sim && status === "running" && !sim.lootOpen && !sim.buildOpen
     ? (sim.nearLoot ? "loot" : sim.nearPond ? (sim.pondOpen ? null : "pond") : sim.nearForge ? (sim.forgeOpen ? null : "forge") : sim.nearRift && !sim.riftOpen ? "rift" : null)
@@ -600,6 +604,13 @@ function ArcadeStage() {
             <div className="arcade-hud__upper">
             <div className="arcade-hud__top">
               <span className="arcade-hud__clock" data-testid="arcade-clock" data-paused={sim.riftActive() ? "true" : undefined}>{formatClock(sim.actTick)}</span>
+              {streakTier > 0 && (
+                // Серия убийств без урона: ключ — ступень, чтобы новая ступень переигрывала «выпрыгивание» (CSS).
+                <span key={streakTier} className="arcade-hud__streak" data-tier={streakTier} data-testid="arcade-streak" title={t("arcade.hud.streakHint")}>
+                  <b>{t(`arcade.streak.${streakTier}` as MessageKey)}</b>
+                  <small>{p.streak} · {t("arcade.hud.streakGold", { pct: Math.round((sim.streakGoldMult() - 1) * 100) })}</small>
+                </span>
+              )}
               <span className="arcade-hud__stats">
                 <span>{t("arcade.hud.kills")} <b>{p.kills}</b></span>
                 <span>{t("arcade.hud.gold")} <b>{p.gold}</b></span>
@@ -633,6 +644,12 @@ function ArcadeStage() {
               <div className="arcade-hud__boss">
                 <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : boss.kind.id === "centaur_warden" ? t(sim!.tick < boss.stunUntil ? "arcade.hud.centaurStunned" : "arcade.hud.centaur") : boss.kind.id === "troll_necromancer" ? t(sim!.idolsAlive() > 0 ? "arcade.hud.necro" : "arcade.hud.necroExposed", { n: sim!.idolsAlive(), total: ARCADE.necro.idols }) : boss.kind.id === "thunder_golem" ? t("arcade.hud.thunder") : boss.kind.id === "river_warden" ? t(sim!.wardenShielded() ? "arcade.hud.wardenShield" : "arcade.hud.wardenOpen") : boss.kind.id === "dire_stalker" ? t(sim!.stalkerHidden() ? "arcade.hud.stalkerHidden" : "arcade.hud.stalkerOpen") : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
                 <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, boss.hp / boss.maxHp) * 100}%` }} /></div>
+              </div>
+            )}
+            {affixed && (
+              <div className="arcade-hud__boss arcade-hud__boss--affix" data-testid="arcade-hud-affix" title={AFFIX_IDS.filter((id) => affixed.affix & AFFIX[id]).map((id) => t(`arcade.affix.${id}.desc` as MessageKey)).join(" ")}>
+                <span>{t("arcade.hud.affixElite", { names: AFFIX_IDS.filter((id) => affixed.affix & AFFIX[id]).map((id) => t(`arcade.affix.${id}` as MessageKey)).join(" · ") })}</span>
+                <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, affixed.hp / affixed.maxHp) * 100}%` }} /></div>
               </div>
             )}
             </div>
@@ -1092,6 +1109,7 @@ function ArcadeStage() {
                 <div><dt>{t("arcade.over.time")}</dt><dd>{formatClock(outcome.tick)}</dd></div>
                 <div><dt>{t("arcade.hud.level")}</dt><dd>{outcome.level}</dd></div>
                 <div><dt>{t("arcade.hud.kills")}</dt><dd>{outcome.kills}</dd></div>
+                {(outcome.bestStreak ?? 0) > 0 && <div data-testid="arcade-best-streak"><dt>{t("arcade.over.bestStreak")}</dt><dd>{outcome.bestStreak}{streakTierOf(outcome.bestStreak ?? 0) > 0 ? ` · ${t(`arcade.streak.${streakTierOf(outcome.bestStreak ?? 0)}` as MessageKey)}` : ""}</dd></div>}
                 <div><dt>{t("arcade.hud.gold")}</dt><dd>{outcome.gold}</dd></div>
                 <div><dt>{t("arcade.hud.roshan")}</dt><dd>{t(outcome.roshanKilled ? "arcade.over.roshanYes" : "arcade.over.roshanNo")}</dd></div>
                 <div><dt>{t("arcade.rank")}</dt><dd>{t(`arcade.tier.${rankOf(outcome.rank).tier}` as MessageKey)} {"★".repeat(rankOf(outcome.rank).stars)}</dd></div>

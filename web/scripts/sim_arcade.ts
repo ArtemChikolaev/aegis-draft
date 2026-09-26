@@ -155,7 +155,7 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
     const d = Math.sqrt(dx * dx + dy * dy);
     if (d < nd && !e.kind.reflect && !e.kind.structure) { nd = d; nx = dx / (d || 1); ny = dy / (d || 1); }
     if (d < 220) {
-      const w = e.kind.boss ? 6 : e.kind.elite ? 3 : e.kind.tone === "brute" ? 2 : 1;
+      const w = e.kind.boss ? 6 : e.kind.elite || e.affix !== 0 ? 3 : e.kind.tone === "brute" ? 2 : 1;
       cx += dx / (d || 1) * w; cy += dy / (d || 1) * w; danger += w * (d < 110 ? 1 : 0.35); near++;
     }
   }
@@ -172,6 +172,14 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
   // Акт 3: к Рошану идём в яму (босс привязан к ней); снаружи он лечится, поэтому не тянем.
   const rosh = sim.roshan?.alive ? sim.roshan : sim.ancient?.alive ? sim.ancient : null;
   const canBlink = BLINK && p.blinkCharges > 0 && sim.tick >= p.stunUntil;
+  // Взрыв «Взрывной» элиты: выйти из круга до вспышки, не успеть — рывок (как от удара Рошана ниже).
+  for (const b of sim.blasts) {
+    const dx = p.x - b.x, dy = p.y - b.y, d = Math.sqrt(dx * dx + dy * dy);
+    if (d > b.r + ARCADE.player.r + 10) continue;
+    const ux = d > 1 ? dx / d : 1, uy = d > 1 ? dy / d : 0;
+    const late = (b.at - sim.tick) * p.stats.speed / TICK_HZ < b.r + ARCADE.player.r - d;
+    return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: canBlink && late ? BLINK_MASK : 0, choose: -1, act: 0 };
+  }
   if (rosh && rosh.slamT > 0) {
     const dx = p.x - rosh.slamX, dy = p.y - rosh.slamY;
     const d = Math.sqrt(dx * dx + dy * dy);

@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.75.0";
+export const ARCADE_CONFIG_VERSION = "a0.76.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -149,6 +149,22 @@ export const ARCADE = {
     over: { radius: 170, dmg: 60, perLevel: 6, slow: 0.5, slowSec: 3 },
     swift: { seconds: 3, attackMult: 0.7, speedMult: 1.25 },
     arcane: { charges: 1, rechargeMult: 0.5 },
+  },
+  /** Серия убийств (как у героя в Dota, но «без полученного урона», а не «без смерти»): убийства подряд, пока ни один удар
+   *  не дошёл до HP (щит руны и неуязвимость серию не рвут). Ступени Killing Spree … Beyond Godlike на порогах `tiers`;
+   *  каждая ступень даёт +`goldPerTier` к золоту за убийство (баунти), голос комментатора из клиента Dota. Пороги —
+   *  по пробе ботом (2026-09-26, Herald short): у мили медианный максимум серии ≈ 90–100, у стрелков и магов 240–350. */
+  streak: { tiers: [10, 20, 35, 50, 75, 100, 150, 200], goldPerTier: 0.1 },
+  /** Элита с аффиксами (DMD/Diablo-подобные модификаторы): с `fromMin` раз в `every` по часам акта обычный враг пула минуты
+   *  приходит усиленным (HP ×`hpMult`, опыт ×`xpMult`, золото ×`goldMult`, `lootChance` — шанс предмета) с одним аффиксом;
+   *  с `secondAtMin` минуты или с ранга `secondRank` — с двумя разными. Видна кольцом цвета аффикса и строкой в HUD рядом. */
+  affix: {
+    fromMin: 3, every: sec(45), hpMult: 4, xpMult: 5, goldMult: 5, lootChance: 0.35, secondAtMin: 10, secondRank: 20,
+    haste: { speedMult: 1.4 },
+    vampiric: { healMult: 4 },
+    volatile: { radius: 90, delay: sec(1.1), dmgMult: 2.5 },
+    frost: { slow: 0.3, seconds: 1.5 },
+    splitter: { count: 2, hpFrac: 0.3 },
   },
   /** Io (владелец 2026-09-12): радиус шара духов и время полного оборота орбиты. */
   io: { orbR: 16, orbitSec: 3.5 },
@@ -340,3 +356,11 @@ export const ARCADE = {
     ccResist: sec(3),
   },
 } as const;
+
+/** Ступень серии по числу убийств без урона: 0 — нет, 1 — Killing Spree … 8 — Beyond Godlike (ARCADE.streak.tiers). */
+export function streakTierOf(kills: number): number {
+  const tiers = ARCADE.streak.tiers;
+  let t = 0;
+  while (t < tiers.length && kills >= tiers[t]) t++;
+  return t;
+}

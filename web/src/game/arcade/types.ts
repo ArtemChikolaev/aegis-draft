@@ -179,6 +179,9 @@ export interface Enemy {
   /** Corrosive Haze (Slardar): до какого тика цель получает на ampMult больше урона. */
   ampUntil: number;
   ampMult: number;
+  /** Аффиксы элиты (битовая маска `AFFIX` из content/enemies.ts; 0 — обычный враг): обычный враг пула минуты, усиленный
+   *  и с 1–2 модификаторами (ARCADE.affix). */
+  affix: number;
   /** Осада леса (T13.78): у охраны патруля — id знаменосца (0 — нет); у знаменосца — точка маршрута. */
   leader: number;
   /** Кэш ссылки на вожака `leader`: сверяется по `alive` и `id` (пул переиспользует объекты) — без поиска по всем врагам каждый тик. */
@@ -320,6 +323,8 @@ export interface ArcadeEventCounters {
   caravans: number;
   /** Рывки Blink — звук и juice. */
   blinks: number;
+  /** Новые ступени серии убийств (Killing Spree … Beyond Godlike) — голос комментатора и juice. */
+  streakUps: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
@@ -382,6 +387,9 @@ export interface ArcherLine { id: number; cx: number; cy: number; dirX: number; 
 
 /** Лужа спор (T13.82): круг на земле до тика `until` — герой в ней получает урон и замедлен. */
 export interface SporePuddle { x: number; y: number; r: number; until: number }
+
+/** Взрыв «Взрывной» элиты: телеграф круга после смерти, в тик `at` — урон `dmg` герою внутри `r`; `born` — для заливки. */
+export interface Blast { x: number; y: number; r: number; born: number; at: number; dmg: number; by: EnemyKindId }
 
 export interface Rift {
   x: number;
@@ -522,6 +530,11 @@ export interface Player {
   /** Swift Blink — до какого тика ускорение после рывка; «Стая следом» (beast_pounce) — до какого тика питомцы бьют сильнее. */
   swiftUntil: number;
   pounceUntil: number;
+  /** Серия (ARCADE.streak): убийств подряд без полученного урона и лучшая за забег; удар, дошедший до HP, обнуляет. */
+  streak: number;
+  bestStreak: number;
+  /** Удар «Морозной» элиты: до какого тика герой замедлен. */
+  frostUntil: number;
   /** Фирменная пассивка (heroes.ts signature): стаки (души/ярость), цель серии, таймер/взвод эффекта. */
   stacks: number;
   stackTarget: number;
@@ -644,4 +657,6 @@ export interface ArcadeOutcome {
   caravanDone: boolean;
   /** Стартовая особенность забега (T13.62). */
   trait: string | null;
+  /** Лучшая серия убийств без полученного урона. */
+  bestStreak?: number;
 }

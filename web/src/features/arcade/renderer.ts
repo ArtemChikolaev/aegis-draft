@@ -7,6 +7,7 @@ import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
 import { formatClock } from "../../game/arcade/clock.ts";
 import type { AbilityKey, Enemy, Invitation, RuneKind } from "../../game/arcade/types.ts";
 import type { AbilityDef } from "../../game/arcade/content/heroes.ts";
+import { AFFIX, AFFIX_IDS, type AffixId } from "../../game/arcade/content/enemies.ts";
 
 /** Порядок слотов умений — тот же, что в симе (там он приватный). */
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
@@ -40,6 +41,9 @@ type Palette = Record<PaletteKey, string>;
 function runeColor(pal: Palette, kind: RuneKind): string {
   return kind === "dd" ? pal.runeDd : kind === "shield" ? pal.runeShield : kind === "arcane" ? pal.runeArcane : pal.runeIllusion;
 }
+
+/** Цвет аффикса элиты — по смыслу: скорость — янтарь, вампир — кровь, взрыв — огонь, мороз — лёд, раскол — осколок. */
+const AFFIX_TONE: Record<AffixId, PaletteKey> = { haste: "ember", vampiric: "critText", volatile: "fire", frost: "frost", splitter: "shard" };
 
 const TONE_KEY: Record<Enemy["kind"]["tone"], PaletteKey> = { grunt: "grunt", brute: "brute", swift: "swift", elite: "elite", boss: "boss", creep: "creep" };
 
@@ -305,6 +309,7 @@ export class ArcadeRenderer {
     this.drawLoot(sim, pal, now);
     this.drawSpores(sim, pal);
     this.drawArcherLines(sim, pal);
+    this.drawBlasts(sim, pal);
     this.drawEnemies(sim, pal);
     this.drawPets(sim, pal);
     this.drawProjectiles(sim, pal);
@@ -409,7 +414,7 @@ export class ArcadeRenderer {
     }
     // Элиты и боссы; охотник Dire.
     for (const e of sim.enemies) {
-      if (!e.alive || !(e.kind.elite || e.kind.boss)) continue;
+      if (!e.alive || !(e.kind.elite || e.kind.boss || e.affix !== 0)) continue;
       dot(e.x, e.y, e.kind.boss ? 3 : 2, e.kind.boss ? pal.boss : pal.elite);
     }
     if (sim.hunter?.alive) dot(sim.hunter.x, sim.hunter.y, 2.5, pal.telegraph);
@@ -1015,6 +1020,32 @@ export class ArcadeRenderer {
     }
   }
 
+  /** Взрыв «Взрывной» элиты: круг на земле наливается к моменту удара — выйти из него до вспышки. */
+  private drawBlasts(sim: ArcadeSim, pal: Palette): void {
+    const c = this.ctx;
+    for (const b of sim.blasts) {
+      const k = Math.min(1, Math.max(0, (sim.tick - b.born) / Math.max(1, b.at - b.born)));
+      c.fillStyle = pal.telegraph; c.globalAlpha = 0.1 + 0.3 * k;
+      c.beginPath(); c.arc(b.x, b.y, b.r * k, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 0.85; c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([8, 6]);
+      c.beginPath(); c.arc(b.x, b.y, b.r, 0, Math.PI * 2); c.stroke(); c.setLineDash([]);
+      c.globalAlpha = 1;
+    }
+  }
+
+  /** Элита с аффиксами: пульсирующее кольцо цвета первого аффикса и по точке на каждый аффикс над полосой HP. */
+  private drawAffix(c: CanvasRenderingContext2D, e: Enemy, r: number, pal: Palette, tick: number): void {
+    const ids = AFFIX_IDS.filter((id) => (e.affix & AFFIX[id]) !== 0);
+    const main = pal[AFFIX_TONE[ids[0]]];
+    c.strokeStyle = main; c.lineWidth = 3; c.globalAlpha = 0.55 + 0.35 * Math.sin(tick / 9 + e.id);
+    c.beginPath(); c.arc(e.x, e.y, r + 9, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+    const step = 9, x0 = e.x - ((ids.length - 1) * step) / 2;
+    ids.forEach((id, i) => {
+      c.fillStyle = pal[AFFIX_TONE[id]];
+      c.beginPath(); c.arc(x0 + i * step, e.y - r - 24, 3.5, 0, Math.PI * 2); c.fill();
+    });
+  }
+
   private drawEnemies(sim: ArcadeSim, pal: Palette): void {
     const c = this.ctx;
     const tick = sim.tick;
@@ -1088,7 +1119,8 @@ export class ArcadeRenderer {
         }
       }
       if (e.kind.reflect) { c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([4, 4]); c.beginPath(); c.arc(e.x, e.y, r + 8, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
-      if (e.kind.elite || e.kind.boss || e.kind.structure) {
+      if (e.affix !== 0) this.drawAffix(c, e, r, pal, tick);
+      if (e.kind.elite || e.kind.boss || e.kind.structure || e.affix !== 0) {
         c.strokeStyle = pal.text; c.lineWidth = e.kind.boss || e.kind.structure ? 3 : 2;
         c.beginPath(); c.arc(e.x, e.y, r + 5, 0, Math.PI * 2); c.stroke();
         const w = e.kind.boss || e.kind.structure ? 120 : 48;

@@ -2,6 +2,12 @@
 // Числа — базовые на минуте 0; сим умножает HP/урон по минутам (ARCADE.spawn.*PerMin).
 import type { EnemyKind, EnemyKindId } from "../types.ts";
 
+/** Аффиксы элиты (ARCADE.affix): битовая маска в `Enemy.affix`. Быстрый — скорость; Вампир — лечится своим ударом;
+ *  Взрывной — после смерти телеграф и взрыв; Морозный — удар замедляет героя; Раскол — после смерти двое слабее. */
+export type AffixId = "haste" | "vampiric" | "volatile" | "frost" | "splitter";
+export const AFFIX: Readonly<Record<AffixId, number>> = { haste: 1, vampiric: 2, volatile: 4, frost: 8, splitter: 16 };
+export const AFFIX_IDS: readonly AffixId[] = ["haste", "vampiric", "volatile", "frost", "splitter"];
+
 const KINDS: Record<EnemyKindId, EnemyKind> = {
   kobold: { id: "kobold", hp: 14, speed: 86, dmg: 6, r: 10, xp: 1, gold: 1, fromMin: 0, weight: 10, tone: "grunt" },
   kobold_foreman: { id: "kobold_foreman", hp: 32, speed: 72, dmg: 9, r: 12, xp: 2, gold: 1, fromMin: 0.75, weight: 6, tone: "grunt" },

@@ -11,9 +11,9 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetDef, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type DmgOrigin, type ArcherLine, type SporePuddle } from "./types.ts";
-import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec } from "./config.ts";
-import { ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type DmgOrigin, type ArcherLine, type SporePuddle, type Blast } from "./types.ts";
+import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec, streakTierOf } from "./config.ts";
+import { AFFIX, AFFIX_IDS, ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
 import { COMPOSITIONS, type ActProperty, type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
@@ -163,6 +163,13 @@ export class ArcadeSim {
   /** Спороносцы (T13.82): лужи на земле и следующая пара по расписанию. */
   spores: SporePuddle[] = [];
   private nextSporesAt = 0;
+  /** Взрывы «Взрывных» элит после смерти (ARCADE.affix.volatile): телеграф круга, затем урон. */
+  blasts: Blast[] = [];
+  /** «Раскол»: дети ждут конца тика — спавн внутри killEnemy отдал бы им из пула объект умирающего врага, и остаток
+   *  killEnemy (награда, пассивки) и вызывающий код читали бы уже ребёнка. */
+  private splits: { kind: EnemyKind; x: number; y: number; hp: number }[] = [];
+  /** Следующая элита с аффиксами по часам акта. */
+  private nextAffixAt = sec(60 * ARCADE.affix.fromMin);
   /** Токен нейтралки на карте и открытый выбор (мир стоит, как в лавке). */
   neutralToken: Spot = { alive: false, x: 0, y: 0, until: 0, value: 0 };
   neutralOpen = false;
@@ -291,7 +298,7 @@ export class ArcadeSim {
   aegisDrop: { x: number; y: number } | null = null;
   /** Камера/тряска — подсказки рендеру (не влияют на сим). */
   shake = 0;
-  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0, blinks: 0 };
+  readonly events: ArcadeEventCounters = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, castQ: 0, castW: 0, castE: 0, castR: 0, hurtBy: -1, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0, blinks: 0, streakUps: 0 };
   private nextEnemyId = 1;
   private spawnAcc = 0;
   private lastWaveAt = 0;
@@ -347,7 +354,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
-      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, armorBuffAmt: 0, blinkCharges: ARCADE.blink.charges, blinkCd: 0, blinkAt: -ARCADE.blink.lockout, swiftUntil: 0, pounceUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, armorBuffAmt: 0, blinkCharges: ARCADE.blink.charges, blinkCd: 0, blinkAt: -ARCADE.blink.lockout, swiftUntil: 0, pounceUntil: 0, streak: 0, bestStreak: 0, frostUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, ritualKind: null, ritualUntil: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
     // Первое очко — сразу в Q (у Io — в Spirits, `startKey`): так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -1509,6 +1516,7 @@ export class ArcadeSim {
     this.schoolEffects();
     this.moveProjectiles();
     this.collectShards();
+    this.tickBlasts();
     this.regenAndHazards();
     this.tickOutpost();
     this.pruneFx();
@@ -1636,6 +1644,7 @@ export class ArcadeSim {
     let speed = p.stats.speed;
     if (this.tick < p.spinUntil || this.tick < p.hasteUntil) speed *= 1.12;
     if (this.tick < p.swiftUntil) speed *= ARCADE.blink.swift.speedMult; // Swift Blink
+    if (this.tick < p.frostUntil) speed *= 1 - ARCADE.affix.frost.slow; // удар «Морозной» элиты
     if (this.tick < p.fieldUntil) speed *= 0.5;
     if (this.inCurrent(p.x, p.y)) speed *= 1 - ARCADE.tide.slow; // прилив: медленнее, но управление своё
     if (this.inSpore(p.x, p.y)) speed *= 1 - ARCADE.spores.slow; // лужа спор: замедление, пока не вышел
@@ -2263,10 +2272,22 @@ export class ArcadeSim {
     this.dmgSource = src;
   }
 
+  /** Ближайшая к герою элита с аффиксами в радиусе — строка HUD «Элита: Быстрый · Вампир» (чистый запрос, без Rng). */
+  affixedNear(radius: number): Enemy | null {
+    const p = this.player;
+    let best: Enemy | null = null, bestD = radius;
+    for (const e of this.enemies) {
+      if (!e.alive || e.affix === 0) continue;
+      const d = len(e.x - p.x, e.y - p.y);
+      if (d < bestD) { bestD = d; best = e; }
+    }
+    return best;
+  }
+
   private eliteWithin(x: number, y: number, radius: number): Enemy | null {
     let best: Enemy | null = null, bestD = radius;
     for (const e of this.enemies) {
-      if (!e.alive || !(e.kind.elite || e.kind.boss)) continue;
+      if (!e.alive || !(e.kind.elite || e.kind.boss || e.affix !== 0)) continue;
       const d = len(e.x - x, e.y - y) - e.kind.r;
       if (d < bestD && this.targetable(e)) { bestD = d; best = e; }
     }
@@ -2662,18 +2683,26 @@ export class ArcadeSim {
       for (const o of this.enemies) if (o.alive && o.leader === e.id) { o.leader = 0; o.ampUntil = this.tick + sec(ARCADE.siege.escortAmpSec); o.ampMult = Math.max(o.ampMult, ARCADE.siege.escortAmp); }
       this.pushFx("nova", e.x, e.y, 120, 0, 20);
     }
+    // Серия (ARCADE.streak): убийство без полученного урона продолжает её; новая ступень — голос комментатора.
+    const tierBefore = this.streakTier();
+    p.streak++;
+    if (p.streak > p.bestStreak) p.bestStreak = p.streak;
+    if (this.streakTier() > tierBefore) this.events.streakUps++;
+    // Элита с аффиксами для пассивок героя — как элита (души, Death Pact, Flesh Heap).
+    const big = e.kind.elite || e.kind.boss || e.affix !== 0;
+    if (e.affix !== 0) this.affixDeath(e);
     const sig = this.hero.signature;
-    if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (e.kind.elite || e.kind.boss ? 6 : 1));
-    if (sig?.kind === "deathpact") this.heal(sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1), true);
+    if (sig?.kind === "souls") p.stacks = Math.min(sig.cap ?? 36, p.stacks + (big ? 6 : 1));
+    if (sig?.kind === "deathpact") this.heal(sig.value * this.sigScale() * (big ? 5 : 1), true);
     if (sig?.kind === "growth") {
       // Flesh Heap: убийства наращивают запас здоровья до потолка; прибавка идёт и в текущее hp,
       // иначе герой с полным hp получает только пустую полоску. maxHp = база + stacks: recomputeStats добавляет их заново.
-      const add = sig.value * this.sigScale() * (e.kind.elite || e.kind.boss ? 5 : 1);
+      const add = sig.value * this.sigScale() * (big ? 5 : 1);
       const room = (sig.cap ?? 400) - p.stacks;
       if (room > 0) { const gain = Math.min(add, room); p.stacks += gain; p.stats.maxHp += gain; p.hp += gain; }
     }
-    if (e.kind.elite || e.kind.boss || e.kind.structure) this.events.eliteKills++;
-    this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, e.kind.elite || e.kind.boss ? 22 : 14);
+    if (big || e.kind.structure) this.events.eliteKills++;
+    this.pushFx("die", e.x, e.y, e.kind.r, KIND_INDEX[e.kind.id] ?? 0, big ? 22 : 14);
     if (e.kind.id === "bone_idol" && this.barrow) { this.barrow.idolsDown++; this.pushFx("burst", e.x, e.y, 60, 0, 18); }
     else if (e.kind.totem && this.camp && !this.camp.cleared) {
       this.camp.destroyed++;
@@ -2750,8 +2779,9 @@ export class ArcadeSim {
     }
     // Горящий враг оставляет после себя дым и угольки (T13.22): пламя не должно обрываться на смерти.
     if (this.tick < e.burnUntil) this.pushFx("ash", e.x, e.y, e.kind.r, 0, 44);
-    this.gainGold(e.kind.gold + p.stats.goldPerKill);
-    this.dropShard(e.x, e.y, e.kind.xp);
+    const affixed = e.affix !== 0, A = ARCADE.affix;
+    this.gainGold((e.kind.gold * (affixed ? A.goldMult : 1) + p.stats.goldPerKill) * this.streakGoldMult());
+    this.dropShard(e.x, e.y, e.kind.xp * (affixed ? A.xpMult : 1));
     const blast = this.upgradePower("rad_blast");
     if (blast > 0 && this.tick < e.burnUntil) {
       // Взрыв горящего — урон школы Radiance, а не того, чем добили.
@@ -2790,6 +2820,7 @@ export class ArcadeSim {
       this.finish("victory");
     }
     else if (e.kind.elite && e.kind.id !== "centaur_warden" && e.kind.id !== "river_warden") this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity())); // у Стражей своя награда
+    else if (affixed && this.rng.float() < A.lootChance) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
     else if (this.rng.float() < ARCADE.loot.commonChance) this.dropLoot(e.x, e.y, this.rollLoot(this.rollRarity()));
     if (e.kind.id === "tormentor") {
       // Награда за Tormentor: щедрость без платы — 60 с двойного опыта.
@@ -2816,15 +2847,17 @@ export class ArcadeSim {
     this.spreadingPoison = false;
   }
 
-  private damagePlayer(amount: number, stun = 0, by?: EnemyKind): void {
+  /** Урон по герою; возвращает, сколько HP реально снято (0 — уклонился, неуязвим или всё принял щит): от этого
+   *  лечится «Вампир» и замедляет «Морозный» удар элиты. Удар, дошедший до HP, обрывает серию убийств. */
+  private damagePlayer(amount: number, stun = 0, by?: EnemyKind): number {
     const p = this.player;
     this.events.hurtBy = by ? KIND_INDEX[by.id] ?? -1 : -1;
-    if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.slot.omni !== undefined)) return;
+    if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.slot.omni !== undefined)) return 0;
     const sig = this.hero.signature;
-    if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return; // уклонение PA
-    if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return; // Windrun / Skeleton Walk / Moonlight Shadow
-    if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return; // BKB: треть ударов мимо
-    if (this.upgradePower("leg_butterfly") > 0 && this.rng.float() < 0.25) return; // Бабочка: четверть ударов мимо
+    if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return 0; // уклонение PA
+    if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return 0; // Windrun / Skeleton Walk / Moonlight Shadow
+    if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return 0; // BKB: треть ударов мимо
+    if (this.upgradePower("leg_butterfly") > 0 && this.rng.float() < 0.25) return 0; // Бабочка: четверть ударов мимо
     const armor = p.stats.armor + (this.tick < p.armorBuffUntil ? p.armorBuffAmt : 0);
     // Отрицательная броня — формула Dota (урон ×(1 + 0.06|a|/(1+0.06|a|)), не выше ×2): у прежней общей формулы полюс при
     // a ≈ −16.7 (урон ×25, дальше — «отрицательный»), а Mask of Madness (−4) покупается повторно.
@@ -2834,12 +2867,13 @@ export class ArcadeSim {
     const flat = sig?.kind === "tough" ? sig.value * this.sigScale() : 0;
     let taken = Math.max(1, amount * this.riftTakenMult() * (1 - reduction) - flat);
     // Руна щита: запас принимает урон первым, пока не кончится он или срок.
-    if (this.tick < p.shieldUntil && p.shieldHp > 0) { const ab = Math.min(p.shieldHp, taken); p.shieldHp -= ab; taken -= ab; if (taken <= 0) return; }
+    if (this.tick < p.shieldUntil && p.shieldHp > 0) { const ab = Math.min(p.shieldHp, taken); p.shieldHp -= ab; taken -= ab; if (taken <= 0) return 0; }
     // Разбор: полученный урон — сколько HP реально снято (после уклонения, брони и щита; смертельный — не больше остатка).
     const byId = by?.id ?? "projectile";
     this.takenByKind[byId] = (this.takenByKind[byId] ?? 0) + Math.min(taken, Math.max(0, p.hp));
     p.hp -= taken;
     this.events.hurt++;
+    p.streak = 0;
     // Ответный урон пишется своему источнику (пассивка/легендарка — школа, Counter Helix — его слот), источник вызывающего — назад.
     const src = this.dmgSource;
     if (sig?.kind === "quill" && this.tick >= p.sigUntil) {
@@ -2867,6 +2901,7 @@ export class ArcadeSim {
     this.dmgSource = src;
     if (stun > 0 && this.tick >= p.spinUntil && !p.stats.stunImmune) p.stunUntil = Math.max(p.stunUntil, this.tick + sec(stun));
     this.shake = Math.max(this.shake, 4);
+    return taken;
   }
 
   /** Единственный путь лечения героя (кроме пруда и регена, у которых своя формула): Увядание и ритуал действуют здесь.
@@ -2932,7 +2967,7 @@ export class ArcadeSim {
       contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
       riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null, caravanDone: this.caravan?.state === "arrived", trait: this.trait?.id ?? null,
       killer: outcome === "dead" ? KIND_BY_INDEX[this.events.hurtBy] ?? null : null, dealtBySource: { ...this.dealtBySource }, takenByKind: { ...this.takenByKind },
-      composition: this.composition, oathDone: (this.contract?.done && this.contract.oath) === true,
+      composition: this.composition, oathDone: (this.contract?.done && this.contract.oath) === true, bestStreak: p.bestStreak,
     };
   }
 
@@ -3056,6 +3091,8 @@ export class ArcadeSim {
       this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
       if (this.rank.doubleGolems) this.spawnEnemy(ENEMY_KINDS.golem, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 20));
     }
+    // Элита с аффиксами: обычный враг пула минуты, усиленный, с 1–2 модификаторами (по часам акта — в разломе стоит).
+    if (at >= this.nextAffixAt) { this.nextAffixAt = at + ARCADE.affix.every; this.spawnAffixed(pool); }
     if (this.rank.trollPacks && at >= this.nextTrollPackAt) {
       this.nextTrollPackAt = at + sec(45);
       for (let i = 0; i < 8; i++) this.spawnEnemy(ENEMY_KINDS.hill_troll, ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 30));
@@ -3220,6 +3257,63 @@ export class ArcadeSim {
     return e;
   }
 
+  /** Ступень серии: 0 — нет, 1 — Killing Spree … 8 — Beyond Godlike (ARCADE.streak.tiers). */
+  streakTier(): number {
+    return streakTierOf(this.player.streak);
+  }
+
+  /** Баунти серии: множитель золота за убийство. */
+  streakGoldMult(): number {
+    return 1 + ARCADE.streak.goldPerTier * this.streakTier();
+  }
+
+  /** Элита с аффиксами: вид — из пула минуты, у края кольца спавна; 1 аффикс, 2 — с `secondAtMin` или ранга `secondRank`. */
+  private spawnAffixed(pool: readonly EnemyKind[]): void {
+    const A = ARCADE.affix;
+    const e = this.spawnEnemy(weightedPick(this.rng, pool), ...this.ringPoint(ARCADE.spawn.ringMin, ARCADE.spawn.ringMin + 40));
+    e.hp *= A.hpMult; e.maxHp *= A.hpMult;
+    const n = this.minutes >= A.secondAtMin || this.rank.step >= A.secondRank ? 2 : 1;
+    let mask = 0;
+    while (countBits(mask) < n) mask |= AFFIX[AFFIX_IDS[this.rng.int(AFFIX_IDS.length)]];
+    e.affix = mask;
+  }
+
+  /** Удар элиты дошёл до HP героя: Вампир лечится, Морозный замедляет. */
+  private affixHit(e: Enemy, taken: number): void {
+    const A = ARCADE.affix;
+    if (e.affix & AFFIX.vampiric) { e.hp = Math.min(e.maxHp, e.hp + taken * A.vampiric.healMult); this.pushFx("heal", e.x, e.y - e.kind.r, 0, 0, 20, Math.round(taken * A.vampiric.healMult)); }
+    if (e.affix & AFFIX.frost) this.player.frostUntil = Math.max(this.player.frostUntil, this.tick + sec(A.frost.seconds));
+  }
+
+  /** Смерть элиты с аффиксами: Взрывной — телеграф и взрыв, Раскол — двое слабее без аффиксов. */
+  private affixDeath(e: Enemy): void {
+    const A = ARCADE.affix;
+    if (e.affix & AFFIX.volatile) this.blasts.push({ x: e.x, y: e.y, r: A.volatile.radius, born: this.tick, at: this.tick + A.volatile.delay, dmg: e.dmg * A.volatile.dmgMult, by: e.kind.id });
+    if (e.affix & AFFIX.splitter) {
+      for (let i = 0; i < A.splitter.count; i++) {
+        const d = DIRS[(i * 8 + (e.id & 7)) % DIRS.length];
+        this.splits.push({ kind: e.kind, x: e.x + d[0] * 22, y: e.y + d[1] * 22, hp: e.maxHp * A.splitter.hpFrac });
+      }
+    }
+  }
+
+  /** После боя тика: дети «Раскола» встают в пул, взрывы «Взрывных» элит в свой тик бьют героя внутри круга
+   *  (неуязвимость Blink спасает, как от любого удара). */
+  private tickBlasts(): void {
+    for (const sp of this.splits) { const c = this.spawnEnemy(sp.kind, sp.x, sp.y); c.hp = sp.hp; c.maxHp = sp.hp; }
+    this.splits.length = 0;
+    if (this.blasts.length === 0) return;
+    const p = this.player;
+    let w = 0;
+    for (const b of this.blasts) {
+      if (this.tick < b.at) { this.blasts[w++] = b; continue; }
+      if (len(p.x - b.x, p.y - b.y) <= b.r + ARCADE.player.r) this.damagePlayer(b.dmg, 0, ENEMY_KINDS[b.by]);
+      this.pushFx("burst", b.x, b.y, b.r, 0, 16);
+      this.shake = Math.max(this.shake, 6);
+    }
+    this.blasts.length = w;
+  }
+
   private rebuildGrid(): void {
     // Ячейки живут между тиками: обнуляем длину занятых, а не пересоздаём массивы (порядок обхода Map нигде не читается).
     for (const cell of this.gridUsed) cell.length = 0;
@@ -3330,6 +3424,7 @@ export class ArcadeSim {
       }
       if (frozen && !e.kind.unstoppable) continue;
       let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1) * this.riftSpeedMult();
+      if (e.affix & AFFIX.haste) speed *= ARCADE.affix.haste.speedMult;
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
       if (!e.kind.unstoppable && !e.kind.boss && this.inCurrent(e.x, e.y)) speed *= 1 - ARCADE.tide.slow;
       const ranged = e.kind.ranged;
@@ -3385,7 +3480,8 @@ export class ArcadeSim {
       // Контакт с игроком.
       if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
         e.contactCd = sec(ARCADE.player.contactEvery);
-        this.damagePlayer(e.dmg, 0, e.kind);
+        const taken = this.damagePlayer(e.dmg, 0, e.kind);
+        if (taken > 0 && e.affix !== 0) this.affixHit(e, taken);
       }
     }
   }
@@ -4661,7 +4757,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, leader: 0, leaderRef: null, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, affix: 0, leader: 0, leaderRef: null, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
   };
 }
 
@@ -4669,7 +4765,13 @@ function emptyEnemy(kind: EnemyKind): Enemy {
 function resetEnemy(e: Enemy, kind: EnemyKind): void {
   e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
   e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
-  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
+  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.affix = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
+}
+
+function countBits(mask: number): number {
+  let n = 0;
+  for (let m = mask; m !== 0; m &= m - 1) n++;
+  return n;
 }
 
 function clamp(v: number, lo: number, hi: number): number {
