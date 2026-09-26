@@ -5,7 +5,7 @@
 Выход: web/public/art/sfx/dota/pack/<группа>/<имя>_N.(m4a|mp3) и pack/index.json:
   abilities.<hero>.{q,w,e,r}   — касты умений героя (sounds/weapons/hero/<folder>/…)
   enemies.<enemyId>.{attack,death,aggro} — удары мобов по герою, их смерть, рык
-  ui.{levelup,abilitylevel,coins,buy,lasthit,itemPickup,rune,heroPicked,deny,aegis,streak1..8,firstBlood}
+  ui.{levelup,abilitylevel,coins,buy,lasthit,itemPickup,rune,heroPicked,deny,aegis,streak1..8,firstBlood,buyback}
   fx.{crit,fireRing,frostShatter,chain,radianceLoop,roshanRoar,whoosh,nova,zap,blink,blinkOver,blinkSwift,blinkArcane}
 Запуск: S2V=~/tools/s2v/Source2Viewer-CLI python3 scripts/dota_sfx_pack.py  (DOTA=, OUT= как у других скриптов).
 Клипы в vpk — WAV (жмём afconvert в AAC mono 44 kbps) или MP3 (копируем)."""
@@ -210,6 +210,8 @@ UI = {
     # Комментатор серий (ARCADE.streak): streak1..8 = Killing Spree … Beyond Godlike, плюс First Blood — голос по умолчанию.
     **{f"streak{i + 1}": [f"{A}announcer_kill_{n}_01"] for i, n in enumerate(["spree", "dominate", "mega", "unstop", "wicked", "monster", "godlike", "holy"])},
     "firstBlood": [f"{A}announcer_1stblood_01"],
+    # Выкуп (ARCADE.buyback) — музыкальный стингер Dota по умолчанию.
+    "buyback": ["sounds/music/valve_dota_001/stingers/buy_back"],
 }
 FX = {
     "crit": [f"{H}phantom_assassin/crit_spatter0{i}" for i in (1, 2, 3)],

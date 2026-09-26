@@ -17,6 +17,8 @@ export interface ArcadeItemDef {
   extras?: [ItemEffect, ItemEffect];
   /** Множитель величины по редкости применяется к числовым эффектам ниже. */
   effect: ItemEffect;
+  /** Один на героя (как BKB в Dota): лавка не предлагает второй экземпляр. */
+  unique?: boolean;
 }
 
 export interface ItemEffect {
@@ -45,7 +47,7 @@ export const ARCADE_ITEMS: readonly ArcadeItemDef[] = [
   { id: "heart", art: "heart", family: "defense", price: 132, effect: { maxHp: 200, regen: 2 }, extras: [{ armor: 4 }, { lifesteal: 0.05 }] },
   { id: "mask_of_madness", art: "mask_of_madness", family: "offense", price: 84, effect: { attackSpeed: 0.3, armor: -4 }, extras: [{ lifesteal: 0.08 }, { damage: 10 }] },
   { id: "hand_of_midas", art: "hand_of_midas", family: "utility", price: 108, effect: { goldPerKill: 1, xpMult: 0.1 }, extras: [{ xpMult: 0.1 }, { goldPerKill: 1 }] },
-  { id: "black_king_bar", art: "black_king_bar", family: "defense", price: 126, effect: { stunImmune: true, armor: 2 }, extras: [{ maxHp: 100 }, { damage: 12 }] },
+  { id: "black_king_bar", art: "black_king_bar", family: "defense", price: 126, effect: { stunImmune: true, armor: 2 }, extras: [{ maxHp: 100 }, { damage: 12 }], unique: true },
   { id: "bfury", art: "bfury", family: "offense", price: 114, effect: { cleave: 2, damage: 6 }, extras: [{ regen: 3 }, { damage: 10 }] },
   { id: "octarine_core", art: "octarine_core", family: "utility", price: 120, effect: { cooldown: 0.15, maxHp: 80 }, extras: [{ regen: 3 }, { lifesteal: 0.06 }] },
 ];

@@ -617,7 +617,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     set({ autoCast });
   },
   shopAct(act) {
-    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen && !sim.contractOpen && !sim.forgeOpen && !sim.riftOpen)) return;
+    if (!sim || (!sim.shopOpen && !sim.neutralOpen && !sim.lootOpen && !sim.pondOpen && !sim.contractOpen && !sim.forgeOpen && !sim.riftOpen && !sim.buybackOpen)) return;
     sim.step({ mx: 0, my: 0, cast: 0, choose: -1, act });
     set((s) => ({ serial: s.serial + 1 }));
   },

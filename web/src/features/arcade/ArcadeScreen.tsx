@@ -252,6 +252,7 @@ function ArcadeSetup() {
             </div>
             <ul className="arcade-rank__rules">
               <li>{t("arcade.rank.mult", { hp: Math.round((current.hpMult - 1) * 100), dmg: Math.round((current.dmgMult - 1) * 100), spawn: Math.round((current.spawnMult - 1) * 100) })}</li>
+              {current.gentleStart && <li>{t("arcade.rank.gentleStart")}</li>}
               {current.doubleGolems && <li>{t("arcade.rank.doubleGolems")}</li>}
               {current.bigWaves && <li>{t("arcade.rank.bigWaves")}</li>}
               {current.trollPacks && <li>{t("arcade.rank.trollPacks")}</li>}
@@ -455,7 +456,7 @@ function ArcadeStage() {
       last = now;
       // Hit-stop (R15-лестница): смерть элиты/босса замораживает мир на несколько кадров — только
       // здесь, в цикле экрана; сим о паузе не знает, детерминизм не трогается.
-      const inMenu = statusRef.current !== "running" || !!sim.pending || sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen || sim.riftOpen || sim.buildOpen || sim.over;
+      const inMenu = statusRef.current !== "running" || !!sim.pending || sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen || sim.riftOpen || sim.buildOpen || sim.buybackOpen || sim.over;
       if (!replayRef.current) controller.pollPad(!!inMenu);
       // Мир идёт только без окон уровня/лавки/нейтрала (остальные окна сим замораживает сам в step) и пока не «over».
       const canAdvance = statusRef.current === "running" && !loadingRef.current && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.over;
@@ -857,6 +858,20 @@ function ArcadeStage() {
             </div>
           </div>
         )}
+        {sim?.buybackOpen && status !== "over" && (
+          // Выкуп (ARCADE.buyback): мир стоит, пока игрок решает — золото сейчас или конец забега.
+          <div className="arcade-overlay" data-testid="arcade-buyback">
+            <div className="arcade-levelup arcade-shop">
+              <Eyebrow>{t("arcade.buyback.title")}</Eyebrow>
+              <h2>{t("arcade.buyback.pick")}</h2>
+              <p className="arcade-shop__hint">{t("arcade.buyback.hint", { gold: sim.player.gold, sec: ARCADE.buyback.invulnSec })}</p>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                <Button variant="primary" data-testid="arcade-buyback-buy" onClick={() => shopAct(1)}>{t("arcade.buyback.buy", { price: sim.buybackPrice() })}</Button>
+                <Button variant="leave" data-testid="arcade-buyback-give-up" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.buyback.giveUp")}</Button>
+              </div>
+            </div>
+          </div>
+        )}
         {sim?.pondOpen && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-pond">
             <div className="arcade-levelup arcade-shop">
@@ -892,9 +907,10 @@ function ArcadeStage() {
                   <BagList bag={sim.player.bag as GearItem[]} onDrop={(i) => shopAct(BAG_DROP_ACT + i)} dropLabel={t("arcade.loot.drop")} />
                 </div>
               )}
+              {sim.lootBlocked() && <p className="arcade-shop__hint arcade-loot__cursed" data-testid="arcade-loot-blocked">{t("arcade.loot.cursedBlocked")}</p>}
               <div className="arcade-overlay__actions arcade-shop__actions">
-                <Button variant="primary" data-testid="arcade-loot-equip" onClick={() => shopAct(1)}>{t("arcade.loot.equip")}</Button>
-                <Button variant="secondary" data-testid="arcade-loot-bag" disabled={sim.player.bag.length >= ARCADE.loot.bagCap} onClick={() => shopAct(2)}>{t("arcade.gear.bag", { n: sim.player.bag.length, max: ARCADE.loot.bagCap })}</Button>
+                <Button variant="primary" data-testid="arcade-loot-equip" disabled={sim.lootBlocked()} onClick={() => shopAct(1)}>{t("arcade.loot.equip")}</Button>
+                <Button variant="secondary" data-testid="arcade-loot-bag" disabled={sim.player.bag.length >= ARCADE.loot.bagCap || sim.lootBlocked()} onClick={() => shopAct(2)}>{t("arcade.gear.bag", { n: sim.player.bag.length, max: ARCADE.loot.bagCap })}</Button>
                 <Button variant="leave" data-testid="arcade-loot-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.loot.leave")}</Button>
               </div>
             </div>
@@ -1109,6 +1125,7 @@ function ArcadeStage() {
                 <div><dt>{t("arcade.over.time")}</dt><dd>{formatClock(outcome.tick)}</dd></div>
                 <div><dt>{t("arcade.hud.level")}</dt><dd>{outcome.level}</dd></div>
                 <div><dt>{t("arcade.hud.kills")}</dt><dd>{outcome.kills}</dd></div>
+                {(outcome.buybacks ?? 0) > 0 && <div data-testid="arcade-buybacks"><dt>{t("arcade.over.buybacks")}</dt><dd>×{outcome.buybacks}</dd></div>}
                 {(outcome.bestStreak ?? 0) > 0 && <div data-testid="arcade-best-streak"><dt>{t("arcade.over.bestStreak")}</dt><dd>{outcome.bestStreak}{streakTierOf(outcome.bestStreak ?? 0) > 0 ? ` · ${t(`arcade.streak.${streakTierOf(outcome.bestStreak ?? 0)}` as MessageKey)}` : ""}</dd></div>}
                 <div><dt>{t("arcade.hud.gold")}</dt><dd>{outcome.gold}</dd></div>
                 <div><dt>{t("arcade.hud.roshan")}</dt><dd>{t(outcome.roshanKilled ? "arcade.over.roshanYes" : "arcade.over.roshanNo")}</dd></div>

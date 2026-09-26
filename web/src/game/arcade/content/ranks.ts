@@ -14,6 +14,8 @@ export interface RankRules {
   dmgMult: number;
   spawnMult: number;
   speedMult: number;
+  /** Herald и Guardian: мягкий старт — база спавна разгоняется к 1:00 (ARCADE.spawn.gentleStart). */
+  gentleStart: boolean;
   /** Guardian+: элитные големы приходят вдвое чаще. */
   doubleGolems: boolean;
   /** Crusader+: крип-волны в полтора раза больше. */
@@ -41,6 +43,7 @@ export function rankOf(step: number): RankRules {
     dmgMult: 1 + 0.05 * s,
     spawnMult: 1 + 0.035 * s,
     speedMult: 1 + 0.008 * s,
+    gentleStart: tierIdx <= 1,
     doubleGolems: tierIdx >= 1,
     bigWaves: tierIdx >= 2,
     trollPacks: tierIdx >= 3,

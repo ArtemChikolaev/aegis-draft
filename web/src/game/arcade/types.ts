@@ -182,6 +182,8 @@ export interface Enemy {
   /** Аффиксы элиты (битовая маска `AFFIX` из content/enemies.ts; 0 — обычный враг): обычный враг пула минуты, усиленный
    *  и с 1–2 модификаторами (ARCADE.affix). */
   affix: number;
+  /** Взрыв «яд + огонь» (hyb_venom_fire) по этой цели не раньше этого тика — раньше рвался на каждом наложении яда. */
+  fireBlastAt: number;
   /** Осада леса (T13.78): у охраны патруля — id знаменосца (0 — нет); у знаменосца — точка маршрута. */
   leader: number;
   /** Кэш ссылки на вожака `leader`: сверяется по `alive` и `id` (пул переиспользует объекты) — без поиска по всем врагам каждый тик. */
@@ -325,6 +327,8 @@ export interface ArcadeEventCounters {
   blinks: number;
   /** Новые ступени серии убийств (Killing Spree … Beyond Godlike) — голос комментатора и juice. */
   streakUps: number;
+  /** Выкупы (ARCADE.buyback) — стингер Dota и juice. */
+  buybacks: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
@@ -659,4 +663,6 @@ export interface ArcadeOutcome {
   trait: string | null;
   /** Лучшая серия убийств без полученного урона. */
   bestStreak?: number;
+  /** Сколько раз герой выкупился (ARCADE.buyback). */
+  buybacks?: number;
 }

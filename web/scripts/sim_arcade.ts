@@ -46,6 +46,8 @@ const PLACES = new Set<PlaceId>((args.get("places") ?? "") === "all" ? PLACE_IDS
 /** Blink (ARCADE.blink): бот уклоняется им от удара Рошана по телеграфу и отрывается от толпы при низком HP.
  *  `--noblink` — прежний бот без рывка (A/B: сколько даёт сама механика). */
 const BLINK = !args.has("noblink");
+/** Выкуп (ARCADE.buyback): бот выкупается, как только хватает золота; `--nobuyback` — прежняя смерть без выкупа. */
+const BUYBACK = !args.has("nobuyback");
 const MAX_TICKS = TICK_HZ * 60 * 26;
 /** Потолок шагов на забег (шаг ≠ тик: шаг с открытым окном тик не двигает) и порог «тик стоит» — см. цикл прогона. */
 const MAX_STEPS = MAX_TICKS * 3;
@@ -89,6 +91,7 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
   const act = (a: number): ArcadeInput => ({ mx: 0, my: 0, cast: 0, choose: -1, act: a });
   switch (sim.activeModal()) {
     case null: break;
+    case "buyback": return act(BUYBACK ? 1 : SHOP_ACT.close);
     case "pending": return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending!, SCHOOL), act: 0 };
     case "shop": {
       // «Долг силы» (--build debt): карта exotic сейчас, порча долга потом — раньше покупок.

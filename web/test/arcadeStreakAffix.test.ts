@@ -12,6 +12,8 @@ type Priv = {
   nextAffixAt: number;
 };
 const priv = (sim: ArcadeSim) => sim as unknown as Priv;
+/** Crusader: на Herald/Guardian награда за убийство в первую минуту умножена компенсацией мягкого старта (T15.5). */
+const NO_GENTLE = { rank: 10 };
 
 /** Чистое поле без камней, врагов и лагерной охраны; герой сам не бьёт и не регенерирует (числа урона считаются точно). */
 function field(seed: string, opts: ConstructorParameters<typeof ArcadeSim>[1] = {}): ArcadeSim {
@@ -47,7 +49,7 @@ describe("серия убийств", () => {
   });
 
   it("баунти: золото за убийство × (1 + goldPerTier × ступень)", () => {
-    const sim = field("streak-2");
+    const sim = field("streak-2", NO_GENTLE);
     killN(sim, ARCADE.streak.tiers[3]);
     const tier = sim.streakTier();
     expect(tier).toBe(4);
@@ -129,7 +131,7 @@ describe("элита с аффиксами", () => {
   });
 
   it("Раскол: после смерти двое того же вида по 30% HP без аффиксов; награда ×xpMult/×goldMult", () => {
-    const sim = field("affix-split");
+    const sim = field("affix-split", NO_GENTLE);
     const e = dummy(sim, 600, 0, ENEMY_KINDS.satyr);
     e.affix = AFFIX.splitter;
     e.maxHp *= ARCADE.affix.hpMult; e.hp = e.maxHp;

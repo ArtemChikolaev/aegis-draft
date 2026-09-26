@@ -130,11 +130,15 @@ describe("школа Venom", () => {
     apply(sim, "hyb_venom_fire");
     (sim as unknown as { applyBurn(e: Enemy, d: number, s: number): void }).applyBurn(a, 1, 5);
     for (let i = 0; i < 5; i++) sim.applyPoison(a, 10);
+    sim.tick += sec(1); // взрыв по цели не чаще раза в секунду (T15.5: раньше рвался на каждом наложении яда)
     const ha = a.hp, hb = b.hp;
     sim.applyPoison(a, 10);
     expect(ha - a.hp).toBeCloseTo(30, 3);
     expect(hb - b.hp).toBeCloseTo(15, 3);
     expect(a.poisonStacks).toBe(P.maxStacks);
+    const hc = a.hp;
+    sim.applyPoison(a, 10); // та же секунда — без взрыва
+    expect(a.hp).toBe(hc);
     // Питомцы: волк кусает — стак.
     const sim2 = new ArcadeSim("venom-8", { hero: "juggernaut" });
     stop(sim2);

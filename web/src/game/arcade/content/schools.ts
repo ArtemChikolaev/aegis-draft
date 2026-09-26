@@ -145,8 +145,8 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "mae_clap": return [{ key: "clapDmg", value: 40 * p * lightningMult }, { key: "stunSec", value: 0.6, unit: "s" }];
     case "mae_mjollnir": return [{ key: "lightningDmg", value: 0.2 * p, unit: "pct" }, { key: "chainTargetsBonus", value: Math.floor(p * 2), unit: "x" }];
     case "beast_hawk": return [{ key: "xpRadius", value: 110 + 30 * rank }];
-    case "beast_wolf": return [{ key: "petDmg", value: 14 * rank }];
-    case "beast_bear": return [{ key: "petDmg", value: 30 * rank }];
+    case "beast_wolf": return [{ key: "petDmg", value: 14 * p }];
+    case "beast_bear": return [{ key: "petDmg", value: 30 * p }];
     case "beast_pack": return [{ key: "wolves", value: 1 + rank, unit: "x" }];
     case "beast_roar": return [{ key: "petPower", value: 0.35 * rank, unit: "pct" }];
     case "hyb_steam": return [{ key: "vsBurningChilled", value: 0.25 * p, unit: "pct" }];

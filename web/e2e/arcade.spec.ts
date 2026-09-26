@@ -135,6 +135,32 @@ test.describe("arcade", () => {
     await expect(blink).toHaveAttribute("data-charges", "0");
   });
 
+  test("выкуп поднимает героя за золото; проклятый предмет при другой порче не взять", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    await page.getByTestId("arcade-seed").fill("e2e-arcade-buyback");
+    await page.getByTestId("arcade-play").click();
+    await expect(page.getByTestId("arcade-clock")).toBeVisible();
+    // Смертельный урон при 900 золота: мир встаёт, открывается окно выкупа.
+    await page.evaluate("(() => { const s = window.__arcadeSim(); s.player.gold = 900; s.player.hp = -5; })()");
+    await expect(page.getByTestId("arcade-buyback")).toBeVisible();
+    await page.getByTestId("arcade-buyback-buy").click();
+    await expect(page.getByTestId("arcade-buyback")).toHaveCount(0);
+    const st = await page.evaluate("(() => { const s = window.__arcadeSim(); return { hp: s.player.hp, max: s.player.stats.maxHp, over: !!s.over, buybacks: s.buybacks }; })()") as { hp: number; max: number; over: boolean; buybacks: number };
+    expect(st.over).toBe(false);
+    expect(st.buybacks).toBe(1);
+    expect(st.hp).toBeGreaterThan(0);
+    // Проклятый предмет у ног, на герое уже Долг — взять нельзя, кнопки выключены, объяснение видно.
+    await page.evaluate(`(() => { const s = window.__arcadeSim(); const p = s.player; p.invulnUntil = s.tick + 1e6;
+      s.groundLoot.push({ x: p.x + 10, y: p.y, until: s.tick + 6000, curse: "withering", item: { uid: "e2e-cursed", base: "boots_of_speed", slot: "boots", rarity: "exotic", tier: 1, affixes: [] } });
+      p.curse = "debt"; p.debtLeft = 100; })()`);
+    await expect.poll(() => page.evaluate("window.__arcadeSim().nearLoot?.kind ?? null")).toBe("ground");
+    await page.keyboard.press("KeyG");
+    await expect(page.getByTestId("arcade-loot-blocked")).toBeVisible();
+    await expect(page.getByTestId("arcade-loot-equip")).toBeDisabled();
+    await expect(page.getByTestId("arcade-loot-bag")).toBeDisabled();
+  });
+
   test("фирменная пассивка героя видна в HUD", async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-arcade").click();

@@ -6,7 +6,8 @@ import { ATTACK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, IDLE_INPUT } from "../src/ga
 // Состояние автокаста живёт в симе и меняется через `act`, поэтому попадает в input-лог и реплей точен.
 describe("автокаст умений", () => {
   const warm = (seed: string) => {
-    const sim = new ArcadeSim(seed, { hero: "lina" });
+    // Crusader: на Herald/Guardian мягкий старт (T15.5) разрежает лес первой минуты, и толпы под автокаст к 14 с может не быть.
+    const sim = new ArcadeSim(seed, { hero: "lina", rank: 10 });
     sim.player.abilities.q = 1;
     for (let i = 0; i < 60 * 8 && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(IDLE_INPUT); }
     return sim;

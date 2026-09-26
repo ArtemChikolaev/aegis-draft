@@ -46,7 +46,7 @@ describe("лотосовый пруд и порча", () => {
     expect(sim.pondOpen).toBe(false);
   });
 
-  it("проклятый сундук: предмет на ступень выше; взять = Увядание, оставить = чисто; порча режет лечение и регенерацию; пруд снимает", () => {
+  it("проклятый сундук: предмет на ступень выше; взять = Увядание, оставить = порча остаётся на предмете; порча режет лечение и регенерацию; пруд снимает", () => {
     const sim = new ArcadeSim("pond-3");
     step(sim, 5);
     // Форсируем проклятый сундук у ног.
@@ -57,16 +57,18 @@ describe("лотосовый пруд и порча", () => {
     expect(sim.lootOpen).not.toBeNull();
     expect(sim.lootCursed).toBe(true);
     expect(sim.lootOpen!.rarity).not.toBe("standard"); // минимум refined: rollRarity на 0-й минуте почти всегда standard, +1 ступень
-    sim.step(act(5)); // оставить у ног — без порчи
+    const curse = sim.lootCurse;
+    sim.step(act(5)); // оставить у ног — порча не принята, но остаётся на предмете
     expect(sim.player.curse).toBeNull();
     expect(sim.lootCursed).toBe(false);
-    expect(sim.groundLoot.some((g) => g.until > 0)).toBe(true);
-    // Подобрать с земли — предмет уже чистый.
+    expect(sim.groundLoot.some((g) => g.until > 0 && g.curse === curse)).toBe(true);
+    // Подобрать с земли — тот же выбор с той же порчей (T15.5: раньше предмет становился чистым и давал +1 редкость даром).
     step(sim, 1);
     expect(sim.nearLoot?.kind).toBe("ground");
     sim.step(act(PICKUP_ACT));
-    expect(sim.lootCursed).toBe(false);
-    sim.step(act(2)); // в сумку
+    expect(sim.lootCursed).toBe(true);
+    expect(sim.lootCurse).toBe(curse);
+    sim.step(act(5)); // и снова оставить
     expect(sim.player.curse).toBeNull();
     // Второй проклятый сундук — принимаем.
     sim.chest = { alive: true, x: sim.player.x + 20, y: sim.player.y, until: sim.tick + sec(60), value: 1 };
