@@ -1,5 +1,5 @@
 // Подбор seed для e2e anteRun: по умолчанию — «предмет в слоте показывает разложение силы»,
-// с `--scouting` — «разведка раскрывает будущего босса» (см. комментарии в спеке).
+// с `--scouting` / `--stand-in` — тесты Camp Action (см. ниже и комментарии в спеке).
 // Повторяет ровно путь теста: тот же run-link конфиг, драфт «первым доступным» (как
 // helpers.completeDraft — НЕ жадный, в отличие от sim_run), первый этап, Буткемп, карточная
 // награда вида item. Годный seed — тот, где после взятия награды разложение силы не тривиально.
@@ -13,18 +13,23 @@ import { E2E_RUN_CONFIG as config, firstAvailableDraft } from "./lib/sim_shared.
 
 const data = loadGameData();
 
-// `--scouting` — второй путь спеки («разведка раскрывает будущего босса»): наградой первого
-// Буткемпа должна лежать карточка Camp Action `scouting`, и этап 2 после неё обязан быть пройден
-// (тест доходит до второго Буткемпа). Раньше такой сид подбирали руками.
-const wantScouting = process.argv.includes("--scouting");
-const maxFound = Number(process.env.MAX_FOUND ?? (wantScouting ? 12 : 5));
+// Пути спеки с Camp Action наградой первого Буткемпа (helpers.chooseReward берёт ПЕРВУЮ
+// action-карту — она и должна быть нужной):
+//   `--scouting` — «разведка раскрывает будущего босса»: scouting разыгрывается, и этап 2 после
+//                  неё обязан быть пройден (тест доходит до второго Буткемпа);
+//   `--stand-in` — «stand-in делает замену игрока бесплатной»: только этап 1 и карта standIn.
+// Раньше такие сиды подбирали руками.
+const actionMode = process.argv.includes("--scouting") ? "scouting"
+  : process.argv.includes("--stand-in") ? "standIn"
+  : null;
+const maxFound = Number(process.env.MAX_FOUND ?? (actionMode ? 12 : 5));
 // Для разведки на реальном слайсе годен примерно один сид из сотни (2026-09-26: 33 из 3000) —
 // диапазон расширяется env.
 const maxSeed = Number(process.env.MAX_SEED ?? 400);
 const found: string[] = [];
 for (let n = 1; n <= maxSeed && found.length < maxFound; n++) {
   const seed = `camp-e2e-${n}`;
-  if (wantScouting) {
+  if (actionMode) {
     const engine = new RunEngine(data, config, seed);
     firstAvailableDraft(engine);
     const score = engine.score();
@@ -38,10 +43,14 @@ for (let n = 1; n <= maxSeed && found.length < maxFound; n++) {
     const firstPlacement = anteRun.state.lastPlacement;
     economy.awardStageClear(campId, firstPlacement, seasonStage(campId - 1).target);
     economy.openCamp(campId);
-    // helpers.chooseReward берёт ПЕРВУЮ action-карту, а тест разыгрывает именно scouting.
     const action = economy.campView().rewardOffers.find((o) => o.kind === "action");
-    if (action?.cardId !== "scouting" || !economy.chooseReward(action.id)) continue;
-    if (!economy.playCampAction("scouting")) continue;
+    if (action?.cardId !== actionMode || !economy.chooseReward(action.id)) continue;
+    if (!economy.playCampAction(actionMode)) continue;
+    if (actionMode === "standIn") {
+      found.push(seed);
+      console.log(`✅ ${seed}  standIn наградой первого Буткемпа, место этапа 1: ${firstPlacement}`);
+      continue;
+    }
     // Второй этап (как advanceAnteStage): сила снимается до leaveCamp, поле пересобирается под неё.
     const stage = evaluateStage(engine, economy, { data, seed, stakes: [] }, anteRun.state.index);
     economy.leaveCamp();

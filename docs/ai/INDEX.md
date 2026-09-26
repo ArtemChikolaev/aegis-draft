@@ -23,6 +23,7 @@
 | [arcade-simulation](../../.claude/skills/arcade-simulation/SKILL.md) | При изменении боя Аркады: герои, враги, статусы, предметы, карты, волны, баланс, input/replay. Не для косметики, draft-OVR или одного UI-экрана. |
 | [arcade-assets](../../.claude/skills/arcade-assets/SKILL.md) | При добавлении или исправлении спрайтов Dota, сетов, форм героев, косметики и манифестов Аркады. Не для боевых свойств, UI-анимаций или ETL статистики. |
 | [save-compatibility](../../.claude/skills/save-compatibility/SKILL.md) | При изменении сохранений, resume, постоянных наград, истории и совместимости replay aegis-draft. Не для внешних data JSON или только раскладки экрана. |
+| [e2e-seed-resweep](../../.claude/skills/e2e-seed-resweep/SKILL.md) | При красном anteRun.spec после data-refresh или правки пула, рынка, наград: переподбор e2e-сидов на real и mock. Не для регрессии кода, флейка и сидов Аркады. |
 | [agent-skill-maintenance](../../.claude/skills/agent-skill-maintenance/SKILL.md) | При создании, обновлении или проверке проектных скиллов aegis-draft и адаптеров Claude/Codex. Не для обычной игровой фичи или настройки стороннего плагина. |
 
 ## Композиция
@@ -34,6 +35,7 @@
 - Фазы/режимы/reset: game-state-architecture; изменение сохраняемых полей: дополнительно save-compatibility.
 - API/БД: backend-architecture; статический ETL-контракт подключай только при реальном пересечении.
 - Сравнение/идеи по референсам: reference-parity-audit; исправления — только в порученном объёме.
+- Красный anteRun.spec после data-refresh или сдвига пула/рынка/наград: e2e-seed-resweep; правка пути такого теста — синхронно режим подбора сида.
 - Изменение самих процедур/адаптеров: agent-skill-maintenance. Используй доступный skill-creator, если он есть в каталоге среды; не предполагай личный путь или конкретный плагин.
 
 Опечатка не требует полного набора процедур. Router не заменяет профильный скилл.
