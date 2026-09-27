@@ -113,15 +113,20 @@ export class ObstacleGrid {
   resolveInto(p: { x: number; y: number }, r: number): void {
     let x = p.x, y = p.y;
     for (let pass = 0; pass < 2; pass++) {
+      // Первый проход ничего не сдвинул — второй прошёл бы те же препятствия той же точки впустую (аудит 2026-09-27:
+      // 19% профиля, −7% тика); результат прежний бит-в-бит.
+      let moved = false;
       for (const o of this.near(x, y)) {
         const dx = x - o.x, dy = y - o.y;
         const min = o.r + r;
         const d2 = dx * dx + dy * dy;
         if (d2 >= min * min) continue;
+        moved = true;
         const d = Math.sqrt(d2);
         if (d < 1e-6) { x = o.x + min; continue; }
         x = o.x + dx / d * min; y = o.y + dy / d * min;
       }
+      if (!moved) break;
     }
     p.x = x; p.y = y;
   }

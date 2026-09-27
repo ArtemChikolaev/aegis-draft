@@ -1137,8 +1137,9 @@ export class ArcadeRenderer {
         }
       }
       if (e.kind.reflect) { c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([4, 4]); c.beginPath(); c.arc(e.x, e.y, r + 8, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
-      // Умения нейтралов (T20.3): телеграф каста и Frost Armor на соседе огра.
+      // Умения нейтралов (T20.3): телеграф каста и Frost Armor на соседе огра; Wave of Force Рошана (T21.2).
       if (e.castT > 0 && e.kind.cast) this.drawNeutralCast(e, pal);
+      else if (e.castT > 0 && e.kind.boss) this.drawRoshanWave(e, pal);
       if (tick < e.armorUntil) { c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.85; c.beginPath(); c.arc(e.x, e.y, r + 6, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1; }
       if (e.affix !== 0) this.drawAffix(c, e, r, pal, tick);
       if (e.kind.elite || e.kind.boss || e.kind.structure || e.affix !== 0) {
@@ -1206,6 +1207,18 @@ export class ArcadeRenderer {
         c.globalAlpha = 1;
       }
     }
+  }
+
+  /** Телеграф Wave of Force (T21.2): широкая полоса от Рошана к точке героя, наливается к удару. */
+  private drawRoshanWave(e: Enemy, pal: Palette): void {
+    const c = this.ctx, W = ARCADE.roshanWave, k = 1 - e.castT / W.tele;
+    const x2 = e.x + e.castX * W.length, y2 = e.y + e.castY * W.length;
+    c.strokeStyle = pal.telegraph; c.lineCap = "round";
+    c.lineWidth = W.width; c.globalAlpha = 0.1 + 0.25 * k;
+    c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(x2, y2); c.stroke();
+    c.lineWidth = 3; c.globalAlpha = 0.6 + 0.35 * k; c.setLineDash([14, 10]);
+    c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(x2, y2); c.stroke();
+    c.setLineDash([]); c.lineCap = "butt"; c.globalAlpha = 1;
   }
 
   /** Телеграф умения нейтрала (T20.3): кольцо War Stomp / Thunder Clap наливается к удару, Purge — полоса от сатира. */

@@ -73,6 +73,10 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "hyb_venom_frost", school: "venom", type: "passive", maxRank: 2, requiresSchools: ["venom", "skadi"] },
   { id: "hyb_venom_beast", school: "venom", type: "passive", maxRank: 2, requiresSchools: ["venom", "beast"] },
   { id: "hyb_venom_fire", school: "venom", type: "passive", maxRank: 2, requiresSchools: ["venom", "radiance"] },
+  // Три недостающие пары (T21.3) — теперь гибрид есть у каждой из 10 пар школ.
+  { id: "hyb_fire_beast", school: "beast", type: "passive", maxRank: 2, requiresSchools: ["radiance", "beast"] },
+  { id: "hyb_storm_beast", school: "beast", type: "passive", maxRank: 2, requiresSchools: ["maelstrom", "beast"] },
+  { id: "hyb_storm_venom", school: "maelstrom", type: "passive", maxRank: 2, requiresSchools: ["maelstrom", "venom"] },
   // Легендарные (T13.18, владелец: «разбить на тиры, чтобы выпадали мега-сильные пассивки»): один ранг,
   // предлагаются редко (шанс растёт с минутами) и гарантированно на 12/18/24 уровнях. Механика — sim.ts по id.
   { id: "leg_heart", school: "radiance", type: "power", maxRank: 1, legendary: true, neutral: true, art: "heart" },
@@ -152,15 +156,18 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "mae_overcharge": return [{ key: "attackSpeed", value: 0.12 * p, unit: "pct" }, { key: "moveSpeed", value: 0.04 * p, unit: "pct" }];
     case "mae_clap": return [{ key: "clapDmg", value: 40 * p * lightningMult }, { key: "stunSec", value: 0.6, unit: "s" }];
     case "mae_mjollnir": return [{ key: "lightningDmg", value: 0.2 * p, unit: "pct" }, { key: "chainTargetsBonus", value: Math.floor(p * 2), unit: "x" }];
-    case "beast_hawk": return [{ key: "xpRadius", value: 110 + 30 * rank }];
+    case "beast_hawk": return [{ key: "xpRadius", value: 110 + 30 * (rank - 1) }]; // как в симе: первый ранг — база
     case "beast_wolf": return [{ key: "petDmg", value: 14 * p }];
     case "beast_bear": return [{ key: "petDmg", value: 30 * p }];
     case "beast_pack": return [{ key: "wolves", value: 1 + rank, unit: "x" }];
     case "beast_roar": return [{ key: "petPower", value: 0.35 * p, unit: "pct" }];
     case "beast_leader": return [{ key: "summonTime", value: 0.2 * p, unit: "pct" }, { key: "summonExtra", value: rank >= 3 ? 1 : 0, unit: "x" }, { key: "petPower", value: 0.15 * p, unit: "pct" }];
     case "hyb_steam": return [{ key: "vsBurningChilled", value: 0.25 * p, unit: "pct" }];
+    case "hyb_fire_beast": return [{ key: "burnDps", value: 4 * p * burnMult }, { key: "burnSec", value: 2, unit: "s" }];
+    case "hyb_storm_beast": return [{ key: "chainDmg", value: 18 * p * lightningMult }, { key: "chainTargets", value: 2, unit: "x" }, { key: "everyNth", value: 3, unit: "x" }];
+    case "hyb_storm_venom": return [{ key: "poisonDps", value: 3 * p * venomMult }, { key: "perTarget", value: 1, unit: "s" }];
     case "hyb_superconductor": return [{ key: "vsFrozenZap", value: 0.35 * p, unit: "pct" }, { key: "chainTargetsBonus", value: Math.floor(p * 2), unit: "x" }];
-    case "hyb_plasma": return [{ key: "plasmaDps", value: 5 * p }];
+    case "hyb_plasma": return [{ key: "plasmaDps", value: 5 * p * burnMult }];
     case "hyb_wild_hunt": return [{ key: "vsSlowedPets", value: 0.3 * p, unit: "pct" }];
     case "ven_sting": return [{ key: "poisonDps", value: 4 * p * venomMult }];
     case "ven_cloud": return [{ key: "poisonDps", value: 5 * p * venomMult }, { key: "auraRadius", value: 90 }, { key: "every", value: 2.4 / (1 + 0.1 * p), unit: "s" }];

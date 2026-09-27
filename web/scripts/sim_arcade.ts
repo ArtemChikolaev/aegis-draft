@@ -216,6 +216,18 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
     const late = e.castT * p.stats.speed / TICK_HZ < gap;
     return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: canBlink && late ? BLINK_MASK : 0, choose: -1, act: 0 };
   }
+  // Wave of Force Рошана (T21.2): с линии — вбок, не успеть — рывок.
+  if (rosh && rosh.castT > 0 && rosh.kind.boss) {
+    const W = ARCADE.roshanWave;
+    const t = Math.max(0, Math.min(W.length, (p.x - rosh.x) * rosh.castX + (p.y - rosh.y) * rosh.castY));
+    const dx = p.x - (rosh.x + rosh.castX * t), dy = p.y - (rosh.y + rosh.castY * t), d = Math.sqrt(dx * dx + dy * dy);
+    const gap = W.width / 2 + ARCADE.player.r - d;
+    if (gap > -10) {
+      const ux = d > 1 ? dx / d : -rosh.castY, uy = d > 1 ? dy / d : rosh.castX;
+      const late = rosh.castT * p.stats.speed / TICK_HZ < gap;
+      return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: canBlink && late ? BLINK_MASK : 0, choose: -1, act: 0 };
+    }
+  }
   if (rosh && rosh.slamT > 0) {
     const dx = p.x - rosh.slamX, dy = p.y - rosh.slamY;
     const d = Math.sqrt(dx * dx + dy * dy);

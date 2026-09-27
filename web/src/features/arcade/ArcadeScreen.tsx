@@ -666,6 +666,10 @@ function ArcadeStage() {
                   <small>{p.streak} · {t("arcade.hud.streakGold", { pct: Math.round((sim.streakGoldMult() - 1) * 100) })}</small>
                 </span>
               )}
+              {sim.multiKillShown > 0 && sim.tick - sim.multiKillAt < sec(2) && (
+                // Мульти-убийство (T21.1): значок на 2 с; ключ — момент объявления, чтобы новая ступень «выпрыгивала» заново.
+                <span key={sim.multiKillAt} className="arcade-hud__multi" data-tier={sim.multiKillShown} data-testid="arcade-multi" title={t("arcade.hud.multiHint", { sec: ARCADE.multiKill.rampageCd / TICK_HZ })}>{t(`arcade.multi.${sim.multiKillShown}` as MessageKey)}</span>
+              )}
               <span className="arcade-hud__stats">
                 <span>{t("arcade.hud.kills")} <b>{p.kills}</b></span>
                 <span>{t("arcade.hud.gold")} <b data-testid="arcade-gold">{p.gold}</b></span>

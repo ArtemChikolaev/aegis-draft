@@ -195,6 +195,8 @@ export interface Enemy {
   castProcAt: number;
   /** Умение нейтрала (T20.3): тик, с которого можно колдовать снова; тиков до конца телеграфа (0 — не колдует); точка удара
    *  (War Stomp, Thunder Clap) или направление линии (Purge); до какого тика на враге Frost Armor огра. */
+  /** «Токсичный разряд» (T21.3): тик, с которого молния снова может положить яд на эту цель. */
+  zapPoisonAt: number;
   castAt: number;
   castT: number;
   castX: number;
@@ -343,6 +345,8 @@ export interface ArcadeEventCounters {
   blinks: number;
   /** Новые ступени серии убийств (Killing Spree … Beyond Godlike) — голос комментатора и juice. */
   streakUps: number;
+  /** Объявленные мульти-убийства (T21.1): голос комментатора и значок у часов. */
+  multiKills: number;
   /** Сработавшие Cheese и Refresher Shard (T20.2) — звук и juice. */
   cheeses: number;
   refreshers: number;

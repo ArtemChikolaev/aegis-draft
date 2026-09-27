@@ -42,7 +42,7 @@ function falloff(sim: ArcadeSim, x: number, y: number): number {
 
 export class Soundscape {
   private lastBorn = -1;
-  private seen = { castQ: 0, castW: 0, castE: 0, castR: 0, hurt: 0, crits: 0, blinks: 0, streakUps: 0, buybacks: 0, kills: 0, items: 0, level: 1 };
+  private seen = { castQ: 0, castW: 0, castE: 0, castR: 0, hurt: 0, crits: 0, blinks: 0, streakUps: 0, multiKills: 0, buybacks: 0, kills: 0, items: 0, level: 1 };
   private last: Record<string, number> = {};
   private salt = 0;
   private radiance: (() => void) | null = null;
@@ -74,7 +74,7 @@ export class Soundscape {
     if (!this.primed) {
       // Первый кадр: не «догонять» события, случившиеся до подключения (реплей/резюм).
       this.primed = true;
-      this.seen = { castQ: ev.castQ, castW: ev.castW, castE: ev.castE, castR: ev.castR, hurt: ev.hurt, crits: ev.crits, blinks: ev.blinks, streakUps: ev.streakUps, buybacks: ev.buybacks, kills: sim.player.kills, items: sim.player.items.length, level: sim.player.level };
+      this.seen = { castQ: ev.castQ, castW: ev.castW, castE: ev.castE, castR: ev.castR, hurt: ev.hurt, crits: ev.crits, blinks: ev.blinks, streakUps: ev.streakUps, multiKills: ev.multiKills, buybacks: ev.buybacks, kills: sim.player.kills, items: sim.player.items.length, level: sim.player.level };
       this.lastBorn = sim.tick; this.roshanAlive = !!sim.roshan?.alive; this.greedUntil = sim.greedUntil; this.aegis = sim.player.aegis;
       return handled;
     }
@@ -97,6 +97,12 @@ export class Soundscape {
     // Комментатор Dota: First Blood на первом убийстве, дальше — ступени серии (Killing Spree … Beyond Godlike).
     if (this.seen.kills === 0 && sim.player.kills > 0) this.play("ui", pack.ui.firstBlood, 0.8);
     this.seen.kills = sim.player.kills;
+    // Мульти-убийство (T21.1) перекрикивает ступень серии в том же кадре: голос один.
+    if (ev.multiKills > this.seen.multiKills) {
+      this.seen.multiKills = ev.multiKills;
+      this.seen.streakUps = ev.streakUps;
+      if (sim.multiKillShown > 0) this.play("ui", pack.ui[`multi${sim.multiKillShown}`], 0.85);
+    }
     if (ev.streakUps > this.seen.streakUps) {
       this.seen.streakUps = ev.streakUps;
       const tier = sim.streakTier();

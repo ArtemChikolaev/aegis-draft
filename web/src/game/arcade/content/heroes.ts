@@ -102,6 +102,8 @@ export interface AbilityDef {
   /** Яд с попадания зоны (T13.39): dps одного стака = `value[lvl] × poison`; стаки копятся на цели до ARCADE.poison.maxStacks.
    *  Читают обработчики line_burst/meteor, nova и goo. Пассивка на удар — отдельный kind "venom". */
   poison?: number;
+  /** meteor без горения (T21.4): вода и кровь не поджигают — Torrent, Blood Rite. */
+  noBurn?: boolean;
   /** Призыв у kind: "damage_ward" (владелец 2026-09-06: «Terrorblade должен звать иллюзии, а он ставит на пол шарик»).
    *  Это сущности сима, а не картинка над зоной: `art: "illusion"` → `spawnIllusions`, существо из SUMMONS →
    *  `spawnSummons` (бегают за героем и бьют, урон удара — значение умения). Без `summon` — зона урона в точке каста. */
@@ -361,7 +363,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "metamorphosis", value: [0, 0.6, 0.9, 1.2], cooldown: 60, duration: 12, form: { ranged: true, range: 340 } }, // Elder Dragon Form
   }, { kind: "cleave", value: 0.35, radius: 80 }),
   kunkka: hero("kunkka", 23, "kunkka", false, { maxHp: 700, armor: 4, damage: 28, regen: 2 }, {
-    q: { kind: "meteor", value: [0, 120, 180, 240, 300], cooldown: 12, radius: 130, count: [0, 1, 1, 1, 1], duration: 1.6 }, // Torrent
+    q: { kind: "meteor", value: [0, 120, 180, 240, 300], cooldown: 12, radius: 130, count: [0, 1, 1, 1, 1], duration: 1.6, noBurn: true }, // Torrent
     w: SIG,                                                                                              // Tidebringer
     e: { kind: "dash", value: [0, 50, 75, 100, 125], cooldown: 12, radius: 240 },                         // X Marks the Spot
     r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 120, count: [0, 5, 5, 5], duration: 1.4 }, // Ghostship
@@ -405,7 +407,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "aftershock", value: 40, radius: 160 }),
   bloodseeker: hero("bloodseeker", 4, "bloodseeker", false, { maxHp: 720, armor: 4, damage: 28, speed: 182, attackInterval: 0.85, regen: 3 }, {
     q: { kind: "frenzy", value: [0, 0.25, 0.32, 0.39, 0.46], cooldown: 10, duration: 6 },                // Bloodrage
-    w: { kind: "meteor", value: [0, 130, 190, 250, 310], cooldown: 10, radius: 150, count: [0, 1, 1, 1, 1], duration: 1.5 }, // Blood Rite
+    w: { kind: "meteor", value: [0, 130, 190, 250, 310], cooldown: 10, radius: 150, count: [0, 1, 1, 1, 1], duration: 1.5, noBurn: true }, // Blood Rite
     e: SIG,                                                                                              // Thirst
     r: { kind: "rupture", value: [0, 40, 60, 80], cooldown: 45, radius: 340, duration: 9 },              // Rupture
   }, { kind: "thirst", value: 0.3, radius: 600 }),
