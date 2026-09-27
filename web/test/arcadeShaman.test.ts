@@ -6,7 +6,7 @@ import { IDLE_INPUT } from "../src/game/arcade/types.ts";
 // Шаман поддержки (T13.79, аудит §4): группа с временным щитом; приоритет цели — шаман, его смерть снимает щит.
 const C = ARCADE.shaman;
 const untilMinute = (sim: ArcadeSim, min: number) => { let g = 0; while (sim.minutes < min && !sim.over && g++ < sec(60 * 30)) step(sim, 1); };
-const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen || sim.riftOpen || sim.neutralOpen || sim.contractOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
+const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.roshanOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen || sim.riftOpen || sim.neutralOpen || sim.contractOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
 
 describe("шаман поддержки", () => {
   it("приходит с fromMin с охраной; держит дистанцию; щит снижает урон союзникам, не самому шаману, и истекает", () => {

@@ -171,6 +171,24 @@ test.describe("arcade", () => {
     await expect(page.getByTestId("arcade-loot-bag")).toBeDisabled();
   });
 
+  test("награда Рошана: окно выбора, Aegis выключен при живом воскрешении, Cheese берётся и виден в HUD", async ({ page }) => {
+    await gotoFreshApp(page);
+    await page.getByTestId("mode-arcade").click();
+    await page.getByTestId("arcade-seed").fill("e2e-arcade-roshan");
+    await page.getByTestId("arcade-play").click();
+    await expect(page.getByTestId("arcade-clock")).toBeVisible();
+    // Дроп Рошана у ног героя, у которого уже есть воскрешение: мир встаёт, открывается выбор.
+    await page.evaluate("(() => { const s = window.__arcadeSim(); const p = s.player; p.aegis = true; p.invulnUntil = s.tick + 1e6; s.roshanDrops.push({ x: p.x, y: p.y }); })()");
+    await expect(page.getByTestId("arcade-roshan")).toBeVisible();
+    await expect(page.getByTestId("arcade-roshan-aegis")).toBeDisabled();
+    await expect(page.getByTestId("arcade-roshan-cheese")).toBeFocused();
+    await page.getByTestId("arcade-roshan-cheese").click();
+    await expect(page.getByTestId("arcade-roshan")).toHaveCount(0);
+    await expect(page.getByTestId("arcade-cheese-chip")).toBeVisible();
+    const st = await page.evaluate("(() => { const s = window.__arcadeSim(); return { cheese: s.player.cheese, drops: s.roshanDrops.length }; })()") as { cheese: boolean; drops: number };
+    expect(st).toEqual({ cheese: true, drops: 0 });
+  });
+
   test("фирменная пассивка героя видна в HUD", async ({ page }) => {
     await gotoFreshApp(page);
     await page.getByTestId("mode-arcade").click();

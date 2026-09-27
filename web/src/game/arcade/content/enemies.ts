@@ -14,16 +14,16 @@ const KINDS: Record<EnemyKindId, EnemyKind> = {
   kobold: { id: "kobold", hp: 14, speed: 86, dmg: 6, r: 10, xp: 1, gold: 1, fromMin: 0, weight: 10, tone: "grunt" },
   kobold_foreman: { id: "kobold_foreman", hp: 32, speed: 72, dmg: 9, r: 12, xp: 2, gold: 1, fromMin: 0.75, weight: 6, tone: "grunt" },
   hill_troll: { id: "hill_troll", hp: 44, speed: 112, dmg: 10, r: 11, xp: 3, gold: 2, fromMin: 1.5, weight: 6, tone: "swift" },
-  satyr: { id: "satyr", hp: 74, speed: 70, dmg: 14, r: 13, xp: 4, gold: 2, fromMin: 2.25, weight: 5, tone: "grunt" },
-  ogre: { id: "ogre", hp: 170, speed: 58, dmg: 22, r: 17, xp: 7, gold: 3, fromMin: 3, weight: 4, tone: "brute" },
-  centaur: { id: "centaur", hp: 240, speed: 86, dmg: 26, r: 16, xp: 9, gold: 4, fromMin: 4.5, weight: 3, tone: "brute" },
+  satyr: { id: "satyr", hp: 74, speed: 70, dmg: 14, r: 13, xp: 4, gold: 2, fromMin: 2.25, weight: 5, tone: "grunt", cast: "purge" },
+  ogre: { id: "ogre", hp: 170, speed: 58, dmg: 22, r: 17, xp: 7, gold: 3, fromMin: 3, weight: 4, tone: "brute", cast: "frost_armor" },
+  centaur: { id: "centaur", hp: 240, speed: 86, dmg: 26, r: 16, xp: 9, gold: 4, fromMin: 4.5, weight: 3, tone: "brute", cast: "stomp" },
   wildwing: { id: "wildwing", hp: 210, speed: 104, dmg: 18, r: 14, xp: 8, gold: 4, fromMin: 5.5, weight: 3, tone: "swift" },
   // Лес Dire (акт 2+): стрелок-тролль и медведь — новые формы давления: снаряды и крепкий брут.
   dark_troll: {
     id: "dark_troll", hp: 64, speed: 74, dmg: 12, r: 12, xp: 4, gold: 2, fromMin: 1.5, weight: 5, tone: "creep", acts: ["dire", "river"],
     ranged: { range: 230, every: 2.2, speed: 210 },
   },
-  hellbear: { id: "hellbear", hp: 330, speed: 72, dmg: 30, r: 19, xp: 11, gold: 5, fromMin: 4, weight: 3, tone: "brute", acts: ["dire", "river"] },
+  hellbear: { id: "hellbear", hp: 330, speed: 72, dmg: 30, r: 19, xp: 11, gold: 5, fromMin: 4, weight: 3, tone: "brute", acts: ["dire", "river"], cast: "clap" },
   lane_creep: { id: "lane_creep", hp: 56, speed: 84, dmg: 10, r: 12, xp: 3, gold: 2, fromMin: 99, weight: 0, tone: "creep" },
   siege_creep: {
     id: "siege_creep", hp: 230, speed: 54, dmg: 30, r: 18, xp: 10, gold: 6, fromMin: 99, weight: 0, tone: "creep",
@@ -65,9 +65,10 @@ const KINDS: Record<EnemyKindId, EnemyKind> = {
 
 /** Одна форма объекта на все виды: те же значения, но все поля на месте и в одном порядке. Литералы выше разной формы
  *  (у кобольда нет `elite`, у голема есть), и чтения `e.kind.totem/boss/ranged/…` в цикле по врагам шли мимо inline-кэша
- *  движка; с единой формой они мономорфны. Значения не меняются — отсутствующее поле остаётся `undefined`. */
+ *  движка; с единой формой они мономорфны. Значения не меняются — отсутствующее поле остаётся `undefined`.
+ *  Новое поле `EnemyKind` добавляй и сюда: иначе у всех видов оно молча `undefined` (T20.3 — `cast` терялся). */
 function uniform(k: EnemyKind): EnemyKind {
-  return { id: k.id, hp: k.hp, speed: k.speed, dmg: k.dmg, r: k.r, xp: k.xp, gold: k.gold, elite: k.elite, boss: k.boss, structure: k.structure, reflect: k.reflect, unstoppable: k.unstoppable, totem: k.totem, ranged: k.ranged, fromMin: k.fromMin, weight: k.weight, acts: k.acts, tone: k.tone };
+  return { id: k.id, hp: k.hp, speed: k.speed, dmg: k.dmg, r: k.r, xp: k.xp, gold: k.gold, elite: k.elite, boss: k.boss, structure: k.structure, reflect: k.reflect, unstoppable: k.unstoppable, totem: k.totem, ranged: k.ranged, fromMin: k.fromMin, weight: k.weight, acts: k.acts, tone: k.tone, cast: k.cast };
 }
 
 export const ENEMY_KINDS = Object.fromEntries(Object.entries(KINDS).map(([id, k]) => [id, uniform(k)])) as Record<EnemyKindId, EnemyKind>;

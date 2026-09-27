@@ -8,7 +8,7 @@ import { Rng } from "../src/game/rng.ts";
 // Древняя кузня (T13.52): один раз за забег — закалить, перековать или переплавить надетую вещь; остывает к поздней части акта.
 const F = ARCADE.forge;
 const act = (n: number) => ({ ...IDLE_INPUT, act: n });
-const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen ? act(5) : IDLE_INPUT); } };
+const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.roshanOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen ? act(5) : IDLE_INPUT); } };
 const atForge = (sim: ArcadeSim) => { sim.player.x = sim.forge!.x + 10; sim.player.y = sim.forge!.y; };
 
 describe("древняя кузня", () => {

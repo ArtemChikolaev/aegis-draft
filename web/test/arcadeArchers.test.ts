@@ -5,7 +5,7 @@ import { IDLE_INPUT } from "../src/game/arcade/types.ts";
 
 // Строй стрелков (T13.81, аудит §4): линия лучников, телеграф полосы, залп только по тем, кто остался в полосе.
 const C = ARCADE.archers;
-const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen || sim.riftOpen || sim.neutralOpen || sim.contractOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
+const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.roshanOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen || sim.riftOpen || sim.neutralOpen || sim.contractOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
 const untilMinute = (sim: ArcadeSim, min: number) => { let g = 0; while (sim.minutes < min && !sim.over && g++ < sec(60 * 30)) step(sim, 1); };
 const archers = (sim: ArcadeSim, id: number) => sim.enemies.filter((e) => e.alive && e.kind.id === "archer" && e.leader === id);
 

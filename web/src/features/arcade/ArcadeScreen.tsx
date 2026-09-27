@@ -12,7 +12,7 @@ import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec, streakTierOf } from "../../gam
 import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/content/schools.ts";
 import type { PlayerStats, ArcadeOutcome } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
-import { ARCADE_ITEM_BY_ID, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
+import { ARCADE_ITEM_BY_ID, NEXT_RARITY, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
 import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { AFFIX, AFFIX_IDS, ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { dotaSheet, dotaSheetState, preloadArcadeArt, preloadSheetIndexes } from "./sprites.ts";
@@ -23,6 +23,17 @@ import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
 import { TRAITS, TRAIT_IDS, traitUnlocked } from "../../game/arcade/content/traits.ts";
 import { COSMETICS, COSMETIC_BY_ID, formSheetCandidates, heroLook, heroSkins, skinnedHero } from "../../game/arcade/content/cosmetics.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANT_BY_ID } from "../../game/arcade/content/neutrals.ts";
+import { ROSHAN_REWARDS } from "../../game/arcade/content/roshan.ts";
+
+/** Числа свойств нейтралок (T20.5) для текстов — из конфига, а не зашитые в строку: правка ARCADE.neutralProps не расходится с описанием. */
+const NEUTRAL_PROP_TEXT = (() => {
+  const NP = ARCADE.neutralProps;
+  return {
+    blink: NP.arcaneRingBlink / TICK_HZ, shovel: NP.shovelEvery / TICK_HZ, shovelPct: Math.round(NP.shovelFrac * 100),
+    flames: NP.flamesDps, radius: NP.flamesRadius, relic: Math.round((NP.relicMult - 1) * 100), mirror: NP.mirrorEvery / TICK_HZ,
+    skyDmg: NP.fallenSky.dmg, skyLvl: NP.fallenSky.perLevel, skyStun: NP.fallenSky.stun, ex: NP.exMachinaEvery / TICK_HZ,
+  };
+})();
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
 import type { AbilityKey, Offer, RuneKind } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
@@ -422,6 +433,19 @@ function ArcadeStage() {
         else if (what === "confirm") { const pick = padFocusRef.current === 1 ? SHOP_ACT.close : 1; padFocusRef.current = 0; setPadFocus(0); s.shopAct(pick); }
         return;
       }
+      // Награда Рошана (T20.2): стик выбирает доступную награду, × берёт, ○ — «Позже».
+      if (cur.roshanOpen) {
+        const ids = ROSHAN_REWARDS.map((r) => r.id);
+        const ok = ids.map((id) => cur.roshanOptions()[id]);
+        if (!ok[padFocusRef.current]) padFocusRef.current = Math.max(0, ok.indexOf(true));
+        if (what === "left" || what === "right") {
+          for (let k = 1; k <= ids.length; k++) { const i = (padFocusRef.current + (what === "left" ? -k : k) + ids.length * 2) % ids.length; if (ok[i]) { padFocusRef.current = i; break; } }
+          setPadFocus(padFocusRef.current);
+          document.querySelector<HTMLElement>(`[data-testid="arcade-roshan-${ids[padFocusRef.current]}"]`)?.focus();
+        } else if (what === "confirm") { const pick = padFocusRef.current + 1; padFocusRef.current = 0; setPadFocus(0); s.shopAct(pick); }
+        else if (what === "back") s.shopAct(SHOP_ACT.close);
+        return;
+      }
       // Окна мест и лавки: ○ закрывает (act 5 = «уйти»).
       if (what === "back" && cur.buildOpen) controller.queueAct(BUILD_ACT);
       else if (what === "back" && (cur.shopOpen || cur.neutralOpen || cur.lootOpen || cur.pondOpen || cur.contractOpen || cur.forgeOpen || cur.riftOpen)) s.shopAct(SHOP_ACT.close);
@@ -459,7 +483,7 @@ function ArcadeStage() {
     let wasContract = false;
     let wasForge = false;
     let wasRift = false;
-    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0, streakUps: 0 };
+    let seen = { hits: 0, crits: 0, casts: 0, ults: 0, hurt: 0, kills: 0, eliteKills: 0, pickups: 0, camps: 0, outposts: 0, contracts: 0, ambushes: 0, rifts: 0, caravans: 0, streakUps: 0, cheeses: 0, refreshers: 0 };
     const scape = new Soundscape(heroDef.id);
     // Озвучка и лист героя — с учётом надетого скина (аркана/персона), см. content/cosmetics.ts skinnedHero.
     const voiceId = skinnedHero(heroDef.id, useArcade.getState().cosmetics.equipped);
@@ -475,10 +499,10 @@ function ArcadeStage() {
       last = now;
       // Hit-stop (R15-лестница): смерть элиты/босса замораживает мир на несколько кадров — только
       // здесь, в цикле экрана; сим о паузе не знает, детерминизм не трогается.
-      const inMenu = statusRef.current !== "running" || !!sim.pending || sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen || sim.riftOpen || sim.buildOpen || sim.buybackOpen || sim.over;
+      const inMenu = statusRef.current !== "running" || !!sim.pending || sim.shopOpen || sim.neutralOpen || sim.roshanOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen || sim.riftOpen || sim.buildOpen || sim.buybackOpen || sim.over;
       if (!replayRef.current) controller.pollPad(!!inMenu);
       // Мир идёт только без окон уровня/лавки/нейтрала (остальные окна сим замораживает сам в step) и пока не «over».
-      const canAdvance = statusRef.current === "running" && !loadingRef.current && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.over;
+      const canAdvance = statusRef.current === "running" && !loadingRef.current && !sim.pending && !sim.shopOpen && !sim.neutralOpen && !sim.roshanOpen && !sim.over;
       if (hitStop > 0) { hitStop--; acc = 0; }
       else if (canAdvance) {
         acc += dt;
@@ -537,11 +561,13 @@ function ArcadeStage() {
       if (ev.rifts > seen.rifts) { sfxArcade("elite"); if (!prefersReducedMotion()) hitStop = 10; }
       if (ev.caravans > seen.caravans) { sfxBuy(); bump(); }
       if (ev.streakUps > seen.streakUps) bump(); // новая ступень серии: голос комментатора — в soundscape
+      if (ev.cheeses > seen.cheeses) { sfxArcade("levelup"); if (!prefersReducedMotion()) hitStop = 6; } // Cheese спас (T20.2)
+      if (ev.refreshers > seen.refreshers) sfxArcade("ult"); // Refresher Shard: второй ульт сразу
       if (ev.ambushes > seen.ambushes) sfxArcade("crit"); // метка засады — звук-предупреждение
       seen = { ...ev };
       stage.dataset.hurt = now < hurtUntil ? "true" : "";
       stage.dataset.lowhp = sim.player.hp / sim.player.stats.maxHp < 0.3 && !sim.over ? "true" : "";
-      if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen)) sim.step(replayInput(replayRef.current, sim.steps));
+      if (replayRef.current && (sim.pending || sim.shopOpen || sim.neutralOpen || sim.roshanOpen)) sim.step(replayInput(replayRef.current, sim.steps));
       if (sim.pending && !wasPending) { if (!handled.levelup) sfxArcade("levelup"); bump(); }
       if ((sim.shopOpen && !wasShop) || (sim.neutralOpen && !wasNeutral) || (sim.pondOpen && !wasPond) || (sim.contractOpen && !wasContract) || (sim.forgeOpen && !wasForge) || (sim.riftOpen && !wasRift)) { sfxBuy(); bump(); }
       wasContract = sim.contractOpen;
@@ -646,6 +672,8 @@ function ArcadeStage() {
                 {replayLog && <Chip invert>{t("arcade.hud.replay")}</Chip>}
                 {isArcadeDailySeed(seed) && <Chip invert>{t("arcade.hud.daily")}</Chip>}
                 {p.aegis && <Chip invert>{t("arcade.hud.aegis")}</Chip>}
+                {p.cheese && <Chip invert data-testid="arcade-cheese-chip">{t("arcade.hud.cheese")}</Chip>}
+                {p.refresherShard && <Chip invert data-testid="arcade-shard-chip">{t("arcade.hud.shard")}</Chip>}
                 {sim.hero.signature && STACKING_SIGS.has(sim.hero.signature.kind) && <Chip invert>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
                 {sim.tick < sim.greedUntil && <Chip invert>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
                 {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip invert data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
@@ -1010,7 +1038,7 @@ function ArcadeStage() {
                   <small className="arcade-build__label">{t("arcade.build.items")}</small>
                   <div className="arcade-build__skills">
                     {sim.player.neutral && (
-                      <span className="arcade-build__skill" data-neutral="true" title={t(`arcade.neutral.${sim.player.neutral}.desc` as MessageKey)}>
+                      <span className="arcade-build__skill" data-neutral="true" title={t(`arcade.neutral.${sim.player.neutral}.desc` as MessageKey, NEUTRAL_PROP_TEXT)}>
                         <ItemIcon pixel={PX} slug={sim.player.neutral} name={sim.player.neutral} size="sm" />
                         <b>{sim.player.neutralEnchant ? `${t(`arcade.enchant.${sim.player.neutralEnchant}` as MessageKey)} ` : ""}{t(`arcade.neutral.${sim.player.neutral}` as MessageKey)}</b>
                         <small>{t("arcade.build.neutral")}</small>
@@ -1043,13 +1071,37 @@ function ArcadeStage() {
                   <button key={n.id} type="button" className="arcade-offer" data-kind="neutral" data-testid={`arcade-neutral-${i}`} onClick={() => shopAct(i + 1)}>
                     <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={n.id} name={n.id} size="sm" /> {t("arcade.neutral.tier", { tier: n.tier })}</span>
                     <strong>{sim.neutralEnchants[i] ? `${t(`arcade.enchant.${sim.neutralEnchants[i]}` as MessageKey)} ` : ""}{t(`arcade.neutral.${n.id}` as MessageKey)}</strong>
-                    <p>{t(`arcade.neutral.${n.id}.desc` as MessageKey)}</p>
+                    <p>{t(`arcade.neutral.${n.id}.desc` as MessageKey, NEUTRAL_PROP_TEXT)}</p>
                     <StatList effects={[{ e: n.effect, m: 1 }, ...(sim.neutralEnchants[i] && NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]] ? [{ e: NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]].effect, m: n.tier, extra: true }] : [])]} now={sim.player.stats} />
                   </button>
                 ))}
               </div>
               <div className="arcade-overlay__actions arcade-shop__actions">
                 <Button variant="secondary" data-testid="arcade-neutral-skip" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.neutral.skip")}</Button>
+              </div>
+            </div>
+          </div>
+        )}
+        {modal === "roshan" && sim && status !== "over" && (
+          // Награда Рошана на выбор (T20.2): недоступное (второе воскрешение, второй Cheese, Shard при пассивном ульте) — выключено.
+          <div className="arcade-overlay" data-testid="arcade-roshan">
+            <div className="arcade-levelup arcade-shop">
+              <Eyebrow>{t("arcade.roshanReward.title")}</Eyebrow>
+              <h2>{t("arcade.roshanReward.pick")}</h2>
+              <div className="arcade-offers">
+                {ROSHAN_REWARDS.map((r, i) => {
+                  const ok = sim.roshanOptions()[r.id];
+                  return (
+                    <button key={r.id} type="button" className="arcade-offer" data-kind="neutral" data-testid={`arcade-roshan-${r.id}`} data-pad-focus={padActive && padFocus === i ? "true" : undefined} disabled={!ok} autoFocus={i === ROSHAN_REWARDS.findIndex((x) => sim.roshanOptions()[x.id])} onClick={() => shopAct(i + 1)}>
+                      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={r.art} name={r.id} size="sm" /> {t(`arcade.roshanReward.${r.id}` as MessageKey)}</span>
+                      <p>{t(`arcade.roshanReward.${r.id}.desc` as MessageKey, { pct: Math.round(ARCADE.roshanReward.cheeseAt * 100) })}</p>
+                      {!ok && <small>{t(`arcade.roshanReward.${r.id}.off` as MessageKey)}</small>}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="arcade-overlay__actions arcade-shop__actions">
+                <Button variant="secondary" data-testid="arcade-roshan-later" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.roshanReward.later")}</Button>
               </div>
             </div>
           </div>
@@ -1098,8 +1150,11 @@ function ArcadeStage() {
                           <div className="arcade-shop__details" data-testid={`arcade-shop-details-${i}`}>
                             {def && <StatList effects={itemEffectsAt(def, it.rarity)} />}
                             <p>{t(`arcade.item.${it.id}.desc` as MessageKey)}</p>
-                            {sim.caravanGiftAvailable() && it.rarity !== "arcana" && (
-                              <Button variant="primary" data-testid={`arcade-shop-upgrade-${i}`} onClick={() => { setOpenItem(null); shopAct(SHOP_ACT.upgradeBase + i); }}>{t("arcade.shop.upgradeGift")}</Button>
+                            {NEXT_RARITY[it.rarity] && (
+                              // Подъём редкости (T20.4): даром — подарком каравана, иначе за золото; выше arcana кнопки нет.
+                              <Button variant="primary" data-testid={`arcade-shop-upgrade-${i}`} disabled={sim.player.gold < (sim.shopUpgradePrice(i) ?? Infinity)} onClick={() => { setOpenItem(null); shopAct(SHOP_ACT.upgradeBase + i); }}>
+                                {sim.caravanGiftAvailable() ? t("arcade.shop.upgradeGift") : t("arcade.shop.upgrade", { rarity: t(`arcade.rarity.${NEXT_RARITY[it.rarity]}` as MessageKey), gold: sim.shopUpgradePrice(i) ?? 0 })}
+                              </Button>
                             )}
                             <Button variant="leave" data-testid={`arcade-shop-sell-${i}`} onClick={() => { setOpenItem(null); shopAct(SHOP_ACT.sellBase + i); }}>
                               {t("arcade.shop.sell", { gold: sim.itemSellPrice(it) })}

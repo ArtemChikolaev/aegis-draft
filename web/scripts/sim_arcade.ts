@@ -6,6 +6,7 @@ import { ArcadeSim, KIND_BY_INDEX } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
+import { ARCADE_ITEM_BY_ID } from "../src/game/arcade/content/items.ts";
 import { BLINK_MASK, CONTRACT_OATH_ACT, PICKUP_ACT, POND_RITUAL_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { GEAR_SLOTS, gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
 import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
@@ -103,9 +104,18 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
       // Жадно: самый дорогой доступный предмет, потом закрыть.
       let best = -1, bestPrice = -1;
       sim.shopOffers.forEach((o, i) => { const price = sim.shopBuyPrice(i); if (price <= sim.player.gold && o.price > bestPrice && sim.player.items.length < 6) { best = i; bestPrice = o.price; } });
-      return act(best >= 0 ? best + 1 : SHOP_ACT.close);
+      if (best >= 0) return act(best + 1);
+      // Купить нечего (слоты полны или дорого) — поднять редкость самого дорогого своего предмета (T20.4), не трогая запас
+      // на выкуп: пол его цены по минуте, пока выкуп не исчерпан. Каждый подъём тратит золото и растит редкость — цикл конечен.
+      const B = ARCADE.buyback;
+      const reserve = sim.buybacks < B.maxPerAct ? (B.base + B.perMin * sim.minutes) * B.growth ** sim.buybacks : 0;
+      let up = -1, upBase = -1;
+      sim.player.items.forEach((it, i) => { const price = sim.shopUpgradePrice(i); const base = ARCADE_ITEM_BY_ID[it.id]?.price ?? 0; if (price !== null && sim.player.gold - price >= reserve && base > upBase) { up = i; upBase = base; } });
+      return act(up >= 0 ? SHOP_ACT.upgradeBase + up : SHOP_ACT.close);
     }
     case "neutral": return act(sim.neutralOffers.length > 0 ? 1 : SHOP_ACT.close);
+    // Награда Рошана (T20.2): воскрешение сильнее всего, потом Cheese, потом Shard; взять нечего — «Позже».
+    case "roshan": { const o = sim.roshanOptions(); return act(o.aegis ? 1 : o.cheese ? 2 : o.refresher_shard ? 3 : SHOP_ACT.close); }
     case "loot": {
       const item = sim.lootOpen!;
       const cur = sim.player.gear[item.slot] as GearItem | undefined;
@@ -184,6 +194,26 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
     if (d > b.r + ARCADE.player.r + 10) continue;
     const ux = d > 1 ? dx / d : 1, uy = d > 1 ? dy / d : 0;
     const late = (b.at - sim.tick) * p.stats.speed / TICK_HZ < b.r + ARCADE.player.r - d;
+    return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: canBlink && late ? BLINK_MASK : 0, choose: -1, act: 0 };
+  }
+  // Умения нейтралов (T20.3): из кольца War Stomp / Thunder Clap — наружу, с линии Purge — вбок; не успеть — рывок.
+  const NC = ARCADE.neutralCasts, pr = ARCADE.player.r;
+  for (const e of sim.enemies) {
+    if (!e.alive || e.castT <= 0 || !e.kind.cast || e.kind.cast === "frost_armor") continue;
+    let ux: number, uy: number, gap: number;
+    if (e.kind.cast === "purge") {
+      const t = Math.max(0, Math.min(NC.purge.length, (p.x - e.x) * e.castX + (p.y - e.y) * e.castY));
+      const dx = p.x - (e.x + e.castX * t), dy = p.y - (e.y + e.castY * t), d = Math.sqrt(dx * dx + dy * dy);
+      gap = NC.purge.width / 2 + pr - d;
+      ux = d > 1 ? dx / d : -e.castY; uy = d > 1 ? dy / d : e.castX; // на самой линии — вбок по перпендикуляру
+    } else {
+      const R = e.kind.cast === "stomp" ? NC.stomp.radius : NC.clap.radius;
+      const dx = p.x - e.castX, dy = p.y - e.castY, d = Math.sqrt(dx * dx + dy * dy);
+      gap = R + pr - d;
+      ux = d > 1 ? dx / d : 1; uy = d > 1 ? dy / d : 0;
+    }
+    if (gap < -10) continue;
+    const late = e.castT * p.stats.speed / TICK_HZ < gap;
     return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: canBlink && late ? BLINK_MASK : 0, choose: -1, act: 0 };
   }
   if (rosh && rosh.slamT > 0) {

@@ -64,6 +64,8 @@ export function itemEffectsAt(def: ArcadeItemDef, rarity: Rarity): { e: ItemEffe
   return out;
 }
 export const ITEM_PRICE_MULT: Record<Rarity, number> = { standard: 1, refined: 1.6, exotic: 2.5, arcana: 4 };
+/** Следующая ступень редкости (подъём предмета лавки: подарок каравана и платный, T20.4); null — выше некуда. */
+export const NEXT_RARITY: Record<Rarity, Rarity | null> = { standard: "refined", refined: "exotic", exotic: "arcana", arcana: null };
 
 export interface ShopOffer {
   id: string;

@@ -36,6 +36,8 @@ function kitInput(sim: ArcadeSim): ArcadeInput {
     case "pending": return { ...IDLE_INPUT, choose: 0 };
     case "shop": return act(sim.shopOffers.length > 0 && sim.player.gold >= sim.shopBuyPrice(0) && sim.player.items.length < ARCADE.shop.slots ? 1 : SHOP_ACT.close);
     case "neutral": return act(sim.neutralOffers.length > 0 ? 1 : SHOP_ACT.close);
+    // Награда Рошана (T20.2): воскрешение сильнее всего, потом Cheese, потом Shard; взять нечего — «Позже».
+    case "roshan": { const o = sim.roshanOptions(); return act(o.aegis ? 1 : o.cheese ? 2 : o.refresher_shard ? 3 : SHOP_ACT.close); }
     case "loot": return act(1);
     default: return act(SHOP_ACT.close);
   }

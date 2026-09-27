@@ -90,7 +90,11 @@ export interface EnemyKind {
   acts?: readonly string[];
   /** Цвет-роль для рендера (токен подбирается на стороне UI). */
   tone: "grunt" | "brute" | "swift" | "elite" | "boss" | "creep";
+  /** Умение нейтрала Dota (T20.3, `ARCADE.neutralCasts`): War Stomp, Thunder Clap, Purge, Frost Armor. */
+  cast?: NeutralCastId;
 }
+
+export type NeutralCastId = "stomp" | "clap" | "purge" | "frost_armor";
 
 export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast" | "venom";
 
@@ -120,7 +124,7 @@ export interface Pet {
 export type RuneKind = "dd" | "shield" | "arcane" | "illusion";
 export const RUNE_KINDS: readonly RuneKind[] = ["dd", "shield", "arcane", "illusion"];
 /** `dash` — срабатывает на Blink героя (седьмой тип благословений DMD, «Dash»). */
-export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive" | "dash";
+export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive" | "dash" | "summon";
 export type Rarity = "standard" | "refined" | "exotic" | "arcana";
 
 export interface UpgradeDef {
@@ -132,6 +136,9 @@ export interface UpgradeDef {
   requiresSchools?: SchoolId[];
   /** Модификатор: предлагается, только если взят хотя бы один из перечисленных источников (владелец 2026-09-06: «предлагает +урон огня, когда огня ещё нет»). */
   requires?: string[];
+  /** «Призыв» (T20.1): модификатор доступен и без `requires`, если в ките героя есть призыв или иллюзии — Зверинец
+   *  усиливает их так же, как волка и медведя. */
+  summonKit?: boolean;
   /** Легендарный апгрейд (DMD-подобный «мега-пассив», T13.18): один ранг, редкое предложение, своя иконка-предмет. */
   legendary?: boolean;
   /** Нейтральный легендарный — не привязан к школе (школу в билд не добавляет). */
@@ -186,6 +193,13 @@ export interface Enemy {
   fireBlastAt: number;
   /** Благословения «Каст» (ARCADE.castProc) по этой цели — не раньше этого тика. */
   castProcAt: number;
+  /** Умение нейтрала (T20.3): тик, с которого можно колдовать снова; тиков до конца телеграфа (0 — не колдует); точка удара
+   *  (War Stomp, Thunder Clap) или направление линии (Purge); до какого тика на враге Frost Armor огра. */
+  castAt: number;
+  castT: number;
+  castX: number;
+  castY: number;
+  armorUntil: number;
   /** Осада леса (T13.78): у охраны патруля — id знаменосца (0 — нет); у знаменосца — точка маршрута. */
   leader: number;
   /** Кэш ссылки на вожака `leader`: сверяется по `alive` и `id` (пул переиспользует объекты) — без поиска по всем врагам каждый тик. */
@@ -329,6 +343,9 @@ export interface ArcadeEventCounters {
   blinks: number;
   /** Новые ступени серии убийств (Killing Spree … Beyond Godlike) — голос комментатора и juice. */
   streakUps: number;
+  /** Сработавшие Cheese и Refresher Shard (T20.2) — звук и juice. */
+  cheeses: number;
+  refreshers: number;
   /** Выкупы (ARCADE.buyback) — стингер Dota и juice. */
   buybacks: number;
 }
@@ -495,6 +512,9 @@ export interface Player {
   invulnUntil: number;
   aegis: boolean;
   aegisUsed: boolean;
+  /** Награда Рошана (T20.2): Cheese — сам восстанавливает полное HP при ≤ 25%; Refresher Shard — ждёт следующего ульта. */
+  cheese: boolean;
+  refresherShard: boolean;
   abilities: Record<AbilityKey, number>;
   cooldowns: Record<AbilityKey, number>;
   /** Автокаст по умениям (владелец 2026-09-06: «умения не должны нажиматься сами, пока не включишь»).

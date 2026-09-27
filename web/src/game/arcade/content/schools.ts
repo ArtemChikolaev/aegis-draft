@@ -47,9 +47,12 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "beast_wolf", school: "beast", type: "strike", maxRank: 3 },
   { id: "beast_bear", school: "beast", type: "attack", maxRank: 3 },
   { id: "beast_pack", school: "beast", type: "power", maxRank: 2, requires: ["beast_wolf"] },
-  { id: "beast_roar", school: "beast", type: "passive", maxRank: 3, requires: ["beast_wolf", "beast_bear"] },
+  { id: "beast_roar", school: "beast", type: "passive", maxRank: 3, requires: ["beast_wolf", "beast_bear"], summonKit: true },
   // Стая следом: питомцы прыгают за героем в точку Blink и бьют сразу — нужен зверь, который бьёт.
-  { id: "beast_pounce", school: "beast", type: "dash", maxRank: 3, requires: ["beast_wolf", "beast_bear"] },
+  { id: "beast_pounce", school: "beast", type: "dash", maxRank: 3, requires: ["beast_wolf", "beast_bear"], summonKit: true },
+  // Тип «Призыв» (T20.1) — последний из семи типов благословений DMD: призывы и иллюзии героя живут дольше, с 3-го ранга их
+  // на одного больше; волк и медведь бьют сильнее — карта не пустая и без призывов в ките.
+  { id: "beast_leader", school: "beast", type: "summon", maxRank: 3, requires: ["beast_wolf", "beast_bear"], summonKit: true },
   // Venom (T13.47, этап 3 аудита): пятая школа поверх статуса яда (T13.39). Источники — жало (удар) и облако (залп);
   // модификаторы — распространение при смерти, вирулентность (сила и длительность стаков), клыки (запасной источник
   // для медленных героев: стак ближайшему по таймеру). Развилки-легендарки: Пандемия переносит стаки, Дистилляция
@@ -154,6 +157,7 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "beast_bear": return [{ key: "petDmg", value: 30 * p }];
     case "beast_pack": return [{ key: "wolves", value: 1 + rank, unit: "x" }];
     case "beast_roar": return [{ key: "petPower", value: 0.35 * p, unit: "pct" }];
+    case "beast_leader": return [{ key: "summonTime", value: 0.2 * p, unit: "pct" }, { key: "summonExtra", value: rank >= 3 ? 1 : 0, unit: "x" }, { key: "petPower", value: 0.15 * p, unit: "pct" }];
     case "hyb_steam": return [{ key: "vsBurningChilled", value: 0.25 * p, unit: "pct" }];
     case "hyb_superconductor": return [{ key: "vsFrozenZap", value: 0.35 * p, unit: "pct" }, { key: "chainTargetsBonus", value: Math.floor(p * 2), unit: "x" }];
     case "hyb_plasma": return [{ key: "plasmaDps", value: 5 * p }];

@@ -5,7 +5,7 @@ import { IDLE_INPUT } from "../src/game/arcade/types.ts";
 import { COMPOSITIONS, ROLLED_COMPOSITIONS, compositionFor } from "../src/game/arcade/content/compositions.ts";
 
 // Композиции акта (T13.70): полный Radiant-акт собирается из одного из двух наборов мест по seed.
-const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen || sim.riftOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
+const step = (sim: ArcadeSim, n: number) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.roshanOpen || sim.lootOpen || sim.pondOpen || sim.forgeOpen || sim.riftOpen || sim.neutralOpen ? { ...IDLE_INPUT, act: 5 } : IDLE_INPUT); } };
 
 describe("композиции акта", () => {
   it("по seed: детерминированно, только для полного акта, все наборы встречаются", () => {

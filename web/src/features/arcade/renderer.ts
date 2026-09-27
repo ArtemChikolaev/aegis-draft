@@ -549,16 +549,18 @@ export class ArcadeRenderer {
     drawDotaFrame(this.ctx, ds, "idle", 0, frame, x, y, illusion ? 0.5 : 1, illusion ? 0.86 : 1);
   }
 
+  /** Дропы Рошана (T20.2): щит Aegis на месте каждого убитого Рошана — касание открывает выбор награды. */
   private drawAegis(sim: ArcadeSim, pal: Palette, now: number): void {
-    if (!sim.aegisDrop) return;
+    if (sim.roshanDrops.length === 0) return;
     const c = this.ctx;
-    const { x, y } = sim.aegisDrop;
     const bob = Math.sin(now / 180) * 4;
-    c.fillStyle = pal.aegis;
-    c.beginPath();
-    c.moveTo(x, y - 16 + bob); c.lineTo(x + 12, y - 8 + bob); c.lineTo(x + 10, y + 8 + bob); c.lineTo(x, y + 16 + bob); c.lineTo(x - 10, y + 8 + bob); c.lineTo(x - 12, y - 8 + bob);
-    c.closePath(); c.fill();
-    c.strokeStyle = pal.text; c.lineWidth = 1.5; c.stroke();
+    for (const { x, y } of sim.roshanDrops) {
+      c.fillStyle = pal.aegis;
+      c.beginPath();
+      c.moveTo(x, y - 16 + bob); c.lineTo(x + 12, y - 8 + bob); c.lineTo(x + 10, y + 8 + bob); c.lineTo(x, y + 16 + bob); c.lineTo(x - 10, y + 8 + bob); c.lineTo(x - 12, y - 8 + bob);
+      c.closePath(); c.fill();
+      c.strokeStyle = pal.text; c.lineWidth = 1.5; c.stroke();
+    }
   }
 
   private drawShrine(sim: ArcadeSim, pal: Palette, now: number): void {
@@ -1135,6 +1137,9 @@ export class ArcadeRenderer {
         }
       }
       if (e.kind.reflect) { c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.setLineDash([4, 4]); c.beginPath(); c.arc(e.x, e.y, r + 8, 0, Math.PI * 2); c.stroke(); c.setLineDash([]); }
+      // Умения нейтралов (T20.3): телеграф каста и Frost Armor на соседе огра.
+      if (e.castT > 0 && e.kind.cast) this.drawNeutralCast(e, pal);
+      if (tick < e.armorUntil) { c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.85; c.beginPath(); c.arc(e.x, e.y, r + 6, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1; }
       if (e.affix !== 0) this.drawAffix(c, e, r, pal, tick);
       if (e.kind.elite || e.kind.boss || e.kind.structure || e.affix !== 0) {
         c.strokeStyle = pal.text; c.lineWidth = e.kind.boss || e.kind.structure ? 3 : 2;
@@ -1201,6 +1206,30 @@ export class ArcadeRenderer {
         c.globalAlpha = 1;
       }
     }
+  }
+
+  /** Телеграф умения нейтрала (T20.3): кольцо War Stomp / Thunder Clap наливается к удару, Purge — полоса от сатира. */
+  private drawNeutralCast(e: Enemy, pal: Palette): void {
+    const c = this.ctx, NC = ARCADE.neutralCasts;
+    if (e.kind.cast === "purge") {
+      const P = NC.purge, k = 1 - e.castT / P.tele;
+      const x2 = e.x + e.castX * P.length, y2 = e.y + e.castY * P.length;
+      c.strokeStyle = pal.telegraph; c.lineCap = "round";
+      c.lineWidth = P.width; c.globalAlpha = 0.12 + 0.28 * k;
+      c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(x2, y2); c.stroke();
+      c.lineWidth = 2; c.globalAlpha = 0.5 + 0.4 * k; c.setLineDash([10, 8]);
+      c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(x2, y2); c.stroke();
+      c.setLineDash([]); c.lineCap = "butt"; c.globalAlpha = 1;
+      return;
+    }
+    const C = e.kind.cast === "stomp" ? NC.stomp : NC.clap;
+    const k = 1 - e.castT / C.tele;
+    const tone = e.kind.cast === "clap" ? pal.frost : pal.telegraph;
+    c.strokeStyle = tone; c.lineWidth = 3; c.globalAlpha = 0.9;
+    c.beginPath(); c.arc(e.castX, e.castY, C.radius, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = tone; c.globalAlpha = 0.15 + 0.3 * k;
+    c.beginPath(); c.arc(e.castX, e.castY, C.radius * k, 0, Math.PI * 2); c.fill();
+    c.globalAlpha = 1;
   }
 
   private drawProjectiles(sim: ArcadeSim, pal: Palette): void {

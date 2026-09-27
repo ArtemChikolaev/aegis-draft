@@ -18,7 +18,7 @@ const driveUntilWorldMoves = (sim: ArcadeSim, maxSteps = 200): number => {
 };
 
 describe("окна сима и бот", () => {
-  it("activeModal: порядок pending → shop → neutral → loot → pond → contract → forge → rift → build, и step слушает именно его", () => {
+  it("activeModal: порядок pending → shop → neutral → roshan → loot → pond → contract → forge → rift → build, и step слушает именно его", () => {
     const sim = new ArcadeSim("modal-order");
     expect(sim.activeModal()).toBeNull();
     const open: [ArcadeModal, () => void][] = [
@@ -27,6 +27,7 @@ describe("окна сима и бот", () => {
       ["forge", () => { sim.forgeOpen = true; }],
       ["contract", () => { sim.contractOpen = true; }],
       ["pond", () => { sim.pondOpen = true; }],
+      ["roshan", () => { sim.roshanOpen = true; }],
       ["neutral", () => { sim.neutralOpen = true; }],
       ["shop", () => { sim.shopOpen = true; }],
     ];

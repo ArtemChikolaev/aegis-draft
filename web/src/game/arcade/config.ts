@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.78.0";
+export const ARCADE_CONFIG_VERSION = "a0.79.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -40,6 +40,10 @@ export const ARCADE = {
   /** Второй Рошан сильнее первого (как респавн в Dota). При живом первом он не появляется: ждёт его смерти и ещё
    *  `respawnGap` передышки (подобрать Aegis) — раньше второй спавнился поверх первого, и боссов становилось два. */
   secondRoshan: { hpMult: 1.4, dmgMult: 1.25, respawnGap: sec(30) },
+  /** Награда Рошана на выбор (T20.2): Cheese срабатывает сам, когда HP ≤ `cheeseAt` (удар, убивший сразу, мимо него — Aegis
+   *  остаётся сильнейшим); Refresher Shard — на следующем ульте. `pickRadius` — касание дропа, `snoozeRadius` — отошёл
+   *  после «Позже», и касание снова откроет окно. */
+  roshanReward: { cheeseAt: 0.25, pickRadius: 40, snoozeRadius: 70 },
   ancient: { megaEvery: sec(15), megaSize: 8, megaHpMult: 2, lateMult: 2, spawnMult: 1.3 },
   tormentor: { reflectCap: 30 },
   /** Яд (T13.39, аудит 2026-09-08): самостоятельный статус, не горение. До `maxStacks` стаков с ОБЩИМ
@@ -149,6 +153,20 @@ export const ARCADE = {
     over: { radius: 170, dmg: 60, perLevel: 6, slow: 0.5, slowSec: 3 },
     swift: { seconds: 3, attackMult: 0.7, speedMult: 1.25 },
     arcane: { charges: 1, rechargeMult: 0.5 },
+  },
+  /** Умения нейтралов Dota у обычных врагов (T20.3, `EnemyKind.cast`): кентавр — War Stomp (кольцо, оглушение), адский
+   *  медведь — Thunder Clap (кольцо, замедление), сатир — Purge (линия: замедление и снятие рун), огр — Frost Armor на соседа
+   *  (урон по нему ниже). Каст — только рядом с героем (`range`, всегда в кадре), не раньше `fromMin`, одновременно не больше
+   *  `maxActive` телеграфов и не чаще `gap` между стартами; стан или заморозка сбивают каст. Замедление — то же, что у
+   *  «Морозной» элиты (`affix.frost.slow`). Решает частота, не сила: при двух телеграфах разом и паузе 1.2 с мили-бот
+   *  Juggernaut проваливался 73 → 38% (short, бот вечно уворачивался в толпе), слабее эффекты — те же 38%; один разом и
+   *  пауза 2.5 с — 72%. */
+  neutralCasts: {
+    maxActive: 1, gap: sec(2.5), range: 260, fromMin: 3,
+    stomp: { every: sec(10), tele: sec(0.9), radius: 115, stun: 0.8, dmgMult: 0.6 },
+    clap: { every: sec(9), tele: sec(0.8), radius: 130, slowSec: 2.5, dmgMult: 0.5 },
+    purge: { every: sec(11), tele: sec(0.7), length: 240, width: 28, slowSec: 2 },
+    frostArmor: { every: sec(12), radius: 220, seconds: 6, taken: 0.65 },
   },
   /** Благословения «Каст» (rad_spellfire, ska_spellfrost, mae_spellstorm, ven_spelltoxin): попадание умения героя (Q/W/E/R)
    *  накладывает статус школы не чаще раза в `every` на цель — тиковые виды (вихрь, эдикт, зоны) бьют по 7–10 раз в секунду.
@@ -324,8 +342,12 @@ export const ARCADE = {
   /** Прокачка: реролл офферов за золото (цена растёт) и изгнание апгрейда из пула на забег (как в DMD). */
   levelup: { rerollBase: 30, rerollStep: 20, banishes: 3 },
   /** Secret Shop (T13.8): торговец появляется рядом в окна, живёт lifetime; реролл дорожает. */
+  /** Secret Shop. Окна 11:00 и 16:30 (T20.4) — только в полных актах (разминка кончается в 9:00): после 6:00 золоту было
+   *  некуда деться, бот умирал с 1.7–4 тыс. на руках. `upgradeMarkup` — наценка платного подъёма редкости своего предмета
+   *  к разнице цен ступеней (подарок каравана поднимает бесплатно). */
   shop: {
-    at: [sec(3 * 60), sec(6 * 60)],
+    at: [sec(3 * 60), sec(6 * 60), sec(11 * 60), sec(16.5 * 60)],
+    upgradeMarkup: 1.25,
     lifetime: sec(45),
     offers: 3,
     slots: 6,
@@ -336,6 +358,19 @@ export const ARCADE = {
   },
   /** Нейтральные предметы: токен тира рядом с игроком на минутах NEUTRAL_TIER_AT_MIN, живёт lifetime. */
   neutral: { lifetime: sec(60), distMin: 200, distMax: 300 },
+  /** Свойства нейтралок (T20.5, content/neutrals.ts `prop`): Arcane Ring — каст умения сокращает перезарядку Blink; Trusty
+   *  Shovel — раз в `shovelEvery` выкапывает долю bounty-руны; Cloak of Flames — аура горения (множители огня Radiance
+   *  действуют); Timeless Relic — статусы героя дольше; Mirror Shield — раз в `mirrorEvery` гасит вражеский снаряд;
+   *  Fallen Sky — Blink приземляется метеором; Ex Machina — раз в `exMachinaEvery` сбрасывает перезарядку Q/W/E. */
+  neutralProps: {
+    arcaneRingBlink: sec(0.5),
+    shovelEvery: sec(40), shovelFrac: 0.5,
+    flamesEvery: sec(0.5), flamesRadius: 110, flamesDps: 6,
+    relicMult: 1.3,
+    mirrorEvery: sec(6),
+    fallenSky: { dmg: 80, perLevel: 8, radius: 120, stun: 0.8 },
+    exMachinaEvery: sec(30),
+  },
   /** Экипировка (T13.14): сундуки с 1:00 каждые 150 с (живут 60 с); шанс дропа с обычного врага мал,
    *  элита и боссы роняют всегда; тир по минуте (7/14); сумка забега — 12. */
   /** `supportChance` — шанс предмета с шамана и знаменосца: они `elite`, и гарантированный дроп в «Осаде леса» давал ~2 предмета

@@ -16,6 +16,8 @@ function scriptedInput(sim: ArcadeSim, tick: number): ArcadeInput {
   if (sim.lootOpen) return { ...IDLE_INPUT, act: 1 };
   // Пруд (T13.43) и контракт охоты (T13.50) тоже ставят мир на паузу — закрываем, иначе цикл «до тика N» бесконечен.
   if (sim.pondOpen || sim.contractOpen || sim.forgeOpen || sim.riftOpen) return { ...IDLE_INPUT, act: SHOP_ACT.close };
+  // Награда Рошана (T20.2): кайт по квадрату пробегает через дроп — берём первую доступную, иначе окно стоит вечно.
+  if (sim.roshanOpen) { const o = sim.roshanOptions(); return { ...IDLE_INPUT, act: o.aegis ? 1 : o.cheese ? 2 : o.refresher_shard ? 3 : SHOP_ACT.close }; }
   const phase = Math.floor(tick / 90) % 4;
   const dirs = [[16, 0], [0, 16], [-16, 0], [0, -16]];
   return { mx: dirs[phase][0], my: dirs[phase][1], cast: 0, choose: -1, act: 0 };

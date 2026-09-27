@@ -5,7 +5,7 @@ import { IDLE_INPUT } from "../src/game/arcade/types.ts";
 
 // Охотник Dire (T13.55, только Dire): скрыт, метка на будущей позиции героя, прыжок и удар, окно уязвимости.
 const S = ARCADE.stalker;
-const step = (sim: ArcadeSim, n: number, input = IDLE_INPUT) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen ? { ...IDLE_INPUT, act: 5 } : input); } };
+const step = (sim: ArcadeSim, n: number, input = IDLE_INPUT) => { for (let i = 0; i < n && !sim.over; i++) { sim.player.hp = sim.player.stats.maxHp; sim.step(sim.pending ? { ...IDLE_INPUT, choose: 0 } : sim.shopOpen || sim.roshanOpen || sim.neutralOpen || sim.lootOpen || sim.pondOpen || sim.contractOpen || sim.forgeOpen ? { ...IDLE_INPUT, act: 5 } : input); } };
 const quiet = (sim: ArcadeSim) => { for (const e of sim.enemies) if (e.alive && e !== sim.stalker && !e.kind.totem) e.alive = false; sim.defiler = null; sim.centaur = null; sim.necromancer = null; sim.thunder = null; sim.camp!.nextGuardAt = 1e9; };
 
 describe("Охотник Dire", () => {

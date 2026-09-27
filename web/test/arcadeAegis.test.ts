@@ -7,22 +7,29 @@ import { IDLE_INPUT, type Offer } from "../src/game/arcade/types.ts";
 type Internals = { rollOffers(): Offer[]; onLethal(): void };
 
 describe("Аркада: Aegis и «Феникс» не сгорают впустую", () => {
-  it("Aegis с Рошана лежит, пока воскрешение уже есть, и подбирается, когда оно потрачено", () => {
+  it("награда Рошана: при живом воскрешении Aegis в выборе недоступен и не сгорает; потратил — берётся", () => {
     const sim = new ArcadeSim("aegis-drop");
     for (const e of sim.enemies) if (e.alive) e.alive = false;
     const p = sim.player;
     p.aegis = true;
-    sim.aegisDrop = { x: p.x, y: p.y };
+    sim.roshanDrops.push({ x: p.x, y: p.y });
     sim.step(IDLE_INPUT);
-    expect(sim.aegisDrop).not.toBeNull(); // было: подобран и потерян
-    expect(p.aegis).toBe(true);
+    expect(sim.roshanOpen).toBe(true); // Cheese и Shard взять можно
+    expect(sim.roshanOptions().aegis).toBe(false);
+    sim.step({ ...IDLE_INPUT, act: 1 }); // Aegis недоступен — окно ждёт
+    expect(sim.roshanOpen).toBe(true);
+    sim.step({ ...IDLE_INPUT, act: 5 }); // «Позже»: дроп лежит (было: подобран и потерян)
+    expect(sim.roshanDrops.length).toBe(1);
     (sim as unknown as Internals).onLethal(); // воскрешение потрачено
     expect(p.aegis).toBe(false);
     expect(sim.over).toBeNull();
-    sim.aegisDrop!.x = p.x; sim.aegisDrop!.y = p.y;
-    sim.step(IDLE_INPUT);
-    expect(sim.aegisDrop).toBeNull();
+    const x0 = p.x;
+    p.x = x0 + 200; sim.step(IDLE_INPUT); // отошёл — «Позже» снято
+    p.x = x0; sim.step(IDLE_INPUT);
+    expect(sim.roshanOpen).toBe(true);
+    sim.step({ ...IDLE_INPUT, act: 1 });
     expect(p.aegis).toBe(true);
+    expect(sim.roshanDrops.length).toBe(0);
   });
 
   it("«Феникс» не предлагается, пока воскрешение есть, и возвращается в пул, когда его нет", () => {
