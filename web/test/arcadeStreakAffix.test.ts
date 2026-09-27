@@ -48,15 +48,17 @@ describe("серия убийств", () => {
     expect(streakTierOf(T[T.length - 1] + 500)).toBe(T.length);
   });
 
-  it("баунти: золото за убийство × (1 + goldPerTier × ступень)", () => {
+  it("баунти: золото за убийство × (1 + goldPerTier × ступень), дробная часть копится, а не съедается округлением", () => {
     const sim = field("streak-2", NO_GENTLE);
     killN(sim, ARCADE.streak.tiers[3]);
     const tier = sim.streakTier();
     expect(tier).toBe(4);
-    const e = dummy(sim, 900);
+    // 20 кобольдов (1 золото) на 4-й ступени: +40% — это +8 золота за серию. Округление каждого убийства давало +0 (аудит 2026-09-27).
+    const n = 20, per = (ENEMY_KINDS.kobold.gold + sim.player.stats.goldPerKill) * (1 + ARCADE.streak.goldPerTier * tier);
     const gold = sim.player.gold;
-    priv(sim).killEnemy(e);
-    expect(sim.player.gold - gold).toBe(Math.round((e.kind.gold + sim.player.stats.goldPerKill) * (1 + ARCADE.streak.goldPerTier * tier)));
+    killN(sim, n);
+    expect(sim.streakTier()).toBe(4);
+    expect(Math.abs(sim.player.gold - gold - n * per)).toBeLessThanOrEqual(1);
   });
 
   it("удар, дошедший до HP, обрывает серию; щит руны и неуязвимость — нет", () => {

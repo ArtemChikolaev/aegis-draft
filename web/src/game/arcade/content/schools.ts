@@ -21,22 +21,26 @@ export const UPGRADES: readonly UpgradeDef[] = [
   { id: "rad_aura", school: "radiance", type: "power", maxRank: 3 },
   { id: "rad_strike", school: "radiance", type: "attack", maxRank: 3 },
   { id: "rad_ring", school: "radiance", type: "strike", maxRank: 3 },
-  { id: "rad_blast", school: "radiance", type: "passive", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring", "rad_flare"] },
-  { id: "rad_inferno", school: "radiance", type: "power", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring", "rad_flare"] },
+  { id: "rad_blast", school: "radiance", type: "passive", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring", "rad_flare", "rad_spellfire"] },
+  { id: "rad_inferno", school: "radiance", type: "power", maxRank: 3, requires: ["rad_aura", "rad_strike", "rad_ring", "rad_flare", "rad_spellfire"] },
+  // Тип «Каст» (2026-09-27): статус школы с попадания умений героя — кит кастера входит в школьный билд. Тоже источник.
+  { id: "rad_spellfire", school: "radiance", type: "cast", maxRank: 3 },
   // Тип «Рывок» (Dash DMD): источник статуса школы на каждом Blink героя — тоже открывает модификаторы школы.
   { id: "rad_flare", school: "radiance", type: "dash", maxRank: 3 },
   { id: "ska_bite", school: "skadi", type: "attack", maxRank: 3 },
-  { id: "ska_snap", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura", "ska_frostblink"] },
+  { id: "ska_snap", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura", "ska_frostblink", "ska_spellfrost"] },
   { id: "ska_shards", school: "skadi", type: "strike", maxRank: 3 },
   { id: "ska_aura", school: "skadi", type: "power", maxRank: 3 },
-  { id: "ska_shatter", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura", "ska_snap", "ska_frostblink"] },
+  { id: "ska_shatter", school: "skadi", type: "passive", maxRank: 3, requires: ["ska_bite", "ska_shards", "ska_aura", "ska_snap", "ska_frostblink", "ska_spellfrost"] },
   { id: "ska_frostblink", school: "skadi", type: "dash", maxRank: 3 },
+  { id: "ska_spellfrost", school: "skadi", type: "cast", maxRank: 3 },
   { id: "mae_chain", school: "maelstrom", type: "attack", maxRank: 3 },
   { id: "mae_static", school: "maelstrom", type: "cast", maxRank: 3 },
-  { id: "mae_overcharge", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap", "mae_blinkbolt"] },
+  { id: "mae_overcharge", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap", "mae_blinkbolt", "mae_spellstorm"] },
   { id: "mae_clap", school: "maelstrom", type: "strike", maxRank: 3 },
-  { id: "mae_mjollnir", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap", "mae_blinkbolt"] },
+  { id: "mae_mjollnir", school: "maelstrom", type: "power", maxRank: 3, requires: ["mae_chain", "mae_static", "mae_clap", "mae_blinkbolt", "mae_spellstorm"] },
   { id: "mae_blinkbolt", school: "maelstrom", type: "dash", maxRank: 3 },
+  { id: "mae_spellstorm", school: "maelstrom", type: "cast", maxRank: 3 },
   // Зверинец (T13.21, питомцы как призывы DMD): ястреб собирает опыт, волк кусает и замедляет, медведь бьёт и оглушает;
   // стая и рёв — модификаторы, требуют зверя.
   { id: "beast_hawk", school: "beast", type: "power", maxRank: 3 },
@@ -52,10 +56,11 @@ export const UPGRADES: readonly UpgradeDef[] = [
   // тратит полный стек на взрыв. Механика — sim.ts по id.
   { id: "ven_sting", school: "venom", type: "attack", maxRank: 3 },
   { id: "ven_cloud", school: "venom", type: "strike", maxRank: 3 },
-  { id: "ven_spread", school: "venom", type: "passive", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs", "ven_slip"] },
-  { id: "ven_virulence", school: "venom", type: "power", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs", "ven_slip"] },
+  { id: "ven_spread", school: "venom", type: "passive", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs", "ven_slip", "ven_spelltoxin"] },
+  { id: "ven_virulence", school: "venom", type: "power", maxRank: 3, requires: ["ven_sting", "ven_cloud", "ven_fangs", "ven_slip", "ven_spelltoxin"] },
   { id: "ven_fangs", school: "venom", type: "cast", maxRank: 2 },
   { id: "ven_slip", school: "venom", type: "dash", maxRank: 3 },
+  { id: "ven_spelltoxin", school: "venom", type: "cast", maxRank: 3 },
   // Гибриды двух школ (T13.21): открываются, когда обе школы уже в билде — ещё один слой путей.
   { id: "hyb_steam", school: "radiance", type: "passive", maxRank: 2, requiresSchools: ["radiance", "skadi"] },
   { id: "hyb_superconductor", school: "skadi", type: "passive", maxRank: 2, requiresSchools: ["skadi", "maelstrom"] },
@@ -148,7 +153,7 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "beast_wolf": return [{ key: "petDmg", value: 14 * p }];
     case "beast_bear": return [{ key: "petDmg", value: 30 * p }];
     case "beast_pack": return [{ key: "wolves", value: 1 + rank, unit: "x" }];
-    case "beast_roar": return [{ key: "petPower", value: 0.35 * rank, unit: "pct" }];
+    case "beast_roar": return [{ key: "petPower", value: 0.35 * p, unit: "pct" }];
     case "hyb_steam": return [{ key: "vsBurningChilled", value: 0.25 * p, unit: "pct" }];
     case "hyb_superconductor": return [{ key: "vsFrozenZap", value: 0.35 * p, unit: "pct" }, { key: "chainTargetsBonus", value: Math.floor(p * 2), unit: "x" }];
     case "hyb_plasma": return [{ key: "plasmaDps", value: 5 * p }];
@@ -165,8 +170,13 @@ export function upgradeFigures(id: string, rank: number, power: number, ctx: Upg
     case "rad_flare": return [{ key: "blinkDmg", value: 16 * p * burnMult }, { key: "burnDps", value: 6 * p * burnMult }, { key: "burnSec", value: 3, unit: "s" }];
     case "ska_frostblink": return [{ key: "blinkDmg", value: 12 * p }, { key: "blinkSlow", value: Math.min(0.6, 0.35 + 0.05 * p), unit: "pct" }, { key: "slowSec", value: 2.5, unit: "s" }];
     case "mae_blinkbolt": return [{ key: "zapDmg", value: 22 * p * lightningMult }, { key: "zapTargets", value: 2 + Math.floor(p / 2), unit: "x" }];
-    case "beast_pounce": return [{ key: "petPower", value: 0.3 * rank, unit: "pct" }, { key: "buffSec", value: 3, unit: "s" }];
+    case "beast_pounce": return [{ key: "petPower", value: 0.3 * p, unit: "pct" }, { key: "buffSec", value: 3, unit: "s" }];
     case "ven_slip": return [{ key: "poisonDps", value: 4 * p * venomMult }, { key: "poisonStacks", value: 2, unit: "x" }];
+    // Тип «Каст» (попадание умения героя, не чаще раза в ARCADE.castProc.every на цель) — зеркало castProc в sim.ts; perTarget сверяет тест.
+    case "rad_spellfire": return [{ key: "burnDps", value: 5 * p * burnMult }, { key: "burnSec", value: 3, unit: "s" }, { key: "perTarget", value: 1, unit: "s" }];
+    case "ska_spellfrost": return [{ key: "slow", value: Math.min(0.6, 0.3 + 0.05 * p), unit: "pct" }, { key: "slowSec", value: 2, unit: "s" }, { key: "perTarget", value: 1, unit: "s" }];
+    case "mae_spellstorm": return [{ key: "chainChance", value: Math.min(0.5, 0.15 + 0.05 * p), unit: "pct" }, { key: "chainDmg", value: 18 * p * lightningMult }, { key: "chainTargets", value: 2, unit: "x" }];
+    case "ven_spelltoxin": return [{ key: "poisonDps", value: 3 * p * venomMult }, { key: "perTarget", value: 1, unit: "s" }];
     default: return [];
   }
 }

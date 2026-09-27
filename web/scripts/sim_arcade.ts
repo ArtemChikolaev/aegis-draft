@@ -109,6 +109,9 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
     case "loot": {
       const item = sim.lootOpen!;
       const cur = sim.player.gear[item.slot] as GearItem | undefined;
+      // Проклятое сейчас не взять (`lootBlocked`: на герое другая порча или пруд использован) — «надеть» молча ничего не
+      // делает, и бот слал бы его вечно (тик стоит). Оставляем и больше не подбираем.
+      if (sim.lootBlocked()) { declined.add(item); return act(SHOP_ACT.close); }
       // Проклятая добыча (T13.43/T13.51): осторожный игрок берёт её только при заметном выигрыше — иначе оставляет у ног.
       if (sim.lootCursed && !(cur && gearScore(item) > gearScore(cur) * 1.6) && !(!cur && gearScore(item) > 30)) return act(SHOP_ACT.close);
       const better = !cur || gearScore(item) > gearScore(cur);

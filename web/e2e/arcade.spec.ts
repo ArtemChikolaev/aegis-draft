@@ -120,6 +120,12 @@ test.describe("arcade", () => {
       expect(r.x).toBeGreaterThanOrEqual(stage.x - 0.5);
       expect(r.x + r.width).toBeLessThanOrEqual(stage.x + stage.width + 0.5);
     }
+    // Сцена целиком в кадре (после «Играть» страница оставалась прокрученной к кнопке, и часы уезжали за верх), золото
+    // и чипы событий видны и на телефоне (раньше строка статов там была скрыта целиком).
+    const vp = page.viewportSize()!;
+    expect(stage.y).toBeGreaterThanOrEqual(-0.5);
+    expect(stage.y + stage.height).toBeLessThanOrEqual(vp.height + 0.5);
+    await expect(page.getByTestId("arcade-gold")).toBeVisible();
     await page.keyboard.down("KeyD");
     await page.keyboard.press("Shift");
     await page.keyboard.up("KeyD");
@@ -144,7 +150,11 @@ test.describe("arcade", () => {
     // Смертельный урон при 900 золота: мир встаёт, открывается окно выкупа.
     await page.evaluate("(() => { const s = window.__arcadeSim(); s.player.gold = 900; s.player.hp = -5; })()");
     await expect(page.getByTestId("arcade-buyback")).toBeVisible();
-    await page.getByTestId("arcade-buyback-buy").click();
+    // Клавиатура: фокус сразу на «Выкупиться», Esc не ставит паузу поверх окна, Enter выкупает.
+    await expect(page.getByTestId("arcade-buyback-buy")).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("arcade-paused")).toHaveCount(0);
+    await page.keyboard.press("Enter");
     await expect(page.getByTestId("arcade-buyback")).toHaveCount(0);
     const st = await page.evaluate("(() => { const s = window.__arcadeSim(); return { hp: s.player.hp, max: s.player.stats.maxHp, over: !!s.over, buybacks: s.buybacks }; })()") as { hp: number; max: number; over: boolean; buybacks: number };
     expect(st.over).toBe(false);

@@ -7,6 +7,8 @@ import type { EnemyKind, EnemyKindId } from "../types.ts";
 export type AffixId = "haste" | "vampiric" | "volatile" | "frost" | "splitter";
 export const AFFIX: Readonly<Record<AffixId, number>> = { haste: 1, vampiric: 2, volatile: 4, frost: 8, splitter: 16 };
 export const AFFIX_IDS: readonly AffixId[] = ["haste", "vampiric", "volatile", "frost", "splitter"];
+/** Дальнобойной элите — без Вампира и Морозного: оба срабатывают на контактном ударе, а стрелок бьёт снарядом (аудит 2026-09-27). */
+export const AFFIX_IDS_RANGED: readonly AffixId[] = ["haste", "volatile", "splitter"];
 
 const KINDS: Record<EnemyKindId, EnemyKind> = {
   kobold: { id: "kobold", hp: 14, speed: 86, dmg: 6, r: 10, xp: 1, gold: 1, fromMin: 0, weight: 10, tone: "grunt" },

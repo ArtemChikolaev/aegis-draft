@@ -259,6 +259,18 @@ export class ArcadeRenderer {
     return palette;
   }
 
+  /** Окно камеры в мировых координатах с запасом (кадр `draw`): рядовые враги, точечные эффекты, шарды и снаряды за ним не
+   *  рисуются. На ~500 живых врагов в поле зрения телефона попадают десятки, а рисовались все — со статус-частицами и
+   *  полосами (аудит 2026-09-27). Чемпионов, босса и строения не отсекаем: их телеграфы тянутся на экран из-за края. */
+  private viewL = 0;
+  private viewT = 0;
+  private viewR = 0;
+  private viewB = 0;
+  private static readonly VIEW_MARGIN = 96;
+  private inView(x: number, y: number, r: number): boolean {
+    return x + r >= this.viewL && x - r <= this.viewR && y + r >= this.viewT && y - r <= this.viewB;
+  }
+
   draw(sim: ArcadeSim, now: number, joystick: { ox: number; oy: number; x: number; y: number } | null, shakeEnabled: boolean): void {
     // Кадр начинается на основном холсте; пиксельный проход ниже подменяет this.ctx буфером. Мировые слои берут
     // this.ctx после подмены: контекст, захваченный здесь, в пиксельном режиме перекрыл бы блит буфера.
@@ -267,6 +279,8 @@ export class ArcadeRenderer {
     this.mainCtx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     // Камера: игрок в центре; у края мира — с запасом за границу (см. camX).
     const camX = this.camX(sim), camY = this.camY(sim);
+    const M = ArcadeRenderer.VIEW_MARGIN;
+    this.viewL = camX - M; this.viewT = camY - M; this.viewR = camX + this.w + M; this.viewB = camY + this.h + M;
     if (shakeEnabled && sim.shake > 0) {
       const k = Math.min(1, sim.shake / 12) * 6;
       this.shakeX = (Math.random() - 0.5) * k;
@@ -473,7 +487,7 @@ export class ArcadeRenderer {
     const c = this.ctx;
     c.fillStyle = pal.shard;
     for (const s of sim.shards) {
-      if (!s.alive) continue;
+      if (!s.alive || !this.inView(s.x, s.y, 8)) continue;
       const r = s.xp >= 20 ? 7 : s.xp >= 6 ? 5 : 3.5;
       c.beginPath();
       c.moveTo(s.x, s.y - r); c.lineTo(s.x + r * 0.7, s.y); c.lineTo(s.x, s.y + r); c.lineTo(s.x - r * 0.7, s.y);
@@ -1051,6 +1065,8 @@ export class ArcadeRenderer {
     const tick = sim.tick;
     for (const e of sim.enemies) {
       if (!e.alive) continue;
+      // Толпа за окном камеры не рисуется; чемпионы, босс и строения — всегда (их телеграфы тянутся на экран из-за края).
+      if (!e.kind.elite && !e.kind.boss && !e.kind.structure && !this.inView(e.x, e.y, e.kind.r * 4)) continue;
       if (e.kind.id === "dire_stalker" && sim.stalkerHidden()) continue; // скрыт — предупреждает только метка
       const r = e.kind.r;
       const flash = tick - e.hitAt < 4;
@@ -1190,7 +1206,7 @@ export class ArcadeRenderer {
   private drawProjectiles(sim: ArcadeSim, pal: Palette): void {
     const c = this.ctx;
     for (const pr of sim.projectiles) {
-      if (!pr.alive) continue;
+      if (!pr.alive || !this.inView(pr.x, pr.y, 24)) continue;
       // Снаряд автоатаки — свой у героя: лучники шлют стрелу, метатели клинок, стрелки́ пулю, остальные сгусток
       // в цвете героя (владелец 2026-09-06). За огнём/льдом/молнией/ядром — пиксельный хвост (particles.ts).
       if (pr.kind !== "arrow") drawProjectileTrail(c, pr.x, pr.y, pr.vx, pr.vy, pr.r, pr.kind, sim.tick, this.artPx(), pal);
@@ -1439,6 +1455,8 @@ export class ArcadeRenderer {
       const age = tick - f.born;
       if (age >= f.dur) continue;
       if (ArcadeRenderer.GROUND_FX.has(f.kind) !== (layer === "ground")) continue;
+      // Точечные эффекты (цифры урона, лечение, смерти, пепел) за окном камеры не рисуем; кольца и линии — всегда.
+      if ((f.kind === "hit" || f.kind === "crit" || f.kind === "heal" || f.kind === "die" || f.kind === "ash") && !this.inView(f.x, f.y, 64)) continue;
       const k = age / f.dur;
       switch (f.kind) {
         case "hit": case "crit": case "heal": {
@@ -1557,13 +1575,25 @@ export class ArcadeRenderer {
 }
 
 /**
- * Рисовать ли сцену в этом кадре. На паузе и после конца забега мир стоит под blur-оверлеем, а сцена перерисовывалась
- * 60 раз в секунду. Теперь «застывшая» сцена рисуется при входе в это состояние, после resize (смена размера холста
- * стирает буфер) и раз в `every` кадров — на случай догрузившегося листа. Остальной цикл экрана (опрос пада, звук,
- * HUD) идёт каждый кадр, как раньше.
+ * Рисовать ли сцену в этом кадре. На паузе, под любым окном сима (с 2026-09-27) и после конца забега мир стоит под
+ * blur-оверлеем, а сцена перерисовывалась 60–120 раз в секунду. Теперь «застывшая» сцена рисуется при входе в это
+ * состояние, после resize (смена размера холста стирает буфер) и раз в `every` кадров — на случай догрузившегося листа.
+ * Опрос пада и звук идут каждый кадр, HUD — по `hudNeedsBump`.
  */
 export function sceneNeedsDraw(frozen: boolean, wasFrozen: boolean, dirty: boolean, frame: number, every = 60): boolean {
   return !frozen || !wasFrozen || dirty || frame % every === 0;
+}
+
+/** Что HUD (React) видел в последний раз: окно, тик мира, длина лога ввода, время бампа. */
+export type HudSeen = { modal: string | null; tick: number; log: number; at: number };
+
+/**
+ * Гейт рендера HUD в цикле экрана (аудит 2026-09-27). Раньше бамп шёл каждые 6 кадров — на 120 Гц 20 раз в секунду,
+ * и на паузе, и под окнами, где ничего не меняется (перерисовывались лавка и сборка целиком). Теперь: смена окна —
+ * сразу; шаг мира или новый ввод (действие в окне, реплей) — не чаще раза в `every` мс; ничего не сдвинулось — без рендера.
+ */
+export function hudNeedsBump(seen: HudSeen, modal: string | null, tick: number, log: number, now: number, every = 100): boolean {
+  return modal !== seen.modal || ((tick !== seen.tick || log !== seen.log) && now - seen.at >= every);
 }
 
 function resolveFontFamily(): string {

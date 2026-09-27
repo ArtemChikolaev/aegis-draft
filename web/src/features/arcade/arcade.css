@@ -114,7 +114,8 @@
 .arcade-hud__bottom { display: flex; align-items: flex-end; gap: 16px; }
 .arcade-hud__bars { display: grid; flex: 1; gap: 6px; max-width: 420px; }
 .arcade-bar { position: relative; height: 16px; overflow: hidden; border-radius: 8px; background: var(--arcade-hp-bg); }
-.arcade-bar i { display: block; height: 100%; background: var(--arcade-hp); transition: width .12s linear; }
+/* Доля — через scaleX, а не width: полоски меняются на каждом обновлении HUD, а transform не пересчитывает раскладку. */
+.arcade-bar i { display: block; height: 100%; background: var(--arcade-hp); transform-origin: left center; transition: transform .12s linear; }
 .arcade-bar--xp { height: 12px; }
 .arcade-bar--xp i { background: var(--arcade-shard); }
 .arcade-bar--boss { width: 100%; height: 12px; }
@@ -184,9 +185,21 @@
 
 @media (max-width: 680px) { /* bp.md */
   .arcade-setup__grid { grid-template-columns: 1fr; }
-  .arcade__stage { height: calc(100vh - 140px); min-height: 360px; border-radius: 12px; }
+  /* dvh — видимая высота без панелей Safari: со 100vh низ сцены (кнопки умений) уходил под панель браузера. */
+  .arcade__stage { height: calc(100vh - 140px); height: calc(100dvh - 140px); min-height: 360px; border-radius: 12px; }
   .arcade-hud__clock { font-size: 26px; }
-  .arcade-hud__stats { display: none; }
+  /* Золото, убийства и чипы событий (контракт, караван, порча, разлом, прилив) на телефоне раньше были скрыты целиком —
+     теперь это компактная строка под часами (аудит 2026-09-27). */
+  /* Строка 1 — часы, «Сборка», «Пауза» (кнопки не переносятся и на 360 px в RU); дальше общим потоком на всю ширину —
+     серия, убийства, золото, чипы. Перенос — псевдоэлемент с flex-basis 100%, статы раскрыты в поток (display: contents);
+     порядок только визуальный, фокус идёт по разметке. */
+  .arcade-hud__top { flex-wrap: wrap; gap: 4px 8px; }
+  .arcade-hud__top::after { content: ""; order: 1; flex-basis: 100%; }
+  .arcade-hud__streak { order: 2; }
+  .arcade-hud__stats { display: contents; font-size: 11px; }
+  .arcade-hud__stats > * { order: 3; }
+  .arcade-hud__stats b { font-size: 13px; }
+  .arcade-hud__stats > [class]:not(.arcade-hud__rank) { padding: 3px 8px; } /* чипы (класс CSS-модуля) */
   .arcade-ability { width: 56px; height: 56px; }
   /* Семь кнопок (пассивка, удар, Blink, Q–R) в строку на 375 px не влезали — R уезжал за край сцены. На телефоне —
      двухрядный кластер справа: сверху удар и Blink под большой палец, снизу Q W E R; полосы HP/XP — отдельной строкой выше.
@@ -202,6 +215,18 @@
   .arcade-hud__abilities > [data-slot="r"] { grid-area: 2 / 4; }
   .arcade-offers { grid-template-columns: 1fr; }
   .arcade-offer { min-height: 0; }
+}
+
+/* Телефон в ландшафте: ширина «десктопная», а высота ~375 px — сцена min 420 px не помещалась, часы и кнопки умений
+   уезжали за край (аудит 2026-09-27). Сцена — по видимой высоте, HUD плотнее. */
+@media (max-height: 520px) and (orientation: landscape) {
+  .arcade__stage { height: calc(100vh - 12px); height: calc(100dvh - 12px); min-height: 260px; border-radius: 12px; }
+  /* Вырез и скругления экрана в ландшафте — сбоку: HUD отступает на safe-area (оболочка приложения его не учитывает). */
+  .arcade-hud { padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px)); }
+  .arcade-hud__upper { gap: 6px; }
+  .arcade-hud__clock { font-size: 24px; }
+  .arcade-hud__stats { flex-wrap: wrap; gap: 4px 10px; font-size: 11px; }
+  .arcade-ability { width: 46px; height: 46px; }
 }
 
 /* Лавка: свои предметы с продажей (T13.8, фидбэк владельца 2026-09-06 — «нельзя поменять предмет») */

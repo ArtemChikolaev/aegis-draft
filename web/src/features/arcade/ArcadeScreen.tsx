@@ -43,7 +43,7 @@ import { PAD_GLYPH } from "./gamepad.ts";
 import { compositionFor } from "../../game/arcade/content/compositions.ts";
 import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { groupHeroes, recentHeroes } from "../../game/arcade/heroPicker.ts";
-import { ArcadeRenderer, sceneNeedsDraw } from "./renderer.ts";
+import { ArcadeRenderer, hudNeedsBump, sceneNeedsDraw, type HudSeen } from "./renderer.ts";
 import { formatClock } from "../../game/arcade/clock.ts";
 import "./arcade.css";
 
@@ -390,8 +390,9 @@ function ArcadeStage() {
     controller.onPause = () => {
       const s = useArcade.getState();
       const cur = getArcadeSim();
-      // Пока открыт выбор прокачки/лавка/лут — игра и так стоит; пауза поверх карточек только путает (фидбэк владельца).
-      if (cur && (cur.pending || cur.shopOpen || cur.neutralOpen || cur.lootOpen)) return;
+      // Пока открыто любое окно сима (карточки, лавка, лут, места, выкуп) — игра и так стоит; пауза поверх окна только путает
+      // (фидбэк владельца). Список — `activeModal()` сима, а не ручной: новое окно (выкуп) иначе ставило паузу поверх себя.
+      if (cur && cur.activeModal() !== null && cur.activeModal() !== "build") return;
       if (s.status === "running") s.pause(); else if (s.status === "paused") s.resume();
     };
     // Подбор (G / Enter) и экран сборки (Tab / I) — через `act` в сим: попадают в input-лог, реплей повторяет.
@@ -399,6 +400,7 @@ function ArcadeStage() {
     controller.onFlare = () => { if (useArcade.getState().status === "running") renderer.flare(performance.now()); };
     controller.onGamepad = () => setPadActive(true);
     controller.onKeyboard = () => setPadActive(false);
+    let buybackNavTick = -1;
     controller.onPadNav = (what) => {
       const s = useArcade.getState();
       const cur = getArcadeSim();
@@ -410,6 +412,16 @@ function ArcadeStage() {
         else if (what === "confirm") { s.choose(Math.min(padFocusRef.current, n - 1)); padFocusRef.current = 0; setPadFocus(0); }
         return;
       }
+      // Выкуп: стик выбирает кнопку, × жмёт выбранную. ○ ничего не делает — случайное нажатие не должно кончать забег.
+      if (cur.buybackOpen) {
+        // Новое окно выкупа (мир стоит — тик тот же, пока окно открыто) начинается с «Выкупиться»: остаток фокуса карточек
+        // уровня иначе превратил бы первый × в «Сдаться».
+        if (buybackNavTick !== cur.tick) { buybackNavTick = cur.tick; padFocusRef.current = 0; setPadFocus(0); }
+        const buttons = ["arcade-buyback-buy", "arcade-buyback-give-up"];
+        if (what === "left" || what === "right") { padFocusRef.current = (padFocusRef.current + 1) % 2; setPadFocus(padFocusRef.current); document.querySelector<HTMLElement>(`[data-testid="${buttons[padFocusRef.current]}"]`)?.focus(); }
+        else if (what === "confirm") { const pick = padFocusRef.current === 1 ? SHOP_ACT.close : 1; padFocusRef.current = 0; setPadFocus(0); s.shopAct(pick); }
+        return;
+      }
       // Окна мест и лавки: ○ закрывает (act 5 = «уйти»).
       if (what === "back" && cur.buildOpen) controller.queueAct(BUILD_ACT);
       else if (what === "back" && (cur.shopOpen || cur.neutralOpen || cur.lootOpen || cur.pondOpen || cur.contractOpen || cur.forgeOpen || cur.riftOpen)) s.shopAct(SHOP_ACT.close);
@@ -419,19 +431,26 @@ function ArcadeStage() {
     // и Tab тогда двигает фокус по кнопкам окна.
     controller.onBuild = () => {
       const cur = getArcadeSim();
-      if (!cur || cur.pending || cur.shopOpen || cur.neutralOpen || cur.lootOpen || cur.pondOpen || cur.contractOpen || cur.forgeOpen || cur.riftOpen || useArcade.getState().status !== "running") return false;
+      // Любое окно, кроме самой сборки (`activeModal()` сима), — Tab двигает фокус по его кнопкам; раньше окно выкупа сюда
+      // не входило, и Tab с клавиатуры до его кнопок не доходил.
+      const modal = cur?.activeModal() ?? null;
+      if (!cur || (modal !== null && modal !== "build") || useArcade.getState().status !== "running") return false;
       controller.queueAct(BUILD_ACT);
       return true;
     };
-    // Сцена на паузе и после конца забега рисуется не каждый кадр (renderer.ts sceneNeedsDraw): resize просит перерисовку.
+    // Сцена на паузе, под окнами и после конца забега рисуется не каждый кадр (renderer.ts sceneNeedsDraw): resize просит перерисовку.
     let sceneDirty = true, wasFrozen = false;
     const ro = new ResizeObserver(() => { renderer.resize(stage.clientWidth, stage.clientHeight); sceneDirty = true; });
     ro.observe(stage);
     renderer.resize(stage.clientWidth, stage.clientHeight);
+    // Сцена целиком в кадр: на телефоне страница после «Играть» оставалась прокрученной к кнопке, и верх сцены с часами
+    // уезжал за край (аудит 2026-09-27). Уже видимую сцену `nearest` не двигает.
+    stage.scrollIntoView({ block: "nearest" });
     let raf = 0;
     let last = performance.now();
     let acc = 0;
     let frame = 0;
+    const hudSeen: HudSeen = { modal: null, tick: -1, log: -1, at: 0 };
     let wasPending = false;
     let wasShop = false;
     let wasBoss = false;
@@ -536,8 +555,14 @@ function ArcadeStage() {
       const bossAlive = sim.roshan?.alive === true || sim.ancient?.alive === true;
       if (bossAlive && !wasBoss) sfxSting("boss");
       wasBoss = bossAlive;
-      if (++frame % 6 === 0) bump();
-      const frozen = statusRef.current !== "running" && !loadingRef.current;
+      frame++;
+      // HUD (React) — только когда сим сдвинулся (renderer.ts hudNeedsBump): смена окна — сразу, шаг мира или ввод — ≤ 10 раз в с.
+      const modalNow = sim.activeModal();
+      if (hudNeedsBump(hudSeen, modalNow, sim.tick, sim.log.length, now)) {
+        hudSeen.modal = modalNow; hudSeen.tick = sim.tick; hudSeen.log = sim.log.length; hudSeen.at = now; bump();
+      }
+      // Мир под любым окном стоит — рисуем его как на паузе (на переходе и раз в 60 кадров), а не каждый кадр под затемнением.
+      const frozen = (statusRef.current !== "running" || !!inMenu) && !loadingRef.current;
       renderer.setHudInset(hudInsetRef.current);
       if (sceneNeedsDraw(frozen, wasFrozen, sceneDirty, frame)) { renderer.draw(sim, now, controller.joystick, screenShakeEnabled()); sceneDirty = false; }
       wasFrozen = frozen;
@@ -580,6 +605,9 @@ function ArcadeStage() {
   const sim = getArcadeSim();
   const p = sim?.player;
   const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : sim?.thunder?.alive && sim.playerAtLair() ? sim.thunder : sim?.warden?.alive && sim.playerAtFord() ? sim.warden : sim?.stalker?.alive && sim.playerAtDen() ? sim.stalker : sim?.hunter?.alive ? sim.hunter : null;
+  // Окно на экране — ровно то, которому сим отдаёт ввод (`activeModal`): при двух сразу (смерть в тике уровня — выкуп и
+  // карточки) раньше сверху рисовалось последнее в разметке, а ввод уходил первому (аудит 2026-09-27).
+  const modal = sim ? sim.activeModal() : null;
   // Элита с аффиксами рядом — строка вместо полосы босса, когда босса нет: что за кольцо и чего от неё ждать.
   const affixed = !boss && sim ? sim.affixedNear(460) : null;
   const streakTier = sim ? sim.streakTier() : 0;
@@ -614,27 +642,27 @@ function ArcadeStage() {
               )}
               <span className="arcade-hud__stats">
                 <span>{t("arcade.hud.kills")} <b>{p.kills}</b></span>
-                <span>{t("arcade.hud.gold")} <b>{p.gold}</b></span>
-                {replayLog && <Chip>{t("arcade.hud.replay")}</Chip>}
-                {isArcadeDailySeed(seed) && <Chip>{t("arcade.hud.daily")}</Chip>}
-                {p.aegis && <Chip>{t("arcade.hud.aegis")}</Chip>}
-                {sim.hero.signature && STACKING_SIGS.has(sim.hero.signature.kind) && <Chip>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
-                {sim.tick < sim.greedUntil && <Chip>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
-                {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
-                {sim.contract && !sim.contract.done && <Chip data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}{sim.contract.oath ? ` · ${t("arcade.contract.oathShort")}` : ""}</Chip>}
-                {sim.player.curse && <Chip data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}{sim.player.curse === "debt" ? ` · ${sim.player.debtLeft}` : ""}</Chip>}
-                {sim.caravan && sim.caravan.state === "waiting" && !sim.playerEscorting() && <Chip data-testid="arcade-caravan-wait-chip">{t("arcade.hud.caravanWait", { family: t(`arcade.caravan.family.${sim.caravan.family}` as MessageKey) })}</Chip>}
-                {sim.caravan && (sim.caravan.state === "moving" || (sim.caravan.state === "waiting" && sim.playerEscorting())) && <Chip data-testid="arcade-caravan-chip">{t("arcade.hud.caravan", { pct: Math.round(sim.caravanProgress() * 100), family: t(`arcade.caravan.family.${sim.caravan.family}` as MessageKey) })}</Chip>}
-                {sim.pit && tide && tide.phase !== "low" && <Chip data-testid="arcade-tide-chip">{t(tide.phase === "high" ? "arcade.hud.tideHigh" : "arcade.hud.tideWarn", { time: formatClock(tide.left) })}</Chip>}
-                {sim.riftActive() && <Chip data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
-                {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
-                {sim.tick < sim.siegeWeakUntil && <Chip data-testid="arcade-siege-chip">{t("arcade.hud.siegeWeak", { time: formatClock(sim.siegeWeakUntil - sim.tick) })}</Chip>}
-                {sim.ritualActive() && sim.player.ritualKind && <Chip data-testid="arcade-ritual-chip">{t(`arcade.ritual.${sim.player.ritualKind}` as MessageKey)} {formatClock(sim.player.ritualUntil - sim.tick)}</Chip>}
-                {sim.composition !== "all" && <Chip data-testid="arcade-composition-chip">{t(`arcade.composition.${sim.composition}` as MessageKey)}</Chip>}
+                <span>{t("arcade.hud.gold")} <b data-testid="arcade-gold">{p.gold}</b></span>
+                {replayLog && <Chip invert>{t("arcade.hud.replay")}</Chip>}
+                {isArcadeDailySeed(seed) && <Chip invert>{t("arcade.hud.daily")}</Chip>}
+                {p.aegis && <Chip invert>{t("arcade.hud.aegis")}</Chip>}
+                {sim.hero.signature && STACKING_SIGS.has(sim.hero.signature.kind) && <Chip invert>{t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} {p.stacks}{sim.hero.signature.cap ? `/${sim.hero.signature.cap}` : ""}</Chip>}
+                {sim.tick < sim.greedUntil && <Chip invert>{t("arcade.hud.greed")} {formatClock(sim.greedUntil - sim.tick)}</Chip>}
+                {sim.outpost && !sim.outpost.captured && sim.playerAtOutpost() && <Chip invert data-testid="arcade-outpost-chip">{t("arcade.hud.outpost", { pct: Math.floor((sim.outpost.progress / sim.outpost.need) * 100) })}</Chip>}
+                {sim.contract && !sim.contract.done && <Chip invert data-testid="arcade-contract-chip">{t("arcade.hud.contract", { target: t(`arcade.contract.target.${sim.contract.target}` as MessageKey), reward: t(`arcade.contract.reward.${sim.contract.reward}` as MessageKey) })}{sim.contract.oath ? ` · ${t("arcade.contract.oathShort")}` : ""}</Chip>}
+                {sim.player.curse && <Chip invert data-testid="arcade-curse-chip">{t(`arcade.curse.${sim.player.curse}` as MessageKey)}{sim.player.curse === "debt" ? ` · ${sim.player.debtLeft}` : ""}</Chip>}
+                {sim.caravan && sim.caravan.state === "waiting" && !sim.playerEscorting() && <Chip invert data-testid="arcade-caravan-wait-chip">{t("arcade.hud.caravanWait", { family: t(`arcade.caravan.family.${sim.caravan.family}` as MessageKey) })}</Chip>}
+                {sim.caravan && (sim.caravan.state === "moving" || (sim.caravan.state === "waiting" && sim.playerEscorting())) && <Chip invert data-testid="arcade-caravan-chip">{t("arcade.hud.caravan", { pct: Math.round(sim.caravanProgress() * 100), family: t(`arcade.caravan.family.${sim.caravan.family}` as MessageKey) })}</Chip>}
+                {sim.pit && tide && tide.phase !== "low" && <Chip invert data-testid="arcade-tide-chip">{t(tide.phase === "high" ? "arcade.hud.tideHigh" : "arcade.hud.tideWarn", { time: formatClock(tide.left) })}</Chip>}
+                {sim.riftActive() && <Chip invert data-testid="arcade-rift-chip">{t("arcade.hud.rift", { rule: t(`arcade.rift.rule.${sim.rift!.rule}` as MessageKey), time: formatClock(sim.riftLeft()) })}</Chip>}
+                {sim.camp && !sim.camp.cleared && sim.playerAtCamp() && <Chip invert data-testid="arcade-camp-chip">{t("arcade.hud.camp", { n: sim.totemsAlive(), total: sim.camp.totems })}</Chip>}
+                {sim.tick < sim.siegeWeakUntil && <Chip invert data-testid="arcade-siege-chip">{t("arcade.hud.siegeWeak", { time: formatClock(sim.siegeWeakUntil - sim.tick) })}</Chip>}
+                {sim.ritualActive() && sim.player.ritualKind && <Chip invert data-testid="arcade-ritual-chip">{t(`arcade.ritual.${sim.player.ritualKind}` as MessageKey)} {formatClock(sim.player.ritualUntil - sim.tick)}</Chip>}
+                {sim.composition !== "all" && <Chip invert data-testid="arcade-composition-chip">{t(`arcade.composition.${sim.composition}` as MessageKey)}</Chip>}
                 <span className="arcade-hud__rank">{t(`arcade.tier.${sim.rank.tier}` as MessageKey)} {"★".repeat(sim.rank.stars)}</span>
               </span>
-              <Button variant="secondary" className="arcade-hud__build" data-testid="arcade-build-open" onClick={() => controllerRef.current?.onBuild?.()}>{t("arcade.build.open")}</Button>
-              <Button variant="secondary" className="arcade-hud__pause" onClick={() => (status === "paused" ? resume() : pause())}>{status === "paused" ? t("arcade.hud.resume") : t("arcade.hud.pauseBtn")}</Button>
+              <Button variant="secondaryInvert" className="arcade-hud__build" data-testid="arcade-build-open" onClick={() => controllerRef.current?.onBuild?.()}>{t("arcade.build.open")}</Button>
+              <Button variant="secondaryInvert" className="arcade-hud__pause" onClick={() => (status === "paused" ? resume() : pause())}>{status === "paused" ? t("arcade.hud.resume") : t("arcade.hud.pauseBtn")}</Button>
             </div>
             <div className="arcade-hud__gear" data-testid="arcade-hud-gear">
               {GEAR_SLOTS.map((slot) => { const g = p.gear[slot] as GearItem | undefined; return <span key={slot} className="arcade-hud__item" data-rarity={g?.rarity} title={g ? t(`arcade.gearName.${g.base}` as MessageKey) : t(`arcade.gear.slot.${slot}` as MessageKey)}>{g ? <ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" /> : <i className="arcade-hud__slot-empty" />}</span>; })}
@@ -644,13 +672,13 @@ function ArcadeStage() {
             {boss && (
               <div className="arcade-hud__boss">
                 <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : boss.kind.id === "centaur_warden" ? t(sim!.tick < boss.stunUntil ? "arcade.hud.centaurStunned" : "arcade.hud.centaur") : boss.kind.id === "troll_necromancer" ? t(sim!.idolsAlive() > 0 ? "arcade.hud.necro" : "arcade.hud.necroExposed", { n: sim!.idolsAlive(), total: ARCADE.necro.idols }) : boss.kind.id === "thunder_golem" ? t("arcade.hud.thunder") : boss.kind.id === "river_warden" ? t(sim!.wardenShielded() ? "arcade.hud.wardenShield" : "arcade.hud.wardenOpen") : boss.kind.id === "dire_stalker" ? t(sim!.stalkerHidden() ? "arcade.hud.stalkerHidden" : "arcade.hud.stalkerOpen") : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
-                <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, boss.hp / boss.maxHp) * 100}%` }} /></div>
+                <div className="arcade-bar arcade-bar--boss"><i style={{ transform: `scaleX(${Math.max(0, boss.hp / boss.maxHp)})` }} /></div>
               </div>
             )}
             {affixed && (
               <div className="arcade-hud__boss arcade-hud__boss--affix" data-testid="arcade-hud-affix" title={AFFIX_IDS.filter((id) => affixed.affix & AFFIX[id]).map((id) => t(`arcade.affix.${id}.desc` as MessageKey)).join(" ")}>
                 <span>{t("arcade.hud.affixElite", { names: AFFIX_IDS.filter((id) => affixed.affix & AFFIX[id]).map((id) => t(`arcade.affix.${id}` as MessageKey)).join(" · ") })}</span>
-                <div className="arcade-bar arcade-bar--boss"><i style={{ width: `${Math.max(0, affixed.hp / affixed.maxHp) * 100}%` }} /></div>
+                <div className="arcade-bar arcade-bar--boss"><i style={{ transform: `scaleX(${Math.max(0, affixed.hp / affixed.maxHp)})` }} /></div>
               </div>
             )}
             </div>
@@ -686,8 +714,8 @@ function ArcadeStage() {
             <div className="arcade-hud__bottom" ref={hudBottomRef}>
               <HeroThumb picture={hero.picture || heroDef.picture} name={hero.name} size="md" showName={false} />
               <div className="arcade-hud__bars">
-                <div className="arcade-bar arcade-bar--hp" title="HP"><i style={{ width: `${Math.max(0, p.hp / p.stats.maxHp) * 100}%` }} /><span>{Math.ceil(p.hp)} / {p.stats.maxHp}</span></div>
-                <div className="arcade-bar arcade-bar--xp"><i style={{ width: `${Math.min(1, p.xp / p.xpNext) * 100}%` }} /><span>{t("arcade.hud.level")} {p.level}</span></div>
+                <div className="arcade-bar arcade-bar--hp" title="HP"><i style={{ transform: `scaleX(${Math.max(0, p.hp / p.stats.maxHp)})` }} /><span>{Math.ceil(p.hp)} / {p.stats.maxHp}</span></div>
+                <div className="arcade-bar arcade-bar--xp"><i style={{ transform: `scaleX(${Math.min(1, p.xp / p.xpNext)})` }} /><span>{t("arcade.hud.level")} {p.level}</span></div>
               </div>
               {(p.items.length > 0 || p.neutral) && (
                 <div className="arcade-hud__items" data-testid="arcade-items">
@@ -798,7 +826,7 @@ function ArcadeStage() {
             </Surface>
           </div>
         )}
-        {sim?.riftOpen && sim.rift && status !== "over" && (
+        {modal === "rift" && sim?.rift && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-rift">
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.rift.title")}</Eyebrow>
@@ -813,7 +841,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.forgeOpen && status !== "over" && (
+        {modal === "forge" && sim && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-forge">
             <div className="arcade-levelup arcade-shop arcade-build">
               <Eyebrow>{t("arcade.forge.title")}</Eyebrow>
@@ -839,7 +867,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.contractOpen && status !== "over" && (
+        {modal === "contract" && sim && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-contract">
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.contract.title")}</Eyebrow>
@@ -858,7 +886,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.buybackOpen && status !== "over" && (
+        {modal === "buyback" && sim && status !== "over" && (
           // Выкуп (ARCADE.buyback): мир стоит, пока игрок решает — золото сейчас или конец забега.
           <div className="arcade-overlay" data-testid="arcade-buyback">
             <div className="arcade-levelup arcade-shop">
@@ -866,13 +894,13 @@ function ArcadeStage() {
               <h2>{t("arcade.buyback.pick")}</h2>
               <p className="arcade-shop__hint">{t("arcade.buyback.hint", { gold: sim.player.gold, sec: ARCADE.buyback.invulnSec })}</p>
               <div className="arcade-overlay__actions arcade-shop__actions">
-                <Button variant="primary" data-testid="arcade-buyback-buy" onClick={() => shopAct(1)}>{t("arcade.buyback.buy", { price: sim.buybackPrice() })}</Button>
+                <Button variant="primary" data-testid="arcade-buyback-buy" autoFocus onClick={() => shopAct(1)}>{t("arcade.buyback.buy", { price: sim.buybackPrice() })}</Button>
                 <Button variant="leave" data-testid="arcade-buyback-give-up" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.buyback.giveUp")}</Button>
               </div>
             </div>
           </div>
         )}
-        {sim?.pondOpen && status !== "over" && (
+        {modal === "pond" && sim && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-pond">
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.pond.title")}</Eyebrow>
@@ -890,7 +918,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.lootOpen && status !== "over" && (
+        {modal === "loot" && sim?.lootOpen && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-loot">
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.loot.title")}</Eyebrow>
@@ -907,7 +935,7 @@ function ArcadeStage() {
                   <BagList bag={sim.player.bag as GearItem[]} onDrop={(i) => shopAct(BAG_DROP_ACT + i)} dropLabel={t("arcade.loot.drop")} />
                 </div>
               )}
-              {sim.lootBlocked() && <p className="arcade-shop__hint arcade-loot__cursed" data-testid="arcade-loot-blocked">{t("arcade.loot.cursedBlocked")}</p>}
+              {sim.lootBlocked() && <p className="arcade-shop__hint arcade-loot__cursed" data-testid="arcade-loot-blocked">{t(sim.lootBlockReason() === "pond" ? "arcade.loot.cursedBlockedPond" : "arcade.loot.cursedBlocked")}</p>}
               <div className="arcade-overlay__actions arcade-shop__actions">
                 <Button variant="primary" data-testid="arcade-loot-equip" disabled={sim.lootBlocked()} onClick={() => shopAct(1)}>{t("arcade.loot.equip")}</Button>
                 <Button variant="secondary" data-testid="arcade-loot-bag" disabled={sim.player.bag.length >= ARCADE.loot.bagCap || sim.lootBlocked()} onClick={() => shopAct(2)}>{t("arcade.gear.bag", { n: sim.player.bag.length, max: ARCADE.loot.bagCap })}</Button>
@@ -916,7 +944,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.buildOpen && status !== "over" && (
+        {modal === "build" && sim && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-build">
             <div className="arcade-levelup arcade-shop arcade-build">
               <Eyebrow>{t("arcade.build.title")}</Eyebrow>
@@ -1004,7 +1032,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.neutralOpen && status !== "over" && (
+        {modal === "neutral" && sim && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-neutral">
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.neutral.title", { tier: NEUTRAL_BY_ID[sim.neutralOffers[0]?.id]?.tier ?? 1 })}</Eyebrow>
@@ -1026,7 +1054,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.shopOpen && status !== "over" && (
+        {modal === "shop" && sim && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-shop">
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.shop.title")}</Eyebrow>
@@ -1093,7 +1121,7 @@ function ArcadeStage() {
             </div>
           </div>
         )}
-        {sim?.pending && status !== "over" && (
+        {modal === "pending" && sim?.pending && status !== "over" && (
           <div className="arcade-overlay" data-testid="arcade-levelup">
             <div className="arcade-levelup">
               <Eyebrow>{sim.pendingSource === "camp" ? t("arcade.camp.title") : t("arcade.levelUp", { n: sim.player.level })}</Eyebrow>
