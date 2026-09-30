@@ -67181,6 +67181,927 @@
     ]
   },
   {
+    "id": "league-19102-15",
+    "eventId": "league-19102",
+    "teamId": 15,
+    "teamName": "LGD Gaming",
+    "tag": "LGD",
+    "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/15.png",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 10366616,
+        "nickname": "Sneyking",
+        "role": "support",
+        "ovr": 77,
+        "impact": 77,
+        "economy": 81,
+        "reliability": 74,
+        "games": 3
+      },
+      {
+        "accountId": 105045291,
+        "nickname": "Thiolicor",
+        "role": "support",
+        "ovr": 77,
+        "impact": 73,
+        "economy": 78,
+        "reliability": 77,
+        "games": 3
+      },
+      {
+        "accountId": 111620041,
+        "nickname": "SumaiL-",
+        "role": "mid",
+        "ovr": 79,
+        "impact": 77,
+        "economy": 82,
+        "reliability": 78,
+        "games": 3
+      },
+      {
+        "accountId": 138880576,
+        "nickname": "Davai",
+        "role": "offlane",
+        "ovr": 76,
+        "impact": 75,
+        "economy": 78,
+        "reliability": 71,
+        "games": 3
+      },
+      {
+        "accountId": 363758022,
+        "nickname": "Wits",
+        "role": "safelane",
+        "ovr": 78,
+        "impact": 79,
+        "economy": 78,
+        "reliability": 81,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      2,
+      9,
+      17,
+      19,
+      36,
+      46,
+      50,
+      80,
+      86,
+      120
+    ]
+  },
+  {
+    "id": "league-19102-36",
+    "eventId": "league-19102",
+    "teamId": 36,
+    "teamName": "Natus Vincere",
+    "tag": "NAVI",
+    "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/36.png",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 130991304,
+        "nickname": "Riddys",
+        "role": "support",
+        "ovr": 70,
+        "impact": 72,
+        "economy": 72,
+        "reliability": 74,
+        "games": 3
+      },
+      {
+        "accountId": 185590374,
+        "nickname": "Niku",
+        "role": "mid",
+        "ovr": 71,
+        "impact": 73,
+        "economy": 76,
+        "reliability": 78,
+        "games": 3
+      },
+      {
+        "accountId": 835864135,
+        "nickname": "pma",
+        "role": "offlane",
+        "ovr": 71,
+        "impact": 75,
+        "economy": 79,
+        "reliability": 72,
+        "games": 3
+      },
+      {
+        "accountId": 919735867,
+        "nickname": "daze",
+        "role": "support",
+        "ovr": 72,
+        "impact": 76,
+        "economy": 80,
+        "reliability": 76,
+        "games": 3
+      },
+      {
+        "accountId": 957204049,
+        "nickname": "gotthejuice",
+        "role": "safelane",
+        "ovr": 72,
+        "impact": 78,
+        "economy": 78,
+        "reliability": 76,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      3,
+      54,
+      69,
+      85,
+      96,
+      98,
+      109,
+      112,
+      120,
+      123
+    ]
+  },
+  {
+    "id": "league-19102-2163",
+    "eventId": "league-19102",
+    "teamId": 2163,
+    "teamName": "Team Liquid",
+    "tag": "Liquid",
+    "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/2163.png",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 16497807,
+        "nickname": "tOfu",
+        "role": "support",
+        "ovr": 75,
+        "impact": 71,
+        "economy": 75,
+        "reliability": 73,
+        "games": 3
+      },
+      {
+        "accountId": 77490514,
+        "nickname": "Boxi",
+        "role": "support",
+        "ovr": 77,
+        "impact": 75,
+        "economy": 75,
+        "reliability": 77,
+        "games": 3
+      },
+      {
+        "accountId": 116585378,
+        "nickname": "MidOne",
+        "role": "mid",
+        "ovr": 76,
+        "impact": 72,
+        "economy": 78,
+        "reliability": 70,
+        "games": 3
+      },
+      {
+        "accountId": 152962063,
+        "nickname": "m1CKe",
+        "role": "safelane",
+        "ovr": 77,
+        "impact": 76,
+        "economy": 74,
+        "reliability": 78,
+        "games": 3
+      },
+      {
+        "accountId": 292921272,
+        "nickname": "Wisper",
+        "role": "offlane",
+        "ovr": 78,
+        "impact": 81,
+        "economy": 75,
+        "reliability": 79,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      19,
+      21,
+      30,
+      49,
+      53,
+      55,
+      65,
+      78,
+      81,
+      107
+    ]
+  },
+  {
+    "id": "league-19102-7119388",
+    "eventId": "league-19102",
+    "teamId": 7119388,
+    "teamName": "Team Spirit",
+    "tag": "TSpirit",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/1839179120711951766/CD7E0885CB527334205CC7885E9C101B7BC17702/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 106305042,
+        "nickname": "Larl",
+        "role": "mid",
+        "ovr": 77,
+        "impact": 77,
+        "economy": 77,
+        "reliability": 76,
+        "games": 3
+      },
+      {
+        "accountId": 140835095,
+        "nickname": "Batyuk",
+        "role": "offlane",
+        "ovr": 80,
+        "impact": 81,
+        "economy": 82,
+        "reliability": 81,
+        "games": 3
+      },
+      {
+        "accountId": 218231587,
+        "nickname": "not_me",
+        "role": "support",
+        "ovr": 77,
+        "impact": 79,
+        "economy": 80,
+        "reliability": 74,
+        "games": 3
+      },
+      {
+        "accountId": 321580662,
+        "nickname": "Yatoro",
+        "role": "safelane",
+        "ovr": 77,
+        "impact": 76,
+        "economy": 77,
+        "reliability": 75,
+        "games": 3
+      },
+      {
+        "accountId": 847565596,
+        "nickname": "rue",
+        "role": "support",
+        "ovr": 78,
+        "impact": 78,
+        "economy": 78,
+        "reliability": 78,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      1,
+      3,
+      9,
+      16,
+      69,
+      70,
+      106,
+      112,
+      123,
+      135
+    ]
+  },
+  {
+    "id": "league-19102-8261500",
+    "eventId": "league-19102",
+    "teamId": 8261500,
+    "teamName": "Xtreme Gaming",
+    "tag": "XG",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/2402194226059610590/E3CF4B6C4B2CFB974A9B415141E4A37317AD4D80/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 113457795,
+        "nickname": "MooN",
+        "role": "mid",
+        "ovr": 70,
+        "impact": 74,
+        "economy": 69,
+        "reliability": 74,
+        "games": 3
+      },
+      {
+        "accountId": 147767183,
+        "nickname": "zeal",
+        "role": "offlane",
+        "ovr": 72,
+        "impact": 76,
+        "economy": 77,
+        "reliability": 75,
+        "games": 3
+      },
+      {
+        "accountId": 157475523,
+        "nickname": "XinQ",
+        "role": "support",
+        "ovr": 72,
+        "impact": 77,
+        "economy": 77,
+        "reliability": 75,
+        "games": 3
+      },
+      {
+        "accountId": 207829314,
+        "nickname": "BoBoKa",
+        "role": "support",
+        "ovr": 71,
+        "impact": 75,
+        "economy": 75,
+        "reliability": 73,
+        "games": 3
+      },
+      {
+        "accountId": 898754153,
+        "nickname": "Ame",
+        "role": "safelane",
+        "ovr": 72,
+        "impact": 78,
+        "economy": 75,
+        "reliability": 73,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      3,
+      21,
+      25,
+      43,
+      53,
+      55,
+      58,
+      64,
+      86,
+      98
+    ]
+  },
+  {
+    "id": "league-19102-9256405",
+    "eventId": "league-19102",
+    "teamId": 9256405,
+    "teamName": "Level UP esports",
+    "tag": "LevelUP",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/11124972020884745329/AB3238A17EE9950F7532A26B1EAAFCF2086FB37A/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 93526520,
+        "nickname": "bb3px",
+        "role": "offlane",
+        "ovr": 63,
+        "impact": 70,
+        "economy": 70,
+        "reliability": 73,
+        "games": 2
+      },
+      {
+        "accountId": 196482746,
+        "nickname": "darkniA",
+        "role": "mid",
+        "ovr": 63,
+        "impact": 72,
+        "economy": 71,
+        "reliability": 72,
+        "games": 2
+      },
+      {
+        "accountId": 206097366,
+        "nickname": "queezy",
+        "role": "support",
+        "ovr": 64,
+        "impact": 72,
+        "economy": 73,
+        "reliability": 73,
+        "games": 2
+      },
+      {
+        "accountId": 340421206,
+        "nickname": "Htrd",
+        "role": "support",
+        "ovr": 65,
+        "impact": 77,
+        "economy": 72,
+        "reliability": 73,
+        "games": 2
+      },
+      {
+        "accountId": 1092267175,
+        "nickname": "WoE",
+        "role": "safelane",
+        "ovr": 63,
+        "impact": 73,
+        "economy": 70,
+        "reliability": 73,
+        "games": 2
+      }
+    ],
+    "signatureHeroes": [
+      17,
+      18,
+      73,
+      78,
+      86,
+      105,
+      106,
+      123,
+      155
+    ]
+  },
+  {
+    "id": "league-19102-9351740",
+    "eventId": "league-19102",
+    "teamId": 9351740,
+    "teamName": "Yakult Brothers",
+    "tag": "YB",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/18179376480673513766/A3EDE6125A651D94E1DAAF0F3361ACEB9FB858C4/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 139031324,
+        "nickname": "Beyond",
+        "role": "offlane",
+        "ovr": 70,
+        "impact": 75,
+        "economy": 69,
+        "reliability": 75,
+        "games": 3
+      },
+      {
+        "accountId": 139876032,
+        "nickname": "kaka",
+        "role": "support",
+        "ovr": 71,
+        "impact": 74,
+        "economy": 70,
+        "reliability": 76,
+        "games": 3
+      },
+      {
+        "accountId": 158847773,
+        "nickname": "天命",
+        "role": "support",
+        "ovr": 70,
+        "impact": 74,
+        "economy": 73,
+        "reliability": 71,
+        "games": 3
+      },
+      {
+        "accountId": 185908355,
+        "nickname": "Lou",
+        "role": "safelane",
+        "ovr": 69,
+        "impact": 72,
+        "economy": 70,
+        "reliability": 70,
+        "games": 3
+      },
+      {
+        "accountId": 202217968,
+        "nickname": "Emo",
+        "role": "mid",
+        "ovr": 72,
+        "impact": 78,
+        "economy": 73,
+        "reliability": 75,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      17,
+      18,
+      37,
+      56,
+      69,
+      78,
+      85,
+      93,
+      106,
+      123
+    ]
+  },
+  {
+    "id": "league-19102-9467224",
+    "eventId": "league-19102",
+    "teamId": 9467224,
+    "teamName": "Aurora Gaming",
+    "tag": "Aurora",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/12718684494192239317/812E31EF22D232EFE1F1F147940F3D3BEE55D40D/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 100058342,
+        "nickname": "skiter",
+        "role": "safelane",
+        "ovr": 83,
+        "impact": 76,
+        "economy": 76,
+        "reliability": 78,
+        "games": 2
+      },
+      {
+        "accountId": 126842529,
+        "nickname": "Ws`",
+        "role": "offlane",
+        "ovr": 84,
+        "impact": 75,
+        "economy": 79,
+        "reliability": 78,
+        "games": 2
+      },
+      {
+        "accountId": 256156323,
+        "nickname": "Mira",
+        "role": "support",
+        "ovr": 83,
+        "impact": 75,
+        "economy": 78,
+        "reliability": 78,
+        "games": 2
+      },
+      {
+        "accountId": 301750126,
+        "nickname": "Mikoto",
+        "role": "mid",
+        "ovr": 84,
+        "impact": 77,
+        "economy": 79,
+        "reliability": 77,
+        "games": 2
+      },
+      {
+        "accountId": 320219866,
+        "nickname": "kaori",
+        "role": "support",
+        "ovr": 84,
+        "impact": 76,
+        "economy": 79,
+        "reliability": 79,
+        "games": 2
+      }
+    ],
+    "signatureHeroes": [
+      13,
+      28,
+      53,
+      80,
+      98,
+      106,
+      110,
+      119,
+      123
+    ]
+  },
+  {
+    "id": "league-19102-9691969",
+    "eventId": "league-19102",
+    "teamId": 9691969,
+    "teamName": "Team Nemesis",
+    "tag": "NMSS",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/16578975333650734744/040492179D9E0E83DA0559848D88CFC17A1EFCAC/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 100471531,
+        "nickname": "J",
+        "role": "offlane",
+        "ovr": 70,
+        "impact": 75,
+        "economy": 74,
+        "reliability": 69,
+        "games": 3
+      },
+      {
+        "accountId": 152859296,
+        "nickname": "Jhocam",
+        "role": "support",
+        "ovr": 70,
+        "impact": 74,
+        "economy": 73,
+        "reliability": 72,
+        "games": 3
+      },
+      {
+        "accountId": 218367241,
+        "nickname": "Ken",
+        "role": "mid",
+        "ovr": 72,
+        "impact": 77,
+        "economy": 78,
+        "reliability": 72,
+        "games": 3
+      },
+      {
+        "accountId": 343084576,
+        "nickname": "NARMAN",
+        "role": "support",
+        "ovr": 69,
+        "impact": 72,
+        "economy": 73,
+        "reliability": 70,
+        "games": 3
+      },
+      {
+        "accountId": 392565237,
+        "nickname": "JACKBOYS",
+        "role": "safelane",
+        "ovr": 69,
+        "impact": 70,
+        "economy": 71,
+        "reliability": 69,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      17,
+      19,
+      21,
+      25,
+      51,
+      53,
+      98,
+      105,
+      119
+    ]
+  },
+  {
+    "id": "league-19102-9824702",
+    "eventId": "league-19102",
+    "teamId": 9824702,
+    "teamName": "PARIVISION",
+    "tag": "PV",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/11751543457229798134/1569CC553CB72963C8EC4C3F807EE50DA925BDC2/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 73401082,
+        "nickname": "Dukalis",
+        "role": "support",
+        "ovr": 83,
+        "impact": 75,
+        "economy": 71,
+        "reliability": 78,
+        "games": 2
+      },
+      {
+        "accountId": 106573901,
+        "nickname": "No[o]ne-",
+        "role": "mid",
+        "ovr": 84,
+        "impact": 78,
+        "economy": 75,
+        "reliability": 79,
+        "games": 2
+      },
+      {
+        "accountId": 164199202,
+        "nickname": "9Class",
+        "role": "support",
+        "ovr": 83,
+        "impact": 75,
+        "economy": 73,
+        "reliability": 75,
+        "games": 2
+      },
+      {
+        "accountId": 195108598,
+        "nickname": "Noticed",
+        "role": "offlane",
+        "ovr": 83,
+        "impact": 75,
+        "economy": 73,
+        "reliability": 76,
+        "games": 2
+      },
+      {
+        "accountId": 1044002267,
+        "nickname": "Satanic",
+        "role": "safelane",
+        "ovr": 83,
+        "impact": 75,
+        "economy": 78,
+        "reliability": 77,
+        "games": 2
+      }
+    ],
+    "signatureHeroes": [
+      1,
+      3,
+      13,
+      78,
+      86,
+      96,
+      109,
+      112,
+      119,
+      120
+    ]
+  },
+  {
+    "id": "league-19102-9964962",
+    "eventId": "league-19102",
+    "teamId": 9964962,
+    "teamName": "GamerLegion",
+    "tag": "GL",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/13245379764580870318/1048428BEFAC87EC1C64E15706A4758A173B5BFB/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 90423751,
+        "nickname": "Bignum",
+        "role": "support",
+        "ovr": 64,
+        "impact": 73,
+        "economy": 72,
+        "reliability": 75,
+        "games": 2
+      },
+      {
+        "accountId": 154974246,
+        "nickname": "RCY",
+        "role": "mid",
+        "ovr": 64,
+        "impact": 71,
+        "economy": 73,
+        "reliability": 74,
+        "games": 2
+      },
+      {
+        "accountId": 160119017,
+        "nickname": "Fayde",
+        "role": "offlane",
+        "ovr": 64,
+        "impact": 73,
+        "economy": 73,
+        "reliability": 75,
+        "games": 2
+      },
+      {
+        "accountId": 177203952,
+        "nickname": "Yuma",
+        "role": "safelane",
+        "ovr": 64,
+        "impact": 71,
+        "economy": 72,
+        "reliability": 76,
+        "games": 2
+      },
+      {
+        "accountId": 191362875,
+        "nickname": "Speeed",
+        "role": "support",
+        "ovr": 64,
+        "impact": 73,
+        "economy": 72,
+        "reliability": 74,
+        "games": 2
+      }
+    ],
+    "signatureHeroes": [
+      9,
+      18,
+      38,
+      50,
+      53,
+      55,
+      74,
+      107,
+      112,
+      119
+    ]
+  },
+  {
+    "id": "league-19102-10182357",
+    "eventId": "league-19102",
+    "teamId": 10182357,
+    "teamName": "1win",
+    "tag": "1win",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/10678669599334676082/E48827F4A163D4D02F817EA3C32166D5F1D5FC98/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 86698277,
+        "nickname": "33",
+        "role": "offlane",
+        "ovr": 76,
+        "impact": 74,
+        "economy": 73,
+        "reliability": 75,
+        "games": 3
+      },
+      {
+        "accountId": 93618577,
+        "nickname": "bzm",
+        "role": "mid",
+        "ovr": 75,
+        "impact": 74,
+        "economy": 71,
+        "reliability": 74,
+        "games": 3
+      },
+      {
+        "accountId": 136829091,
+        "nickname": "Whitemon",
+        "role": "support",
+        "ovr": 77,
+        "impact": 80,
+        "economy": 77,
+        "reliability": 72,
+        "games": 3
+      },
+      {
+        "accountId": 331855530,
+        "nickname": "Pure",
+        "role": "safelane",
+        "ovr": 78,
+        "impact": 78,
+        "economy": 81,
+        "reliability": 72,
+        "games": 3
+      },
+      {
+        "accountId": 346412363,
+        "nickname": "Ari",
+        "role": "support",
+        "ovr": 78,
+        "impact": 80,
+        "economy": 76,
+        "reliability": 79,
+        "games": 3
+      }
+    ],
+    "signatureHeroes": [
+      7,
+      21,
+      29,
+      50,
+      53,
+      76,
+      96,
+      105,
+      106,
+      119
+    ]
+  },
+  {
     "id": "league-19239-55",
     "eventId": "league-19239",
     "teamId": 55,
@@ -76122,6 +77043,83 @@
     ]
   },
   {
+    "id": "league-19785-9256405",
+    "eventId": "league-19785",
+    "teamId": 9256405,
+    "teamName": "Level UP esports",
+    "tag": "LevelUP",
+    "logoUrl": "https://cdn.steamusercontent.com/ugc/11124972020884745329/AB3238A17EE9950F7532A26B1EAAFCF2086FB37A/",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ],
+    "players": [
+      {
+        "accountId": 93526520,
+        "nickname": "bb3px",
+        "role": "offlane",
+        "ovr": 62,
+        "impact": 62,
+        "economy": 62,
+        "reliability": 68,
+        "games": 10
+      },
+      {
+        "accountId": 196482746,
+        "nickname": "darkniA",
+        "role": "mid",
+        "ovr": 63,
+        "impact": 68,
+        "economy": 62,
+        "reliability": 61,
+        "games": 10
+      },
+      {
+        "accountId": 206097366,
+        "nickname": "queezy",
+        "role": "support",
+        "ovr": 67,
+        "impact": 71,
+        "economy": 68,
+        "reliability": 73,
+        "games": 10
+      },
+      {
+        "accountId": 340421206,
+        "nickname": "Htrd",
+        "role": "support",
+        "ovr": 66,
+        "impact": 77,
+        "economy": 66,
+        "reliability": 62,
+        "games": 10
+      },
+      {
+        "accountId": 1092267175,
+        "nickname": "WoE",
+        "role": "safelane",
+        "ovr": 65,
+        "impact": 69,
+        "economy": 64,
+        "reliability": 64,
+        "games": 10
+      }
+    ],
+    "signatureHeroes": [
+      3,
+      6,
+      21,
+      55,
+      69,
+      85,
+      96,
+      105,
+      106,
+      123
+    ]
+  },
+  {
     "id": "league-19785-9338413",
     "eventId": "league-19785",
     "teamId": 9338413,
@@ -77049,8 +78047,8 @@
     "id": "league-19785-10182357",
     "eventId": "league-19785",
     "teamId": 10182357,
-    "teamName": "1w",
-    "tag": "1w",
+    "teamName": "1win",
+    "tag": "1win",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/10678669599334676082/E48827F4A163D4D02F817EA3C32166D5F1D5FC98/",
     "formats": [
       "last_1y",
@@ -77428,6 +78426,8 @@
     "tag": "LGD",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/15.png",
     "formats": [
+      "last_1y",
+      "last_2y",
       "last_5y"
     ],
     "players": [
@@ -78192,8 +79192,8 @@
     "id": "league-20279-10182357",
     "eventId": "league-20279",
     "teamId": 10182357,
-    "teamName": "1w",
-    "tag": "1w",
+    "teamName": "1win",
+    "tag": "1win",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/10678669599334676082/E48827F4A163D4D02F817EA3C32166D5F1D5FC98/",
     "formats": [
       "last_1y",

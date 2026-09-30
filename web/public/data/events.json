@@ -876,6 +876,19 @@
     ]
   },
   {
+    "id": "league-19102",
+    "name": "BLAST SLAM VIII",
+    "type": "tier1",
+    "year": 2026,
+    "startDate": "2026-09-29",
+    "endDate": "2026-09-29",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
     "id": "league-19239",
     "name": "FISSURE Universe Episode 8",
     "type": "tier1",
