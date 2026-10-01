@@ -5,7 +5,7 @@
 import { toggleFavorite } from "../game/arcade/heroPicker.ts";
 import { traitUnlocked, type TraitId } from "../game/arcade/content/traits.ts";
 import { create } from "zustand";
-import { ArcadeSim } from "../game/arcade/sim.ts";
+import type { ArcadeSim } from "../game/arcade/sim.ts";
 import { ARCADE_CONFIG_VERSION } from "../game/arcade/config.ts";
 import { BANISH_ACT, REROLL_CHOOSE, type AbilityKey, type ActId, type ArcadeOutcome, type SchoolId } from "../game/arcade/types.ts";
 import { MAX_RANK_STEP } from "../game/arcade/content/ranks.ts";
@@ -133,6 +133,22 @@ export function dropWornRapier(gear: GearState, worn: readonly GearItem[]): { ge
   return { gear: { items: gear.items.filter((i) => i.uid !== lost.uid), equipped }, lost };
 }
 
+/** Aegis of the Immortal (M23): надетый, спасший героя, сгорает, как в Dota; копить их нельзя — лишний (новый с Рошана
+ *  при уже имеющемся) разбирается на осколки сразу. Иначе Aegis был лишней жизнью в каждом забеге навсегда. */
+export function settleAegis(gear: GearState, worn: readonly GearItem[], used: boolean): { gear: GearState; consumed: GearItem | null; extra: GearItem[]; salvaged: number } {
+  const isAegis = (g: GearItem) => g.unique === "aegis_of_the_immortal";
+  const consumed = used ? worn.find(isAegis) ?? null : null;
+  let items = consumed ? gear.items.filter((i) => i.uid !== consumed.uid) : gear.items;
+  const equipped = { ...gear.equipped };
+  if (consumed) for (const slot of GEAR_SLOTS) if (equipped[slot] === consumed.uid) delete equipped[slot];
+  // Остаётся один: надетый, иначе первый по инвентарю.
+  const aegis = items.filter(isAegis);
+  const keep = aegis.find((a) => Object.values(equipped).includes(a.uid)) ?? aegis[0];
+  const extra = aegis.filter((a) => a !== keep);
+  if (extra.length > 0) items = items.filter((i) => !extra.includes(i));
+  return { gear: { items, equipped }, consumed, extra, salvaged: extra.length * GEAR_SALVAGE.arcana };
+}
+
 export function equippedGear(gear: GearState): GearItem[] {
   return GEAR_SLOTS.map((slot) => gear.items.find((i) => i.uid === gear.equipped[slot])).filter((i): i is GearItem => !!i);
 }
@@ -226,6 +242,17 @@ function readCosmetics(): CosmeticsState {
 const HISTORY_CAP = 50;
 
 let sim: ArcadeSim | null = null;
+/** Класс сима (M23): стор читают Штаб и Карьера (профиль, лента, экипировка), и статический импорт сима тянул в их чанк
+ *  весь бой. Забег запускает только экран Аркады — он и регистрирует класс при загрузке своего модуля; тесты стора —
+ *  `test/arcadeSimRegistry.ts`. */
+let SimClass: typeof ArcadeSim | null = null;
+export function registerArcadeSim(cls: typeof ArcadeSim): void {
+  SimClass = cls;
+}
+function newSim(...args: ConstructorParameters<typeof ArcadeSim>): ArcadeSim {
+  if (!SimClass) throw new Error("ArcadeSim не зарегистрирован: забег запускает экран Аркады (registerArcadeSim)");
+  return new SimClass(...args);
+}
 
 /** Живой сим текущего забега (для цикла экрана и рендера). null вне забега. */
 export function getArcadeSim(): ArcadeSim | null {
@@ -331,6 +358,8 @@ interface ArcadeStore {
   lastLoot: GearItem[];
   /** Рапира, потерянная последним забегом (T22.1), — для экрана итога. */
   lostRapier: GearItem | null;
+  /** Aegis последнего забега (M23): сгорел ли надетый и сколько осколков дал разбор лишнего — для экрана итога. */
+  aegisNote: { consumed: boolean; salvaged: number } | null;
   /** Стартовые условия текущего забега для кода реплея (см. replayOf). */
   runStart: ArcadeRunStart;
 
@@ -406,6 +435,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   gear: readGear(),
   lastLoot: [],
   lostRapier: null,
+  aegisNote: null,
   runStart: { gear: [] },
 
   start(seed) {
@@ -414,23 +444,23 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     const trait = get().trait && traitUnlocked(get().trait!, get().progress.perHero[get().hero]?.marks.length ?? 0) ? get().trait! : undefined;
     // Снимок того, с чем стартует сим, — в код реплея: экипировка по ходу забега меняется, наследие уходит в сим бонусом.
     const runStart: ArcadeRunStart = { gear: equippedGear(get().gear), legacy: { ...get().progress.legacy.spent } };
-    sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: runStart.gear, legacy: legacyBonus(runStart.legacy), trait });
-    set({ status: "running", seed: next, rank, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lastDrops: [], lastLoot: [], lostRapier: null, runStart });
+    sim = newSim(next, { rank, hero: get().hero, act: get().act, gear: runStart.gear, legacy: legacyBonus(runStart.legacy), trait });
+    set({ status: "running", seed: next, rank, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lastDrops: [], lastLoot: [], lostRapier: null, aegisNote: null, runStart });
   },
   startDaily() {
     const d = arcadeDaily();
     // Дейлик — без экипировки и без наследия: у всех одинаковые условия.
-    sim = new ArcadeSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act, legacy: LEGACY_NONE });
+    sim = newSim(d.seed, { rank: d.rank, hero: d.hero, act: d.act, legacy: LEGACY_NONE });
     // Герой/акт — в стор (HUD, озвучка и облик читают выбранного героя), ранг — только в сим: выбор игрока не перебивать (2026-09-13).
     // Надетый облик пересчитывается под героя дейлика, как в setHero: иначе эффекты шли из пресета прежнего героя, а
     // гардероб после выхода показывал одно, а правил другое (аудит 2026-09-19).
-    set({ status: "running", seed: d.seed, hero: d.hero, cosmetics: withHeroSkin(get().cosmetics, d.hero), act: d.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lostRapier: null, runStart: { gear: [] } });
+    set({ status: "running", seed: d.seed, hero: d.hero, cosmetics: withHeroSkin(get().cosmetics, d.hero), act: d.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lostRapier: null, aegisNote: null, runStart: { gear: [] } });
   },
   startReplay(replay) {
     // Реплей читает снимок наследия из кода, не текущую прокачку зрителя.
-    sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO), trait: replay.trait });
+    sim = newSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO), trait: replay.trait });
     // Герой/акт реплея — в стор (HUD и облик), ранг — только в сим: выбор ранга реплей не переписывает (2026-09-13).
-    set({ status: "running", seed: replay.seed, hero: replay.hero, cosmetics: withHeroSkin(get().cosmetics, replay.hero), act: replay.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: replay.log, lostRapier: null, runStart: { gear: replay.gear, legacy: replay.legacy } });
+    set({ status: "running", seed: replay.seed, hero: replay.hero, cosmetics: withHeroSkin(get().cosmetics, replay.hero), act: replay.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: replay.log, lostRapier: null, aegisNote: null, runStart: { gear: replay.gear, legacy: replay.legacy } });
   },
   equipGear(slot, uid) {
     const g = get().gear;
@@ -677,9 +707,15 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     let gear: GearState = { items, equipped };
     let lostRapier: GearItem | null = null;
     if (o.outcome === "dead") ({ gear, lost: lostRapier } = dropWornRapier(gear, worn));
+    const aegis = settleAegis(gear, worn, o.gearAegisUsed);
+    gear = aegis.gear;
+    extraShards += aegis.salvaged;
+    const aegisNote = aegis.consumed || aegis.salvaged > 0 ? { consumed: !!aegis.consumed, salvaged: aegis.salvaged } : null;
     void writePersisted(GEAR_KEY, JSON.stringify(gear));
     if (extraShards) { cosmetics.shards += extraShards; void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics)); }
-    set({ status: "over", outcome: o, history, progress, lastSeals, cosmetics, lastDrops: drops, gear, lastLoot: loot.filter((g) => g.uid !== lostRapier?.uid), lostRapier });
+    // Из «добычи» на экране итога — ушедшее сразу: потерянная Рапира, сгоревший и разобранный Aegis.
+    const gone = new Set([lostRapier?.uid, aegis.consumed?.uid, ...aegis.extra.map((g) => g.uid)]);
+    set({ status: "over", outcome: o, history, progress, lastSeals, cosmetics, lastDrops: drops, gear, lastLoot: loot.filter((g) => !gone.has(g.uid)), lostRapier, aegisNote });
   },
   quit() {
     // Брошенный посреди боя забег для Рапиры — как смерть (T22.1): иначе риск снимался выходом за секунду до гибели.

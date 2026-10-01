@@ -197,6 +197,8 @@ export interface Enemy {
   zapPoisonAt: number;
   /** Разряды edict (T22.1): тик, с которого разряд снова может ударить эту цель, — не чаще раза в секунду. */
   edictAt: number;
+  /** Массовая заморозка (M23): до этого тика повторная действует вдвое короче (`ARCADE.massFreeze`). */
+  freezeResistUntil: number;
   /** Умение нейтрала (T20.3): тик, с которого можно колдовать снова; тиков до конца телеграфа (0 — не колдует); точка удара
    *  (War Stomp, Thunder Clap) или направление линии (Purge); до какого тика на враге Frost Armor огра. */
   castAt: number;
@@ -521,6 +523,9 @@ export interface Player {
   /** Награда Рошана (T20.2): Cheese — сам восстанавливает полное HP при ≤ 25%; Refresher Shard — ждёт следующего ульта. */
   cheese: boolean;
   refresherShard: boolean;
+  /** Предметы Aghanim's (M23): Shard (награда Рошана) — запасные таланты Q/W/E, Scepter (лавка) — оба таланта ульта. */
+  aghanimShard: boolean;
+  aghanimScepter: boolean;
   abilities: Record<AbilityKey, number>;
   cooldowns: Record<AbilityKey, number>;
   /** Автокаст по умениям (владелец 2026-09-06: «умения не должны нажиматься сами, пока не включишь»).
@@ -668,6 +673,8 @@ export interface ArcadeOutcome {
   necromancerSlain: boolean;
   /** Воскрешение (Aegis/Феникс) было потрачено (T13.48: отметка «без единой смерти»). */
   revived: boolean;
+  /** Воскрешение дал надетый Aegis of the Immortal (M23): стор убирает его из инвентаря — сгорел, как в Dota. */
+  gearAegisUsed: boolean;
   /** Контракт охоты выполнен (T13.50). */
   contractDone: boolean;
   /** Какая порча была принята последней (T13.51), для итога. */

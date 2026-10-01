@@ -7,6 +7,7 @@ import { rollGear, uniqueGear, type GearItem, type GearSlot } from "../src/game/
 import { Rng } from "../src/game/rng.ts";
 import { IDLE_INPUT, type AbilityKey, type Enemy, type EnemyKind } from "../src/game/arcade/types.ts";
 import { dropWornRapier, emptyProgress, getArcadeSim, useArcade } from "../src/state/arcadeStore.ts";
+import "./arcadeSimRegistry.ts";
 
 // Выбросы баланса (T22.1): потолок уклонения у ускорений, разряды edict «в секунду» по каждой цели, потолок перезарядки
 // с постоянной экипировки и риск Divine Rapier (теряется при смерти или брошенном забеге).

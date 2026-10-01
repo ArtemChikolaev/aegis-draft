@@ -375,11 +375,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "assassinate", value: [0, 450, 700, 950], cooldown: 55, radius: 340 },                    // Reaper's Scythe
   }, { kind: "aura_burn", value: 5, radius: 130 }),
   razor: hero("razor", 15, "razor", true, { maxHp: 560, armor: 3, damage: 22, speed: 170, attackInterval: 0.9 }, {
-    q: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 9, radius: 340, duration: 1.0 },          // Plasma Field
+    q: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 11, radius: 280, duration: 1.0 },         // Plasma Field
     w: { kind: "life_drain", value: [0, 18, 26, 34, 42], cooldown: 14, radius: 320, duration: 5 },        // Static Link
     e: { kind: "haste", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 20, duration: 8 },                   // Storm Surge
     r: { kind: "edict", value: [0, 60, 90, 120], cooldown: 50, duration: 12, radius: 320 },              // Eye of the Storm
-  }, { kind: "swipes", value: 4, cap: 12 }),
+  // M23: Razor был выбросом (93% побед бота на short, 86% на full) — Plasma Field: радиус 340 → 280 (был самым большим у
+  // nova), перезарядка 9 → 11 с; ярость +4 → +3. Решала перезарядка: потолок ярости и слабее ульт полный акт не двигали.
+  }, { kind: "swipes", value: 3, cap: 12 }),
   venomancer: hero("venomancer", 40, "venomancer", true, { maxHp: 520, armor: 2, damage: 20, speed: 160 }, {
     q: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], poison: 0.1 }, // Venomous Gale — яд
     w: { kind: "venom", value: [0, 8, 12, 16, 20], cooldown: 0, passive: true },                         // Poison Sting — стак яда с удара
@@ -974,11 +976,12 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "ravage", value: [0, 150, 230, 320], cooldown: 55, radius: 280, duration: 1.4 },          // Wukong's Command
   }, { kind: "swipes", value: 5, cap: 12 }),
   dark_willow: hero("dark_willow", 119, "dark_willow", true, { maxHp: 580, armor: 3, damage: 25, speed: 168, range: 320 }, {
-    q: { kind: "nova", value: [0, 70, 105, 140, 175], cooldown: 7, radius: 230, duration: 2.5 },         // Bramble Maze
+    q: { kind: "nova", value: [0, 70, 105, 140, 175], cooldown: 9, radius: 230, duration: 2.5 },         // Bramble Maze
     w: { kind: "dash", value: [0, 50, 75, 100, 125], cooldown: 10, radius: 300 },                        // Shadow Realm
     e: { kind: "remnant", value: [0, 40, 55, 70, 88], cooldown: 12, radius: 240, duration: 8 },          // Cursed Crown
     r: { kind: "edict", value: [0, 80, 115, 150], cooldown: 55, duration: 10, radius: 340 },             // Bedlam
-  }, { kind: "blur", value: 0.2 }),
+  // M23: Dark Willow — выброс (97%): дальний бой и замедление толпы плюс уклонение; Bramble Maze 7 → 9 с, уклонение 20% → 10%.
+  }, { kind: "blur", value: 0.1 }),
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };

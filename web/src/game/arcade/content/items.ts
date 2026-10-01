@@ -19,6 +19,10 @@ export interface ArcadeItemDef {
   effect: ItemEffect;
   /** Один на героя (как BKB в Dota): лавка не предлагает второй экземпляр. */
   unique?: boolean;
+  /** С какого окна лавки в продаже (номер окна `ARCADE.shop.at`, с 1): Aghanim's Scepter — с 6:00 (M23). */
+  fromShop?: number;
+  /** Поглощается при покупке, как Aghanim's Blessing (M23): слота не занимает, редкости нет, продать или поднять нельзя. */
+  consumed?: boolean;
 }
 
 export interface ItemEffect {
@@ -41,7 +45,9 @@ export const ARCADE_ITEMS: readonly ArcadeItemDef[] = [
   { id: "magic_wand", art: "magic_wand", family: "defense", price: 66, effect: { regen: 3 }, extras: [{ maxHp: 60 }, { cooldown: 0.05 }] },
   { id: "vladmir", art: "vladmir", family: "defense", price: 102, effect: { lifesteal: 0.06 }, extras: [{ armor: 3 }, { damage: 8 }] },
   { id: "assault", art: "assault", family: "defense", price: 138, effect: { armor: 6, attackSpeed: 0.1 }, extras: [{ damage: 10 }, { maxHp: 120 }] },
-  { id: "butterfly", art: "butterfly", family: "offense", price: 144, effect: { crit: 0.15 }, extras: [{ attackSpeed: 0.15 }, { moveSpeed: 0.06 }] },
+  // Butterfly (M23): было +15% крита за 144 — ≈ +11% урона автоатаки, в 4–9 раз хуже Desolator за золото. Теперь скорость
+  // атаки (она же частота процов школ) и крит: ≈ +30% урона — Mask of Madness без штрафа брони, дороже.
+  { id: "butterfly", art: "butterfly", family: "offense", price: 144, effect: { attackSpeed: 0.3, crit: 0.1 }, extras: [{ moveSpeed: 0.06 }, { attackSpeed: 0.1 }] },
   { id: "desolator", art: "desolator", family: "offense", price: 120, effect: { damage: 18 }, extras: [{ crit: 0.08 }, { attackSpeed: 0.1 }] },
   { id: "travel_boots", art: "travel_boots", family: "utility", price: 90, effect: { moveSpeed: 0.1 }, extras: [{ regen: 2 }, { armor: 3 }] },
   { id: "heart", art: "heart", family: "defense", price: 132, effect: { maxHp: 200, regen: 2 }, extras: [{ armor: 4 }, { lifesteal: 0.05 }] },
@@ -50,6 +56,8 @@ export const ARCADE_ITEMS: readonly ArcadeItemDef[] = [
   { id: "black_king_bar", art: "black_king_bar", family: "defense", price: 126, effect: { stunImmune: true, armor: 2 }, extras: [{ maxHp: 100 }, { damage: 12 }], unique: true },
   { id: "bfury", art: "bfury", family: "offense", price: 114, effect: { cleave: 2, damage: 6 }, extras: [{ regen: 3 }, { damage: 10 }] },
   { id: "octarine_core", art: "octarine_core", family: "utility", price: 120, effect: { cooldown: 0.15, maxHp: 80 }, extras: [{ regen: 3 }, { lifesteal: 0.06 }] },
+  // Оба таланта ульта сразу (content/talents.ts, `scepterTalents`) — числа решает кит героя, поэтому `effect` пустой.
+  { id: "aghanims_scepter", art: "ultimate_scepter", family: "utility", price: 160, effect: {}, unique: true, fromShop: 2, consumed: true },
 ];
 
 export const ARCADE_ITEM_BY_ID: Record<string, ArcadeItemDef> = Object.fromEntries(ARCADE_ITEMS.map((i) => [i.id, i]));

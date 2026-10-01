@@ -267,6 +267,25 @@
 .arcade-stats li { padding: 2px 8px; border-radius: 999px; background: var(--surface-soft, var(--surface)); font-size: 12px; font-weight: 600; }
 .arcade-stats li[data-extra] { background: color-mix(in srgb, var(--gold) 18%, var(--surface)); color: var(--text); }
 .arcade-offer__more { color: var(--muted); font-size: 11px; }
+.arcade-offer__talents { color: var(--accent-strong); font-size: 12px; line-height: 1.4; }
+/* Окна забега с геймпада (M23): фокус кнопки виден, хотя клавиатуры не было и :focus-visible не срабатывает. */
+.arcade-overlay[data-pad="true"] :is(button, summary, a):focus { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* Дерево талантов (M23): пары 10/15/20/25 и предметы Aghanim's; взятое — акцентом. На подготовке — под китом героя,
+   в окне сборки — на тёмной вставке (`data-invert`). */
+.arcade-setup__talents summary { cursor: pointer; list-style-position: inside; }
+.arcade-setup__talents[open] summary { margin-bottom: 8px; }
+.arcade-talents__rows { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.arcade-talents__row { display: grid; grid-template-columns: 28px 1fr 1fr; gap: 6px; align-items: stretch; }
+.arcade-talents__row--item { grid-template-columns: 28px 1fr; align-items: center; }
+.arcade-talents__lvl { display: grid; place-items: center; font: 800 13px var(--font-display); color: var(--accent); }
+.arcade-talents__pick { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); color: var(--text); font-size: 12px; line-height: 1.35; }
+.arcade-talents__pick[data-taken="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.arcade-talents[data-invert="true"] .arcade-talents__pick { border-color: var(--line-invert); background: var(--surface-invert-soft); color: var(--on-invert); }
+.arcade-talents[data-invert="true"] .arcade-talents__pick[data-taken="true"] { border-color: var(--accent); }
+@media (max-width: 430px) {
+  .arcade-talents__row { grid-template-columns: 24px 1fr; }
+  .arcade-talents__row > .arcade-talents__pick:nth-child(3) { grid-column: 2; }
+}
 
 /* Реролл/изгнание на экране прокачки (DMD: reroll + banish) */
 .arcade-offer-wrap { display: grid; gap: 6px; align-content: start; }

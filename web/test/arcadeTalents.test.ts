@@ -3,7 +3,7 @@ import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE } from "../src/game/arcade/config.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { HEROES, HERO_IDS, type AbilityDef } from "../src/game/arcade/content/heroes.ts";
-import { GENERIC_TALENTS, TALENT_LEVELS, heroTalents, kitTalent, talentLabel } from "../src/game/arcade/content/talents.ts";
+import { GENERIC_TALENTS, TALENT_LEVELS, heroTalents, kitTalent, scepterTalents, shardTalents, talentLabel, talentOffer } from "../src/game/arcade/content/talents.ts";
 import { IDLE_INPUT, type AbilityKey, type Enemy, type EnemyKind, type Offer } from "../src/game/arcade/types.ts";
 
 // Таланты героя (T22.2): на 10/15/20/25 — пара по киту героя («Blade Fury: 4 → 5 с») вместо восьми общих на всех.
@@ -23,9 +23,12 @@ function field(seed: string, hero: string): ArcadeSim {
 }
 
 describe("таланты по киту героя", () => {
-  it("у каждого героя на каждом уровне два разных таланта, и почти все — по его киту", () => {
+  it("у каждого героя на каждом уровне два разных таланта: на 10/15/20 — умение против общего, на 25 — ульт", () => {
     let kit = 0, all = 0;
     for (const h of HERO_IDS) {
+      expect(heroTalents(h)[10][1]).toBe("t10_dmg");
+      expect(heroTalents(h)[15][1]).toBe("t15_hp");
+      expect(heroTalents(h)[20][1]).toBe("t20_armor");
       for (const lvl of TALENT_LEVELS) {
         const [a, b] = heroTalents(h)[lvl];
         expect(a, `${h}@${lvl}`).not.toBe(b);
@@ -44,8 +47,18 @@ describe("таланты по киту героя", () => {
       }
       // Ульт — всегда свой: на 25-м хотя бы один талант по R.
       expect(heroTalents(h)[25].some((id) => kitTalent(id)?.key === "r"), h).toBe(true);
+      // Aghanim's: Shard — запасные Q/W/E (их нет в лестнице), Scepter — таланты ульта.
+      for (const id of shardTalents(h)) { expect(kitTalent(id)?.key).not.toBe("r"); expect(Object.values(heroTalents(h)).flat()).not.toContain(id); }
+      expect(scepterTalents(h).every((id) => kitTalent(id)?.key === "r"), h).toBe(true);
     }
-    expect(kit / all).toBeGreaterThan(0.85);
+    expect(kit / all).toBeGreaterThan(0.55);
+  });
+
+  it("Scepter до 25-го: оба таланта ульта уже взяты — на 25-м вместо них запасные общие", () => {
+    const pair = heroTalents("sniper")[25];
+    expect(talentOffer("sniper", 25, [])).toEqual([...pair]);
+    expect(talentOffer("sniper", 25, scepterTalents("sniper"))).toEqual(["t25_regen", "t25_hp"]);
+    expect(talentOffer("sniper", 25, [scepterTalents("sniper")[0]])).toEqual(["t25_regen", pair[1]]);
   });
 
   it("Juggernaut: «Blade Fury: 4 → 6 с» на 10-м — подпись и сим совпадают, общий HEROES не тронут", () => {
@@ -88,7 +101,7 @@ describe("таланты по киту героя", () => {
 
   it("перезарядка, радиус и число целей — каждое своим полем", () => {
     const T = ARCADE.talents;
-    expect(heroTalents("zeus")[20]).toContain("q_count");
+    expect(shardTalents("zeus")).toContain("q_count");
     const zeus = field("tal-zeus", "zeus");
     const count0 = [...HEROES.zeus.abilities.q.count!];
     take(zeus, "q_count");
@@ -97,7 +110,7 @@ describe("таланты по киту героя", () => {
     const sniper = field("tal-cd", "sniper");
     take(sniper, "r_cooldown");
     expect(sniper.hero.abilities.r.cooldown).toBeCloseTo(HEROES.sniper.abilities.r.cooldown * (1 - T.cooldown * T.ult), 1);
-    expect(heroTalents("crystal_maiden")[20]).toContain("q_radius");
+    expect(shardTalents("crystal_maiden")).toContain("q_radius");
     const cm = field("tal-radius", "crystal_maiden");
     take(cm, "q_radius");
     expect(cm.hero.abilities.q.radius).toBe(Math.round(HEROES.crystal_maiden.abilities.q.radius! * (1 + T.radius)));

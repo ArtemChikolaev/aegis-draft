@@ -109,14 +109,21 @@ export class ObstacleGrid {
     this.resolveInto(p, r);
     return [p.x, p.y];
   }
-  /** То же на месте: результат пишется в `p.x/p.y`. Для горячих циклов сима — без кортежа на каждого врага за тик. */
-  resolveInto(p: { x: number; y: number }, r: number): void {
+  /** То же на месте: результат пишется в `p.x/p.y`. Для горячих циклов сима — без кортежа на каждого врага за тик.
+   *  `scale` — для врагов (`e.kind.r, 0.8`): целый радиус и константа не упаковываются в HeapNumber на каждый вызов, как
+   *  посчитанное снаружи `e.kind.r * 0.8`; произведение то же. Ячейка — прямо здесь, без вызова `near(x, y)`: вызов
+   *  упаковывал обе координаты (10 КБ мусора за тик), список препятствий тот же (M23). */
+  resolveInto(p: { x: number; y: number }, r: number, scale = 1): void {
+    r *= scale;
     let x = p.x, y = p.y;
     for (let pass = 0; pass < 2; pass++) {
       // Первый проход ничего не сдвинул — второй прошёл бы те же препятствия той же точки впустую (аудит 2026-09-27:
       // 19% профиля, −7% тика); результат прежний бит-в-бит.
       let moved = false;
-      for (const o of this.near(x, y)) {
+      const gx = Math.floor(x / ObstacleGrid.CELL), gy = Math.floor(y / ObstacleGrid.CELL), n = ObstacleGrid.DIM;
+      const list = gx >= 0 && gx < n && gy >= 0 && gy < n ? this.flat[gy * n + gx] : this.cells.get(gy * 4096 + gx) ?? ObstacleGrid.NONE;
+      for (let i = 0; i < list.length; i++) {
+        const o = list[i];
         const dx = x - o.x, dy = y - o.y;
         const min = o.r + r;
         const d2 = dx * dx + dy * dy;

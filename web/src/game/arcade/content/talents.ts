@@ -1,9 +1,8 @@
-// Таланты героя (T22.2): на 10/15/20/25 уровне — пара талантов по киту героя, как в Dota («Blade Fury: 4 → 5 с»),
-// вместо восьми общих на всех. Талант усиливает одно поле одного умения; какое поле, решает вид умения (KIND_MODS):
-// только поля, которые сим этого вида реально читает (castAbility, тик, пересчёт статов). Сим держит свою копию героя
-// (`cloneHeroDef`) и правит её выбранным талантом — все ветки видов читают числа уже с талантом.
-// Общие таланты (t10_dmg…t25_regen) остались запасом: слот, которому по киту нечего дать (у пассивки нет перезарядки),
-// берёт общий талант своего уровня.
+// Таланты героя (T22.2, M23): на 10/15/20/25 уровне — пара, как в Dota: талант умения героя («Blade Fury: 4 → 6 с»)
+// против общего (+20 урона, +150 HP, +6 брони), на 25 — оба таланта ульта. Талант усиливает одно поле одного умения;
+// какое, решает вид умения (KIND_MODS): только поля, которые сим этого вида реально читает (castAbility, тик, пересчёт
+// статов). Сим держит свою копию героя (`cloneHeroDef`) и правит её выбранным талантом — все ветки видов читают числа
+// уже с ним. Запасные таланты умений выдают предметы Aghanim's (Shard — Q/W/E, Scepter — оба таланта ульта).
 import { ARCADE } from "../config.ts";
 import type { AbilityKey } from "../types.ts";
 import { HEROES, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./heroes.ts";
@@ -62,41 +61,71 @@ function abilityTalents(def: HeroDef, key: AbilityKey): KitTalent[] {
   return (KIND_MODS[ab.kind] ?? []).filter((mod) => hasMod(ab, mod)).map((mod) => ({ id: `${key}_${mod}`, key, mod }));
 }
 
-/** Лестница: на каждом уровне два слота «умение, номер его таланта»; слоту без таланта — общий талант своего уровня.
- *  В паре — главный талант одного умения против запасного другого: иначе на 10-м почти у всех выходило «урон +25%»
- *  против «урон +25%». К 25-му каждое умение получает оба своих таланта. */
-const LADDER: Record<number, readonly [readonly [AbilityKey, number], readonly [AbilityKey, number]]> = {
-  10: [["q", 0], ["w", 1]],
-  15: [["w", 0], ["e", 1]],
-  20: [["e", 0], ["q", 1]],
+/** Слот лестницы: талант по киту «умение, номер его таланта» или общий талант по id. */
+type Slot = readonly [AbilityKey, number] | string;
+/** Лестница (M23, «сила талантов»): на 10/15/20 — главный талант умения против прежнего общего (+20 урона, +150 HP,
+ *  +6 брони). M22 заменил общие целиком, и бот на полном акте просел на 5 п.п.: общие усиливают автоатаку и все её
+ *  процы школ, талант одного умения так не масштабируется. На 25 — оба таланта ульта. Запасные таланты Q/W/E даёт
+ *  Aghanim's Shard, оба таланта ульта сразу — Aghanim's Scepter. Слот без таланта по киту — запасной общий уровня. */
+const LADDER: Record<number, readonly [Slot, Slot]> = {
+  10: [["q", 0], "t10_dmg"],
+  15: [["w", 0], "t15_hp"],
+  20: [["e", 0], "t20_armor"],
   25: [["r", 0], ["r", 1]],
 };
-const FALLBACK: Record<number, readonly [string, string]> = {
-  10: ["t10_dmg", "t10_ms"],
-  15: ["t15_hp", "t15_crit"],
-  20: ["t20_armor", "t20_cd"],
-  25: ["t25_regen", "t25_regen"],
+/** Запасные общие таланты уровня — по порядку: на место слота без таланта по киту и на место уже взятого
+ *  (Scepter отдал оба таланта ульта раньше 25-го уровня). */
+const SPARE: Record<number, readonly string[]> = {
+  10: ["t10_ms"],
+  15: ["t15_crit"],
+  20: ["t20_cd"],
+  25: ["t25_regen", "t25_hp"],
 };
 /** Уровни талантов. */
 export const TALENT_LEVELS: readonly number[] = Object.keys(LADDER).map(Number);
-/** Общие таланты-запас (строки `arcade.t.<id>`). */
-export const GENERIC_TALENTS: readonly string[] = [...new Set(Object.values(FALLBACK).flat())];
+/** Общие таланты (строки `arcade.t.<id>`): из лестницы и запасные. */
+export const GENERIC_TALENTS: readonly string[] = [...new Set([...Object.values(LADDER).flat().filter((x): x is string => typeof x === "string"), ...Object.values(SPARE).flat()])];
 
-const cache = new Map<HeroId, Record<number, readonly [string, string]>>();
-/** Пары талантов героя по уровням: id кит-таланта (`q_duration`) или общего (`t15_hp`). Считаются по базовому герою из
- *  HEROES, а не по копии сима: взятый талант меняет числа, но не набор полей. */
-export function heroTalents(id: HeroId): Record<number, readonly [string, string]> {
+const cache = new Map<HeroId, { ladder: Record<number, readonly [string, string]>; byKey: Record<AbilityKey, KitTalent[]> }>();
+function heroKit(id: HeroId): { ladder: Record<number, readonly [string, string]>; byKey: Record<AbilityKey, KitTalent[]> } {
   const hit = cache.get(id);
   if (hit) return hit;
+  // По базовому герою из HEROES, а не по копии сима: взятый талант меняет числа, но не набор полей.
   const def = HEROES[id];
   const byKey = { q: abilityTalents(def, "q"), w: abilityTalents(def, "w"), e: abilityTalents(def, "e"), r: abilityTalents(def, "r") };
-  const out: Record<number, readonly [string, string]> = {};
+  const ladder: Record<number, readonly [string, string]> = {};
   for (const lvl of TALENT_LEVELS) {
-    const [a, b] = LADDER[lvl].map(([key, i], slot) => byKey[key][i]?.id ?? FALLBACK[lvl][slot]);
-    out[lvl] = [a, b];
+    const spare = [...SPARE[lvl]];
+    const pick = (slot: Slot): string => (typeof slot === "string" ? slot : byKey[slot[0]][slot[1]]?.id ?? spare.shift()!);
+    ladder[lvl] = [pick(LADDER[lvl][0]), pick(LADDER[lvl][1])];
   }
+  const out = { ladder, byKey };
   cache.set(id, out);
   return out;
+}
+
+/** Пары талантов героя по уровням: id таланта по киту (`q_duration`) или общего (`t15_hp`). */
+export function heroTalents(id: HeroId): Record<number, readonly [string, string]> {
+  return heroKit(id).ladder;
+}
+
+/** Пара на выбор с учётом уже взятого: взятое (Scepter раньше 25-го) заменяется запасным общим уровня. */
+export function talentOffer(id: HeroId, level: number, taken: readonly string[]): readonly string[] {
+  const pair = heroKit(id).ladder[level];
+  if (!pair) return [];
+  const spare = SPARE[level].filter((t) => !taken.includes(t) && !pair.includes(t));
+  return pair.map((t) => (taken.includes(t) ? spare.shift() : t)).filter((t): t is string => t !== undefined);
+}
+
+/** Aghanim's Shard (M23): запасные таланты базовых умений — второй по KIND_MODS у Q, W и E (у кого он есть). */
+export function shardTalents(id: HeroId): string[] {
+  const { byKey } = heroKit(id);
+  return (["q", "w", "e"] as const).map((k) => byKey[k][1]?.id).filter((t): t is string => t !== undefined);
+}
+
+/** Aghanim's Scepter (M23): оба таланта ульта сразу. */
+export function scepterTalents(id: HeroId): string[] {
+  return heroKit(id).byKey.r.slice(0, 2).map((t) => t.id);
 }
 
 /** Кит-талант по id (`q_duration`) или null — общий талант (`t10_dmg`) или чужой id. */

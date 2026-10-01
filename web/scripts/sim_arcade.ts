@@ -50,6 +50,10 @@ const PLACES = new Set<PlaceId>((args.get("places") ?? "") === "all" ? PLACE_IDS
 const BLINK = !args.has("noblink");
 /** Выкуп (ARCADE.buyback): бот выкупается, как только хватает золота; `--nobuyback` — прежняя смерть без выкупа. */
 const BUYBACK = !args.has("nobuyback");
+/** Таланты (M23): по умолчанию на 10/15/20 бот берёт общий, `--talents kit` — талант умения (A/B силы талантов). */
+const TALENTS_KIT = args.get("talents") === "kit";
+/** Награда Рошана (M23): по умолчанию Aegis → Cheese → Aghanim's Shard → Refresher; `--roshan shard` — Shard первым. */
+const ROSHAN_SHARD_FIRST = args.get("roshan") === "shard";
 const MAX_TICKS = TICK_HZ * 60 * 26;
 /** Потолок шагов на забег (шаг ≠ тик: шаг с открытым окном тик не двигает) и порог «тик стоит» — см. цикл прогона. */
 const MAX_STEPS = MAX_TICKS * 3;
@@ -60,12 +64,19 @@ const setPath = (root: Record<string, unknown>, path: string, value: number) => 
 for (const kv of (args.get("set") ?? "").split(",").filter(Boolean)) { const [k, v] = kv.split("="); setPath(ARCADE as unknown as Record<string, unknown>, k, Number(v)); }
 for (const kv of (args.get("enemy") ?? "").split(",").filter(Boolean)) { const [k, v] = kv.split("="); setPath(ENEMY_KINDS as unknown as Record<string, unknown>, k, Number(v)); }
 
-/** Приоритет карточек: талант изученного умения → R → своя школа → Q → W → E; талант неизученного — в самом конце. */
+/** Приоритет карточек: талант ульта → общий талант → талант изученного умения → R → своя школа → Q → W → E; талант
+ *  неизученного умения — в самом конце. */
 function pickOffer(sim: ArcadeSim, offers: Offer[], school: SchoolId | "any"): number {
   const score = (o: Offer): number => {
-    // Таланты (T22.2): по киту — выше карт школы, если умение изучено (у неизученного талант спит — ниже любой карты);
-    // общий запасной — чуть выше карт. Раньше бот таланты не брал вовсе (25 < 50), и их нельзя было откалибровать.
-    if (o.kind === "talent") { const kt = kitTalent(o.id); return kt ? (sim.player.abilities[kt.key] > 0 ? 55 + (kt.mod === "value" ? 2 : 1) : 5) : 52; }
+    // Таланты (T22.2, M23): общий (+20 урона, +150 HP, +6 брони) для бота сильнее таланта умения — его бой держится на
+    // автоатаке и процах школ, — поэтому на 10/15/20 он берёт общий, на 25 — талант ульта. `--talents kit` — наоборот (A/B).
+    // Талант неизученного умения спит — ниже любой карты.
+    if (o.kind === "talent") {
+      const kt = kitTalent(o.id);
+      if (!kt) return 58;
+      if (sim.player.abilities[kt.key] === 0) return 5;
+      return kt.key === "r" ? 59 : (TALENTS_KIT ? 60 : 55) + (kt.mod === "value" ? 2 : 1);
+    }
     if (o.kind === "upgrade") {
       const def = UPGRADE_BY_ID[o.id];
       const rarity = { standard: 0, refined: 1, exotic: 2, arcana: 3 }[o.rarity];
@@ -118,8 +129,12 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
       return act(up >= 0 ? SHOP_ACT.upgradeBase + up : SHOP_ACT.close);
     }
     case "neutral": return act(sim.neutralOffers.length > 0 ? 1 : SHOP_ACT.close);
-    // Награда Рошана (T20.2): воскрешение сильнее всего, потом Cheese, потом Shard; взять нечего — «Позже».
-    case "roshan": { const o = sim.roshanOptions(); return act(o.aegis ? 1 : o.cheese ? 2 : o.refresher_shard ? 3 : SHOP_ACT.close); }
+    // Награда Рошана (T20.2, M23): воскрешение сильнее всего, потом Cheese, Aghanim's Shard, Refresher Shard; взять нечего — «Позже».
+    case "roshan": {
+      const o = sim.roshanOptions();
+      if (ROSHAN_SHARD_FIRST && o.aghanims_shard) return act(4);
+      return act(o.aegis ? 1 : o.cheese ? 2 : o.aghanims_shard ? 4 : o.refresher_shard ? 3 : SHOP_ACT.close);
+    }
     case "loot": {
       const item = sim.lootOpen!;
       const cur = sim.player.gear[item.slot] as GearItem | undefined;

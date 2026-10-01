@@ -3,6 +3,7 @@
 import { describe, it, expect } from "vitest";
 import { useArcade } from "../src/state/arcadeStore.ts";
 import { readCached } from "../src/state/persist.ts";
+import "./arcadeSimRegistry.ts";
 
 describe("выбор ранга", () => {
   it("setRank пишет выбор в хранилище (в пределах открытого)", () => {

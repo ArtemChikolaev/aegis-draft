@@ -3,6 +3,7 @@ import { ArcadeSim } from "../src/game/arcade/sim.ts";
 import { ARCADE } from "../src/game/arcade/config.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
+import { shardTalents } from "../src/game/arcade/content/talents.ts";
 import { IDLE_INPUT, type Enemy, type EnemyKind } from "../src/game/arcade/types.ts";
 
 // Награда Рошана на выбор (T20.2): Aegis, Cheese или Refresher Shard. Раньше оба Рошана роняли одинаковый Aegis, а второй
@@ -68,13 +69,26 @@ describe("награда Рошана", () => {
     expect(sim.events.refreshers).toBe(1);
   });
 
-  it("выбор без смысла закрыт: при пассивном ульте Shard недоступен, при всех трёх наградах окно не открывается", () => {
+  it("Aghanim's Shard (M23): запасные таланты Q/W/E сразу, один на забег", () => {
+    const sim = field("rosh-aghanim");
+    const p = sim.player;
+    const ids = shardTalents("juggernaut");
+    expect(ids.length).toBeGreaterThan(0);
+    sim.roshanDrops.push({ x: p.x, y: p.y });
+    pick(sim, 4);
+    expect(p.aghanimShard).toBe(true);
+    expect(ids.every((id) => p.talents.includes(id))).toBe(true);
+    expect(sim.roshanOptions().aghanims_shard).toBe(false);
+    expect(sim.hero.abilities.q.value[4]).toBeGreaterThan(HEROES.juggernaut.abilities.q.value[4]); // Blade Fury: урон
+  });
+
+  it("выбор без смысла закрыт: при пассивном ульте Shard недоступен, при всех наградах окно не открывается", () => {
     const passive = Object.values(HEROES).find((h) => h.abilities.r.passive)!;
     const sim = field("rosh-passive", passive.id);
     expect(sim.roshanOptions().refresher_shard).toBe(false);
     const full = field("rosh-full");
     const p = full.player;
-    p.aegis = true; p.cheese = true; p.refresherShard = true;
+    p.aegis = true; p.cheese = true; p.refresherShard = true; p.aghanimShard = true;
     full.roshanDrops.push({ x: p.x, y: p.y });
     full.step(IDLE_INPUT);
     expect(full.roshanOpen).toBe(false);

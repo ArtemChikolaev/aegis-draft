@@ -5,6 +5,7 @@
 // Почему страница читает Cache API напрямую, а не спрашивает воркера: это read-only взгляд, и
 // лишний раунд сообщений ради него только добавил бы состояний «спросили, а он спит».
 import {
+  ART_CACHE,
   DATA_CACHE_PREFIX,
   META_CACHE,
   SHELL_CACHE,
@@ -112,7 +113,7 @@ export async function clearOfflineCache(): Promise<void> {
   const names = await caches.keys();
   await Promise.all(
     names
-      .filter((name) => name === SHELL_CACHE || name === META_CACHE || name.startsWith(DATA_CACHE_PREFIX))
+      .filter((name) => name === SHELL_CACHE || name === META_CACHE || name === ART_CACHE || name.startsWith(DATA_CACHE_PREFIX))
       .map((name) => caches.delete(name)),
   );
 }

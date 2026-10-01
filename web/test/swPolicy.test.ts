@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataCacheName, dataFileFromPath, decideDataAction, staleDataCaches } from "../src/sw/policy.ts";
+import { ART_MAX_ENTRIES, ART_REVALIDATE_MS, artNeedsRevalidate, artOverflow, dataCacheName, dataFileFromPath, decideDataAction, isArtPath, staleDataCaches } from "../src/sw/policy.ts";
 
 const HASH_A = "sha256:aaaa";
 const HASH_B = "sha256:bbbb";
@@ -61,5 +61,27 @@ describe("staleDataCaches", () => {
 
   it("активного набора нет — чистим все ведра данных", () => {
     expect(staleDataCaches([dataCacheName(HASH_A), "aegis-shell"], null)).toEqual([dataCacheName(HASH_A)]);
+  });
+});
+
+describe("арт Аркады — своё ведро (M23)", () => {
+  it("арт узнаётся по пути под базой приложения; датасет и бандл — нет", () => {
+    expect(isArtPath("/aegis-draft/art/sprites/dota_px2/axe.webp", "/aegis-draft/")).toBe(true);
+    expect(isArtPath("/art/sfx/dota/pack/index.json", "/")).toBe(true);
+    expect(isArtPath("/aegis-draft/data/players.json", "/aegis-draft/")).toBe(false);
+    expect(isArtPath("/aegis-draft/assets/index-abc.js", "/aegis-draft/")).toBe(false);
+  });
+
+  it("перепроверка — без метки или раз в окно, не на каждый показ", () => {
+    const now = 10 * ART_REVALIDATE_MS;
+    expect(artNeedsRevalidate(null, now)).toBe(true);
+    expect(artNeedsRevalidate("мусор", now)).toBe(true);
+    expect(artNeedsRevalidate(String(now - 1000), now)).toBe(false);
+    expect(artNeedsRevalidate(String(now - ART_REVALIDATE_MS - 1), now)).toBe(true);
+  });
+
+  it("ведро не растёт сверх потолка", () => {
+    expect(artOverflow(ART_MAX_ENTRIES)).toBe(0);
+    expect(artOverflow(ART_MAX_ENTRIES + 3)).toBe(3);
   });
 });

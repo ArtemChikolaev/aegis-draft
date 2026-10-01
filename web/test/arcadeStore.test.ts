@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { arcadeTrophies, bestArcadeEntry, emptyProgress, hasActVictory, hasFullActVictory, maxUnlockedRank, progressFromHistory, recordProgress, useArcade, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
 import { readCached, writePersisted } from "../src/state/persist.ts";
 import { SHARD_PRICE } from "../src/game/arcade/content/cosmetics.ts";
+import "./arcadeSimRegistry.ts";
 
 const entry = (over: Partial<ArcadeHistoryEntry>): ArcadeHistoryEntry => ({
   seed: "s", outcome: "dead", seconds: 100, level: 5, kills: 50, gold: 10, schools: [], configVersion: "a", at: 1, hero: "juggernaut", act: "full", rank: 0, ...over,

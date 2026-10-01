@@ -5,6 +5,7 @@ import { IDLE_INPUT } from "../src/game/arcade/types.ts";
 import { LEGACY_MAX_RANK, LEGACY_NONE, LEGACY_PER_RANK, clampLegacy, legacyBonus, legacySpentTotal } from "../src/game/arcade/content/legacy.ts";
 import { decodeReplay, encodeReplay } from "../src/game/arcade/replay.ts";
 import { emptyProgress, getArcadeSim, legacyClaimKey, progressFromHistory, recordProgress, useArcade, type ArcadeHistoryEntry } from "../src/state/arcadeStore.ts";
+import "./arcadeSimRegistry.ts";
 
 // «Наследие Aegis» (T13.44, этап 2 аудита 2026-09-08): печати за победы в полных актах → ограниченная общая прокачка.
 const entry = (over: Partial<ArcadeHistoryEntry>): ArcadeHistoryEntry => ({

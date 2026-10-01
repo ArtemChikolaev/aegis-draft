@@ -94,6 +94,12 @@ export class ArcadeRenderer {
   private lastNow = 0;
   private movingUntil = 0;
 
+  /** Подписи на сцене в языке игрока (M23): «SHOP» и «T3» были зашиты по-английски. `tier` — шаблон с `{n}`. */
+  private canvasLabels = { shop: "SHOP", tier: "T{n}" };
+  setLabels(labels: { shop: string; tier: string }): void {
+    this.canvasLabels = labels;
+  }
+
   setCosmetics(equipped: Partial<Record<CosmeticSlot, string>>, styles: Readonly<Record<string, string>> = {}): void {
     const next: Partial<Record<CosmeticSlot, string>> = {};
     let gem: number | null = null;
@@ -886,7 +892,7 @@ export class ArcadeRenderer {
       c.beginPath(); c.arc(s.x, s.y, 40, 0, Math.PI * 2); c.stroke();
       c.globalAlpha = 1;
       c.fillStyle = pal.text; c.font = this.font(800, 11); c.textAlign = "center";
-      this.text(c, "SHOP", s.x, s.y - 26);
+      this.text(c, this.canvasLabels.shop, s.x, s.y - 26);
     }
     if (sim.neutralToken.alive) {
       const n = sim.neutralToken;
@@ -894,7 +900,7 @@ export class ArcadeRenderer {
       c.beginPath(); c.moveTo(n.x, n.y - 14 - pulse * 2); c.lineTo(n.x + 12, n.y); c.lineTo(n.x, n.y + 14 + pulse * 2); c.lineTo(n.x - 12, n.y); c.closePath(); c.stroke();
       c.setLineDash([]); c.globalAlpha = 1;
       c.fillStyle = pal.text; c.font = this.font(800, 10); c.textAlign = "center";
-      this.text(c, `T${n.value}`, n.x, n.y - 20);
+      this.text(c, this.canvasLabels.tier.replace("{n}", String(n.value)), n.x, n.y - 20);
     }
     if (sim.bounty.alive) {
       const b = sim.bounty;

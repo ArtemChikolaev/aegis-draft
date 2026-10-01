@@ -3,7 +3,7 @@
 // renderer.ts. Пауза по Esc/Space, кнопке и visibilitychange; выход из забега — через confirm.
 import { Fragment, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRun } from "../../state/runStore.ts";
-import { MARK_IDS, bestArcadeEntry, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, replayOf, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
+import { MARK_IDS, bestArcadeEntry, getArcadeSim, hasActVictory, hasFullActVictory, masteryTitle, maxUnlockedRank, registerArcadeSim, replayOf, useArcade, type ArcadeProgress, type MarkId } from "../../state/arcadeStore.ts";
 import { LEGACY_BRANCHES, LEGACY_KIND, LEGACY_MAX_RANK, LEGACY_PER_RANK, legacySpentTotal, type LegacyBranch } from "../../game/arcade/content/legacy.ts";
 import { useTmaChrome } from "../../state/tmaChrome.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
@@ -13,11 +13,13 @@ import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/con
 import type { PlayerStats, ArcadeOutcome } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, NEXT_RARITY, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
-import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroDef, type HeroId } from "../../game/arcade/content/heroes.ts";
-import { talentLabel } from "../../game/arcade/content/talents.ts";
+import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { scepterTalents, shardTalents, talentLabel } from "../../game/arcade/content/talents.ts";
+import { TalentTree, talentText } from "./TalentTree.tsx";
+import { RunWindow, openRunWindow, stepRunWindowFocus } from "./RunWindow.tsx";
 import { AFFIX, AFFIX_IDS, ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { dotaSheet, dotaSheetState, preloadArcadeArt, preloadSheetIndexes } from "./sprites.ts";
-import type { ArcadeSim } from "../../game/arcade/sim.ts";
+import { ArcadeSim } from "../../game/arcade/sim.ts";
 import { ATTACK_MASK, BLINK_MASK, AUTOATTACK_ACT, AUTOCAST_ACT, BAG_DROP_ACT, BAG_EQUIP_ACT, BUILD_ACT, IDLE_INPUT, PICKUP_ACT, SHOP_ACT, type ArcadeInput, CONTRACT_OATH_ACT, POND_RITUAL_ACT } from "../../game/arcade/types.ts";
 import { arcadeDaily, decodeReplay, encodeReplay, isArcadeDailySeed, replayCompatible, replayUrl } from "../../game/arcade/replay.ts";
 import { ARCADE_CONFIG_VERSION } from "../../game/arcade/config.ts";
@@ -58,6 +60,9 @@ import { groupHeroes, recentHeroes } from "../../game/arcade/heroPicker.ts";
 import { ArcadeRenderer, hudNeedsBump, sceneNeedsDraw, type HudSeen } from "./renderer.ts";
 import { formatClock } from "../../game/arcade/clock.ts";
 import "./arcade.css";
+
+// Сим — в чанке экрана Аркады, а не стора (M23): стор читают Штаб и Карьера, им бой не нужен.
+registerArcadeSim(ArcadeSim);
 
 const ABILITY_MASK: Record<AbilityKey, number> = { q: 1, w: 2, e: 4, r: 8 };
 /** Пассивки, которые копят стаки в `player.stacks` — у них в HUD показываем число, а не название. */
@@ -178,7 +183,7 @@ function ArcadeSetup() {
                 return (
                   <button key={slot} type="button" className="arcade-gear__slot" data-active={gearSlot === slot ? "true" : undefined} data-rarity={item?.rarity} data-testid={`arcade-gear-slot-${slot}`} onClick={() => setGearSlot(gearSlot === slot ? null : slot)}>
                     <small>{t(`arcade.gear.slot.${slot}` as MessageKey)}</small>
-                    {item ? <><ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" /><span>{t(`arcade.gearName.${item.base}` as MessageKey)}</span></> : <span className="arcade-gear__empty">—</span>}
+                    {item ? <><ItemIcon pixel={PX} slug={gearArt(item)} name="" size="sm" /><span>{t(`arcade.gearName.${item.base}` as MessageKey)}</span></> : <span className="arcade-gear__empty">—</span>}
                   </button>
                 );
               })}
@@ -188,7 +193,7 @@ function ArcadeSetup() {
                 <li><Button variant="secondary" onClick={() => equipGear(gearSlot, null)}>{t("arcade.gear.unequip")}</Button></li>
                 {gear.items.filter((i) => i.slot === gearSlot).sort((a, b) => gearScore(b) - gearScore(a)).map((item) => (
                   <li key={item.uid} data-rarity={item.rarity} data-equipped={gear.equipped[gearSlot] === item.uid ? "true" : undefined}>
-                    <ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" />
+                    <ItemIcon pixel={PX} slug={gearArt(item)} name="" size="sm" />
                     <div>
                       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)} <em>· {t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier}</em></strong>
                       <span>{gearAffixes(t, item)}</span>
@@ -209,8 +214,12 @@ function ArcadeSetup() {
             {(["q", "w", "e", "r"] as const).map((key) => (
               <li key={key}><AbilityIcon hero={heroId} k={key} size={30} /> <span>{t(`arcade.ab.${HEROES[heroId].kit}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${HEROES[heroId].kit}.${key}.desc` as MessageKey)}</small></li>
             ))}
-            {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey)}</small></li>}
+            {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey, sigVars(HEROES[heroId].signature))}</small></li>}
           </ul>
+          <details className="arcade-setup__talents" data-testid="arcade-setup-talents">
+            <summary className="arcade-setup__label">{t("arcade.talents.title")}</summary>
+            <TalentTree hero={HEROES[heroId]} pixel={PX} />
+          </details>
           <div className="arcade-trait" data-testid="arcade-trait">
             <span className="arcade-setup__label">{t("arcade.trait.title")}</span>
             <div className="arcade-trait__row">
@@ -325,6 +334,7 @@ function ArcadeStage() {
   const [padActive, setPadActive] = useState(false);
   const [padFocus, setPadFocus] = useState(0);
   const padFocusRef = useRef(0);
+  const hudRef = useRef<HTMLDivElement>(null);
   /** Раскрытый предмет в лавке: показываем его статы и описание, продажа — отдельной кнопкой. */
   const [openItem, setOpenItem] = useState<number | null>(null);
   /** Клятва охотника на экране контракта (T13.72): переключатель — локальный, в сим уходит `act` 6/7. */
@@ -345,6 +355,7 @@ function ArcadeStage() {
   const lastDrops = useArcade((s) => s.lastDrops);
   const lastLoot = useArcade((s) => s.lastLoot);
   const lostRapier = useArcade((s) => s.lostRapier);
+  const aegisNote = useArcade((s) => s.aegisNote);
   const lastSeals = useArcade((s) => s.lastSeals);
   // Экипировка и наследие на старте — часть кода реплея (детерминизм): снимок пишет стор при каждом старте (replayOf).
   const runStart = useArcade((s) => s.runStart);
@@ -448,6 +459,10 @@ function ArcadeStage() {
         else if (what === "back") s.shopAct(SHOP_ACT.close);
         return;
       }
+      // Остальные окна забега (M23, хвост T13.34): стик шагает по кнопкам окна, × жмёт ту, что в фокусе.
+      const win = openRunWindow();
+      if (win && (what === "left" || what === "right")) { stepRunWindowFocus(win, what === "left" ? -1 : 1); return; }
+      if (win && what === "confirm" && document.activeElement instanceof HTMLElement && win.contains(document.activeElement)) { document.activeElement.click(); return; }
       // Окна мест и лавки: ○ закрывает (act 5 = «уйти»).
       if (what === "back" && cur.buildOpen) controller.queueAct(BUILD_ACT);
       else if (what === "back" && (cur.shopOpen || cur.neutralOpen || cur.lootOpen || cur.pondOpen || cur.contractOpen || cur.forgeOpen || cur.riftOpen)) s.shopAct(SHOP_ACT.close);
@@ -460,7 +475,9 @@ function ArcadeStage() {
       // Любое окно, кроме самой сборки (`activeModal()` сима), — Tab двигает фокус по его кнопкам; раньше окно выкупа сюда
       // не входило, и Tab с клавиатуры до его кнопок не доходил.
       const modal = cur?.activeModal() ?? null;
-      if (!cur || (modal !== null && modal !== "build") || useArcade.getState().status !== "running") return false;
+      // Фокус ещё не в окне (M23): Tab ведёт в него, а не в шапку приложения за сценой; дальше — по кругу внутри (RunWindow).
+      if (cur && modal !== null && modal !== "build") { const win = openRunWindow(); if (win && !win.contains(document.activeElement)) { stepRunWindowFocus(win, 1); return true; } return false; }
+      if (!cur || useArcade.getState().status !== "running") return false;
       controller.queueAct(BUILD_ACT);
       return true;
     };
@@ -625,6 +642,9 @@ function ArcadeStage() {
     };
   }, [heroDef.id, bump, finish]);
 
+  // Подписи на сцене — в языке игрока и после смены языка посреди забега (M23).
+  useEffect(() => { rendererRef.current?.setLabels({ shop: t("arcade.canvas.shop"), tier: t("arcade.canvas.tier") }); }, [t, heroDef.id]);
+
   useEffect(() => {
     if (status === "over" && outcome) sfxVerdict(outcome.outcome === "victory" ? "won" : "lost");
   }, [status, outcome]);
@@ -636,6 +656,10 @@ function ArcadeStage() {
   // Окно на экране — ровно то, которому сим отдаёт ввод (`activeModal`): при двух сразу (смерть в тике уровня — выкуп и
   // карточки) раньше сверху рисовалось последнее в разметке, а ввод уходил первому (аудит 2026-09-27).
   const modal = sim ? sim.activeModal() : null;
+  // Под окном забега HUD недоступен фокусу и читалкам (M23): у окна `aria-modal`, Tab не уходит под сцену. Сборку открывает
+  // и закрывает кнопка HUD — для неё HUD живой. React 18 не знает атрибут `inert`, поэтому — свойство DOM.
+  const hudInert = modal !== null && modal !== "build";
+  useEffect(() => { if (hudRef.current) hudRef.current.inert = hudInert; }, [hudInert]);
   // Элита с аффиксами рядом — строка вместо полосы босса, когда босса нет: что за кольцо и чего от неё ждать.
   const affixed = !boss && sim ? sim.affixedNear(460) : null;
   const streakTier = sim ? sim.streakTier() : 0;
@@ -657,7 +681,7 @@ function ArcadeStage() {
       <div className="arcade__stage" ref={stageRef}>
         <canvas ref={canvasRef} className="arcade__canvas" />
         {sim && p && (
-          <div className="arcade-hud" aria-live="off">
+          <div className="arcade-hud" aria-live="off" ref={hudRef}>
             <div className="arcade-hud__upper">
             <div className="arcade-hud__top">
               <span className="arcade-hud__clock" data-testid="arcade-clock" data-paused={sim.riftActive() ? "true" : undefined}>{formatClock(sim.actTick)}</span>
@@ -699,7 +723,7 @@ function ArcadeStage() {
               <Button variant="secondaryInvert" className="arcade-hud__pause" onClick={() => (status === "paused" ? resume() : pause())}>{status === "paused" ? t("arcade.hud.resume") : t("arcade.hud.pauseBtn")}</Button>
             </div>
             <div className="arcade-hud__gear" data-testid="arcade-hud-gear">
-              {GEAR_SLOTS.map((slot) => { const g = p.gear[slot] as GearItem | undefined; return <span key={slot} className="arcade-hud__item" data-rarity={g?.rarity} title={g ? t(`arcade.gearName.${g.base}` as MessageKey) : t(`arcade.gear.slot.${slot}` as MessageKey)}>{g ? <ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" /> : <i className="arcade-hud__slot-empty" />}</span>; })}
+              {GEAR_SLOTS.map((slot) => { const g = p.gear[slot] as GearItem | undefined; return <span key={slot} className="arcade-hud__item" data-rarity={g?.rarity} title={g ? t(`arcade.gearName.${g.base}` as MessageKey) : t(`arcade.gear.slot.${slot}` as MessageKey)}>{g ? <ItemIcon pixel={PX} slug={gearArt(g)} name="" size="sm" /> : <i className="arcade-hud__slot-empty" />}</span>; })}
               {p.bag.length > 0 && <span className="arcade-hud__bag">{t("arcade.gear.bag", { n: p.bag.length, max: ARCADE.loot.bagCap })}</span>}
             </div>
             <BuffBar sim={sim} />
@@ -739,7 +763,7 @@ function ArcadeStage() {
             )}
             {prompt === "loot" && sim.nearLoot && (
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-pickup" onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
-                {sim.nearLoot.item && <ItemIcon pixel={PX} slug={gearArt(sim.nearLoot.item as GearItem)} name={sim.nearLoot.item.base} size="sm" />}
+                {sim.nearLoot.item && <ItemIcon pixel={PX} slug={gearArt(sim.nearLoot.item as GearItem)} name="" size="sm" />}
                 <b>{sim.nearLoot.kind === "chest" ? t("arcade.loot.pickupChest") : t("arcade.loot.pickup")}</b>
                 {sim.nearLoot.item && <span data-rarity={sim.nearLoot.item.rarity}>{t(`arcade.gearName.${sim.nearLoot.item.base}` as MessageKey)}</span>}
                 <small>{padActive ? PAD_GLYPH.r1 : "G"}</small>
@@ -753,10 +777,10 @@ function ArcadeStage() {
               </div>
               {(p.items.length > 0 || p.neutral) && (
                 <div className="arcade-hud__items" data-testid="arcade-items">
-                  {p.neutral && <span className="arcade-hud__item arcade-hud__item--neutral" title={`${p.neutralEnchant ? `${t(`arcade.enchant.${p.neutralEnchant}` as MessageKey)} ` : ""}${t(`arcade.neutral.${p.neutral}` as MessageKey)}`}><ItemIcon pixel={PX} slug={p.neutral} name={p.neutral} size="sm" />{p.neutralEnchant && <b className="arcade-hud__stack">✦</b>}</span>}
+                  {p.neutral && <span className="arcade-hud__item arcade-hud__item--neutral" title={`${p.neutralEnchant ? `${t(`arcade.enchant.${p.neutralEnchant}` as MessageKey)} ` : ""}${t(`arcade.neutral.${p.neutral}` as MessageKey)}`}><ItemIcon pixel={PX} slug={p.neutral} name="" size="sm" />{p.neutralEnchant && <b className="arcade-hud__stack">✦</b>}</span>}
                   {stackedItems.map((g) => (
                     <span key={`${g.id}:${g.rarity}`} className="arcade-hud__item" data-rarity={g.rarity} title={`${t(`arcade.item.${g.id}` as MessageKey)}${g.n > 1 ? ` ×${g.n} · ${t("arcade.shop.stacks")}` : ""}`}>
-                      <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[g.id]?.art ?? g.id} name={g.id} size="sm" />
+                      <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[g.id]?.art ?? g.id} name="" size="sm" />
                       {g.n > 1 && <b className="arcade-hud__stack" data-testid="arcade-item-stack">×{g.n}</b>}
                     </span>
                   ))}
@@ -770,7 +794,7 @@ function ArcadeStage() {
                     className="arcade-ability arcade-ability--sig"
                     data-slot="sig"
                     data-testid="arcade-hud-signature"
-                    title={`${t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} — ${t(`arcade.sig.${sim.hero.signature.kind}.desc` as MessageKey)}`}
+                    title={`${t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} — ${t(`arcade.sig.${sim.hero.signature.kind}.desc` as MessageKey, sigVars(sim.hero.signature))}`}
                   >
                     <b>✦</b>
                     <small>{STACKING_SIGS.has(sim.hero.signature.kind) ? Math.round(p.stacks) : t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)}</small>
@@ -861,7 +885,7 @@ function ArcadeStage() {
           </div>
         )}
         {modal === "rift" && sim?.rift && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-rift">
+          <RunWindow testId="arcade-rift" label={t("arcade.rift.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.rift.title")}</Eyebrow>
               <h2>{t("arcade.rift.pick")}</h2>
@@ -873,10 +897,10 @@ function ArcadeStage() {
                 <Button variant="leave" data-testid="arcade-rift-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.rift.leave")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "forge" && sim && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-forge">
+          <RunWindow testId="arcade-forge" label={t("arcade.forge.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop arcade-build">
               <Eyebrow>{t("arcade.forge.title")}</Eyebrow>
               <h2>{sim.forgeSlot < 0 ? t("arcade.forge.pickItem") : t("arcade.forge.pickAction")}</h2>
@@ -899,10 +923,10 @@ function ArcadeStage() {
                 <Button variant="leave" data-testid="arcade-forge-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.forge.leave")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "contract" && sim && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-contract">
+          <RunWindow testId="arcade-contract" label={t("arcade.contract.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.contract.title")}</Eyebrow>
               <h2>{t("arcade.contract.pick")}</h2>
@@ -918,11 +942,11 @@ function ArcadeStage() {
                 <Button variant="leave" data-testid="arcade-contract-skip" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.contract.skip")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "buyback" && sim && status !== "over" && (
           // Выкуп (ARCADE.buyback): мир стоит, пока игрок решает — золото сейчас или конец забега.
-          <div className="arcade-overlay" data-testid="arcade-buyback">
+          <RunWindow testId="arcade-buyback" label={t("arcade.buyback.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.buyback.title")}</Eyebrow>
               <h2>{t("arcade.buyback.pick")}</h2>
@@ -932,10 +956,10 @@ function ArcadeStage() {
                 <Button variant="leave" data-testid="arcade-buyback-give-up" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.buyback.giveUp")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "pond" && sim && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-pond">
+          <RunWindow testId="arcade-pond" label={t("arcade.pond.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.pond.title")}</Eyebrow>
               <h2>{t("arcade.pond.pick")}</h2>
@@ -950,10 +974,10 @@ function ArcadeStage() {
                 <Button variant="leave" data-testid="arcade-pond-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.pond.leave")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "loot" && sim?.lootOpen && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-loot">
+          <RunWindow testId="arcade-loot" label={t("arcade.loot.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.loot.title")}</Eyebrow>
               <h2>{t(`arcade.gearName.${sim.lootOpen.base}` as MessageKey)}</h2>
@@ -976,10 +1000,10 @@ function ArcadeStage() {
                 <Button variant="leave" data-testid="arcade-loot-leave" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.loot.leave")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "build" && sim && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-build">
+          <RunWindow testId="arcade-build" label={t("arcade.build.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop arcade-build">
               <Eyebrow>{t("arcade.build.title")}</Eyebrow>
               <h2>{hero.name}</h2>
@@ -1016,7 +1040,7 @@ function ArcadeStage() {
               </section>
               <section className="arcade-build__section">
                 <small className="arcade-build__label">{t("arcade.build.skills")}</small>
-                {Object.keys(sim.player.upgrades).length === 0 && sim.player.talents.length === 0
+                {Object.keys(sim.player.upgrades).length === 0
                   ? <p className="arcade-shop__hint">{t("arcade.build.skillsEmpty")}</p>
                   : (
                     <div className="arcade-build__skills">
@@ -1024,20 +1048,16 @@ function ArcadeStage() {
                         const def = UPGRADE_BY_ID[id];
                         return (
                           <span key={id} className="arcade-build__skill" data-legendary={def?.legendary ? "true" : undefined} title={t(`arcade.up.${id}.desc` as MessageKey)}>
-                            <ItemIcon pixel={PX} slug={def?.art ?? SCHOOL_ART[def?.school ?? "radiance"]} name={id} size="sm" />
+                            <ItemIcon pixel={PX} slug={def?.art ?? SCHOOL_ART[def?.school ?? "radiance"]} name="" size="sm" />
                             <b>{t(`arcade.up.${id}` as MessageKey)}</b>
                             <small>{def?.legendary ? t("arcade.build.legendary") : t("arcade.build.rank", { n: u.rank })}</small>
                           </span>
                         );
                       })}
-                      {sim.player.talents.map((id) => (
-                        <span key={id} className="arcade-build__skill" data-talent="true">
-                          <b>{talentText(t, sim.hero, id)}</b>
-                          <small>{t("arcade.offer.talent")}</small>
-                        </span>
-                      ))}
                     </div>
                   )}
+                <small className="arcade-build__label">{t("arcade.talents.title")}</small>
+                <TalentTree hero={sim.hero} taken={sim.player.talents} pixel={PX} invert shard={sim.player.aghanimShard} scepter={sim.player.aghanimScepter} />
               </section>
               {(sim.player.items.length > 0 || sim.player.neutral) && (
                 <section className="arcade-build__section">
@@ -1045,14 +1065,14 @@ function ArcadeStage() {
                   <div className="arcade-build__skills">
                     {sim.player.neutral && (
                       <span className="arcade-build__skill" data-neutral="true" title={t(`arcade.neutral.${sim.player.neutral}.desc` as MessageKey, NEUTRAL_PROP_TEXT)}>
-                        <ItemIcon pixel={PX} slug={sim.player.neutral} name={sim.player.neutral} size="sm" />
+                        <ItemIcon pixel={PX} slug={sim.player.neutral} name="" size="sm" />
                         <b>{sim.player.neutralEnchant ? `${t(`arcade.enchant.${sim.player.neutralEnchant}` as MessageKey)} ` : ""}{t(`arcade.neutral.${sim.player.neutral}` as MessageKey)}</b>
                         <small>{t("arcade.build.neutral")}</small>
                       </span>
                     )}
                     {sim.player.items.map((it, i) => (
                       <span key={`${it.id}:${i}`} className="arcade-build__skill" data-rarity={it.rarity} title={t(`arcade.item.${it.id}.desc` as MessageKey)}>
-                        <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name={it.id} size="sm" />
+                        <ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[it.id]?.art ?? it.id} name="" size="sm" />
                         <b>{t(`arcade.item.${it.id}` as MessageKey)}</b>
                         <small>{t(`arcade.rarity.${it.rarity}` as MessageKey)}</small>
                       </span>
@@ -1064,10 +1084,10 @@ function ArcadeStage() {
                 <Button variant="primary" data-testid="arcade-build-close" onClick={() => controllerRef.current?.queueAct(BUILD_ACT)}>{t("arcade.build.close")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "neutral" && sim && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-neutral">
+          <RunWindow testId="arcade-neutral" label={t("arcade.neutral.pick")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.neutral.title", { tier: NEUTRAL_BY_ID[sim.neutralOffers[0]?.id]?.tier ?? 1 })}</Eyebrow>
               <h2>{t("arcade.neutral.pick")}</h2>
@@ -1075,7 +1095,7 @@ function ArcadeStage() {
               <div className="arcade-offers">
                 {sim.neutralOffers.map((n, i) => (
                   <button key={n.id} type="button" className="arcade-offer" data-kind="neutral" data-testid={`arcade-neutral-${i}`} onClick={() => shopAct(i + 1)}>
-                    <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={n.id} name={n.id} size="sm" /> {t("arcade.neutral.tier", { tier: n.tier })}</span>
+                    <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={n.id} name="" size="sm" /> {t("arcade.neutral.tier", { tier: n.tier })}</span>
                     <strong>{sim.neutralEnchants[i] ? `${t(`arcade.enchant.${sim.neutralEnchants[i]}` as MessageKey)} ` : ""}{t(`arcade.neutral.${n.id}` as MessageKey)}</strong>
                     <p>{t(`arcade.neutral.${n.id}.desc` as MessageKey, NEUTRAL_PROP_TEXT)}</p>
                     <StatList effects={[{ e: n.effect, m: 1 }, ...(sim.neutralEnchants[i] && NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]] ? [{ e: NEUTRAL_ENCHANT_BY_ID[sim.neutralEnchants[i]].effect, m: n.tier, extra: true }] : [])]} now={sim.player.stats} />
@@ -1086,11 +1106,11 @@ function ArcadeStage() {
                 <Button variant="secondary" data-testid="arcade-neutral-skip" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.neutral.skip")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "roshan" && sim && status !== "over" && (
           // Награда Рошана на выбор (T20.2): недоступное (второе воскрешение, второй Cheese, Shard при пассивном ульте) — выключено.
-          <div className="arcade-overlay" data-testid="arcade-roshan">
+          <RunWindow testId="arcade-roshan" label={t("arcade.roshanReward.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.roshanReward.title")}</Eyebrow>
               <h2>{t("arcade.roshanReward.pick")}</h2>
@@ -1099,8 +1119,9 @@ function ArcadeStage() {
                   const ok = sim.roshanOptions()[r.id];
                   return (
                     <button key={r.id} type="button" className="arcade-offer" data-kind="neutral" data-testid={`arcade-roshan-${r.id}`} data-pad-focus={padActive && padFocus === i ? "true" : undefined} disabled={!ok} autoFocus={i === ROSHAN_REWARDS.findIndex((x) => sim.roshanOptions()[x.id])} onClick={() => shopAct(i + 1)}>
-                      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={r.art} name={r.id} size="sm" /> {t(`arcade.roshanReward.${r.id}` as MessageKey)}</span>
+                      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={r.art} name="" size="sm" /> {t(`arcade.roshanReward.${r.id}` as MessageKey)}</span>
                       <p>{t(`arcade.roshanReward.${r.id}.desc` as MessageKey, { pct: Math.round(ARCADE.roshanReward.cheeseAt * 100) })}</p>
+                      {r.id === "aghanims_shard" && <small className="arcade-offer__talents">{shardTalents(sim.hero.id).map((id) => talentText(t, sim.hero, id)).join(" · ")}</small>}
                       {!ok && <small>{t(`arcade.roshanReward.${r.id}.off` as MessageKey)}</small>}
                     </button>
                   );
@@ -1110,10 +1131,10 @@ function ArcadeStage() {
                 <Button variant="secondary" data-testid="arcade-roshan-later" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.roshanReward.later")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "shop" && sim && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-shop">
+          <RunWindow testId="arcade-shop" label={t("arcade.shop.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
               <Eyebrow>{t("arcade.shop.title")}</Eyebrow>
               <h2>{t("arcade.shop.gold", { gold: sim.player.gold })}</h2>
@@ -1124,13 +1145,16 @@ function ArcadeStage() {
                 {sim.shopOffers.map((offer, i) => {
                   const def = ARCADE_ITEM_BY_ID[offer.id];
                   const price = sim.shopBuyPrice(i);
-                  const affordable = sim.player.gold >= price && sim.player.items.length < ARCADE.shop.slots;
+                  // Aghanim's Scepter (M23) поглощается при покупке — слоты ему не мешают, редкости нет.
+                  const affordable = sim.player.gold >= price && (def.consumed || sim.player.items.length < ARCADE.shop.slots);
                   return (
                     <button key={`${offer.id}-${i}`} type="button" className="arcade-offer" data-kind="item" data-rarity={offer.rarity} data-testid={`arcade-shop-${i}`} disabled={!affordable} onClick={() => shopAct(i + 1)}>
-                      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art} name={offer.id} size="sm" /> {t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
+                      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art} name="" size="sm" /> {def.consumed ? t("arcade.shop.consumed") : t(`arcade.rarity.${offer.rarity}` as MessageKey)}</span>
                       <strong>{t(`arcade.item.${offer.id}` as MessageKey)}</strong>
                       <small>{price === 0 ? t("arcade.shop.free") : t("arcade.shop.price", { gold: price })}{sim.player.items.filter((it) => it.id === offer.id).length > 0 && <> · {t("arcade.shop.haveN", { n: sim.player.items.filter((it) => it.id === offer.id).length })}</>}</small>
-                      <StatList effects={itemEffectsAt(def, offer.rarity)} now={sim.player.stats} />
+                      {def.consumed
+                        ? <><p>{t(`arcade.item.${offer.id}.desc` as MessageKey)}</p><small className="arcade-offer__talents">{scepterTalents(sim.hero.id).map((id) => talentText(t, sim.hero, id)).join(" · ")}</small></>
+                        : <StatList effects={itemEffectsAt(def, offer.rarity)} now={sim.player.stats} />}
                       {(offer.rarity === "standard" || offer.rarity === "refined") && def.extras && <small className="arcade-offer__more">{t("arcade.shop.moreAtExotic")}</small>}
                     </button>
                   );
@@ -1148,7 +1172,7 @@ function ArcadeStage() {
                     return (
                       <div key={`${it.id}-${i}`} className="arcade-shop__item" data-open={open ? "true" : undefined}>
                         <button type="button" className="arcade-shop__sell" data-rarity={it.rarity} data-testid={`arcade-shop-item-${i}`} aria-expanded={open} onClick={() => setOpenItem(open ? null : i)}>
-                          <ItemIcon pixel={PX} slug={def?.art ?? it.id} name={it.id} size="sm" />
+                          <ItemIcon pixel={PX} slug={def?.art ?? it.id} name="" size="sm" />
                           <span>{t(`arcade.item.${it.id}` as MessageKey)}</span>
                           <small>{t(`arcade.rarity.${it.rarity}` as MessageKey)}</small>
                         </button>
@@ -1180,10 +1204,10 @@ function ArcadeStage() {
                 <Button variant="primary" data-testid="arcade-shop-close" onClick={() => shopAct(SHOP_ACT.close)}>{t("arcade.shop.close")}</Button>
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {modal === "pending" && sim?.pending && status !== "over" && (
-          <div className="arcade-overlay" data-testid="arcade-levelup">
+          <RunWindow testId="arcade-levelup" label={sim.pendingSource === "camp" ? t("arcade.camp.title") : t("arcade.levelUp", { n: sim.player.level })} pad={padActive}>
             <div className="arcade-levelup">
               <Eyebrow>{sim.pendingSource === "camp" ? t("arcade.camp.title") : t("arcade.levelUp", { n: sim.player.level })}</Eyebrow>
               <h2>{sim.pendingSource === "camp" ? t("arcade.camp.pick") : t("arcade.pick")}</h2>
@@ -1203,7 +1227,7 @@ function ArcadeStage() {
                 {sim.pendingSource !== "camp" && <Button variant="secondary" data-testid="arcade-levelup-reroll" disabled={sim.player.gold < sim.levelRerollPrice()} onClick={() => levelReroll()}>{t("arcade.levelup.reroll", { gold: sim.levelRerollPrice() })}</Button>}
               </div>
             </div>
-          </div>
+          </RunWindow>
         )}
         {status === "over" && outcome && (
           <div className="arcade-overlay" data-testid="arcade-over">
@@ -1241,20 +1265,22 @@ function ArcadeStage() {
                 <div className="arcade-drops" data-testid="arcade-loot-result">
                   <span className="arcade-setup__label">{t("arcade.loot.gained", { n: lastLoot.length })}</span>
                   <div className="arcade-result__schools">
-                    {lastLoot.map((g) => <Chip key={g.uid}><ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" /> {t(`arcade.gearName.${g.base}` as MessageKey)} · {t(`arcade.rarity.${g.rarity}` as MessageKey)}</Chip>)}
+                    {lastLoot.map((g) => <Chip key={g.uid}><ItemIcon pixel={PX} slug={gearArt(g)} name="" size="sm" /> {t(`arcade.gearName.${g.base}` as MessageKey)} · {t(`arcade.rarity.${g.rarity}` as MessageKey)}</Chip>)}
                   </div>
                 </div>
               )}
               {lostRapier && <p className="arcade-result__seals" data-testid="arcade-rapier-lost">{t("arcade.loot.rapierLost")}</p>}
+              {aegisNote?.consumed && <p className="arcade-result__seals" data-testid="arcade-aegis-consumed">{t("arcade.loot.aegisConsumed")}</p>}
+              {aegisNote && aegisNote.salvaged > 0 && <p className="arcade-result__seals" data-testid="arcade-aegis-salvaged">{t("arcade.loot.aegisSalvaged", { n: aegisNote.salvaged })}</p>}
               {outcome.neutral && <p className="arcade-overlay__seed">{t("arcade.neutral.slot")}: {t(`arcade.neutral.${outcome.neutral}` as MessageKey)}</p>}
               {outcome.items.length > 0 && (
                 <div className="arcade-result__schools">
-                  {outcome.items.map((id, i) => <Chip key={`${id}-${i}`}><ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[id]?.art ?? id} name={id} size="sm" /> {t(`arcade.item.${id}` as MessageKey)}</Chip>)}
+                  {outcome.items.map((id, i) => <Chip key={`${id}-${i}`}><ItemIcon pixel={PX} slug={ARCADE_ITEM_BY_ID[id]?.art ?? id} name="" size="sm" /> {t(`arcade.item.${id}` as MessageKey)}</Chip>)}
                 </div>
               )}
               {outcome.schools.length > 0 && (
                 <div className="arcade-result__schools">
-                  {outcome.schools.map((s) => <Chip key={s}><ItemIcon pixel={PX} slug={SCHOOL_ART[s]} name={s} size="sm" /> {t(`arcade.school.${s}` as MessageKey)}</Chip>)}
+                  {outcome.schools.map((s) => <Chip key={s}><ItemIcon pixel={PX} slug={SCHOOL_ART[s]} name="" size="sm" /> {t(`arcade.school.${s}` as MessageKey)}</Chip>)}
                 </div>
               )}
               {lastDrops.length > 0 && (
@@ -1450,7 +1476,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   if (def.legendary) {
     return (
       <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity="legendary" data-testid={`arcade-offer-${index}`} onClick={onPick}>
-        <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art ?? SCHOOL_ART[def.school]} name={def.id} size="sm" /> {t("arcade.rarity.legendary")}{!def.neutral && <> · {t(`arcade.school.${def.school}` as MessageKey)}</>}</span>
+        <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={def.art ?? SCHOOL_ART[def.school]} name="" size="sm" /> {t("arcade.rarity.legendary")}{!def.neutral && <> · {t(`arcade.school.${def.school}` as MessageKey)}</>}</span>
         <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
         <small>{t("arcade.offer.legendaryHint")}</small>
         <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
@@ -1465,7 +1491,7 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
   const fmt = (f: { value: number; unit?: string }) => f.unit === "pct" ? `${f.value >= 0 ? "+" : ""}${Math.round(f.value * 100)}%` : f.unit === "s" ? `${(Math.round(f.value * 10) / 10)} ${t("arcade.unit.s")}` : `${Math.round(f.value * 10) / 10}`;
   return (
     <button type="button" className="arcade-offer" data-kind="upgrade" data-rarity={offer.rarity} data-testid={`arcade-offer-${index}`} onClick={onPick}>
-      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name={def.school} size="sm" /> {def.requiresSchools ? t("arcade.offer.hybrid", { a: t(`arcade.school.${def.requiresSchools[0]}` as MessageKey), b: t(`arcade.school.${def.requiresSchools[1]}` as MessageKey) }) : <>{t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</>}</span>
+      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={SCHOOL_ART[def.school]} name="" size="sm" /> {def.requiresSchools ? t("arcade.offer.hybrid", { a: t(`arcade.school.${def.requiresSchools[0]}` as MessageKey), b: t(`arcade.school.${def.requiresSchools[1]}` as MessageKey) }) : <>{t(`arcade.school.${def.school}` as MessageKey)} · {t(`arcade.type.${def.type}` as MessageKey)}</>}</span>
       <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)}{offer.rarity !== "standard" && <> · {t("arcade.offer.mult", { m: ARCADE.rarity.mult[offer.rarity] })}</>} · {t("arcade.offer.rank", { rank, max: cap })}{cap > def.maxRank && <> · {t("arcade.offer.capUp", { n: cap - def.maxRank })}</>}</small>
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
@@ -1508,7 +1534,7 @@ function BagList({ bag, onEquip, onDrop, equipLabel, dropLabel }: { bag: GearIte
     <div className="arcade-bag__list">
       {bag.map((g, i) => (
         <div key={g.uid} className="arcade-bag__row" data-rarity={g.rarity} data-testid={`arcade-bag-${i}`}>
-          <ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" />
+          <ItemIcon pixel={PX} slug={gearArt(g)} name="" size="sm" />
           <span className="arcade-bag__name"><b>{t(`arcade.gearName.${g.base}` as MessageKey)}</b><small>{t(`arcade.gear.slot.${g.slot}` as MessageKey)} · T{g.tier} · {t("arcade.loot.score", { n: gearScore(g) })} · {gearAffixes(t, g)}</small></span>
           {onEquip && <Button variant="secondary" data-testid={`arcade-bag-equip-${i}`} onClick={() => onEquip(i)}>{equipLabel}</Button>}
           <Button variant="leave" data-testid={`arcade-bag-drop-${i}`} onClick={() => onDrop(i)}>{dropLabel}</Button>
@@ -1544,7 +1570,7 @@ function GearCard({ item, title, compact = false }: { item: GearItem | null; tit
   if (!item) return <div className="arcade-offer arcade-offer--static" data-kind="gear" data-compact={compact ? "true" : undefined}><span className="arcade-offer__tag">{title}</span><strong>—</strong><p>{t("arcade.loot.empty")}</p></div>;
   return (
     <div className="arcade-offer arcade-offer--static" data-kind="gear" data-rarity={item.rarity} data-compact={compact ? "true" : undefined}>
-      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" /> {title}</span>
+      <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={gearArt(item)} name="" size="sm" /> {title}</span>
       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier} · {t("arcade.loot.score", { n: gearScore(item) })}{item.forged ? ` · ${t("arcade.forge.forgedMark")}` : ""}</small>
       <p>{gearAffixes(t, item)}</p>
@@ -1552,17 +1578,17 @@ function GearCard({ item, title, compact = false }: { item: GearItem | null; tit
   );
 }
 
-/** Подпись таланта (T22.2): кит-талант — с именем умения героя, общий — строка `arcade.t.<id>`. */
-function talentText(t: (k: MessageKey, v?: Record<string, string | number>) => string, hero: HeroDef | undefined, id: string): string {
-  if (!hero) return t(`arcade.t.${id}` as MessageKey);
-  const l = talentLabel(hero.id, id);
-  return t(l.key as MessageKey, l.ability ? { ...l.vars, ability: t(`arcade.ab.${hero.kit}.${l.ability}` as MessageKey) } : l.vars);
+/** Числа фирменной пассивки для её описания (M23): у героев разные значения одного вида — Blur 10–22%, ярость +3…+5. */
+function sigVars(sig: { value: number; cap?: number }): Record<string, number> {
+  return { pct: Math.round(sig.value * 100), v: sig.value, cap: sig.cap ?? 0 };
 }
 
-/** Аффиксы предмета одной строкой; у Divine Rapier — ещё и риск (T22.1), чтобы потеря не была сюрпризом. */
+/** Аффиксы предмета одной строкой; у Divine Rapier (T22.1) и Aegis (M23) — ещё и риск, чтобы потеря не была сюрпризом. */
 function gearAffixes(t: (k: MessageKey, v?: Record<string, string | number>) => string, item: GearItem): string {
   const line = item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ");
-  return item.unique === "divine_rapier" ? `${line} · ${t("arcade.gear.rapierRisk")}` : line;
+  if (item.unique === "divine_rapier") return `${line} · ${t("arcade.gear.rapierRisk")}`;
+  if (item.unique === "aegis_of_the_immortal") return `${line} · ${t("arcade.gear.aegisRisk")}`;
+  return line;
 }
 
 function affixLabel(t: (k: MessageKey, v?: Record<string, string | number>) => string, stat: string, value: number): string {

@@ -50,6 +50,35 @@ export const SHELL_CACHE = "aegis-shell";
 /** Служебный кэш: указатель на активный набор данных. */
 export const META_CACHE = "aegis-meta";
 
+/* ─── Арт Аркады (M23) ───
+   Спрайты и звуки (`art/…`) не входят в precache: их сотни мегабайт, нужен из них десяток листов на забег. Раньше они
+   лежали в кэше оболочки, а `activate` чистит оттуда всё, чего нет в манифесте сборки, — каждый деплой (а датасет
+   обновляется почти каждый день) выкидывал скачанный арт, и офлайн Аркада оставалась без него. Теперь у арта своё
+   ведро: деплой его не трогает, отдаём из кэша сразу, а давнее перепроверяем в фоне по ETag (304 — почти даром). */
+export const ART_CACHE = "aegis-art";
+/** Потолок записей в ведре арта: при переполнении уходят самые старые. */
+export const ART_MAX_ENTRIES = 800;
+/** Как часто перепроверять закэшированный файл арта (мс). */
+export const ART_REVALIDATE_MS = 12 * 60 * 60 * 1000;
+/** Служебный заголовок записи: когда её положили или последний раз проверили. */
+export const ART_STAMP_HEADER = "x-aegis-art-at";
+
+/** Запрос к арту приложения (`<base>art/…`). */
+export function isArtPath(pathname: string, base: string): boolean {
+  return pathname.startsWith(`${base}art/`);
+}
+
+/** Пора ли перепроверить запись арта: метки нет (запись старого формата) или она старше `ART_REVALIDATE_MS`. */
+export function artNeedsRevalidate(stampedAt: string | null, now: number): boolean {
+  const at = Number(stampedAt);
+  return !stampedAt || !Number.isFinite(at) || now - at > ART_REVALIDATE_MS;
+}
+
+/** Сколько самых старых записей удалить, чтобы ведро не превышало потолка. */
+export function artOverflow(entries: number): number {
+  return Math.max(0, entries - ART_MAX_ENTRIES);
+}
+
 /** Служебные ключи в кэшах. Cache API умеет только URL-ключи, поэтому «указатель» и «маркер» —
  *  это адреса внутри базы приложения. Собираются здесь, а не по месту: их читают двое — сам
  *  воркер и экран настроек (панель «Офлайн»), и разъехаться они не имеют права.

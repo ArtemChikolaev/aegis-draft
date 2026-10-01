@@ -13,8 +13,13 @@
 // Собирается плагином в режиме injectManifest: список ассетов сборки подставляется в
 // `self.__WB_MANIFEST`, вся логика ниже — наша (готовые рецепты не умеют атомарный своп набора).
 import {
+  ART_CACHE,
+  ART_STAMP_HEADER,
   META_CACHE,
   SHELL_CACHE,
+  artNeedsRevalidate,
+  artOverflow,
+  isArtPath,
   activeDataKey,
   completeMarkerKey,
   dataCacheName,
@@ -89,6 +94,10 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(dataFromActiveBucket(request));
     return;
   }
+  if (isArtPath(url.pathname, BASE)) {
+    event.respondWith(artFirst(event, request));
+    return;
+  }
   event.respondWith(cacheFirst(request));
 });
 
@@ -150,6 +159,46 @@ async function cacheFirst(request: Request): Promise<Response> {
     await cache.put(request, response.clone());
   }
   return response;
+}
+
+/** Арт Аркады (M23, политика — `sw/policy.ts`): иконки из precache — из оболочки (их обновляет установка воркера, и
+ *  офлайн они там с первого запуска); остальное (листы спрайтов, звуки) — из своего ведра сразу, давнее перепроверяем в
+ *  фоне; промах — сеть и в ведро. */
+async function artFirst(event: FetchEvent, request: Request): Promise<Response> {
+  const precached = await caches.match(request, { ...MATCH, cacheName: SHELL_CACHE });
+  if (precached) return precached;
+  const cache = await caches.open(ART_CACHE);
+  const cached = await cache.match(request, MATCH);
+  if (cached) {
+    // Клон: тело отданного странице ответа читает браузер, а перепроверке при том же ETag нужно переложить его же.
+    if (artNeedsRevalidate(cached.headers.get(ART_STAMP_HEADER), Date.now())) event.waitUntil(refreshArt(cache, request, cached.clone()));
+    return cached;
+  }
+  const response = await fetch(request);
+  if (response.ok && response.type === "basic") event.waitUntil(putArt(cache, request, response.clone()));
+  return response;
+}
+
+/** Положить файл арта с меткой времени; ведро сверх потолка теряет самые старые записи (порядок `keys()` — порядок записи). */
+async function putArt(cache: Cache, request: Request, response: Response): Promise<void> {
+  const headers = new Headers(response.headers);
+  headers.set(ART_STAMP_HEADER, String(Date.now()));
+  await cache.put(request, new Response(await response.blob(), { status: response.status, statusText: response.statusText, headers }));
+  const keys = await cache.keys();
+  for (let i = 0, n = artOverflow(keys.length); i < n; i++) await cache.delete(keys[i]);
+}
+
+/** Перепроверка давней записи: `no-cache` спрашивает сервер с ETag (304 — почти даром). Тот же ETag — только новая
+ *  метка, другой — новый файл (лист перерисовали). Офлайн или сбой — остаётся прежнее. */
+async function refreshArt(cache: Cache, request: Request, cached: Response): Promise<void> {
+  try {
+    const fresh = await fetch(request, { cache: "no-cache" });
+    if (!fresh.ok || fresh.type !== "basic") return;
+    const tag = fresh.headers.get("etag");
+    await putArt(cache, request, tag !== null && tag === cached.headers.get("etag") ? cached : fresh);
+  } catch {
+    /* офлайн: отдаём закэшированное, проверим в следующий раз */
+  }
 }
 
 /** Датасет отдаём ТОЛЬКО из активного ведра: смешать файлы двух версий нельзя (общий accountId,

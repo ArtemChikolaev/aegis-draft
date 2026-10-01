@@ -59,9 +59,11 @@ describe("оверлеи Аркады", () => {
 
   it("каждый экран под оверлеем — прямой потомок с автополями", () => {
     const screen = readFileSync(new URL("../src/features/arcade/ArcadeScreen.tsx", import.meta.url), "utf8");
-    // Класс прямого потомка каждого оверлея: <div className="arcade-overlay …"><X className="…">
-    const kids = [...screen.matchAll(/className="arcade-overlay[^"]*"[^>]*>\s*<[A-Za-z]+ className="([^"]+)"/g)]
+    // Класс прямого потомка каждого оверлея: <div className="arcade-overlay …"><X className="…">; окна забега (M23) —
+    // <RunWindow …> с тем же `arcade-overlay` внутри (RunWindow.tsx).
+    const kids = [...screen.matchAll(/(?:className="arcade-overlay[^"]*"[^>]*|<RunWindow\b[^>]*)>\s*<[A-Za-z]+ className="([^"]+)"/g)]
       .map((m) => m[1].split(" ")[0]);
+    expect(readFileSync(new URL("../src/features/arcade/RunWindow.tsx", import.meta.url), "utf8")).toContain('className="arcade-overlay"');
     expect(kids.length, "не нашёл ни одного оверлея в разметке").toBeGreaterThan(3);
     for (const cls of new Set(kids)) {
       expect(["arcade-overlay__card", "arcade-levelup"], `у .${cls} нет правила с автополями`).toContain(cls);

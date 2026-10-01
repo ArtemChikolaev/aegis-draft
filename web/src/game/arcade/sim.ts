@@ -17,9 +17,9 @@ import { AFFIX, AFFIX_IDS, AFFIX_IDS_RANGED, ENEMY_KINDS, spawnPool } from "./co
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
 import { COMPOSITIONS, type ActProperty, type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
-import { applyKitTalent, cloneHeroDef, heroTalents, kitTalent } from "./content/talents.ts";
+import { applyKitTalent, cloneHeroDef, kitTalent, scepterTalents, shardTalents, talentOffer } from "./content/talents.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
-import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_FAMILIES, ITEM_PRICE_MULT, NEXT_RARITY, itemEffectsAt, type ShopOffer } from "./content/items.ts";
+import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_FAMILIES, ITEM_PRICE_MULT, NEXT_RARITY, itemEffectsAt, type ArcadeItemDef, type ShopOffer } from "./content/items.ts";
 import { type FormDef, HEROES, abilityRankScale, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef, type NeutralPropId } from "./content/neutrals.ts";
 import { GEAR_SLOTS, gearEffect, reforgeGear, rollGear, temperGear, uniqueGear, type GearItem, type GearSlot } from "./content/gear.ts";
@@ -290,6 +290,9 @@ export class ArcadeSim {
   private aegisDropped = false;
   shopRerolls = 0;
   private shopIdx = 0;
+  /** Воскрешение надетого Aegis of the Immortal ещё не потрачено / потрачено в этом забеге (M23). */
+  private gearAegisLive = false;
+  private gearAegisUsed = false;
   private nextBountyAt = ARCADE.bounty.every;
   private nextRuneAt = ARCADE.rune.first;
   private nextShrineAt: number;
@@ -397,7 +400,7 @@ export class ArcadeSim {
     const P = ARCADE.player;
     this.player = {
       x: ARCADE.world.w / 2, y: ARCADE.world.h / 2, hp: P.maxHp, level: 1, xp: 0, xpNext: xpToNext(1), gold: this.legacy.gold, kills: 0,
-      facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false, cheese: false, refresherShard: false,
+      facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false, cheese: false, refresherShard: false, aghanimShard: false, aghanimScepter: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
       spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, armorBuffAmt: 0, blinkCharges: ARCADE.blink.charges, blinkCd: 0, blinkAt: -ARCADE.blink.lockout, swiftUntil: 0, pounceUntil: 0, streak: 0, bestStreak: 0, frostUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
@@ -406,8 +409,8 @@ export class ArcadeSim {
     // Первое очко — сразу в Q (у Io — в Spirits, `startKey`): так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
     this.player.abilities[this.hero.startKey ?? "q"] = 1;
     for (const g of options.gear ?? []) this.player.gear[g.slot] = g;
-    // Уникальный Aegis of the Immortal: одно воскрешение уже на старте.
-    if (Object.values(this.player.gear).some((g) => g.unique === "aegis_of_the_immortal")) this.player.aegis = true;
+    // Уникальный Aegis of the Immortal: одно воскрешение уже на старте; потраченный сгорает (M23, `gearAegisUsed`).
+    if (Object.values(this.player.gear).some((g) => g.unique === "aegis_of_the_immortal")) { this.player.aegis = true; this.gearAegisLive = true; }
     this.recomputeStats();
     // Места — только из композиции; порядок размещения прежний (каждое следующее учитывает уже стоящие).
     const has = (p: Parameters<typeof hasPlace>[1]) => hasPlace(this.composition, p);
@@ -485,7 +488,7 @@ export class ArcadeSim {
       // Открыт: медленно преследует, бьёт контактом — окно наказания.
       const speed = S.chaseSpeed * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1) * (this.tick < e.chillUntil ? 1 - e.chillSlow * 0.5 : 1);
       e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
-      this.obstacles.resolveInto(e, e.kind.r * 0.8);
+      this.obstacles.resolveInto(e, e.kind.r, 0.8);
       this.contactDamage(e, d);
       if (hunting) return;
     }
@@ -624,7 +627,7 @@ export class ArcadeSim {
     let speed = (d > T.chaseFrom ? T.chaseSpeed : e.kind.speed) * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1);
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
-    this.obstacles.resolveInto(e, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r, 0.8);
     this.contactDamage(e, d);
   }
 
@@ -1063,7 +1066,7 @@ export class ArcadeSim {
     // Кайт: ближе keepMin — отходит от героя (но не дальше поводка), дальше keepMax — подходит.
     if (d < N.keepMin && (hunting || home < N.leash - 20)) { e.x -= dx / d * speed * DT; e.y -= dy / d * speed * DT; }
     else if (d > N.keepMax) { e.x += dx / d * speed * DT; e.y += dy / d * speed * DT; }
-    this.obstacles.resolveInto(e, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r, 0.8);
     if (d < N.shot.range && e.shotCd === 0) {
       e.shotCd = sec(N.shot.every);
       this.spawnProjectile(e.x, e.y, dx / d * N.shot.speed, dy / d * N.shot.speed, 10, e.dmg * N.shot.dmgMult, sec(2.2), 0, "siege", true);
@@ -1207,7 +1210,7 @@ export class ArcadeSim {
     let speed = e.kind.speed * (hunting ? ARCADE.curse.bloodhunt.speedMult : 1);
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT; e.y += dy / d * speed * DT;
-    this.obstacles.resolveInto(e, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r, 0.8);
     if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
       e.contactCd = sec(ARCADE.boss.contactEvery);
       this.damagePlayer(e.dmg, 0, e.kind);
@@ -2083,7 +2086,7 @@ export class ArcadeSim {
         if (hit.length === 0) { cast = false; break; }
         for (const e of hit) {
           const dx = e.x - p.x, dy = e.y - p.y, d = len(dx, dy) || 1;
-          if (!e.kind.unstoppable && !e.kind.structure) { e.x = Math.min(ARCADE.world.w - 20, Math.max(20, e.x + dx / d * 90)); e.y = Math.min(ARCADE.world.h - 20, Math.max(20, e.y + dy / d * 90)); this.obstacles.resolveInto(e, e.kind.r * 0.8); }
+          if (!e.kind.unstoppable && !e.kind.structure) { e.x = Math.min(ARCADE.world.w - 20, Math.max(20, e.x + dx / d * 90)); e.y = Math.min(ARCADE.world.h - 20, Math.max(20, e.y + dy / d * 90)); this.obstacles.resolveInto(e, e.kind.r, 0.8); }
           this.damageEnemy(e, value, "burst");
           this.applyChill(e, 0.5, ab.duration ?? 2, false);
         }
@@ -2113,8 +2116,17 @@ export class ArcadeSim {
         // нужен ультам, которые в Dota бьют (Winter's Curse) — раньше число в таблице просто молчало.
         // У чистого контроля ранг продлевает действие (abilityRankScale), иначе ранги 2–4 были пустыми.
         const dur = (ab.duration ?? 3.5) * abilityRankScale(ab, lvl).dur;
+        const MF = ARCADE.massFreeze;
         for (const e of this.enemiesWithin(p.x, p.y, radius)) {
-          if (!e.kind.unstoppable) e.freezeUntil = Math.max(e.freezeUntil, this.tick + sec(this.statusSec(e.kind.boss ? 1.5 : dur)));
+          if (!e.kind.unstoppable) {
+            // Убывание повторного контроля (M23): массовая заморозка, поймавшая врага вскоре после конца прошлой, — вдвое
+            // короче. При потолке перезарядки Earthbind держал толпу 77% времени, Pit of Malice — 66%; у боссов и чемпионов
+            // свой `capControl`.
+            const s = e.kind.boss ? 1.5 : this.tick < e.freezeResistUntil ? dur * MF.drMult : dur;
+            const until = this.tick + sec(this.statusSec(s));
+            e.freezeUntil = Math.max(e.freezeUntil, until);
+            if (!e.kind.boss) e.freezeResistUntil = until + MF.drSec;
+          }
           if (value > 0) this.damageEnemy(e, value, "burst");
         }
         // Внутри Chronosphere Void бьёт вдвое чаще — иначе ульт без урона.
@@ -3122,6 +3134,8 @@ export class ArcadeSim {
     if (p.aegis) {
       p.aegis = false;
       p.aegisUsed = true;
+      // Первое воскрешение забега с надетым Aegis — его: награду Рошана «Aegis» при живом воскрешении не взять.
+      if (this.gearAegisLive) { this.gearAegisLive = false; this.gearAegisUsed = true; }
       this.revive(p.stats.maxHp);
       return;
     }
@@ -3197,7 +3211,7 @@ export class ArcadeSim {
       campsCleared: this.camp?.cleared ? 1 : 0,
       outpostCaptured: this.outpost?.captured ?? false,
       cursesTaken: this.cursesTaken, cursed: p.curse !== null,
-      centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed || this.buybacks > 0,
+      centaurSlain: this.centaurSlain, necromancerSlain: this.necromancerSlain, revived: p.aegisUsed || this.buybacks > 0, gearAegisUsed: this.gearAegisUsed,
       contractDone: this.contract?.done ?? false, lastCurse: this.lastCurse, forged: this.forge?.used ?? false, thunderSlain: this.thunderSlain, wardenSlain: this.wardenSlain, stalkerSlain: this.stalkerSlain, killsByKind: { ...this.killsByKind },
       riftDone: this.rift?.won ?? false, riftRule: this.rift?.won ? this.rift.rule : null, caravanDone: this.caravan?.state === "arrived", trait: this.trait?.id ?? null,
       killer: outcome === "dead" ? KIND_BY_INDEX[this.events.hurtBy] ?? null : null, dealtBySource: { ...this.dealtBySource }, takenByKind: { ...this.takenByKind },
@@ -3692,9 +3706,16 @@ export class ArcadeSim {
     const p = this.player;
     // Умения нейтралов (T20.3): сколько телеграфов идёт сейчас — пересчёт каждый тик, счётчик не течёт при смерти и пуле.
     let casting = 0;
-    for (const e of this.enemies) if (e.alive && e.castT > 0) casting++;
+    const list = this.enemies;
+    for (let i = 0; i < list.length; i++) { const e = list[i]; if (e.alive && e.castT > 0) casting++; }
     this.castsActive = casting;
-    for (const e of this.enemies) {
+    // Перф M23 (бит-в-бит, −12% тика): то, что не меняется за тик, — один раз до цикла, и порядок умножений скорости прежний.
+    // Прилив проверяем флагом: `inCurrent(e.x, e.y)` на каждого врага упаковывал две координаты в HeapNumber даже вне реки.
+    // Индексные циклы вместо for…of: после деоптимизации итератор массива мусорил объектом на каждый шаг.
+    const tideHigh = this.pit && this.tidePhase().phase === "high";
+    const rankSpeed = this.rank.speedMult, actSpeed = ARCADE.acts[this.act].speedMult ?? 1, riftSpeed = this.riftSpeedMult();
+    for (let i = 0; i < list.length; i++) {
+      const e = list[i];
       if (!e.alive) continue;
       const frozen = this.tick < e.freezeUntil || this.tick < e.stunUntil;
       const dx = p.x - e.x, dy = p.y - e.y;
@@ -3733,13 +3754,14 @@ export class ArcadeSim {
         }
         continue;
       }
-      // Умение нейтрала (T20.3): во время телеграфа стоит на месте; стан или заморозка сбивают каст.
-      if (e.kind.cast && this.neutralCast(e, d, frozen)) continue;
+      // Умение нейтрала (T20.3): во время телеграфа стоит на месте; стан или заморозка сбивают каст. Пока не идёт телеграф и
+      // не прошла общая пауза `nextCastAt`, `neutralCast` ничего не делает и вернёт false — не зовём (вызов упаковывал `d`).
+      if (e.kind.cast && (e.castT > 0 || this.tick >= this.nextCastAt) && this.neutralCast(e, d, frozen)) continue;
       if (frozen && !e.kind.unstoppable) continue;
-      let speed = e.kind.speed * this.rank.speedMult * (ARCADE.acts[this.act].speedMult ?? 1) * this.riftSpeedMult();
+      let speed = e.kind.speed * rankSpeed * actSpeed * riftSpeed;
       if (e.affix & AFFIX.haste) speed *= ARCADE.affix.haste.speedMult;
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
-      if (!e.kind.unstoppable && !e.kind.boss && this.inCurrent(e.x, e.y)) speed *= 1 - ARCADE.tide.slow;
+      if (tideHigh && !e.kind.unstoppable && !e.kind.boss && this.inCurrent(e.x, e.y)) speed *= 1 - ARCADE.tide.slow;
       const ranged = e.kind.ranged;
       if (ranged && d < ranged.range) {
         if (e.shotCd === 0) {
@@ -3783,13 +3805,13 @@ export class ArcadeSim {
       e.x += (tx * speed) * DT + sx * 0.5;
       e.y += (ty * speed) * DT + sy * 0.5;
       if (!e.kind.boss && !e.kind.structure && !e.kind.unstoppable) {
-        this.obstacles.resolveInto(e, e.kind.r * 0.8);
+        this.obstacles.resolveInto(e, e.kind.r, 0.8);
         // Застрял за деревом — обойти по касательной (иначе толпа копится за стволами и не доходит).
         if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
           const s = this.steerOut;
           this.obstacles.steerInto(s, ex0, ey0, dx / d, dy / d, e.kind.r * 0.8, 28);
           e.x = ex0 + s.x * speed * DT; e.y = ey0 + s.y * speed * DT;
-          this.obstacles.resolveInto(e, e.kind.r * 0.8);
+          this.obstacles.resolveInto(e, e.kind.r, 0.8);
         }
       }
       // Контакт с игроком.
@@ -4247,10 +4269,12 @@ export class ArcadeSim {
     // Лавка каравана торгует объявленным семейством: сопровождение — выбор под билд, а не лотерея.
     const family = this.shopkeeper.value === 1 ? this.caravan?.family : undefined;
     // Уникальное (BKB) не предлагается второй раз: иммунитет к стану не складывается, второй экземпляр был пустой покупкой (T15.5).
-    const pool = ARCADE_ITEMS.filter((d) => (!family || d.family === family) && !(d.unique && this.player.items.some((it) => it.id === d.id)));
+    // Aghanim's Scepter (M23) — с окна `fromShop` и один на забег: поглощённый в `items` не лежит, смотрим флаг героя.
+    const owned = (d: ArcadeItemDef) => (d.consumed ? d.id === "aghanims_scepter" && this.player.aghanimScepter : this.player.items.some((it) => it.id === d.id));
+    const pool = ARCADE_ITEMS.filter((d) => (!family || d.family === family) && (d.fromShop ?? 0) <= this.shopIdx && !(d.unique && owned(d)));
     for (let i = 0; i < ARCADE.shop.offers && pool.length > 0; i++) {
       const def = pool.splice(this.rng.int(pool.length), 1)[0];
-      const rarity = this.rollRarity();
+      const rarity = def.consumed ? "standard" : this.rollRarity();
       offers.push({ id: def.id, rarity, price: DEV_FREE_SHOP ? 0 : Math.round(def.price * ITEM_PRICE_MULT[rarity] * mult) });
     }
     return offers;
@@ -4265,10 +4289,12 @@ export class ArcadeSim {
     if (act >= 1 && act <= 3) {
       const offer = this.shopOffers[act - 1];
       const price = this.shopBuyPrice(act - 1);
-      if (!offer || p.gold < price || p.items.length >= ARCADE.shop.slots) return;
+      const consumed = !!offer && !!ARCADE_ITEM_BY_ID[offer.id]?.consumed;
+      if (!offer || p.gold < price || (!consumed && p.items.length >= ARCADE.shop.slots)) return;
       if (this.caravanGiftAvailable()) this.caravanGift = false;
       p.gold -= price;
-      p.items.push({ id: offer.id, rarity: offer.rarity });
+      if (offer.id === "aghanims_scepter") { p.aghanimScepter = true; this.grantTalents(scepterTalents(this.hero.id)); }
+      else p.items.push({ id: offer.id, rarity: offer.rarity });
       this.shopOffers.splice(act - 1, 1);
       this.recomputeStats();
       this.pushFx("levelup", p.x, p.y, 0, 0, 30);
@@ -4409,7 +4435,7 @@ export class ArcadeSim {
       if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
       const stepLen = Math.min(vd, speed * DT);
       e.x += vx / vd * stepLen; e.y += vy / vd * stepLen;
-      this.obstacles.resolveInto(e, e.kind.r * 0.8);
+      this.obstacles.resolveInto(e, e.kind.r, 0.8);
     }
     this.contactDamage(e, d);
   }
@@ -4454,12 +4480,12 @@ export class ArcadeSim {
     if (dir === 0) { this.contactDamage(e, d); return; }
     const ex0 = e.x, ey0 = e.y;
     e.x += dx / d * speed * DT * dir; e.y += dy / d * speed * DT * dir;
-    this.obstacles.resolveInto(e, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r, 0.8);
     if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
       const s = this.steerOut;
       this.obstacles.steerInto(s, ex0, ey0, dx / d * dir, dy / d * dir, e.kind.r * 0.8, 28);
       e.x = ex0 + s.x * speed * DT; e.y = ey0 + s.y * speed * DT;
-      this.obstacles.resolveInto(e, e.kind.r * 0.8);
+      this.obstacles.resolveInto(e, e.kind.r, 0.8);
     }
     this.contactDamage(e, d);
   }
@@ -4506,12 +4532,12 @@ export class ArcadeSim {
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow;
     const ex0 = e.x, ey0 = e.y;
     e.x += wx / wd * speed * DT; e.y += wy / wd * speed * DT;
-    this.obstacles.resolveInto(e, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r, 0.8);
     if (len(e.x - ex0, e.y - ey0) < speed * DT * 0.4) {
       const s = this.steerOut;
       this.obstacles.steerInto(s, ex0, ey0, wx / wd, wy / wd, e.kind.r * 0.8, 28);
       e.x = ex0 + s.x * speed * DT; e.y = ey0 + s.y * speed * DT;
-      this.obstacles.resolveInto(e, e.kind.r * 0.8);
+      this.obstacles.resolveInto(e, e.kind.r, 0.8);
     }
     this.contactDamage(e, d);
   }
@@ -4713,10 +4739,11 @@ export class ArcadeSim {
 
   // ---------- награда Рошана (T20.2) ----------
 
-  /** Какие награды Рошана можно взять сейчас: второе воскрешение, второй Cheese и Shard при пассивном ульте — пустые. */
-  roshanOptions(): { aegis: boolean; cheese: boolean; refresher_shard: boolean } {
+  /** Какие награды Рошана можно взять сейчас: второе воскрешение, второй Cheese и Shard при пассивном ульте — пустые;
+   *  Aghanim's Shard — один на забег (M23). */
+  roshanOptions(): { aegis: boolean; cheese: boolean; refresher_shard: boolean; aghanims_shard: boolean } {
     const p = this.player;
-    return { aegis: !p.aegis, cheese: !p.cheese, refresher_shard: !p.refresherShard && !this.hero.abilities.r.passive };
+    return { aegis: !p.aegis, cheese: !p.cheese, refresher_shard: !p.refresherShard && !this.hero.abilities.r.passive, aghanims_shard: !p.aghanimShard && shardTalents(this.hero.id).length > 0 };
   }
 
   private touchRoshanDrops(): void {
@@ -4730,12 +4757,12 @@ export class ArcadeSim {
     if (this.roshanSnooze) { if (nearD > R.snoozeRadius) this.roshanSnooze = false; return; }
     if (nearD > R.pickRadius) return;
     const o = this.roshanOptions();
-    if (!o.aegis && !o.cheese && !o.refresher_shard) return;
+    if (!o.aegis && !o.cheese && !o.refresher_shard && !o.aghanims_shard) return;
     this.roshanDropIdx = near;
     this.roshanOpen = true;
   }
 
-  /** Окно награды Рошана: 1 — Aegis, 2 — Cheese, 3 — Refresher Shard, 5 — «Позже» (дроп остаётся на земле). */
+  /** Окно награды Рошана: 1 — Aegis, 2 — Cheese, 3 — Refresher Shard, 4 — Aghanim's Shard, 5 — «Позже» (дроп остаётся на земле). */
   private roshanAction(act: number): void {
     const p = this.player;
     if (act === SHOP_ACT.close) { this.roshanOpen = false; this.roshanSnooze = true; return; }
@@ -4743,6 +4770,7 @@ export class ArcadeSim {
     if (act === 1 && o.aegis) p.aegis = true;
     else if (act === 2 && o.cheese) p.cheese = true;
     else if (act === 3 && o.refresher_shard) p.refresherShard = true;
+    else if (act === 4 && o.aghanims_shard) { p.aghanimShard = true; this.grantTalents(shardTalents(this.hero.id)); this.recomputeStats(); }
     else return;
     this.roshanDrops.splice(this.roshanDropIdx, 1);
     this.roshanDropIdx = -1;
@@ -4854,7 +4882,7 @@ export class ArcadeSim {
     if (this.tick < e.chillUntil) speed *= 1 - e.chillSlow * 0.5;
     e.x += dx / d * speed * DT;
     e.y += dy / d * speed * DT;
-    this.obstacles.resolveInto(e, e.kind.r * 0.8);
+    this.obstacles.resolveInto(e, e.kind.r, 0.8);
     if (d < e.kind.r + ARCADE.player.r + 2 && e.contactCd === 0) {
       e.contactCd = sec(ARCADE.boss.contactEvery);
       this.damagePlayer(e.dmg, 0, e.kind);
@@ -4901,9 +4929,10 @@ export class ArcadeSim {
   private rollOffers(): Offer[] {
     const p = this.player;
     const offers: Offer[] = [];
-    const talents = heroTalents(this.hero.id)[p.level];
-    if (talents) {
-      offers.push({ kind: "talent", id: talents[0] }, { kind: "talent", id: talents[1] });
+    // Взятое заранее (Aghanim's Scepter отдал оба таланта ульта) заменяется запасным общим талантом уровня.
+    const talents = talentOffer(this.hero.id, p.level, p.talents);
+    if (talents.length > 0) {
+      for (const id of talents) offers.push({ kind: "talent", id });
       const up = this.rollUpgradeOffer([]);
       if (up) offers.push(up);
       return offers;
@@ -4997,6 +5026,18 @@ export class ArcadeSim {
     else { this.pending = offers; this.pendingSource = "camp"; }
   }
 
+  /** Выдать таланты: талант умения (T22.2) правит копию героя — дальше все ветки видов читают числа уже с ним; общий —
+   *  в recomputeStats. Повтор не удваивает. Зовут выбор уровня и предметы Aghanim's (M23); статы пересчитывает зовущий. */
+  private grantTalents(ids: readonly string[]): void {
+    const p = this.player;
+    for (const id of ids) {
+      if (p.talents.includes(id)) continue;
+      p.talents.push(id);
+      const kt = kitTalent(id);
+      if (kt) applyKitTalent(this.hero, kt);
+    }
+  }
+
   private applyOffer(offer: Offer): void {
     const p = this.player;
     if (offer.kind === "ability") {
@@ -5004,10 +5045,7 @@ export class ArcadeSim {
       // Клятва охотника — и выбор уводил ранг за массив `value` (undefined → NaN-урон → бессмертные враги).
       const max = Math.min(this.hero.abilities[offer.key].value.length - 1, offer.key === "r" ? R_LEVELS.length : 4);
       if (p.abilities[offer.key] < max) p.abilities[offer.key]++;
-    } else if (offer.kind === "talent") {
-      // Кит-талант (T22.2) правит копию героя — дальше все ветки видов читают числа уже с ним; общий — в recomputeStats.
-      if (!p.talents.includes(offer.id)) { p.talents.push(offer.id); const kt = kitTalent(offer.id); if (kt) applyKitTalent(this.hero, kt); }
-    }
+    } else if (offer.kind === "talent") this.grantTalents([offer.id]);
     else {
       const def = UPGRADE_BY_ID[offer.id];
       const cur = p.upgrades[offer.id] ?? { rank: 0, power: 0, cap: def.maxRank };
@@ -5070,6 +5108,7 @@ export class ArcadeSim {
     if (p.talents.includes("t20_armor")) s.armor += 6;
     if (p.talents.includes("t20_cd")) s.cooldown += 0.15;
     if (p.talents.includes("t25_regen")) s.regen += 12;
+    if (p.talents.includes("t25_hp")) s.maxHp += 300;
     const effects: { e: (typeof ARCADE_ITEMS)[number]["effect"]; m: number }[] = [];
     for (const owned of p.items) {
       const def = ARCADE_ITEM_BY_ID[owned.id];
@@ -5249,7 +5288,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, affix: 0, fireBlastAt: 0, castProcAt: 0, zapPoisonAt: 0, edictAt: 0, castAt: 0, castT: 0, castX: 0, castY: 0, armorUntil: 0, leader: 0, leaderRef: null, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, affix: 0, fireBlastAt: 0, castProcAt: 0, zapPoisonAt: 0, edictAt: 0, freezeResistUntil: 0, castAt: 0, castT: 0, castX: 0, castY: 0, armorUntil: 0, leader: 0, leaderRef: null, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
   };
 }
 
@@ -5257,7 +5296,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
 function resetEnemy(e: Enemy, kind: EnemyKind): void {
   e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
   e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
-  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.affix = 0; e.fireBlastAt = 0; e.castProcAt = 0; e.zapPoisonAt = 0; e.edictAt = 0; e.castAt = 0; e.castT = 0; e.castX = 0; e.castY = 0; e.armorUntil = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
+  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.affix = 0; e.fireBlastAt = 0; e.castProcAt = 0; e.zapPoisonAt = 0; e.edictAt = 0; e.freezeResistUntil = 0; e.castAt = 0; e.castT = 0; e.castX = 0; e.castY = 0; e.armorUntil = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
 }
 
 function countBits(mask: number): number {

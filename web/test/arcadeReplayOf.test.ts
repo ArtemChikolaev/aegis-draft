@@ -6,6 +6,7 @@ import { decodeReplay, encodeReplay } from "../src/game/arcade/replay.ts";
 import { rollGear } from "../src/game/arcade/content/gear.ts";
 import { Rng } from "../src/game/rng.ts";
 import { emptyProgress, equippedGear, getArcadeSim, replayOf, useArcade } from "../src/state/arcadeStore.ts";
+import "./arcadeSimRegistry.ts";
 
 /** Бот тестов реплея: круги по карте, редкий каст; карточка — первая, лавка/добыча/нейтралка закрываются. */
 function play(sim: ArcadeSim, ticks: number): void {
