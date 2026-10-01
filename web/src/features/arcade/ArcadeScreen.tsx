@@ -13,7 +13,8 @@ import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/con
 import type { PlayerStats, ArcadeOutcome } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, NEXT_RARITY, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
-import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroDef, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { talentLabel } from "../../game/arcade/content/talents.ts";
 import { AFFIX, AFFIX_IDS, ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
 import { dotaSheet, dotaSheetState, preloadArcadeArt, preloadSheetIndexes } from "./sprites.ts";
 import type { ArcadeSim } from "../../game/arcade/sim.ts";
@@ -190,7 +191,7 @@ function ArcadeSetup() {
                     <ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" />
                     <div>
                       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)} <em>· {t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier}</em></strong>
-                      <span>{item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ")}</span>
+                      <span>{gearAffixes(t, item)}</span>
                     </div>
                     <Button variant="secondary" data-testid={`arcade-gear-equip-${item.uid}`} onClick={() => equipGear(gearSlot, item.uid)}>{t("arcade.gear.equip")}</Button>
                     <Button variant="leave" onClick={() => salvageGear(item.uid)}>{t("arcade.gear.salvage")}</Button>
@@ -343,6 +344,7 @@ function ArcadeStage() {
   const cosmeticStyles = useArcade((s) => s.cosmetics.styles);
   const lastDrops = useArcade((s) => s.lastDrops);
   const lastLoot = useArcade((s) => s.lastLoot);
+  const lostRapier = useArcade((s) => s.lostRapier);
   const lastSeals = useArcade((s) => s.lastSeals);
   // Экипировка и наследие на старте — часть кода реплея (детерминизм): снимок пишет стор при каждом старте (replayOf).
   const runStart = useArcade((s) => s.runStart);
@@ -1030,7 +1032,7 @@ function ArcadeStage() {
                       })}
                       {sim.player.talents.map((id) => (
                         <span key={id} className="arcade-build__skill" data-talent="true">
-                          <b>{t(`arcade.t.${id}` as MessageKey)}</b>
+                          <b>{talentText(t, sim.hero, id)}</b>
                           <small>{t("arcade.offer.talent")}</small>
                         </span>
                       ))}
@@ -1243,6 +1245,7 @@ function ArcadeStage() {
                   </div>
                 </div>
               )}
+              {lostRapier && <p className="arcade-result__seals" data-testid="arcade-rapier-lost">{t("arcade.loot.rapierLost")}</p>}
               {outcome.neutral && <p className="arcade-overlay__seed">{t("arcade.neutral.slot")}: {t(`arcade.neutral.${outcome.neutral}` as MessageKey)}</p>}
               {outcome.items.length > 0 && (
                 <div className="arcade-result__schools">
@@ -1282,7 +1285,7 @@ function ArcadeStage() {
       {SFX_DEBUG && <SfxDebugPanel hero={sim?.hero.id ?? "juggernaut"} />}
       <p className="arcade__credits">{t("arcade.credits")}</p>
       {confirmQuit && (
-        <Modal title={t("arcade.hud.quit")} description={t("arcade.hud.quitConfirm")} labelledBy={quitTitleId} dismissLabel={t("common.close")} onClose={() => setConfirmQuit(false)}>
+        <Modal title={t("arcade.hud.quit")} description={sim && Object.values(sim.player.gear).some((g) => g?.unique === "divine_rapier") ? `${t("arcade.hud.quitConfirm")} ${t("arcade.hud.quitRapier")}` : t("arcade.hud.quitConfirm")} labelledBy={quitTitleId} dismissLabel={t("common.close")} onClose={() => setConfirmQuit(false)}>
           {({ close }) => (
             <>
               <Button variant="danger" onClick={() => { close(); quit(); }}>{t("arcade.hud.quit")}</Button>
@@ -1313,7 +1316,7 @@ function statLines(t: (k: MessageKey, v?: Record<string, string | number>) => st
       case "goldPerKill": return `${now.goldPerKill} → ${now.goldPerKill + delta}`;
       case "lifesteal": return `${p1(now.lifesteal)} → ${p1(now.lifesteal + delta)}`;
       case "crit": return `${p1(now.critChance)} → ${p1(now.critChance + delta)}`;
-      case "cooldown": return `−${p1(now.cooldown)} → −${p1(Math.min(0.75, now.cooldown + delta))}`;
+      case "cooldown": return `−${p1(now.cooldown)} → −${p1(Math.min(ARCADE.player.cooldownCap, now.cooldown + delta))}`; // потолок сима, не 75%
       case "xpMult": return `${p1(1 + now.xpMult)} → ${p1(1 + now.xpMult + delta)}`;
       case "attackSpeed": return `${(1 / now.attackInterval).toFixed(2)} → ${(1 / (now.attackInterval / (1 + delta))).toFixed(2)} ${t("arcade.stats.attackRate")}`;
       case "moveSpeed": return `${Math.round(now.speed)} → ${Math.round(now.speed * (1 + delta))}`;
@@ -1429,10 +1432,13 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
     );
   }
   if (offer.kind === "talent") {
+    // Талант по киту (T22.2): иконка умения и «было → стало»; умение без ранга — подсказка, что талант пока спит.
+    const key = sim ? talentLabel(sim.hero.id, offer.id).ability : undefined;
     return (
       <button type="button" className="arcade-offer" data-kind="talent" data-testid={`arcade-offer-${index}`} onClick={onPick}>
-        <span className="arcade-offer__tag">{t("arcade.offer.talent")}</span>
-        <strong>{t(`arcade.t.${offer.id}` as MessageKey)}</strong>
+        <span className="arcade-offer__tag">{key && sim && <AbilityIcon hero={sim.hero.id} k={key} size={20} />} {t("arcade.offer.talent")}</span>
+        <strong>{talentText(t, sim?.hero, offer.id)}</strong>
+        {key && sim && sim.player.abilities[key] === 0 && <small>{t("arcade.talent.unlearned")}</small>}
       </button>
     );
   }
@@ -1503,7 +1509,7 @@ function BagList({ bag, onEquip, onDrop, equipLabel, dropLabel }: { bag: GearIte
       {bag.map((g, i) => (
         <div key={g.uid} className="arcade-bag__row" data-rarity={g.rarity} data-testid={`arcade-bag-${i}`}>
           <ItemIcon pixel={PX} slug={gearArt(g)} name={g.base} size="sm" />
-          <span className="arcade-bag__name"><b>{t(`arcade.gearName.${g.base}` as MessageKey)}</b><small>{t(`arcade.gear.slot.${g.slot}` as MessageKey)} · T{g.tier} · {t("arcade.loot.score", { n: gearScore(g) })} · {g.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ")}</small></span>
+          <span className="arcade-bag__name"><b>{t(`arcade.gearName.${g.base}` as MessageKey)}</b><small>{t(`arcade.gear.slot.${g.slot}` as MessageKey)} · T{g.tier} · {t("arcade.loot.score", { n: gearScore(g) })} · {gearAffixes(t, g)}</small></span>
           {onEquip && <Button variant="secondary" data-testid={`arcade-bag-equip-${i}`} onClick={() => onEquip(i)}>{equipLabel}</Button>}
           <Button variant="leave" data-testid={`arcade-bag-drop-${i}`} onClick={() => onDrop(i)}>{dropLabel}</Button>
         </div>
@@ -1541,14 +1547,28 @@ function GearCard({ item, title, compact = false }: { item: GearItem | null; tit
       <span className="arcade-offer__tag"><ItemIcon pixel={PX} slug={gearArt(item)} name={item.base} size="sm" /> {title}</span>
       <strong>{t(`arcade.gearName.${item.base}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${item.rarity}` as MessageKey)} · T{item.tier} · {t("arcade.loot.score", { n: gearScore(item) })}{item.forged ? ` · ${t("arcade.forge.forgedMark")}` : ""}</small>
-      <p>{item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ")}</p>
+      <p>{gearAffixes(t, item)}</p>
     </div>
   );
 }
 
+/** Подпись таланта (T22.2): кит-талант — с именем умения героя, общий — строка `arcade.t.<id>`. */
+function talentText(t: (k: MessageKey, v?: Record<string, string | number>) => string, hero: HeroDef | undefined, id: string): string {
+  if (!hero) return t(`arcade.t.${id}` as MessageKey);
+  const l = talentLabel(hero.id, id);
+  return t(l.key as MessageKey, l.ability ? { ...l.vars, ability: t(`arcade.ab.${hero.kit}.${l.ability}` as MessageKey) } : l.vars);
+}
+
+/** Аффиксы предмета одной строкой; у Divine Rapier — ещё и риск (T22.1), чтобы потеря не была сюрпризом. */
+function gearAffixes(t: (k: MessageKey, v?: Record<string, string | number>) => string, item: GearItem): string {
+  const line = item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ");
+  return item.unique === "divine_rapier" ? `${line} · ${t("arcade.gear.rapierRisk")}` : line;
+}
+
 function affixLabel(t: (k: MessageKey, v?: Record<string, string | number>) => string, stat: string, value: number): string {
   const pct = ["attackSpeed", "crit", "lifesteal", "cooldown", "moveSpeed", "xpMult"].includes(stat);
-  return `+${pct ? Math.round(value * 100) + "%" : value} ${t(`arcade.affix.${stat}` as MessageKey)}`;
+  // Потолок перезарядки с экипировки (T22.1) — в самой подписи аффикса: иначе четыре «+20%» обещают −80%.
+  return `+${pct ? Math.round(value * 100) + "%" : value} ${t(`arcade.affix.${stat}` as MessageKey, { cap: Math.round(ARCADE.player.gearCooldownCap * 100) })}`;
 }
 
 /** Панель баффов рун (T13.32, владелец: «нет индикации, сколько действует руна»): иконка модели руны,

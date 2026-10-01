@@ -123,6 +123,16 @@ function readGear(): GearState {
 }
 
 /** Надетые предметы как список для сима. */
+/** Divine Rapier (T22.1): риск, как в Dota, — Рапира на герое теряется, если забег кончился смертью или брошен посреди боя.
+ *  Сумка не в счёт: снятая Рапира ничего не даёт, её и не отнимают. */
+export function dropWornRapier(gear: GearState, worn: readonly GearItem[]): { gear: GearState; lost: GearItem | null } {
+  const lost = worn.find((g) => g.unique === "divine_rapier") ?? null;
+  if (!lost) return { gear, lost: null };
+  const equipped = { ...gear.equipped };
+  for (const slot of GEAR_SLOTS) if (equipped[slot] === lost.uid) delete equipped[slot];
+  return { gear: { items: gear.items.filter((i) => i.uid !== lost.uid), equipped }, lost };
+}
+
 export function equippedGear(gear: GearState): GearItem[] {
   return GEAR_SLOTS.map((slot) => gear.items.find((i) => i.uid === gear.equipped[slot])).filter((i): i is GearItem => !!i);
 }
@@ -319,6 +329,8 @@ interface ArcadeStore {
   /** Экипировка между забегами (T13.14): инвентарь и надетое по слотам. */
   gear: GearState;
   lastLoot: GearItem[];
+  /** Рапира, потерянная последним забегом (T22.1), — для экрана итога. */
+  lostRapier: GearItem | null;
   /** Стартовые условия текущего забега для кода реплея (см. replayOf). */
   runStart: ArcadeRunStart;
 
@@ -393,6 +405,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
   lastDrops: [],
   gear: readGear(),
   lastLoot: [],
+  lostRapier: null,
   runStart: { gear: [] },
 
   start(seed) {
@@ -402,7 +415,7 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     // Снимок того, с чем стартует сим, — в код реплея: экипировка по ходу забега меняется, наследие уходит в сим бонусом.
     const runStart: ArcadeRunStart = { gear: equippedGear(get().gear), legacy: { ...get().progress.legacy.spent } };
     sim = new ArcadeSim(next, { rank, hero: get().hero, act: get().act, gear: runStart.gear, legacy: legacyBonus(runStart.legacy), trait });
-    set({ status: "running", seed: next, rank, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lastDrops: [], lastLoot: [], runStart });
+    set({ status: "running", seed: next, rank, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lastDrops: [], lastLoot: [], lostRapier: null, runStart });
   },
   startDaily() {
     const d = arcadeDaily();
@@ -411,13 +424,13 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     // Герой/акт — в стор (HUD, озвучка и облик читают выбранного героя), ранг — только в сим: выбор игрока не перебивать (2026-09-13).
     // Надетый облик пересчитывается под героя дейлика, как в setHero: иначе эффекты шли из пресета прежнего героя, а
     // гардероб после выхода показывал одно, а правил другое (аудит 2026-09-19).
-    set({ status: "running", seed: d.seed, hero: d.hero, cosmetics: withHeroSkin(get().cosmetics, d.hero), act: d.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, runStart: { gear: [] } });
+    set({ status: "running", seed: d.seed, hero: d.hero, cosmetics: withHeroSkin(get().cosmetics, d.hero), act: d.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: null, lostRapier: null, runStart: { gear: [] } });
   },
   startReplay(replay) {
     // Реплей читает снимок наследия из кода, не текущую прокачку зрителя.
     sim = new ArcadeSim(replay.seed, { rank: replay.rank, hero: replay.hero, act: replay.act, gear: replay.gear, legacy: legacyBonus(replay.legacy ?? LEGACY_ZERO), trait: replay.trait });
     // Герой/акт реплея — в стор (HUD и облик), ранг — только в сим: выбор ранга реплей не переписывает (2026-09-13).
-    set({ status: "running", seed: replay.seed, hero: replay.hero, cosmetics: withHeroSkin(get().cosmetics, replay.hero), act: replay.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: replay.log, runStart: { gear: replay.gear, legacy: replay.legacy } });
+    set({ status: "running", seed: replay.seed, hero: replay.hero, cosmetics: withHeroSkin(get().cosmetics, replay.hero), act: replay.act, outcome: null, serial: 0, runId: get().runId + 1, replayLog: replay.log, lostRapier: null, runStart: { gear: replay.gear, legacy: replay.legacy } });
   },
   equipGear(slot, uid) {
     const g = get().gear;
@@ -661,12 +674,20 @@ export const useArcade = create<ArcadeStore>((set, get) => ({
     }
     const equipped = { ...get().gear.equipped };
     for (const slot of GEAR_SLOTS) { const g = sim.player.gear[slot] as GearItem | undefined; if (g) equipped[slot] = g.uid; }
-    const gear: GearState = { items, equipped };
+    let gear: GearState = { items, equipped };
+    let lostRapier: GearItem | null = null;
+    if (o.outcome === "dead") ({ gear, lost: lostRapier } = dropWornRapier(gear, worn));
     void writePersisted(GEAR_KEY, JSON.stringify(gear));
     if (extraShards) { cosmetics.shards += extraShards; void writePersisted(COSMETICS_KEY, JSON.stringify(cosmetics)); }
-    set({ status: "over", outcome: o, history, progress, lastSeals, cosmetics, lastDrops: drops, gear, lastLoot: loot });
+    set({ status: "over", outcome: o, history, progress, lastSeals, cosmetics, lastDrops: drops, gear, lastLoot: loot.filter((g) => g.uid !== lostRapier?.uid), lostRapier });
   },
   quit() {
+    // Брошенный посреди боя забег для Рапиры — как смерть (T22.1): иначе риск снимался выходом за секунду до гибели.
+    // Итог и реплей уже прошли через finish; добыча брошенного забега и так не сохраняется — трогаем только надетое.
+    if (sim && !sim.over && get().status === "running" && !get().replayLog) {
+      const { gear, lost } = dropWornRapier(get().gear, Object.values(sim.player.gear) as GearItem[]);
+      if (lost) { void writePersisted(GEAR_KEY, JSON.stringify(gear)); set({ gear }); }
+    }
     sim = null;
     set({ status: "setup", outcome: null });
   },

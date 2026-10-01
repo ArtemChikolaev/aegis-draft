@@ -268,7 +268,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   windranger: hero("windranger", 21, "windrunner", true, { speed: 168, attackInterval: 0.85 }, {
     q: { kind: "lightning_bolt", value: [0, 70, 110, 150, 190], cooldown: 9, radius: 340, duration: 1.3 }, // Shackleshot
     w: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 95, count: [0, 4, 4, 4, 4] }, // Powershot
-    e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 14, duration: 4 },                     // Windrun
+    e: { kind: "haste", value: [0, 0.35, 0.4, 0.45, 0.5], cooldown: 14, duration: 4 },                   // Windrun
     r: { kind: "frenzy", value: [0, 0.55, 0.65, 0.75], cooldown: 45, duration: 6 },                      // Focus Fire
   }, { kind: "marksmanship", value: 0.3, radius: 220 }),
   bristleback: hero("bristleback", 99, "bristleback", false, { maxHp: 680, armor: 5, regen: 3, damage: 18 }, {
@@ -341,12 +341,12 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "nova", value: [0, 70, 105, 140, 180], cooldown: 8, radius: 280, duration: 0.5 },         // Starstorm
     w: { kind: "lightning_bolt", value: [0, 110, 170, 230, 290], cooldown: 12, radius: 380, duration: 2.0 }, // Sacred Arrow
     e: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 9, radius: 300 },                               // Leap
-    r: { kind: "haste", value: [0, 0.6, 0.7, 0.8], cooldown: 60, duration: 8 },                          // Moonlight Shadow
+    r: { kind: "haste", value: [0, 0.4, 0.45, 0.5], cooldown: 60, duration: 8 },                         // Moonlight Shadow
   }, { kind: "marksmanship", value: 0.3, radius: 230 }),
   clinkz: hero("clinkz", 56, "clinkz", true, { attackInterval: 0.85, damage: 20, maxHp: 470 }, {
     q: { kind: "multishot", value: [0, 55, 78, 100, 125], cooldown: 8, radius: 340, count: [0, 4, 5, 6, 7] }, // Burning Barrage
     w: { kind: "searing", value: [0, 12, 18, 24, 30], cooldown: 0, passive: true },                      // Searing Arrows
-    e: { kind: "haste", value: [0, 0.4, 0.5, 0.6, 0.7], cooldown: 15, duration: 5 },                     // Skeleton Walk
+    e: { kind: "haste", value: [0, 0.35, 0.4, 0.45, 0.5], cooldown: 15, duration: 5 },                   // Skeleton Walk
     r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 12 },                    // Death Pact
   }, { kind: "deathpact", value: 6 }),
   // ---- Волна 2 ----
@@ -982,11 +982,3 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
 };
 
 export const HEROES: Record<HeroId, HeroDef> = { ...UNIQUE_HEROES, ...TEMPLATE_HEROES };
-
-/** Таланты 10/15/20/25 — общая лестница для всех героев (Dota-подобные пары). */
-export const HERO_TALENTS: Record<number, readonly [string, string]> = {
-  10: ["t10_dmg", "t10_ms"],
-  15: ["t15_crit", "t15_hp"],
-  20: ["t20_armor", "t20_cd"],
-  25: ["t25_regen", "t25_ult"],
-};

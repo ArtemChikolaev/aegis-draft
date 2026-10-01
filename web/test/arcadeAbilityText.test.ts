@@ -5,15 +5,18 @@ import { HEROES } from "../src/game/arcade/content/heroes.ts";
 // Описание умения обещает числа, а сим считает по таблице (T13.25). Тринадцать описаний отстали от
 // баланса — Gust у Drow обещал 40–130 при 70–190, Hand of God у Chen 9–17% при 16–28%. Тест держит
 // диапазоны синхронными: числа в тексте должны совпадать с `value` (как есть или в процентах) или с `count`.
-const I18N = readFileSync(new URL("../src/i18n/core.ts", import.meta.url), "utf8");
+// Строки Аркады живут в своём чанке `i18n/arcade.ts` (T22.3); счётчик ниже держит, что тест вообще нашёл описания.
+const I18N = readFileSync(new URL("../src/i18n/arcade.ts", import.meta.url), "utf8");
 
 describe("тексты умений Аркады", () => {
   it("диапазоны в описаниях совпадают с таблицей умений", () => {
     const bad: string[] = [];
+    let seen = 0;
     for (const m of I18N.matchAll(/"arcade\.ab\.([a-z_0-9]+)\.([qwer])\.desc": "([^"]*)"/g)) {
       const hero = HEROES[m[1]];
       const ab = hero?.abilities[m[2] as "q" | "w" | "e" | "r"];
       if (!ab) continue;
+      seen++;
       const vals = ab.value.filter((v) => v > 0);
       const counts = (ab.count ?? []).filter((v) => v > 0);
       if (vals.length === 0) continue;
@@ -27,6 +30,7 @@ describe("тексты умений Аркады", () => {
         if (!pools.some(fits)) bad.push(`${m[1]}.${m[2]}: текст ${lo}–${hi}, таблица ${Math.min(...vals)}–${Math.max(...vals)}`);
       }
     }
+    expect(seen).toBeGreaterThan(800); // RU+EN × 4 умения × все герои: без этого пустой словарь молча проходит
     expect(bad).toEqual([]);
   });
 });

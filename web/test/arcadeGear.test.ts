@@ -153,7 +153,7 @@ describe("arcade gear", () => {
 describe("контент экипировки (T13.14, партия 2)", () => {
   it("у каждой базы и уникального есть локальная иконка и строки RU+EN", async () => {
     const { readFileSync, existsSync } = await import("node:fs");
-    const core = readFileSync(new URL("../src/i18n/core.ts", import.meta.url), "utf8");
+    const core = readFileSync(new URL("../src/i18n/arcade.ts", import.meta.url), "utf8");
     const check = (id: string, art: string) => {
       expect(existsSync(new URL(`../public/art/items_px/${art}.png`, import.meta.url)), `иконка ${art}`).toBe(true);
       expect((core.match(new RegExp(`"arcade.gearName.${id}"`, "g")) ?? []).length, `строки ${id}`).toBe(2);

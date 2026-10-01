@@ -14,6 +14,7 @@ import { TournamentScreen } from "../features/tournament/TournamentScreen.tsx";
 import { CampScreen } from "../features/run/CampScreen.tsx";
 import { useArena } from "../state/arenaStore.ts";
 import { useI18n } from "../i18n/I18nProvider.tsx";
+import { loadArcadeMessages } from "../i18n/core.ts";
 import { useTelegramShell } from "../tma/useTelegramShell.ts";
 import { Banner, Button } from "../ui/index.ts";
 import "./App.css";
@@ -23,6 +24,11 @@ function lazyScreen<K extends string>(load: () => Promise<Record<K, ComponentTyp
   return lazy(() => load().then((module) => ({ default: module[name] })));
 }
 
+/** Экран, которому нужны строки Аркады (T22.3): код и словарь грузятся параллельно, экран рисуется, когда готовы оба. */
+function withArcadeMessages<M>(load: Promise<M>): Promise<M> {
+  return Promise.all([load, loadArcadeMessages()]).then(([module]) => module);
+}
+
 // Экраны вне основного пути забега (старт → драфт → турнир → Буткемп) грузятся отдельными
 // чанками: раньше весь фронт, включая сим Аркады и обе локали, был одним стартовым чанком
 // (~1.2 МБ), хотя справочники, Штаб, Менеджер, Дуэль и Аркаду открывают не в каждой сессии.
@@ -30,12 +36,12 @@ function lazyScreen<K extends string>(load: () => Promise<Record<K, ComponentTyp
 const SettingsScreen = lazyScreen(() => import("../features/settings/SettingsScreen.tsx"), "SettingsScreen");
 const HeroesScreen = lazyScreen(() => import("../features/heroes/HeroesScreen.tsx"), "HeroesScreen");
 const TeammatesScreen = lazyScreen(() => import("../features/teammates/TeammatesScreen.tsx"), "TeammatesScreen");
-const CareerScreen = lazyScreen(() => import("../features/career/CareerScreen.tsx"), "CareerScreen");
-const HqScreen = lazyScreen(() => import("../features/hq/HqScreen.tsx"), "HqScreen");
+const CareerScreen = lazyScreen(() => withArcadeMessages(import("../features/career/CareerScreen.tsx")), "CareerScreen");
+const HqScreen = lazyScreen(() => withArcadeMessages(import("../features/hq/HqScreen.tsx")), "HqScreen");
 const RulesScreen = lazyScreen(() => import("../features/rules/RulesScreen.tsx"), "RulesScreen");
 const ManagerScreen = lazyScreen(() => import("../features/manager/ManagerScreen.tsx"), "ManagerScreen");
 const DuelScreen = lazyScreen(() => import("../features/duel/DuelScreen.tsx"), "DuelScreen");
-const ArcadeScreen = lazyScreen(() => import("../features/arcade/ArcadeScreen.tsx"), "ArcadeScreen");
+const ArcadeScreen = lazyScreen(() => withArcadeMessages(import("../features/arcade/ArcadeScreen.tsx")), "ArcadeScreen");
 const ArenaDraftScreen = lazyScreen(() => import("../features/arena/ArenaDraftScreen.tsx"), "ArenaDraftScreen");
 
 export function App() {

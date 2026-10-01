@@ -112,9 +112,6 @@ export const LEGENDARY_LEVELS: readonly number[] = [12, 18, 24];
 
 export const UPGRADE_BY_ID: Record<string, UpgradeDef> = Object.fromEntries(UPGRADES.map((u) => [u.id, u]));
 
-/** Таланты 10/15/20/25 — общая лестница героев (см. content/heroes.ts). */
-export { HERO_TALENTS as TALENTS } from "./heroes.ts";
-
 /**
  * Числа карточки школы: что именно даёт апгрейд СЕЙЧАС и что даст следующий ранг (владелец
  * 2026-09-07: «хочется наглядности, как растёт процент урона, а то ничего не понятно»). Формулы —

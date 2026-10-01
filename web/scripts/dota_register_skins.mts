@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 const [px2Rows, pxRows] = process.argv.slice(2);
 const MAN2 = "scripts/blender/dota_manifest_px2.tsv", MAN1 = "scripts/blender/dota_manifest_px.tsv";
-const COS = "src/game/arcade/content/cosmetics.ts", I18N = "src/i18n/core.ts";
+const COS = "src/game/arcade/content/cosmetics.ts", I18N = "src/i18n/arcade.ts";
 const SPR2 = "public/art/sprites/dota_px2", SPR1 = "public/art/sprites/dota_px";
 
 const rows = (f: string) => readFileSync(f, "utf8").split("\n").filter((l) => l && !l.startsWith("#"));

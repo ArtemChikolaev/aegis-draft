@@ -1,11 +1,12 @@
-import { describe, expect, it } from "vitest";
-import { dictionaries, type Locale } from "../src/i18n/core.ts";
+import { beforeAll, describe, expect, it } from "vitest";
+import { dictionaries, loadArcadeMessages, type Locale } from "../src/i18n/core.ts";
 import { TACTICS } from "../src/game/tactics.ts";
 import { ITEMS } from "../src/game/items.ts";
 import { CAMP_ACTIONS } from "../src/game/campActions.ts";
 import { BOSSES } from "../src/game/bossConditions.ts";
 import { MUTATORS } from "../src/game/dynastyMutators.ts";
-import { TALENTS, UPGRADES } from "../src/game/arcade/content/schools.ts";
+import { UPGRADES } from "../src/game/arcade/content/schools.ts";
+import { GENERIC_TALENTS, TALENT_LEVELS, heroTalents, talentLabel } from "../src/game/arcade/content/talents.ts";
 import { ARCADE_ITEMS } from "../src/game/arcade/content/items.ts";
 import { HEROES, HERO_IDS } from "../src/game/arcade/content/heroes.ts";
 import { COSMETICS } from "../src/game/arcade/content/cosmetics.ts";
@@ -22,7 +23,9 @@ const expectedKeys = [
   ...Object.keys(BOSSES).flatMap((id) => [`boss.${id}`, `boss.desc.${id}`]),
   ...Object.keys(MUTATORS).flatMap((id) => [`mutator.${id}`, `mutator.desc.${id}`]),
   ...UPGRADES.flatMap((u) => [`arcade.up.${u.id}`, `arcade.up.${u.id}.desc`]),
-  ...Object.values(TALENTS).flat().map((id) => `arcade.t.${id}`),
+  ...GENERIC_TALENTS.map((id) => `arcade.t.${id}`),
+  // Подписи талантов по киту (T22.2) — шаблоны `arcade.talent.*` у каждого героя.
+  ...[...new Set(HERO_IDS.flatMap((h) => TALENT_LEVELS.flatMap((lvl) => heroTalents(h)[lvl].map((id) => talentLabel(h, id).key))))],
   ...ARCADE_ITEMS.flatMap((i) => [`arcade.item.${i.id}`, `arcade.item.${i.id}.desc`]),
   ...[...new Set(HERO_IDS.map((h) => HEROES[h].kit))].flatMap((kit) => ["q", "w", "e", "r"].flatMap((k) => [`arcade.ab.${kit}.${k}`, `arcade.ab.${kit}.${k}.desc`])),
   ...COSMETICS.map((c) => `arcade.cosmetic.${c.id}`),
@@ -32,6 +35,8 @@ const expectedKeys = [
 ];
 
 describe("i18n: ключи каталогов карт существуют в обеих локалях", () => {
+  // Строки Аркады — ленивый чанк (T22.3): экраны ждут его так же, до первого рендера.
+  beforeAll(() => loadArcadeMessages());
   for (const locale of Object.keys(dictionaries) as Locale[]) {
     it(locale, () => {
       const dict = dictionaries[locale] as Record<string, string>;

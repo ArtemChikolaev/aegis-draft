@@ -9,6 +9,7 @@ import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
 import { ARCADE_ITEM_BY_ID } from "../src/game/arcade/content/items.ts";
 import { BLINK_MASK, CONTRACT_OATH_ACT, PICKUP_ACT, POND_RITUAL_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
 import { GEAR_SLOTS, gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
+import { kitTalent } from "../src/game/arcade/content/talents.ts";
 import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
 
 const args = new Map<string, string>();
@@ -59,9 +60,12 @@ const setPath = (root: Record<string, unknown>, path: string, value: number) => 
 for (const kv of (args.get("set") ?? "").split(",").filter(Boolean)) { const [k, v] = kv.split("="); setPath(ARCADE as unknown as Record<string, unknown>, k, Number(v)); }
 for (const kv of (args.get("enemy") ?? "").split(",").filter(Boolean)) { const [k, v] = kv.split("="); setPath(ENEMY_KINDS as unknown as Record<string, unknown>, k, Number(v)); }
 
-/** Приоритет карточек: своя школа → R → Q → W → E → таланты (первый). */
-function pickOffer(offers: Offer[], school: SchoolId | "any"): number {
+/** Приоритет карточек: талант изученного умения → R → своя школа → Q → W → E; талант неизученного — в самом конце. */
+function pickOffer(sim: ArcadeSim, offers: Offer[], school: SchoolId | "any"): number {
   const score = (o: Offer): number => {
+    // Таланты (T22.2): по киту — выше карт школы, если умение изучено (у неизученного талант спит — ниже любой карты);
+    // общий запасной — чуть выше карт. Раньше бот таланты не брал вовсе (25 < 50), и их нельзя было откалибровать.
+    if (o.kind === "talent") { const kt = kitTalent(o.id); return kt ? (sim.player.abilities[kt.key] > 0 ? 55 + (kt.mod === "value" ? 2 : 1) : 5) : 52; }
     if (o.kind === "upgrade") {
       const def = UPGRADE_BY_ID[o.id];
       const rarity = { standard: 0, refined: 1, exotic: 2, arcana: 3 }[o.rarity];
@@ -93,7 +97,7 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
   switch (sim.activeModal()) {
     case null: break;
     case "buyback": return act(BUYBACK ? 1 : SHOP_ACT.close);
-    case "pending": return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim.pending!, SCHOOL), act: 0 };
+    case "pending": return { mx: 0, my: 0, cast: 0, choose: pickOffer(sim, sim.pending!, SCHOOL), act: 0 };
     case "shop": {
       // «Долг силы» (--build debt): карта exotic сейчас, порча долга потом — раньше покупок.
       if (BUILD.has("debt") && sim.debtOfferAvailable()) return act(SHOP_ACT.debt);

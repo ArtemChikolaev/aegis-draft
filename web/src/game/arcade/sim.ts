@@ -16,7 +16,8 @@ import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec, streakTierOf } from "./config.
 import { AFFIX, AFFIX_IDS, AFFIX_IDS_RANGED, ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
 import { COMPOSITIONS, type ActProperty, type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
-import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, TALENTS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
+import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
+import { applyKitTalent, cloneHeroDef, heroTalents, kitTalent } from "./content/talents.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_FAMILIES, ITEM_PRICE_MULT, NEXT_RARITY, itemEffectsAt, type ShopOffer } from "./content/items.ts";
 import { type FormDef, HEROES, abilityRankScale, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
@@ -370,7 +371,8 @@ export class ArcadeSim {
   constructor(seed: string, options: ArcadeOptions = {}) {
     this.seed = seed;
     this.rank = rankOf(options.rank ?? 0);
-    this.hero = HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"];
+    // Своя копия героя (T22.2): таланты правят числа умений прямо в ней, общий HEROES не трогают.
+    this.hero = cloneHeroDef(HEROES[(options.hero as HeroId) in HEROES ? (options.hero as HeroId) : "juggernaut"]);
     this.hasRupture = ABILITY_KEYS.some((k) => this.hero.abilities[k].kind === "rupture");
     // Только умения, что правда создают бойцов (damage_ward с моделью призыва или иллюзии): Healing Ward и Static Remnant
     // описаны моделью, но не бьют — Зверинец им ничего бы не дал.
@@ -1855,8 +1857,7 @@ export class ArcadeSim {
     this.dmgSource = key;
     const p = this.player;
     const lvl = p.abilities[key];
-    const ult = this.talentPower("t25_ult") ? 1.5 : 1;
-    const value = ab.value[lvl] * (key === "r" ? ult : 1);
+    const value = ab.value[lvl];
     const radius = ab.radius ?? 150;
     let cast = true;
     switch (ab.kind) {
@@ -2052,7 +2053,7 @@ export class ArcadeSim {
         break;
       case "haste":
         p.hasteUntil = this.tick + sec(ab.duration ?? 5);
-        p.evadeUntil = p.hasteUntil; p.evadeChance = value;
+        p.evadeUntil = p.hasteUntil; p.evadeChance = Math.min(ARCADE.player.evasionCap, value);
         break;
       case "damage_ward":
         if (ab.summon?.art === "illusion") {
@@ -2246,7 +2247,6 @@ export class ArcadeSim {
       if (this.tick % 30 === 0 && len(p.x - p.wardX, p.y - p.wardY) <= (hw.radius ?? 170)) this.heal(v < 1 ? p.stats.maxHp * v * 0.5 : v * 0.5);
     }
     if (p.burstLeft > 0 && this.tick >= p.burstNextAt) {
-      const ult = this.talentPower("t25_ult") ? 1.5 : 1;
       const omniKey = this.slot.omni;
       const fieldKey = this.slot.freezing_field;
       this.dmgSource = omniKey ?? fieldKey ?? "other";
@@ -2256,7 +2256,7 @@ export class ArcadeSim {
         if (candidates.length === 0) p.burstLeft = 0;
         else {
           const target = candidates[this.rng.int(candidates.length)];
-          this.damageEnemy(target, ob.value[p.abilities[omniKey]] * ult, "slash");
+          this.damageEnemy(target, ob.value[p.abilities[omniKey]], "slash");
           this.pushFx("slash", p.x, p.y, target.x, target.y, 12);
           p.burstLeft--;
           p.burstNextAt = this.tick + Math.max(3, Math.floor(sec(ob.duration ?? 1.5) / (ob.count?.[p.abilities[omniKey]] ?? 5)));
@@ -2265,7 +2265,7 @@ export class ArcadeSim {
         const fb = H[fieldKey];
         const radius = fb.radius ?? 270;
         const ex = p.x + (this.rng.float() * 2 - 1) * radius, ey = p.y + (this.rng.float() * 2 - 1) * radius;
-        for (const e of this.enemiesWithin(ex, ey, 80)) this.damageEnemy(e, fb.value[p.abilities[fieldKey]] * ult, "burst");
+        for (const e of this.enemiesWithin(ex, ey, 80)) this.damageEnemy(e, fb.value[p.abilities[fieldKey]], "burst");
         for (const e of this.enemiesWithin(p.x, p.y, radius)) this.applyChill(e, 0.4, 0.5, false);
         this.pushFx("burst", ex, ey, 80, 0, 12);
         p.burstLeft--;
@@ -2298,12 +2298,21 @@ export class ArcadeSim {
       }
     }
     // Diabolic Edict (Leshrac) / Eye of the Storm (Razor R) / Haunt (Spectre R): случайные разряды по врагам вокруг героя.
-    // Раньше проверялся только слот W — ульт Razor молчал (2026-09-06).
+    // Раньше проверялся только слот W — ульт Razor молчал (2026-09-06). Разряд — раз в 8 тиков, но каждую цель не чаще
+    // раза в секунду (T22.1): число умения — урон в секунду по каждому врагу рядом, как в тексте. Раньше одна цель ловила
+    // все 7.5 разряда в секунду: Sand Storm снимал с Рошана ~1000 HP/с, Rot — до 675.
     const edKey = this.slot.edict;
     if (edKey && this.tick < p.edictUntil && this.tick % 8 === 0) {
       this.dmgSource = edKey;
       const around = this.enemiesWithin(p.x, p.y, H[edKey].radius ?? 260);
-      if (around.length > 0) { const e = around[this.rng.int(around.length)]; this.damageEnemy(e, H[edKey].value[p.abilities[edKey]], "burst"); this.pushFx("burst", e.x, e.y, 24, 0, 8); }
+      let ready = 0;
+      for (const e of around) if (this.tick >= e.edictAt) around[ready++] = e;
+      if (ready > 0) {
+        const e = around[this.rng.int(ready)];
+        e.edictAt = this.tick + sec(1);
+        this.damageEnemy(e, H[edKey].value[p.abilities[edKey]], "burst");
+        this.pushFx("burst", e.x, e.y, 24, 0, 8);
+      }
     }
     // Life Drain / Mana Drain: канал по цели с лечением.
     if (this.tick < p.drainUntil && this.tick % 6 === 0) {
@@ -2315,7 +2324,7 @@ export class ArcadeSim {
       else if (!t || !t.alive || t.id !== p.drainTarget) { t = this.enemies.find((e) => e.alive && e.id === p.drainTarget); this.drainRef = t ?? null; }
       if (!key || !t || len(t.x - p.x, t.y - p.y) > (H[key].radius ?? 300) + 120) p.drainUntil = 0;
       else {
-        const dmg = H[key].value[p.abilities[key]] * 0.1 * (key === "r" && this.talentPower("t25_ult") ? 1.5 : 1);
+        const dmg = H[key].value[p.abilities[key]] * 0.1;
         this.damageEnemy(t, dmg, "burst");
         this.heal(dmg);
         if (this.tick % 12 === 0) this.pushFx("zap", t.x, t.y, p.x, p.y, 6);
@@ -2660,10 +2669,6 @@ export class ArcadeSim {
 
   upgradePower(id: string): number {
     return this.player.upgrades[id]?.power ?? 0;
-  }
-
-  private talentPower(id: string): number {
-    return this.player.talents.includes(id) ? 1 : 0;
   }
 
   // ---------- статусы и урон ----------
@@ -3043,7 +3048,7 @@ export class ArcadeSim {
     this.events.hurtBy = by ? KIND_INDEX[by.id] ?? -1 : -1;
     if (this.tick < p.invulnUntil || (p.burstLeft > 0 && this.slot.omni !== undefined)) return 0;
     const sig = this.hero.signature;
-    if (sig?.kind === "blur" && this.rng.float() < Math.min(0.5, sig.value * this.sigScale())) return 0; // уклонение PA
+    if (sig?.kind === "blur" && this.rng.float() < Math.min(ARCADE.player.evasionCap, sig.value * this.sigScale())) return 0; // уклонение PA
     if (this.tick < p.evadeUntil && this.rng.float() < p.evadeChance) return 0; // Windrun / Skeleton Walk / Moonlight Shadow
     if (this.upgradePower("leg_bkb") > 0 && this.rng.float() < 0.3) return 0; // BKB: треть ударов мимо
     if (this.upgradePower("leg_butterfly") > 0 && this.rng.float() < 0.25) return 0; // Бабочка: четверть ударов мимо
@@ -4896,7 +4901,7 @@ export class ArcadeSim {
   private rollOffers(): Offer[] {
     const p = this.player;
     const offers: Offer[] = [];
-    const talents = TALENTS[p.level];
+    const talents = heroTalents(this.hero.id)[p.level];
     if (talents) {
       offers.push({ kind: "talent", id: talents[0] }, { kind: "talent", id: talents[1] });
       const up = this.rollUpgradeOffer([]);
@@ -4999,7 +5004,10 @@ export class ArcadeSim {
       // Клятва охотника — и выбор уводил ранг за массив `value` (undefined → NaN-урон → бессмертные враги).
       const max = Math.min(this.hero.abilities[offer.key].value.length - 1, offer.key === "r" ? R_LEVELS.length : 4);
       if (p.abilities[offer.key] < max) p.abilities[offer.key]++;
-    } else if (offer.kind === "talent") p.talents.push(offer.id);
+    } else if (offer.kind === "talent") {
+      // Кит-талант (T22.2) правит копию героя — дальше все ветки видов читают числа уже с ним; общий — в recomputeStats.
+      if (!p.talents.includes(offer.id)) { p.talents.push(offer.id); const kt = kitTalent(offer.id); if (kt) applyKitTalent(this.hero, kt); }
+    }
     else {
       const def = UPGRADE_BY_ID[offer.id];
       const cur = p.upgrades[offer.id] ?? { rank: 0, power: 0, cap: def.maxRank };
@@ -5073,7 +5081,10 @@ export class ArcadeSim {
       const ench = p.neutralEnchant ? NEUTRAL_ENCHANT_BY_ID[p.neutralEnchant] : undefined;
       if (ench) effects.push({ e: ench.effect, m: NEUTRAL_BY_ID[p.neutral].tier });
     }
-    for (const g of Object.values(p.gear)) effects.push({ e: gearEffect(g as GearItem), m: 1 });
+    // Перезарядка с постоянной экипировки — под своим потолком (T22.1): иначе четыре слота с аффиксом упирали в общий потолок до забега.
+    let gearCd = 0;
+    for (const g of Object.values(p.gear)) { const e = gearEffect(g as GearItem); gearCd += e.cooldown ?? 0; e.cooldown = 0; effects.push({ e, m: 1 }); }
+    s.cooldown += Math.min(ARCADE.player.gearCooldownCap, gearCd);
     for (const { e, m } of effects) {
       if (e.regen) s.regen += e.regen * m;
       if (e.lifesteal) s.lifesteal += e.lifesteal * m;
@@ -5089,7 +5100,7 @@ export class ArcadeSim {
       if (e.cleave) s.cleave += Math.round(e.cleave * m);
       if (e.cooldown) s.cooldown += e.cooldown * m;
     }
-    s.cooldown = Math.min(0.55, s.cooldown);
+    s.cooldown = Math.min(ARCADE.player.cooldownCap, s.cooldown);
     s.attackInterval /= 1 + attackSpeed;
     s.speed *= 1 + moveSpeed;
     // Наследие Aegis (T13.88): удобства — радиус сбора и скорость бега, один раз; урон и HP не трогает.
@@ -5238,7 +5249,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
   return {
     id: 0, alive: false, kind, x: 0, y: 0, hp: 0, maxHp: 0, dmg: 0, contactCd: 0, shotCd: 0, burnUntil: 0, burnDps: 0,
     chillUntil: 0, chillSlow: 0, chillStacks: 0, freezeUntil: 0, stunUntil: 0, hitAt: -100, slamT: 0, slamX: 0, slamY: 0, slamCd: 0,
-    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, affix: 0, fireBlastAt: 0, castProcAt: 0, zapPoisonAt: 0, castAt: 0, castT: 0, castX: 0, castY: 0, armorUntil: 0, leader: 0, leaderRef: null, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
+    ruptureUntil: 0, ruptureDps: 0, lastX: 0, lastY: 0, ampUntil: 0, ampMult: 0, ccResistUntil: 0, chargeDx: 0, chargeDy: 0, chargeLeft: 0, chargeHit: false, poisonUntil: 0, poisonStacks: 0, poisonDps: 0, affix: 0, fireBlastAt: 0, castProcAt: 0, zapPoisonAt: 0, edictAt: 0, castAt: 0, castT: 0, castX: 0, castY: 0, armorUntil: 0, leader: 0, leaderRef: null, wpX: 0, wpY: 0, shieldUntil: 0, shieldBy: 0,
   };
 }
 
@@ -5246,7 +5257,7 @@ function emptyEnemy(kind: EnemyKind): Enemy {
 function resetEnemy(e: Enemy, kind: EnemyKind): void {
   e.kind = kind; e.contactCd = 0; e.shotCd = 0; e.burnUntil = 0; e.burnDps = 0;
   e.chillUntil = 0; e.chillSlow = 0; e.chillStacks = 0; e.freezeUntil = 0; e.stunUntil = 0; e.hitAt = -100; e.slamT = 0; e.slamX = 0; e.slamY = 0; e.slamCd = 0;
-  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.affix = 0; e.fireBlastAt = 0; e.castProcAt = 0; e.zapPoisonAt = 0; e.castAt = 0; e.castT = 0; e.castX = 0; e.castY = 0; e.armorUntil = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
+  e.ruptureUntil = 0; e.ruptureDps = 0; e.lastX = 0; e.lastY = 0; e.ampUntil = 0; e.ampMult = 0; e.ccResistUntil = 0; e.chargeDx = 0; e.chargeDy = 0; e.chargeLeft = 0; e.chargeHit = false; e.poisonUntil = 0; e.poisonStacks = 0; e.poisonDps = 0; e.affix = 0; e.fireBlastAt = 0; e.castProcAt = 0; e.zapPoisonAt = 0; e.edictAt = 0; e.castAt = 0; e.castT = 0; e.castX = 0; e.castY = 0; e.armorUntil = 0; e.leader = 0; e.leaderRef = null; e.wpX = 0; e.wpY = 0; e.shieldUntil = 0; e.shieldBy = 0;
 }
 
 function countBits(mask: number): number {
