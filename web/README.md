@@ -17,7 +17,7 @@ web/src/
 │  ├─ breakpoints.ts   # те же числа для matchMedia / JS
 │  ├─ base.css         # reset, типографика, focus, keyframes, reduced-motion
 │  └─ theme/           # ThemeProvider (data-theme на html, persist, system)
-├─ i18n/         # общий словарь RU/EN (core.ts) + I18nProvider
+├─ i18n/         # общий словарь RU/EN (core.ts) + строки Аркады отдельным чанком (arcade.ts) + I18nProvider
 ├─ ui/           # UIKIT — общие темизированные примитивы (CSS Modules):
 │                #   Button, Surface, Eyebrow, Banner, Chip, RoleTag, SoonBadge,
 │                #   StatTile, Select, TextField, PlayerPicker, Modal, OptionGroup,
@@ -52,7 +52,7 @@ public/art/      # арт в репозитории (~640 МБ): зеркало 
 - **Цвета — только через токены** `design/tokens.css`. Ноль захардкоженных цветов в компонентах → light/dark работают сами, без per-selector override. Всегда-тёмные панели/радар — через инвертные токены (`--surface-invert`, `--on-invert`, `--brand-*`).
 - **Адаптив — канон `design/breakpoints`**: `sm` 430 / `md` 680 / `lg` 980. Новые `@media` только на эти ширины (литералы; `var(--bp-*)` в MQ нельзя). Раскладка — explicit `grid-template-areas` (или container), не поток «N детей в M колонок» без areas.
 - **Вид определяется в `ui/`**, экраны только компонуют примитивы + раскладку. Новый элемент = взять примитив из `ui/`, а не рисовать заново.
-- **Локали — только через `i18n/core.ts`** (типобезопасный `MessageKey`), примитивы `ui/` презентационные (строки передаёт вызывающий).
+- **Локали — только через `i18n/core.ts`** (типобезопасный `MessageKey`; строки Аркады — `i18n/arcade.ts`, грузятся с её экранами через `loadArcadeMessages`), примитивы `ui/` презентационные (строки передаёт вызывающий).
 - **Шрифт полей ввода — токен** `--control-font` / `--control-font-sm`, не литерал в компоненте. На `(pointer: coarse)` они = 16px: Safari на iOS зумит вьюпорт при фокусе контрола со шрифтом меньше и обратно **не** отъезжает.
 
 ## Ключевые модули логики
