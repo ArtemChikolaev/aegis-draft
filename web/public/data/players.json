@@ -242,7 +242,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 36
+        "games": 39
       },
       {
         "teamId": 10207983,
@@ -280,7 +280,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 127
+        "games": 130
       },
       {
         "teamId": 3586078,
@@ -1211,7 +1211,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 24
+        "games": 26
       },
       {
         "teamId": 142,
@@ -1397,7 +1397,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 234
+        "games": 236
       }
     ]
   },
@@ -1708,7 +1708,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 77
+        "games": 79
       }
     ]
   },
@@ -1817,7 +1817,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 24
+        "games": 26
       },
       {
         "teamId": 39,
@@ -2017,7 +2017,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 757
+        "games": 759
       },
       {
         "teamId": 8125535,
@@ -2080,7 +2080,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 77
+        "games": 79
       }
     ]
   },
@@ -2848,7 +2848,7 @@
       {
         "teamId": 9256405,
         "teamName": "Level UP esports",
-        "games": 12
+        "games": 14
       }
     ]
   },
@@ -3543,7 +3543,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 24
+        "games": 26
       },
       {
         "teamId": 39,
@@ -3973,7 +3973,8 @@
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid",
-      "safelane"
+      "safelane",
+      "support"
     ],
     "teams": [
       {
@@ -3999,7 +4000,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 3
+        "games": 5
       },
       {
         "teamId": 9351740,
@@ -7662,7 +7663,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 147
+        "games": 150
       },
       {
         "teamId": 9017006,
@@ -8502,7 +8503,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 34
+        "games": 36
       }
     ]
   },
@@ -8843,7 +8844,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 24
+        "games": 26
       },
       {
         "teamId": 39,
@@ -9444,7 +9445,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 20
+        "games": 22
       },
       {
         "teamId": 9247798,
@@ -9955,7 +9956,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 18
+        "games": 20
       },
       {
         "teamId": 9338413,
@@ -10451,7 +10452,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 37
+        "games": 40
       },
       {
         "teamId": 9766941,
@@ -11098,7 +11099,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 333
+        "games": 335
       },
       {
         "teamId": 8574561,
@@ -11505,7 +11506,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 77
+        "games": 79
       }
     ]
   },
@@ -11849,7 +11850,7 @@
       {
         "teamId": 8255888,
         "teamName": "BETBOOM TEAM",
-        "games": 649
+        "games": 652
       },
       {
         "teamId": 8497614,
@@ -12487,7 +12488,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 246
+        "games": 248
       }
     ]
   },
@@ -12549,7 +12550,7 @@
       {
         "teamId": 8255888,
         "teamName": "BETBOOM TEAM",
-        "games": 289
+        "games": 292
       },
       {
         "teamId": 8376696,
@@ -12846,6 +12847,11 @@
         "teamId": 8031569,
         "teamName": "Excellent esports",
         "games": 0
+      },
+      {
+        "teamId": 8255888,
+        "teamName": "BETBOOM TEAM",
+        "games": 3
       },
       {
         "teamId": 8344439,
@@ -13446,6 +13452,11 @@
     ],
     "teams": [
       {
+        "teamId": 2586976,
+        "teamName": "OG",
+        "games": 3
+      },
+      {
         "teamId": 7554697,
         "teamName": "Nigma Galaxy",
         "games": 23
@@ -13841,7 +13852,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 17
+        "games": 19
       }
     ]
   },
@@ -14062,7 +14073,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 147
+        "games": 150
       },
       {
         "teamId": 9017006,
@@ -14429,7 +14440,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 216
+        "games": 218
       }
     ]
   },
@@ -14847,7 +14858,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 32
+        "games": 34
       }
     ]
   },
@@ -14902,7 +14913,7 @@
       {
         "teamId": 9256405,
         "teamName": "Level UP esports",
-        "games": 12
+        "games": 14
       }
     ]
   },
@@ -14957,7 +14968,7 @@
       {
         "teamId": 8255888,
         "teamName": "BETBOOM TEAM",
-        "games": 516
+        "games": 519
       },
       {
         "teamId": 8261234,
@@ -15487,7 +15498,7 @@
       {
         "teamId": 9256405,
         "teamName": "Level UP esports",
-        "games": 12
+        "games": 14
       },
       {
         "teamId": 9758040,
@@ -15628,7 +15639,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 18
+        "games": 20
       },
       {
         "teamId": 9351740,
@@ -16035,7 +16046,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 88
+        "games": 90
       },
       {
         "teamId": 8376696,
@@ -16075,7 +16086,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 3
+        "games": 6
       }
     ]
   },
@@ -18308,7 +18319,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 277
+        "games": 279
       }
     ]
   },
@@ -18440,7 +18451,7 @@
       {
         "teamId": 8255888,
         "teamName": "BETBOOM TEAM",
-        "games": 802
+        "games": 805
       },
       {
         "teamId": 9131584,
@@ -18670,7 +18681,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 907
+        "games": 909
       },
       {
         "teamId": 7654561,
@@ -18983,7 +18994,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 16
+        "games": 18
       }
     ]
   },
@@ -19029,7 +19040,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 11
+        "games": 13
       },
       {
         "teamId": 9651814,
@@ -19194,7 +19205,7 @@
       {
         "teamId": 9256405,
         "teamName": "Level UP esports",
-        "games": 12
+        "games": 14
       }
     ]
   },
@@ -19246,7 +19257,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 37
+        "games": 40
       },
       {
         "teamId": 10081680,
@@ -19408,7 +19419,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 34
+        "games": 36
       }
     ]
   },
@@ -19511,7 +19522,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 11
+        "games": 13
       },
       {
         "teamId": 9600141,
@@ -19774,7 +19785,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 127
+        "games": 130
       },
       {
         "teamId": 6187657,
@@ -19897,7 +19908,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 24
+        "games": 26
       },
       {
         "teamId": 67,
@@ -20655,7 +20666,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 21
+        "games": 24
       },
       {
         "teamId": 10081680,
@@ -20905,6 +20916,11 @@
       "support"
     ],
     "teams": [
+      {
+        "teamId": 2586976,
+        "teamName": "OG",
+        "games": 3
+      },
       {
         "teamId": 9255039,
         "teamName": "enjoy",
@@ -21768,7 +21784,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 26
+        "games": 28
       },
       {
         "teamId": 9678064,
@@ -22370,7 +22386,7 @@
       {
         "teamId": 9338413,
         "teamName": "MOUZ",
-        "games": 84
+        "games": 86
       }
     ]
   },
@@ -22867,7 +22883,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 77
+        "games": 79
       }
     ]
   },
@@ -23539,7 +23555,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 166
+        "games": 169
       },
       {
         "teamId": 9017006,
@@ -23654,7 +23670,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 489
+        "games": 491
       }
     ]
   },
@@ -24256,7 +24272,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 34
+        "games": 36
       }
     ]
   },
@@ -27931,7 +27947,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 560
+        "games": 562
       },
       {
         "teamId": 9351740,
@@ -29031,7 +29047,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 61
+        "games": 64
       },
       {
         "teamId": 2586976,
@@ -29477,7 +29493,7 @@
       {
         "teamId": 9256405,
         "teamName": "Level UP esports",
-        "games": 12
+        "games": 14
       },
       {
         "teamId": 9303383,
@@ -29723,7 +29739,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 34
+        "games": 36
       }
     ]
   },
@@ -29805,7 +29821,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 246
+        "games": 248
       }
     ]
   },
@@ -30030,7 +30046,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 102
+        "games": 105
       },
       {
         "teamId": 5011202,
@@ -30522,7 +30538,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 147
+        "games": 150
       },
       {
         "teamId": 9017006,
