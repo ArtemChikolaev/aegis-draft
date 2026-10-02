@@ -1,10 +1,37 @@
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { boostInCamp, chooseReward, completeDraft, gotoFreshApp, openCampSection, openClassicVariant, reloadAndResume, simulateAnteStageToOutcome, startClassicRun, startRogueliteRun, startRogueliteSeed } from "./helpers.ts";
 // Длина сезона и шаблон акта берутся из самой модели: тест не должен знать «25» отдельно от игры.
 import { SEASON } from "../src/game/anteRun.ts";
+import type { E2eSeedMode } from "../scripts/lib/e2e_seeds.ts";
 
-// Все сиды этого файла привязаны к пулу: после data-refresh или правки рынка/наград их
-// переподбирают по скиллу e2e-seed-resweep (карта «сид → режим подбора», real ∩ mock, живой прогон).
+// Все сиды этого файла привязаны к пулу: data-refresh сдвигает его, и тест падал НЕ на регрессии (09-30 — четыре теста
+// на реальном датасете, 10-01 — снова зелёные). С M24 спека сама проверяет свои сиды моделью пути теста
+// (scripts/lib/e2e_seeds.ts) на том датасете, который отдаёт e2e-сервер (`public/data`: в CI — mock или реальный), и
+// при провале берёт годный из ряда. Предпочтительные сиды — подобраны с запасом и пройдены живьём (история — у тестов
+// ниже); переподбор с запасом и живой прогон — скилл e2e-seed-resweep. `count` — сколько годных нужно тесту.
+const PREFERRED: Record<E2eSeedMode, { preferred: string; count: number }> = {
+  camp: { preferred: "camp-e2e-39", count: 1 },
+  cheat: { preferred: "cheat-e2e-17", count: 3 },
+  standIn: { preferred: "camp-e2e-30", count: 1 },
+  scouting: { preferred: "camp-e2e-302", count: 1 },
+  item: { preferred: "camp-e2e-7", count: 1 },
+};
+// Модель — игровые модули, а они импортируют JSON без атрибута `type: "json"` (Vite и tsx понимают, загрузчик Playwright —
+// нет), поэтому подбор — отдельным tsx-процессом (scripts/e2e_seed_pick.ts), один раз на воркер.
+const WEB = fileURLToPath(new URL("..", import.meta.url));
+const PICKED = JSON.parse(execFileSync(join(WEB, "node_modules/.bin/tsx"), [join(WEB, "scripts/e2e_seed_pick.ts"), JSON.stringify(PREFERRED)], { cwd: WEB, encoding: "utf8" })) as Record<E2eSeedMode, string[]>;
+function seedsFor(mode: E2eSeedMode, env?: string): string[] {
+  if (env) return [env];
+  const seeds = PICKED[mode] ?? [];
+  if (!seeds.length) throw new Error(`нет годного e2e-сида «${mode}» на этом датасете — переподбор по скиллу e2e-seed-resweep`);
+  // Дрейф виден в логе прогона (один раз — в раннере, не в каждом воркере): тест зелёный, но сид пора переподобрать.
+  const { preferred } = PREFERRED[mode];
+  if (seeds[0] !== preferred && process.env.TEST_WORKER_INDEX === undefined) console.warn(`[e2e-seeds] ${mode}: ${preferred} не годен на этом датасете — взят ${seeds[0]} (скилл e2e-seed-resweep)`);
+  return seeds;
+}
 
 // Seed, проходящий этап 1 жадным авто-драфтом (completeDraft) с большим запасом (место 1) —
 // Буткемп достигается детерминированно. Подобран под текущие ante-константы (см. историю).
@@ -16,7 +43,7 @@ import { SEASON } from "../src/game/anteRun.ts";
 // берётся пересечение. Критерии: 3 этапа с карточной наградой + static-смерть ≤6 этапов
 // (иначе тест «завершение забега» не влезает в бюджет slow()). Кандидата можно подставить без
 // правки файла: `CAMP_SEED=camp-e2e-N CHEAT_SEED=cheat-e2e-M npx playwright test e2e/anteRun.spec.ts`.
-const CAMP_SEED = process.env.CAMP_SEED ?? "camp-e2e-39";
+const CAMP_SEED = seedsFor("camp", process.env.CAMP_SEED)[0];
 // Cheat-забег, проходящий все пять этапов жадным драфтом + апгрейдами (подобран пробой; первый
 // этап остаётся коин-флипом из-за схлопнутого поля — см. R7.1). Нужен, чтобы дойти до финала акта
 // и проверить boss condition сквозным проходом.
@@ -31,7 +58,10 @@ const CAMP_SEED = process.env.CAMP_SEED ?? "camp-e2e-39";
 // Модель отбирает кандидатов, но boostInCamp она повторяет неточно — финальный отбор шёл живым
 // прогоном обоих cheat-тестов по кандидатам пересечения (3/9/13 падали на mock, 15 прошёл;
 // 2026-09-02 после data-refresh 15 выпал на реальном, 17 прошёл живьём на обоих датасетах).
-const CHEAT_SEED = process.env.CHEAT_SEED ?? "cheat-e2e-17";
+// Прокачку (boostInCamp) модель повторяет приближённо, поэтому тесты, которым нужен финал акта, берут несколько годных
+// сидов и переигрывают следующим, если забег пал раньше финала: сид — средство дойти до финала, проверки от него не зависят.
+const CHEAT_SEEDS = seedsFor("cheat", process.env.CHEAT_SEED);
+const CHEAT_SEED = CHEAT_SEEDS[0];
 
 // Roguelite Run (T5.7 срез 1 + T5.2 срез 2): драфт → этап → Буткемп (reward/market) → следующий
 // этап; растущий порог, промах = конец.
@@ -209,10 +239,11 @@ test("roguelite run: trade-in меняет карту слота на оффер
 // Регресс live-бага: Stand-in (бесплатный свап игрока) должен делать покупку игрока доступной,
 // даже если цена выше золота. Seed подобран оффлайн под расширенный пул карточек (R8.3):
 // camp-e2e-30 проходит этап 1 и выдаёт Stand-in карточной наградой первого Буткемпа
-// (переподбор: `npm run sim:find-seed -- --stand-in` на обоих датасетах).
+// (переподбор: `npm run sim:find-seed -- --stand-in` на обоих датасетах). Не годен на датасете — подбор в спеке (M24).
+const STAND_IN_SEED = seedsFor("standIn")[0];
 test("roguelite run: stand-in делает замену игрока бесплатной", async ({ page }) => {
   await gotoFreshApp(page);
-  await startRogueliteSeed(page, "camp-e2e-30");
+  await startRogueliteSeed(page, STAND_IN_SEED);
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
@@ -479,49 +510,56 @@ test("roguelite run: resume восстанавливает Буткемп пос
 // Отдельного узкого теста «обычные этапы без босса» поэтому не держим.
 test("cheat mode: ∞ золото, маркировка, boss на финале акта", async ({ page }) => {
   test.slow();
-  await gotoFreshApp(page);
-  await startRogueliteSeed(page, CHEAT_SEED, { cheatMode: true });
-  await completeDraft(page);
+  // Попытка на сид (CHEAT_SEEDS): забег, павший раньше финала акта, переигрывается следующим — бюджет на все попытки.
+  test.setTimeout(test.info().timeout * CHEAT_SEEDS.length);
+  for (const seed of CHEAT_SEEDS) {
+    await gotoFreshApp(page);
+    await startRogueliteSeed(page, seed, { cheatMode: true });
+    await completeDraft(page);
 
-  // Маркировка видна с первого этапа.
-  await expect(page.getByTestId("cheat-badge").first()).toBeVisible();
+    // Маркировка видна с первого этапа.
+    await expect(page.getByTestId("cheat-badge").first()).toBeVisible();
 
-  let sawBossPreview = false;
-  let sawBossOnStage = false;
-  // Первый акт целиком: этого достаточно для обеих половин правила о боссах. Терминальный исход
-  // сюда больше не входит — в 25-этапном сезоне (R6.1) прокачанный cheat-забег на пятом этапе
-  // ещё жив, и «вне статистики» проверяется отдельным коротким тестом ниже.
-  for (let stage = 0; stage < SEASON.actLength; stage += 1) {
-    await simulateAnteStageToOutcome(page);
-    if (!(await page.getByTestId("ante-to-camp").isVisible().catch(() => false))) break;
-    await page.getByTestId("ante-to-camp").click();
-    await expect(page.getByTestId("camp-screen")).toBeVisible();
+    let sawBossPreview = false;
+    let sawBossOnStage = false;
+    // Первый акт целиком: этого достаточно для обеих половин правила о боссах. Терминальный исход
+    // сюда больше не входит — в 25-этапном сезоне (R6.1) прокачанный cheat-забег на пятом этапе
+    // ещё жив, и «вне статистики» проверяется отдельным коротким тестом ниже.
+    for (let stage = 0; stage < SEASON.actLength; stage += 1) {
+      await simulateAnteStageToOutcome(page);
+      if (!(await page.getByTestId("ante-to-camp").isVisible().catch(() => false))) break;
+      await page.getByTestId("ante-to-camp").click();
+      await expect(page.getByTestId("camp-screen")).toBeVisible();
 
-    // Золото показано как ∞ и покупки его не тратят.
-    await expect(page.getByTestId("camp-gold")).toHaveText("∞");
-    await boostInCamp(page);
-    await expect(page.getByTestId("camp-gold")).toHaveText("∞");
+      // Золото показано как ∞ и покупки его не тратят.
+      await expect(page.getByTestId("camp-gold")).toHaveText("∞");
+      await boostInCamp(page);
+      await expect(page.getByTestId("camp-gold")).toHaveText("∞");
 
-    // Босс — только на финале акта (5-й этап), и в Буткемпе он виден заранее.
-    await openCampSection(page, "preparation");
-    const bossPreview = await page.getByTestId("camp-boss").count();
-    expect(bossPreview > 0).toBe(stage === SEASON.actLength - 2);
-    if (bossPreview) sawBossPreview = true;
+      // Босс — только на финале акта (5-й этап), и в Буткемпе он виден заранее.
+      await openCampSection(page, "preparation");
+      const bossPreview = await page.getByTestId("camp-boss").count();
+      expect(bossPreview > 0).toBe(stage === SEASON.actLength - 2);
+      if (bossPreview) sawBossPreview = true;
 
-    await page.getByTestId("camp-next-stage").click();
-    await expect(page.getByTestId("tournament-simulate")).toBeVisible();
-    if (stage === SEASON.actLength - 2) {
-      const anteBoss = page.getByTestId("ante-boss");
-      await expect(anteBoss).toBeVisible();
-      await expect(anteBoss).toHaveAttribute("data-boss-id", /.+/);
-      sawBossOnStage = true;
-      // Штраф босса входит в силу состава так же, как в таблицу поля: центр радара = сила в поле.
-      const strength = await page.getByTestId("tournament-user-strength").innerText();
-      await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
+      await page.getByTestId("camp-next-stage").click();
+      await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+      if (stage === SEASON.actLength - 2) {
+        const anteBoss = page.getByTestId("ante-boss");
+        await expect(anteBoss).toBeVisible();
+        await expect(anteBoss).toHaveAttribute("data-boss-id", /.+/);
+        sawBossOnStage = true;
+        // Штраф босса входит в силу состава так же, как в таблицу поля: центр радара = сила в поле.
+        const strength = await page.getByTestId("tournament-user-strength").innerText();
+        await expect(page.getByTestId("pentagon-team-ovr")).toHaveText(strength);
+      }
     }
+    // Пал раньше финала — дело пула и прокачки, а не правила о боссах: следующий сид.
+    if (!sawBossOnStage) continue;
+    expect(sawBossPreview).toBe(true);
+    return;
   }
-  expect(sawBossPreview).toBe(true);
-  expect(sawBossOnStage).toBe(true);
+  throw new Error(`финал акта не достигнут ни одним сидом: ${CHEAT_SEEDS.join(", ")}`);
 });
 
 // R2.3: cheat-забег помечен и не двигает агрегаты. Ростер намеренно НЕ усиливаем — статичный
@@ -555,11 +593,13 @@ test("cheat mode: забег вне статистики", async ({ page }) => {
 // этапа теста на ОБОИХ датасетах. Проверка после data-refresh: `npx tsx scripts/find_camp_seed.ts
 // --scouting` на real и на mock (`AEGIS_DATA_DIR=.mock-data`), пересечение, живой прогон.
 // Пере-подобран 2026-09-26: data-refresh 09-20…09-25 сдвинул пул, и 161 проигрывал этап 1 на
-// реальном (джоб web-e2e-real). 302 — место 1 на обоих этапах обоих датасетов (запас на дрейф).
+// реальном (джоб web-e2e-real). 302 — место 1 на обоих этапах обоих датасетов (запас на дрейф). Не годен на
+// датасете — подбор в спеке (M24): годных для разведки мало (≈1 из 100), ряд перебирается до 3000.
+const SCOUTING_SEED = seedsFor("scouting")[0];
 test("roguelite run: разведка раскрывает будущего босса и знание не теряется", async ({ page }) => {
   test.slow();
   await gotoFreshApp(page);
-  await startRogueliteSeed(page, "camp-e2e-302");
+  await startRogueliteSeed(page, SCOUTING_SEED);
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();
@@ -592,51 +632,55 @@ test("roguelite run: разведка раскрывает будущего бо
 // не дотягивает. Проверяем ровно то, что нельзя проверить юнитом, — что покупка доходит до экрана.
 test("roguelite run: поздние синки — подготовка дорожает, правило этапа меняется", async ({ page }) => {
   test.slow();
-  await gotoFreshApp(page);
-  await startRogueliteSeed(page, CHEAT_SEED, { cheatMode: true });
-  await completeDraft(page);
-  await simulateAnteStageToOutcome(page);
-  await page.getByTestId("ante-to-camp").click();
-  await expect(page.getByTestId("camp-screen")).toBeVisible();
-  await openCampSection(page, "preparation");
-
-  // Подготовка: цена растёт с каждой покупкой в этом же Буткемпе.
-  const buyPrep = page.getByTestId("camp-prep-boost-buy");
-  const firstPrice = await buyPrep.innerText();
-  await buyPrep.click();
-  await expect(page.getByTestId("camp-prep-boost-note")).toBeVisible();
-  await expect(buyPrep).not.toHaveText(firstPrice);
-
-  // Разведка за золото раскрывает будущего босса — то же знание, что даёт карточка Scouting.
-  await expect(page.getByTestId("camp-boss-scouted")).toHaveCount(0);
-  await page.getByTestId("camp-prep-scout-buy").click();
-  await expect(page.getByTestId("camp-boss-scouted")).toBeVisible();
-  // Раскрывать больше нечего — карточка покупки уходит с экрана.
-  await expect(page.getByTestId("camp-prep-scout")).toHaveCount(0);
-
-  // Смена правила: она есть только там, где правило есть, — на финале акта.
-  await expect(page.getByTestId("camp-prep-boss")).toHaveCount(0);
-  await boostInCamp(page);
-  await openCampSection(page, "preparation");
-  for (let stage = 1; stage < SEASON.actLength; stage += 1) {
-    await page.getByTestId("camp-next-stage").click();
-    await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+  // Попытка на сид, как в «boss на финале акта»: забег, павший раньше финала, переигрывается следующим.
+  test.setTimeout(test.info().timeout * CHEAT_SEEDS.length);
+  for (const seed of CHEAT_SEEDS) {
+    await gotoFreshApp(page);
+    await startRogueliteSeed(page, seed, { cheatMode: true });
+    await completeDraft(page);
     await simulateAnteStageToOutcome(page);
-    if (!(await page.getByTestId("ante-to-camp").isVisible().catch(() => false))) break;
     await page.getByTestId("ante-to-camp").click();
     await expect(page.getByTestId("camp-screen")).toBeVisible();
-    // Забег обязан дожить до финала акта — иначе проверять смену правила не на чем.
+    await openCampSection(page, "preparation");
+
+    // Подготовка: цена растёт с каждой покупкой в этом же Буткемпе.
+    const buyPrep = page.getByTestId("camp-prep-boost-buy");
+    const firstPrice = await buyPrep.innerText();
+    await buyPrep.click();
+    await expect(page.getByTestId("camp-prep-boost-note")).toBeVisible();
+    await expect(buyPrep).not.toHaveText(firstPrice);
+
+    // Разведка за золото раскрывает будущего босса — то же знание, что даёт карточка Scouting.
+    await expect(page.getByTestId("camp-boss-scouted")).toHaveCount(0);
+    await page.getByTestId("camp-prep-scout-buy").click();
+    await expect(page.getByTestId("camp-boss-scouted")).toBeVisible();
+    // Раскрывать больше нечего — карточка покупки уходит с экрана.
+    await expect(page.getByTestId("camp-prep-scout")).toHaveCount(0);
+
+    // Смена правила: она есть только там, где правило есть, — на финале акта.
+    await expect(page.getByTestId("camp-prep-boss")).toHaveCount(0);
     await boostInCamp(page);
     await openCampSection(page, "preparation");
-    if (await page.getByTestId("camp-boss").count()) {
-      const before = await page.getByTestId("camp-boss").getAttribute("data-boss-id");
-      await page.getByTestId("camp-prep-boss-buy").click();
-      // Заплатил — получил ДРУГОЕ правило, а не тот же бросок ещё раз.
-      await expect(page.getByTestId("camp-boss")).not.toHaveAttribute("data-boss-id", before!);
-      return;
+    for (let stage = 1; stage < SEASON.actLength; stage += 1) {
+      await page.getByTestId("camp-next-stage").click();
+      await expect(page.getByTestId("tournament-simulate")).toBeVisible();
+      await simulateAnteStageToOutcome(page);
+      if (!(await page.getByTestId("ante-to-camp").isVisible().catch(() => false))) break;
+      await page.getByTestId("ante-to-camp").click();
+      await expect(page.getByTestId("camp-screen")).toBeVisible();
+      // Забег обязан дожить до финала акта — иначе проверять смену правила не на чем.
+      await boostInCamp(page);
+      await openCampSection(page, "preparation");
+      if (await page.getByTestId("camp-boss").count()) {
+        const before = await page.getByTestId("camp-boss").getAttribute("data-boss-id");
+        await page.getByTestId("camp-prep-boss-buy").click();
+        // Заплатил — получил ДРУГОЕ правило, а не тот же бросок ещё раз.
+        await expect(page.getByTestId("camp-boss")).not.toHaveAttribute("data-boss-id", before!);
+        return;
+      }
     }
   }
-  throw new Error("финал акта не достигнут: смену правила проверить не на чем");
+  throw new Error(`финал акта не достигнут ни одним сидом (${CHEAT_SEEDS.join(", ")}): смену правила проверить не на чем`);
 });
 
 // R2.1: Cheat Mode — правило конкретного забега, живёт на экране его конфигурации.
@@ -743,10 +787,12 @@ test("roguelite run: Playbook ограничивает награды и trade-i
 // (повторяет ровно этот путь оффлайн и печатает годные сиды).
 // Пере-подобран 2026-09-19: camp-e2e-5 → 7 — data-refresh 09-14…09-18 сдвинул пул, джоб web-e2e-real покраснел на 8d999b2b
 // (бот-коммиты данных CI не запускают, поэтому дрейф всплыл на первом же кодовом пуше). Сид взят из пересечения
-// find_camp_seed на real и на mock (изолированная копия) и пройден живьём на обоих.
+// find_camp_seed на real и на mock (изолированная копия) и пройден живьём на обоих. С M24 не годный на датасете сид
+// заменяется подбором в спеке той же моделью.
+const ITEM_SEED = seedsFor("item")[0];
 test("roguelite run: предмет в слоте показывает разложение силы", async ({ page }) => {
   await gotoFreshApp(page);
-  await startRogueliteSeed(page, "camp-e2e-7");
+  await startRogueliteSeed(page, ITEM_SEED);
   await completeDraft(page);
   await simulateAnteStageToOutcome(page);
   await page.getByTestId("ante-to-camp").click();

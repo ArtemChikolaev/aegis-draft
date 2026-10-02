@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { RunEngine } from "../src/game/engine.ts";
 import { buildAnteMarketRoulette } from "../src/game/anteMarket.ts";
-import { RunEconomy } from "../src/game/anteEconomy.ts";
+import { RunEconomy, type Offer } from "../src/game/anteEconomy.ts";
 import {
   clearSavedRun,
   freezeRoster,
@@ -275,8 +275,20 @@ describe("useRun.resumeRun Easy + reroll", () => {
   });
 
   it("Roguelite structural market: бесплатная перестановка с резервом переживает replay/resume", () => {
-    const seed = "structural-market-resume";
-    const { engine, actions } = draftWithLog(data, defaultRunConfig, seed);
+    // Нужна замена ДРУГОГО человека: апгрейд формы того же игрока ничего не кладёт на скамейку (engine.replacePlayer), а
+    // какой оффер рынка первый, решает датасет — на данных 09-30 первым пришёл апгрейд формы, и тест падал не на регрессии
+    // (M24). Берём первый сид ряда, у которого такая замена есть, — проверка та же на любом датасете.
+    const swapsPerson = (engine: RunEngine, o: Offer) =>
+      o.kind === "player" && !!o.playerSwap && engine.candidateByRef(o.playerSwap.incoming)?.player.accountId !== o.playerSwap.outgoingAccountId;
+    let picked: { seed: string; engine: RunEngine; actions: RunAction[]; offers: Offer[] } | null = null;
+    for (let n = 0; n < 20 && !picked; n++) {
+      const seed = n === 0 ? "structural-market-resume" : `structural-market-resume-${n}`;
+      const run = draftWithLog(data, defaultRunConfig, seed);
+      const offers = buildAnteMarketRoulette(run.engine, seed, 1, 0);
+      if (offers.some((o) => swapsPerson(run.engine, o))) picked = { seed, ...run, offers };
+    }
+    expect(picked).not.toBeNull();
+    const { seed, engine, actions, offers } = picked!;
     const economy = new RunEconomy(seed);
     // Этот тест проверяет replay/persist двух структурных покупок, а не баланс кошелька:
     // наполняем его легальными идемпотентными наградами разных этапов.
@@ -284,9 +296,8 @@ describe("useRun.resumeRun Easy + reroll", () => {
       economy.awardStageClear(campStageIndex, "1", 20);
     }
     economy.openCamp(1);
-    const offers = buildAnteMarketRoulette(engine, seed, 1, 0);
     economy.prepareMarketOffers(offers);
-    const offer = offers.find((candidate) => candidate.kind === "player" && candidate.playerSwap);
+    const offer = offers.find((candidate) => swapsPerson(engine, candidate));
     expect(offer?.playerSwap).toBeDefined();
     const incoming = engine.candidateByRef(offer!.playerSwap!.incoming)!;
     expect(economy.purchaseMarket(offer!.id)).not.toBeNull();

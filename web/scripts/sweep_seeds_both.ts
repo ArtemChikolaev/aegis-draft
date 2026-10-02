@@ -3,211 +3,22 @@
 // дважды и брать пересечение (мок пишется в web/.mock-data, боевой датасет не трогается):
 //   npm run gen:mock && AEGIS_DATA_DIR=.mock-data npm run sim:sweep   # mock (как CI)
 //   npm run sim:sweep                                                 # реальный
-// Модель отбирает КАНДИДАТОВ; boostInCamp повторяется неточно — финальная правда только живым
-// прогоном cheat-тестов по кандидатам (R15.8: модельные 3/9/13 падали на mock, 15 прошёл).
-// Для каждого сида:
-//   campDeep     — путь теста «пассивные карточки»: 3 этапа, карточная награда в каждом лагере;
-//   staticDeath  — на каком этапе гибнет статичный ростер (бюджет теста «завершение забега» и
-//                  «вне статистики»: терминал должен наступать за ≤6 этапов);
-//   cheatBoost   — модель boostInCamp доживает до финала акта (тесты «boss на финале»/«синки»).
+// С M24 спека сама проверяет свои сиды на датасете e2e-сервера и при провале берёт годный (scripts/lib/e2e_seeds.ts);
+// свип нужен, чтобы выбрать новый «предпочтительный» сид с запасом. Модель отбирает КАНДИДАТОВ; boostInCamp
+// повторяется неточно — финальная правда только живым прогоном cheat-тестов (R15.8: модельные 3/9/13 падали на mock).
+// Критерии (evaluateE2eSeed): camp — 3 этапа с карточной наградой и статичная смерть ≤6 этапов; cheat — прокачанный
+// забег доживает до финала акта, статичный гибнет ≤6 этапов.
 import { loadGameData } from "../test/helpers/data.ts";
-import { RunEngine } from "../src/game/engine.ts";
-import { AnteRunEngine, SEASON, seasonStage } from "../src/game/anteRun.ts";
-import { RunEconomy } from "../src/game/anteEconomy.ts";
-import type { Offer } from "../src/game/anteEconomy.ts";
-import { buildAnteMarketRoulette, refreshAnteMarketOffers } from "../src/game/anteMarket.ts";
-import { buildTacticContext } from "../src/game/tactics.ts";
-import { evaluateRunPower, evaluateStage } from "../src/game/runStrength.ts";
-import { upgradeCost } from "../src/game/heroRarity.ts";
-import type { Rarity } from "../src/game/rarity.ts";
-import { E2E_RUN_CONFIG as config, firstAvailableDraft } from "./lib/sim_shared.ts";
+import { evaluateE2eSeed } from "./lib/e2e_seeds.ts";
 
 const data = loadGameData();
-
-/** Сила этапа — та же сборка, что в игре и в балансовом симуляторе (game/runStrength.ts). Своя копия
- *  здесь повторяла её вручную; Stakes свип не играет. */
-function stageStrength(engine: RunEngine, economy: RunEconomy, seed: string, stageIndex: number): number {
-  return evaluateStage(engine, economy, { data, seed, stakes: [] }, stageIndex)?.power.total ?? 0;
-}
-
-function currentPower(engine: RunEngine, economy: RunEconomy): number {
-  const score = engine.score()!;
-  return evaluateRunPower({
-    score: { base: score.base, heroSynergy: score.heroSynergy, chemistry: score.chemistry },
-    tacticContext: buildTacticContext(engine.rosterView, score.assignment.byPlayer, data, economy.snapshot.campStageIndex),
-    activeHeroes: engine.heroes,
-    heroRarity: economy.heroRarity,
-  }, {
-    economy: economy.modifiers(),
-    equippedCards: economy.equippedTactics,
-    cardRarity: economy.cardRarity,
-    cardCharges: economy.cardCharges,
-  }).power.total;
-}
-
-function offerDelta(engine: RunEngine, economy: RunEconomy, offer: Offer): number | null {
-  const score = engine.score();
-  if (!score || !offer.preview) return null;
-  const assignment = offer.preview.afterAssignment ?? score.assignment.byPlayer;
-  let roster = engine.rosterView;
-  let heroes: readonly number[] = engine.heroes;
-  const rarity: Record<string, Rarity> = { ...economy.heroRarity };
-  if (offer.kind === "player" && offer.playerSwap) {
-    const incoming = engine.candidateByRef(offer.playerSwap.incoming);
-    if (!incoming) return null;
-    roster = roster.map((slot, i) => (i === offer.playerSwap!.slotIndex ? { ...slot, candidate: incoming } : slot));
-  } else if (offer.kind === "hero" && offer.heroSwap) {
-    heroes = heroes.map((h) => (h === offer.heroSwap!.outgoingHeroId ? offer.heroSwap!.incomingHeroId : h));
-    rarity[String(offer.heroSwap.incomingHeroId)] = offer.heroSwap.incomingRarity ?? "common";
-  } else if (offer.heroUpgrade) {
-    rarity[String(offer.heroUpgrade.heroId)] = offer.heroUpgrade.targetRarity;
-  } else {
-    return null;
-  }
-  const after = evaluateRunPower({
-    score: offer.preview.after,
-    tacticContext: buildTacticContext(roster, assignment, data, economy.snapshot.campStageIndex),
-    activeHeroes: heroes,
-    heroRarity: rarity,
-  }, {
-    economy: economy.modifiers(),
-    equippedCards: economy.equippedTactics,
-    cardRarity: economy.cardRarity,
-    cardCharges: economy.cardCharges,
-  }).power.total;
-  return after - currentPower(engine, economy);
-}
-
-function prepareMarket(engine: RunEngine, economy: RunEconomy, seed: string): void {
-  const st = economy.snapshot;
-  economy.prepareMarketOffers(buildAnteMarketRoulette(
-    engine, seed, st.campStageIndex, st.marketRerolls, economy.equippedTactics,
-    { rarityDrops: economy.rarityDropsEnabled, stageCount: SEASON.stages.length, heroRarity: economy.heroRarity },
-  ));
-}
-
-function boostInCamp(engine: RunEngine, economy: RunEconomy, seed: string): void {
-  const reward = economy.campView().rewardOffers[0];
-  if (reward) economy.chooseReward(reward.id);
-  prepareMarket(engine, economy, seed);
-  for (let i = 0; i < 6; i++) {
-    const offers = economy.campView().marketOffers;
-    const ordered = [...offers.filter((o) => o.kind === "player"), ...offers.filter((o) => o.kind === "hero")];
-    const pick = ordered.find((o) => {
-      const delta = offerDelta(engine, economy, o);
-      return delta != null && delta >= 0;
-    });
-    if (!pick) break;
-    try {
-      if (pick.kind === "player" && pick.playerSwap) {
-        const incoming = engine.candidateByRef(pick.playerSwap.incoming);
-        const slotHolder = engine.rosterView[pick.playerSwap.slotIndex].candidate;
-        if (!incoming || slotHolder?.player.accountId !== pick.playerSwap.outgoingAccountId) break;
-        if (!economy.purchaseMarket(pick.id)) break;
-        engine.replacePlayer(pick.playerSwap.slotIndex, incoming);
-      } else if (pick.kind === "hero" && pick.heroSwap) {
-        if (!economy.purchaseMarket(pick.id)) break;
-        engine.replaceHero(pick.heroSwap.outgoingHeroId, pick.heroSwap.incomingHeroId);
-        economy.rollHeroRarity(pick.heroSwap.incomingHeroId, economy.snapshot.campStageIndex);
-      } else if (pick.heroUpgrade) {
-        if (!economy.purchaseMarket(pick.id)) break;
-      } else break;
-      economy.replacePreparedMarketOffers(refreshAnteMarketOffers(
-        engine, economy.campView().marketOffers, 1, economy.heroRarity, economy.equippedTactics,
-      ));
-    } catch { break; }
-  }
-  for (let i = 0; i < 5; i++) {
-    const heroId = engine.heroes.find((h) => upgradeCost(economy.rarityOf(h)) != null);
-    if (heroId == null) break;
-    if (!economy.upgradeHeroRarity(heroId)) break;
-  }
-}
-
-type Verdict = { campDeep: boolean; staticDeath: number | null; cheatBoost: boolean; cheatStaticDeath: number | null };
-
-/** Статичный забег (ничего не покупаем): этап терминального исхода или null, если жив ≥12. */
-function staticDeathOf(seed: string): number | null {
-  try {
-    const engine = new RunEngine(data, config, seed);
-    firstAvailableDraft(engine);
-    const score = engine.score();
-    if (!score || !engine.isComplete) return null;
-    const anteRun = new AnteRunEngine(data, config.format, seed, score.teamOvr, "E2E", SEASON);
-    const economy = new RunEconomy(seed);
-    economy.setRarityFlags({ drops: false, upgrades: true });
-    for (let stage = 1; stage <= 12; stage++) {
-      if (anteRun.resolveStage() !== "playing") return stage;
-      const campId = anteRun.state.index;
-      economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1).target);
-      economy.openCamp(campId);
-      economy.leaveCamp();
-      anteRun.rebuildCurrentStage(stageStrength(engine, economy, seed, anteRun.state.index));
-    }
-  } catch { /* сид отбраковывается */ }
-  return null;
-}
-
-function evalSeed(campSeed: string, cheatSeed: string): Verdict {
-  const verdict: Verdict = { campDeep: false, staticDeath: null, cheatBoost: false, cheatStaticDeath: null };
-  verdict.cheatStaticDeath = staticDeathOf(cheatSeed);
-  // campDeep: 3 этапа, карточная награда в каждом лагере (свежая карьера: drops выключены).
-  try {
-    const engine = new RunEngine(data, config, campSeed);
-    firstAvailableDraft(engine);
-    const score = engine.score();
-    if (score && engine.isComplete) {
-      const anteRun = new AnteRunEngine(data, config.format, campSeed, score.teamOvr, "E2E", SEASON);
-      const economy = new RunEconomy(campSeed);
-      economy.setRarityFlags({ drops: false, upgrades: true });
-      let ok = true;
-      for (let stage = 1; stage <= 3; stage++) {
-        if (anteRun.resolveStage() !== "playing") { ok = false; break; }
-        const campId = anteRun.state.index;
-        economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1).target);
-        economy.openCamp(campId);
-        const card = economy.campView().rewardOffers.find((o) => o.kind === "item" || o.kind === "tactic");
-        if (!card || !economy.chooseReward(card.id)) { ok = false; break; }
-        economy.leaveCamp();
-        anteRun.rebuildCurrentStage(stageStrength(engine, economy, campSeed, anteRun.state.index));
-      }
-      verdict.campDeep = ok;
-    }
-  } catch { /* сид отбраковывается */ }
-  // staticDeath: тот же CAMP_SEED, ничего не покупаем — на каком этапе терминал.
-  verdict.staticDeath = staticDeathOf(campSeed);
-  // cheatBoost: CHEAT_SEED, ∞ золото + boost-модель, дожить до финала акта.
-  try {
-    const engine = new RunEngine(data, config, cheatSeed);
-    firstAvailableDraft(engine);
-    const score = engine.score();
-    if (score && engine.isComplete) {
-      const anteRun = new AnteRunEngine(data, config.format, cheatSeed, score.teamOvr, "E2E", SEASON);
-      const economy = new RunEconomy(cheatSeed);
-      economy.setRarityFlags({ drops: false, upgrades: true });
-      economy.setUnlimitedGold(true);
-      let ok = true;
-      for (let stage = 1; stage <= SEASON.actLength; stage++) {
-        if (anteRun.resolveStage() !== "playing") { ok = false; break; }
-        const campId = anteRun.state.index;
-        economy.awardStageClear(campId, anteRun.state.lastPlacement, seasonStage(campId - 1).target);
-        economy.openCamp(campId);
-        boostInCamp(engine, economy, cheatSeed);
-        economy.leaveCamp();
-        anteRun.rebuildCurrentStage(stageStrength(engine, economy, cheatSeed, anteRun.state.index));
-      }
-      verdict.cheatBoost = ok;
-    }
-  } catch { /* сид отбраковывается */ }
-  return verdict;
-}
-
 const campOk: string[] = [];
 const cheatOk: string[] = [];
 for (let n = 1; n <= 200; n++) {
-  const v = evalSeed(`camp-e2e-${n}`, `cheat-e2e-${n}`);
-  if (v.campDeep && v.staticDeath != null && v.staticDeath <= 6) campOk.push(`camp-e2e-${n}(death@${v.staticDeath})`);
-  if (v.cheatBoost && v.cheatStaticDeath != null && v.cheatStaticDeath <= 6) cheatOk.push(`cheat-e2e-${n}(death@${v.cheatStaticDeath})`);
+  const camp = evaluateE2eSeed(data, "camp", `camp-e2e-${n}`);
+  if (camp.ok) campOk.push(`camp-e2e-${n}(${camp.note})`);
+  const cheat = evaluateE2eSeed(data, "cheat", `cheat-e2e-${n}`);
+  if (cheat.ok) cheatOk.push(`cheat-e2e-${n}(${cheat.note})`);
 }
 console.log("CAMP ok:", campOk.join(" ") || "—");
 console.log("CHEAT ok:", cheatOk.join(" ") || "—");
