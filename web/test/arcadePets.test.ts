@@ -60,6 +60,8 @@ describe("питомцы: удар после подхода, а не после
     const wolf = sim.pets[0];
     const e = sim.enemies.find((x) => x.alive && !x.kind.elite)!;
     wolf.cd = 0; wolf.hitAt = -999; wolf.inReach = false;
+    // Цель питомец держит (M24, как в Dota): враг вплотную — его цель, а не случайный сосед прежней.
+    wolf.target = e; wolf.targetId = e.id;
     const t0 = sim.tick;
     let bit = -1;
     for (let i = 0; i < 60 && bit < 0; i++) {

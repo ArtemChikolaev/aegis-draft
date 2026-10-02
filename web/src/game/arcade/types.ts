@@ -118,6 +118,9 @@ export interface Pet {
   /** Тотем: точка установки — он туда возвращается и не бежит за героем. */
   homeX?: number;
   homeY?: number;
+  /** Цель, которую питомец держит (tickPets). Пул переиспользует объекты врагов — id отличает нового врага в том же объекте. */
+  target?: Enemy;
+  targetId?: number;
 }
 
 /** Руны у реки, как в Dota (владелец 2026-09-07): двойной урон, щит, магия (короче перезарядки), иллюзии. */
@@ -560,6 +563,8 @@ export interface Player {
   armorBuffUntil: number;
   /** Сколько брони даёт идущий `armorBuffUntil`: у armor_buff — значение умения по рангу, у Berserker's Call — прежние 25. */
   armorBuffAmt: number;
+  /** Spell Steal (Rubick, M24): украденное умение нейтрала — держится, пока не украдено другое; null — ещё ничего. */
+  stolen: NeutralCastId | null;
   /** Blink (ARCADE.blink): готовые заряды, тики до следующего заряда (0 — все заряжены) и тик последнего рывка. */
   blinkCharges: number;
   blinkCd: number;

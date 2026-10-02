@@ -29,6 +29,7 @@ const KIND_MODS: Record<AbilityKind, readonly TalentMod[]> = {
   armor_passive: ["value"], frost_arrows: ["value"], searing: ["value"], venom: ["value"], mana_break: ["value"], coup: ["value"],
   mana_void: ["value", "cooldown"], reincarnation: ["cooldown"], rupture: ["value", "duration"], corrosive: ["value", "duration"],
   berserk_blood: ["value"], metamorphosis: ["value", "duration"], tether: ["value", "duration"], spirits: ["value", "duration"],
+  spell_steal: ["value", "cooldown", "radius"],
 };
 
 /** Виды, у которых `value` — урон (подпись «урон +N%»); у остальных — сила эффекта (броня, лечение, шанс, стан…). */
@@ -36,7 +37,7 @@ export const DAMAGE_KINDS: ReadonlySet<AbilityKind> = new Set<AbilityKind>([
   "spin", "omni", "nova", "frostbite", "freezing_field", "shrapnel", "headshot", "assassinate", "battle_hunger", "counter_helix",
   "culling_blade", "arc_lightning", "lightning_bolt", "static_field", "thundergod", "dash", "line_burst", "meteor", "damage_ward",
   "life_drain", "gust", "multishot", "remnant", "mass_freeze", "requiem", "goo", "ravage", "edict", "searing", "venom", "mana_break",
-  "mana_void", "rupture", "spirits",
+  "mana_void", "rupture", "spirits", "spell_steal",
 ]);
 
 /** Что считает `count` у вида — для подписи «+1 зона / цель / стрела / удар». */

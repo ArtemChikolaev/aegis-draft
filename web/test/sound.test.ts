@@ -9,6 +9,7 @@ import {
   sfxSting,
   sfxVerdict,
   soundEnabled,
+  trimSampleCache,
 } from "../src/ui/sound.ts";
 import { existsSync, readFileSync } from "node:fs";
 import { HEROES } from "../src/game/arcade/content/heroes.ts";
@@ -119,5 +120,22 @@ describe("makeLoopReady", () => {
     // Короткий буфер — как есть.
     const short = new Float32Array(1000).fill(0.1);
     expect(makeLoopReady([short], sr)[0].length).toBe(1000);
+  });
+});
+
+describe("кэш сэмплов (M24)", () => {
+  it("вытесняет давние клипы до потолка, не трогая свежий, грузящиеся и битые", () => {
+    const size = (v: number | null | "pending") => (typeof v === "number" ? v : 0);
+    const cache = new Map<string, number | null | "pending">([["old", 30], ["loading", "pending"], ["broken", null], ["mid", 30], ["new", 50]]);
+    expect(trimSampleCache(cache, 110, 64, size, "new")).toBe(50);
+    expect([...cache.keys()]).toEqual(["loading", "broken", "new"]);
+    // Свежий тяжелее потолка — остаётся один, остальное уходит.
+    const big = new Map<string, number | null | "pending">([["a", 10], ["b", 90]]);
+    expect(trimSampleCache(big, 100, 64, size, "b")).toBe(90);
+    expect([...big.keys()]).toEqual(["b"]);
+    // Под потолком — ничего не трогает.
+    const ok = new Map<string, number | null | "pending">([["a", 10], ["b", 20]]);
+    expect(trimSampleCache(ok, 30, 64, size)).toBe(30);
+    expect(ok.size).toBe(2);
   });
 });

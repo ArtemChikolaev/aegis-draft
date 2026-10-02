@@ -269,6 +269,31 @@ export function sfxVerdict(kind: "won" | "lost"): void {
 // null и больше не запрашивается.
 const samples = new Map<string, AudioBuffer | null | Promise<void>>();
 
+/** Потолок декодированного PCM в кэше (M24, аудит 2026-09-27: кэш рос без вытеснения). Float32 тяжёл — секунда стерео
+ *  48 кГц ≈ 384 КБ: общие звуки Аркады ≈ 26 МБ, герой с голосом ≈ 13 МБ, — 64 МБ держат два-три героя за сессию. */
+export const SAMPLE_CACHE_BYTES = 64 * 1024 * 1024;
+let sampleBytes = 0;
+const sampleSize = (v: AudioBuffer | null | Promise<void>): number => (v && !(v instanceof Promise) ? v.length * v.numberOfChannels * 4 : 0);
+
+/** Вытеснить давние записи, пока их вес больше `cap`. Порядок Map — от давнего к свежему: сыгранный или снова запрошенный
+ *  клип переставляется в конец. Грузящиеся и битые записи ничего не весят и остаются; `keep` — только что положенный. */
+export function trimSampleCache<V>(cache: Map<string, V>, total: number, cap: number, sizeOf: (v: V) => number, keep?: string): number {
+  for (const [url, v] of cache) {
+    if (total <= cap) break;
+    const n = sizeOf(v);
+    if (n === 0 || url === keep) continue;
+    cache.delete(url);
+    total -= n;
+  }
+  return total;
+}
+
+/** Клип снова нужен — в конец очереди вытеснения. */
+function touchSample(url: string, buf: AudioBuffer): void {
+  samples.delete(url);
+  samples.set(url, buf);
+}
+
 /** Журнал для отладочной панели (`?sfxdebug=1` в Аркаде): что просили сыграть и что вышло. */
 export interface SfxLogEntry { t: number; url: string; status: "played" | "pending" | "failed" | "muted" | "no-context" | "suspended"; gain: number }
 const sfxLog: SfxLogEntry[] = [];
@@ -283,11 +308,17 @@ function logSfx(url: string, status: SfxLogEntry["status"], gain: number): void 
 
 export function preloadSample(url: string): void {
   const audio = ensureContext();
-  if (!audio || samples.has(url)) return;
+  if (!audio) return;
+  const have = samples.get(url);
+  if (have) { if (!(have instanceof Promise)) touchSample(url, have); return; }
+  if (have === null) return;
   const job = fetch(url)
     .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
     .then((buf) => audio.decodeAudioData(buf))
-    .then((decoded) => { samples.set(url, decoded); }, (err: unknown) => {
+    .then((decoded) => {
+      touchSample(url, decoded);
+      sampleBytes = trimSampleCache(samples, sampleBytes + sampleSize(decoded), SAMPLE_CACHE_BYTES, sampleSize, url);
+    }, (err: unknown) => {
       samples.set(url, null);
       sfxFailures++;
       if (sfxFailures <= 5) console.warn("[sfx] не удалось загрузить/декодировать сэмпл", url, err);
@@ -306,6 +337,7 @@ export function sfxSample(url: string, gain = 0.4, rate = 1, at = 0, channel: "s
   if (!buf || buf instanceof Promise) { logSfx(url, buf === null ? "failed" : "pending", gain); return false; }
   if (audio.state !== "running") { void audio.resume().catch(() => {}); logSfx(url, "suspended", gain); return false; }
   logSfx(url, "played", gain);
+  touchSample(url, buf);
   const src = audio.createBufferSource();
   src.buffer = buf;
   src.playbackRate.value = rate;
@@ -377,6 +409,7 @@ export function sfxLoop(url: string, gain = 0.3): (() => void) | null {
   if (!buf || buf instanceof Promise) return null;
   if (audio.state !== "running") { void audio.resume().catch(() => {}); logSfx(url, "suspended", gain); return null; }
   logSfx(url, "played", gain);
+  touchSample(url, buf);
   const src = audio.createBufferSource();
   src.buffer = loopBuffer(audio, buf); src.loop = true;
   const g = audio.createGain();

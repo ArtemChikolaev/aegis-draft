@@ -13,7 +13,7 @@ import { SCHOOL_ART, UPGRADE_BY_ID, upgradeFigures } from "../../game/arcade/con
 import type { PlayerStats, ArcadeOutcome } from "../../game/arcade/types.ts";
 import { RANK_TIERS, STARS, rankOf, rankStep } from "../../game/arcade/content/ranks.ts";
 import { ARCADE_ITEM_BY_ID, NEXT_RARITY, itemEffectsAt, type ItemEffect } from "../../game/arcade/content/items.ts";
-import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, type HeroId } from "../../game/arcade/content/heroes.ts";
+import { HEROES, HERO_IDS, abilityRankFigures, abilityRankScale, signatureVars, type HeroId } from "../../game/arcade/content/heroes.ts";
 import { scepterTalents, shardTalents, talentLabel } from "../../game/arcade/content/talents.ts";
 import { TalentTree, talentText } from "./TalentTree.tsx";
 import { RunWindow, openRunWindow, stepRunWindowFocus } from "./RunWindow.tsx";
@@ -54,6 +54,7 @@ import { HeroWardrobe, wornSkin } from "./HeroWardrobe.tsx";
 const PX = pixelScale() >= 1;
 const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
 import { PAD_GLYPH } from "./gamepad.ts";
+import { HINT_SEC, hintKeys, loadSeenHints, nextHint, saveSeenHints, type ArcadeHint } from "./hints.ts";
 import { compositionFor } from "../../game/arcade/content/compositions.ts";
 import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { groupHeroes, recentHeroes } from "../../game/arcade/heroPicker.ts";
@@ -214,7 +215,7 @@ function ArcadeSetup() {
             {(["q", "w", "e", "r"] as const).map((key) => (
               <li key={key}><AbilityIcon hero={heroId} k={key} size={30} /> <span>{t(`arcade.ab.${HEROES[heroId].kit}.${key}` as MessageKey)}</span><small>{t(`arcade.ab.${HEROES[heroId].kit}.${key}.desc` as MessageKey)}</small></li>
             ))}
-            {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey, sigVars(HEROES[heroId].signature))}</small></li>}
+            {HEROES[heroId].signature && <li key="sig" className="arcade-setup__kit-sig" data-testid="arcade-signature"><b>✦</b> <span>{t(`arcade.sig.${HEROES[heroId].signature.kind}` as MessageKey)}</span><small>{t(`arcade.sig.${HEROES[heroId].signature.kind}.desc` as MessageKey, signatureVars(HEROES[heroId].signature))}</small></li>}
           </ul>
           <details className="arcade-setup__talents" data-testid="arcade-setup-talents">
             <summary className="arcade-setup__label">{t("arcade.talents.title")}</summary>
@@ -335,6 +336,9 @@ function ArcadeStage() {
   const [padFocus, setPadFocus] = useState(0);
   const padFocusRef = useRef(0);
   const hudRef = useRef<HTMLDivElement>(null);
+  /** Подсказка механики на экране (M24): что объясняем и тик показа; увиденные — `hints.ts`, грузятся при первом показе. */
+  const hintRef = useRef<{ hint: ArcadeHint; at: number } | null>(null);
+  const seenHintsRef = useRef<Set<string> | null>(null);
   /** Раскрытый предмет в лавке: показываем его статы и описание, продажа — отдельной кнопкой. */
   const [openItem, setOpenItem] = useState<number | null>(null);
   /** Клятва охотника на экране контракта (T13.72): переключатель — локальный, в сим уходит `act` 6/7. */
@@ -663,6 +667,16 @@ function ArcadeStage() {
   // Элита с аффиксами рядом — строка вместо полосы босса, когда босса нет: что за кольцо и чего от неё ждать.
   const affixed = !boss && sim ? sim.affixedNear(460) : null;
   const streakTier = sim ? sim.streakTier() : 0;
+  // Подсказка при первой встрече (M24): гаснет через HINT_SEC секунд забега; новый забег (тик назад) — гаснет сразу.
+  // Выбирается только в живом бою без окон — под окном её бы не увидели, а «увиденной» она бы уже стала.
+  if (sim && hintRef.current && (sim.tick - hintRef.current.at >= sec(HINT_SEC) || sim.tick < hintRef.current.at)) hintRef.current = null;
+  if (sim && !hintRef.current && status === "running" && !modal) {
+    const seenHints = (seenHintsRef.current ??= loadSeenHints());
+    const next = nextHint(seenHints, affixed?.affix ?? 0, streakTier);
+    if (next) { hintRef.current = { hint: next, at: sim.tick }; for (const k of hintKeys(next)) seenHints.add(k); }
+  }
+  const hint = hintRef.current?.hint ?? null;
+  useEffect(() => { if (hint && seenHintsRef.current) saveSeenHints(seenHintsRef.current); }, [hint]);
   // Подсказка подбора у ног: ближайшее интерактивное побеждает (добыча → пруд → кузня → разлом); в окнах не показываем.
   const prompt = sim && status === "running" && !sim.lootOpen && !sim.buildOpen
     ? (sim.nearLoot ? "loot" : sim.nearPond ? (sim.pondOpen ? null : "pond") : sim.nearForge ? (sim.forgeOpen ? null : "forge") : sim.nearRift && !sim.riftOpen ? "rift" : null)
@@ -739,6 +753,15 @@ function ArcadeStage() {
                 <div className="arcade-bar arcade-bar--boss"><i style={{ transform: `scaleX(${Math.max(0, affixed.hp / affixed.maxHp)})` }} /></div>
               </div>
             )}
+            {hint && (
+              <div className="arcade-hud__tip" data-testid="arcade-hint" data-kind={hint.kind}>
+                <b><small>{t("arcade.hint.new")}</small> {t(hint.kind === "affix" ? "arcade.hint.affix" : "arcade.hint.streak")}</b>
+                {hint.kind === "affix"
+                  ? <>{hint.ids.map((id) => <span key={id}><i>{t(`arcade.affix.${id}` as MessageKey)}</i> — {t(`arcade.affix.${id}.desc` as MessageKey)}</span>)}<span>{t("arcade.hint.affixBody", { hp: ARCADE.affix.hpMult, xp: ARCADE.affix.xpMult, gold: ARCADE.affix.goldMult })}</span></>
+                  : <span>{t("arcade.hud.streakHint")}</span>}
+                <button type="button" className="arcade-hud__tip-close" aria-label={t("arcade.hint.close")} data-testid="arcade-hint-close" onPointerDown={(e) => e.stopPropagation()} onClick={() => { hintRef.current = null; bump(); }}>×</button>
+              </div>
+            )}
             </div>
             {prompt === "forge" && (
               <button type="button" className="arcade-hud__pickup" data-testid="arcade-forge-open" disabled={!sim.forgeReady()} onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); controllerRef.current?.onPickup?.(); }}>
@@ -794,7 +817,7 @@ function ArcadeStage() {
                     className="arcade-ability arcade-ability--sig"
                     data-slot="sig"
                     data-testid="arcade-hud-signature"
-                    title={`${t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} — ${t(`arcade.sig.${sim.hero.signature.kind}.desc` as MessageKey, sigVars(sim.hero.signature))}`}
+                    title={`${t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)} — ${t(`arcade.sig.${sim.hero.signature.kind}.desc` as MessageKey, signatureVars(sim.hero.signature, sim.sigScale()))}`}
                   >
                     <b>✦</b>
                     <small>{STACKING_SIGS.has(sim.hero.signature.kind) ? Math.round(p.stacks) : t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)}</small>
@@ -836,11 +859,14 @@ function ArcadeStage() {
                       data-slot={key}
                       data-locked={lvl === 0 ? "true" : undefined}
                       data-passive={ab.passive ? "true" : undefined}
+                      data-stolen={ab.kind === "spell_steal" && p.stolen ? p.stolen : undefined}
                       disabled={lvl === 0 || ab.passive}
                       onPointerDown={(e) => { e.stopPropagation(); cast(key); }}
-                      title={t(`arcade.ab.${sim.hero.kit}.${key}` as MessageKey)}
+                      title={ab.kind === "spell_steal" ? `${t(`arcade.ab.${sim.hero.kit}.${key}` as MessageKey)} — ${p.stolen ? t(`arcade.steal.${p.stolen}` as MessageKey) : t("arcade.steal.none")}` : t(`arcade.ab.${sim.hero.kit}.${key}` as MessageKey)}
                     >
                       <AbilityIcon hero={sim.hero.id} k={key} size={30} />
+                      {/* Spell Steal (M24): что сейчас украдено — подпись над кнопкой ульта. */}
+                      {ab.kind === "spell_steal" && p.stolen && <span className="arcade-ability__stolen" data-testid="arcade-stolen">{t(`arcade.steal.${p.stolen}.short` as MessageKey)}</span>}
                       <b>{padActive ? PAD_GLYPH[({ q: "cross", w: "circle", e: "square", r: "triangle" } as const)[key]] : key.toUpperCase()}</b>
                       <small>{lvl > 0 ? `${t("arcade.hud.lvlShort")}${lvl}` : "—"}</small>
                       {!ab.passive && (
@@ -1576,11 +1602,6 @@ function GearCard({ item, title, compact = false }: { item: GearItem | null; tit
       <p>{gearAffixes(t, item)}</p>
     </div>
   );
-}
-
-/** Числа фирменной пассивки для её описания (M23): у героев разные значения одного вида — Blur 10–22%, ярость +3…+5. */
-function sigVars(sig: { value: number; cap?: number }): Record<string, number> {
-  return { pct: Math.round(sig.value * 100), v: sig.value, cap: sig.cap ?? 0 };
 }
 
 /** Аффиксы предмета одной строкой; у Divine Rapier (T22.1) и Aegis (M23) — ещё и риск, чтобы потеря не была сюрпризом. */

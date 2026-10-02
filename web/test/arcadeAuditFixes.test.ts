@@ -108,3 +108,47 @@ describe("исправления по аудиту 2026-09-27", () => {
     expect(a.digest()).not.toBe(b.digest());
   });
 });
+
+describe("мелочи сима по аудиту 2026-09-27 (M24)", () => {
+  it("взрыв горящих (rad_blast) идёт очередью: цепочка смертей не углубляет стек и выкашивается целиком", () => {
+    const sim = field("fix-blast");
+    sim.player.upgrades.rad_blast = { rank: 1, power: 1, cap: 1 };
+    type Internals = { killEnemy(e: Enemy): void };
+    const a = sim as unknown as Internals;
+    // 60 горящих кобольдов сеткой с шагом 50 px: взрыв (60 px, 25 урона) убивает соседей, те взрываются дальше.
+    const N = 60, chain: Enemy[] = [];
+    for (let i = 0; i < N; i++) {
+      const e = priv(sim).spawnEnemy(ENEMY_KINDS.kobold, sim.player.x + 300 + (i % 12) * 50, sim.player.y + 300 + Math.floor(i / 12) * 50);
+      e.hp = e.maxHp = 5; e.burnUntil = sim.tick + sec(10);
+      chain.push(e);
+    }
+    const orig = a.killEnemy.bind(sim);
+    let depth = 0, maxDepth = 0, deaths = 0;
+    a.killEnemy = (e: Enemy) => { depth++; deaths++; maxDepth = Math.max(maxDepth, depth); try { orig(e); } finally { depth--; } };
+    sim.damageEnemy(chain[0], 100, "burst");
+    expect(chain.every((e) => !e.alive)).toBe(true);
+    expect(deaths).toBe(N);
+    expect(maxDepth).toBeLessThanOrEqual(2); // было: глубина = длина цепочки (killEnemy → damageEnemy → killEnemy)
+    expect(sim.fx.filter((f) => f.kind === "burst" && f.x2 === 60)).toHaveLength(N);
+  });
+
+  it("питомец держит цель, пока она жива и в радиусе поиска, — новый враг ближе не перебивает её", () => {
+    const sim = field("fix-pet-target");
+    take(sim, "beast_wolf");
+    sim.step(IDLE_INPUT);
+    const wolf = sim.pets.find((p) => p.kind === "wolf")!;
+    expect(wolf).toBeTruthy();
+    const first = priv(sim).spawnEnemy(ENEMY_KINDS.ogre, wolf.x + 150, wolf.y);
+    first.hp = first.maxHp = 1e6;
+    sim.step(IDLE_INPUT);
+    expect(wolf.target).toBe(first);
+    const near = priv(sim).spawnEnemy(ENEMY_KINDS.ogre, wolf.x + 14, wolf.y);
+    near.hp = near.maxHp = 1e6;
+    for (let i = 0; i < 30; i++) sim.step(IDLE_INPUT);
+    expect(wolf.target).toBe(first);
+    expect(wolf.targetId).toBe(first.id);
+    first.alive = false;
+    sim.step(IDLE_INPUT);
+    expect(wolf.target).toBe(near);
+  });
+});

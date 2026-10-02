@@ -808,8 +808,30 @@ export function dotaDir(dx: number, dy: number, dirs: number): number {
   return ((Math.round(angle / step) % dirs) + dirs) % dirs;
 }
 
-/** Нарисовать кадр листа Dota якорем ног в (x, y). Нет анимации — падаем на walk/idle; false — нечего рисовать. */
-let tintScratch: HTMLCanvasElement | null = null;
+/** Перекрашенные кадры (source-atop) — два последних. Ореол героя (effects.ts `rim`) рисует один кадр восемь раз со сдвигом
+ *  и двумя цветами, а прежде каждый сдвиг перекрашивал кадр заново — 16 перекрасок за кадр игры (аудит 2026-09-27, M24).
+ *  Листы после создания не меняются (картинка или готовый оффскрин), поэтому ключ — сама картинка, ряд, кадр и цвет. */
+interface TintSlot { canvas: HTMLCanvasElement; img: DotaSheet["img"] | null; row: number; f: number; size: number; tint: string }
+const tintSlots: TintSlot[] = [];
+let tintVictim = 0;
+function tintedFrame(sheet: DotaSheet, row: number, f: number, tint: string): HTMLCanvasElement {
+  const m = sheet.meta;
+  for (const s of tintSlots) if (s.img === sheet.img && s.row === row && s.f === f && s.size === m.frame && s.tint === tint) return s.canvas;
+  let s: TintSlot;
+  if (tintSlots.length < 2) { s = { canvas: document.createElement("canvas"), img: null, row: 0, f: 0, size: 0, tint: "" }; tintSlots.push(s); }
+  else { s = tintSlots[tintVictim]; tintVictim = (tintVictim + 1) % tintSlots.length; }
+  if (s.canvas.width < m.frame) s.canvas.width = s.canvas.height = m.frame;
+  const sc = s.canvas.getContext("2d")!;
+  sc.globalCompositeOperation = "source-over";
+  sc.clearRect(0, 0, m.frame, m.frame);
+  sc.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, 0, 0, m.frame, m.frame);
+  sc.globalCompositeOperation = "source-atop";
+  sc.fillStyle = tint;
+  sc.fillRect(0, 0, m.frame, m.frame);
+  sc.globalCompositeOperation = "source-over";
+  s.img = sheet.img; s.row = row; s.f = f; s.size = m.frame; s.tint = tint;
+  return s.canvas;
+}
 
 /**
  * Кадр листа Dota. `tint` — цвет поверх силуэта (source-atop): у части пропсов (листва деревьев, камни) в
@@ -824,21 +846,8 @@ export function drawDotaFrame(c: CanvasRenderingContext2D, sheet: DotaSheet, ani
   const scale = (m.world / m.frame) * sizeMult;
   const w = m.frame * scale;
   c.globalAlpha = alpha;
-  if (tint) {
-    if (!tintScratch) tintScratch = document.createElement("canvas");
-    if (tintScratch.width < m.frame) tintScratch.width = tintScratch.height = m.frame;
-    const sc = tintScratch.getContext("2d")!;
-    sc.globalCompositeOperation = "source-over";
-    sc.clearRect(0, 0, m.frame, m.frame);
-    sc.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, 0, 0, m.frame, m.frame);
-    sc.globalCompositeOperation = "source-atop";
-    sc.fillStyle = tint;
-    sc.fillRect(0, 0, m.frame, m.frame);
-    sc.globalCompositeOperation = "source-over";
-    c.drawImage(tintScratch, 0, 0, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
-  } else {
-    c.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
-  }
+  if (tint) c.drawImage(tintedFrame(sheet, row, f, tint), 0, 0, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
+  else c.drawImage(sheet.img, f * m.frame, row * m.frame, m.frame, m.frame, x - w * m.anchor.x, y - w * m.anchor.y, w, w);
   c.globalAlpha = 1;
   return true;
 }

@@ -11,16 +11,17 @@
 import { Rng } from "../rng.ts";
 import { ObstacleGrid, generateMap } from "./mapgen.ts";
 import { PETS, SUMMONS, type PetDef, type PetKind, type SummonBody } from "./content/pets.ts";
-import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type DmgOrigin, type ArcherLine, type SporePuddle, type Blast } from "./types.ts";
+import { RUNE_KINDS, type Barrow, type Camp, type Contract, type ContractReward, type ContractTarget, type CurseId, type Den, type Ford, type Forge, type Grove, type Lair, type Outpost, type Pond, type RuneKind, type UpgradeType, type DmgSource, type DmgOrigin, type ArcherLine, type SporePuddle, type Blast, type NeutralCastId } from "./types.ts";
 import { DEV_FREE_SHOP, ARCADE, DT, TICK_HZ, sec, streakTierOf } from "./config.ts";
 import { AFFIX, AFFIX_IDS, AFFIX_IDS_RANGED, ENEMY_KINDS, spawnPool } from "./content/enemies.ts";
 import { TRAITS, applyTrait, isTraitId, type TraitDef } from "./content/traits.ts";
 import { COMPOSITIONS, type ActProperty, type CompositionId, compositionFor, hasPlace, isCompositionId } from "./content/compositions.ts";
 import { LEGENDARY_LEVELS, LEGENDARY_UPGRADES, SCHOOLS, UPGRADES, UPGRADE_BY_ID } from "./content/schools.ts";
 import { applyKitTalent, cloneHeroDef, kitTalent, scepterTalents, shardTalents, talentOffer } from "./content/talents.ts";
+import { dcos, datan2, dsin } from "./dmath.ts";
 import { rankOf, type RankRules } from "./content/ranks.ts";
 import { ARCADE_ITEMS, ARCADE_ITEM_BY_ID, ITEM_FAMILIES, ITEM_PRICE_MULT, NEXT_RARITY, itemEffectsAt, type ArcadeItemDef, type ShopOffer } from "./content/items.ts";
-import { type FormDef, HEROES, abilityRankScale, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
+import { type FormDef, HEROES, SIG_CAPS, abilityRankScale, type AbilityDef, type AbilityKind, type HeroDef, type HeroId } from "./content/heroes.ts";
 import { NEUTRAL_BY_ID, NEUTRAL_ENCHANTS, NEUTRAL_ENCHANT_BY_ID, NEUTRAL_TIER_AT_MIN, neutralsOfTier, type NeutralDef, type NeutralPropId } from "./content/neutrals.ts";
 import { GEAR_SLOTS, gearEffect, reforgeGear, rollGear, temperGear, uniqueGear, type GearItem, type GearSlot } from "./content/gear.ts";
 import { LEGACY_NONE, type LegacyBonus } from "./content/legacy.ts";
@@ -84,6 +85,8 @@ function rotate(x: number, y: number, c: number, s: number): [number, number] {
 const ABILITY_KEYS: readonly AbilityKey[] = ["q", "w", "e", "r"];
 /** Бит ручного каста умения во вводе (`ArcadeInput.cast`). */
 const CAST_MASK: Readonly<Record<AbilityKey, number>> = { q: 1, w: 2, e: 4, r: 8 };
+/** Порядок украденных умений в контрольной сумме (Spell Steal). */
+const STOLEN_ORDER: readonly NeutralCastId[] = ["stomp", "clap", "purge", "frost_armor"];
 /** Окно, которое держит мир на паузе и принимает ввод (см. `ArcadeSim.activeModal`). */
 export type ArcadeModal = "buyback" | "pending" | "shop" | "neutral" | "roshan" | "loot" | "pond" | "contract" | "forge" | "rift" | "build";
 
@@ -350,9 +353,10 @@ export class ArcadeSim {
   /** Взято хоть одно благословение «Каст» — проверка в горячем пути damageEnemy одним чтением. */
   private castProcs = false;
   private drainRef: Enemy | null = null;
-  /** Очередь распространения яда со смертей этого вызова (см. killEnemy/drainPoisonSpread). */
+  /** Очереди смертей этого вызова (см. killEnemy/drainDeathEffects): распространение яда и взрывы горящих (rad_blast). */
   private poisonSpread: { from: Enemy; x: number; y: number; dps: number; stacks: number; radius: number; limit: number }[] = [];
-  private spreadingPoison = false;
+  private blastQueue: { x: number; y: number; dmg: number }[] = [];
+  private drainingDeaths = false;
   /** Происхождение урона летящего снаряда, пока идёт его попадание (moveProjectiles). */
   private projOrigin: DmgOrigin = "other";
   private archerCnt: number[] = [];
@@ -403,7 +407,7 @@ export class ArcadeSim {
       facingX: 1, facingY: 0, aimX: 1, aimY: 0, aimUntil: 0, attackCd: 0, attackCdMax: 0, stunUntil: 0, invulnUntil: 0, aegis: false, aegisUsed: false, cheese: false, refresherShard: false, aghanimShard: false, aghanimScepter: false,
       abilities: { q: 0, w: 0, e: 0, r: 0 }, cooldowns: { q: 0, w: 0, e: 0, r: 0 },
       autoCast: { q: true, w: true, e: true, r: true }, autoAttack: true,
-      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, armorBuffAmt: 0, blinkCharges: ARCADE.blink.charges, blinkCd: 0, blinkAt: -ARCADE.blink.lockout, swiftUntil: 0, pounceUntil: 0, streak: 0, bestStreak: 0, frostUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
+      spinUntil: 0, spiritsUntil: 0, tetherUntil: 0, tetherPet: -1, wardUntil: 0, wardX: 0, wardY: 0, burstLeft: 0, burstNextAt: 0, fieldUntil: 0, zoneUntil: 0, zoneX: 0, zoneY: 0, remnantUntil: 0, remnantX: 0, remnantY: 0, edictUntil: 0, metaUntil: 0, metaMult: 0, pactUntil: 0, pactMult: 0, armorBuffUntil: 0, armorBuffAmt: 0, blinkCharges: ARCADE.blink.charges, blinkCd: 0, blinkAt: -ARCADE.blink.lockout, swiftUntil: 0, pounceUntil: 0, streak: 0, bestStreak: 0, frostUntil: 0, hasteUntil: 0, ddUntil: 0, shieldHp: 0, shieldUntil: 0, arcaneUntil: 0, stacks: 0, stackTarget: -1, sigUntil: 0, lotusUntil: 0, reincAt: 0, formUntil: 0, sigArmed: false, stolen: null, rageUntil: 0, rageMult: 0, frenzyUntil: 0, frenzyMult: 0, evadeUntil: 0, evadeChance: 0, drainUntil: 0, drainTarget: -1,
       schools: [], upgrades: {}, talents: [], items: [], neutral: null, neutralEnchant: null, curse: null, debtLeft: 0, ritualKind: null, ritualUntil: 0, gear: {}, bag: [], stats: baseStats(), ringAt: 0, shardsAt: 0, staticAt: 0, cloudAt: 0, fangsAt: 0,
     };
     // Первое очко — сразу в Q (у Io — в Spirits, `startKey`): так первые 30 секунд не голые (в Dota первый уровень тоже с абилкой).
@@ -500,7 +504,7 @@ export class ArcadeSim {
       this.events.ambushes++;
       // Пока скрыт — отсиживается в стороне от героя, чтобы не мешать и не выдавать себя.
       const a = this.rng.float() * Math.PI * 2;
-      e.x = clamp(p.x + Math.cos(a) * 320, 20, ARCADE.world.w - 20); e.y = clamp(p.y + Math.sin(a) * 320, 20, ARCADE.world.h - 20);
+      e.x = clamp(p.x + dcos(a) * 320, 20, ARCADE.world.w - 20); e.y = clamp(p.y + dsin(a) * 320, 20, ARCADE.world.h - 20);
     }
   }
 
@@ -808,7 +812,7 @@ export class ArcadeSim {
     let best: [number, number] = [sx, sy], bestScore = -Infinity;
     for (let i = 0; i < 12; i++) {
       const a = rng.float() * Math.PI * 2;
-      const ex = clamp(sx + Math.cos(a) * C.length, 100, W.w - 100), ey = clamp(sy + Math.sin(a) * C.length, 100, W.h - 100);
+      const ex = clamp(sx + dcos(a) * C.length, 100, W.w - 100), ey = clamp(sy + dsin(a) * C.length, 100, W.h - 100);
       if (this.pit && Math.abs(ey - ARCADE.river.y) < ARCADE.river.halfWidth + 60) continue;
       const mx = (sx + ex) / 2, my = (sy + ey) / 2;
       const nearest = others.reduce((m, o) => Math.min(m, len(ex - o.x, ey - o.y), len(mx - o.x, my - o.y)), Infinity);
@@ -867,7 +871,7 @@ export class ArcadeSim {
       const pool = spawnPool(this.minutes, this.act);
       for (let i = 0; i < C.raidSize; i++) {
         const a = this.rng.float() * Math.PI * 2, r = C.raidRingMin + this.rng.float() * (C.raidRingMax - C.raidRingMin);
-        const [x, y] = this.obstacles.resolve(clamp(c.x + Math.cos(a) * r, 8, ARCADE.world.w - 8), clamp(c.y + Math.sin(a) * r, 8, ARCADE.world.h - 8), 24);
+        const [x, y] = this.obstacles.resolve(clamp(c.x + dcos(a) * r, 8, ARCADE.world.w - 8), clamp(c.y + dsin(a) * r, 8, ARCADE.world.h - 8), 24);
         this.spawnEnemy(weightedPick(this.rng, pool), x, y);
       }
     }
@@ -1042,7 +1046,7 @@ export class ArcadeSim {
     const idol = idols[this.rng.int(idols.length)];
     for (let i = 0; i < n; i++) {
       const a = this.rng.float() * Math.PI * 2, d = 24 + this.rng.float() * 40;
-      const [sx, sy] = this.obstacles.resolve(clamp(idol.x + Math.cos(a) * d, 8, ARCADE.world.w - 8), clamp(idol.y + Math.sin(a) * d, 8, ARCADE.world.h - 8), 12);
+      const [sx, sy] = this.obstacles.resolve(clamp(idol.x + dcos(a) * d, 8, ARCADE.world.w - 8), clamp(idol.y + dsin(a) * d, 8, ARCADE.world.h - 8), 12);
       this.spawnEnemy(ENEMY_KINDS.skeleton_warrior, sx, sy);
     }
     this.pushFx("nova", idol.x, idol.y, 60, 0, 14);
@@ -1084,7 +1088,7 @@ export class ArcadeSim {
     let best: Grove | null = null;
     for (let i = 0; i < 40; i++) {
       const a = rng.float() * Math.PI * 2, d = C.distMin + rng.float() * (C.distMax - C.distMin);
-      const x = clamp(cx0 + Math.cos(a) * d, 120, W.w - 120), y = clamp(cy0 + Math.sin(a) * d, 120, W.h - 120);
+      const x = clamp(cx0 + dcos(a) * d, 120, W.w - 120), y = clamp(cy0 + dsin(a) * d, 120, W.h - 120);
       if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
       if ((this.camp && len(x - this.camp.x, y - this.camp.y) < C.minFromOthers) || (this.outpost && len(x - this.outpost.x, y - this.outpost.y) < C.minFromOthers) || (this.pond && len(x - this.pond.x, y - this.pond.y) < C.minFromOthers)) continue;
       if (this.obstacles.blocked(x, y, 40)) continue;
@@ -1319,7 +1323,7 @@ export class ArcadeSim {
     let best: [number, number] | null = null, bestScore = -Infinity;
     for (let i = 0; i < tries; i++) {
       const a = rng.float() * Math.PI * 2, d = distMin + rng.float() * (distMax - distMin);
-      const x = clamp(cx0 + Math.cos(a) * d, margin, W.w - margin), y = clamp(cy0 + Math.sin(a) * d, margin, W.h - margin);
+      const x = clamp(cx0 + dcos(a) * d, margin, W.w - margin), y = clamp(cy0 + dsin(a) * d, margin, W.h - margin);
       if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 80 || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + 80)) continue;
       if (this.obstacles.blocked(x, y, blockR)) continue;
       const nearest = others.reduce((m, o) => Math.min(m, len(x - o.x, y - o.y)), Infinity);
@@ -1372,8 +1376,8 @@ export class ArcadeSim {
     let x = cx0 + C.distMin, y = cy0;
     for (let i = 0; i < 24; i++) {
       const a = rng.float() * Math.PI * 2, d = C.distMin + rng.float() * (C.distMax - C.distMin);
-      x = clamp(cx0 + Math.cos(a) * d, C.radius + 60, W.w - C.radius - 60);
-      y = clamp(cy0 + Math.sin(a) * d, C.radius + 60, W.h - C.radius - 60);
+      x = clamp(cx0 + dcos(a) * d, C.radius + 60, W.w - C.radius - 60);
+      y = clamp(cy0 + dsin(a) * d, C.radius + 60, W.h - C.radius - 60);
       if (this.pit && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + C.radius || len(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.leash + C.radius)) continue;
       if (this.obstacles.blocked(x, y, 40)) continue;
       let free = true;
@@ -1389,7 +1393,7 @@ export class ArcadeSim {
 
   private totemPoint(cx: number, cy: number, i: number): [number, number] {
     const a = -Math.PI / 2 + (i / ARCADE.camp.totems) * Math.PI * 2;
-    return [cx + Math.cos(a) * ARCADE.camp.totemRing, cy + Math.sin(a) * ARCADE.camp.totemRing];
+    return [cx + dcos(a) * ARCADE.camp.totemRing, cy + dsin(a) * ARCADE.camp.totemRing];
   }
 
   /** Живые тотемы лагеря (для HUD/рендера и щита Осквернителя). За O(1): тотем умирает только через killEnemy,
@@ -1749,7 +1753,7 @@ export class ArcadeSim {
     const n = ab.count?.[p.abilities[key]] ?? 5, r = ab.radius ?? 130;
     const base = (this.tick / TICK_HZ / ARCADE.io.orbitSec) * Math.PI * 2;
     const out: [number, number][] = [];
-    for (let i = 0; i < n; i++) { const a = base + (i / n) * Math.PI * 2; out.push([p.x + Math.cos(a) * r, p.y + Math.sin(a) * r * 0.8]); }
+    for (let i = 0; i < n; i++) { const a = base + (i / n) * Math.PI * 2; out.push([p.x + dcos(a) * r, p.y + dsin(a) * r * 0.8]); }
     return out;
   }
 
@@ -1787,7 +1791,7 @@ export class ArcadeSim {
         { const ax = target.x - p.x, ay = target.y - p.y, al = len(ax, ay) || 1; p.aimX = ax / al; p.aimY = ay / al; p.aimUntil = this.tick + sec(0.45); }
         {
           let k = 1;
-          if (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil) k *= 1 - Math.min(0.6, this.hero.signature.value * this.sigScale());
+          if (this.hero.signature?.kind === "fiery_soul" && this.tick < p.sigUntil) k *= 1 - Math.min(SIG_CAPS.fiery_soul, this.hero.signature.value * this.sigScale());
           if (this.tick < p.frenzyUntil) k *= 1 - p.frenzyMult;
           if (this.tick < p.swiftUntil) k *= ARCADE.blink.swift.attackMult; // Swift Blink
           p.attackCd = sec(p.stats.attackInterval * Math.max(0.25, k));
@@ -1852,6 +1856,12 @@ export class ArcadeSim {
       case "mass_freeze": case "requiem": case "ravage":
         return bossNear || near() >= A.ultEnemies || (hpPct < A.ultHpPct && near() >= 3);
       case "life_drain": return bossNear || (hpPct < 0.6 && near() >= 2) || this.eliteWithin(p.x, p.y, radius) !== null;
+      case "spell_steal": {
+        // Красть есть у кого или уже есть что колдовать — и рядом есть по кому: круг Stomp/Clap, а не радиус кражи.
+        if (p.stolen === null && this.stealTarget(radius) === null) return false;
+        const n = this.countEnemiesWithin(p.x, p.y, ARCADE.spellSteal.reach);
+        return bossNear || n >= A.aoeEnemies || (hpPct < 0.5 && n >= 1);
+      }
       default: return false;
     }
   }
@@ -1876,6 +1886,14 @@ export class ArcadeSim {
       case "spirits":
         p.spiritsUntil = this.tick + sec(ab.duration ?? 12);
         break;
+      case "spell_steal": {
+        // Кража — у ближайшего колдуна в радиусе (колдующий сейчас — первым); нет никого — колдуем то, что уже украдено.
+        const from = this.stealTarget(radius);
+        if (from) { p.stolen = from.kind.cast!; this.pushFx("zap", from.x, from.y, p.x, p.y, 12); }
+        if (p.stolen === null) { cast = false; break; }
+        this.castStolen(p.stolen, value, lvl);
+        break;
+      }
       case "spin":
         p.spinUntil = this.tick + sec(ab.duration ?? 4);
         this.pushFx("spin", p.x, p.y, 0, 0, sec(ab.duration ?? 4));
@@ -2096,10 +2114,10 @@ export class ArcadeSim {
       case "multishot": {
         const n = ab.count?.[lvl] ?? 5;
         const fl = len(p.facingX, p.facingY) || 1;
-        const base = Math.atan2(p.facingY / fl, p.facingX / fl);
+        const base = datan2(p.facingY / fl, p.facingX / fl);
         for (let i = 0; i < n; i++) {
           const a = base + (i - (n - 1) / 2) * (Math.PI * 70 / 180) / Math.max(1, n - 1);
-          this.spawnProjectile(p.x, p.y, Math.cos(a) * 520, Math.sin(a) * 520, 6, value, sec(radius / 520), 1, "arrow", false);
+          this.spawnProjectile(p.x, p.y, dcos(a) * 520, dsin(a) * 520, 6, value, sec(radius / 520), 1, "arrow", false);
         }
         break;
       }
@@ -2193,7 +2211,7 @@ export class ArcadeSim {
     if (ab.kind === "culling_blade" && p.cooldowns[key] === -1) p.cooldowns[key] = sec(1.5);
     else p.cooldowns[key] = sec(ab.cooldown * abilityRankScale(ab, lvl).cd * (1 - p.stats.cooldown) * (key === "r" && this.upgradePower("leg_refresher") > 0 ? 0.5 : 1) * (this.tick < p.arcaneUntil ? 1 - ARCADE.rune.arcane.cooldown : 1));
     // Multicast (Ogre Magi): с шансом умение срабатывает ещё раз на следующем тике (перезарядка сбрасывается до 1 тика).
-    if (sig?.kind === "multicast" && key !== "r" && ab.cooldown > 0 && this.rng.float() < Math.min(0.6, sig.value * this.sigScale())) { p.cooldowns[key] = 1; this.pushFx("levelup", p.x, p.y, 0, 0, 12); }
+    if (sig?.kind === "multicast" && key !== "r" && ab.cooldown > 0 && this.rng.float() < Math.min(SIG_CAPS.multicast, sig.value * this.sigScale())) { p.cooldowns[key] = 1; this.pushFx("levelup", p.x, p.y, 0, 0, 12); }
     // Arcane Ring (T20.5): каст умения сокращает перезарядку следующего заряда Blink.
     if (this.neutralProp === "arcane_ring" && p.blinkCharges < this.blinkMaxCharges()) p.blinkCd = Math.max(1, p.blinkCd - ARCADE.neutralProps.arcaneRingBlink);
     // Refresher Shard (награда Рошана, T20.2): ульт не уходит в перезарядку, Q/W/E сброшены — второй каст сразу.
@@ -2445,9 +2463,9 @@ export class ArcadeSim {
     } else if (sig?.kind === "marksmanship") {
       // Пассивная прибавка за дистанцию, не крит: не красим в крит, иначе Drow «критует» каждым выстрелом (владелец 2026-09-12).
       if (len(e.x - p.x, e.y - p.y) >= (sig.radius ?? 220)) dmg *= 1 + sig.value * sc;
-    } else if (sig?.kind === "timelock" && this.rng.float() < Math.min(0.5, sig.value * sc)) {
+    } else if (sig?.kind === "timelock" && this.rng.float() < Math.min(SIG_CAPS.timelock, sig.value * sc)) {
       dmg += 20 * sc; this.stun(e, sig.duration ?? 0.5); kind = "crit";
-    } else if (sig?.kind === "crit" && this.rng.float() < Math.min(0.6, sig.value * sc)) {
+    } else if (sig?.kind === "crit" && this.rng.float() < Math.min(SIG_CAPS.crit, sig.value * sc)) {
       dmg *= sig.cap ?? 2; kind = "crit"; // Blade Dance: шанс на усиленный удар
     }
     // Пассивки собственных китов на удар: Searing Arrows, Mana Break, Frost Arrows; ярость (God's Strength/Enrage/Warpath/Death Pact).
@@ -2468,7 +2486,7 @@ export class ArcadeSim {
     // фирменные пассивки (Blade Dance, Меткость, Time Lock), а раньше они в счётчик не попадали.
     if (kind === "crit") this.events.crits++;
     const landed = this.damageEnemy(e, dmg, kind, "attack");
-    if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * Math.min(0.95, sig.value * sc), "slash"); }
+    if (sig?.kind === "cleave") { for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 85)) if (o !== e) this.damageEnemy(o, dmg * Math.min(SIG_CAPS.cleave, sig.value * sc), "slash"); }
     if (sig?.kind === "overload" && p.sigArmed) {
       p.sigArmed = false;
       for (const o of this.enemiesWithin(e.x, e.y, sig.radius ?? 80)) this.damageEnemy(o, sig.value * sc, "zap");
@@ -2578,6 +2596,56 @@ export class ArcadeSim {
       }
       this.pushFx("zap", e.x, e.y, e.x + e.castX * P.length, e.y + e.castY * P.length, 10);
     }
+  }
+
+  /** Spell Steal: ближайший нейтрал с умением в радиусе кражи; тот, кто колдует прямо сейчас (телеграф), — первым. */
+  private stealTarget(radius: number): Enemy | null {
+    const p = this.player;
+    let best: Enemy | null = null, bestD = Infinity, bestCasting = false;
+    for (const e of this.enemies) {
+      if (!e.alive || !e.kind.cast) continue;
+      const d = len(e.x - p.x, e.y - p.y) - e.kind.r;
+      if (d > radius || !this.targetable(e)) continue;
+      const casting = e.castT > 0;
+      if ((casting && !bestCasting) || (casting === bestCasting && d < bestD)) { best = e; bestD = d; bestCasting = casting; }
+    }
+    return best;
+  }
+
+  /** Украденное умение в руках Rubick (ARCADE.spellSteal): форма и контроль — как у нейтрала, но крупнее и сразу, без
+   *  телеграфа; урон — значение ульта. Purge снимает с врагов их усиления: щит шамана, Frost Armor, клич знаменосца. */
+  private castStolen(spell: NeutralCastId, dmg: number, lvl: number): void {
+    const p = this.player, S = ARCADE.spellSteal;
+    if (spell === "stomp" || spell === "clap") {
+      const radius = spell === "stomp" ? S.stomp.radius : S.clap.radius;
+      for (const e of this.enemiesWithin(p.x, p.y, radius)) {
+        this.damageEnemy(e, dmg, "burst");
+        if (spell === "stomp") this.stun(e, S.stomp.stun); else this.applyChill(e, S.clap.slow, S.clap.slowSec, false);
+      }
+      this.pushFx("nova", p.x, p.y, radius, 0, 16);
+      this.shake = Math.max(this.shake, 6);
+      return;
+    }
+    if (spell === "purge") {
+      const t = this.nearestEnemy(p.x, p.y, S.purge.length);
+      const dx = t ? t.x - p.x : p.facingX, dy = t ? t.y - p.y : p.facingY, d = len(dx, dy) || 1;
+      const ux = dx / d, uy = dy / d;
+      for (const e of this.enemiesWithin(p.x, p.y, S.purge.length)) {
+        const along = (e.x - p.x) * ux + (e.y - p.y) * uy;
+        if (along < 0 || Math.abs((e.x - p.x) * uy - (e.y - p.y) * ux) > S.purge.width / 2 + e.kind.r) continue;
+        e.shieldUntil = 0; e.armorUntil = 0; e.ampUntil = 0;
+        this.damageEnemy(e, dmg, "zap");
+        this.applyChill(e, S.purge.slow, S.purge.slowSec, false);
+      }
+      this.pushFx("zap", p.x, p.y, p.x + ux * S.purge.length, p.y + uy * S.purge.length, 12);
+      return;
+    }
+    // Frost Armor — на себя: броня по рангу ульта и холодный толчок по тем, кто рядом.
+    const F = S.frostArmor, armor = F.armor[lvl] ?? F.armor[F.armor.length - 1];
+    p.armorBuffAmt = this.tick < p.armorBuffUntil ? Math.max(p.armorBuffAmt, armor) : armor;
+    p.armorBuffUntil = Math.max(p.armorBuffUntil, this.tick + sec(F.seconds));
+    for (const e of this.enemiesWithin(p.x, p.y, F.radius)) this.applyChill(e, F.slow, F.slowSec, false);
+    this.pushFx("nova", p.x, p.y, F.radius, 0, 16);
   }
 
   /** Периодические свойства нейтралок (T20.5): лопата копает золото, плащ жжёт вокруг, Ex Machina сбрасывает Q/W/E. */
@@ -2764,7 +2832,8 @@ export class ArcadeSim {
   }
 
   /** Множитель фирменной пассивки от её пассивного слота (kind "signature"); без слота или на 0-м уровне — 1. */
-  private sigScale(): number {
+  /** Множитель ранга фирменной пассивки (значение умения-«подписи» на его уровне; 1 — первый ранг или без него). */
+  sigScale(): number {
     for (const key of ABILITY_KEYS) {
       const ab = this.hero.abilities[key];
       if (ab.kind === "signature") { const lvl = this.player.abilities[key]; return lvl > 0 ? ab.value[lvl] : 1; }
@@ -2970,7 +3039,7 @@ export class ArcadeSim {
     }
     if (e === this.defiler) { this.defiler = null; this.shake = Math.max(this.shake, 12); this.pushFx("nova", e.x, e.y, 150, 0, 24); this.tryClearCamp(); }
     // Распространение яда при смерти (T13.47): часть стаков соседям; Пандемия — все стаки всем рядом. Только на смерти.
-    // Само наложение — НЕ здесь, а из очереди в конце killEnemy (drainPoisonSpread): applyPoison на полном стеке взрывается
+    // Само наложение — НЕ здесь, а из очереди в конце killEnemy (drainDeathEffects): applyPoison на полном стеке взрывается
     // («Дистилляция», яд+огонь) и убивает, убитый снова распространяет яд — прежний прямой вызов давал рекурсию глубиной в
     // цепочку (до числа врагов в толпе) прямо посреди этой функции.
     if (this.tick < e.poisonUntil && e.poisonStacks > 0) {
@@ -2987,16 +3056,10 @@ export class ArcadeSim {
     const gentle = ARCADE.spawn.base / this.spawnBase();
     this.gainGold((e.kind.gold * (affixed ? A.goldMult : 1) + p.stats.goldPerKill) * this.streakGoldMult() * gentle);
     this.dropShard(e.x, e.y, e.kind.xp * (affixed ? A.xpMult : 1) * gentle);
+    // Взрыв горящего (rad_blast) — в очередь, как яд (M24, аудит 2026-09-27): раньше он бил соседей прямо здесь, и их смерти
+    // взрывались вложенно — глубина стека росла с цепочкой, а чужой killEnemy шёл посреди этого. Урон считается сейчас.
     const blast = this.upgradePower("rad_blast");
-    if (blast > 0 && this.tick < e.burnUntil) {
-      // Взрыв горящего — урон школы Radiance, а не того, чем добили.
-      const dmg = 25 * blast * this.burnMult();
-      const src = this.dmgSource;
-      this.dmgSource = "school";
-      for (const o of this.enemiesWithin(e.x, e.y, 60)) if (o !== e) this.damageEnemy(o, dmg, "burst");
-      this.dmgSource = src;
-      this.pushFx("burst", e.x, e.y, 60, 0, 14);
-    }
+    if (blast > 0 && this.tick < e.burnUntil) this.blastQueue.push({ x: e.x, y: e.y, dmg: 25 * blast * this.burnMult() });
     // Пул врагов переиспользует объекты: ссылку на босса снимаем сразу, иначе «Рошан жив» проверяет
     // уже кобольда в том же объекте и глушит спавн до конца забега (баг a0.2–a0.5, 2026-09-05).
     if (e === this.roshan) { this.roshan = null; this.roshanDiedAt = this.actTick; }
@@ -3033,24 +3096,33 @@ export class ArcadeSim {
       this.greedUntil = Math.max(this.greedUntil, this.tick + ARCADE.greed.duration);
       this.pushFx("nova", e.x, e.y, 160, 0, 30);
     }
-    this.drainPoisonSpread();
+    this.drainDeathEffects();
   }
 
-  /** Развернуть очередь распространения яда (см. killEnemy). Зовётся в конце каждой смерти, но работает только внешний
-   *  вызов: смерти от взрывов внутри него дописывают очередь и выходят — цепочка любой длины идёт циклом, глубина стека
-   *  постоянна. Итог тот же, что у прежней рекурсии (те же соседи, стаки и взрывы), порядок — по очереди смертей. */
-  private drainPoisonSpread(): void {
-    if (this.spreadingPoison) return;
-    this.spreadingPoison = true;
-    const q = this.poisonSpread;
-    for (let i = 0; i < q.length; i++) {
-      const s = q[i];
+  /** Развернуть очереди смертей (см. killEnemy): взрывы горящих и распространение яда. Зовётся в конце каждой смерти, но
+   *  работает только внешний вызов: смерти внутри него дописывают очереди и выходят — цепочка любой длины идёт циклом,
+   *  глубина стека постоянна. Взрывы — раньше яда той же волны (прежде взрыв шёл прямо в killEnemy). */
+  private drainDeathEffects(): void {
+    if (this.drainingDeaths) return;
+    this.drainingDeaths = true;
+    const q = this.poisonSpread, b = this.blastQueue;
+    for (let i = 0, j = 0; i < q.length || j < b.length; ) {
+      if (j < b.length) {
+        // Взрыв горящего — урон школы Radiance, а не того, чем добили.
+        const s = b[j++], src = this.dmgSource;
+        this.dmgSource = "school";
+        for (const o of this.enemiesWithin(s.x, s.y, 60)) this.damageEnemy(o, s.dmg, "burst");
+        this.dmgSource = src;
+        this.pushFx("burst", s.x, s.y, 60, 0, 14);
+        continue;
+      }
+      const s = q[i++];
       const near = this.enemiesWithin(s.x, s.y, s.radius).filter((o) => o !== s.from && o.alive).sort((a, b) => len(a.x - s.x, a.y - s.y) - len(b.x - s.x, b.y - s.y)).slice(0, s.limit);
       for (const o of near) for (let k = 0; k < s.stacks; k++) this.applyPoison(o, s.dps);
       if (near.length) this.pushFx("nova", s.x, s.y, s.radius, 0, 10);
     }
-    q.length = 0;
-    this.spreadingPoison = false;
+    q.length = 0; b.length = 0;
+    this.drainingDeaths = false;
   }
 
   /** Урон по герою; возвращает, сколько HP реально снято (0 — уклонился, неуязвим или всё принял щит): от этого
@@ -3156,7 +3228,10 @@ export class ArcadeSim {
   /** Цена выкупа сейчас: большее из `(base + perMin × минута) × growth^выкупов` и доли `goldShare` золота на руках. */
   buybackPrice(): number {
     const B = ARCADE.buyback;
-    return Math.max(Math.round((B.base + B.perMin * this.minutes) * B.growth ** this.buybacks), Math.round(this.player.gold * B.goldShare));
+    // Степень — умножением (M24): `**` в JS приблизителен и мог бы разойтись между движками; целый показатель — точно.
+    let growth = 1;
+    for (let i = 0; i < this.buybacks; i++) growth *= B.growth;
+    return Math.max(Math.round((B.base + B.perMin * this.minutes) * growth), Math.round(this.player.gold * B.goldShare));
   }
 
   /** Выкуп возможен: лимит за акт не исчерпан и золота хватает. */
@@ -3410,7 +3485,7 @@ export class ArcadeSim {
       for (let i = 0; i < n; i++) {
         const kind = heavy && i % 2 === 1 ? ENEMY_KINDS.hellbear : ENEMY_KINDS.satyr;
         const a = this.rng.float() * Math.PI * 2, d = C.guardRingMin + this.rng.float() * (C.guardRingMax - C.guardRingMin);
-        const [gx, gy] = this.obstacles.resolve(clamp(camp.x + Math.cos(a) * d, 8, ARCADE.world.w - 8), clamp(camp.y + Math.sin(a) * d, 8, ARCADE.world.h - 8), 24);
+        const [gx, gy] = this.obstacles.resolve(clamp(camp.x + dcos(a) * d, 8, ARCADE.world.w - 8), clamp(camp.y + dsin(a) * d, 8, ARCADE.world.h - 8), 24);
         const g = this.spawnEnemy(kind, gx, gy);
         const mult = 1 + C.guardHpPerDestroyed * camp.destroyed;
         g.hp *= mult; g.maxHp *= mult;
@@ -4030,7 +4105,7 @@ export class ArcadeSim {
     for (let i = 0; i < total; i++) {
       const ang = (i / total) * Math.PI * 2 + Math.PI * 0.75;
       const off = body.stationary ? 26 : 34;
-      const x = p.x + Math.cos(ang) * off, y = p.y + Math.sin(ang) * off * 0.6;
+      const x = p.x + dcos(ang) * off, y = p.y + dsin(ang) * off * 0.6;
       this.pets.push({
         kind: "summon", art, x, y, cd: 0, facingX: p.facingX || 1, facingY: p.facingY,
         hitAt: -999, inReach: false, until, dmg,
@@ -4046,7 +4121,7 @@ export class ArcadeSim {
     const until = this.tick + sec(this.leaderSec(seconds));
     for (let i = 0; i < total; i++) {
       const ang = (i / total) * Math.PI * 2 + Math.PI * 0.5;
-      this.pets.push({ kind: "illusion", x: p.x + Math.cos(ang) * 36, y: p.y + Math.sin(ang) * 24, cd: 0, facingX: p.facingX || 1, facingY: p.facingY, hitAt: -999, inReach: false, until, dmg });
+      this.pets.push({ kind: "illusion", x: p.x + dcos(ang) * 36, y: p.y + dsin(ang) * 24, cd: 0, facingX: p.facingX || 1, facingY: p.facingY, hitAt: -999, inReach: false, until, dmg });
     }
   }
 
@@ -4130,8 +4205,16 @@ export class ArcadeSim {
       // давала, и «три exotic-карты» Некроманта равнялись обычным (T15.5).
       const power = up?.power ?? 1;
       pet.cd = Math.max(0, pet.cd - 1);
-      // Цель: ближайший враг в радиусе поиска; иначе — держаться рядом с героем (каждый со своим смещением).
-      const target = def.seek > 0 ? this.nearestEnemy(pet.x, pet.y, def.seek) : null;
+      // Цель держится, пока жива, доступна и в радиусе поиска, как у призыва в Dota; потеряна — ближайший враг в радиусе
+      // (M24, аудит 2026-09-27: раньше каждый питомец каждый тик заново искал ближайшего по всей толпе, и цель прыгала).
+      // Без цели — держаться рядом с героем (каждый со своим смещением).
+      let target: Enemy | null = null;
+      if (def.seek > 0) {
+        const t = pet.target;
+        target = t && t.alive && t.id === pet.targetId && this.targetable(t) && len(t.x - pet.x, t.y - pet.y) - t.kind.r <= def.seek ? t : this.nearestEnemy(pet.x, pet.y, def.seek);
+      }
+      pet.target = target ?? undefined;
+      pet.targetId = target ? target.id : 0;
       // Тотем (Nether/Plague/Death/Serpent Ward, Psionic Trap, Tombstone) вкопан в землю, как в Dota:
       // не бежит за героем, только поворачивается к цели.
       const rooted = !!body?.stationary;
@@ -4141,7 +4224,7 @@ export class ArcadeSim {
       } else {
         let tx: number, ty: number;
         if (target) { tx = target.x; ty = target.y; }
-        else { const ang = (i * 2.4) % 6.283; tx = p.x + Math.cos(ang) * def.leash; ty = p.y + Math.sin(ang) * def.leash; }
+        else { const ang = (i * 2.4) % 6.283; tx = p.x + dcos(ang) * def.leash; ty = p.y + dsin(ang) * def.leash; }
         const dx = tx - pet.x, dy = ty - pet.y, d = len(dx, dy) || 1;
         const stop = target ? def.reach * 0.8 + target.kind.r : 8;
         const far = len(pet.x - p.x, pet.y - p.y);
@@ -4456,7 +4539,7 @@ export class ArcadeSim {
     const pool = spawnPool(this.minutes, this.act);
     for (let i = 0; i < C.guards; i++) {
       const a = this.rng.float() * Math.PI * 2, r = 30 + this.rng.float() * 40;
-      const g = this.spawnEnemy(weightedPick(this.rng, pool), clamp(x + Math.cos(a) * r, 8, ARCADE.world.w - 8), clamp(y + Math.sin(a) * r, 8, ARCADE.world.h - 8));
+      const g = this.spawnEnemy(weightedPick(this.rng, pool), clamp(x + dcos(a) * r, 8, ARCADE.world.w - 8), clamp(y + dsin(a) * r, 8, ARCADE.world.h - 8));
       g.leader = shaman.id;
     }
   }
@@ -4510,7 +4593,7 @@ export class ArcadeSim {
     const pool = spawnPool(this.minutes, this.act);
     for (let i = 0; i < C.escorts; i++) {
       const a = this.rng.float() * Math.PI * 2, r = 30 + this.rng.float() * 40;
-      const esc = this.spawnEnemy(weightedPick(this.rng, pool), clamp(x + Math.cos(a) * r, 8, ARCADE.world.w - 8), clamp(y + Math.sin(a) * r, 8, ARCADE.world.h - 8));
+      const esc = this.spawnEnemy(weightedPick(this.rng, pool), clamp(x + dcos(a) * r, 8, ARCADE.world.w - 8), clamp(y + dsin(a) * r, 8, ARCADE.world.h - 8));
       esc.leader = bearer.id;
     }
   }
@@ -4663,7 +4746,7 @@ export class ArcadeSim {
     this.loot = this.loot.filter((x) => x.uid !== item.uid);
     // Раскладываем вокруг героя, чтобы несколько выброшенных не легли в одну точку.
     const a = (this.lootSeq++ % 8) * Math.PI / 4;
-    this.dropLoot(p.x + Math.round(Math.cos(a) * 36), p.y + Math.round(Math.sin(a) * 36), item);
+    this.dropLoot(p.x + Math.round(dcos(a) * 36), p.y + Math.round(dsin(a) * 36), item);
     return true;
   }
 
@@ -5250,7 +5333,7 @@ export class ArcadeSim {
     const p = this.player;
     mix(this.tick); mix(p.x); mix(p.y); mix(p.hp); mix(p.level); mix(p.xp); mix(p.gold); mix(p.kills); mix(this.greedStacks); mix(this.rank.step); mix(p.items.length); mix(p.neutral ? 1 : 0); mix(Object.keys(p.gear).length); mix(this.loot.length); mix(this.camp?.destroyed ?? 0); mix(this.camp?.line ? this.camp.line.activeUntil : 0); mix(this.outpost?.progress ?? 0); mix(this.pond?.used ? 1 : 0); mix(p.curse ? 1 : 0); mix(this.centaur?.chargeLeft ?? 0); mix(this.barrow?.idolsDown ?? 0); mix(this.contract ? (this.contract.done ? 2 : 1) : 0); mix(p.debtLeft); mix(this.forge?.used ? 1 : 0); mix(this.lair?.zones.length ?? 0); mix(this.ford?.waves.length ?? 0); mix(this.den?.markUntil ?? 0);
     mix(p.blinkCharges); mix(p.blinkCd); mix(p.streak); mix(this.buybacks); mix(this.buybackOpen ? 1 : 0); mix(this.blasts.length);
-    mix(p.cheese ? 1 : 0); mix(p.refresherShard ? 1 : 0); mix(this.roshanDrops.length); mix(this.roshanOpen ? 1 : 0); mix(this.neutralPropAt); mix(this.nextCastAt); mix(this.packHits); mix(this.multiKillTier); mix(this.multiKillAt);
+    mix(p.cheese ? 1 : 0); mix(p.refresherShard ? 1 : 0); mix(this.roshanDrops.length); mix(this.roshanOpen ? 1 : 0); mix(this.neutralPropAt); mix(this.nextCastAt); mix(this.packHits); mix(this.multiKillTier); mix(this.multiKillAt); mix(p.stolen === null ? 0 : 1 + STOLEN_ORDER.indexOf(p.stolen));
     for (const e of this.enemies) if (e.alive) { mix(e.x); mix(e.y); mix(e.hp); mix(e.affix); mix(e.castT); mix(e.armorUntil); }
     for (const pr of this.projectiles) if (pr.alive) { mix(pr.x); mix(pr.y); }
     for (const s of this.shards) if (s.alive) { mix(s.x); mix(s.xp); }

@@ -2,6 +2,7 @@
 // «видов» (AbilityKind) с параметрами по уровню; механика видов живёт в sim.ts. Новый герой =
 // запись здесь + тексты в i18n; новый вид способности = ветка в sim. Портреты — по `picture`
 // из heroes.json (dotaId — чтобы брать имя из датасета).
+import { ARCADE } from "../config.ts";
 import type { PlayerStats } from "../types.ts";
 
 /** Уникальные киты — пять «ручных» героев; остальные — шаблоны по архетипам (ответ на «все герои»:
@@ -69,7 +70,9 @@ export type AbilityKind =
   | "signature" | "presence" | "armor_passive" | "frost_arrows" | "searing" | "venom" | "mana_break" | "coup" | "mana_void"
   | "reincarnation" | "rupture" | "corrosive" | "berserk_blood" | "metamorphosis"
   // Io (владелец 2026-09-12): Tether — связь с подконтрольным юнитом (луч), Spirits — орбитальные шары.
-  | "tether" | "spirits";
+  | "tether" | "spirits"
+  // Rubick (M24): Spell Steal — крадёт умение нейтрала и колдует его сам (ARCADE.spellSteal).
+  | "spell_steal";
 
 /** Альтернативная форма (Metamorphosis у Terrorblade, Elder Dragon Form у Dragon Knight, True Form у Lone Druid):
  *  меняются модель, тип атаки и дальность — владелец 2026-09-06: «нажимает скилл и ничего не происходит». */
@@ -144,6 +147,39 @@ export type SignatureKind = "souls" | "swipes" | "cleave" | "timelock" | "deathp
   // `aura_burn` — Heartstopper Aura (урон вокруг героя), `growth` — Flesh Heap (запас здоровья за убийства).
   | "crit" | "tough" | "aura_burn" | "growth";
 export interface SignatureDef { kind: SignatureKind; value: number; cap?: number; radius?: number; duration?: number }
+
+/** Потолки долей фирменных пассивок: ранг пассивки (sim.sigScale) не поднимает шанс или долю выше них. Общие для сима и
+ *  подписей; уклонение Blur — общий потолок уклонения `ARCADE.player.evasionCap`. */
+export const SIG_CAPS = { timelock: 0.5, crit: 0.6, multicast: 0.6, fiery_soul: 0.6, cleave: 0.95 } as const;
+
+/**
+ * Числа фирменной пассивки для её описания `arcade.sig.<kind>.desc` (M24, «честные подписи»): у героев разные значения
+ * одного вида — Меткость у Drow 50%, у остальных 30%, а текст брал числа одного героя. Формулы — как в симе, `scale` —
+ * множитель ранга пассивки (sim.sigScale; 1 — первый ранг). Литералы сима (душа элиты = 6, стан Aftershock 0.6 с,
+ * Иглы раз в 0.8 с) стоят в самих текстах.
+ */
+export function signatureVars(sig: SignatureDef, scale = 1): Record<string, number> {
+  const v = sig.value * scale;
+  const pct = (x: number) => Math.round(x * 100);
+  const num = (x: number) => Math.round(x * 10) / 10;
+  switch (sig.kind) {
+    case "souls": return { v: num(v), cap: sig.cap ?? 36 };
+    case "swipes": return { v: num(v), cap: sig.cap ?? 12 };
+    case "growth": return { v: num(v), elite: num(v * 5), cap: sig.cap ?? 400 };
+    case "deathpact": return { v: num(v), elite: num(v * 5) };
+    case "cleave": return { pct: pct(Math.min(SIG_CAPS.cleave, v)) };
+    case "timelock": return { pct: pct(Math.min(SIG_CAPS.timelock, v)), d: sig.duration ?? 0.5, dmg: num(20 * scale) };
+    // Интервал атаки короче на долю — скорость выше на 1/(1 − доля) − 1: 30% короче = на 43% быстрее.
+    case "fiery_soul": return { pct: pct(1 / (1 - Math.min(SIG_CAPS.fiery_soul, v)) - 1), d: sig.duration ?? 6 };
+    case "crit": return { pct: pct(Math.min(SIG_CAPS.crit, v)), mult: sig.cap ?? 2 };
+    case "multicast": return { pct: pct(Math.min(SIG_CAPS.multicast, v)) };
+    case "blur": return { pct: pct(Math.min(ARCADE.player.evasionCap, v)) };
+    // Аура бьёт дважды в секунду (тик раз в 30 тиков сима) — в тексте урон за секунду.
+    case "aura_burn": return { v: num(v * 2) };
+    case "marksmanship": case "vampiric": case "backstab": case "thirst": return { pct: pct(v) };
+    case "overload": case "quill": case "aftershock": case "tough": return { v: num(v) };
+  }
+}
 
 export interface HeroDef {
   id: HeroId;
@@ -265,7 +301,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     // Радиус Меткости 140, а не 220: бонус даётся за выстрел «издалека», но бой идёт вплотную —
     // на 220 он почти не срабатывал, и вся ставка героя на автоатаку не работала.
   }, { kind: "marksmanship", value: 0.5, radius: 140 }),
-  windranger: hero("windranger", 21, "windrunner", true, { speed: 168, attackInterval: 0.85 }, {
+  // M24 (свип 126 героев): с базой дальнобойных 510 HP / броня 1 гибла раньше всех (бот 58–63% до Рошана) — 600 / 3.
+  windranger: hero("windranger", 21, "windrunner", true, { speed: 168, attackInterval: 0.85, maxHp: 600, armor: 3 }, {
     q: { kind: "lightning_bolt", value: [0, 70, 110, 150, 190], cooldown: 9, radius: 340, duration: 1.3 }, // Shackleshot
     w: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 95, count: [0, 4, 4, 4, 4] }, // Powershot
     e: { kind: "haste", value: [0, 0.35, 0.4, 0.45, 0.5], cooldown: 14, duration: 4 },                   // Windrun
@@ -296,7 +333,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "freezing_field", value: [0, 50, 80, 110], cooldown: 55, radius: 240, duration: 7 },      // Pulse Nova
   }, { kind: "aura_burn", value: 10, radius: 155 }),
   faceless_void: hero("faceless_void", 41, "faceless_void", false, { speed: 170, damage: 25, maxHp: 600, armor: 4 }, {
-    q: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 10, radius: 320 },                              // Time Walk
+    // Time Walk бьёт при приземлении, как остальные рывки игры (M24): без урона Q у бота нечем было чистить толпу — 43% побед.
+    q: { kind: "dash", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 320 },                        // Time Walk
     w: { kind: "nova", value: [0, 50, 80, 110, 140], cooldown: 9, radius: 200, duration: 5 },            // Time Dilation
     e: SIG,                                                                                              // Time Lock
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 70, radius: 230, duration: 3.5 },           // Chronosphere
@@ -530,7 +568,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "damage_ward", value: [0, 70, 105, 140], cooldown: 60, duration: 10, radius: 340, summon: { art: "ward_serpent", count: 3 } }, // Mass Serpent Ward
   }, { kind: "multicast", value: 0.28 }),
   warlock: hero("warlock", 37, "warlock", true, { maxHp: 640, armor: 3, damage: 25, speed: 160, regen: 2 }, {
-    q: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 8, radius: 340, duration: 1 },            // Fatal Bonds
+    q: { kind: "nova", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 280, duration: 1 },           // Fatal Bonds (M24: 340/8 с — 95% побед)
     w: { kind: "ward", value: [0, 10, 15, 20, 24], cooldown: 14, duration: 8 },                           // Shadow Word
     e: { kind: "nova", value: [0, 70, 105, 140, 170], cooldown: 12, radius: 300, duration: 4 },            // Upheaval
     r: { kind: "damage_ward", value: [0, 95, 140, 185], cooldown: 60, duration: 16, radius: 340, summon: { art: "warlock_golem" } }, // Rain of Chaos
@@ -541,12 +579,13 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "remnant", value: [0, 140, 200, 260, 320], cooldown: 12, radius: 200 },                   // Midnight Pulse
     r: { kind: "ravage", value: [0, 240, 360, 480], cooldown: 70, radius: 320, duration: 3 },            // Black Hole
   }, { kind: "cleave", value: 0.45, radius: 100 }),
-  tinker: hero("tinker", 34, "tinker", true, { maxHp: 660, armor: 4, damage: 25, speed: 164, range: 320, regen: 2 }, {
+  // M24: одиночный Laser без чистки толпы и 660 HP — 45% побед; живучесть и Rearm 0.5 — 70%.
+  tinker: hero("tinker", 34, "tinker", true, { maxHp: 760, armor: 6, damage: 25, speed: 164, range: 320, regen: 3 }, {
     q: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 6, radius: 320, duration: 0.5 }, // Laser
     w: { kind: "arc_lightning", value: [0, 110, 160, 210, 260], cooldown: 7, radius: 340, count: [0, 2, 3, 4, 5] }, // Heat-Seeking Missile
     e: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 14, duration: 6 },                // Defense Matrix
     r: SIG,                                                                                              // Rearm
-  }, { kind: "multicast", value: 0.4 }),
+  }, { kind: "multicast", value: 0.5 }),
   // ---- Волна 6 ----
   omniknight: hero("omniknight", 57, "omniknight", false, { maxHp: 760, armor: 5, damage: 26, speed: 158, regen: 3 }, {
     q: { kind: "ward", value: [0, 14, 20, 26, 32], cooldown: 10, duration: 6 },                            // Purification
@@ -671,7 +710,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "mass_freeze", value: [0, 220, 330, 440], cooldown: 60, radius: 260, duration: 2.5 },      // Soulbind
   }, { kind: "multicast", value: 0.28 }),
   gyrocopter: hero("gyrocopter", 72, "gyrocopter", true, { maxHp: 620, armor: 3, damage: 25, speed: 166 }, {
-    q: { kind: "edict", value: [0, 50, 70, 90, 110], cooldown: 10, duration: 5, radius: 260 },            // Rocket Barrage
+    // Барраж убивает с удара 7.5 раза в секунду: решает время действия, а не урон (−20% урона бот не заметил) — 5 → 3.5 с (M24).
+    q: { kind: "edict", value: [0, 50, 70, 90, 110], cooldown: 10, duration: 3.5, radius: 260 },          // Rocket Barrage
     w: { kind: "lightning_bolt", value: [0, 130, 195, 260, 320], cooldown: 10, radius: 340, duration: 1.5 }, // Homing Missile
     e: { kind: "multishot", value: [0, 45, 60, 78, 95], cooldown: 8, radius: 360, count: [0, 3, 4, 5, 6] }, // Flak Cannon
     r: { kind: "meteor", value: [0, 250, 375, 500], cooldown: 60, radius: 220, count: [0, 1, 1, 1], duration: 1.2 }, // Call Down
@@ -760,7 +800,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 9, radius: 240, duration: 2 },            // Telekinesis
     w: { kind: "arc_lightning", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Fade Bolt
     e: { kind: "arcane_aura", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, passive: true },            // Arcane Supremacy
-    r: SIG,                                                                                              // Spell Steal
+    r: { kind: "spell_steal", value: [0, 200, 300, 400], cooldown: 18, radius: 450 },                    // Spell Steal
   }, { kind: "multicast", value: 0.3 }),
   sand_king: hero("sand_king", 16, "sand_king", false, { maxHp: 800, armor: 5, damage: 28, speed: 162, regen: 3 }, {
     q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], duration: 1.6 }, // Burrowstrike

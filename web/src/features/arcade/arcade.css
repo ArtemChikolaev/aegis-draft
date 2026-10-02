@@ -492,3 +492,19 @@
 @media (prefers-reduced-motion: reduce) { .arcade-hud__streak, .arcade-hud__multi { animation: none; } }
 /* Элита с аффиксами рядом — та же строка, что у босса, но короче. */
 .arcade-hud__boss--affix { width: min(360px, 60%); color: var(--arcade-crit); }
+/* Spell Steal (M24): украденное умение — короткий ярлык на верхней кромке кнопки ульта Rubick (полное имя — в подсказке):
+   на телефоне над ультом стоит Blink, длинный ярлык его закрывал. Кнопка с ярлыком не режет края — ярлык выступает
+   наружу, поэтому затемнение перезарядки скругляется само. */
+.arcade-ability[data-stolen] { overflow: visible; }
+.arcade-ability[data-stolen] > i, .arcade-ability[data-stolen] > em { border-radius: inherit; }
+.arcade-ability__stolen { position: absolute; bottom: calc(100% - 4px); left: 50%; transform: translateX(-50%); padding: 1px 6px; border-radius: 6px; background: var(--surface-invert); border: 1px solid var(--arcade-shop); color: var(--arcade-shop); font: 800 9px/1.3 var(--font-display); letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; pointer-events: none; }
+/* Подсказка механики при первой встрече (M24, как советы Dota): карточка под строкой босса/элиты, гаснет сама. */
+.arcade-hud__tip { position: relative; justify-self: center; display: grid; gap: 4px; width: min(420px, 86%); padding: 8px 30px 8px 12px; border: 1px solid color-mix(in srgb, var(--arcade-crit) 55%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--surface-invert) 94%, transparent); color: var(--on-invert); font-size: 12px; line-height: 1.35; animation: arcade-tip-in .3s ease-out; }
+.arcade-hud__tip b { font: 800 12px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--arcade-crit); }
+.arcade-hud__tip b small { margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: var(--arcade-crit); color: var(--surface-invert); font-size: 9px; letter-spacing: .08em; }
+.arcade-hud__tip i { font-style: normal; font-weight: 700; color: var(--arcade-crit); }
+.arcade-hud__tip span { color: color-mix(in srgb, var(--on-invert) 82%, transparent); }
+.arcade-hud__tip-close { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--muted-invert); font: 700 16px/1 var(--font-display); cursor: pointer; pointer-events: auto; }
+.arcade-hud__tip-close:hover, .arcade-hud__tip-close:focus-visible { color: var(--on-invert); background: color-mix(in srgb, var(--on-invert) 12%, transparent); }
+@keyframes arcade-tip-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .arcade-hud__tip { animation: none; } }

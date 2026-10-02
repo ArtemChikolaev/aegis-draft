@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.82.0";
+export const ARCADE_CONFIG_VERSION = "a0.83.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -172,6 +172,17 @@ export const ARCADE = {
     clap: { every: sec(9), tele: sec(0.8), radius: 130, slowSec: 2.5, dmgMult: 0.5 },
     purge: { every: sec(11), tele: sec(0.7), length: 240, width: 28, slowSec: 2 },
     frostArmor: { every: sec(12), radius: 220, seconds: 6, taken: 0.65 },
+  },
+  /** Spell Steal (Rubick, M24): ульт крадёт умение ближайшего нейтрала-колдуна в радиусе умения — колдующий прямо сейчас
+   *  первым — и держит его, пока не украдёт другое. Каст ульта — украденное умение в руках героя, крупнее нейтрального и
+   *  без телеграфа: урон — значение ульта, контроль и форма — здесь. Ни украденного, ни колдуна рядом — каст не тратится.
+   *  `reach` — радиус, в котором автокаст считает врагов (круг Stomp/Clap). */
+  spellSteal: {
+    reach: 200,
+    stomp: { radius: 170, stun: 1.2 },
+    clap: { radius: 200, slow: 0.5, slowSec: 3 },
+    purge: { length: 380, width: 70, slow: 0.6, slowSec: 3 },
+    frostArmor: { armor: [0, 18, 24, 30], seconds: 8, radius: 200, slow: 0.4, slowSec: 2 },
   },
   /** Благословения «Каст» (rad_spellfire, ska_spellfrost, mae_spellstorm, ven_spelltoxin): попадание умения героя (Q/W/E/R)
    *  накладывает статус школы не чаще раза в `every` на цель — тиковые виды (вихрь, эдикт, зоны) бьют по 7–10 раз в секунду.

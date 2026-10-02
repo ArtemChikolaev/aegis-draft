@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { HEROES } from "../src/game/arcade/content/heroes.ts";
+import { HEROES, HERO_IDS, signatureVars, type HeroId, type SignatureKind } from "../src/game/arcade/content/heroes.ts";
+import { arcadeEn, arcadeRu, type ArcadeKey } from "../src/i18n/arcade.ts";
 
 // Описание умения обещает числа, а сим считает по таблице (T13.25). Тринадцать описаний отстали от
 // баланса — Gust у Drow обещал 40–130 при 70–190, Hand of God у Chen 9–17% при 16–28%. Тест держит
@@ -32,5 +33,48 @@ describe("тексты умений Аркады", () => {
     }
     expect(seen).toBeGreaterThan(800); // RU+EN × 4 умения × все герои: без этого пустой словарь молча проходит
     expect(bad).toEqual([]);
+  });
+});
+
+// Честные подписи пассивок (M24): текст фирменной пассивки берёт числа героя — у Drow «Меткость +50%», у Windranger
+// «+30%», — а не одного на всех. В шаблоне остаются только литералы сима, общие для всех героев вида.
+describe("подписи фирменных пассивок", () => {
+  const LITERALS: Partial<Record<SignatureKind, string[]>> = { souls: ["6"], aftershock: ["0.6"], quill: ["0.8"] };
+  const fill = (tpl: string, vars: Record<string, number>) => tpl.replace(/\{(\w+)\}/g, (_, k: string) => (k in vars ? String(vars[k]) : `{${k}}`));
+  const desc = (lang: "ru" | "en", kind: SignatureKind) => (lang === "ru" ? arcadeRu : arcadeEn)[`arcade.sig.${kind}.desc` as ArcadeKey];
+
+  it("у каждого героя описание без пустых мест, а числа в шаблоне — только общие литералы сима", () => {
+    const bad: string[] = [];
+    for (const h of HERO_IDS) {
+      const sig = HEROES[h].signature;
+      if (!sig) continue;
+      for (const lang of ["ru", "en"] as const) {
+        const tpl = desc(lang, sig.kind);
+        const text = fill(tpl, signatureVars(sig));
+        if (/[{}]/.test(text)) bad.push(`${h} ${lang}: ${text}`);
+        const digits = tpl.replace(/\{\w+\}/g, "").match(/\d+(?:\.\d+)?/g) ?? [];
+        for (const d of digits) if (!(LITERALS[sig.kind] ?? []).includes(d)) bad.push(`${h} ${lang}: литерал ${d} в «${tpl}»`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("числа — героя и как в симе: доли, потолки шансов, скорость атаки и урон ауры в секунду", () => {
+    const ru = (h: HeroId, scale = 1) => fill(desc("ru", HEROES[h].signature!.kind), signatureVars(HEROES[h].signature!, scale));
+    expect(ru("drow_ranger")).toContain("+50%");
+    expect(ru("windranger")).toContain("+30%");
+    expect(ru("phantom_assassin")).toContain("22%");
+    expect(ru("dark_willow")).toContain("10%");
+    // Fiery Soul укорачивает интервал атаки на 30% — это на 43% больше ударов в секунду.
+    expect(ru("lina")).toContain("на 43% быстрее");
+    // Heartstopper бьёт 10 дважды в секунду.
+    expect(ru("leshrac")).toContain("20 здоровья в секунду");
+    expect(ru("chaos_knight")).toContain("×2.4");
+    expect(ru("undying")).toContain("до +600");
+    // Ранг пассивки: ×2.05 на 4-м — но не выше потолков сима.
+    expect(ru("faceless_void", 2.05)).toContain("37% ударов");
+    expect(ru("invoker", 2.05)).toContain("60% шанс");
+    expect(ru("phantom_assassin", 2.05)).toContain("45%");
+    expect(ru("bristleback", 2.05)).toContain("36.9");
   });
 });

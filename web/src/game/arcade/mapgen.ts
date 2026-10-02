@@ -1,6 +1,7 @@
 // Генерация карты Аркады — ЧИСТАЯ и общая для сима и рендера (T13.19, владелец 2026-09-06: «камни и деревья
 // должны быть реальными препятствиями»). Раньше жила только в рендерере (features/arcade/terrain.ts); теперь
 // сим строит из того же декора препятствия с коллизией, а рендерер — картинку. Один seed+act ⇒ одна карта.
+import { dhypot } from "./dmath.ts";
 import { Rng } from "../rng.ts";
 import { ARCADE } from "./config.ts";
 import type { ActId } from "./types.ts";
@@ -39,14 +40,14 @@ export function generateMap(seed: string, act: ActId): ArcadeMap {
     const cx = rng.int(cols), cy = rng.int(rows), r = 1 + rng.int(2);
     for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) {
       if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
-      if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r && rng.float() < 0.85) tiles[y * cols + x] = 2;
+      if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r * r && rng.float() < 0.85) tiles[y * cols + x] = 2;
     }
   }
   // Декор: рощи деревьев по кластерам, камни, пучки травы, цветы. Центр (старт) и река/яма чисты.
   const clear = (x: number, y: number) => {
-    const dc = Math.hypot(x - ARCADE.world.w / 2, y - ARCADE.world.h / 2);
+    const dc = dhypot(x - ARCADE.world.w / 2, y - ARCADE.world.h / 2);
     if (dc < 360) return true;
-    if (act === "river" && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 40 || Math.hypot(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.radius + 60)) return true;
+    if (act === "river" && (Math.abs(y - ARCADE.river.y) < ARCADE.river.halfWidth + 40 || dhypot(x - ARCADE.pit.x, y - ARCADE.pit.y) < ARCADE.pit.radius + 60)) return true;
     return false;
   };
   for (let g = 0; g < 26; g++) {
@@ -149,7 +150,7 @@ export class ObstacleGrid {
   }
   /** То же с результатом в `out` — для сима (без кортежа на каждого застрявшего врага). */
   steerInto(out: { x: number; y: number }, x: number, y: number, dx: number, dy: number, r: number, ahead = 36): void {
-    const l = Math.hypot(dx, dy);
+    const l = dhypot(dx, dy);
     if (l < 1e-6) { out.x = dx; out.y = dy; return; }
     const ux = dx / l, uy = dy / l;
     let best: Obstacle | null = null, bestT = Infinity;
@@ -168,7 +169,7 @@ export class ObstacleGrid {
     const tx = -uy * sgn, ty = ux * sgn;          // касательная
     const k = Math.min(1, (best.r + r) / Math.max(1, bestT)); // чем ближе, тем сильнее сворачиваем
     const nx = ux * (1 - 0.7 * k) + tx * k, ny = uy * (1 - 0.7 * k) + ty * k;
-    const nl = Math.hypot(nx, ny) || 1;
+    const nl = dhypot(nx, ny) || 1;
     out.x = nx / nl * l; out.y = ny / nl * l;
   }
 
