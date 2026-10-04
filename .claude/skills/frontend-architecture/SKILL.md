@@ -8,7 +8,7 @@ description: "При изменении UI aegis-draft: компоненты, р
 Слои `web/src`: `app/` (шелл + providers) · `design/` (tokens + base + theme) · `i18n/` (строки) · `ui/` (примитивы) · `features/` (экраны) · `game/ data/ state/ types/` (логика; UI вызывает её интерфейсы, но не переносит бизнес-правила в компоненты). Карта — [web/README.md](../../../web/README.md).
 
 ## Правило 0 — переиспользуй примитив, не создавай новый
-Перед новым UI-элементом открой barrel **`web/src/ui/index.ts`**. Уже есть: `Button` (primary/primaryInvert/secondary/danger/leave/back), `Surface`, `Eyebrow`, `Banner`, `Chip`, `RoleTag`, `SoonBadge`, `StatTile`, `Select`, `Modal`, `OptionGroup`.
+Перед новым UI-элементом открой barrel **`web/src/ui/index.ts`**. Уже есть: `Button` (primary/primaryInvert/secondary/secondaryInvert/danger/leave/back), `Surface`, `Eyebrow`, `Banner`, `Chip`, `RoleTag`, `SoonBadge`, `StatTile`, `Select`, `Modal`, `OptionGroup`.
 
 Формула: «**НЕ создаю кнопку/карточку/бейдж/модалку — беру `Button`/`Surface`/`RoleTag`/`Modal`; создаю новый примитив только если аналога нет**».
 - Нужен ≥2 экранам → новый примитив в `ui/` (`Name.tsx` + `Name.module.css`), экспорт из `index.ts`.
@@ -34,6 +34,7 @@ description: "При изменении UI aegis-draft: компоненты, р
 - Фон под открытой модалкой **не скроллится** (`body overflow:hidden` + компенсация ширины скроллбара, иначе десктоп дёргается вбок).
 - Отложенные таймеры выхода снимай на unmount: экран под модалкой может смениться раньше (reset забега).
 - Скроллеры (списки внутри панелей) обрезай **по дуге рамки** — `border-radius` + `clip-path: inset(0 round …)`, а не распоркой-пустышкой в конце списка.
+- Панель (кроме `presentation="card"`) тёмная в обеих темах и сама ремапит тема-токены на `-invert`-двойники (`.invertPanel` + `.on-invert-surface`): примитиву внутри не нужно знать, что он в модалке. Новый тема-зависимый токен, который попадает в модалку, получает двойник по схеме `--tier-*` и строку ремапа. Акцент не ремапится (нет пары к `--on-accent`): текст акцента на тёмной панели — `--brand-green`. Проверка в обеих темах — `lowContrastText` (`web/e2e/helpers.ts`). Шишка: светлая плашка под светлым текстом (1.2:1).
 
 ## Общие классы-словари (тир, состояние) — грабли
 - **Общее правило не трогает `position`.** Хосты позиционированы по-разному: поставили `position: relative` в общий `.card-tint--*` — и карточки радара (`absolute` по вершинам) сорвало с мест. Контекст для `::after` обеспечивает поверхность, а не словарь.
