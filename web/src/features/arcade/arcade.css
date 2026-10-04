@@ -307,7 +307,9 @@
 
 /* Гардероб героя (T13.27): превью облика + список обликов + слоты эффектов.
    Живёт внутри Modal, а у панели модалки инвертированная поверхность (--surface-invert / --on-invert),
-   поэтому фоны и рамки берём из invert-словаря, иначе светлая плашка съедает светлый текст. */
+   поэтому фоны и рамки берём из invert-словаря, иначе светлая плашка съедает светлый текст.
+   Акцент — из brand-словаря (--brand-green / --brand-glow, как карточка игрока в драфте): тема-зависимый
+   --accent в светлой теме глубокий, под ivory, и выбранные вкладки и «надето» на чёрном читались на 2.8:1. */
 .arcade-wardrobe { display: grid; gap: 16px; color: var(--on-invert); align-items: start; }
 /* Раскладка 2026-09-19 (владелец: «слишком много листать, при пролистывании не видно, как будет выглядеть»):
    превью закреплено — слева на широком экране, сверху на узком; разделы — вкладками в панели справа/ниже. */
@@ -318,7 +320,7 @@
 .arcade-wardrobe__panel .arcade-wardrobe__looks { justify-content: flex-start; }
 .arcade-wardrobe__panel .arcade-wardrobe__styles { justify-items: start; }
 .arcade-wardrobe__view-toggle { display: none; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-invert); background: transparent; color: inherit; font-size: 10px; opacity: .8; cursor: pointer; }
-.arcade-wardrobe__view-toggle[data-active] { border-color: var(--accent-strong); opacity: 1; }
+.arcade-wardrobe__view-toggle[data-active] { border-color: var(--brand-glow); opacity: 1; }
 @media (min-width: 900px) {
   .arcade-wardrobe { grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); }
 }
@@ -346,13 +348,13 @@
 .arcade-wardrobe__gem { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 50%; vertical-align: middle; }
 .arcade-wardrobe__looks { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .arcade-wardrobe__look { position: relative; display: grid; justify-items: center; gap: 2px; width: 96px; padding: 6px; border: 1px solid var(--line-invert); border-radius: 12px; background: var(--surface-invert-soft); color: var(--on-invert); }
-.arcade-wardrobe__look[data-active] { border-color: var(--accent-strong); box-shadow: inset 0 0 0 1px var(--accent-strong); }
+.arcade-wardrobe__look[data-active] { border-color: var(--brand-glow); box-shadow: inset 0 0 0 1px var(--brand-glow); }
 .arcade-wardrobe__look[data-rarity="refined"] { border-color: var(--blue); }
 .arcade-wardrobe__look[data-rarity="exotic"] { border-color: var(--role-support); }
 .arcade-wardrobe__look[data-rarity="arcana"] { border-color: var(--card-tier-arcana); }
 .arcade-wardrobe__look:not([data-owned]) .arcade-wardrobe__canvas { opacity: .5; filter: grayscale(1); }
 .arcade-wardrobe__look span { font-size: 10px; line-height: 1.25; text-align: center; }
-.arcade-wardrobe__look b { font: 800 9px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); }
+.arcade-wardrobe__look b { font: 800 9px var(--font-display); letter-spacing: .06em; text-transform: uppercase; color: var(--brand-green); }
 .arcade-wardrobe__look em { font: 800 10px var(--font-display); color: var(--gold); font-style: normal; }
 /* Выбрана к покупке (ещё не своя): пунктир вместо сплошной рамки надетого; полоса покупки — под списком вкладки. */
 .arcade-wardrobe__look[data-pending] { border-style: dashed; border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
@@ -370,7 +372,7 @@
 .arcade-wardrobe__composition button { padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line-invert); background: transparent; color: inherit; font-size: 10px; cursor: pointer; }
 .arcade-wardrobe__composition button:hover { border-color: var(--on-invert); }
 .arcade-wardrobe .arcade-rank__tier { border-color: var(--line-invert); background: var(--surface-invert-soft); color: var(--on-invert); }
-.arcade-wardrobe .arcade-rank__tier[data-active] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent); }
+.arcade-wardrobe .arcade-rank__tier[data-active] { border-color: var(--brand-glow); background: var(--accent-soft); color: var(--brand-green); }
 
 /* Фирменная пассивка в ряду умений: не кнопка, поэтому без наведения и курсора. */
 .arcade-ability--sig { pointer-events: none; opacity: .85; }

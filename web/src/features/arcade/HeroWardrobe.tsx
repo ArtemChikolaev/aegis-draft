@@ -433,7 +433,7 @@ export function HeroWardrobe({ hero, onClose }: { hero: HeroId; onClose: () => v
           {worn && wornLook.styleDropped && wornStyleDef && <em className="arcade-wardrobe__hint" data-testid="arcade-wardrobe-style-dropped">{t("arcade.wardrobe.styleDropped", { style: t(`arcade.style.${wornStyleDef.id}` as MessageKey) })}</em>}
           <div className="arcade-wardrobe__actions">
             {worn
-              ? <Button variant="secondary" disabled>{t("arcade.wardrobe.worn")}</Button>
+              ? <Button variant="secondaryInvert" disabled>{t("arcade.wardrobe.worn")}</Button>
               : sel.owned
                 ? <Button variant="primary" data-testid="arcade-wardrobe-equip" onClick={() => { equip("skin", sel.def?.id ?? null); }}>{t("arcade.wardrobe.wear")}</Button>
                 : <Button

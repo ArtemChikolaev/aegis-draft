@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   completeDraft,
   gotoFreshApp,
+  lowContrastText,
   openClassicVariant,
   simulateTournamentToEnd,
   startClassicRun,
@@ -38,6 +39,25 @@ test.describe("smoke: classic run", () => {
     await expect(page.locator(".career-run")).toHaveCount(1);
     await page.reload();
     await expect(page.getByTestId("resume-banner")).toHaveCount(0);
+  });
+
+  // Модалка тёмная в обеих темах, а примитивы внутри красятся тема-токенами: в светлой теме
+  // герои карточки игрока шли серым по ivory-плашке (2.2:1), «Закрыть» в подтверждении выхода
+  // из Аркады — светлым по светлому (1.2:1). Панель ремапит токены на инвертные (ui/Modal).
+  test("тёмная модалка читается в обеих темах: карточка игрока", async ({ page }) => {
+    await startClassicRun(page);
+    await page.locator('[data-testid^="candidate-"]:not([disabled])').first().click();
+    await page.locator("button.pentagon-node--interactive").first().click();
+    const dialog = page.getByRole("dialog");
+    // Вход панели — opacity .88 → 1: до конца анимации helper счёл бы весь текст неактивным.
+    await expect(dialog).toHaveCSS("opacity", "1");
+    for (const colorScheme of ["light", "dark"] as const) {
+      await page.emulateMedia({ colorScheme });
+      await expect(page.locator("html")).toHaveAttribute("data-theme", colorScheme);
+      const { checked, low } = await lowContrastText(dialog);
+      expect(checked).toBeGreaterThan(10);
+      expect(low, colorScheme).toEqual([]);
+    }
   });
 });
 

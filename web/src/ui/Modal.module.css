@@ -44,6 +44,28 @@
   touch-action: pan-y;
   will-change: transform;
 }
+/* Панель тёмная в обеих темах, а всё внутри (Button secondary, HeroThumb, RoleTag, шкала OVR) красится
+   тема-токенами. В светлой теме они брали ivory-значения на чёрном: «Закрыть» в подтверждении выхода
+   из Аркады — светлый текст на светлой плашке (1.2:1), герои в карточке игрока — 2.2:1, роли в Зале
+   легенд — 2.3:1. Ремапим ТОКЕНЫ на инвертные двойники один раз на контейнере (как `.pack-panel` в драфте;
+   тиры — классом `.on-invert-surface` в Modal.tsx), а не чиним каждый вложенный блок. В тёмной теме
+   двойники совпадают со значениями темы — там ремап ничего не меняет. Акцент не ремапим: у него нет
+   тёмного двойника для текста на заливке (--on-accent), а заливка с ним и так читается в обеих темах. */
+.invertPanel {
+  color-scheme: dark;
+  --surface: var(--surface-invert);
+  --surface-solid: var(--surface-invert);
+  --surface-soft: var(--surface-invert-soft);
+  --text: var(--on-invert);
+  --muted: var(--muted-invert);
+  --line: var(--line-invert);
+  --line-strong: var(--line-invert-strong);
+  --danger: var(--danger-invert);
+  --gold: var(--gold-invert);
+  --role-safelane: var(--role-safelane-invert);
+  --role-mid: var(--role-mid-invert);
+  --role-support: var(--role-support-invert);
+}
 /* Панель — программная цель фокуса на открытии (см. Modal.tsx), а не интерактивный
    элемент: обводить её нечего. Tab-обход внутри свою рамку рисует сам. */
 .panel:focus, .panel:focus-visible { outline: none; }

@@ -1343,7 +1343,7 @@ function ArcadeStage() {
           {({ close }) => (
             <>
               <Button variant="danger" onClick={() => { close(); quit(); }}>{t("arcade.hud.quit")}</Button>
-              <Button variant="secondary" onClick={close}>{t("common.close")}</Button>
+              <Button variant="secondaryInvert" onClick={close}>{t("common.close")}</Button>
             </>
           )}
         </Modal>

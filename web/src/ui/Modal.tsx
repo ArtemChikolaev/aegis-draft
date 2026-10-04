@@ -328,7 +328,7 @@ export function Modal({
     >
       <section
         ref={panelRef}
-        className={`${styles.panel} ${isContent ? styles.contentPanel : ""} ${isCard ? styles.cardPanel : ""} ${size === "wide" ? styles.widePanel : ""}`}
+        className={`${styles.panel} ${isContent ? styles.contentPanel : ""} ${isCard ? styles.cardPanel : `${styles.invertPanel} on-invert-surface`} ${size === "wide" ? styles.widePanel : ""}`}
         role="dialog"
         aria-modal="true"
         tabIndex={-1}

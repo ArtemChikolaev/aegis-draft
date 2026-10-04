@@ -180,3 +180,56 @@ export async function openCampSection(
   await tab.click();
   await expect(tab).toHaveAttribute("aria-selected", "true");
 }
+
+/** Текст внутри `root` с контрастом ниже WCAG AA (4.5:1, крупный — 3:1) против фактического фона:
+ *  полупрозрачные фоны предков смешиваются до первого непрозрачного. Неактивное (disabled, opacity)
+ *  и градиентный текст (`-webkit-text-fill-color: transparent`) пропускаются; `checked` — сколько
+ *  узлов проверено, чтобы пустой список не прошёл молча (панель ещё не отрисована, всё пропущено). */
+export async function lowContrastText(root: Locator): Promise<{ checked: number; low: string[] }> {
+  return root.evaluate((el) => {
+    type Rgba = { r: number; g: number; b: number; a: number };
+    const parse = (s: string): Rgba | null => {
+      const m = s.match(/rgba?\(([^)]+)\)/);
+      if (!m) return null;
+      const [r, g, b, a = 1] = m[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+      return { r, g, b, a };
+    };
+    const over = (top: Rgba, under: Rgba): Rgba => ({
+      r: top.r * top.a + under.r * (1 - top.a), g: top.g * top.a + under.g * (1 - top.a), b: top.b * top.a + under.b * (1 - top.a), a: 1,
+    });
+    const lum = (c: Rgba) => {
+      const ch = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
+      return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
+    };
+    const backdrop = (node: Element): Rgba => {
+      const layers: Rgba[] = [];
+      for (let e: Element | null = node; e; e = e.parentElement) {
+        const c = parse(getComputedStyle(e).backgroundColor);
+        if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break; }
+      }
+      return layers.reduceRight<Rgba>((under, top) => over(top, under), { r: 0, g: 0, b: 0, a: 1 });
+    };
+    const low: string[] = [];
+    let checked = 0;
+    for (const node of el.querySelectorAll("*")) {
+      const text = [...node.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE).map((n) => n.textContent?.trim()).join(" ").trim();
+      if (!text || node.getClientRects().length === 0) continue;
+      const cs = getComputedStyle(node);
+      if (cs.visibility === "hidden" || cs.getPropertyValue("-webkit-text-fill-color") === "rgba(0, 0, 0, 0)") continue;
+      let inactive = false;
+      for (let e: Element | null = node; e && e !== el.parentElement; e = e.parentElement) {
+        if ((e as HTMLButtonElement).disabled || Number(getComputedStyle(e).opacity) < 0.9) inactive = true;
+      }
+      const fg = parse(cs.color);
+      if (inactive || !fg) continue;
+      const bg = backdrop(node);
+      const l1 = lum(over(fg, bg)), l2 = lum(bg);
+      const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+      const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700;
+      const large = size >= 24 || (bold && size >= 18.66);
+      checked++;
+      if (ratio < (large ? 3 : 4.5)) low.push(`${text.slice(0, 40)} — ${ratio.toFixed(2)}:1 (${cs.color} на rgb(${Math.round(bg.r)}, ${Math.round(bg.g)}, ${Math.round(bg.b)}))`);
+    }
+    return { checked, low };
+  });
+}

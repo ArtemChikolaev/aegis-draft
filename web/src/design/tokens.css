@@ -24,7 +24,7 @@
   --on-accent: #25192d; /* текст на кнопке цвета --accent */
   --ember: #ff7a45;
   --blue: #8bbcff;
-  --gold: #ffc66b;
+  --gold: var(--gold-invert);
   --danger: #ff806d;
   --danger-fill: #b84435; /* заливка кнопки danger: сигнальный --danger как фон слишком светлый */
   --danger-fill-hover: #ce503f;
@@ -34,10 +34,10 @@
   --radius: 18px;
 
   /* Роли (текст бейджа) — тема-зависимые для читаемости на светлой поверхности. */
-  --role-safelane: #9ce77e;
+  --role-safelane: var(--role-safelane-invert);
   --role-mid: var(--gold);
   --role-offlane: var(--accent);
-  --role-support: #d5a5ff;
+  --role-support: var(--role-support-invert);
   --role-safelane-bg: rgba(105, 180, 75, .14);
   --role-mid-bg: color-mix(in srgb, var(--gold) 13%, transparent);
   --role-offlane-bg: var(--accent-soft);
@@ -51,6 +51,13 @@
   --line-invert: rgba(255, 255, 255, .13);
   --line-invert-strong: rgba(255, 255, 255, .28);
   --danger-invert: #ff806d; /* сигнал на всегда-тёмной панели: тема-зависимый --danger там тонет */
+  /* Золото и бейджи ролей — по той же схеме, что --tier-*: тёмная тема ссылается на двойник,
+     светлая переопределяет только исходный токен (глубокий, под ivory). Всегда-тёмная модалка
+     (ui/Modal) ремапит исходные на двойники у себя — на её чёрном ivory-значения тонули (2.3:1). */
+  --gold-invert: #ffc66b;
+  --role-safelane-invert: #9ce77e;
+  --role-mid-invert: var(--gold-invert);
+  --role-support-invert: #d5a5ff;
   --brand-green: #8ff0b5;   /* акцент радара, фикс */
   --brand-glow: #72e79b;    /* свечение-блобы, фикс */
   /* Тёплое зелёное арт-поле стартовых карточек. Это одна палитра для Classic,
