@@ -202,6 +202,11 @@ ENEMIES = {
     # как разрушение Древнего (`physics/damage/building/`).
     "ancient": {"attack": [f"sounds/physics/damage/building/damage0{i}" for i in (1, 2, 3)], "death": ["sounds/physics/damage/building/dire_ancient_destruction_lose"]},
     "_generic": {"attack": melee, "death": [f"{D}death_troll_common_01", f"{D}death_kobold_common_01"]},
+    # Древние лагеря (M25): у дракона свой огонь (рык — Fireball) и смерть; голем — клипы скального голема (его модель
+    # golem_b); у ледяного шамана своих клипов в vpk нет — ледяная бомба как рык и смерть колдуна-драконида.
+    "black_dragon": {"attack": heavy, "death": [f"{D}death_black_dragon"], "aggro": [f"{C}neutral/black_dragon_fire"]},
+    "granite_golem": {"attack": heavy, "death": [f"{D}death_golem_rock_01", f"{D}death_golem_rock_02"]},
+    "ice_shaman": {"attack": melee, "death": [f"{D}death_dragonspawn_sorcerer_01", f"{D}death_dragonspawn_sorcerer_02"], "aggro": [f"{C}neutral/ice_bomb_target"]},
 }
 UI = {
     "levelup": [f"{U}levelup"], "abilitylevel": [f"{U}abilitylevel"], "coins": [f"{U}coins"], "buy": [f"{U}buy"],

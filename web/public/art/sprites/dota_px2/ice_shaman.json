@@ -1,0 +1,47 @@
+{
+  "name": "ice_shaman",
+  "frame": 128,
+  "dirs": 4,
+  "fps": 10,
+  "world": 112,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 9
+    },
+    "idle": {
+      "row": 4,
+      "frames": 10
+    },
+    "attack": {
+      "row": 8,
+      "frames": 7
+    },
+    "death": {
+      "row": 12,
+      "frames": 10,
+      "dirs": 1
+    }
+  },
+  "source": "n_creep_frostbitten_shaman01.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.12,
+  "fit": {
+    "orientation": "none",
+    "clip": "witchdoctor_run_anim",
+    "cx": -0.4688,
+    "zmin": 0.0,
+    "cy": -0.7812,
+    "height": 8.75,
+    "width": 4.0625,
+    "depth": 4.0625,
+    "extent": 9.8
+  }
+}

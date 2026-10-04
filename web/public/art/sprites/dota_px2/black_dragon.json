@@ -1,0 +1,47 @@
+{
+  "name": "black_dragon",
+  "frame": 160,
+  "dirs": 4,
+  "fps": 10,
+  "world": 160,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.671
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 10
+    },
+    "idle": {
+      "row": 4,
+      "frames": 10
+    },
+    "attack": {
+      "row": 8,
+      "frames": 6
+    },
+    "death": {
+      "row": 12,
+      "frames": 10,
+      "dirs": 1
+    }
+  },
+  "source": "n_creep_black_dragon.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.12,
+  "fit": {
+    "orientation": "none",
+    "clip": "run",
+    "cx": 0.0,
+    "zmin": 4.0625,
+    "cy": 0.3125,
+    "height": 4.0625,
+    "width": 7.5,
+    "depth": 6.875,
+    "extent": 8.4
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "granite_golem",
+  "frame": 64,
+  "dirs": 4,
+  "fps": 10,
+  "world": 128,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.816
+  },
+  "anims": {
+    "walk": {
+      "row": 0,
+      "frames": 7
+    },
+    "idle": {
+      "row": 4,
+      "frames": 10
+    },
+    "attack": {
+      "row": 8,
+      "frames": 4
+    },
+    "death": {
+      "row": 12,
+      "frames": 10,
+      "dirs": 1
+    }
+  },
+  "source": "n_creep_golem_b.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.12,
+  "fit": {
+    "orientation": "none",
+    "clip": "run",
+    "cx": 0.0,
+    "zmin": -0.3125,
+    "cy": -0.4688,
+    "height": 4.375,
+    "width": 3.75,
+    "depth": 3.4375,
+    "extent": 4.9
+  }
+}
