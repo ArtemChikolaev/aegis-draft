@@ -6,6 +6,7 @@
 // Что именно тир ДАЁТ, остаётся знанием каждой сущности: `heroRarity.ts` знает про Hero Synergy и
 // цены героя, `items.ts` — про масштаб эффекта карточки.
 import { Rng } from "./rng.ts";
+import { dpow } from "./dmath.ts";
 
 export type Rarity = "common" | "unique" | "mythic" | "immortal";
 
@@ -82,7 +83,7 @@ function rarityCenter(stageIndex: number): number {
 /** Веса тиров на этапе. Вес — доля, а не «на сотню»: важны только отношения. */
 function rollWeights(stageIndex: number): Record<Rarity, number> {
   const center = rarityCenter(stageIndex);
-  const weight = (rarity: Rarity) => RARITY_CURVE.falloff ** -Math.abs(rarityRank(rarity) - center);
+  const weight = (rarity: Rarity) => dpow(RARITY_CURVE.falloff, -Math.abs(rarityRank(rarity) - center));
   return {
     common: weight("common"),
     unique: weight("unique"),

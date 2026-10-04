@@ -1,4 +1,5 @@
 import type { Format, GameData } from "../types/data.ts";
+import { dpow } from "./dmath.ts";
 import { Rng } from "./rng.ts";
 import { eloDivisorForScale } from "./tournamentPower.ts";
 import { QUICK_DRAFT_FIELD, type FieldModel } from "./fieldModel.ts";
@@ -234,7 +235,9 @@ export const ELO_DIVISOR = 22;
  *  под шкалу этапа. Экспортируется: Дуэль (M-DUEL) судит игры серии ТОЙ ЖЕ кривой, что и все
  *  турниры, — второй формулы матча в проекте быть не должно. */
 export function eloWinProbability(strengthA: number, strengthB: number, divisor: number): number {
-  return 1 / (1 + Math.pow(10, -(strengthA - strengthB) / divisor));
+  // dpow, а не Math.pow (M25): исход матча — сравнение броска с этой вероятностью, и последний бит Math.pow в Safari и
+  // Chrome мог развести турнир по одному сиду.
+  return 1 / (1 + dpow(10, -(strengthA - strengthB) / divisor));
 }
 
 function winProbability(a: TournamentTeam, b: TournamentTeam, divisor: number): number {

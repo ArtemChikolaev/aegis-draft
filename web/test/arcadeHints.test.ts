@@ -49,3 +49,22 @@ describe("подсказки механик Аркады", () => {
     expect(loadSeenHints()).toEqual(new Set(["streak"]));
   });
 });
+
+describe("справочник механик: встречи (M25)", () => {
+  it("каст нейтрала и Древний в кадре, взятая руна и мульти-убийство открывают записи; аффиксы — только через подсказку", async () => {
+    const { ArcadeSim } = await import("../src/game/arcade/sim.ts");
+    const { ENEMY_KINDS } = await import("../src/game/arcade/content/enemies.ts");
+    const { encounterKeys } = await import("../src/features/arcade/hints.ts");
+    const sim = new ArcadeSim("codex-1", { rank: 0, hero: "juggernaut", act: "dire" });
+    for (const e of sim.enemies) e.alive = false;
+    expect(encounterKeys(sim)).toEqual([]);
+    const spawn = (sim as unknown as { spawnEnemy(k: unknown, x: number, y: number): { castT: number; affix: number } }).spawnEnemy.bind(sim);
+    const c = spawn(ENEMY_KINDS.centaur, sim.player.x + 100, sim.player.y);
+    c.castT = 10; c.affix = AFFIX.haste;
+    spawn(ENEMY_KINDS.granite_golem, sim.player.x - 150, sim.player.y);
+    spawn(ENEMY_KINDS.black_dragon, sim.player.x + 5000, sim.player.y); // вне кадра — не считается
+    (sim.runesTaken as Record<string, number>).arcane = 1;
+    const keys = encounterKeys(sim).sort();
+    expect(keys).toEqual(["ancient.granite_golem", "cast.stomp", "rune.arcane"]);
+  });
+});

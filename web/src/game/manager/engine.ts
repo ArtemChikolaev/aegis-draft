@@ -11,6 +11,7 @@
 import { squadSynergyOf } from "../../data/dataFiles.ts";
 import type { Format, GameData, Role } from "../../types/data.ts";
 import { ROLE_SEQUENCE, type Candidate } from "../packs.ts";
+import { ceilLog2 } from "../dmath.ts";
 import { Rng } from "../rng.ts";
 import {
   QUICK_DRAFT_FIELD,
@@ -533,8 +534,8 @@ export class ManagerEngine {
     const eloDelta = Math.round((ELO_K * (expected - user.placement)) / (size / 2));
     s.elo += eloDelta;
     s.bankK += prizeK + rivalBonusK;
-    s.seasonGames += Math.ceil(Math.log2(size));
-    s.seasonWins += Math.max(0, Math.ceil(Math.log2(size)) - Math.ceil(Math.log2(Math.max(2, user.placement))));
+    s.seasonGames += ceilLog2(size);
+    s.seasonWins += Math.max(0, ceilLog2(size) - ceilLog2(Math.max(2, user.placement)));
 
     // Настроение и слава по результату (константы 322-0): титул поднимает обе,
     // топ-3 греет, дно LAN бьёт. Прочие места нейтральны.

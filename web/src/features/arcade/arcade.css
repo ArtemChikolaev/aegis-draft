@@ -136,7 +136,11 @@
 .arcade-ability small { font-size: 9px; color: var(--muted-invert); }
 .arcade-ability i { position: absolute; left: 0; right: 0; bottom: 0; background: var(--arcade-scrim); }
 .arcade-ability em { position: absolute; inset: 0; display: grid; place-items: center; font: 800 18px var(--font-display); font-style: normal; background: color-mix(in srgb, var(--surface-invert) 82%, transparent); }
-.arcade-ability__auto { position: absolute; top: 2px; right: 2px; z-index: 1; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: 800 9px var(--font-display); cursor: pointer; }
+/* Обёртка кнопки умения и её переключателя (M25): соседние кнопки, а не вложенные; `data-slot` — на обёртке (сетка на телефоне). */
+.arcade-ability-wrap { position: relative; display: inline-flex; }
+/* Зона нажатия переключателя шире значка — наружу от угла кнопки, а не внутрь неё (мелкая цель на телефоне). */
+.arcade-ability__auto::after { content: ""; position: absolute; inset: -7px -7px -3px -3px; }
+.arcade-ability__auto { position: absolute; top: 2px; right: 2px; z-index: 2; padding: 0; cursor: pointer; pointer-events: auto; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: 800 9px var(--font-display); cursor: pointer; }
 .arcade-ability__auto[data-on] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong); }
 .arcade-ability[data-locked] { opacity: .35; }
 .arcade-ability[data-passive] { opacity: .8; }
@@ -176,8 +180,8 @@
 .arcade-offer strong { font: 500 20px/1.1 var(--font-display); letter-spacing: -.03em; }
 .arcade-offer small { font-size: 11px; font-weight: 700; color: var(--muted); }
 .arcade-offer p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
-.arcade-offer[data-rarity="refined"] { border-color: var(--rarity-refined, var(--blue)); }
-.arcade-offer[data-rarity="exotic"] { border-color: var(--rarity-exotic, var(--role-support)); }
+.arcade-offer[data-rarity="refined"] { border-color: var(--blue); }
+.arcade-offer[data-rarity="exotic"] { border-color: var(--role-support); }
 .arcade-offer[data-rarity="arcana"] { border-color: var(--card-tier-arcana); box-shadow: 0 0 0 1px var(--card-tier-arcana); }
 .arcade-offer[data-rarity="legendary"] { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold), 0 0 24px 0 var(--gold); background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 14%, var(--surface-solid)), var(--surface-solid)); }
 .arcade-offer[data-rarity="legendary"] .arcade-offer__tag { color: var(--gold); font-weight: 800; }
@@ -237,13 +241,13 @@
 .arcade-shop__sell:hover { border-color: var(--accent); }
 
 /* Иконки способностей из Dota (T13.13): карточки прокачки, кит героя, кнопки Q/W/E/R */
-.arcade-ability-icon { display: inline-block; border-radius: 6px; vertical-align: middle; object-fit: cover; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.arcade-ability-icon { display: inline-block; border-radius: 6px; vertical-align: middle; object-fit: cover; box-shadow: 0 0 0 1px var(--arcade-scrim); }
 .arcade-ability-icon--fallback { display: inline-grid; place-items: center; font: 800 13px var(--font-display); color: var(--accent); }
 .arcade-setup__kit li .arcade-ability-icon { grid-row: span 2; }
 .arcade-offer__tag .arcade-ability-icon { margin-right: 4px; }
 .arcade-ability .arcade-ability-icon { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: inherit; opacity: 0.85; }
 .arcade-ability[data-locked] .arcade-ability-icon { filter: grayscale(1) brightness(0.5); }
-.arcade-ability > b, .arcade-ability > small, .arcade-ability > em { position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.arcade-ability > b, .arcade-ability > small, .arcade-ability > em { position: relative; z-index: 1; text-shadow: 0 1px 2px var(--arcade-text-shadow-strong); }
 
 /* Панель отладки звука (?sfxdebug=1) */
 .arcade-sfxdebug { margin: 8px 0; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; font: 500 11px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text); background: var(--surface); }
@@ -273,6 +277,15 @@
 /* Дерево талантов (M23): пары 10/15/20/25 и предметы Aghanim's; взятое — акцентом. На подготовке — под китом героя,
    в окне сборки — на тёмной вставке (`data-invert`). */
 .arcade-setup__talents summary { cursor: pointer; list-style-position: inside; }
+/* Справочник механик (M25): закрытая запись — «???», пока не встречалась. */
+.arcade-codex { display: grid; gap: 10px; }
+.arcade-codex__progress { margin: 0; font-size: 12px; color: var(--muted); }
+.arcade-codex__section h4 { margin: 0 0 4px; font: 800 11px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.arcade-codex__section ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.arcade-codex__section li { display: grid; grid-template-columns: minmax(110px, 160px) 1fr; gap: 8px; font-size: 12px; }
+.arcade-codex__section li b { font-weight: 700; }
+.arcade-codex__section li[data-locked] { color: var(--muted); }
+@media (max-width: 560px) { .arcade-codex__section li { grid-template-columns: 1fr; gap: 0; } }
 .arcade-setup__talents[open] summary { margin-bottom: 8px; }
 .arcade-talents__rows { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .arcade-talents__row { display: grid; grid-template-columns: 28px 1fr 1fr; gap: 6px; align-items: stretch; }
@@ -383,6 +396,10 @@
 @keyframes arcade-pickup-pulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-strong) 45%, transparent); } 50% { box-shadow: 0 0 0 6px transparent; } }
 .arcade-build { width: min(960px, 100%); }
 .arcade-build__section { display: grid; gap: 8px; width: 100%; justify-items: stretch; text-align: left; }
+/* Слоты типов благословений (M25): занятый тип подсвечен — новых благословений этого типа уже не будет. */
+.arcade-build__slots { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 0; font: 600 11px var(--font-display); color: var(--muted-invert); }
+.arcade-build__slots span[data-full] { color: var(--arcade-crit); }
+.arcade-offer__slot { display: block; margin-top: 4px; font-size: 11px; color: var(--arcade-crit); }
 .arcade-build__label { font: 800 10px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--muted-invert); }
 .arcade-build__gear { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .arcade-offer[data-compact] { padding: 8px 10px; gap: 2px; }
@@ -466,7 +483,7 @@
 .arcade-trait { display: grid; gap: 6px; margin-top: 10px; }
 .arcade-trait__row { display: flex; flex-wrap: wrap; gap: 6px; }
 .arcade-trait__row .arcade-rank__tier[data-locked="true"] { opacity: 0.45; }
-.arcade-trait__desc { color: var(--text-muted, inherit); font-size: 12px; }
+.arcade-trait__desc { color: var(--muted); font-size: 12px; }
 
 /* Лавка каравана (T13.59): строка скидки. */
 .arcade-shop__discount { color: var(--role-support, inherit); font-weight: 700; }

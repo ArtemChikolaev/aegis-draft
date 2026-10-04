@@ -1,7 +1,7 @@
 // Генерация карты Аркады — ЧИСТАЯ и общая для сима и рендера (T13.19, владелец 2026-09-06: «камни и деревья
 // должны быть реальными препятствиями»). Раньше жила только в рендерере (features/arcade/terrain.ts); теперь
 // сим строит из того же декора препятствия с коллизией, а рендерер — картинку. Один seed+act ⇒ одна карта.
-import { dhypot } from "./dmath.ts";
+import { dhypot } from "../dmath.ts";
 import { Rng } from "../rng.ts";
 import { ARCADE } from "./config.ts";
 import type { ActId } from "./types.ts";

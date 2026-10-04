@@ -6,6 +6,7 @@ import type { PlacementKey } from "./tournament.ts";
 
 /** Слагаемое Team OVR, на которое действует покупка. */
 import { ECONOMY, type StatEffect, type SummandModifiers } from "./anteEconomyTypes.ts";
+import { ipow } from "./dmath.ts";
 
 /** Цена очередного реролла в ТЕКУЩЕМ Буткемпе. Чистая: UI и движок обязаны считать одинаково. */
 export function rerollCostFor(rerollsInCamp: number): number {
@@ -15,7 +16,7 @@ export function rerollCostFor(rerollsInCamp: number): number {
 /** Цена n-й покупки повторяемого синка. Чистая: UI и движок обязаны считать одинаково — тот же
  *  контракт, что у `rerollCostFor`. Геометрия обрывает конвертацию накоплений в силу (см. ECONOMY.prep). */
 function sinkCostFor(base: number, growth: number, purchases: number): number {
-  return Math.round(base * growth ** Math.max(0, Math.floor(purchases)));
+  return Math.round(base * ipow(growth, Math.max(0, Math.floor(purchases))));
 }
 
 /** Цена очередной усиленной подготовки в ТЕКУЩЕМ Буткемпе. */

@@ -358,6 +358,15 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-fog: rgba(3, 5, 9, .96);
   --arcade-scrim: rgba(0, 0, 0, .55);        /* затемнение оверлеев и кулдауна на всегда-тёмной сцене */
   --arcade-text-shadow: rgba(0, 0, 0, .6);   /* подложка HUD-текста над canvas */
+  --arcade-text-shadow-strong: rgba(0, 0, 0, .9); /* подписи поверх иконок умений — светлая иконка съедала обычную тень */
+  /* Тинт пропсов Dota на земле (terrain.ts): листва и камень экспортируются белёсыми, без шейдерного тинта Source 2. */
+  --arcade-tint-oak: rgba(60, 120, 45, .55);
+  --arcade-tint-pine: rgba(40, 95, 50, .55);
+  --arcade-tint-rock: rgba(95, 90, 75, .55);
+  --arcade-tint-tree-night: rgba(30, 55, 50, .6);
+  --arcade-tint-rock-night: rgba(40, 45, 55, .6);
+  --arcade-crit-dark: #5a0f14;       /* тёмная кромка искр крита в эффектах облика */
+  --arcade-lightning-dark: #2a1846;  /* тёмная кромка разрядов в эффектах облика */
   /* Ландшафт (процедурные чанки, features/arcade/terrain.ts) и риги персонажей. */
   --arcade-grass-a: #17301c;
   --arcade-grass-b: #1a3620;

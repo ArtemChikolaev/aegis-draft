@@ -2,6 +2,9 @@
 // всплывающей подсказкой под курсором — на телефоне и с пада её не увидеть. Карточка в HUD гаснет сама через `HINT_SEC`
 // секунд забега (или по крестику); увиденное помнится на устройстве (persist: localStorage, в Telegram — ещё и облако).
 import { AFFIX, AFFIX_IDS, type AffixId } from "../../game/arcade/content/enemies.ts";
+import { ARCADE } from "../../game/arcade/config.ts";
+import type { ArcadeSim } from "../../game/arcade/sim.ts";
+import type { NeutralCastId, RuneKind } from "../../game/arcade/types.ts";
 import { readCached, writePersisted } from "../../state/persist.ts";
 
 export type ArcadeHint = { kind: "affix"; ids: AffixId[] } | { kind: "streak" };
@@ -35,4 +38,29 @@ export function nextHint(seen: ReadonlySet<string>, affixMask: number, streakTie
   if (ids.length > 0) return { kind: "affix", ids };
   if (streakTier > 0 && !seen.has("streak")) return { kind: "streak" };
   return null;
+}
+
+// ---- Справочник механик (M25): те же «увиденные», что у подсказок, плюс встречи без карточки ----
+
+/** Умения нейтралов, руны и Древние для справочника — в порядке показа. */
+export const CODEX_CASTS: readonly NeutralCastId[] = ["stomp", "clap", "purge", "frost_armor", "fireball"];
+export const CODEX_RUNES: readonly RuneKind[] = ["dd", "shield", "arcane", "illusion"];
+export const CODEX_ANCIENTS: readonly string[] = ARCADE.ancients.pack;
+const ANCIENT_SET = new Set(CODEX_ANCIENTS);
+
+/**
+ * Встречи прямо сейчас (ключи «увиденного»): каст нейтрала и Древний в кадре, действующая руна, мульти-убийство. Аффиксы и
+ * серию сюда не кладём — их открывает карточка подсказки (nextHint), иначе она бы не показалась.
+ */
+export function encounterKeys(sim: ArcadeSim): string[] {
+  const keys = new Set<string>();
+  const p = sim.player, view = 560;
+  for (const e of sim.enemies) {
+    if (!e.alive || Math.abs(e.x - p.x) > view || Math.abs(e.y - p.y) > view) continue;
+    if (e.castT > 0 && e.kind.cast) keys.add(`cast.${e.kind.cast}`);
+    if (ANCIENT_SET.has(e.kind.id)) keys.add(`ancient.${e.kind.id}`);
+  }
+  for (const r of CODEX_RUNES) if (sim.runesTaken[r]) keys.add(`rune.${r}`);
+  if (sim.multiKillShown > 0) keys.add("multi");
+  return [...keys];
 }

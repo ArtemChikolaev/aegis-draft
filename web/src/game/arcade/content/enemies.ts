@@ -61,6 +61,10 @@ const KINDS: Record<EnemyKindId, EnemyKind> = {
   archer: { id: "archer", hp: 90, speed: 72, dmg: 26, r: 12, xp: 8, gold: 4, fromMin: 99, weight: 0, tone: "swift" },
   /** Спороносец (T13.82): медленный и живучий, на ходу и после смерти оставляет лужи спор — убить издалека или выманить с прохода. */
   sporebearer: { id: "sporebearer", hp: 220, speed: 46, dmg: 12, r: 15, xp: 14, gold: 6, fromMin: 99, weight: 0, tone: "brute" },
+  // Древние лагеря (M25, ARCADE.ancients): в обычный пул не входят — приходят стаей по расписанию актов Dire и реки.
+  black_dragon: { id: "black_dragon", hp: 520, speed: 62, dmg: 30, r: 22, xp: 22, gold: 12, fromMin: 99, weight: 0, tone: "brute", acts: ["dire", "river"], cast: "fireball" },
+  granite_golem: { id: "granite_golem", hp: 700, speed: 50, dmg: 34, r: 22, xp: 20, gold: 10, fromMin: 99, weight: 0, tone: "brute", acts: ["dire", "river"], armorAura: 240 },
+  ice_shaman: { id: "ice_shaman", hp: 380, speed: 64, dmg: 20, r: 15, xp: 16, gold: 8, fromMin: 99, weight: 0, tone: "creep", acts: ["dire", "river"], cast: "frost_armor" },
 };
 
 /** Одна форма объекта на все виды: те же значения, но все поля на месте и в одном порядке. Литералы выше разной формы
@@ -68,7 +72,7 @@ const KINDS: Record<EnemyKindId, EnemyKind> = {
  *  движка; с единой формой они мономорфны. Значения не меняются — отсутствующее поле остаётся `undefined`.
  *  Новое поле `EnemyKind` добавляй и сюда: иначе у всех видов оно молча `undefined` (T20.3 — `cast` терялся). */
 function uniform(k: EnemyKind): EnemyKind {
-  return { id: k.id, hp: k.hp, speed: k.speed, dmg: k.dmg, r: k.r, xp: k.xp, gold: k.gold, elite: k.elite, boss: k.boss, structure: k.structure, reflect: k.reflect, unstoppable: k.unstoppable, totem: k.totem, ranged: k.ranged, fromMin: k.fromMin, weight: k.weight, acts: k.acts, tone: k.tone, cast: k.cast };
+  return { id: k.id, hp: k.hp, speed: k.speed, dmg: k.dmg, r: k.r, xp: k.xp, gold: k.gold, elite: k.elite, boss: k.boss, structure: k.structure, reflect: k.reflect, unstoppable: k.unstoppable, totem: k.totem, ranged: k.ranged, fromMin: k.fromMin, weight: k.weight, acts: k.acts, tone: k.tone, cast: k.cast, armorAura: k.armorAura };
 }
 
 export const ENEMY_KINDS = Object.fromEntries(Object.entries(KINDS).map(([id, k]) => [id, uniform(k)])) as Record<EnemyKindId, EnemyKind>;

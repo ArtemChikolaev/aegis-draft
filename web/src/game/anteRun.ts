@@ -10,6 +10,7 @@
 import type { Format, GameData } from "../types/data.ts";
 import { MUTATORS, mutatorForCircle, type MutatorId } from "./dynastyMutators.ts";
 import { PLACEMENT_KEYS, TournamentEngine, type FieldModel, type PlacementKey } from "./tournament.ts";
+import { dpow } from "./dmath.ts";
 
 /** Тип этапа внутри акта (PRD §5.9.3). Не косметика: от типа зависят порог места и сила поля.
  *  `playoffCheck` — «проверка плей-офф»: порог выше обычного, но чемпионство ещё не требуется. */
@@ -347,7 +348,7 @@ export function anteFieldMult(absoluteStageIndex: number, season: SeasonRules = 
   const inDynasty = completedActs >= season.acts;
   const seasonExp = inDynasty ? seasonActs : seasonActs + frac;
   const dynastyExp = inDynasty ? dynastyActs + frac : 0;
-  return ((1 + ANTE_THREAT.multPerAct) ** seasonExp) * ((1 + ANTE_THREAT.dynastyMultPerAct) ** dynastyExp);
+  return dpow(1 + ANTE_THREAT.multPerAct, seasonExp) * dpow(1 + ANTE_THREAT.dynastyMultPerAct, dynastyExp);
 }
 
 /** Суммарная угроза этапа. `stake` — сид под Stakes (T6.4): системы ещё нет, поэтому значение

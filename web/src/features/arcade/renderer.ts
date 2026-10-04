@@ -31,6 +31,7 @@ const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice", "venom", "venomDark",
   "lightning", "blink", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "critText", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
+  "tintOak", "tintPine", "tintRock", "tintTreeNight", "tintRockNight", "critDark", "lightningDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 /** Цвет маркера у края по виду приглашения (руна — по своему виду через `runeColor`). */
@@ -170,6 +171,15 @@ export class ArcadeRenderer {
       if (mine !== skin) { const b = dotaSheet(mine); if (b) return paint(b); }
     }
     return dotaSheet(hero);
+  }
+
+  /** Прогрев свечения арканы (M25): скан свечения и перекраска листа (`gemSheet`) — проход по всем пикселям листа, а первая
+   *  форма в аркане считала их посреди боя (фриз). Зовётся, когда листы героя уже загружены, — на экране загрузки; дальше
+   *  кэш `gemSheet`. Без арканы — ничего. */
+  warmSkin(hero: string): void {
+    if (!this.skinGlow) return;
+    this.heroSheet(hero, false);
+    this.heroSheet(hero, true);
   }
 
   private tintKey(pal: Palette): string {
@@ -452,8 +462,8 @@ export class ArcadeRenderer {
     this.terrain.assetVersion = terrainVersion();
     this.terrain.riverHalfWidth = sim.riverHalfWidth(); // прилив: вода расширяется в самой терре, не только заливкой поверх
     this.terrain.draw(c, camX, camY, this.w, this.h, night
-      ? { grassA: pal.grassNightA, grassB: pal.grassNightB, dirt: pal.dirtNight, rock: pal.rock, tree: pal.treeNight, treeDark: pal.treeNightDark, tuft: pal.treeNight }
-      : { grassA: pal.grassA, grassB: pal.grassB, dirt: pal.dirt, rock: pal.rock, tree: pal.tree, treeDark: pal.treeDark, tuft: pal.tuft });
+      ? { grassA: pal.grassNightA, grassB: pal.grassNightB, dirt: pal.dirtNight, rock: pal.rock, tree: pal.treeNight, treeDark: pal.treeNightDark, tuft: pal.treeNight, tintOak: pal.tintTreeNight, tintPine: pal.tintTreeNight, tintRock: pal.tintRockNight }
+      : { grassA: pal.grassA, grassB: pal.grassB, dirt: pal.dirt, rock: pal.rock, tree: pal.tree, treeDark: pal.treeDark, tuft: pal.tuft, tintOak: pal.tintOak, tintPine: pal.tintPine, tintRock: pal.tintRock });
     c.strokeStyle = pal.bounds;
     c.lineWidth = 6;
     c.strokeRect(0, 0, ARCADE.world.w, ARCADE.world.h);
@@ -1227,7 +1237,8 @@ export class ArcadeRenderer {
     c.setLineDash([]); c.lineCap = "butt"; c.globalAlpha = 1;
   }
 
-  /** Телеграф умения нейтрала (T20.3): кольцо War Stomp / Thunder Clap наливается к удару, Purge — полоса от сатира. */
+  /** Телеграф умения нейтрала (T20.3): кольцо War Stomp / Thunder Clap / Fireball (M25, круг по точке героя) наливается к
+   *  удару, Purge — полоса от сатира. */
   private drawNeutralCast(e: Enemy, pal: Palette): void {
     const c = this.ctx, NC = ARCADE.neutralCasts;
     if (e.kind.cast === "purge") {
@@ -1241,9 +1252,9 @@ export class ArcadeRenderer {
       c.setLineDash([]); c.lineCap = "butt"; c.globalAlpha = 1;
       return;
     }
-    const C = e.kind.cast === "stomp" ? NC.stomp : NC.clap;
+    const C = e.kind.cast === "stomp" ? NC.stomp : e.kind.cast === "fireball" ? NC.fireball : NC.clap;
     const k = 1 - e.castT / C.tele;
-    const tone = e.kind.cast === "clap" ? pal.frost : pal.telegraph;
+    const tone = e.kind.cast === "clap" ? pal.frost : e.kind.cast === "fireball" ? pal.fire : pal.telegraph;
     c.strokeStyle = tone; c.lineWidth = 3; c.globalAlpha = 0.9;
     c.beginPath(); c.arc(e.castX, e.castY, C.radius, 0, Math.PI * 2); c.stroke();
     c.fillStyle = tone; c.globalAlpha = 0.15 + 0.3 * k;

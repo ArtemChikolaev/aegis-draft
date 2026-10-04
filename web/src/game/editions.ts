@@ -12,6 +12,7 @@
 //
 // Визуальная ось (R13): редкость владеет ЦВЕТОМ рамки, Edition — бейджем/материалом. Не рамкой.
 import { rarityRank, type Rarity } from "./rarity.ts";
+import { ipow } from "./dmath.ts";
 
 export type CardEdition = "charged" | "tempered";
 
@@ -58,5 +59,5 @@ export function chargeFactor(charges: number): number {
 
 /** Множитель штрафа босса от активных Tempered-карт: penaltyFactor^n, 1 при нуле. */
 export function temperedPenaltyFactor(activeTempered: number): number {
-  return EDITION.tempered.penaltyFactor ** Math.max(0, activeTempered);
+  return ipow(EDITION.tempered.penaltyFactor, Math.max(0, activeTempered));
 }

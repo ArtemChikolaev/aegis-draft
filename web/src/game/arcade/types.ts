@@ -60,7 +60,9 @@ export type EnemyKindId =
   | "lane_creep" | "siege_creep" | "golem" | "roshan" | "tormentor" | "ancient"
   | "dark_troll" | "hellbear" | "corruption_totem" | "satyr_defiler" | "centaur_warden"
   | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker"
-  | "standard_bearer" | "shaman" | "archer" | "sporebearer";
+  | "standard_bearer" | "shaman" | "archer" | "sporebearer"
+  // Древние лагеря (M25): стая в актах Dire и реки.
+  | "black_dragon" | "granite_golem" | "ice_shaman";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -92,9 +94,11 @@ export interface EnemyKind {
   tone: "grunt" | "brute" | "swift" | "elite" | "boss" | "creep";
   /** Умение нейтрала Dota (T20.3, `ARCADE.neutralCasts`): War Stomp, Thunder Clap, Purge, Frost Armor. */
   cast?: NeutralCastId;
+  /** Гранитная аура (Древний голем, M25): союзники в этом радиусе под бронёй — урон по ним как у Frost Armor. */
+  armorAura?: number;
 }
 
-export type NeutralCastId = "stomp" | "clap" | "purge" | "frost_armor";
+export type NeutralCastId = "stomp" | "clap" | "purge" | "frost_armor" | "fireball";
 
 export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast" | "venom";
 
@@ -315,7 +319,7 @@ export interface Shard {
  *  снаряды; `summon` — питомцы, иллюзии, призывы и их снаряды; `other` — школы, DoT, отражения, всплески пассивок. */
 export type DmgOrigin = "attack" | "ability" | "summon" | "other";
 
-export type DmgSource = "attack" | "q" | "w" | "e" | "r" | "pets" | "school" | "dot" | "proj" | "other";
+export type DmgSource = "attack" | "q" | "w" | "e" | "r" | "pets" | "school" | "dot" | "proj" | "gear" | "other";
 /** `blink` — вспышка Blink: `x,y` — откуда, `x2,y2` — куда. */
 export type FxKind = "hit" | "crit" | "slash" | "nova" | "zap" | "burst" | "heal" | "revive" | "levelup" | "spin" | "die" | "ash" | "blink";
 

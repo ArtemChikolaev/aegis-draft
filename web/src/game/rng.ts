@@ -1,5 +1,6 @@
 // Детерминированный ГПСЧ для воспроизводимых забегов (скилл scoring-model: детерминизм по сиду).
 // Один и тот же сид ⇒ одна и та же последовательность паков (нужно для дейликов и шеринга).
+import { dcos, dlog } from "./dmath.ts";
 
 /** xmur3 — хеш строки в 32-битный сид. */
 function xmur3(str: string): () => number {
@@ -49,11 +50,12 @@ export class Rng {
     return arr[this.int(arr.length)];
   }
   /** Нормальное N(mean, sd) по Боксу–Мюллеру. Тратит два float — последовательность
-   * сида меняется, если вставлять вызов в середину существующей цепочки. */
+   * сида меняется, если вставлять вызов в середину существующей цепочки. Логарифм и косинус — из dmath (M25):
+   * `Math.log/cos` в Safari и Chrome расходятся в последнем бите, и турнир по одному сиду мог разойтись. */
   normal(mean: number, sd: number): number {
     const u = Math.max(1e-9, this.float());
     const v = this.float();
-    return mean + sd * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    return mean + sd * Math.sqrt(-2 * dlog(u)) * dcos(2 * Math.PI * v);
   }
   /** копия массива, перемешанная по Фишеру–Йетсу (детерминированно). */
   shuffle<T>(arr: readonly T[]): T[] {

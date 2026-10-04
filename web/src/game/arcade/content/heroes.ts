@@ -111,6 +111,9 @@ export interface AbilityDef {
    *  Это сущности сима, а не картинка над зоной: `art: "illusion"` → `spawnIllusions`, существо из SUMMONS →
    *  `spawnSummons` (бегают за героем и бьют, урон удара — значение умения). Без `summon` — зона урона в точке каста. */
   summon?: SummonDef;
+  /** Откат урона (Time Walk, M25): рывок возвращает HP, снятые за последние `backtrack` секунд (не больше окна
+   *  `ARCADE.backtrackWindow`), как в Dota. */
+  backtrack?: number;
 }
 
 /** `art` — «illusion» (копия героя) или имя листа существа (`wolf`, `bear`, `treant`, `hawk`, `hellbear`). */
@@ -333,8 +336,9 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "freezing_field", value: [0, 50, 80, 110], cooldown: 55, radius: 240, duration: 7 },      // Pulse Nova
   }, { kind: "aura_burn", value: 10, radius: 155 }),
   faceless_void: hero("faceless_void", 41, "faceless_void", false, { speed: 170, damage: 25, maxHp: 600, armor: 4 }, {
-    // Time Walk бьёт при приземлении, как остальные рывки игры (M24): без урона Q у бота нечем было чистить толпу — 43% побед.
-    q: { kind: "dash", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 320 },                        // Time Walk
+    // Time Walk (M25): откат урона за 2 с, как в Dota, и удар при приземлении вдвое слабее M24. Только откат — до Рошана
+    // 84%, но побед 48% (без урона Q бот не чистит толпу); урон M24 — 76/56%; откат + половина урона — 82.5/61% (120 забегов).
+    q: { kind: "dash", value: [0, 40, 60, 80, 100], cooldown: 10, radius: 320, backtrack: 2 },             // Time Walk
     w: { kind: "nova", value: [0, 50, 80, 110, 140], cooldown: 9, radius: 200, duration: 5 },            // Time Dilation
     e: SIG,                                                                                              // Time Lock
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 70, radius: 230, duration: 3.5 },           // Chronosphere
@@ -381,8 +385,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 9, radius: 300 },                               // Leap
     r: { kind: "haste", value: [0, 0.4, 0.45, 0.5], cooldown: 60, duration: 8 },                         // Moonlight Shadow
   }, { kind: "marksmanship", value: 0.3, radius: 230 }),
-  clinkz: hero("clinkz", 56, "clinkz", true, { attackInterval: 0.85, damage: 20, maxHp: 470 }, {
-    q: { kind: "multishot", value: [0, 55, 78, 100, 125], cooldown: 8, radius: 340, count: [0, 4, 5, 6, 7] }, // Burning Barrage
+  clinkz: hero("clinkz", 56, "clinkz", true, { attackInterval: 0.85, damage: 22, maxHp: 540, armor: 2 }, {
+    q: { kind: "multishot", value: [0, 70, 98, 125, 155], cooldown: 8, radius: 340, count: [0, 4, 5, 6, 7] }, // Burning Barrage
     w: { kind: "searing", value: [0, 12, 18, 24, 30], cooldown: 0, passive: true },                      // Searing Arrows
     e: { kind: "haste", value: [0, 0.35, 0.4, 0.45, 0.5], cooldown: 15, duration: 5 },                   // Skeleton Walk
     r: { kind: "death_pact", value: [0, 0.4, 0.6, 0.8], cooldown: 50, duration: 12 },                    // Death Pact
@@ -426,8 +430,8 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "damage_ward", value: [0, 24, 34, 44, 54], cooldown: 12, duration: 10, radius: 300, summon: { art: "ward_plague", count: 2 } }, // Plague Ward
     r: { kind: "nova", value: [0, 220, 340, 460], cooldown: 55, radius: 380, duration: 3, poison: 0.06 }, // Poison Nova — яд всем вокруг
   }, { kind: "aura_burn", value: 9, radius: 160 }),
-  witch_doctor: hero("witch_doctor", 30, "witch_doctor", true, { maxHp: 560, armor: 2, damage: 24, speed: 162 }, {
-    q: { kind: "lightning_bolt", value: [0, 90, 135, 180, 225], cooldown: 6, radius: 320, duration: 1.2 }, // Paralyzing Cask
+  witch_doctor: hero("witch_doctor", 30, "witch_doctor", true, { maxHp: 660, armor: 4, damage: 24, speed: 162, regen: 3 }, {
+    q: { kind: "arc_lightning", value: [0, 80, 120, 160, 200], cooldown: 6, radius: 320, count: [0, 2, 3, 4, 5] }, // Paralyzing Cask
     w: { kind: "ward", value: [0, 12, 18, 24, 30], cooldown: 16, duration: 8 },                           // Voodoo Restoration
     e: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 7, radius: 300, duration: 3 },             // Maledict
     r: { kind: "damage_ward", value: [0, 80, 120, 160], cooldown: 55, duration: 9, radius: 350, summon: { art: "ward_death" } }, // Death Ward
@@ -444,7 +448,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "rage", value: [0, 0.8, 1.2, 1.6, 2.0], cooldown: 12, duration: 3 },                       // Enchant Totem
     e: SIG,                                                                                              // Aftershock
     r: { kind: "ravage", value: [0, 260, 390, 520], cooldown: 60, radius: 360, duration: 1.4 },          // Echo Slam
-  }, { kind: "aftershock", value: 40, radius: 160 }),
+  }, { kind: "aftershock", value: 52, radius: 190 }),
   bloodseeker: hero("bloodseeker", 4, "bloodseeker", false, { maxHp: 720, armor: 4, damage: 28, speed: 182, attackInterval: 0.85, regen: 3 }, {
     q: { kind: "frenzy", value: [0, 0.25, 0.32, 0.39, 0.46], cooldown: 10, duration: 6 },                // Bloodrage
     w: { kind: "meteor", value: [0, 130, 190, 250, 310], cooldown: 10, radius: 150, count: [0, 1, 1, 1, 1], duration: 1.5, noBurn: true }, // Blood Rite
@@ -463,18 +467,18 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "nova", value: [0, 110, 160, 210, 260], cooldown: 5, radius: 300, duration: 0.8 },         // Scream of Pain
     r: { kind: "line_burst", value: [0, 260, 390, 520], cooldown: 60, radius: 110, count: [0, 5, 5, 5] }, // Sonic Wave
   }, { kind: "fiery_soul", value: 0.28, duration: 5 }),
-  viper: hero("viper", 47, "viper", true, { maxHp: 640, armor: 3, damage: 24, speed: 158, regen: 2 }, {
+  viper: hero("viper", 47, "viper", true, { maxHp: 700, armor: 4, damage: 28, speed: 162, regen: 2 }, {
     q: { kind: "venom", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                        // Poison Attack — стак яда с удара
     w: { kind: "nova", value: [0, 90, 135, 180, 230], cooldown: 7, radius: 300, duration: 2.5, poison: 0.1 }, // Nethertoxin — яд
     e: SIG,                                                                                              // Corrosive Skin
     r: { kind: "assassinate", value: [0, 380, 600, 820], cooldown: 50, radius: 340 },                    // Viper Strike
   }, { kind: "quill", value: 18, radius: 140 }),
-  ogre_magi: hero("ogre_magi", 84, "ogre_magi", true, { maxHp: 760, armor: 6, damage: 24, speed: 160, range: 250, regen: 3 }, {
+  ogre_magi: hero("ogre_magi", 84, "ogre_magi", true, { maxHp: 840, armor: 7, damage: 26, speed: 162, range: 250, regen: 4 }, {
     q: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 7, radius: 320, duration: 1.4 }, // Fireblast
     w: { kind: "nova", value: [0, 90, 130, 170, 210], cooldown: 8, radius: 240, duration: 1.5 },          // Ignite
     e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 16, duration: 8 },                  // Bloodlust
     r: SIG,                                                                                              // Multicast
-  }, { kind: "multicast", value: 0.25 }),
+  }, { kind: "multicast", value: 0.3 }),
   huskar: hero("huskar", 59, "huskar", true, { maxHp: 700, armor: 2, damage: 24, regen: 4, speed: 164, range: 260 }, {
     q: { kind: "gust", value: [0, 80, 120, 160, 200], cooldown: 11, radius: 200, duration: 1.5 },        // Inner Fire
     w: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Burning Spear
@@ -529,7 +533,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "dash", value: [0, 100, 150, 200, 250], cooldown: 10, radius: 280 },                       // Meld
     e: SIG,                                                                                              // Psi Blades
     r: { kind: "damage_ward", value: [0, 60, 90, 120], cooldown: 45, duration: 10, radius: 320, summon: { art: "trap_psionic", count: 2 } }, // Psionic Trap
-  }, { kind: "cleave", value: 0.5, radius: 120 }),
+  }, { kind: "cleave", value: 0.4, radius: 95 }),
   medusa: hero("medusa", 94, "medusa", true, { maxHp: 560, armor: 3, damage: 22, speed: 158, range: 330 }, {
     q: { kind: "multishot", value: [0, 25, 35, 45, 55], cooldown: 7, radius: 360, count: [0, 3, 4, 5, 6] }, // Split Shot
     w: { kind: "arc_lightning", value: [0, 70, 105, 140, 175], cooldown: 8, radius: 320, count: [0, 3, 4, 5, 6] }, // Mystic Snake
@@ -538,7 +542,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
   }, { kind: "cleave", value: 0.4, radius: 95 }),
   // ---- Волна 5 ----
   silencer: hero("silencer", 75, "silencer", true, { maxHp: 540, armor: 2, damage: 24, speed: 162 }, {
-    q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 8, radius: 320, duration: 3 },            // Arcane Curse
+    q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 10, radius: 280, duration: 3 },            // Arcane Curse
     w: { kind: "searing", value: [0, 10, 15, 20, 25], cooldown: 0, passive: true },                      // Glaives of Wisdom
     e: { kind: "lightning_bolt", value: [0, 90, 140, 190, 240], cooldown: 9, radius: 320, duration: 1.0 }, // Last Word
     r: { kind: "mass_freeze", value: [0, 0, 0, 0], cooldown: 60, radius: 600, duration: 2 },              // Global Silence
@@ -618,7 +622,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "haste", value: [0, 0.1, 0.15, 0.2], cooldown: 50, duration: 6 },                          // Stampede
   }, { kind: "quill", value: 16, radius: 160 }),
   dark_seer: hero("dark_seer", 55, "dark_seer", false, { maxHp: 700, armor: 4, damage: 26, speed: 162, regen: 2 }, {
-    q: { kind: "nova", value: [0, 70, 110, 150, 190], cooldown: 10, radius: 300, duration: 2 },           // Vacuum
+    q: { kind: "nova", value: [0, 95, 145, 195, 250], cooldown: 9, radius: 300, duration: 2 },           // Vacuum
     w: { kind: "edict", value: [0, 40, 60, 80, 100], cooldown: 14, duration: 8, radius: 260 },            // Ion Shell
     e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 12, duration: 6 },                  // Surge
     r: { kind: "line_burst", value: [0, 200, 300, 400], cooldown: 60, radius: 120, count: [0, 3, 3, 3], duration: 1.0 }, // Wall of Replica
@@ -659,7 +663,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     w: { kind: "life_drain", value: [0, 34, 46, 58, 70], cooldown: 8, radius: 320, duration: 3 },         // Brain Sap
     e: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 12, radius: 320, duration: 3 },       // Nightmare
     r: { kind: "assassinate", value: [0, 380, 590, 800], cooldown: 60, radius: 340 },                    // Fiend's Grip
-  }, { kind: "blur", value: 0.2 }),
+  }, { kind: "blur", value: 0.15 }),
   batrider: hero("batrider", 65, "batrider", true, { maxHp: 640, armor: 3, damage: 24, speed: 168, range: 300 }, {
     q: { kind: "goo", value: [0, 80, 120, 160, 200], cooldown: 5, radius: 320, duration: 4 },             // Sticky Napalm
     w: { kind: "gust", value: [0, 110, 160, 210, 260], cooldown: 10, radius: 240, duration: 2 },         // Flamebreak
@@ -800,7 +804,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 9, radius: 240, duration: 2 },            // Telekinesis
     w: { kind: "arc_lightning", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 340, count: [0, 3, 4, 5, 6] }, // Fade Bolt
     e: { kind: "arcane_aura", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, passive: true },            // Arcane Supremacy
-    r: { kind: "spell_steal", value: [0, 200, 300, 400], cooldown: 18, radius: 450 },                    // Spell Steal
+    r: { kind: "spell_steal", value: [0, 160, 240, 320], cooldown: 18, radius: 450 },                    // Spell Steal
   }, { kind: "multicast", value: 0.3 }),
   sand_king: hero("sand_king", 16, "sand_king", false, { maxHp: 800, armor: 5, damage: 28, speed: 162, regen: 3 }, {
     q: { kind: "line_burst", value: [0, 120, 175, 230, 290], cooldown: 8, radius: 64, count: [0, 4, 4, 4, 4], duration: 1.6 }, // Burrowstrike
@@ -1004,7 +1008,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "ward", value: [0, 0.16, 0.22, 0.28], cooldown: 50, radius: 900, duration: 1 },           // Hand of God
   }, { kind: "deathpact", value: 7 }),
   ancient_apparition: hero("ancient_apparition", 68, "ancient_apparition", true, { maxHp: 560, armor: 2, damage: 24, speed: 162, range: 340 }, {
-    q: { kind: "nova", value: [0, 95, 140, 190, 240], cooldown: 7, radius: 260, duration: 2 },           // Cold Feet
+    q: { kind: "nova", value: [0, 95, 140, 190, 240], cooldown: 9, radius: 220, duration: 2 },           // Cold Feet
     w: { kind: "remnant", value: [0, 40, 55, 70, 88], cooldown: 10, radius: 240, duration: 8 },          // Ice Vortex
     e: { kind: "frost_arrows", value: [0, 0.2, 0.28, 0.36, 0.44], cooldown: 0, passive: true },          // Chilling Touch
     r: { kind: "mass_freeze", value: [0, 200, 300, 400], cooldown: 65, radius: 320, duration: 2.5 },     // Ice Blast

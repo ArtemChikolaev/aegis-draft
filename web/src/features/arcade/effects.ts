@@ -9,7 +9,7 @@
 // `death` — эффект смерти врагов, `tint` — оттенок умений (читает рендерер напрямую).
 import { drawFrostMist, drawPixelRing, dot, hash, type ParticlePalette } from "./particles.ts";
 
-export interface EffectPalette extends ParticlePalette { aegis: string; playerRing: string; heal: string; crit: string }
+export interface EffectPalette extends ParticlePalette { aegis: string; playerRing: string; heal: string; crit: string; critDark: string; lightningDark: string }
 
 /** Цвета эффектов из токенов `--arcade-*`: canvas не наследует CSS-переменные. */
 export function readEffectPalette(): EffectPalette {
@@ -20,6 +20,7 @@ export function readEffectPalette(): EffectPalette {
     ice: get("ice", "#e6f7ff"), lightning: get("lightning", "#d7bcff"), text: get("text", "#fff"), aegis: get("aegis", "#ffd48a"),
     playerRing: get("player-ring", "#ffd48a"), heal: get("heal", "#9ce77e"), crit: get("crit", "#ff6b6b"),
     venom: get("venom", "#7be04a"), venomDark: get("venom-dark", "#2f7d3a"),
+    critDark: get("crit-dark", "#5a0f14"), lightningDark: get("lightning-dark", "#2a1846"),
   };
 }
 
@@ -402,7 +403,7 @@ export function drawTrailEffect(c: CanvasRenderingContext2D, pts: readonly { x: 
         // Кровавые капли на земле: тёмные пятна и редкие светлые брызги, не поднимаются.
         for (let j = 0; j < 3; j++) {
           c.globalAlpha = 0.85 * k;
-          c.fillStyle = j === 0 ? pal.crit : "#5a0f14";
+          c.fillStyle = j === 0 ? pal.crit : pal.critDark;
           dot(c, pt.x + (hash(seed, 20 + j) - 0.5) * px * 9, pt.y + (hash(seed, 30 + j) - 0.5) * px * 4, px * (j === 0 ? 2 : 1), px);
         }
         break;
@@ -441,7 +442,7 @@ export function drawTrailEffect(c: CanvasRenderingContext2D, pts: readonly { x: 
         // Дым пустоты: тёмно-фиолетовые клубы расширяются и тают, внутри редкие искры.
         for (let j = 0; j < 3; j++) {
           c.globalAlpha = 0.55 * k;
-          c.fillStyle = j === 2 ? pal.lightning : "#2a1846";
+          c.fillStyle = j === 2 ? pal.lightning : pal.lightningDark;
           dot(c, pt.x + (hash(seed, 50 + j) - 0.5) * px * (6 + (1 - k) * 8), pt.y - (1 - k) * 16 - j * px, px * (j === 2 ? 1 : 3), px);
         }
         break;

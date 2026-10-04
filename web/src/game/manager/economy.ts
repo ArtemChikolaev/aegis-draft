@@ -2,6 +2,7 @@
 // рыночных данных о зарплатах нет (modes-scenarios §0), поэтому зарплата = функция OVR
 // с детерминированным шумом по сиду. Правишь числа → бампай MANAGER_ECONOMY_VERSION:
 // она лежит в сейве и честно инвалидирует несовместимую карьеру (как balanceConfigVersion).
+import { dpow } from "../dmath.ts";
 import { Rng } from "../rng.ts";
 
 export const MANAGER_ECONOMY_VERSION = "m1.8.0"; // m1.8.0: сбор стал лестницей уровней (замер m1.7.0: один сбор $150k дешевле профицита ~$1.1M/сезон — копилка cheap продолжала расти)
@@ -23,7 +24,7 @@ export type ManagerRegion = (typeof MANAGER_REGIONS)[number];
  *  cheap-пятёрку за $29k при доходе $100k — профицит $70k/мес обесценивал экономику.
  *  Теперь: 60→~11, 75→~33, 87→~59 (322-0-масштаб: их подписи впритык к доходу). */
 export function salaryFor(ovr: number, rng: Rng): number {
-  const base = 8 + 0.28 * Math.pow(Math.max(0, ovr - 55), 1.5);
+  const base = 8 + 0.28 * dpow(Math.max(0, ovr - 55), 1.5); // dpow: один бит в любом движке (M25)
   const noisy = base * (0.85 + rng.float() * 0.3);
   return Math.max(5, Math.round(noisy));
 }
@@ -173,7 +174,7 @@ export function sponsorBonusK(elo: number): number {
 }
 export const TRANSFER_MARKET_SIZE = 6;
 export function transferFeeK(ovr: number, rng: Rng): number {
-  const base = 20 + 0.9 * Math.pow(Math.max(0, ovr - 55), 1.8);
+  const base = 20 + 0.9 * dpow(Math.max(0, ovr - 55), 1.8);
   return Math.max(25, Math.round(base * (0.9 + rng.float() * 0.2)));
 }
 

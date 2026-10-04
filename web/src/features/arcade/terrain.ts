@@ -32,6 +32,10 @@ export interface TerrainPalette {
   tree: string;
   treeDark: string;
   tuft: string;
+  /** Тинт пропсов Dota (листва и камень в экспорте белёсые): дуб, сосна, камень; ночью рендер подставляет ночные. */
+  tintOak: string;
+  tintPine: string;
+  tintRock: string;
 }
 
 
@@ -215,13 +219,13 @@ export class Terrain {
         const pine = (Math.floor(d.x * 7 + d.y * 3) & 1) === 1;
         c.globalAlpha = 0.3; c.fillStyle = pal.treeDark; c.beginPath(); c.ellipse(x + 4, y + sz * 0.12, sz * 0.42, sz * 0.18, 0, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1;
         const ds = (pine ? dPine : dOak) ?? dOak ?? dPine;
-        if (ds) { c.imageSmoothingEnabled = true; drawDotaFrame(c, ds, "idle", 0, 0, x, y, 1, sz / 110, night ? "rgba(30,55,50,0.6)" : pine ? "rgba(40,95,50,0.55)" : "rgba(60,120,45,0.55)"); c.imageSmoothingEnabled = false; }
+        if (ds) { c.imageSmoothingEnabled = true; drawDotaFrame(c, ds, "idle", 0, 0, x, y, 1, sz / 110, pine ? pal.tintPine : pal.tintOak); c.imageSmoothingEnabled = false; }
         else if (pine) c.drawImage(treetop!, (Math.floor(d.x) & 1) * 96, 96, 96, 128, x - sz / 2, y - sz * 1.1, sz, sz * 1.33);
         else c.drawImage(treetop!, (Math.floor(d.x) & 1) * 96, 0, 96, 96, x - sz / 2, y - sz * 0.85, sz, sz);
         if (night) { c.fillStyle = pal.treeDark; c.globalAlpha = 0.45; c.beginPath(); c.arc(x, y - sz * 0.35, sz * 0.5, 0, Math.PI * 2); c.fill(); c.globalAlpha = 1; }
       } else if (d.kind === "rock" && (rock || dRock)) {
         const sz = d.s * 3;
-        if (dRock) { c.imageSmoothingEnabled = true; drawDotaFrame(c, dRock, "idle", 0, 0, x, y + sz * 0.3, 1, sz / 40, night ? "rgba(40,45,55,0.6)" : "rgba(95,90,75,0.55)"); c.imageSmoothingEnabled = false; }
+        if (dRock) { c.imageSmoothingEnabled = true; drawDotaFrame(c, dRock, "idle", 0, 0, x, y + sz * 0.3, 1, sz / 40, pal.tintRock); c.imageSmoothingEnabled = false; }
         else c.drawImage(rock!, (Math.floor(d.x) & 1) * 32, 0, 32, 32, x - sz / 2, y - sz / 2, sz, sz);
       } else if (d.kind === "flower") {
         c.fillStyle = pal.tuft; c.beginPath(); c.arc(x, y, 1.8, 0, Math.PI * 2); c.fill();

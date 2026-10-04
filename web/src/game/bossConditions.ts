@@ -13,6 +13,7 @@ import { Rng } from "./rng.ts";
 import { isActFinale, seasonStage, stageMutators } from "./anteRun.ts";
 import { MUTATORS, type MutatorId } from "./dynastyMutators.ts";
 import type { Summand } from "./anteEconomy.ts";
+import { ipow } from "./dmath.ts";
 
 export type BossId =
   | "baseFloor"
@@ -159,7 +160,7 @@ function actsPassed(absoluteStageIndex: number): number {
  *  тест; второй копии этой арифметики быть не должно. */
 export function baseDemandFor(absoluteStageIndex: number): number {
   const cfg = BOSSES.baseFloor;
-  return cfg.ceiling - cfg.gap * cfg.decay ** actsPassed(absoluteStageIndex);
+  return cfg.ceiling - cfg.gap * ipow(cfg.decay, actsPassed(absoluteStageIndex));
 }
 
 /** Допустимый разброс OVR для этапа (сужается по актам, не ниже `floorSpread`). */

@@ -38,7 +38,7 @@ const NEUTRAL_PROP_TEXT = (() => {
   };
 })();
 import { GEAR_SLOTS, gearArt, gearScore, type GearItem, type GearSlot } from "../../game/arcade/content/gear.ts";
-import type { AbilityKey, Offer, RuneKind } from "../../game/arcade/types.ts";
+import type { AbilityKey, Offer, RuneKind, UpgradeType } from "../../game/arcade/types.ts";
 import { Button, Chip, Eyebrow, HeroThumb, ItemIcon, Modal, Surface, TextField, prefersReducedMotion, screenShakeEnabled, sfxArcade, sfxBuy, sfxSting, sfxVerdict } from "../../ui/index.ts";
 import { sfxDebug, sfxSample } from "../../ui/sound.ts";
 import { itemArtSources, useArtSource } from "../../ui/artSource.ts";
@@ -54,7 +54,8 @@ import { HeroWardrobe, wornSkin } from "./HeroWardrobe.tsx";
 const PX = pixelScale() >= 1;
 const ABILITY_KEYS_UI: readonly AbilityKey[] = ["q", "w", "e", "r"];
 import { PAD_GLYPH } from "./gamepad.ts";
-import { HINT_SEC, hintKeys, loadSeenHints, nextHint, saveSeenHints, type ArcadeHint } from "./hints.ts";
+import { HINT_SEC, encounterKeys, hintKeys, loadSeenHints, nextHint, saveSeenHints, type ArcadeHint } from "./hints.ts";
+import { MechanicsCodex } from "./Codex.tsx";
 import { compositionFor } from "../../game/arcade/content/compositions.ts";
 import { EXPEDITIONS } from "../../game/arcade/content/expeditions.ts";
 import { groupHeroes, recentHeroes } from "../../game/arcade/heroPicker.ts";
@@ -220,6 +221,11 @@ function ArcadeSetup() {
           <details className="arcade-setup__talents" data-testid="arcade-setup-talents">
             <summary className="arcade-setup__label">{t("arcade.talents.title")}</summary>
             <TalentTree hero={HEROES[heroId]} pixel={PX} />
+          </details>
+          {/* Справочник механик (M25): записи открываются после первой встречи в забеге. */}
+          <details className="arcade-setup__talents arcade-setup__codex" data-testid="arcade-setup-codex">
+            <summary className="arcade-setup__label">{t("arcade.codex.title")}</summary>
+            <MechanicsCodex />
           </details>
           <div className="arcade-trait" data-testid="arcade-trait">
             <span className="arcade-setup__label">{t("arcade.trait.title")}</span>
@@ -632,7 +638,8 @@ function ArcadeStage() {
     // грузился заранее вовсе, и первое превращение шло в обычной модели, пока лист качался. Кандидаты — в порядке рендера,
     // грузится первый существующий (у облика обычно нет своей формы — индекс набора отсеивает таких без запросов).
     const formSheets = Object.values(heroDef.abilities).some((a) => a.form !== undefined) ? [formSheetCandidates(heroDef.id, voiceId, lookNow.form)] : [];
-    void preloadArcadeArt(lookNow.sheet, Object.keys(ENEMY_KINDS), simNow?.act ?? "short", 6000, Object.values(lookNow.summons), formSheets).then(() => { if (!cancelled) setLoading(false); });
+    // Свечение арканы считаем здесь же, пока висит экран загрузки (M25), — иначе первая форма в аркане фризила бой.
+    void preloadArcadeArt(lookNow.sheet, Object.keys(ENEMY_KINDS), simNow?.act ?? "short", 6000, Object.values(lookNow.summons), formSheets).then(() => { if (cancelled) return; rendererRef.current?.warmSkin(heroDef.id); setLoading(false); });
     return () => {
       cancelled = true;
       cancelAnimationFrame(raf);
@@ -677,6 +684,12 @@ function ArcadeStage() {
   }
   const hint = hintRef.current?.hint ?? null;
   useEffect(() => { if (hint && seenHintsRef.current) saveSeenHints(seenHintsRef.current); }, [hint]);
+  // Справочник (M25): встречи без карточки (каст нейтрала и Древний в кадре, руна, мульти-убийство) — тоже «увиденное».
+  if (sim && status === "running") {
+    const seenHints = (seenHintsRef.current ??= loadSeenHints());
+    const fresh = encounterKeys(sim).filter((k) => !seenHints.has(k));
+    if (fresh.length) { for (const k of fresh) seenHints.add(k); saveSeenHints(seenHints); }
+  }
   // Подсказка подбора у ног: ближайшее интерактивное побеждает (добыча → пруд → кузня → разлом); в окнах не показываем.
   const prompt = sim && status === "running" && !sim.lootOpen && !sim.buildOpen
     ? (sim.nearLoot ? "loot" : sim.nearPond ? (sim.pondOpen ? null : "pond") : sim.nearForge ? (sim.forgeOpen ? null : "forge") : sim.nearRift && !sim.riftOpen ? "rift" : null)
@@ -823,28 +836,21 @@ function ArcadeStage() {
                     <small>{STACKING_SIGS.has(sim.hero.signature.kind) ? Math.round(p.stacks) : t(`arcade.sig.${sim.hero.signature.kind}` as MessageKey)}</small>
                   </span>
                 )}
-                {/* Автоатака: значок «А» переключает, само нажатие бьёт один раз (клавиша F). */}
-                <button
-                  type="button"
-                  className="arcade-ability"
-                  data-slot="attack"
-                  data-testid="arcade-attack"
-                  onPointerDown={(e) => { e.stopPropagation(); controllerRef.current?.cast(ATTACK_MASK); }}
-                  title={t(autoCastSetting.attack ? "arcade.hud.autoAttackOn" : "arcade.hud.autoAttackOff")}
-                >
-                  <b>{t("arcade.hud.attackShort")}</b>
-                  <small>{padActive ? PAD_GLYPH.r2 : "F"}</small>
-                  <span
-                    role="checkbox"
-                    tabIndex={0}
-                    aria-checked={autoCastSetting.attack}
-                    className="arcade-ability__auto"
-                    data-on={autoCastSetting.attack ? "true" : undefined}
-                    data-testid="arcade-autoattack"
-                    onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleAutoCast("attack"); }}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); toggleAutoCast("attack"); } }}
-                  >{t("arcade.hud.autoCastShort")}</span>
-                </button>
+                {/* Автоатака: значок «А» переключает, само нажатие бьёт один раз (клавиша F). Переключатель — соседняя кнопка в
+                    обёртке, а не элемент внутри кнопки удара (M25: интерактивное внутри интерактивного путало читалки и Tab). */}
+                <span className="arcade-ability-wrap" data-slot="attack">
+                  <button
+                    type="button"
+                    className="arcade-ability"
+                    data-testid="arcade-attack"
+                    onPointerDown={(e) => { e.stopPropagation(); controllerRef.current?.cast(ATTACK_MASK); }}
+                    title={t(autoCastSetting.attack ? "arcade.hud.autoAttackOn" : "arcade.hud.autoAttackOff")}
+                  >
+                    <b>{t("arcade.hud.attackShort")}</b>
+                    <small>{padActive ? PAD_GLYPH.r2 : "F"}</small>
+                  </button>
+                  <AutoToggle on={autoCastSetting.attack} label={t(autoCastSetting.attack ? "arcade.hud.autoAttackOn" : "arcade.hud.autoAttackOff")} testId="arcade-autoattack" onToggle={() => toggleAutoCast("attack")} />
+                </span>
                 <BlinkButton sim={sim} padActive={padActive} onBlink={() => controllerRef.current?.cast(BLINK_MASK)} />
                 {(["q", "w", "e", "r"] as const).map((key) => {
                   const lvl = p.abilities[key];
@@ -852,11 +858,10 @@ function ArcadeStage() {
                   const cdTotal = ab.passive ? 0 : ab.cooldown * abilityRankScale(ab, lvl).cd * (1 - p.stats.cooldown);
                   const cd = p.cooldowns[key] / TICK_HZ;
                   return (
+                    <span key={key} className="arcade-ability-wrap" data-slot={key}>
                     <button
-                      key={key}
                       type="button"
                       className="arcade-ability"
-                      data-slot={key}
                       data-locked={lvl === 0 ? "true" : undefined}
                       data-passive={ab.passive ? "true" : undefined}
                       data-stolen={ab.kind === "spell_steal" && p.stolen ? p.stolen : undefined}
@@ -869,24 +874,13 @@ function ArcadeStage() {
                       {ab.kind === "spell_steal" && p.stolen && <span className="arcade-ability__stolen" data-testid="arcade-stolen">{t(`arcade.steal.${p.stolen}.short` as MessageKey)}</span>}
                       <b>{padActive ? PAD_GLYPH[({ q: "cross", w: "circle", e: "square", r: "triangle" } as const)[key]] : key.toUpperCase()}</b>
                       <small>{lvl > 0 ? `${t("arcade.hud.lvlShort")}${lvl}` : "—"}</small>
-                      {!ab.passive && (
-                        // Переключатель автокаста рядом с умением (владелец 2026-09-06): выключен — умение
-                        // срабатывает только по нажатию, включён — само по перезарядке.
-                        <span
-                          role="checkbox"
-                          tabIndex={0}
-                          aria-checked={autoCastSetting[key]}
-                          className="arcade-ability__auto"
-                          data-on={autoCastSetting[key] ? "true" : undefined}
-                          data-testid={`arcade-autocast-${key}`}
-                          title={t(autoCastSetting[key] ? "arcade.hud.autoCastOn" : "arcade.hud.autoCastOff")}
-                          onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); toggleAutoCast(key); }}
-                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); toggleAutoCast(key); } }}
-                        >{t("arcade.hud.autoCastShort")}</span>
-                      )}
                       {cd > 0 && cdTotal > 0 && <i style={{ height: `${(cd / cdTotal) * 100}%` }} />}
                       {cd > 0 && <em>{Math.ceil(cd)}</em>}
                     </button>
+                    {/* Переключатель автокаста рядом с умением (владелец 2026-09-06): выключен — умение срабатывает только по
+                        нажатию, включён — само по перезарядке. Соседняя кнопка, а не элемент внутри кнопки умения (M25). */}
+                    {!ab.passive && <AutoToggle on={autoCastSetting[key]} label={`${t(`arcade.ab.${sim.hero.kit}.${key}` as MessageKey)}: ${t(autoCastSetting[key] ? "arcade.hud.autoCastOn" : "arcade.hud.autoCastOff")}`} testId={`arcade-autocast-${key}`} onToggle={() => toggleAutoCast(key)} />}
+                    </span>
                   );
                 })}
               </div>
@@ -1066,6 +1060,14 @@ function ArcadeStage() {
               </section>
               <section className="arcade-build__section">
                 <small className="arcade-build__label">{t("arcade.build.skills")}</small>
+                {/* Слоты типов (M25, как в Death Must Die): занятый тип больше не предлагает новых благословений. */}
+                <p className="arcade-build__slots" data-testid="arcade-build-slots">
+                  <span>{t("arcade.build.slots")}:</span>
+                  {Object.entries(ARCADE.blessingSlots).map(([type, max]) => {
+                    const used = sim.slotUse()[type as UpgradeType] ?? 0;
+                    return <span key={type} data-full={used >= max ? "true" : undefined}>{t(`arcade.type.${type}` as MessageKey)} {used}/{max}</span>;
+                  })}
+                </p>
                 {Object.keys(sim.player.upgrades).length === 0
                   ? <p className="arcade-shop__hint">{t("arcade.build.skillsEmpty")}</p>
                   : (
@@ -1076,7 +1078,7 @@ function ArcadeStage() {
                           <span key={id} className="arcade-build__skill" data-legendary={def?.legendary ? "true" : undefined} title={t(`arcade.up.${id}.desc` as MessageKey)}>
                             <ItemIcon pixel={PX} slug={def?.art ?? SCHOOL_ART[def?.school ?? "radiance"]} name="" size="sm" />
                             <b>{t(`arcade.up.${id}` as MessageKey)}</b>
-                            <small>{def?.legendary ? t("arcade.build.legendary") : t("arcade.build.rank", { n: u.rank })}</small>
+                            <small>{def?.legendary ? t("arcade.build.legendary") : `${t("arcade.build.rank", { n: u.rank })} · ${t(`arcade.type.${def?.type ?? "passive"}` as MessageKey)}`}</small>
                           </span>
                         );
                       })}
@@ -1420,6 +1422,26 @@ function SfxDebugPanel({ hero }: { hero: string }) {
 }
 
 /** Blink в HUD: иконка Blink Dagger, клавиша, заряды (если их больше одного) и откат следующего заряда, когда пусто. */
+/** Переключатель автокаста/автоатаки (M25): отдельная кнопка-переключатель рядом с кнопкой умения. Нажатие не уходит в сцену
+ *  (pointerdown не всплывает) и не забирает фокус у игры; клавиатура — Enter/Пробел по сфокусированному переключателю. */
+function AutoToggle({ on, label, testId, onToggle }: { on: boolean; label: string; testId: string; onToggle: () => void }) {
+  const { t } = useI18n();
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      title={label}
+      className="arcade-ability__auto"
+      data-on={on ? "true" : undefined}
+      data-testid={testId}
+      onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); }}
+      onClick={onToggle}
+    >{t("arcade.hud.autoCastShort")}</button>
+  );
+}
+
 function BlinkButton({ sim, padActive, onBlink }: { sim: ArcadeSim; padActive: boolean; onBlink: () => void }) {
   const { t } = useI18n();
   const { src, onError } = useArtSource(itemArtSources("blink", PX));
@@ -1521,6 +1543,8 @@ function OfferCard({ offer, index, onPick }: { offer: Offer; index: number; onPi
       <strong>{t(`arcade.up.${def.id}` as MessageKey)}</strong>
       <small>{t(`arcade.rarity.${offer.rarity}` as MessageKey)}{offer.rarity !== "standard" && <> · {t("arcade.offer.mult", { m: ARCADE.rarity.mult[offer.rarity] })}</>} · {t("arcade.offer.rank", { rank, max: cap })}{cap > def.maxRank && <> · {t("arcade.offer.capUp", { n: cap - def.maxRank })}</>}</small>
       <p>{t(`arcade.up.${def.id}.desc` as MessageKey)}</p>
+      {/* Новое благословение активного типа займёт его слот (M25): дальше этот тип будет предлагать только ранги. */}
+      {rank === 1 && !def.legendary && ARCADE.blessingSlots[def.type] !== undefined && <small className="arcade-offer__slot" data-testid="arcade-offer-slot">{t("arcade.offer.slot", { type: t(`arcade.type.${def.type}` as MessageKey) })}</small>}
       {after.length > 0 && (
         <ul className="arcade-figures" data-testid="arcade-offer-figures">
           {after.map((f, i) => {
@@ -1604,12 +1628,26 @@ function GearCard({ item, title, compact = false }: { item: GearItem | null; tit
   );
 }
 
-/** Аффиксы предмета одной строкой; у Divine Rapier (T22.1) и Aegis (M23) — ещё и риск, чтобы потеря не была сюрпризом. */
+/** Аффиксы предмета одной строкой; у Divine Rapier (T22.1) и Aegis (M23) — ещё и риск, чтобы потеря не была сюрпризом;
+ *  у остальных уникальных — их свойство (M25) с числами из `ARCADE.uniques`. */
 function gearAffixes(t: (k: MessageKey, v?: Record<string, string | number>) => string, item: GearItem): string {
   const line = item.affixes.map((a) => affixLabel(t, a.stat, a.value)).join(" · ");
   if (item.unique === "divine_rapier") return `${line} · ${t("arcade.gear.rapierRisk")}`;
   if (item.unique === "aegis_of_the_immortal") return `${line} · ${t("arcade.gear.aegisRisk")}`;
-  return line;
+  const prop = item.unique ? uniquePropVars(item.unique) : null;
+  return prop ? `${line} · ${t(`arcade.gear.prop.${item.unique}` as MessageKey, prop)}` : line;
+}
+
+/** Числа свойства уникального предмета для подписи (M25): те же, что читает сим, — Giant's Ring и Сердце в секунду. */
+function uniquePropVars(id: NonNullable<GearItem["unique"]>): Record<string, number> | null {
+  const U = ARCADE.uniques;
+  switch (id) {
+    case "manta_of_illusions": return { every: U.manta.every / TICK_HZ, count: U.manta.count, sec: U.manta.seconds, pct: Math.round(U.manta.dmgFrac * 100) };
+    case "giants_ring": return { base: U.giantsRing.base * 2, pct: Math.round(U.giantsRing.hpFrac * 2 * 1000) / 10 };
+    case "tormentors_shard": return { pct: Math.round(U.tormentor.frac * 100) };
+    case "heart_of_the_ancient": return { sec: U.heart.idleSec, pct: Math.round(U.heart.hpFrac * 100) };
+    default: return null;
+  }
 }
 
 function affixLabel(t: (k: MessageKey, v?: Record<string, string | number>) => string, stat: string, value: number): string {

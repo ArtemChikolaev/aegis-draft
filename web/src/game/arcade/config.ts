@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.83.0";
+export const ARCADE_CONFIG_VERSION = "a0.84.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -172,6 +172,30 @@ export const ARCADE = {
     clap: { every: sec(9), tele: sec(0.8), radius: 130, slowSec: 2.5, dmgMult: 0.5 },
     purge: { every: sec(11), tele: sec(0.7), length: 240, width: 28, slowSec: 2 },
     frostArmor: { every: sec(12), radius: 220, seconds: 6, taken: 0.65 },
+    /** Fireball Древнего дракона (M25): огненный круг по точке героя, бьёт издалека (свой `range`, а не общий). */
+    fireball: { every: sec(9), tele: sec(1.0), radius: 110, dmgMult: 1.3, range: 460 },
+  },
+  /** Древние лагеря (M25): в актах Dire и реки с `fromMin` раз в `every` по часам акта приходит стая древних Dota — Black
+   *  Dragon (Fireball), Гранитный голем (аура брони союзникам) и Ледяной шаман (Ice Armor — тот же Frost Armor, что у огра).
+   *  Аура обновляется раз в `auraEvery` тиков. */
+  ancients: { acts: ["dire", "river"] as readonly string[], fromMin: 6, every: sec(120), pack: ["black_dragon", "granite_golem", "ice_shaman"] as const, auraEvery: 30 },
+  /** Слоты типов благословений (M25, как в Death Must Die): разных благословений активного типа за забег — не больше
+   *  `n`; ранг уже взятого повышать можно всегда. Сила и Пассивка (и гибриды — все пассивки) без потолка, легендарки вне
+   *  слотов. Пассивки школы открывает любое её активное (`requires` — список «или»), так что школа без «своей» атаки
+   *  не закрывается. Ключи — `UpgradeType`. */
+  blessingSlots: { attack: 1, strike: 1, cast: 1, dash: 1, summon: 1 } as Readonly<Record<string, number>>,
+  /** Окно истории урона по герою для отката (Time Walk, `AbilityDef.backtrack`), секунд. */
+  backtrackWindow: 2,
+  /** Свойства уникальных предметов боссов (M25), как в Dota: надетый уникальный — не только статы. Manta of Illusions — раз
+   *  в `every`, когда враг в `reach`, пара иллюзий героя (`dmgFrac` его удара) на `seconds`; Giant's Ring — раз в 0.5 с урон
+   *  вокруг (`base` + `hpFrac` макс. HP); Tormentor's Shard — `frac` снятого с HP урона всем врагам в `radius`, не чаще раза
+   *  в 0.25 с; Сердце Древнего — после `idleSec` без урона по HP восстанавливает `hpFrac` макс. HP в секунду.
+   *  Aegis (воскрешение) и Divine Rapier (риск потери) — свои правила, см. стор Аркады. */
+  uniques: {
+    manta: { every: sec(14), reach: 320, count: 2, seconds: 7, dmgFrac: 0.3 },
+    giantsRing: { radius: 150, base: 12, hpFrac: 0.012 },
+    tormentor: { frac: 0.25, radius: 160 },
+    heart: { idleSec: 4, hpFrac: 0.04 },
   },
   /** Spell Steal (Rubick, M24): ульт крадёт умение ближайшего нейтрала-колдуна в радиусе умения — колдующий прямо сейчас
    *  первым — и держит его, пока не украдёт другое. Каст ульта — украденное умение в руках героя, крупнее нейтрального и
@@ -183,6 +207,7 @@ export const ARCADE = {
     clap: { radius: 200, slow: 0.5, slowSec: 3 },
     purge: { length: 380, width: 70, slow: 0.6, slowSec: 3 },
     frostArmor: { armor: [0, 18, 24, 30], seconds: 8, radius: 200, slow: 0.4, slowSec: 2 },
+    fireball: { range: 420, radius: 130, burnFrac: 0.1, burnSec: 3 },
   },
   /** Благословения «Каст» (rad_spellfire, ska_spellfrost, mae_spellstorm, ven_spelltoxin): попадание умения героя (Q/W/E/R)
    *  накладывает статус школы не чаще раза в `every` на цель — тиковые виды (вихрь, эдикт, зоны) бьют по 7–10 раз в секунду.
