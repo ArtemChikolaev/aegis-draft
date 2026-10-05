@@ -162,8 +162,11 @@ describe("arcade sim", () => {
       expect(a.player.kills, hero).toBeGreaterThan(20);
       expect(a.player.level, hero).toBeGreaterThanOrEqual(3);
       const replayed = ArcadeSim.replay(`hero-${hero}`, a.log, a.steps, { hero });
-      // Бессмертие в тесте — вне лога, поэтому сравниваем только тик и убийства ≥ (реплей мог умереть раньше).
-      expect(replayed.tick, hero).toBeLessThanOrEqual(a.tick);
+      // Бессмертие в тесте — вне лога: смертный реплей расходится с оригиналом и может умереть раньше. Тиков у него бывает
+      // и больше — меньше убийств, меньше окон уровня, а окно держит тик (M26: Spirit Breaker 5395 против 5394). Здесь —
+      // только «прошёл шаги лога без падения»; точное совпадение реплея проверяет arcadeReplay.test.ts.
+      expect(replayed.steps, hero).toBeLessThanOrEqual(a.steps);
+      expect(replayed.tick, hero).toBeLessThanOrEqual(replayed.steps);
     }
   }, 180_000); // 126 героев × (2 сима + реплей) по 90 с: ~23 с на M-серии (2026-09-12, с местами и патрулями), на раннере CI в 60 с уже не укладывалось: ~2.5 с на M-серии, на раннере CI укладывалось не всегда в дефолтные 5 с (упало 2026-09-06).
 

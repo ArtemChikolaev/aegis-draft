@@ -663,7 +663,7 @@ function ArcadeStage() {
   const cast = useCallback((key: AbilityKey) => controllerRef.current?.cast(ABILITY_MASK[key]), []);
   const sim = getArcadeSim();
   const p = sim?.player;
-  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : sim?.thunder?.alive && sim.playerAtLair() ? sim.thunder : sim?.warden?.alive && sim.playerAtFord() ? sim.warden : sim?.stalker?.alive && sim.playerAtDen() ? sim.stalker : sim?.hunter?.alive ? sim.hunter : null;
+  const boss = sim?.roshan?.alive ? sim.roshan : sim?.ancient?.alive ? sim.ancient : sim?.rival?.alive ? sim.rival : sim?.defiler?.alive && sim.playerAtCamp() ? sim.defiler : sim?.centaur?.alive && sim.playerAtGrove() ? sim.centaur : sim?.necromancer?.alive && sim.playerAtBarrow() ? sim.necromancer : sim?.thunder?.alive && sim.playerAtLair() ? sim.thunder : sim?.warden?.alive && sim.playerAtFord() ? sim.warden : sim?.stalker?.alive && sim.playerAtDen() ? sim.stalker : sim?.hunter?.alive ? sim.hunter : null;
   // Окно на экране — ровно то, которому сим отдаёт ввод (`activeModal`): при двух сразу (смерть в тике уровня — выкуп и
   // карточки) раньше сверху рисовалось последнее в разметке, а ввод уходил первому (аудит 2026-09-27).
   const modal = sim ? sim.activeModal() : null;
@@ -756,7 +756,7 @@ function ArcadeStage() {
             <BuffBar sim={sim} />
             {boss && (
               <div className="arcade-hud__boss">
-                <span>{boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : boss.kind.id === "centaur_warden" ? t(sim!.tick < boss.stunUntil ? "arcade.hud.centaurStunned" : "arcade.hud.centaur") : boss.kind.id === "troll_necromancer" ? t(sim!.idolsAlive() > 0 ? "arcade.hud.necro" : "arcade.hud.necroExposed", { n: sim!.idolsAlive(), total: ARCADE.necro.idols }) : boss.kind.id === "thunder_golem" ? t("arcade.hud.thunder") : boss.kind.id === "river_warden" ? t(sim!.wardenShielded() ? "arcade.hud.wardenShield" : "arcade.hud.wardenOpen") : boss.kind.id === "dire_stalker" ? t(sim!.stalkerHidden() ? "arcade.hud.stalkerHidden" : "arcade.hud.stalkerOpen") : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
+                <span>{boss.kind.rival ? t("arcade.hud.rival", { name: t(`arcade.enemy.${boss.kind.id}` as MessageKey), spell: t(`arcade.steal.${boss.kind.cast}` as MessageKey), time: formatClock(Math.max(0, sim!.rivalLeaveAt - sim!.actTick)) }) : boss.kind.id === "satyr_defiler" ? t("arcade.hud.defiler", { shield: Math.round(ARCADE.defiler.shieldPerTotem * sim!.totemsAlive() * 100) }) : boss.kind.id === "centaur_warden" ? t(sim!.tick < boss.stunUntil ? "arcade.hud.centaurStunned" : "arcade.hud.centaur") : boss.kind.id === "troll_necromancer" ? t(sim!.idolsAlive() > 0 ? "arcade.hud.necro" : "arcade.hud.necroExposed", { n: sim!.idolsAlive(), total: ARCADE.necro.idols }) : boss.kind.id === "thunder_golem" ? t("arcade.hud.thunder") : boss.kind.id === "river_warden" ? t(sim!.wardenShielded() ? "arcade.hud.wardenShield" : "arcade.hud.wardenOpen") : boss.kind.id === "dire_stalker" ? t(sim!.stalkerHidden() ? "arcade.hud.stalkerHidden" : "arcade.hud.stalkerOpen") : t(boss.kind.structure ? "arcade.hud.ancient" : "arcade.hud.roshan")}</span>
                 <div className="arcade-bar arcade-bar--boss"><i style={{ transform: `scaleX(${Math.max(0, boss.hp / boss.maxHp)})` }} /></div>
               </div>
             )}
@@ -907,7 +907,7 @@ function ArcadeStage() {
         {modal === "rift" && sim?.rift && status !== "over" && (
           <RunWindow testId="arcade-rift" label={t("arcade.rift.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.rift.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.rift.title")}</Eyebrow>
               <h2>{t("arcade.rift.pick")}</h2>
               <p className="arcade-shop__hint">{t("arcade.rift.hint", { sec: Math.round(ARCADE.rift.duration / 60), rest: Math.round(ARCADE.rift.respite / 60) })}</p>
               <div className="arcade-overlay__actions arcade-shop__actions">
@@ -922,7 +922,7 @@ function ArcadeStage() {
         {modal === "forge" && sim && status !== "over" && (
           <RunWindow testId="arcade-forge" label={t("arcade.forge.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop arcade-build">
-              <Eyebrow>{t("arcade.forge.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.forge.title")}</Eyebrow>
               <h2>{sim.forgeSlot < 0 ? t("arcade.forge.pickItem") : t("arcade.forge.pickAction")}</h2>
               <p className="arcade-shop__hint">{t("arcade.forge.hint")}</p>
               {sim.actProperty() === "caravan_forge" && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-forge-caravan">{t(sim.caravan?.state === "arrived" ? "arcade.forge.caravanHalf" : "arcade.forge.caravanHint")}</p>}
@@ -948,7 +948,7 @@ function ArcadeStage() {
         {modal === "contract" && sim && status !== "over" && (
           <RunWindow testId="arcade-contract" label={t("arcade.contract.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.contract.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.contract.title")}</Eyebrow>
               <h2>{t("arcade.contract.pick")}</h2>
               <p className="arcade-shop__hint">{t("arcade.contract.hint")}</p>
               <label className="arcade-shop__hint arcade-contract__oath" data-testid="arcade-contract-oath">
@@ -968,7 +968,7 @@ function ArcadeStage() {
           // Выкуп (ARCADE.buyback): мир стоит, пока игрок решает — золото сейчас или конец забега.
           <RunWindow testId="arcade-buyback" label={t("arcade.buyback.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.buyback.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.buyback.title")}</Eyebrow>
               <h2>{t("arcade.buyback.pick")}</h2>
               <p className="arcade-shop__hint">{t("arcade.buyback.hint", { gold: sim.player.gold, sec: ARCADE.buyback.invulnSec })}</p>
               <div className="arcade-overlay__actions arcade-shop__actions">
@@ -981,7 +981,7 @@ function ArcadeStage() {
         {modal === "pond" && sim && status !== "over" && (
           <RunWindow testId="arcade-pond" label={t("arcade.pond.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.pond.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.pond.title")}</Eyebrow>
               <h2>{t("arcade.pond.pick")}</h2>
               <p className="arcade-shop__hint">{t("arcade.pond.hint")}</p>
               {sim.pondTainted() && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-pond-tainted">{t("arcade.pond.tainted")}</p>}
@@ -999,7 +999,7 @@ function ArcadeStage() {
         {modal === "loot" && sim?.lootOpen && status !== "over" && (
           <RunWindow testId="arcade-loot" label={t("arcade.loot.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.loot.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.loot.title")}</Eyebrow>
               <h2>{t(`arcade.gearName.${sim.lootOpen.base}` as MessageKey)}</h2>
               <p className="arcade-shop__hint">{t(`arcade.gear.slot.${sim.lootOpen.slot}` as MessageKey)} · {t(`arcade.rarity.${sim.lootOpen.rarity}` as MessageKey)} · T{sim.lootOpen.tier}{sim.lootOpen.unique ? ` · ${t("arcade.loot.unique")}` : ""}</p>
               {sim.lootCursed && <p className="arcade-shop__hint arcade-loot__cursed" data-testid="arcade-loot-cursed">{t(`arcade.loot.cursed.${sim.lootCurse}` as MessageKey, { debt: Math.round(ARCADE.curse.debt.base + ARCADE.curse.debt.perMin * sim.tick / 3600), pct: Math.round(ARCADE.curse.debt.share * 100) })}</p>}
@@ -1025,7 +1025,7 @@ function ArcadeStage() {
         {modal === "build" && sim && status !== "over" && (
           <RunWindow testId="arcade-build" label={t("arcade.build.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop arcade-build">
-              <Eyebrow>{t("arcade.build.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.build.title")}</Eyebrow>
               <h2>{hero.name}</h2>
               <section className="arcade-build__section">
                 <small className="arcade-build__label">{t("arcade.build.gear")}</small>
@@ -1117,7 +1117,7 @@ function ArcadeStage() {
         {modal === "neutral" && sim && status !== "over" && (
           <RunWindow testId="arcade-neutral" label={t("arcade.neutral.pick")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.neutral.title", { tier: NEUTRAL_BY_ID[sim.neutralOffers[0]?.id]?.tier ?? 1 })}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.neutral.title", { tier: NEUTRAL_BY_ID[sim.neutralOffers[0]?.id]?.tier ?? 1 })}</Eyebrow>
               <h2>{t("arcade.neutral.pick")}</h2>
               <p className="arcade-shop__hint">{sim.player.neutral ? t("arcade.neutral.replaces", { name: t(`arcade.neutral.${sim.player.neutral}` as MessageKey) }) : t("arcade.neutral.slot")}</p>
               <div className="arcade-offers">
@@ -1140,7 +1140,7 @@ function ArcadeStage() {
           // Награда Рошана на выбор (T20.2): недоступное (второе воскрешение, второй Cheese, Shard при пассивном ульте) — выключено.
           <RunWindow testId="arcade-roshan" label={t("arcade.roshanReward.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.roshanReward.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.roshanReward.title")}</Eyebrow>
               <h2>{t("arcade.roshanReward.pick")}</h2>
               <div className="arcade-offers">
                 {ROSHAN_REWARDS.map((r, i) => {
@@ -1164,7 +1164,7 @@ function ArcadeStage() {
         {modal === "shop" && sim && status !== "over" && (
           <RunWindow testId="arcade-shop" label={t("arcade.shop.title")} pad={padActive}>
             <div className="arcade-levelup arcade-shop">
-              <Eyebrow>{t("arcade.shop.title")}</Eyebrow>
+              <Eyebrow tone="invert">{t("arcade.shop.title")}</Eyebrow>
               <h2>{t("arcade.shop.gold", { gold: sim.player.gold })}</h2>
               {sim.shopPriceMult() < 1 && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-shop-discount">{t("arcade.shop.caravanDiscount", { pct: Math.round((1 - sim.shopPriceMult()) * 100) })}</p>}
               {sim.caravanGiftAvailable() && <p className="arcade-shop__hint arcade-shop__discount" data-testid="arcade-shop-gift">{t("arcade.shop.caravanGift", { family: t(`arcade.caravan.family.${sim.caravan?.family ?? "offense"}` as MessageKey) })}</p>}
@@ -1237,7 +1237,7 @@ function ArcadeStage() {
         {modal === "pending" && sim?.pending && status !== "over" && (
           <RunWindow testId="arcade-levelup" label={sim.pendingSource === "camp" ? t("arcade.camp.title") : t("arcade.levelUp", { n: sim.player.level })} pad={padActive}>
             <div className="arcade-levelup">
-              <Eyebrow>{sim.pendingSource === "camp" ? t("arcade.camp.title") : t("arcade.levelUp", { n: sim.player.level })}</Eyebrow>
+              <Eyebrow tone="invert">{sim.pendingSource === "camp" ? t("arcade.camp.title") : t("arcade.levelUp", { n: sim.player.level })}</Eyebrow>
               <h2>{sim.pendingSource === "camp" ? t("arcade.camp.pick") : t("arcade.pick")}</h2>
               <p className="arcade-shop__hint">{sim.pendingSource === "camp" ? t("arcade.camp.hint") : t("arcade.pickHint")}</p>
               <div className="arcade-offers">

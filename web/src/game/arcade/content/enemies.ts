@@ -65,6 +65,15 @@ const KINDS: Record<EnemyKindId, EnemyKind> = {
   black_dragon: { id: "black_dragon", hp: 520, speed: 62, dmg: 30, r: 22, xp: 22, gold: 12, fromMin: 99, weight: 0, tone: "brute", acts: ["dire", "river"], cast: "fireball" },
   granite_golem: { id: "granite_golem", hp: 700, speed: 50, dmg: 34, r: 22, xp: 20, gold: 10, fromMin: 99, weight: 0, tone: "brute", acts: ["dire", "river"], armorAura: 240 },
   ice_shaman: { id: "ice_shaman", hp: 380, speed: 64, dmg: 20, r: 15, xp: 16, gold: 8, fromMin: 99, weight: 0, tone: "creep", acts: ["dire", "river"], cast: "frost_armor" },
+  // Вражеские герои (M26, ARCADE.rivals): приходят по расписанию акта, в пул не входят. Числа — на минуте 0, сим растит их
+  // по минутам, как лес. Pudge и Axe — вплотную, Lina — с дистанции (держит `rivals.keepMin..keepMax`) и стреляет.
+  // HP ×0.75 от первой прикидки (900/1050/700): за `stay` средний билд не успевал добить соперника и терял награду.
+  hero_pudge: { id: "hero_pudge", hp: 680, speed: 84, dmg: 26, r: 18, xp: 60, gold: 45, elite: true, rival: true, fromMin: 99, weight: 0, tone: "elite", cast: "meat_hook" },
+  hero_axe: { id: "hero_axe", hp: 790, speed: 88, dmg: 24, r: 18, xp: 60, gold: 45, elite: true, rival: true, fromMin: 99, weight: 0, tone: "elite", cast: "berserkers_call" },
+  hero_lina: {
+    id: "hero_lina", hp: 520, speed: 92, dmg: 20, r: 16, xp: 60, gold: 45, elite: true, rival: true, fromMin: 99, weight: 0, tone: "elite", cast: "laguna_blade",
+    ranged: { range: 320, every: 1.5, speed: 280 },
+  },
 };
 
 /** Одна форма объекта на все виды: те же значения, но все поля на месте и в одном порядке. Литералы выше разной формы
@@ -72,7 +81,7 @@ const KINDS: Record<EnemyKindId, EnemyKind> = {
  *  движка; с единой формой они мономорфны. Значения не меняются — отсутствующее поле остаётся `undefined`.
  *  Новое поле `EnemyKind` добавляй и сюда: иначе у всех видов оно молча `undefined` (T20.3 — `cast` терялся). */
 function uniform(k: EnemyKind): EnemyKind {
-  return { id: k.id, hp: k.hp, speed: k.speed, dmg: k.dmg, r: k.r, xp: k.xp, gold: k.gold, elite: k.elite, boss: k.boss, structure: k.structure, reflect: k.reflect, unstoppable: k.unstoppable, totem: k.totem, ranged: k.ranged, fromMin: k.fromMin, weight: k.weight, acts: k.acts, tone: k.tone, cast: k.cast, armorAura: k.armorAura };
+  return { id: k.id, hp: k.hp, speed: k.speed, dmg: k.dmg, r: k.r, xp: k.xp, gold: k.gold, elite: k.elite, boss: k.boss, structure: k.structure, reflect: k.reflect, unstoppable: k.unstoppable, totem: k.totem, ranged: k.ranged, fromMin: k.fromMin, weight: k.weight, acts: k.acts, tone: k.tone, cast: k.cast, armorAura: k.armorAura, rival: k.rival };
 }
 
 export const ENEMY_KINDS = Object.fromEntries(Object.entries(KINDS).map(([id, k]) => [id, uniform(k)])) as Record<EnemyKindId, EnemyKind>;

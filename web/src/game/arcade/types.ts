@@ -62,7 +62,9 @@ export type EnemyKindId =
   | "troll_necromancer" | "bone_idol" | "skeleton_warrior" | "thunder_golem" | "river_warden" | "dire_stalker"
   | "standard_bearer" | "shaman" | "archer" | "sporebearer"
   // Древние лагеря (M25): стая в актах Dire и реки.
-  | "black_dragon" | "granite_golem" | "ice_shaman";
+  | "black_dragon" | "granite_golem" | "ice_shaman"
+  // Вражеские герои Dota (M26, ARCADE.rivals): мини-боссы по расписанию акта.
+  | "hero_pudge" | "hero_axe" | "hero_lina";
 
 export interface EnemyKind {
   id: EnemyKindId;
@@ -96,9 +98,12 @@ export interface EnemyKind {
   cast?: NeutralCastId;
   /** Гранитная аура (Древний голем, M25): союзники в этом радиусе под бронёй — урон по ним как у Frost Armor. */
   armorAura?: number;
+  /** Вражеский герой Dota (M26, `ARCADE.rivals`): своё движение и умение на своих часах (`sim.moveRival`), не общий пул кастов. */
+  rival?: boolean;
 }
 
-export type NeutralCastId = "stomp" | "clap" | "purge" | "frost_armor" | "fireball";
+/** Умения врагов с телеграфом: нейтралы Dota (T20.3, M25) и вражеские герои (M26) — общий телеграф, Spell Steal и справочник. */
+export type NeutralCastId = "stomp" | "clap" | "purge" | "frost_armor" | "fireball" | "meat_hook" | "berserkers_call" | "laguna_blade";
 
 export type SchoolId = "radiance" | "skadi" | "maelstrom" | "beast" | "venom";
 
@@ -128,7 +133,8 @@ export interface Pet {
 }
 
 /** Руны у реки, как в Dota (владелец 2026-09-07): двойной урон, щит, магия (короче перезарядки), иллюзии. */
-export type RuneKind = "dd" | "shield" | "arcane" | "illusion";
+/** Руны: четыре вида у реки (`RUNE_KINDS`, случайный по сиду) и руна мудрости (M26, своё расписание `ARCADE.wisdom`). */
+export type RuneKind = "dd" | "shield" | "arcane" | "illusion" | "wisdom";
 export const RUNE_KINDS: readonly RuneKind[] = ["dd", "shield", "arcane", "illusion"];
 /** `dash` — срабатывает на Blink героя (седьмой тип благословений DMD, «Dash»). */
 export type UpgradeType = "attack" | "strike" | "cast" | "power" | "passive" | "dash" | "summon";
@@ -363,6 +369,12 @@ export interface ArcadeEventCounters {
   refreshers: number;
   /** Выкупы (ARCADE.buyback) — стингер Dota и juice. */
   buybacks: number;
+  /** Вражеские герои (M26): пришедшие, начатые ими умения (звук умения героя) и вид последнего колдовавшего (KIND_INDEX). */
+  rivals: number;
+  rivalCasts: number;
+  rivalCastBy: number;
+  /** Подобранные руны мудрости (M26) — звук. */
+  wisdoms: number;
 }
 
 /** Роща Кентавра-Стража (T13.45): дом чемпиона по seed; `engaged` — разбужен, `rocks` — камней рядом (для рывка в камень). */
@@ -376,7 +388,7 @@ export interface Contract { target: ContractTarget; reward: ContractReward; done
 
 /** Маркер у края экрана (T13.60). `committed` — угроза или уже выбранная цель: показывается всегда и в лимит
  *  приглашений не входит; остальное — приглашение к необязательному событию. */
-export type InvitationKind = "hunter" | "contract" | "camp" | "outpost" | "pond" | "caravan" | "rift" | "forge" | "grove" | "barrow" | "lair" | "ford" | "den" | "shop" | "bounty" | "rune" | "chest" | "token" | "shrine";
+export type InvitationKind = "hunter" | "contract" | "camp" | "outpost" | "pond" | "caravan" | "rift" | "forge" | "grove" | "barrow" | "lair" | "ford" | "den" | "shop" | "bounty" | "rune" | "chest" | "token" | "shrine" | "rival" | "wisdom";
 /** `until`/`life` (T13.86): у событий с таймером — тик исчезновения и полный срок, чтобы указатель показывал остаток. */
 export interface Invitation { kind: InvitationKind; x: number; y: number; label: string; committed: boolean; until?: number; life?: number }
 
@@ -581,6 +593,9 @@ export interface Player {
   bestStreak: number;
   /** Удар «Морозной» элиты: до какого тика герой замедлен. */
   frostUntil: number;
+  /** Berserker's Call вражеского Axe (M26): до какого тика герой идёт к нему без Blink, и id этого Axe. */
+  tauntUntil: number;
+  tauntBy: number;
   /** Фирменная пассивка (heroes.ts signature): стаки (души/ярость), цель серии, таймер/взвод эффекта. */
   stacks: number;
   stackTarget: number;

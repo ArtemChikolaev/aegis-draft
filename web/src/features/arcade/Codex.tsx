@@ -4,10 +4,10 @@
 import { useMemo } from "react";
 import { ARCADE, TICK_HZ } from "../../game/arcade/config.ts";
 import { AFFIX_IDS, ENEMY_KINDS } from "../../game/arcade/content/enemies.ts";
-import type { NeutralCastId, RuneKind, UpgradeType } from "../../game/arcade/types.ts";
+import type { EnemyKindId, NeutralCastId, RuneKind, UpgradeType } from "../../game/arcade/types.ts";
 import { useI18n } from "../../i18n/I18nProvider.tsx";
 import type { MessageKey } from "../../i18n/core.ts";
-import { CODEX_ANCIENTS, CODEX_CASTS, CODEX_RUNES, loadSeenHints } from "./hints.ts";
+import { CODEX_ANCIENTS, CODEX_CASTS, CODEX_RIVALS, CODEX_RUNES, loadSeenHints } from "./hints.ts";
 
 type T = (k: MessageKey, v?: Record<string, string | number>) => string;
 interface Entry { key: string | null; name: string; desc: string }
@@ -23,6 +23,9 @@ function castVars(id: NeutralCastId): Record<string, number> {
     case "purge": return { sec: NC.purge.slowSec };
     case "frost_armor": return { sec: NC.frostArmor.seconds, pct: pct(1 - NC.frostArmor.taken) };
     case "fireball": return { r: NC.fireball.radius };
+    case "meat_hook": return { len: NC.meatHook.length };
+    case "berserkers_call": return { r: NC.berserkersCall.radius, sec: NC.berserkersCall.tauntSec };
+    case "laguna_blade": return { len: NC.lagunaBlade.length, sec: NC.lagunaBlade.tele / TICK_HZ };
   }
 }
 
@@ -33,6 +36,7 @@ function runeVars(id: RuneKind): Record<string, number> {
     case "shield": return { pct: pct(R.shield.frac), sec: R.shield.seconds };
     case "arcane": return { pct: pct(R.arcane.cooldown), sec: R.arcane.seconds };
     case "illusion": return { n: R.illusion.count, sec: R.illusion.seconds, pct: pct(R.illusion.dmgFrac) };
+    case "wisdom": return { min: ARCADE.wisdom.every / TICK_HZ / 60, pct: pct(ARCADE.wisdom.levelFrac) };
   }
 }
 
@@ -49,6 +53,7 @@ function sections(t: T): { id: string; title: string; entries: Entry[] }[] {
         { key: "multi", name: t("arcade.codex.multi"), desc: t("arcade.hud.multiHint", { sec: ARCADE.multiKill.rampageCd / TICK_HZ }) },
       ],
     },
+    { id: "rivals", title: t("arcade.codex.rivals"), entries: CODEX_RIVALS.map((id) => ({ key: `rival.${id}`, name: t(`arcade.enemy.${id}` as MessageKey), desc: t(`arcade.codex.rival.${id}` as MessageKey, { ...castVars(ENEMY_KINDS[id as EnemyKindId].cast!), stay: ARCADE.rivals.stay / TICK_HZ }) })) },
     { id: "ancients", title: t("arcade.codex.ancients"), entries: CODEX_ANCIENTS.map((id) => ({ key: `ancient.${id}`, name: t(`arcade.enemy.${id}` as MessageKey), desc: t(`arcade.codex.ancient.${id}` as MessageKey, { r: ARCADE.neutralCasts.fireball.radius, aura: ENEMY_KINDS.granite_golem.armorAura ?? 0, pct: armor }) })) },
     {
       id: "types", title: t("arcade.codex.types"), entries: TYPES.map((type) => ({

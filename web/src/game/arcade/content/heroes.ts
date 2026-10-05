@@ -234,7 +234,7 @@ const UNIQUE_HEROES: Record<UniqueHeroId, HeroDef> = {
   },
   axe: {
     id: "axe", kit: "axe", dotaId: 2, picture: "axe", ranged: false,
-    base: { maxHp: 680, speed: 166, damage: 18, attackInterval: 0.95, range: 84, armor: 4, regen: 4 },
+    base: { maxHp: 760, speed: 166, damage: 22, attackInterval: 0.95, range: 84, armor: 4, regen: 4 },
     abilities: {
       q: { kind: "berserker_call", value: [0, 1.4, 1.7, 2.0, 2.3], cooldown: 14, radius: 170, duration: 3 },
       w: { kind: "battle_hunger", value: [0, 14, 20, 26, 32], cooldown: 11, radius: 320, duration: 5, count: [0, 3, 4, 5, 6] },
@@ -273,7 +273,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: SIG,                                                                                              // Blur
     r: { kind: "coup", value: [0, 0.15, 0.2, 0.25], cooldown: 0, count: [0, 2.6, 3.2, 3.8], passive: true }, // Coup de Grace
   }, { kind: "blur", value: 0.22 }),
-  anti_mage: hero("anti_mage", 1, "antimage", false, { speed: 182, attackInterval: 0.8, maxHp: 580 }, {
+  anti_mage: hero("anti_mage", 1, "antimage", false, { speed: 182, attackInterval: 0.8, maxHp: 640, armor: 4 }, {
     q: { kind: "mana_break", value: [0, 8, 14, 20, 26], cooldown: 0, passive: true },                    // Mana Break
     w: { kind: "dash", value: [0, 0, 0, 0, 0], cooldown: 7, radius: 320 },                               // Blink
     e: { kind: "armor_passive", value: [0, 3, 5, 7, 9], cooldown: 0, passive: true },                    // Counterspell
@@ -486,7 +486,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "dash", value: [0, 280, 420, 560], cooldown: 40, radius: 420 },                           // Life Break
   }, { kind: "thirst", value: 0.35, radius: 600 }),
   slardar: hero("slardar", 28, "slardar", false, { maxHp: 720, armor: 5, damage: 26, regen: 2, speed: 162 }, {
-    q: { kind: "ravage", value: [0, 80, 125, 170, 215], cooldown: 11, radius: 200, duration: 1.2 },      // Slithereen Crush
+    q: { kind: "ravage", value: [0, 80, 125, 170, 215], cooldown: 8, radius: 240, duration: 1.2 },      // Slithereen Crush
     w: { kind: "haste", value: [0, 0.05, 0.08, 0.11, 0.14], cooldown: 14, duration: 7 },                 // Guardian Sprint
     e: SIG,                                                                                              // Bash of the Deep
     r: { kind: "corrosive", value: [0, 0.3, 0.45, 0.6], cooldown: 30, radius: 340, duration: 10 },       // Corrosive Haze
@@ -516,7 +516,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "haste", value: [0, 0.08, 0.12, 0.16, 0.2], cooldown: 18, duration: 8 },                  // Hunter in the Night
     r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 12 },                      // Dark Ascension
   }, { kind: "thirst", value: 0.2, radius: 460 }),
-  doom: hero("doom", 69, "doom_bringer", false, { maxHp: 780, armor: 4, damage: 28, speed: 156, regen: 3 }, {
+  doom: hero("doom", 69, "doom_bringer", false, { maxHp: 840, armor: 4, damage: 28, speed: 164, regen: 3 }, {
     q: { kind: "life_drain", value: [0, 20, 28, 36, 44], cooldown: 14, radius: 300, duration: 5 },        // Devour
     w: { kind: "remnant", value: [0, 90, 140, 190, 240], cooldown: 16, radius: 170 },                    // Scorched Earth
     e: { kind: "searing", value: [0, 12, 18, 24, 30], cooldown: 0, passive: true },                      // Infernal Blade
@@ -658,7 +658,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "frost_arrows", value: [0, 0.1, 0.14, 0.18, 0.22], cooldown: 0, passive: true },          // Corrosive Weaponry
     r: { kind: "frenzy", value: [0, 0.35, 0.42, 0.5], cooldown: 60, duration: 15, form: { ranged: false, range: 88 } }, // Chemical Rage: мечи наголо — лист @meta (владелец 2026-09-12), дальность как база
   }, { kind: "souls", value: 1.2, cap: 34 }),
-  bane: hero("bane", 3, "bane", true, { maxHp: 620, armor: 3, damage: 25, speed: 162 }, {
+  bane: hero("bane", 3, "bane", true, { maxHp: 560, armor: 3, damage: 25, speed: 162 }, {
     q: { kind: "nova", value: [0, 90, 135, 180, 225], cooldown: 7, radius: 240, duration: 2 },            // Enfeeble
     w: { kind: "life_drain", value: [0, 34, 46, 58, 70], cooldown: 8, radius: 320, duration: 3 },         // Brain Sap
     e: { kind: "frostbite", value: [0, 60, 90, 120, 150], cooldown: 12, radius: 320, duration: 3 },       // Nightmare
@@ -695,7 +695,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "goo", value: [0, 90, 135, 180, 225], cooldown: 9, radius: 340, duration: 3 },             // Geomagnetic Grip
     r: { kind: "edict", value: [0, 80, 120, 160], cooldown: 60, duration: 8, radius: 300 },              // Magnetize
   }, { kind: "aftershock", value: 34, radius: 160 }),
-  elder_titan: hero("elder_titan", 103, "elder_titan", false, { maxHp: 820, armor: 5, damage: 29, speed: 158, regen: 3 }, {
+  elder_titan: hero("elder_titan", 103, "elder_titan", false, { maxHp: 760, armor: 4, damage: 29, speed: 158, regen: 3 }, {
     q: { kind: "ravage", value: [0, 110, 160, 210, 260], cooldown: 14, radius: 260, duration: 2 },        // Echo Stomp
     w: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 8, radius: 74, count: [0, 3, 3, 3, 3] }, // Astral Spirit
     e: { kind: "corrosive", value: [0, 0.2, 0.25, 0.3, 0.35], cooldown: 12, radius: 320, duration: 8 },  // Natural Order
@@ -781,7 +781,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "crit", value: [0, 0.12, 0.16, 0.2, 0.24], cooldown: 0, passive: true },                  // Lucky Shot
     r: { kind: "spin", value: [0, 60, 100, 150], cooldown: 50, radius: 200, duration: 4 },                // Rolling Thunder
   }, { kind: "timelock", value: 0.16, duration: 0.5 }),
-  phoenix: hero("phoenix", 110, "phoenix", true, { maxHp: 620, armor: 2, damage: 24, speed: 164, regen: 3 }, {
+  phoenix: hero("phoenix", 110, "phoenix", true, { maxHp: 580, armor: 2, damage: 24, speed: 164, regen: 2 }, {
     q: { kind: "dash", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 400 },                        // Icarus Dive
     w: { kind: "multishot", value: [0, 40, 55, 70, 90], cooldown: 9, radius: 340, count: [0, 3, 4, 5, 6] }, // Fire Spirits
     e: { kind: "line_burst", value: [0, 80, 120, 160, 200], cooldown: 10, radius: 60, count: [0, 5, 5, 5, 5] }, // Sun Ray
@@ -830,7 +830,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     e: { kind: "frenzy", value: [0, 0.3, 0.35, 0.4, 0.45], cooldown: 14, duration: 6 },                  // Lil' Shredder
     r: { kind: "meteor", value: [0, 200, 300, 400], cooldown: 55, radius: 130, count: [0, 3, 3, 3], duration: 1.0 }, // Mortimer Kisses
   }, { kind: "overload", value: 42, radius: 90 }),
-  spirit_breaker: hero("spirit_breaker", 71, "spirit_breaker", false, { maxHp: 840, armor: 5, damage: 30, speed: 166, regen: 3 }, {
+  spirit_breaker: hero("spirit_breaker", 71, "spirit_breaker", false, { maxHp: 840, armor: 5, damage: 34, speed: 166, regen: 3 }, {
     q: { kind: "dash", value: [0, 150, 220, 290, 360], cooldown: 12, radius: 600 },                       // Charge of Darkness
     w: { kind: "armor_buff", value: [0, 20, 26, 32, 38], cooldown: 16, duration: 6 },                // Bulldoze
     e: SIG,                                                                                              // Greater Bash
@@ -886,7 +886,7 @@ const TEMPLATE_HEROES: Record<TemplateHeroId, HeroDef> = {
     r: { kind: "rage", value: [0, 0.6, 0.8, 1.0], cooldown: 60, duration: 12 },                          // Flesh Golem
   }, { kind: "growth", value: 9, cap: 600 }),
   // ---- Волна 12 ----
-  vengeful_spirit: hero("vengeful_spirit", 20, "vengefulspirit", true, { maxHp: 640, armor: 3, damage: 26, speed: 168 }, {
+  vengeful_spirit: hero("vengeful_spirit", 20, "vengefulspirit", true, { maxHp: 700, armor: 4, damage: 26, speed: 168 }, {
     q: { kind: "lightning_bolt", value: [0, 120, 175, 230, 290], cooldown: 6, radius: 320, duration: 1.5 }, // Magic Missile
     w: { kind: "line_burst", value: [0, 100, 145, 190, 240], cooldown: 7, radius: 64, count: [0, 4, 4, 4, 4] }, // Wave of Terror
     e: { kind: "presence", value: [0, 0.1, 0.15, 0.2, 0.25], cooldown: 0, radius: 300, passive: true },  // Vengeance Aura

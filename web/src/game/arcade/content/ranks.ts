@@ -35,12 +35,17 @@ export interface RankRules {
 export function rankOf(step: number): RankRules {
   const s = Math.max(0, Math.min(MAX_RANK_STEP, Math.floor(step)));
   const tierIdx = Math.floor(s / STARS);
+  // Здоровье и урон врагов растут вогнуто (M26): звёзды Herald 2–5 — круто, дальше ровно. Первая победа в полном акте
+  // проходит 14:00, где падает экипировка t3, и карьера бота (`sim:arcade --career`) входила в Guardian с полным
+  // комплектом t3 и четырьмя арканами: при прежних +6%/+5% за ступень Guardian–Archon шли на 93–96% побед, а Guardian
+  // был легче Herald. Herald 1★ (первый забег, дейлик) — без множителя; верх лестницы — чуть круче прежнего.
+  const herald = Math.min(s, STARS - 1), after = s - herald;
   return {
     step: s,
     tier: RANK_TIERS[tierIdx],
     stars: (s % STARS) + 1,
-    hpMult: 1 + 0.06 * s,
-    dmgMult: 1 + 0.05 * s,
+    hpMult: 1 + 0.26 * herald + 0.045 * after,
+    dmgMult: 1 + 0.23 * herald + 0.04 * after,
     spawnMult: 1 + 0.035 * s,
     speedMult: 1 + 0.008 * s,
     gentleStart: tierIdx <= 1,

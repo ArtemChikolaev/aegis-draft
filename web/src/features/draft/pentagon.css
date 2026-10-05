@@ -101,10 +101,11 @@
   line-height: 1.2;
   color: var(--muted-invert);
 }
-.pentagon-node__role[data-role="safelane"] { color: var(--role-safelane); }
-.pentagon-node__role[data-role="mid"] { color: var(--role-mid); }
-.pentagon-node__role[data-role="offlane"] { color: var(--role-offlane); }
-.pentagon-node__role[data-role="support"] { color: var(--role-support); }
+/* Пентагон всегда на тёмном радаре — цвета ролей из инвертного набора (M26: глубокие светлой темы на чёрном — 2.9:1). */
+.pentagon-node__role[data-role="safelane"] { color: var(--role-safelane-invert); }
+.pentagon-node__role[data-role="mid"] { color: var(--role-mid-invert); }
+.pentagon-node__role[data-role="offlane"] { color: var(--brand-green); }
+.pentagon-node__role[data-role="support"] { color: var(--role-support-invert); }
 
 .pentagon-node__name {
   overflow: hidden;

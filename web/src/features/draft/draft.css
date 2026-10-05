@@ -65,7 +65,15 @@
   --text: var(--on-invert);
   --muted: var(--muted-invert);
   --line: var(--line-invert);
+  /* Бейджи ролей на тёмной карточке (M26, замер контраста): в светлой теме их цвета глубокие, под ivory (2.3–3.7:1). */
+  --role-safelane: var(--role-safelane-invert);
+  --role-mid: var(--role-mid-invert);
+  --role-offlane: var(--brand-green);
+  --role-support: var(--role-support-invert);
 }
+/* Шапка пака на тёмной панели: имя команды и счётчики — акцентом. Ремап только здесь: у карточек кандидатов акцент — заливка
+   наведения с `--on-accent` поверх, и яркий brand-акцент под белым текстом светлой темы не читался бы. */
+.pack-panel .pack-heading { --accent: var(--brand-green); }
 
 .pack-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .pack-heading .pack-eyebrow { margin-bottom: 3px; }
@@ -89,6 +97,8 @@
 .candidate:hover:not(:disabled) { transform: translateX(-4px) rotate(-.15deg); color: var(--on-accent); background: var(--accent); box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 16%, transparent); }
 .candidate:hover:not(:disabled) .candidate__identity small, .candidate:hover:not(:disabled) .candidate__stats, .candidate:hover:not(:disabled) .candidate__ovr small { color: color-mix(in srgb, var(--on-accent) 62%, transparent); }
 .candidate:hover:not(:disabled) .candidate__stats b, .candidate:hover:not(:disabled) .candidate__ovr { color: var(--on-accent); }
+/* Бейдж роли на залитой акцентом карточке: «Хард» красится тем же акцентом и пропадал (1.0:1), остальные тонули. */
+.candidate:hover:not(:disabled) { --role-safelane: var(--on-accent); --role-mid: var(--on-accent); --role-offlane: var(--on-accent); --role-support: var(--on-accent); --role-safelane-bg: color-mix(in srgb, var(--on-accent) 14%, transparent); --role-mid-bg: color-mix(in srgb, var(--on-accent) 14%, transparent); --role-offlane-bg: color-mix(in srgb, var(--on-accent) 14%, transparent); --role-support-bg: color-mix(in srgb, var(--on-accent) 14%, transparent); }
 /* На hover карточка зеленеет — гасим elite-фольгу, номер читается сплошным on-accent. */
 .candidate:hover:not(:disabled) .candidate__ovr { background: none; -webkit-text-fill-color: var(--on-accent); filter: none; text-shadow: none; }
 .candidate:disabled { opacity: .38; }
@@ -111,7 +121,8 @@
 
 .hero-pool { display: grid; gap: 12px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
 .hero-pool h3 { margin: 0; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; }
-.hero-pool h3 span { color: var(--accent); }
+/* Пул героев живёт только на тёмной панели пака: счётчик — brand-акцентом (тема-акцент светлой темы на чёрном — 3:1). */
+.hero-pool h3 span { color: var(--brand-green); }
 .hero-pool p { margin: 2px 0 0; color: var(--muted); font-size: 10px; }
 .hero-pool__chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .hero-pool__chips--pack {

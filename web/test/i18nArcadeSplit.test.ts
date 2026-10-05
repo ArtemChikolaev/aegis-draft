@@ -14,6 +14,13 @@ describe("i18n: строки Аркады — отдельный чанк", () =
     for (const key of Object.keys(arcadeRu)) expect(key.startsWith("arcade."), key).toBe(true);
   });
 
+  it("у каждого вида врага есть имя и описание бестиария (Штаб показывает их по всем видам)", async () => {
+    // Шишка M26: у Древних лагерей M25 не было `.desc` — бестиарий Штаба показал бы голый ключ.
+    const { ENEMY_KINDS } = await import("../src/game/arcade/content/enemies.ts");
+    const ru = arcadeRu as Record<string, string>;
+    for (const id of Object.keys(ENEMY_KINDS)) for (const key of [`arcade.enemy.${id}`, `arcade.enemy.${id}.desc`]) expect(ru[key], key).toBeTruthy();
+  });
+
   it("ленивые экраны Аркады, Штаба и Карьеры ждут строки вместе с кодом", () => {
     const app = readFileSync(new URL("../src/app/App.tsx", import.meta.url), "utf8");
     for (const screen of ["ArcadeScreen", "HqScreen", "CareerScreen"]) {

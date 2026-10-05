@@ -42,11 +42,12 @@ export function nextHint(seen: ReadonlySet<string>, affixMask: number, streakTie
 
 // ---- Справочник механик (M25): те же «увиденные», что у подсказок, плюс встречи без карточки ----
 
-/** Умения нейтралов, руны и Древние для справочника — в порядке показа. */
+/** Умения нейтралов, руны, Древние и вражеские герои (M26) для справочника — в порядке показа. Умения героев — в их записи. */
 export const CODEX_CASTS: readonly NeutralCastId[] = ["stomp", "clap", "purge", "frost_armor", "fireball"];
-export const CODEX_RUNES: readonly RuneKind[] = ["dd", "shield", "arcane", "illusion"];
+export const CODEX_RUNES: readonly RuneKind[] = ["dd", "shield", "arcane", "illusion", "wisdom"];
 export const CODEX_ANCIENTS: readonly string[] = ARCADE.ancients.pack;
 const ANCIENT_SET = new Set(CODEX_ANCIENTS);
+export const CODEX_RIVALS: readonly string[] = ARCADE.rivals.pool;
 
 /**
  * Встречи прямо сейчас (ключи «увиденного»): каст нейтрала и Древний в кадре, действующая руна, мульти-убийство. Аффиксы и
@@ -59,6 +60,7 @@ export function encounterKeys(sim: ArcadeSim): string[] {
     if (!e.alive || Math.abs(e.x - p.x) > view || Math.abs(e.y - p.y) > view) continue;
     if (e.castT > 0 && e.kind.cast) keys.add(`cast.${e.kind.cast}`);
     if (ANCIENT_SET.has(e.kind.id)) keys.add(`ancient.${e.kind.id}`);
+    if (e.kind.rival) keys.add(`rival.${e.kind.id}`);
   }
   for (const r of CODEX_RUNES) if (sim.runesTaken[r]) keys.add(`rune.${r}`);
   if (sim.multiKillShown > 0) keys.add("multi");

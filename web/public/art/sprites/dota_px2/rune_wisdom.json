@@ -1,0 +1,34 @@
+{
+  "name": "rune_wisdom",
+  "frame": 64,
+  "dirs": 1,
+  "fps": 12,
+  "world": 64,
+  "order": "0 = вниз, далее против часовой на экране (вниз, вправо, вверх, влево)",
+  "anchor": {
+    "x": 0.5,
+    "y": 0.672
+  },
+  "anims": {
+    "idle": {
+      "row": 0,
+      "frames": 1
+    }
+  },
+  "source": "rune_xp.glb",
+  "orientation": "none",
+  "pitch": 45.0,
+  "pixel": true,
+  "margin": 1.12,
+  "fit": {
+    "orientation": "none",
+    "clip": null,
+    "cx": 0.1562,
+    "zmin": 0.625,
+    "cy": -0.1562,
+    "height": 1.875,
+    "width": 2.8125,
+    "depth": 3.4375,
+    "extent": 3.85
+  }
+}

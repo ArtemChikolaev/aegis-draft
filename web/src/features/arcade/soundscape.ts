@@ -20,6 +20,8 @@ const packIndex = new LazyJson<Pack>(`${ROOT}index.json`, { abilities: {}, enemi
 const KIND_IDS = Object.keys(ENEMY_KINDS);
 
 const url = (group: string, file: string) => `${ROOT}${group}/${file}`;
+/** Умение вражеского героя (M26) звучит клипом его героя Dota: Meat Hook и Berserker's Call — Q, Laguna Blade — R. */
+const RIVAL_SFX: Readonly<Record<string, readonly [string, "q" | "r"]>> = { hero_pudge: ["pudge", "q"], hero_axe: ["axe", "q"], hero_lina: ["lina", "r"] };
 const pick = (pool: string[] | undefined, salt: number) => (pool && pool.length ? pool[salt % pool.length] : null);
 
 /** Предзагрузка: умения героя, все враги, UI и эффекты — ~150 клипов по ~10 КБ, только при входе в забег. */
@@ -28,6 +30,7 @@ function preloadSoundscape(hero: string): void {
     const pack = packIndex.value;
     if (!pack) return;
     for (const files of Object.values(pack.abilities[hero] ?? {})) for (const f of files ?? []) preloadSample(url("abilities", f));
+    for (const [rival, key] of Object.values(RIVAL_SFX)) for (const f of pack.abilities[rival]?.[key] ?? []) preloadSample(url("abilities", f));
     for (const cats of Object.values(pack.enemies)) for (const files of Object.values(cats)) for (const f of files ?? []) preloadSample(url("enemies", f));
     for (const files of Object.values(pack.ui)) for (const f of files) preloadSample(url("ui", f));
     for (const files of Object.values(pack.fx)) for (const f of files) preloadSample(url("fx", f));
@@ -42,7 +45,7 @@ function falloff(sim: ArcadeSim, x: number, y: number): number {
 
 export class Soundscape {
   private lastBorn = -1;
-  private seen = { castQ: 0, castW: 0, castE: 0, castR: 0, hurt: 0, crits: 0, blinks: 0, streakUps: 0, multiKills: 0, buybacks: 0, kills: 0, items: 0, level: 1 };
+  private seen = { castQ: 0, castW: 0, castE: 0, castR: 0, hurt: 0, crits: 0, blinks: 0, streakUps: 0, multiKills: 0, buybacks: 0, kills: 0, items: 0, level: 1, rivalCasts: 0, wisdoms: 0 };
   private last: Record<string, number> = {};
   private salt = 0;
   private radiance: (() => void) | null = null;
@@ -74,7 +77,7 @@ export class Soundscape {
     if (!this.primed) {
       // Первый кадр: не «догонять» события, случившиеся до подключения (реплей/резюм).
       this.primed = true;
-      this.seen = { castQ: ev.castQ, castW: ev.castW, castE: ev.castE, castR: ev.castR, hurt: ev.hurt, crits: ev.crits, blinks: ev.blinks, streakUps: ev.streakUps, multiKills: ev.multiKills, buybacks: ev.buybacks, kills: sim.player.kills, items: sim.player.items.length, level: sim.player.level };
+      this.seen = { castQ: ev.castQ, castW: ev.castW, castE: ev.castE, castR: ev.castR, hurt: ev.hurt, crits: ev.crits, blinks: ev.blinks, streakUps: ev.streakUps, multiKills: ev.multiKills, buybacks: ev.buybacks, kills: sim.player.kills, items: sim.player.items.length, level: sim.player.level, rivalCasts: ev.rivalCasts, wisdoms: ev.wisdoms };
       this.lastBorn = sim.tick; this.roshanAlive = !!sim.roshan?.alive; this.greedUntil = sim.greedUntil; this.aegis = sim.player.aegis;
       return handled;
     }
@@ -92,6 +95,15 @@ export class Soundscape {
       const pool = sim.upgradePower("leg_blink_over") > 0 ? pack.fx.blinkOver : sim.upgradePower("leg_blink_swift") > 0 ? pack.fx.blinkSwift : sim.upgradePower("leg_blink_arcane") > 0 ? pack.fx.blinkArcane : pack.fx.blink;
       if (this.gate("blink", now, 90)) this.play("fx", pool ?? pack.fx.blink, 0.55);
     }
+    // Вражеский герой (M26): старт его умения — клип героя Dota, тише вдали; это предупреждение, а не фон.
+    if (ev.rivalCasts > this.seen.rivalCasts) {
+      this.seen.rivalCasts = ev.rivalCasts;
+      const sfx = RIVAL_SFX[KIND_IDS[ev.rivalCastBy] ?? ""];
+      const g = sim.rival ? Math.max(0.5, falloff(sim, sim.rival.x, sim.rival.y)) : 0.5;
+      if (sfx && this.gate("rival", now, 200)) this.play("abilities", pack.abilities[sfx[0]]?.[sfx[1]], 0.75 * g);
+    }
+    // Руна мудрости — тот же звук руны, что у руны щедрости.
+    if (ev.wisdoms > this.seen.wisdoms) { this.seen.wisdoms = ev.wisdoms; this.play("ui", pack.ui.rune, 0.7); }
     // Выкуп — стингер Dota «buy back».
     if (ev.buybacks > this.seen.buybacks) { this.seen.buybacks = ev.buybacks; this.play("ui", pack.ui.buyback, 0.8); }
     // Комментатор Dota: First Blood на первом убийстве, дальше — ступени серии (Killing Spree … Beyond Godlike).

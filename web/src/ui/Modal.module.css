@@ -64,6 +64,7 @@
   --gold: var(--gold-invert);
   --role-safelane: var(--role-safelane-invert);
   --role-mid: var(--role-mid-invert);
+  --role-offlane: var(--brand-green);
   --role-support: var(--role-support-invert);
 }
 /* Панель — программная цель фокуса на открытии (см. Modal.tsx), а не интерактивный

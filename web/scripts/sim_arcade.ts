@@ -2,15 +2,20 @@
 // масс врагов + сбор ближайшего XP-шарда + жадный выбор карточек одной школы. Печатает кривые
 // выживаемости по сидам: доля доживших до Рошана, убивших его, победивших; p25/p50/p75 времени.
 // Запуск: `npm run sim:arcade -- --runs 200 --seed base --school radiance [--trait berserk] [--places rift,caravan,pond,forge,camp|all]`.
+// Лестница рангов и темп меты (M26): `npm run sim:arcade -- --hero axe --career 150 --act full --seed car1` — карьера подряд.
 import { ArcadeSim, KIND_BY_INDEX } from "../src/game/arcade/sim.ts";
 import { ARCADE, ARCADE_CONFIG_VERSION, TICK_HZ } from "../src/game/arcade/config.ts";
 import { ENEMY_KINDS } from "../src/game/arcade/content/enemies.ts";
 import { UPGRADE_BY_ID } from "../src/game/arcade/content/schools.ts";
 import { ARCADE_ITEM_BY_ID } from "../src/game/arcade/content/items.ts";
 import { BLINK_MASK, CONTRACT_OATH_ACT, PICKUP_ACT, POND_RITUAL_ACT, SHOP_ACT } from "../src/game/arcade/types.ts";
-import { GEAR_SLOTS, gearScore, type GearItem } from "../src/game/arcade/content/gear.ts";
+import { GEAR_SLOTS, gearScore, rollGear, type GearItem } from "../src/game/arcade/content/gear.ts";
+import { MAX_RANK_STEP, RANK_TIERS, STARS } from "../src/game/arcade/content/ranks.ts";
+import { LEGACY_BRANCHES, LEGACY_MAX_RANK, LEGACY_ZERO, legacyBonus, type LegacySpent } from "../src/game/arcade/content/legacy.ts";
+import { COSMETIC_BY_ID, rollCosmeticDrops } from "../src/game/arcade/content/cosmetics.ts";
+import { Rng } from "../src/game/rng.ts";
 import { kitTalent } from "../src/game/arcade/content/talents.ts";
-import type { ArcadeInput, Offer, SchoolId } from "../src/game/arcade/types.ts";
+import type { ArcadeInput, Offer, Rarity, SchoolId } from "../src/game/arcade/types.ts";
 
 const args = new Map<string, string>();
 // Флаг без значения (`--verbose`) не съедает следующий `--ключ`: раньше `--verbose --enemy x=1` терял `--enemy` молча.
@@ -50,6 +55,15 @@ const PLACES = new Set<PlaceId>((args.get("places") ?? "") === "all" ? PLACE_IDS
 const BLINK = !args.has("noblink");
 /** Выкуп (ARCADE.buyback): бот выкупается, как только хватает золота; `--nobuyback` — прежняя смерть без выкупа. */
 const BUYBACK = !args.has("nobuyback");
+// Вражеский герой (M26): `--rivalfight` — драться с ним, как с боссом (стоять в дальности удара). По умолчанию выключено:
+// A/B на 20 героях (short, 60) — бой стоил 10 п.п. побед (61.0 против 71.4%): пока бот стоит у соперника, толпа его съедает.
+const RIVAL_FIGHT = args.has("rivalfight");
+// Постоянная экипировка (M26, лестница рангов): `--gear <редкость>` — полный комплект по слотам на старте, `--gear-tier 1..3` —
+// уровень баз. Игрок копит вещи между забегами; бот без них мерил лестницу «голым» героем.
+const GEAR_RARITY = args.get("gear") as Rarity | undefined;
+const GEAR_TIER = Math.max(1, Math.min(3, Number(args.get("gear-tier") ?? 2))) as 1 | 2 | 3;
+/** Карьера (M26): `--career N` — до N забегов подряд одним героем, как у игрока (см. `career()`); `--runs` не действует. */
+const CAREER = Number(args.get("career") ?? 0);
 /** Таланты (M23): по умолчанию на 10/15/20 бот берёт общий, `--talents kit` — талант умения (A/B силы талантов). */
 const TALENTS_KIT = args.get("talents") === "kit";
 /** Награда Рошана (M23): по умолчанию Aegis → Cheese → Aghanim's Shard → Refresher; `--roshan shard` — Shard первым. */
@@ -205,7 +219,10 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
   // Рошан: уклоняемся от ТОЧКИ удара во время телеграфа (как человек), между ударами — бьём.
   // Древний: как босс — идём в дальность удара и бьём (снаряды строения не уклоняемы для бота).
   // Акт 3: к Рошану идём в яму (босс привязан к ней); снаружи он лечится, поэтому не тянем.
-  const rosh = sim.roshan?.alive ? sim.roshan : sim.ancient?.alive ? sim.ancient : null;
+  // Вражеский герой рядом (M26, только `--rivalfight`) — как босс: в дальность удара и бить, от телеграфа уклоняться (выше).
+  const rival = RIVAL_FIGHT && sim.rival?.alive ? sim.rival : null;
+  const rivalNear = rival !== null && Math.sqrt((rival.x - p.x) ** 2 + (rival.y - p.y) ** 2) < 520;
+  const rosh = sim.roshan?.alive ? sim.roshan : sim.ancient?.alive ? sim.ancient : rivalNear ? rival : null;
   const canBlink = BLINK && p.blinkCharges > 0 && sim.tick >= p.stunUntil;
   // Взрыв «Взрывной» элиты: выйти из круга до вспышки, не успеть — рывок (как от удара Рошана ниже).
   for (const b of sim.blasts) {
@@ -215,18 +232,21 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
     const late = (b.at - sim.tick) * p.stats.speed / TICK_HZ < b.r + ARCADE.player.r - d;
     return { mx: Math.round(ux * 16), my: Math.round(uy * 16), cast: canBlink && late ? BLINK_MASK : 0, choose: -1, act: 0 };
   }
-  // Умения нейтралов (T20.3): из кольца War Stomp / Thunder Clap — наружу, с линии Purge — вбок; не успеть — рывок.
+  // Умения врагов (T20.3, M26): из кольца War Stomp / Thunder Clap / Fireball / Berserker's Call — наружу, с линии Purge,
+  // Meat Hook и Laguna Blade — вбок; не успеть — рывок.
   const NC = ARCADE.neutralCasts, pr = ARCADE.player.r;
   for (const e of sim.enemies) {
     if (!e.alive || e.castT <= 0 || !e.kind.cast || e.kind.cast === "frost_armor") continue;
     let ux: number, uy: number, gap: number;
-    if (e.kind.cast === "purge") {
-      const t = Math.max(0, Math.min(NC.purge.length, (p.x - e.x) * e.castX + (p.y - e.y) * e.castY));
+    const cast = e.kind.cast;
+    if (cast === "purge" || cast === "meat_hook" || cast === "laguna_blade") {
+      const L = cast === "purge" ? NC.purge : cast === "meat_hook" ? NC.meatHook : NC.lagunaBlade;
+      const t = Math.max(0, Math.min(L.length, (p.x - e.x) * e.castX + (p.y - e.y) * e.castY));
       const dx = p.x - (e.x + e.castX * t), dy = p.y - (e.y + e.castY * t), d = Math.sqrt(dx * dx + dy * dy);
-      gap = NC.purge.width / 2 + pr - d;
+      gap = L.width / 2 + pr - d;
       ux = d > 1 ? dx / d : -e.castY; uy = d > 1 ? dy / d : e.castX; // на самой линии — вбок по перпендикуляру
     } else {
-      const R = e.kind.cast === "stomp" ? NC.stomp.radius : NC.clap.radius;
+      const R = cast === "stomp" ? NC.stomp.radius : cast === "fireball" ? NC.fireball.radius : cast === "berserkers_call" ? NC.berserkersCall.radius : NC.clap.radius;
       const dx = p.x - e.castX, dy = p.y - e.castY, d = Math.sqrt(dx * dx + dy * dy);
       gap = R + pr - d;
       ux = d > 1 ? dx / d : 1; uy = d > 1 ? dy / d : 0;
@@ -277,7 +297,7 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
   }
   // Торговец и bounty-руна: идём, если не бежим.
   if (!flee) {
-    for (const spot of [sim.shopkeeper, sim.bounty, sim.neutralToken, sim.chest, sim.rune]) {
+    for (const spot of [sim.shopkeeper, sim.bounty, sim.neutralToken, sim.chest, sim.rune, sim.wisdom]) {
       if (!spot.alive) continue;
       const dx = spot.x - p.x, dy = spot.y - p.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
       if (d < 700) { fx += dx / d * 1.5; fy += dy / d * 1.5; }
@@ -314,6 +334,8 @@ export function botInput(sim: ArcadeSim): ArcadeInput {
 interface RunResult { contractDone: boolean; build: boolean; seconds: number; level: number; kills: number; roshan: boolean; reachedRoshan: boolean; outcome: string; schools: string[]; roshanHp: number
   killer: string;
   places: Record<PlaceId, boolean>;
+  /** Вражеские герои (M26): пришло, убито, урон от них герою; руны мудрости взяты. */
+  rivals: number; rivalKills: number; rivalTaken: number; wisdom: number;
 }
 
 /** Куда идти ради места: разлом (открыт → к входу; идёт → к центру арены), караван (ждёт/едет → к повозке),
@@ -356,36 +378,104 @@ const declined = new WeakSet<GearItem>();
 /** Гистерезис отхода от босса: ушёл при <30% HP, вернулся при >55%. */
 let retreating = false;
 
+/** Один забег до конца или потолка тиков. Окно держит мир на паузе: тик не растёт, пока бот не ответит окну тем, что оно
+ *  понимает. Поэтому цикл ограничен не только `sim.tick`, но и числом шагов, а «STALL_STEPS шагов без роста тика» — ошибка
+ *  политики бота, не медленный забег. */
+function drive(sim: ArcadeSim, label: string, trace: boolean, rivalTtk: number[]): void {
+  let lastHp = 0, lastLevel = sim.player.level;
+  let stallTick = sim.tick, stallSteps = 0;
+  // Время жизни соперника (M26): тик прихода → тик, когда ссылка `sim.rival` снялась смертью.
+  let rivalFrom = -1, rivalRef: unknown = null;
+  while (!sim.over && sim.tick < MAX_TICKS) {
+    sim.step(botInput(sim));
+    if (trace && sim.rival?.alive && sim.tick % TICK_HZ === 0) {
+      const r = sim.rival, pl = sim.player;
+      console.log(`${(sim.tick / TICK_HZ).toFixed(0)}s rival ${r.kind.id} d=${Math.sqrt((r.x - pl.x) ** 2 + (r.y - pl.y) ** 2).toFixed(0)} hp=${(r.hp / r.maxHp * 100).toFixed(0)}% cast=${r.castT} stun=${sim.tick < r.stunUntil} php=${(pl.hp / pl.stats.maxHp * 100).toFixed(0)}% lvl ${pl.level} range ${sim.attackRange().toFixed(0)}`);
+    }
+    if (sim.rival !== rivalRef) {
+      if (rivalRef && !sim.rival && rivalFrom >= 0) rivalTtk.push((sim.tick - rivalFrom) / TICK_HZ);
+      rivalRef = sim.rival; rivalFrom = sim.rival ? sim.tick : -1;
+    }
+    if (sim.tick !== stallTick) { stallTick = sim.tick; stallSteps = 0; }
+    else if (++stallSteps >= STALL_STEPS) throw new Error(`бот завис: seed=${label} hero=${HERO} act=${ACT} tick=${sim.tick} (${(sim.tick / TICK_HZ).toFixed(1)}s) steps=${sim.steps} — ${STALL_STEPS} шагов без роста тика, открыто окно «${sim.activeModal() ?? "нет"}»`);
+    if (sim.steps >= MAX_STEPS) throw new Error(`бот превысил потолок шагов: seed=${label} hero=${HERO} act=${ACT} tick=${sim.tick} steps=${sim.steps} ≥ ${MAX_STEPS}, окно «${sim.activeModal() ?? "нет"}»`);
+    if (trace && sim.player.level - lastLevel >= 3) { console.log(`${(sim.tick / TICK_HZ).toFixed(1)}s level ${lastLevel}→${sim.player.level} xp=${sim.player.xp.toFixed(0)}/${sim.player.xpNext} pending=${sim.pending?.length ?? 0}/${sim.pendingSource} camp=${sim.camp?.destroyed}/${sim.camp?.totems}${sim.camp?.cleared ? "✓" : ""}`); }
+    lastLevel = sim.player.level;
+    if (trace && sim.roshan?.alive && sim.tick % TICK_HZ === 0) {
+      const r = sim.roshan, p = sim.player;
+      const d = Math.sqrt((r.x - p.x) ** 2 + (r.y - p.y) ** 2);
+      console.log(`${(sim.tick / TICK_HZ).toFixed(0)}s d=${d.toFixed(0)} slamT=${r.slamT} slamCd=${r.slamCd} roshHp=${r.hp.toFixed(0)} Δ=${(lastHp - r.hp).toFixed(0)} php=${p.hp.toFixed(0)} atkCd=${p.attackCd} spin=${sim.tick < p.spinUntil} burst=${p.burstLeft} stun=${sim.tick < p.stunUntil}`);
+      lastHp = r.hp;
+    }
+  }
+}
+
+/** Карьера (M26, лестница рангов и темп меты): забеги подряд одним героем, как у игрока. Ступень — следующая за лучшей
+ *  победой (`maxUnlockedRank`), экипировка — надетое к концу прошлого забега (смерть теряет Рапиру, сработавший Aegis
+ *  сгорает — как `dropWornRapier`/`settleAegis` в сторе), печати Наследия тратятся сразу по кругу веток. Мерит, за сколько
+ *  забегов открыт каждый ранг и с какой экипировкой — без допущений «на Legend у игрока полный арканный комплект». Темп
+ *  меты: печати и косметика по настоящим правилам дропа (осколки — только за дубликаты, без разбора лишних вещей). */
+function career(): void {
+  const t0 = performance.now();
+  const runs: { step: number; won: boolean }[] = [];
+  const firstAt = new Map<number, { run: number; slots: number; tier: number; arcana: number }>();
+  let best = -1, gear: GearItem[] = [], seals = 0, firstWin = true, legacyFullAt = -1;
+  const legacy: LegacySpent = { ...LEGACY_ZERO };
+  const owned: string[] = [];
+  let shards = 0, firstArcana = -1, shards320 = -1;
+  for (let i = 0; i < CAREER && best < MAX_RANK_STEP; i++) {
+    const step = best + 1;
+    if (!firstAt.has(step)) firstAt.set(step, { run: i + 1, slots: gear.length, tier: gear.reduce((n, g) => n + g.tier, 0) / (gear.length || 1), arcana: gear.filter((g) => g.rarity === "arcana").length });
+    const sim = new ArcadeSim(`${BASE}-c${i}`, { rank: step, hero: HERO, act: ACT, gear, legacy: legacyBonus(legacy) });
+    drive(sim, `${BASE}-c${i}`, false, []);
+    const o = sim.over;
+    const won = o?.outcome === "victory";
+    runs.push({ step, won });
+    if (won) { best = step; seals += firstWin ? 2 : 1; firstWin = false; }
+    while (seals > 0) {
+      const open = LEGACY_BRANCHES.filter((x) => legacy[x] < LEGACY_MAX_RANK);
+      if (!open.length) break;
+      legacy[open.reduce((m, x) => (legacy[x] < legacy[m] ? x : m))]++; seals--;
+    }
+    if (legacyFullAt < 0 && LEGACY_BRANCHES.every((x) => legacy[x] >= LEGACY_MAX_RANK)) legacyFullAt = i + 1;
+    gear = (Object.values(sim.player.gear) as GearItem[]).filter((g) => !(g.unique === "divine_rapier" && !won) && !(g.unique === "aegis_of_the_immortal" && o?.gearAegisUsed));
+    if (o) for (const d of rollCosmeticDrops(sim.seed, o, owned)) {
+      if (d.duplicate) shards += d.shards;
+      else { owned.push(d.id); if (firstArcana < 0 && COSMETIC_BY_ID[d.id]?.rarity === "arcana") firstArcana = i + 1; }
+    }
+    if (shards320 < 0 && shards >= 320) shards320 = i + 1;
+  }
+  const elapsed = (performance.now() - t0) / 1000;
+  const label = (s: number) => `${RANK_TIERS[Math.floor(s / STARS)]} ${(s % STARS) + 1}★`;
+  console.log(`arcade ${ARCADE_CONFIG_VERSION} · career · hero=${HERO} · act=${ACT} · runs ${runs.length} · best ${best < 0 ? "—" : label(best)} · wins ${runs.filter((r) => r.won).length} · ${elapsed.toFixed(1)}s`);
+  console.log("tier       first run  runs  wins  win%   gear at entry: slots · avg tier · arcana");
+  const tiers = RANK_TIERS.map((tier, k) => {
+    const on = runs.filter((r) => Math.floor(r.step / STARS) === k);
+    const entry = firstAt.get(k * STARS);
+    if (on.length) console.log(`${tier.padEnd(10)} ${String(entry?.run ?? "—").padStart(9)}  ${String(on.length).padStart(4)}  ${String(on.filter((r) => r.won).length).padStart(4)}  ${(on.filter((r) => r.won).length / on.length * 100).toFixed(0).padStart(3)}%   ${entry ? `${entry.slots} · ${entry.tier.toFixed(1)} · ${entry.arcana}` : "—"}`);
+    return { tier, first: entry?.run ?? null, runs: on.length, wins: on.filter((r) => r.won).length, slots: entry?.slots ?? null, avgTier: entry?.tier ?? null, arcana: entry?.arcana ?? null };
+  });
+  console.log(`meta: legacy 20/20 at run ${legacyFullAt < 0 ? "—" : legacyFullAt} · cosmetics owned ${owned.length} · first arcana drop run ${firstArcana < 0 ? "—" : firstArcana} · 320 shards run ${shards320 < 0 ? "—" : shards320} (shards ${shards})`);
+  console.log(`CAREER_JSON ${JSON.stringify({ hero: HERO, act: ACT, runs: runs.length, best, wins: runs.filter((r) => r.won).length, tiers, legacyFullAt, firstArcana, shards320, shards, owned: owned.length })}`);
+}
+
 /** Прогон и печать — только когда скрипт запущен сам; импорт из теста (`test/arcadeBot.test.ts`) берёт одну политику. */
 function main(): void {
+  if (CAREER > 0) return career();
   const results: RunResult[] = [];
+  const rivalTtk: number[] = [];
   const t0 = performance.now();
   for (let i = 0; i < RUNS; i++) {
     if (ONLY >= 0 && i !== ONLY) continue;
-    const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}), ...(COMPOSITION ? { composition: COMPOSITION } : {}) });
-    const trace = i === TRACE;
-    let lastHp = 0, lastLevel = sim.player.level;
-    // Окно держит мир на паузе: тик не растёт, пока бот не ответит окну тем, что оно понимает. Поэтому цикл ограничен
-    // не только `sim.tick`, но и числом шагов, а «STALL_STEPS шагов без роста тика» — ошибка политики бота, не медленный забег.
-    let stallTick = sim.tick, stallSteps = 0;
-    while (!sim.over && sim.tick < MAX_TICKS) {
-      sim.step(botInput(sim));
-      if (sim.tick !== stallTick) { stallTick = sim.tick; stallSteps = 0; }
-      else if (++stallSteps >= STALL_STEPS) throw new Error(`бот завис: seed=${BASE}-${i} hero=${HERO} act=${ACT} tick=${sim.tick} (${(sim.tick / TICK_HZ).toFixed(1)}s) steps=${sim.steps} — ${STALL_STEPS} шагов без роста тика, открыто окно «${sim.activeModal() ?? "нет"}»`);
-      if (sim.steps >= MAX_STEPS) throw new Error(`бот превысил потолок шагов: seed=${BASE}-${i} hero=${HERO} act=${ACT} tick=${sim.tick} steps=${sim.steps} ≥ ${MAX_STEPS}, окно «${sim.activeModal() ?? "нет"}»`);
-      if (trace && sim.player.level - lastLevel >= 3) { console.log(`${(sim.tick / TICK_HZ).toFixed(1)}s level ${lastLevel}→${sim.player.level} xp=${sim.player.xp.toFixed(0)}/${sim.player.xpNext} pending=${sim.pending?.length ?? 0}/${sim.pendingSource} camp=${sim.camp?.destroyed}/${sim.camp?.totems}${sim.camp?.cleared ? "✓" : ""}`); }
-      lastLevel = sim.player.level;
-      if (trace && sim.roshan?.alive && sim.tick % TICK_HZ === 0) {
-        const r = sim.roshan, p = sim.player;
-        const d = Math.sqrt((r.x - p.x) ** 2 + (r.y - p.y) ** 2);
-        console.log(`${(sim.tick / TICK_HZ).toFixed(0)}s d=${d.toFixed(0)} slamT=${r.slamT} slamCd=${r.slamCd} roshHp=${r.hp.toFixed(0)} Δ=${(lastHp - r.hp).toFixed(0)} php=${p.hp.toFixed(0)} atkCd=${p.attackCd} spin=${sim.tick < p.spinUntil} burst=${p.burstLeft} stun=${sim.tick < p.stunUntil}`);
-        lastHp = r.hp;
-      }
-    }
+    const gear = GEAR_RARITY ? GEAR_SLOTS.map((slot, k) => rollGear(new Rng(`gear:${BASE}-${i}:${slot}`), GEAR_TIER, GEAR_RARITY, `bot-gear-${k}`, slot)) : undefined;
+    const sim = new ArcadeSim(`${BASE}-${i}`, { rank: RANK, hero: HERO, act: ACT, ...(TRAIT ? { trait: TRAIT } : {}), ...(COMPOSITION ? { composition: COMPOSITION } : {}), ...(gear ? { gear } : {}) });
+    drive(sim, `${BASE}-${i}`, i === TRACE, rivalTtk);
     const o = sim.over ?? { outcome: "timeout", tick: sim.tick, level: sim.player.level, kills: sim.player.kills, gold: sim.player.gold, roshanKilled: sim.roshanKilled, schools: sim.player.schools };
     const roshanHp = sim.roshan ? Math.max(0, sim.roshan.hp / sim.roshan.maxHp) : 1;
     const places: Record<PlaceId, boolean> = { rift: sim.rift?.won ?? false, caravan: sim.caravan?.state === "arrived", pond: sim.pond?.used ?? false, forge: sim.forge?.used ?? false, camp: sim.camp?.cleared ?? false };
-    results.push({ contractDone: o.contractDone, build: sim.debtOfferTaken || sim.player.ritualKind !== null, seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "", places });
+    results.push({ contractDone: o.contractDone, build: sim.debtOfferTaken || sim.player.ritualKind !== null, seconds: o.tick / TICK_HZ, level: o.level, kills: o.kills, roshan: o.roshanKilled, reachedRoshan: o.tick >= ARCADE.acts[ACT].roshanAt[0], outcome: o.outcome, schools: [...o.schools], roshanHp, killer: o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "", places,
+      rivals: sim.events.rivals, rivalKills: ARCADE.rivals.pool.reduce((n, id) => n + (sim.killsByKind[id] ?? 0), 0),
+      rivalTaken: ARCADE.rivals.pool.reduce((n, id) => n + (sim.over?.takenByKind?.[id] ?? 0), 0), wisdom: sim.runesTaken.wisdom ?? 0 });
     if (VERBOSE) console.log(`#${i} ${o.outcome} ${(o.tick / TICK_HZ).toFixed(0)}s lvl ${o.level} kills ${o.kills} gold ${o.gold} camp ${sim.camp ? `${sim.camp.destroyed}/${sim.camp.totems}${sim.camp.cleared ? "✓" : ""} defiler ${sim.defiler ? `${Math.round(sim.defiler.hp / sim.defiler.maxHp * 100)}%` : "dead"}` : "—"} killer ${o.outcome === "dead" ? KIND_BY_INDEX[sim.events.hurtBy] ?? "?" : "-"} items ${sim.player.items.map((it) => it.id).join("+")} rosh ${sim.roshan ? `${(roshanHp * 100).toFixed(0)}%` : "—"} hp ${sim.player.hp.toFixed(0)} schools ${[...o.schools].join("+")} ups ${Object.entries(sim.player.upgrades).map(([k, v]) => `${k}:${v.rank}`).join(",")}`);
   }
   const elapsed = (performance.now() - t0) / 1000;
@@ -401,6 +491,8 @@ function main(): void {
   // Кто нанёс последний урон (T13.45): чемпионы и лагерь не должны становиться главной причиной ранних смертей.
   const byKiller = new Map<string, number>();
   for (const r of results) if (r.outcome === "dead") byKiller.set(r.killer, (byKiller.get(r.killer) ?? 0) + 1);
+  const sum = (f: (r: RunResult) => number) => results.reduce((n, r) => n + f(r), 0);
+  console.log(`rivals: came ${sum((r) => r.rivals)} · killed ${sum((r) => r.rivalKills)} · lived p50 ${rivalTtk.length ? q(rivalTtk, 0.5).toFixed(0) : "—"}s · taken from them p50 ${q(results.map((r) => r.rivalTaken), 0.5).toFixed(0)} · wisdom runes ${sum((r) => r.wisdom)}`);
   console.log("deaths by killer:", [...byKiller.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k}:${n}`).join(" "));
   if (CONTRACT || BUILD.size > 0) console.log(`contracts done: ${pct((r) => r.contractDone)} · build mods taken: ${pct((r) => r.build)}`);
   if (PLACES.size > 0) console.log("places done:", [...PLACES].map((pl) => `${pl}:${pct((r) => r.places[pl])}`).join(" "), `· victory with rift ${pct((r) => r.places.rift && r.outcome === "victory")} of ${pct((r) => r.places.rift)}`);

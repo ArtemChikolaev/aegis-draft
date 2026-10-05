@@ -141,7 +141,9 @@
 /* Зона нажатия переключателя шире значка — наружу от угла кнопки, а не внутрь неё (мелкая цель на телефоне). */
 .arcade-ability__auto::after { content: ""; position: absolute; inset: -7px -7px -3px -3px; }
 .arcade-ability__auto { position: absolute; top: 2px; right: 2px; z-index: 2; padding: 0; cursor: pointer; pointer-events: auto; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); font: 800 9px var(--font-display); cursor: pointer; }
-.arcade-ability__auto[data-on] { border-color: var(--accent-strong); background: var(--accent-soft); color: var(--accent-strong); }
+/* Включённый автокаст — залитая плашка акцента со своим цветом текста: полупрозрачный тинт ложился на тёмную иконку, и в
+   светлой теме глубокий акцент на ней читался на 2.1:1. */
+.arcade-ability__auto[data-on] { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
 .arcade-ability[data-locked] { opacity: .35; }
 .arcade-ability[data-passive] { opacity: .8; }
 
@@ -294,7 +296,9 @@
 .arcade-talents__pick { padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); color: var(--text); font-size: 12px; line-height: 1.35; }
 .arcade-talents__pick[data-taken="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .arcade-talents[data-invert="true"] .arcade-talents__pick { border-color: var(--line-invert); background: var(--surface-invert-soft); color: var(--on-invert); }
-.arcade-talents[data-invert="true"] .arcade-talents__pick[data-taken="true"] { border-color: var(--accent); }
+/* На сцене (окно сборки) акцент — brand: тема-акцент светлой темы на тёмном тонул (2.7:1). */
+.arcade-talents[data-invert="true"] .arcade-talents__pick[data-taken="true"] { border-color: var(--brand-glow); }
+.arcade-talents[data-invert="true"] .arcade-talents__lvl { color: var(--brand-green); }
 @media (max-width: 430px) {
   .arcade-talents__row { grid-template-columns: 24px 1fr; }
   .arcade-talents__row > .arcade-talents__pick:nth-child(3) { grid-column: 2; }
@@ -302,8 +306,9 @@
 
 /* Реролл/изгнание на экране прокачки (DMD: reroll + banish) */
 .arcade-offer-wrap { display: grid; gap: 6px; align-content: start; }
-.arcade-offer__banish { justify-self: center; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 11px; cursor: pointer; }
-.arcade-offer__banish:hover { color: var(--text); border-color: var(--text); }
+/* «Изгнать» лежит прямо на сцене под окном (не на карточке) — инвертные токены: в светлой теме тема-серый тонул (3.5:1). */
+.arcade-offer__banish { justify-self: center; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-invert); background: transparent; color: var(--muted-invert); font-size: 11px; cursor: pointer; }
+.arcade-offer__banish:hover { color: var(--on-invert); border-color: var(--on-invert); }
 
 /* Гардероб героя (T13.27): превью облика + список обликов + слоты эффектов.
    Живёт внутри Modal, а у панели модалки инвертированная поверхность (--surface-invert / --on-invert),

@@ -207,6 +207,10 @@ ENEMIES = {
     "black_dragon": {"attack": heavy, "death": [f"{D}death_black_dragon"], "aggro": [f"{C}neutral/black_dragon_fire"]},
     "granite_golem": {"attack": heavy, "death": [f"{D}death_golem_rock_01", f"{D}death_golem_rock_02"]},
     "ice_shaman": {"attack": melee, "death": [f"{D}death_dragonspawn_sorcerer_01", f"{D}death_dragonspawn_sorcerer_02"], "aggro": [f"{C}neutral/ice_bomb_target"]},
+    # Вражеские герои (M26): удары и предсмертные реплики своих героев Dota (умения звучат из abilities.<герой>).
+    "hero_pudge": {"attack": [f"{H}pudge/attack0{i}" for i in (1, 2, 3)], "death": [f"sounds/vo/pudge/pud_death_0{i}" for i in (1, 2, 3)]},
+    "hero_axe": {"attack": [f"{H}axe/attack0{i}" for i in (1, 2, 3)], "death": [f"sounds/vo/axe/axe_death_0{i}" for i in (1, 2, 3)]},
+    "hero_lina": {"attack": [f"{H}lina/projectile_impact"], "death": [f"sounds/vo/lina/lina_death_0{i}" for i in (1, 2, 3)]},
 }
 UI = {
     "levelup": [f"{U}levelup"], "abilitylevel": [f"{U}abilitylevel"], "coins": [f"{U}coins"], "buy": [f"{U}buy"],

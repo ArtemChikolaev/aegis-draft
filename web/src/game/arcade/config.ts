@@ -1,7 +1,7 @@
 // Коэффициенты Arcade. Своя версия: другая PvE-модель, BALANCE_CONFIG_VERSION Roguelite Run не
 // трогаем (PRD §5.15). Менял числа здесь или в content/ — бампни ARCADE_CONFIG_VERSION: она
 // пишется в запись истории забега, чтобы результаты разных калибровок не смешивались.
-export const ARCADE_CONFIG_VERSION = "a0.84.0";
+export const ARCADE_CONFIG_VERSION = "a0.85.0";
 
 /** Dev-режим владельца (`make dev-all`, только в браузере): в лавке всё стоит 0 — иначе не посмотреть, что
  *  реализовано, не отыграв забег (просьба 2026-09-06). Бот калибровки (tsx) и vitest (node, без window)
@@ -174,6 +174,26 @@ export const ARCADE = {
     frostArmor: { every: sec(12), radius: 220, seconds: 6, taken: 0.65 },
     /** Fireball Древнего дракона (M25): огненный круг по точке героя, бьёт издалека (свой `range`, а не общий). */
     fireball: { every: sec(9), tele: sec(1.0), radius: 110, dmgMult: 1.3, range: 460 },
+    /** Умения вражеских героев (M26, `ARCADE.rivals`): у героя свои часы — без общей паузы `gap`, `maxActive` и `fromMin`.
+     *  Meat Hook — полоса от Pudge в сторону героя (направление фиксируется на старте телеграфа): задел — урон и рывок к Pudge.
+     *  Berserker's Call — круг вокруг Axe: внутри — насмешка, герой `tauntSec` идёт к Axe без Blink; Axe это время под той же
+     *  бронёй, что даёт Frost Armor (`frostArmor.taken`).
+     *  Laguna Blade — длинная полоса от Lina: долгий телеграф и тяжёлый удар — уйти с линии. */
+    meatHook: { every: sec(8), tele: sec(0.75), length: 520, width: 44, dmgMult: 1.4, range: 500 },
+    berserkersCall: { every: sec(9), tele: sec(0.6), radius: 210, tauntSec: 1.6, range: 200 },
+    lagunaBlade: { every: sec(11), tele: sec(1.1), length: 640, width: 50, dmgMult: 4, range: 560 },
+  },
+  /** Вражеские герои Dota (M26): в середине акта приходит мини-босс — Pudge, Axe или Lina (порядок — по сиду, без повторов
+   *  подряд), идёт к герою и колдует своё умение (`neutralCasts`). По одному: живой — следующий ждёт `retry`. Контроль на
+   *  них — не дольше `ccCap`, потом `ccResist` иммунитета, как у чемпионов. Убит — золото и опыт вида и exotic-предмет.
+   *  Не убит за `stay` по часам акта — отступает без награды: иначе слабый билд вёл его до Рошана (7:00, 14:00) и дрался с
+   *  двумя боссами сразу — свип M26 без отступления: короткий акт −4.3 п.п. побед, у Doom 29 смертей из 31 на 7-й минуте. */
+  rivals: {
+    at: { short: [sec(5 * 60)], full: [sec(5 * 60), sec(11.5 * 60), sec(17 * 60)], dire: [sec(5 * 60), sec(11.5 * 60), sec(17 * 60)], river: [sec(5 * 60), sec(11.5 * 60), sec(17 * 60)] } as Record<string, number[]>,
+    pool: ["hero_pudge", "hero_axe", "hero_lina"] as const,
+    ringMin: 620, ringMax: 700, retry: sec(45), stay: sec(90), ccCap: sec(0.6), ccResist: sec(2.5),
+    /** Lina держит дистанцию: ближе `keepMin` — отходит, дальше `keepMax` — подходит. */
+    keepMin: 220, keepMax: 300,
   },
   /** Древние лагеря (M25): в актах Dire и реки с `fromMin` раз в `every` по часам акта приходит стая древних Dota — Black
    *  Dragon (Fireball), Гранитный голем (аура брони союзникам) и Ледяной шаман (Ice Armor — тот же Frost Armor, что у огра).
@@ -208,6 +228,12 @@ export const ARCADE = {
     purge: { length: 380, width: 70, slow: 0.6, slowSec: 3 },
     frostArmor: { armor: [0, 18, 24, 30], seconds: 8, radius: 200, slow: 0.4, slowSec: 2 },
     fireball: { range: 420, radius: 130, burnFrac: 0.1, burnSec: 3 },
+    /** Умения вражеских героев (M26) в руках Rubick: Hook — урон первому в полосе и рывок его к герою (кроме боссов и
+     *  неподвижных); Call — урон вокруг, враги подтянуты на `pull` px и замедлены, герою броня по рангу ульта на `seconds`;
+     *  Laguna — полоса к ближайшему врагу, урон ×`dmgMult`. */
+    meatHook: { length: 560, width: 60 },
+    berserkersCall: { radius: 230, pull: 60, slow: 0.4, slowSec: 2, armor: [0, 12, 16, 20], seconds: 3 },
+    lagunaBlade: { length: 680, width: 64, dmgMult: 1.5 },
   },
   /** Благословения «Каст» (rad_spellfire, ska_spellfrost, mae_spellstorm, ven_spelltoxin): попадание умения героя (Q/W/E/R)
    *  накладывает статус школы не чаще раза в `every` на цель — тиковые виды (вихрь, эдикт, зоны) бьют по 7–10 раз в секунду.
@@ -378,6 +404,9 @@ export const ARCADE = {
     arcane: { seconds: 50, cooldown: 0.3 },
     illusion: { seconds: 75, count: 2, dmgFrac: 0.35 },
   },
+  /** Руна мудрости (M26, как в Dota 7.33): с 7:00 раз в 7 минут по часам акта — опыт на `levelFrac` текущего уровня, без
+   *  множителей опыта. Ложится дальше обычных рун (крюк за ней — решение) и живёт `lifetime`; «пришёл — твоё» держит срок. */
+  wisdom: { first: sec(7 * 60), every: sec(7 * 60), lifetime: sec(120), levelFrac: 0.6, distMin: 520, distMax: 820 },
   /** Руны щедрости: первая на 0:50, дальше каждые 100 с; живёт 40 с; эффект 60 с. */
   greed: {
     firstAt: sec(50),

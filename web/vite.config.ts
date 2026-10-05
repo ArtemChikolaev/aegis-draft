@@ -41,6 +41,8 @@ export default defineConfig({
         // обновления: докэшированное cacheFirst на лету activate чистит по манифесту сборки.
         globPatterns: [
           "**/*.{js,css,html,svg,webmanifest}",
+          // Шрифты (M26, design/fonts.css) — свои файлы вместо Google Fonts: без precache офлайн-версия теряла бы их.
+          "assets/*.woff2",
           "icon-*.png",
           "art/**/*.webp",
           "art/abilities_px/*.png",

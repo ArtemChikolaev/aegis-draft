@@ -181,10 +181,13 @@
 
 html[data-theme="light"] {
   /* Затемнённые варианты слагаемых: тот же хью, поднятая насыщенность и опущенная светлота —
-     связь с плиткой сохраняется, контраст на ivory становится рабочим. */
-  --stat-base-ink: #2563c9;
-  --stat-synergy-ink: #16794a;
-  --stat-chemistry-ink: #9a6410;
+     связь с плиткой сохраняется, контраст на ivory становится рабочим.
+     Контраст светлой темы (M26, замер всех экранов `lowContrastText`): текст в цвет токена обязан держать WCAG AA
+     (4.5:1) на фоне, поверхности, мягкой плашке и тинте 12% своего же цвета — прежние значения давали 2.5–4.5:1
+     (акцент #d97757 — 2.7:1 на ivory, шкала OVR — 2.6–2.9:1, белый на акценте — 3.1:1). */
+  --stat-base-ink: #2159b8;
+  --stat-synergy-ink: #12663e;
+  --stat-chemistry-ink: #7f5309;
   --stat-synergy-run-ink: #6234c4;
   color-scheme: light;
   --bg: #f1efe8;
@@ -194,32 +197,32 @@ html[data-theme="light"] {
   --line: rgba(20, 20, 18, .16);
   --line-strong: rgba(20, 20, 18, .32);
   --text: #181816;
-  --muted: #686760;
-  --accent: #d97757;
-  --accent-strong: #c45e3e;
-  --accent-soft: rgba(217, 119, 87, .12);
+  --muted: #64635c;
+  --accent: #a4431a;
+  --accent-strong: #87360f;
+  --accent-soft: rgba(164, 67, 26, .12);
   --on-accent: #fff;
-  --ember: #d97757;
+  --ember: #a4431a;
   --blue: #315fae;
-  --gold: #996311;
-  --danger: #c63e2b;
+  --gold: #80520e;
+  --danger: #a83224;
   --danger-fill: #c63e2b;
   --danger-fill-hover: #d94a36;
   --on-danger: #fff;
   --on-ember: #fff;
   --shadow: none;
 
-  --role-safelane: #337f18;
+  --role-safelane: #2b6b14;
   --role-support: #714397;
 
   /* Турнир — те же тиры, но темнее для читаемости на светлой поверхности. */
-  --tier-immortal: #0f7f9e;
+  --tier-immortal: #0b6580;
   --tier-immortal-shine: #59c3dd;
-  --tier-elite: #2e9e63;
-  --tier-strong: #5f9e26;
-  --tier-mid: #b07d0a;
-  --tier-low: #c2691a;
-  --tier-weak: #c63e2b;
+  --tier-elite: #1c6e45;
+  --tier-strong: #426e17;
+  --tier-mid: #7f5a07;
+  --tier-low: #9a4f12;
+  --tier-weak: #a83224;
   --tier-elite-shine: #b5892b;
   /* На светлой «потухший» = выцветший, а не затемнённый: холодный серо-бежевый налёт,
      который приглушает карточку, не превращая её в грязное пятно. */
@@ -229,7 +232,7 @@ html[data-theme="light"] {
   --sigil-0: #315fae;
   --sigil-1: #6b3fa8;
   --sigil-2: #146b85;
-  --sigil-3: #b03e73;
+  --sigil-3: #9f3567;
   --sigil-4: #4f5a68;
 }
 
@@ -251,8 +254,8 @@ html[data-theme="light"] {
   --brand-art-deep: #291653;
 }
 /* Светлая тема: акцент на ivory-поверхностях (эйброу, кнопки) должен быть ГЛУБОКИМ +
-   белый текст — как базовый оранж #d97757. Бледные дарк-значения на светлом тонут (эйброу
-   режимов нечитаем). Токены свечения (brand-glow, brand-art) НЕ трогаем: они рисуются на
+   белый текст — как базовый оранж (#a4431a, M26: AA 4.5:1 и на мягкой плашке, и на тинте акцента).
+   Бледные дарк-значения на светлом тонут (эйброу режимов нечитаем). Токены свечения (brand-glow, brand-art) НЕ трогаем: они рисуются на
    всегда-тёмных панелях (карточки режимов, радар) и остаются яркими в обеих темах. */
 html[data-theme="light"] [data-accent="violet"] {
   --accent: #6b3fa8;
@@ -261,9 +264,9 @@ html[data-theme="light"] [data-accent="violet"] {
   --on-accent: #fff;
 }
 html[data-theme="light"] [data-accent="orange"] {
-  --accent: #c2661f;
-  --accent-strong: #a0521a;
-  --accent-soft: rgba(194, 102, 31, .12);
+  --accent: #9a4c17;
+  --accent-strong: #7e3d12;
+  --accent-soft: rgba(154, 76, 23, .12);
   --on-accent: #fff;
 }
 html[data-theme="light"] [data-accent="blue"] {
@@ -273,21 +276,21 @@ html[data-theme="light"] [data-accent="blue"] {
   --on-accent: #fff;
 }
 html[data-theme="light"] [data-accent="red"] {
-  --accent: #b6392b;
-  --accent-strong: #93291e;
-  --accent-soft: rgba(182, 57, 43, .12);
+  --accent: #a8322a;
+  --accent-strong: #8a2820;
+  --accent-soft: rgba(168, 50, 42, .12);
   --on-accent: #fff;
 }
 html[data-theme="light"] [data-accent="amber"] {
-  --accent: #9a5b12;
-  --accent-strong: #7a4709;
-  --accent-soft: rgba(154, 91, 18, .12);
+  --accent: #7d490e;
+  --accent-strong: #633909;
+  --accent-soft: rgba(125, 73, 14, .12);
   --on-accent: #fff;
 }
 html[data-theme="light"] [data-accent="teal"] {
-  --accent: #1f7f72;
-  --accent-strong: #16605a;
-  --accent-soft: rgba(31, 127, 114, .12);
+  --accent: #19695e;
+  --accent-strong: #12524a;
+  --accent-soft: rgba(25, 105, 94, .12);
   --on-accent: #fff;
 }
 [data-accent="orange"] {
@@ -361,6 +364,7 @@ html[data-theme="light"] [data-accent="teal"] {
   --arcade-rune-shield: #7fd9ff;
   --arcade-rune-arcane: #c98bff;
   --arcade-rune-illusion: #ffd86b;
+  --arcade-rune-wisdom: #8c9dff; /* руна мудрости (M26): сине-лиловый кристалл модели Dota — не Arcane и не Shield */
   --arcade-ground-night: #070a10;
   --arcade-fog: rgba(3, 5, 9, .96);
   --arcade-scrim: rgba(0, 0, 0, .55);        /* затемнение оверлеев и кулдауна на всегда-тёмной сцене */

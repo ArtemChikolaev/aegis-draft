@@ -182,9 +182,10 @@ export async function openCampSection(
 }
 
 /** Текст внутри `root` с контрастом ниже WCAG AA (4.5:1, крупный — 3:1) против фактического фона:
- *  полупрозрачные фоны предков смешиваются до первого непрозрачного. Неактивное (disabled, opacity)
- *  и градиентный текст (`-webkit-text-fill-color: transparent`) пропускаются; `checked` — сколько
- *  узлов проверено, чтобы пустой список не прошёл молча (панель ещё не отрисована, всё пропущено). */
+ *  полупрозрачные фоны предков смешиваются до первого непрозрачного. Неактивное (disabled, opacity),
+ *  градиентный текст (`-webkit-text-fill-color: transparent`) и текст поверх картинки или градиента фона
+ *  (цвет под ним не вычислить) пропускаются; `checked` — сколько узлов проверено, чтобы пустой список не
+ *  прошёл молча (панель ещё не отрисована, всё пропущено). */
 export async function lowContrastText(root: Locator): Promise<{ checked: number; low: string[] }> {
   return root.evaluate((el) => {
     type Rgba = { r: number; g: number; b: number; a: number };
@@ -201,10 +202,14 @@ export async function lowContrastText(root: Locator): Promise<{ checked: number;
       const ch = (v: number) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; };
       return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
     };
-    const backdrop = (node: Element): Rgba => {
+    const backdrop = (node: Element): Rgba | null => {
       const layers: Rgba[] = [];
       for (let e: Element | null = node; e; e = e.parentElement) {
-        const c = parse(getComputedStyle(e).backgroundColor);
+        const cs = getComputedStyle(e);
+        const c = parse(cs.backgroundColor);
+        // Картинка или градиент без непрозрачного цвета под ними (арт карточек режимов) — фон не вычислить; свечение поверх
+        // сплошного цвета (панель модалки) меряем по цвету.
+        if (cs.backgroundImage !== "none" && !(c && c.a >= 1)) return null;
         if (c && c.a > 0) { layers.push(c); if (c.a >= 1) break; }
       }
       return layers.reduceRight<Rgba>((under, top) => over(top, under), { r: 0, g: 0, b: 0, a: 1 });
@@ -223,6 +228,7 @@ export async function lowContrastText(root: Locator): Promise<{ checked: number;
       const fg = parse(cs.color);
       if (inactive || !fg) continue;
       const bg = backdrop(node);
+      if (!bg) continue;
       const l1 = lum(over(fg, bg)), l2 = lum(bg);
       const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
       const size = parseFloat(cs.fontSize), bold = Number(cs.fontWeight) >= 700;

@@ -29,18 +29,18 @@ import { sec } from "../../game/arcade/config.ts";
 
 const PALETTE_KEYS = [
   "ground", "groundLine", "bounds", "grunt", "brute", "swift", "elite", "boss", "creep", "player", "playerRing", "shard", "fire", "frost", "ember", "smoke", "ice", "venom", "venomDark",
-  "lightning", "blink", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "critText", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "groundNight", "fog", "river", "pit",
+  "lightning", "blink", "hp", "hpBg", "text", "telegraph", "ward", "heal", "crit", "critText", "aegis", "joystick", "greed", "shop", "bounty", "arcana", "exotic", "refined", "runeDd", "runeShield", "runeArcane", "runeIllusion", "runeWisdom", "groundNight", "fog", "river", "pit",
   "grassA", "grassB", "dirt", "rock", "tree", "treeDark", "tuft", "limb", "grassNightA", "grassNightB", "dirtNight", "treeNight", "treeNightDark",
   "tintOak", "tintPine", "tintRock", "tintTreeNight", "tintRockNight", "critDark", "lightningDark",
 ] as const;
 type PaletteKey = (typeof PALETTE_KEYS)[number];
 /** Цвет маркера у края по виду приглашения (руна — по своему виду через `runeColor`). */
-const MARKER_TONE: Record<Exclude<Invitation["kind"], "rune">, PaletteKey> = { hunter: "telegraph", contract: "aegis", camp: "venom", outpost: "aegis", pond: "frost", caravan: "shop", rift: "aegis", forge: "ember", grove: "crit", barrow: "lightning", lair: "lightning", ford: "river", den: "crit", shop: "shop", bounty: "bounty", chest: "aegis", token: "text", shrine: "greed" };
+const MARKER_TONE: Record<Exclude<Invitation["kind"], "rune">, PaletteKey> = { hunter: "telegraph", contract: "aegis", camp: "venom", outpost: "aegis", pond: "frost", caravan: "shop", rift: "aegis", forge: "ember", grove: "crit", barrow: "lightning", lair: "lightning", ford: "river", den: "crit", shop: "shop", bounty: "bounty", chest: "aegis", token: "text", shrine: "greed", rival: "telegraph", wisdom: "runeWisdom" };
 type Palette = Record<PaletteKey, string>;
 
 /** Цвет руны по виду — токены `--arcade-rune-*`, те же, что у плиток баффов в HUD (arcade.css). */
 function runeColor(pal: Palette, kind: RuneKind): string {
-  return kind === "dd" ? pal.runeDd : kind === "shield" ? pal.runeShield : kind === "arcane" ? pal.runeArcane : pal.runeIllusion;
+  return kind === "dd" ? pal.runeDd : kind === "shield" ? pal.runeShield : kind === "arcane" ? pal.runeArcane : kind === "wisdom" ? pal.runeWisdom : pal.runeIllusion;
 }
 
 /** Цвет аффикса элиты — по смыслу: скорость — янтарь, вампир — кровь, взрыв — огонь, мороз — лёд, раскол — осколок. */
@@ -433,6 +433,7 @@ export class ArcadeRenderer {
     if (sim.shopkeeper.alive) ring(sim.shopkeeper.x, sim.shopkeeper.y, 3 + pulse, pal.shop);
     if (sim.bounty.alive) ring(sim.bounty.x, sim.bounty.y, 3 + pulse, pal.bounty);
     if (sim.rune.alive) ring(sim.rune.x, sim.rune.y, 3 + pulse, runeColor(pal, sim.runeKind));
+    if (sim.wisdom.alive) ring(sim.wisdom.x, sim.wisdom.y, 3 + pulse, pal.runeWisdom);
     if (sim.chest.alive) ring(sim.chest.x, sim.chest.y, 3 + pulse, sim.chest.value === 1 ? pal.venom : pal.aegis);
     if (sim.neutralToken.alive) ring(sim.neutralToken.x, sim.neutralToken.y, 3 + pulse, pal.text);
     if (sim.shrine.alive) ring(sim.shrine.x, sim.shrine.y, 3 + pulse, pal.greed);
@@ -936,6 +937,23 @@ export class ArcadeRenderer {
         this.text(c, sim.runeKind === "dd" ? "DD" : sim.runeKind === "shield" ? "S" : sim.runeKind === "arcane" ? "A" : "I", r.x, r.y + bob + 4);
       }
     }
+    if (sim.wisdom.alive) {
+      // Руна мудрости (M26): модель Dota `rune_wisdom`; пока листа нет — зелёный кружок «XP» и срок кольцом.
+      const w = sim.wisdom;
+      const ds = dotaSheet("rune_wisdom");
+      c.globalAlpha = 0.35 + 0.25 * pulse;
+      c.fillStyle = pal.runeWisdom;
+      c.beginPath(); c.ellipse(w.x, w.y + 6, 16, 7, 0, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 1;
+      const bob = Math.round(Math.sin(sim.tick / 12) * 3);
+      if (!ds || !drawDotaFrame(c, ds, "idle", 0, 0, w.x, w.y + 8 + bob)) {
+        c.fillStyle = pal.runeWisdom;
+        c.beginPath(); c.arc(w.x, w.y + bob, 11, 0, Math.PI * 2); c.fill();
+        c.fillStyle = pal.player; c.font = this.font(800, 9); c.textAlign = "center";
+        this.text(c, "XP", w.x, w.y + bob + 3);
+      }
+      this.timerArc(c, w.x, w.y, 18, w.until, ARCADE.wisdom.lifetime, sim.tick, pal.runeWisdom);
+    }
   }
 
   private iconCache = new Map<string, HTMLImageElement>();
@@ -1156,6 +1174,11 @@ export class ArcadeRenderer {
       // Умения нейтралов (T20.3): телеграф каста и Frost Armor на соседе огра; Wave of Force Рошана (T21.2).
       if (e.castT > 0 && e.kind.cast) this.drawNeutralCast(e, pal);
       else if (e.castT > 0 && e.kind.boss) this.drawRoshanWave(e, pal);
+      if (e === sim.rival && tick < sim.player.tauntUntil) {
+        // Berserker's Call (M26): герой привязан к Axe — пунктир, пока идёт насмешка.
+        c.strokeStyle = pal.telegraph; c.lineWidth = 2; c.globalAlpha = 0.8; c.setLineDash([6, 5]);
+        c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(sim.player.x, sim.player.y); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+      }
       if (tick < e.armorUntil) { c.strokeStyle = pal.frost; c.lineWidth = 2; c.globalAlpha = 0.85; c.beginPath(); c.arc(e.x, e.y, r + 6, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1; }
       if (e.affix !== 0) this.drawAffix(c, e, r, pal, tick);
       if (e.kind.elite || e.kind.boss || e.kind.structure || e.affix !== 0) {
@@ -1240,11 +1263,12 @@ export class ArcadeRenderer {
   /** Телеграф умения нейтрала (T20.3): кольцо War Stomp / Thunder Clap / Fireball (M25, круг по точке героя) наливается к
    *  удару, Purge — полоса от сатира. */
   private drawNeutralCast(e: Enemy, pal: Palette): void {
-    const c = this.ctx, NC = ARCADE.neutralCasts;
-    if (e.kind.cast === "purge") {
-      const P = NC.purge, k = 1 - e.castT / P.tele;
+    const c = this.ctx, NC = ARCADE.neutralCasts, cast = e.kind.cast;
+    if (cast === "purge" || cast === "meat_hook" || cast === "laguna_blade") {
+      // Полосы: Purge сатира, Meat Hook Pudge и Laguna Blade Lina (M26) — наливаются к удару.
+      const P = cast === "purge" ? NC.purge : cast === "meat_hook" ? NC.meatHook : NC.lagunaBlade, k = 1 - e.castT / P.tele;
       const x2 = e.x + e.castX * P.length, y2 = e.y + e.castY * P.length;
-      c.strokeStyle = pal.telegraph; c.lineCap = "round";
+      c.strokeStyle = cast === "laguna_blade" ? pal.fire : pal.telegraph; c.lineCap = "round";
       c.lineWidth = P.width; c.globalAlpha = 0.12 + 0.28 * k;
       c.beginPath(); c.moveTo(e.x, e.y); c.lineTo(x2, y2); c.stroke();
       c.lineWidth = 2; c.globalAlpha = 0.5 + 0.4 * k; c.setLineDash([10, 8]);
@@ -1252,9 +1276,9 @@ export class ArcadeRenderer {
       c.setLineDash([]); c.lineCap = "butt"; c.globalAlpha = 1;
       return;
     }
-    const C = e.kind.cast === "stomp" ? NC.stomp : e.kind.cast === "fireball" ? NC.fireball : NC.clap;
+    const C = cast === "stomp" ? NC.stomp : cast === "fireball" ? NC.fireball : cast === "berserkers_call" ? NC.berserkersCall : NC.clap;
     const k = 1 - e.castT / C.tele;
-    const tone = e.kind.cast === "clap" ? pal.frost : e.kind.cast === "fireball" ? pal.fire : pal.telegraph;
+    const tone = cast === "clap" ? pal.frost : cast === "fireball" ? pal.fire : pal.telegraph;
     c.strokeStyle = tone; c.lineWidth = 3; c.globalAlpha = 0.9;
     c.beginPath(); c.arc(e.castX, e.castY, C.radius, 0, Math.PI * 2); c.stroke();
     c.fillStyle = tone; c.globalAlpha = 0.15 + 0.3 * k;
