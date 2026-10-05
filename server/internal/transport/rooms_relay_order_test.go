@@ -99,13 +99,21 @@ func TestRelayConcurrentSendersKeepSeqOrderInOutbox(t *testing.T) {
 }
 
 // То же через настоящие сокеты: несколько клиентов шлют relay одновременно, и каждый обязан
-// увидеть ВСЕ записи по порядку seq без пропусков. Отправитель ждёт эхо своей записи перед
-// следующей, так что в полёте не больше одной записи на клиента и outbox не переполняется.
+// увидеть ВСЕ записи по порядку seq без пропусков. Темп — волнами: каждый шлёт одну запись, а
+// следующую — только увидев всю волну. Ожидание лишь своего эха очередь ЧУЖОГО outbox не
+// ограничивало: пока писатель одного сокета стоял (CPU занят, медленный CI-раннер), остальные
+// успевали накидать ему больше outboxSize записей, hub выбрасывал здоровый сокет, и тест висел до
+// таймаута (CI a18b0af1: EOF после seq 11). С волнами в outbox участника не больше presence входов
+// (clients) и двух волн (текущая + следующая без его записи: 2·clients−1) — вытеснение исключено
+// при любом планировании, и пропуск или перестановка означают настоящий дефект.
 func TestRoomSocketConcurrentRelaysArriveInSeqOrder(t *testing.T) {
 	const (
 		clients = 6
-		perEach = 25
+		waves   = 25
 	)
+	if 3*clients > outboxSize {
+		t.Fatalf("%d clients overflow outbox %d: the test would catch eviction, not order", clients, outboxSize)
+	}
 	ts := roomsTestServer(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -131,45 +139,50 @@ func TestRoomSocketConcurrentRelaysArriveInSeqOrder(t *testing.T) {
 		})
 	}
 
-	total := clients * perEach
+	// Первая ошибка отменяет общий ctx: иначе остальные ждали бы записей упавшего до таймаута.
 	errs := make(chan error, clients)
+	fail := func(err error) {
+		errs <- err
+		cancel()
+	}
 	var wg sync.WaitGroup
 	for _, c := range all {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := c.send(map[string]int{"n": 0}); err != nil {
-				errs <- err
-				return
-			}
 			own, lastSeq := 0, 0
-			for lastSeq < total {
-				msg, err := c.next()
-				if err != nil {
-					errs <- fmt.Errorf("read after seq %d: %w", lastSeq, err)
+			for wave := 1; wave <= waves; wave++ {
+				if err := c.send(map[string]int{"n": wave}); err != nil {
+					fail(err)
 					return
 				}
-				if msg.Type != "relay" {
-					continue // presence входящих
-				}
-				var entry service.RelayEntry
-				if err := json.Unmarshal(msg.Payload, &entry); err != nil {
-					errs <- err
-					return
-				}
-				if entry.Seq != lastSeq+1 {
-					errs <- fmt.Errorf("client %s: got seq %d after %d", c.id, entry.Seq, lastSeq)
-					return
-				}
-				lastSeq = entry.Seq
-				if entry.From == c.id {
-					own++
-					if own < perEach {
-						if err := c.send(map[string]int{"n": own}); err != nil {
-							errs <- err
-							return
-						}
+				for lastSeq < wave*clients {
+					msg, err := c.next()
+					if err != nil {
+						fail(fmt.Errorf("client %s: read after seq %d: %w", c.id, lastSeq, err))
+						return
 					}
+					if msg.Type != "relay" {
+						continue // presence входящих
+					}
+					var entry service.RelayEntry
+					if err := json.Unmarshal(msg.Payload, &entry); err != nil {
+						fail(err)
+						return
+					}
+					if entry.Seq != lastSeq+1 {
+						fail(fmt.Errorf("client %s: got seq %d after %d", c.id, entry.Seq, lastSeq))
+						return
+					}
+					lastSeq = entry.Seq
+					if entry.From == c.id {
+						own++
+					}
+				}
+				// Следующую волну никто не шлёт, не увидев эту целиком, — своя запись в ней ровно одна.
+				if own != wave {
+					fail(fmt.Errorf("client %s: %d own entries after wave %d", c.id, own, wave))
+					return
 				}
 			}
 		}()

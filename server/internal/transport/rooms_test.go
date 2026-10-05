@@ -296,6 +296,62 @@ func TestRoomSocketEvictedSlowPeerIsDisconnectedAndPruned(t *testing.T) {
 	}
 }
 
+// Выброшенный пир обязан увидеть обрыв, даже если drop застал писателя с сообщением на руках:
+// coder/websocket проверяет ctx раньше, чем вешает на запись закрытие сокета по отмене, и при уже
+// отменённом ctx запись может вернуть «failed to acquire lock», не тронув соединение (select
+// ctx.Done/замок случаен). Писатель выходил по этой ошибке без CloseNow — сессия оставалась
+// полуоткрытой: hub пиру не шлёт, писателя нет, клиент обрыва не видит и не переподключается,
+// участник Connected навсегда. Исход случаен, поэтому попыток много: старый код зависал на первых.
+func TestRoomSocketDroppedPeerWithPendingMessageGetsClosed(t *testing.T) {
+	server := NewServer(config.Config{Env: "test"}, Deps{Rooms: service.NewRoomManager(nil)})
+	ts := httptest.NewServer(server.Handler())
+	t.Cleanup(ts.Close)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	code := createTestRoom(t, ts)
+
+	watcher, _ := dialRoom(t, ctx, ts, code, "Watcher", "", testVersions())
+	defer watcher.CloseNow()
+	waitPresence(t, ctx, watcher, "joined")
+
+	token := ""
+	for attempt := 0; attempt < 20; attempt++ {
+		victim, welcome := dialRoom(t, ctx, ts, code, "Victim", token, testVersions())
+		token = welcome.Token
+		kind := "joined"
+		if attempt > 0 {
+			kind = "reconnected"
+		}
+		waitPresence(t, ctx, victim, kind) // свой presence дошёл — писатель запущен
+		waitPresence(t, ctx, watcher, kind)
+
+		// То же, что broadcast при переполнении (снять с hub + drop), но с сообщением у писателя:
+		// отправка будит ждущего писателя уже со значением, drop идёт следом под тем же замком.
+		server.roomHub.mu.Lock()
+		peer := server.roomHub.rooms[code][token]
+		peer.outbox <- envelope("relay", attempt)
+		server.roomHub.removeLocked(code, token)
+		peer.drop()
+		server.roomHub.mu.Unlock()
+
+		// Клиент видит обрыв (успевшее уйти сообщение допустимо), а не тишину до дедлайна.
+		readCtx, cancelRead := context.WithTimeout(ctx, 5*time.Second)
+		var err error
+		for err == nil {
+			var msg wsMessage
+			err = wsjson.Read(readCtx, victim, &msg)
+		}
+		stalled := readCtx.Err() != nil
+		cancelRead()
+		victim.CloseNow()
+		if stalled {
+			t.Fatalf("attempt %d: dropped peer's socket stayed open: %v", attempt, err)
+		}
+		// Сессия на сервере закончилась: участник отпущен, остальные видят disconnected.
+		waitPresence(t, ctx, watcher, "disconnected")
+	}
+}
+
 // Reconnect вытесняет старый сокет: его конец сессии не должен отпускать участника — ни пока
 // живёт новая сессия, ни после того, как она сама закончилась.
 func TestRoomHubDetachDistinguishesReconnectFromLastSession(t *testing.T) {
