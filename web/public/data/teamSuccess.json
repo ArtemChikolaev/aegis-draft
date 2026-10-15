@@ -645,9 +645,9 @@
   },
   "111474": {
     "last_5y": {
-      "successScore": 27.38,
-      "games": 32,
-      "winrate": 0.3438
+      "successScore": 28,
+      "games": 30,
+      "winrate": 0.3667
     },
     "valve_legacy": {
       "successScore": 43.22,
@@ -709,9 +709,9 @@
       "winrate": 0.4865
     },
     "last_5y": {
-      "successScore": 47.69,
-      "games": 334,
-      "winrate": 0.5629
+      "successScore": 47.42,
+      "games": 332,
+      "winrate": 0.5602
     },
     "valve_legacy": {
       "successScore": 58.06,
@@ -742,9 +742,9 @@
   },
   "1838315": {
     "last_5y": {
-      "successScore": 38.13,
-      "games": 182,
-      "winrate": 0.5
+      "successScore": 37.6,
+      "games": 180,
+      "winrate": 0.4944
     },
     "valve_legacy": {
       "successScore": 54.52,
@@ -761,9 +761,9 @@
   },
   "1883502": {
     "last_5y": {
-      "successScore": 43.48,
-      "games": 13,
-      "winrate": 0.3846
+      "successScore": 47.62,
+      "games": 11,
+      "winrate": 0.4545
     },
     "valve_legacy": {
       "successScore": 49.32,
@@ -1068,8 +1068,8 @@
     },
     "last_5y": {
       "successScore": 36.11,
-      "games": 416,
-      "winrate": 0.4471
+      "games": 413,
+      "winrate": 0.4479
     },
     "valve_legacy": {
       "successScore": 50.19,
@@ -1140,9 +1140,9 @@
   },
   "5": {
     "last_5y": {
-      "successScore": 32.33,
-      "games": 182,
-      "winrate": 0.4066
+      "successScore": 32.57,
+      "games": 180,
+      "winrate": 0.4111
     },
     "valve_legacy": {
       "successScore": 43.83,
@@ -1471,9 +1471,9 @@
       "winrate": 0.4314
     },
     "last_5y": {
-      "successScore": 32.72,
-      "games": 115,
-      "winrate": 0.4261
+      "successScore": 32.01,
+      "games": 112,
+      "winrate": 0.4196
     },
     "valve_legacy": {
       "successScore": 52.72,
@@ -1643,9 +1643,9 @@
   },
   "8214850": {
     "last_5y": {
-      "successScore": 45.16,
-      "games": 52,
-      "winrate": 0.4423
+      "successScore": 43.33,
+      "games": 50,
+      "winrate": 0.42
     },
     "valve_legacy": {
       "successScore": 46.74,
