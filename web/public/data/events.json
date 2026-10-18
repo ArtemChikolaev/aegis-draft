@@ -205,7 +205,6 @@
     "startDate": "2021-10-07",
     "endDate": "2021-10-17",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ]
   },

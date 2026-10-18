@@ -8932,7 +8932,6 @@
     "tag": "iG",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/5.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9008,7 +9007,6 @@
     "tag": "LGD",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/15.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9084,7 +9082,6 @@
     "tag": "SR",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/39.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9160,7 +9157,6 @@
     "tag": "Alliance",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/111474.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9236,7 +9232,6 @@
     "tag": "Ascent",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/350190.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9312,7 +9307,6 @@
     "tag": "VG",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/726228.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9388,7 +9382,6 @@
     "tag": "Secret",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/1838315.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9464,7 +9457,6 @@
     "tag": "VP",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/1883502.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9540,7 +9532,6 @@
     "tag": "OG",
     "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/2586976.png",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9616,7 +9607,6 @@
     "tag": "Aster",
     "logoUrl": "https://steamusercontent-a.akamaihd.net/ugc/1629730253163462144/FEF15B2B4528E81103DD693E37FD7B6C9BE6B471/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9692,7 +9682,6 @@
     "tag": "TSpirit",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/1839179120711951766/CD7E0885CB527334205CC7885E9C101B7BC17702/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9768,7 +9757,6 @@
     "tag": "OVS",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2054242960854114119/CB44D64E16DFD662E5862394A07CE83047AE24AC/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9844,7 +9832,6 @@
     "tag": "THUNDER",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2295213908349975977/C88F0F701B1B451F4275464AEC073DF0C4288FBA/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9920,7 +9907,6 @@
     "tag": "BLEED ",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2295213538402514054/0B50AC73180D7322D099C37682AFF28BE4C4875E/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -9996,7 +9982,6 @@
     "tag": "bc",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/2008072595679478968/A080A63C70A5DEA039FBC1AE798EE2570E194606/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -10072,7 +10057,6 @@
     "tag": "EG",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/1983302387907692940/BAA861E234E1BA39D75DF4CB814A5B76D020BED7/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -10148,7 +10132,6 @@
     "tag": "TSM",
     "logoUrl": "https://cdn.steamusercontent.com/ugc/1996813186806561034/BC39F0DC131EDC7D7D8A9DCE4933B4A8B0966004/",
     "formats": [
-      "last_5y",
       "valve_legacy"
     ],
     "players": [
@@ -10814,81 +10797,6 @@
       69,
       88,
       91
-    ]
-  },
-  {
-    "id": "league-13926-1883502",
-    "eventId": "league-13926",
-    "teamId": 1883502,
-    "teamName": "Virtus.pro",
-    "tag": "VP",
-    "logoUrl": "https://steamcdn-a.akamaihd.net/apps/dota2/images/team_logos/1883502.png",
-    "formats": [
-      "last_5y"
-    ],
-    "players": [
-      {
-        "accountId": 9403474,
-        "nickname": "yamich",
-        "role": "support",
-        "ovr": 79,
-        "impact": 81,
-        "economy": 85,
-        "reliability": 78,
-        "games": 8
-      },
-      {
-        "accountId": 56351509,
-        "nickname": "DM",
-        "role": "offlane",
-        "ovr": 76,
-        "impact": 68,
-        "economy": 81,
-        "reliability": 79,
-        "games": 8
-      },
-      {
-        "accountId": 217472313,
-        "nickname": "Xakoda",
-        "role": "support",
-        "ovr": 75,
-        "impact": 73,
-        "economy": 73,
-        "reliability": 73,
-        "games": 8
-      },
-      {
-        "accountId": 331855530,
-        "nickname": "Pure",
-        "role": "safelane",
-        "ovr": 78,
-        "impact": 79,
-        "economy": 79,
-        "reliability": 76,
-        "games": 8
-      },
-      {
-        "accountId": 480412663,
-        "nickname": "gpk~",
-        "role": "mid",
-        "ovr": 75,
-        "impact": 76,
-        "economy": 72,
-        "reliability": 63,
-        "games": 8
-      }
-    ],
-    "signatureHeroes": [
-      4,
-      23,
-      27,
-      38,
-      39,
-      42,
-      63,
-      74,
-      98,
-      121
     ]
   },
   {
