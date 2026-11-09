@@ -1430,9 +1430,9 @@
       "winrate": 0.588
     },
     "last_2y": {
-      "successScore": 44.12,
-      "games": 473,
-      "winrate": 0.6089
+      "successScore": 44.1,
+      "games": 470,
+      "winrate": 0.6085
     },
     "last_5y": {
       "successScore": 45.88,
@@ -2340,9 +2340,9 @@
       "winrate": 0.5978
     },
     "last_2y": {
-      "successScore": 47.26,
-      "games": 417,
-      "winrate": 0.6475
+      "successScore": 47.44,
+      "games": 414,
+      "winrate": 0.6498
     },
     "last_5y": {
       "successScore": 47.11,
