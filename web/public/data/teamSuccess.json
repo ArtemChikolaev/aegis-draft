@@ -1430,9 +1430,9 @@
       "winrate": 0.588
     },
     "last_2y": {
-      "successScore": 44.1,
-      "games": 470,
-      "winrate": 0.6085
+      "successScore": 44.24,
+      "games": 467,
+      "winrate": 0.6103
     },
     "last_5y": {
       "successScore": 45.88,
@@ -1737,9 +1737,9 @@
       "winrate": 0.5541
     },
     "last_2y": {
-      "successScore": 41.98,
-      "games": 495,
-      "winrate": 0.5778
+      "successScore": 41.95,
+      "games": 492,
+      "winrate": 0.5772
     },
     "last_5y": {
       "successScore": 42.98,
@@ -2030,9 +2030,9 @@
       "winrate": 0.5803
     },
     "last_2y": {
-      "successScore": 42.9,
-      "games": 449,
-      "winrate": 0.5857
+      "successScore": 42.78,
+      "games": 447,
+      "winrate": 0.5839
     },
     "last_5y": {
       "successScore": 45.23,
@@ -2340,9 +2340,9 @@
       "winrate": 0.5978
     },
     "last_2y": {
-      "successScore": 47.44,
-      "games": 414,
-      "winrate": 0.6498
+      "successScore": 47.67,
+      "games": 412,
+      "winrate": 0.6529
     },
     "last_5y": {
       "successScore": 47.11,
