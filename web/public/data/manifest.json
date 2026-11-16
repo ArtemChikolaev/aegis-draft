@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "ratingModelVersion": "v1.13.0",
-  "builtAt": "2026-11-14T13:11:54Z",
-  "dataHash": "sha256:d03b16b5df6f44d8f54c694a11da03f6b71a25512cad62eaa36a6e75138b4756",
+  "builtAt": "2026-11-16T15:11:44Z",
+  "dataHash": "sha256:612f110819b78aa28cd9160d19ec45ca4c2f5dc46fff5e9803730068d1536a7e",
   "source": {
     "opendota": "OpenDota API — https://www.opendota.com",
     "liquipedia": "placements/призовые/ростеры — deferred (нет доступа Liquipedia)"
