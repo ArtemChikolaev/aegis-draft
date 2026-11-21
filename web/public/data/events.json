@@ -1002,6 +1002,19 @@
     ]
   },
   {
+    "id": "league-20208",
+    "name": "BLAST SLAM IX",
+    "type": "tier1",
+    "year": 2026,
+    "startDate": "2026-11-20",
+    "endDate": "2026-11-20",
+    "formats": [
+      "last_1y",
+      "last_2y",
+      "last_5y"
+    ]
+  },
+  {
     "id": "league-20279",
     "name": "PGL Wallachia 2026 Season 9",
     "type": "tier1",

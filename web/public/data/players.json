@@ -242,7 +242,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 41
+        "games": 43
       },
       {
         "teamId": 10207983,
@@ -280,7 +280,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 138
+        "games": 141
       },
       {
         "teamId": 3586078,
@@ -1397,7 +1397,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 253
+        "games": 255
       }
     ]
   },
@@ -1673,6 +1673,11 @@
         "teamId": 9872667,
         "teamName": "Pipsqueak+4",
         "games": 14
+      },
+      {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 2
       }
     ]
   },
@@ -1708,7 +1713,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 92
+        "games": 94
       }
     ]
   },
@@ -2017,7 +2022,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 774
+        "games": 776
       },
       {
         "teamId": 8125535,
@@ -2080,7 +2085,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 92
+        "games": 94
       }
     ]
   },
@@ -3303,6 +3308,11 @@
         "teamId": 10182299,
         "teamName": "L1 TEAM",
         "games": 10
+      },
+      {
+        "teamId": 10291652,
+        "teamName": "LEGION",
+        "games": 2
       }
     ]
   },
@@ -4675,6 +4685,11 @@
         "teamId": 10150633,
         "teamName": "Pipsqueak + 4",
         "games": 14
+      },
+      {
+        "teamId": 10291652,
+        "teamName": "LEGION",
+        "games": 2
       }
     ]
   },
@@ -7663,7 +7678,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 150
+        "games": 153
       },
       {
         "teamId": 9017006,
@@ -8545,7 +8560,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 392
+        "games": 394
       },
       {
         "teamId": 8574561,
@@ -9381,6 +9396,11 @@
         "games": 168
       },
       {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 2
+      },
+      {
         "teamId": 10136357,
         "teamName": "Nigma Galaxy ",
         "games": 15
@@ -9445,7 +9465,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 37
+        "games": 39
       },
       {
         "teamId": 9247798,
@@ -9923,8 +9943,8 @@
     "primaryRole": "offlane",
     "rolesPlayed": [
       "offlane",
-      "support",
       "safelane",
+      "support",
       "mid"
     ],
     "teams": [
@@ -9956,7 +9976,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 23
+        "games": 25
       },
       {
         "teamId": 9338413,
@@ -10452,7 +10472,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 42
+        "games": 44
       },
       {
         "teamId": 9766941,
@@ -10485,7 +10505,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1066
+        "games": 1068
       },
       {
         "teamId": 111474,
@@ -10644,7 +10664,8 @@
     "primaryRole": "mid",
     "rolesPlayed": [
       "mid",
-      "offlane"
+      "offlane",
+      "support"
     ],
     "teams": [
       {
@@ -10660,7 +10681,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 148
+        "games": 150
       }
     ]
   },
@@ -11099,7 +11120,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 338
+        "games": 340
       },
       {
         "teamId": 8574561,
@@ -11413,7 +11434,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 148
+        "games": 150
       }
     ]
   },
@@ -11506,7 +11527,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 92
+        "games": 94
       }
     ]
   },
@@ -11780,6 +11801,11 @@
         "games": 15
       },
       {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 2
+      },
+      {
         "teamId": 10182357,
         "teamName": "1win",
         "games": 18
@@ -11799,7 +11825,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 270
+        "games": 272
       },
       {
         "teamId": 8261818,
@@ -11860,6 +11886,11 @@
         "teamId": 9131584,
         "teamName": "BB Team",
         "games": 49
+      },
+      {
+        "teamId": 10331139,
+        "teamName": "DO KONCA",
+        "games": 2
       }
     ]
   },
@@ -12488,7 +12519,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 265
+        "games": 267
       }
     ]
   },
@@ -12561,6 +12592,11 @@
         "teamId": 8724984,
         "teamName": "Virtus.pro",
         "games": 86
+      },
+      {
+        "teamId": 10331139,
+        "teamName": "DO KONCA",
+        "games": 2
       }
     ]
   },
@@ -13011,7 +13047,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 9
+        "games": 11
       },
       {
         "teamId": 10020555,
@@ -13454,7 +13490,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 11
+        "games": 14
       },
       {
         "teamId": 7554697,
@@ -13852,7 +13888,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 36
+        "games": 38
       }
     ]
   },
@@ -14073,7 +14109,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 150
+        "games": 153
       },
       {
         "teamId": 9017006,
@@ -14492,8 +14528,8 @@
     "primaryRole": "support",
     "rolesPlayed": [
       "support",
-      "safelane",
       "offlane",
+      "safelane",
       "mid"
     ],
     "teams": [
@@ -14539,7 +14575,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 148
+        "games": 150
       }
     ]
   },
@@ -14858,7 +14894,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 47
+        "games": 49
       }
     ]
   },
@@ -14993,6 +15029,11 @@
         "teamId": 9131584,
         "teamName": "BB Team",
         "games": 28
+      },
+      {
+        "teamId": 10331139,
+        "teamName": "DO KONCA",
+        "games": 2
       }
     ]
   },
@@ -15406,6 +15447,11 @@
         "teamId": 10207961,
         "teamName": "Rune Eaters",
         "games": 12
+      },
+      {
+        "teamId": 10291652,
+        "teamName": "LEGION",
+        "games": 2
       }
     ]
   },
@@ -15639,7 +15685,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 23
+        "games": 25
       },
       {
         "teamId": 9351740,
@@ -16032,6 +16078,11 @@
         "teamId": 10207957,
         "teamName": "Yellow Submarine",
         "games": 6
+      },
+      {
+        "teamId": 10291652,
+        "teamName": "LEGION",
+        "games": 2
       }
     ]
   },
@@ -16046,7 +16097,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 105
+        "games": 107
       },
       {
         "teamId": 8376696,
@@ -16086,7 +16137,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 8
+        "games": 10
       }
     ]
   },
@@ -17712,7 +17763,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 8
+        "games": 10
       },
       {
         "teamId": 486667,
@@ -18319,7 +18370,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 296
+        "games": 298
       }
     ]
   },
@@ -18457,6 +18508,11 @@
         "teamId": 9131584,
         "teamName": "BB Team",
         "games": 71
+      },
+      {
+        "teamId": 10331139,
+        "teamName": "DO KONCA",
+        "games": 2
       }
     ]
   },
@@ -18681,7 +18737,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 924
+        "games": 926
       },
       {
         "teamId": 7654561,
@@ -19257,7 +19313,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 42
+        "games": 44
       },
       {
         "teamId": 10081680,
@@ -19785,7 +19841,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 138
+        "games": 141
       },
       {
         "teamId": 6187657,
@@ -20666,7 +20722,7 @@
       {
         "teamId": 9691969,
         "teamName": "Team Nemesis",
-        "games": 26
+        "games": 28
       },
       {
         "teamId": 10081680,
@@ -20919,7 +20975,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 11
+        "games": 14
       },
       {
         "teamId": 9255039,
@@ -22073,6 +22129,11 @@
         "teamId": 9498970,
         "teamName": "AVULUS",
         "games": 168
+      },
+      {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 2
       }
     ]
   },
@@ -22883,7 +22944,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 92
+        "games": 94
       }
     ]
   },
@@ -23117,7 +23178,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1056
+        "games": 1058
       },
       {
         "teamId": 111474,
@@ -23555,7 +23616,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 169
+        "games": 172
       },
       {
         "teamId": 9017006,
@@ -23670,7 +23731,7 @@
       {
         "teamId": 7119388,
         "teamName": "Team Spirit",
-        "games": 506
+        "games": 508
       }
     ]
   },
@@ -24071,6 +24132,11 @@
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
         "games": 136
+      },
+      {
+        "teamId": 10331139,
+        "teamName": "DO KONCA",
+        "games": 2
       }
     ]
   },
@@ -26514,6 +26580,11 @@
         "teamId": 9895247,
         "teamName": "Rune Eaters",
         "games": 17
+      },
+      {
+        "teamId": 10291652,
+        "teamName": "LEGION",
+        "games": 2
       }
     ]
   },
@@ -27817,6 +27888,11 @@
     ],
     "teams": [
       {
+        "teamId": 2163,
+        "teamName": "Team Liquid",
+        "games": 2
+      },
+      {
         "teamId": 8261234,
         "teamName": "CREEPWAVE",
         "games": 0
@@ -27931,7 +28007,8 @@
     "primaryRole": "safelane",
     "rolesPlayed": [
       "safelane",
-      "offlane"
+      "offlane",
+      "support"
     ],
     "teams": [
       {
@@ -27947,7 +28024,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 565
+        "games": 567
       },
       {
         "teamId": 9351740,
@@ -28209,7 +28286,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 148
+        "games": 150
       }
     ]
   },
@@ -29047,7 +29124,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 64
+        "games": 67
       },
       {
         "teamId": 2586976,
@@ -29821,7 +29898,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 265
+        "games": 267
       }
     ]
   },
@@ -29975,6 +30052,11 @@
         "games": 190
       },
       {
+        "teamId": 10020555,
+        "teamName": "PlayTime",
+        "games": 2
+      },
+      {
         "teamId": 10207962,
         "teamName": "Midas Club",
         "games": 5
@@ -30046,7 +30128,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 113
+        "games": 116
       },
       {
         "teamId": 5011202,
@@ -30538,7 +30620,7 @@
       {
         "teamId": 36,
         "teamName": "Natus Vincere",
-        "games": 150
+        "games": 153
       },
       {
         "teamId": 9017006,
