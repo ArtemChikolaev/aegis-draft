@@ -1,115 +1,81 @@
 # Aegis Draft
 
-Драфт-рогалик по Dota 2 — вдохновлён [322-0.app](https://322-0.app/play), с расширенной механикой. Собираешь пятёрку по ролям, раздаёшь героев, максимизируешь `Team OVR = Base + Hero Synergy + Chemistry` и ведёшь команду через турнир. Плюс «Аркада» — 2D survivors-роглайк на тех же данных и моделях Dota.
+Draft a five-player Dota 2 team from real tournament rosters and see how far it goes against the pros. Do you take the highest-rated midlaner in the pack, or save the slot for someone who played with your carry? Their history together matters. If you'd rather play a hero yourself, Arcade turns the same jungle into a real-time survival game.
 
-🎮 **Живая версия:** https://artemchikolaev.github.io/aegis-draft/
+**[Play Aegis Draft in your browser](https://artemchikolaev.github.io/aegis-draft/)** · English and Russian · Desktop and mobile
 
-## Статус
-В проде играется четыре режима: **Классика** (быстрый забег и рогалик-сезон), **Киберспорт-менеджер**, **Реальный турнир** и **Аркада**. Поверх ядра: сейв и резюм незавершённого забега, шеринг ссылкой и старт по сид-коду, история забегов и Штаб (коллекция карт, трофеи, Playbook), режим «Хард» (профили закрыты, рероллов нет — ни пака, ни соперников), дейлик (общий сид дня без сервера) и справочники — популярность героев и ростер-веб. Игра **работает офлайн**: service worker, автопрекэш датасета и зеркало арта в репозитории ([ADR 0003](docs/adr/0003-offline-first-pwa.md)), ставится на устройство как PWA.
+![A Classic draft in progress. Ame and GH occupy two roles on the left. An Aurora Gaming pack from ESL One Birmingham 2026 offers players and heroes on the right.](docs/images/classic-draft.jpg)
 
-Данные — **реальный OpenDota-слайс** (события/паки/игроки/рейтинги), обновляется по расписанию. Фронт — на собственной design-system (токены + UIkit + features), RU/EN и system/light/dark темы.
+## Your first draft
 
-**Чего ещё нет, честно.** Онлайн упирается в публичный `server/`: его деплой встал на верификации карты у Fly.io (T9.0), а в прод-сборке не задан `VITE_API_BASE` — поэтому на живом сайте **Дуэль** и **Арена** недоступны (локально Дуэль играется против поднятого сервера, Арена ещё не собрана). Telegram-бот и Mini App ([PRD §5.11](docs/PRD.md)) ждут того же деплоя. План задач — [docs/BACKLOG.md](docs/BACKLOG.md).
+1. Choose **Classic → Quick Draft → Team Packs**. Each pack comes from a real team's lineup at a particular event. Pick a player for an open role or take a hero. Across ten picks, fill carry, mid, offlane and two support slots, and collect five heroes.
+2. Watch **Team OVR** as you draft. **Base** reflects the players' form at their events. **Hero Synergy** rewards matching a player with a hero they have played in pro games. **Chemistry** rewards pairs who played together. A familiar support duo can be worth more than an upgrade to either player alone.
+3. Enter the **18-team tournament**. Follow your team through groups and see how deep it goes in the playoffs. Share the seed link if you want a friend to try the same packs and beat your finish.
 
-## Режимы игры (PRD §5.9)
-| Режим | Состояние | Что это |
-|---|---|---|
-| **Классика** | ✅ | All-time драфт: **Team Packs** (из ростеров команд) или **Mixed Draft** (5 звёзд из разных команд), затем турнир `groups → playoffs → final`. Внутри — выбор варианта: **быстрый забег** или **рогалик-сезон** (этапы с растущим порогом, усиление между ними, ante-петля и ставки-мутаторы). Отсюда же **дейлик** — общий сид дня. |
-| **Киберспорт-менеджер** | ✅ | Организация в регионе: бюджет, контракты, ростер, квалификации; оффсезонный кап зарплат и тренировочный сбор. |
-| **Реальный турнир** | ✅ | Поле соперников известно заранее, их игроки заблокированы (roster lock) — собираешь challenger из свободных игроков и легенд вне турнира. |
-| **Аркада** | ✅ | 2D survivors-роглайк — см. ниже. Офлайн, свой стор и своя версия конфига. |
-| **Дуэль** | 🟨 | Онлайн 1×1 по коду комнаты: капитанский драфт змейкой из общего пула, затем баны и пики на каждую игру серии Bo1/Bo3/Bo5. Готово и играется на локально поднятом `server/` (комнаты + ws-релей); на живом сайте недоступно, пока нет публичного API. |
-| **Арена** | ⬜ | Комната до 18 живых соперников: общий пул, одновременные раунды драфта с приоритетом змейки, один турнир. Карточка есть, режим ждёт ws-сервера. |
+## Choose a mode
 
-Формула: **Base** (event-OVR пятёрки) + **Hero Synergy** (оптимальное назначение героев) + **Chemistry** (сыгранность). Роли: `safelane/mid/offlane/support×2` (без деления 4/5).
+| Mode | What you play for |
+| --- | --- |
+| **Classic** | **Quick Draft** takes one lineup through one tournament. Choose Team Packs for real rosters or Mixed Draft for players from different teams. In **Roguelite Run**, draft once, upgrade the team at camp, and meet a tougher placement target at each stage. Missing the target ends the run. |
+| **Esports Manager** | Run a regional organization across a season. Scout tryouts, fit five salaries into a budget and earn entry to bigger events through qualifiers. In the off-season, decide whose contract to renew. |
+| **Real Tournament** | Pick a real event and challenge its original field. The opponents keep their players, so you build your challenger from pros and legends outside those rosters. |
+| **Arcade** | Take direct control of one hero. Dodge creeps, level up abilities and build toward a fight with the Ancient. |
+| **Duel** | Invite a second captain with a room code. Take turns drafting from a shared pool, then ban and pick heroes for each game in a best-of-one, best-of-three or best-of-five series. Requires a connected game server. |
+| **Arena** | Up to 18 teams draft from the same pool. Everyone picks simultaneously and priority reverses each round to break ties. Requires a connected game server. The public menu currently labels Arena **Soon**. |
 
-## Аркада (PRD §5.15)
-Второй жанр на той же сцене: герой Dota в реальном времени против волн нейтралов и крипов. Детерминированный сим 60 Гц без DOM (`game/arcade/`), рендер — Canvas 2D (`features/arcade/`), вход WASD/мышь/геймпад/виртуальный джойстик.
+For the same challenge as everyone else, play the **Daily** from the Classic menu. Its seed changes at midnight UTC. For a tougher solo draft, **Hard** hides player profiles and removes pack and opponent rerolls. You can resume a saved run and revisit your collection, trophies and Playbook in **HQ**.
 
-- **126 героев** со своими китами, лестница Dota (Q/W/E, R на 6/12/18, таланты на 10/15/20/25).
-- **Четыре школы** апгрейдов (Radiance, Skadi, Maelstrom, Зверинец), до трёх за забег; предметы, нейтралы, лавка и экран сборки.
-- **Акты**: Рошан на 7:00 и 14:00 с Aegis, Tormentor на 10:30, Древний на 20:00; ночной Dire и река с рунами.
-- **40 ступеней сложности** — ранги Dota × 5 звёзд, каждый ранг добавляет именованное правило, а не только числа.
-- **Косметика**: арканы, персоны и сеты из Dota, стили и призматические самоцветы, наземные эффекты, свечения и следы. Косметика не меняет ни одного числа и не входит в сид.
-- **Спрайты — настоящие модели Dota 2**, отрендеренные в 2D-листы кадров: клиент → Source 2 Viewer CLI → Blender ([docs/arcade-dota-sprites.md](docs/arcade-dota-sprites.md)). Из клиента берётся только визуал, ничего не распространяется отдельно от игры.
+## Inside Arcade
 
-Балансировка — headless-симулятором: `npm run sim:arcade -- --runs 120 --hero <id>`.
+![Juggernaut fighting jungle creeps with Ring of Fire active. The HUD shows his health, level, abilities and minimap.](docs/images/arcade.jpg)
 
-## Как запустить
-```bash
-# Фронт (Node 24+): dev-сервер на http://localhost:5173
-cd web && npm install && npm run dev
-# или из корня репо:
-#   make dev        — только комп (localhost:5173)
-#   make dev-phone  — комп + телефон в одной Wi-Fi (тот же порт; с телефона по LAN IP)
-#   make help       — список целей
+Here you move, attack and cast spells yourself. In this run, Juggernaut has just reached level two and taken **Ring of Fire**, which fires bolts in every direction. Another run might start with a ranged hero and spend that first upgrade on a hero ability. Survive the waves, contest Roshan for the Aegis and face the Ancient at the twenty-minute mark. Play with a keyboard, mouse, gamepad or on-screen stick.
 
-# Прод-сборка локально (нужна для всего, что живёт только в ней: service worker и офлайн):
-npm run preview          # или preview:pages — под сабпутём /aegis-draft/, как на Pages
-npm run test:e2e:offline # офлайн-спека Playwright на свежей прод-сборке
+## Run locally
 
-# Тесты и валидация на реальном датасете из git (golden на нём пропускаются):
-npm run validate:data && npm run test && npm run test:e2e && npm run typecheck
-# Unit-тесты на моке, как в CI, вместе с golden (мок пишется в web/.mock-data, public/data не трогается):
-npm run test:mock
+The solo game uses the dataset checked into the repository. With **Node.js 24+**, run the following from the project root.
 
-# Балансовые прогоны без UI:
-npm run sim            # рогалик-забег
-npm run sim:manager    # менеджер
-npm run sim:arcade     # аркада
-
-# Go-пайплайн (Go 1.26+): реальный датасет из OpenDota
-cd pipeline
-go run ./cmd/build --fetch-opendota --emit-domain --as-of 2026-07-11 \
-  --match-detail-limit 100 --out ../web/public/data
-
-# Go-сервер (скелет): http://localhost:8080/healthz
-cd server && PORT=8080 go run ./cmd/api
+```sh
+cd web
+npm ci
+npm run dev
 ```
 
-## Архитектура
-| Слой | Стек | Роль |
-|---|---|---|
-| **`pipeline/`** | Go | ETL: OpenDota → игровые JSON (`fetch→normalize→aggregate→rate→emit→validate`), детерминизм, версионирование. |
-| **`web/`** | TS + React + Vite + Zustand | Фронт + игровая логика счёта на клиенте. Design-system: `design/` (токены+тема) · `ui/` (примитивы) · `features/` (экраны) · `i18n/` · `game/` (логика) · `app/` (шелл). Аркада изолирована: `game/arcade/` (сим) + `features/arcade/` (рендер) + `state/arcadeStore.ts`. |
-| **`server/`** | Go + chi + Postgres | API пользовательского/общего состояния (аккаунты/сейвы/лидерборд/дейлик). Игровые данные — **не** тут (они статика). Локально за nginx: [`infra/`](infra/). |
-| **`schema/`** | JSON Schema | Единый контракт данных между Go и TS — источник истины. |
+Open [localhost:5173](http://localhost:5173). To play on a phone on the same Wi-Fi network, run `make dev-phone` from the project root and open the network address printed by Vite.
 
-**Static-first гибрид** (ADR [0001](docs/adr/0001-tech-stack.md)/[0002](docs/adr/0002-backend-now.md)): игровые данные — статикой на CDN (масштабируется бесконечно), сервер держит только изменяемое состояние. **Без Kubernetes.**
+The production build is an installable PWA. Once the service worker has cached the game and its data, solo play works offline. Use `npm run preview:pages` in `web/` to try the production build under the same path as GitHub Pages.
 
-Ассеты в репозитории: зеркало портретов, иконок и знаков (`web/public/art/`, для офлайна), спрайт-листы Аркады (`web/public/art/sprites/`, ~545 МБ) и звуки (`web/public/art/sfx/`, ~90 МБ) — всего около 640 МБ. Они версионируются, потому что офлайн-готовность не должна зависеть от того, какие экраны игрок успел открыть.
+### Development checks
 
-## Данные, деплой, CI/CD
-- [.github/workflows/ci.yml](.github/workflows/ci.yml) — **проверки** (push/PR): Go pipeline · Go server · Web (`gen:mock`→`validate:data`→`typecheck`→`test`→`build`→`test:e2e`→офлайн-спека на собранном dist; mock только в CI web-job) · Web на реальном датасете (anteRun e2e + vitest; в деплой не входит) · antipattern-scan. **Деплой на GitHub Pages** (push в `main`, если проверки зелёные) — публикует **реальный** `web/public/data` из data-refresh.
-- [.github/workflows/data-refresh.yml](.github/workflows/data-refresh.yml) — крон обновляет `web/public/data/*.json` (OpenDota-слайс) и коммитит их в репозиторий.
-- [.github/workflows/deploy-server.yml](.github/workflows/deploy-server.yml) — деплой `server/` на Fly.io. Пока в репозитории нет секрета `FLY_API_TOKEN`, джоб **чисто пропускается**, а не падает.
+Run these commands in `web/`.
 
-Golden локально обновляет `npm run test:golden:update` (сам генерирует мок в `web/.mock-data`). Разовая настройка GitHub: **Settings → Pages → Source: GitHub Actions**; **Settings → Actions → General → Workflow permissions → Read and write**.
+| Command | What it checks |
+| --- | --- |
+| `npm run validate:data` | Validate the checked-in tournament dataset. |
+| `npm run typecheck` | Type-check the frontend and service worker. |
+| `npm test` / `npm run test:mock` | Run unit tests against real data or the deterministic fixtures used for golden tests. |
+| `npm run test:e2e` / `npm run test:e2e:offline` | Exercise browser flows or check offline play against a fresh production build. |
+| `npm run sim` / `npm run sim:manager` / `npm run sim:arcade` | Simulate runs without the UI to inspect game balance. |
 
-### Prod-like lab (nginx + Docker Compose)
+### Code and data
 
-Локальный стенд с единым входом (`/` SPA · `/data/*` JSON · `/api/*` Go API) — **не заменяет** GitHub Pages. См. [`infra/README.md`](infra/README.md):
+| Directory | What's inside |
+| --- | --- |
+| [web/](web/) | React, TypeScript, Vite and Zustand. The client runs the draft, scores lineups and renders Arcade with Canvas 2D. |
+| [pipeline/](pipeline/) | A Go pipeline turns OpenDota matches into versioned packs, rosters and ratings. A [scheduled workflow](.github/workflows/data-refresh.yml) refreshes the checked-in data. |
+| [schema/](schema/README.md) | The JSON contract shared by the pipeline and the web client. |
+| [server/](server/) | A Go API for accounts, saves and multiplayer rooms. The [local Docker Compose setup](infra/README.md) serves the game, static data and API behind one address. |
 
-```bash
-[ -f web/public/data/manifest.json ] || (cd web && npm run gen:mock -- --out public/data)
-docker compose -f infra/docker-compose.yml up --build
-# → http://localhost:8080
-```
+[CI and Pages deployment](.github/workflows/ci.yml) · [Server deployment](.github/workflows/deploy-server.yml) · [Offline architecture](docs/adr/0003-offline-first-pwa.md)
 
-## Система скиллов и правил (для AI-агентов)
-Единый контракт `CLAUDE.md` (= `AGENTS.md`), процедуры-скиллы в `.claude/skills/` (авто-активация по `description`), адаптер Cursor (`.cursor/rules/`), ссылки для Codex (`.agents/skills/`) и адаптер совместимости (`.codex/skills/`). Маршрутизация «задача → скилл» — [docs/ai/INDEX.md](docs/ai/INDEX.md), принципы — [docs/ai/PRINCIPLES.md](docs/ai/PRINCIPLES.md).
-Полный каталог и сочетания скиллов, включая Аркаду, ассеты и сохранения, ведутся в INDEX. Проверка YAML, локальных ссылок и адаптеров запускается также в CI.
+## Further reading
 
-Порт **5173** занимает разработчик; агенты поднимают свой сервер на **5273** (`.claude/launch.json`).
+- [Game design](docs/PRD.md), [mode walkthroughs](docs/modes-scenarios.md) and [roguelite endgame](docs/roguelite-lategame-spec.md)
+- [Arcade design](docs/arcade-survivors-brief.md) and [how Dota models become 2D sprites](docs/arcade-dota-sprites.md)
+- [Design language](docs/design-language.md), [roadmap](docs/BACKLOG.md) and [contributor workflows](docs/ai/INDEX.md)
 
-## Документы
-- 📄 **[docs/PRD.md](docs/PRD.md)** — концепция, механики, режимы, роадмап · **[docs/modes-scenarios.md](docs/modes-scenarios.md)** — сценарии режимов.
-- 🏛 **[ADR 0001](docs/adr/0001-tech-stack.md)** (стек, static-first) · **[ADR 0002](docs/adr/0002-backend-now.md)** (backend сейчас) · **[ADR 0003](docs/adr/0003-offline-first-pwa.md)** (офлайн: PWA, зеркало арта).
-- 🕹 **[docs/arcade-survivors-brief.md](docs/arcade-survivors-brief.md)** — бриф Аркады · **[docs/arcade-dota-sprites.md](docs/arcade-dota-sprites.md)** — конвейер «модели Dota → спрайт-листы».
-- 🎲 **[docs/roguelite-lategame-spec.md](docs/roguelite-lategame-spec.md)** — лейтгейм рогалик-сезона; исходный бриф сезона — в [docs/archive/](docs/archive/roguelite-balatro-brief.md), его решения перенесены в PRD и BACKLOG.
-- 🎨 **[docs/design-language.md](docs/design-language.md)** — визуальная айдентика · 📐 **[schema/README.md](schema/README.md)** — контракт данных.
-- 🔍 **[docs/reference-322-0.md](docs/reference-322-0.md)** и **[docs/audits/](docs/audits/)** — разбор оригинала и аудиты парити.
-- 🤖 **[CLAUDE.md](CLAUDE.md)** — контракт для AI-агентов.
+## Credits and license
 
-## Лицензия
-[MIT](LICENSE) © 2026 Artem Chikolaev. Некоммерческий фан-проект по Dota 2; Dota 2 и связанные материалы (модели, звуки, иконки) — собственность Valve. Данные: OpenDota (атрибуция), Liquipedia — только при авторизованном доступе (CC-BY-SA). Остальные спрайты и тайлы — Liberated Pixel Cup (CC-BY-SA 3.0 / GPL 3.0), авторы — в `web/public/art/sprites/lpc/ATTRIBUTION.md`.
+Aegis Draft is an independent, non-commercial fan game by Artem Chikolaev, inspired by [322-0](https://322-0.app/play). The project code is available under the [MIT License](LICENSE).
+
+Dota 2 and its models, icons and sounds belong to Valve. Match data comes from [OpenDota](https://www.opendota.com/). The project documents authorized use of [Liquipedia data](docs/LIQUIPEDIA_ACCESS.md). Additional sprites and tiles come from the Liberated Pixel Cup under CC BY-SA 3.0 / GPL 3.0. See the [artist credits and licenses](web/public/art/sprites/lpc/ATTRIBUTION.md).
