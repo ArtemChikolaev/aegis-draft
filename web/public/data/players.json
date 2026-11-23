@@ -101,7 +101,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 35
+        "games": 37
       }
     ]
   },
@@ -607,7 +607,7 @@
       {
         "teamId": 10292107,
         "teamName": "Astra Invicta",
-        "games": 3
+        "games": 6
       }
     ]
   },
@@ -1216,7 +1216,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 39
+        "games": 42
       },
       {
         "teamId": 142,
@@ -1692,7 +1692,8 @@
     "primaryRole": "safelane",
     "rolesPlayed": [
       "safelane",
-      "offlane"
+      "offlane",
+      "mid"
     ],
     "teams": [
       {
@@ -1718,7 +1719,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 94
+        "games": 97
       }
     ]
   },
@@ -1827,7 +1828,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 39
+        "games": 42
       },
       {
         "teamId": 39,
@@ -2090,7 +2091,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 94
+        "games": 97
       }
     ]
   },
@@ -3317,7 +3318,7 @@
       {
         "teamId": 10291652,
         "teamName": "LEGION",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -3558,7 +3559,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 39
+        "games": 42
       },
       {
         "teamId": 39,
@@ -4694,7 +4695,7 @@
       {
         "teamId": 10291652,
         "teamName": "LEGION",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -7056,7 +7057,7 @@
       {
         "teamId": 10292107,
         "teamName": "Astra Invicta",
-        "games": 3
+        "games": 6
       }
     ]
   },
@@ -7217,7 +7218,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 239
+        "games": 241
       },
       {
         "teamId": 9766941,
@@ -8533,7 +8534,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 48
+        "games": 50
       }
     ]
   },
@@ -8874,7 +8875,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 39
+        "games": 42
       },
       {
         "teamId": 39,
@@ -10319,7 +10320,7 @@
       {
         "teamId": 10292107,
         "teamName": "Astra Invicta",
-        "games": 3
+        "games": 6
       }
     ]
   },
@@ -10525,7 +10526,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1068
+        "games": 1071
       },
       {
         "teamId": 111474,
@@ -11547,7 +11548,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 94
+        "games": 97
       }
     ]
   },
@@ -11845,7 +11846,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 272
+        "games": 275
       },
       {
         "teamId": 8261818,
@@ -11910,7 +11911,7 @@
       {
         "teamId": 10331139,
         "teamName": "DO KONCA",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -12616,7 +12617,7 @@
       {
         "teamId": 10331139,
         "teamName": "DO KONCA",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -14914,7 +14915,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 49
+        "games": 52
       }
     ]
   },
@@ -15053,7 +15054,7 @@
       {
         "teamId": 10331139,
         "teamName": "DO KONCA",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -15471,7 +15472,7 @@
       {
         "teamId": 10291652,
         "teamName": "LEGION",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -15867,7 +15868,7 @@
       {
         "teamId": 10292107,
         "teamName": "Astra Invicta",
-        "games": 3
+        "games": 6
       }
     ]
   },
@@ -16107,7 +16108,7 @@
       {
         "teamId": 10291652,
         "teamName": "LEGION",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -17264,7 +17265,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 433
+        "games": 435
       }
     ]
   },
@@ -17788,7 +17789,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 10
+        "games": 13
       },
       {
         "teamId": 486667,
@@ -18125,7 +18126,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 197
+        "games": 199
       },
       {
         "teamId": 9766941,
@@ -18537,7 +18538,7 @@
       {
         "teamId": 10331139,
         "teamName": "DO KONCA",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -18698,7 +18699,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 239
+        "games": 241
       }
     ]
   },
@@ -19075,7 +19076,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 30
+        "games": 32
       }
     ]
   },
@@ -19500,7 +19501,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 48
+        "games": 50
       }
     ]
   },
@@ -19989,7 +19990,7 @@
       {
         "teamId": 15,
         "teamName": "LGD Gaming",
-        "games": 39
+        "games": 42
       },
       {
         "teamId": 67,
@@ -21449,7 +21450,7 @@
       {
         "teamId": 10292107,
         "teamName": "Astra Invicta",
-        "games": 3
+        "games": 6
       }
     ]
   },
@@ -22974,7 +22975,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 94
+        "games": 97
       }
     ]
   },
@@ -23208,7 +23209,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1058
+        "games": 1061
       },
       {
         "teamId": 111474,
@@ -24166,7 +24167,7 @@
       {
         "teamId": 10331139,
         "teamName": "DO KONCA",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -24368,7 +24369,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 48
+        "games": 50
       }
     ]
   },
@@ -26614,7 +26615,7 @@
       {
         "teamId": 10291652,
         "teamName": "LEGION",
-        "games": 2
+        "games": 5
       }
     ]
   },
@@ -27920,7 +27921,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 2
+        "games": 5
       },
       {
         "teamId": 8261234,
@@ -29846,7 +29847,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 48
+        "games": 50
       }
     ]
   },
