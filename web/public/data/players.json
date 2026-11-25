@@ -101,7 +101,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 39
+        "games": 42
       }
     ]
   },
@@ -280,7 +280,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 146
+        "games": 149
       },
       {
         "teamId": 3586078,
@@ -1402,7 +1402,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 257
+        "games": 260
       }
     ]
   },
@@ -1719,7 +1719,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 97
+        "games": 99
       }
     ]
   },
@@ -2091,7 +2091,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 97
+        "games": 99
       }
     ]
   },
@@ -7218,7 +7218,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 243
+        "games": 246
       },
       {
         "teamId": 9766941,
@@ -8534,7 +8534,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 50
+        "games": 53
       }
     ]
   },
@@ -8576,7 +8576,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 398
+        "games": 401
       },
       {
         "teamId": 8574561,
@@ -9959,8 +9959,8 @@
     "primaryRole": "offlane",
     "rolesPlayed": [
       "offlane",
-      "safelane",
       "support",
+      "safelane",
       "mid"
     ],
     "teams": [
@@ -9992,7 +9992,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 29
+        "games": 32
       },
       {
         "teamId": 9338413,
@@ -10526,7 +10526,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1073
+        "games": 1076
       },
       {
         "teamId": 111474,
@@ -10702,7 +10702,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 152
+        "games": 154
       }
     ]
   },
@@ -11141,7 +11141,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 344
+        "games": 347
       },
       {
         "teamId": 8574561,
@@ -11455,7 +11455,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 152
+        "games": 154
       }
     ]
   },
@@ -11548,7 +11548,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 97
+        "games": 99
       }
     ]
   },
@@ -11846,7 +11846,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 277
+        "games": 280
       },
       {
         "teamId": 8261818,
@@ -12540,7 +12540,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 269
+        "games": 272
       }
     ]
   },
@@ -13068,7 +13068,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 13
+        "games": 15
       },
       {
         "teamId": 10020555,
@@ -13511,7 +13511,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 19
+        "games": 22
       },
       {
         "teamId": 7554697,
@@ -13909,7 +13909,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 40
+        "games": 43
       }
     ]
   },
@@ -14596,7 +14596,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 152
+        "games": 154
       }
     ]
   },
@@ -14915,7 +14915,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 52
+        "games": 54
       }
     ]
   },
@@ -15706,7 +15706,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 29
+        "games": 32
       },
       {
         "teamId": 9351740,
@@ -17265,7 +17265,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 437
+        "games": 440
       }
     ]
   },
@@ -17789,7 +17789,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 15
+        "games": 18
       },
       {
         "teamId": 486667,
@@ -18126,7 +18126,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 201
+        "games": 204
       },
       {
         "teamId": 9766941,
@@ -18396,7 +18396,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 300
+        "games": 303
       }
     ]
   },
@@ -18699,7 +18699,7 @@
       {
         "teamId": 9467224,
         "teamName": "Aurora Gaming",
-        "games": 243
+        "games": 246
       }
     ]
   },
@@ -19076,7 +19076,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 32
+        "games": 35
       }
     ]
   },
@@ -19501,7 +19501,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 50
+        "games": 53
       }
     ]
   },
@@ -19867,7 +19867,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 146
+        "games": 149
       },
       {
         "teamId": 6187657,
@@ -21001,7 +21001,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 19
+        "games": 22
       },
       {
         "teamId": 9255039,
@@ -22975,7 +22975,7 @@
       {
         "teamId": 9824702,
         "teamName": "PARIVISION",
-        "games": 97
+        "games": 99
       }
     ]
   },
@@ -23209,7 +23209,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 1063
+        "games": 1066
       },
       {
         "teamId": 111474,
@@ -24369,7 +24369,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 50
+        "games": 53
       }
     ]
   },
@@ -27921,7 +27921,7 @@
       {
         "teamId": 2163,
         "teamName": "Team Liquid",
-        "games": 7
+        "games": 10
       },
       {
         "teamId": 8261234,
@@ -28055,7 +28055,7 @@
       {
         "teamId": 8261500,
         "teamName": "Xtreme Gaming",
-        "games": 571
+        "games": 574
       },
       {
         "teamId": 9351740,
@@ -28317,7 +28317,7 @@
       {
         "teamId": 9964962,
         "teamName": "GamerLegion",
-        "games": 152
+        "games": 154
       }
     ]
   },
@@ -29847,7 +29847,7 @@
       {
         "teamId": 10182357,
         "teamName": "1win",
-        "games": 50
+        "games": 53
       }
     ]
   },
@@ -29929,7 +29929,7 @@
       {
         "teamId": 9823272,
         "teamName": "Team Yandex",
-        "games": 269
+        "games": 272
       }
     ]
   },
@@ -30159,7 +30159,7 @@
       {
         "teamId": 2586976,
         "teamName": "OG",
-        "games": 121
+        "games": 124
       },
       {
         "teamId": 5011202,

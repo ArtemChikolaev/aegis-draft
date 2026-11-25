@@ -78577,8 +78577,8 @@
         "role": "support",
         "ovr": 68,
         "impact": 72,
-        "economy": 78,
-        "reliability": 71,
+        "economy": 79,
+        "reliability": 72,
         "games": 7
       },
       {
@@ -78587,7 +78587,7 @@
         "role": "support",
         "ovr": 68,
         "impact": 74,
-        "economy": 72,
+        "economy": 74,
         "reliability": 67,
         "games": 7
       },
@@ -78596,9 +78596,9 @@
         "nickname": "SumaiL-",
         "role": "mid",
         "ovr": 68,
-        "impact": 74,
-        "economy": 69,
-        "reliability": 67,
+        "impact": 76,
+        "economy": 71,
+        "reliability": 69,
         "games": 7
       },
       {
@@ -78606,19 +78606,19 @@
         "nickname": "Davai",
         "role": "offlane",
         "ovr": 66,
-        "impact": 72,
-        "economy": 66,
-        "reliability": 67,
+        "impact": 73,
+        "economy": 67,
+        "reliability": 66,
         "games": 7
       },
       {
         "accountId": 363758022,
         "nickname": "Wits",
         "role": "safelane",
-        "ovr": 67,
+        "ovr": 68,
         "impact": 82,
-        "economy": 64,
-        "reliability": 69,
+        "economy": 65,
+        "reliability": 68,
         "games": 7
       }
     ],
@@ -78662,10 +78662,10 @@
         "accountId": 185590374,
         "nickname": "Niku",
         "role": "mid",
-        "ovr": 70,
-        "impact": 72,
-        "economy": 80,
-        "reliability": 78,
+        "ovr": 71,
+        "impact": 74,
+        "economy": 82,
+        "reliability": 79,
         "games": 7
       },
       {
@@ -78673,7 +78673,7 @@
         "nickname": "pma",
         "role": "offlane",
         "ovr": 71,
-        "impact": 80,
+        "impact": 79,
         "economy": 84,
         "reliability": 71,
         "games": 7
@@ -78684,7 +78684,7 @@
         "role": "support",
         "ovr": 68,
         "impact": 71,
-        "economy": 71,
+        "economy": 72,
         "reliability": 74,
         "games": 7
       },
@@ -78693,7 +78693,7 @@
         "nickname": "gotthejuice",
         "role": "safelane",
         "ovr": 71,
-        "impact": 78,
+        "impact": 77,
         "economy": 81,
         "reliability": 71,
         "games": 7
@@ -78729,64 +78729,64 @@
         "accountId": 16497807,
         "nickname": "tOfu",
         "role": "support",
-        "ovr": 77,
-        "impact": 72,
-        "economy": 78,
-        "reliability": 76,
-        "games": 7
+        "ovr": 81,
+        "impact": 71,
+        "economy": 79,
+        "reliability": 81,
+        "games": 10
       },
       {
         "accountId": 77490514,
         "nickname": "Boxi",
         "role": "support",
-        "ovr": 79,
-        "impact": 74,
-        "economy": 83,
-        "reliability": 83,
-        "games": 7
+        "ovr": 83,
+        "impact": 72,
+        "economy": 85,
+        "reliability": 87,
+        "games": 10
       },
       {
         "accountId": 152962063,
         "nickname": "m1CKe",
         "role": "safelane",
-        "ovr": 80,
-        "impact": 82,
-        "economy": 79,
-        "reliability": 80,
-        "games": 7
+        "ovr": 83,
+        "impact": 83,
+        "economy": 80,
+        "reliability": 84,
+        "games": 10
       },
       {
         "accountId": 292921272,
         "nickname": "Wisper",
         "role": "offlane",
-        "ovr": 79,
-        "impact": 77,
-        "economy": 83,
-        "reliability": 79,
-        "games": 7
+        "ovr": 84,
+        "impact": 79,
+        "economy": 88,
+        "reliability": 85,
+        "games": 10
       },
       {
         "accountId": 898455820,
         "nickname": "Malr1ne",
         "role": "mid",
-        "ovr": 80,
-        "impact": 83,
-        "economy": 80,
-        "reliability": 82,
-        "games": 7
+        "ovr": 84,
+        "impact": 82,
+        "economy": 83,
+        "reliability": 87,
+        "games": 10
       }
     ],
     "signatureHeroes": [
       7,
+      30,
+      32,
       37,
       63,
+      64,
       74,
-      100,
-      102,
-      107,
-      114,
       123,
-      137
+      137,
+      145
     ]
   },
   {
@@ -78806,64 +78806,64 @@
         "accountId": 94054712,
         "nickname": "Topson",
         "role": "mid",
-        "ovr": 73,
-        "impact": 67,
-        "economy": 70,
-        "reliability": 73,
-        "games": 8
+        "ovr": 71,
+        "impact": 66,
+        "economy": 66,
+        "reliability": 69,
+        "games": 11
       },
       {
         "accountId": 100594231,
         "nickname": "skem",
         "role": "support",
-        "ovr": 79,
-        "impact": 80,
-        "economy": 84,
-        "reliability": 82,
-        "games": 8
+        "ovr": 78,
+        "impact": 81,
+        "economy": 85,
+        "reliability": 80,
+        "games": 11
       },
       {
         "accountId": 181267255,
         "nickname": "OneJey ",
         "role": "support",
-        "ovr": 77,
-        "impact": 78,
-        "economy": 87,
-        "reliability": 70,
-        "games": 8
+        "ovr": 74,
+        "impact": 74,
+        "economy": 85,
+        "reliability": 68,
+        "games": 11
       },
       {
         "accountId": 355168766,
         "nickname": "Natsumi",
         "role": "safelane",
-        "ovr": 75,
+        "ovr": 74,
         "impact": 74,
-        "economy": 71,
-        "reliability": 77,
-        "games": 8
+        "economy": 70,
+        "reliability": 80,
+        "games": 11
       },
       {
         "accountId": 402583877,
         "nickname": "SSS",
         "role": "offlane",
-        "ovr": 79,
-        "impact": 80,
-        "economy": 85,
-        "reliability": 78,
-        "games": 8
+        "ovr": 78,
+        "impact": 79,
+        "economy": 84,
+        "reliability": 81,
+        "games": 11
       }
     ],
     "signatureHeroes": [
-      9,
       18,
       21,
       35,
+      63,
       65,
+      77,
+      78,
       81,
-      90,
       119,
-      137,
-      145
+      137
     ]
   },
   {
@@ -78886,7 +78886,7 @@
         "ovr": 70,
         "impact": 69,
         "economy": 76,
-        "reliability": 72,
+        "reliability": 74,
         "games": 4
       },
       {
@@ -78904,9 +78904,9 @@
         "nickname": "not_me",
         "role": "support",
         "ovr": 72,
-        "impact": 78,
-        "economy": 78,
-        "reliability": 74,
+        "impact": 79,
+        "economy": 79,
+        "reliability": 75,
         "games": 4
       },
       {
@@ -78915,8 +78915,8 @@
         "role": "safelane",
         "ovr": 71,
         "impact": 71,
-        "economy": 75,
-        "reliability": 75,
+        "economy": 76,
+        "reliability": 74,
         "games": 4
       },
       {
@@ -78926,7 +78926,7 @@
         "ovr": 70,
         "impact": 76,
         "economy": 70,
-        "reliability": 70,
+        "reliability": 71,
         "games": 4
       }
     ],
@@ -78960,11 +78960,11 @@
         "accountId": 137129583,
         "nickname": "Xm",
         "role": "mid",
-        "ovr": 72,
-        "impact": 74,
-        "economy": 66,
-        "reliability": 70,
-        "games": 6
+        "ovr": 70,
+        "impact": 73,
+        "economy": 63,
+        "reliability": 67,
+        "games": 9
       },
       {
         "accountId": 147767183,
@@ -78972,49 +78972,49 @@
         "role": "offlane",
         "ovr": 70,
         "impact": 65,
-        "economy": 66,
-        "reliability": 72,
-        "games": 6
+        "economy": 62,
+        "reliability": 74,
+        "games": 9
       },
       {
         "accountId": 157475523,
         "nickname": "XinQ",
         "role": "support",
-        "ovr": 72,
-        "impact": 70,
-        "economy": 72,
-        "reliability": 72,
-        "games": 6
+        "ovr": 73,
+        "impact": 71,
+        "economy": 79,
+        "reliability": 74,
+        "games": 9
       },
       {
         "accountId": 207829314,
         "nickname": "BoBoKa",
         "role": "support",
-        "ovr": 71,
-        "impact": 68,
-        "economy": 66,
-        "reliability": 71,
-        "games": 6
+        "ovr": 69,
+        "impact": 66,
+        "economy": 63,
+        "reliability": 67,
+        "games": 9
       },
       {
         "accountId": 898754153,
         "nickname": "Ame",
         "role": "safelane",
-        "ovr": 73,
-        "impact": 68,
-        "economy": 77,
-        "reliability": 68,
-        "games": 6
+        "ovr": 70,
+        "impact": 62,
+        "economy": 73,
+        "reliability": 65,
+        "games": 9
       }
     ],
     "signatureHeroes": [
       13,
       16,
-      19,
       21,
-      28,
-      30,
       35,
+      39,
+      51,
+      56,
       86,
       109,
       121
@@ -79038,50 +79038,50 @@
         "nickname": "skiter",
         "role": "safelane",
         "ovr": 72,
-        "impact": 68,
+        "impact": 67,
         "economy": 67,
         "reliability": 70,
-        "games": 7
+        "games": 10
       },
       {
         "accountId": 126842529,
         "nickname": "Ws`",
         "role": "offlane",
-        "ovr": 77,
-        "impact": 80,
-        "economy": 76,
-        "reliability": 76,
-        "games": 7
+        "ovr": 78,
+        "impact": 83,
+        "economy": 78,
+        "reliability": 73,
+        "games": 10
       },
       {
         "accountId": 256156323,
         "nickname": "Mira",
         "role": "support",
         "ovr": 74,
-        "impact": 74,
+        "impact": 71,
         "economy": 73,
-        "reliability": 71,
-        "games": 7
+        "reliability": 70,
+        "games": 10
       },
       {
         "accountId": 301750126,
         "nickname": "Mikoto",
         "role": "mid",
         "ovr": 75,
-        "impact": 77,
-        "economy": 73,
-        "reliability": 75,
-        "games": 7
+        "impact": 76,
+        "economy": 69,
+        "reliability": 73,
+        "games": 10
       },
       {
         "accountId": 320219866,
         "nickname": "kaori",
         "role": "support",
-        "ovr": 77,
-        "impact": 79,
-        "economy": 84,
-        "reliability": 78,
-        "games": 7
+        "ovr": 80,
+        "impact": 83,
+        "economy": 88,
+        "reliability": 79,
+        "games": 10
       }
     ],
     "signatureHeroes": [
@@ -79090,10 +79090,10 @@
       49,
       58,
       62,
+      64,
       77,
-      93,
+      80,
       110,
-      120,
       123
     ]
   },
@@ -79115,7 +79115,7 @@
         "nickname": "J",
         "role": "offlane",
         "ovr": 71,
-        "impact": 66,
+        "impact": 67,
         "economy": 72,
         "reliability": 76,
         "games": 6
@@ -79126,18 +79126,18 @@
         "role": "support",
         "ovr": 73,
         "impact": 74,
-        "economy": 68,
-        "reliability": 79,
+        "economy": 69,
+        "reliability": 78,
         "games": 6
       },
       {
         "accountId": 218367241,
         "nickname": "Ken",
         "role": "mid",
-        "ovr": 74,
-        "impact": 78,
-        "economy": 78,
-        "reliability": 73,
+        "ovr": 75,
+        "impact": 79,
+        "economy": 80,
+        "reliability": 72,
         "games": 6
       },
       {
@@ -79146,7 +79146,7 @@
         "role": "support",
         "ovr": 73,
         "impact": 76,
-        "economy": 72,
+        "economy": 73,
         "reliability": 71,
         "games": 6
       },
@@ -79156,7 +79156,7 @@
         "role": "safelane",
         "ovr": 72,
         "impact": 74,
-        "economy": 70,
+        "economy": 71,
         "reliability": 79,
         "games": 6
       }
@@ -79191,64 +79191,64 @@
         "accountId": 93817671,
         "nickname": "Maladych",
         "role": "support",
-        "ovr": 83,
-        "impact": 77,
-        "economy": 79,
+        "ovr": 84,
+        "impact": 76,
+        "economy": 83,
         "reliability": 74,
-        "games": 4
+        "games": 7
       },
       {
         "accountId": 103735745,
         "nickname": "Saksa",
         "role": "support",
-        "ovr": 84,
-        "impact": 79,
-        "economy": 80,
-        "reliability": 80,
-        "games": 4
+        "ovr": 86,
+        "impact": 77,
+        "economy": 81,
+        "reliability": 82,
+        "games": 7
       },
       {
         "accountId": 171262902,
         "nickname": "医者watson`",
         "role": "safelane",
-        "ovr": 83,
-        "impact": 81,
-        "economy": 75,
-        "reliability": 78,
-        "games": 4
+        "ovr": 87,
+        "impact": 86,
+        "economy": 79,
+        "reliability": 83,
+        "games": 7
       },
       {
         "accountId": 183719386,
         "nickname": "AMMAR_THE_F",
         "role": "offlane",
-        "ovr": 82,
-        "impact": 77,
-        "economy": 78,
-        "reliability": 74,
-        "games": 4
+        "ovr": 84,
+        "impact": 75,
+        "economy": 82,
+        "reliability": 75,
+        "games": 7
       },
       {
         "accountId": 312436974,
         "nickname": "CHIRA_JUNIOR",
         "role": "mid",
-        "ovr": 82,
-        "impact": 76,
-        "economy": 73,
-        "reliability": 76,
-        "games": 4
+        "ovr": 83,
+        "impact": 74,
+        "economy": 74,
+        "reliability": 77,
+        "games": 7
       }
     ],
     "signatureHeroes": [
+      7,
       16,
       21,
       28,
       30,
-      32,
-      38,
-      47,
+      37,
       77,
       97,
-      119
+      119,
+      145
     ]
   },
   {
@@ -79268,64 +79268,64 @@
         "accountId": 73401082,
         "nickname": "Dukalis",
         "role": "support",
-        "ovr": 77,
-        "impact": 73,
-        "economy": 74,
-        "reliability": 71,
-        "games": 5
+        "ovr": 82,
+        "impact": 71,
+        "economy": 73,
+        "reliability": 74,
+        "games": 7
       },
       {
         "accountId": 106573901,
         "nickname": "No[o]ne-",
         "role": "mid",
-        "ovr": 80,
-        "impact": 80,
-        "economy": 77,
-        "reliability": 78,
-        "games": 5
+        "ovr": 86,
+        "impact": 81,
+        "economy": 80,
+        "reliability": 81,
+        "games": 7
       },
       {
         "accountId": 164199202,
         "nickname": "9Class",
         "role": "support",
-        "ovr": 78,
-        "impact": 72,
-        "economy": 81,
-        "reliability": 74,
-        "games": 5
+        "ovr": 85,
+        "impact": 77,
+        "economy": 84,
+        "reliability": 77,
+        "games": 7
       },
       {
         "accountId": 195108598,
         "nickname": "Noticed",
         "role": "offlane",
-        "ovr": 79,
+        "ovr": 84,
         "impact": 74,
-        "economy": 74,
-        "reliability": 79,
-        "games": 5
+        "economy": 75,
+        "reliability": 82,
+        "games": 7
       },
       {
         "accountId": 1044002267,
         "nickname": "Satanic",
         "role": "safelane",
-        "ovr": 83,
-        "impact": 84,
-        "economy": 85,
-        "reliability": 80,
-        "games": 5
+        "ovr": 90,
+        "impact": 86,
+        "economy": 87,
+        "reliability": 86,
+        "games": 7
       }
     ],
     "signatureHeroes": [
+      7,
       12,
       16,
       17,
-      39,
-      45,
-      48,
+      29,
       49,
       50,
-      65,
-      68
+      68,
+      86,
+      108
     ]
   },
   {
@@ -79345,51 +79345,51 @@
         "accountId": 90423751,
         "nickname": "Bignum",
         "role": "support",
-        "ovr": 83,
-        "impact": 74,
-        "economy": 73,
-        "reliability": 81,
-        "games": 4
+        "ovr": 77,
+        "impact": 72,
+        "economy": 68,
+        "reliability": 79,
+        "games": 6
       },
       {
         "accountId": 154974246,
         "nickname": "RCY",
         "role": "mid",
-        "ovr": 84,
-        "impact": 80,
-        "economy": 79,
-        "reliability": 82,
-        "games": 4
+        "ovr": 77,
+        "impact": 77,
+        "economy": 72,
+        "reliability": 78,
+        "games": 6
       },
       {
         "accountId": 160119017,
         "nickname": "Fayde",
         "role": "offlane",
-        "ovr": 83,
-        "impact": 76,
-        "economy": 76,
-        "reliability": 81,
-        "games": 4
+        "ovr": 77,
+        "impact": 74,
+        "economy": 73,
+        "reliability": 79,
+        "games": 6
       },
       {
         "accountId": 177203952,
         "nickname": "Yuma",
         "role": "safelane",
-        "ovr": 83,
-        "impact": 76,
-        "economy": 79,
-        "reliability": 83,
-        "games": 4
+        "ovr": 77,
+        "impact": 74,
+        "economy": 77,
+        "reliability": 76,
+        "games": 6
       },
       {
         "accountId": 191362875,
         "nickname": "Speeed",
         "role": "support",
-        "ovr": 84,
-        "impact": 77,
-        "economy": 76,
-        "reliability": 80,
-        "games": 4
+        "ovr": 78,
+        "impact": 76,
+        "economy": 70,
+        "reliability": 79,
+        "games": 6
       }
     ],
     "signatureHeroes": [
@@ -79423,29 +79423,29 @@
         "nickname": "yamich",
         "role": "support",
         "ovr": 64,
-        "impact": 75,
-        "economy": 66,
-        "reliability": 76,
+        "impact": 76,
+        "economy": 67,
+        "reliability": 75,
         "games": 5
       },
       {
         "accountId": 50580004,
         "nickname": "Xibbe",
         "role": "offlane",
-        "ovr": 60,
+        "ovr": 61,
         "impact": 69,
-        "economy": 66,
-        "reliability": 69,
+        "economy": 67,
+        "reliability": 68,
         "games": 5
       },
       {
         "accountId": 140297552,
         "nickname": "No!ob™",
         "role": "mid",
-        "ovr": 61,
-        "impact": 72,
-        "economy": 66,
-        "reliability": 70,
+        "ovr": 62,
+        "impact": 73,
+        "economy": 67,
+        "reliability": 71,
         "games": 5
       },
       {
@@ -79463,9 +79463,9 @@
         "nickname": "Rein",
         "role": "support",
         "ovr": 65,
-        "impact": 76,
+        "impact": 77,
         "economy": 75,
-        "reliability": 77,
+        "reliability": 78,
         "games": 3
       }
     ],
@@ -79499,62 +79499,62 @@
         "accountId": 86698277,
         "nickname": "33",
         "role": "offlane",
-        "ovr": 83,
-        "impact": 73,
-        "economy": 78,
-        "reliability": 82,
-        "games": 4
+        "ovr": 77,
+        "impact": 69,
+        "economy": 77,
+        "reliability": 79,
+        "games": 7
       },
       {
         "accountId": 93618577,
         "nickname": "bzm",
         "role": "mid",
-        "ovr": 85,
-        "impact": 80,
-        "economy": 83,
-        "reliability": 80,
-        "games": 4
+        "ovr": 81,
+        "impact": 81,
+        "economy": 82,
+        "reliability": 82,
+        "games": 7
       },
       {
         "accountId": 136829091,
         "nickname": "Whitemon",
         "role": "support",
-        "ovr": 85,
-        "impact": 82,
-        "economy": 77,
-        "reliability": 80,
-        "games": 4
+        "ovr": 82,
+        "impact": 86,
+        "economy": 72,
+        "reliability": 78,
+        "games": 7
       },
       {
         "accountId": 331855530,
         "nickname": "Pure",
         "role": "safelane",
-        "ovr": 83,
-        "impact": 74,
-        "economy": 81,
-        "reliability": 80,
-        "games": 4
+        "ovr": 80,
+        "impact": 75,
+        "economy": 82,
+        "reliability": 79,
+        "games": 7
       },
       {
         "accountId": 346412363,
         "nickname": "Ari",
         "role": "support",
-        "ovr": 84,
-        "impact": 76,
-        "economy": 82,
-        "reliability": 81,
-        "games": 4
+        "ovr": 81,
+        "impact": 77,
+        "economy": 80,
+        "reliability": 84,
+        "games": 7
       }
     ],
     "signatureHeroes": [
-      7,
       16,
       21,
       65,
-      69,
-      77,
+      78,
+      80,
       102,
       105,
+      126,
       131,
       145
     ]
